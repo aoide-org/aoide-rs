@@ -94,6 +94,13 @@ impl<T> RemoteData<T> {
         self.round_counter
     }
 
+    /// Start the next round with a pending request new
+    ///
+    /// Requests that are already pending will be discarded when finished.
+    pub fn set_pending_now(&mut self) -> RoundCounter {
+        self.set_pending_since(Instant::now())
+    }
+
     /// Try to start the next round with a pending request
     ///
     /// Allows only a single pending request at a time.
@@ -108,6 +115,18 @@ impl<T> RemoteData<T> {
         (!self.is_pending()).then(|| self.set_pending_since(Instant::now()))
     }
 
+    /// Finish a pending request without updating the data
+    ///
+    /// Returns the last data snapshot if accepted or `None` if rejected.
+    pub fn finish_pending_round(&mut self, pending_round: RoundCounter) -> bool {
+        if !self.round_counter.finish_pending_round(pending_round) {
+            return false;
+        }
+        self.pending_since = None;
+        // Keep the last data snapshot
+        true
+    }
+
     /// Finish a pending request
     ///
     /// Returns the last data snapshot if accepted or `None` if rejected.
@@ -116,13 +135,15 @@ impl<T> RemoteData<T> {
         pending_round: RoundCounter,
         value: impl Into<T>,
         since: impl Into<Instant>,
-    ) -> Option<DataSnapshot<T>> {
+    ) -> (bool, Option<DataSnapshot<T>>) {
         if !self.round_counter.finish_pending_round(pending_round) {
-            return None;
+            return (false, None);
         }
         self.pending_since = None;
-        self.last_data_snapshot
-            .replace(DataSnapshot::new_since(value, since))
+        let last_data_snapshot = self
+            .last_data_snapshot
+            .replace(DataSnapshot::new_since(value, since));
+        (true, last_data_snapshot)
     }
 
     /// Finish a pending request now
@@ -132,12 +153,13 @@ impl<T> RemoteData<T> {
         &mut self,
         pending_round: RoundCounter,
         value: impl Into<T>,
-    ) -> Option<DataSnapshot<T>> {
+    ) -> (bool, Option<DataSnapshot<T>>) {
         if !self.round_counter.finish_pending_round(pending_round) {
-            return None;
+            return (false, None);
         }
         self.pending_since = None;
-        self.last_data_snapshot.replace(DataSnapshot::now(value))
+        let last_data_snapshot = self.last_data_snapshot.replace(DataSnapshot::now(value));
+        (true, last_data_snapshot)
     }
 }
 

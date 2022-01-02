@@ -37,49 +37,55 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if state
+                if let Some(pending_counter) = state
                     .remote_view
                     .last_purge_orphaned_outcome
                     .try_set_pending_now()
-                    .is_none()
                 {
+                    let task = Task::PurgeOrphaned {
+                        collection_uid,
+                        params,
+                    };
+                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    StateUpdated::maybe_changed(Action::dispatch_task(task))
+                } else {
+                    let self_reconstructed = Self::PurgeOrphaned {
+                        collection_uid,
+                        params,
+                    };
                     log::warn!(
-                        "Discarding intent while pending: {:?}",
-                        Self::PurgeOrphaned {
-                            collection_uid,
-                            params,
-                        }
+                        "Discarding intent while already pending: {:?}",
+                        self_reconstructed
                     );
-                    return StateUpdated::unchanged(None);
+                    StateUpdated::unchanged(None)
                 }
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::PurgeOrphaned {
-                    collection_uid,
-                    params,
-                }))
             }
             Self::PurgeUntracked {
                 collection_uid,
                 params,
             } => {
-                if state
+                if let Some(pending_counter) = state
                     .remote_view
                     .last_purge_untracked_outcome
                     .try_set_pending_now()
-                    .is_none()
                 {
+                    let task = Task::PurgeUntracked {
+                        collection_uid,
+                        params,
+                    };
+                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    StateUpdated::maybe_changed(Action::dispatch_task(task))
+                } else {
+                    let self_reconstructed = Self::PurgeUntracked {
+                        collection_uid,
+                        params,
+                    };
                     log::warn!(
-                        "Discarding intent while pending: {:?}",
-                        Self::PurgeUntracked {
-                            collection_uid,
-                            params,
-                        }
+                        "Discarding intent while already pending: {:?}",
+                        self_reconstructed
                     );
-                    return StateUpdated::unchanged(None);
+                    StateUpdated::unchanged(None)
                 }
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::PurgeUntracked {
-                    collection_uid,
-                    params,
-                }))
             }
         }
     }

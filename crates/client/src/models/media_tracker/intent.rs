@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_core::entity::EntityUid;
 
 use super::{Action, State, StateUpdated, Task};
 
@@ -22,7 +22,7 @@ pub enum Intent {
     FetchProgress,
     FetchStatus {
         collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
+        params: aoide_core_api::media::tracker::query_status::Params,
     },
     StartScanDirectories {
         collection_uid: EntityUid,
@@ -47,129 +47,131 @@ impl Intent {
         log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::FetchProgress => {
-                if state.remote_view.progress.try_set_pending_now().is_none() {
-                    log::warn!("Discarding intent while pending: {:?}", Self::FetchProgress);
-                    return StateUpdated::unchanged(None);
-                }
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::FetchProgress))
+                let pending_counter = state.remote_view.progress.set_pending_now();
+                let task = Task::FetchProgress { pending_counter };
+                log::debug!("Dispatching task {:?}", task);
+                StateUpdated::maybe_changed(Action::dispatch_task(task))
             }
             Self::FetchStatus {
                 collection_uid,
-                root_url,
+                params,
             } => {
-                if state.remote_view.status.try_set_pending_now().is_none() {
-                    log::warn!(
-                        "Discarding intent while pending: {:?}",
-                        Self::FetchStatus {
-                            collection_uid,
-                            root_url,
-                        }
-                    );
-                    return StateUpdated::unchanged(None);
-                }
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::FetchStatus {
+                let pending_counter = state.remote_view.progress.set_pending_now();
+                let task = Task::FetchStatus {
+                    pending_counter,
                     collection_uid,
-                    root_url,
-                }))
+                    params,
+                };
+                log::debug!("Dispatching task {:?}", task);
+                StateUpdated::maybe_changed(Action::dispatch_task(task))
             }
             Self::StartScanDirectories {
                 collection_uid,
                 params,
             } => {
-                if state
+                if let Some(pending_counter) = state
                     .remote_view
                     .last_scan_directories_outcome
                     .try_set_pending_now()
-                    .is_none()
                 {
+                    let task = Task::StartScanDirectories {
+                        collection_uid,
+                        params,
+                    };
+                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    StateUpdated::maybe_changed(Action::dispatch_task(task))
+                } else {
+                    let self_reconstructed = Self::StartScanDirectories {
+                        collection_uid,
+                        params,
+                    };
                     log::warn!(
-                        "Discarding intent while pending: {:?}",
-                        Self::StartScanDirectories {
-                            collection_uid,
-                            params,
-                        }
+                        "Discarding intent while already pending: {:?}",
+                        self_reconstructed
                     );
-                    return StateUpdated::unchanged(None);
+                    StateUpdated::unchanged(None)
                 }
-                // Start batch task
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartScanDirectories {
-                    collection_uid,
-                    params,
-                }))
             }
             Self::StartImportFiles {
                 collection_uid,
                 params,
             } => {
-                if state
+                if let Some(pending_counter) = state
                     .remote_view
                     .last_import_files_outcome
                     .try_set_pending_now()
-                    .is_none()
                 {
+                    let task = Task::StartImportFiles {
+                        collection_uid,
+                        params,
+                    };
+                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    StateUpdated::maybe_changed(Action::dispatch_task(task))
+                } else {
+                    let self_reconstructed = Self::StartImportFiles {
+                        collection_uid,
+                        params,
+                    };
                     log::warn!(
-                        "Discarding intent while pending: {:?}",
-                        Self::StartImportFiles {
-                            collection_uid,
-                            params,
-                        }
+                        "Discarding intent while already pending: {:?}",
+                        self_reconstructed
                     );
-                    return StateUpdated::unchanged(None);
+                    StateUpdated::unchanged(None)
                 }
-                // Start batch task
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartImportFiles {
-                    collection_uid,
-                    params,
-                }))
             }
             Self::StartFindUntrackedFiles {
                 collection_uid,
                 params,
             } => {
-                if state
+                if let Some(pending_counter) = state
                     .remote_view
                     .last_find_untracked_files_outcome
                     .try_set_pending_now()
-                    .is_none()
                 {
+                    let task = Task::StartFindUntrackedFiles {
+                        collection_uid,
+                        params,
+                    };
+                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    StateUpdated::maybe_changed(Action::dispatch_task(task))
+                } else {
+                    let self_reconstructed = Self::StartFindUntrackedFiles {
+                        collection_uid,
+                        params,
+                    };
                     log::warn!(
-                        "Discarding intent while pending: {:?}",
-                        Self::StartFindUntrackedFiles {
-                            collection_uid,
-                            params,
-                        }
+                        "Discarding intent while already pending: {:?}",
+                        self_reconstructed
                     );
-                    return StateUpdated::unchanged(None);
+                    StateUpdated::unchanged(None)
                 }
-                // Start batch task
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartFindUntrackedFiles {
-                    collection_uid,
-                    params,
-                }))
             }
             Self::UntrackDirectories {
                 collection_uid,
                 params,
             } => {
-                if state
+                if let Some(pending_counter) = state
                     .remote_view
                     .last_untrack_directories_outcome
                     .try_set_pending_now()
-                    .is_none()
                 {
+                    let task = Task::UntrackDirectories {
+                        collection_uid,
+                        params,
+                    };
+                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    StateUpdated::maybe_changed(Action::dispatch_task(task))
+                } else {
+                    let self_reconstructed = Self::UntrackDirectories {
+                        collection_uid,
+                        params,
+                    };
                     log::warn!(
-                        "Discarding intent while pending: {:?}",
-                        Self::UntrackDirectories {
-                            collection_uid,
-                            params,
-                        }
+                        "Discarding intent while already pending: {:?}",
+                        self_reconstructed
                     );
-                    return StateUpdated::unchanged(None);
+                    StateUpdated::unchanged(None)
                 }
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::UntrackDirectories {
-                    collection_uid,
-                    params,
-                }))
             }
         }
     }

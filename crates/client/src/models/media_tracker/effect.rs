@@ -20,12 +20,20 @@ use aoide_core_api::media::tracker::{
     untrack_directories::Outcome as UntrackDirectoriesOutcome, Progress, Status,
 };
 
+use crate::prelude::round_counter::RoundCounter;
+
 use super::{Action, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Effect {
-    FetchProgressFinished(anyhow::Result<Progress>),
-    FetchStatusFinished(anyhow::Result<Status>),
+    FetchProgressFinished {
+        pending_counter: RoundCounter,
+        result: anyhow::Result<Progress>,
+    },
+    FetchStatusFinished {
+        pending_counter: RoundCounter,
+        result: anyhow::Result<Status>,
+    },
     ScanDirectoriesFinished(anyhow::Result<ScanDirectoriesOutcome>),
     UntrackDirectoriesFinished(anyhow::Result<UntrackDirectoriesOutcome>),
     ImportFilesFinished(anyhow::Result<ImportFilesOutcome>),
@@ -37,66 +45,62 @@ impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
         log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
-            Self::FetchProgressFinished(res) => {
-                if !state.remote_view.progress.is_pending() {
-                    log::warn!(
-                        "Discarding effect while not pending: {:?}",
-                        Self::FetchProgressFinished(res)
-                    );
-                    return StateUpdated::unchanged(None);
-                }
-                match res {
-                    Ok(new_progress) => {
-                        let state_changed =
-                            state.remote_view.progress.last_value() != Some(&new_progress);
-                        state
-                            .remote_view
-                            .progress
-                            .finish_pending_round_with_value_now(
-                                state.remote_view.progress.round_counter(),
-                                new_progress,
-                            );
-                        if state_changed {
-                            StateUpdated::maybe_changed(None)
-                        } else {
-                            StateUpdated::unchanged(None)
-                        }
-                    }
-                    Err(err) => {
-                        StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+            Self::FetchProgressFinished {
+                pending_counter,
+                result,
+            } => match result {
+                Ok(progress) => {
+                    let (finished, _) = state
+                        .remote_view
+                        .progress
+                        .finish_pending_round_with_value_now(pending_counter, progress);
+                    if finished {
+                        StateUpdated::maybe_changed(None)
+                    } else {
+                        StateUpdated::unchanged(None)
                     }
                 }
-            }
-            Self::FetchStatusFinished(res) => {
-                if !state.remote_view.status.is_pending() {
-                    log::warn!(
-                        "Discarding effect while not pending: {:?}",
-                        Self::FetchStatusFinished(res)
-                    );
-                    return StateUpdated::unchanged(None);
-                }
-                match res {
-                    Ok(new_status) => {
-                        let state_changed =
-                            state.remote_view.status.last_value() != Some(&new_status);
-                        state
-                            .remote_view
-                            .status
-                            .finish_pending_round_with_value_now(
-                                state.remote_view.status.round_counter(),
-                                new_status,
-                            );
-                        if state_changed {
-                            StateUpdated::maybe_changed(None)
-                        } else {
-                            StateUpdated::unchanged(None)
-                        }
-                    }
-                    Err(err) => {
-                        StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                Err(err) => {
+                    let next_action = Action::apply_effect(Self::ErrorOccurred(err));
+                    let finished = state
+                        .remote_view
+                        .progress
+                        .finish_pending_round(pending_counter);
+                    if finished {
+                        StateUpdated::maybe_changed(next_action)
+                    } else {
+                        StateUpdated::unchanged(next_action)
                     }
                 }
-            }
+            },
+            Self::FetchStatusFinished {
+                pending_counter,
+                result,
+            } => match result {
+                Ok(status) => {
+                    let (finished, _) = state
+                        .remote_view
+                        .status
+                        .finish_pending_round_with_value_now(pending_counter, status);
+                    if finished {
+                        StateUpdated::maybe_changed(None)
+                    } else {
+                        StateUpdated::unchanged(None)
+                    }
+                }
+                Err(err) => {
+                    let next_action = Action::apply_effect(Self::ErrorOccurred(err));
+                    let finished = state
+                        .remote_view
+                        .status
+                        .finish_pending_round(pending_counter);
+                    if finished {
+                        StateUpdated::maybe_changed(next_action)
+                    } else {
+                        StateUpdated::unchanged(next_action)
+                    }
+                }
+            },
             Self::ScanDirectoriesFinished(res) => {
                 if !state.remote_view.last_scan_directories_outcome.is_pending() {
                     log::warn!(
@@ -117,7 +121,8 @@ impl Effect {
                                     .round_counter(),
                                 outcome,
                             );
-                        Action::dispatch_task(Task::FetchProgress)
+                        let pending_counter = state.remote_view.progress.set_pending_now();
+                        Action::dispatch_task(Task::FetchProgress { pending_counter })
                     }
                     Err(err) => {
                         state.remote_view.last_scan_directories_outcome.reset();
@@ -150,7 +155,8 @@ impl Effect {
                                     .round_counter(),
                                 outcome,
                             );
-                        Action::dispatch_task(Task::FetchProgress)
+                        let pending_counter = state.remote_view.progress.set_pending_now();
+                        Action::dispatch_task(Task::FetchProgress { pending_counter })
                     }
                     Err(err) => {
                         state.remote_view.last_untrack_directories_outcome.reset();
@@ -176,7 +182,8 @@ impl Effect {
                                 state.remote_view.last_import_files_outcome.round_counter(),
                                 outcome,
                             );
-                        Action::dispatch_task(Task::FetchProgress)
+                        let pending_counter = state.remote_view.progress.set_pending_now();
+                        Action::dispatch_task(Task::FetchProgress { pending_counter })
                     }
                     Err(err) => {
                         state.remote_view.last_import_files_outcome.reset();
@@ -209,7 +216,8 @@ impl Effect {
                                     .round_counter(),
                                 outcome,
                             );
-                        Action::dispatch_task(Task::FetchProgress)
+                        let pending_counter = state.remote_view.progress.set_pending_now();
+                        Action::dispatch_task(Task::FetchProgress { pending_counter })
                     }
                     Err(err) => {
                         state.remote_view.last_find_untracked_files_outcome.reset();

@@ -411,9 +411,8 @@ async fn main() -> anyhow::Result<()> {
                             },
                         };
                         subcommand_submitted = true;
-                        return Some(
-                            active_collection::Intent::CreateNewCollection(new_collection).into(),
-                        );
+                        let intent = active_collection::Intent::CreateCollection { new_collection };
+                        return Some(intent.into());
                     }
                     (subcommand, _) => {
                         debug_assert!(subcommand.is_empty());
@@ -421,15 +420,17 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
             }
-            if let ("media", Some(matches)) = matches.subcommand() {
+            if let ("media-tracker", Some(matches)) = matches.subcommand() {
                 if matches!(matches.subcommand(), ("progress", _)) {
                     subcommand_submitted = true;
                     last_media_tracker_progress_fetched = Some(Instant::now());
-                    return Some(media_tracker::Intent::FetchProgress.into());
+                    let intent = media_tracker::Intent::FetchProgress;
+                    return Some(intent.into());
                 }
                 if matches!(matches.subcommand(), ("abort", _)) {
                     subcommand_submitted = true;
-                    return Some(webcli::Intent::AbortPendingRequest);
+                    let intent = webcli::Intent::AbortPendingRequest;
+                    return Some(intent);
                 }
             }
 
@@ -463,12 +464,10 @@ async fn main() -> anyhow::Result<()> {
                             .find_available_collection_by_uid(collection_uid)
                             .is_some()
                         {
-                            return Some(
-                                active_collection::Intent::ActivateCollection(Some(
-                                    collection_uid.to_owned(),
-                                ))
-                                .into(),
-                            );
+                            let collection_uid = Some(collection_uid.to_owned());
+                            let intent =
+                                active_collection::Intent::ActivateCollection { collection_uid };
+                            return Some(intent.into());
                         } else {
                             log::warn!("Collection not available: {}", collection_uid);
                         }
@@ -490,7 +489,8 @@ async fn main() -> anyhow::Result<()> {
                 .available_collections
                 .is_pending()
             {
-                return Some(active_collection::Intent::FetchAvailableCollections.into());
+                let intent = active_collection::Intent::FetchAvailableCollections;
+                return Some(intent.into());
             }
 
             if subcommand_submitted {
@@ -512,15 +512,14 @@ async fn main() -> anyhow::Result<()> {
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"));
                             subcommand_submitted = true;
-                            return Some(
-                                media_sources::Intent::PurgeOrphaned {
-                                    collection_uid,
-                                    params: aoide_core_api::media::source::purge_orphaned::Params {
-                                        root_url: media_root_url,
-                                    },
-                                }
-                                .into(),
-                            );
+                            let params = aoide_core_api::media::source::purge_orphaned::Params {
+                                root_url: media_root_url,
+                            };
+                            let intent = media_sources::Intent::PurgeOrphaned {
+                                collection_uid,
+                                params,
+                            };
+                            return Some(intent.into());
                         }
                         ("purge-untracked", matches) => {
                             let collection_uid = collection.hdr.uid.clone();
@@ -528,16 +527,14 @@ async fn main() -> anyhow::Result<()> {
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"));
                             subcommand_submitted = true;
-                            return Some(
-                                media_sources::Intent::PurgeUntracked {
-                                    collection_uid,
-                                    params:
-                                        aoide_core_api::media::source::purge_untracked::Params {
-                                            root_url: media_root_url,
-                                        },
-                                }
-                                .into(),
-                            );
+                            let params = aoide_core_api::media::source::purge_untracked::Params {
+                                root_url: media_root_url,
+                            };
+                            let intent = media_sources::Intent::PurgeUntracked {
+                                collection_uid,
+                                params,
+                            };
+                            return Some(intent.into());
                         }
                         (subcommand, _) => {
                             debug_assert!(subcommand.is_empty());
@@ -561,13 +558,14 @@ async fn main() -> anyhow::Result<()> {
                                 });
                             subcommand_submitted = true;
                             last_media_tracker_status = None;
-                            return Some(
-                                media_tracker::Intent::FetchStatus {
-                                    collection_uid,
-                                    root_url: media_root_url,
-                                }
-                                .into(),
-                            );
+                            let params = aoide_core_api::media::tracker::query_status::Params {
+                                root_url: media_root_url,
+                            };
+                            let intent = media_tracker::Intent::FetchStatus {
+                                collection_uid,
+                                params,
+                            };
+                            return Some(intent.into());
                         }
                         ("scan-directories", matches) => {
                             let collection_uid = collection.hdr.uid.clone();
@@ -584,17 +582,15 @@ async fn main() -> anyhow::Result<()> {
                                         .map(Into::into)
                                 });
                             subcommand_submitted = true;
-                            return Some(
-                                media_tracker::Intent::StartScanDirectories {
-                                    collection_uid,
-                                    params:
-                                        aoide_core_api::media::tracker::scan_directories::Params {
-                                            root_url: media_root_url,
-                                            ..Default::default()
-                                        },
-                                }
-                                .into(),
-                            );
+                            let params = aoide_core_api::media::tracker::scan_directories::Params {
+                                root_url: media_root_url,
+                                ..Default::default()
+                            };
+                            let intent = media_tracker::Intent::StartScanDirectories {
+                                collection_uid,
+                                params,
+                            };
+                            return Some(intent.into());
                         }
                         ("untrack-directories", matches) => {
                             let collection_uid = collection.hdr.uid.clone();
@@ -603,16 +599,16 @@ async fn main() -> anyhow::Result<()> {
                                 .map(|s| s.parse().expect("URL"))
                                 .expect("required");
                             subcommand_submitted = true;
-                            return Some(
-                                media_tracker::Intent::UntrackDirectories {
-                                    collection_uid,
-                                    params: aoide_core_api::media::tracker::untrack_directories::Params {
-                                        root_url: Some(media_root_url),
-                                        status: None,
-                                    }
-                                }
-                                .into(),
-                            );
+                            let params =
+                                aoide_core_api::media::tracker::untrack_directories::Params {
+                                    root_url: Some(media_root_url),
+                                    status: None,
+                                };
+                            let intent = media_tracker::Intent::UntrackDirectories {
+                                collection_uid,
+                                params,
+                            };
+                            return Some(intent.into());
                         }
                         ("untrack-orphaned-directories", matches) => {
                             let collection_uid = collection.hdr.uid.clone();
@@ -620,16 +616,16 @@ async fn main() -> anyhow::Result<()> {
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"));
                             subcommand_submitted = true;
-                            return Some(
-                                media_tracker::Intent::UntrackDirectories {
-                                    collection_uid,
-                                    params: aoide_core_api::media::tracker::untrack_directories::Params {
-                                        root_url: media_root_url,
-                                        status: Some(DirTrackingStatus::Orphaned),
-                                    }
-                                }
-                                .into(),
-                            );
+                            let params =
+                                aoide_core_api::media::tracker::untrack_directories::Params {
+                                    root_url: media_root_url,
+                                    status: Some(DirTrackingStatus::Orphaned),
+                                };
+                            let intent = media_tracker::Intent::UntrackDirectories {
+                                collection_uid,
+                                params,
+                            };
+                            return Some(intent.into());
                         }
                         ("import-files", matches) => {
                             let collection_uid = collection.hdr.uid.clone();
@@ -637,16 +633,15 @@ async fn main() -> anyhow::Result<()> {
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"));
                             subcommand_submitted = true;
-                            return Some(
-                                media_tracker::Intent::StartImportFiles {
-                                    collection_uid,
-                                    params: aoide_core_api::media::tracker::import_files::Params {
-                                        root_url: media_root_url,
-                                        ..Default::default()
-                                    },
-                                }
-                                .into(),
-                            );
+                            let params = aoide_core_api::media::tracker::import_files::Params {
+                                root_url: media_root_url,
+                                ..Default::default()
+                            };
+                            let intent = media_tracker::Intent::StartImportFiles {
+                                collection_uid,
+                                params,
+                            };
+                            return Some(intent.into());
                         }
                         ("find-untracked-files", find_untracked_files_matches) => {
                             let collection_uid = collection.hdr.uid.clone();
@@ -663,16 +658,16 @@ async fn main() -> anyhow::Result<()> {
                                         .map(Into::into)
                                 });
                             subcommand_submitted = true;
-                            return Some(
-                                media_tracker::Intent::StartFindUntrackedFiles {
-                                    collection_uid,
-                                    params: aoide_core_api::media::tracker::find_untracked_files::Params {
-                                        root_url: media_root_url,
-                                        ..Default::default()
-                                    }
-                                }
-                                .into(),
-                            );
+                            let params =
+                                aoide_core_api::media::tracker::find_untracked_files::Params {
+                                    root_url: media_root_url,
+                                    ..Default::default()
+                                };
+                            let intent = media_tracker::Intent::StartFindUntrackedFiles {
+                                collection_uid,
+                                params,
+                            };
+                            return Some(intent.into());
                         }
                         (subcommand, _) => {
                             debug_assert!(subcommand.is_empty());

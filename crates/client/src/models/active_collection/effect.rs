@@ -13,34 +13,56 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, State, StateUpdate};
+use crate::prelude::round_counter::RoundCounter;
+
+use super::{Action, State, StateUpdated};
 
 use aoide_core::collection::Entity as CollectionEntity;
 
 #[derive(Debug)]
 pub enum Effect {
-    CreateNewCollectionFinished(anyhow::Result<CollectionEntity>),
-    FetchAvailableCollectionsFinished(anyhow::Result<Vec<CollectionEntity>>),
+    CreateCollectionFinished(anyhow::Result<CollectionEntity>),
+    FetchAvailableCollectionsFinished {
+        pending_counter: RoundCounter,
+        result: anyhow::Result<Vec<CollectionEntity>>,
+    },
     ErrorOccurred(anyhow::Error),
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> StateUpdate {
+    pub fn apply_on(self, state: &mut State) -> StateUpdated {
         log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
-            Self::CreateNewCollectionFinished(res) => match res {
-                Ok(_) => StateUpdate::unchanged(None),
-                Err(err) => StateUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
+            Self::CreateCollectionFinished(res) => match res {
+                Ok(_) => StateUpdated::unchanged(None),
+                Err(err) => StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
-            Self::FetchAvailableCollectionsFinished(res) => match res {
-                Ok(new_available_collections) => {
-                    state.set_available_collections(new_available_collections);
-                    StateUpdate::maybe_changed(None)
+            Self::FetchAvailableCollectionsFinished {
+                pending_counter,
+                result,
+            } => match result {
+                Ok(available_collections) => {
+                    let next_action = None;
+                    if state.finish_pending_available_collections(
+                        pending_counter,
+                        Some(available_collections),
+                    ) {
+                        StateUpdated::maybe_changed(next_action)
+                    } else {
+                        StateUpdated::unchanged(next_action)
+                    }
                 }
-                Err(err) => StateUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
+                Err(err) => {
+                    let next_action = Action::apply_effect(Self::ErrorOccurred(err));
+                    if state.finish_pending_available_collections(pending_counter, None) {
+                        StateUpdated::maybe_changed(next_action)
+                    } else {
+                        StateUpdated::unchanged(next_action)
+                    }
+                }
             },
             Self::ErrorOccurred(error) => {
-                StateUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(error)))
+                StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(error)))
             }
         }
     }

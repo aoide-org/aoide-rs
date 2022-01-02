@@ -39,15 +39,15 @@ impl Task {
                 collection_uid,
                 params,
             } => {
-                let res = purge_orphaned(env, &collection_uid, params).await;
-                Effect::PurgeOrphanedFinished(res)
+                let result = purge_orphaned(env, &collection_uid, params).await;
+                Effect::PurgeOrphanedFinished(result)
             }
             Self::PurgeUntracked {
                 collection_uid,
                 params,
             } => {
-                let res = purge_untracked(env, &collection_uid, params).await;
-                Effect::PurgeUntrackedFinished(res)
+                let result = purge_untracked(env, &collection_uid, params).await;
+                Effect::PurgeUntrackedFinished(result)
             }
         }
     }

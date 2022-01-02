@@ -13,38 +13,47 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, State, StateUpdate, Task};
+use super::{Action, State, StateUpdated, Task};
 
 use aoide_core::{collection::Collection, entity::EntityUid};
 
 #[derive(Debug)]
 pub enum Intent {
-    CreateNewCollection(Collection),
+    CreateCollection { new_collection: Collection },
     FetchAvailableCollections,
-    ActivateCollection(Option<EntityUid>),
+    ActivateCollection { collection_uid: Option<EntityUid> },
 }
 
 impl Intent {
-    pub fn apply_on(self, state: &mut State) -> StateUpdate {
+    pub fn apply_on(self, state: &mut State) -> StateUpdated {
         log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
-            Self::CreateNewCollection(new_collection) => StateUpdate::unchanged(
-                Action::dispatch_task(Task::CreateNewCollection(new_collection)),
-            ),
+            Self::CreateCollection { new_collection } => {
+                let task = Task::CreateCollection { new_collection };
+                log::debug!("Dispatching task {:?}", task);
+                StateUpdated::unchanged(Action::dispatch_task(task))
+            }
             Self::FetchAvailableCollections => {
-                if state
+                if let Some(pending_counter) = state
                     .remote_view
                     .available_collections
                     .try_set_pending_now()
-                    .is_none()
                 {
-                    return StateUpdate::unchanged(None);
+                    let task = Task::FetchAvailableCollections { pending_counter };
+                    log::debug!("Dispatching task {:?}", task);
+                    StateUpdated::maybe_changed(Action::dispatch_task(task))
+                } else {
+                    let self_reconstructed = Self::FetchAvailableCollections;
+                    log::warn!(
+                        "Discarding intent while already pending: {:?}",
+                        self_reconstructed
+                    );
+                    StateUpdated::unchanged(None)
                 }
-                StateUpdate::maybe_changed(Action::dispatch_task(Task::FetchAvailableCollections))
             }
-            Self::ActivateCollection(new_active_collection_uid) => {
-                state.set_active_collection_uid(new_active_collection_uid);
-                StateUpdate::maybe_changed(None)
+            Self::ActivateCollection { collection_uid } => {
+                state.set_active_collection_uid(collection_uid);
+                StateUpdated::maybe_changed(None)
             }
         }
     }

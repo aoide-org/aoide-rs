@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::remote::RemoteData;
+use crate::prelude::{remote::RemoteData, round_counter::RoundCounter};
 
 use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
 
@@ -73,18 +73,26 @@ impl State {
         }
     }
 
-    pub(super) fn set_available_collections(
+    pub(super) fn finish_pending_available_collections(
         &mut self,
-        new_available_collections: Vec<CollectionEntity>,
-    ) {
-        self.remote_view
-            .available_collections
-            .finish_pending_round_with_value_now(
-                self.remote_view.available_collections.round_counter(),
-                new_available_collections,
-            );
-        let active_uid = self.active_collection_uid.take();
-        self.set_active_collection_uid(active_uid);
+        pending_counter: RoundCounter,
+        available_collections: Option<Vec<CollectionEntity>>,
+    ) -> bool {
+        let finished = if let Some(available_collections) = available_collections {
+            self.remote_view
+                .available_collections
+                .finish_pending_round_with_value_now(pending_counter, available_collections)
+                .0
+        } else {
+            self.remote_view
+                .available_collections
+                .finish_pending_round(pending_counter)
+        };
+        if finished {
+            let active_uid = self.active_collection_uid.take();
+            self.set_active_collection_uid(active_uid);
+        }
+        finished
     }
 
     pub(super) fn set_active_collection_uid(

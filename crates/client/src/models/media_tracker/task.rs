@@ -13,19 +13,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_core::entity::EntityUid;
 
-use crate::{receive_response_body, WebClientEnvironment};
+use crate::{prelude::round_counter::RoundCounter, receive_response_body, WebClientEnvironment};
 
 use super::Effect;
 
 #[derive(Debug)]
 pub enum Task {
-    FetchStatus {
-        collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
+    FetchProgress {
+        pending_counter: RoundCounter,
     },
-    FetchProgress,
+    FetchStatus {
+        pending_counter: RoundCounter,
+        collection_uid: EntityUid,
+        params: aoide_core_api::media::tracker::query_status::Params,
+    },
     StartScanDirectories {
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::scan_directories::Params,
@@ -48,45 +51,51 @@ impl Task {
     pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
-            Self::FetchProgress => {
-                let res = fetch_progress(env).await;
-                Effect::FetchProgressFinished(res)
+            Self::FetchProgress { pending_counter } => {
+                let result = fetch_progress(env).await;
+                Effect::FetchProgressFinished {
+                    pending_counter,
+                    result,
+                }
             }
             Self::FetchStatus {
+                pending_counter,
                 collection_uid,
-                root_url,
+                params,
             } => {
-                let params = aoide_core_api::media::tracker::query_status::Params { root_url };
-                let res = fetch_status(env, &collection_uid, params).await;
-                Effect::FetchStatusFinished(res)
+                let result = fetch_status(env, &collection_uid, params).await;
+                Effect::FetchStatusFinished {
+                    pending_counter,
+                    result,
+                }
             }
             Self::StartScanDirectories {
                 collection_uid,
                 params,
             } => {
-                let res = start_scan_directories(env, &collection_uid, params).await;
-                Effect::ScanDirectoriesFinished(res)
+                let result = start_scan_directories(env, &collection_uid, params).await;
+                Effect::ScanDirectoriesFinished(result)
             }
             Self::StartImportFiles {
                 collection_uid,
                 params,
             } => {
-                let res = start_import_files(env, &collection_uid, params).await;
-                Effect::ImportFilesFinished(res)
+                let result = start_import_files(env, &collection_uid, params).await;
+                Effect::ImportFilesFinished(result)
             }
             Self::StartFindUntrackedFiles {
                 collection_uid,
                 params,
             } => {
-                let res = start_find_untracked_files(env, &collection_uid, params).await;
-                Effect::FindUntrackedFilesFinished(res)
+                let result = start_find_untracked_files(env, &collection_uid, params).await;
+                Effect::FindUntrackedFilesFinished(result)
             }
             Self::UntrackDirectories {
                 collection_uid,
                 params,
             } => {
-                let res = untrack_directories(env, &collection_uid, params).await;
-                Effect::UntrackDirectoriesFinished(res)
+                let result = untrack_directories(env, &collection_uid, params).await;
+                Effect::UntrackDirectoriesFinished(result)
             }
         }
     }

@@ -31,11 +31,11 @@ pub enum Intent {
     },
     InjectEffect(Box<Effect>),
     DiscardFirstErrors(NonZeroUsize),
+    AbortPendingRequest,
+    Terminate,
     ActiveCollection(active_collection::Intent),
     MediaSources(media_sources::Intent),
     MediaTracker(media_tracker::Intent),
-    AbortPendingRequest,
-    Terminate,
 }
 
 impl From<active_collection::Intent> for Intent {
@@ -60,18 +60,27 @@ impl Intent {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
         log::debug!("Applying intent {:?} on {:?}", self, state);
         match self {
-            Self::RenderState => StateUpdated::maybe_changed(None),
+            Self::RenderState => StateUpdated::maybe_changed(None), // enfore re-rendering
             Self::TimedIntent { not_before, intent } => {
-                if state.control_state != ControlState::Running {
-                    log::debug!("Discarding timed intent while not running: {:?}", intent);
-                    return StateUpdated::unchanged(None);
-                }
-                StateUpdated::unchanged(Action::dispatch_task(Task::TimedIntent {
-                    not_before,
-                    intent,
-                }))
+                let next_action = if state.control_state == ControlState::Running {
+                    Some(Action::dispatch_task(Task::TimedIntent {
+                        not_before,
+                        intent,
+                    }))
+                } else {
+                    let self_reconstructed = Self::TimedIntent { not_before, intent };
+                    log::debug!(
+                        "Discarding intent while not running: {:?}",
+                        self_reconstructed
+                    );
+                    None
+                };
+                StateUpdated::unchanged(next_action)
             }
-            Self::InjectEffect(effect) => StateUpdated::unchanged(Action::apply_effect(*effect)),
+            Self::InjectEffect(effect) => {
+                let next_action = Action::apply_effect(*effect);
+                StateUpdated::unchanged(next_action)
+            }
             Self::DiscardFirstErrors(num_errors_requested) => {
                 let num_errors =
                     NonZeroUsize::new(num_errors_requested.get().min(state.last_errors.len()));
@@ -93,6 +102,19 @@ impl Intent {
                 };
                 StateUpdated::unchanged(next_action)
             }
+            Self::AbortPendingRequest => {
+                let next_action = abort_pending_request_action(state);
+                StateUpdated::unchanged(next_action)
+            }
+            Self::Terminate => {
+                if state.control_state == ControlState::Terminating {
+                    // Already terminating, nothing to do
+                    return StateUpdated::unchanged(None);
+                }
+                state.control_state = ControlState::Terminating;
+                let next_action = abort_pending_request_action(state);
+                StateUpdated::maybe_changed(next_action)
+            }
             Self::ActiveCollection(intent) => {
                 if state.control_state != ControlState::Running {
                     log::debug!("Discarding intent while not running: {:?}", intent);
@@ -113,16 +135,6 @@ impl Intent {
                     return StateUpdated::unchanged(None);
                 }
                 state_updated(intent.apply_on(&mut state.media_tracker))
-            }
-            Self::AbortPendingRequest => {
-                StateUpdated::unchanged(abort_pending_request_action(state))
-            }
-            Self::Terminate => {
-                if state.control_state == ControlState::Terminating {
-                    return StateUpdated::unchanged(None);
-                }
-                state.control_state = ControlState::Terminating;
-                StateUpdated::maybe_changed(abort_pending_request_action(state))
             }
         }
     }

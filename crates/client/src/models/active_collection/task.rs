@@ -15,27 +15,30 @@
 
 use aoide_core::collection::{Collection, Entity as CollectionEntity};
 
-use crate::{receive_response_body, WebClientEnvironment};
+use crate::{prelude::round_counter::RoundCounter, receive_response_body, WebClientEnvironment};
 
 use super::Effect;
 
 #[derive(Debug)]
 pub enum Task {
-    CreateNewCollection(Collection),
-    FetchAvailableCollections,
+    CreateCollection { new_collection: Collection },
+    FetchAvailableCollections { pending_counter: RoundCounter },
 }
 
 impl Task {
     pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
         log::trace!("Executing task: {:?}", self);
         match self {
-            Self::CreateNewCollection(new_collection) => {
-                let res = create_new_collection(env, new_collection).await;
-                Effect::CreateNewCollectionFinished(res)
+            Self::CreateCollection { new_collection } => {
+                let result = create_new_collection(env, new_collection).await;
+                Effect::CreateCollectionFinished(result)
             }
-            Self::FetchAvailableCollections => {
-                let res = fetch_available_collections(env).await;
-                Effect::FetchAvailableCollectionsFinished(res)
+            Self::FetchAvailableCollections { pending_counter } => {
+                let result = fetch_available_collections(env).await;
+                Effect::FetchAvailableCollectionsFinished {
+                    pending_counter,
+                    result,
+                }
             }
         }
     }
