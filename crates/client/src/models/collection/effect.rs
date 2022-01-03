@@ -21,11 +21,16 @@ use super::{Action, State, StateUpdated};
 
 #[derive(Debug)]
 pub enum Effect {
-    CreateCollectionFinished(anyhow::Result<CollectionEntity>),
-    FetchAvailableCollectionsFinished {
+    FetchAllKindsFinished {
         token: PendingToken,
+        result: anyhow::Result<Vec<String>>,
+    },
+    FetchFilteredEntitiesFinished {
+        token: PendingToken,
+        filtered_by_kind: Option<String>,
         result: anyhow::Result<Vec<CollectionEntity>>,
     },
+    CreateEntityFinished(anyhow::Result<CollectionEntity>),
     ErrorOccurred(anyhow::Error),
 }
 
@@ -33,16 +38,10 @@ impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
         log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
-            Self::CreateCollectionFinished(res) => match res {
-                Ok(_) => StateUpdated::unchanged(None),
-                Err(err) => StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
-            },
-            Self::FetchAvailableCollectionsFinished { token, result } => match result {
-                Ok(available_collections) => {
+            Self::FetchAllKindsFinished { token, result } => match result {
+                Ok(all_kinds) => {
                     let next_action = None;
-                    if state
-                        .finish_pending_available_collections(token, Some(available_collections))
-                    {
+                    if state.finish_pending_all_kinds(token, Some(all_kinds)) {
                         StateUpdated::maybe_changed(next_action)
                     } else {
                         StateUpdated::unchanged(next_action)
@@ -50,12 +49,42 @@ impl Effect {
                 }
                 Err(err) => {
                     let next_action = Action::apply_effect(Self::ErrorOccurred(err));
-                    if state.finish_pending_available_collections(token, None) {
+                    if state.finish_pending_all_kinds(token, None) {
                         StateUpdated::maybe_changed(next_action)
                     } else {
                         StateUpdated::unchanged(next_action)
                     }
                 }
+            },
+            Self::FetchFilteredEntitiesFinished {
+                token,
+                filtered_by_kind,
+                result,
+            } => match result {
+                Ok(filtered_entities) => {
+                    let next_action = None;
+                    if state.finish_pending_filtered_entities(
+                        token,
+                        filtered_by_kind,
+                        Some(filtered_entities),
+                    ) {
+                        StateUpdated::maybe_changed(next_action)
+                    } else {
+                        StateUpdated::unchanged(next_action)
+                    }
+                }
+                Err(err) => {
+                    let next_action = Action::apply_effect(Self::ErrorOccurred(err));
+                    if state.finish_pending_filtered_entities(token, filtered_by_kind, None) {
+                        StateUpdated::maybe_changed(next_action)
+                    } else {
+                        StateUpdated::unchanged(next_action)
+                    }
+                }
+            },
+            Self::CreateEntityFinished(res) => match res {
+                Ok(_) => StateUpdated::unchanged(None),
+                Err(err) => StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
             Self::ErrorOccurred(error) => {
                 StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(error)))

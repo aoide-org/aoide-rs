@@ -19,27 +19,61 @@ use crate::util::{remote::RemoteData, roundtrip::PendingToken};
 
 #[derive(Debug, Default)]
 pub struct RemoteView {
-    pub available_collections: RemoteData<Vec<CollectionEntity>>,
+    pub all_kinds: RemoteData<Vec<String>>,
+    pub filtered_by_kind: Option<String>,
+    pub filtered_entities: RemoteData<Vec<CollectionEntity>>,
 }
 
 impl RemoteView {
     pub fn is_pending(&self) -> bool {
-        self.available_collections.is_pending()
+        self.all_kinds.is_pending() || self.filtered_entities.is_pending()
     }
 
-    fn count_available_collections_by_uid(&self, uid: &EntityUid) -> Option<usize> {
-        self.available_collections
+    pub(super) fn finish_pending_all_kinds(
+        &mut self,
+        token: PendingToken,
+        all_kinds: Option<Vec<String>>,
+    ) -> bool {
+        if let Some(all_kinds) = all_kinds {
+            self.all_kinds
+                .finish_pending_with_value_now(token, all_kinds)
+                .is_ok()
+        } else {
+            self.all_kinds.finish_pending(token)
+        }
+    }
+
+    pub(super) fn finish_pending_filtered_entities(
+        &mut self,
+        token: PendingToken,
+        filtered_by_kind: Option<String>,
+        filtered_entities: Option<Vec<CollectionEntity>>,
+    ) -> bool {
+        if let Some(filtered_entities) = filtered_entities {
+            if self
+                .filtered_entities
+                .finish_pending_with_value_now(token, filtered_entities)
+                .is_ok()
+            {
+                self.filtered_by_kind = filtered_by_kind;
+                true
+            } else {
+                false
+            }
+        } else {
+            self.filtered_entities.finish_pending(token)
+        }
+    }
+
+    fn count_entities_by_uid(&self, uid: &EntityUid) -> Option<usize> {
+        self.filtered_entities
             .last_value()
             .map(|v| v.iter().filter(|x| &x.hdr.uid == uid).count())
     }
 
-    pub fn find_available_collection_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
-        debug_assert!(
-            self.count_available_collections_by_uid(uid)
-                .unwrap_or_default()
-                <= 1
-        );
-        self.available_collections
+    pub fn find_entity_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
+        debug_assert!(self.count_entities_by_uid(uid).unwrap_or_default() <= 1);
+        self.filtered_entities
             .last_value()
             .and_then(|v| v.iter().find(|x| &x.hdr.uid == uid))
     }
@@ -48,7 +82,7 @@ impl RemoteView {
 #[derive(Debug, Default)]
 pub struct State {
     pub(super) remote_view: RemoteView,
-    pub(super) active_collection_uid: Option<EntityUid>,
+    pub(super) active_entity_uid: Option<EntityUid>,
 }
 
 impl State {
@@ -56,52 +90,55 @@ impl State {
         &self.remote_view
     }
 
-    pub const fn active_collection_uid(&self) -> Option<&EntityUid> {
-        self.active_collection_uid.as_ref()
+    pub const fn active_entity_uid(&self) -> Option<&EntityUid> {
+        self.active_entity_uid.as_ref()
     }
 
-    pub fn active_collection(&self) -> Option<&CollectionEntity> {
-        if let (Some(available_collections), Some(active_collection_uid)) = (
-            self.remote_view.available_collections.last_value(),
-            &self.active_collection_uid,
+    pub fn active_entity(&self) -> Option<&CollectionEntity> {
+        if let (Some(filtered_entities), Some(active_entity_uid)) = (
+            self.remote_view.filtered_entities.last_value(),
+            &self.active_entity_uid,
         ) {
-            available_collections
+            filtered_entities
                 .iter()
-                .find(|x| &x.hdr.uid == active_collection_uid)
+                .find(|x| &x.hdr.uid == active_entity_uid)
         } else {
             None
         }
     }
 
-    pub(super) fn finish_pending_available_collections(
+    pub(super) fn finish_pending_filtered_entities(
         &mut self,
         token: PendingToken,
-        available_collections: Option<Vec<CollectionEntity>>,
+        filtered_by_kind: Option<String>,
+        filtered_entities: Option<Vec<CollectionEntity>>,
     ) -> bool {
-        let finished = if let Some(available_collections) = available_collections {
-            self.remote_view
-                .available_collections
-                .finish_pending_with_value_now(token, available_collections)
-                .is_ok()
-        } else {
-            self.remote_view.available_collections.finish_pending(token)
-        };
+        let finished = self.remote_view.finish_pending_filtered_entities(
+            token,
+            filtered_by_kind,
+            filtered_entities,
+        );
         if finished {
-            let active_uid = self.active_collection_uid.take();
-            self.set_active_collection_uid(active_uid);
+            let active_uid = self.active_entity_uid.take();
+            self.set_active_entity_uid(active_uid);
         }
         finished
     }
 
-    pub(super) fn set_active_collection_uid(
+    pub(super) fn finish_pending_all_kinds(
         &mut self,
-        new_active_uid: impl Into<Option<EntityUid>>,
-    ) {
-        self.active_collection_uid = if let (Some(available_collections), Some(new_active_uid)) = (
-            self.remote_view.available_collections.last_value(),
+        token: PendingToken,
+        all_kinds: Option<Vec<String>>,
+    ) -> bool {
+        self.remote_view.finish_pending_all_kinds(token, all_kinds)
+    }
+
+    pub(super) fn set_active_entity_uid(&mut self, new_active_uid: impl Into<Option<EntityUid>>) {
+        self.active_entity_uid = if let (Some(filtered_entities), Some(new_active_uid)) = (
+            self.remote_view.filtered_entities.last_value(),
             new_active_uid.into(),
         ) {
-            if available_collections
+            if filtered_entities
                 .iter()
                 .any(|x| x.hdr.uid == new_active_uid)
             {

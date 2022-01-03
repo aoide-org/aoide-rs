@@ -405,7 +405,7 @@ async fn main() -> anyhow::Result<()> {
                             },
                         };
                         subcommand_submitted = true;
-                        let intent = collection::Intent::CreateCollection { new_collection };
+                        let intent = collection::Intent::CreateEntity { new_collection };
                         return Some(intent.into());
                     }
                     (subcommand, _) => {
@@ -429,22 +429,19 @@ async fn main() -> anyhow::Result<()> {
             }
 
             // Select an active collection
-            if let Some(available_collections) = state
+            if let Some(filtered_entities) = state
                 .active_collection
                 .remote_view()
-                .available_collections
+                .filtered_entities
                 .last_snapshot()
             {
-                if state.active_collection.active_collection_uid().is_none() {
-                    if available_collections.value.is_empty() {
+                if state.active_collection.active_entity_uid().is_none() {
+                    if filtered_entities.value.is_empty() {
                         log::warn!("No collections available");
                         return None;
                     }
-                    if collection_uid.is_none() && available_collections.value.len() == 1 {
-                        collection_uid = available_collections
-                            .value
-                            .get(0)
-                            .map(|e| e.hdr.uid.clone());
+                    if collection_uid.is_none() && filtered_entities.value.len() == 1 {
+                        collection_uid = filtered_entities.value.get(0).map(|e| e.hdr.uid.clone());
                         debug_assert!(collection_uid.is_some());
                         log::info!(
                             "Activating single collection: {}",
@@ -455,18 +452,18 @@ async fn main() -> anyhow::Result<()> {
                         if state
                             .active_collection
                             .remote_view()
-                            .find_available_collection_by_uid(collection_uid)
+                            .find_entity_by_uid(collection_uid)
                             .is_some()
                         {
-                            let collection_uid = Some(collection_uid.to_owned());
-                            let intent = collection::Intent::ActivateCollection { collection_uid };
+                            let entity_uid = Some(collection_uid.to_owned());
+                            let intent = collection::Intent::ActivateEntity { entity_uid };
                             return Some(intent.into());
                         } else {
                             log::warn!("Collection not available: {}", collection_uid);
                         }
                     }
-                    println!("Available collections:");
-                    for available_collection in available_collections.value.iter() {
+                    println!("Filtered collections:");
+                    for available_collection in filtered_entities.value.iter() {
                         println!(
                             "{}: {} | {}",
                             available_collection.hdr.uid,
@@ -479,10 +476,12 @@ async fn main() -> anyhow::Result<()> {
             } else if !state
                 .active_collection
                 .remote_view()
-                .available_collections
+                .filtered_entities
                 .is_pending()
             {
-                let intent = collection::Intent::FetchAvailableCollections;
+                // TODO: Provide kind as optional command line argument
+                let filter_by_kind = None;
+                let intent = collection::Intent::FetchFilteredEntities { filter_by_kind };
                 return Some(intent.into());
             }
 
@@ -491,8 +490,8 @@ async fn main() -> anyhow::Result<()> {
             }
 
             // Commands that require an active collection
-            if let Some(collection) = state.active_collection.active_collection() {
-                log::info!("Active collection: {}", collection.hdr.uid);
+            if let Some(entity) = state.active_collection.active_entity() {
+                log::info!("Active collection: {}", entity.hdr.uid);
                 if state.is_pending() {
                     last_media_tracker_progress_fetched = Some(Instant::now());
                     return Some(media_tracker::Intent::FetchProgress.into());
@@ -500,7 +499,7 @@ async fn main() -> anyhow::Result<()> {
                 match matches.subcommand() {
                     ("media-sources", Some(matches)) => match matches.subcommand() {
                         ("purge-orphaned", matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
+                            let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"));
@@ -515,7 +514,7 @@ async fn main() -> anyhow::Result<()> {
                             return Some(intent.into());
                         }
                         ("purge-untracked", matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
+                            let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"));
@@ -536,12 +535,12 @@ async fn main() -> anyhow::Result<()> {
                     },
                     ("media-tracker", Some(matches)) => match matches.subcommand() {
                         ("query-status", matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
+                            let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"))
                                 .or_else(|| {
-                                    collection
+                                    entity
                                         .body
                                         .media_source_config
                                         .source_path
@@ -561,12 +560,12 @@ async fn main() -> anyhow::Result<()> {
                             return Some(intent.into());
                         }
                         ("scan-directories", matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
+                            let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"))
                                 .or_else(|| {
-                                    collection
+                                    entity
                                         .body
                                         .media_source_config
                                         .source_path
@@ -586,7 +585,7 @@ async fn main() -> anyhow::Result<()> {
                             return Some(intent.into());
                         }
                         ("untrack-directories", matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
+                            let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"))
@@ -604,7 +603,7 @@ async fn main() -> anyhow::Result<()> {
                             return Some(intent.into());
                         }
                         ("untrack-orphaned-directories", matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
+                            let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"));
@@ -621,7 +620,7 @@ async fn main() -> anyhow::Result<()> {
                             return Some(intent.into());
                         }
                         ("import-files", matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
+                            let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"));
@@ -637,12 +636,12 @@ async fn main() -> anyhow::Result<()> {
                             return Some(intent.into());
                         }
                         ("find-untracked-files", find_untracked_files_matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
+                            let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = find_untracked_files_matches
                                 .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                 .map(|s| s.parse().expect("URL"))
                                 .or_else(|| {
-                                    collection
+                                    entity
                                         .body
                                         .media_source_config
                                         .source_path

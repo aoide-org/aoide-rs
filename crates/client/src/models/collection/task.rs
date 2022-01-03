@@ -24,27 +24,82 @@ use super::Effect;
 
 #[derive(Debug)]
 pub enum Task {
-    CreateCollection { new_collection: Collection },
-    FetchAvailableCollections { token: PendingToken },
+    FetchAllKinds {
+        token: PendingToken,
+    },
+    FetchFilteredEntities {
+        token: PendingToken,
+        filter_by_kind: Option<String>,
+    },
+    CreateEntity {
+        new_collection: Collection,
+    },
 }
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::trace!("Executing task: {:?}", self);
         match self {
-            Self::CreateCollection { new_collection } => {
-                let result = create_new_collection(env, new_collection).await;
-                Effect::CreateCollectionFinished(result)
+            Self::FetchAllKinds { token } => {
+                let result = fetch_all_kinds(env).await;
+                Effect::FetchAllKindsFinished { token, result }
             }
-            Self::FetchAvailableCollections { token } => {
-                let result = fetch_available_collections(env).await;
-                Effect::FetchAvailableCollectionsFinished { token, result }
+            Self::FetchFilteredEntities {
+                token,
+                filter_by_kind,
+            } => {
+                let result = fetch_filtered_entities(env, filter_by_kind.as_deref()).await;
+                Effect::FetchFilteredEntitiesFinished {
+                    token,
+                    filtered_by_kind: filter_by_kind,
+                    result,
+                }
+            }
+            Self::CreateEntity { new_collection } => {
+                let result = create_new_entity(env, new_collection).await;
+                Effect::CreateEntityFinished(result)
             }
         }
     }
 }
 
-pub async fn create_new_collection<E: ClientEnvironment>(
+pub async fn fetch_all_kinds<E: ClientEnvironment>(env: &E) -> anyhow::Result<Vec<String>> {
+    let request_url = env.join_api_url("c/kinds")?;
+    let request = env.client().get(request_url);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    let kinds = serde_json::from_slice::<Vec<String>>(&response_body)?;
+    log::debug!("Fetched {} kind(s)", kinds.len(),);
+    Ok(kinds)
+}
+
+pub async fn fetch_filtered_entities<E: ClientEnvironment>(
+    env: &E,
+    filter_by_kind: impl Into<Option<&str>>,
+) -> anyhow::Result<Vec<CollectionEntity>> {
+    let mut request_url = env.join_api_url("c")?;
+    let query_params = filter_by_kind
+        .into()
+        .and_then(|kind| serde_urlencoded::to_string(&kind).ok())
+        .map(|kind| format!("kind={}", kind));
+    request_url.set_query(query_params.as_deref());
+    let request = env.client().get(request_url);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    let (entities, errors): (Vec<_>, _) =
+        serde_json::from_slice::<Vec<aoide_core_json::collection::Entity>>(&response_body)?
+            .into_iter()
+            .map(TryFrom::try_from)
+            .partition(Result::is_ok);
+    if let Some(err) = errors.into_iter().map(Result::unwrap_err).next() {
+        return Err(err);
+    }
+    let entities: Vec<_> = entities.into_iter().map(Result::unwrap).collect();
+    log::debug!("Fetched {} filtered entities(s)", entities.len());
+    Ok(entities)
+}
+
+pub async fn create_new_entity<E: ClientEnvironment>(
     env: &E,
     new_collection: impl Into<aoide_core_json::collection::Collection>,
 ) -> anyhow::Result<CollectionEntity> {
@@ -58,24 +113,4 @@ pub async fn create_new_collection<E: ClientEnvironment>(
         .and_then(TryInto::try_into)?;
     log::debug!("Creating new collection entity succeeded: {:?}", entity);
     Ok(entity)
-}
-
-pub async fn fetch_available_collections<E: ClientEnvironment>(
-    env: &E,
-) -> anyhow::Result<Vec<CollectionEntity>> {
-    let request_url = env.join_api_url("c")?;
-    let request = env.client().get(request_url);
-    let response = request.send().await?;
-    let response_body = receive_response_body(response).await?;
-    let (entities, errors): (Vec<_>, _) =
-        serde_json::from_slice::<Vec<aoide_core_json::collection::Entity>>(&response_body)?
-            .into_iter()
-            .map(TryFrom::try_from)
-            .partition(Result::is_ok);
-    if let Some(err) = errors.into_iter().map(Result::unwrap_err).next() {
-        return Err(err);
-    }
-    let entities: Vec<_> = entities.into_iter().map(Result::unwrap).collect();
-    log::debug!("Fetched {} available collection(s)", entities.len(),);
-    Ok(entities)
 }
