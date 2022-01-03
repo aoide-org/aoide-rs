@@ -8,14 +8,12 @@ edition = "2021"
 
 [dependencies]
 anyhow = "*"
-bigdecimal = "*"
 diesel = { version = "*", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
 # Bundle SQLite code to prevent dynamic linking.
 # The pinned version must be compatible with diesel!
 libsqlite3-sys = { version = "0.22", features = ["bundled"] }
 log = "*"
 mime = "*"
-num-bigint = "*"
 num-derive = "*"
 num-traits = "*"
 semval = "*"

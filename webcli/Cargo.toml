@@ -8,7 +8,7 @@ anyhow = "*"
 clap = { version = "2" }
 env_logger = { version = ">=0.9" }
 log = "*"
-reqwest = "*"
+reqwest = { version = "*", default-features = false, features = ["rustls-tls"] }
 tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
 
 # Workspace dependencies
