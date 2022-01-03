@@ -16,7 +16,7 @@
 use aoide_core::collection::{Collection, Entity as CollectionEntity};
 
 use crate::{
-    util::round_counter::RoundCounter,
+    util::roundtrip::PendingWatermark,
     web::{receive_response_body, ClientEnvironment},
 };
 
@@ -25,7 +25,7 @@ use super::Effect;
 #[derive(Debug)]
 pub enum Task {
     CreateCollection { new_collection: Collection },
-    FetchAvailableCollections { pending_counter: RoundCounter },
+    FetchAvailableCollections { token: PendingWatermark },
 }
 
 impl Task {
@@ -36,12 +36,9 @@ impl Task {
                 let result = create_new_collection(env, new_collection).await;
                 Effect::CreateCollectionFinished(result)
             }
-            Self::FetchAvailableCollections { pending_counter } => {
+            Self::FetchAvailableCollections { token } => {
                 let result = fetch_available_collections(env).await;
-                Effect::FetchAvailableCollectionsFinished {
-                    pending_counter,
-                    result,
-                }
+                Effect::FetchAvailableCollectionsFinished { token, result }
             }
         }
     }

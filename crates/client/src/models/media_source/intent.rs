@@ -37,16 +37,17 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if let Some(pending_counter) = state
+                if let Some(token) = state
                     .remote_view
                     .last_purge_orphaned_outcome
-                    .try_set_pending_now()
+                    .try_start_pending_now()
                 {
                     let task = Task::PurgeOrphaned {
+                        token,
                         collection_uid,
                         params,
                     };
-                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    log::debug!("Dispatching task {:?}", task);
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::PurgeOrphaned {
@@ -64,16 +65,17 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if let Some(pending_counter) = state
+                if let Some(token) = state
                     .remote_view
                     .last_purge_untracked_outcome
-                    .try_set_pending_now()
+                    .try_start_pending_now()
                 {
                     let task = Task::PurgeUntracked {
+                        token,
                         collection_uid,
                         params,
                     };
-                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    log::debug!("Dispatching task {:?}", task);
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::PurgeUntracked {

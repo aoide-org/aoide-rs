@@ -16,7 +16,7 @@
 use aoide_core::entity::EntityUid;
 
 use crate::{
-    util::round_counter::RoundCounter,
+    util::roundtrip::PendingWatermark,
     web::{receive_response_body, ClientEnvironment},
 };
 
@@ -25,26 +25,30 @@ use super::Effect;
 #[derive(Debug)]
 pub enum Task {
     FetchProgress {
-        pending_counter: RoundCounter,
+        token: PendingWatermark,
     },
     FetchStatus {
-        pending_counter: RoundCounter,
+        token: PendingWatermark,
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::query_status::Params,
     },
     StartScanDirectories {
+        token: PendingWatermark,
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::scan_directories::Params,
     },
     StartImportFiles {
+        token: PendingWatermark,
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::import_files::Params,
     },
     StartFindUntrackedFiles {
+        token: PendingWatermark,
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::find_untracked_files::Params,
     },
     UntrackDirectories {
+        token: PendingWatermark,
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::untrack_directories::Params,
     },
@@ -54,51 +58,49 @@ impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
-            Self::FetchProgress { pending_counter } => {
+            Self::FetchProgress { token } => {
                 let result = fetch_progress(env).await;
-                Effect::FetchProgressFinished {
-                    pending_counter,
-                    result,
-                }
+                Effect::FetchProgressFinished { token, result }
             }
             Self::FetchStatus {
-                pending_counter,
+                token,
                 collection_uid,
                 params,
             } => {
                 let result = fetch_status(env, &collection_uid, params).await;
-                Effect::FetchStatusFinished {
-                    pending_counter,
-                    result,
-                }
+                Effect::FetchStatusFinished { token, result }
             }
             Self::StartScanDirectories {
+                token,
                 collection_uid,
                 params,
             } => {
                 let result = start_scan_directories(env, &collection_uid, params).await;
-                Effect::ScanDirectoriesFinished(result)
+                Effect::ScanDirectoriesFinished { token, result }
             }
             Self::StartImportFiles {
+                token,
                 collection_uid,
                 params,
             } => {
                 let result = start_import_files(env, &collection_uid, params).await;
-                Effect::ImportFilesFinished(result)
+                Effect::ImportFilesFinished { token, result }
             }
             Self::StartFindUntrackedFiles {
+                token,
                 collection_uid,
                 params,
             } => {
                 let result = start_find_untracked_files(env, &collection_uid, params).await;
-                Effect::FindUntrackedFilesFinished(result)
+                Effect::FindUntrackedFilesFinished { token, result }
             }
             Self::UntrackDirectories {
+                token,
                 collection_uid,
                 params,
             } => {
                 let result = untrack_directories(env, &collection_uid, params).await;
-                Effect::UntrackDirectoriesFinished(result)
+                Effect::UntrackDirectoriesFinished { token, result }
             }
         }
     }

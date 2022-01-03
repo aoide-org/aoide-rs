@@ -15,7 +15,7 @@
 
 use std::time::Instant;
 
-use super::round_counter::RoundCounter;
+use crate::util::roundtrip::{PendingWatermark, Watermark, WatermarkStartPending as _};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct DataSnapshot<T> {
@@ -24,7 +24,7 @@ pub struct DataSnapshot<T> {
 }
 
 impl<T> DataSnapshot<T> {
-    pub fn new_since(value: impl Into<T>, since: impl Into<Instant>) -> Self {
+    pub fn new(value: impl Into<T>, since: impl Into<Instant>) -> Self {
         Self {
             value: value.into(),
             since: since.into(),
@@ -47,119 +47,154 @@ impl<T> DataSnapshot<T> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RoundtripState {
+    Idle {
+        watermark: Watermark,
+    },
+    Pending {
+        watermark: PendingWatermark,
+        since: Instant,
+    },
+}
+
+impl RoundtripState {
+    pub const fn new() -> Self {
+        Self::Idle {
+            watermark: Watermark::INITIAL,
+        }
+    }
+
+    pub fn reset(&mut self) {
+        *self = Self::new();
+    }
+
+    pub fn start_pending(&mut self, since: impl Into<Instant>) -> PendingWatermark {
+        let since = since.into();
+        let watermark = match self {
+            Self::Idle { watermark } => watermark.start_pending(),
+            Self::Pending {
+                watermark,
+                since: _since,
+            } => {
+                debug_assert!(*_since <= since);
+                watermark.start_pending()
+            }
+        };
+        *self = Self::Pending { watermark, since };
+        watermark
+    }
+
+    pub fn finish_pending(&mut self, watermark: PendingWatermark) -> bool {
+        match self {
+            Self::Idle { .. } => false,
+            Self::Pending {
+                watermark: self_watermark,
+                since: _,
+            } => match self_watermark.finish_pending(watermark) {
+                Ok(watermark) => {
+                    *self = Self::Idle { watermark };
+                    true
+                }
+                Err(_) => false,
+            },
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct RemoteData<T> {
-    round_counter: RoundCounter,
-    pending_since: Option<Instant>,
-    last_data_snapshot: Option<DataSnapshot<T>>,
+    roundtrip_state: RoundtripState,
+    last_snapshot: Option<DataSnapshot<T>>,
 }
 
 impl<T> RemoteData<T> {
     pub const fn default() -> Self {
         Self {
-            round_counter: RoundCounter::default(),
-            pending_since: None,
-            last_data_snapshot: None,
+            roundtrip_state: RoundtripState::new(),
+            last_snapshot: None,
         }
     }
 
-    pub fn round_counter(&self) -> RoundCounter {
-        self.round_counter
-    }
-
-    pub fn last_data_snapshot(&self) -> Option<&DataSnapshot<T>> {
-        self.last_data_snapshot.as_ref()
+    pub fn last_snapshot(&self) -> Option<&DataSnapshot<T>> {
+        self.last_snapshot.as_ref()
     }
 
     pub fn last_value(&self) -> Option<&T> {
-        self.last_data_snapshot.as_ref().map(|x| &x.value)
+        self.last_snapshot.as_ref().map(|x| &x.value)
     }
 
     pub fn reset(&mut self) -> Option<DataSnapshot<T>> {
-        self.round_counter.reset();
-        self.pending_since = None;
-        self.last_data_snapshot.take()
+        self.roundtrip_state.reset();
+        self.last_snapshot.take()
     }
 
     pub fn is_pending(&self) -> bool {
-        self.round_counter.is_pending()
+        matches!(self.roundtrip_state, RoundtripState::Pending { .. })
     }
 
     /// Start the next round with a pending request
     ///
     /// Requests that are already pending will be discarded when finished.
-    pub fn set_pending_since(&mut self, since: impl Into<Instant>) -> RoundCounter {
-        self.round_counter.start_next_round();
-        self.pending_since = Some(since.into());
-        self.round_counter
+    pub fn start_pending(&mut self, since: impl Into<Instant>) -> PendingWatermark {
+        self.roundtrip_state.start_pending(since)
     }
 
     /// Start the next round with a pending request new
     ///
     /// Requests that are already pending will be discarded when finished.
-    pub fn set_pending_now(&mut self) -> RoundCounter {
-        self.set_pending_since(Instant::now())
+    pub fn start_pending_now(&mut self) -> PendingWatermark {
+        self.start_pending(Instant::now())
     }
 
     /// Try to start the next round with a pending request
     ///
     /// Allows only a single pending request at a time.
-    pub fn try_set_pending_since(&mut self, since: impl Into<Instant>) -> Option<RoundCounter> {
-        (!self.is_pending()).then(|| self.set_pending_since(since))
+    pub fn try_start_pending(&mut self, since: impl Into<Instant>) -> Option<PendingWatermark> {
+        (!self.is_pending()).then(|| self.start_pending(since))
     }
 
     /// Try to start the next round with a pending request
     ///
     /// Allows only a single pending request at a time.
-    pub fn try_set_pending_now(&mut self) -> Option<RoundCounter> {
-        (!self.is_pending()).then(|| self.set_pending_since(Instant::now()))
+    pub fn try_start_pending_now(&mut self) -> Option<PendingWatermark> {
+        (!self.is_pending()).then(|| self.start_pending(Instant::now()))
     }
 
-    /// Finish a pending request without updating the data
-    ///
-    /// Returns the last data snapshot if accepted or `None` if rejected.
-    pub fn finish_pending_round(&mut self, pending_round: RoundCounter) -> bool {
-        if !self.round_counter.finish_pending_round(pending_round) {
-            return false;
-        }
-        self.pending_since = None;
-        // Keep the last data snapshot
-        true
+    /// Finish a pending request without touching or updating any data
+    pub fn finish_pending(&mut self, token: PendingWatermark) -> bool {
+        self.roundtrip_state.finish_pending(token)
     }
 
     /// Finish a pending request
     ///
-    /// Returns the last data snapshot if accepted or `None` if rejected.
-    pub fn finish_pending_round_with_value_since(
+    /// Returns the last data snapshot if accepted or the given value if rejected.
+    pub fn finish_pending_with_value(
         &mut self,
-        pending_round: RoundCounter,
+        token: PendingWatermark,
         value: impl Into<T>,
         since: impl Into<Instant>,
-    ) -> (bool, Option<DataSnapshot<T>>) {
-        if !self.round_counter.finish_pending_round(pending_round) {
-            return (false, None);
+    ) -> Result<Option<DataSnapshot<T>>, T> {
+        if !self.finish_pending(token) {
+            return Err(value.into());
         }
-        self.pending_since = None;
-        let last_data_snapshot = self
-            .last_data_snapshot
-            .replace(DataSnapshot::new_since(value, since));
-        (true, last_data_snapshot)
+        let last_snapshot = self.last_snapshot.replace(DataSnapshot::new(value, since));
+        Ok(last_snapshot)
     }
 
     /// Finish a pending request now
     ///
-    /// Returns the last data snapshot if accepted or `None` if rejected.
-    pub fn finish_pending_round_with_value_now(
+    /// Returns the last data snapshot if accepted or the given value if rejected.
+    pub fn finish_pending_with_value_now(
         &mut self,
-        pending_round: RoundCounter,
+        token: PendingWatermark,
         value: impl Into<T>,
-    ) -> (bool, Option<DataSnapshot<T>>) {
-        if !self.round_counter.finish_pending_round(pending_round) {
-            return (false, None);
+    ) -> Result<Option<DataSnapshot<T>>, T> {
+        if !self.finish_pending(token) {
+            return Err(value.into());
         }
-        self.pending_since = None;
-        let last_data_snapshot = self.last_data_snapshot.replace(DataSnapshot::now(value));
-        (true, last_data_snapshot)
+        let last_snapshot = self.last_snapshot.replace(DataSnapshot::now(value));
+        Ok(last_snapshot)
     }
 }
 

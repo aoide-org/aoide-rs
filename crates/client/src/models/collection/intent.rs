@@ -34,12 +34,12 @@ impl Intent {
                 StateUpdated::unchanged(Action::dispatch_task(task))
             }
             Self::FetchAvailableCollections => {
-                if let Some(pending_counter) = state
+                if let Some(token) = state
                     .remote_view
                     .available_collections
-                    .try_set_pending_now()
+                    .try_start_pending_now()
                 {
-                    let task = Task::FetchAvailableCollections { pending_counter };
+                    let task = Task::FetchAvailableCollections { token };
                     log::debug!("Dispatching task {:?}", task);
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {

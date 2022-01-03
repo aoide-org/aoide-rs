@@ -47,8 +47,8 @@ impl Intent {
         log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::FetchProgress => {
-                let pending_counter = state.remote_view.progress.set_pending_now();
-                let task = Task::FetchProgress { pending_counter };
+                let token = state.remote_view.progress.start_pending_now();
+                let task = Task::FetchProgress { token };
                 log::debug!("Dispatching task {:?}", task);
                 StateUpdated::maybe_changed(Action::dispatch_task(task))
             }
@@ -56,9 +56,9 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                let pending_counter = state.remote_view.progress.set_pending_now();
+                let token = state.remote_view.progress.start_pending_now();
                 let task = Task::FetchStatus {
-                    pending_counter,
+                    token,
                     collection_uid,
                     params,
                 };
@@ -69,16 +69,17 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if let Some(pending_counter) = state
+                if let Some(token) = state
                     .remote_view
                     .last_scan_directories_outcome
-                    .try_set_pending_now()
+                    .try_start_pending_now()
                 {
                     let task = Task::StartScanDirectories {
+                        token,
                         collection_uid,
                         params,
                     };
-                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    log::debug!("Dispatching task {:?}", task);
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::StartScanDirectories {
@@ -96,16 +97,17 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if let Some(pending_counter) = state
+                if let Some(token) = state
                     .remote_view
                     .last_import_files_outcome
-                    .try_set_pending_now()
+                    .try_start_pending_now()
                 {
                     let task = Task::StartImportFiles {
+                        token,
                         collection_uid,
                         params,
                     };
-                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    log::debug!("Dispatching task {:?}", task);
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::StartImportFiles {
@@ -123,16 +125,17 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if let Some(pending_counter) = state
+                if let Some(token) = state
                     .remote_view
                     .last_find_untracked_files_outcome
-                    .try_set_pending_now()
+                    .try_start_pending_now()
                 {
                     let task = Task::StartFindUntrackedFiles {
+                        token,
                         collection_uid,
                         params,
                     };
-                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    log::debug!("Dispatching task {:?}", task);
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::StartFindUntrackedFiles {
@@ -150,16 +153,17 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if let Some(pending_counter) = state
+                if let Some(token) = state
                     .remote_view
                     .last_untrack_directories_outcome
-                    .try_set_pending_now()
+                    .try_start_pending_now()
                 {
                     let task = Task::UntrackDirectories {
+                        token,
                         collection_uid,
                         params,
                     };
-                    log::debug!("Dispatching task {:?} for {:?}", task, pending_counter);
+                    log::debug!("Dispatching task {:?}", task);
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::UntrackDirectories {

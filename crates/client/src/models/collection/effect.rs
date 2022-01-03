@@ -15,7 +15,7 @@
 
 use aoide_core::collection::Entity as CollectionEntity;
 
-use crate::util::round_counter::RoundCounter;
+use crate::util::roundtrip::PendingWatermark;
 
 use super::{Action, State, StateUpdated};
 
@@ -23,7 +23,7 @@ use super::{Action, State, StateUpdated};
 pub enum Effect {
     CreateCollectionFinished(anyhow::Result<CollectionEntity>),
     FetchAvailableCollectionsFinished {
-        pending_counter: RoundCounter,
+        token: PendingWatermark,
         result: anyhow::Result<Vec<CollectionEntity>>,
     },
     ErrorOccurred(anyhow::Error),
@@ -37,16 +37,12 @@ impl Effect {
                 Ok(_) => StateUpdated::unchanged(None),
                 Err(err) => StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
-            Self::FetchAvailableCollectionsFinished {
-                pending_counter,
-                result,
-            } => match result {
+            Self::FetchAvailableCollectionsFinished { token, result } => match result {
                 Ok(available_collections) => {
                     let next_action = None;
-                    if state.finish_pending_available_collections(
-                        pending_counter,
-                        Some(available_collections),
-                    ) {
+                    if state
+                        .finish_pending_available_collections(token, Some(available_collections))
+                    {
                         StateUpdated::maybe_changed(next_action)
                     } else {
                         StateUpdated::unchanged(next_action)
@@ -54,7 +50,7 @@ impl Effect {
                 }
                 Err(err) => {
                     let next_action = Action::apply_effect(Self::ErrorOccurred(err));
-                    if state.finish_pending_available_collections(pending_counter, None) {
+                    if state.finish_pending_available_collections(token, None) {
                         StateUpdated::maybe_changed(next_action)
                     } else {
                         StateUpdated::unchanged(next_action)

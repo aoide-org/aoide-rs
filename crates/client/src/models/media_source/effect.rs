@@ -13,12 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::util::roundtrip::PendingWatermark;
+
 use super::{Action, State, StateUpdated};
 
 #[derive(Debug)]
 pub enum Effect {
-    PurgeOrphanedFinished(anyhow::Result<aoide_core_api::media::source::purge_orphaned::Outcome>),
-    PurgeUntrackedFinished(anyhow::Result<aoide_core_api::media::source::purge_untracked::Outcome>),
+    PurgeOrphanedFinished {
+        token: PendingWatermark,
+        result: anyhow::Result<aoide_core_api::media::source::purge_orphaned::Outcome>,
+    },
+    PurgeUntrackedFinished {
+        token: PendingWatermark,
+        result: anyhow::Result<aoide_core_api::media::source::purge_untracked::Outcome>,
+    },
     ErrorOccurred(anyhow::Error),
 }
 
@@ -26,26 +34,21 @@ impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
         log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
-            Self::PurgeOrphanedFinished(res) => {
-                if !state.remote_view.last_purge_orphaned_outcome.is_pending() {
-                    log::warn!(
-                        "Discarding effect while not pending: {:?}",
-                        Self::PurgeOrphanedFinished(res)
-                    );
-                    return StateUpdated::unchanged(None);
-                }
-                let next_action = match res {
+            Self::PurgeOrphanedFinished { token, result } => {
+                let next_action = match result {
                     Ok(outcome) => {
-                        state
+                        if let Err(outcome) = state
                             .remote_view
                             .last_purge_orphaned_outcome
-                            .finish_pending_round_with_value_now(
-                                state
-                                    .remote_view
-                                    .last_purge_orphaned_outcome
-                                    .round_counter(),
-                                outcome,
-                            );
+                            .finish_pending_with_value_now(token, outcome)
+                        {
+                            let effect_reconstructed = Self::PurgeOrphanedFinished {
+                                token,
+                                result: Ok(outcome),
+                            };
+                            log::warn!("Discarding outdated effect: {:?}", effect_reconstructed);
+                            return StateUpdated::unchanged(None);
+                        }
                         None
                     }
                     Err(err) => {
@@ -55,26 +58,21 @@ impl Effect {
                 };
                 StateUpdated::maybe_changed(next_action)
             }
-            Self::PurgeUntrackedFinished(res) => {
-                if !state.remote_view.last_purge_untracked_outcome.is_pending() {
-                    log::warn!(
-                        "Discarding effect while not pending: {:?}",
-                        Self::PurgeUntrackedFinished(res)
-                    );
-                    return StateUpdated::unchanged(None);
-                }
-                let next_action = match res {
+            Self::PurgeUntrackedFinished { token, result } => {
+                let next_action = match result {
                     Ok(outcome) => {
-                        state
+                        if let Err(outcome) = state
                             .remote_view
                             .last_purge_untracked_outcome
-                            .finish_pending_round_with_value_now(
-                                state
-                                    .remote_view
-                                    .last_purge_untracked_outcome
-                                    .round_counter(),
-                                outcome,
-                            );
+                            .finish_pending_with_value_now(token, outcome)
+                        {
+                            let effect_reconstructed = Self::PurgeUntrackedFinished {
+                                token,
+                                result: Ok(outcome),
+                            };
+                            log::warn!("Discarding outdated effect: {:?}", effect_reconstructed);
+                            return StateUpdated::unchanged(None);
+                        }
                         None
                     }
                     Err(err) => {
