@@ -102,23 +102,6 @@ impl AsRef<Watermark> for PendingWatermark {
     }
 }
 
-impl PendingWatermark {
-    pub fn finish_pending(self, other: Self) -> Result<Watermark, Self> {
-        let Self(self_pending) = self;
-        debug_assert!(self_pending.is_pending());
-        let Self(other_pending) = other;
-        debug_assert!(other_pending.is_pending());
-        if self_pending > other_pending {
-            return Err(self);
-        }
-        debug_assert!(self_pending <= other_pending);
-        let mut finished = other_pending;
-        finished.bump_value();
-        debug_assert!(!finished.is_pending());
-        Ok(finished)
-    }
-}
-
 pub trait WatermarkStartPending {
     fn start_pending(self) -> PendingWatermark;
 }

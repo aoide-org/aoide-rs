@@ -15,7 +15,9 @@
 
 use std::time::Instant;
 
-use crate::util::roundtrip::{PendingWatermark, Watermark, WatermarkStartPending as _};
+use crate::util::roundtrip::{
+    PendingWatermark, Watermark, WatermarkFinishPending as _, WatermarkStartPending as _,
+};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct DataSnapshot<T> {
@@ -86,7 +88,7 @@ impl RoundtripState {
     }
 
     pub fn finish_pending(&mut self, watermark: PendingWatermark) -> bool {
-        match self {
+        match *self {
             Self::Idle { .. } => false,
             Self::Pending {
                 watermark: self_watermark,
