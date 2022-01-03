@@ -85,7 +85,7 @@ pub fn import_files<
             elapsed: started_at.elapsed(),
             summary: summary.clone(),
         });
-        let pending_entries = repo.media_tracker_load_directories_requiring_confirmation(
+        let pending_directories = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
             &vfs_ctx.root_path,
             &Pagination {
@@ -93,7 +93,7 @@ pub fn import_files<
                 limit: Some(1),
             },
         )?;
-        if pending_entries.is_empty() {
+        if pending_directories.is_empty() {
             log::debug!("Finished import of pending directories: {:?}", summary);
             let (root_url, root_path) = collection_ctx
                 .source_path
@@ -108,7 +108,7 @@ pub fn import_files<
             };
             break 'outcome outcome;
         }
-        for pending_entry in pending_entries {
+        for pending_directory in pending_directories {
             if abort_flag.load(Ordering::Relaxed) {
                 log::debug!("Aborting import of pending directories: {:?}", summary);
                 let (root_url, root_path) = collection_ctx
@@ -128,7 +128,7 @@ pub fn import_files<
                 path: dir_path,
                 status: _status,
                 digest,
-            } = pending_entry;
+            } = pending_directory;
             debug_assert!(_status.is_pending());
             let outcome =
                 match import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
@@ -208,7 +208,7 @@ pub fn import_files<
                             "Confirmation of imported directory '{}' was rejected",
                             dir_path
                         );
-                        // Try again
+                        // Keep going and retry to import this directory later
                         continue;
                     }
                     Err(err) => {
@@ -217,7 +217,8 @@ pub fn import_files<
                             dir_path,
                             err
                         );
-                        // Skip this directory and keep going
+                        // Skip this directory, but remember the sources imported from
+                        // this directory (see below)
                         summary.directories.skipped += 1;
                     }
                 }
@@ -227,7 +228,8 @@ pub fn import_files<
                     dir_path,
                     tracks_summary.failed.len()
                 );
-                // Skip this directory (only partially imported) and keep going
+                // Skip this directory, but remember the sources imported from
+                // this directory (see below)
                 summary.directories.skipped += 1;
             }
             if let Err(err) = repo.media_tracker_replace_directory_sources(
