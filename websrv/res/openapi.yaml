@@ -73,6 +73,27 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /api/c/kinds:
+    get:
+      summary: List collection kinds
+      description: |
+        Load all (distinct) kinds of collections.
+      tags:
+        - Collections
+      responses:
+        '200':
+          description: |
+            An of distinct collection kinds in no particular order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CollectionKind'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /api/c/{collectionUid}:
     get:

@@ -159,8 +159,26 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
+    let collections_get_kinds = warp::get()
+        .and(collections_path)
+        .and(warp::path("kinds"))
+        .and(warp::path::end())
+        .and(shared_connection_gatekeeper.clone())
+        .and_then(
+            move |shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                webapi::spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        uc_json::collection::load_all_kinds::handle_request(&*pooled_connection)
+                    },
+                )
+                .await
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
     let collections_filters = collections_list
         .or(collections_get)
+        .or(collections_get_kinds)
         .or(collections_create)
         .or(collections_update)
         .or(collections_delete);

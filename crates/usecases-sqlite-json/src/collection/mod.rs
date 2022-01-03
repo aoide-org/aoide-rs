@@ -36,6 +36,7 @@ mod _inner {
 
 pub mod create;
 pub mod load_all;
+pub mod load_all_kinds;
 pub mod load_one;
 pub mod purge;
 pub mod update;

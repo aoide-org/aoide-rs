@@ -44,4 +44,6 @@ pub trait EntityRepo {
     ) -> RepoResult<()>;
 
     fn load_collection_summary(&self, id: RecordId) -> RepoResult<Summary>;
+
+    fn load_all_kinds(&self) -> RepoResult<Vec<String>>;
 }

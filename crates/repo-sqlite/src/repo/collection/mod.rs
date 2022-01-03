@@ -209,6 +209,15 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         }
         Ok(())
     }
+
+    fn load_all_kinds(&self) -> RepoResult<Vec<String>> {
+        collection::table
+            .select(collection::kind)
+            .distinct()
+            .load::<Option<String>>(self.as_ref())
+            .map_err(repo_error)
+            .map(|v| v.into_iter().flatten().collect())
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

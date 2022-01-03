@@ -13,11 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 use aoide_core_api::collection::Summary;
 
-///////////////////////////////////////////////////////////////////////
+use super::*;
 
 pub fn load_one(
     connection: &SqliteConnection,
@@ -54,4 +52,10 @@ pub fn load_all(
             .map_err(Into::into)
     })
     .map_err(Into::into)
+}
+
+pub fn load_all_kinds(connection: &SqliteConnection) -> Result<Vec<String>> {
+    let db = RepoConnection::new(connection);
+    db.transaction::<_, RepoTransactionError, _>(|| db.load_all_kinds().map_err(Into::into))
+        .map_err(Into::into)
 }
