@@ -15,6 +15,10 @@ use std::cmp::Ordering;
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+type EpochNumber = usize;
+
+const INITIAL_EPOCH_NUMBER: EpochNumber = 0;
+
 type SequenceNumber = usize;
 
 const INITIAL_SEQUENCE_NUMBER: SequenceNumber = 0;
@@ -24,19 +28,23 @@ const FINAL_SEQUENCE_NUMBER: SequenceNumber = SequenceNumber::MAX;
 const MAX_SEQUENCE_NUMBER_DISTANCE: SequenceNumber = SequenceNumber::MAX / 2;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct Watermark(SequenceNumber);
+pub struct Watermark {
+    epoch: EpochNumber,
+    sequence: SequenceNumber,
+}
 
 impl Watermark {
-    pub const INITIAL: Self = Self(INITIAL_SEQUENCE_NUMBER);
-
-    pub const FINAL: Self = Self(FINAL_SEQUENCE_NUMBER);
+    pub const INITIAL: Self = Self {
+        epoch: INITIAL_EPOCH_NUMBER,
+        sequence: INITIAL_SEQUENCE_NUMBER,
+    };
 
     pub const fn is_initial(self) -> bool {
-        self.0 == INITIAL_SEQUENCE_NUMBER
+        self.sequence == INITIAL_SEQUENCE_NUMBER
     }
 
     pub const fn is_final(self) -> bool {
-        self.0 == FINAL_SEQUENCE_NUMBER
+        self.sequence == FINAL_SEQUENCE_NUMBER
     }
 
     pub const fn new() -> Self {
@@ -44,30 +52,38 @@ impl Watermark {
     }
 
     pub fn reset(&mut self) {
-        self.0 = INITIAL_SEQUENCE_NUMBER;
+        self.bump_epoch()
     }
 
     pub fn finalize(&mut self) {
-        self.0 = FINAL_SEQUENCE_NUMBER;
+        self.sequence = FINAL_SEQUENCE_NUMBER;
     }
 
     const fn is_pending(self) -> bool {
         static_assertions::const_assert!(INITIAL_SEQUENCE_NUMBER % 2 == 0);
         debug_assert!(!self.is_final());
-        self.0 % 2 != 0
+        self.sequence % 2 != 0
     }
 
-    fn bump_value(&mut self) {
-        self.0 = self.0.wrapping_add(1);
+    fn bump_epoch(&mut self) {
+        self.epoch = self.epoch.wrapping_add(1);
+        self.sequence = INITIAL_SEQUENCE_NUMBER;
+    }
+
+    fn bump_sequence(&mut self) {
+        self.sequence = self.sequence.wrapping_add(1);
     }
 }
 
-impl Ord for Watermark {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.0.cmp(&other.0) {
+impl PartialOrd for Watermark {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.epoch != other.epoch {
+            return None;
+        }
+        let ordering = match self.sequence.cmp(&other.sequence) {
             Ordering::Equal => Ordering::Equal,
             Ordering::Less => {
-                let distance = other.0 - self.0;
+                let distance = other.sequence - self.sequence;
                 if distance > MAX_SEQUENCE_NUMBER_DISTANCE {
                     Ordering::Greater
                 } else {
@@ -75,21 +91,16 @@ impl Ord for Watermark {
                 }
             }
             Ordering::Greater => {
-                debug_assert!(self.0 > other.0);
-                let distance = self.0 - other.0;
+                debug_assert!(self.sequence > other.sequence);
+                let distance = self.sequence - other.sequence;
                 if distance > MAX_SEQUENCE_NUMBER_DISTANCE {
                     Ordering::Less
                 } else {
                     Ordering::Greater
                 }
             }
-        }
-    }
-}
-
-impl PartialOrd for Watermark {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+        };
+        Some(ordering)
     }
 }
 
@@ -111,7 +122,7 @@ impl WatermarkStartPending for Watermark {
         let mut this = self;
         debug_assert!(!this.is_final());
         while !this.is_pending() {
-            this.bump_value();
+            this.bump_sequence();
             if this.is_final() {
                 this.reset();
                 debug_assert!(!this.is_pending());
@@ -139,14 +150,15 @@ impl WatermarkFinishPending for Watermark {
     fn finish_pending(self, token: PendingWatermark) -> Result<Self, Self> {
         let PendingWatermark(pending) = token;
         debug_assert!(pending.is_pending());
-        if self > pending {
-            return Err(self);
+        match self.partial_cmp(&pending) {
+            None | Some(Ordering::Greater) => Err(self),
+            Some(Ordering::Equal) | Some(Ordering::Less) => {
+                let mut finished = pending;
+                finished.bump_sequence();
+                debug_assert!(!finished.is_pending());
+                Ok(finished)
+            }
         }
-        debug_assert!(self <= pending);
-        let mut finished = pending;
-        finished.bump_value();
-        debug_assert!(!finished.is_pending());
-        Ok(finished)
     }
 }
 
