@@ -15,7 +15,10 @@
 
 use aoide_core::entity::EntityUid;
 
-use crate::{prelude::round_counter::RoundCounter, receive_response_body, WebClientEnvironment};
+use crate::{
+    util::round_counter::RoundCounter,
+    web::{receive_response_body, ClientEnvironment},
+};
 
 use super::Effect;
 
@@ -48,7 +51,7 @@ pub enum Task {
 }
 
 impl Task {
-    pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
+    pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
             Self::FetchProgress { pending_counter } => {
@@ -101,7 +104,7 @@ impl Task {
     }
 }
 
-async fn fetch_progress<E: WebClientEnvironment>(
+async fn fetch_progress<E: ClientEnvironment>(
     env: &E,
 ) -> anyhow::Result<aoide_core_api::media::tracker::Progress> {
     let request_url = env.join_api_url("mt/progress")?;
@@ -115,7 +118,7 @@ async fn fetch_progress<E: WebClientEnvironment>(
     Ok(progress)
 }
 
-async fn fetch_status<E: WebClientEnvironment>(
+async fn fetch_status<E: ClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_api_json::media::tracker::query_status::Params>,
@@ -132,7 +135,7 @@ async fn fetch_status<E: WebClientEnvironment>(
     Ok(status)
 }
 
-async fn start_scan_directories<E: WebClientEnvironment>(
+async fn start_scan_directories<E: ClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_api_json::media::tracker::scan_directories::Params>,
@@ -151,7 +154,7 @@ async fn start_scan_directories<E: WebClientEnvironment>(
     Ok(outcome)
 }
 
-async fn untrack_directories<E: WebClientEnvironment>(
+async fn untrack_directories<E: ClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_api_json::media::tracker::untrack_directories::Params>,
@@ -170,7 +173,7 @@ async fn untrack_directories<E: WebClientEnvironment>(
     Ok(outcome)
 }
 
-async fn start_import_files<E: WebClientEnvironment>(
+async fn start_import_files<E: ClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_api_json::media::tracker::import_files::Params>,
@@ -189,7 +192,7 @@ async fn start_import_files<E: WebClientEnvironment>(
     Ok(outcome)
 }
 
-async fn start_find_untracked_files<E: WebClientEnvironment>(
+async fn start_find_untracked_files<E: ClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_api_json::media::tracker::find_untracked_files::Params>,

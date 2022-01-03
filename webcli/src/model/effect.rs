@@ -16,8 +16,8 @@
 use std::num::NonZeroUsize;
 
 use aoide_client::{
-    models::{active_collection, media_sources, media_tracker},
-    prelude::mutable::state_updated,
+    models::{collection, media_source, media_tracker},
+    state::state_updated,
 };
 
 use crate::model::{state::ControlState, Action, Task};
@@ -30,19 +30,19 @@ pub enum Effect {
     FirstErrorsDiscarded(NonZeroUsize),
     ApplyIntent(Intent),
     AbortFinished(anyhow::Result<()>),
-    ActiveCollection(active_collection::Effect),
-    MediaSources(media_sources::Effect),
+    ActiveCollection(collection::Effect),
+    MediaSources(media_source::Effect),
     MediaTracker(media_tracker::Effect),
 }
 
-impl From<active_collection::Effect> for Effect {
-    fn from(effect: active_collection::Effect) -> Self {
+impl From<collection::Effect> for Effect {
+    fn from(effect: collection::Effect) -> Self {
         Self::ActiveCollection(effect)
     }
 }
 
-impl From<media_sources::Effect> for Effect {
-    fn from(effect: media_sources::Effect) -> Self {
+impl From<media_source::Effect> for Effect {
+    fn from(effect: media_source::Effect) -> Self {
         Self::MediaSources(effect)
     }
 }
@@ -58,7 +58,7 @@ impl Effect {
         log::debug!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::ErrorOccurred(error)
-            | Self::ActiveCollection(active_collection::Effect::ErrorOccurred(error))
+            | Self::ActiveCollection(collection::Effect::ErrorOccurred(error))
             | Self::MediaTracker(media_tracker::Effect::ErrorOccurred(error)) => {
                 state.last_errors.push(error);
                 StateUpdated::maybe_changed(None)

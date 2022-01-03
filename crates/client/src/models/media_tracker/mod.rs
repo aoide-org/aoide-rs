@@ -25,5 +25,5 @@ pub use self::state::{RemoteView, State};
 pub mod task;
 pub use self::task::Task;
 
-pub type Action = crate::prelude::Action<Effect, Task>;
-pub type StateUpdated = crate::prelude::mutable::StateUpdated<Effect, Task>;
+pub type Action = crate::action::Action<Effect, Task>;
+pub type StateUpdated = crate::state::StateUpdated<Effect, Task>;

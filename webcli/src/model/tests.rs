@@ -23,11 +23,9 @@ use std::{
 use reqwest::Url;
 
 use aoide_client::{
+    message::{handle_next_message, message_channel, message_loop, send_message, MessageHandled},
     models::media_tracker,
-    prelude::{
-        mutable::{handle_next_message, message_loop},
-        *,
-    },
+    task::TaskDispatcher as _,
 };
 
 use super::*;

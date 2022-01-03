@@ -16,7 +16,7 @@
 use aoide_core::entity::EntityUid;
 use aoide_core_api_json::track::search::client_request_params;
 
-use crate::{receive_response_body, WebClientEnvironment};
+use crate::web::{receive_response_body, ClientEnvironment};
 
 use super::{Effect, FetchResultPageRequest, FetchResultPageResponse};
 
@@ -29,7 +29,7 @@ pub enum Task {
 }
 
 impl Task {
-    pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
+    pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
             Self::FetchResultPage {
@@ -43,7 +43,7 @@ impl Task {
     }
 }
 
-async fn fetch_result_page<E: WebClientEnvironment>(
+async fn fetch_result_page<E: ClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     request: FetchResultPageRequest,

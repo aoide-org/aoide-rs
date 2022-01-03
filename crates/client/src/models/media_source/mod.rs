@@ -13,7 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod collection;
-pub mod media_source;
-pub mod media_tracker;
-pub mod track_search;
+pub mod intent;
+pub use self::intent::Intent;
+
+pub mod effect;
+pub use self::effect::Effect;
+
+pub mod state;
+pub use self::state::{RemoteView, State};
+
+pub mod task;
+pub use self::task::Task;
+
+pub type Action = crate::action::Action<Effect, Task>;
+pub type StateUpdated = crate::state::StateUpdated<Effect, Task>;

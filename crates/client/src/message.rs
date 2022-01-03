@@ -13,93 +13,64 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::MessageHandled;
+use std::{fmt, sync::Arc};
 
-use super::{
-    send_message, Action, Message, MessageChannel, MessageSender, RenderStateFn,
-    TaskDispatchEnvironment,
+use tokio::sync::mpsc;
+
+use crate::{
+    action::Action,
+    state::{RenderStateFn, State, StateMutation, StateUpdated},
+    task::TaskDispatcher,
 };
 
-use std::{
-    fmt,
-    ops::{Add, AddAssign},
-    sync::Arc,
-};
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum StateMutation {
-    Unchanged,
-    MaybeChanged,
+/// A message is either an intent or an effect
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Message<Intent, Effect> {
+    Intent(Intent),
+    Effect(Effect),
 }
 
-impl Add<StateMutation> for StateMutation {
-    type Output = Self;
+impl<Intent, Effect> Message<Intent, Effect> {
+    pub fn from_intent(intent: impl Into<Intent>) -> Self {
+        Self::Intent(intent.into())
+    }
 
-    fn add(self, rhs: Self) -> Self::Output {
-        if self == Self::Unchanged && rhs == Self::Unchanged {
-            Self::Unchanged
-        } else {
-            Self::MaybeChanged
-        }
+    pub fn from_effect(effect: impl Into<Effect>) -> Self {
+        Self::Effect(effect.into())
     }
 }
 
-impl AddAssign for StateMutation {
-    fn add_assign(&mut self, other: Self) {
-        *self = *self + other;
+pub type MessageSender<Intent, Effect> = mpsc::UnboundedSender<Message<Intent, Effect>>;
+pub type MessageReceiver<Intent, Effect> = mpsc::UnboundedReceiver<Message<Intent, Effect>>;
+pub type MessageChannel<Intent, Effect> = (
+    MessageSender<Intent, Effect>,
+    MessageReceiver<Intent, Effect>,
+);
+
+// TODO: Better use a bounded channel in production?
+pub fn message_channel<Intent, Effect>() -> (
+    MessageSender<Intent, Effect>,
+    MessageReceiver<Intent, Effect>,
+) {
+    mpsc::unbounded_channel()
+}
+
+pub fn send_message<Intent: fmt::Debug, Effect: fmt::Debug>(
+    message_tx: &MessageSender<Intent, Effect>,
+    message: impl Into<Message<Intent, Effect>>,
+) {
+    let message = message.into();
+    log::debug!("Sending message: {:?}", message);
+    if let Err(message) = message_tx.send(message) {
+        // Channel is closed, i.e. receiver has been dropped
+        log::debug!("Failed to send message: {:?}", message.0);
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct StateUpdated<Effect, Task> {
-    pub state_mutation: StateMutation,
-    pub next_action: Option<Action<Effect, Task>>,
-}
-
-impl<Effect, Task> StateUpdated<Effect, Task> {
-    pub fn unchanged(next_action: impl Into<Option<Action<Effect, Task>>>) -> Self {
-        Self {
-            state_mutation: StateMutation::Unchanged,
-            next_action: next_action.into(),
-        }
-    }
-
-    pub fn maybe_changed(next_action: impl Into<Option<Action<Effect, Task>>>) -> Self {
-        Self {
-            state_mutation: StateMutation::MaybeChanged,
-            next_action: next_action.into(),
-        }
-    }
-}
-
-pub fn state_updated<E1, E2, T1, T2>(from: StateUpdated<E1, T1>) -> StateUpdated<E2, T2>
-where
-    E1: Into<E2>,
-    T1: Into<T2>,
-{
-    let StateUpdated {
-        state_mutation,
-        next_action,
-    } = from;
-    let next_action = next_action.map(|action| match action {
-        Action::ApplyEffect(effect) => Action::apply_effect(effect),
-        Action::DispatchTask(task) => Action::dispatch_task(task),
-    });
-    StateUpdated {
-        state_mutation,
-        next_action,
-    }
-}
-
-pub trait State {
-    type Intent;
-    type Effect;
-    type Task;
-
-    fn update(
-        &mut self,
-        message: Message<Self::Intent, Self::Effect>,
-    ) -> StateUpdated<Self::Effect, Self::Task>;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MessageHandled {
+    Progressing,
+    NoProgress,
 }
 
 pub fn handle_next_message<E, S>(
@@ -110,7 +81,7 @@ pub fn handle_next_message<E, S>(
     render_fn: &mut RenderStateFn<S, S::Intent>,
 ) -> MessageHandled
 where
-    E: TaskDispatchEnvironment<S::Intent, S::Effect, S::Task>,
+    E: TaskDispatcher<S::Intent, S::Effect, S::Task>,
     S: State + fmt::Debug,
     S::Intent: fmt::Debug + Send + 'static,
     S::Effect: fmt::Debug + Send + 'static,
@@ -169,7 +140,7 @@ pub async fn message_loop<E, S>(
     mut render_state_fn: Box<RenderStateFn<S, S::Intent>>,
 ) -> S
 where
-    E: TaskDispatchEnvironment<S::Intent, S::Effect, S::Task>,
+    E: TaskDispatcher<S::Intent, S::Effect, S::Task>,
     S: State + fmt::Debug,
     S::Intent: fmt::Debug + Send + 'static,
     S::Effect: fmt::Debug + Send + 'static,

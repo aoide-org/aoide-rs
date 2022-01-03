@@ -16,8 +16,8 @@
 use super::{Effect, Intent};
 
 use aoide_client::{
-    models::{active_collection, media_sources, media_tracker},
-    receive_response_body, WebClientEnvironment,
+    models::{collection, media_source, media_tracker},
+    web::{receive_response_body, ClientEnvironment},
 };
 
 use std::time::Instant;
@@ -28,20 +28,20 @@ pub enum Task {
         not_before: Instant,
         intent: Box<Intent>,
     },
-    ActiveCollection(active_collection::Task),
-    MediaSources(media_sources::Task),
+    ActiveCollection(collection::Task),
+    MediaSources(media_source::Task),
     MediaTracker(media_tracker::Task),
     AbortPendingRequest,
 }
 
-impl From<active_collection::Task> for Task {
-    fn from(task: active_collection::Task) -> Self {
+impl From<collection::Task> for Task {
+    fn from(task: collection::Task) -> Self {
         Self::ActiveCollection(task)
     }
 }
 
-impl From<media_sources::Task> for Task {
-    fn from(task: media_sources::Task) -> Self {
+impl From<media_source::Task> for Task {
+    fn from(task: media_source::Task) -> Self {
         Self::MediaSources(task)
     }
 }
@@ -53,7 +53,7 @@ impl From<media_tracker::Task> for Task {
 }
 
 impl Task {
-    pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
+    pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
             Self::DeferredIntent { not_before, intent } => {
@@ -71,7 +71,7 @@ impl Task {
     }
 }
 
-pub async fn abort<E: WebClientEnvironment>(env: &E) -> anyhow::Result<()> {
+pub async fn abort<E: ClientEnvironment>(env: &E) -> anyhow::Result<()> {
     let request_url = env.join_api_url("storage/abort-current-task")?;
     let request = env.client().post(request_url);
     let response = request.send().await?;

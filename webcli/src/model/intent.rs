@@ -16,8 +16,8 @@
 use std::{num::NonZeroUsize, time::Instant};
 
 use aoide_client::{
-    models::{active_collection, media_sources, media_tracker},
-    prelude::mutable::state_updated,
+    models::{collection, media_source, media_tracker},
+    state::state_updated,
 };
 
 use crate::model::state::ControlState;
@@ -35,19 +35,19 @@ pub enum Intent {
     DiscardFirstErrors(NonZeroUsize),
     AbortPendingRequest,
     Terminate,
-    ActiveCollection(active_collection::Intent),
-    MediaSources(media_sources::Intent),
+    ActiveCollection(collection::Intent),
+    MediaSources(media_source::Intent),
     MediaTracker(media_tracker::Intent),
 }
 
-impl From<active_collection::Intent> for Intent {
-    fn from(intent: active_collection::Intent) -> Self {
+impl From<collection::Intent> for Intent {
+    fn from(intent: collection::Intent) -> Self {
         Self::ActiveCollection(intent)
     }
 }
 
-impl From<media_sources::Intent> for Intent {
-    fn from(intent: media_sources::Intent) -> Self {
+impl From<media_source::Intent> for Intent {
+    fn from(intent: media_source::Intent) -> Self {
         Self::MediaSources(intent)
     }
 }

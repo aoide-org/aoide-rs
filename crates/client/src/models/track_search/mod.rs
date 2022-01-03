@@ -15,14 +15,13 @@
 
 use aoide_core::track::Entity;
 
-use aoide_core_api::track::search::Params;
-use aoide_core_api::Pagination;
-
-pub mod effect;
-pub use self::effect::Effect;
+use aoide_core_api::{track::search::Params, Pagination};
 
 pub mod intent;
 pub use self::intent::Intent;
+
+pub mod effect;
+pub use self::effect::Effect;
 
 pub mod state;
 pub use self::state::{ControlState, State};
@@ -30,8 +29,8 @@ pub use self::state::{ControlState, State};
 pub mod task;
 pub use self::task::Task;
 
-pub type Action = crate::prelude::Action<Effect, Task>;
-pub type StateUpdated = crate::prelude::mutable::StateUpdated<Effect, Task>;
+pub type Action = crate::action::Action<Effect, Task>;
+pub type StateUpdated = crate::state::StateUpdated<Effect, Task>;
 
 #[derive(Debug, Clone)]
 pub struct FetchResultPageRequest {

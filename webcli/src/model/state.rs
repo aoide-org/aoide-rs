@@ -16,8 +16,8 @@
 use super::{Effect, Intent, Message, StateUpdated, Task};
 
 use aoide_client::{
-    models::{active_collection, media_sources, media_tracker},
-    prelude::mutable::State as MutableState,
+    models::{collection, media_source, media_tracker},
+    state::State as ClientState,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,8 +42,8 @@ impl Default for ControlState {
 pub struct State {
     pub(super) last_errors: Vec<anyhow::Error>,
     pub(super) control_state: ControlState,
-    pub active_collection: active_collection::State,
-    pub media_sources: media_sources::State,
+    pub active_collection: collection::State,
+    pub media_sources: media_source::State,
     pub media_tracker: media_tracker::State,
 }
 
@@ -63,7 +63,7 @@ impl State {
     }
 }
 
-impl MutableState for State {
+impl ClientState for State {
     type Intent = Intent;
     type Effect = Effect;
     type Task = Task;

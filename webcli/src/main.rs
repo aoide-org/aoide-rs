@@ -13,10 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_client::{
-    models::{active_collection, media_sources, media_tracker},
-    prelude::{message_channel, mutable::message_loop, send_message},
+use std::{
+    env,
+    sync::Arc,
+    time::{Duration, Instant},
 };
+
+use clap::{App, Arg};
+use tokio::signal;
 
 use aoide_core::{
     collection::{Collection, MediaSourceConfig},
@@ -24,13 +28,11 @@ use aoide_core::{
 };
 
 use aoide_core_api::media::tracker::DirTrackingStatus;
-use clap::{App, Arg};
-use std::{
-    env,
-    sync::Arc,
-    time::{Duration, Instant},
+
+use aoide_client::{
+    message::{message_channel, message_loop, send_message},
+    models::{collection, media_source, media_tracker},
 };
-use tokio::signal;
 
 mod model;
 use self::model::{Environment, Intent, State};
@@ -411,7 +413,7 @@ async fn main() -> anyhow::Result<()> {
                             },
                         };
                         subcommand_submitted = true;
-                        let intent = active_collection::Intent::CreateCollection { new_collection };
+                        let intent = collection::Intent::CreateCollection { new_collection };
                         return Some(intent.into());
                     }
                     (subcommand, _) => {
@@ -465,8 +467,7 @@ async fn main() -> anyhow::Result<()> {
                             .is_some()
                         {
                             let collection_uid = Some(collection_uid.to_owned());
-                            let intent =
-                                active_collection::Intent::ActivateCollection { collection_uid };
+                            let intent = collection::Intent::ActivateCollection { collection_uid };
                             return Some(intent.into());
                         } else {
                             log::warn!("Collection not available: {}", collection_uid);
@@ -489,7 +490,7 @@ async fn main() -> anyhow::Result<()> {
                 .available_collections
                 .is_pending()
             {
-                let intent = active_collection::Intent::FetchAvailableCollections;
+                let intent = collection::Intent::FetchAvailableCollections;
                 return Some(intent.into());
             }
 
@@ -515,7 +516,7 @@ async fn main() -> anyhow::Result<()> {
                             let params = aoide_core_api::media::source::purge_orphaned::Params {
                                 root_url: media_root_url,
                             };
-                            let intent = media_sources::Intent::PurgeOrphaned {
+                            let intent = media_source::Intent::PurgeOrphaned {
                                 collection_uid,
                                 params,
                             };
@@ -530,7 +531,7 @@ async fn main() -> anyhow::Result<()> {
                             let params = aoide_core_api::media::source::purge_untracked::Params {
                                 root_url: media_root_url,
                             };
-                            let intent = media_sources::Intent::PurgeUntracked {
+                            let intent = media_source::Intent::PurgeUntracked {
                                 collection_uid,
                                 params,
                             };

@@ -17,29 +17,11 @@
 #![cfg_attr(not(debug_assertions), deny(warnings))] // Forbid warnings in release builds
 #![warn(clippy::all, rust_2018_idioms)]
 
-use bytes::Bytes;
-use reqwest::{Client, Response, Url};
-
-pub mod prelude;
+pub mod action;
+pub mod message;
+pub mod state;
+pub mod task;
+pub mod util;
+pub mod web;
 
 pub mod models;
-
-pub trait WebClientEnvironment {
-    fn client(&self) -> &Client;
-    fn join_api_url(&self, query_suffix: &str) -> anyhow::Result<Url>;
-}
-
-pub async fn receive_response_body(response: Response) -> anyhow::Result<Bytes> {
-    let response_status = response.status();
-    let bytes = response.bytes().await?;
-    if !response_status.is_success() {
-        let json = serde_json::from_slice::<serde_json::Value>(&bytes).unwrap_or_default();
-        let err = if json.is_null() {
-            anyhow::anyhow!("{}", response_status)
-        } else {
-            anyhow::anyhow!("{}", response_status).context(json)
-        };
-        return Err(err);
-    }
-    Ok(bytes)
-}

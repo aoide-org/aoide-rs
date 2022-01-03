@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::round_counter::RoundCounter;
+use aoide_core::collection::Entity as CollectionEntity;
+
+use crate::util::round_counter::RoundCounter;
 
 use super::{Action, State, StateUpdated};
-
-use aoide_core::collection::Entity as CollectionEntity;
 
 #[derive(Debug)]
 pub enum Effect {

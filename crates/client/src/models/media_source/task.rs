@@ -15,7 +15,7 @@
 
 use aoide_core::entity::EntityUid;
 
-use crate::{receive_response_body, WebClientEnvironment};
+use crate::web::{receive_response_body, ClientEnvironment};
 
 use super::Effect;
 
@@ -32,7 +32,7 @@ pub enum Task {
 }
 
 impl Task {
-    pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
+    pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
             Self::PurgeOrphaned {
@@ -53,7 +53,7 @@ impl Task {
     }
 }
 
-async fn purge_orphaned<E: WebClientEnvironment>(
+async fn purge_orphaned<E: ClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_api_json::media::source::purge_orphaned::Params>,
@@ -71,7 +71,7 @@ async fn purge_orphaned<E: WebClientEnvironment>(
     Ok(outcome)
 }
 
-async fn purge_untracked<E: WebClientEnvironment>(
+async fn purge_untracked<E: ClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_api_json::media::source::purge_untracked::Params>,

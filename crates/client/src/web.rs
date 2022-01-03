@@ -13,17 +13,25 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod effect;
-pub use self::effect::Effect;
+use bytes::Bytes;
+use reqwest::{Client, Response, Url};
 
-pub mod intent;
-pub use self::intent::Intent;
+pub trait ClientEnvironment {
+    fn client(&self) -> &Client;
+    fn join_api_url(&self, query_suffix: &str) -> anyhow::Result<Url>;
+}
 
-pub mod state;
-pub use self::state::{RemoteView, State};
-
-pub mod task;
-pub use self::task::Task;
-
-pub type Action = crate::prelude::Action<Effect, Task>;
-pub type StateUpdated = crate::prelude::mutable::StateUpdated<Effect, Task>;
+pub async fn receive_response_body(response: Response) -> anyhow::Result<Bytes> {
+    let response_status = response.status();
+    let bytes = response.bytes().await?;
+    if !response_status.is_success() {
+        let json = serde_json::from_slice::<serde_json::Value>(&bytes).unwrap_or_default();
+        let err = if json.is_null() {
+            anyhow::anyhow!("{}", response_status)
+        } else {
+            anyhow::anyhow!("{}", response_status).context(json)
+        };
+        return Err(err);
+    }
+    Ok(bytes)
+}

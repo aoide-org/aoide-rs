@@ -15,7 +15,10 @@
 
 use aoide_core::collection::{Collection, Entity as CollectionEntity};
 
-use crate::{prelude::round_counter::RoundCounter, receive_response_body, WebClientEnvironment};
+use crate::{
+    util::round_counter::RoundCounter,
+    web::{receive_response_body, ClientEnvironment},
+};
 
 use super::Effect;
 
@@ -26,7 +29,7 @@ pub enum Task {
 }
 
 impl Task {
-    pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
+    pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::trace!("Executing task: {:?}", self);
         match self {
             Self::CreateCollection { new_collection } => {
@@ -44,7 +47,7 @@ impl Task {
     }
 }
 
-pub async fn create_new_collection<E: WebClientEnvironment>(
+pub async fn create_new_collection<E: ClientEnvironment>(
     env: &E,
     new_collection: impl Into<aoide_core_json::collection::Collection>,
 ) -> anyhow::Result<CollectionEntity> {
@@ -60,7 +63,7 @@ pub async fn create_new_collection<E: WebClientEnvironment>(
     Ok(entity)
 }
 
-pub async fn fetch_available_collections<E: WebClientEnvironment>(
+pub async fn fetch_available_collections<E: ClientEnvironment>(
     env: &E,
 ) -> anyhow::Result<Vec<CollectionEntity>> {
     let request_url = env.join_api_url("c")?;

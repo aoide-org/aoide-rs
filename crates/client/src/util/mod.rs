@@ -13,17 +13,5 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod effect;
-pub use self::effect::Effect;
-
-pub mod intent;
-pub use self::intent::Intent;
-
-pub mod state;
-pub use self::state::{RemoteView, State};
-
-pub mod task;
-pub use self::task::Task;
-
-pub type Action = crate::prelude::Action<Effect, Task>;
-pub type StateUpdated = crate::prelude::mutable::StateUpdated<Effect, Task>;
+pub mod remote;
+pub mod round_counter;

@@ -13,7 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod collection;
-pub mod media_source;
-pub mod media_tracker;
-pub mod track_search;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Action<Effect, Task> {
+    DispatchTask(Task),
+    ApplyEffect(Effect),
+}
+
+impl<Effect, Task> Action<Effect, Task> {
+    pub fn apply_effect(effect: impl Into<Effect>) -> Self {
+        Self::ApplyEffect(effect.into())
+    }
+
+    pub fn dispatch_task(task: impl Into<Task>) -> Self {
+        Self::DispatchTask(task.into())
+    }
+}

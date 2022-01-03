@@ -13,12 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use reqwest::{Client, Url};
 use std::sync::Arc;
 
+use reqwest::{Client, Url};
+
 use aoide_client::{
-    prelude::{send_message, PendingTasksCounter, TaskDispatchEnvironment},
-    WebClientEnvironment,
+    message::send_message,
+    task::{PendingTasksCounter, TaskDispatcher},
+    web::ClientEnvironment,
 };
 
 use super::{Effect, Intent, Message, MessageSender, Task};
@@ -41,7 +43,7 @@ impl Environment {
     }
 }
 
-impl WebClientEnvironment for Environment {
+impl ClientEnvironment for Environment {
     fn client(&self) -> &Client {
         &self.client
     }
@@ -53,7 +55,7 @@ impl WebClientEnvironment for Environment {
     }
 }
 
-impl TaskDispatchEnvironment<Intent, Effect, Task> for Environment {
+impl TaskDispatcher<Intent, Effect, Task> for Environment {
     fn all_tasks_finished(&self) -> bool {
         self.pending_tasks_counter.all_pending_tasks_finished()
     }

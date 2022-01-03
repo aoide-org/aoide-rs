@@ -28,16 +28,12 @@ pub use self::state::State;
 pub mod task;
 pub use self::task::Task;
 
-pub type Action = aoide_client::prelude::Action<Effect, Task>;
-pub type Message = aoide_client::prelude::Message<Intent, Effect>;
-pub type MessageSender = aoide_client::prelude::MessageSender<Intent, Effect>;
-pub type StateUpdated = aoide_client::prelude::mutable::StateUpdated<Effect, Task>;
+pub type Action = aoide_client::action::Action<Effect, Task>;
 
-#[allow(dead_code)] // unused
-pub type MessageReceiver = aoide_client::prelude::MessageReceiver<Intent, Effect>;
+pub type Message = aoide_client::message::Message<Intent, Effect>;
+pub type MessageSender = aoide_client::message::MessageSender<Intent, Effect>;
 
-#[allow(dead_code)] // unused
-pub type MessageChannel = aoide_client::prelude::MessageChannel<Intent, Effect>;
+pub type StateUpdated = aoide_client::state::StateUpdated<Effect, Task>;
 
 impl From<Intent> for Message {
     fn from(intent: Intent) -> Self {
