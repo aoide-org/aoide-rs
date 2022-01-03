@@ -16,7 +16,7 @@
 use aoide_core::entity::EntityUid;
 
 use crate::{
-    util::roundtrip::PendingWatermark,
+    util::roundtrip::PendingToken,
     web::{receive_response_body, ClientEnvironment},
 };
 
@@ -25,12 +25,12 @@ use super::Effect;
 #[derive(Debug)]
 pub enum Task {
     PurgeOrphaned {
-        token: PendingWatermark,
+        token: PendingToken,
         collection_uid: EntityUid,
         params: aoide_core_api::media::source::purge_orphaned::Params,
     },
     PurgeUntracked {
-        token: PendingWatermark,
+        token: PendingToken,
         collection_uid: EntityUid,
         params: aoide_core_api::media::source::purge_untracked::Params,
     },

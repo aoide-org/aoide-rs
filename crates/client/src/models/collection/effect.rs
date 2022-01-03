@@ -15,7 +15,7 @@
 
 use aoide_core::collection::Entity as CollectionEntity;
 
-use crate::util::roundtrip::PendingWatermark;
+use crate::util::roundtrip::PendingToken;
 
 use super::{Action, State, StateUpdated};
 
@@ -23,7 +23,7 @@ use super::{Action, State, StateUpdated};
 pub enum Effect {
     CreateCollectionFinished(anyhow::Result<CollectionEntity>),
     FetchAvailableCollectionsFinished {
-        token: PendingWatermark,
+        token: PendingToken,
         result: anyhow::Result<Vec<CollectionEntity>>,
     },
     ErrorOccurred(anyhow::Error),

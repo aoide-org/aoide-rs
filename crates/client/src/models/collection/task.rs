@@ -16,7 +16,7 @@
 use aoide_core::collection::{Collection, Entity as CollectionEntity};
 
 use crate::{
-    util::roundtrip::PendingWatermark,
+    util::roundtrip::PendingToken,
     web::{receive_response_body, ClientEnvironment},
 };
 
@@ -25,7 +25,7 @@ use super::Effect;
 #[derive(Debug)]
 pub enum Task {
     CreateCollection { new_collection: Collection },
-    FetchAvailableCollections { token: PendingWatermark },
+    FetchAvailableCollections { token: PendingToken },
 }
 
 impl Task {

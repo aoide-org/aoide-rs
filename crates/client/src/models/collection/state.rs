@@ -15,7 +15,7 @@
 
 use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
 
-use crate::util::{remote::RemoteData, roundtrip::PendingWatermark};
+use crate::util::{remote::RemoteData, roundtrip::PendingToken};
 
 #[derive(Debug, Default)]
 pub struct RemoteView {
@@ -75,7 +75,7 @@ impl State {
 
     pub(super) fn finish_pending_available_collections(
         &mut self,
-        token: PendingWatermark,
+        token: PendingToken,
         available_collections: Option<Vec<CollectionEntity>>,
     ) -> bool {
         let finished = if let Some(available_collections) = available_collections {

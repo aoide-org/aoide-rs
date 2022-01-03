@@ -13,18 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::util::roundtrip::PendingWatermark;
+use crate::util::roundtrip::PendingToken;
 
 use super::{Action, State, StateUpdated};
 
 #[derive(Debug)]
 pub enum Effect {
     PurgeOrphanedFinished {
-        token: PendingWatermark,
+        token: PendingToken,
         result: anyhow::Result<aoide_core_api::media::source::purge_orphaned::Outcome>,
     },
     PurgeUntrackedFinished {
-        token: PendingWatermark,
+        token: PendingToken,
         result: anyhow::Result<aoide_core_api::media::source::purge_untracked::Outcome>,
     },
     ErrorOccurred(anyhow::Error),

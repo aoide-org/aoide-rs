@@ -15,9 +15,7 @@
 
 use std::time::Instant;
 
-use crate::util::roundtrip::{
-    PendingWatermark, Watermark, WatermarkFinishPending as _, WatermarkStartPending as _,
-};
+use crate::util::roundtrip::{PendingToken, Watermark};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct DataSnapshot<T> {
@@ -51,69 +49,73 @@ impl<T> DataSnapshot<T> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoundtripState {
-    Idle {
-        watermark: Watermark,
-    },
-    Pending {
-        watermark: PendingWatermark,
-        since: Instant,
-    },
+    Idle,
+    Pending { since: Instant },
 }
 
 impl RoundtripState {
     pub const fn new() -> Self {
-        Self::Idle {
+        Self::Idle
+    }
+}
+
+#[derive(Debug)]
+struct Roundtrip {
+    state: RoundtripState,
+    watermark: Watermark,
+}
+
+impl Roundtrip {
+    pub const fn new() -> Self {
+        Self {
+            state: RoundtripState::Idle,
             watermark: Watermark::INITIAL,
         }
     }
 
     pub fn reset(&mut self) {
-        *self = Self::new();
+        let Self { state, watermark } = self;
+        watermark.reset();
+        *state = RoundtripState::Idle;
     }
 
-    pub fn start_pending(&mut self, since: impl Into<Instant>) -> PendingWatermark {
+    pub fn start_pending(&mut self, since: impl Into<Instant>) -> PendingToken {
         let since = since.into();
-        let watermark = match self {
-            Self::Idle { watermark } => watermark.start_pending(),
-            Self::Pending {
-                watermark,
-                since: _since,
+        let Self { state, watermark } = self;
+        match state {
+            RoundtripState::Idle => (),
+            RoundtripState::Pending {
+                since: _since_before,
             } => {
-                debug_assert!(*_since <= since);
-                watermark.start_pending()
+                debug_assert!(*_since_before <= since);
             }
         };
-        *self = Self::Pending { watermark, since };
-        watermark
+        let token = watermark.start_pending();
+        *state = RoundtripState::Pending { since };
+        token
     }
 
-    pub fn finish_pending(&mut self, watermark: PendingWatermark) -> bool {
-        match *self {
-            Self::Idle { .. } => false,
-            Self::Pending {
-                watermark: self_watermark,
-                since: _,
-            } => match self_watermark.finish_pending(watermark) {
-                Ok(watermark) => {
-                    *self = Self::Idle { watermark };
-                    true
-                }
-                Err(_) => false,
-            },
+    pub fn finish_pending(&mut self, token: PendingToken) -> bool {
+        let Self { state, watermark } = self;
+        if watermark.finish_pending(token) {
+            *state = RoundtripState::Idle;
+            true
+        } else {
+            false
         }
     }
 }
 
 #[derive(Debug)]
 pub struct RemoteData<T> {
-    roundtrip_state: RoundtripState,
+    roundtrip: Roundtrip,
     last_snapshot: Option<DataSnapshot<T>>,
 }
 
 impl<T> RemoteData<T> {
     pub const fn default() -> Self {
         Self {
-            roundtrip_state: RoundtripState::new(),
+            roundtrip: Roundtrip::new(),
             last_snapshot: None,
         }
     }
@@ -127,45 +129,45 @@ impl<T> RemoteData<T> {
     }
 
     pub fn reset(&mut self) -> Option<DataSnapshot<T>> {
-        self.roundtrip_state.reset();
+        self.roundtrip.reset();
         self.last_snapshot.take()
     }
 
     pub fn is_pending(&self) -> bool {
-        matches!(self.roundtrip_state, RoundtripState::Pending { .. })
+        matches!(self.roundtrip.state, RoundtripState::Pending { .. })
     }
 
     /// Start the next round with a pending request
     ///
     /// Requests that are already pending will be discarded when finished.
-    pub fn start_pending(&mut self, since: impl Into<Instant>) -> PendingWatermark {
-        self.roundtrip_state.start_pending(since)
+    pub fn start_pending(&mut self, since: impl Into<Instant>) -> PendingToken {
+        self.roundtrip.start_pending(since)
     }
 
     /// Start the next round with a pending request new
     ///
     /// Requests that are already pending will be discarded when finished.
-    pub fn start_pending_now(&mut self) -> PendingWatermark {
+    pub fn start_pending_now(&mut self) -> PendingToken {
         self.start_pending(Instant::now())
     }
 
     /// Try to start the next round with a pending request
     ///
     /// Allows only a single pending request at a time.
-    pub fn try_start_pending(&mut self, since: impl Into<Instant>) -> Option<PendingWatermark> {
+    pub fn try_start_pending(&mut self, since: impl Into<Instant>) -> Option<PendingToken> {
         (!self.is_pending()).then(|| self.start_pending(since))
     }
 
     /// Try to start the next round with a pending request
     ///
     /// Allows only a single pending request at a time.
-    pub fn try_start_pending_now(&mut self) -> Option<PendingWatermark> {
+    pub fn try_start_pending_now(&mut self) -> Option<PendingToken> {
         (!self.is_pending()).then(|| self.start_pending(Instant::now()))
     }
 
     /// Finish a pending request without touching or updating any data
-    pub fn finish_pending(&mut self, token: PendingWatermark) -> bool {
-        self.roundtrip_state.finish_pending(token)
+    pub fn finish_pending(&mut self, token: PendingToken) -> bool {
+        self.roundtrip.finish_pending(token)
     }
 
     /// Finish a pending request
@@ -173,7 +175,7 @@ impl<T> RemoteData<T> {
     /// Returns the last data snapshot if accepted or the given value if rejected.
     pub fn finish_pending_with_value(
         &mut self,
-        token: PendingWatermark,
+        token: PendingToken,
         value: impl Into<T>,
         since: impl Into<Instant>,
     ) -> Result<Option<DataSnapshot<T>>, T> {
@@ -189,7 +191,7 @@ impl<T> RemoteData<T> {
     /// Returns the last data snapshot if accepted or the given value if rejected.
     pub fn finish_pending_with_value_now(
         &mut self,
-        token: PendingWatermark,
+        token: PendingToken,
         value: impl Into<T>,
     ) -> Result<Option<DataSnapshot<T>>, T> {
         if !self.finish_pending(token) {

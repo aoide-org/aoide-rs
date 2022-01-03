@@ -73,6 +73,32 @@ impl Watermark {
     fn bump_sequence(&mut self) {
         self.sequence = self.sequence.wrapping_add(1);
     }
+
+    pub fn start_pending(&mut self) -> PendingToken {
+        debug_assert!(!self.is_final());
+        while !self.is_pending() {
+            self.bump_sequence();
+            if self.is_final() {
+                self.reset();
+                debug_assert!(!self.is_pending());
+            }
+        }
+        PendingToken(*self)
+    }
+
+    pub fn finish_pending(&mut self, token: PendingToken) -> bool {
+        let PendingToken(pending) = token;
+        debug_assert!(pending.is_pending());
+        match (&*self).partial_cmp(&pending) {
+            None | Some(Ordering::Greater) => false,
+            Some(Ordering::Equal) | Some(Ordering::Less) => {
+                let mut finished = pending;
+                finished.bump_sequence();
+                debug_assert!(!finished.is_pending());
+                true
+            }
+        }
+    }
 }
 
 impl PartialOrd for Watermark {
@@ -105,67 +131,11 @@ impl PartialOrd for Watermark {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct PendingWatermark(Watermark);
+pub struct PendingToken(Watermark);
 
-impl AsRef<Watermark> for PendingWatermark {
+impl AsRef<Watermark> for PendingToken {
     fn as_ref(&self) -> &Watermark {
         &self.0
-    }
-}
-
-pub trait WatermarkStartPending {
-    fn start_pending(self) -> PendingWatermark;
-}
-
-impl WatermarkStartPending for Watermark {
-    fn start_pending(self) -> PendingWatermark {
-        let mut this = self;
-        debug_assert!(!this.is_final());
-        while !this.is_pending() {
-            this.bump_sequence();
-            if this.is_final() {
-                this.reset();
-                debug_assert!(!this.is_pending());
-            }
-        }
-        PendingWatermark(this)
-    }
-}
-
-impl WatermarkStartPending for PendingWatermark {
-    fn start_pending(self) -> Self {
-        let Self(this) = self;
-        debug_assert!(this.is_pending());
-        let token = this.start_pending();
-        debug_assert_ne!(token, self);
-        token
-    }
-}
-
-pub trait WatermarkFinishPending: Sized {
-    fn finish_pending(self, pending: PendingWatermark) -> Result<Watermark, Self>;
-}
-
-impl WatermarkFinishPending for Watermark {
-    fn finish_pending(self, token: PendingWatermark) -> Result<Self, Self> {
-        let PendingWatermark(pending) = token;
-        debug_assert!(pending.is_pending());
-        match self.partial_cmp(&pending) {
-            None | Some(Ordering::Greater) => Err(self),
-            Some(Ordering::Equal) | Some(Ordering::Less) => {
-                let mut finished = pending;
-                finished.bump_sequence();
-                debug_assert!(!finished.is_pending());
-                Ok(finished)
-            }
-        }
-    }
-}
-
-impl WatermarkFinishPending for PendingWatermark {
-    fn finish_pending(self, token: PendingWatermark) -> Result<Watermark, Self> {
-        let PendingWatermark(this) = self;
-        this.finish_pending(token).map_err(Self)
     }
 }
 

@@ -13,34 +13,34 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::util::roundtrip::PendingWatermark;
+use crate::util::roundtrip::PendingToken;
 
 use super::{Action, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Effect {
     FetchProgressFinished {
-        token: PendingWatermark,
+        token: PendingToken,
         result: anyhow::Result<aoide_core_api::media::tracker::Progress>,
     },
     FetchStatusFinished {
-        token: PendingWatermark,
+        token: PendingToken,
         result: anyhow::Result<aoide_core_api::media::tracker::Status>,
     },
     ScanDirectoriesFinished {
-        token: PendingWatermark,
+        token: PendingToken,
         result: anyhow::Result<aoide_core_api::media::tracker::scan_directories::Outcome>,
     },
     UntrackDirectoriesFinished {
-        token: PendingWatermark,
+        token: PendingToken,
         result: anyhow::Result<aoide_core_api::media::tracker::untrack_directories::Outcome>,
     },
     ImportFilesFinished {
-        token: PendingWatermark,
+        token: PendingToken,
         result: anyhow::Result<aoide_core_api::media::tracker::import_files::Outcome>,
     },
     FindUntrackedFilesFinished {
-        token: PendingWatermark,
+        token: PendingToken,
         result: anyhow::Result<aoide_core_api::media::tracker::find_untracked_files::Outcome>,
     },
     ErrorOccurred(anyhow::Error),

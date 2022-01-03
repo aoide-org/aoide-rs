@@ -16,7 +16,7 @@
 use aoide_core::entity::EntityUid;
 
 use crate::{
-    util::roundtrip::PendingWatermark,
+    util::roundtrip::PendingToken,
     web::{receive_response_body, ClientEnvironment},
 };
 
@@ -25,30 +25,30 @@ use super::Effect;
 #[derive(Debug)]
 pub enum Task {
     FetchProgress {
-        token: PendingWatermark,
+        token: PendingToken,
     },
     FetchStatus {
-        token: PendingWatermark,
+        token: PendingToken,
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::query_status::Params,
     },
     StartScanDirectories {
-        token: PendingWatermark,
+        token: PendingToken,
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::scan_directories::Params,
     },
     StartImportFiles {
-        token: PendingWatermark,
+        token: PendingToken,
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::import_files::Params,
     },
     StartFindUntrackedFiles {
-        token: PendingWatermark,
+        token: PendingToken,
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::find_untracked_files::Params,
     },
     UntrackDirectories {
-        token: PendingWatermark,
+        token: PendingToken,
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::untrack_directories::Params,
     },
