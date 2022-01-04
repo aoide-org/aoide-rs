@@ -31,7 +31,7 @@ pub use self::task::Task;
 pub type Action = aoide_client::action::Action<Effect, Task>;
 
 pub type Message = aoide_client::message::Message<Intent, Effect>;
-pub type MessageSender = aoide_client::message::MessageSender<Intent, Effect>;
+pub type MessageSender = aoide_client::messaging::MessageSender<Intent, Effect>;
 
 pub type StateUpdated = aoide_client::state::StateUpdated<Effect, Task>;
 

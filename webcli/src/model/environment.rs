@@ -13,13 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::Arc;
+use std::sync::{atomic::AtomicUsize, Arc};
 
 use reqwest::{Client, Url};
 
 use aoide_client::{
-    message::send_message,
-    task::{PendingTasksCounter, TaskDispatcher},
+    messaging::{send_message, TaskDispatcher},
     web::ClientEnvironment,
 };
 
@@ -75,5 +74,42 @@ impl TaskDispatcher<Intent, Effect, Task> for Environment {
                 log::debug!("Finished last pending task");
             }
         });
+    }
+}
+
+#[derive(Debug)]
+pub struct PendingTasksCounter {
+    number_of_pending_tasks: AtomicUsize,
+}
+
+impl PendingTasksCounter {
+    pub const fn new() -> Self {
+        Self {
+            number_of_pending_tasks: AtomicUsize::new(0),
+        }
+    }
+}
+
+impl PendingTasksCounter {
+    pub fn start_pending_task(&self) -> usize {
+        let pending_tasks = self
+            .number_of_pending_tasks
+            .fetch_add(1, std::sync::atomic::Ordering::Acquire)
+            + 1;
+        debug_assert!(!self.all_pending_tasks_finished());
+        pending_tasks
+    }
+
+    pub fn finish_pending_task(&self) -> usize {
+        debug_assert!(!self.all_pending_tasks_finished());
+        self.number_of_pending_tasks
+            .fetch_sub(1, std::sync::atomic::Ordering::Release)
+            - 1
+    }
+
+    pub fn all_pending_tasks_finished(&self) -> bool {
+        self.number_of_pending_tasks
+            .load(std::sync::atomic::Ordering::Acquire)
+            == 0
     }
 }

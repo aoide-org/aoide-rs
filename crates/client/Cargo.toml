@@ -11,7 +11,9 @@ serde = { version = "1", features = ["derive"], optional = true }
 serde_json = "*"
 serde_urlencoded = "*"
 static_assertions = "*"
-tokio = { version = "*", default-features = false }
+
+# Optional dependencies for feature with-tokio
+tokio = { version = "*", optional = true, default-features = false }
 
 # Optional dependencies for feature with-reqwest
 reqwest = { version = "*", optional = true, default-features = false, features = ["rustls-tls"] }
@@ -25,3 +27,4 @@ aoide-core-api-json = { version = "*", features = ["frontend"] }
 [features]
 default = []
 with-reqwest = ["reqwest"]
+with-tokio = ["tokio"]

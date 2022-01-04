@@ -20,10 +20,12 @@
 pub mod action;
 pub mod message;
 pub mod state;
-pub mod task;
 pub mod util;
 
 pub mod models;
+
+#[cfg(feature = "with-tokio")]
+pub mod messaging;
 
 #[cfg(feature = "with-reqwest")]
 pub mod web;

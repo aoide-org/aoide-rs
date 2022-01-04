@@ -12,7 +12,7 @@ reqwest = { version = "*", default-features = false, features = ["rustls-tls"] }
 tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
 
 # Workspace dependencies
-aoide-client = { version = "*", features = ["with-reqwest"] }
+aoide-client = { version = "*", features = ["with-reqwest", "with-tokio"] }
 aoide-core = "*"
 aoide-core-json = "*"
 aoide-core-api = "*"

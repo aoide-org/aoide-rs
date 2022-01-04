@@ -30,7 +30,7 @@ use aoide_core::{
 use aoide_core_api::media::tracker::DirTrackingStatus;
 
 use aoide_client::{
-    message::{message_channel, message_loop, send_message},
+    messaging::{message_channel, message_loop, send_message},
     models::{collection, media_source, media_tracker},
 };
 
