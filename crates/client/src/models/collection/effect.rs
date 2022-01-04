@@ -83,7 +83,14 @@ impl Effect {
                 }
             },
             Self::CreateEntityFinished(res) => match res {
-                Ok(_) => StateUpdated::unchanged(None),
+                Ok(entity) => {
+                    let next_action = state.after_entity_created(entity);
+                    if next_action.is_some() {
+                        StateUpdated::maybe_changed(next_action)
+                    } else {
+                        StateUpdated::unchanged(next_action)
+                    }
+                }
                 Err(err) => StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
             Self::ErrorOccurred(error) => {

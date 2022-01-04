@@ -17,6 +17,8 @@ use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
 
 use crate::util::{remote::RemoteData, roundtrip::PendingToken};
 
+use super::{Action, Task};
+
 #[derive(Debug, Default)]
 pub struct RemoteView {
     pub all_kinds: RemoteData<Vec<String>>,
@@ -107,6 +109,14 @@ impl State {
         }
     }
 
+    pub(super) fn finish_pending_all_kinds(
+        &mut self,
+        token: PendingToken,
+        all_kinds: Option<Vec<String>>,
+    ) -> bool {
+        self.remote_view.finish_pending_all_kinds(token, all_kinds)
+    }
+
     pub(super) fn finish_pending_filtered_entities(
         &mut self,
         token: PendingToken,
@@ -125,12 +135,22 @@ impl State {
         finished
     }
 
-    pub(super) fn finish_pending_all_kinds(
-        &mut self,
-        token: PendingToken,
-        all_kinds: Option<Vec<String>>,
-    ) -> bool {
-        self.remote_view.finish_pending_all_kinds(token, all_kinds)
+    pub(super) fn after_entity_created(&mut self, entity: CollectionEntity) -> Option<Action> {
+        if let Some(last_snapshot) = self.remote_view.all_kinds.last_snapshot() {
+            if last_snapshot
+                .value
+                .iter()
+                .any(|kind| Some(kind) == entity.body.kind.as_ref())
+            {
+                // The new entity is of a known kind
+                return None;
+            }
+        }
+        // Refetch all kinds
+        let token = self.remote_view.all_kinds.start_pending_now();
+        let task = Task::FetchAllKinds { token };
+        let next_action = Action::DispatchTask(task);
+        Some(next_action)
     }
 
     pub(super) fn set_active_entity_uid(&mut self, new_active_uid: impl Into<Option<EntityUid>>) {
