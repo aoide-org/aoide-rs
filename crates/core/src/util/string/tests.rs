@@ -16,12 +16,12 @@
 use super::*;
 
 #[test]
-fn trim_in_place_empty() {
+fn trim_owned_in_place_empty() {
     let mut s = String::new();
-    trim_in_place(&mut s);
+    trim_owned_in_place(&mut s);
     assert_eq!(String::new(), s);
     let mut s = "".into();
-    trim_in_place(&mut s);
+    trim_owned_in_place(&mut s);
     assert_eq!(String::new(), s);
 }
 
@@ -34,9 +34,9 @@ fn trim_from_empty() {
 }
 
 #[test]
-fn trim_in_place_whitespace() {
+fn trim_owned_in_place_whitespace() {
     let mut s = " \n \t \r ".into();
-    trim_in_place(&mut s);
+    trim_owned_in_place(&mut s);
     assert_eq!(String::new(), s);
 }
 
@@ -47,16 +47,16 @@ fn trim_from_whitespace() {
 }
 
 #[test]
-fn trim_in_place_start_end() {
+fn trim_owned_in_place_start_end() {
     let mut s = " \n \tThis \n is\ta \r Text\r ".into();
-    trim_in_place(&mut s);
+    trim_owned_in_place(&mut s);
     assert_eq!("This \n is\ta \r Text", s.as_str());
 }
 
 #[test]
 fn trim_from_start_end() {
     let trimmed = trim_from(" \n \tThis \n is\ta \r Text\r ");
-    assert_eq!("This \n is\ta \r Text", trimmed.as_str());
+    assert_eq!("This \n is\ta \r Text", trimmed);
 }
 
 #[test]

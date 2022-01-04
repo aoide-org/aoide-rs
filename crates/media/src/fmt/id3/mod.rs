@@ -396,10 +396,10 @@ pub fn import_metadata_into_track(
         track.release.released_at = Some(released_at);
     }
     if let Some(label) = first_text_frame(tag, "TPUB").and_then(trimmed_non_empty_from) {
-        track.release.released_by = Some(label);
+        track.release.released_by = Some(label.into());
     }
     if let Some(copyright) = first_text_frame(tag, "TCOP").and_then(trimmed_non_empty_from) {
-        track.release.copyright = Some(copyright);
+        track.release.copyright = Some(copyright.into());
     }
 
     let mut tags_map = TagsMap::default();

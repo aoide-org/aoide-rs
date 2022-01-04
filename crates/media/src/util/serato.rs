@@ -19,7 +19,7 @@ use aoide_core::{
     util::{
         canonical::CanonicalizeInto as _,
         color::{Color, RgbColor},
-        string::trimmed_non_empty,
+        string::trimmed_non_empty_from_owned,
     },
 };
 
@@ -40,7 +40,7 @@ fn import_cue(serato_cue: SeratoCue) -> Cue {
             position: PositionMs(serato_cue.position.millis.into()),
         }),
         out_marker: None,
-        label: trimmed_non_empty(serato_cue.label),
+        label: trimmed_non_empty_from_owned(serato_cue.label).map(Into::into),
         color: Some(Color::Rgb(RgbColor(
             serato_cue.color.into_pro_hotcue_color().into(),
         ))),
@@ -64,7 +64,7 @@ fn import_loop(serato_loop: Loop) -> Cue {
             position: PositionMs(serato_loop.end_position.millis.into()),
             mode: Some(OutMode::Loop),
         }),
-        label: trimmed_non_empty(serato_loop.label),
+        label: trimmed_non_empty_from_owned(serato_loop.label).map(Into::into),
         color: None,
         flags,
     }

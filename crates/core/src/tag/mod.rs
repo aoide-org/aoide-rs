@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{
-    borrow::Borrow,
+    borrow::{Borrow, Cow},
     cmp::Ordering,
     collections::{
         hash_map::Entry::{Occupied, Vacant},
@@ -158,6 +158,41 @@ impl Scored for Score {
 
 pub type LabelValue = String;
 
+#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct CowLabel<'a>(Cow<'a, str>);
+
+impl<'a> From<CowLabel<'a>> for Label {
+    fn from(from: CowLabel<'a>) -> Self {
+        Self(from.0.into())
+    }
+}
+
+impl<'a> From<&'a Label> for CowLabel<'a> {
+    fn from(from: &'a Label) -> Self {
+        Self(from.0.as_str().into())
+    }
+}
+
+impl<'a> AsRef<Cow<'a, str>> for CowLabel<'a> {
+    fn as_ref(&self) -> &Cow<'a, str> {
+        &self.0
+    }
+}
+
+impl<'a> Deref for CowLabel<'a> {
+    type Target = Cow<'a, str>;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl Borrow<str> for CowLabel<'_> {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
+}
+
 /// The name of a tag.
 ///
 /// Format: Uniccode string without leading/trailing whitespace
@@ -165,11 +200,11 @@ pub type LabelValue = String;
 pub struct Label(LabelValue);
 
 impl Label {
-    pub fn clamp_value(value: impl AsRef<str> + Into<LabelValue>) -> Option<LabelValue> {
-        trimmed_non_empty_from(value)
+    pub fn clamp_value<'a>(value: impl Into<Cow<'a, str>>) -> Option<CowLabel<'a>> {
+        trimmed_non_empty_from(value).map(CowLabel)
     }
 
-    pub fn clamp_from(value: impl AsRef<str> + Into<LabelValue>) -> Option<Self> {
+    pub fn clamp_from<'a>(value: impl Into<Cow<'a, str>>) -> Option<Self> {
         Self::clamp_value(value).map(Into::into)
     }
 
@@ -201,7 +236,7 @@ impl Validate for Label {
         ValidationContext::new()
             .invalidate_if(self.value().is_empty(), LabelInvalidity::Empty)
             .invalidate_if(
-                Self::clamp_value(self.value()).as_ref() != Some(self.value()),
+                Self::clamp_value(self.value().as_str()) != Some(self.into()),
                 LabelInvalidity::Format,
             )
             .into()
@@ -263,6 +298,41 @@ impl Labeled for Label {
 
 pub type FacetIdValue = String;
 
+#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct CowFacetId<'a>(Cow<'a, str>);
+
+impl<'a> From<CowFacetId<'a>> for FacetId {
+    fn from(from: CowFacetId<'a>) -> Self {
+        Self(from.0.into())
+    }
+}
+
+impl<'a> From<&'a FacetId> for CowFacetId<'a> {
+    fn from(from: &'a FacetId) -> Self {
+        Self(from.0.as_str().into())
+    }
+}
+
+impl<'a> AsRef<Cow<'a, str>> for CowFacetId<'a> {
+    fn as_ref(&self) -> &Cow<'a, str> {
+        &self.0
+    }
+}
+
+impl<'a> Deref for CowFacetId<'a> {
+    type Target = Cow<'a, str>;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl Borrow<str> for CowFacetId<'_> {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
+}
+
 /// An identifier for referencing tag categories.
 ///
 /// Facets are used for grouping/categorizing and providing context or meaning.
@@ -293,17 +363,17 @@ pub struct FacetId(FacetIdValue);
 pub const FACET_ID_ALPHABET: &str = "+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz";
 
 impl FacetId {
-    pub fn clamp_value(value: impl Into<FacetIdValue>) -> Option<FacetIdValue> {
-        let mut value = value.into();
+    pub fn clamp_value<'a>(value: impl Into<Cow<'a, str>>) -> Option<CowFacetId<'a>> {
+        let mut value: String = value.into().into();
         value.retain(Self::is_valid_char);
         if value.is_empty() {
             None
         } else {
-            Some(value)
+            Some(CowFacetId(Cow::Owned(value)))
         }
     }
 
-    pub fn clamp_from(value: impl Into<FacetIdValue>) -> Option<Self> {
+    pub fn clamp_from<'a>(value: impl Into<Cow<'a, str>>) -> Option<Self> {
         Self::clamp_value(value).map(Into::into)
     }
 

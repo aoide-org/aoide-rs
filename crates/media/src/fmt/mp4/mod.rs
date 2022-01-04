@@ -45,7 +45,7 @@ use aoide_core::{
     },
     util::{
         canonical::{Canonical, CanonicalizeInto as _},
-        string::trimmed_non_empty,
+        string::trimmed_non_empty_from_owned,
     },
 };
 
@@ -57,8 +57,9 @@ use crate::{
         import::{ImportTrackConfig, ImportTrackFlags, Reader},
     },
     util::{
-        format_valid_replay_gain, format_validated_tempo_bpm, ingest_title, parse_key_signature,
-        parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
+        format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from_owned,
+        parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
+        push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_values, import_plain_tags_from_joined_label_value,
             TagMappingConfig,
@@ -224,7 +225,10 @@ impl Metadata {
             .strings_of(&IDENT_REPLAYGAIN_TRACK_GAIN)
             .next()
             .and_then(parse_replay_gain);
-        let encoder = mp4_tag.take_encoder().and_then(trimmed_non_empty);
+        let encoder = mp4_tag
+            .take_encoder()
+            .and_then(trimmed_non_empty_from_owned)
+            .map(Into::into);
         AudioContent {
             duration,
             channels,
@@ -295,26 +299,26 @@ impl Metadata {
         let mut track_titles = Vec::with_capacity(4);
         if let Some(title) = mp4_tag
             .take_title()
-            .and_then(|name| ingest_title(name, TitleKind::Main))
+            .and_then(|name| ingest_title_from_owned(name, TitleKind::Main))
         {
             track_titles.push(title);
         }
         if let Some(title) = mp4_tag
             .take_strings_of(&IDENT_SUBTITLE)
             .next()
-            .and_then(|name| ingest_title(name, TitleKind::Sub))
+            .and_then(|name| ingest_title_from_owned(name, TitleKind::Sub))
         {
             track_titles.push(title);
         }
         if let Some(title) = mp4_tag
             .take_work()
-            .and_then(|name| ingest_title(name, TitleKind::Work))
+            .and_then(|name| ingest_title_from_owned(name, TitleKind::Work))
         {
             track_titles.push(title);
         }
         if let Some(title) = mp4_tag
             .take_movement()
-            .and_then(|name| ingest_title(name, TitleKind::Movement))
+            .and_then(|name| ingest_title_from_owned(name, TitleKind::Movement))
         {
             track_titles.push(title);
         }
@@ -363,7 +367,7 @@ impl Metadata {
         let mut album_titles = Vec::with_capacity(1);
         if let Some(title) = mp4_tag
             .take_album()
-            .and_then(|name| ingest_title(name, TitleKind::Main))
+            .and_then(|name| ingest_title_from_owned(name, TitleKind::Main))
         {
             album_titles.push(title);
         }
@@ -395,15 +399,18 @@ impl Metadata {
                 track.release.released_at = Some(released_at);
             }
         }
-        if let Some(copyright) = mp4_tag.take_copyright().and_then(trimmed_non_empty) {
-            track.release.copyright = Some(copyright);
+        if let Some(copyright) = mp4_tag
+            .take_copyright()
+            .and_then(trimmed_non_empty_from_owned)
+        {
+            track.release.copyright = Some(copyright.into());
         }
         if let Some(label) = mp4_tag
             .take_strings_of(&IDENT_LABEL)
             .next()
-            .and_then(trimmed_non_empty)
+            .and_then(trimmed_non_empty_from_owned)
         {
-            track.release.released_by = Some(label);
+            track.release.released_by = Some(label.into());
         }
 
         let mut tags_map = TagsMap::default();

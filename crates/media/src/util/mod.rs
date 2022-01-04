@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{convert::TryFrom as _, fmt, path::Path, str::FromStr};
+use std::{borrow::Cow, convert::TryFrom as _, fmt, path::Path, str::FromStr};
 
 use chrono::{NaiveDateTime, Utc};
 use image::{
@@ -48,7 +48,7 @@ use aoide_core::{
     },
     util::{
         clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
-        string::{trimmed_non_empty, trimmed_non_empty_from},
+        string::{trimmed_non_empty_from, trimmed_non_empty_from_owned},
     },
 };
 
@@ -98,7 +98,7 @@ fn adjust_last_actor_kind(actors: &mut [Actor], role: ActorRole) -> ActorKind {
 }
 
 pub fn push_next_actor_role_name(actors: &mut Vec<Actor>, role: ActorRole, name: String) -> bool {
-    if let Some(mut actor) = ingest_actor(name, Default::default(), role) {
+    if let Some(mut actor) = ingest_actor_from_owned(name, Default::default(), role) {
         actor.kind = adjust_last_actor_kind(actors.as_mut_slice(), role);
         actors.push(actor);
         true
@@ -107,10 +107,10 @@ pub fn push_next_actor_role_name(actors: &mut Vec<Actor>, role: ActorRole, name:
     }
 }
 
-pub fn push_next_actor_role_name_from(
+pub fn push_next_actor_role_name_from<'a>(
     actors: &mut Vec<Actor>,
     role: ActorRole,
-    name: impl AsRef<str> + Into<String>,
+    name: impl Into<Cow<'a, str>>,
 ) -> bool {
     if let Some(mut actor) = ingest_actor_from(name, Default::default(), role) {
         actor.kind = adjust_last_actor_kind(actors.as_mut_slice(), role);
@@ -649,30 +649,36 @@ pub fn try_ingest_embedded_artwork_image(
     })
 }
 
-pub fn ingest_title_from(name: impl AsRef<str> + Into<String>, kind: TitleKind) -> Option<Title> {
-    trimmed_non_empty_from(name).map(|name| Title { name, kind })
+pub fn ingest_title_from<'a>(name: impl Into<Cow<'a, str>>, kind: TitleKind) -> Option<Title> {
+    trimmed_non_empty_from(name).map(|name| Title {
+        name: name.into(),
+        kind,
+    })
 }
 
-pub fn ingest_title(name: String, kind: TitleKind) -> Option<Title> {
-    trimmed_non_empty(name).map(|name| Title { name, kind })
+pub fn ingest_title_from_owned(name: String, kind: TitleKind) -> Option<Title> {
+    trimmed_non_empty_from_owned(name).map(|name| Title {
+        name: name.into(),
+        kind,
+    })
 }
 
-pub fn ingest_actor_from(
-    name: impl AsRef<str> + Into<String>,
+pub fn ingest_actor_from<'a>(
+    name: impl Into<Cow<'a, str>>,
     kind: ActorKind,
     role: ActorRole,
 ) -> Option<Actor> {
     trimmed_non_empty_from(name).map(|name| Actor {
-        name,
+        name: name.into(),
         kind,
         role,
         role_notes: None,
     })
 }
 
-pub fn ingest_actor(name: String, kind: ActorKind, role: ActorRole) -> Option<Actor> {
-    trimmed_non_empty(name).map(|name| Actor {
-        name,
+pub fn ingest_actor_from_owned(name: String, kind: ActorKind, role: ActorRole) -> Option<Actor> {
+    trimmed_non_empty_from_owned(name).map(|name| Actor {
+        name: name.into(),
         kind,
         role,
         role_notes: None,

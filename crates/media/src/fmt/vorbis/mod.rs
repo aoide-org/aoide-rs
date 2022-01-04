@@ -337,12 +337,14 @@ pub fn import_released_by(reader: &impl CommentReader) -> Option<String> {
     reader
         .read_first_value("LABEL")
         .and_then(trimmed_non_empty_from)
+        .map(Into::into)
 }
 
 pub fn import_release_copyright(reader: &impl CommentReader) -> Option<String> {
     reader
         .read_first_value("COPYRIGHT")
         .and_then(trimmed_non_empty_from)
+        .map(Into::into)
 }
 
 pub fn import_track_index(reader: &impl CommentReader) -> Option<Index> {

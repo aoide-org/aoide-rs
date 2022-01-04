@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 // aoide.org - Copyright (C) 2018-2021 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -13,46 +15,49 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub fn trim_in_place(s: &mut String) {
-    s.truncate(s.trim_end().len());
-    let drain_start_len = s.len() - s.trim_start().len();
-    drop(s.drain(0..drain_start_len));
+pub fn trim_owned_in_place(owned: &mut String) {
+    owned.truncate(owned.trim_end().len());
+    let drain_start_len = owned.len() - owned.trim_start().len();
+    drop(owned.drain(0..drain_start_len));
 }
 
-pub fn trim_from(s: impl AsRef<str> + Into<String>) -> String {
-    let trimmed = s.as_ref().trim();
+pub fn trim_from_borrowed<'a>(borrowed: impl Into<&'a str>) -> Cow<'a, str> {
+    let borrowed = borrowed.into();
+    let trimmed = borrowed.trim();
     if trimmed.is_empty() {
-        return String::new();
+        return Cow::Borrowed("");
     }
-    if trimmed.as_bytes().first() == s.as_ref().as_bytes().first()
-        && trimmed.as_bytes().last() == s.as_ref().as_bytes().last()
+    if trimmed.as_bytes().first() != borrowed.as_bytes().first()
+        || trimmed.as_bytes().last() != borrowed.as_bytes().last()
     {
-        debug_assert_eq!(trimmed, s.as_ref());
-        s.into()
-    } else {
-        trimmed.to_owned()
+        return Cow::Borrowed(trimmed);
+    }
+    debug_assert_eq!(trimmed, borrowed);
+    Cow::Borrowed(borrowed)
+}
+
+pub fn trim_from<'a>(from: impl Into<Cow<'a, str>>) -> Cow<'a, str> {
+    match from.into() {
+        Cow::Borrowed(borrowed) => trim_from_borrowed(borrowed),
+        Cow::Owned(mut owned) => {
+            trim_owned_in_place(&mut owned);
+            Cow::Owned(owned)
+        }
     }
 }
 
-pub fn non_empty_from(s: impl AsRef<str> + Into<String>) -> Option<String> {
-    if s.as_ref().is_empty() {
-        None
-    } else {
-        Some(s.into())
-    }
+pub fn non_empty_from<'a>(from: impl Into<Cow<'a, str>>) -> Option<Cow<'a, str>> {
+    let from = from.into();
+    (!from.is_empty()).then(|| from)
 }
 
-pub fn non_empty(s: String) -> Option<String> {
-    non_empty_from(s)
+pub fn trimmed_non_empty_from<'a>(from: impl Into<Cow<'a, str>>) -> Option<Cow<'a, str>> {
+    non_empty_from(trim_from(from))
 }
 
-pub fn trimmed_non_empty_from(s: impl AsRef<str> + Into<String>) -> Option<String> {
-    non_empty(trim_from(s))
-}
-
-pub fn trimmed_non_empty(mut s: String) -> Option<String> {
-    trim_in_place(&mut s);
-    non_empty(s)
+pub fn trimmed_non_empty_from_owned<'a>(mut owned: String) -> Option<Cow<'a, str>> {
+    trim_owned_in_place(&mut owned);
+    non_empty_from(owned)
 }
 
 ///////////////////////////////////////////////////////////////////////

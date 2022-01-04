@@ -50,22 +50,36 @@ fn parse_label() {
 
 #[test]
 fn clamp_label_value() {
-    assert_eq!(Some("A Label".into()), Label::clamp_value("\tA Label  "));
+    assert_eq!(
+        Some("A Label"),
+        Label::clamp_value("\tA Label  ")
+            .as_ref()
+            .map(Borrow::borrow)
+    );
 }
 
 #[test]
 fn clamp_facet_value() {
     assert_eq!(
-        Some(FACET_ID_ALPHABET.into()),
+        Some(FACET_ID_ALPHABET),
         FacetId::clamp_value(FACET_ID_ALPHABET)
+            .as_ref()
+            .map(Borrow::borrow)
     );
     assert_eq!(
-        Some(concat!("+-./", "0123456789", "@[]_", "abcdefghijklmnopqrstuvwxyz",).into()),
+        Some(concat!(
+            "+-./",
+            "0123456789",
+            "@[]_",
+            "abcdefghijklmnopqrstuvwxyz",
+        )),
         FacetId::clamp_value(concat!(
             "\t !\"#$%&'()*+,-./0123456789:;<=>?",
             " @ ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_",
             " `abcdefghijklmn opqrstuvwxyz{|}~\n"
         ))
+        .as_ref()
+        .map(Borrow::borrow)
     );
 }
 
