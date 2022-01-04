@@ -22,6 +22,8 @@ pub mod message;
 pub mod state;
 pub mod task;
 pub mod util;
-pub mod web;
 
 pub mod models;
+
+#[cfg(feature = "with-reqwest")]
+pub mod web;
