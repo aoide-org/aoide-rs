@@ -17,18 +17,10 @@
 #![deny(clippy::clone_on_ref_ptr)]
 #![warn(rust_2018_idioms)]
 
-use diesel::{
-    prelude::*,
-    r2d2::{ConnectionManager, Pool, PooledConnection},
-};
+use diesel::{RunQueryDsl as _, SqliteConnection};
 use thiserror::Error;
 
-#[cfg(feature = "with-tokio")]
-pub mod tokio;
-
-pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
-pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
-pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;
+pub mod connection;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -43,7 +35,7 @@ pub enum Error {
 
     #[cfg(feature = "with-tokio")]
     #[error("timeout: {reason}")]
-    Timeout { reason: String },
+    TaskTimeout { reason: String },
 
     #[cfg(feature = "with-tokio")]
     #[error(transparent)]
@@ -53,7 +45,6 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub fn initialize_database(connection: &SqliteConnection) -> Result<()> {
-    log::info!("Initializing database");
     diesel::sql_query(r#"
 PRAGMA journal_mode = WAL;        -- better write-concurrency
 PRAGMA synchronous = NORMAL;      -- fsync only in critical moments, safe for journal_mode = WAL
@@ -98,7 +89,7 @@ pub fn cleanse_database(connection: &SqliteConnection, vacuum: bool) -> Result<(
     // According to Richard Hipp himself executing VACUUM before ANALYZE is the
     // recommended order: https://sqlite.org/forum/forumpost/62fb63a29c5f7810?t=h
     if vacuum {
-        log::info!("Rebuilding database storage");
+        log::info!("Rebuilding database storage before analysis & optimization");
         vacuum_database(connection)?;
     }
 
@@ -106,22 +97,4 @@ pub fn cleanse_database(connection: &SqliteConnection, vacuum: bool) -> Result<(
     analyze_and_optimize_database_stats(connection)?;
 
     Ok(())
-}
-
-pub fn create_database_connection_pool(
-    database_url: &str,
-    max_size: u32,
-) -> Result<SqliteConnectionPool> {
-    log::info!("Creating SQLite connection pool");
-    let manager = SqliteConnectionManager::new(database_url);
-    let pool = SqliteConnectionPool::builder()
-        .max_size(max_size)
-        .build(manager)?;
-    Ok(pool)
-}
-
-pub fn get_pooled_database_connection(
-    pool: &SqliteConnectionPool,
-) -> Result<SqlitePooledConnection> {
-    pool.get().map_err(Into::into)
 }

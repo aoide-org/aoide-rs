@@ -23,9 +23,9 @@ use std::{
 
 use tokio::{sync::RwLock, task::spawn_blocking, time::sleep};
 
-use crate::{
-    get_pooled_database_connection, Error, Result, SqliteConnectionPool, SqlitePooledConnection,
-};
+use crate::{Error, Result};
+
+use super::{get_pooled_connection, ConnectionPool, PooledConnection};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DatabaseConnectionGatekeeperConfig {
@@ -43,7 +43,7 @@ pub struct DatabaseConnectionGatekeeperConfig {
 #[allow(missing_debug_implementations)]
 pub struct DatabaseConnectionGatekeeper {
     config: DatabaseConnectionGatekeeperConfig,
-    connection_pool: Arc<RwLock<SqliteConnectionPool>>,
+    connection_pool: Arc<RwLock<ConnectionPool>>,
     request_counter_state: Arc<RequestCounterState>,
     abort_current_task_flag: Arc<AtomicBool>,
     decommisioned: AtomicBool,
@@ -125,7 +125,7 @@ pub struct PendingTasks {
 
 impl DatabaseConnectionGatekeeper {
     pub fn new(
-        connection_pool: SqliteConnectionPool,
+        connection_pool: ConnectionPool,
         config: DatabaseConnectionGatekeeperConfig,
     ) -> Self {
         Self {
@@ -143,7 +143,7 @@ impl DatabaseConnectionGatekeeper {
 
     fn check_not_decommissioned(&self) -> Result<()> {
         if self.decommisioned.load(Ordering::Acquire) {
-            return Err(Error::Timeout {
+            return Err(Error::TaskTimeout {
                 reason: "connection pool has been decommissioned".to_string(),
             });
         }
@@ -152,7 +152,7 @@ impl DatabaseConnectionGatekeeper {
 
     pub async fn spawn_blocking_read_task<H, R>(&self, connection_handler: H) -> Result<R>
     where
-        H: FnOnce(SqlitePooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
+        H: FnOnce(PooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
         R: Send + 'static,
     {
         self.check_not_decommissioned()?;
@@ -164,10 +164,10 @@ impl DatabaseConnectionGatekeeper {
         tokio::pin!(timeout);
         let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
         tokio::select! {
-            _ = &mut timeout => Err(Error::Timeout {reason: "database is locked".to_string() }),
+            _ = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
             guard = self.connection_pool.read() => {
                 self.check_not_decommissioned()?;
-                let connection = get_pooled_database_connection(&*guard)?;
+                let connection = get_pooled_connection(&*guard)?;
                 self.check_not_decommissioned()?;
                 // Every tasks gets the chance to run when ready
                 abort_current_task_flag.store(false, Ordering::Release);
@@ -179,7 +179,7 @@ impl DatabaseConnectionGatekeeper {
 
     pub async fn spawn_blocking_write_task<H, R>(&self, connection_handler: H) -> Result<R>
     where
-        H: FnOnce(SqlitePooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
+        H: FnOnce(PooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
         R: Send + 'static,
     {
         self.check_not_decommissioned()?;
@@ -191,10 +191,10 @@ impl DatabaseConnectionGatekeeper {
         tokio::pin!(timeout);
         let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
         tokio::select! {
-            _ = &mut timeout => Err(Error::Timeout {reason: "database is locked".to_string() }),
+            _ = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
             guard = self.connection_pool.write() => {
                 self.check_not_decommissioned()?;
-                let connection = get_pooled_database_connection(&*guard)?;
+                let connection = get_pooled_connection(&*guard)?;
                 self.check_not_decommissioned()?;
                 // Every tasks gets the chance to run when ready
                 abort_current_task_flag.store(false, Ordering::Release);

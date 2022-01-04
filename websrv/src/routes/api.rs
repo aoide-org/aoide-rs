@@ -22,7 +22,7 @@ use aoide_core::entity::EntityUid;
 
 use aoide_storage_sqlite::{
     cleanse_database,
-    tokio::{DatabaseConnectionGatekeeper, PendingTasks},
+    connection::gatekeeper::{DatabaseConnectionGatekeeper, PendingTasks},
 };
 
 use aoide_usecases::media::tracker::{

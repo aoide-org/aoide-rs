@@ -22,8 +22,12 @@ use tokio::{join, signal, sync::mpsc, time::sleep};
 use warp::{http::StatusCode, Filter};
 
 use aoide_storage_sqlite::{
-    create_database_connection_pool, get_pooled_database_connection, initialize_database,
-    tokio::{DatabaseConnectionGatekeeper, DatabaseConnectionGatekeeperConfig},
+    connection::{
+        create_connection_pool,
+        gatekeeper::{DatabaseConnectionGatekeeper, DatabaseConnectionGatekeeperConfig},
+        get_pooled_connection,
+    },
+    initialize_database,
 };
 
 use aoide_usecases_sqlite as uc;
@@ -66,14 +70,15 @@ pub async fn main() -> Result<(), Error> {
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
     let database_connection_pool_size = env::parse_database_connection_pool_size();
-    let connection_pool =
-        create_database_connection_pool(&database_url, database_connection_pool_size)
-            .expect("Failed to create database connection pool");
+    log::info!("Creating SQLite connection pool");
+    let connection_pool = create_connection_pool(&database_url, database_connection_pool_size)
+        .expect("Failed to create database connection pool");
 
-    initialize_database(&*get_pooled_database_connection(&connection_pool)?)
+    log::info!("Initializing database");
+    initialize_database(&*get_pooled_connection(&connection_pool)?)
         .expect("Failed to initialize database");
     if env::parse_database_migrate_schema_on_startup() {
-        uc::database::migrate_schema(&*get_pooled_database_connection(&connection_pool)?)
+        uc::database::migrate_schema(&*get_pooled_connection(&connection_pool)?)
             .expect("Failed to migrate database schema");
     }
 

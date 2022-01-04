@@ -24,7 +24,7 @@ use std::{
     sync::{atomic::AtomicBool, Arc},
 };
 
-use db::{tokio::DatabaseConnectionGatekeeper, SqlitePooledConnection};
+use db::connection::{gatekeeper::DatabaseConnectionGatekeeper, PooledConnection};
 use serde::Serialize;
 use thiserror::Error;
 use tokio::task::JoinError;
@@ -102,7 +102,7 @@ impl From<db::Error> for Error {
             Database(err) => Self::Other(err.into()),
             Connection(err) => Self::Other(err.into()),
             TaskScheduling(err) => Self::Other(err.into()),
-            Timeout { reason } => Self::Timeout { reason },
+            TaskTimeout { reason } => Self::Timeout { reason },
             Other(err) => Self::Other(err),
         }
     }
@@ -138,9 +138,7 @@ pub async fn spawn_blocking_write_task<H, T, E>(
     handler: H,
 ) -> std::result::Result<T, Rejection>
 where
-    H: FnOnce(SqlitePooledConnection, Arc<AtomicBool>) -> std::result::Result<T, E>
-        + Send
-        + 'static,
+    H: FnOnce(PooledConnection, Arc<AtomicBool>) -> std::result::Result<T, E> + Send + 'static,
     T: Send + 'static,
     E: Into<Error> + Send + 'static,
 {
@@ -152,9 +150,7 @@ pub async fn spawn_blocking_read_task<H, T, E>(
     handler: H,
 ) -> std::result::Result<T, Rejection>
 where
-    H: FnOnce(SqlitePooledConnection, Arc<AtomicBool>) -> std::result::Result<T, E>
-        + Send
-        + 'static,
+    H: FnOnce(PooledConnection, Arc<AtomicBool>) -> std::result::Result<T, E> + Send + 'static,
     T: Send + 'static,
     E: Into<Error> + Send + 'static,
 {
