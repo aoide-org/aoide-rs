@@ -404,7 +404,7 @@ impl Validate for ImageSize {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.is_empty(), ImageSizeInvalidity::Empty)
+            .invalidate_if(self.is_empty(), Self::Invalidity::Empty)
             .into()
     }
 }

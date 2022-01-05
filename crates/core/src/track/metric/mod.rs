@@ -90,9 +90,9 @@ impl Validate for Metrics {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.tempo_bpm, MetricsInvalidity::TempoBpm)
-            .validate_with(&self.time_signature, MetricsInvalidity::TimeSignature)
-            .validate_with(&self.flags, MetricsInvalidity::Flags)
+            .validate_with(&self.tempo_bpm, Self::Invalidity::TempoBpm)
+            .validate_with(&self.time_signature, Self::Invalidity::TimeSignature)
+            .validate_with(&self.flags, Self::Invalidity::Flags)
             .into()
     }
 }

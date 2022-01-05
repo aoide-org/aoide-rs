@@ -75,11 +75,11 @@ impl Validate for Album {
         ValidationContext::new()
             .merge_result_with(
                 Titles::validate(self.titles.iter()),
-                AlbumInvalidity::Titles,
+                Self::Invalidity::Titles,
             )
             .merge_result_with(
                 Actors::validate(self.actors.iter()),
-                AlbumInvalidity::Actors,
+                Self::Invalidity::Actors,
             )
             .into()
     }

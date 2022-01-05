@@ -110,13 +110,13 @@ impl Validate for TimeSignature {
         ValidationContext::new()
             .invalidate_if(
                 !is_valid_beats_per_measure(self.beats_per_measure),
-                TimeSignatureInvalidity::BeatsPerMeasure,
+                Self::Invalidity::BeatsPerMeasure,
             )
             .invalidate_if(
                 self.beat_unit
                     .map(|beat_unit| !is_valid_beat_unit(beat_unit))
                     .unwrap_or_default(),
-                TimeSignatureInvalidity::BeatUnit,
+                Self::Invalidity::BeatUnit,
             )
             .into()
     }

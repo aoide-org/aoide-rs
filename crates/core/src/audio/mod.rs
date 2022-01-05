@@ -48,7 +48,7 @@ impl Validate for PositionMs {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(!self.0.is_finite(), PositionMsInvalidity::OutOfRange)
+            .invalidate_if(!self.0.is_finite(), Self::Invalidity::OutOfRange)
             .into()
     }
 }
@@ -103,7 +103,7 @@ impl Validate for DurationMs {
         ValidationContext::new()
             .invalidate_if(
                 !(self.0.is_finite() && *self >= Self::empty()),
-                DurationMsInvalidity::OutOfRange,
+                Self::Invalidity::OutOfRange,
             )
             .into()
     }
@@ -161,18 +161,18 @@ impl Validate for AudioContent {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.duration, AudioContentInvalidity::Duration)
-            .validate_with(&self.channels, AudioContentInvalidity::Channels)
-            .validate_with(&self.sample_rate, AudioContentInvalidity::SampleRate)
-            .validate_with(&self.bitrate, AudioContentInvalidity::Bitrate)
-            .validate_with(&self.loudness, AudioContentInvalidity::Loudness)
+            .validate_with(&self.duration, Self::Invalidity::Duration)
+            .validate_with(&self.channels, Self::Invalidity::Channels)
+            .validate_with(&self.sample_rate, Self::Invalidity::SampleRate)
+            .validate_with(&self.bitrate, Self::Invalidity::Bitrate)
+            .validate_with(&self.loudness, Self::Invalidity::Loudness)
             .invalidate_if(
                 self.encoder
                     .as_deref()
                     .map(str::trim)
                     .map(str::is_empty)
                     .unwrap_or(false),
-                AudioContentInvalidity::EncoderEmpty,
+                Self::Invalidity::EncoderEmpty,
             )
             .into()
     }

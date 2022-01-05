@@ -89,7 +89,7 @@ impl Validate for Title {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.name.trim().is_empty(), TitleInvalidity::NameEmpty)
+            .invalidate_if(self.name.trim().is_empty(), Self::Invalidity::NameEmpty)
             .into()
     }
 }

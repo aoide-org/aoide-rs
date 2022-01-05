@@ -59,14 +59,8 @@ impl Validate for ChannelCount {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(
-                *self < Self::min(),
-                ChannelCountInvalidity::Min(Self::min()),
-            )
-            .invalidate_if(
-                *self > Self::max(),
-                ChannelCountInvalidity::Max(Self::max()),
-            )
+            .invalidate_if(*self < Self::min(), Self::Invalidity::Min(Self::min()))
+            .invalidate_if(*self > Self::max(), Self::Invalidity::Max(Self::max()))
             .into()
     }
 }
@@ -126,10 +120,7 @@ impl Validate for ChannelLayout {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(
-                &(*self).channel_count(),
-                ChannelLayoutInvalidity::ChannelCount,
-            )
+            .validate_with(&(*self).channel_count(), Self::Invalidity::ChannelCount)
             .into()
     }
 }
@@ -184,10 +175,8 @@ impl Validate for Channels {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new();
         match self {
-            Channels::Count(ref count) => context.validate_with(count, ChannelsInvalidity::Count),
-            Channels::Layout(ref layout) => {
-                context.validate_with(layout, ChannelsInvalidity::Layout)
-            }
+            Channels::Count(ref count) => context.validate_with(count, Self::Invalidity::Count),
+            Channels::Layout(ref layout) => context.validate_with(layout, Self::Invalidity::Layout),
         }
         .into()
     }

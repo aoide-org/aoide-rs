@@ -38,7 +38,7 @@ impl Validate for Color {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new();
         match self {
-            Color::Rgb(rgb_color) => context.validate_with(rgb_color, ColorInvalidity::Rgb),
+            Color::Rgb(rgb_color) => context.validate_with(rgb_color, Self::Invalidity::Rgb),
             Color::Index(_) => context,
         }
         .into()
@@ -152,7 +152,7 @@ impl Validate for RgbColor {
         ValidationContext::new()
             .invalidate_if(
                 self.code() < Self::min_code() || self.code() > Self::max_code(),
-                RgbColorInvalidity::CodeOutOfRange,
+                Self::Invalidity::CodeOutOfRange,
             )
             .into()
     }

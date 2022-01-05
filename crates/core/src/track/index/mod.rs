@@ -92,9 +92,9 @@ impl Validate for Indexes {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.disc, IndexesInvalidity::Disc)
-            .validate_with(&self.track, IndexesInvalidity::Track)
-            .validate_with(&self.movement, IndexesInvalidity::Movement)
+            .validate_with(&self.disc, Self::Invalidity::Disc)
+            .validate_with(&self.track, Self::Invalidity::Track)
+            .validate_with(&self.movement, Self::Invalidity::Movement)
             .into()
     }
 }

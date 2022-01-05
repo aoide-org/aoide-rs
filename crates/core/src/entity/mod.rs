@@ -92,7 +92,7 @@ impl Validate for EntityUid {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self == &Self::default(), EntityUidInvalidity::Invalid)
+            .invalidate_if(self == &Self::default(), Self::Invalidity::Invalid)
             .into()
     }
 }
@@ -186,10 +186,7 @@ impl Validate for EntityRevision {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(
-                *self < Self::initial(),
-                EntityRevisionInvalidity::OutOfRange,
-            )
+            .invalidate_if(*self < Self::initial(), Self::Invalidity::OutOfRange)
             .into()
     }
 }
@@ -342,8 +339,8 @@ where
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.hdr, EntityInvalidity::Header)
-            .validate_with(&self.body, EntityInvalidity::Body)
+            .validate_with(&self.hdr, Self::Invalidity::Header)
+            .validate_with(&self.body, Self::Invalidity::Body)
             .into()
     }
 }

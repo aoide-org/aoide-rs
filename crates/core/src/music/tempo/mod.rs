@@ -57,7 +57,7 @@ impl Validate for TempoBpm {
         ValidationContext::new()
             .invalidate_if(
                 !(*self >= Self::min() && *self <= Self::max()),
-                TempoBpmInvalidity::OutOfRange,
+                Self::Invalidity::OutOfRange,
             )
             .into()
     }

@@ -127,7 +127,7 @@ impl Validate for Actor {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.name.trim().is_empty(), ActorInvalidity::NameEmpty)
+            .invalidate_if(self.name.trim().is_empty(), Self::Invalidity::NameEmpty)
             .into()
     }
 }

@@ -66,8 +66,8 @@ impl Validate for BitrateBps {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(*self < Self::min(), BitrateBpsInvalidity::Min(Self::min()))
-            .invalidate_if(*self > Self::max(), BitrateBpsInvalidity::Max(Self::max()))
+            .invalidate_if(*self < Self::min(), Self::Invalidity::Min(Self::min()))
+            .invalidate_if(*self > Self::max(), Self::Invalidity::Max(Self::max()))
             .into()
     }
 }
@@ -137,14 +137,8 @@ impl Validate for SampleRateHz {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(
-                *self < Self::min(),
-                SampleRateHzInvalidity::Min(Self::min()),
-            )
-            .invalidate_if(
-                *self > Self::max(),
-                SampleRateHzInvalidity::Max(Self::max()),
-            )
+            .invalidate_if(*self < Self::min(), Self::Invalidity::Min(Self::min()))
+            .invalidate_if(*self > Self::max(), Self::Invalidity::Max(Self::max()))
             .into()
     }
 }
@@ -190,9 +184,9 @@ impl Validate for PcmSignal {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.channel_layout, PcmSignalInvalidity::ChannelLayout)
-            .validate_with(&self.sample_layout, PcmSignalInvalidity::SampleLayout)
-            .validate_with(&self.sample_rate, PcmSignalInvalidity::SampleRate)
+            .validate_with(&self.channel_layout, Self::Invalidity::ChannelLayout)
+            .validate_with(&self.sample_layout, Self::Invalidity::SampleLayout)
+            .validate_with(&self.sample_rate, Self::Invalidity::SampleRate)
             .into()
     }
 }
@@ -238,7 +232,7 @@ impl Validate for LatencyMs {
         ValidationContext::new()
             .invalidate_if(
                 !self.0.is_finite() || *self < Self::min(),
-                LatencyMsInvalidity::OutOfRange,
+                Self::Invalidity::OutOfRange,
             )
             .into()
     }
@@ -280,7 +274,7 @@ impl Validate for LoudnessLufs {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(!self.0.is_finite(), LoudnessLufsInvalidity::OutOfRange)
+            .invalidate_if(!self.0.is_finite(), Self::Invalidity::OutOfRange)
             .into()
     }
 }

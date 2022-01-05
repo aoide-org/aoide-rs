@@ -90,7 +90,7 @@ impl Validate for SamplePosition {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(!self.0.is_finite(), SamplePositionInvalidity::OutOfRange)
+            .invalidate_if(!self.0.is_finite(), Self::Invalidity::OutOfRange)
             .into()
     }
 }
@@ -134,7 +134,7 @@ impl Validate for SampleLength {
         ValidationContext::new()
             .invalidate_if(
                 !(self.0.is_finite() && self.0.is_sign_positive()),
-                SampleLengthInvalidity::OutOfRange,
+                Self::Invalidity::OutOfRange,
             )
             .into()
     }

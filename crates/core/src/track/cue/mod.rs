@@ -180,11 +180,11 @@ impl Validate for Cue {
         let mut context = ValidationContext::new()
             .invalidate_if(
                 self.in_marker.is_none() && self.out_marker.is_none(),
-                CueInvalidity::InOrOutMarkerMissing,
+                Self::Invalidity::InOrOutMarkerMissing,
             )
-            .validate_with(&self.flags, CueInvalidity::Flags);
+            .validate_with(&self.flags, Self::Invalidity::Flags);
         if let Some(ref label) = self.label {
-            context = context.invalidate_if(label.trim().is_empty(), CueInvalidity::LabelEmpty)
+            context = context.invalidate_if(label.trim().is_empty(), Self::Invalidity::LabelEmpty)
         }
         context.into()
     }

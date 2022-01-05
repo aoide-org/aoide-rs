@@ -117,7 +117,7 @@ impl Validate for Score {
         ValidationContext::new()
             .invalidate_if(
                 !(*self >= Self::min() && *self <= Self::max()),
-                ScoreInvalidity::OutOfRange,
+                Self::Invalidity::OutOfRange,
             )
             .into()
     }
@@ -234,10 +234,10 @@ impl Validate for Label {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.value().is_empty(), LabelInvalidity::Empty)
+            .invalidate_if(self.value().is_empty(), Self::Invalidity::Empty)
             .invalidate_if(
                 Self::clamp_value(self.value().as_str()) != Some(self.into()),
-                LabelInvalidity::Format,
+                Self::Invalidity::Format,
             )
             .into()
     }
@@ -424,18 +424,18 @@ impl Validate for FacetId {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.value().is_empty(), FacetIdInvalidity::Empty)
+            .invalidate_if(self.value().is_empty(), Self::Invalidity::Empty)
             .invalidate_if(
                 self.value()
                     .chars()
                     .next()
                     .map(|c| !c.is_ascii_lowercase())
                     .unwrap_or(false),
-                FacetIdInvalidity::Format,
+                Self::Invalidity::Format,
             )
             .invalidate_if(
                 self.value().chars().any(FacetId::is_invalid_char),
-                FacetIdInvalidity::Format,
+                Self::Invalidity::Format,
             )
             .into()
     }

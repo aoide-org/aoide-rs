@@ -92,18 +92,18 @@ impl Validate for Release {
     type Invalidity = ReleaseInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let mut context = ValidationContext::new()
-            .validate_with(&self.released_at, ReleaseInvalidity::ReleasedAt);
+        let mut context =
+            ValidationContext::new().validate_with(&self.released_at, Self::Invalidity::ReleasedAt);
         if let Some(ref released_by) = self.released_by {
             context = context.invalidate_if(
                 released_by.trim().is_empty(),
-                ReleaseInvalidity::ReleasedByEmpty,
+                Self::Invalidity::ReleasedByEmpty,
             );
         }
         if let Some(ref copyright) = self.copyright {
             context = context.invalidate_if(
                 copyright.trim().is_empty(),
-                ReleaseInvalidity::CopyrightEmpty,
+                Self::Invalidity::CopyrightEmpty,
             );
         }
         context.into()
