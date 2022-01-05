@@ -17,6 +17,8 @@
 #![deny(clippy::clone_on_ref_ptr)]
 #![warn(rust_2018_idioms)]
 
+use diesel::{QueryResult, RunQueryDsl as _, SqliteConnection};
+
 // The following workaround is need to avoid cluttering the code with
 // #[cfg_attr(feature = "diesel", ...)] to specify custom diesel
 // attributes.
@@ -136,3 +138,27 @@ mod db;
 mod util;
 
 use prelude::Connection;
+
+/// Configure the database engine
+///
+/// The implementation of the repositories and use cases relies on a proper
+/// configuration of the database engine like the behavior, e.g. recursive
+/// cascading deletes.
+///
+/// Some values like the text encoding can only be changed once after the
+/// database has initially been created.
+pub fn initialize_database(connection: &SqliteConnection) -> QueryResult<()> {
+    diesel::sql_query(r#"
+PRAGMA journal_mode = WAL;        -- better write-concurrency
+PRAGMA synchronous = NORMAL;      -- fsync only in critical moments, safe for journal_mode = WAL
+PRAGMA wal_autocheckpoint = 1000; -- write WAL changes back every 1000 pages (default), for an in average 1MB WAL file
+PRAGMA wal_checkpoint(TRUNCATE);  -- free some space by truncating possibly massive WAL files from the last run
+PRAGMA secure_delete = 0;         -- avoid some disk I/O
+PRAGMA automatic_index = 1;       -- detect and log missing indexes
+PRAGMA foreign_keys = 1;          -- check foreign key constraints
+PRAGMA defer_foreign_keys = 1;    -- delay enforcement of foreign key constraints until commit
+PRAGMA recursive_triggers = 1;    -- for recursive ON CASCADE DELETE actions
+PRAGMA encoding = 'UTF-8';
+"#).execute(connection)?;
+    Ok(())
+}

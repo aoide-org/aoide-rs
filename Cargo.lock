@@ -284,6 +284,7 @@ version = "0.8.0"
 dependencies = [
  "anyhow",
  "aoide-core",
+ "aoide-repo-sqlite",
  "aoide-storage-sqlite",
  "aoide-usecases",
  "aoide-usecases-sqlite",

@@ -21,14 +21,13 @@ use std::{collections::HashMap, env::current_exe, sync::Arc, time::Duration};
 use tokio::{join, signal, sync::mpsc, time::sleep};
 use warp::{http::StatusCode, Filter};
 
-use aoide_storage_sqlite::{
-    connection::{
-        create_connection_pool,
-        gatekeeper::{DatabaseConnectionGatekeeper, DatabaseConnectionGatekeeperConfig},
-        get_pooled_connection,
-    },
-    initialize_database,
+use aoide_storage_sqlite::connection::{
+    create_connection_pool,
+    gatekeeper::{DatabaseConnectionGatekeeper, DatabaseConnectionGatekeeperConfig},
+    get_pooled_connection,
 };
+
+use aoide_repo_sqlite::initialize_database;
 
 use aoide_usecases_sqlite as uc;
 
