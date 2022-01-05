@@ -38,7 +38,7 @@ use aoide_core::{
     },
     util::{
         canonical::{Canonical, CanonicalizeInto as _},
-        clock::DateOrDateTime,
+        clock::{DateOrDateTime, DateYYYYMMDD},
         string::trimmed_non_empty_from,
     },
 };
@@ -331,12 +331,20 @@ pub fn import_album_kind(reader: &impl CommentReader) -> Option<AlbumKind> {
 
 pub fn import_recorded_at(reader: &impl CommentReader) -> Option<DateOrDateTime> {
     reader
-        .read_first_value("ORIGINALYEAR")
+        .read_first_value("ORIGINALDATE")
         .and_then(parse_year_tag)
+        .or_else(|| {
+            reader
+                .read_first_value("ORIGINALYEAR")
+                .and_then(parse_year_tag)
+        })
 }
 
 pub fn import_released_at(reader: &impl CommentReader) -> Option<DateOrDateTime> {
-    reader.read_first_value("DATE").and_then(parse_year_tag)
+    reader
+        .read_first_value("DATE")
+        .and_then(parse_year_tag)
+        .or_else(|| reader.read_first_value("YEAR").and_then(parse_year_tag))
 }
 
 pub fn import_released_by(reader: &impl CommentReader) -> Option<String> {
@@ -852,9 +860,25 @@ pub fn export_track(
         "DATE".to_owned(),
         track.released_at.as_ref().map(ToString::to_string),
     );
+    let released_year = track
+        .released_at
+        .map(DateYYYYMMDD::from)
+        .map(DateYYYYMMDD::year);
+    writer.write_single_value_opt(
+        "YEAR".to_owned(),
+        released_year.as_ref().map(ToString::to_string),
+    );
+    writer.write_single_value_opt(
+        "ORIGINALDATE".to_owned(),
+        track.recorded_at.as_ref().map(ToString::to_string),
+    );
+    let recorded_year = track
+        .recorded_at
+        .map(DateYYYYMMDD::from)
+        .map(DateYYYYMMDD::year);
     writer.write_single_value_opt(
         "ORIGINALYEAR".to_owned(),
-        track.recorded_at.as_ref().map(ToString::to_string),
+        recorded_year.as_ref().map(ToString::to_string),
     );
 
     // Numbers
