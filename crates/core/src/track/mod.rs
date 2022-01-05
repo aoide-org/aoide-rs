@@ -174,7 +174,7 @@ impl Track {
         if !newer_album.is_default() {
             *album = newer_album;
         }
-        if newer_color.is_none() {
+        if newer_color.is_some() {
             *color = newer_color;
         }
         if !newer_cues.is_empty() {
