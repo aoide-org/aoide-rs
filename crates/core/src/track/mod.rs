@@ -13,18 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-
 pub mod actor;
 pub mod album;
 pub mod cue;
 pub mod index;
 pub mod metric;
-pub mod release;
 pub mod tag;
 pub mod title;
 
-use self::{actor::*, album::*, cue::*, index::*, metric::*, release::*, title::*};
+use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
 
 use crate::{
     media::*,
@@ -37,7 +34,31 @@ use crate::{
 pub struct Track {
     pub media_source: Source,
 
-    pub release: Release,
+    /// The recording date
+    ///
+    /// The distinction of the recording and the release date is
+    /// blurry and sometimes even unknown depending on the format
+    /// were the metadata is originating from. Often only the
+    /// release date instead of the actual recording date is
+    /// available.
+    pub recorded_at: Option<DateOrDateTime>,
+
+    /// The release date
+    ///
+    /// The release date may differ for tracks from the same album!
+    /// On compilation albums the release date often denotes the
+    /// original release or recording date. Even tracks of the same
+    /// regular album may have different release dates from a different
+    /// calendar year.
+    ///
+    /// The release date is supposed to be not earlier than the
+    /// recording date.
+    pub released_at: Option<DateOrDateTime>,
+
+    /// The publisher, e.g. a record label
+    pub released_by: Option<String>,
+
+    pub copyright: Option<String>,
 
     pub album: Canonical<Album>,
 
@@ -62,7 +83,10 @@ impl Track {
     pub fn new_from_media_source(media_source: Source) -> Self {
         Self {
             media_source,
-            release: Default::default(),
+            recorded_at: Default::default(),
+            released_at: Default::default(),
+            released_by: Default::default(),
+            copyright: Default::default(),
             album: Default::default(),
             indexes: Default::default(),
             titles: Default::default(),
@@ -140,12 +164,15 @@ impl Track {
             actors,
             album,
             color,
+            copyright,
             cues,
             indexes,
             media_source,
             metrics,
             play_counter,
-            release,
+            recorded_at,
+            released_at,
+            released_by,
             tags,
             titles,
         } = self;
@@ -153,12 +180,15 @@ impl Track {
             actors: newer_actors,
             album: newer_album,
             color: newer_color,
+            copyright: newer_copyright,
             cues: newer_cues,
             indexes: newer_indexes,
             media_source: mut newer_media_source,
             metrics: newer_metrics,
             play_counter: newer_play_counter,
-            release: newer_release,
+            recorded_at: newer_recorded_at,
+            released_at: newer_released_at,
+            released_by: newer_released_by,
             tags: newer_tags,
             titles: newer_titles,
         } = newer;
@@ -177,6 +207,9 @@ impl Track {
         if newer_color.is_some() {
             *color = newer_color;
         }
+        if newer_copyright.is_some() {
+            *copyright = newer_copyright;
+        }
         if !newer_cues.is_empty() {
             *cues = newer_cues;
         }
@@ -186,8 +219,14 @@ impl Track {
         if !newer_play_counter.is_default() {
             *play_counter = newer_play_counter;
         }
-        if !newer_release.is_default() {
-            *release = newer_release;
+        if newer_recorded_at.is_some() {
+            *recorded_at = newer_recorded_at;
+        }
+        if !newer_released_at.is_default() {
+            *released_at = newer_released_at;
+        }
+        if !newer_released_by.is_default() {
+            *released_by = newer_released_by;
         }
         if !newer_tags.is_empty() {
             *tags = newer_tags;
@@ -240,7 +279,11 @@ impl Track {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TrackInvalidity {
     MediaSource(SourceInvalidity),
-    Release(ReleaseInvalidity),
+    RecordedAt(DateOrDateTimeInvalidity),
+    ReleasedAt(DateOrDateTimeInvalidity),
+    ReleasedAtBeforeRecordedAt,
+    ReleasedByEmpty,
+    CopyrightEmpty,
     Album(AlbumInvalidity),
     Titles(TitlesInvalidity),
     Actors(ActorsInvalidity),
@@ -255,9 +298,10 @@ impl Validate for Track {
     type Invalidity = TrackInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
+        let mut context = ValidationContext::new()
             .validate_with(&self.media_source, Self::Invalidity::MediaSource)
-            .validate_with(&self.release, Self::Invalidity::Release)
+            .validate_with(&self.recorded_at, Self::Invalidity::RecordedAt)
+            .validate_with(&self.released_at, Self::Invalidity::ReleasedAt)
             .validate_with(self.album.as_ref(), Self::Invalidity::Album)
             .merge_result_with(
                 Titles::validate(self.titles.iter()),
@@ -278,8 +322,26 @@ impl Validate for Track {
                         context.validate_with(next, Self::Invalidity::Cue)
                     })
                     .into(),
+            );
+        if let (Some(recorded_at), Some(released_at)) = (self.recorded_at, self.recorded_at) {
+            context = context.invalidate_if(
+                released_at < recorded_at,
+                Self::Invalidity::ReleasedAtBeforeRecordedAt,
             )
-            .into()
+        }
+        if let Some(ref released_by) = self.released_by {
+            context = context.invalidate_if(
+                released_by.trim().is_empty(),
+                Self::Invalidity::ReleasedByEmpty,
+            );
+        }
+        if let Some(ref copyright) = self.copyright {
+            context = context.invalidate_if(
+                copyright.trim().is_empty(),
+                Self::Invalidity::CopyrightEmpty,
+            );
+        }
+        context.into()
     }
 }
 

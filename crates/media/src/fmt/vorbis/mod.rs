@@ -32,13 +32,13 @@ use aoide_core::{
         actor::ActorRole,
         album::AlbumKind,
         index::Index,
-        release::DateOrDateTime,
         tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD},
         title::{Title, TitleKind, Titles},
         Track,
     },
     util::{
         canonical::{Canonical, CanonicalizeInto as _},
+        clock::DateOrDateTime,
         string::trimmed_non_empty_from,
     },
 };
@@ -329,6 +329,12 @@ pub fn import_album_kind(reader: &impl CommentReader) -> Option<AlbumKind> {
     }
 }
 
+pub fn import_recorded_at(reader: &impl CommentReader) -> Option<DateOrDateTime> {
+    reader
+        .read_first_value("ORIGINALYEAR")
+        .and_then(parse_year_tag)
+}
+
 pub fn import_released_at(reader: &impl CommentReader) -> Option<DateOrDateTime> {
     reader.read_first_value("DATE").and_then(parse_year_tag)
 }
@@ -495,6 +501,16 @@ pub fn import_into_track(
         track.metrics.key_signature = key_signature;
     }
 
+    if let Some(released_at) = import_released_at(reader) {
+        track.released_at = Some(released_at);
+    }
+    if let Some(released_by) = import_released_by(reader) {
+        track.released_by = Some(released_by);
+    }
+    if let Some(copyright) = import_release_copyright(reader) {
+        track.copyright = Some(copyright);
+    }
+
     // Track titles
     let track_titles = import_track_titles(reader);
     if !track_titles.is_empty() {
@@ -590,17 +606,6 @@ pub fn import_into_track(
     }
 
     track.album = Canonical::tie(album);
-
-    // Release properties
-    if let Some(released_at) = import_released_at(reader) {
-        track.release.released_at = Some(released_at);
-    }
-    if let Some(released_by) = import_released_by(reader) {
-        track.release.released_by = Some(released_by);
-    }
-    if let Some(copyright) = import_release_copyright(reader) {
-        track.release.copyright = Some(copyright);
-    }
 
     let mut tags_map = TagsMap::default();
     if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
@@ -841,12 +846,15 @@ pub fn export_track(
         }
     }
 
-    // Release
-    writer.write_single_value_opt("COPYRIGHT".to_owned(), track.release.copyright.to_owned());
-    writer.write_single_value_opt("LABEL".to_owned(), track.release.released_by.to_owned());
+    writer.write_single_value_opt("COPYRIGHT".to_owned(), track.copyright.to_owned());
+    writer.write_single_value_opt("LABEL".to_owned(), track.released_by.to_owned());
     writer.write_single_value_opt(
         "DATE".to_owned(),
-        track.release.released_at.as_ref().map(ToString::to_string),
+        track.released_at.as_ref().map(ToString::to_string),
+    );
+    writer.write_single_value_opt(
+        "ORIGINALYEAR".to_owned(),
+        track.recorded_at.as_ref().map(ToString::to_string),
     );
 
     // Numbers

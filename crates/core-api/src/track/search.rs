@@ -18,8 +18,10 @@ use semval::prelude::IsValid as _;
 use aoide_core::{
     audio::DurationMs,
     entity::EntityUid,
-    track::release::DateOrDateTime,
-    util::{clock::DateTime, url::BaseUrl},
+    util::{
+        clock::{DateOrDateTime, DateTime},
+        url::BaseUrl,
+    },
 };
 
 use crate::{filtering::*, sorting::*, tag};
@@ -48,6 +50,7 @@ pub enum NumericField {
     DiscTotal,
     MusicTempoBpm,
     MusicKeyCode,
+    RecordedAtDate,
     ReleasedAtDate,
     TimesPlayed,
     TrackNumber,
@@ -57,6 +60,7 @@ pub enum NumericField {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DateTimeField {
     LastPlayedAt,
+    RecordedAt,
     ReleasedAt,
     SourceCollectedAt,
     SourceSynchronizedAt,
@@ -141,6 +145,19 @@ pub enum SearchFilter {
 }
 
 impl SearchFilter {
+    pub fn recorded_at_equals(recorded_at: DateOrDateTime) -> Self {
+        match recorded_at {
+            DateOrDateTime::DateTime(recorded_at) => Self::DateTime(DateTimeFieldFilter {
+                field: DateTimeField::RecordedAt,
+                predicate: DateTimePredicate::Equal(Some(recorded_at)),
+            }),
+            DateOrDateTime::Date(date) => Self::Numeric(NumericFieldFilter {
+                field: NumericField::RecordedAtDate,
+                predicate: NumericPredicate::Equal(Some(date.to_inner().into())),
+            }),
+        }
+    }
+
     pub fn released_at_equals(released_at: DateOrDateTime) -> Self {
         match released_at {
             DateOrDateTime::DateTime(released_at) => Self::DateTime(DateTimeFieldFilter {

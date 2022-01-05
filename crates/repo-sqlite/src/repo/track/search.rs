@@ -58,6 +58,9 @@ type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
         Nullable<BigInt>,
         Nullable<Integer>,
         Nullable<Text>,
+        Nullable<BigInt>,
+        Nullable<Integer>,
+        Nullable<Text>,
         Nullable<Text>,
         SmallInt,
         Nullable<SmallInt>,
@@ -636,6 +639,27 @@ fn build_numeric_field_filter_expression(
                 }
             }
         },
+        RecordedAtDate => match filter.predicate {
+            // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
+            LessThan(value) => Box::new(track::recorded_at_yyyymmdd.lt(value as YYYYMMDD)),
+            LessOrEqual(value) => Box::new(track::recorded_at_yyyymmdd.le(value as YYYYMMDD)),
+            GreaterThan(value) => Box::new(track::recorded_at_yyyymmdd.gt(value as YYYYMMDD)),
+            GreaterOrEqual(value) => Box::new(track::recorded_at_yyyymmdd.ge(value as YYYYMMDD)),
+            Equal(value) => {
+                if let Some(value) = value {
+                    Box::new(track::recorded_at_yyyymmdd.eq(value as YYYYMMDD))
+                } else {
+                    Box::new(track::recorded_at_yyyymmdd.is_null())
+                }
+            }
+            NotEqual(value) => {
+                if let Some(value) = value {
+                    Box::new(track::recorded_at_yyyymmdd.ne(value as YYYYMMDD))
+                } else {
+                    Box::new(track::recorded_at_yyyymmdd.is_not_null())
+                }
+            }
+        },
         ReleasedAtDate => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
             LessThan(value) => Box::new(track::released_at_yyyymmdd.lt(value as YYYYMMDD)),
@@ -745,6 +769,26 @@ fn build_datetime_field_filter_expression(
                     Box::new(track::last_played_ms.ne(value.timestamp_millis()))
                 } else {
                     Box::new(track::last_played_ms.is_not_null())
+                }
+            }
+        },
+        RecordedAt => match filter.predicate {
+            LessThan(value) => Box::new(track::recorded_ms.lt(value.timestamp_millis())),
+            LessOrEqual(value) => Box::new(track::recorded_ms.le(value.timestamp_millis())),
+            GreaterThan(value) => Box::new(track::recorded_ms.gt(value.timestamp_millis())),
+            GreaterOrEqual(value) => Box::new(track::recorded_ms.ge(value.timestamp_millis())),
+            Equal(value) => {
+                if let Some(value) = value {
+                    Box::new(track::recorded_ms.eq(value.timestamp_millis()))
+                } else {
+                    Box::new(track::recorded_ms.is_null())
+                }
+            }
+            NotEqual(value) => {
+                if let Some(value) = value {
+                    Box::new(track::recorded_ms.ne(value.timestamp_millis()))
+                } else {
+                    Box::new(track::recorded_ms.is_not_null())
                 }
             }
         },

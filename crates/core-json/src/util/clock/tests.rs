@@ -20,7 +20,7 @@ use super::*;
 use aoide_core::util::clock::DateYYYYMMDD;
 
 mod _core {
-    pub use aoide_core::track::release::DateOrDateTime;
+    pub use aoide_core::util::clock::DateOrDateTime;
 }
 
 use serde_json::json;

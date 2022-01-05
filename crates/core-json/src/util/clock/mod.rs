@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::util::clock::{DateTime, DateYYYYMMDD};
+    pub use aoide_core::util::clock::{DateOrDateTime, DateTime, DateYYYYMMDD};
 }
 
 use aoide_core::util::clock::{DateTimeInner, YearType, YYYYMMDD};
@@ -184,3 +184,41 @@ impl<'de> Deserialize<'de> for DateYYYYMMDD {
         deserializer.deserialize_u64(DateYYYYMMDDDeserializeVisitor)
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// DateOrDateTime
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum DateOrDateTime {
+    Date(DateYYYYMMDD),
+    DateTime(DateTime),
+}
+
+impl From<_core::DateOrDateTime> for DateOrDateTime {
+    fn from(from: _core::DateOrDateTime) -> Self {
+        use _core::DateOrDateTime::*;
+        match from {
+            Date(from) => Self::Date(from.into()),
+            DateTime(from) => Self::DateTime(from.into()),
+        }
+    }
+}
+
+impl From<DateOrDateTime> for _core::DateOrDateTime {
+    fn from(from: DateOrDateTime) -> Self {
+        use DateOrDateTime::*;
+        match from {
+            Date(from) => Self::Date(from.into()),
+            DateTime(from) => Self::DateTime(from.into()),
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

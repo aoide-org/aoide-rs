@@ -1795,6 +1795,7 @@ components:
       type: string
       enum:
         - lastPlayedAt
+        - recordedAt
         - releasedAt
         - sourceCollectedAt
         - sourceSynchronizedAt
@@ -1865,6 +1866,7 @@ components:
         - discTotal
         - musicTempoBpm
         - musicKeyCode
+        - recordedAtDate
         - releasedAtDate
         - timesPlayed
         - trackNumber
@@ -2320,18 +2322,17 @@ components:
           minimum: 0
       required:
         - purged
-    Release:
-      type: object
-      properties:
-        releasedAt:
-          $ref: '#/components/schemas/ReleasedAt'
-        releasedBy:
-          type: string
-          description: |
-            The publisher, e.g. a record label
-        copyright:
-          description: Copyright
-          type: string
+    RecordedAt:
+      oneOf:
+        - $ref: '#/components/schemas/RecordedAtDate'
+        - $ref: '#/components/schemas/RecordedAtDateTime'
+    RecordedAtDate:
+      oneOf:
+        - $ref: '#/components/schemas/YYYY'
+        - $ref: '#/components/schemas/YYYYMMDD'
+    RecordedAtDateTime:
+      allOf:
+        - $ref: '#/components/schemas/DateTime'
     ReleasedAt:
       oneOf:
         - $ref: '#/components/schemas/ReleasedAtDate'
@@ -3036,6 +3037,19 @@ components:
       properties:
         mediaSource:
           $ref: '#/components/schemas/MediaSource'
+        recordedAt:
+          $ref: '#/components/schemas/RecordedAt'
+        releasedAt:
+          $ref: '#/components/schemas/ReleasedAt'
+        releasedBy:
+          type: string
+          description: |
+            The publisher or record label
+        copyright:
+          description: Copyright
+          type: string
+        album:
+          $ref: '#/components/schemas/Album'
         tites:
           description: |
             An array of titles
@@ -3048,10 +3062,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Actor'
-        album:
-          $ref: '#/components/schemas/Album'
-        release:
-          $ref: '#/components/schemas/Release'
         indexes:
           $ref: '#/components/schemas/Indexes'
         metrics:

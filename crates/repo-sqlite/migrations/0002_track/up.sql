@@ -26,10 +26,13 @@ CREATE TABLE IF NOT EXISTS track (
     -- relations (immutable)
     media_source_id          INTEGER NOT NULL,
     -- properties: album/release
+    recorded_at              TEXT,
+    recorded_ms              INTEGER,
+    recorded_at_yyyymmdd     INTEGER, -- naive, gregorian release date as YYYYMMDD (parsed from recorded_at)
     released_at              TEXT,
     released_ms              INTEGER,
     released_at_yyyymmdd     INTEGER, -- naive, gregorian release date as YYYYMMDD (parsed from released_at)
-    released_by              TEXT,    -- e.g. record label
+    released_by              TEXT,    -- publisher or record label
     copyright                TEXT,
     album_kind               TINYINT NOT NULL,
     -- properties: indexing
@@ -74,6 +77,14 @@ CREATE INDEX IF NOT EXISTS idx_track_row_updated_ms_desc ON track (
 CREATE INDEX IF NOT EXISTS idx_track_media_source_id ON track (
     media_source_id
 );
+
+CREATE INDEX IF NOT EXISTS idx_track_recorded_at_yyyymmdd ON track (
+    recorded_at_yyyymmdd
+) WHERE recorded_at_yyyymmdd IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_track_recorded_at_yyyymmdd_desc ON track (
+    recorded_at_yyyymmdd DESC
+) WHERE recorded_at_yyyymmdd IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_track_released_at_yyyymmdd ON track (
     released_at_yyyymmdd

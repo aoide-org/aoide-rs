@@ -219,6 +219,7 @@ pub enum NumericField {
     AudioLoudnessLufs,
     DiscNumber,
     DiscTotal,
+    RecordedAtDate,
     ReleasedAtDate,
     MusicTempoBpm,
     MusicKeyCode,
@@ -242,6 +243,7 @@ impl From<NumericField> for _inner::NumericField {
             DiscTotal => Self::DiscTotal,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
+            RecordedAtDate => Self::RecordedAtDate,
             ReleasedAtDate => Self::ReleasedAtDate,
             TrackNumber => Self::TrackNumber,
             TrackTotal => Self::TrackTotal,
@@ -265,6 +267,7 @@ impl From<_inner::NumericField> for NumericField {
             DiscTotal => Self::DiscTotal,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
+            RecordedAtDate => Self::RecordedAtDate,
             ReleasedAtDate => Self::ReleasedAtDate,
             TimesPlayed => Self::TimesPlayed,
             TrackNumber => Self::TrackNumber,
@@ -279,6 +282,7 @@ impl From<_inner::NumericField> for NumericField {
 #[serde(rename_all = "camelCase")]
 pub enum DateTimeField {
     LastPlayedAt,
+    RecordedAt,
     ReleasedAt,
     SourceCollectedAt,
     SourceSynchronizedAt,
@@ -290,6 +294,7 @@ impl From<DateTimeField> for _inner::DateTimeField {
         use DateTimeField::*;
         match from {
             LastPlayedAt => Self::LastPlayedAt,
+            RecordedAt => Self::RecordedAt,
             ReleasedAt => Self::ReleasedAt,
             SourceCollectedAt => Self::SourceCollectedAt,
             SourceSynchronizedAt => Self::SourceSynchronizedAt,
@@ -303,6 +308,7 @@ impl From<_inner::DateTimeField> for DateTimeField {
         use _inner::DateTimeField::*;
         match from {
             LastPlayedAt => Self::LastPlayedAt,
+            RecordedAt => Self::RecordedAt,
             ReleasedAt => Self::ReleasedAt,
             SourceCollectedAt => Self::SourceCollectedAt,
             SourceSynchronizedAt => Self::SourceSynchronizedAt,

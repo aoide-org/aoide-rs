@@ -298,15 +298,17 @@ impl Metadata {
 
         track.album = Canonical::tie(album);
 
-        // Release properties
+        if let Some(recorded_at) = vorbis::import_recorded_at(metaflac_tag) {
+            track.recorded_at = Some(recorded_at);
+        }
         if let Some(released_at) = vorbis::import_released_at(metaflac_tag) {
-            track.release.released_at = Some(released_at);
+            track.released_at = Some(released_at);
         }
         if let Some(released_by) = vorbis::import_released_by(metaflac_tag) {
-            track.release.released_by = Some(released_by);
+            track.released_by = Some(released_by);
         }
         if let Some(copyright) = vorbis::import_release_copyright(metaflac_tag) {
-            track.release.copyright = Some(copyright);
+            track.copyright = Some(copyright);
         }
 
         let mut tags_map = TagsMap::default();

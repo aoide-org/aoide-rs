@@ -393,24 +393,24 @@ impl Metadata {
 
         track.album = Canonical::tie(album);
 
-        // Release properties
+        // A dedicated recording date is not available
         if let Some(year) = mp4_tag.year() {
             if let Some(released_at) = parse_year_tag(year) {
-                track.release.released_at = Some(released_at);
+                track.released_at = Some(released_at);
             }
         }
         if let Some(copyright) = mp4_tag
             .take_copyright()
             .and_then(trimmed_non_empty_from_owned)
         {
-            track.release.copyright = Some(copyright.into());
+            track.copyright = Some(copyright.into());
         }
         if let Some(label) = mp4_tag
             .take_strings_of(&IDENT_LABEL)
             .next()
             .and_then(trimmed_non_empty_from_owned)
         {
-            track.release.released_by = Some(label.into());
+            track.released_by = Some(label.into());
         }
 
         let mut tags_map = TagsMap::default();
@@ -804,21 +804,22 @@ pub fn export_track_to_path(
         }
     }
 
-    // Release
-    if let Some(copyright) = &track.release.copyright {
-        mp4_tag.set_copyright(copyright);
+    // No distinction between recording and release date, i.e.
+    // only the release date is stored.
+    if let Some(released_at) = track.released_at {
+        mp4_tag.set_year(released_at.to_string());
     } else {
-        mp4_tag.remove_copyright();
+        mp4_tag.remove_year();
     }
-    if let Some(released_by) = &track.release.released_by {
+    if let Some(released_by) = &track.released_by {
         mp4_tag.set_all_data(IDENT_LABEL, once(Data::Utf8(released_by.to_owned())));
     } else {
         mp4_tag.remove_data_of(&IDENT_LABEL);
     }
-    if let Some(released_at) = &track.release.released_at {
-        mp4_tag.set_year(released_at.to_string());
+    if let Some(copyright) = &track.copyright {
+        mp4_tag.set_copyright(copyright);
     } else {
-        mp4_tag.remove_year();
+        mp4_tag.remove_copyright();
     }
 
     // Numbers

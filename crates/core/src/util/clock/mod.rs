@@ -298,6 +298,71 @@ impl fmt::Display for DateYYYYMMDD {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum DateOrDateTime {
+    Date(DateYYYYMMDD),
+    DateTime(DateTime),
+}
+
+impl From<DateTime> for DateOrDateTime {
+    fn from(from: DateTime) -> Self {
+        Self::DateTime(from)
+    }
+}
+
+impl From<DateYYYYMMDD> for DateOrDateTime {
+    fn from(from: DateYYYYMMDD) -> Self {
+        Self::Date(from)
+    }
+}
+
+impl From<DateOrDateTime> for DateYYYYMMDD {
+    fn from(from: DateOrDateTime) -> Self {
+        match from {
+            DateOrDateTime::Date(date) => date,
+            DateOrDateTime::DateTime(dt) => dt.into(),
+        }
+    }
+}
+
+impl PartialOrd for DateOrDateTime {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Self::Date(lhs), Self::Date(rhs)) => lhs.partial_cmp(rhs),
+            (Self::DateTime(lhs), Self::DateTime(rhs)) => lhs.partial_cmp(rhs),
+            (Self::Date(_), Self::DateTime(_)) => None,
+            (Self::DateTime(_), Self::Date(_)) => None,
+        }
+    }
+}
+
+impl fmt::Display for DateOrDateTime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Date(date) => write!(f, "{}", date),
+            Self::DateTime(datetime) => write!(f, "{}", datetime),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum DateOrDateTimeInvalidity {
+    Date(DateYYYYMMDDInvalidity),
+}
+
+impl Validate for DateOrDateTime {
+    type Invalidity = DateOrDateTimeInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let context = ValidationContext::new();
+        match self {
+            DateOrDateTime::Date(date) => context.validate_with(date, Self::Invalidity::Date),
+            DateOrDateTime::DateTime(_) => context,
+        }
+        .into()
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Tests
 ///////////////////////////////////////////////////////////////////////

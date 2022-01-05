@@ -43,7 +43,8 @@ bitflags! {
         const TRACK_ARTIST   = 0b0000_1000;
         const TRACK_TITLE    = 0b0001_0000;
         const RELEASED_AT    = 0b0010_0000;
-        const ALL            = 0b0011_1111; // most restrictive
+        const RECORDED_AT    = 0b0100_0000;
+        const ALL            = 0b0111_1111; // most restrictive
     }
 }
 
@@ -139,8 +140,18 @@ where
             }
         }
     }
+    if search_flags.contains(SearchFlags::RECORDED_AT) {
+        all_filters.push(if let Some(recorded_at) = track.recorded_at {
+            SearchFilter::recorded_at_equals(recorded_at)
+        } else {
+            SearchFilter::DateTime(DateTimeFieldFilter {
+                field: DateTimeField::RecordedAt,
+                predicate: DateTimePredicate::Equal(None),
+            })
+        });
+    }
     if search_flags.contains(SearchFlags::RELEASED_AT) {
-        all_filters.push(if let Some(released_at) = track.release.released_at {
+        all_filters.push(if let Some(released_at) = track.released_at {
             SearchFilter::released_at_equals(released_at)
         } else {
             SearchFilter::DateTime(DateTimeFieldFilter {

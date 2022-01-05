@@ -28,10 +28,9 @@ pub mod album;
 pub mod cue;
 pub mod index;
 pub mod metric;
-pub mod release;
 pub mod title;
 
-use self::{actor::*, album::*, cue::*, index::*, metric::*, release::*, title::*};
+use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
 
 mod _core {
     pub use aoide_core::{tag::Tags, track::*};
@@ -47,8 +46,17 @@ mod _core {
 pub struct Track {
     pub media_source: Source,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
-    pub release: Release,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recorded_at: Option<DateOrDateTime>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    released_by: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    released_at: Option<DateOrDateTime>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    copyright: Option<String>,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub album: Album,
@@ -82,7 +90,10 @@ impl From<_core::Track> for Track {
     fn from(from: _core::Track) -> Self {
         let _core::Track {
             media_source,
-            release,
+            recorded_at,
+            released_at,
+            released_by,
+            copyright,
             album,
             titles,
             actors,
@@ -95,7 +106,10 @@ impl From<_core::Track> for Track {
         } = from;
         Self {
             media_source: media_source.into(),
-            release: release.into(),
+            recorded_at: recorded_at.map(Into::into),
+            released_at: released_at.map(Into::into),
+            released_by,
+            copyright,
             album: album.untie().into(),
             titles: titles.untie().into_iter().map(Into::into).collect(),
             actors: actors.untie().into_iter().map(Into::into).collect(),
@@ -115,7 +129,10 @@ impl TryFrom<Track> for _core::Track {
     fn try_from(from: Track) -> anyhow::Result<Self> {
         let Track {
             media_source,
-            release,
+            recorded_at,
+            released_at,
+            released_by,
+            copyright,
             album,
             titles,
             actors,
@@ -129,7 +146,10 @@ impl TryFrom<Track> for _core::Track {
         let media_source = media_source.try_into()?;
         let into = Self {
             media_source,
-            release: release.into(),
+            recorded_at: recorded_at.map(Into::into),
+            released_at: released_at.map(Into::into),
+            released_by,
+            copyright,
             album: album.into(),
             titles: Canonical::tie(
                 titles

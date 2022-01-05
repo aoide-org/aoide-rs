@@ -84,19 +84,7 @@ impl Fixture {
             let media_source_id = db
                 .insert_media_source(DateTime::now_utc(), self.collection_id, &media_source)?
                 .id;
-            let track = Track {
-                media_source,
-                tags: Default::default(),
-                actors: Default::default(),
-                titles: Default::default(),
-                album: Default::default(),
-                color: None,
-                cues: Default::default(),
-                indexes: Default::default(),
-                metrics: Default::default(),
-                play_counter: Default::default(),
-                release: Default::default(),
-            };
+            let track = Track::new_from_media_source(media_source);
             let track_entity = TrackEntity::new(EntityHeader::initial_random(), track);
             let track_id = db.insert_track_entity(created_at, media_source_id, &track_entity)?;
             created.push((media_source_id, track_id, track_entity.hdr.uid));

@@ -36,14 +36,13 @@ use aoide_core::{
         actor::ActorRole,
         album::AlbumKind,
         metric::MetricsFlags,
-        release::DateOrDateTime,
         tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_LANGUAGE, FACET_MOOD},
         title::{TitleKind, Titles},
         Track,
     },
     util::{
         canonical::{Canonical, CanonicalizeInto as _},
-        clock::{DateTime, DateYYYYMMDD, MonthType, YearType},
+        clock::{DateOrDateTime, DateTime, DateYYYYMMDD, MonthType, YearType},
         string::trimmed_non_empty_from,
     },
 };
@@ -386,20 +385,50 @@ pub fn import_metadata_into_track(
     track.album = Canonical::tie(album);
 
     // Release properties
-    // Instead of the release date "TDRL" most applications use the recording date "TDRC".
+    // Instead of the actual release date "TDRL" most applications store
+    // the release date in the field "TDRC" that was supposed to be used
+    // for the recording date. Instead the recording date is commonly
+    // stored as the original release date in "TDOR".
     // See also https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
-    if let Some(released_at) = tag
-        .date_released()
-        .or_else(|| tag.date_recorded())
-        .map(parse_timestamp)
-    {
-        track.release.released_at = Some(released_at);
+    let tdrl = first_text_frame(tag, "TDRL").and_then(|text| text.parse().ok());
+    let tdrc = first_text_frame(tag, "TDRC").and_then(|text| text.parse().ok());
+    let tdor = first_text_frame(tag, "TDOR").and_then(|text| text.parse().ok());
+    let recorded_at;
+    let released_at;
+    // Use "TDRL" only as a fallback if "TDRC" is not available
+    if let Some(tdor) = tdor {
+        // If a recording date is available it will be exported as "TDOR".
+        // Primarily using this field for the distinction here ensures that
+        // exported metadata will be re-imported consistently!
+        recorded_at = Some(parse_timestamp(tdor));
+        released_at = if let Some(tdrc) = tdrc {
+            if let Some(tdrl) = tdrl {
+                if tdrl != tdrc {
+                    log::warn!("Using release date {} from frame \"TDRC\" instead of {} from frame \"TDRL\"", tdrc, tdrl);
+                }
+            }
+            Some(parse_timestamp(tdrc))
+        } else {
+            tdrl.map(parse_timestamp)
+        };
+    } else if let Some(tdrl) = tdrl {
+        released_at = Some(parse_timestamp(tdrl));
+        recorded_at = tdrc.map(parse_timestamp);
+    } else {
+        released_at = tdrc.map(parse_timestamp);
+        recorded_at = None;
     }
-    if let Some(label) = first_text_frame(tag, "TPUB").and_then(trimmed_non_empty_from) {
-        track.release.released_by = Some(label.into());
+    if let Some(recorded_at) = recorded_at {
+        track.recorded_at = Some(recorded_at);
+    }
+    if let Some(released_at) = released_at {
+        track.released_at = Some(released_at);
+    }
+    if let Some(released_by) = first_text_frame(tag, "TPUB").and_then(trimmed_non_empty_from) {
+        track.released_by = Some(released_by.into());
     }
     if let Some(copyright) = first_text_frame(tag, "TCOP").and_then(trimmed_non_empty_from) {
-        track.release.copyright = Some(copyright.into());
+        track.copyright = Some(copyright.into());
     }
 
     let mut tags_map = TagsMap::default();
@@ -747,21 +776,32 @@ pub fn export_track(
     }
 
     // Release
-    if let Some(copyright) = &track.release.copyright {
+    if let Some(copyright) = &track.copyright {
         tag.set_text("TCOP", copyright);
     } else {
         tag.remove("TCOP");
     }
-    if let Some(released_by) = &track.release.released_by {
+    if let Some(released_by) = &track.released_by {
         tag.set_text("TPUB", released_by);
     } else {
         tag.remove("TPUB");
     }
-    if let Some(released_at) = &track.release.released_at {
-        let timestamp = export_date_or_date_time(*released_at);
-        tag.set_date_released(timestamp);
+    // Store the release date in the field "TDRC" which is commonly
+    // used for this purpose. The "TDRL" field is hardly used anywhere.
+    if let Some(released_at) = &track.released_at {
+        // Write the release date into "TDRC"/`date_recorded`
+        // instead of "TDRL"/`date_released`!
+        let released_at = export_date_or_date_time(*released_at);
+        tag.set_date_recorded(released_at);
     } else {
-        tag.remove_date_released();
+        tag.remove_date_recorded();
+    }
+    // Store the recording date in the field "TDOR" for the original release
+    if let Some(recorded_at) = &track.recorded_at {
+        let recorded_at = export_date_or_date_time(*recorded_at);
+        tag.set_text("TDOR", recorded_at.to_string());
+    } else {
+        tag.remove("TDOR");
     }
 
     // Numbers

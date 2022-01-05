@@ -24,7 +24,7 @@ use aoide_core::{
         key::{KeyCode, KeyCodeValue, KeySignature},
         tempo::{Bpm, TempoBpm},
     },
-    track::{actor::*, album::*, index::*, metric::*, release::*, title::*, *},
+    track::{actor::*, album::*, index::*, metric::*, title::*, *},
     util::{clock::*, color::*},
 };
 
@@ -44,6 +44,9 @@ pub struct QueryableRecord {
     pub entity_uid: Vec<u8>,
     pub entity_rev: i64,
     pub media_source_id: RowId,
+    pub recorded_at: Option<String>,
+    pub recorded_ms: Option<TimestampMillis>,
+    pub recorded_at_yyyymmdd: Option<YYYYMMDD>,
     pub released_at: Option<String>,
     pub released_ms: Option<TimestampMillis>,
     pub released_at_yyyymmdd: Option<YYYYMMDD>,
@@ -115,6 +118,9 @@ pub fn load_repo_entity(
         entity_uid,
         entity_rev,
         media_source_id: _,
+        recorded_at,
+        recorded_ms,
+        recorded_at_yyyymmdd,
         released_at,
         released_ms,
         released_at_yyyymmdd,
@@ -149,6 +155,16 @@ pub fn load_repo_entity(
         updated_at: DateTime::new_timestamp_millis(row_updated_ms),
     };
     let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
+    let recorded_at = if let Some(recorded_at) = recorded_at {
+        let recorded_at = parse_datetime_opt(Some(recorded_at.as_str()), recorded_ms);
+        debug_assert_eq!(
+            recorded_at.map(Into::into),
+            recorded_at_yyyymmdd.map(DateYYYYMMDD::new),
+        );
+        recorded_at.map(Into::into)
+    } else {
+        recorded_at_yyyymmdd.map(DateYYYYMMDD::new).map(Into::into)
+    };
     let released_at = if let Some(released_at) = released_at {
         let released_at = parse_datetime_opt(Some(released_at.as_str()), released_ms);
         debug_assert_eq!(
@@ -158,11 +174,6 @@ pub fn load_repo_entity(
         released_at.map(Into::into)
     } else {
         released_at_yyyymmdd.map(DateYYYYMMDD::new).map(Into::into)
-    };
-    let release = Release {
-        released_at,
-        released_by,
-        copyright,
     };
     let album_kind = AlbumKind::from_i16(album_kind)
         .ok_or_else(|| anyhow::anyhow!("Invalid album kind value: {}", album_kind))?;
@@ -219,7 +230,10 @@ pub fn load_repo_entity(
     };
     let track = Track {
         media_source,
-        release,
+        recorded_at,
+        released_at,
+        released_by,
+        copyright,
         album,
         actors: track_actors,
         titles: track_titles,
@@ -241,6 +255,9 @@ pub struct InsertableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub entity_uid: &'a [u8],
     pub entity_rev: i64,
+    pub recorded_at: Option<String>,
+    pub recorded_ms: Option<TimestampMillis>,
+    pub recorded_at_yyyymmdd: Option<YYYYMMDD>,
     pub media_source_id: RowId,
     pub released_at: Option<String>,
     pub released_ms: Option<TimestampMillis>,
@@ -277,7 +294,10 @@ impl<'a> InsertableRecord<'a> {
         let EntityHeader { uid, rev } = &entity.hdr;
         let Track {
             media_source: _,
-            release,
+            recorded_at,
+            released_at,
+            released_by,
+            copyright,
             album,
             actors: _,
             titles: _,
@@ -292,11 +312,12 @@ impl<'a> InsertableRecord<'a> {
             cues: _,
             tags: _,
         } = &entity.body;
-        let Release {
-            released_at,
-            released_by,
-            copyright,
-        } = release;
+        let (recorded_at_yyyymmdd, recorded_at) = recorded_at
+            .map(|recorded_at| match recorded_at {
+                DateOrDateTime::Date(date) => (Some(date), None),
+                DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
+            })
+            .unwrap_or((None, None));
         let (released_at_yyyymmdd, released_at) = released_at
             .map(|released_at| match released_at {
                 DateOrDateTime::Date(date) => (Some(date), None),
@@ -325,6 +346,9 @@ impl<'a> InsertableRecord<'a> {
             entity_uid: uid.as_ref(),
             entity_rev: entity_revision_to_sql(*rev),
             media_source_id: media_source_id.into(),
+            recorded_at: recorded_at.as_ref().map(ToString::to_string),
+            recorded_ms: recorded_at.map(DateTime::timestamp_millis),
+            recorded_at_yyyymmdd: recorded_at_yyyymmdd.map(Into::into),
             released_at: released_at.as_ref().map(ToString::to_string),
             released_ms: released_at.map(DateTime::timestamp_millis),
             released_at_yyyymmdd: released_at_yyyymmdd.map(Into::into),
@@ -374,6 +398,9 @@ pub struct UpdatableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub entity_rev: i64,
     pub media_source_id: RowId,
+    pub recorded_at: Option<String>,
+    pub recorded_ms: Option<TimestampMillis>,
+    pub recorded_at_yyyymmdd: Option<YYYYMMDD>,
     pub released_at: Option<String>,
     pub released_ms: Option<TimestampMillis>,
     pub released_at_yyyymmdd: Option<YYYYMMDD>,
@@ -413,7 +440,10 @@ impl<'a> UpdatableRecord<'a> {
         let entity_rev = entity_revision_to_sql(next_rev);
         let Track {
             media_source: _,
-            release,
+            recorded_at,
+            released_at,
+            released_by,
+            copyright,
             album,
             actors: track_actors,
             titles: track_titles,
@@ -428,11 +458,12 @@ impl<'a> UpdatableRecord<'a> {
             cues: _,
             tags: _,
         } = track;
-        let Release {
-            released_at,
-            released_by,
-            copyright,
-        } = release;
+        let (recorded_at_yyyymmdd, recorded_at) = recorded_at
+            .map(|recorded_at| match recorded_at {
+                DateOrDateTime::Date(date) => (Some(date), None),
+                DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
+            })
+            .unwrap_or((None, None));
         let (released_at_yyyymmdd, released_at) = released_at
             .map(|released_at| match released_at {
                 DateOrDateTime::Date(date) => (Some(date), None),
@@ -459,6 +490,9 @@ impl<'a> UpdatableRecord<'a> {
             row_updated_ms: updated_at.timestamp_millis(),
             entity_rev,
             media_source_id: media_source_id.into(),
+            recorded_at: recorded_at.as_ref().map(ToString::to_string),
+            recorded_ms: recorded_at.map(DateTime::timestamp_millis),
+            recorded_at_yyyymmdd: recorded_at_yyyymmdd.map(Into::into),
             released_at: released_at.as_ref().map(ToString::to_string),
             released_ms: released_at.map(DateTime::timestamp_millis),
             released_at_yyyymmdd: released_at_yyyymmdd.map(Into::into),
