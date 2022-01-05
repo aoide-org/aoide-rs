@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{borrow::Cow, io::SeekFrom, ops::Deref, path::Path, time::Duration};
+use std::{borrow::Cow, io::SeekFrom, path::Path, time::Duration};
 
 use aoide_core::{
     audio::{
@@ -47,8 +47,14 @@ fn map_mp3_duration_err(err: mp3_duration::MP3DurationError) -> Error {
 pub struct Metadata(id3::Tag);
 
 impl Metadata {
-    pub fn read_from(reader: &mut impl Reader) -> Result<Self> {
-        id3::Tag::read_from(reader).map(Self).map_err(map_id3_err)
+    pub fn read_from(reader: &mut impl Reader) -> Result<Option<Self>> {
+        match id3::Tag::read_from(reader) {
+            Ok(id3_tag) => Ok(Some(Self(id3_tag))),
+            Err(err) => match err.kind {
+                id3::ErrorKind::NoTag => Ok(None),
+                _ => Err(map_id3_err(err)),
+            },
+        }
     }
 
     pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, &str, &[u8])> {
@@ -58,22 +64,7 @@ impl Metadata {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MetadataExt(StreamInfo, Metadata);
-
-impl AsRef<Metadata> for MetadataExt {
-    fn as_ref(&self) -> &Metadata {
-        let Self(_, metadata) = self;
-        metadata
-    }
-}
-
-impl Deref for MetadataExt {
-    type Target = Metadata;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
+pub struct MetadataExt(StreamInfo, Option<Metadata>);
 
 impl MetadataExt {
     pub fn read_from(reader: &mut impl Reader) -> Result<Self> {
@@ -87,7 +78,7 @@ impl MetadataExt {
     }
 
     pub fn import_audio_content(&self) -> AudioContent {
-        let Self(stream_info, Metadata(id3_tag)) = self;
+        let Self(stream_info, metadata) = self;
         let StreamInfo {
             max_channel_count,
             avg_sampling_rate,
@@ -95,8 +86,15 @@ impl MetadataExt {
             duration,
             ..
         } = stream_info;
-        let loudness = import_loudness(id3_tag);
-        let encoder = import_encoder(id3_tag).map(Cow::into_owned);
+        let loudness;
+        let encoder;
+        if let Some(Metadata(id3_tag)) = metadata {
+            loudness = import_loudness(id3_tag);
+            encoder = import_encoder(id3_tag).map(Cow::into_owned);
+        } else {
+            loudness = None;
+            encoder = None;
+        }
         AudioContent {
             duration: Some(duration.to_owned().into()),
             channels: Some(ChannelCount(*max_channel_count as NumberOfChannels).into()),
@@ -111,7 +109,12 @@ impl MetadataExt {
 
     pub fn import_into_track(self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
         let mut audio_content = self.import_audio_content();
-        let Self(_, Metadata(id3_tag)) = self;
+        let id3_tag = if let Self(_, Some(Metadata(id3_tag))) = self {
+            id3_tag
+        } else {
+            // No ID3 tag available
+            return Ok(());
+        };
         let update_metadata_flags = if audio_content.duration.is_some() {
             // Accurate duration
             ContentMetadataFlags::RELIABLE

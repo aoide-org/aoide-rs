@@ -184,7 +184,8 @@ pub fn load_embedded_artwork_image_from_file_path(
         #[cfg(feature = "fmt-mp3")]
         "audio/mpeg" => crate::fmt::mp3::Metadata::read_from(&mut reader).and_then(|metadata| {
             metadata
-                .find_embedded_artwork_image()
+                .as_ref()
+                .and_then(crate::fmt::mp3::Metadata::find_embedded_artwork_image)
                 .map(|(apic_type, media_type, image_data)| {
                     Ok(LoadedArtworkImage {
                         apic_type: Some(apic_type),
