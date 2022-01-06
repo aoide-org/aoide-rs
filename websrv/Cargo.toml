@@ -12,6 +12,7 @@ anyhow = "*"
 chrono = { version = "*", default-features = false }
 dotenv = "*"
 log = "*"
+schemars = "*"
 serde = "*"
 serde_json = "*"
 thiserror = "*"

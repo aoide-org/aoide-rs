@@ -15,6 +15,7 @@
 
 use std::{convert::Infallible, sync::Arc};
 
+use schemars::schema_for;
 use tokio::sync::{watch, Mutex};
 use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
 
@@ -77,6 +78,22 @@ pub fn create_filters(
                     })
             },
         );
+    // TODO: This is just an example how to extract the JSON Schema
+    // for the request and response of an operation.
+    let collections_create_schema = warp::get()
+        .and(warp::path("schema"))
+        .and(warp::path("post"))
+        .and(collections_path)
+        .and(warp::path::end())
+        .map(|| {
+            let request_schema = schema_for!(uc_json::collection::create::RequestBody);
+            let response_schema = schema_for!(uc_json::collection::create::ResponseBody);
+            let schema = serde_json::json!({
+                "request": request_schema,
+                "response": response_schema,
+            });
+            warp::reply::json(&schema)
+        });
     let collections_update = warp::put()
         .and(collections_path)
         .and(path_param_uid)
@@ -180,6 +197,7 @@ pub fn create_filters(
         .or(collections_get)
         .or(collections_get_kinds)
         .or(collections_create)
+        .or(collections_create_schema)
         .or(collections_update)
         .or(collections_delete);
 
