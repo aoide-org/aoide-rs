@@ -58,6 +58,11 @@ pub fn create_filters(
     let media_tracker_path = warp::path("mt");
     let storage_path = warp::path("storage");
 
+    let schema_path = warp::path("schema");
+    let schema_get_path = schema_path.and(warp::path("get"));
+    let schema_post_path = schema_path.and(warp::path("post"));
+    let schema_put_path = schema_path.and(warp::path("put"));
+
     // Collections
     let collections_create = warp::post()
         .and(collections_path)
@@ -78,11 +83,8 @@ pub fn create_filters(
                     })
             },
         );
-    // TODO: This is just an example how to extract the JSON Schema
-    // for the request and response of an operation.
     let collections_create_schema = warp::get()
-        .and(warp::path("schema"))
-        .and(warp::path("post"))
+        .and(schema_post_path)
         .and(collections_path)
         .and(warp::path::end())
         .map(|| {
@@ -94,6 +96,7 @@ pub fn create_filters(
             });
             warp::reply::json(&schema)
         });
+
     let collections_update = warp::put()
         .and(collections_path)
         .and(path_param_uid)
@@ -121,6 +124,23 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
+    let collections_update_schema = warp::get()
+        .and(schema_put_path)
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(warp::path::end())
+        .map(|_uid| {
+            let query_schema = schema_for!(uc_json::collection::update::QueryParams);
+            let request_schema = schema_for!(uc_json::collection::update::RequestBody);
+            let response_schema = schema_for!(uc_json::collection::update::ResponseBody);
+            let schema = serde_json::json!({
+                "query": query_schema,
+                "request": request_schema,
+                "response": response_schema,
+            });
+            warp::reply::json(&schema)
+        });
+
     let collections_delete = warp::delete()
         .and(collections_path)
         .and(path_param_uid)
@@ -138,7 +158,8 @@ pub fn create_filters(
                 .map(|()| StatusCode::NO_CONTENT)
             },
         );
-    let collections_list = warp::get()
+
+    let collections_load_all = warp::get()
         .and(collections_path)
         .and(warp::path::end())
         .and(warp::query())
@@ -152,7 +173,21 @@ pub fn create_filters(
                     .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let collections_get = warp::get()
+    let collections_load_all_schema = warp::get()
+        .and(schema_get_path)
+        .and(collections_path)
+        .and(warp::path::end())
+        .map(|| {
+            let query_schema = schema_for!(uc_json::collection::load_all::QueryParams);
+            let response_schema = schema_for!(uc_json::collection::load_all::ResponseBody);
+            let schema = serde_json::json!({
+                "query": query_schema,
+                "response": response_schema,
+            });
+            warp::reply::json(&schema)
+        });
+
+    let collections_load_one = warp::get()
         .and(collections_path)
         .and(path_param_uid)
         .and(warp::path::end())
@@ -176,7 +211,22 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let collections_get_kinds = warp::get()
+    let collections_load_one_schema = warp::get()
+        .and(schema_get_path)
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(warp::path::end())
+        .map(|_uid| {
+            let query_schema = schema_for!(uc_json::collection::load_one::QueryParams);
+            let response_schema = schema_for!(uc_json::collection::load_one::ResponseBody);
+            let schema = serde_json::json!({
+                "query": query_schema,
+                "response": response_schema,
+            });
+            warp::reply::json(&schema)
+        });
+
+    let collections_load_all_kinds = warp::get()
         .and(collections_path)
         .and(warp::path("kinds"))
         .and(warp::path::end())
@@ -193,12 +243,29 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let collections_filters = collections_list
-        .or(collections_get)
-        .or(collections_get_kinds)
+    let collections_load_all_kinds_schema = warp::get()
+        .and(schema_get_path)
+        .and(collections_path)
+        .and(warp::path("kinds"))
+        .and(warp::path::end())
+        .map(|| {
+            let response_schema = schema_for!(uc_json::collection::load_all_kinds::ResponseBody);
+            let schema = serde_json::json!({
+                "response": response_schema,
+            });
+            warp::reply::json(&schema)
+        });
+
+    let collections_filters = collections_load_all
+        .or(collections_load_all_schema)
+        .or(collections_load_one)
+        .or(collections_load_one_schema)
+        .or(collections_load_all_kinds)
+        .or(collections_load_all_kinds_schema)
         .or(collections_create)
         .or(collections_create_schema)
         .or(collections_update)
+        .or(collections_update_schema)
         .or(collections_delete);
 
     async fn reply_media_tracker_progress(
