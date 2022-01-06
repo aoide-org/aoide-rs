@@ -23,7 +23,7 @@ mod _core {
 // TimeSignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum TimeSignature {

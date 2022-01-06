@@ -133,7 +133,7 @@ impl From<_inner::SortField> for SortField {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -158,7 +158,7 @@ impl From<_inner::SortOrder> for SortOrder {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -207,7 +207,7 @@ impl From<_inner::StringField> for StringField {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -277,7 +277,7 @@ impl From<_inner::NumericField> for NumericField {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -317,7 +317,7 @@ impl From<_inner::DateTimeField> for DateTimeField {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -390,7 +390,7 @@ impl From<_inner::DateTimeFieldFilter> for DateTimeFieldFilter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -415,7 +415,7 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -470,7 +470,7 @@ impl From<_inner::SearchFilter> for SearchFilter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -493,7 +493,7 @@ pub struct QueryParams {
     //pub pagination: Pagination,
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

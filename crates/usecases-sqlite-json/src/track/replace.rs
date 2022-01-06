@@ -28,7 +28,7 @@ mod uc {
     pub use aoide_usecases_sqlite::track::replace::*;
 }
 
-#[derive(Copy, Clone, Debug, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum ReplaceMode {
     CreateOnly,
@@ -47,7 +47,7 @@ impl From<ReplaceMode> for uc::ReplaceMode {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub created: Vec<Entity>,
@@ -80,7 +80,7 @@ impl From<uc::Summary> for Summary {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]

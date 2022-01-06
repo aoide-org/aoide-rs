@@ -26,7 +26,8 @@ mod _core {
     pub use aoide_core::tag::{FacetId, FacetKey, Label, PlainTag, Score, Tags};
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(Clone))]
 pub struct FacetKey(_core::FacetKey);
 
 impl JsonSchema for FacetKey {
@@ -92,7 +93,8 @@ impl<'de> Deserialize<'de> for FacetKey {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone, PartialEq, Eq))]
 pub struct Label(_core::Label);
 
 impl JsonSchema for Label {
@@ -165,7 +167,8 @@ impl<'de> Deserialize<'de> for Label {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone, PartialEq))]
 pub struct Score(_core::Score);
 
 impl JsonSchema for Score {
@@ -231,8 +234,8 @@ impl<'de> Deserialize<'de> for Score {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(Clone, PartialEq))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum PlainTag {
     Label(Label),
@@ -289,7 +292,7 @@ impl From<_core::PlainTag> for PlainTag {
 
 pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Tags(TagsMap);
 

@@ -24,7 +24,7 @@ mod _inner {
     pub use aoide_core_api::media::source::purge_untracked::*;
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -54,7 +54,7 @@ impl TryFrom<Params> for _inner::Params {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -98,7 +98,7 @@ impl From<_inner::Outcome> for Outcome {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

@@ -13,30 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::*;
-
-mod _core {
-    pub use aoide_core::audio::sample::*;
-}
-
-///////////////////////////////////////////////////////////////////////
-// SamplePosition
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(PartialEq))]
-pub struct SamplePosition(_core::SamplePositionType);
+use super::*;
 
-impl From<_core::SamplePosition> for SamplePosition {
-    fn from(from: _core::SamplePosition) -> Self {
-        let _core::SamplePosition(sample) = from;
-        Self(sample)
-    }
+#[test]
+fn is_default() {
+    assert!(ActorRole::default().is_default());
+    assert!(ActorKind::default().is_default());
 }
 
-impl From<SamplePosition> for _core::SamplePosition {
-    fn from(from: SamplePosition) -> Self {
-        let SamplePosition(sample) = from;
-        Self(sample)
-    }
+#[test]
+fn into_default() {
+    assert_eq!(_core::ActorRole::default(), ActorRole::default().into());
+    assert_eq!(ActorRole::default(), _core::ActorRole::default().into());
+    assert_eq!(_core::ActorKind::default(), ActorKind::default().into());
+    assert_eq!(ActorKind::default(), _core::ActorKind::default().into());
 }

@@ -26,7 +26,7 @@ mod _inner {
     pub use aoide_core_api::media::tracker::{untrack_directories::*, DirTrackingStatus};
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -62,7 +62,7 @@ impl TryFrom<Params> for _inner::Params {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -106,7 +106,7 @@ impl From<_inner::Outcome> for Outcome {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

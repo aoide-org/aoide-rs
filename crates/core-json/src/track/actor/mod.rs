@@ -23,7 +23,7 @@ mod _core {
 // ActorKind
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum ActorKind {
@@ -35,7 +35,7 @@ pub enum ActorKind {
 
 impl ActorKind {
     fn is_default(&self) -> bool {
-        _core::ActorKind::from(*self) == Default::default()
+        matches!(self, Self::Summary)
     }
 }
 
@@ -73,7 +73,7 @@ impl From<_core::ActorKind> for ActorKind {
 // ActorRole
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum ActorRole {
@@ -94,7 +94,7 @@ pub enum ActorRole {
 
 impl ActorRole {
     fn is_default(&self) -> bool {
-        _core::ActorRole::from(*self) == Default::default()
+        matches!(self, Self::Artist)
     }
 }
 
@@ -150,7 +150,7 @@ impl From<_core::ActorRole> for ActorRole {
 // Actor
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FullActor {
@@ -200,7 +200,7 @@ impl From<FullActor> for _core::Actor {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum Actor {
@@ -253,3 +253,6 @@ impl From<Actor> for _core::Actor {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

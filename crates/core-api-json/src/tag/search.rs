@@ -22,7 +22,7 @@ mod _inner {
     pub use crate::_inner::{filtering::*, sorting::*, tag::search::*};
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

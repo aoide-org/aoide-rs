@@ -17,14 +17,14 @@ use aoide_core::{entity::EntityUid, media::SourcePath};
 
 use super::*;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct RequestBody {
     old_path_prefix: String,
     new_path_prefix: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ResponseBody {
     replaced_count: usize,

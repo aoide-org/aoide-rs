@@ -34,7 +34,7 @@ pub mod replace;
 pub mod resolve;
 pub mod search;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct EntityCollector(Vec<Entity>);
 
 impl EntityCollector {

@@ -19,7 +19,7 @@ mod _inner {
     pub use crate::_inner::sorting::*;
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 pub enum SortDirection {

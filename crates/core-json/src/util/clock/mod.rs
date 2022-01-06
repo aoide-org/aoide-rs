@@ -33,7 +33,7 @@ use std::fmt;
 // DateTime
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DateTime(_core::DateTime);
 
 impl From<_core::DateTime> for DateTime {
@@ -189,7 +189,7 @@ impl<'de> Deserialize<'de> for DateYYYYMMDD {
 // DateOrDateTime
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DateOrDateTime {

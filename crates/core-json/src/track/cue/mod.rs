@@ -28,7 +28,7 @@ mod _core {
 // OutMode
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum OutMode {
@@ -62,7 +62,7 @@ impl From<OutMode> for _core::OutMode {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InMarker {
@@ -87,7 +87,7 @@ impl From<InMarker> for _core::InMarker {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OutMarker {
@@ -121,7 +121,7 @@ fn is_default_flags(flags: &u8) -> bool {
     *flags == u8::default()
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Cue {

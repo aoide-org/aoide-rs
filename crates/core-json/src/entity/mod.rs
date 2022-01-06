@@ -31,7 +31,7 @@ mod _core {
 // EntityUid
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct EntityUid(_core::EntityUid);
 
@@ -109,7 +109,7 @@ impl From<_core::EntityUid> for EntityUid {
 // EntityRevision
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct EntityRevision(_core::EntityRevisionNumber);
 
@@ -130,7 +130,7 @@ impl From<_core::EntityRevision> for EntityRevision {
 // EntityHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct EntityHeader(EntityUid, EntityRevision);
 
@@ -155,6 +155,6 @@ impl From<_core::EntityHeader> for EntityHeader {
 // Entity
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Entity<B>(pub EntityHeader, pub B);

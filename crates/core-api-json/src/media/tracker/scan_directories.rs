@@ -25,7 +25,7 @@ mod _core {
     pub use aoide_core_api::media::tracker::scan_directories::*;
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -77,7 +77,7 @@ impl From<_core::Summary> for Summary {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

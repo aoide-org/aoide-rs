@@ -27,7 +27,7 @@ mod _core {
 // Album
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum AlbumKind {
@@ -39,7 +39,7 @@ pub enum AlbumKind {
 
 impl AlbumKind {
     fn is_default(&self) -> bool {
-        _core::AlbumKind::from(*self) == Default::default()
+        matches!(self, Self::Unknown)
     }
 }
 
@@ -73,7 +73,7 @@ impl Default for AlbumKind {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Album {

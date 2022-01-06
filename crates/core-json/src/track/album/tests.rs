@@ -19,11 +19,14 @@ use super::*;
 
 #[test]
 fn is_default() {
+    assert!(AlbumKind::default().is_default());
     assert!(Album::default().is_default());
 }
 
 #[test]
 fn into_default() {
+    assert_eq!(_core::AlbumKind::default(), AlbumKind::default().into());
+    assert_eq!(AlbumKind::default(), _core::AlbumKind::default().into());
     assert_eq!(
         Canonical::tie(_core::Album::default()),
         Album::default().into()

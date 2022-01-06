@@ -30,7 +30,7 @@ pub mod query_status;
 pub mod scan_directories;
 pub mod untrack_directories;
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -73,7 +73,7 @@ impl TryFrom<FsTraversalParams> for _core::FsTraversalParams {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "kebab-case")]
@@ -110,7 +110,7 @@ impl From<_core::Progress> for Progress {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -147,7 +147,7 @@ impl From<_core::FsTraversalProgress> for FsTraversalProgress {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -172,7 +172,7 @@ impl From<_core::FsTraversalEntriesProgress> for FsTraversalEntriesProgress {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -198,7 +198,7 @@ impl From<_core::FsTraversalDirectoriesProgress> for FsTraversalDirectoriesProgr
 
 pub type ImportingProgress = import_files::Summary;
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -229,7 +229,7 @@ impl From<_core::Completion> for Completion {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -257,7 +257,7 @@ impl From<Status> for _core::Status {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -309,7 +309,7 @@ impl From<DirectoriesStatus> for _core::DirectoriesStatus {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum DirTrackingStatus {
     Current,

@@ -20,7 +20,9 @@
 // Common imports
 mod prelude {
     pub use aoide_core_api::{PaginationLimit, PaginationOffset};
-    pub use serde::{Deserialize, Serialize};
+
+    pub(crate) use schemars::JsonSchema;
+    pub(crate) use serde::{Deserialize, Serialize};
 
     pub(crate) use aoide_core_api as _inner;
 }

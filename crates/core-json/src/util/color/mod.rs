@@ -33,7 +33,7 @@ use std::{fmt, str::FromStr};
 ///////////////////////////////////////////////////////////////////////
 
 /// Either a color code or a color index.
-#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum Color {
     #[serde(rename = "rgb")]
@@ -67,7 +67,7 @@ impl From<Color> for _core::Color {
 // RgbColor
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct RgbColor(_core::RgbColor);
 
 impl JsonSchema for RgbColor {

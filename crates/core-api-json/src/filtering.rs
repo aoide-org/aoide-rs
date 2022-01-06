@@ -21,7 +21,7 @@ mod _inner {
     pub use crate::_inner::filtering::*;
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -50,7 +50,7 @@ impl From<_inner::FilterModifier> for FilterModifier {
 }
 
 /// Predicates for matching strings
-#[derive(Clone, Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -108,7 +108,7 @@ impl From<_inner::StringPredicate> for StringPredicate {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -126,7 +126,7 @@ impl WithTokensQueryParams {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -158,7 +158,7 @@ impl From<_inner::StringFilter> for StringFilter {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 pub enum ScalarPredicate<V> {
@@ -245,7 +245,7 @@ impl From<_inner::DateTimePredicate> for DateTimePredicate {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 pub struct ScalarFieldFilter<F, V>(pub(crate) F, pub(crate) ScalarPredicate<V>);

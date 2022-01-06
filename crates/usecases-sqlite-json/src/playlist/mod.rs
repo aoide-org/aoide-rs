@@ -43,7 +43,7 @@ pub mod load;
 pub mod purge;
 pub mod update;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct EntityWithEntriesSummaryCollector(Vec<EntityWithEntriesSummary>);
 
 impl EntityWithEntriesSummaryCollector {

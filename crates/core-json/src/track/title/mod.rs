@@ -23,7 +23,7 @@ mod _core {
 // TitleKind
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum TitleKind {
@@ -36,7 +36,7 @@ pub enum TitleKind {
 
 impl TitleKind {
     fn is_default(&self) -> bool {
-        _core::TitleKind::from(*self) == Default::default()
+        matches!(self, Self::Main)
     }
 }
 
@@ -76,7 +76,7 @@ impl From<_core::TitleKind> for TitleKind {
 // Title
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FullTitle {
@@ -106,7 +106,7 @@ impl From<FullTitle> for _core::Title {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum Title {
@@ -142,3 +142,6 @@ impl From<Title> for _core::Title {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

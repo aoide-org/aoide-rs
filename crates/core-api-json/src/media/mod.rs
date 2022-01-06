@@ -22,7 +22,7 @@ mod _core {
     pub use aoide_core_api::media::*;
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "kebab-case")]

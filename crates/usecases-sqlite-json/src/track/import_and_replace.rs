@@ -35,7 +35,7 @@ mod _inner {
     pub use aoide_core::entity::EntityUid;
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub created: Vec<Entity>,
@@ -70,7 +70,7 @@ impl From<uc::Summary> for Summary {
     }
 }
 
-#[derive(Debug, Copy, Clone, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Completion {
     Finished,
@@ -87,7 +87,7 @@ impl From<uc::Completion> for Completion {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub completion: Completion,

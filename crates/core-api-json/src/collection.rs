@@ -28,7 +28,7 @@ mod _inner {
     };
 }
 
-#[derive(Copy, Clone, Debug, JsonSchema)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(test, derive(Eq, PartialEq))]
@@ -53,7 +53,7 @@ impl From<_inner::MediaSourceSummary> for MediaSourceSummary {
     }
 }
 
-#[derive(Copy, Clone, Debug, JsonSchema)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(test, derive(Eq, PartialEq))]
@@ -78,7 +78,7 @@ impl From<_inner::PlaylistSummary> for PlaylistSummary {
     }
 }
 
-#[derive(Copy, Clone, Debug, JsonSchema)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(test, derive(Eq, PartialEq))]
@@ -103,7 +103,7 @@ impl From<_inner::TrackSummary> for TrackSummary {
     }
 }
 
-#[derive(Copy, Clone, Debug, JsonSchema)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(test, derive(Eq, PartialEq))]
@@ -146,7 +146,7 @@ impl From<_inner::Summary> for Summary {
     }
 }
 
-#[derive(Clone, Debug, JsonSchema)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
