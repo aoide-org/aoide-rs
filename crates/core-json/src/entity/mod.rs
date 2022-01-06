@@ -13,19 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::*;
+use std::{fmt, str};
 
-mod _core {
-    pub use aoide_core::entity::*;
-}
-
+use schemars::{gen::SchemaGenerator, schema::Schema};
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
     Deserializer, Serializer,
 };
 
-use schemars::{gen::SchemaGenerator, schema::Schema};
-use std::{fmt, str};
+use crate::prelude::*;
+
+mod _core {
+    pub use aoide_core::entity::*;
+}
 
 ///////////////////////////////////////////////////////////////////////
 // EntityUid

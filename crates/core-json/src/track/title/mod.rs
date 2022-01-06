@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-use aoide_core::util::IsDefault;
+use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::track::title::{Title, TitleKind};
@@ -25,7 +23,8 @@ mod _core {
 // TitleKind
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum TitleKind {
     Main = 0,
@@ -33,6 +32,12 @@ pub enum TitleKind {
     Sorting = 2,
     Work = 3,
     Movement = 4,
+}
+
+impl TitleKind {
+    fn is_default(&self) -> bool {
+        _core::TitleKind::from(*self) == Default::default()
+    }
 }
 
 impl Default for TitleKind {
@@ -71,12 +76,13 @@ impl From<_core::TitleKind> for TitleKind {
 // Title
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FullTitle {
     name: String,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "TitleKind::is_default", default)]
     kind: TitleKind,
 }
 
@@ -100,7 +106,8 @@ impl From<FullTitle> for _core::Title {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum Title {
     Name(String),                   // name

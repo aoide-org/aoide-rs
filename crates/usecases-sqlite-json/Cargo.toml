@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = "*"
 diesel = { version = "*", default-features = false, features = ["sqlite"] }
 log = "*"
+schemars = "*"
 serde = "*"
 thiserror = "*"
 url = "*"

@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod track;
+use aoide_core::playlist::Flags;
 
 use crate::{prelude::*, util::clock::DateTime};
+
+pub mod track;
 
 mod _core {
     pub use aoide_core::{
@@ -23,8 +25,6 @@ mod _core {
         playlist::{track, *},
     };
 }
-
-use aoide_core::{playlist::Flags, util::IsDefault};
 
 ///////////////////////////////////////////////////////////////////////
 // Item
@@ -119,6 +119,10 @@ impl From<_core::Entry> for Entry {
 // Playlist
 ///////////////////////////////////////////////////////////////////////
 
+fn is_default_flags(flags: &u8) -> bool {
+    *flags == u8::default()
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -136,7 +140,7 @@ pub struct Playlist {
     #[serde(skip_serializing_if = "Option::is_none")]
     color: Option<Color>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "is_default_flags", default)]
     flags: u8,
 }
 

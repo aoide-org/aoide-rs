@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_json::{collection::Collection, entity::Entity};
+use schemars::JsonSchema;
 
 use crate::prelude::*;
 
@@ -27,7 +28,10 @@ mod _inner {
     };
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, JsonSchema)]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MediaSourceSummary {
     pub total_count: u64,
@@ -49,7 +53,10 @@ impl From<_inner::MediaSourceSummary> for MediaSourceSummary {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, JsonSchema)]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PlaylistSummary {
     pub total_count: u64,
@@ -71,7 +78,10 @@ impl From<_inner::PlaylistSummary> for PlaylistSummary {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, JsonSchema)]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSummary {
     pub total_count: u64,
@@ -93,9 +103,10 @@ impl From<_inner::TrackSummary> for TrackSummary {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub media_sources: MediaSourceSummary,
@@ -135,7 +146,7 @@ impl From<_inner::Summary> for Summary {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

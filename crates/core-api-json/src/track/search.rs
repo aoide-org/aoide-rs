@@ -15,6 +15,7 @@
 
 use aoide_core_json::{entity::EntityUid, util::clock::DateTime};
 
+use schemars::JsonSchema;
 use url::Url;
 
 use crate::{
@@ -32,7 +33,7 @@ mod _inner {
     pub use crate::_inner::{filtering::*, sorting::*, track::search::*};
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]

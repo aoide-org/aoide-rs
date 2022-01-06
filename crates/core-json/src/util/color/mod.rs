@@ -33,7 +33,8 @@ use std::{fmt, str::FromStr};
 ///////////////////////////////////////////////////////////////////////
 
 /// Either a color code or a color index.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum Color {
     #[serde(rename = "rgb")]
     Rgb(RgbColor),

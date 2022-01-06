@@ -16,10 +16,7 @@
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
 use url::Url;
 
-use aoide_core::{
-    media::ContentMetadataFlags,
-    util::{url::BaseUrl, IsDefault},
-};
+use aoide_core::{media::ContentMetadataFlags, util::url::BaseUrl};
 
 use crate::{audio::AudioContent, prelude::*, util::clock::DateTime};
 
@@ -63,7 +60,7 @@ impl From<SourcePathKind> for _core::SourcePathKind {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SourcePathConfig {
@@ -444,6 +441,10 @@ impl From<AdvisoryRating> for _core::AdvisoryRating {
     }
 }
 
+fn is_default_content_metadata_flags(flags: &u8) -> bool {
+    *flags == u8::default()
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -463,7 +464,7 @@ pub struct Source {
     #[serde(skip_serializing_if = "Option::is_none")]
     content_digest: Option<Digest>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "is_default_content_metadata_flags", default)]
     content_metadata_flags: u8,
 
     #[serde(flatten)]

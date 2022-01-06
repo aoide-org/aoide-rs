@@ -12,7 +12,7 @@ base64 = "*"
 chrono = { version = "*", default-features = false, features = ["serde"] }
 mime = "*"
 num-traits = "*"
-schemars = { version = "*", features = ["chrono"] }
+schemars = { version = "*", features = ["chrono", "url"] }
 semval = "*"
 serde = { version = "*", features = ["derive"] }
 serde_repr = "*"

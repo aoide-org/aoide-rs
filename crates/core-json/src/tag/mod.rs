@@ -13,19 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
+use std::{collections::HashMap, fmt};
+
+use schemars::{gen::SchemaGenerator, schema::Schema};
+use serde::{de::Visitor, Deserializer, Serializer};
+
+use aoide_core::tag::FacetedTags;
 
 use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::tag::{FacetId, FacetKey, Label, PlainTag, Score, Tags};
 }
-
-use aoide_core::tag::FacetedTags;
-
-use schemars::{gen::SchemaGenerator, schema::Schema};
-use serde::{de::Visitor, Deserializer, Serializer};
-use std::{collections::HashMap, fmt};
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct FacetKey(_core::FacetKey);
@@ -232,7 +231,8 @@ impl<'de> Deserialize<'de> for Score {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum PlainTag {
     Label(Label),
@@ -289,28 +289,13 @@ impl From<_core::PlainTag> for PlainTag {
 
 pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Tags(TagsMap);
 
 impl Tags {
-    pub const fn new(inner: TagsMap) -> Self {
-        Self(inner)
-    }
-
-    pub fn into_inner(self) -> TagsMap {
-        self.0
-    }
-}
-
-impl From<TagsMap> for Tags {
-    fn from(inner: TagsMap) -> Self {
-        Self::new(inner)
-    }
-}
-
-impl From<Tags> for TagsMap {
-    fn from(from: Tags) -> Self {
-        from.into_inner()
+    pub(crate) fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 
@@ -336,13 +321,13 @@ impl From<_core::Tags> for Tags {
                 );
             }
         }
-        Self::new(into)
+        Self(into)
     }
 }
 
 impl From<Tags> for _core::Tags {
     fn from(from: Tags) -> Self {
-        let from = from.into_inner();
+        let Tags(from) = from;
         let mut plain_tags = vec![];
         let mut facets = Vec::with_capacity(from.len());
         for (key, tags) in from.into_iter() {

@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::track::cue::{BankIndex, CueFlags, SlotIndex};
+
 use crate::{audio::PositionMs, prelude::*};
 
 mod _core {
@@ -21,11 +23,6 @@ mod _core {
         track::cue::{Cue, InMarker, OutMarker, OutMode},
     };
 }
-
-use aoide_core::{
-    track::cue::{BankIndex, CueFlags, SlotIndex},
-    util::IsDefault,
-};
 
 ///////////////////////////////////////////////////////////////////////
 // OutMode
@@ -120,6 +117,10 @@ impl From<OutMarker> for _core::OutMarker {
     }
 }
 
+fn is_default_flags(flags: &u8) -> bool {
+    *flags == u8::default()
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -141,7 +142,7 @@ pub struct Cue {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<Color>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "is_default_flags", default)]
     flags: u8,
 }
 

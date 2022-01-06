@@ -15,10 +15,7 @@
 
 use aoide_core::{
     track::PlayCount,
-    util::{
-        canonical::{Canonical, CanonicalizeInto as _},
-        IsDefault,
-    },
+    util::canonical::{Canonical, CanonicalizeInto as _},
 };
 
 use crate::{media::Source, prelude::*, tag::*};
@@ -58,31 +55,31 @@ pub struct Track {
     #[serde(skip_serializing_if = "Option::is_none")]
     copyright: Option<String>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "Album::is_default", default)]
     pub album: Album,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "Indexes::is_default", default)]
     pub indexes: Indexes,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "Tags::is_empty", default)]
     pub tags: Tags,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<Color>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "Metrics::is_default", default)]
     pub metrics: Metrics,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub cues: Vec<Cue>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "PlayCounter::is_default", default)]
     pub play_counter: PlayCounter,
 }
 
@@ -205,7 +202,8 @@ impl From<_core::Entity> for Entity {
 // PlayCounter
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PlayCounter {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -213,6 +211,16 @@ pub struct PlayCounter {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     times_played: Option<PlayCount>,
+}
+
+impl PlayCounter {
+    pub(crate) fn is_default(&self) -> bool {
+        let Self {
+            last_played_at,
+            times_played,
+        } = self;
+        last_played_at.is_none() && times_played.is_none()
+    }
 }
 
 impl From<_core::PlayCounter> for PlayCounter {
@@ -240,3 +248,6 @@ impl From<PlayCounter> for _core::PlayCounter {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

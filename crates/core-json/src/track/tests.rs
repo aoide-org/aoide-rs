@@ -13,26 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
-#![warn(rust_2018_idioms)]
+///////////////////////////////////////////////////////////////////////
 
-pub mod prelude {
-    pub(crate) use serde::{Deserialize, Serialize};
+use super::*;
 
-    pub(crate) use serde_repr::*;
-
-    pub(crate) use crate::util::{clock::*, color::*};
-
-    pub(crate) use schemars::JsonSchema;
+#[test]
+fn is_default() {
+    assert!(PlayCounter::default().is_default());
 }
 
-pub mod audio;
-pub mod collection;
-pub mod entity;
-pub mod media;
-pub mod music;
-pub mod playlist;
-pub mod tag;
-pub mod track;
-pub mod util;
+#[test]
+fn into_default() {
+    assert_eq!(_core::PlayCounter::default(), PlayCounter::default().into());
+    assert_eq!(PlayCounter::default(), _core::PlayCounter::default().into());
+}

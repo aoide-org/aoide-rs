@@ -13,7 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{actor::*, title::*, *};
+use aoide_core::util::canonical::{Canonical, CanonicalizeInto as _};
+
+use crate::prelude::*;
+
+use super::{actor::Actor, title::Title};
 
 mod _core {
     pub use aoide_core::track::album::*;
@@ -23,13 +27,20 @@ mod _core {
 // Album
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum AlbumKind {
     Unknown = 0,
     Album = 1,
     Single = 2,
     Compilation = 3,
+}
+
+impl AlbumKind {
+    fn is_default(&self) -> bool {
+        _core::AlbumKind::from(*self) == Default::default()
+    }
 }
 
 impl From<_core::AlbumKind> for AlbumKind {
@@ -62,12 +73,13 @@ impl Default for AlbumKind {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Album {
     #[serde(
         rename = "type",
-        skip_serializing_if = "IsDefault::is_default",
+        skip_serializing_if = "AlbumKind::is_default",
         default
     )]
     pub kind: AlbumKind,
@@ -77,6 +89,17 @@ pub struct Album {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
+}
+
+impl Album {
+    pub(crate) fn is_default(&self) -> bool {
+        let Self {
+            kind,
+            titles,
+            actors,
+        } = self;
+        kind.is_default() && titles.is_empty() && actors.is_empty()
+    }
 }
 
 impl From<_core::Album> for Album {
@@ -120,3 +143,6 @@ impl From<Album> for Canonical<_core::Album> {
         })
     }
 }
+
+#[cfg(test)]
+mod tests;

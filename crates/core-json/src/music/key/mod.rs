@@ -15,11 +15,11 @@
 
 use crate::prelude::*;
 
+use aoide_core::music::key::KeyCodeValue;
+
 mod _core {
     pub use aoide_core::music::key::KeyCode;
 }
-
-use aoide_core::music::key::KeyCodeValue;
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]

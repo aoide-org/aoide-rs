@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-use aoide_core::util::IsDefault;
+use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::track::actor::{Actor, ActorKind, ActorRole};
@@ -25,13 +23,20 @@ mod _core {
 // ActorKind
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum ActorKind {
     Summary = 0,
     Primary = 1,
     Secondary = 2,
     Sorting = 3,
+}
+
+impl ActorKind {
+    fn is_default(&self) -> bool {
+        _core::ActorKind::from(*self) == Default::default()
+    }
 }
 
 impl Default for ActorKind {
@@ -68,7 +73,8 @@ impl From<_core::ActorKind> for ActorKind {
 // ActorRole
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum ActorRole {
     Artist = _core::ActorRole::Artist as u8,
@@ -84,6 +90,12 @@ pub enum ActorRole {
     Director = _core::ActorRole::Director as u8,
     Remixer = _core::ActorRole::Remixer as u8,
     Writer = _core::ActorRole::Writer as u8,
+}
+
+impl ActorRole {
+    fn is_default(&self) -> bool {
+        _core::ActorRole::from(*self) == Default::default()
+    }
 }
 
 impl Default for ActorRole {
@@ -138,15 +150,16 @@ impl From<_core::ActorRole> for ActorRole {
 // Actor
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FullActor {
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "ActorKind::is_default", default)]
     kind: ActorKind,
 
     name: String,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "ActorRole::is_default", default)]
     role: ActorRole,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -187,7 +200,8 @@ impl From<FullActor> for _core::Actor {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum Actor {
     Name(String),                   // name

@@ -30,6 +30,10 @@ use aoide_core::{music::key::KeySignature, track::metric::MetricsFlags};
 // Metrics
 ///////////////////////////////////////////////////////////////////////
 
+fn is_default_flags(flags: &u8) -> bool {
+    *flags == u8::default()
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -43,20 +47,22 @@ pub struct Metrics {
     #[serde(skip_serializing_if = "Option::is_none")]
     time_signature: Option<TimeSignature>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "is_default_flags", default)]
     flags: u8,
 }
 
-#[cfg(not(test))]
-impl IsDefault for Metrics {
-    fn is_default(&self) -> bool {
+impl Metrics {
+    pub(crate) fn is_default(&self) -> bool {
         let Self {
             flags,
             key_code,
             tempo_bpm,
             time_signature,
         } = self;
-        flags.is_default() && key_code.is_none() && tempo_bpm.is_none() && time_signature.is_none()
+        is_default_flags(flags)
+            && key_code.is_none()
+            && tempo_bpm.is_none()
+            && time_signature.is_none()
     }
 }
 
@@ -100,3 +106,6 @@ impl From<Metrics> for _core::Metrics {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

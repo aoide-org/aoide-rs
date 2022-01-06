@@ -34,32 +34,3 @@ impl IsInteger for f32 {
         (self.trunc() - self).abs() == 0_f32
     }
 }
-
-pub trait IsEmpty {
-    fn is_empty(&self) -> bool;
-}
-
-impl<T> IsEmpty for [T] {
-    fn is_empty(&self) -> bool {
-        self.is_empty()
-    }
-}
-
-impl<T> IsEmpty for Vec<T> {
-    fn is_empty(&self) -> bool {
-        self.is_empty()
-    }
-}
-
-pub trait IsDefault {
-    fn is_default(&self) -> bool;
-}
-
-impl<T> IsDefault for T
-where
-    T: Default + PartialEq,
-{
-    fn is_default(&self) -> bool {
-        self == &Default::default()
-    }
-}

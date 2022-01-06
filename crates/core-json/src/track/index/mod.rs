@@ -23,7 +23,8 @@ mod _core {
 // Index
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum Index {
     Number(u16),
@@ -63,7 +64,8 @@ impl Index {
 // Indexes
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Indexes {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -74,6 +76,17 @@ pub struct Indexes {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub movement: Option<Index>,
+}
+
+impl Indexes {
+    pub(crate) fn is_default(&self) -> bool {
+        let Self {
+            track,
+            disc,
+            movement,
+        } = self;
+        track.is_none() && disc.is_none() && movement.is_none()
+    }
 }
 
 impl From<_core::Indexes> for Indexes {
@@ -95,3 +108,6 @@ impl From<Indexes> for _core::Indexes {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

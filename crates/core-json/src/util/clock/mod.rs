@@ -189,7 +189,8 @@ impl<'de> Deserialize<'de> for DateYYYYMMDD {
 // DateOrDateTime
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DateOrDateTime {
     Date(DateYYYYMMDD),

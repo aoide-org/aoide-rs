@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "*"
+schemars = "*"
 serde = { version = "*", features = ["derive"] }
 url = { version = "*", features = ["serde"] }
 

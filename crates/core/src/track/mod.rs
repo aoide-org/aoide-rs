@@ -201,31 +201,25 @@ impl Track {
         if !newer_actors.is_empty() {
             *actors = newer_actors;
         }
-        if !newer_album.is_default() {
+        if newer_album != Default::default() {
             *album = newer_album;
         }
-        if newer_color.is_some() {
-            *color = newer_color;
-        }
+        *color = color.or(newer_color);
         if newer_copyright.is_some() {
             *copyright = newer_copyright;
         }
         if !newer_cues.is_empty() {
             *cues = newer_cues;
         }
-        if !newer_indexes.is_default() {
+        if newer_indexes != Default::default() {
             *indexes = newer_indexes;
         }
-        if !newer_play_counter.is_default() {
+        if newer_play_counter != Default::default() {
             *play_counter = newer_play_counter;
         }
-        if newer_recorded_at.is_some() {
-            *recorded_at = newer_recorded_at;
-        }
-        if !newer_released_at.is_default() {
-            *released_at = newer_released_at;
-        }
-        if !newer_released_by.is_default() {
+        *recorded_at = recorded_at.or(newer_recorded_at);
+        *released_at = released_at.or(newer_released_at);
+        if newer_released_by.is_some() {
             *released_by = newer_released_by;
         }
         if !newer_tags.is_empty() {
@@ -234,7 +228,7 @@ impl Track {
         if !newer_titles.is_empty() {
             *titles = newer_titles;
         }
-        if !newer_metrics.is_default() {
+        if newer_metrics != Default::default() {
             let Metrics {
                 tempo_bpm,
                 key_signature,
@@ -258,14 +252,14 @@ impl Track {
                     newer_flags.contains(MetricsFlags::TEMPO_BPM_LOCKED),
                 );
             }
-            if !newer_key_signature.is_default() {
+            if newer_key_signature != Default::default() {
                 *key_signature = newer_key_signature;
                 flags.set(
                     MetricsFlags::KEY_SIGNATURE_LOCKED,
                     newer_flags.contains(MetricsFlags::KEY_SIGNATURE_LOCKED),
                 );
             }
-            if !newer_time_signature.is_default() {
+            if newer_time_signature.is_some() {
                 *time_signature = newer_time_signature;
                 flags.set(
                     MetricsFlags::TIME_SIGNATURE_LOCKED,
@@ -359,7 +353,7 @@ pub type Entity = crate::entity::Entity<TrackInvalidity, Track>;
 
 pub type PlayCount = u64;
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct PlayCounter {
     pub last_played_at: Option<DateTime>,
     pub times_played: Option<PlayCount>,
