@@ -71,6 +71,7 @@ fn import_loop(serato_loop: Loop) -> Cue {
 }
 
 /// Return a canonical vector of cues found in the tag container.
+#[must_use]
 pub fn import_cues(serato_tags: &TagContainer) -> Vec<Cue> {
     serato_tags
         .cues()

@@ -33,6 +33,7 @@ pub struct Environment {
 }
 
 impl Environment {
+    #[must_use]
     pub fn new(service_url: Url) -> Self {
         Self {
             service_url,

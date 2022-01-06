@@ -57,6 +57,7 @@ impl Metadata {
         }
     }
 
+    #[must_use]
     pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, &str, &[u8])> {
         let Self(id3_tag) = self;
         super::id3::find_embedded_artwork_image(id3_tag)
@@ -77,6 +78,7 @@ impl MetadataExt {
         Ok(Self(stream_info, metadata))
     }
 
+    #[must_use]
     pub fn import_audio_content(&self) -> AudioContent {
         let Self(stream_info, metadata) = self;
         let StreamInfo {

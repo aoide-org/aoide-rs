@@ -13,9 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#![warn(unsafe_code)]
+#![cfg_attr(not(debug_assertions), deny(warnings))]
+#![deny(rust_2018_idioms)]
+#![deny(rust_2021_compatibility)]
 #![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
-#![warn(rust_2018_idioms)]
+#![deny(clippy::all)]
+#![deny(clippy::explicit_deref_methods)]
+#![deny(clippy::explicit_into_iter_loop)]
+#![deny(clippy::explicit_iter_loop)]
+#![deny(clippy::must_use_candidate)]
+#![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
+#![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 use diesel::{RunQueryDsl as _, SqliteConnection};
 use thiserror::Error;
@@ -56,7 +65,7 @@ pub fn vacuum_database(connection: &SqliteConnection) -> Result<()> {
 /// Gather statistics about the schema and generate hints
 /// for the query planner.
 ///
-/// See also: https://www.sqlite.org/lang_analyze.html
+/// See also: <https://www.sqlite.org/lang_analyze.html/>
 /// "Statistics gathered by ANALYZE are not automatically updated
 /// as the content of the database changes. If the content of the
 /// database changes significantly, or if the database schema changes,

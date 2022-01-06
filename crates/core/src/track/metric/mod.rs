@@ -36,6 +36,7 @@ bitflags! {
 }
 
 impl MetricsFlags {
+    #[must_use]
     pub fn is_valid(self) -> bool {
         Self::all().contains(self)
     }

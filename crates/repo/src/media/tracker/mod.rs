@@ -45,6 +45,7 @@ pub enum DirUpdateOutcome {
 }
 
 impl DirUpdateOutcome {
+    #[must_use]
     pub const fn resulting_status(self) -> DirTrackingStatus {
         match self {
             Self::Current => DirTrackingStatus::Current,

@@ -35,6 +35,7 @@ pub struct TagMappingConfig {
 }
 
 impl TagMappingConfig {
+    #[must_use]
     pub fn next_score_value(&self, score: ScoreValue) -> ScoreValue {
         debug_assert!(score > TagScore::min().value());
         debug_assert!(self.split_score_attenuation > TagScore::min().value());
@@ -79,6 +80,7 @@ pub type FacetedTagMappingConfigInner = HashMap<FacetIdValue, TagMappingConfig>;
 pub struct FacetedTagMappingConfig(FacetedTagMappingConfigInner);
 
 impl FacetedTagMappingConfig {
+    #[must_use]
     pub const fn new(inner: FacetedTagMappingConfigInner) -> Self {
         Self(inner)
     }

@@ -39,6 +39,7 @@ pub enum DirTrackingStatus {
 
 impl DirTrackingStatus {
     /// Determine if an entry is stale.
+    #[must_use]
     pub fn is_stale(self) -> bool {
         match self {
             Self::Outdated | Self::Added | Self::Modified => true,
@@ -47,6 +48,7 @@ impl DirTrackingStatus {
     }
 
     /// Determine if an entry is stale and requires further processing.
+    #[must_use]
     pub fn is_pending(self) -> bool {
         match self {
             Self::Added | Self::Modified => {

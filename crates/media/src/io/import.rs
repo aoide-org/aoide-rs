@@ -49,10 +49,12 @@ bitflags! {
 }
 
 impl ImportTrackFlags {
+    #[must_use]
     pub fn is_valid(self) -> bool {
         Self::all().contains(self)
     }
 
+    #[must_use]
     pub fn new_artwork_digest(self) -> MediaDigest {
         if self.contains(Self::ARTWORK_DIGEST) {
             MediaDigest::new()
@@ -81,6 +83,7 @@ pub struct NewTrackInput {
 }
 
 impl NewTrackInput {
+    #[must_use]
     pub fn into_new_track(self, path: SourcePath, content_type: Mime) -> Track {
         let Self {
             collected_at,

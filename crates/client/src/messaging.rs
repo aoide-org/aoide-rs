@@ -31,6 +31,7 @@ pub type MessageChannel<Intent, Effect> = (
 );
 
 // TODO: Better use a bounded channel in production?
+#[must_use]
 pub fn message_channel<Intent, Effect>() -> (
     MessageSender<Intent, Effect>,
     MessageReceiver<Intent, Effect>,

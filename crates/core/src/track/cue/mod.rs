@@ -70,6 +70,7 @@ bitflags! {
 }
 
 impl CueFlags {
+    #[must_use]
     pub fn is_valid(self) -> bool {
         Self::all().contains(self)
     }
@@ -123,6 +124,7 @@ pub struct Cue {
 }
 
 impl Cue {
+    #[must_use]
     pub fn is_reverse(&self) -> bool {
         let Self {
             in_marker,

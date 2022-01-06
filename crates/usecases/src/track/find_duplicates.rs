@@ -56,6 +56,8 @@ pub struct Params {
 }
 
 impl Params {
+    #[allow(unsafe_code)]
+    #[must_use]
     pub const fn new() -> Params {
         // More than one result is necessary to decide if it is unambiguous
         let max_results = unsafe { NonZeroUsize::new_unchecked(2) };
@@ -66,6 +68,7 @@ impl Params {
         }
     }
 
+    #[must_use]
     pub const fn with_max_results(max_results: NonZeroUsize) -> Params {
         Self {
             max_results,

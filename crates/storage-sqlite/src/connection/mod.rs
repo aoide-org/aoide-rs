@@ -18,7 +18,9 @@ use diesel::r2d2;
 use crate::Result;
 
 pub type ConnectionManager = r2d2::ConnectionManager<diesel::SqliteConnection>;
+
 pub type ConnectionPool = r2d2::Pool<ConnectionManager>;
+
 pub type PooledConnection = r2d2::PooledConnection<ConnectionManager>;
 
 #[cfg(feature = "with-tokio")]

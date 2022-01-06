@@ -27,6 +27,7 @@ pub struct RemoteView {
 }
 
 impl RemoteView {
+    #[must_use]
     pub fn is_pending(&self) -> bool {
         self.all_kinds.is_pending() || self.filtered_entities.is_pending()
     }
@@ -73,6 +74,7 @@ impl RemoteView {
             .map(|v| v.iter().filter(|x| &x.hdr.uid == uid).count())
     }
 
+    #[must_use]
     pub fn find_entity_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
         debug_assert!(self.count_entities_by_uid(uid).unwrap_or_default() <= 1);
         self.filtered_entities
@@ -88,14 +90,17 @@ pub struct State {
 }
 
 impl State {
+    #[must_use]
     pub const fn remote_view(&self) -> &RemoteView {
         &self.remote_view
     }
 
+    #[must_use]
     pub const fn active_entity_uid(&self) -> Option<&EntityUid> {
         self.active_entity_uid.as_ref()
     }
 
+    #[must_use]
     pub fn active_entity(&self) -> Option<&CollectionEntity> {
         if let (Some(filtered_entities), Some(active_entity_uid)) = (
             self.remote_view.filtered_entities.last_value(),

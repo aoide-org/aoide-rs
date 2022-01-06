@@ -60,6 +60,7 @@ pub struct Params {
 }
 
 impl Params {
+    #[must_use]
     pub fn new(mode: ReplaceMode) -> Self {
         Self {
             mode,

@@ -41,6 +41,7 @@ impl EntityUid {
     pub const MAX_STR_LEN: usize = 33;
     pub const BASE58_ALPHABET: &'static bs58::alphabet::Alphabet = bs58::Alphabet::BITCOIN;
 
+    #[must_use]
     pub fn random() -> Self {
         // Generate 24 random bytes
         let mut new = Self::default();
@@ -54,6 +55,7 @@ impl EntityUid {
         self.as_mut().copy_from_slice(&slice[0..Self::SLICE_LEN]);
     }
 
+    #[must_use]
     pub fn from_slice(slice: &[u8]) -> Self {
         let mut result = Self::default();
         result.copy_from_slice(slice);
@@ -75,6 +77,7 @@ impl EntityUid {
         Self::default().decode_str(encoded)
     }
 
+    #[must_use]
     pub fn encode_to_string(&self) -> String {
         bs58::encode(self.0)
             .with_alphabet(Self::BASE58_ALPHABET)
@@ -138,6 +141,7 @@ impl EntityRevision {
         Self(1)
     }
 
+    #[must_use]
     pub fn is_initial(self) -> bool {
         self == Self::initial()
     }
@@ -154,10 +158,12 @@ impl EntityRevision {
         prev.checked_add(1).map(Self::from_inner)
     }
 
+    #[must_use]
     pub const fn from_inner(inner: EntityRevisionNumber) -> Self {
         Self(inner)
     }
 
+    #[must_use]
     pub const fn to_inner(self) -> EntityRevisionNumber {
         let Self(inner) = self;
         inner
@@ -209,6 +215,7 @@ pub struct EntityHeader {
 }
 
 impl EntityHeader {
+    #[must_use]
     pub fn initial_random() -> Self {
         Self::initial_with_uid(EntityUid::random())
     }
@@ -221,11 +228,13 @@ impl EntityHeader {
         }
     }
 
+    #[must_use]
     pub fn next_rev(self) -> Option<Self> {
         let Self { uid, rev } = self;
         rev.next().map(|rev| Self { uid, rev })
     }
 
+    #[must_use]
     pub fn prev_rev(self) -> Option<Self> {
         let Self { uid, rev } = self;
         rev.prev().map(|rev| Self { uid, rev })
@@ -261,6 +270,7 @@ pub struct Entity<T, B> {
 }
 
 impl<T, B> Entity<T, B> {
+    #[must_use]
     pub fn new(hdr: impl Into<EntityHeader>, body: impl Into<B>) -> Self {
         Entity {
             hdr: hdr.into(),

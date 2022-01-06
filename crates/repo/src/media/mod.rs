@@ -22,6 +22,8 @@ pub const DIGEST_BYTES_LEN: usize = 32;
 
 pub type DigestBytes = [u8; DIGEST_BYTES_LEN];
 
+#[allow(unsafe_code)]
+#[must_use]
 pub fn read_digest_from_slice(bytes: &[u8]) -> Option<DigestBytes> {
     if bytes.len() == DIGEST_BYTES_LEN {
         let mut digest = MaybeUninit::<DigestBytes>::uninit();

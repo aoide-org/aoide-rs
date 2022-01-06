@@ -26,12 +26,14 @@ pub type BeatNumber = u16;
 
 pub type BeatsPerMeasure = BeatNumber;
 
+#[must_use]
 pub fn is_valid_beats_per_measure(beats_per_measure: BeatsPerMeasure) -> bool {
     beats_per_measure > 0
 }
 
 pub type BeatUnit = BeatNumber;
 
+#[must_use]
 pub fn is_valid_beat_unit(beat_unit: BeatUnit) -> bool {
     beat_unit > 0
 }
@@ -70,6 +72,7 @@ fn gcd(nom: BeatNumber, denom: BeatNumber) -> BeatNumber {
 }
 
 impl TimeSignature {
+    #[must_use]
     pub fn new(beats_per_measure: BeatsPerMeasure, beat_unit: Option<BeatUnit>) -> Self {
         Self {
             beats_per_measure,
@@ -78,6 +81,7 @@ impl TimeSignature {
     }
 
     #[allow(clippy::absurd_extreme_comparisons)]
+    #[must_use]
     pub fn primary_beat_count(self) -> BeatNumber {
         let Self {
             beats_per_measure,
@@ -149,6 +153,7 @@ pub type MeasureOffset = f32;
 
 pub type MeasureNumber = i32;
 
+#[must_use]
 pub fn is_valid_measure_number(measure_number: MeasureNumber) -> bool {
     measure_number != 0
 }
@@ -158,6 +163,7 @@ pub type PreciseMeasureOffset = f64;
 /// Beat offset within a measure [0.0, beat_per_measure)
 pub type BeatOffsetInMeasure = f32;
 
+#[must_use]
 pub fn is_valid_beat_offset_in_measure(
     beat_offset_in_measure: BeatOffsetInMeasure,
     beats_per_measure: BeatNumber,
@@ -189,6 +195,7 @@ pub struct MeasurePosition {
 }
 
 impl MeasurePosition {
+    #[must_use]
     pub fn from_measure_number_and_beat_offset(
         measure_number: MeasureNumber,
         beat_offset_in_measure: BeatOffsetInMeasure,
@@ -206,6 +213,7 @@ impl MeasurePosition {
         }
     }
 
+    #[must_use]
     pub fn from_total_beat_offset(
         total_beat_offset: TotalBeatOffset,
         beats_per_measure: BeatNumber,
@@ -218,11 +226,13 @@ impl MeasurePosition {
         }
     }
 
+    #[must_use]
     pub fn is_valid_in_measure(self, beats_per_measure: BeatNumber) -> bool {
         debug_assert!(beats_per_measure > 0);
         self.beat_offset_in_measure < BeatOffsetInMeasure::from(beats_per_measure)
     }
 
+    #[must_use]
     pub fn precise_measure_offset(self, beats_per_measure: BeatNumber) -> PreciseMeasureOffset {
         debug_assert!(self.is_valid());
         debug_assert!(self.is_valid_in_measure(beats_per_measure));
@@ -235,6 +245,7 @@ impl MeasurePosition {
         PreciseMeasureOffset::from(measure_offset.floor()) + fractional_measure
     }
 
+    #[must_use]
     pub fn measure_number(self) -> MeasureNumber {
         let Self {
             measure_offset,
@@ -252,6 +263,7 @@ impl MeasurePosition {
         }
     }
 
+    #[must_use]
     pub fn total_beat_offset(self, beats_per_measure: BeatNumber) -> TotalBeatOffset {
         debug_assert!(self.is_valid());
         debug_assert!(self.is_valid_in_measure(beats_per_measure));
@@ -264,6 +276,7 @@ impl MeasurePosition {
             + PreciseMeasureOffset::from(beat_offset_in_measure)
     }
 
+    #[must_use]
     pub fn move_by_beats(self, beats_per_measure: BeatNumber, beat_delta: BeatDelta) -> Self {
         debug_assert!(self.is_valid());
         debug_assert!(self.is_valid_in_measure(beats_per_measure));

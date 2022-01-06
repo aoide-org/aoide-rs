@@ -80,6 +80,7 @@ pub struct Track {
 }
 
 impl Track {
+    #[must_use]
     pub fn new_from_media_source(media_source: Source) -> Self {
         Self {
             media_source,
@@ -99,6 +100,7 @@ impl Track {
         }
     }
 
+    #[must_use]
     pub fn track_title(&self) -> Option<&str> {
         Titles::main_title(self.titles.as_ref()).map(|title| title.name.as_str())
     }
@@ -110,6 +112,7 @@ impl Track {
         res
     }
 
+    #[must_use]
     pub fn track_artist(&self) -> Option<&str> {
         Actors::main_actor(self.actors.iter(), ActorRole::Artist).map(|actor| actor.name.as_str())
     }
@@ -121,6 +124,7 @@ impl Track {
         res
     }
 
+    #[must_use]
     pub fn track_composer(&self) -> Option<&str> {
         Actors::main_actor(self.actors.iter(), ActorRole::Composer).map(|actor| actor.name.as_str())
     }
@@ -132,6 +136,7 @@ impl Track {
         res
     }
 
+    #[must_use]
     pub fn album_title(&self) -> Option<&str> {
         Titles::main_title(self.album.titles.as_ref()).map(|title| title.name.as_str())
     }
@@ -145,6 +150,7 @@ impl Track {
         res
     }
 
+    #[must_use]
     pub fn album_artist(&self) -> Option<&str> {
         Actors::main_actor(self.album.actors.iter(), ActorRole::Artist)
             .map(|actor| actor.name.as_str())

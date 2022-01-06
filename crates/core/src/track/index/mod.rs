@@ -26,10 +26,12 @@ pub struct Index {
 }
 
 impl Index {
+    #[must_use]
     pub const fn min_number() -> u16 {
         1
     }
 
+    #[must_use]
     pub const fn min_total() -> u16 {
         1
     }

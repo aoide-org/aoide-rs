@@ -206,6 +206,7 @@ impl Metadata {
             .map_err(map_mp4ameta_err)
     }
 
+    #[must_use]
     pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, ImageFormat, &[u8])> {
         let Self(mp4_tag) = self;
         self::find_embedded_artwork_image(mp4_tag)

@@ -168,6 +168,7 @@ pub fn import_loudness(tag: &id3::Tag) -> Option<LoudnessLufs> {
     first_extended_text(tag, "REPLAYGAIN_TRACK_GAIN").and_then(parse_replay_gain)
 }
 
+#[must_use]
 pub fn import_encoder(tag: &id3::Tag) -> Option<Cow<'_, str>> {
     concat_encoder_properties(first_text_frame(tag, "TENC"), first_text_frame(tag, "TSSE"))
 }
@@ -187,6 +188,7 @@ fn import_faceted_tags_from_text_frames(
     )
 }
 
+#[must_use]
 pub fn find_embedded_artwork_image(tag: &id3::Tag) -> Option<(ApicType, &str, &[u8])> {
     tag.pictures()
         .filter_map(|p| {

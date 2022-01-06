@@ -97,7 +97,7 @@ fn actors() {
     );
 
     // Conductor(s)
-    for kind in [ActorKind::Summary, ActorKind::Secondary, ActorKind::Primary].iter() {
+    for kind in &[ActorKind::Summary, ActorKind::Secondary, ActorKind::Primary] {
         assert_eq!(
             0,
             Actors::filter_kind_role(&actors, *kind, ActorRole::Conductor).count()

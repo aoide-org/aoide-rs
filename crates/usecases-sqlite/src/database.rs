@@ -13,6 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// This exception on module level is required for the code generated
+// by the embed_migrations macro.
+#![allow(clippy::panic_in_result_fn)]
+
 use super::*;
 
 diesel_migrations::embed_migrations!("../repo-sqlite/migrations");

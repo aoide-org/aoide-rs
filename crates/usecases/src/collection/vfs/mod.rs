@@ -123,6 +123,7 @@ impl RepoContext {
         })
     }
 
+    #[must_use]
     pub fn root_path_prefix_str<'a, 'b>(
         &'a self,
         default_root_url: Option<&'b BaseUrl>,
@@ -147,6 +148,7 @@ pub struct SourcePathVfsContext {
 }
 
 impl SourcePathVfsContext {
+    #[must_use]
     pub fn build_root_file_path(&self) -> PathBuf {
         self.path_resolver.build_file_path(&self.root_path)
     }

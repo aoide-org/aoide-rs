@@ -30,6 +30,7 @@ pub struct RemoteView {
 }
 
 impl RemoteView {
+    #[must_use]
     pub fn is_pending(&self) -> bool {
         self.status.is_pending()
             || self.progress.is_pending()
@@ -46,6 +47,7 @@ pub struct State {
 }
 
 impl State {
+    #[must_use]
     pub fn remote_view(&self) -> &RemoteView {
         &self.remote_view
     }

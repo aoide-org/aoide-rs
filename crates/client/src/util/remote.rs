@@ -24,6 +24,7 @@ pub struct DataSnapshot<T> {
 }
 
 impl<T> DataSnapshot<T> {
+    #[must_use]
     pub fn new(value: impl Into<T>, since: impl Into<Instant>) -> Self {
         Self {
             value: value.into(),
@@ -31,6 +32,7 @@ impl<T> DataSnapshot<T> {
         }
     }
 
+    #[must_use]
     pub fn now(value: impl Into<T>) -> Self {
         Self {
             value: value.into(),
@@ -54,6 +56,7 @@ pub enum RoundtripState {
 }
 
 impl RoundtripState {
+    #[must_use]
     pub const fn new() -> Self {
         Self::Idle
     }
@@ -113,6 +116,7 @@ pub struct RemoteData<T> {
 }
 
 impl<T> RemoteData<T> {
+    #[must_use]
     pub const fn default() -> Self {
         Self {
             roundtrip: Roundtrip::new(),

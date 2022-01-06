@@ -67,6 +67,7 @@ pub enum StringPredicate {
 }
 
 impl StringPredicate {
+    #[must_use]
     pub fn borrow(&self) -> StringPredicateBorrowed<'_> {
         match self {
             Self::StartsWith(s) => StringPredicateBorrowed::StartsWith(s.as_str()),
@@ -116,6 +117,7 @@ pub struct StringFilter {
 }
 
 impl StringFilter {
+    #[must_use]
     pub fn borrow(&self) -> StringFilterBorrowed<'_> {
         let Self { modifier, value } = self;
         StringFilterBorrowed {

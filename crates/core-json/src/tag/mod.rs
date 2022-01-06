@@ -315,7 +315,7 @@ impl From<_core::Tags> for Tags {
                 plain_tags.into_iter().map(Into::into).collect(),
             );
         }
-        for faceted_tags in facets.into_iter() {
+        for faceted_tags in facets {
             let FacetedTags { facet_id, tags } = faceted_tags;
             if !tags.is_empty() {
                 into.insert(
@@ -333,7 +333,7 @@ impl From<Tags> for _core::Tags {
         let Tags(from) = from;
         let mut plain_tags = vec![];
         let mut facets = Vec::with_capacity(from.len());
-        for (key, tags) in from.into_iter() {
+        for (key, tags) in from {
             let tags = tags.into_iter().map(Into::into).collect();
             let FacetKey(key) = key;
             if let Some(facet_id) = key.into() {

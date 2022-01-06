@@ -32,15 +32,18 @@ use crate::{
 pub struct SourcePath(String);
 
 impl SourcePath {
+    #[must_use]
     pub const fn new(inner: String) -> Self {
         Self(inner)
     }
 
+    #[must_use]
     pub fn into_inner(self) -> String {
         let Self(inner) = self;
         inner
     }
 
+    #[must_use]
     pub fn is_terminal(&self) -> bool {
         !(self.is_empty() || self.ends_with('/'))
     }
@@ -115,6 +118,7 @@ pub enum SourcePathConfig {
 }
 
 impl SourcePathConfig {
+    #[must_use]
     pub fn kind(&self) -> SourcePathKind {
         match self {
             Self::Uri => SourcePathKind::Uri,
@@ -124,6 +128,7 @@ impl SourcePathConfig {
         }
     }
 
+    #[must_use]
     pub fn root_url(&self) -> Option<&BaseUrl> {
         match self {
             Self::VirtualFilePath { root_url } => Some(root_url),
@@ -214,22 +219,27 @@ bitflags! {
 }
 
 impl ContentMetadataFlags {
+    #[must_use]
     pub fn is_valid(self) -> bool {
         Self::all().contains(self)
     }
 
+    #[must_use]
     pub fn is_unreliable(self) -> bool {
         !self.intersects(Self::RELIABLE | Self::LOCKED)
     }
 
+    #[must_use]
     pub fn is_reliable(self) -> bool {
         self.intersects(Self::RELIABLE)
     }
 
+    #[must_use]
     pub fn is_locked(self) -> bool {
         self.intersects(Self::LOCKED)
     }
 
+    #[must_use]
     pub fn is_stale(self) -> bool {
         self.intersects(Self::STALE)
     }
@@ -334,6 +344,7 @@ where
 /// aoide those properties are represented by a single string.
 ///
 /// Both properties are optional.
+#[must_use]
 pub fn concat_encoder_properties<'a>(
     encoded_by: Option<&'a str>,
     encoder_settings: Option<&'a str>,
@@ -389,6 +400,7 @@ pub struct ImageSize {
 }
 
 impl ImageSize {
+    #[must_use]
     pub const fn is_empty(self) -> bool {
         !(self.width > 0 && self.height > 0)
     }
@@ -534,6 +546,7 @@ pub enum AdvisoryRating {
 }
 
 impl AdvisoryRating {
+    #[must_use]
     pub fn is_offensive(self) -> bool {
         match self {
             Self::Unrated | Self::Clean => false,

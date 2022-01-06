@@ -27,18 +27,22 @@ pub type NumberOfChannels = u16;
 pub struct ChannelCount(pub NumberOfChannels);
 
 impl ChannelCount {
+    #[must_use]
     pub const fn zero() -> Self {
         Self(0)
     }
 
+    #[must_use]
     pub const fn min() -> Self {
         Self(1)
     }
 
+    #[must_use]
     pub const fn max() -> Self {
         Self(u16::MAX)
     }
 
+    #[must_use]
     pub fn default_layout(self) -> Option<ChannelLayout> {
         match self {
             ChannelCount(1) => Some(ChannelLayout::Mono),
@@ -95,6 +99,7 @@ pub enum ChannelLayout {
 }
 
 impl ChannelLayout {
+    #[must_use]
     pub const fn channel_count(self) -> ChannelCount {
         use ChannelLayout::*;
         match self {
@@ -136,6 +141,7 @@ pub enum Channels {
 }
 
 impl Channels {
+    #[must_use]
     pub const fn count(self) -> ChannelCount {
         use Channels::*;
         match self {

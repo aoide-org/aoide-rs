@@ -35,10 +35,10 @@ pub struct DatabaseConnectionGatekeeperConfig {
 
 /// Manage database connections for asynchronous tasks
 ///
-/// Only a single writer is allowed to access the SQLite database
+/// Only a single writer is allowed to access the `SQLite` database
 /// at any given time. This is required to prevent both synchronous
 /// locking when obtaining a connection and timeouts when concurrently
-/// trying to execute write operations on a shared SQLite database
+/// trying to execute write operations on a shared `SQLite` database
 /// instance.
 #[allow(missing_debug_implementations)]
 pub struct DatabaseConnectionGatekeeper {
@@ -67,6 +67,7 @@ struct RequestCounterScope {
 }
 
 impl RequestCounterScope {
+    #[must_use]
     pub fn new(shared_state: Arc<RequestCounterState>, mode: RequestCounterMode) -> Self {
         match mode {
             RequestCounterMode::Read => {
@@ -124,6 +125,7 @@ pub struct PendingTasks {
 }
 
 impl DatabaseConnectionGatekeeper {
+    #[must_use]
     pub fn new(
         connection_pool: ConnectionPool,
         config: DatabaseConnectionGatekeeperConfig,
@@ -174,6 +176,7 @@ impl DatabaseConnectionGatekeeper {
                 return spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await
                     .map_err(Error::TaskScheduling)
             },
+            else => Err(Error::TaskTimeout {reason: "task got stuck".to_string() } )
         }
     }
 
@@ -201,6 +204,7 @@ impl DatabaseConnectionGatekeeper {
                 return spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await
                 .map_err(Error::TaskScheduling)
             },
+            else => Err(Error::TaskTimeout {reason: "task got stuck".to_string() } )
         }
     }
 

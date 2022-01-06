@@ -47,10 +47,12 @@ pub mod update;
 pub struct EntityWithEntriesSummaryCollector(Vec<EntityWithEntriesSummary>);
 
 impl EntityWithEntriesSummaryCollector {
+    #[must_use]
     pub const fn new(inner: Vec<EntityWithEntriesSummary>) -> Self {
         Self(inner)
     }
 
+    #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         let inner = Vec::with_capacity(capacity);
         Self(inner)

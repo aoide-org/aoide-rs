@@ -23,22 +23,27 @@ pub type Bpm = f64;
 pub struct TempoBpm(Bpm);
 
 impl TempoBpm {
+    #[must_use]
     pub const fn unit_of_measure() -> &'static str {
         "bpm"
     }
 
+    #[must_use]
     pub const fn min() -> Self {
         Self(f64::MIN_POSITIVE)
     }
 
+    #[must_use]
     pub const fn max() -> Self {
         Self(f64::MAX)
     }
 
+    #[must_use]
     pub const fn from_raw(raw: Bpm) -> Self {
         Self(raw)
     }
 
+    #[must_use]
     pub const fn to_raw(self) -> Bpm {
         let Self(raw) = self;
         raw

@@ -74,6 +74,7 @@ fn map_metaflac_err(err: metaflac::Error) -> Error {
     }
 }
 
+#[must_use]
 pub fn find_embedded_artwork_image(tag: &metaflac::Tag) -> Option<(ApicType, &str, &[u8])> {
     tag.pictures()
         .filter_map(|p| {
@@ -126,11 +127,13 @@ impl Metadata {
             .map_err(map_metaflac_err)
     }
 
+    #[must_use]
     pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, &str, &[u8])> {
         let Self(metaflac_tag) = self;
         self::find_embedded_artwork_image(metaflac_tag)
     }
 
+    #[must_use]
     pub fn import_audio_content(&self) -> Option<AudioContent> {
         let Self(metaflac_tag) = self;
         metaflac_tag.get_streaminfo().map(|streaminfo| {

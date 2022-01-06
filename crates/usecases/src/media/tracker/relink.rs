@@ -124,22 +124,27 @@ impl Progress {
         }
     }
 
+    #[must_use]
     pub fn total(&self) -> usize {
         self.total
     }
 
+    #[must_use]
     pub fn relinked(&self) -> usize {
         self.relinked
     }
 
+    #[must_use]
     pub fn skipped(&self) -> usize {
         self.skipped
     }
 
+    #[must_use]
     pub fn finished(&self) -> usize {
         self.relinked + self.skipped
     }
 
+    #[must_use]
     pub fn remaining(&self) -> usize {
         debug_assert!(self.finished() <= self.total);
         self.total - self.finished()

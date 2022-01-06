@@ -39,14 +39,17 @@ impl Watermark {
         sequence: INITIAL_SEQUENCE_NUMBER,
     };
 
+    #[must_use]
     pub const fn is_initial(self) -> bool {
         self.sequence == INITIAL_SEQUENCE_NUMBER
     }
 
+    #[must_use]
     pub const fn is_final(self) -> bool {
         self.sequence == FINAL_SEQUENCE_NUMBER
     }
 
+    #[must_use]
     pub const fn new() -> Self {
         Self::INITIAL
     }
@@ -91,7 +94,7 @@ impl Watermark {
         debug_assert!(pending.is_pending());
         match (&*self).partial_cmp(&pending) {
             None | Some(Ordering::Greater) => false,
-            Some(Ordering::Equal) | Some(Ordering::Less) => {
+            Some(Ordering::Equal | Ordering::Less) => {
                 let mut finished = pending;
                 finished.bump_sequence();
                 debug_assert!(!finished.is_pending());

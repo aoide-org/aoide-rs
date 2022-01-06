@@ -19,9 +19,11 @@ macro_rules! record_id_newtype {
         pub struct $type_name($crate::RecordId);
 
         impl $type_name {
+            #[must_use]
             pub const fn new(inner: $crate::RecordId) -> Self {
                 Self(inner)
             }
+            #[must_use]
             pub const fn to_inner(self) -> $crate::RecordId {
                 let Self(inner) = self;
                 inner

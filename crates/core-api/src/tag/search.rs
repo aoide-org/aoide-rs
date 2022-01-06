@@ -29,18 +29,22 @@ pub struct Filter {
 }
 
 impl Filter {
+    #[must_use]
     pub fn any_facet() -> Option<Vec<String>> {
         None
     }
 
+    #[must_use]
     pub fn no_facet() -> Option<Vec<String>> {
         Some(Vec::default())
     }
 
+    #[must_use]
     pub fn any_term() -> Option<StringPredicate> {
         None
     }
 
+    #[must_use]
     pub fn any_score() -> Option<NumericPredicate> {
         None
     }

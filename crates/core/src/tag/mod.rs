@@ -45,14 +45,17 @@ pub type ScoreValue = f64;
 pub struct Score(ScoreValue);
 
 impl Score {
+    #[must_use]
     pub const fn min_value() -> ScoreValue {
         0.0
     }
 
+    #[must_use]
     pub const fn max_value() -> ScoreValue {
         1.0
     }
 
+    #[must_use]
     pub const fn default_value() -> ScoreValue {
         Self::max_value()
     }
@@ -65,34 +68,41 @@ impl Score {
         Self::clamp_value(value).into()
     }
 
+    #[must_use]
     pub const fn min() -> Self {
         Self(Self::min_value())
     }
 
+    #[must_use]
     pub const fn max() -> Self {
         Self(Self::max_value())
     }
 
+    #[must_use]
     pub const fn default() -> Self {
         Self(Self::default_value())
     }
 
+    #[must_use]
     pub const fn new(inner: ScoreValue) -> Self {
         Self(inner)
     }
 
+    #[must_use]
     pub const fn value(self) -> ScoreValue {
         let Self(value) = self;
         value
     }
 
     // Convert to percentage value with a single decimal digit
+    #[must_use]
     pub fn to_percentage(self) -> ScoreValue {
         debug_assert!(self.validate().is_ok());
         (self.value() * ScoreValue::from(1_000)).round() / ScoreValue::from(10)
     }
 
     // Convert to an integer permille value
+    #[must_use]
     pub fn to_permille(self) -> u16 {
         debug_assert!(self.validate().is_ok());
         (self.value() * ScoreValue::from(1_000)).round() as u16
@@ -208,15 +218,18 @@ impl Label {
         Self::clamp_value(value).map(Into::into)
     }
 
+    #[must_use]
     pub const fn new(value: LabelValue) -> Self {
         Self(value)
     }
 
+    #[must_use]
     pub const fn value(&self) -> &LabelValue {
         let Self(value) = self;
         value
     }
 
+    #[must_use]
     pub fn into_value(self) -> LabelValue {
         let Self(value) = self;
         value
@@ -377,15 +390,18 @@ impl FacetId {
         Self::clamp_value(value).map(Into::into)
     }
 
+    #[must_use]
     pub const fn new(value: FacetIdValue) -> Self {
         Self(value)
     }
 
+    #[must_use]
     pub fn into_value(self) -> FacetIdValue {
         let Self(value) = self;
         value
     }
 
+    #[must_use]
     pub const fn value(&self) -> &FacetIdValue {
         let Self(value) = self;
         value
@@ -494,10 +510,12 @@ impl Faceted for FacetId {
 pub struct FacetKey(Option<FacetId>);
 
 impl FacetKey {
+    #[must_use]
     pub const fn new(inner: Option<FacetId>) -> Self {
         Self(inner)
     }
 
+    #[must_use]
     pub fn into_inner(self) -> Option<FacetId> {
         let Self(inner) = self;
         inner
@@ -640,6 +658,7 @@ impl Validate for PlainTag {
 }
 
 impl PlainTag {
+    #[must_use]
     pub const fn default_score() -> Score {
         Score::max()
     }
@@ -756,10 +775,12 @@ pub struct Tags {
 }
 
 impl Tags {
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.total_count() == 0
     }
 
+    #[must_use]
     pub fn total_count(&self) -> usize {
         let Self { plain, facets } = self;
         facets
@@ -901,10 +922,12 @@ pub type TagsMapInner = HashMap<FacetKey, Vec<PlainTag>>;
 pub struct TagsMap(TagsMapInner);
 
 impl TagsMap {
+    #[must_use]
     pub const fn new(inner: TagsMapInner) -> Self {
         Self(inner)
     }
 
+    #[must_use]
     pub fn into_inner(self) -> TagsMapInner {
         let Self(inner) = self;
         inner
@@ -931,6 +954,7 @@ impl TagsMap {
             .unwrap_or(0)
     }
 
+    #[must_use]
     pub fn total_count(&self) -> usize {
         let Self(inner) = self;
         inner.values().fold(0, |sum, tags| sum + tags.len())

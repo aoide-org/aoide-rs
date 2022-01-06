@@ -13,9 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
+#![warn(unsafe_code)]
+#![cfg_attr(not(debug_assertions), deny(warnings))]
 #![deny(rust_2018_idioms)]
+#![deny(rust_2021_compatibility)]
+#![deny(missing_debug_implementations)]
+#![deny(clippy::all)]
+#![deny(clippy::explicit_deref_methods)]
+#![deny(clippy::explicit_into_iter_loop)]
+#![deny(clippy::explicit_iter_loop)]
+#![deny(clippy::must_use_candidate)]
+#![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
+#![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 pub mod collection;
 pub mod filtering;
@@ -35,14 +44,17 @@ pub struct Pagination {
 }
 
 impl Pagination {
+    #[must_use]
     pub const fn has_offset(&self) -> bool {
         self.offset.is_some()
     }
 
+    #[must_use]
     pub const fn is_limited(&self) -> bool {
         self.limit.is_some()
     }
 
+    #[must_use]
     pub const fn is_paginated(&self) -> bool {
         self.has_offset() || self.is_limited()
     }
@@ -50,6 +62,7 @@ impl Pagination {
     /// Mandatory offset
     ///
     /// Returns the offset if specified or 0 otherwise.
+    #[must_use]
     pub fn mandatory_offset(&self) -> PaginationOffset {
         self.offset.unwrap_or(0)
     }
@@ -57,6 +70,7 @@ impl Pagination {
     /// Mandatory limit
     ///
     /// Returns the limit if specified or the maximum value otherwise.
+    #[must_use]
     pub fn mandatory_limit(&self) -> PaginationLimit {
         self.limit.unwrap_or(PaginationLimit::MAX)
     }

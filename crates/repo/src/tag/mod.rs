@@ -36,6 +36,7 @@ impl CountParams {
         }
     }
 
+    #[must_use]
     pub fn include_non_faceted_tags(&self) -> bool {
         self.include_non_faceted_tags.unwrap_or(true)
     }

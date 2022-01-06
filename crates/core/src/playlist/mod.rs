@@ -33,10 +33,12 @@ pub enum Item {
 }
 
 impl Item {
+    #[must_use]
     pub fn is_separator(&self) -> bool {
         matches!(self, Self::Separator)
     }
 
+    #[must_use]
     pub fn is_track(&self) -> bool {
         matches!(self, Self::Track(_))
     }
@@ -107,6 +109,7 @@ bitflags! {
 }
 
 impl Flags {
+    #[must_use]
     pub fn is_valid(self) -> bool {
         Self::all().contains(self)
     }
@@ -196,6 +199,7 @@ pub struct PlaylistWithEntries {
 }
 
 impl PlaylistWithEntries {
+    #[must_use]
     pub fn entries_added_at_minmax(&self) -> Option<(DateTime, DateTime)> {
         let mut entries = self.entries.iter();
         if let Some(first_added) = entries.next().map(|e| e.added_at) {
@@ -251,6 +255,7 @@ impl PlaylistWithEntries {
         self.entries.sort_by_key(|e| e.added_at);
     }
 
+    #[must_use]
     pub fn count_tracks(&self) -> usize {
         self.entries.iter().filter(|e| e.item.is_track()).count()
     }
@@ -311,6 +316,7 @@ pub struct TracksSummary {
 }
 
 impl PlaylistWithEntries {
+    #[must_use]
     pub fn entries_summary(&self) -> EntriesSummary {
         EntriesSummary {
             total_count: self.entries.len(),

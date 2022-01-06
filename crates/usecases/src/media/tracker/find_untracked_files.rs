@@ -85,6 +85,7 @@ struct AncestorVisitor<'r, Repo> {
 }
 
 impl<'r, Repo> AncestorVisitor<'r, Repo> {
+    #[must_use]
     pub fn new(
         repo: &'r Repo,
         collection_id: CollectionId,

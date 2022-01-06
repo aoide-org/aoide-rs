@@ -66,6 +66,7 @@ pub enum FilteredActorNames<'a> {
 }
 
 impl<'a> FilteredActorNames<'a> {
+    #[must_use]
     pub fn new(actors: impl IntoIterator<Item = &'a Actor> + Clone, role: ActorRole) -> Self {
         // At most a single summary actor
         debug_assert!(

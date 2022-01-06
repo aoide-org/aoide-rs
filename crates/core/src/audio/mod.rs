@@ -33,6 +33,7 @@ pub type PositionInMilliseconds = f64;
 pub struct PositionMs(pub PositionInMilliseconds);
 
 impl PositionMs {
+    #[must_use]
     pub const fn unit_of_measure() -> &'static str {
         "ms"
     }
@@ -69,23 +70,28 @@ pub type DurationInMilliseconds = f64;
 pub struct DurationMs(DurationInMilliseconds);
 
 impl DurationMs {
+    #[must_use]
     pub const fn unit_of_measure() -> &'static str {
         "ms"
     }
 
+    #[must_use]
     pub const fn from_inner(inner: DurationInMilliseconds) -> Self {
         Self(inner)
     }
 
+    #[must_use]
     pub const fn to_inner(self) -> DurationInMilliseconds {
         let Self(inner) = self;
         inner
     }
 
+    #[must_use]
     pub const fn empty() -> Self {
         Self(0_f64)
     }
 
+    #[must_use]
     pub fn is_empty(self) -> bool {
         self <= Self::empty()
     }

@@ -118,6 +118,7 @@ pub struct WithTokensQueryParams {
 }
 
 impl WithTokensQueryParams {
+    #[must_use]
     pub fn try_with_token(&self, with_token: &str) -> bool {
         match self.with {
             Some(ref with) => with.split(',').any(|token| token == with_token),

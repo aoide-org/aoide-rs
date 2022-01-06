@@ -46,6 +46,7 @@ pub enum SyncStatus {
 }
 
 impl SyncStatus {
+    #[must_use]
     pub const fn new(sync_mode: SyncMode, last_synchronized_at: Option<DateTime>) -> Self {
         match sync_mode {
             SyncMode::Once => Self::Once {

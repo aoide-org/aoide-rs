@@ -40,26 +40,32 @@ pub struct State {
 }
 
 impl State {
+    #[must_use]
     pub fn control_state(&self) -> ControlState {
         self.control_state
     }
 
+    #[must_use]
     pub fn search_params(&self) -> Option<&Params> {
         self.search_params.as_ref()
     }
 
+    #[must_use]
     pub fn results(&self) -> &[Entity] {
         &self.results
     }
 
+    #[must_use]
     pub fn can_reset(&self) -> bool {
         self.control_state != ControlState::FetchingResults
     }
 
+    #[must_use]
     pub fn can_fetch_results(&self) -> bool {
         self.control_state == ControlState::Idle && self.search_params.is_some()
     }
 
+    #[must_use]
     pub fn search_params_for_fetching_results(&self) -> Option<&Params> {
         if self.can_fetch_results() {
             self.search_params()

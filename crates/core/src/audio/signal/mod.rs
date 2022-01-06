@@ -33,22 +33,27 @@ pub type BitsPerSecond = f64;
 pub struct BitrateBps(BitsPerSecond);
 
 impl BitrateBps {
+    #[must_use]
     pub const fn unit_of_measure() -> &'static str {
         "bps"
     }
 
+    #[must_use]
     pub const fn min() -> Self {
         Self(f64::MIN_POSITIVE)
     }
 
+    #[must_use]
     pub const fn max() -> Self {
         Self(f64::MAX)
     }
 
+    #[must_use]
     pub const fn from_inner(inner: SamplesPerSecond) -> Self {
         Self(inner)
     }
 
+    #[must_use]
     pub const fn to_inner(self) -> SamplesPerSecond {
         let Self(inner) = self;
         inner
@@ -88,38 +93,47 @@ pub type SamplesPerSecond = f64;
 pub struct SampleRateHz(SamplesPerSecond);
 
 impl SampleRateHz {
+    #[must_use]
     pub const fn unit_of_measure() -> &'static str {
         "Hz"
     }
 
+    #[must_use]
     pub const fn min() -> Self {
         Self(f64::MIN_POSITIVE)
     }
 
+    #[must_use]
     pub const fn max() -> Self {
         Self(192_000.0)
     }
 
+    #[must_use]
     pub const fn of_compact_disc() -> Self {
         Self(44_100.0)
     }
 
+    #[must_use]
     pub const fn of_studio_48k() -> Self {
         Self(48_000.0)
     }
 
+    #[must_use]
     pub const fn of_studio_96k() -> Self {
         Self(96_000.0)
     }
 
+    #[must_use]
     pub const fn of_studio_192k() -> Self {
         Self(192_000.0)
     }
 
+    #[must_use]
     pub const fn from_inner(inner: SamplesPerSecond) -> Self {
         Self(inner)
     }
 
+    #[must_use]
     pub const fn to_inner(self) -> SamplesPerSecond {
         let Self(inner) = self;
         inner
@@ -163,6 +177,7 @@ pub struct PcmSignal {
 }
 
 impl PcmSignal {
+    #[must_use]
     pub fn bitrate(self, bits_per_sample: BitsPerSample) -> BitrateBps {
         debug_assert!(self.validate().is_ok());
         let bps = BitsPerSecond::from(self.channel_layout.channel_count().0)
@@ -201,6 +216,7 @@ pub type LatencyInMilliseconds = f64;
 pub struct LatencyMs(pub LatencyInMilliseconds);
 
 impl LatencyMs {
+    #[must_use]
     pub const fn unit_of_measure() -> &'static str {
         "ms"
     }
@@ -209,10 +225,12 @@ impl LatencyMs {
         1_000.0
     }
 
+    #[must_use]
     pub const fn min() -> Self {
         Self(0.0)
     }
 
+    #[must_use]
     pub fn from_samples(sample_length: SampleLength, sample_rate: SampleRateHz) -> LatencyMs {
         debug_assert!(sample_length.validate().is_ok());
         debug_assert!(sample_rate.validate().is_ok());
@@ -259,6 +277,7 @@ pub struct LoudnessLufs(pub LufsValue);
 // specification (RG2) proposes -18 LUFS for achieving similar perceptive
 // results compared to ReplayGain v1 (RG1).
 impl LoudnessLufs {
+    #[must_use]
     pub const fn unit_of_measure() -> &'static str {
         "LUFS"
     }

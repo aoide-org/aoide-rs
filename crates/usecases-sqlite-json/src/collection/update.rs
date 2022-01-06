@@ -17,6 +17,8 @@ use aoide_usecases_sqlite::collection::update as uc;
 
 use super::*;
 
+pub type QueryParams = EntityRevQueryParams;
+
 pub type RequestBody = Collection;
 
 pub type ResponseBody = Entity;
@@ -24,7 +26,7 @@ pub type ResponseBody = Entity;
 pub fn handle_request(
     connection: &SqliteConnection,
     uid: EntityUid,
-    query_params: EntityRevQueryParams,
+    query_params: QueryParams,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let EntityRevQueryParams { rev } = query_params;

@@ -174,6 +174,7 @@ impl<T> Canonical<Vec<T>>
 where
     T: IsCanonical,
 {
+    #[must_use]
     pub fn as_slice(&self) -> Canonical<&[T]> {
         Canonical(self.as_ref().as_slice())
     }

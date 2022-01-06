@@ -20,7 +20,10 @@ use crate::{
     util::canonical::{Canonical, IsCanonical},
 };
 
-use super::{actor::*, title::*};
+use super::{
+    actor::*,
+    title::{Title, Titles, TitlesInvalidity},
+};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
 pub enum AlbumKind {
@@ -46,6 +49,7 @@ pub struct Album {
 }
 
 impl Album {
+    #[must_use]
     pub fn main_title<'a, 'b>(&'a self) -> Option<&'a Title>
     where
         'b: 'a,
@@ -53,10 +57,12 @@ impl Album {
         Titles::main_title(self.titles.iter())
     }
 
+    #[must_use]
     pub fn main_actor(&self, role: ActorRole) -> Option<&Actor> {
         Actors::main_actor(self.actors.iter(), role)
     }
 
+    #[must_use]
     pub fn main_artist(&self) -> Option<&Actor> {
         Actors::main_actor(self.actors.iter(), ActorRole::Artist)
     }

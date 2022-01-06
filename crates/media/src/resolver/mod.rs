@@ -99,6 +99,7 @@ pub struct VirtualFilePathResolver {
 }
 
 impl VirtualFilePathResolver {
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             root_url: None,
@@ -107,10 +108,12 @@ impl VirtualFilePathResolver {
         }
     }
 
+    #[must_use]
     pub fn is_valid_root_url(root_url: &Url) -> bool {
         !root_url.cannot_be_a_base() && root_url.scheme() == FILE_URL_SCHEME
     }
 
+    #[must_use]
     pub fn with_root_url(root_url: BaseUrl) -> Self {
         debug_assert!(Self::is_valid_root_url(&root_url));
         let root_file_path = root_url.to_file_path();
@@ -132,6 +135,7 @@ impl VirtualFilePathResolver {
         }
     }
 
+    #[must_use]
     pub fn build_file_path(&self, slash_path: &str) -> PathBuf {
         let path_suffix = PathBuf::from_slash(slash_path);
         if let Some(root_file_path) = &self.root_file_path {

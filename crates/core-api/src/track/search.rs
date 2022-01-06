@@ -145,6 +145,7 @@ pub enum SearchFilter {
 }
 
 impl SearchFilter {
+    #[must_use]
     pub fn recorded_at_equals(recorded_at: DateOrDateTime) -> Self {
         match recorded_at {
             DateOrDateTime::DateTime(recorded_at) => Self::DateTime(DateTimeFieldFilter {
@@ -158,6 +159,7 @@ impl SearchFilter {
         }
     }
 
+    #[must_use]
     pub fn released_at_equals(released_at: DateOrDateTime) -> Self {
         match released_at {
             DateOrDateTime::DateTime(released_at) => Self::DateTime(DateTimeFieldFilter {
@@ -171,6 +173,7 @@ impl SearchFilter {
         }
     }
 
+    #[must_use]
     pub fn audio_duration_around(duration: DurationMs, epsilon: DurationMs) -> Self {
         debug_assert!(duration.is_valid());
         debug_assert!(epsilon.is_valid());

@@ -77,14 +77,17 @@ impl RgbColor {
     pub const CYAN: Self = RgbColor(Self::GREEN_MASK | Self::BLUE_MASK);
     pub const WHITE: Self = RgbColor(Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK);
 
+    #[must_use]
     pub const fn code(self) -> RgbColorCode {
         self.0
     }
 
+    #[must_use]
     pub const fn min_code() -> RgbColorCode {
         0x00_00_00
     }
 
+    #[must_use]
     pub const fn max_code() -> RgbColorCode {
         0xff_ff_ff
     }

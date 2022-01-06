@@ -90,6 +90,7 @@ pub struct ProgressEvent {
 }
 
 impl ProgressEvent {
+    #[must_use]
     pub fn start() -> Self {
         Self {
             started_at: Instant::now(),
@@ -98,6 +99,7 @@ impl ProgressEvent {
         }
     }
 
+    #[must_use]
     pub fn elapsed_since_started(&self) -> Duration {
         self.started_at.elapsed()
     }
@@ -117,6 +119,7 @@ impl ProgressEvent {
         self.status = Status::Failed;
     }
 
+    #[must_use]
     pub fn finalize(self) -> Outcome {
         let Self {
             started_at: _,

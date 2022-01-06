@@ -68,14 +68,17 @@ pub struct MediaDigest {
 }
 
 impl MediaDigest {
+    #[must_use]
     pub const fn digest_size() -> usize {
         32
     }
 
+    #[must_use]
     pub const fn dummy() -> Self {
         Self { hasher: None }
     }
 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             hasher: Some(blake3::Hasher::new()),

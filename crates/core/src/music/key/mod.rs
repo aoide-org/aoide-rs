@@ -108,6 +108,7 @@ impl fmt::Display for KeyCode {
 }
 
 impl KeyCode {
+    #[must_use]
     pub fn as_canonical_str(self) -> &'static str {
         use KeyCode::*;
         match self {
@@ -139,6 +140,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn from_canonical_str(s: &str) -> Self {
         use KeyCode::*;
         match s {
@@ -170,6 +172,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn as_traditional_str(self) -> &'static str {
         use KeyCode::*;
         match self {
@@ -201,6 +204,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn from_traditional_str(s: &str) -> Self {
         use KeyCode::*;
         match s {
@@ -240,6 +244,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn as_traditional_ascii_str(self) -> &'static str {
         use KeyCode::*;
         match self {
@@ -271,6 +276,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn from_traditional_ascii_str(s: &str) -> Self {
         use KeyCode::*;
         match s {
@@ -302,6 +308,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn as_openkey_str(self) -> &'static str {
         use KeyCode::*;
         match self {
@@ -333,6 +340,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn from_openkey_str(s: &str) -> Self {
         use KeyCode::*;
         match s {
@@ -364,6 +372,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn as_lancelot_str(self) -> &'static str {
         use KeyCode::*;
         match self {
@@ -395,6 +404,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn from_lancelot_str(s: &str) -> Self {
         use KeyCode::*;
         match s {
@@ -426,6 +436,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn as_traxsource_str(self) -> &'static str {
         use KeyCode::*;
         match self {
@@ -457,6 +468,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn from_traxsource_str(s: &str) -> Self {
         use KeyCode::*;
         match s {
@@ -488,6 +500,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn as_beatport_str(self) -> &'static str {
         use KeyCode::*;
         match self {
@@ -519,6 +532,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn from_beatport_str(s: &str) -> Self {
         use KeyCode::*;
         match s {
@@ -566,6 +580,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn as_serato_str(self) -> &'static str {
         use KeyCode::*;
         match self {
@@ -597,6 +612,7 @@ impl KeyCode {
         }
     }
 
+    #[must_use]
     pub fn from_serato_str(s: &str) -> Self {
         use KeyCode::*;
         match s {
@@ -632,10 +648,12 @@ impl KeyCode {
 pub type KeyCodeValue = u8;
 
 impl KeyCode {
+    #[must_use]
     pub fn to_value(self) -> KeyCodeValue {
         self.to_u8().expect("key code")
     }
 
+    #[must_use]
     pub fn from_value(val: KeyCodeValue) -> Self {
         Self::from_u8(val).unwrap_or(Self::Unknown)
     }
@@ -666,23 +684,28 @@ pub enum KeyMode {
 pub struct KeySignature(KeyCode);
 
 impl KeySignature {
+    #[must_use]
     pub const fn unknown() -> Self {
         Self(KeyCode::Unknown)
     }
 
+    #[must_use]
     pub fn is_unknown(self) -> bool {
         self == Self::unknown()
     }
 
+    #[must_use]
     pub const fn new(code: KeyCode) -> Self {
         Self(code)
     }
 
+    #[must_use]
     pub fn code(self) -> KeyCode {
         let Self(code) = self;
         code
     }
 
+    #[must_use]
     pub fn mode(self) -> Option<KeyMode> {
         match self.code() {
             KeyCode::Unknown => None,
@@ -721,13 +744,16 @@ impl From<KeySignature> for KeyCode {
 pub struct OpenKeySignature(KeySignature);
 
 impl OpenKeySignature {
+    #[must_use]
     pub const fn min_code() -> KeyCodeValue {
         1
     }
+    #[must_use]
     pub const fn max_code() -> KeyCodeValue {
         12
     }
 
+    #[must_use]
     pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
         let code = KeyCode::from_value(
             2 * code
@@ -739,10 +765,12 @@ impl OpenKeySignature {
         Self(KeySignature::new(code))
     }
 
+    #[must_use]
     pub fn code(self) -> KeyCodeValue {
         1 + (self.0.code().to_value() - 1) / 2
     }
 
+    #[must_use]
     pub fn mode(self) -> Option<KeyMode> {
         self.0.mode()
     }
@@ -774,13 +802,16 @@ impl fmt::Display for OpenKeySignature {
 pub struct LancelotKeySignature(KeySignature);
 
 impl LancelotKeySignature {
+    #[must_use]
     pub const fn min_code() -> KeyCodeValue {
         1
     }
+    #[must_use]
     pub const fn max_code() -> KeyCodeValue {
         12
     }
 
+    #[must_use]
     pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
         let code = KeyCode::from_value(
             ((code * 2 + 9) % 24)
@@ -792,10 +823,12 @@ impl LancelotKeySignature {
         Self(KeySignature::new(code))
     }
 
+    #[must_use]
     pub fn code(self) -> KeyCodeValue {
         1 + ((self.0.code().to_value() + 13) / 2) % 12
     }
 
+    #[must_use]
     pub fn mode(self) -> Option<KeyMode> {
         self.0.mode()
     }
@@ -827,18 +860,22 @@ impl fmt::Display for LancelotKeySignature {
 pub struct EngineKeySignature(KeySignature);
 
 impl EngineKeySignature {
+    #[must_use]
     pub const fn min_code() -> KeyCodeValue {
         1
     }
+    #[must_use]
     pub const fn max_code() -> KeyCodeValue {
         24
     }
 
+    #[must_use]
     pub fn from_code(code: KeyCodeValue) -> Self {
         let code = KeyCode::from_value(code % 24 + 1);
         Self(KeySignature::new(code))
     }
 
+    #[must_use]
     pub fn code(self) -> KeyCodeValue {
         match self.0.code().to_value() {
             1 => 24,
@@ -846,6 +883,7 @@ impl EngineKeySignature {
         }
     }
 
+    #[must_use]
     pub fn mode(self) -> Option<KeyMode> {
         self.0.mode()
     }

@@ -29,6 +29,7 @@ const DEFAULT_LABEL_SEPARATOR: &str = ";";
 const DEFAULT_SCORE_ATTENUATION: f64 = 0.75;
 
 // FIXME: Replace hard-coded tag mapping config
+#[must_use]
 pub fn predefined_faceted_tag_mapping_config() -> FacetedTagMappingConfig {
     let mut config = FacetedTagMappingConfigInner::default();
     config.insert(

@@ -55,6 +55,7 @@ pub fn trimmed_non_empty_from<'a>(from: impl Into<Cow<'a, str>>) -> Option<Cow<'
     non_empty_from(trim_from(from))
 }
 
+#[must_use]
 pub fn trimmed_non_empty_from_owned<'a>(mut owned: String) -> Option<Cow<'a, str>> {
     trim_owned_in_place(&mut owned);
     non_empty_from(owned)

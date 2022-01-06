@@ -38,10 +38,12 @@ pub mod search;
 pub struct EntityCollector(Vec<Entity>);
 
 impl EntityCollector {
+    #[must_use]
     pub const fn new(inner: Vec<Entity>) -> Self {
         Self(inner)
     }
 
+    #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         let inner = Vec::with_capacity(capacity);
         Self(inner)

@@ -151,6 +151,7 @@ fn lufs2db(loudness: LoudnessLufs) -> f64 {
     EBU_R128_REFERENCE_LUFS - loudness.0
 }
 
+#[must_use]
 pub fn format_valid_replay_gain(loudness: LoudnessLufs) -> Option<String> {
     LoudnessLufs::validated_from(loudness).ok().map(|loudness| {
         let mut replay_gain_db = lufs2db(loudness);
@@ -170,6 +171,7 @@ fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
     Ok((input, replay_gain_db))
 }
 
+#[must_use]
 pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
     let input = trim_readable(input);
     if input.is_empty() {
@@ -220,6 +222,7 @@ pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
     }
 }
 
+#[must_use]
 pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
     let input = trim_readable(input);
     if input.is_empty() {
@@ -265,6 +268,7 @@ pub fn format_tempo_bpm(tempo_bpm: &mut TempoBpm) -> String {
     formatted_bpm
 }
 
+#[must_use]
 pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
     let input = trim_readable(input);
     if input.is_empty() {
@@ -395,6 +399,7 @@ pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
     None
 }
 
+#[must_use]
 pub fn parse_index_numbers(input: &str) -> Option<Index> {
     let mut split = if input.contains('/') {
         input.split('/')
@@ -655,6 +660,7 @@ pub fn ingest_title_from<'a>(name: impl Into<Cow<'a, str>>, kind: TitleKind) -> 
     })
 }
 
+#[must_use]
 pub fn ingest_title_from_owned(name: String, kind: TitleKind) -> Option<Title> {
     trimmed_non_empty_from_owned(name).map(|name| Title {
         name: name.into(),
@@ -675,6 +681,7 @@ pub fn ingest_actor_from<'a>(
     })
 }
 
+#[must_use]
 pub fn ingest_actor_from_owned(name: String, kind: ActorKind, role: ActorRole) -> Option<Actor> {
     trimmed_non_empty_from_owned(name).map(|name| Actor {
         name: name.into(),

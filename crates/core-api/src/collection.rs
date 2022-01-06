@@ -45,6 +45,7 @@ pub struct CollectionWithSummary {
 }
 
 impl CollectionWithSummary {
+    #[must_use]
     pub const fn without_summary(collection: Collection) -> Self {
         Self {
             collection,

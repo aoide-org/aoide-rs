@@ -43,6 +43,7 @@ impl Metadata {
             .map_err(map_opus_err)
     }
 
+    #[must_use]
     pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, String, Vec<u8>)> {
         let Self(OpusHeaders {
             id: _,

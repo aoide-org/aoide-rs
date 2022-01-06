@@ -32,6 +32,7 @@ const NANOS_PER_MILLISECOND: u32 = 1_000_000;
 
 /// A DateTime with truncated millisecond precision.
 impl DateTime {
+    #[must_use]
     pub fn new(inner: DateTimeInner) -> Self {
         let subsec_duration_since_last_millis_boundary =
             Duration::nanoseconds((inner.timestamp_subsec_nanos() % NANOS_PER_MILLISECOND).into());
@@ -43,27 +44,33 @@ impl DateTime {
         Self(truncated)
     }
 
+    #[must_use]
     pub fn new_timestamp_millis(timestamp_millis: TimestampMillis) -> Self {
         Utc.timestamp_millis(timestamp_millis).into()
     }
 
+    #[must_use]
     pub const fn to_inner(self) -> DateTimeInner {
         let Self(inner) = self;
         inner
     }
 
+    #[must_use]
     pub fn now_utc() -> Self {
         Utc::now().into()
     }
 
+    #[must_use]
     pub fn now_local() -> Self {
         Local::now().into()
     }
 
+    #[must_use]
     pub fn naive_date(self) -> NaiveDate {
         self.to_inner().naive_local().date()
     }
 
+    #[must_use]
     pub fn timestamp_millis(self) -> TimestampMillis {
         self.to_inner().timestamp_millis()
     }
@@ -156,43 +163,53 @@ pub type YYYYMMDD = i32;
 pub struct DateYYYYMMDD(YYYYMMDD);
 
 impl DateYYYYMMDD {
+    #[must_use]
     pub const fn min() -> Self {
         Self(10_000)
     }
 
+    #[must_use]
     pub const fn max() -> Self {
         Self(99_999_999)
     }
 
+    #[must_use]
     pub const fn new(val: YYYYMMDD) -> Self {
         Self(val)
     }
 
+    #[must_use]
     pub const fn to_inner(self) -> YYYYMMDD {
         let Self(inner) = self;
         inner
     }
 
+    #[must_use]
     pub fn year(self) -> YearType {
         (self.0 / 10_000) as YearType
     }
 
+    #[must_use]
     pub fn month(self) -> MonthType {
         ((self.0 % 10_000) / 100) as MonthType
     }
 
+    #[must_use]
     pub fn day_of_month(self) -> DayOfMonthType {
         (self.0 % 100) as DayOfMonthType
     }
 
+    #[must_use]
     pub fn from_year(year: YearType) -> Self {
         Self(YYYYMMDD::from(year) * 10_000)
     }
 
+    #[must_use]
     pub fn from_year_month(year: YearType, month: MonthType) -> Self {
         Self(YYYYMMDD::from(year) * 10_000 + YYYYMMDD::from(month) * 100)
     }
 
+    #[must_use]
     pub fn is_year(self) -> bool {
         Self::from_year(self.year()) == self
     }
@@ -262,6 +279,7 @@ impl From<DateTime> for DateYYYYMMDD {
 }
 
 impl From<NaiveDate> for DateYYYYMMDD {
+    #[allow(clippy::cast_possible_wrap)]
     fn from(from: NaiveDate) -> Self {
         Self(
             from.year() as YYYYMMDD * 10_000
@@ -330,8 +348,7 @@ impl PartialOrd for DateOrDateTime {
         match (self, other) {
             (Self::Date(lhs), Self::Date(rhs)) => lhs.partial_cmp(rhs),
             (Self::DateTime(lhs), Self::DateTime(rhs)) => lhs.partial_cmp(rhs),
-            (Self::Date(_), Self::DateTime(_)) => None,
-            (Self::DateTime(_), Self::Date(_)) => None,
+            (Self::Date(_), Self::DateTime(_)) | (Self::DateTime(_), Self::Date(_)) => None,
         }
     }
 }

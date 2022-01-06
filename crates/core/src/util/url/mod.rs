@@ -60,6 +60,7 @@ pub fn validate_base_url(url: &Url) -> Result<(), BaseUrlError> {
     Ok(())
 }
 
+#[must_use]
 pub fn is_valid_base_url(url: &Url) -> bool {
     validate_base_url(url).is_ok()
 }
@@ -75,15 +76,18 @@ impl TryFrom<Url> for BaseUrl {
 
 const FILE_SCHEME: &str = "file";
 
+#[must_use]
 pub fn is_file_url(url: &Url) -> bool {
     url.scheme() == FILE_SCHEME
 }
 
 impl BaseUrl {
+    #[must_use]
     pub const fn new_valid(valid_base_url: Url) -> Self {
         Self(valid_base_url)
     }
 
+    #[must_use]
     pub fn new(url: Url) -> Self {
         debug_assert!(is_valid_base_url(&url));
         Self::new_valid(url)
@@ -97,6 +101,7 @@ impl BaseUrl {
         url.as_str().parse()
     }
 
+    #[must_use]
     pub fn is_file(&self) -> bool {
         is_file_url(self)
     }
