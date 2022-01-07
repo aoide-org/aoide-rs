@@ -25,7 +25,7 @@ use triseratops::tag::{
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{concat_encoder_properties, ApicType, Artwork, Content},
+    media::{concat_encoder_properties, ApicType, Artwork, Content, SourcePath},
     music::{key::KeySignature, tempo::TempoBpm},
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
@@ -37,7 +37,7 @@ use aoide_core::{
         Track,
     },
     util::{
-        canonical::{Canonical, CanonicalizeInto as _},
+        canonical::Canonical,
         clock::{DateOrDateTime, DateYYYYMMDD},
         string::trimmed_non_empty_from,
     },
@@ -48,13 +48,16 @@ use aoide_core_json::tag::Tags as SerdeTags;
 use crate::{
     io::{
         export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
-        import::{ImportTrackConfig, ImportTrackFlags},
+        import::{
+            finish_import_of_actors, finish_import_of_titles,
+            import_faceted_tags_from_label_values, ImportTrackConfig, ImportTrackFlags,
+        },
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
         parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
         parse_year_tag, push_next_actor_role_name_from, serato,
-        tag::{import_faceted_tags_from_label_values, FacetedTagMappingConfig, TagMappingConfig},
+        tag::{FacetedTagMappingConfig, TagMappingConfig},
         try_ingest_embedded_artwork_image,
     },
     Result,
@@ -233,12 +236,14 @@ pub fn find_embedded_artwork_image(
 }
 
 pub fn import_faceted_text_tags<'a>(
+    source_path: &SourcePath,
     tags_map: &mut TagsMap,
     faceted_tag_mapping_config: &FacetedTagMappingConfig,
     facet_id: &FacetId,
     label_values: impl IntoIterator<Item = &'a str>,
 ) {
     import_faceted_tags_from_label_values(
+        source_path,
         tags_map,
         faceted_tag_mapping_config,
         facet_id,
@@ -423,7 +428,10 @@ pub fn import_movement_index(reader: &impl CommentReader) -> Option<Index> {
     }
 }
 
-pub fn import_track_titles(reader: &impl CommentReader) -> Vec<Title> {
+pub fn import_track_titles(
+    reader: &impl CommentReader,
+    source_path: &SourcePath,
+) -> Canonical<Vec<Title>> {
     let mut track_titles = Vec::with_capacity(4);
     if let Some(title) = reader
         .read_first_value("TITLE")
@@ -450,10 +458,13 @@ pub fn import_track_titles(reader: &impl CommentReader) -> Vec<Title> {
     {
         track_titles.push(title);
     }
-    track_titles.canonicalize_into()
+    finish_import_of_titles(source_path, track_titles)
 }
 
-pub fn import_album_titles(reader: &impl CommentReader) -> Vec<Title> {
+pub fn import_album_titles(
+    reader: &impl CommentReader,
+    source_path: &SourcePath,
+) -> Canonical<Vec<Title>> {
     let mut album_titles = Vec::with_capacity(1);
     if let Some(title) = reader
         .read_first_value("ALBUM")
@@ -461,7 +472,7 @@ pub fn import_album_titles(reader: &impl CommentReader) -> Vec<Title> {
     {
         album_titles.push(title);
     }
-    album_titles.canonicalize_into()
+    finish_import_of_titles(source_path, album_titles)
 }
 
 pub fn import_aoide_tags(reader: &impl CommentReader) -> Option<Tags> {
@@ -520,9 +531,9 @@ pub fn import_into_track(
     }
 
     // Track titles
-    let track_titles = import_track_titles(reader);
+    let track_titles = import_track_titles(reader, &track.media_source.path);
     if !track_titles.is_empty() {
-        track.titles = Canonical::tie(track_titles);
+        track.titles = track_titles;
     }
 
     // Track actors
@@ -563,17 +574,17 @@ pub fn import_into_track(
     for name in reader.filter_values("WRITER").unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
     }
-    let track_actors = track_actors.canonicalize_into();
+    let track_actors = finish_import_of_actors(&track.media_source.path, track_actors);
     if !track_actors.is_empty() {
-        track.actors = Canonical::tie(track_actors);
+        track.actors = track_actors;
     }
 
     let mut album = track.album.untie_replace(Default::default());
 
     // Album titles
-    let album_titles = import_album_titles(reader);
+    let album_titles = import_album_titles(reader, &track.media_source.path);
     if !album_titles.is_empty() {
-        album.titles = Canonical::tie(album_titles);
+        album.titles = album_titles;
     }
 
     // Album actors
@@ -603,9 +614,9 @@ pub fn import_into_track(
     {
         push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
     }
-    let album_actors = album_actors.canonicalize_into();
+    let album_actors = finish_import_of_actors(&track.media_source.path, album_actors);
     if !album_actors.is_empty() {
-        album.actors = Canonical::tie(album_actors);
+        album.actors = album_actors;
     }
 
     // Album properties
@@ -631,6 +642,7 @@ pub fn import_into_track(
     // https://picard.musicbrainz.org/docs/mappings
     {
         import_faceted_text_tags(
+            &track.media_source.path,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_COMMENT,
@@ -649,6 +661,7 @@ pub fn import_into_track(
 
     // Genre tags
     import_faceted_text_tags(
+        &track.media_source.path,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GENRE,
@@ -660,6 +673,7 @@ pub fn import_into_track(
 
     // Mood tags
     import_faceted_text_tags(
+        &track.media_source.path,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_MOOD,
@@ -668,6 +682,7 @@ pub fn import_into_track(
 
     // Grouping tags
     import_faceted_text_tags(
+        &track.media_source.path,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GROUPING,
@@ -679,6 +694,7 @@ pub fn import_into_track(
 
     // ISRC tags
     import_faceted_text_tags(
+        &track.media_source.path,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_ISRC,

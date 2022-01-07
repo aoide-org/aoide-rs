@@ -13,20 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-
-use aoide_core::tag::{
-    CowLabel, FacetId as TagFacetId, FacetIdValue, Label as TagLabel, LabelValue, PlainTag,
-    Score as TagScore, ScoreValue, TagsMap,
-};
-
-use semval::IsValid as _;
 use std::{
     borrow::Cow,
     collections::HashMap,
     ops::{Deref, DerefMut},
-    result::Result as StdResult,
 };
+
+use aoide_core::tag::{FacetIdValue, LabelValue, Score as TagScore, ScoreValue};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TagMappingConfig {
@@ -113,92 +106,4 @@ impl DerefMut for FacetedTagMappingConfig {
         let Self(inner) = self;
         inner
     }
-}
-
-pub fn try_import_plain_tag<'a>(
-    label: impl Into<Option<CowLabel<'a>>>,
-    score_value: impl Into<ScoreValue>,
-) -> StdResult<PlainTag, PlainTag> {
-    let label = label.into().map(Into::into);
-    let score = TagScore::clamp_from(score_value);
-    let plain_tag = PlainTag { label, score };
-    if plain_tag.is_valid() {
-        Ok(plain_tag)
-    } else {
-        Err(plain_tag)
-    }
-}
-
-pub fn import_plain_tags_from_joined_label_value<'a>(
-    tag_mapping_config: Option<&TagMappingConfig>,
-    next_score_value: &mut ScoreValue,
-    plain_tags: &mut Vec<PlainTag>,
-    joined_label_value: impl Into<Cow<'a, str>>,
-) -> usize {
-    if let Some(joined_label_value) = TagLabel::clamp_value(joined_label_value) {
-        debug_assert!(!joined_label_value.is_empty());
-        let mut import_count = 0;
-        if let Some(tag_mapping_config) = tag_mapping_config {
-            if !tag_mapping_config.label_separator.is_empty() {
-                for label_value in joined_label_value.split(&tag_mapping_config.label_separator) {
-                    let label = TagLabel::clamp_value(label_value);
-                    match try_import_plain_tag(label, *next_score_value) {
-                        Ok(plain_tag) => {
-                            plain_tags.push(plain_tag);
-                            import_count += 1;
-                            *next_score_value =
-                                tag_mapping_config.next_score_value(*next_score_value);
-                        }
-                        Err(plain_tag) => {
-                            log::warn!("Failed to import plain tag: {:?}", plain_tag,);
-                        }
-                    }
-                }
-            }
-        }
-        if import_count == 0 {
-            // Try to import the whole string as a single tag label
-            match try_import_plain_tag(joined_label_value, *next_score_value) {
-                Ok(plain_tag) => {
-                    plain_tags.push(plain_tag);
-                    import_count += 1;
-                    if let Some(tag_mapping_config) = tag_mapping_config {
-                        *next_score_value = tag_mapping_config.next_score_value(*next_score_value);
-                    }
-                }
-                Err(plain_tag) => {
-                    log::warn!("Failed to import plain tag: {:?}", plain_tag,);
-                }
-            }
-        }
-        import_count
-    } else {
-        log::debug!("Skipping empty tag label");
-        0
-    }
-}
-
-pub fn import_faceted_tags_from_label_values(
-    tags_map: &mut TagsMap,
-    faceted_tag_mapping_config: &FacetedTagMappingConfig,
-    facet_id: &TagFacetId,
-    label_values: impl IntoIterator<Item = LabelValue>,
-) -> usize {
-    let tag_mapping_config = faceted_tag_mapping_config.get(facet_id.value());
-    let mut plain_tags = Vec::with_capacity(8);
-    let mut next_score_value = TagScore::default_value();
-    for label_value in label_values {
-        import_plain_tags_from_joined_label_value(
-            tag_mapping_config,
-            &mut next_score_value,
-            &mut plain_tags,
-            label_value,
-        );
-    }
-    if plain_tags.is_empty() {
-        return 0;
-    }
-    let count = plain_tags.len();
-    tags_map.update_faceted_plain_tags_by_label_ordering(facet_id, plain_tags);
-    count
 }

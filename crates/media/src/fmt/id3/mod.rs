@@ -30,7 +30,7 @@ use triseratops::tag::{
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{concat_encoder_properties, ApicType, Artwork, Content},
+    media::{concat_encoder_properties, ApicType, Artwork, Content, SourcePath},
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
         actor::ActorRole,
@@ -41,7 +41,7 @@ use aoide_core::{
         Track,
     },
     util::{
-        canonical::{Canonical, CanonicalizeInto as _},
+        canonical::Canonical,
         clock::{DateOrDateTime, DateTime, DateYYYYMMDD, MonthType, YearType},
         string::trimmed_non_empty_from,
     },
@@ -52,13 +52,16 @@ use aoide_core_json::tag::Tags as SerdeTags;
 use crate::{
     io::{
         export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
-        import::{ImportTrackConfig, ImportTrackFlags},
+        import::{
+            finish_import_of_actors, finish_import_of_titles,
+            import_faceted_tags_from_label_values, ImportTrackConfig, ImportTrackFlags,
+        },
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
         parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
         push_next_actor_role_name_from, serato,
-        tag::{import_faceted_tags_from_label_values, FacetedTagMappingConfig, TagMappingConfig},
+        tag::{FacetedTagMappingConfig, TagMappingConfig},
         try_ingest_embedded_artwork_image,
     },
     Error, Result,
@@ -174,6 +177,7 @@ pub fn import_encoder(tag: &id3::Tag) -> Option<Cow<'_, str>> {
 }
 
 fn import_faceted_tags_from_text_frames(
+    source_path: &SourcePath,
     tags_map: &mut TagsMap,
     faceted_tag_mapping_config: &FacetedTagMappingConfig,
     facet_id: &FacetId,
@@ -181,6 +185,7 @@ fn import_faceted_tags_from_text_frames(
     frame_id: &str,
 ) -> usize {
     import_faceted_tags_from_label_values(
+        source_path,
         tags_map,
         faceted_tag_mapping_config,
         facet_id,
@@ -308,9 +313,9 @@ pub fn import_metadata_into_track(
     }) {
         track_titles.push(title);
     }
-    let track_titles = track_titles.canonicalize_into();
+    let track_titles = finish_import_of_titles(&track.media_source.path, track_titles);
     if !track_titles.is_empty() {
-        track.titles = Canonical::tie(track_titles);
+        track.titles = track_titles;
     }
 
     // Track actors
@@ -339,9 +344,9 @@ pub fn import_metadata_into_track(
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
     }
     // TODO: Import TIPL frames
-    let track_actors = track_actors.canonicalize_into();
+    let track_actors = finish_import_of_actors(&track.media_source.path, track_actors);
     if !track_actors.is_empty() {
-        track.actors = Canonical::tie(track_actors);
+        track.actors = track_actors;
     }
 
     let mut album = track.album.untie_replace(Default::default());
@@ -354,9 +359,9 @@ pub fn import_metadata_into_track(
     {
         album_titles.push(title);
     }
-    let album_titles = album_titles.canonicalize_into();
+    let album_titles = finish_import_of_titles(&track.media_source.path, album_titles);
     if !album_titles.is_empty() {
-        album.titles = Canonical::tie(album_titles);
+        album.titles = album_titles;
     }
 
     // Album actors
@@ -364,9 +369,9 @@ pub fn import_metadata_into_track(
     if let Some(name) = tag.album_artist() {
         push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
     }
-    let album_actors = album_actors.canonicalize_into();
+    let album_actors = finish_import_of_actors(&track.media_source.path, album_actors);
     if !album_actors.is_empty() {
-        album.actors = Canonical::tie(album_actors);
+        album.actors = album_actors;
     }
 
     // Album properties
@@ -475,6 +480,7 @@ pub fn import_metadata_into_track(
         .filter(|comm| comm.description.is_empty())
         .map(|comm| comm.text.to_owned());
     import_faceted_tags_from_label_values(
+        &track.media_source.path,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_COMMENT,
@@ -483,6 +489,7 @@ pub fn import_metadata_into_track(
 
     // Genre tags
     import_faceted_tags_from_text_frames(
+        &track.media_source.path,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GENRE,
@@ -492,6 +499,7 @@ pub fn import_metadata_into_track(
 
     // Mood tags
     import_faceted_tags_from_text_frames(
+        &track.media_source.path,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_MOOD,
@@ -506,6 +514,7 @@ pub fn import_metadata_into_track(
     // https://discussions.apple.com/thread/7900430
     // http://blog.jthink.net/2016/11/the-reason-why-is-grouping-field-no.html
     if import_faceted_tags_from_text_frames(
+        &track.media_source.path,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GROUPING,
@@ -519,6 +528,7 @@ pub fn import_metadata_into_track(
     } else {
         // Use the legacy/classical text frame only as a fallback
         if import_faceted_tags_from_text_frames(
+            &track.media_source.path,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_GROUPING,
@@ -535,6 +545,7 @@ pub fn import_metadata_into_track(
 
     // ISRC tag
     import_faceted_tags_from_text_frames(
+        &track.media_source.path,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_ISRC,
@@ -544,6 +555,7 @@ pub fn import_metadata_into_track(
 
     // Language tag
     import_faceted_tags_from_text_frames(
+        &track.media_source.path,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_LANGUAGE,

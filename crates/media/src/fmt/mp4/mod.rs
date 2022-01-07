@@ -43,10 +43,7 @@ use aoide_core::{
         title::{TitleKind, Titles},
         Track,
     },
-    util::{
-        canonical::{Canonical, CanonicalizeInto as _},
-        string::trimmed_non_empty_from_owned,
-    },
+    util::{canonical::Canonical, string::trimmed_non_empty_from_owned},
 };
 
 use aoide_core_json::tag::Tags as SerdeTags;
@@ -54,16 +51,16 @@ use aoide_core_json::tag::Tags as SerdeTags;
 use crate::{
     io::{
         export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
-        import::{ImportTrackConfig, ImportTrackFlags, Reader},
+        import::{
+            finish_import_of_actors, finish_import_of_titles,
+            import_faceted_tags_from_label_values, import_plain_tags_from_joined_label_value,
+            ImportTrackConfig, ImportTrackFlags, Reader,
+        },
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from_owned,
         parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
-        push_next_actor_role_name, serato,
-        tag::{
-            import_faceted_tags_from_label_values, import_plain_tags_from_joined_label_value,
-            TagMappingConfig,
-        },
+        push_next_actor_role_name, serato, tag::TagMappingConfig,
         try_ingest_embedded_artwork_image,
     },
     Error, Result,
@@ -323,9 +320,9 @@ impl Metadata {
         {
             track_titles.push(title);
         }
-        let track_titles = track_titles.canonicalize_into();
+        let track_titles = finish_import_of_titles(&track.media_source.path, track_titles);
         if !track_titles.is_empty() {
-            track.titles = Canonical::tie(track_titles);
+            track.titles = track_titles;
         }
 
         // Track actors
@@ -357,9 +354,9 @@ impl Metadata {
         for name in mp4_tag.take_strings_of(&IDENT_DIRECTOR) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Director, name);
         }
-        let track_actors = track_actors.canonicalize_into();
+        let track_actors = finish_import_of_actors(&track.media_source.path, track_actors);
         if !track_actors.is_empty() {
-            track.actors = Canonical::tie(track_actors);
+            track.actors = track_actors;
         }
 
         let mut album = track.album.untie_replace(Default::default());
@@ -372,9 +369,9 @@ impl Metadata {
         {
             album_titles.push(title);
         }
-        let album_titles = album_titles.canonicalize_into();
+        let album_titles = finish_import_of_titles(&track.media_source.path, album_titles);
         if !album_titles.is_empty() {
-            album.titles = Canonical::tie(album_titles);
+            album.titles = album_titles;
         }
 
         // Album actors
@@ -382,9 +379,9 @@ impl Metadata {
         for name in mp4_tag.take_album_artists() {
             push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name);
         }
-        let album_actors = album_actors.canonicalize_into();
+        let album_actors = finish_import_of_actors(&track.media_source.path, album_actors);
         if !album_actors.is_empty() {
-            album.actors = Canonical::tie(album_actors);
+            album.actors = album_actors;
         }
 
         // Album properties
@@ -473,6 +470,7 @@ impl Metadata {
 
         // Mood tags
         import_faceted_tags_from_label_values(
+            &track.media_source.path,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_MOOD,
@@ -481,6 +479,7 @@ impl Metadata {
 
         // Comment tag
         import_faceted_tags_from_label_values(
+            &track.media_source.path,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_COMMENT,
@@ -489,6 +488,7 @@ impl Metadata {
 
         // Grouping tags
         import_faceted_tags_from_label_values(
+            &track.media_source.path,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_GROUPING,
@@ -497,6 +497,7 @@ impl Metadata {
 
         // ISRC tag
         import_faceted_tags_from_label_values(
+            &track.media_source.path,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_ISRC,
@@ -505,6 +506,7 @@ impl Metadata {
 
         // iTunes XID tags
         import_faceted_tags_from_label_values(
+            &track.media_source.path,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_XID,

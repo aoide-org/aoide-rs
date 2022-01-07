@@ -27,13 +27,13 @@ use aoide_core::{
         tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD},
         Track,
     },
-    util::canonical::{Canonical, CanonicalizeInto as _},
+    util::canonical::Canonical,
 };
 
 use crate::{
     io::{
         export::ExportTrackConfig,
-        import::{ImportTrackConfig, ImportTrackFlags, Reader},
+        import::{finish_import_of_actors, ImportTrackConfig, ImportTrackFlags, Reader},
     },
     util::{push_next_actor_role_name_from, serato, try_ingest_embedded_artwork_image},
     Error, Result,
@@ -187,9 +187,9 @@ impl Metadata {
         }
 
         // Track titles
-        let track_titles = vorbis::import_track_titles(metaflac_tag);
+        let track_titles = vorbis::import_track_titles(metaflac_tag, &track.media_source.path);
         if !track_titles.is_empty() {
-            track.titles = Canonical::tie(track_titles);
+            track.titles = track_titles;
         }
 
         // Track actors
@@ -254,17 +254,17 @@ impl Metadata {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
             }
         }
-        let track_actors = track_actors.canonicalize_into();
+        let track_actors = finish_import_of_actors(&track.media_source.path, track_actors);
         if !track_actors.is_empty() {
-            track.actors = Canonical::tie(track_actors);
+            track.actors = track_actors;
         }
 
         let mut album = track.album.untie_replace(Default::default());
 
         // Album titles
-        let album_titles = vorbis::import_album_titles(metaflac_tag);
+        let album_titles = vorbis::import_album_titles(metaflac_tag, &track.media_source.path);
         if !album_titles.is_empty() {
-            album.titles = Canonical::tie(album_titles);
+            album.titles = album_titles;
         }
 
         // Album actors
@@ -289,9 +289,9 @@ impl Metadata {
         {
             push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
         }
-        let album_actors = album_actors.canonicalize_into();
+        let album_actors = finish_import_of_actors(&track.media_source.path, album_actors);
         if !album_actors.is_empty() {
-            album.actors = Canonical::tie(album_actors);
+            album.actors = album_actors;
         }
 
         // Album properties
@@ -329,6 +329,7 @@ impl Metadata {
         // http://www.xiph.org/vorbis/doc/v-comment.html
         // https://picard.musicbrainz.org/docs/mappings
         vorbis::import_faceted_text_tags(
+            &track.media_source.path,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_COMMENT,
@@ -342,6 +343,7 @@ impl Metadata {
         // Genre tags
         if let Some(genres) = metaflac_tag.get_vorbis("GENRE") {
             vorbis::import_faceted_text_tags(
+                &track.media_source.path,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_GENRE,
@@ -352,6 +354,7 @@ impl Metadata {
         // Mood tags
         if let Some(moods) = metaflac_tag.get_vorbis("MOOD") {
             vorbis::import_faceted_text_tags(
+                &track.media_source.path,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_MOOD,
@@ -362,6 +365,7 @@ impl Metadata {
         // Grouping tags
         if let Some(groupings) = metaflac_tag.get_vorbis("GROUPING") {
             vorbis::import_faceted_text_tags(
+                &track.media_source.path,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_GROUPING,
@@ -372,6 +376,7 @@ impl Metadata {
         // ISRC tag
         if let Some(isrc) = metaflac_tag.get_vorbis("ISRC") {
             vorbis::import_faceted_text_tags(
+                &track.media_source.path,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_ISRC,
