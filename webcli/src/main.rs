@@ -224,8 +224,8 @@ async fn main() -> anyhow::Result<()> {
     let app_usage = app.render_usage();
     let matches = app.get_matches();
 
-    let api_url = matches
-        .value_of("api-url")
+    let service_url = matches
+        .value_of("service-url")
         .unwrap_or(&default_service_url)
         .parse()
         .expect("URL");
@@ -233,7 +233,7 @@ async fn main() -> anyhow::Result<()> {
         .value_of("collection-uid")
         .map(|s| s.parse::<EntityUid>().expect("Collection UID"));
 
-    let shared_env = Arc::new(Environment::new(api_url));
+    let shared_env = Arc::new(Environment::new(service_url));
     let (message_tx, message_rx) = message_channel();
 
     let mut last_media_sources_purge_orphaned_outcome = None;
