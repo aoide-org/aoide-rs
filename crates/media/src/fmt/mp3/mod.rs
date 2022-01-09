@@ -29,7 +29,7 @@ use mp3_duration::{ParseMode, StreamInfo};
 use crate::{
     io::{
         export::ExportTrackConfig,
-        import::{ImportTrackConfig, Reader},
+        import::{ImportTrackConfig, Importer, Reader},
     },
     Error, Result,
 };
@@ -79,7 +79,7 @@ impl MetadataExt {
     }
 
     #[must_use]
-    pub fn import_audio_content(&self) -> AudioContent {
+    pub fn import_audio_content(&self, importer: &mut Importer) -> AudioContent {
         let Self(stream_info, metadata) = self;
         let StreamInfo {
             max_channel_count,
@@ -91,7 +91,7 @@ impl MetadataExt {
         let loudness;
         let encoder;
         if let Some(Metadata(id3_tag)) = metadata {
-            loudness = import_loudness(id3_tag);
+            loudness = import_loudness(importer, id3_tag);
             encoder = import_encoder(id3_tag).map(Cow::into_owned);
         } else {
             loudness = None;
@@ -109,8 +109,13 @@ impl MetadataExt {
         }
     }
 
-    pub fn import_into_track(self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
-        let mut audio_content = self.import_audio_content();
+    pub fn import_into_track(
+        self,
+        importer: &mut Importer,
+        config: &ImportTrackConfig,
+        track: &mut Track,
+    ) -> Result<()> {
+        let mut audio_content = self.import_audio_content(importer);
         let id3_tag = if let Self(_, Some(Metadata(id3_tag))) = self {
             id3_tag
         } else {
@@ -139,7 +144,7 @@ impl MetadataExt {
             );
         }
 
-        import_metadata_into_track(&id3_tag, config, track)
+        import_metadata_into_track(importer, &id3_tag, config, track)
     }
 }
 

@@ -44,7 +44,10 @@ impl Metadata {
     }
 
     #[must_use]
-    pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, String, Vec<u8>)> {
+    pub fn find_embedded_artwork_image(
+        &self,
+        importer: &mut Importer,
+    ) -> Option<(ApicType, String, Vec<u8>)> {
         let Self(OpusHeaders {
             id: _,
             comments:
@@ -53,10 +56,10 @@ impl Metadata {
                     user_comments,
                 },
         }) = self;
-        vorbis::find_embedded_artwork_image(user_comments)
+        vorbis::find_embedded_artwork_image(importer, user_comments)
     }
 
-    pub fn import_audio_content(&self) -> AudioContent {
+    pub fn import_audio_content(&self, importer: &mut Importer) -> AudioContent {
         let Self(OpusHeaders {
             id: id_header,
             comments:
@@ -69,7 +72,7 @@ impl Metadata {
         let channels = if channel_count.is_valid() {
             Some(channel_count.into())
         } else {
-            log::warn!("Invalid channel count: {}", channel_count.0);
+            importer.add_issue(format!("Invalid channel count: {}", channel_count.0));
             None
         };
         let bitrate = None;
@@ -77,10 +80,10 @@ impl Metadata {
         let sample_rate = if sample_rate.is_valid() {
             Some(sample_rate)
         } else {
-            log::warn!("Invalid sample rate: {}", sample_rate);
+            importer.add_issue(format!("Invalid sample rate: {}", sample_rate));
             None
         };
-        let loudness = vorbis::import_loudness(user_comments);
+        let loudness = vorbis::import_loudness(importer, user_comments);
         let encoder = vorbis::import_encoder(user_comments).map(Into::into);
         // TODO: The duration is not available from any header!?
         let duration = None;
@@ -94,13 +97,18 @@ impl Metadata {
         }
     }
 
-    pub fn import_into_track(&self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
+    pub fn import_into_track(
+        self,
+        importer: &mut Importer,
+        config: &ImportTrackConfig,
+        track: &mut Track,
+    ) -> Result<()> {
         if track
             .media_source
             .content_metadata_flags
             .update(ContentMetadataFlags::RELIABLE)
         {
-            let audio_content = self.import_audio_content();
+            let audio_content = self.import_audio_content(importer);
             track.media_source.content = Content::Audio(audio_content);
         }
 
@@ -112,6 +120,6 @@ impl Metadata {
                     user_comments,
                 },
         }) = self;
-        vorbis::import_into_track(user_comments, config, track)
+        vorbis::import_into_track(importer, &user_comments, config, track)
     }
 }

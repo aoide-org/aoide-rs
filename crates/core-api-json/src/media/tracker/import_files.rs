@@ -70,6 +70,37 @@ impl TryFrom<Params> for _inner::Params {
 }
 
 #[derive(Debug, JsonSchema)]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ImportedSourceWithIssues {
+    pub path: String,
+    pub messages: Vec<String>,
+}
+
+#[cfg(feature = "frontend")]
+impl From<ImportedSourceWithIssues> for _inner::ImportedSourceWithIssues {
+    fn from(from: ImportedSourceWithIssues) -> Self {
+        let ImportedSourceWithIssues { path, messages } = from;
+        Self {
+            path: path.into(),
+            messages,
+        }
+    }
+}
+
+#[cfg(feature = "backend")]
+impl From<_inner::ImportedSourceWithIssues> for ImportedSourceWithIssues {
+    fn from(from: _inner::ImportedSourceWithIssues) -> Self {
+        let _inner::ImportedSourceWithIssues { path, messages } = from;
+        Self {
+            path: path.into(),
+            messages,
+        }
+    }
+}
+
+#[derive(Debug, JsonSchema)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -78,6 +109,9 @@ pub struct Outcome {
     pub root_path: String,
     pub completion: Completion,
     pub summary: Summary,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub imported_sources_with_issues: Vec<ImportedSourceWithIssues>,
 }
 
 #[cfg(feature = "frontend")]
@@ -90,12 +124,17 @@ impl TryFrom<Outcome> for _inner::Outcome {
             root_path,
             completion,
             summary,
+            imported_sources_with_issues,
         } = from;
         Ok(Self {
             root_url: root_url.try_into()?,
             root_path: root_path.into(),
             completion: completion.into(),
             summary: summary.into(),
+            imported_sources_with_issues: imported_sources_with_issues
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         })
     }
 }
@@ -108,12 +147,17 @@ impl From<_inner::Outcome> for Outcome {
             root_path,
             completion,
             summary,
+            imported_sources_with_issues,
         } = from;
         Self {
             root_url: root_url.into(),
             root_path: root_path.into(),
             completion: completion.into(),
             summary: summary.into(),
+            imported_sources_with_issues: imported_sources_with_issues
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }

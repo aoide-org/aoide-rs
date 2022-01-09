@@ -25,7 +25,7 @@ use aoide_core::{entity::EntityUid, media::SourcePath, util::clock::DateTime};
 use aoide_core_api::{media::SyncMode, track::replace::Summary};
 
 use aoide_media::{
-    io::import::ImportTrackConfig,
+    io::import::{ImportTrackConfig, Issues},
     resolver::{SourcePathResolver, VirtualFilePathResolver},
 };
 
@@ -80,7 +80,8 @@ pub enum Completion {
 pub struct Outcome {
     pub completion: Completion,
     pub summary: Summary,
-    pub media_source_ids: Vec<MediaSourceId>,
+    pub visited_media_source_ids: Vec<MediaSourceId>,
+    pub imported_media_sources_with_issues: Vec<(MediaSourceId, SourcePath, Issues)>,
 }
 
 pub fn replace_collected_track_by_media_source_path<Repo>(
@@ -220,7 +221,8 @@ where
 #[allow(clippy::too_many_arguments)]
 pub fn import_and_replace_from_file_path<Repo>(
     summary: &mut Summary,
-    media_source_ids: &mut Vec<MediaSourceId>,
+    visited_media_source_ids: &mut Vec<MediaSourceId>,
+    imported_media_sources_with_issues: &mut Vec<(MediaSourceId, SourcePath, Issues)>,
     repo: &Repo,
     collection_id: CollectionId,
     source_path_resolver: &VirtualFilePathResolver,
@@ -228,7 +230,7 @@ pub fn import_and_replace_from_file_path<Repo>(
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
     source_path: SourcePath,
-) -> Result<()>
+) -> Result<Vec<TrackInvalidity>>
 where
     Repo: EntityRepo,
 {
@@ -243,6 +245,7 @@ where
             )
         })
         .unwrap_or((None, None, None));
+    let mut invalidities = Default::default();
     match import_track_from_file_path(
         source_path_resolver,
         source_path.clone(),
@@ -250,7 +253,10 @@ where
         import_config,
         DateTime::now_local(),
     ) {
-        Ok(ImportTrackFromFileOutcome::Imported(imported_track)) => {
+        Ok(ImportTrackFromFileOutcome::Imported {
+            track: imported_track,
+            issues: import_issues,
+        }) => {
             debug_assert_eq!(imported_track.media_source.path, source_path);
             let track = if let Some(mut collected_track) = collected_track {
                 collected_track.merge_newer_from_synchronized_media_source(imported_track);
@@ -258,7 +264,11 @@ where
             } else {
                 imported_track
             };
-            let track = validate_input(track)?;
+            let (track, invalidities_from_input_validation) = validate_input(track)?;
+            invalidities = invalidities_from_input_validation;
+            if !invalidities.is_empty() {
+                log::debug!("{:?} has invalidities: {:?}", track.0, invalidities);
+            }
             if let Some(media_source_id) = replace_collected_track_by_media_source_path(
                 summary,
                 repo,
@@ -267,7 +277,14 @@ where
                 true,
                 track,
             )? {
-                media_source_ids.push(media_source_id);
+                visited_media_source_ids.push(media_source_id);
+                if !import_issues.is_empty() {
+                    imported_media_sources_with_issues.push((
+                        media_source_id,
+                        source_path,
+                        import_issues,
+                    ));
+                }
             }
         }
         Ok(ImportTrackFromFileOutcome::SkippedSynchronized(_synchronized_at)) => {
@@ -275,7 +292,7 @@ where
             debug_assert!(last_synchronized_at.is_some());
             debug_assert!(_synchronized_at <= last_synchronized_at.unwrap());
             summary.unchanged.push(source_path);
-            media_source_ids.push(media_source_id.unwrap());
+            visited_media_source_ids.push(media_source_id.unwrap());
         }
         Ok(ImportTrackFromFileOutcome::SkippedDirectory) => {
             // Nothing to do
@@ -300,7 +317,7 @@ where
             }
         },
     };
-    Ok(())
+    Ok(invalidities)
 }
 
 pub fn replace_by_media_source_path(
@@ -352,20 +369,24 @@ where
     };
     let collection_id = collection_ctx.record_id;
     let mut summary = Summary::default();
-    let mut media_source_ids =
+    let mut visited_media_source_ids =
         Vec::with_capacity(expected_source_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT));
+    let mut imported_media_sources_with_issues =
+        Vec::with_capacity(expected_source_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT) / 4);
     for source_path in source_paths {
         if abort_flag.load(Ordering::Relaxed) {
             log::debug!("Aborting import of {}", source_path);
             return Ok(Outcome {
                 completion: Completion::Aborted,
                 summary,
-                media_source_ids,
+                visited_media_source_ids,
+                imported_media_sources_with_issues,
             });
         }
-        import_and_replace_from_file_path(
+        let invalidities = import_and_replace_from_file_path(
             &mut summary,
-            &mut media_source_ids,
+            &mut visited_media_source_ids,
+            &mut imported_media_sources_with_issues,
             repo,
             collection_id,
             &vfs_ctx.path_resolver,
@@ -374,11 +395,19 @@ where
             replace_mode,
             source_path,
         )?;
+        if !invalidities.is_empty() {
+            imported_media_sources_with_issues
+                .last_mut()
+                .unwrap()
+                .2
+                .add_message(format!("Track invalidities: {:?}", invalidities));
+        }
     }
     Ok(Outcome {
         completion: Completion::Finished,
         summary,
-        media_source_ids,
+        visited_media_source_ids,
+        imported_media_sources_with_issues,
     })
 }
 
@@ -435,7 +464,9 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_source_path_res
     log::debug!("Importing files from directory: {}", dir_path.display());
     let dir_entries = read_dir(dir_path)?;
     let mut summary = Summary::default();
-    let mut media_source_ids = Vec::with_capacity(EXPECTED_NUMBER_OF_DIR_ENTRIES);
+    let mut visited_media_source_ids = Vec::with_capacity(EXPECTED_NUMBER_OF_DIR_ENTRIES);
+    let mut imported_media_sources_with_issues =
+        Vec::with_capacity(EXPECTED_NUMBER_OF_DIR_ENTRIES / 4);
     for dir_entry in dir_entries {
         let dir_entry = match dir_entry {
             Ok(dir_entry) => dir_entry,
@@ -453,7 +484,8 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_source_path_res
             return Ok(Outcome {
                 completion: Completion::Aborted,
                 summary,
-                media_source_ids,
+                visited_media_source_ids,
+                imported_media_sources_with_issues,
             });
         }
         let source_path = if let Some(source_path) = Url::from_file_path(dir_entry.path())
@@ -471,7 +503,8 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_source_path_res
         };
         import_and_replace_from_file_path(
             &mut summary,
-            &mut media_source_ids,
+            &mut visited_media_source_ids,
+            &mut imported_media_sources_with_issues,
             repo,
             collection_id,
             source_path_resolver,
@@ -484,6 +517,7 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_source_path_res
     Ok(Outcome {
         completion: Completion::Finished,
         summary,
-        media_source_ids,
+        visited_media_source_ids,
+        imported_media_sources_with_issues,
     })
 }

@@ -33,7 +33,7 @@ use semval::{IsValid as _, ValidatedFrom as _};
 use aoide_core::{
     audio::signal::LoudnessLufs,
     media::{
-        ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize, SourcePath,
+        ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
         Thumbnail4x4Rgb8,
     },
     music::{
@@ -51,7 +51,7 @@ use aoide_core::{
     },
 };
 
-use crate::prelude::*;
+use crate::{io::import::Importer, prelude::*};
 
 use self::digest::MediaDigest;
 
@@ -59,7 +59,8 @@ pub mod digest;
 pub mod serato;
 pub mod tag;
 
-fn trim_readable(input: &str) -> &str {
+#[must_use]
+pub fn trim_readable(input: &str) -> &str {
     input.trim_matches(|c: char| c.is_whitespace() || c.is_control())
 }
 
@@ -142,12 +143,14 @@ where
 // Assumption: Gain has been calculated with the EBU R128 algorithm
 const EBU_R128_REFERENCE_LUFS: f64 = -18.0;
 
-fn db2lufs(relative_gain_db: f64) -> LoudnessLufs {
+#[must_use]
+pub fn db2lufs(relative_gain_db: f64) -> LoudnessLufs {
     // Reconstruct the LUFS value from the relative gain
     LoudnessLufs(EBU_R128_REFERENCE_LUFS - relative_gain_db)
 }
 
-fn lufs2db(loudness: LoudnessLufs) -> f64 {
+#[must_use]
+pub fn lufs2db(loudness: LoudnessLufs) -> f64 {
     EBU_R128_REFERENCE_LUFS - loudness.0
 }
 
@@ -156,12 +159,17 @@ pub fn format_valid_replay_gain(loudness: LoudnessLufs) -> Option<String> {
     LoudnessLufs::validated_from(loudness).ok().map(|loudness| {
         let mut replay_gain_db = lufs2db(loudness);
         let formatted = format!("{}, dB", format_parseable_value(&mut replay_gain_db));
-        debug_assert_eq!(Some(db2lufs(replay_gain_db)), parse_replay_gain(&formatted));
+        let mut _importer = Importer::new();
+        debug_assert_eq!(
+            Some(db2lufs(replay_gain_db)),
+            _importer.import_replay_gain(&formatted)
+        );
+        debug_assert!(_importer.finish().into_messages().is_empty());
         formatted
     })
 }
 
-fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
+pub fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
     let mut parser = separated_pair(
         preceded(space0, double),
         space0,
@@ -169,88 +177,6 @@ fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
     );
     let (input, (replay_gain_db, _)) = parser(input)?;
     Ok((input, replay_gain_db))
-}
-
-#[must_use]
-pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
-    let input = trim_readable(input);
-    if input.is_empty() {
-        return None;
-    }
-    match parse_replay_gain_db(input) {
-        Ok((remainder, relative_gain_db)) => {
-            if !remainder.is_empty() {
-                log::warn!(
-                    "Unexpected remainder '{}' after parsing replay gain input '{}'",
-                    remainder,
-                    input
-                );
-            }
-            let loudness_lufs = db2lufs(relative_gain_db);
-            if !loudness_lufs.is_valid() {
-                log::warn!(
-                    "Invalid loudness parsed from replay gain input '{}': {}",
-                    input,
-                    loudness_lufs
-                );
-                return None;
-            }
-            log::debug!(
-                "Parsed loudness from replay gain input '{}': {}",
-                input,
-                loudness_lufs
-            );
-            Some(loudness_lufs)
-        }
-        Err(err) => {
-            // Silently ignore any 0 values
-            if input.parse().ok() == Some(0.0) {
-                log::debug!(
-                    "Ignoring invalid replay gain (dB) from input '{}': {}",
-                    input,
-                    err
-                );
-            } else {
-                log::warn!(
-                    "Failed to parse replay gain (dB) from input '{}': {}",
-                    input,
-                    err
-                );
-            }
-            None
-        }
-    }
-}
-
-#[must_use]
-pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
-    let input = trim_readable(input);
-    if input.is_empty() {
-        return None;
-    }
-    match input.parse() {
-        Ok(bpm) => {
-            let tempo_bpm = TempoBpm::from_raw(bpm);
-            if !tempo_bpm.is_valid() {
-                // The value 0 is often used for an unknown bpm.
-                // Silently ignore this special value to prevent log spam.
-                if bpm != 0.0 {
-                    log::info!("Invalid tempo parsed from input '{}': {}", input, tempo_bpm);
-                }
-                return None;
-            }
-            log::debug!("Parsed tempo from input '{}': {}", input, tempo_bpm);
-            Some(tempo_bpm)
-        }
-        Err(err) => {
-            log::warn!(
-                "Failed to parse tempo (BPM) from input '{}': {}",
-                input,
-                err
-            );
-            None
-        }
-    }
 }
 
 pub fn format_validated_tempo_bpm(tempo_bpm: &mut Option<TempoBpm>) -> Option<String> {
@@ -264,7 +190,9 @@ pub fn format_validated_tempo_bpm(tempo_bpm: &mut Option<TempoBpm>) -> Option<St
 
 pub fn format_tempo_bpm(tempo_bpm: &mut TempoBpm) -> String {
     let formatted_bpm = format_parseable_value(&mut tempo_bpm.to_raw());
-    debug_assert_eq!(Some(*tempo_bpm), parse_tempo_bpm(&formatted_bpm));
+    let mut _importer = Importer::new();
+    debug_assert_eq!(Some(*tempo_bpm), _importer.import_tempo_bpm(&formatted_bpm));
+    debug_assert!(_importer.finish().into_messages().is_empty());
     formatted_bpm
 }
 
@@ -311,16 +239,11 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
             }
         }
     }
-    log::warn!(
-        "Failed to parse musical key signature from input (UTF-8 bytes): '{}' ({:X?})",
-        input,
-        input.as_bytes()
-    );
     None
 }
 
-pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
-    let input = input.trim();
+pub fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
+    let input = value.trim();
     let mut digits_parser = delimited(space0, digit1, space0);
     let digits_parsed: IResult<_, _> = digits_parser(input);
     if let Ok((remainder, digits_input)) = digits_parsed {
@@ -395,7 +318,6 @@ pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
         let datetime_utc: chrono::DateTime<Utc> = chrono::DateTime::from_utc(datetime, Utc);
         return Some(DateTime::from(datetime_utc).into());
     }
-    log::warn!("Year tag not recognized: {}", input);
     None
 }
 
@@ -602,13 +524,12 @@ pub fn ingest_embedded_artwork_image(
 }
 
 pub fn try_ingest_embedded_artwork_image(
-    media_source_path: &SourcePath,
     apic_type: ApicType,
     image_data: &[u8],
     image_format_hint: Option<ImageFormat>,
     media_type_hint: Option<String>,
     image_digest: &mut MediaDigest,
-) -> (Artwork, Option<DynamicImage>) {
+) -> (Artwork, Option<DynamicImage>, Vec<String>) {
     ingest_embedded_artwork_image(
         apic_type,
         image_data,
@@ -622,33 +543,26 @@ pub fn try_ingest_embedded_artwork_image(
              picture,
              recoverable_errors,
          }| {
-            for err in recoverable_errors {
-                log::warn!(
-                    "Recoverable error while loading embedded {:?} artwork image from {}: {}",
-                    apic_type,
-                    media_source_path,
-                    err
-                );
-            }
-            (Artwork::Embedded(embedded_artwork), Some(picture))
+            let issues = recoverable_errors
+                .into_iter()
+                .map(|err| {
+                    format!(
+                        "Recoverable error while loading embedded {:?} artwork image: {}",
+                        apic_type, err
+                    )
+                })
+                .collect();
+            (Artwork::Embedded(embedded_artwork), Some(picture), issues)
         },
     )
     .unwrap_or_else(|err| match err {
         ArtworkImageError::UnsupportedFormat(unsupported_format) => {
-            log::info!(
-                "Unsupported image format in {}: {:?}",
-                media_source_path,
-                unsupported_format
-            );
-            (Artwork::Unsupported, None)
+            let issue = format!("Unsupported image format: {:?}", unsupported_format);
+            (Artwork::Unsupported, None, vec![issue])
         }
         ArtworkImageError::Other(err) => {
-            log::warn!(
-                "Failed to load embedded artwork image from {}: {}",
-                media_source_path,
-                err
-            );
-            (Artwork::Irregular, None)
+            let issue = format!("Failed to load embedded artwork image: {}", err);
+            (Artwork::Irregular, None, vec![issue])
         }
     })
 }

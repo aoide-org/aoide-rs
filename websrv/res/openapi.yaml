@@ -2447,11 +2447,27 @@ components:
           $ref: '#/components/schemas/MediaTrackerCompletion'
         summary:
           $ref: '#/components/schemas/MediaTrackerImportSummary'
+        importedSourcesWithIssues:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportedMediaSourceWithIssues'
       required:
         - rootUrl
         - rootPath
         - completion
         - summary
+    ImportedMediaSourceWithIssues:
+      type: object
+      properties:
+        path:
+          $ref: '#/components/schemas/MediaSourcePath'
+        messages:
+          type: array
+          items:
+            type: string
+      required:
+        - path
+        - messages
     MediaTrackerImportSummary:
       type: object
       properties:
@@ -2717,18 +2733,30 @@ components:
           items:
             $ref: '#/components/schemas/Track'
     ImportAndReplaceCollectedTracksResponseBody:
-      allOf:
-        - $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
-        - type: object
-          properties:
-            skipped:
-              type: array
-              items:
-                $ref: '#/components/schemas/PercentEncodedUri'
-            failed:
-              type: array
-              items:
-                $ref: '#/components/schemas/MediaSourcePath'
+      type: object
+      properties:
+        completion:
+          $ref: '#/components/schemas/MediaTrackerCompletion'
+        summary:
+          allOf:
+            - $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
+            - type: object
+              properties:
+                skipped:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PercentEncodedUri'
+                failed:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/MediaSourcePath'
+        importedMediaSourcesWithIssues:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportedMediaSourceWithIssues'
+      required:
+        - completion
+        - summary
     ExportTrackMetadataResponseBody:
       description:
         The resulting synchronization time stamp of the media source.

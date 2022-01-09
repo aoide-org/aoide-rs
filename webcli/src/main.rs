@@ -367,7 +367,20 @@ async fn main() -> anyhow::Result<()> {
                     .last_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_import_files_outcome {
-                    log::info!("Importing media files succeeded: {:?}", outcome);
+                    log::info!(
+                        "Importing media files from '{}' ({}) succeeded with {:?}: {:?}",
+                        outcome.value.root_path,
+                        outcome.value.root_url,
+                        outcome.value.completion,
+                        outcome.value.summary
+                    );
+                    for imported_source_with_issues in &outcome.value.imported_sources_with_issues {
+                        log::warn!(
+                            "{}: {}",
+                            imported_source_with_issues.path,
+                            imported_source_with_issues.messages.join(" | ")
+                        );
+                    }
                 }
             }
             if last_media_tracker_find_untracked_files_outcome.as_ref()

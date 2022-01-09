@@ -116,6 +116,16 @@ pub fn handle_request(
         .map(|res| {
             res.and_then(|t| {
                 uc::validate_input(t)
+                    .map(|(track, invalidities)| {
+                        if !invalidities.is_empty() {
+                            log::warn!(
+                                "Replacing track {:?} invalidities: {:?}",
+                                track,
+                                invalidities
+                            );
+                        }
+                        track
+                    })
                     .map_err(|InputError(err)| err)
                     .map_err(Error::BadRequest)
             })

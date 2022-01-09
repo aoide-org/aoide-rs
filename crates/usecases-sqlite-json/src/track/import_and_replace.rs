@@ -17,7 +17,7 @@ use std::sync::atomic::AtomicBool;
 
 use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
-use aoide_core_api_json::media::SyncMode;
+use aoide_core_api_json::media::{tracker::import_files::ImportedSourceWithIssues, SyncMode};
 
 use aoide_core_json::track::{Entity, Track};
 
@@ -92,6 +92,7 @@ impl From<uc::Completion> for Completion {
 pub struct Outcome {
     pub completion: Completion,
     pub summary: Summary,
+    pub imported_media_sources_with_issues: Vec<ImportedSourceWithIssues>,
 }
 
 impl From<uc::Outcome> for Outcome {
@@ -99,11 +100,20 @@ impl From<uc::Outcome> for Outcome {
         let uc::Outcome {
             completion,
             summary,
-            media_source_ids: _,
+            visited_media_source_ids: _,
+            imported_media_sources_with_issues,
         } = from;
+        let imported_media_sources_with_issues = imported_media_sources_with_issues
+            .into_iter()
+            .map(|(_, source_path, issues)| ImportedSourceWithIssues {
+                path: source_path.into(),
+                messages: issues.into_messages(),
+            })
+            .collect();
         Self {
             completion: completion.into(),
             summary: summary.into(),
+            imported_media_sources_with_issues,
         }
     }
 }

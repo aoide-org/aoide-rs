@@ -18,34 +18,6 @@
 use super::*;
 
 #[test]
-fn parse_replay_gain_valid() {
-    assert_eq!(
-        LoudnessLufs(-8.49428),
-        parse_replay_gain("-9.50572 dB").unwrap()
-    );
-    assert_eq!(
-        LoudnessLufs(-8.49428),
-        parse_replay_gain(" -9.50572db ").unwrap()
-    );
-    assert_eq!(
-        LoudnessLufs(-18.178062),
-        parse_replay_gain("0.178062 DB").unwrap()
-    );
-    assert_eq!(
-        LoudnessLufs(-18.178062),
-        parse_replay_gain("  +0.178062   dB ").unwrap()
-    );
-}
-
-#[test]
-fn parse_replay_gain_invalid() {
-    assert!(parse_replay_gain("-9.50572").is_none());
-    assert!(parse_replay_gain("- 9.50572 dB").is_none());
-    assert!(parse_replay_gain("+ 0.178062 dB").is_none());
-    assert!(parse_replay_gain("+0.178062").is_none());
-}
-
-#[test]
 fn parse_year_tag_valid() {
     // All test inputs surrounded by whitespaces!
     assert_eq!(

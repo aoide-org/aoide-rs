@@ -15,7 +15,9 @@
 
 use std::path::PathBuf;
 
-use aoide_media::io::import::{load_embedded_artwork_image_from_file_path, LoadedArtworkImage};
+use aoide_media::io::import::{
+    load_embedded_artwork_image_from_file_path, Importer, LoadedArtworkImage,
+};
 
 use aoide_repo::collection::RecordId as CollectionId;
 
@@ -53,8 +55,13 @@ pub fn load_embedded_artwork_image(
     source_path: &SourcePath,
 ) -> Result<(CollectionId, Option<LoadedArtworkImage>)> {
     let db = RepoConnection::new(connection);
+    let mut importer = Importer::new();
     resolve_file_path(&db, collection_uid, source_path).and_then(|(collection_id, file_path)| {
-        let loaded_artwork_image = load_embedded_artwork_image_from_file_path(&file_path)?;
+        let loaded_artwork_image =
+            load_embedded_artwork_image_from_file_path(&mut importer, &file_path)?;
+        for issue_message in importer.finish().into_messages() {
+            log::warn!("{}", issue_message);
+        }
         Ok((collection_id, loaded_artwork_image))
     })
 }

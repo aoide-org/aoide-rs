@@ -22,7 +22,7 @@ use std::{
 use aoide_core::entity::EntityUid;
 
 use aoide_core_api::media::tracker::{
-    import_files::{Outcome, Params, Summary},
+    import_files::{ImportedSourceWithIssues, Outcome, Params, Summary},
     Completion,
 };
 
@@ -80,6 +80,7 @@ pub fn import_files<
     let collection_id = collection_ctx.record_id;
     let started_at = Instant::now();
     let mut summary = Summary::default();
+    let mut imported_sources_with_issues = Vec::new();
     let outcome = 'outcome: loop {
         report_progress_fn(ProgressEvent {
             elapsed: started_at.elapsed(),
@@ -105,6 +106,7 @@ pub fn import_files<
                 root_path,
                 completion: Completion::Finished,
                 summary,
+                imported_sources_with_issues,
             };
             break 'outcome outcome;
         }
@@ -121,6 +123,7 @@ pub fn import_files<
                     root_path,
                     completion: Completion::Aborted,
                     summary,
+                    imported_sources_with_issues,
                 };
                 break 'outcome outcome;
             }
@@ -169,9 +172,17 @@ pub fn import_files<
             let ReplaceOutcome {
                 completion,
                 summary: tracks_summary,
-                media_source_ids,
+                visited_media_source_ids,
+                imported_media_sources_with_issues,
             } = outcome;
             summary.tracks += &tracks_summary;
+            imported_sources_with_issues.reserve(imported_media_sources_with_issues.len());
+            for (_, path, issues) in imported_media_sources_with_issues {
+                imported_sources_with_issues.push(ImportedSourceWithIssues {
+                    path,
+                    messages: issues.into_messages(),
+                });
+            }
             match completion {
                 ReplaceCompletion::Finished => {}
                 ReplaceCompletion::Aborted => {
@@ -186,6 +197,7 @@ pub fn import_files<
                         root_path,
                         completion: Completion::Aborted,
                         summary,
+                        imported_sources_with_issues,
                     };
                     break 'outcome outcome;
                 }
@@ -235,7 +247,7 @@ pub fn import_files<
             if let Err(err) = repo.media_tracker_replace_directory_sources(
                 collection_id,
                 &dir_path,
-                &media_source_ids,
+                &visited_media_source_ids,
             ) {
                 log::warn!(
                     "Failed replace imported sources in directory '{}': {}",

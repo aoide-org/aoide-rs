@@ -72,17 +72,14 @@ where
 #[derive(Debug)]
 pub struct ValidatedInput(Track);
 
-pub fn validate_input(track: Track) -> InputResult<ValidatedInput> {
-    if let Err(err) = track.validate() {
-        // Many tracks are expected to be inconsistent and invalid to some
-        // extent and we simply cannot reject all of them. Only log a warning
-        // to investigate issues that occur frequently and then decide how to
-        // handle them.
-        log::warn!(
-            "Invalid track input '{}': {:?}",
-            track.media_source.path,
-            err
-        );
-    }
-    Ok(ValidatedInput(track))
+pub fn validate_input(track: Track) -> InputResult<(ValidatedInput, Vec<TrackInvalidity>)> {
+    // Many tracks are expected to be inconsistent and invalid to some
+    // extent and we simply cannot reject all of them. The invalidities
+    // are returned together with the validated input.
+    let invalidaties = track
+        .validate()
+        .map_err(|err| err.into_iter().collect())
+        .err()
+        .unwrap_or_default();
+    Ok((ValidatedInput(track), invalidaties))
 }

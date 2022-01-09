@@ -27,12 +27,19 @@ pub struct Params {
     pub sync_mode: Option<SyncMode>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportedSourceWithIssues {
+    pub path: SourcePath,
+    pub messages: Vec<String>,
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
     pub root_path: SourcePath,
     pub completion: Completion,
     pub summary: Summary,
+    pub imported_sources_with_issues: Vec<ImportedSourceWithIssues>,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

@@ -33,7 +33,7 @@ use aoide_core::{
 use crate::{
     io::{
         export::ExportTrackConfig,
-        import::{finish_import_of_actors, ImportTrackConfig, ImportTrackFlags, Reader},
+        import::{ImportTrackConfig, ImportTrackFlags, Importer, Reader, TrackScope},
     },
     util::{push_next_actor_role_name_from, serato, try_ingest_embedded_artwork_image},
     Error, Result,
@@ -134,7 +134,7 @@ impl Metadata {
     }
 
     #[must_use]
-    pub fn import_audio_content(&self) -> Option<AudioContent> {
+    pub fn import_audio_content(&self, importer: &mut Importer) -> Option<AudioContent> {
         let Self(metaflac_tag) = self;
         metaflac_tag.get_streaminfo().map(|streaminfo| {
             let channels = Some(ChannelCount(streaminfo.num_channels.into()).into());
@@ -152,7 +152,7 @@ impl Metadata {
                 duration = None;
                 sample_rate = None;
             };
-            let loudness = vorbis::import_loudness(metaflac_tag);
+            let loudness = vorbis::import_loudness(importer, metaflac_tag);
             let encoder = vorbis::import_encoder(metaflac_tag).map(Into::into);
             AudioContent {
                 duration,
@@ -165,29 +165,34 @@ impl Metadata {
         })
     }
 
-    pub fn import_into_track(&self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
+    pub fn import_into_track(
+        self,
+        importer: &mut Importer,
+        config: &ImportTrackConfig,
+        track: &mut Track,
+    ) -> Result<()> {
         if track
             .media_source
             .content_metadata_flags
             .update(ContentMetadataFlags::RELIABLE)
         {
-            if let Some(audio_content) = self.import_audio_content() {
+            if let Some(audio_content) = self.import_audio_content(importer) {
                 track.media_source.content = Content::Audio(audio_content);
             }
         }
 
-        let Self(metaflac_tag) = self;
+        let Self(metaflac_tag) = &self;
 
-        if let Some(tempo_bpm) = vorbis::import_tempo_bpm(metaflac_tag) {
+        if let Some(tempo_bpm) = vorbis::import_tempo_bpm(importer, metaflac_tag) {
             track.metrics.tempo_bpm = Some(tempo_bpm);
         }
 
-        if let Some(key_signature) = vorbis::import_key_signature(metaflac_tag) {
+        if let Some(key_signature) = vorbis::import_key_signature(importer, metaflac_tag) {
             track.metrics.key_signature = key_signature;
         }
 
         // Track titles
-        let track_titles = vorbis::import_track_titles(metaflac_tag, &track.media_source.path);
+        let track_titles = vorbis::import_track_titles(importer, metaflac_tag);
         if !track_titles.is_empty() {
             track.titles = track_titles;
         }
@@ -254,7 +259,7 @@ impl Metadata {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
             }
         }
-        let track_actors = finish_import_of_actors(&track.media_source.path, track_actors);
+        let track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
         if !track_actors.is_empty() {
             track.actors = track_actors;
         }
@@ -262,7 +267,7 @@ impl Metadata {
         let mut album = track.album.untie_replace(Default::default());
 
         // Album titles
-        let album_titles = vorbis::import_album_titles(metaflac_tag, &track.media_source.path);
+        let album_titles = vorbis::import_album_titles(importer, metaflac_tag);
         if !album_titles.is_empty() {
             album.titles = album_titles;
         }
@@ -289,7 +294,7 @@ impl Metadata {
         {
             push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
         }
-        let album_actors = finish_import_of_actors(&track.media_source.path, album_actors);
+        let album_actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
         if !album_actors.is_empty() {
             album.actors = album_actors;
         }
@@ -301,10 +306,10 @@ impl Metadata {
 
         track.album = Canonical::tie(album);
 
-        if let Some(recorded_at) = vorbis::import_recorded_at(metaflac_tag) {
+        if let Some(recorded_at) = vorbis::import_recorded_at(importer, metaflac_tag) {
             track.recorded_at = Some(recorded_at);
         }
-        if let Some(released_at) = vorbis::import_released_at(metaflac_tag) {
+        if let Some(released_at) = vorbis::import_released_at(importer, metaflac_tag) {
             track.released_at = Some(released_at);
         }
         if let Some(released_by) = vorbis::import_released_by(metaflac_tag) {
@@ -317,7 +322,7 @@ impl Metadata {
         let mut tags_map = TagsMap::default();
         if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
             // Pre-populate tags
-            if let Some(tags) = vorbis::import_aoide_tags(metaflac_tag) {
+            if let Some(tags) = vorbis::import_aoide_tags(importer, metaflac_tag) {
                 debug_assert_eq!(0, tags_map.total_count());
                 tags_map = tags.into();
             }
@@ -329,7 +334,7 @@ impl Metadata {
         // http://www.xiph.org/vorbis/doc/v-comment.html
         // https://picard.musicbrainz.org/docs/mappings
         vorbis::import_faceted_text_tags(
-            &track.media_source.path,
+            importer,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_COMMENT,
@@ -343,7 +348,7 @@ impl Metadata {
         // Genre tags
         if let Some(genres) = metaflac_tag.get_vorbis("GENRE") {
             vorbis::import_faceted_text_tags(
-                &track.media_source.path,
+                importer,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_GENRE,
@@ -354,7 +359,7 @@ impl Metadata {
         // Mood tags
         if let Some(moods) = metaflac_tag.get_vorbis("MOOD") {
             vorbis::import_faceted_text_tags(
-                &track.media_source.path,
+                importer,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_MOOD,
@@ -365,7 +370,7 @@ impl Metadata {
         // Grouping tags
         if let Some(groupings) = metaflac_tag.get_vorbis("GROUPING") {
             vorbis::import_faceted_text_tags(
-                &track.media_source.path,
+                importer,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_GROUPING,
@@ -376,7 +381,7 @@ impl Metadata {
         // ISRC tag
         if let Some(isrc) = metaflac_tag.get_vorbis("ISRC") {
             vorbis::import_faceted_text_tags(
-                &track.media_source.path,
+                importer,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_ISRC,
@@ -384,13 +389,13 @@ impl Metadata {
             );
         }
 
-        if let Some(index) = vorbis::import_track_index(metaflac_tag) {
+        if let Some(index) = vorbis::import_track_index(importer, metaflac_tag) {
             track.indexes.track = index;
         }
-        if let Some(index) = vorbis::import_disc_index(metaflac_tag) {
+        if let Some(index) = vorbis::import_disc_index(importer, metaflac_tag) {
             track.indexes.disc = index;
         }
-        if let Some(index) = vorbis::import_movement_index(metaflac_tag) {
+        if let Some(index) = vorbis::import_movement_index(importer, metaflac_tag) {
             track.indexes.movement = index;
         }
 
@@ -401,15 +406,17 @@ impl Metadata {
             let artwork = if let Some((apic_type, media_type, image_data)) =
                 find_embedded_artwork_image(metaflac_tag)
             {
-                try_ingest_embedded_artwork_image(
-                    &track.media_source.path,
+                let (artwork, _, issues) = try_ingest_embedded_artwork_image(
                     apic_type,
                     image_data,
                     None,
                     Some(media_type.to_owned()),
                     &mut config.flags.new_artwork_digest(),
-                )
-                .0
+                );
+                issues
+                    .into_iter()
+                    .for_each(|message| importer.add_issue(message));
+                artwork
             } else {
                 Artwork::Missing
             };
@@ -425,7 +432,12 @@ impl Metadata {
             .contains(ImportTrackFlags::CUSTOM_SERATO_MARKERS)
         {
             let mut serato_tags = SeratoTagContainer::new();
-            vorbis::import_serato_markers2(metaflac_tag, &mut serato_tags, SeratoTagFormat::FLAC);
+            vorbis::import_serato_markers2(
+                importer,
+                metaflac_tag,
+                &mut serato_tags,
+                SeratoTagFormat::FLAC,
+            );
 
             let track_cues = serato::import_cues(&serato_tags);
             if !track_cues.is_empty() {

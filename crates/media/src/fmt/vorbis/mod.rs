@@ -15,9 +15,8 @@
 
 use std::{borrow::Cow, collections::HashMap};
 
-use metaflac::block::PictureType;
+use metaflac::block::{Picture, PictureType};
 use num_traits::FromPrimitive as _;
-use semval::IsValid as _;
 use triseratops::tag::{
     format::flac::FLACTag, format::ogg::OggTag, Markers2 as SeratoMarkers2,
     TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
@@ -25,7 +24,7 @@ use triseratops::tag::{
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{concat_encoder_properties, ApicType, Artwork, Content, SourcePath},
+    media::{concat_encoder_properties, ApicType, Artwork, Content},
     music::{key::KeySignature, tempo::TempoBpm},
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
@@ -48,15 +47,11 @@ use aoide_core_json::tag::Tags as SerdeTags;
 use crate::{
     io::{
         export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
-        import::{
-            finish_import_of_actors, finish_import_of_titles,
-            import_faceted_tags_from_label_values, ImportTrackConfig, ImportTrackFlags,
-        },
+        import::{ImportTrackConfig, ImportTrackFlags, Importer, TrackScope},
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
-        parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
-        parse_year_tag, push_next_actor_role_name_from, serato,
+        push_next_actor_role_name_from, serato,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         try_ingest_embedded_artwork_image,
     },
@@ -176,6 +171,7 @@ impl CommentWriter for Vec<(String, String)> {
 }
 
 pub fn find_embedded_artwork_image(
+    importer: &mut Importer,
     reader: &impl CommentReader,
 ) -> Option<(ApicType, String, Vec<u8>)> {
     // https://wiki.xiph.org/index.php/VorbisComment#Cover_art
@@ -186,29 +182,28 @@ pub fn find_embedded_artwork_image(
             .filter_values("METADATA_BLOCK_PICTURE")
             .unwrap_or_default()
             .into_iter()
-            .chain(
-                reader
-                    .filter_values("COVERART")
-                    .unwrap_or_default()
-                    .into_iter(),
-            )
-            .filter_map(|base64_data| {
+            .chain(reader.filter_values("COVERART").unwrap_or_default())
+            .map(|elem| (elem, Vec::new()))
+            .filter_map(|(base64_data, mut issues)| {
                 base64::decode(base64_data)
                     .map_err(|err| {
-                        log::warn!("Failed to decode base64 encoded picture block: {}", err);
-                        err
+                        issues.push(format!(
+                            "Failed to decode base64 encoded picture block: {}",
+                            err
+                        ));
                     })
+                    .map(|decoded| (decoded, issues))
                     .ok()
             })
-            .filter_map(|decoded| {
+            .filter_map(|(decoded, mut issues)| {
                 metaflac::block::Picture::from_bytes(&decoded[..])
                     .map_err(|err| {
-                        log::warn!("Failed to decode FLAC picture block: {}", err);
-                        err
+                        issues.push(format!("Failed to decode FLAC picture block: {}", err));
                     })
+                    .map(|picture| (picture, issues))
                     .ok()
             })
-            .filter(move |picture| {
+            .filter(move |(picture, _)| {
                 if let Some(picture_type) = picture_type {
                     picture.picture_type == picture_type
                 } else {
@@ -225,25 +220,30 @@ pub fn find_embedded_artwork_image(
         .chain(picture_iter_by_type(Some(PictureType::Other)))
         // otherwise take the first picture that could be parsed
         .chain(picture_iter_by_type(None))
-        .map(|p| {
-            (
-                ApicType::from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
-                p.mime_type,
-                p.data,
-            )
+        .map(|(picture, issues)| {
+            let Picture {
+                picture_type,
+                mime_type,
+                data,
+                ..
+            } = picture;
+            let apic_type = ApicType::from_u8(picture_type as u8).unwrap_or(ApicType::Other);
+            issues
+                .into_iter()
+                .for_each(|message| importer.add_issue(message));
+            (apic_type, mime_type, data)
         })
         .next()
 }
 
 pub fn import_faceted_text_tags<'a>(
-    source_path: &SourcePath,
+    importer: &mut Importer,
     tags_map: &mut TagsMap,
     faceted_tag_mapping_config: &FacetedTagMappingConfig,
     facet_id: &FacetId,
     label_values: impl IntoIterator<Item = &'a str>,
 ) {
-    import_faceted_tags_from_label_values(
-        source_path,
+    importer.import_faceted_tags_from_label_values(
         tags_map,
         faceted_tag_mapping_config,
         facet_id,
@@ -251,10 +251,13 @@ pub fn import_faceted_text_tags<'a>(
     );
 }
 
-pub fn import_loudness(reader: &impl CommentReader) -> Option<LoudnessLufs> {
+pub fn import_loudness(
+    importer: &mut Importer,
+    reader: &impl CommentReader,
+) -> Option<LoudnessLufs> {
     reader
         .read_first_value("REPLAYGAIN_TRACK_GAIN")
-        .and_then(parse_replay_gain)
+        .and_then(|value| importer.import_replay_gain(value))
 }
 
 fn export_loudness(writer: &mut impl CommentWriter, loudness: Option<LoudnessLufs>) {
@@ -282,18 +285,16 @@ fn export_encoder(writer: &mut impl CommentWriter, encoder: Option<impl Into<Str
     writer.remove_all_values("ENCODERSETTINGS");
 }
 
-pub fn import_tempo_bpm(reader: &impl CommentReader) -> Option<TempoBpm> {
-    if let Some(tempo_bpm) = reader
+pub fn import_tempo_bpm(importer: &mut Importer, reader: &impl CommentReader) -> Option<TempoBpm> {
+    reader
         .read_first_value("BPM")
-        .and_then(parse_tempo_bpm)
+        .and_then(|input| importer.import_tempo_bpm(input))
         // Alternative: Try "TEMPO" if "BPM" is missing or invalid
-        .or_else(|| reader.read_first_value("TEMPO").and_then(parse_tempo_bpm))
-    {
-        debug_assert!(tempo_bpm.is_valid());
-        Some(tempo_bpm)
-    } else {
-        None
-    }
+        .or_else(|| {
+            reader
+                .read_first_value("TEMPO")
+                .and_then(|input| importer.import_tempo_bpm(input))
+        })
 }
 
 fn export_tempo_bpm(writer: &mut impl CommentWriter, tempo_bpm: &mut Option<TempoBpm>) {
@@ -305,11 +306,18 @@ fn export_tempo_bpm(writer: &mut impl CommentWriter, tempo_bpm: &mut Option<Temp
     writer.remove_all_values("TEMPO");
 }
 
-pub fn import_key_signature(reader: &impl CommentReader) -> Option<KeySignature> {
+pub fn import_key_signature(
+    importer: &mut Importer,
+    reader: &impl CommentReader,
+) -> Option<KeySignature> {
     reader
         .read_first_value("INITIALKEY")
-        .and_then(parse_key_signature)
-        .or_else(|| reader.read_first_value("KEY").and_then(parse_key_signature))
+        .and_then(|value| importer.import_key_signature(value))
+        .or_else(|| {
+            reader
+                .read_first_value("KEY")
+                .and_then(|value| importer.import_key_signature(value))
+        })
 }
 
 fn export_key_signature(writer: &mut impl CommentWriter, key_signature: KeySignature) {
@@ -334,22 +342,32 @@ pub fn import_album_kind(reader: &impl CommentReader) -> Option<AlbumKind> {
     }
 }
 
-pub fn import_recorded_at(reader: &impl CommentReader) -> Option<DateOrDateTime> {
+pub fn import_recorded_at(
+    importer: &mut Importer,
+    reader: &impl CommentReader,
+) -> Option<DateOrDateTime> {
     reader
         .read_first_value("ORIGINALDATE")
-        .and_then(parse_year_tag)
+        .and_then(|value| importer.import_year_tag_from_field("ORIGINALDATE", value))
         .or_else(|| {
             reader
                 .read_first_value("ORIGINALYEAR")
-                .and_then(parse_year_tag)
+                .and_then(|value| importer.import_year_tag_from_field("ORIGINALYEAR", value))
         })
 }
 
-pub fn import_released_at(reader: &impl CommentReader) -> Option<DateOrDateTime> {
+pub fn import_released_at(
+    importer: &mut Importer,
+    reader: &impl CommentReader,
+) -> Option<DateOrDateTime> {
     reader
         .read_first_value("DATE")
-        .and_then(parse_year_tag)
-        .or_else(|| reader.read_first_value("YEAR").and_then(parse_year_tag))
+        .and_then(|value| importer.import_year_tag_from_field("DATE", value))
+        .or_else(|| {
+            reader
+                .read_first_value("YEAR")
+                .and_then(|value| importer.import_year_tag_from_field("YEAR", value))
+        })
 }
 
 pub fn import_released_by(reader: &impl CommentReader) -> Option<String> {
@@ -366,22 +384,30 @@ pub fn import_release_copyright(reader: &impl CommentReader) -> Option<String> {
         .map(Into::into)
 }
 
-pub fn import_track_index(reader: &impl CommentReader) -> Option<Index> {
+pub fn import_track_index(importer: &mut Importer, reader: &impl CommentReader) -> Option<Index> {
     if let Some(mut index) = reader
         .read_first_value("TRACKNUMBER")
-        .and_then(parse_index_numbers)
+        .and_then(|value| importer.import_index_numbers_from_field("TRACKNUMBER", value))
     {
-        if index.total.is_none() {
+        if let Some(total) =
             // According to https://wiki.xiph.org/Field_names "TRACKTOTAL" is
             // the proposed field name, but some applications use "TOTALTRACKS".
-            index.total = reader
+            reader
                 .read_first_value("TRACKTOTAL")
-                .and_then(|input| input.parse().ok())
+                .and_then(|value| value.parse().ok())
                 .or_else(|| {
                     reader
                         .read_first_value("TOTALTRACKS")
-                        .and_then(|input| input.parse().ok())
-                });
+                        .and_then(|value| value.parse().ok())
+                })
+        {
+            if let Some(index_total) = index.total {
+                importer.add_issue(format!(
+                    "Overwriting total number of tracks {} parsed from field '{}' with {}",
+                    index_total, "TRACKNUMBER", total,
+                ));
+            }
+            index.total = Some(total);
         }
         Some(index)
     } else {
@@ -389,22 +415,27 @@ pub fn import_track_index(reader: &impl CommentReader) -> Option<Index> {
     }
 }
 
-pub fn import_disc_index(reader: &impl CommentReader) -> Option<Index> {
+pub fn import_disc_index(importer: &mut Importer, reader: &impl CommentReader) -> Option<Index> {
     if let Some(mut index) = reader
         .read_first_value("DISCNUMBER")
-        .and_then(parse_index_numbers)
+        .and_then(|value| importer.import_index_numbers_from_field("DISCNUMBER", value))
     {
-        if index.total.is_none() {
-            // According to https://wiki.xiph.org/Field_names "DISCTOTAL" is
-            // the proposed field name, but some applications use "TOTALDISCS".
-            index.total = reader
-                .read_first_value("DISCTOTAL")
-                .and_then(|input| input.parse().ok())
-                .or_else(|| {
-                    reader
-                        .read_first_value("TOTALDISCS")
-                        .and_then(|input| input.parse().ok())
-                });
+        if let Some(total) = reader
+            .read_first_value("DISCTOTAL")
+            .and_then(|value| value.parse().ok())
+            .or_else(|| {
+                reader
+                    .read_first_value("TOTALDISCS")
+                    .and_then(|value| value.parse().ok())
+            })
+        {
+            if let Some(index_total) = index.total {
+                importer.add_issue(format!(
+                    "Overwriting total number of discs {} parsed from field '{}' with {}",
+                    index_total, "DISCNUMBER", total,
+                ));
+            }
+            index.total = Some(total);
         }
         Some(index)
     } else {
@@ -412,15 +443,25 @@ pub fn import_disc_index(reader: &impl CommentReader) -> Option<Index> {
     }
 }
 
-pub fn import_movement_index(reader: &impl CommentReader) -> Option<Index> {
+pub fn import_movement_index(
+    importer: &mut Importer,
+    reader: &impl CommentReader,
+) -> Option<Index> {
     if let Some(mut index) = reader
         .read_first_value("MOVEMENT")
-        .and_then(parse_index_numbers)
+        .and_then(|value| importer.import_index_numbers_from_field("MOVEMENT", value))
     {
-        if index.total.is_none() {
-            index.total = reader
-                .read_first_value("MOVEMENTTOTAL")
-                .and_then(|input| input.parse().ok());
+        if let Some(total) = reader
+            .read_first_value("MOVEMENTTOTAL")
+            .and_then(|value| value.parse().ok())
+        {
+            if let Some(index_total) = index.total {
+                importer.add_issue(format!(
+                    "Overwriting total number of movements {} parsed from field '{}' with {}",
+                    index_total, "MOVEMENT", total,
+                ));
+            }
+            index.total = Some(total);
         }
         Some(index)
     } else {
@@ -429,8 +470,8 @@ pub fn import_movement_index(reader: &impl CommentReader) -> Option<Index> {
 }
 
 pub fn import_track_titles(
+    importer: &mut Importer,
     reader: &impl CommentReader,
-    source_path: &SourcePath,
 ) -> Canonical<Vec<Title>> {
     let mut track_titles = Vec::with_capacity(4);
     if let Some(title) = reader
@@ -458,12 +499,12 @@ pub fn import_track_titles(
     {
         track_titles.push(title);
     }
-    finish_import_of_titles(source_path, track_titles)
+    importer.finish_import_of_titles(TrackScope::Track, track_titles)
 }
 
 pub fn import_album_titles(
+    importer: &mut Importer,
     reader: &impl CommentReader,
-    source_path: &SourcePath,
 ) -> Canonical<Vec<Title>> {
     let mut album_titles = Vec::with_capacity(1);
     if let Some(title) = reader
@@ -472,17 +513,17 @@ pub fn import_album_titles(
     {
         album_titles.push(title);
     }
-    finish_import_of_titles(source_path, album_titles)
+    importer.finish_import_of_titles(TrackScope::Album, album_titles)
 }
 
-pub fn import_aoide_tags(reader: &impl CommentReader) -> Option<Tags> {
+pub fn import_aoide_tags(importer: &mut Importer, reader: &impl CommentReader) -> Option<Tags> {
+    let key = AOIDE_TAGS_KEY;
     reader
-        .read_first_value(AOIDE_TAGS_KEY)
+        .read_first_value(key)
         .and_then(|json| {
             serde_json::from_str::<SerdeTags>(json)
                 .map_err(|err| {
-                    log::warn!("Failed to parse {}: {}", AOIDE_TAGS_KEY, err);
-                    err
+                    importer.add_issue(format!("Failed to parse {}: {}", key, err));
                 })
                 .ok()
         })
@@ -490,6 +531,7 @@ pub fn import_aoide_tags(reader: &impl CommentReader) -> Option<Tags> {
 }
 
 pub fn import_serato_markers2(
+    importer: &mut Importer,
     reader: &impl CommentReader,
     serato_tags: &mut SeratoTagContainer,
     format: SeratoTagFormat,
@@ -502,25 +544,31 @@ pub fn import_serato_markers2(
         }
     };
 
-    reader
-        .read_first_value(vorbis_comment)
-        .and_then(|data| serato_tags.parse_markers2(data.as_bytes(), format).ok());
+    reader.read_first_value(vorbis_comment).and_then(|data| {
+        serato_tags
+            .parse_markers2(data.as_bytes(), format)
+            .map_err(|err| {
+                importer.add_issue(format!("Failed to import Serato Markers2: {}", err));
+            })
+            .ok()
+    });
 }
 
 pub fn import_into_track(
+    importer: &mut Importer,
     reader: &impl CommentReader,
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<()> {
-    if let Some(tempo_bpm) = import_tempo_bpm(reader) {
+    if let Some(tempo_bpm) = import_tempo_bpm(importer, reader) {
         track.metrics.tempo_bpm = Some(tempo_bpm);
     }
 
-    if let Some(key_signature) = import_key_signature(reader) {
+    if let Some(key_signature) = import_key_signature(importer, reader) {
         track.metrics.key_signature = key_signature;
     }
 
-    if let Some(released_at) = import_released_at(reader) {
+    if let Some(released_at) = import_released_at(importer, reader) {
         track.released_at = Some(released_at);
     }
     if let Some(released_by) = import_released_by(reader) {
@@ -531,7 +579,7 @@ pub fn import_into_track(
     }
 
     // Track titles
-    let track_titles = import_track_titles(reader, &track.media_source.path);
+    let track_titles = import_track_titles(importer, reader);
     if !track_titles.is_empty() {
         track.titles = track_titles;
     }
@@ -574,7 +622,7 @@ pub fn import_into_track(
     for name in reader.filter_values("WRITER").unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
     }
-    let track_actors = finish_import_of_actors(&track.media_source.path, track_actors);
+    let track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
     if !track_actors.is_empty() {
         track.actors = track_actors;
     }
@@ -582,7 +630,7 @@ pub fn import_into_track(
     let mut album = track.album.untie_replace(Default::default());
 
     // Album titles
-    let album_titles = import_album_titles(reader, &track.media_source.path);
+    let album_titles = import_album_titles(importer, reader);
     if !album_titles.is_empty() {
         album.titles = album_titles;
     }
@@ -614,7 +662,7 @@ pub fn import_into_track(
     {
         push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
     }
-    let album_actors = finish_import_of_actors(&track.media_source.path, album_actors);
+    let album_actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
     if !album_actors.is_empty() {
         album.actors = album_actors;
     }
@@ -629,7 +677,7 @@ pub fn import_into_track(
     let mut tags_map = TagsMap::default();
     if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
         // Pre-populate tags
-        if let Some(tags) = import_aoide_tags(reader) {
+        if let Some(tags) = import_aoide_tags(importer, reader) {
             debug_assert_eq!(0, tags_map.total_count());
             tags_map = tags.into();
         }
@@ -642,7 +690,7 @@ pub fn import_into_track(
     // https://picard.musicbrainz.org/docs/mappings
     {
         import_faceted_text_tags(
-            &track.media_source.path,
+            importer,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_COMMENT,
@@ -661,7 +709,7 @@ pub fn import_into_track(
 
     // Genre tags
     import_faceted_text_tags(
-        &track.media_source.path,
+        importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GENRE,
@@ -673,7 +721,7 @@ pub fn import_into_track(
 
     // Mood tags
     import_faceted_text_tags(
-        &track.media_source.path,
+        importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_MOOD,
@@ -682,7 +730,7 @@ pub fn import_into_track(
 
     // Grouping tags
     import_faceted_text_tags(
-        &track.media_source.path,
+        importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GROUPING,
@@ -694,20 +742,20 @@ pub fn import_into_track(
 
     // ISRC tags
     import_faceted_text_tags(
-        &track.media_source.path,
+        importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_ISRC,
         reader.filter_values("ISRC").unwrap_or_default().into_iter(),
     );
 
-    if let Some(index) = import_track_index(reader) {
+    if let Some(index) = import_track_index(importer, reader) {
         track.indexes.track = index;
     }
-    if let Some(index) = import_disc_index(reader) {
+    if let Some(index) = import_disc_index(importer, reader) {
         track.indexes.disc = index;
     }
-    if let Some(index) = import_movement_index(reader) {
+    if let Some(index) = import_movement_index(importer, reader) {
         track.indexes.movement = index;
     }
 
@@ -716,17 +764,19 @@ pub fn import_into_track(
         .contains(ImportTrackFlags::METADATA_EMBEDDED_ARTWORK)
     {
         let artwork = if let Some((apic_type, media_type, image_data)) =
-            find_embedded_artwork_image(reader)
+            find_embedded_artwork_image(importer, reader)
         {
-            try_ingest_embedded_artwork_image(
-                &track.media_source.path,
+            let (artwork, _, issues) = try_ingest_embedded_artwork_image(
                 apic_type,
                 &image_data,
                 None,
                 Some(media_type),
                 &mut config.flags.new_artwork_digest(),
-            )
-            .0
+            );
+            issues
+                .into_iter()
+                .for_each(|message| importer.add_issue(message));
+            artwork
         } else {
             Artwork::Missing
         };
@@ -739,7 +789,7 @@ pub fn import_into_track(
         .contains(ImportTrackFlags::CUSTOM_SERATO_MARKERS)
     {
         let mut serato_tags = SeratoTagContainer::new();
-        import_serato_markers2(reader, &mut serato_tags, SeratoTagFormat::Ogg);
+        import_serato_markers2(importer, reader, &mut serato_tags, SeratoTagFormat::Ogg);
 
         let track_cues = serato::import_cues(&serato_tags);
         if !track_cues.is_empty() {

@@ -48,59 +48,67 @@ impl Metadata {
     }
 
     #[must_use]
-    pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, String, Vec<u8>)> {
-        vorbis::find_embedded_artwork_image(&self.1)
+    pub fn find_embedded_artwork_image(
+        &self,
+        importer: &mut Importer,
+    ) -> Option<(ApicType, String, Vec<u8>)> {
+        vorbis::find_embedded_artwork_image(importer, &self.1)
     }
 
-    pub fn import_audio_content(&self) -> Result<AudioContent> {
+    #[must_use]
+    pub fn import_audio_content(&self, importer: &mut Importer) -> AudioContent {
         let Self(ident_header, vorbis_comments) = &self;
         let channel_count = ChannelCount(ident_header.audio_channels.into());
         let channels = if channel_count.is_valid() {
             Some(channel_count.into())
         } else {
-            log::warn!("Invalid channel count: {}", channel_count.0);
+            importer.add_issue(format!("Invalid channel count: {}", channel_count.0));
             None
         };
         let bitrate = BitrateBps::from_inner(ident_header.bitrate_nominal.into());
         let bitrate = if bitrate.is_valid() {
             Some(bitrate)
         } else {
-            log::warn!("Invalid bitrate: {}", bitrate);
+            importer.add_issue(format!("Invalid bitrate: {}", bitrate));
             None
         };
         let sample_rate = SampleRateHz::from_inner(ident_header.audio_sample_rate.into());
         let sample_rate = if sample_rate.is_valid() {
             Some(sample_rate)
         } else {
-            log::warn!("Invalid sample rate: {}", sample_rate);
+            importer.add_issue(format!("Invalid sample rate: {}", sample_rate));
             None
         };
-        let loudness = vorbis::import_loudness(vorbis_comments);
+        let loudness = vorbis::import_loudness(importer, vorbis_comments);
         let encoder = vorbis::import_encoder(vorbis_comments).map(Into::into);
         // TODO: The duration is not available from any header!?
         let duration = None;
-        let audio_content = AudioContent {
+        AudioContent {
             duration,
             channels,
             sample_rate,
             bitrate,
             loudness,
             encoder,
-        };
-        Ok(audio_content)
+        }
     }
 
-    pub fn import_into_track(&self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
+    pub fn import_into_track(
+        self,
+        importer: &mut Importer,
+        config: &ImportTrackConfig,
+        track: &mut Track,
+    ) -> Result<()> {
         if track
             .media_source
             .content_metadata_flags
             .update(ContentMetadataFlags::RELIABLE)
         {
-            let audio_content = self.import_audio_content()?;
+            let audio_content = self.import_audio_content(importer);
             track.media_source.content = Content::Audio(audio_content);
         }
 
         let Self(_, vorbis_comments) = &self;
-        vorbis::import_into_track(vorbis_comments, config, track)
+        vorbis::import_into_track(importer, vorbis_comments, config, track)
     }
 }

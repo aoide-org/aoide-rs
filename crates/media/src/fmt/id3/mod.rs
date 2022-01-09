@@ -19,10 +19,10 @@ use chrono::{Datelike as _, NaiveDate, NaiveDateTime, NaiveTime, Timelike as _, 
 use id3::{
     self,
     frame::{Comment, PictureType},
+    Timestamp,
 };
 use mime::Mime;
 use num_traits::FromPrimitive as _;
-use semval::IsValid as _;
 use triseratops::tag::{
     format::id3::ID3Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
     TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
@@ -30,7 +30,7 @@ use triseratops::tag::{
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{concat_encoder_properties, ApicType, Artwork, Content, SourcePath},
+    media::{concat_encoder_properties, ApicType, Artwork, Content},
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
         actor::ActorRole,
@@ -52,14 +52,10 @@ use aoide_core_json::tag::Tags as SerdeTags;
 use crate::{
     io::{
         export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
-        import::{
-            finish_import_of_actors, finish_import_of_titles,
-            import_faceted_tags_from_label_values, ImportTrackConfig, ImportTrackFlags,
-        },
+        import::{ImportTrackConfig, ImportTrackFlags, Importer, TrackScope},
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
-        parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
         push_next_actor_role_name_from, serato,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         try_ingest_embedded_artwork_image,
@@ -167,8 +163,9 @@ fn first_extended_text<'a>(tag: &'a id3::Tag, description: &'a str) -> Option<&'
     extended_texts(tag, description).next()
 }
 
-pub fn import_loudness(tag: &id3::Tag) -> Option<LoudnessLufs> {
-    first_extended_text(tag, "REPLAYGAIN_TRACK_GAIN").and_then(parse_replay_gain)
+pub fn import_loudness(importer: &mut Importer, tag: &id3::Tag) -> Option<LoudnessLufs> {
+    first_extended_text(tag, "REPLAYGAIN_TRACK_GAIN")
+        .and_then(|text| importer.import_replay_gain(text))
 }
 
 #[must_use]
@@ -177,15 +174,14 @@ pub fn import_encoder(tag: &id3::Tag) -> Option<Cow<'_, str>> {
 }
 
 fn import_faceted_tags_from_text_frames(
-    source_path: &SourcePath,
+    importer: &mut Importer,
     tags_map: &mut TagsMap,
     faceted_tag_mapping_config: &FacetedTagMappingConfig,
     facet_id: &FacetId,
     tag: &id3::Tag,
     frame_id: &str,
 ) -> usize {
-    import_faceted_tags_from_label_values(
-        source_path,
+    importer.import_faceted_tags_from_label_values(
         tags_map,
         faceted_tag_mapping_config,
         facet_id,
@@ -235,23 +231,42 @@ pub fn find_embedded_artwork_image(tag: &id3::Tag) -> Option<(ApicType, &str, &[
         .next()
 }
 
+pub fn import_timestamp_from_first_text_frame(
+    importer: &mut Importer,
+    tag: &id3::Tag,
+    frame_id: &str,
+) -> Option<Timestamp> {
+    first_text_frame(tag, frame_id).and_then(|text| {
+        text.parse()
+            .map_err(|err| {
+                importer.add_issue(format!(
+                    "Failed to parse ID3 time stamp from input '{}' in text frame '{}': {}",
+                    text, frame_id, err
+                ));
+            })
+            .ok()
+    })
+}
+
 pub fn import_metadata_into_track(
+    importer: &mut Importer,
     tag: &id3::Tag,
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<()> {
     let mut tempo_bpm_non_fractional = false;
     if let Some(tempo_bpm) = first_extended_text(tag, "BPM")
-        .and_then(parse_tempo_bpm)
+        .and_then(|input| importer.import_tempo_bpm(input))
         // Alternative: Try "TEMPO" if "BPM" is missing or invalid
-        .or_else(|| first_extended_text(tag, "TEMPO").and_then(parse_tempo_bpm))
+        .or_else(|| {
+            first_extended_text(tag, "TEMPO").and_then(|input| importer.import_tempo_bpm(input))
+        })
         // Fallback: Parse integer BPM
         .or_else(|| {
             tempo_bpm_non_fractional = true;
-            first_text_frame(tag, "TBPM").and_then(parse_tempo_bpm)
+            first_text_frame(tag, "TBPM").and_then(|input| importer.import_tempo_bpm(input))
         })
     {
-        debug_assert!(tempo_bpm.is_valid());
         track.metrics.tempo_bpm = Some(tempo_bpm);
         track.metrics.flags.set(
             MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
@@ -259,7 +274,9 @@ pub fn import_metadata_into_track(
         );
     }
 
-    if let Some(key_signature) = first_text_frame(tag, "TKEY").and_then(parse_key_signature) {
+    if let Some(key_signature) =
+        first_text_frame(tag, "TKEY").and_then(|text| importer.import_key_signature(text))
+    {
         track.metrics.key_signature = key_signature;
     }
 
@@ -303,17 +320,17 @@ pub fn import_metadata_into_track(
                     .flags
                     .contains(ImportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
                 {
-                    log::warn!(
+                    importer.add_issue(format!(
                         "Imported work title '{}' from legacy ID3 text frame TXXX:WORK",
                         title.name
-                    );
+                    ));
                 }
                 title
             })
     }) {
         track_titles.push(title);
     }
-    let track_titles = finish_import_of_titles(&track.media_source.path, track_titles);
+    let track_titles = importer.finish_import_of_titles(TrackScope::Track, track_titles);
     if !track_titles.is_empty() {
         track.titles = track_titles;
     }
@@ -344,7 +361,7 @@ pub fn import_metadata_into_track(
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
     }
     // TODO: Import TIPL frames
-    let track_actors = finish_import_of_actors(&track.media_source.path, track_actors);
+    let track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
     if !track_actors.is_empty() {
         track.actors = track_actors;
     }
@@ -359,7 +376,7 @@ pub fn import_metadata_into_track(
     {
         album_titles.push(title);
     }
-    let album_titles = finish_import_of_titles(&track.media_source.path, album_titles);
+    let album_titles = importer.finish_import_of_titles(TrackScope::Album, album_titles);
     if !album_titles.is_empty() {
         album.titles = album_titles;
     }
@@ -369,7 +386,7 @@ pub fn import_metadata_into_track(
     if let Some(name) = tag.album_artist() {
         push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
     }
-    let album_actors = finish_import_of_actors(&track.media_source.path, album_actors);
+    let album_actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
     if !album_actors.is_empty() {
         album.actors = album_actors;
     }
@@ -383,7 +400,10 @@ pub fn import_metadata_into_track(
             0 => AlbumKind::Unknown, // either album or single
             1 => AlbumKind::Compilation,
             _ => {
-                log::warn!("Unexpected iTunes compilation tag: TCMP = {}", tcmp);
+                importer.add_issue(format!(
+                    "Unexpected iTunes compilation tag: TCMP = {}",
+                    tcmp
+                ));
                 AlbumKind::Unknown
             }
         })
@@ -392,15 +412,15 @@ pub fn import_metadata_into_track(
     track.album = Canonical::tie(album);
 
     // Release properties
-    let tdrl = first_text_frame(tag, "TDRL").and_then(|text| text.parse().ok());
-    let tdrc = first_text_frame(tag, "TDRC").and_then(|text| text.parse().ok());
+    let tdrl = import_timestamp_from_first_text_frame(importer, tag, "TDRL");
+    let tdrc = import_timestamp_from_first_text_frame(importer, tag, "TDRC");
     let recorded_at;
     let released_at;
     if config
         .flags
         .contains(ImportTrackFlags::COMPATIBILITY_ID3V2_MUSICBRAINZ_PICARD_TDRC_TDOR)
     {
-        let tdor = first_text_frame(tag, "TDOR").and_then(|text| text.parse().ok());
+        let tdor = import_timestamp_from_first_text_frame(importer, tag, "TDOR");
         // Use "TDRL" only as a fallback if "TDRC" is not available
         if let Some(tdor) = tdor {
             // If a recording date is available it will be exported as "TDOR".
@@ -410,7 +430,7 @@ pub fn import_metadata_into_track(
             released_at = if let Some(tdrc) = tdrc {
                 if let Some(tdrl) = tdrl {
                     if tdrl != tdrc {
-                        log::warn!("Using release date {} from frame \"TDRC\" instead of {} from frame \"TDRL\"", tdrc, tdrl);
+                        importer.add_issue(format!("Using release date {} from frame \"TDRC\" instead of {} from frame \"TDRL\"", tdrc, tdrl));
                     }
                 }
                 Some(parse_timestamp(tdrc))
@@ -456,16 +476,18 @@ pub fn import_metadata_into_track(
                 .map(Mime::type_)
                 != Some(mime::APPLICATION_JSON.type_())
             {
-                log::warn!(
+                importer.add_issue(format!(
                     "Unexpected MIME type for GEOB '{}': {}",
-                    geob.description,
-                    geob.mime_type
-                );
+                    geob.description, geob.mime_type
+                ));
                 continue;
             }
             if let Some(custom_tags) = serde_json::from_slice::<SerdeTags>(&geob.data)
                 .map_err(|err| {
-                    log::warn!("Failed to parse GEOB '{}': {}", geob.description, err);
+                    importer.add_issue(format!(
+                        "Failed to parse GEOB '{}': {}",
+                        geob.description, err
+                    ));
                     err
                 })
                 .ok()
@@ -482,8 +504,7 @@ pub fn import_metadata_into_track(
         .comments()
         .filter(|comm| comm.description.is_empty())
         .map(|comm| comm.text.to_owned());
-    import_faceted_tags_from_label_values(
-        &track.media_source.path,
+    importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_COMMENT,
@@ -492,7 +513,7 @@ pub fn import_metadata_into_track(
 
     // Genre tags
     import_faceted_tags_from_text_frames(
-        &track.media_source.path,
+        importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GENRE,
@@ -502,7 +523,7 @@ pub fn import_metadata_into_track(
 
     // Mood tags
     import_faceted_tags_from_text_frames(
-        &track.media_source.path,
+        importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_MOOD,
@@ -517,7 +538,7 @@ pub fn import_metadata_into_track(
     // https://discussions.apple.com/thread/7900430
     // http://blog.jthink.net/2016/11/the-reason-why-is-grouping-field-no.html
     if import_faceted_tags_from_text_frames(
-        &track.media_source.path,
+        importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GROUPING,
@@ -526,12 +547,12 @@ pub fn import_metadata_into_track(
     ) > 0
     {
         if !imported_work_from_itunes_tit1 {
-            log::warn!("Imported grouping tag(s) from ID3 text frame GRP1 instead of TIT1");
+            importer.add_issue("Imported grouping tag(s) from ID3 text frame GRP1 instead of TIT1");
         }
     } else {
         // Use the legacy/classical text frame only as a fallback
         if import_faceted_tags_from_text_frames(
-            &track.media_source.path,
+            importer,
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_GROUPING,
@@ -542,13 +563,13 @@ pub fn import_metadata_into_track(
                 .flags
                 .contains(ImportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
         {
-            log::warn!("Imported grouping tag(s) from ID3 text frame TIT1 instead of GRP1");
+            importer.add_issue("Imported grouping tag(s) from ID3 text frame TIT1 instead of GRP1");
         }
     }
 
     // ISRC tag
     import_faceted_tags_from_text_frames(
-        &track.media_source.path,
+        importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_ISRC,
@@ -558,7 +579,7 @@ pub fn import_metadata_into_track(
 
     // Language tag
     import_faceted_tags_from_text_frames(
-        &track.media_source.path,
+        importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_LANGUAGE,
@@ -578,7 +599,9 @@ pub fn import_metadata_into_track(
         track.indexes.disc.number = tag.disc().map(|i| (i & 0xFFFF) as u16);
         track.indexes.disc.total = tag.total_discs().map(|i| (i & 0xFFFF) as u16);
     }
-    if let Some(movement) = first_text_frame(tag, "MVIN").and_then(parse_index_numbers) {
+    if let Some(movement) = first_text_frame(tag, "MVIN")
+        .and_then(|text| importer.import_index_numbers_from_field("MVIN", text))
+    {
         track.indexes.movement = movement;
     }
 
@@ -589,15 +612,17 @@ pub fn import_metadata_into_track(
     {
         let artwork =
             if let Some((apic_type, media_type, image_data)) = find_embedded_artwork_image(tag) {
-                try_ingest_embedded_artwork_image(
-                    &track.media_source.path,
+                let (artwork, _, issues) = try_ingest_embedded_artwork_image(
                     apic_type,
                     image_data,
                     None,
                     Some(media_type.to_owned()),
                     &mut config.flags.new_artwork_digest(),
-                )
-                .0
+                );
+                issues
+                    .into_iter()
+                    .for_each(|message| importer.add_issue(message));
+                artwork
             } else {
                 Artwork::Missing
             };
@@ -617,7 +642,7 @@ pub fn import_metadata_into_track(
                     serato_tags
                         .parse_markers(&geob.data, SeratoTagFormat::ID3)
                         .map_err(|err| {
-                            log::warn!("Failed to parse Serato Markers: {}", err);
+                            importer.add_issue(format!("Failed to parse Serato Markers: {}", err));
                         })
                         .ok();
                 }
@@ -625,7 +650,7 @@ pub fn import_metadata_into_track(
                     serato_tags
                         .parse_markers2(&geob.data, SeratoTagFormat::ID3)
                         .map_err(|err| {
-                            log::warn!("Failed to parse Serato Markers2: {}", err);
+                            importer.add_issue(format!("Failed to parse Serato Markers2: {}", err));
                         })
                         .ok();
                 }
