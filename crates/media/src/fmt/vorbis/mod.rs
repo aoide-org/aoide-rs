@@ -627,7 +627,7 @@ pub fn import_into_track(
     track.album = Canonical::tie(album);
 
     let mut tags_map = TagsMap::default();
-    if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
+    if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
         // Pre-populate tags
         if let Some(tags) = import_aoide_tags(reader) {
             debug_assert_eq!(0, tags_map.total_count());
@@ -711,7 +711,10 @@ pub fn import_into_track(
         track.indexes.movement = index;
     }
 
-    if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
+    if config
+        .flags
+        .contains(ImportTrackFlags::METADATA_EMBEDDED_ARTWORK)
+    {
         let artwork = if let Some((apic_type, media_type, image_data)) =
             find_embedded_artwork_image(reader)
         {
@@ -731,7 +734,10 @@ pub fn import_into_track(
     }
 
     // Serato Tags
-    if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
+    if config
+        .flags
+        .contains(ImportTrackFlags::CUSTOM_SERATO_MARKERS)
+    {
         let mut serato_tags = SeratoTagContainer::new();
         import_serato_markers2(reader, &mut serato_tags, SeratoTagFormat::Ogg);
 
@@ -941,7 +947,7 @@ pub fn export_track(
 
     // Export all tags
     writer.remove_all_values(MIXXX_CUSTOM_TAGS_KEY); // drop legacy key
-    if config.flags.contains(ExportTrackFlags::AOIDE_TAGS) && !track.tags.is_empty() {
+    if config.flags.contains(ExportTrackFlags::CUSTOM_AOIDE_TAGS) && !track.tags.is_empty() {
         match serde_json::to_string(&aoide_core_json::tag::Tags::from(
             track.tags.clone().untie(),
         )) {

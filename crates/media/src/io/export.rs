@@ -28,9 +28,10 @@ use super::import::ImportTrackFlags;
 
 bitflags! {
     pub struct ExportTrackFlags: u16 {
-        const ITUNES_ID3V2_GROUPING_MOVEMENT_WORK = ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK.bits();
-        const AOIDE_TAGS = ImportTrackFlags::AOIDE_TAGS.bits();
-        const SERATO_MARKERS = ImportTrackFlags::SERATO_MARKERS.bits();
+        const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = ImportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK.bits();
+        const COMPATIBILITY_ID3V2_MUSICBRAINZ_PICARD_TDRC_TDOR = ImportTrackFlags::COMPATIBILITY_ID3V2_MUSICBRAINZ_PICARD_TDRC_TDOR.bits();
+        const CUSTOM_AOIDE_TAGS = ImportTrackFlags::CUSTOM_AOIDE_TAGS.bits();
+        const CUSTOM_SERATO_MARKERS = ImportTrackFlags::CUSTOM_SERATO_MARKERS.bits();
     }
 }
 

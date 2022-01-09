@@ -148,10 +148,7 @@ pub fn handle_request(
     // FIXME: Replace hard-coded tag mapping config
     let faceted_tag_mapping_config = predefined_faceted_tag_mapping_config();
     // FIXME: Replace hard-coded import flags
-    let import_flags = ImportTrackFlags::ARTWORK_DIGEST
-        | ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
-        | ImportTrackFlags::AOIDE_TAGS
-        | ImportTrackFlags::SERATO_MARKERS;
+    let import_flags = ImportTrackFlags::all();
     let import_config = ImportTrackConfig {
         faceted_tag_mapping: faceted_tag_mapping_config,
         flags: import_flags,

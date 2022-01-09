@@ -74,10 +74,7 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
         },
     );
     // FIXME: Replace hard-coded import flags
-    let import_flags = ImportTrackFlags::ARTWORK_DIGEST
-        | ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
-        | ImportTrackFlags::AOIDE_TAGS
-        | ImportTrackFlags::SERATO_MARKERS;
+    let import_flags = ImportTrackFlags::all();
     let import_config = ImportTrackConfig {
         faceted_tag_mapping: faceted_tag_mapping_config.into(),
         flags: import_flags,

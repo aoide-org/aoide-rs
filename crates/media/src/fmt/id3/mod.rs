@@ -283,7 +283,7 @@ pub fn import_metadata_into_track(
     }
     let itunes_work_title = if config
         .flags
-        .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+        .contains(ImportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
     {
         // Starting with iTunes 12.5.4 the "TIT1" text frame is used
         // for storing the work instead of the grouping. It is only
@@ -301,7 +301,7 @@ pub fn import_metadata_into_track(
             .map(|title| {
                 if config
                     .flags
-                    .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+                    .contains(ImportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
                 {
                     log::warn!(
                         "Imported work title '{}' from legacy ID3 text frame TXXX:WORK",
@@ -392,38 +392,41 @@ pub fn import_metadata_into_track(
     track.album = Canonical::tie(album);
 
     // Release properties
-    // Instead of the actual release date "TDRL" most applications store
-    // the release date in the field "TDRC" that was supposed to be used
-    // for the recording date. Instead the recording date is commonly
-    // stored as the original release date in "TDOR".
-    // See also https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
     let tdrl = first_text_frame(tag, "TDRL").and_then(|text| text.parse().ok());
     let tdrc = first_text_frame(tag, "TDRC").and_then(|text| text.parse().ok());
-    let tdor = first_text_frame(tag, "TDOR").and_then(|text| text.parse().ok());
     let recorded_at;
     let released_at;
-    // Use "TDRL" only as a fallback if "TDRC" is not available
-    if let Some(tdor) = tdor {
-        // If a recording date is available it will be exported as "TDOR".
-        // Primarily using this field for the distinction here ensures that
-        // exported metadata will be re-imported consistently!
-        recorded_at = Some(parse_timestamp(tdor));
-        released_at = if let Some(tdrc) = tdrc {
-            if let Some(tdrl) = tdrl {
-                if tdrl != tdrc {
-                    log::warn!("Using release date {} from frame \"TDRC\" instead of {} from frame \"TDRL\"", tdrc, tdrl);
+    if config
+        .flags
+        .contains(ImportTrackFlags::COMPATIBILITY_ID3V2_MUSICBRAINZ_PICARD_TDRC_TDOR)
+    {
+        let tdor = first_text_frame(tag, "TDOR").and_then(|text| text.parse().ok());
+        // Use "TDRL" only as a fallback if "TDRC" is not available
+        if let Some(tdor) = tdor {
+            // If a recording date is available it will be exported as "TDOR".
+            // Primarily using this field for the distinction here ensures that
+            // exported metadata will be re-imported consistently!
+            recorded_at = Some(parse_timestamp(tdor));
+            released_at = if let Some(tdrc) = tdrc {
+                if let Some(tdrl) = tdrl {
+                    if tdrl != tdrc {
+                        log::warn!("Using release date {} from frame \"TDRC\" instead of {} from frame \"TDRL\"", tdrc, tdrl);
+                    }
                 }
-            }
-            Some(parse_timestamp(tdrc))
+                Some(parse_timestamp(tdrc))
+            } else {
+                tdrl.map(parse_timestamp)
+            };
+        } else if let Some(tdrl) = tdrl {
+            released_at = Some(parse_timestamp(tdrl));
+            recorded_at = tdrc.map(parse_timestamp);
         } else {
-            tdrl.map(parse_timestamp)
-        };
-    } else if let Some(tdrl) = tdrl {
-        released_at = Some(parse_timestamp(tdrl));
-        recorded_at = tdrc.map(parse_timestamp);
+            released_at = tdrc.map(parse_timestamp);
+            recorded_at = None;
+        }
     } else {
-        released_at = tdrc.map(parse_timestamp);
-        recorded_at = None;
+        released_at = tdrl.map(parse_timestamp);
+        recorded_at = tdrc.map(parse_timestamp);
     }
     if let Some(recorded_at) = recorded_at {
         track.recorded_at = Some(recorded_at);
@@ -439,7 +442,7 @@ pub fn import_metadata_into_track(
     }
 
     let mut tags_map = TagsMap::default();
-    if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
+    if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
         // Pre-populate tags
         for geob in tag
             .encapsulated_objects()
@@ -537,7 +540,7 @@ pub fn import_metadata_into_track(
         ) > 0
             && config
                 .flags
-                .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+                .contains(ImportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
         {
             log::warn!("Imported grouping tag(s) from ID3 text frame TIT1 instead of GRP1");
         }
@@ -580,7 +583,10 @@ pub fn import_metadata_into_track(
     }
 
     // Artwork
-    if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
+    if config
+        .flags
+        .contains(ImportTrackFlags::METADATA_EMBEDDED_ARTWORK)
+    {
         let artwork =
             if let Some((apic_type, media_type, image_data)) = find_embedded_artwork_image(tag) {
                 try_ingest_embedded_artwork_image(
@@ -599,7 +605,10 @@ pub fn import_metadata_into_track(
     }
 
     // Serato Tags
-    if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
+    if config
+        .flags
+        .contains(ImportTrackFlags::CUSTOM_SERATO_MARKERS)
+    {
         let mut serato_tags = SeratoTagContainer::new();
 
         for geob in tag.encapsulated_objects() {
@@ -713,7 +722,7 @@ pub fn export_track(
     tag.remove_extended_text(Some("WORK"), None);
     if config
         .flags
-        .contains(ExportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+        .contains(ExportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
     {
         tag.set_text_values(
             "TIT1",
@@ -789,33 +798,41 @@ pub fn export_track(
         }
     }
 
-    // Release
-    if let Some(copyright) = &track.copyright {
-        tag.set_text("TCOP", copyright);
+    // Release and recording dates
+    let released_at_key;
+    let recorded_at_key;
+    if config
+        .flags
+        .contains(ExportTrackFlags::COMPATIBILITY_ID3V2_MUSICBRAINZ_PICARD_TDRC_TDOR)
+    {
+        released_at_key = "TDRC";
+        recorded_at_key = "TDOR";
     } else {
-        tag.remove("TCOP");
+        released_at_key = "TDRL";
+        recorded_at_key = "TDRC";
     }
+    if let Some(released_at) = &track.released_at {
+        tag.set_text(released_at_key, released_at.to_string());
+    } else {
+        tag.remove(released_at_key);
+    }
+    if let Some(recorded_at) = &track.recorded_at {
+        let recorded_at = export_date_or_date_time(*recorded_at);
+        tag.set_text(recorded_at_key, recorded_at.to_string());
+    } else {
+        tag.remove(recorded_at_key);
+    }
+
+    // Publishing info
     if let Some(released_by) = &track.released_by {
         tag.set_text("TPUB", released_by);
     } else {
         tag.remove("TPUB");
     }
-    // Store the release date in the field "TDRC" which is commonly
-    // used for this purpose. The "TDRL" field is hardly used anywhere.
-    if let Some(released_at) = &track.released_at {
-        // Write the release date into "TDRC"/`date_recorded`
-        // instead of "TDRL"/`date_released`!
-        let released_at = export_date_or_date_time(*released_at);
-        tag.set_date_recorded(released_at);
+    if let Some(copyright) = &track.copyright {
+        tag.set_text("TCOP", copyright);
     } else {
-        tag.remove_date_recorded();
-    }
-    // Store the recording date in the field "TDOR" for the original release
-    if let Some(recorded_at) = &track.recorded_at {
-        let recorded_at = export_date_or_date_time(*recorded_at);
-        tag.set_text("TDOR", recorded_at.to_string());
-    } else {
-        tag.remove("TDOR");
+        tag.remove("TCOP");
     }
 
     // Numbers
@@ -853,7 +870,7 @@ pub fn export_track(
 
     // Export all tags
     tag.remove_encapsulated_object(Some(MIXXX_CUSTOM_TAGS_GEOB_DESCRIPTION), None, None, None); // legacy frame
-    if config.flags.contains(ExportTrackFlags::AOIDE_TAGS) && !track.tags.is_empty() {
+    if config.flags.contains(ExportTrackFlags::CUSTOM_AOIDE_TAGS) && !track.tags.is_empty() {
         match serde_json::to_vec(&aoide_core_json::tag::Tags::from(
             track.tags.clone().untie(),
         )) {
@@ -919,7 +936,7 @@ pub fn export_track(
     // Grouping(s)
     let grouping_frame_id = if config
         .flags
-        .contains(ExportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+        .contains(ExportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
     {
         "GRP1"
     } else {

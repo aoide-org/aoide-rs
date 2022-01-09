@@ -412,7 +412,7 @@ impl Metadata {
         }
 
         let mut tags_map = TagsMap::default();
-        if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
+        if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
             // Pre-populate tags
             if let Some(data) = mp4_tag.data_of(&AOIDE_TAGS_IDENT).next() {
                 if let Some(tags) = match data {
@@ -532,7 +532,10 @@ impl Metadata {
         }
 
         // Artwork
-        if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
+        if config
+            .flags
+            .contains(ImportTrackFlags::METADATA_EMBEDDED_ARTWORK)
+        {
             let artwork = if let Some((apic_type, image_format, image_data)) =
                 find_embedded_artwork_image(&mp4_tag)
             {
@@ -552,7 +555,10 @@ impl Metadata {
         }
 
         // Serato Tags
-        if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
+        if config
+            .flags
+            .contains(ImportTrackFlags::CUSTOM_SERATO_MARKERS)
+        {
             let mut serato_tags = SeratoTagContainer::new();
 
             if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS_IDENT).next() {
@@ -859,7 +865,7 @@ pub fn export_track_to_path(
 
     // Export all tags
     mp4_tag.remove_data_of(&MIXXX_CUSTOM_TAGS_IDENT); // legacy atom
-    if config.flags.contains(ExportTrackFlags::AOIDE_TAGS) {
+    if config.flags.contains(ExportTrackFlags::CUSTOM_AOIDE_TAGS) {
         if track.tags.is_empty() {
             mp4_tag.remove_data_of(&AOIDE_TAGS_IDENT);
         } else {

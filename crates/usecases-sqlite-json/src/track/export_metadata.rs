@@ -49,9 +49,7 @@ pub fn handle_request(
     // FIXME: Replace hard-coded tag mapping
     let faceted_tag_mapping = predefined_faceted_tag_mapping_config();
     // FIXME: Replace hard-coded export flags
-    let flags = ExportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
-        | ExportTrackFlags::AOIDE_TAGS
-        | ExportTrackFlags::SERATO_MARKERS;
+    let flags = ExportTrackFlags::all();
     let config = ExportTrackConfig {
         faceted_tag_mapping,
         flags,

@@ -315,7 +315,7 @@ impl Metadata {
         }
 
         let mut tags_map = TagsMap::default();
-        if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
+        if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
             // Pre-populate tags
             if let Some(tags) = vorbis::import_aoide_tags(metaflac_tag) {
                 debug_assert_eq!(0, tags_map.total_count());
@@ -394,7 +394,10 @@ impl Metadata {
             track.indexes.movement = index;
         }
 
-        if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
+        if config
+            .flags
+            .contains(ImportTrackFlags::METADATA_EMBEDDED_ARTWORK)
+        {
             let artwork = if let Some((apic_type, media_type, image_data)) =
                 find_embedded_artwork_image(metaflac_tag)
             {
@@ -417,7 +420,10 @@ impl Metadata {
         track.tags = Canonical::tie(tags_map.into());
 
         // Serato Tags
-        if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
+        if config
+            .flags
+            .contains(ImportTrackFlags::CUSTOM_SERATO_MARKERS)
+        {
             let mut serato_tags = SeratoTagContainer::new();
             vorbis::import_serato_markers2(metaflac_tag, &mut serato_tags, SeratoTagFormat::FLAC);
 

@@ -49,14 +49,56 @@ use std::{
 
 #[rustfmt::skip]
 bitflags! {
+    /// Flags for controlling the import
+    ///
+    /// It is recommended to enable all for maximum information and
+    /// maximum compatibility.
     pub struct ImportTrackFlags: u16 {
-        const METADATA                            = 0b0000_0000_0000_0001;
-        const EMBEDDED_ARTWORK                    = 0b0000_0000_0000_0011; // implies METADATA
-        const ARTWORK_DIGEST                      = 0b0000_0000_0000_0111; // Hash cover image, implies EMBEDDED_ARTWORK
-        // Custom application metadata
-        const ITUNES_ID3V2_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0000; // ID3v2 with iTunes v12.5.4 and newer
-        const AOIDE_TAGS                          = 0b0000_0010_0000_0001; // implies METADATA
-        const SERATO_MARKERS                      = 0b0000_0100_0000_0001; // implies METADATA
+        /// Import metadata
+        ///
+        /// Import metadata from file tags like ID3 frames, MPEG4 atoms,
+        /// or Vorbis Comments.
+        const METADATA                                          = 0b0000_0000_0000_0001;
+
+        /// Import embedded artwork
+        ///
+        /// Imports a single cover image embedded in the metadata.
+        ///
+        /// Implies METADATA.
+        const METADATA_EMBEDDED_ARTWORK                         = 0b0000_0000_0000_0011;
+
+        /// Hash cover image
+        ///
+        /// Implies METADATA_EMBEDDED_ARTWORK.
+        const METADATA_EMBEDDED_ARTWORK_DIGEST                  = 0b0000_0000_0000_0111;
+
+        /// Use iTunes grouping/movement/work mapping
+        ///
+        /// Use the mapping for grouping and movement/WORK fields as introduced
+        /// by iTunes v12.5.4.
+        const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0000;
+
+        /// Use the `TDRC` and `TDOR` frames for the release and recording date
+        /// respectively.
+        ///
+        /// iTunes and most other applications don't strictly follow the ID3v2.4
+        /// standard that provides `TDRL` (release date), `TDRC` (recording date),
+        /// `TDOR` (original release date), and more date frames for various purposes.
+        /// Instead they simply (mis)use `TDRC` for the release date and `TDOR` for
+        /// both the original release and recording date without further distinction.
+        ///
+        /// See also https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
+        const COMPATIBILITY_ID3V2_MUSICBRAINZ_PICARD_TDRC_TDOR  = 0b0000_0010_0000_0000;
+
+        /// Import aoide faceted tags
+        ///
+        /// Implies METADATA.
+        const CUSTOM_AOIDE_TAGS                                 = 0b0001_0000_0000_0001;
+
+        /// Import metadata (cue points, loops, track color) from Serato file tags
+        ///
+        /// Implies METADATA.
+        const CUSTOM_SERATO_MARKERS                             = 0b0010_0000_0000_0001;
     }
 }
 
@@ -68,7 +110,7 @@ impl ImportTrackFlags {
 
     #[must_use]
     pub fn new_artwork_digest(self) -> MediaDigest {
-        if self.contains(Self::ARTWORK_DIGEST) {
+        if self.contains(Self::METADATA_EMBEDDED_ARTWORK_DIGEST) {
             MediaDigest::new()
         } else {
             MediaDigest::dummy()
