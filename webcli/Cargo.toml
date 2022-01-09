@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 anyhow = "*"
-clap = { version = "2" }
-env_logger = { version = ">=0.9" }
+clap = "*"
+env_logger = "*"
 log = "*"
 reqwest = { version = "*", default-features = false, features = ["rustls-tls"] }
 tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }

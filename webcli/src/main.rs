@@ -32,7 +32,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use clap::{App, Arg};
+use clap::{App, Arg, ArgMatches};
+use model::{Effect, Task};
 use tokio::signal;
 
 use aoide_core::{
@@ -43,8 +44,10 @@ use aoide_core::{
 use aoide_core_api::media::tracker::DirTrackingStatus;
 
 use aoide_client::{
+    message::Message as ClientMessage,
     messaging::{message_channel, message_loop, send_message},
     models::{collection, media_source, media_tracker},
+    state::{State as ClientState, StateUpdated as ClientStateUpdated},
 };
 
 mod model;
@@ -60,6 +63,37 @@ const COLLECTION_VFS_ROOT_URL_PARAM: &str = "vfs-root-url";
 
 const MEDIA_ROOT_URL_PARAM: &str = "media-root-url";
 
+#[derive(Debug)]
+struct CliState {
+    matches: ArgMatches,
+    state: State,
+}
+
+impl CliState {
+    pub fn new(matches: ArgMatches) -> Self {
+        Self {
+            matches,
+            state: Default::default(),
+        }
+    }
+}
+
+impl ClientState for CliState {
+    type Intent = Intent;
+    type Effect = Effect;
+    type Task = Task;
+
+    fn update(
+        &mut self,
+        message: ClientMessage<Self::Intent, Self::Effect>,
+    ) -> ClientStateUpdated<Self::Effect, Self::Task> {
+        match message {
+            ClientMessage::Intent(intent) => intent.apply_on(&mut self.state),
+            ClientMessage::Effect(effect) => effect.apply_on(&mut self.state),
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(DEFAULT_LOG_FILTER))
@@ -68,18 +102,18 @@ async fn main() -> anyhow::Result<()> {
     let default_service_url =
         env::var("API_URL").unwrap_or_else(|_| DEFAULT_SERVICE_URL.to_owned());
 
-    let matches = App::new("aoide-cli")
+    let mut app = App::new("aoide-cli")
         .about("An experimental CLI for performing tasks on aoide")
         .version("0.0")
         .arg(
-            Arg::with_name("collection-uid")
-                .short("c")
+            Arg::new("collection-uid")
+                .short('c')
                 .long("collection-uid")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("service-url")
-                .short("s")
+            Arg::new("service-url")
+                .short('s')
                 .long("service-url")
                 .takes_value(true)
                 .required(false)
@@ -92,12 +126,12 @@ async fn main() -> anyhow::Result<()> {
                     App::new("create-mixxx")
                         .about("Creates a new mixxx.org collection for Mixxx")
                         .arg(
-                            Arg::with_name("title")
+                            Arg::new("title")
                                 .help("The title of the new collection")
                                 .required(true),
                         )
                         .arg(
-                            Arg::with_name(COLLECTION_VFS_ROOT_URL_PARAM)
+                            Arg::new(COLLECTION_VFS_ROOT_URL_PARAM)
                                 .help("The file URL of the common root directory that contains all media sources")
                                 .required(true),
                         ),
@@ -110,7 +144,7 @@ async fn main() -> anyhow::Result<()> {
                     App::new("purge-orphaned")
                         .about("Purges orphaned media sources that are not referenced by any track")
                         .arg(
-                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                            Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The common root URL or directory that should be considered")
                                 .required(false),
                         ),
@@ -119,7 +153,7 @@ async fn main() -> anyhow::Result<()> {
                     App::new("purge-untracked")
                         .about("Purges untracked media sources including their tracks")
                         .arg(
-                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                            Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be purged")
                                 .required(false),
                         ),
@@ -136,7 +170,7 @@ async fn main() -> anyhow::Result<()> {
                     App::new("status")
                         .about("Queries the status of the media tracker")
                         .arg(
-                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                            Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be queried")
                                 .required(false),
                         ),
@@ -145,7 +179,7 @@ async fn main() -> anyhow::Result<()> {
                     App::new("scan-directories")
                         .about("Scans directories on the file system for added/modified/removed media sources")
                         .arg(
-                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                            Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be scanned")
                                 .required(false),
                         ),
@@ -154,7 +188,7 @@ async fn main() -> anyhow::Result<()> {
                     App::new("untrack-directories")
                         .about("Untracks directories on the file system")
                         .arg(
-                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                            Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be untracked")
                                 .required(true),
                         ),
@@ -163,7 +197,7 @@ async fn main() -> anyhow::Result<()> {
                     App::new("untrack-orphaned-directories")
                         .about("Untracks orphaned directories that have disappeared from the file system (deleted)")
                         .arg(
-                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                            Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be untracked")
                                 .required(false),
                         ),
@@ -172,7 +206,7 @@ async fn main() -> anyhow::Result<()> {
                     App::new("import-files")
                         .about("Imports media sources on the file system from scanned directories")
                         .arg(
-                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                            Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be imported")
                                 .required(false),
                         ),
@@ -181,13 +215,14 @@ async fn main() -> anyhow::Result<()> {
                     App::new("find-untracked-files")
                         .about("Scans directories on the file system for untracked entries")
                         .arg(
-                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                            Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be scanned")
                                 .required(false),
                         ),
                 ),
-        )
-        .get_matches();
+        );
+    let app_usage = app.render_usage();
+    let matches = app.get_matches();
 
     let api_url = matches
         .value_of("api-url")
@@ -214,8 +249,9 @@ async fn main() -> anyhow::Result<()> {
     let message_loop = tokio::spawn(message_loop(
         shared_env,
         (message_tx.clone(), message_rx),
-        Default::default(),
-        Box::new(move |state: &State| {
+        CliState::new(matches),
+        Box::new(move |cli_state| {
+            let CliState { matches, state } = cli_state;
             if !state.last_errors().is_empty() {
                 for err in state.last_errors() {
                     log::error!("{}", err);
@@ -398,9 +434,9 @@ async fn main() -> anyhow::Result<()> {
             }
 
             // Commands that don't require an active collection
-            if let ("collections", Some(collections_matches)) = matches.subcommand() {
+            if let Some(("collections", collections_matches)) = matches.subcommand() {
                 match collections_matches.subcommand() {
-                    ("create-mixxx", Some(create_matches)) => {
+                    Some(("create-mixxx", create_matches)) => {
                         let title = create_matches.value_of("title").expect("title");
                         let vfs_root_url = create_matches
                             .value_of(COLLECTION_VFS_ROOT_URL_PARAM)
@@ -421,20 +457,22 @@ async fn main() -> anyhow::Result<()> {
                         let intent = collection::Intent::CreateEntity { new_collection };
                         return Some(intent.into());
                     }
-                    (subcommand, _) => {
-                        debug_assert!(subcommand.is_empty());
-                        println!("{}", matches.usage());
+                    Some((_subcommand, _)) => {
+                        unreachable!("Unknown subcommand {}", _subcommand);
+                    }
+                    None => {
+                        println!("{}", app_usage);
                     }
                 }
             }
-            if let ("media-tracker", Some(matches)) = matches.subcommand() {
-                if matches!(matches.subcommand(), ("progress", _)) {
+            if let Some(("media-tracker", matches)) = matches.subcommand() {
+                if matches!(matches.subcommand(), Some(("progress", _))) {
                     subcommand_submitted = true;
                     last_media_tracker_progress_fetched = Some(Instant::now());
                     let intent = media_tracker::Intent::FetchProgress;
                     return Some(intent.into());
                 }
-                if matches!(matches.subcommand(), ("abort", _)) {
+                if matches!(matches.subcommand(), Some(("abort", _))) {
                     subcommand_submitted = true;
                     let intent = Intent::AbortPendingRequest;
                     return Some(intent);
@@ -510,11 +548,11 @@ async fn main() -> anyhow::Result<()> {
                     return Some(media_tracker::Intent::FetchProgress.into());
                 }
                 match matches.subcommand() {
-                    ("media-sources", Some(matches)) => match matches.subcommand() {
-                        ("purge-orphaned", matches) => {
+                    Some(("media-sources", matches)) => match matches.subcommand() {
+                        Some(("purge-orphaned", matches)) => {
                             let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
-                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .value_of(MEDIA_ROOT_URL_PARAM)
                                 .map(|s| s.parse().expect("URL"));
                             subcommand_submitted = true;
                             let params = aoide_core_api::media::source::purge_orphaned::Params {
@@ -526,10 +564,10 @@ async fn main() -> anyhow::Result<()> {
                             };
                             return Some(intent.into());
                         }
-                        ("purge-untracked", matches) => {
+                        Some(("purge-untracked", matches)) => {
                             let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
-                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .value_of(MEDIA_ROOT_URL_PARAM)
                                 .map(|s| s.parse().expect("URL"));
                             subcommand_submitted = true;
                             let params = aoide_core_api::media::source::purge_untracked::Params {
@@ -541,16 +579,18 @@ async fn main() -> anyhow::Result<()> {
                             };
                             return Some(intent.into());
                         }
-                        (subcommand, _) => {
-                            debug_assert!(subcommand.is_empty());
-                            println!("{}", matches.usage());
+                        Some((_subcommand, _)) => {
+                            unreachable!("Unknown subcommand {}", _subcommand);
+                        }
+                        None => {
+                            println!("{}", app_usage);
                         }
                     },
-                    ("media-tracker", Some(matches)) => match matches.subcommand() {
-                        ("query-status", matches) => {
+                    Some(("media-tracker", matches)) => match matches.subcommand() {
+                        Some(("query-status", matches)) => {
                             let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
-                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .value_of(MEDIA_ROOT_URL_PARAM)
                                 .map(|s| s.parse().expect("URL"))
                                 .or_else(|| {
                                     entity
@@ -572,10 +612,10 @@ async fn main() -> anyhow::Result<()> {
                             };
                             return Some(intent.into());
                         }
-                        ("scan-directories", matches) => {
+                        Some(("scan-directories", matches)) => {
                             let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
-                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .value_of(MEDIA_ROOT_URL_PARAM)
                                 .map(|s| s.parse().expect("URL"))
                                 .or_else(|| {
                                     entity
@@ -597,10 +637,10 @@ async fn main() -> anyhow::Result<()> {
                             };
                             return Some(intent.into());
                         }
-                        ("untrack-directories", matches) => {
+                        Some(("untrack-directories", matches)) => {
                             let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
-                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .value_of(MEDIA_ROOT_URL_PARAM)
                                 .map(|s| s.parse().expect("URL"))
                                 .expect("required");
                             subcommand_submitted = true;
@@ -615,10 +655,10 @@ async fn main() -> anyhow::Result<()> {
                             };
                             return Some(intent.into());
                         }
-                        ("untrack-orphaned-directories", matches) => {
+                        Some(("untrack-orphaned-directories", matches)) => {
                             let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
-                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .value_of(MEDIA_ROOT_URL_PARAM)
                                 .map(|s| s.parse().expect("URL"));
                             subcommand_submitted = true;
                             let params =
@@ -632,10 +672,10 @@ async fn main() -> anyhow::Result<()> {
                             };
                             return Some(intent.into());
                         }
-                        ("import-files", matches) => {
+                        Some(("import-files", matches)) => {
                             let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = matches
-                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .value_of(MEDIA_ROOT_URL_PARAM)
                                 .map(|s| s.parse().expect("URL"));
                             subcommand_submitted = true;
                             let params = aoide_core_api::media::tracker::import_files::Params {
@@ -648,10 +688,10 @@ async fn main() -> anyhow::Result<()> {
                             };
                             return Some(intent.into());
                         }
-                        ("find-untracked-files", find_untracked_files_matches) => {
+                        Some(("find-untracked-files", find_untracked_files_matches)) => {
                             let collection_uid = entity.hdr.uid.clone();
                             let media_root_url = find_untracked_files_matches
-                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .value_of(MEDIA_ROOT_URL_PARAM)
                                 .map(|s| s.parse().expect("URL"))
                                 .or_else(|| {
                                     entity
@@ -674,14 +714,18 @@ async fn main() -> anyhow::Result<()> {
                             };
                             return Some(intent.into());
                         }
-                        (subcommand, _) => {
-                            debug_assert!(subcommand.is_empty());
-                            println!("{}", matches.usage());
+                        Some((_subcommand, _)) => {
+                            unreachable!("Unknown subcommand {}", _subcommand);
+                        }
+                        None => {
+                            println!("{}", app_usage);
                         }
                     },
-                    (subcommand, _) => {
-                        debug_assert!(subcommand.is_empty());
-                        println!("{}", matches.usage());
+                    Some((_subcommand, _)) => {
+                        unreachable!("Unknown subcommand {}", _subcommand);
+                    }
+                    None => {
+                        println!("{}", app_usage);
                     }
                 }
             }
