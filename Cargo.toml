@@ -37,12 +37,12 @@ aoide-usecases-sqlite-json = { path = "crates/usecases-sqlite-json" }
 aoide-websrv-api = { path = "crates/websrv-api" }
 
 # Unreleased crates
-triseratops = { git = "https://github.com/Holzhaus/triseratops.git", branch = "main" }
-mp3-duration = { git = "https://github.com/aoide-org/mp3-duration.git", branch = "streaminfo" }
+triseratops = { git = "https://github.com/Holzhaus/triseratops", branch = "main" }
+mp3-duration = { git = "https://github.com/aoide-org/mp3-duration", branch = "streaminfo" }
 
 # Temporary patches
-#mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
-#id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3.git" }
+#mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta" }
+#id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3" }
 
 [profile.dev]
 split-debuginfo = "unpacked"

@@ -273,7 +273,7 @@ dependencies = [
  "aoide-core-api",
  "aoide-core-api-json",
  "aoide-core-json",
- "clap 3.0.5",
+ "clap 3.0.6",
  "env_logger",
  "log",
  "reqwest",
@@ -499,9 +499,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.0.5"
+version = "3.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f34b09b9ee8c7c7b400fe2f8df39cafc9538b03d6ba7f4ae13e4cb90bfbb7d"
+checksum = "1957aa4a5fb388f0a0a73ce7556c5b42025b874e5cdc2c670775e346e97adec0"
 dependencies = [
  "atty",
  "bitflags",
@@ -1296,7 +1296,7 @@ dependencies = [
 [[package]]
 name = "mp3-duration"
 version = "0.1.10"
-source = "git+https://github.com/aoide-org/mp3-duration.git?branch=streaminfo#0efc47e03ab7e13a43a4d6a0e720e8b220812c57"
+source = "git+https://github.com/aoide-org/mp3-duration?branch=streaminfo#0efc47e03ab7e13a43a4d6a0e720e8b220812c57"
 dependencies = [
  "thiserror",
 ]
@@ -2329,7 +2329,7 @@ dependencies = [
 [[package]]
 name = "triseratops"
 version = "0.0.2"
-source = "git+https://github.com/Holzhaus/triseratops.git?branch=main#7185e3a7ac5eddcee21c844ab3c92c5ae09dc5b6"
+source = "git+https://github.com/Holzhaus/triseratops?branch=main#7185e3a7ac5eddcee21c844ab3c92c5ae09dc5b6"
 dependencies = [
  "base64",
  "nom",
