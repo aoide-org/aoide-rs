@@ -14,6 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod effect;
+use std::path::PathBuf;
+
 pub use self::effect::Effect;
 
 pub mod environment;
@@ -45,6 +47,12 @@ impl From<Effect> for Message {
     fn from(effect: Effect) -> Self {
         Self::Effect(effect)
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ExportTracksParams {
+    pub track_search: aoide_core_api::track::search::Params,
+    pub output_file_path: PathBuf,
 }
 
 ///////////////////////////////////////////////////////////////////////

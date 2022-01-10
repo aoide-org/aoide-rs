@@ -470,7 +470,7 @@ impl From<_inner::SearchFilter> for SearchFilter {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug, Default, JsonSchema)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

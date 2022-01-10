@@ -13,14 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Effect, Intent};
+use std::{path::Path, time::Instant};
 
 use aoide_client::{
     models::{collection, media_source, media_tracker},
     web::{receive_response_body, ClientEnvironment},
 };
+use aoide_core::entity::EntityUid;
+use aoide_core_api::Pagination;
+use aoide_core_api_json::track::search::client_request_params;
 
-use std::time::Instant;
+use super::{Effect, ExportTracksParams, Intent};
 
 #[derive(Debug)]
 pub enum Task {
@@ -32,6 +35,10 @@ pub enum Task {
     MediaSources(media_source::Task),
     MediaTracker(media_tracker::Task),
     AbortPendingRequest,
+    ExportTracks {
+        collection_uid: EntityUid,
+        params: ExportTracksParams,
+    },
 }
 
 impl From<collection::Task> for Task {
@@ -67,6 +74,19 @@ impl Task {
                 let res = abort(env).await;
                 Effect::AbortFinished(res)
             }
+            Self::ExportTracks {
+                collection_uid,
+                params,
+            } => {
+                let ExportTracksParams {
+                    track_search: track_search_params,
+                    output_file_path,
+                } = params;
+                let res =
+                    export_tracks(env, &collection_uid, track_search_params, &output_file_path)
+                        .await;
+                Effect::ExportTracksFinished(res)
+            }
         }
     }
 }
@@ -76,5 +96,41 @@ pub async fn abort<E: ClientEnvironment>(env: &E) -> anyhow::Result<()> {
     let request = env.client().post(request_url);
     let response = request.send().await?;
     let _ = receive_response_body(response).await?;
+    Ok(())
+}
+
+async fn export_tracks<E: ClientEnvironment>(
+    env: &E,
+    collection_uid: &EntityUid,
+    track_search_params: aoide_core_api::track::search::Params,
+    output_file_path: &Path,
+) -> anyhow::Result<()> {
+    let no_pagination = Pagination::new();
+    let (query_params, search_params) = client_request_params(track_search_params, no_pagination);
+    let request_url = env.join_api_url(&format!(
+        "c/{}/t/search?{}",
+        collection_uid,
+        serde_urlencoded::to_string(query_params)?
+    ))?;
+    let request_body = serde_json::to_vec(&search_params)?;
+    let request = env.client().post(request_url).body(request_body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    log::debug!(
+        "Writing {} bytes into output file {}",
+        response_body.len(),
+        output_file_path.display()
+    );
+    /*
+    let mut file = tokio::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(output_file_path)
+        .await?;
+    // TODO: Wrap file into tokio::io::BufWriter?
+    file.write_all(response_body.as_ref()).await?;
+    file.flush().await?;
+     */
+    tokio::fs::write(output_file_path, response_body.as_ref()).await?;
     Ok(())
 }

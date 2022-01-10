@@ -45,6 +45,14 @@ pub struct Pagination {
 
 impl Pagination {
     #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            limit: None,
+            offset: None,
+        }
+    }
+
+    #[must_use]
     pub const fn has_offset(&self) -> bool {
         self.offset.is_some()
     }

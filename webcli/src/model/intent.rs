@@ -19,10 +19,11 @@ use aoide_client::{
     models::{collection, media_source, media_tracker},
     state::state_updated,
 };
+use aoide_core::entity::EntityUid;
 
 use crate::model::state::ControlState;
 
-use super::{Action, Effect, State, StateUpdated, Task};
+use super::{Action, Effect, ExportTracksParams, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Intent {
@@ -38,6 +39,10 @@ pub enum Intent {
     ActiveCollection(collection::Intent),
     MediaSources(media_source::Intent),
     MediaTracker(media_tracker::Intent),
+    ExportTracks {
+        collection_uid: EntityUid,
+        params: ExportTracksParams,
+    },
 }
 
 impl From<collection::Intent> for Intent {
@@ -137,6 +142,16 @@ impl Intent {
                     return StateUpdated::unchanged(None);
                 }
                 state_updated(intent.apply_on(&mut state.media_tracker))
+            }
+            Self::ExportTracks {
+                collection_uid,
+                params,
+            } => {
+                let next_action = Action::dispatch_task(Task::ExportTracks {
+                    collection_uid,
+                    params,
+                });
+                StateUpdated::unchanged(next_action)
             }
         }
     }

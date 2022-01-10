@@ -33,6 +33,7 @@ pub enum Effect {
     ActiveCollection(collection::Effect),
     MediaSources(media_source::Effect),
     MediaTracker(media_tracker::Effect),
+    ExportTracksFinished(anyhow::Result<()>),
 }
 
 impl From<collection::Effect> for Effect {
@@ -88,6 +89,14 @@ impl Effect {
             }
             Self::MediaSources(effect) => state_updated(effect.apply_on(&mut state.media_sources)),
             Self::MediaTracker(effect) => state_updated(effect.apply_on(&mut state.media_tracker)),
+            Self::ExportTracksFinished(res) => {
+                if let Err(err) = res {
+                    state.last_errors.push(err);
+                    StateUpdated::maybe_changed(None)
+                } else {
+                    StateUpdated::unchanged(None)
+                }
+            }
         }
     }
 }

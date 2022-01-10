@@ -277,6 +277,8 @@ dependencies = [
  "env_logger",
  "log",
  "reqwest",
+ "serde_json",
+ "serde_urlencoded",
  "tokio",
 ]
 

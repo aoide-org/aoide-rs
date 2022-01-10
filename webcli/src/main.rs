@@ -41,7 +41,10 @@ use aoide_core::{
     entity::EntityUid,
 };
 
-use aoide_core_api::media::tracker::DirTrackingStatus;
+use aoide_core_api::{
+    media::tracker::DirTrackingStatus,
+    track::search::{SortField, SortOrder},
+};
 
 use aoide_client::{
     message::Message as ClientMessage,
@@ -51,6 +54,8 @@ use aoide_client::{
 };
 
 mod model;
+use crate::model::ExportTracksParams;
+
 use self::model::{Environment, Intent, State};
 
 const DEFAULT_LOG_FILTER: &str = "info";
@@ -62,6 +67,8 @@ const PROGRESS_POLLING_PERIOD: Duration = Duration::from_millis(1_000);
 const COLLECTION_VFS_ROOT_URL_PARAM: &str = "vfs-root-url";
 
 const MEDIA_ROOT_URL_PARAM: &str = "media-root-url";
+
+const OUTPUT_FILE_PARAM: &str = "output-file";
 
 #[derive(Debug)]
 struct CliState {
@@ -109,7 +116,8 @@ async fn main() -> anyhow::Result<()> {
             Arg::new("collection-uid")
                 .short('c')
                 .long("collection-uid")
-                .takes_value(true),
+                .takes_value(true)
+                .required(false)
         )
         .arg(
             Arg::new("service-url")
@@ -117,7 +125,7 @@ async fn main() -> anyhow::Result<()> {
                 .long("service-url")
                 .takes_value(true)
                 .required(false)
-                .default_value(DEFAULT_SERVICE_URL),
+                .default_value(DEFAULT_SERVICE_URL)
         )
         .subcommand(
             App::new("collections")
@@ -128,12 +136,14 @@ async fn main() -> anyhow::Result<()> {
                         .arg(
                             Arg::new("title")
                                 .help("The title of the new collection")
-                                .required(true),
+                                .takes_value(true)
+                                .required(true)
                         )
                         .arg(
                             Arg::new(COLLECTION_VFS_ROOT_URL_PARAM)
                                 .help("The file URL of the common root directory that contains all media sources")
-                                .required(true),
+                                .takes_value(true)
+                                .required(true)
                         ),
                 )
         )
@@ -146,7 +156,8 @@ async fn main() -> anyhow::Result<()> {
                         .arg(
                             Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The common root URL or directory that should be considered")
-                                .required(false),
+                                .takes_value(true)
+                                .required(false)
                         ),
                 )
                 .subcommand(
@@ -155,7 +166,23 @@ async fn main() -> anyhow::Result<()> {
                         .arg(
                             Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be purged")
-                                .required(false),
+                                .takes_value(true)
+                                .required(false)
+                        ),
+                )
+        )
+        .subcommand(
+            App::new("tracks")
+                .about("Tasks for tracks")
+                .subcommand(
+                    App::new("export-all-into-file")
+                        .about("Exports all tracks of the collection into a JSON file")
+                        .arg(
+                            Arg::new(OUTPUT_FILE_PARAM)
+                                .short('o')
+                                .help("The output file path for writing JSON data")
+                                .takes_value(true)
+                                .required(true)
                         ),
                 )
         )
@@ -172,7 +199,8 @@ async fn main() -> anyhow::Result<()> {
                         .arg(
                             Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be queried")
-                                .required(false),
+                                .takes_value(true)
+                                .required(false)
                         ),
                 )
                 .subcommand(
@@ -181,7 +209,8 @@ async fn main() -> anyhow::Result<()> {
                         .arg(
                             Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be scanned")
-                                .required(false),
+                                .takes_value(true)
+                                .required(false)
                         ),
                 )
                 .subcommand(
@@ -190,7 +219,8 @@ async fn main() -> anyhow::Result<()> {
                         .arg(
                             Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be untracked")
-                                .required(true),
+                                .takes_value(true)
+                                .required(true)
                         ),
                 )
                 .subcommand(
@@ -199,7 +229,8 @@ async fn main() -> anyhow::Result<()> {
                         .arg(
                             Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be untracked")
-                                .required(false),
+                                .takes_value(true)
+                                .required(false)
                         ),
                 )
                 .subcommand(
@@ -208,7 +239,8 @@ async fn main() -> anyhow::Result<()> {
                         .arg(
                             Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be imported")
-                                .required(false),
+                                .takes_value(true)
+                                .required(false)
                         ),
                 )
                 .subcommand(
@@ -217,7 +249,8 @@ async fn main() -> anyhow::Result<()> {
                         .arg(
                             Arg::new(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be scanned")
-                                .required(false),
+                                .takes_value(true)
+                                .required(false)
                         ),
                 ),
         );
@@ -726,6 +759,41 @@ async fn main() -> anyhow::Result<()> {
                                 params,
                             };
                             return Some(intent.into());
+                        }
+                        Some((_subcommand, _)) => {
+                            unreachable!("Unknown subcommand {}", _subcommand);
+                        }
+                        None => {
+                            println!("{}", app_usage);
+                        }
+                    },
+                    Some(("tracks", matches)) => match matches.subcommand() {
+                        Some(("export-all-into-file", matches)) => {
+                            let collection_uid = entity.hdr.uid.clone();
+                            let output_file_path = matches
+                                .value_of(OUTPUT_FILE_PARAM)
+                                .expect(OUTPUT_FILE_PARAM)
+                                .to_owned();
+                            subcommand_submitted = true;
+                            let params = ExportTracksParams {
+                                output_file_path: output_file_path.into(),
+                                track_search: aoide_core_api::track::search::Params {
+                                    filter: None,
+                                    ordering: vec![SortOrder {
+                                        field: SortField::UpdatedAt,
+                                        direction:
+                                            aoide_core_api::sorting::SortDirection::Descending,
+                                    }],
+                                    // TODO: Configurable?
+                                    resolve_url_from_path: true,
+                                    ..Default::default()
+                                },
+                            };
+                            let intent = Intent::ExportTracks {
+                                collection_uid,
+                                params,
+                            };
+                            return Some(intent);
                         }
                         Some((_subcommand, _)) => {
                             unreachable!("Unknown subcommand {}", _subcommand);

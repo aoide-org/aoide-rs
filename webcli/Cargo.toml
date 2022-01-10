@@ -9,7 +9,9 @@ clap = "*"
 env_logger = "*"
 log = "*"
 reqwest = { version = "*", default-features = false, features = ["rustls-tls"] }
-tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
+serde_json = "*"
+serde_urlencoded = "*"
+tokio = { version = "*", default-features = false, features = ["macros", "fs", "rt-multi-thread", "signal"] }
 
 # Workspace dependencies
 aoide-client = { version = "*", features = ["with-reqwest", "with-tokio"] }
