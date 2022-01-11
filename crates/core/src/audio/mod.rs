@@ -126,6 +126,25 @@ impl From<Duration> for DurationMs {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct DurationOutOfRangeError;
+
+impl TryFrom<DurationMs> for Duration {
+    type Error = DurationOutOfRangeError;
+
+    fn try_from(value: DurationMs) -> Result<Self, Self::Error> {
+        let millis = value.0;
+        if !millis.is_finite() || millis < 0.0 {
+            return Err(DurationOutOfRangeError);
+        }
+        let secs = millis / 1_000.0;
+        if secs > Duration::MAX.as_secs_f64() {
+            return Err(DurationOutOfRangeError);
+        }
+        Ok(Self::from_secs_f64(millis / 1_000.0))
+    }
+}
+
 impl fmt::Display for DurationMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.to_inner(), Self::unit_of_measure())
