@@ -105,7 +105,12 @@ async fn export_tracks<E: ClientEnvironment>(
     track_search_params: aoide_core_api::track::search::Params,
     output_file_path: &Path,
 ) -> anyhow::Result<()> {
-    let no_pagination = Pagination::new();
+    // Explicitly define an offset with no limit to prevent using
+    // the default limit if no pagination is given!
+    let no_pagination = Pagination {
+        offset: Some(0),
+        limit: None, // unlimited
+    };
     let (query_params, search_params) = client_request_params(track_search_params, no_pagination);
     let request_url = env.join_api_url(&format!(
         "c/{}/t/search?{}",
