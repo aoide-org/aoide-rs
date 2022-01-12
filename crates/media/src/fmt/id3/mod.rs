@@ -19,10 +19,10 @@ use chrono::{Datelike as _, NaiveDate, NaiveDateTime, NaiveTime, Timelike as _, 
 use id3::{
     self,
     frame::{Comment, PictureType},
-    Timestamp,
 };
 use mime::Mime;
 use num_traits::FromPrimitive as _;
+use semval::IsValid;
 use triseratops::tag::{
     format::id3::ID3Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
     TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
@@ -42,7 +42,7 @@ use aoide_core::{
     },
     util::{
         canonical::Canonical,
-        clock::{DateOrDateTime, DateTime, DateYYYYMMDD, MonthType, YearType},
+        clock::{DateOrDateTime, DateTime, DateYYYYMMDD, MonthType, YearType, YEAR_MAX, YEAR_MIN},
         string::trimmed_non_empty_from,
     },
 };
@@ -83,38 +83,56 @@ pub(crate) fn map_id3_err(err: id3::Error) -> Error {
     }
 }
 
-fn parse_timestamp(timestamp: id3::Timestamp) -> DateOrDateTime {
+fn parse_timestamp(timestamp: id3::Timestamp) -> anyhow::Result<DateOrDateTime> {
+    let year = timestamp.year;
+    if year < i32::from(YEAR_MIN) || year > i32::from(YEAR_MAX) {
+        anyhow::bail!("Year out of range in {:?}", timestamp);
+    }
     match (timestamp.month, timestamp.day) {
         (Some(month), Some(day)) => {
-            let date = NaiveDate::from_ymd_opt(timestamp.year, month.into(), day.into());
+            let date = NaiveDate::from_ymd_opt(year, month.into(), day.into());
             if let Some(date) = date {
                 if let (Some(hour), Some(min), Some(sec)) =
                     (timestamp.hour, timestamp.minute, timestamp.second)
                 {
                     let time = NaiveTime::from_hms_opt(hour.into(), min.into(), sec.into());
                     if let Some(time) = time {
-                        return DateTime::from(chrono::DateTime::<Utc>::from_utc(
+                        let dt: DateOrDateTime = DateTime::from(chrono::DateTime::<Utc>::from_utc(
                             NaiveDateTime::new(date, time),
                             Utc,
                         ))
                         .into();
+                        debug_assert!(dt.is_valid());
+                        return Ok(dt);
                     }
                 }
-                DateYYYYMMDD::from(date).into()
+                let dt = DateYYYYMMDD::from(date);
+                debug_assert!(dt.is_valid());
+                Ok(dt.into())
             } else if month > 0 && month <= 12 {
-                DateYYYYMMDD::from_year_month(timestamp.year as YearType, month as MonthType).into()
+                let dt = DateYYYYMMDD::from_year_month(year as YearType, month as MonthType);
+                debug_assert!(dt.is_valid());
+                Ok(dt.into())
             } else {
-                DateYYYYMMDD::from_year(timestamp.year as YearType).into()
+                let dt = DateYYYYMMDD::from_year(year as YearType);
+                debug_assert!(dt.is_valid());
+                Ok(dt.into())
             }
         }
         (Some(month), None) => {
-            if month > 0 && month <= 12 {
-                DateYYYYMMDD::from_year_month(timestamp.year as YearType, month as MonthType).into()
+            let dt = if month > 0 && month <= 12 {
+                DateYYYYMMDD::from_year_month(year as YearType, month as MonthType)
             } else {
-                DateYYYYMMDD::from_year(timestamp.year as YearType).into()
-            }
+                DateYYYYMMDD::from_year(year as YearType)
+            };
+            debug_assert!(dt.is_valid());
+            Ok(dt.into())
         }
-        _ => DateYYYYMMDD::from_year(timestamp.year as YearType).into(),
+        _ => {
+            let dt = DateYYYYMMDD::from_year(year as YearType);
+            debug_assert!(dt.is_valid());
+            Ok(dt.into())
+        }
     }
 }
 
@@ -235,9 +253,11 @@ pub fn import_timestamp_from_first_text_frame(
     importer: &mut Importer,
     tag: &id3::Tag,
     frame_id: &str,
-) -> Option<Timestamp> {
+) -> Option<DateOrDateTime> {
     first_text_frame(tag, frame_id).and_then(|text| {
         text.parse()
+            .map_err(anyhow::Error::from)
+            .and_then(parse_timestamp)
             .map_err(|err| {
                 importer.add_issue(format!(
                     "Failed to parse ID3 time stamp from input '{}' in text frame '{}': {}",
@@ -426,27 +446,27 @@ pub fn import_metadata_into_track(
             // If a recording date is available it will be exported as "TDOR".
             // Primarily using this field for the distinction here ensures that
             // exported metadata will be re-imported consistently!
-            recorded_at = Some(parse_timestamp(tdor));
+            recorded_at = Some(tdor);
             released_at = if let Some(tdrc) = tdrc {
                 if let Some(tdrl) = tdrl {
                     if tdrl != tdrc {
                         importer.add_issue(format!("Using release date {} from frame \"TDRC\" instead of {} from frame \"TDRL\"", tdrc, tdrl));
                     }
                 }
-                Some(parse_timestamp(tdrc))
+                Some(tdrc)
             } else {
-                tdrl.map(parse_timestamp)
+                tdrl
             };
         } else if let Some(tdrl) = tdrl {
-            released_at = Some(parse_timestamp(tdrl));
-            recorded_at = tdrc.map(parse_timestamp);
+            released_at = Some(tdrl);
+            recorded_at = tdrc;
         } else {
-            released_at = tdrc.map(parse_timestamp);
+            released_at = tdrc;
             recorded_at = None;
         }
     } else {
-        released_at = tdrl.map(parse_timestamp);
-        recorded_at = tdrc.map(parse_timestamp);
+        released_at = tdrl;
+        recorded_at = tdrc;
     }
     if let Some(recorded_at) = recorded_at {
         track.recorded_at = Some(recorded_at);

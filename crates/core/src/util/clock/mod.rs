@@ -170,7 +170,7 @@ impl DateYYYYMMDD {
 
     #[must_use]
     pub const fn max() -> Self {
-        Self(99_999_999)
+        Self(99_991_231)
     }
 
     #[must_use]

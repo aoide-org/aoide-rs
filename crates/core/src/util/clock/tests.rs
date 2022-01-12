@@ -80,11 +80,15 @@ fn from_to_string() {
 
 #[test]
 fn validate_date() {
-    assert!(DateYYYYMMDD::new(19_960_000).validate().is_ok());
-    assert!(DateYYYYMMDD::new(19_960_101).validate().is_ok());
-    assert!(DateYYYYMMDD::new(19_961_231).validate().is_ok());
-    assert!(DateYYYYMMDD::new(19_960_230).validate().is_err()); // 1996-02-30
-    assert!(DateYYYYMMDD::new(19_960_001).validate().is_err()); // 1996-00-01
-    assert!(DateYYYYMMDD::new(1_996_000).validate().is_err());
-    assert!(DateYYYYMMDD::new(119_960_001).validate().is_err());
+    assert!(DateYYYYMMDD::from_year(YEAR_MIN).is_valid());
+    assert!(DateYYYYMMDD::from_year_month(YEAR_MIN, 1).is_valid());
+    assert!(DateYYYYMMDD::from_year(YEAR_MAX).is_valid());
+    assert!(DateYYYYMMDD::from_year_month(YEAR_MAX, 1).is_valid());
+    assert!(DateYYYYMMDD::new(19_960_000).is_valid());
+    assert!(DateYYYYMMDD::new(19_960_101).is_valid());
+    assert!(DateYYYYMMDD::new(19_961_231).is_valid());
+    assert!(!DateYYYYMMDD::new(19_960_230).is_valid()); // 1996-02-30
+    assert!(!DateYYYYMMDD::new(19_960_001).is_valid()); // 1996-00-01
+    assert!(!DateYYYYMMDD::new(1_996_000).is_valid());
+    assert!(!DateYYYYMMDD::new(119_960_001).is_valid());
 }

@@ -13,20 +13,50 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-
 use super::*;
 
-use aoide_core::util::clock::DateYYYYMMDD;
+use serde_json::json;
+
+use aoide_core::util::clock::{DateYYYYMMDD, YEAR_MAX, YEAR_MIN};
 
 mod _core {
     pub use aoide_core::util::clock::DateOrDateTime;
 }
 
-use serde_json::json;
+#[test]
+fn deserialize_min() {
+    assert_eq!(
+        _core::DateOrDateTime::Date(DateYYYYMMDD::min()),
+        serde_json::from_value::<DateOrDateTime>(json!(DateYYYYMMDD::min().to_inner()))
+            .unwrap()
+            .into()
+    );
+}
+
+#[test]
+fn deserialize_max() {
+    assert_eq!(
+        _core::DateOrDateTime::Date(DateYYYYMMDD::max()),
+        serde_json::from_value::<DateOrDateTime>(json!(DateYYYYMMDD::max().to_inner()))
+            .unwrap()
+            .into()
+    );
+}
 
 #[test]
 fn deserialize_year() {
+    assert_eq!(
+        _core::DateOrDateTime::Date(DateYYYYMMDD::from_year(YEAR_MIN)),
+        serde_json::from_value::<DateOrDateTime>(json!(YEAR_MIN))
+            .unwrap()
+            .into()
+    );
+    assert_eq!(
+        _core::DateOrDateTime::Date(DateYYYYMMDD::from_year(YEAR_MAX)),
+        serde_json::from_value::<DateOrDateTime>(json!(YEAR_MAX))
+            .unwrap()
+            .into()
+    );
     assert_eq!(
         _core::DateOrDateTime::Date(DateYYYYMMDD::new(19_960_000)),
         serde_json::from_value::<DateOrDateTime>(json!(1996))
@@ -49,6 +79,24 @@ fn deserialize_year() {
     assert!(serde_json::from_value::<DateOrDateTime>(json!(199_600)).is_err());
     assert!(serde_json::from_value::<DateOrDateTime>(json!(0)).is_err());
     assert!(serde_json::from_value::<DateOrDateTime>(json!(-1996)).is_err());
+}
+
+#[test]
+fn serialize_min() {
+    assert!(DateYYYYMMDD::min().is_year());
+    assert_eq!(
+        serde_json::to_string(&DateOrDateTime::Date(DateYYYYMMDD::min().into())).unwrap(),
+        serde_json::to_string(&json!(YEAR_MIN)).unwrap()
+    );
+}
+
+#[test]
+fn serialize_max() {
+    assert!(!DateYYYYMMDD::max().is_year());
+    assert_eq!(
+        serde_json::to_string(&DateOrDateTime::Date(DateYYYYMMDD::max().into())).unwrap(),
+        serde_json::to_string(&json!(DateYYYYMMDD::max().to_inner())).unwrap()
+    );
 }
 
 #[test]
