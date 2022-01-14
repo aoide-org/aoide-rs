@@ -41,12 +41,12 @@ opus_headers = { version = "*", optional = true }
 
 [features]
 # TODO: Add support for AIFF files
-fmt-aiff = []
+fmt-aiff = [ "id3" ]
 fmt-flac = [ "metaflac" ]
 fmt-mp4 = [ "mp4ameta" ]
 fmt-mp3 = [ "id3", "mp3-duration" ]
 fmt-ogg = [ "lewton", "metaflac" ] # metaflac for decoding FLAC picture blocks
 fmt-opus = [ "opus_headers", "metaflac" ] # metaflac for decoding FLAC picture blocks
 # TODO: Add support for WAV files
-fmt-wav = []
+fmt-wav = [ "id3" ]
 default = [ "fmt-aiff", "fmt-flac", "fmt-mp3", "fmt-mp4", "fmt-ogg", "fmt-opus", "fmt-wav" ]
