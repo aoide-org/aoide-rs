@@ -15,6 +15,8 @@
 
 use std::{borrow::Cow, io::SeekFrom, path::Path, time::Duration};
 
+use id3::TagLike as _;
+
 use aoide_core::{
     audio::{
         channel::{ChannelCount, NumberOfChannels},

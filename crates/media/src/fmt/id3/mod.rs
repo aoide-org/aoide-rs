@@ -18,7 +18,8 @@ use std::borrow::Cow;
 use chrono::{Datelike as _, NaiveDate, NaiveDateTime, NaiveTime, Timelike as _, Utc};
 use id3::{
     self,
-    frame::{Comment, PictureType},
+    frame::{Comment, EncapsulatedObject, ExtendedText, PictureType},
+    TagLike as _,
 };
 use mime::Mime;
 use num_traits::FromPrimitive as _;
@@ -709,7 +710,10 @@ pub fn export_track(
             if let Some(formatted_track_gain) =
                 audio.loudness.map(format_valid_replay_gain).flatten()
             {
-                tag.add_extended_text("REPLAYGAIN_TRACK_GAIN", formatted_track_gain);
+                tag.add_frame(ExtendedText {
+                    description: "REPLAYGAIN_TRACK_GAIN".to_owned(),
+                    value: formatted_track_gain,
+                });
             } else {
                 tag.remove_extended_text(Some("REPLAYGAIN_TRACK_GAIN"), None);
             }
@@ -726,7 +730,10 @@ pub fn export_track(
     // Music: Tempo/BPM
     tag.remove_extended_text(Some("TEMPO"), None);
     if let Some(formatted_bpm) = format_validated_tempo_bpm(&mut track.metrics.tempo_bpm) {
-        tag.add_extended_text("BPM", formatted_bpm);
+        tag.add_frame(ExtendedText {
+            description: "BPM".to_owned(),
+            value: formatted_bpm,
+        });
         tag.set_text(
             "TBPM",
             track
@@ -777,7 +784,10 @@ pub fn export_track(
         Titles::filter_kind(track.titles.iter(), TitleKind::Work).map(|title| title.name.as_str()),
         ID3V24_MULTI_FIELD_SEPARATOR,
     ) {
-        tag.add_extended_text("WORK", joined_titles.to_owned());
+        tag.add_frame(ExtendedText {
+            description: "WORK".to_owned(),
+            value: joined_titles.into_owned(),
+        });
     }
 
     // Track actors
@@ -920,12 +930,12 @@ pub fn export_track(
             track.tags.clone().untie(),
         )) {
             Ok(value) => {
-                tag.add_encapsulated_object(
-                    AOIDE_TAGS_GEOB_DESCRIPTION.to_owned(),
-                    mime::APPLICATION_JSON.type_().to_string(),
-                    String::default(),
-                    value,
-                );
+                tag.add_frame(EncapsulatedObject {
+                    description: AOIDE_TAGS_GEOB_DESCRIPTION.to_owned(),
+                    mime_type: mime::APPLICATION_JSON.type_().to_string(),
+                    filename: String::new(),
+                    data: value,
+                });
             }
             Err(err) => {
                 log::warn!(
@@ -1086,17 +1096,20 @@ fn export_filtered_actor_names_txxx(
     tag.remove_extended_text(Some(txxx_description.as_ref()), None);
     match actor_names {
         FilteredActorNames::Summary(name) => {
-            tag.add_extended_text(txxx_description.as_ref().to_owned(), name);
+            tag.add_frame(ExtendedText {
+                description: txxx_description.as_ref().to_owned(),
+                value: name.to_owned(),
+            });
         }
         FilteredActorNames::Primary(names) => {
             if let Some(joined_names) = TagMappingConfig::join_labels_with_separator(
                 names.iter().copied(),
                 ID3V24_MULTI_FIELD_SEPARATOR,
             ) {
-                tag.add_extended_text(
-                    txxx_description.as_ref().to_owned(),
-                    joined_names.to_owned(),
-                );
+                tag.add_frame(ExtendedText {
+                    description: txxx_description.as_ref().to_owned(),
+                    value: joined_names.into_owned(),
+                });
             }
         }
     }
@@ -1148,13 +1161,13 @@ fn export_faceted_tags_comment(
         )
     };
     if let Some(joined_labels) = joined_labels {
+        let description = description.into();
+        tag.remove_comment(Some(&description), None);
         let comment = Comment {
             lang: String::default(),
-            description: description.into(),
+            description,
             text: joined_labels.into(),
         };
-        tag.add_comment(comment);
-    } else {
-        tag.remove_comment(Some(&description.into()), None);
+        tag.add_frame(comment);
     }
 }
