@@ -44,17 +44,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added *measure position* to beat marker
-- Added support for beat loops to *cue markers*
-- Added optional *out behavior* (stop/loop/next) to cue markers for
+- Added _measure position_ to beat marker
+- Added support for beat loops to _cue markers_
+- Added optional _out behavior_ (stop/loop/next) to cue markers for
   quick edits and loops
 
 ### Changed
 
 - Split track/marker colors into an RGB color code and a color index
 - Add optional sample position to marker positions
-- Renamed *position marker* to *cue marker*
-- Combined *beat* and *key* markers as *beat&key* (bnk) markers
+- Renamed _position marker_ to _cue marker_
+- Combined _beat_ and _key_ markers as _beat&key_ (bnk) markers
 
 ### Removed
 
@@ -158,7 +158,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Fixed serialization mapping of collection properties. The *name* and *description*
+- Fixed serialization mapping of collection properties. The _name_ and _description_
   of existing collections must be exchanged manually.
 
 ## [0.5.0] - 2019-12-19
@@ -199,16 +199,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.1] - 2019-09-22
 
-**This release introduces a backward-incompatible API change. The parameter *mediaUri* has been replaced by *mediaUriDecoded*.**
+**This release introduces a backward-incompatible API change. The parameter _mediaUri_ has been replaced by _mediaUriDecoded_.**
 
 ### Added
 
-- New string field *mediaUri* for filtering canonical, percent-encoded URIs
-- New string field *mediaUri* and *mediaUriDecoded* for ordering search results
+- New string field _mediaUri_ for filtering canonical, percent-encoded URIs
+- New string field _mediaUri_ and _mediaUriDecoded_ for ordering search results
 
 ### Changed
 
-- Replaced string field *mediaUri* with *mediaUriDecoded*
+- Replaced string field _mediaUri_ with _mediaUriDecoded_
 
 ## [0.3.0] - 2019-09-13
 
@@ -304,15 +304,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added *AutoCrop* position marker type
+- Added _AutoCrop_ position marker type
 - Added /about (GET) for health checks and monitoring
 - Added /shutdown (POST) for graceful shutdown
 - Added /tracks/purge (POST) to purge track sources and tracks by URI
-- Print socket address to *stdout* for connecting clients through an ephemeral port
+- Print socket address to _stdout_ for connecting clients through an ephemeral port
 
 ### Changed
 
-- Renamed *LoadCue* position marker to just *Cue*
+- Renamed _LoadCue_ position marker to just _Cue_
 
 ## [0.0.4] - 2019-05-11
 
