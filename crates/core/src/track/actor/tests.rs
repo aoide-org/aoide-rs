@@ -18,32 +18,32 @@ use super::*;
 #[test]
 fn actors() {
     let summary_artist_name = "Madonna feat. M.I.A. and Nicki Minaj";
-    let primary_artist_name = "Madonna";
-    let primary_producer_name = "Martin Solveig";
+    let individual_artist_names = ["Madonna", "M.I.A.", "Nicki Minaj"];
+    let individual_producer_name = "Martin Solveig";
     let actors = vec![
         Actor {
             name: summary_artist_name.into(),
             ..Default::default()
         },
         Actor {
-            name: primary_artist_name.into(),
-            kind: ActorKind::Primary,
+            name: individual_artist_names[0].into(),
+            kind: ActorKind::Individual,
             ..Default::default()
         },
         Actor {
-            name: "M.I.A.".into(),
-            kind: ActorKind::Secondary,
+            name: individual_artist_names[1].into(),
+            kind: ActorKind::Individual,
             ..Default::default()
         },
         Actor {
-            name: primary_producer_name.into(),
+            name: individual_producer_name.into(),
             role: ActorRole::Producer,
-            kind: ActorKind::Primary,
+            kind: ActorKind::Individual,
             ..Default::default()
         },
         Actor {
-            name: "Nicki Minaj".into(),
-            kind: ActorKind::Secondary,
+            name: individual_artist_names[2].into(),
+            kind: ActorKind::Individual,
             ..Default::default()
         },
     ];
@@ -52,20 +52,19 @@ fn actors() {
 
     // Artist(s)
     assert_eq!(
-        summary_artist_name,
+        &[summary_artist_name],
         Actors::filter_kind_role(actors.iter(), ActorKind::Summary, ActorRole::Artist)
-            .next()
-            .unwrap()
-            .name
+            .map(|actor| actor.name.as_str())
+            .collect::<Vec<_>>()
+            .as_slice()
     );
     assert_eq!(
-        primary_artist_name,
-        Actors::filter_kind_role(actors.iter(), ActorKind::Primary, ActorRole::Artist)
-            .next()
-            .unwrap()
-            .name
+        individual_artist_names,
+        Actors::filter_kind_role(actors.iter(), ActorKind::Individual, ActorRole::Artist)
+            .map(|actor| actor.name.as_str())
+            .collect::<Vec<_>>()
+            .as_slice()
     );
-    // Not allowed to query for multiple secondary artists
     assert_eq!(
         summary_artist_name,
         Actors::main_actor(actors.iter(), ActorRole::Artist)
@@ -79,25 +78,25 @@ fn actors() {
         Actors::filter_kind_role(&actors, ActorKind::Summary, ActorRole::Producer).count()
     );
     assert_eq!(
-        primary_producer_name,
-        Actors::filter_kind_role(&actors, ActorKind::Primary, ActorRole::Producer)
-            .next()
-            .unwrap()
-            .name
+        &[individual_producer_name],
+        Actors::filter_kind_role(&actors, ActorKind::Individual, ActorRole::Producer)
+            .map(|actor| actor.name.as_str())
+            .collect::<Vec<_>>()
+            .as_slice()
     );
     assert_eq!(
-        0,
-        Actors::filter_kind_role(&actors, ActorKind::Secondary, ActorRole::Producer).count()
-    );
-    assert_eq!(
-        primary_producer_name,
+        individual_producer_name,
         Actors::main_actor(actors.iter(), ActorRole::Producer)
             .unwrap()
             .name
     );
 
     // Conductor(s)
-    for kind in &[ActorKind::Summary, ActorKind::Secondary, ActorKind::Primary] {
+    for kind in &[
+        ActorKind::Summary,
+        ActorKind::Individual,
+        ActorKind::Individual,
+    ] {
         assert_eq!(
             0,
             Actors::filter_kind_role(&actors, *kind, ActorRole::Conductor).count()

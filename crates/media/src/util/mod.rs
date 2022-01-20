@@ -90,8 +90,8 @@ fn adjust_last_actor_kind(actors: &mut [Actor], role: ActorRole) -> ActorKind {
     if let Some(last_actor) = actors.last_mut() {
         if last_actor.role == role {
             // ActorKind::Summary is only allowed once for each role
-            last_actor.kind = ActorKind::Primary;
-            return ActorKind::Primary;
+            last_actor.kind = ActorKind::Individual;
+            return ActorKind::Individual;
         }
     }
     ActorKind::Summary

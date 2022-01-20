@@ -27,15 +27,14 @@ mod _core {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum ActorKind {
-    Summary = 0,
-    Primary = 1,
-    Secondary = 2,
-    Sorting = 3,
+    Summary = _core::ActorKind::Summary as u8,
+    Individual = _core::ActorKind::Individual as u8,
+    Sorting = _core::ActorKind::Sorting as u8,
 }
 
 impl ActorKind {
     fn is_default(&self) -> bool {
-        matches!(self, Self::Summary)
+        matches!(self, ActorKind::Summary)
     }
 }
 
@@ -50,8 +49,7 @@ impl From<ActorKind> for _core::ActorKind {
         use _core::ActorKind::*;
         match from {
             ActorKind::Summary => Summary,
-            ActorKind::Primary => Primary,
-            ActorKind::Secondary => Secondary,
+            ActorKind::Individual => Individual,
             ActorKind::Sorting => Sorting,
         }
     }
@@ -62,8 +60,7 @@ impl From<_core::ActorKind> for ActorKind {
         use _core::ActorKind::*;
         match from {
             Summary => ActorKind::Summary,
-            Primary => ActorKind::Primary,
-            Secondary => ActorKind::Secondary,
+            Individual => ActorKind::Individual,
             Sorting => ActorKind::Sorting,
         }
     }

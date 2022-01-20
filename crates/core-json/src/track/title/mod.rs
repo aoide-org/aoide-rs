@@ -27,16 +27,16 @@ mod _core {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum TitleKind {
-    Main = 0,
-    Sub = 1,
-    Sorting = 2,
-    Work = 3,
-    Movement = 4,
+    Main = _core::TitleKind::Main as u8,
+    Sub = _core::TitleKind::Sub as u8,
+    Sorting = _core::TitleKind::Sorting as u8,
+    Work = _core::TitleKind::Work as u8,
+    Movement = _core::TitleKind::Movement as u8,
 }
 
 impl TitleKind {
     fn is_default(&self) -> bool {
-        matches!(self, Self::Main)
+        matches!(self, TitleKind::Main)
     }
 }
 

@@ -56,9 +56,8 @@ impl Default for ActorRole {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
 pub enum ActorKind {
     Summary = 0, // unspecified for display, may mention multiple actors with differing kinds and roles
-    Primary = 1,
-    Secondary = 2,
-    Sorting = 3, // for sorting
+    Individual = 1, // single persons or group/band names
+    Sorting = 2,
 }
 
 impl Default for ActorKind {
@@ -163,9 +162,9 @@ impl Actors {
             let mut roles: Vec<_> = actors.clone().map(|actor| actor.role).collect();
             roles.sort_unstable();
             roles.dedup();
-            // A summary entry is required for the default Artist role if multiple primary actors exist.
+            // A summary entry is required for the default Artist role if multiple individual actors exist.
             let summary_artist_missing =
-                Self::filter_kind_role(actors.clone(), ActorKind::Primary, ActorRole::Artist)
+                Self::filter_kind_role(actors.clone(), ActorKind::Individual, ActorRole::Artist)
                     .count()
                     > 1
                     && Self::filter_kind_role(
@@ -220,7 +219,7 @@ impl Actors {
         })
     }
 
-    // The singular summary actor or if none exists then the singular primary actor
+    // The singular summary actor or if none exists then the singular individual actor
     pub fn main_actor<'a, I>(actors: I, role: ActorRole) -> Option<&'a Actor>
     where
         I: Iterator<Item = &'a Actor> + Clone,
@@ -230,11 +229,11 @@ impl Actors {
         {
             return Some(actor);
         }
-        // Otherwise try `Primary` as a fallback
-        Self::filter_kind_role(actors, ActorKind::Primary, role).next()
+        // Otherwise try `Individual` as a fallback
+        Self::filter_kind_role(actors, ActorKind::Individual, role).next()
     }
 
-    // The singular summary actor or if none exists then the singular primary actor
+    // The singular summary actor or if none exists then the singular individual actor
     pub fn other_actors<'a, I>(actors: I, role: ActorRole) -> Option<&'a Actor>
     where
         I: Iterator<Item = &'a Actor> + Clone,
@@ -244,8 +243,8 @@ impl Actors {
         {
             return Some(actor);
         }
-        // Otherwise try `Primary` as a fallback
-        Self::filter_kind_role(actors, ActorKind::Primary, role).next()
+        // Otherwise try `Individual` as a fallback
+        Self::filter_kind_role(actors, ActorKind::Individual, role).next()
     }
 
     pub fn set_main_actor(

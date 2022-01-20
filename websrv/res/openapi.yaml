@@ -1089,8 +1089,8 @@ components:
       description: |
         Named actor, categorized by *kind* and *role*.
 
-        Only a single `summary` name is allowed while both `primary` and `secondary`
-        names may appear multiple times.
+        Only a single `summary` and `sorting` actor is allowed per track/album,
+        while multiple `individual` actors are allowed.
     ActorName:
       type: string
       minLength: 1
@@ -1102,8 +1102,8 @@ components:
       description: |
         Optional actor rank that defaults to 0 = summary if missing:
           * 0 = summary actor (default if missing)
-          * 1 = primary actor(s)
-          * 2 = secondary actor(s)
+          * 1 = individual actor(s), either persons or groups/bands
+          * 2 = sorting actor
     ActorRole:
       type: integer
       enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -3017,13 +3017,14 @@ components:
         Mandatory name, followed by optional level
     TitleKind:
       type: integer
-      enum: [0, 1, 2, 3]
+      enum: [0, 1, 2, 3, 4]
       description: |
         Optional level that defaults to 0 = main if missing:
           * 0 = main title (default)
           * 1 = subtitle
-          * 2 = work title for classical music
-          * 3 = movement title for classical music
+          * 2 = sorting
+          * 3 = work title for classical music
+          * 4 = movement title for classical music
     TitleName:
       type: string
       minLength: 1

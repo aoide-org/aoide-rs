@@ -73,28 +73,22 @@ impl<'a> FilteredActorNames<'a> {
         debug_assert!(
             Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role).count() <= 1
         );
-        // Either a summary actor or primary actors but not both at the same time
+        // Either a summary actor or individual actors but not both at the same time
         debug_assert!(
             Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role)
                 .next()
                 .is_none()
-                || Actors::filter_kind_role(actors.clone(), ActorKind::Primary, role)
+                || Actors::filter_kind_role(actors.clone(), ActorKind::Individual, role)
                     .next()
                     .is_none()
-        );
-        // Secondary actors are not supported yet
-        debug_assert!(
-            Actors::filter_kind_role(actors.clone(), ActorKind::Secondary, role)
-                .next()
-                .is_none()
         );
         if let Some(summary_actor) =
             Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role).next()
         {
             Self::Summary(summary_actor.name.as_str())
         } else {
-            let primary_actors = Actors::filter_kind_role(actors, ActorKind::Primary, role);
-            Self::Primary(primary_actors.map(|actor| actor.name.as_str()).collect())
+            let individual_actors = Actors::filter_kind_role(actors, ActorKind::Individual, role);
+            Self::Primary(individual_actors.map(|actor| actor.name.as_str()).collect())
         }
     }
 }
