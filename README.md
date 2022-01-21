@@ -20,6 +20,8 @@ A music _collection_ is an aggregation of both _tracks_ (aka songs) and _playlis
 ```plantuml
 @startuml
 
+skinparam backgroundColor transparent
+
 class Collection <<entity>> {
     uid
     rev
@@ -65,6 +67,8 @@ into sections. All tracks in a playlist must be contained in the same collection
 
 ```plantuml
 @startuml
+
+skinparam backgroundColor transparent
 
 class Playlist
 class PlaylistEntry
