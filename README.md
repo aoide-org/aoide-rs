@@ -9,7 +9,71 @@
 
 A local HTTP/REST service for managing and exploring music collections. Independent and portable. Written in Rust.
 
-## Fundamentals
+## The idea
+
+The basic ideas and domain model of aoide in a few sentences:
+
+- All **_media sources_** (e.g. audio files) are managed in the context of isolated **_collections_**.
+- Each **_media source_** represents and contains a single **_track_**.
+- The **_media tracker_** component is responsible for keeping track of all external modifications on _media sources_, e.g. when modifying the metadata of files.
+- Tracks can be organized manually in **_playlists_** resulting in _static track lists_.
+- Tracks can be **_queried_** by composing **_filtering and sorting criteria_** resulting in _dynamic track lists_ aka _virtual playlists_.
+
+Currently the focus is on local, file-based storage. The domain model is flexible enough to also include online media sources that could be referenced by arbitrary URIs.
+
+## Quickstart
+
+### Use Case
+
+- You store your audio files (mp3/m4a/flac/ogg/opus) on the local file system
+- All audio files are contained in a common root directory
+- The audio files contain metadata (ID3v2.4 tags/MP4 atoms/Vorbis comments)
+- You consider this metadata in the audio files as the _book of records_
+- You want to compose and execute search queries on these metadata properties
+
+aoide is able to ingest the metadata from the audio files and store it in a database that could be queried. aoide is also able to detect modifications of files and re-import the affected metadata on demand as needed.
+
+### Setup
+
+Both the initial ingestion and subsequent re-import of updated metadata can be accomplished by running the bundled shell script [`ingest_vfs_collection.sh`](./ingest_vfs_collection.sh). It is recommended to copy the contents and customize the settings to your needs.
+
+This sections only lists the most important configuration options that you might need to adjust. Refer to the comments in the script for advanced options.
+
+#### Web Server
+
+aoide implements a client/server architecture. The web server executable is started and stopped as part of the script for convenience.
+
+The server listens for requests on `WEBSRV_URL`.
+
+Log messages are redirected into the directory specified by `WEBSRV_LOG_DIR`.
+
+#### SQLite Database
+
+The database is stored in a single SQLite database files specified by `DATABASE_URL`.
+
+#### Music Collection
+
+Currently the only supported type of storage is a *virtual file system (VFS) with a common root directory. Media sources are then referenced by a relative path within this root directory.
+
+The informational properties of a collection are defined by `COLLECTION_TITLE` and `COLLECTION_KIND` (optional). If this collection does not exist it will be created on first run. All subsequent runs will display an error message that the collection could not be created, ignore them.
+
+The VFS root directory of the collection is specified by `COLLECTION_VFS_ROOT_URL`. Currently only `file://` URLs are supported for this purpose.
+
+### Ingest Data
+
+Run the script whenever metadata in audio files has been modified:
+
+```shell
+./ingest_vfs_collection.sh
+```
+
+You can safely interrupt the script at any point or stop the web server manually at your will. The database will catch up and resynchronize its contents on the next run. Easy and fool-proof.
+
+### Query Data
+
+Start the web server manually and access the web API at `<WEBSRV_URL>/api`. Please refer to the OpenAPI documentation in [`openapi.yaml`](./websrv/res/openapi.yaml).
+
+## Behind the scenes
 
 Pronounced /eɪˈiːdiː/ or _ay-ee-dee_ in English.
 
@@ -156,7 +220,7 @@ The web application is embedded in the server and enabled by default.
 #### just (optional)
 
 Install [just](https://github.com/casey/just) to automate various development
-tasks. Prepared recipes can be found in [.justfile](.justfile).
+tasks. Prepared recipes can be found in [`.justfile`](./.justfile).
 
 ### Executable
 
@@ -180,7 +244,7 @@ cargo run --all-features --package aoide-websrv
 ```
 
 The configuration is controlled by environment variables. Please refer to the
-[.env](.env) file in the project folder for an example configuration.
+[`.env`](./.env) file in the project folder for an example configuration.
 
 #### Configuration examples
 

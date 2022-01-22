@@ -37,7 +37,7 @@ use model::{Effect, Task};
 use tokio::signal;
 
 use aoide_core::{
-    collection::{Collection, MediaSourceConfig},
+    collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
     entity::EntityUid,
 };
 
@@ -60,15 +60,23 @@ use self::model::{Environment, Intent, State};
 
 const DEFAULT_LOG_FILTER: &str = "info";
 
-const DEFAULT_SERVICE_URL: &str = "http://[::1]:8080";
+const DEFAULT_WEBSRV_URL: &str = "http://[::1]:8080";
 
-const PROGRESS_POLLING_PERIOD: Duration = Duration::from_millis(1_000);
+const WEBSRV_URL_PARAM: &str = "websrv-url";
 
-const COLLECTION_VFS_ROOT_URL_PARAM: &str = "vfs-root-url";
+const CREATE_COLLECTION_TITLE_PARAM: &str = "title";
+
+const CREATE_COLLECTION_KIND_PARAM: &str = "kind";
+
+const CREATE_COLLECTION_VFS_ROOT_URL_PARAM: &str = "vfs-root-url";
+
+const ACTIVE_COLLECTION_TITLE_PARAM: &str = "collection-title";
 
 const MEDIA_ROOT_URL_PARAM: &str = "media-root-url";
 
 const OUTPUT_FILE_PARAM: &str = "output-file";
+
+const PROGRESS_POLLING_PERIOD: Duration = Duration::from_millis(1_000);
 
 #[derive(Debug)]
 struct CliState {
@@ -106,71 +114,77 @@ async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(DEFAULT_LOG_FILTER))
         .init();
 
-    let default_service_url =
-        env::var("API_URL").unwrap_or_else(|_| DEFAULT_SERVICE_URL.to_owned());
+    let default_websrv_url =
+        env::var("WEBSRV_URL").unwrap_or_else(|_| DEFAULT_WEBSRV_URL.to_owned());
+
+    let active_collection_title_arg = Arg::new(ACTIVE_COLLECTION_TITLE_PARAM)
+        .long(ACTIVE_COLLECTION_TITLE_PARAM)
+        .takes_value(true)
+        .help("The `title` of the collection")
+        .required(true);
 
     let mut app = App::new("aoide-cli")
         .about("An experimental CLI for performing tasks on aoide")
         .version("0.0")
         .arg(
-            Arg::new("collection-uid")
-                .short('c')
-                .long("collection-uid")
+            Arg::new(WEBSRV_URL_PARAM)
+                .long(WEBSRV_URL_PARAM)
                 .takes_value(true)
                 .required(false)
-        )
-        .arg(
-            Arg::new("service-url")
-                .short('s')
-                .long("service-url")
-                .takes_value(true)
-                .required(false)
-                .default_value(DEFAULT_SERVICE_URL)
+                .default_value(DEFAULT_WEBSRV_URL)
         )
         .subcommand(
-            App::new("collections")
-                .about("Tasks for managing collections")
-                .subcommand(
-                    App::new("create-mixxx")
-                        .about("Creates a new mixxx.org collection for Mixxx")
-                        .arg(
-                            Arg::new("title")
-                                .help("The title of the new collection")
-                                .takes_value(true)
-                                .required(true)
-                        )
-                        .arg(
-                            Arg::new(COLLECTION_VFS_ROOT_URL_PARAM)
-                                .help("The file URL of the common root directory that contains all media sources")
-                                .takes_value(true)
-                                .required(true)
-                        ),
+            App::new("create-collection")
+                .about("Creates a new collection")
+                .arg(
+                    Arg::new(CREATE_COLLECTION_TITLE_PARAM)
+                    .long(CREATE_COLLECTION_TITLE_PARAM)
+                    .help("The `title` of the new collection")
+                    .takes_value(true)
+                    .required(true)                )
+                .arg(
+                    Arg::new(CREATE_COLLECTION_KIND_PARAM)
+                        .long(CREATE_COLLECTION_KIND_PARAM)
+                        .help("The `kind` of the new collection")
+                        .takes_value(true)
+                        .required(false)
                 )
+                .arg(
+                    Arg::new(CREATE_COLLECTION_VFS_ROOT_URL_PARAM)
+                        .long(CREATE_COLLECTION_VFS_ROOT_URL_PARAM)
+                        .help("The file URL of the common root directory that contains all media sources")
+                        .takes_value(true)
+                        .required(true)
+                ),
         )
-        .subcommand(
+        .subcommand({
+            let media_root_url_arg = Arg::new(MEDIA_ROOT_URL_PARAM)
+                .help("The URL of the root directory with media source files")
+                .takes_value(true)
+                .required(true);
             App::new("media-sources")
                 .about("Tasks for media sources")
                 .subcommand(
                     App::new("purge-orphaned")
                         .about("Purges orphaned media sources that are not referenced by any track")
                         .arg(
-                            Arg::new(MEDIA_ROOT_URL_PARAM)
-                                .help("The common root URL or directory that should be considered")
-                                .takes_value(true)
-                                .required(false)
+                            active_collection_title_arg.clone()
+                        )
+                        .arg(
+                            media_root_url_arg.clone()
                         ),
                 )
                 .subcommand(
                     App::new("purge-untracked")
                         .about("Purges untracked media sources including their tracks")
                         .arg(
-                            Arg::new(MEDIA_ROOT_URL_PARAM)
-                                .help("The URL of the root directory containing tracked media files to be purged")
-                                .takes_value(true)
-                                .required(false)
+                            active_collection_title_arg.clone()
+                        )
+                        .arg(
+                            media_root_url_arg.clone()
                         ),
                 )
-        )
+        })
         .subcommand(
             App::new("tracks")
                 .about("Tasks for tracks")
@@ -178,15 +192,22 @@ async fn main() -> anyhow::Result<()> {
                     App::new("export-all-into-file")
                         .about("Exports all tracks of the collection into a JSON file")
                         .arg(
+                            active_collection_title_arg
+                                .clone()
+                        )
+                        .arg(
                             Arg::new(OUTPUT_FILE_PARAM)
-                                .short('o')
                                 .help("The output file path for writing JSON data")
                                 .takes_value(true)
                                 .required(true)
                         ),
                 )
         )
-        .subcommand(
+        .subcommand({
+            let media_root_url_arg = Arg::new(MEDIA_ROOT_URL_PARAM)
+                .help("The URL of the root directory containing tracked media files")
+                .takes_value(true)
+                .required(false);
             App::new("media-tracker")
                 .about("Tasks for the media tracker")
                 .subcommand(
@@ -197,77 +218,77 @@ async fn main() -> anyhow::Result<()> {
                     App::new("status")
                         .about("Queries the status of the media tracker")
                         .arg(
-                            Arg::new(MEDIA_ROOT_URL_PARAM)
-                                .help("The URL of the root directory containing tracked media files to be queried")
-                                .takes_value(true)
-                                .required(false)
+                            active_collection_title_arg.clone()
+                        )
+                        .arg(
+                            media_root_url_arg.clone()
                         ),
                 )
                 .subcommand(
                     App::new("scan-directories")
                         .about("Scans directories on the file system for added/modified/removed media sources")
                         .arg(
-                            Arg::new(MEDIA_ROOT_URL_PARAM)
-                                .help("The URL of the root directory containing tracked media files to be scanned")
-                                .takes_value(true)
-                                .required(false)
+                            active_collection_title_arg.clone()
+                        )
+                        .arg(
+                            media_root_url_arg.clone()
                         ),
                 )
                 .subcommand(
                     App::new("untrack-directories")
                         .about("Untracks directories on the file system")
                         .arg(
-                            Arg::new(MEDIA_ROOT_URL_PARAM)
-                                .help("The URL of the root directory containing tracked media files to be untracked")
-                                .takes_value(true)
-                                .required(true)
+                            active_collection_title_arg.clone()
+                        )
+                        .arg(
+                            media_root_url_arg.clone()
                         ),
                 )
                 .subcommand(
                     App::new("untrack-orphaned-directories")
                         .about("Untracks orphaned directories that have disappeared from the file system (deleted)")
                         .arg(
-                            Arg::new(MEDIA_ROOT_URL_PARAM)
-                                .help("The URL of the root directory containing tracked media files to be untracked")
-                                .takes_value(true)
-                                .required(false)
+                            active_collection_title_arg.clone()
+                        )
+                        .arg(
+                            media_root_url_arg.clone()
                         ),
                 )
                 .subcommand(
                     App::new("import-files")
                         .about("Imports media sources on the file system from scanned directories")
                         .arg(
-                            Arg::new(MEDIA_ROOT_URL_PARAM)
-                                .help("The URL of the root directory containing tracked media files to be imported")
-                                .takes_value(true)
-                                .required(false)
+                            active_collection_title_arg.clone()
+                        )
+                        .arg(
+                            media_root_url_arg.clone()
                         ),
                 )
                 .subcommand(
                     App::new("find-untracked-files")
                         .about("Scans directories on the file system for untracked entries")
                         .arg(
-                            Arg::new(MEDIA_ROOT_URL_PARAM)
-                                .help("The URL of the root directory containing tracked media files to be scanned")
-                                .takes_value(true)
-                                .required(false)
+                            active_collection_title_arg.clone()
+                        )
+                        .arg(
+                            media_root_url_arg.clone()
                         ),
-                ),
-        );
+                )
+        });
     let app_usage = app.render_usage();
     let matches = app.get_matches();
 
-    let service_url = matches
-        .value_of("service-url")
-        .unwrap_or(&default_service_url)
+    let websrv_url = matches
+        .value_of(WEBSRV_URL_PARAM)
+        .unwrap_or(&default_websrv_url)
         .parse()
-        .expect("URL");
-    let mut collection_uid = matches
-        .value_of("collection-uid")
-        .map(|s| s.parse::<EntityUid>().expect("Collection UID"));
+        .expect(WEBSRV_URL_PARAM);
 
-    let shared_env = Arc::new(Environment::new(service_url));
+    let shared_env = Arc::new(Environment::new(websrv_url));
     let (message_tx, message_rx) = message_channel();
+
+    let mut collection_uid: Option<EntityUid> = None;
+    let mut subcommand_submitted = false;
 
     let mut last_media_sources_purge_orphaned_outcome = None;
     let mut last_media_sources_purge_untracked_outcome = None;
@@ -278,13 +299,14 @@ async fn main() -> anyhow::Result<()> {
     let mut last_media_tracker_untrack_directories_outcome = None;
     let mut last_media_tracker_import_files_outcome = None;
     let mut last_media_tracker_find_untracked_files_outcome = None;
-    let mut subcommand_submitted = false;
+
     let message_loop = tokio::spawn(message_loop(
         shared_env,
         (message_tx.clone(), message_rx),
         CliState::new(matches),
         Box::new(move |cli_state| {
             let CliState { matches, state } = cli_state;
+
             if !state.last_errors().is_empty() {
                 for err in state.last_errors() {
                     log::error!("{}", err);
@@ -292,6 +314,7 @@ async fn main() -> anyhow::Result<()> {
                 // Terminate after errors occurred
                 return Some(Intent::Terminate);
             }
+
             if last_media_sources_purge_orphaned_outcome.as_ref()
                 != state
                     .media_sources
@@ -480,37 +503,6 @@ async fn main() -> anyhow::Result<()> {
             }
 
             // Commands that don't require an active collection
-            if let Some(("collections", collections_matches)) = matches.subcommand() {
-                match collections_matches.subcommand() {
-                    Some(("create-mixxx", create_matches)) => {
-                        let title = create_matches.value_of("title").expect("title");
-                        let vfs_root_url = create_matches
-                            .value_of(COLLECTION_VFS_ROOT_URL_PARAM)
-                            .map(|s| s.parse().expect(COLLECTION_VFS_ROOT_URL_PARAM))
-                            .expect(COLLECTION_VFS_ROOT_URL_PARAM);
-                        let new_collection = Collection {
-                            title: title.to_owned(),
-                            kind: Some("mixxx.org".to_owned()),
-                            notes: None,
-                            color: None,
-                            media_source_config: MediaSourceConfig {
-                                source_path: aoide_core::media::SourcePathConfig::VirtualFilePath {
-                                    root_url: vfs_root_url,
-                                },
-                            },
-                        };
-                        subcommand_submitted = true;
-                        let intent = collection::Intent::CreateEntity { new_collection };
-                        return Some(intent.into());
-                    }
-                    Some((_subcommand, _)) => {
-                        unreachable!("Unknown subcommand {}", _subcommand);
-                    }
-                    None => {
-                        println!("{}", app_usage);
-                    }
-                }
-            }
             if let Some(("media-tracker", matches)) = matches.subcommand() {
                 if matches!(matches.subcommand(), Some(("progress", _))) {
                     subcommand_submitted = true;
@@ -525,292 +517,293 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
 
-            // Select an active collection
-            if let Some(filtered_entities) = state
-                .active_collection
-                .remote_view()
-                .filtered_entities
-                .last_snapshot()
-            {
-                if state.active_collection.active_entity_uid().is_none() {
-                    if filtered_entities.value.is_empty() {
-                        log::warn!("No collections available");
-                        return None;
-                    }
-                    if collection_uid.is_none() && filtered_entities.value.len() == 1 {
-                        collection_uid = filtered_entities.value.get(0).map(|e| e.hdr.uid.clone());
-                        debug_assert!(collection_uid.is_some());
-                        log::info!(
-                            "Activating single collection: {}",
-                            collection_uid.as_ref().unwrap()
-                        );
-                    }
-                    if let Some(collection_uid) = &collection_uid {
-                        if state
-                            .active_collection
-                            .remote_view()
-                            .find_entity_by_uid(collection_uid)
-                            .is_some()
-                        {
-                            let entity_uid = Some(collection_uid.to_owned());
-                            let intent = collection::Intent::ActivateEntity { entity_uid };
-                            return Some(intent.into());
-                        } else {
-                            log::warn!("Collection not available: {}", collection_uid);
-                        }
-                    }
-                    println!("Filtered collections:");
-                    for available_collection in &filtered_entities.value {
-                        println!(
-                            "{}: {} | {}",
-                            available_collection.hdr.uid,
-                            available_collection.body.title,
-                            available_collection.body.notes.as_deref().unwrap_or(""),
-                        );
-                    }
-                    return None;
-                }
-            } else if !state
-                .active_collection
-                .remote_view()
-                .filtered_entities
-                .is_pending()
-            {
-                // TODO: Provide kind as optional command line argument
-                let filter_by_kind = None;
-                let intent = collection::Intent::FetchFilteredEntities { filter_by_kind };
-                return Some(intent.into());
-            }
-
             if subcommand_submitted {
                 return None;
             }
 
-            // Commands that require an active collection
-            if let Some(entity) = state.active_collection.active_entity() {
-                log::info!("Active collection: {}", entity.hdr.uid);
-                if state.is_pending() {
-                    last_media_tracker_progress_fetched = Some(Instant::now());
-                    return Some(media_tracker::Intent::FetchProgress.into());
+            match matches.subcommand() {
+                Some(("create-collection", matches)) => {
+                    let title = matches
+                        .value_of(CREATE_COLLECTION_TITLE_PARAM)
+                        .expect(CREATE_COLLECTION_TITLE_PARAM);
+                    let kind = matches
+                        .value_of(CREATE_COLLECTION_KIND_PARAM)
+                        .filter(|kind| !kind.trim().is_empty());
+                    let vfs_root_url = matches
+                        .value_of(CREATE_COLLECTION_VFS_ROOT_URL_PARAM)
+                        .map(|s| s.parse().expect(CREATE_COLLECTION_VFS_ROOT_URL_PARAM))
+                        .expect(CREATE_COLLECTION_VFS_ROOT_URL_PARAM);
+                    let new_collection = Collection {
+                        title: title.to_owned(),
+                        kind: kind.map(ToOwned::to_owned),
+                        notes: None,
+                        color: None,
+                        media_source_config: MediaSourceConfig {
+                            source_path: aoide_core::media::SourcePathConfig::VirtualFilePath {
+                                root_url: vfs_root_url,
+                            },
+                        },
+                    };
+                    subcommand_submitted = true;
+                    let intent = collection::Intent::CreateEntity { new_collection };
+                    return Some(intent.into());
                 }
-                match matches.subcommand() {
-                    Some(("media-sources", matches)) => match matches.subcommand() {
-                        Some(("purge-orphaned", matches)) => {
-                            let collection_uid = entity.hdr.uid.clone();
-                            let media_root_url = matches
-                                .value_of(MEDIA_ROOT_URL_PARAM)
-                                .map(|s| s.parse().expect("URL"));
-                            subcommand_submitted = true;
-                            let params = aoide_core_api::media::source::purge_orphaned::Params {
-                                root_url: media_root_url,
-                            };
-                            let intent = media_source::Intent::PurgeOrphaned {
-                                collection_uid,
-                                params,
-                            };
-                            return Some(intent.into());
-                        }
-                        Some(("purge-untracked", matches)) => {
-                            let collection_uid = entity.hdr.uid.clone();
-                            let media_root_url = matches
-                                .value_of(MEDIA_ROOT_URL_PARAM)
-                                .map(|s| s.parse().expect("URL"));
-                            subcommand_submitted = true;
-                            let params = aoide_core_api::media::source::purge_untracked::Params {
-                                root_url: media_root_url,
-                            };
-                            let intent = media_source::Intent::PurgeUntracked {
-                                collection_uid,
-                                params,
-                            };
-                            return Some(intent.into());
-                        }
-                        Some((_subcommand, _)) => {
-                            unreachable!("Unknown subcommand {}", _subcommand);
-                        }
-                        None => {
-                            println!("{}", app_usage);
-                        }
-                    },
-                    Some(("media-tracker", matches)) => match matches.subcommand() {
-                        Some(("query-status", matches)) => {
-                            let collection_uid = entity.hdr.uid.clone();
-                            let media_root_url = matches
-                                .value_of(MEDIA_ROOT_URL_PARAM)
-                                .map(|s| s.parse().expect("URL"))
-                                .or_else(|| {
-                                    entity
-                                        .body
-                                        .media_source_config
-                                        .source_path
-                                        .root_url()
-                                        .cloned()
-                                        .map(Into::into)
-                                });
-                            subcommand_submitted = true;
-                            last_media_tracker_status = None;
-                            let params = aoide_core_api::media::tracker::query_status::Params {
-                                root_url: media_root_url,
-                            };
-                            let intent = media_tracker::Intent::FetchStatus {
-                                collection_uid,
-                                params,
-                            };
-                            return Some(intent.into());
-                        }
-                        Some(("scan-directories", matches)) => {
-                            let collection_uid = entity.hdr.uid.clone();
-                            let media_root_url = matches
-                                .value_of(MEDIA_ROOT_URL_PARAM)
-                                .map(|s| s.parse().expect("URL"))
-                                .or_else(|| {
-                                    entity
-                                        .body
-                                        .media_source_config
-                                        .source_path
-                                        .root_url()
-                                        .cloned()
-                                        .map(Into::into)
-                                });
-                            subcommand_submitted = true;
-                            let params = aoide_core_api::media::tracker::scan_directories::Params {
-                                root_url: media_root_url,
-                                ..Default::default()
-                            };
-                            let intent = media_tracker::Intent::StartScanDirectories {
-                                collection_uid,
-                                params,
-                            };
-                            return Some(intent.into());
-                        }
-                        Some(("untrack-directories", matches)) => {
-                            let collection_uid = entity.hdr.uid.clone();
-                            let media_root_url = matches
-                                .value_of(MEDIA_ROOT_URL_PARAM)
-                                .map(|s| s.parse().expect("URL"))
-                                .expect("required");
-                            subcommand_submitted = true;
-                            let params =
-                                aoide_core_api::media::tracker::untrack_directories::Params {
-                                    root_url: Some(media_root_url),
-                                    status: None,
+                Some(("media-sources", matches)) => match matches.subcommand() {
+                    Some(("purge-orphaned", matches)) => {
+                        require_active_collection(matches, state, &mut collection_uid).map(
+                            |entity| {
+                                let collection_uid = entity.hdr.uid.clone();
+                                let media_root_url = matches
+                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .map(|s| s.parse().expect("URL"));
+                                let params =
+                                    aoide_core_api::media::source::purge_orphaned::Params {
+                                        root_url: media_root_url,
+                                    };
+                                subcommand_submitted = true;
+                                let intent = media_source::Intent::PurgeOrphaned {
+                                    collection_uid,
+                                    params,
                                 };
-                            let intent = media_tracker::Intent::UntrackDirectories {
-                                collection_uid,
-                                params,
-                            };
-                            return Some(intent.into());
-                        }
-                        Some(("untrack-orphaned-directories", matches)) => {
-                            let collection_uid = entity.hdr.uid.clone();
-                            let media_root_url = matches
-                                .value_of(MEDIA_ROOT_URL_PARAM)
-                                .map(|s| s.parse().expect("URL"));
-                            subcommand_submitted = true;
-                            let params =
-                                aoide_core_api::media::tracker::untrack_directories::Params {
+                                Some(intent.into())
+                            },
+                        )
+                    }
+                    Some(("purge-untracked", matches)) => {
+                        require_active_collection(matches, state, &mut collection_uid).map(
+                            |entity| {
+                                let collection_uid = entity.hdr.uid.clone();
+                                let media_root_url = matches
+                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .map(|s| s.parse().expect("URL"));
+                                let params =
+                                    aoide_core_api::media::source::purge_untracked::Params {
+                                        root_url: media_root_url,
+                                    };
+                                subcommand_submitted = true;
+                                let intent = media_source::Intent::PurgeUntracked {
+                                    collection_uid,
+                                    params,
+                                };
+                                Some(intent.into())
+                            },
+                        )
+                    }
+                    Some((_subcommand, _)) => {
+                        unreachable!("Unknown subcommand {}", _subcommand);
+                    }
+                    None => Err(None),
+                },
+                Some(("media-tracker", matches)) => match matches.subcommand() {
+                    Some(("query-status", matches)) => {
+                        require_active_collection(matches, state, &mut collection_uid).map(
+                            |entity| {
+                                let collection_uid = entity.hdr.uid.clone();
+                                let media_root_url = matches
+                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .map(|s| s.parse().expect("URL"))
+                                    .or_else(|| {
+                                        entity
+                                            .body
+                                            .media_source_config
+                                            .source_path
+                                            .root_url()
+                                            .cloned()
+                                            .map(Into::into)
+                                    });
+                                last_media_tracker_status = None;
+                                let params = aoide_core_api::media::tracker::query_status::Params {
                                     root_url: media_root_url,
-                                    status: Some(DirTrackingStatus::Orphaned),
                                 };
-                            let intent = media_tracker::Intent::UntrackDirectories {
-                                collection_uid,
-                                params,
-                            };
-                            return Some(intent.into());
-                        }
-                        Some(("import-files", matches)) => {
-                            let collection_uid = entity.hdr.uid.clone();
-                            let media_root_url = matches
-                                .value_of(MEDIA_ROOT_URL_PARAM)
-                                .map(|s| s.parse().expect("URL"));
-                            subcommand_submitted = true;
-                            let params = aoide_core_api::media::tracker::import_files::Params {
-                                root_url: media_root_url,
-                                ..Default::default()
-                            };
-                            let intent = media_tracker::Intent::StartImportFiles {
-                                collection_uid,
-                                params,
-                            };
-                            return Some(intent.into());
-                        }
-                        Some(("find-untracked-files", find_untracked_files_matches)) => {
-                            let collection_uid = entity.hdr.uid.clone();
-                            let media_root_url = find_untracked_files_matches
-                                .value_of(MEDIA_ROOT_URL_PARAM)
-                                .map(|s| s.parse().expect("URL"))
-                                .or_else(|| {
-                                    entity
-                                        .body
-                                        .media_source_config
-                                        .source_path
-                                        .root_url()
-                                        .cloned()
-                                        .map(Into::into)
-                                });
-                            subcommand_submitted = true;
-                            let params =
-                                aoide_core_api::media::tracker::find_untracked_files::Params {
+                                subcommand_submitted = true;
+                                let intent = media_tracker::Intent::FetchStatus {
+                                    collection_uid,
+                                    params,
+                                };
+                                Some(intent.into())
+                            },
+                        )
+                    }
+                    Some(("scan-directories", matches)) => {
+                        require_active_collection(matches, state, &mut collection_uid).map(
+                            |entity| {
+                                let collection_uid = entity.hdr.uid.clone();
+                                let media_root_url = matches
+                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .map(|s| s.parse().expect("URL"))
+                                    .or_else(|| {
+                                        entity
+                                            .body
+                                            .media_source_config
+                                            .source_path
+                                            .root_url()
+                                            .cloned()
+                                            .map(Into::into)
+                                    });
+                                let params =
+                                    aoide_core_api::media::tracker::scan_directories::Params {
+                                        root_url: media_root_url,
+                                        ..Default::default()
+                                    };
+                                subcommand_submitted = true;
+                                let intent = media_tracker::Intent::StartScanDirectories {
+                                    collection_uid,
+                                    params,
+                                };
+                                Some(intent.into())
+                            },
+                        )
+                    }
+                    Some(("untrack-directories", matches)) => {
+                        require_active_collection(matches, state, &mut collection_uid).map(
+                            |entity| {
+                                let collection_uid = entity.hdr.uid.clone();
+                                let media_root_url = matches
+                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .map(|s| s.parse().expect("URL"))
+                                    .expect("required");
+                                let params =
+                                    aoide_core_api::media::tracker::untrack_directories::Params {
+                                        root_url: Some(media_root_url),
+                                        status: None,
+                                    };
+                                subcommand_submitted = true;
+                                let intent = media_tracker::Intent::UntrackDirectories {
+                                    collection_uid,
+                                    params,
+                                };
+                                Some(intent.into())
+                            },
+                        )
+                    }
+                    Some(("untrack-orphaned-directories", matches)) => {
+                        require_active_collection(matches, state, &mut collection_uid).map(
+                            |entity| {
+                                let collection_uid = entity.hdr.uid.clone();
+                                let media_root_url = matches
+                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .map(|s| s.parse().expect("URL"));
+                                let params =
+                                    aoide_core_api::media::tracker::untrack_directories::Params {
+                                        root_url: media_root_url,
+                                        status: Some(DirTrackingStatus::Orphaned),
+                                    };
+                                subcommand_submitted = true;
+                                let intent = media_tracker::Intent::UntrackDirectories {
+                                    collection_uid,
+                                    params,
+                                };
+                                Some(intent.into())
+                            },
+                        )
+                    }
+                    Some(("import-files", matches)) => {
+                        require_active_collection(matches, state, &mut collection_uid).map(
+                            |entity| {
+                                let collection_uid = entity.hdr.uid.clone();
+                                let media_root_url = matches
+                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .map(|s| s.parse().expect("URL"));
+                                let params = aoide_core_api::media::tracker::import_files::Params {
                                     root_url: media_root_url,
                                     ..Default::default()
                                 };
-                            let intent = media_tracker::Intent::StartFindUntrackedFiles {
-                                collection_uid,
-                                params,
-                            };
-                            return Some(intent.into());
-                        }
-                        Some((_subcommand, _)) => {
-                            unreachable!("Unknown subcommand {}", _subcommand);
-                        }
-                        None => {
-                            println!("{}", app_usage);
-                        }
-                    },
-                    Some(("tracks", matches)) => match matches.subcommand() {
-                        Some(("export-all-into-file", matches)) => {
-                            let collection_uid = entity.hdr.uid.clone();
-                            let output_file_path = matches
-                                .value_of(OUTPUT_FILE_PARAM)
-                                .expect(OUTPUT_FILE_PARAM)
-                                .to_owned();
-                            subcommand_submitted = true;
-                            let params = ExportTracksParams {
-                                output_file_path: output_file_path.into(),
-                                track_search: aoide_core_api::track::search::Params {
-                                    filter: None,
-                                    ordering: vec![SortOrder {
-                                        field: SortField::UpdatedAt,
-                                        direction:
-                                            aoide_core_api::sorting::SortDirection::Descending,
-                                    }],
-                                    // TODO: Configurable?
-                                    resolve_url_from_path: true,
-                                    ..Default::default()
-                                },
-                            };
-                            let intent = Intent::ExportTracks {
-                                collection_uid,
-                                params,
-                            };
-                            return Some(intent);
-                        }
-                        Some((_subcommand, _)) => {
-                            unreachable!("Unknown subcommand {}", _subcommand);
-                        }
-                        None => {
-                            println!("{}", app_usage);
-                        }
-                    },
+                                subcommand_submitted = true;
+                                let intent = media_tracker::Intent::StartImportFiles {
+                                    collection_uid,
+                                    params,
+                                };
+                                Some(intent.into())
+                            },
+                        )
+                    }
+                    Some(("find-untracked-files", matches)) => {
+                        require_active_collection(matches, state, &mut collection_uid).map(
+                            |entity| {
+                                let collection_uid = entity.hdr.uid.clone();
+                                let media_root_url = matches
+                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .map(|s| s.parse().expect("URL"))
+                                    .or_else(|| {
+                                        entity
+                                            .body
+                                            .media_source_config
+                                            .source_path
+                                            .root_url()
+                                            .cloned()
+                                            .map(Into::into)
+                                    });
+                                let params =
+                                    aoide_core_api::media::tracker::find_untracked_files::Params {
+                                        root_url: media_root_url,
+                                        ..Default::default()
+                                    };
+                                subcommand_submitted = true;
+                                let intent = media_tracker::Intent::StartFindUntrackedFiles {
+                                    collection_uid,
+                                    params,
+                                };
+                                Some(intent.into())
+                            },
+                        )
+                    }
                     Some((_subcommand, _)) => {
                         unreachable!("Unknown subcommand {}", _subcommand);
                     }
                     None => {
                         println!("{}", app_usage);
+                        Err(None)
                     }
+                },
+                Some(("tracks", matches)) => match matches.subcommand() {
+                    Some(("export-all-into-file", matches)) => {
+                        require_active_collection(matches, state, &mut collection_uid).map(
+                            |entity| {
+                                let collection_uid = entity.hdr.uid.clone();
+                                let output_file_path = matches
+                                    .value_of(OUTPUT_FILE_PARAM)
+                                    .expect(OUTPUT_FILE_PARAM)
+                                    .to_owned();
+                                let params = ExportTracksParams {
+                                    output_file_path: output_file_path.into(),
+                                    track_search: aoide_core_api::track::search::Params {
+                                        filter: None,
+                                        ordering: vec![SortOrder {
+                                            field: SortField::UpdatedAt,
+                                            direction:
+                                                aoide_core_api::sorting::SortDirection::Descending,
+                                        }],
+                                        // TODO: Configurable?
+                                        resolve_url_from_path: true,
+                                        ..Default::default()
+                                    },
+                                };
+                                subcommand_submitted = true;
+                                let intent = Intent::ExportTracks {
+                                    collection_uid,
+                                    params,
+                                };
+                                Some(intent)
+                            },
+                        )
+                    }
+                    Some((_subcommand, _)) => {
+                        unreachable!("Unknown subcommand {}", _subcommand);
+                    }
+                    None => Err(None),
+                },
+                Some((_subcommand, _)) => {
+                    unreachable!("Unknown subcommand {}", _subcommand);
                 }
+                None => Err(None),
             }
-            None
+            .unwrap_or_else(|intent| {
+                // No command submitted
+                if intent.is_none() && !state.is_pending() {
+                    println!("{}", app_usage);
+                }
+                intent
+            })
         }),
     ));
 
@@ -832,4 +825,65 @@ async fn main() -> anyhow::Result<()> {
     message_loop.await?;
 
     Ok(())
+}
+
+fn require_active_collection<'s>(
+    matches: &ArgMatches,
+    state: &'s State,
+    collection_uid: &mut Option<EntityUid>,
+) -> Result<&'s CollectionEntity, Option<Intent>> {
+    if let Some(entity) = state.active_collection.active_entity() {
+        debug_assert!(!state.is_pending());
+        log::info!(
+            "Active collection: '{}' ({})",
+            entity.body.title,
+            entity.hdr.uid
+        );
+        return Ok(entity);
+    }
+    let collection_title =
+        if let Some(collection_title) = matches.value_of(ACTIVE_COLLECTION_TITLE_PARAM) {
+            collection_title
+        } else {
+            return Err(None);
+        };
+    if let Some(filtered_entities) = state
+        .active_collection
+        .remote_view()
+        .filtered_entities
+        .last_snapshot()
+    {
+        // Activate an existing collection
+        if state.active_collection.active_entity_uid().is_none() {
+            if filtered_entities.value.is_empty() {
+                log::warn!("No collections available");
+            } else if let Some(entity) = state
+                .active_collection
+                .remote_view()
+                .find_entity_by_title(collection_title)
+            {
+                log::info!(
+                    "Activating collection '{}' ({})",
+                    entity.body.title,
+                    entity.hdr.uid,
+                );
+                let entity_uid = Some(entity.hdr.uid.to_owned());
+                *collection_uid = entity_uid.clone();
+                let intent = collection::Intent::ActivateEntity { entity_uid };
+                return Err(Some(intent.into()));
+            } else {
+                log::warn!("No collection with title '{}' found", collection_title);
+            }
+        }
+    } else if !state
+        .active_collection
+        .remote_view()
+        .filtered_entities
+        .is_pending()
+    {
+        let filter_by_kind = None;
+        let intent = collection::Intent::FetchFilteredEntities { filter_by_kind };
+        return Err(Some(intent.into()));
+    }
+    Err(None)
 }

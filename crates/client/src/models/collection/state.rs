@@ -68,6 +68,7 @@ impl RemoteView {
         }
     }
 
+    #[must_use]
     fn count_entities_by_uid(&self, uid: &EntityUid) -> Option<usize> {
         self.filtered_entities
             .last_value()
@@ -80,6 +81,21 @@ impl RemoteView {
         self.filtered_entities
             .last_value()
             .and_then(|v| v.iter().find(|x| &x.hdr.uid == uid))
+    }
+
+    #[must_use]
+    fn count_entities_by_title(&self, title: &str) -> Option<usize> {
+        self.filtered_entities
+            .last_value()
+            .map(|v| v.iter().filter(|x| x.body.title == title).count())
+    }
+
+    #[must_use]
+    pub fn find_entity_by_title(&self, title: &str) -> Option<&CollectionEntity> {
+        debug_assert!(self.count_entities_by_title(title).unwrap_or_default() <= 1);
+        self.filtered_entities
+            .last_value()
+            .and_then(|v| v.iter().find(|x| x.body.title == title))
     }
 }
 
