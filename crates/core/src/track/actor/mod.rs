@@ -219,15 +219,21 @@ impl Actors {
         })
     }
 
+    pub fn summary_actor<'a, I>(actors: I, role: ActorRole) -> Option<&'a Actor>
+    where
+        I: Iterator<Item = &'a Actor> + Clone,
+    {
+        Self::filter_kind_role(actors, ActorKind::Summary, role).next()
+    }
+
     // The singular summary actor or if none exists then the singular individual actor
     pub fn main_actor<'a, I>(actors: I, role: ActorRole) -> Option<&'a Actor>
     where
         I: Iterator<Item = &'a Actor> + Clone,
     {
         // Try `Summary` first
-        if let Some(actor) = Self::filter_kind_role(actors.clone(), ActorKind::Summary, role).next()
-        {
-            return Some(actor);
+        if let Some(summary_actor) = Self::summary_actor(actors.clone(), role) {
+            return Some(summary_actor);
         }
         // Otherwise try `Individual` as a fallback
         Self::filter_kind_role(actors, ActorKind::Individual, role).next()

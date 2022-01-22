@@ -83,23 +83,75 @@ pub fn guess_mime_from_path(path: impl AsRef<Path>) -> Result<Mime> {
 /// at most a single chunk per role.
 ///
 /// If the last chunk matches the given role then it is continued and the
-/// role is adjusted from Summary to Primary, because Summary is singular.
+/// role is adjusted from Summary to Individual, because Summary is singular.
 /// Otherwise a new chunk of actors is started, starting with the kind
 /// Summary.
-fn adjust_last_actor_kind(actors: &mut [Actor], role: ActorRole) -> ActorKind {
-    if let Some(last_actor) = actors.last_mut() {
-        if last_actor.role == role {
-            // ActorKind::Summary is only allowed once for each role
-            last_actor.kind = ActorKind::Individual;
-            return ActorKind::Individual;
+fn adjust_summary_actor_kind(actors: &mut [Actor], role: ActorRole, next_name: &str) -> ActorKind {
+    let proposed_kind = {
+        let summary_actor = actors
+            .iter_mut()
+            .rev()
+            // Terminate the iteration if the role changes,
+            // i.e. assume coherent chunks of equal roles and
+            // a single chunke per role!
+            .take_while(|actor| actor.role == role)
+            .find(|actor| actor.kind == ActorKind::Summary);
+        if let Some(summary_actor) = summary_actor {
+            if summary_actor.name.contains(next_name) {
+                ActorKind::Individual
+            } else {
+                // Turn the current summary actor into an individual actor
+                summary_actor.kind = ActorKind::Individual;
+                // Check if the next actor could become the new summary actor
+                if next_name.contains(&summary_actor.name) {
+                    ActorKind::Summary
+                } else {
+                    ActorKind::Individual
+                }
+            }
+        } else {
+            // No summary actor for this role yet
+            if actors
+                .iter()
+                .rev()
+                .take_while(|actor| actor.role == role)
+                .filter(|actor| actor.kind == ActorKind::Individual)
+                .all(|actor| next_name.contains(&actor.name))
+            {
+                ActorKind::Summary
+            } else {
+                ActorKind::Individual
+            }
         }
+    };
+    match proposed_kind {
+        ActorKind::Individual => {
+            debug_assert!(actors.iter().any(|actor| actor.role == role));
+            debug_assert!(
+                actors
+                    .iter()
+                    .filter(|actor| actor.role == role && actor.kind == ActorKind::Summary)
+                    .count()
+                    <= 1
+            );
+        }
+        ActorKind::Summary => {
+            debug_assert!(!actors
+                .iter()
+                .any(|actor| actor.role == role && actor.kind == ActorKind::Summary));
+            debug_assert!(actors
+                .iter()
+                .filter(|actor| actor.role == role && actor.kind == ActorKind::Individual)
+                .all(|actor| next_name.contains(&actor.name)));
+        }
+        _ => unreachable!(),
     }
-    ActorKind::Summary
+    proposed_kind
 }
 
 pub fn push_next_actor_role_name(actors: &mut Vec<Actor>, role: ActorRole, name: String) -> bool {
     if let Some(mut actor) = ingest_actor_from_owned(name, Default::default(), role) {
-        actor.kind = adjust_last_actor_kind(actors.as_mut_slice(), role);
+        actor.kind = adjust_summary_actor_kind(actors.as_mut_slice(), role, &actor.name);
         actors.push(actor);
         true
     } else {
@@ -113,7 +165,7 @@ pub fn push_next_actor_role_name_from<'a>(
     name: impl Into<Cow<'a, str>>,
 ) -> bool {
     if let Some(mut actor) = ingest_actor_from(name, Default::default(), role) {
-        actor.kind = adjust_last_actor_kind(actors.as_mut_slice(), role);
+        actor.kind = adjust_summary_actor_kind(actors.as_mut_slice(), role, &actor.name);
         actors.push(actor);
         true
     } else {

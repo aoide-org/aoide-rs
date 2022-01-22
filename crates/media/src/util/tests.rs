@@ -15,6 +15,8 @@
 
 ///////////////////////////////////////////////////////////////////////
 
+use aoide_core::{track::actor::Actors, util::canonical::CanonicalizeInto};
+
 use super::*;
 
 #[test]
@@ -108,4 +110,122 @@ fn format_validated_tempo_bpm_min_max() {
         format_validated_tempo_bpm(&mut tempo_bpm)
     );
     assert_eq!(Some(TempoBpm::max()), tempo_bpm);
+}
+
+#[test]
+fn push_next_actor_role_names() {
+    let mut actors = vec![];
+
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Artist,
+        "Artist1 ft. Artist2".to_owned()
+    ));
+    assert_eq!(
+        Some("Artist1 ft. Artist2"),
+        Actors::summary_actor(actors.iter(), ActorRole::Artist).map(|actor| actor.name.as_str())
+    );
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Artist,
+        "Artist1".to_owned()
+    ));
+    assert_eq!(
+        Some("Artist1 ft. Artist2"),
+        Actors::summary_actor(actors.iter(), ActorRole::Artist).map(|actor| actor.name.as_str())
+    );
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Artist,
+        "Artist2".to_owned()
+    ));
+    assert_eq!(
+        Some("Artist1 ft. Artist2"),
+        Actors::summary_actor(actors.iter(), ActorRole::Artist).map(|actor| actor.name.as_str())
+    );
+
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Composer,
+        "Composer1".to_owned()
+    ));
+    assert_eq!(
+        Some("Composer1"),
+        Actors::summary_actor(actors.iter(), ActorRole::Composer).map(|actor| actor.name.as_str())
+    );
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Composer,
+        "Composer1, Composer2".to_owned()
+    ));
+    assert_eq!(
+        Some("Composer1, Composer2"),
+        Actors::summary_actor(actors.iter(), ActorRole::Composer).map(|actor| actor.name.as_str())
+    );
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Composer,
+        "Composer2".to_owned()
+    ));
+    assert_eq!(
+        Some("Composer1, Composer2"),
+        Actors::summary_actor(actors.iter(), ActorRole::Composer).map(|actor| actor.name.as_str())
+    );
+
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Remixer,
+        "Remixer2".to_owned()
+    ));
+    assert_eq!(
+        Some("Remixer2"),
+        Actors::summary_actor(actors.iter(), ActorRole::Remixer).map(|actor| actor.name.as_str())
+    );
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Remixer,
+        "Remixer1".to_owned()
+    ));
+    assert!(Actors::summary_actor(actors.iter(), ActorRole::Remixer).is_none());
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Remixer,
+        "Remixer1 & Remixer2".to_owned()
+    ));
+    assert_eq!(
+        Some("Remixer1 & Remixer2"),
+        Actors::summary_actor(actors.iter(), ActorRole::Remixer).map(|actor| actor.name.as_str())
+    );
+
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Lyricist,
+        "Lyricist1".to_owned()
+    ));
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Lyricist,
+        "Lyricist2".to_owned()
+    ));
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Lyricist,
+        // Duplicate name
+        "Lyricist1".to_owned()
+    ));
+    assert!(push_next_actor_role_name(
+        &mut actors,
+        ActorRole::Lyricist,
+        // Duplicate name (again)
+        "Lyricist2".to_owned()
+    ));
+    let actors = actors.canonicalize_into();
+    assert_eq!(
+        0,
+        Actors::filter_kind_role(actors.iter(), ActorKind::Summary, ActorRole::Lyricist).count()
+    );
+    assert_eq!(
+        2,
+        Actors::filter_kind_role(actors.iter(), ActorKind::Individual, ActorRole::Lyricist).count()
+    );
 }
