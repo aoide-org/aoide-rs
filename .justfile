@@ -25,8 +25,8 @@ fix:
 
 # Run unit tests
 test:
-    cargo test --locked --workspace --all-features -- --nocapture
-    cd webapp && cargo test --locked --all-features -- --nocapture
+    RUST_BACKTRACE=1 cargo test --locked --workspace --all-features -- --nocapture
+    cd webapp && RUST_BACKTRACE=1 cargo test --locked --all-features -- --nocapture
 
 # Update depenencies and pre-commit hooks
 update:

@@ -113,3 +113,33 @@ fn validate_empty_actors() {
     let actors = [];
     assert!(Actors::validate(actors.iter()).is_ok());
 }
+
+#[test]
+fn actor_names() {
+    assert!(is_valid_actor_name("A valid\nartist\tname"));
+    assert!(!is_valid_actor_name(" Leading whitespace"));
+    assert!(!is_valid_actor_name("Trailing whitespace\n"));
+    assert!(!is_valid_actor_name(""));
+    assert!(!is_valid_actor_name(" "));
+    assert!(!is_valid_actor_name("\t"));
+}
+
+#[test]
+fn summary_individual_actor_names() {
+    assert!(is_valid_summary_individual_actor_name(
+        "Artist 1 and artist 2",
+        "Artist 1"
+    ));
+    assert!(is_valid_summary_individual_actor_name(
+        "Artist 1 and artist 2",
+        "artist 2"
+    ));
+    assert!(!is_valid_summary_individual_actor_name(
+        "Artist 1 and artist 2",
+        "artist 1"
+    ));
+    assert!(!is_valid_summary_individual_actor_name(
+        "Artist 1 and artist 2",
+        "Artist 2"
+    ));
+}

@@ -117,23 +117,9 @@ impl Track {
         Actors::main_actor(self.actors.iter(), ActorRole::Artist).map(|actor| actor.name.as_str())
     }
 
-    pub fn set_track_artist(&mut self, track_artist: impl Into<String>) -> bool {
-        let mut actors = std::mem::take(&mut self.actors).untie();
-        let res = Actors::set_main_actor(&mut actors, ActorRole::Artist, track_artist);
-        drop(std::mem::replace(&mut self.actors, Canonical::tie(actors)));
-        res
-    }
-
     #[must_use]
     pub fn track_composer(&self) -> Option<&str> {
         Actors::main_actor(self.actors.iter(), ActorRole::Composer).map(|actor| actor.name.as_str())
-    }
-
-    pub fn set_track_composer(&mut self, track_composer: impl Into<String>) -> bool {
-        let mut actors = std::mem::take(&mut self.actors).untie();
-        let res = Actors::set_main_actor(&mut actors, ActorRole::Composer, track_composer);
-        drop(std::mem::replace(&mut self.actors, Canonical::tie(actors)));
-        res
     }
 
     #[must_use]
@@ -154,15 +140,6 @@ impl Track {
     pub fn album_artist(&self) -> Option<&str> {
         Actors::main_actor(self.album.actors.iter(), ActorRole::Artist)
             .map(|actor| actor.name.as_str())
-    }
-
-    pub fn set_album_artist(&mut self, album_artist: impl Into<String>) -> bool {
-        let mut album = std::mem::take(&mut self.album).untie();
-        let mut actors = album.actors.untie();
-        let res = Actors::set_main_actor(&mut actors, ActorRole::Artist, album_artist);
-        album.actors = Canonical::tie(actors);
-        drop(std::mem::replace(&mut self.album, Canonical::tie(album)));
-        res
     }
 
     pub fn merge_newer_from_synchronized_media_source(&mut self, newer: Track) {

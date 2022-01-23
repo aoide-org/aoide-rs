@@ -41,7 +41,7 @@ use aoide_core::{
         tempo::TempoBpm,
     },
     track::{
-        actor::{Actor, ActorKind, ActorRole},
+        actor::{is_valid_summary_individual_actor_name, Actor, ActorKind, ActorRole},
         index::Index,
         title::{Title, TitleKind},
     },
@@ -87,6 +87,15 @@ pub fn guess_mime_from_path(path: impl AsRef<Path>) -> Result<Mime> {
 /// Otherwise a new chunk of actors is started, starting with the kind
 /// Summary.
 fn adjust_summary_actor_kind(actors: &mut [Actor], role: ActorRole, next_name: &str) -> ActorKind {
+    // Precodinition: Coherent chunk of actors with the given role at the back of the slice
+    debug_assert_eq!(
+        actors.iter().filter(|actor| actor.role == role).count(),
+        actors
+            .iter()
+            .rev()
+            .take_while(|actor| actor.role == role)
+            .count(),
+    );
     let proposed_kind = {
         let summary_actor = actors
             .iter_mut()
@@ -97,13 +106,13 @@ fn adjust_summary_actor_kind(actors: &mut [Actor], role: ActorRole, next_name: &
             .take_while(|actor| actor.role == role)
             .find(|actor| actor.kind == ActorKind::Summary);
         if let Some(summary_actor) = summary_actor {
-            if summary_actor.name.contains(next_name) {
+            if is_valid_summary_individual_actor_name(&summary_actor.name, next_name) {
                 ActorKind::Individual
             } else {
                 // Turn the current summary actor into an individual actor
                 summary_actor.kind = ActorKind::Individual;
                 // Check if the next actor could become the new summary actor
-                if next_name.contains(&summary_actor.name) {
+                if is_valid_summary_individual_actor_name(next_name, &summary_actor.name) {
                     ActorKind::Summary
                 } else {
                     ActorKind::Individual

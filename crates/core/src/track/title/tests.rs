@@ -16,6 +16,16 @@
 use super::*;
 
 #[test]
+fn title_names() {
+    assert!(is_valid_title_name("A valid\ntitle\tname"));
+    assert!(!is_valid_title_name(" Leading whitespace"));
+    assert!(!is_valid_title_name("Trailing whitespace\n"));
+    assert!(!is_valid_title_name(""));
+    assert!(!is_valid_title_name(" "));
+    assert!(!is_valid_title_name("\t"));
+}
+
+#[test]
 fn validate_empty_titles() {
     let titles = [];
     assert!(Titles::validate(titles.iter()).is_ok());

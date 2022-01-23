@@ -18,8 +18,8 @@ use crate::track::title::TitleKind;
 use super::*;
 
 #[test]
-fn validate_main_title() {
-    let mut album = Album {
+fn with_main_title() {
+    let album = Album {
         titles: Canonical::tie(vec![Title {
             name: "main".to_string(),
             kind: TitleKind::Main,
@@ -27,16 +27,23 @@ fn validate_main_title() {
         ..Default::default()
     };
     assert!(album.validate().is_ok());
-    album.titles = Canonical::tie(vec![Title {
-        name: "sub".to_string(),
-        kind: TitleKind::Sub,
-    }]);
+}
+
+#[test]
+fn without_main_title() {
+    let album = Album {
+        titles: Canonical::tie(vec![Title {
+            name: "sub".to_string(),
+            kind: TitleKind::Sub,
+        }]),
+        ..Default::default()
+    };
     assert!(album.validate().is_err());
 }
 
 #[test]
-fn validate_main_actor() {
-    let mut album = Album {
+fn with_main_artist() {
+    let album = Album {
         titles: Canonical::tie(vec![Title {
             name: "main".to_string(),
             kind: TitleKind::Main,
@@ -48,11 +55,25 @@ fn validate_main_actor() {
         }]),
         ..Default::default()
     };
+    assert!(Actors::main_actor(album.actors.iter(), Default::default()).is_some());
     assert!(album.validate().is_ok());
-    album.actors = Canonical::tie(vec![Actor {
-        name: "composer".to_string(),
-        role: ActorRole::Composer,
+}
+
+#[test]
+fn without_main_artist() {
+    let album = Album {
+        titles: Canonical::tie(vec![Title {
+            name: "main".to_string(),
+            kind: TitleKind::Main,
+        }]),
+        actors: Canonical::tie(vec![Actor {
+            name: "composer".to_string(),
+            role: ActorRole::Composer,
+            ..Default::default()
+        }]),
         ..Default::default()
-    }]);
-    assert!(album.validate().is_err());
+    };
+    // No main artist required
+    assert!(Actors::main_actor(album.actors.iter(), Default::default()).is_none());
+    assert!(album.validate().is_ok());
 }

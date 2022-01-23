@@ -79,9 +79,15 @@ impl Canonicalize for Title {
     }
 }
 
+pub fn is_valid_title_name(name: impl AsRef<str>) -> bool {
+    let name = name.as_ref();
+    let trimmed = name.trim();
+    !trimmed.is_empty() && trimmed == name
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TitleInvalidity {
-    NameEmpty,
+    Name,
 }
 
 impl Validate for Title {
@@ -89,7 +95,7 @@ impl Validate for Title {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.name.trim().is_empty(), Self::Invalidity::NameEmpty)
+            .invalidate_if(!is_valid_title_name(&self.name), Self::Invalidity::Name)
             .into()
     }
 }
