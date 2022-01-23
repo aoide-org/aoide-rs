@@ -45,6 +45,7 @@ mp3-duration = { git = "https://github.com/aoide-org/mp3-duration", branch = "st
 #id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3" }
 
 [profile.dev]
+opt-level = 2
 split-debuginfo = "unpacked"
 
 [profile.test]
