@@ -108,7 +108,7 @@ DATABASE_URL=${DATABASE_URL} \
 LAUNCH_HEADLESS=true \
 cargo run --package aoide-websrv --profile ${BUILD_PROFILE} ${FEATURES} &>"${LOG_FILE}" &
 
-sleep 1
+sleep 2
 
 cd crates/client
 export RUST_BACKTRACE=${RUST_BACKTRACE}
