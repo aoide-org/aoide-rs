@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::num::NonZeroU32;
+
 use diesel::r2d2;
 
 use crate::Result;
@@ -26,10 +28,10 @@ pub type PooledConnection = r2d2::PooledConnection<ConnectionManager>;
 #[cfg(feature = "with-tokio")]
 pub mod gatekeeper;
 
-pub fn create_connection_pool(database_url: &str, max_size: u32) -> Result<ConnectionPool> {
-    let manager = ConnectionManager::new(database_url);
+pub fn create_connection_pool(connection: &str, max_size: NonZeroU32) -> Result<ConnectionPool> {
+    let manager = ConnectionManager::new(connection);
     let pool = ConnectionPool::builder()
-        .max_size(max_size)
+        .max_size(max_size.get())
         .build(manager)?;
     Ok(pool)
 }

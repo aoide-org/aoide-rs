@@ -13,17 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    env,
-    net::{IpAddr, Ipv6Addr, SocketAddr},
-    str::ParseBoolError,
-};
+use std::{env, net::IpAddr, num::NonZeroU8, str::ParseBoolError};
 
-use anyhow::Error;
 use dotenv::dotenv;
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_log::LogTracer;
 use tracing_subscriber::EnvFilter;
+use url::Url;
+
+use crate::config::{
+    Config, DatabaseConnection, SqliteDatabaseConnection, SQLITE_DATABASE_CONNECTION_IN_MEMORY,
+};
 
 pub fn init_environment() {
     if let Ok(path) = dotenv() {
@@ -69,55 +69,109 @@ pub fn init_tracing_and_logging() -> anyhow::Result<()> {
 }
 
 const ENDPOINT_IP_ENV: &str = "ENDPOINT_IP";
-const ENDPOINT_IP_DEFAULT: IpAddr = IpAddr::V6(Ipv6Addr::UNSPECIFIED);
 
-const ENDPOINT_PORT_ENV: &str = "ENDPOINT_PORT";
-const ENDPOINT_PORT_EPHEMERAL: u16 = 0;
-const ENDPOINT_PORT_DEFAULT: u16 = ENDPOINT_PORT_EPHEMERAL;
-
-pub fn parse_endpoint_addr() -> SocketAddr {
-    let endpoint_ip = env::var(ENDPOINT_IP_ENV)
-        .map_err(Into::into)
+fn parse_endpoint_ip_addr() -> Option<IpAddr> {
+    env::var(ENDPOINT_IP_ENV)
+        .map_err(|err| err.to_string())
         .and_then(|var| {
             log::debug!("{} = {}", ENDPOINT_IP_ENV, var);
             var.parse().map_err(|err| {
-                log::warn!("Failed to parse {} = {}: {}", ENDPOINT_IP_ENV, var, err);
-                Error::from(err)
+                format!("Failed to parse '{}' = '{}': {}", ENDPOINT_IP_ENV, var, err)
             })
         })
-        .unwrap_or(ENDPOINT_IP_DEFAULT);
-    let endpoint_port = env::var(ENDPOINT_PORT_ENV)
-        .map_err(Into::into)
+        .map_err(|err| {
+            log::warn!("{}", err);
+        })
+        .ok()
+}
+
+const ENDPOINT_PORT_ENV: &str = "ENDPOINT_PORT";
+
+fn parse_endpoint_port() -> Option<u16> {
+    env::var(ENDPOINT_PORT_ENV)
+        .map_err(|err| err.to_string())
         .and_then(|var| {
             log::debug!("{} = {}", ENDPOINT_PORT_ENV, var);
             if var.trim().is_empty() {
-                Ok(ENDPOINT_PORT_DEFAULT)
+                Ok(None)
             } else {
-                var.parse().map_err(|err| {
-                    log::warn!("Failed to parse {} = {}: {}", ENDPOINT_PORT_ENV, var, err);
-                    Error::from(err)
-                })
+                var.parse()
+                    .map_err(|err| {
+                        format!(
+                            "Failed to parse '{}' = '{}': {}",
+                            ENDPOINT_PORT_ENV, var, err
+                        )
+                    })
+                    .map(Some)
             }
         })
-        .unwrap_or(ENDPOINT_PORT_DEFAULT);
-    (endpoint_ip, endpoint_port).into()
+        .map_err(|err| {
+            log::warn!("{}", err);
+        })
+        .ok()
+        .flatten()
 }
 
 const DATABASE_URL_ENV: &str = "DATABASE_URL";
-const DATABASE_URL_DEFAULT: &str = ":memory:";
 
-pub fn parse_database_url() -> String {
+fn parse_sqlite_database_connection() -> Option<SqliteDatabaseConnection> {
     env::var(DATABASE_URL_ENV)
-        .map_err(Error::from)
-        .map(|var| {
+        .map_err(|err| err.to_string())
+        .and_then(|var| {
             log::debug!("{} = {}", DATABASE_URL_ENV, var);
-            var
+            match var.trim() {
+                "" => Ok(None),
+                SQLITE_DATABASE_CONNECTION_IN_MEMORY => {
+                    Ok(Some(SqliteDatabaseConnection::InMemory))
+                }
+                trimmed => trimmed
+                    .parse::<Url>()
+                    .map_err(|err| err.to_string())
+                    .and_then(|url| {
+                        url.to_file_path()
+                            .map_err(|()| "not a file path".to_owned())
+                    })
+                    .map_err(|err| {
+                        format!(
+                            "Failed to parse '{}' = '{}': {}",
+                            DATABASE_URL_ENV, var, err,
+                        )
+                    })
+                    .map(|path| Some(SqliteDatabaseConnection::File { path })),
+            }
         })
-        .unwrap_or_else(|_| DATABASE_URL_DEFAULT.into())
+        .map_err(|err| {
+            log::warn!("{}", err);
+        })
+        .ok()
+        .flatten()
 }
 
-const DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV: &str = "DATABASE_MIGRATE_SCHEMA_ON_STARTUP";
-const DATABASE_MIGRATE_SCHEMA_ON_STARTUP_DEFAULT: bool = true;
+const DATABASE_CONNECTION_POOL_SIZE_ENV: &str = "DATABASE_CONNECTION_POOL_SIZE";
+
+fn parse_database_connection_pool_size() -> Option<NonZeroU8> {
+    env::var(DATABASE_CONNECTION_POOL_SIZE_ENV)
+        .map_err(|err| err.to_string())
+        .and_then(|var| {
+            log::debug!("{} = {}", DATABASE_CONNECTION_POOL_SIZE_ENV, var);
+            if var.trim().is_empty() {
+                // Silently ignore whitespace
+                Ok(None)
+            } else {
+                var.parse().map(Some).map_err(|err| {
+                    format!(
+                        "Failed to parse '{}' = '{}': {}",
+                        DATABASE_CONNECTION_POOL_SIZE_ENV, var, err
+                    )
+                })
+            }
+        })
+        .map_err(|err| {
+            log::warn!("{}", err);
+        })
+        .ok()
+        .flatten()
+}
 
 fn parse_bool_var(var: &str) -> Result<bool, ParseBoolError> {
     var.to_lowercase().parse::<bool>().or_else(|err| {
@@ -132,60 +186,48 @@ fn parse_bool_var(var: &str) -> Result<bool, ParseBoolError> {
     })
 }
 
-pub fn parse_database_migrate_schema_on_startup() -> bool {
-    env::var(DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV)
-        .map_err(Into::into)
+fn parse_bool_var_with_key(key: &str) -> Option<bool> {
+    env::var(key)
+        .map_err(|err| err.to_string())
         .and_then(|var| {
-            log::debug!("{} = {}", DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV, var);
-            parse_bool_var(&var).map_err(|err| {
-                log::warn!(
-                    "Failed to parse {} = {}: {}",
-                    DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV,
-                    var,
-                    err,
-                );
-                Error::from(err)
-            })
+            log::debug!("{} = {}", key, var);
+            parse_bool_var(&var)
+                .map_err(|err| format!("Failed to parse '{}' = '{}': {}", key, var, err,))
         })
-        .unwrap_or(DATABASE_MIGRATE_SCHEMA_ON_STARTUP_DEFAULT)
+        .map_err(|err| {
+            log::warn!("{}", err);
+        })
+        .ok()
 }
 
-const DATABASE_CONNECTION_POOL_SIZE_ENV: &str = "DATABASE_CONNECTION_POOL_SIZE";
-const DATABASE_CONNECTION_POOL_SIZE_MIN: u32 = 1;
-const DATABASE_CONNECTION_POOL_SIZE_DEFAULT: u32 = DATABASE_CONNECTION_POOL_SIZE_MIN;
+const DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV: &str = "DATABASE_MIGRATE_SCHEMA_ON_STARTUP";
 
-pub fn parse_database_connection_pool_size() -> u32 {
-    env::var(DATABASE_CONNECTION_POOL_SIZE_ENV)
-        .map_err(Into::into)
-        .and_then(|var| {
-            log::debug!("{} = {}", DATABASE_CONNECTION_POOL_SIZE_ENV, var);
-            if var.trim().is_empty() {
-                Ok(DATABASE_CONNECTION_POOL_SIZE_MIN)
-            } else {
-                var.parse()
-                    .map(|val| {
-                        if val < DATABASE_CONNECTION_POOL_SIZE_MIN {
-                            log::warn!(
-                                "Invalid {} = {} < {}",
-                                DATABASE_CONNECTION_POOL_SIZE_ENV,
-                                val,
-                                DATABASE_CONNECTION_POOL_SIZE_MIN
-                            );
-                            DATABASE_CONNECTION_POOL_SIZE_MIN
-                        } else {
-                            val
-                        }
-                    })
-                    .map_err(|err| {
-                        log::warn!(
-                            "Failed to parse {} = {}: {}",
-                            DATABASE_CONNECTION_POOL_SIZE_ENV,
-                            var,
-                            err
-                        );
-                        Error::from(err)
-                    })
-            }
-        })
-        .unwrap_or(DATABASE_CONNECTION_POOL_SIZE_DEFAULT)
+fn parse_database_migrate_schema_on_startup() -> Option<bool> {
+    parse_bool_var_with_key(DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV)
+}
+
+pub fn parse_config_into(config: &mut Config) {
+    if let Some(ip_addr) = parse_endpoint_ip_addr() {
+        config.endpoint.ip_addr = ip_addr;
+    }
+    if let Some(port) = parse_endpoint_port() {
+        config.endpoint.port = port;
+    }
+    if let Some(sqlite_connection) = parse_sqlite_database_connection() {
+        config.database.connection = DatabaseConnection::Sqlite(sqlite_connection);
+    }
+    if let Some(connection_pool_size) = parse_database_connection_pool_size() {
+        config.database.connection_pool_size = connection_pool_size;
+    }
+    if let Some(migrate_schema_on_startup) = parse_database_migrate_schema_on_startup() {
+        config.database.migrate_schema_on_startup = migrate_schema_on_startup;
+    }
+}
+
+#[cfg(feature = "with-launcher-ui")]
+const LAUNCH_HEADLESS_ENV: &str = "LAUNCH_HEADLESS";
+
+#[cfg(feature = "with-launcher-ui")]
+pub fn parse_launch_headless() -> Option<bool> {
+    parse_bool_var_with_key(LAUNCH_HEADLESS_ENV)
 }
