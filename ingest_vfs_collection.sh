@@ -93,13 +93,15 @@ pkill --signal SIGINT -x aoide-websrv || true
 
 sleep 1
 
-cargo build --workspace --profile ${BUILD_PROFILE} ${FEATURES}
-
 LOG_FILE=${WEBSRV_LOG_DIR}${SCRIPT_NAME}@${DATE_STAMP}.log
 PERF_FILE=${WEBSRV_LOG_DIR}${SCRIPT_NAME}@${DATE_STAMP}.perf
 
 #perf record -F 99 -g -o "${PERF_FILE}" --
 
+# Build the server executable (blocking)
+cargo build --package aoide-websrv --profile ${BUILD_PROFILE} ${FEATURES}
+
+# After the server executable has been built run it (in the background)
 RUST_BACKTRACE=${RUST_BACKTRACE} \
 RUST_LOG=${WEBSRV_LOG} \
 DATABASE_URL=${DATABASE_URL} \
