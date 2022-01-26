@@ -64,6 +64,12 @@ RUN apt update \
         musl-tools \
         python3-pip \
         tree \
+        libxcb-render0-dev \
+        libxcb-shape0-dev \
+        libxcb-xfixes0-dev \
+        libspeechd-dev \
+        libxkbcommon-dev \
+        libssl-dev \
     && rm -rf /var/lib/apt/lists/* \
     && rustup target add \
         ${BUILD_TARGET} \
