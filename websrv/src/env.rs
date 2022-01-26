@@ -251,7 +251,7 @@ pub fn parse_config_into(config: &mut Config) {
         config.database.connection = DatabaseConnection::Sqlite(sqlite_connection);
     }
     if let Some(connection_pool_size) = parse_database_connection_pool_size() {
-        config.database.connection_pool_size = connection_pool_size;
+        config.database.connection_pool.max_size = connection_pool_size;
     }
     if let Some(migrate_schema_on_startup) = parse_database_migrate_schema_on_startup() {
         config.database.migrate_schema_on_startup = migrate_schema_on_startup;

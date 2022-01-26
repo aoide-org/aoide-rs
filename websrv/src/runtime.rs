@@ -80,14 +80,14 @@ pub async fn run(
     // allowed readers while writers require exclusive access.
     log::info!(
         "Creating SQLite connection pool of size {}",
-        config.database.connection_pool_size
+        config.database.connection_pool.max_size
     );
     let sqlite_database_connection = match &config.database.connection {
         DatabaseConnection::Sqlite(sqlite_connection) => sqlite_connection.as_ref(),
     };
     let connection_pool = create_connection_pool(
         sqlite_database_connection,
-        config.database.connection_pool_size.into(),
+        config.database.connection_pool.max_size.into(),
     )
     .expect("Failed to create database connection pool");
 
@@ -104,13 +104,17 @@ pub async fn run(
         connection_pool,
         DatabaseConnectionGatekeeperConfig {
             acquire_read_timeout: Duration::from_millis(
-                config.database.connection_timeout.acquire_read_millis.get(),
+                config
+                    .database
+                    .connection_gatekeeper
+                    .acquire_read_timeout_millis
+                    .get(),
             ),
             acquire_write_timeout: Duration::from_millis(
                 config
                     .database
-                    .connection_timeout
-                    .acquire_write_millis
+                    .connection_gatekeeper
+                    .acquire_write_timeout_millis
                     .get(),
             ),
         },

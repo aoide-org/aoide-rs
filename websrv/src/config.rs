@@ -87,16 +87,21 @@ impl AsRef<str> for SqliteDatabaseConnection {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DatabaseConnectionTimeout {
-    pub acquire_read_millis: NonZeroU64,
-    pub acquire_write_millis: NonZeroU64,
+pub struct DatabaseConnectionPoolConfig {
+    pub max_size: NonZeroU8,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DatabaseConnectionGatekeeperConfig {
+    pub acquire_read_timeout_millis: NonZeroU64,
+    pub acquire_write_timeout_millis: NonZeroU64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseConfig {
     pub connection: DatabaseConnection,
-    pub connection_timeout: DatabaseConnectionTimeout,
-    pub connection_pool_size: NonZeroU8,
+    pub connection_pool: DatabaseConnectionPoolConfig,
+    pub connection_gatekeeper: DatabaseConnectionGatekeeperConfig,
     pub migrate_schema_on_startup: bool,
 }
 
@@ -116,16 +121,18 @@ impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
             connection: DatabaseConnection::Sqlite(SqliteDatabaseConnection::InMemory),
-            connection_timeout: DatabaseConnectionTimeout {
-                acquire_read_millis: non_zero_duration_as_millis(
+            connection_pool: DatabaseConnectionPoolConfig {
+                max_size: NonZeroU8::new(DEFAULT_DATABASE_CONNECTION_POOL_SIZE)
+                    .expect("non-zero size"),
+            },
+            connection_gatekeeper: DatabaseConnectionGatekeeperConfig {
+                acquire_read_timeout_millis: non_zero_duration_as_millis(
                     DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_READ,
                 ),
-                acquire_write_millis: non_zero_duration_as_millis(
+                acquire_write_timeout_millis: non_zero_duration_as_millis(
                     DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_WRITE,
                 ),
             },
-            connection_pool_size: NonZeroU8::new(DEFAULT_DATABASE_CONNECTION_POOL_SIZE)
-                .expect("non-zero size"),
             migrate_schema_on_startup: true,
         }
     }
