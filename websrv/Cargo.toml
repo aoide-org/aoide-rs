@@ -14,8 +14,6 @@ ctrlc = { version = "*", features = ["termination"] }
 directories = "*"
 dotenv = "*"
 log = "*"
-num-derive = "*"
-num-traits = "*"
 parking_lot = "*"
 ron = "*"
 schemars = "*"

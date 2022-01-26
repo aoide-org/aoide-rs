@@ -31,6 +31,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
     sync::Arc,
+    thread::JoinHandle,
 };
 
 use directories::ProjectDirs;
@@ -106,6 +107,21 @@ pub fn save_app_config(app_dirs: &ProjectDirs, config: &Config) {
     }
     if let Err(err) = fs::write(&file_path, &bytes) {
         log::warn!("Failed to write configuration data into file: {}", err);
+    }
+}
+
+pub fn join_runtime_thread(join_handle: JoinHandle<anyhow::Result<()>>) {
+    log::info!("Awaiting termination of runtime thread");
+    match join_handle.join() {
+        Ok(Ok(())) => {
+            log::info!("Runtime thread terminated");
+        }
+        Ok(Err(err)) => {
+            log::warn!("Runtime thread terminated with error: {}", err);
+        }
+        Err(err) => {
+            log::error!("Failed to await termination of runtime thread: {:?}", err);
+        }
     }
 }
 

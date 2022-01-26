@@ -335,8 +335,6 @@ dependencies = [
  "egui",
  "log",
  "mime_guess",
- "num-derive",
- "num-traits",
  "parking_lot",
  "ron",
  "rust-embed",

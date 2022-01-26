@@ -16,16 +16,16 @@
 use std::{
     collections::HashMap,
     sync::{
-        atomic::{AtomicU8, Ordering},
+        atomic::{AtomicBool, Ordering},
         Arc,
     },
     time::Duration,
 };
 
-use num_derive::{FromPrimitive, ToPrimitive};
-use num_traits::{FromPrimitive as _, ToPrimitive as _};
-
-use tokio::{join, sync::mpsc, time::sleep};
+use tokio::{
+    sync::{mpsc, watch},
+    time::sleep,
+};
 use warp::{http::StatusCode, Filter};
 
 use aoide_storage_sqlite::connection::{
@@ -52,45 +52,13 @@ static OPENAPI_YAML: &str = include_str!("../res/openapi.yaml");
 #[cfg(not(feature = "with-webapp"))]
 static INDEX_HTML: &str = include_str!("../res/index.html");
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum State {
-    Launching = 0,
-    Starting = 1,
-    Listening = 2,
-    Stopping = 3,
-    Terminating = 4,
-}
-
-#[derive(Debug)]
-pub struct CurrentState {
-    inner: AtomicU8,
-}
-
-impl CurrentState {
-    pub fn new(initial_state: State) -> Self {
-        let initial_state = initial_state.to_u8().unwrap();
-        Self {
-            inner: AtomicU8::new(initial_state),
-        }
-    }
-
-    #[must_use]
-    pub fn load(&self) -> State {
-        State::from_u8(self.inner.load(Ordering::Relaxed)).unwrap()
-    }
-
-    fn store(&self, state: State) {
-        self.inner.store(state.to_u8().unwrap(), Ordering::Relaxed);
-    }
-
-    fn switch(&self, from_state: State, to_state: State) -> Result<State, State> {
-        let old = from_state.to_u8().unwrap();
-        let new = to_state.to_u8().unwrap();
-        self.inner
-            .compare_exchange_weak(old, new, Ordering::Relaxed, Ordering::Relaxed)
-            .map(|val| State::from_u8(val).unwrap())
-            .map_err(|val| State::from_u8(val).unwrap())
-    }
+    Launching,
+    Starting,
+    Listening,
+    Stopping,
+    Terminating,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -101,12 +69,12 @@ pub enum Command {
 pub async fn run(
     config: Config,
     command_rx: mpsc::UnboundedReceiver<Command>,
-    current_state: Arc<CurrentState>,
+    current_state_tx: watch::Sender<Option<State>>,
 ) -> anyhow::Result<()> {
     let launched_at = chrono::Utc::now();
 
     log::info!("Launching");
-    current_state.store(State::Launching);
+    current_state_tx.send(Some(State::Launching)).ok();
 
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
@@ -225,13 +193,13 @@ pub async fn run(
     );
 
     log::info!("Starting");
-    current_state.store(State::Starting);
+    current_state_tx.send(Some(State::Starting)).ok();
 
+    let abort_pending_tasks_on_termination = Arc::new(AtomicBool::new(false));
     let (socket_addr, server_listener) = {
-        let current_state = Arc::clone(&current_state);
         let mut command_rx = command_rx;
+        let abort_pending_tasks_on_termination = Arc::clone(&abort_pending_tasks_on_termination);
         server.bind_with_graceful_shutdown(config.endpoint.socket_addr(), async move {
-            let mut abort_pending_tasks_on_termination = false;
             loop {
                 tokio::select! {
                     Some(()) = server_shutdown_rx.recv() => break,
@@ -240,7 +208,7 @@ pub async fn run(
                             Command::Terminate {
                                 abort_pending_tasks,
                             } => {
-                                abort_pending_tasks_on_termination = abort_pending_tasks;
+                                abort_pending_tasks_on_termination.store(abort_pending_tasks, Ordering::Release);
                                 break;
                             }
                         }
@@ -248,52 +216,38 @@ pub async fn run(
                     else => break,
                 }
             }
-
-            log::info!("Stopping");
-            if let Err(state) = current_state.switch(State::Listening, State::Stopping) {
-                log::error!("Ignoring unexpected state {:?} while stopping", state);
-            }
-
-            shared_connection_pool.decommission();
-            // Abort the current task after decommissioning to prevent
-            // that any new tasks are spawned after aborting the current
-            // task!
-            if abort_pending_tasks_on_termination {
-                shared_connection_pool.abort_current_task();
-            }
         })
     };
 
-    let server_listening = {
-        let current_state = Arc::clone(&current_state);
-        async move {
-            // Give the server some time to become ready and start listening
-            // before announcing the actual endpoint address, i.e. when using
-            // an ephemeral port. The delay might need to be tuned depending
-            // on how long the startup actually takes. Unfortunately warp does
-            // not provide any signal when the server has started listening.
-            sleep(WEB_SERVER_LISTENING_DELAY).await;
+    // Give the server some time to become ready and start listening
+    // before announcing the actual endpoint address, i.e. when using
+    // an ephemeral port. The delay might need to be tuned depending
+    // on how long the startup actually takes. Unfortunately warp does
+    // not provide any signal when the server has started listening.
+    sleep(WEB_SERVER_LISTENING_DELAY).await;
 
-            match current_state.switch(State::Starting, State::Listening) {
-                Ok(_) => {
-                    // -> stderr
-                    log::info!("Listening on {}", socket_addr);
-                    // -> stdout
-                    println!("{}", socket_addr);
-                }
-                Err(state) => {
-                    log::error!("Unexpected state {:?} while starting", state);
-                    // Do not advertise the endpoint address on stdout
-                }
-            }
-        }
-    };
+    // -> stderr
+    log::info!("Listening on {}", socket_addr);
+    // -> stdout
+    println!("{}", socket_addr);
 
-    join!(server_listener, server_listening);
-    log::info!("Stopped");
+    current_state_tx.send(Some(State::Listening)).ok();
+
+    server_listener.await;
+
+    log::info!("Stopping");
+    current_state_tx.send(Some(State::Stopping)).ok();
+
+    shared_connection_pool.decommission();
+    // Abort the current task after decommissioning to prevent
+    // that any new tasks are spawned after aborting the current
+    // task!
+    if abort_pending_tasks_on_termination.load(Ordering::Acquire) {
+        shared_connection_pool.abort_current_task();
+    }
 
     log::info!("Terminating");
-    current_state.store(State::Terminating);
+    current_state_tx.send(Some(State::Terminating)).ok();
 
     Ok(())
 }
