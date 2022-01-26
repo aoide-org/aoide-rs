@@ -13,43 +13,75 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{sync::Arc, thread::JoinHandle};
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    thread::JoinHandle,
+};
 
 use eframe::epi::{egui::CtxRef, Frame};
 use parking_lot::Mutex;
 
 use crate::{
+    app_dirs, app_name,
     launcher::{Launcher, State},
     runtime::State as RuntimeState,
+    save_app_config,
 };
 
 pub struct App {
     launcher: Arc<Mutex<Launcher>>,
     runtime_thread: Option<JoinHandle<anyhow::Result<()>>>,
+    exit_flag: Arc<AtomicBool>,
 }
 
 impl App {
-    pub const fn new(launcher: Arc<Mutex<Launcher>>) -> Self {
+    pub fn new(launcher: Arc<Mutex<Launcher>>) -> Self {
         Self {
             launcher,
             runtime_thread: None,
+            exit_flag: Arc::new(AtomicBool::new(false)),
         }
     }
 }
 
 impl eframe::epi::App for App {
     fn name(&self) -> &str {
-        env!("CARGO_PKG_NAME")
+        app_name()
+    }
+
+    fn setup(
+        &mut self,
+        ctx: &egui::CtxRef,
+        _frame: &Frame,
+        _storage: Option<&dyn eframe::epi::Storage>,
+    ) {
+        if let Err(err) = ctrlc::set_handler({
+            let ctx = ctx.to_owned();
+            let exit_flag = Arc::clone(&self.exit_flag);
+            move || {
+                exit_flag.store(true, Ordering::Release);
+                // FIXME: How to enforce a repaint of the UI even if it is
+                // currently invisible?
+                ctx.request_repaint();
+            }
+        }) {
+            log::error!("Failed to register signal handler: {}", err);
+        }
     }
 
     fn on_exit(&mut self) {
         let App {
             launcher,
             runtime_thread,
+            ..
         } = self;
         let mut launcher = launcher.lock();
         if let Some(join_handle) = runtime_thread.take() {
             match launcher.state() {
+                State::Running(RuntimeState::Terminating) => (),
                 State::Running(_) => {
                     if let Err(err) = launcher.terminate_runtime(true) {
                         log::error!("Failed to terminate runtime on exit: {}", err);
@@ -82,13 +114,20 @@ impl eframe::epi::App for App {
                 }
             }
         }
+        if let Some(app_dirs) = app_dirs() {
+            save_app_config(&app_dirs, launcher.config());
+        }
     }
 
     fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
         let App {
             launcher,
             runtime_thread,
+            exit_flag,
         } = self;
+        if exit_flag.load(Ordering::Acquire) {
+            frame.quit();
+        }
         let mut launcher = launcher.lock();
         match launcher.state() {
             State::Idle => {

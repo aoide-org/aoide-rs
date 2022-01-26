@@ -248,14 +248,16 @@ The configuration is controlled by environment variables. Please refer to the
 
 #### Configuration examples
 
-| Configuration                    | Description                                             |
-| -------------------------------- | ------------------------------------------------------- |
-| `RUST_LOG=debug`                 | Log/tracing level `debug` (trace/debug/info/warn/error) |
-| `ENDPOINT_IP=::`                 | Listen on IPv6 loopback device                          |
-| `ENDPOINT_PORT=0`                | Bind to an ephemeral port for incoming HTTP requests    |
-| `ENDPOINT_PORT=8080`             | Bind to port 8080 for incoming HTTP requests            |
-| `DATABASE_URL=:memory:`          | Use an in-memory database for testing purposes          |
-| `DATABASE_URL=/tmp/aoide.sqlite` | Open or create the corresponding SQLite database file   |
+| Configuration                    | Description                                               |
+| -------------------------------- | --------------------------------------------------------- |
+| `RUST_LOG=debug`                 | Log/tracing level `debug` (trace/debug/info/warn/error)   |
+| `ENDPOINT_IP=::`                 | Listen on IPv6 loopback device                            |
+| `ENDPOINT_PORT=0`                | Bind to an ephemeral port for incoming HTTP requests      |
+| `ENDPOINT_PORT=8080`             | Bind to port 8080 for incoming HTTP requests              |
+| `DATABASE_URL=:memory:`          | Use an in-memory database for testing purposes            |
+| `DATABASE_URL=/tmp/aoide.sqlite` | Open or create the corresponding SQLite database file     |
+| `LAUNCH_HEADLESS=true`           | Start the web server immediately and hide the launcher UI |
+| `DEFAULT_CONFIG=true`            | Start with a fresh default config instead of loading a previously stored one |
 
 The actual socket address with the bound (ephemeral) port will be printed on the first line to _stdout_
 where the client can pick it up for connecting. You may also bind the service to some predefined port.

@@ -22,13 +22,13 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
     pub endpoint: EndpointConfig,
     pub database: DatabaseConfig,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EndpointConfig {
     pub ip_addr: IpAddr,
     pub port: u16,
@@ -66,12 +66,12 @@ impl Default for EndpointConfig {
 
 pub const SQLITE_DATABASE_CONNECTION_IN_MEMORY: &str = ":memory:";
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DatabaseConnection {
     Sqlite(SqliteDatabaseConnection),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SqliteDatabaseConnection {
     InMemory,
     File { path: PathBuf },
@@ -86,13 +86,13 @@ impl AsRef<str> for SqliteDatabaseConnection {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseConnectionTimeout {
     pub acquire_read_millis: NonZeroU64,
     pub acquire_write_millis: NonZeroU64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseConfig {
     pub connection: DatabaseConnection,
     pub connection_timeout: DatabaseConnectionTimeout,

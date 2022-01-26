@@ -11,11 +11,13 @@ edition = "2021"
 anyhow = "*"
 chrono = { version = "*", default-features = false }
 ctrlc = { version = "*", features = ["termination"] }
+directories = "*"
 dotenv = "*"
 log = "*"
 num-derive = "*"
 num-traits = "*"
 parking_lot = "*"
+ron = "*"
 schemars = "*"
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
@@ -32,9 +34,8 @@ mime_guess = { version = "*", optional = true }
 rust-embed = { version = "*", optional = true }
 
 # with-launcher-ui
-confy = { version = "*", optional = true }
-eframe = { version = "*", optional = true, features = ["default_fonts", "egui_glow"] }
-egui = { version = "*", optional = true }
+eframe = { version = "*", optional = true, default-features = false, features = ["default_fonts", "egui_glow"] }
+egui = { version = "*", optional = true, default-features = false }
 
 # Workspace dependencies
 aoide-core = "*"
@@ -48,4 +49,4 @@ aoide-websrv-api = "*"
 [features]
 default = ["with-webapp", "with-launcher-ui"]
 with-webapp = ["mime_guess", "rust-embed"]
-with-launcher-ui = ["confy", "eframe", "egui"]
+with-launcher-ui = ["eframe", "egui"]

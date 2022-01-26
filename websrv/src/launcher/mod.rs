@@ -61,6 +61,7 @@ pub struct Launcher {
 }
 
 impl Launcher {
+    #[must_use]
     pub const fn new(config: Config) -> Self {
         Self {
             state: InternalState::Idle,
@@ -68,8 +69,24 @@ impl Launcher {
         }
     }
 
+    #[must_use]
     pub fn state(&self) -> State {
         (&self.state).into()
+    }
+
+    #[must_use]
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
+    #[allow(dead_code)]
+    pub fn decommission(self) -> Result<Config, Self> {
+        if matches!(self.state(), State::Idle) {
+            let Self { config, .. } = self;
+            Ok(config)
+        } else {
+            Err(self)
+        }
     }
 
     pub fn launch_runtime(&mut self) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
