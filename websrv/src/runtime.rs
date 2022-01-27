@@ -15,6 +15,7 @@
 
 use std::{
     collections::HashMap,
+    net::SocketAddr,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -56,7 +57,7 @@ static INDEX_HTML: &str = include_str!("../res/index.html");
 pub enum State {
     Launching,
     Starting,
-    Listening,
+    Listening { socket_addr: SocketAddr },
     Stopping,
     Terminating,
 }
@@ -203,7 +204,7 @@ pub async fn run(
     let (socket_addr, server_listener) = {
         let mut command_rx = command_rx;
         let abort_pending_tasks_on_termination = Arc::clone(&abort_pending_tasks_on_termination);
-        server.bind_with_graceful_shutdown(config.endpoint.socket_addr(), async move {
+        server.bind_with_graceful_shutdown(config.network.endpoint.socket_addr(), async move {
             loop {
                 tokio::select! {
                     Some(()) = server_shutdown_rx.recv() => break,
@@ -235,7 +236,9 @@ pub async fn run(
     // -> stdout
     println!("{}", socket_addr);
 
-    current_state_tx.send(Some(State::Listening)).ok();
+    current_state_tx
+        .send(Some(State::Listening { socket_addr }))
+        .ok();
 
     server_listener.await;
 

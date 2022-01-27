@@ -22,17 +22,77 @@ use std::{
 };
 
 use eframe::epi::{egui::CtxRef, Frame};
-use egui::{Button, CentralPanel, TopBottomPanel};
+use egui::{Button, CentralPanel, Label, TextEdit, TopBottomPanel};
 use parking_lot::Mutex;
 
 use crate::{
-    app_dirs, app_name, join_runtime_thread,
+    app_dirs, app_name,
+    config::SQLITE_DATABASE_CONNECTION_IN_MEMORY,
+    join_runtime_thread,
     launcher::{Launcher, State},
     runtime::State as RuntimeState,
     save_app_config,
 };
 
+struct NetworkConfig {
+    endpoint: EndpointConfig,
+}
+
+impl From<crate::config::NetworkConfig> for NetworkConfig {
+    fn from(from: crate::config::NetworkConfig) -> Self {
+        let crate::config::NetworkConfig { endpoint } = from;
+        Self {
+            endpoint: endpoint.into(),
+        }
+    }
+}
+
+struct EndpointConfig {
+    ip_addr: String,
+    port: u16,
+}
+
+impl From<crate::config::EndpointConfig> for EndpointConfig {
+    fn from(from: crate::config::EndpointConfig) -> Self {
+        let crate::config::EndpointConfig { ip_addr, port } = from;
+        Self {
+            ip_addr: ip_addr.to_string(),
+            port,
+        }
+    }
+}
+
+struct DatabaseConfig {
+    sqlite_connection: String,
+}
+
+impl From<crate::config::DatabaseConfig> for DatabaseConfig {
+    fn from(from: crate::config::DatabaseConfig) -> Self {
+        let crate::config::DatabaseConfig { connection, .. } = from;
+        let sqlite_connection = match connection {
+            crate::config::DatabaseConnection::Sqlite(sqlite) => sqlite.to_string(),
+        };
+        Self { sqlite_connection }
+    }
+}
+
+struct Config {
+    network: NetworkConfig,
+    database: DatabaseConfig,
+}
+
+impl From<crate::config::Config> for Config {
+    fn from(from: crate::config::Config) -> Self {
+        let crate::config::Config { network, database } = from;
+        Self {
+            network: network.into(),
+            database: database.into(),
+        }
+    }
+}
+
 pub struct App {
+    config: Config,
     launcher: Arc<Mutex<Launcher>>,
     runtime_thread: Option<JoinHandle<anyhow::Result<()>>>,
     exit_flag: Arc<AtomicBool>,
@@ -40,7 +100,9 @@ pub struct App {
 
 impl App {
     pub fn new(launcher: Arc<Mutex<Launcher>>) -> Self {
+        let config = launcher.lock().config().to_owned().into();
         Self {
+            config,
             launcher,
             runtime_thread: None,
             exit_flag: Arc::new(AtomicBool::new(false)),
@@ -103,6 +165,78 @@ fn on_stop(
     }
 }
 
+fn show_config_grid(ui: &mut egui::Ui, config: &mut Config, launcher: &mut Launcher) {
+    let editing_enabled = matches!(launcher.state(), State::Idle);
+
+    ui.label("Network IP:");
+    ui.add_enabled(
+        editing_enabled,
+        TextEdit::singleline(&mut config.network.endpoint.ip_addr).hint_text("IPv4/IPv6 address"),
+    );
+    ui.end_row();
+
+    ui.label(format!("Network port: {}", config.network.endpoint.port));
+    ui.add_enabled(
+        editing_enabled,
+        // TODO: Make editable, probably use a spin box
+        Label::new(config.network.endpoint.port.to_string()),
+    );
+    ui.end_row();
+
+    ui.label("Database connection:");
+    ui.add_enabled(
+        editing_enabled,
+        TextEdit::singleline(&mut config.database.sqlite_connection).hint_text(format!(
+            ".sqlite file or {}",
+            SQLITE_DATABASE_CONNECTION_IN_MEMORY
+        )),
+    );
+    ui.end_row();
+}
+
+fn show_launch_controls(
+    ui: &mut egui::Ui,
+    ctx: &CtxRef,
+    shared_launcher: &Arc<Mutex<Launcher>>,
+    launcher: &mut Launcher,
+    runtime_thread: &mut Option<JoinHandle<anyhow::Result<()>>>,
+) {
+    ui.with_layout(egui::Layout::left_to_right(), |ui| {
+        let stop_button_text = match launcher.state() {
+            State::Running(RuntimeState::Stopping) | State::Running(RuntimeState::Terminating) => {
+                "Stopping..."
+            }
+            _ => "Stop",
+        };
+        let stop_button_enabled = matches!(
+            launcher.state(),
+            State::Running(RuntimeState::Launching)
+                | State::Running(RuntimeState::Starting)
+                | State::Running(RuntimeState::Listening { .. })
+        );
+        if ui
+            .add_enabled(stop_button_enabled, Button::new(stop_button_text))
+            .clicked()
+        {
+            on_stop(ctx, shared_launcher, launcher, runtime_thread);
+        }
+
+        let start_button_text = match launcher.state() {
+            State::Running(RuntimeState::Starting) => "Starting...",
+            _ => "Start",
+        };
+        let start_button_enabled =
+            matches!(launcher.state(), State::Idle) && runtime_thread.is_none();
+        if ui
+            .add_enabled(start_button_enabled, Button::new(start_button_text))
+            .clicked()
+        {
+            debug_assert!(runtime_thread.is_none());
+            *runtime_thread = on_start(ctx, launcher);
+        }
+    });
+}
+
 impl eframe::epi::App for App {
     fn name(&self) -> &str {
         app_name()
@@ -153,6 +287,7 @@ impl eframe::epi::App for App {
 
     fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
         let App {
+            config,
             launcher: shared_launcher,
             runtime_thread,
             exit_flag,
@@ -161,41 +296,22 @@ impl eframe::epi::App for App {
             frame.quit();
         }
         let mut launcher = shared_launcher.lock();
-        TopBottomPanel::bottom("status").show(ctx, |ui| {
-            ui.label(format!("{:?}", launcher.state()));
+        TopBottomPanel::top("config_panel").show(ctx, |ui| {
+            egui::Grid::new("config_grid")
+                .num_columns(2)
+                .spacing([40.0, 4.0])
+                .striped(true)
+                .show(ui, |ui| {
+                    show_config_grid(ui, config, &mut launcher);
+                });
         });
-        CentralPanel::default().show(ctx, |ui| {
-            let start_button_text = match launcher.state() {
-                State::Running(RuntimeState::Starting) => "Starting...",
-                _ => "Start",
-            };
-            let start_button_enabled =
-                matches!(launcher.state(), State::Idle) && runtime_thread.is_none();
-            if ui
-                .add_enabled(start_button_enabled, Button::new(start_button_text))
-                .clicked()
-            {
-                debug_assert!(runtime_thread.is_none());
-                *runtime_thread = on_start(ctx, &mut launcher);
-            }
-            let stop_button_text = match launcher.state() {
-                State::Running(RuntimeState::Stopping)
-                | State::Running(RuntimeState::Terminating) => "Stopping...",
-                _ => "Stop",
-            };
-
-            let stop_button_enabled = matches!(
-                launcher.state(),
-                State::Running(RuntimeState::Launching)
-                    | State::Running(RuntimeState::Starting)
-                    | State::Running(RuntimeState::Listening)
-            );
-            if ui
-                .add_enabled(stop_button_enabled, Button::new(stop_button_text))
-                .clicked()
-            {
-                on_stop(ctx, shared_launcher, &mut launcher, runtime_thread);
-            }
+        CentralPanel::default().show(ctx, |_ui| {
+            TopBottomPanel::top("launch_controls").show(ctx, |ui| {
+                show_launch_controls(ui, ctx, shared_launcher, &mut launcher, runtime_thread);
+            });
+        });
+        TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
+            ui.label(format!("{:?}", launcher.state()));
         });
     }
 }

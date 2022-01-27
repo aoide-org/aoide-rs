@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{
+    fmt,
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     num::{NonZeroU64, NonZeroU8},
     path::PathBuf,
@@ -24,8 +25,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
-    pub endpoint: EndpointConfig,
+    pub network: NetworkConfig,
     pub database: DatabaseConfig,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NetworkConfig {
+    pub endpoint: EndpointConfig,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -83,6 +89,12 @@ impl AsRef<str> for SqliteDatabaseConnection {
             Self::InMemory => SQLITE_DATABASE_CONNECTION_IN_MEMORY,
             Self::File { path } => path.to_str().expect("valid UTF-8 path"),
         }
+    }
+}
+
+impl fmt::Display for SqliteDatabaseConnection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_ref())
     }
 }
 

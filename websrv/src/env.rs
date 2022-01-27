@@ -242,10 +242,10 @@ fn parse_database_migrate_schema_on_startup() -> Option<bool> {
 
 pub fn parse_config_into(config: &mut Config) {
     if let Some(ip_addr) = parse_endpoint_ip_addr() {
-        config.endpoint.ip_addr = ip_addr;
+        config.network.endpoint.ip_addr = ip_addr;
     }
     if let Some(port) = parse_endpoint_port() {
-        config.endpoint.port = port;
+        config.network.endpoint.port = port;
     }
     if let Some(sqlite_connection) = parse_sqlite_database_connection() {
         config.database.connection = DatabaseConnection::Sqlite(sqlite_connection);
