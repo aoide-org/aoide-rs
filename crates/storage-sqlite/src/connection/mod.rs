@@ -30,7 +30,7 @@ pub mod gatekeeper;
 
 pub fn create_connection_pool(connection: &str, max_size: NonZeroU32) -> Result<ConnectionPool> {
     // Establish a test connection before creating the connection pool to fail early.
-    // If the given file is inaccesible r2d2 (Diesel 1.4.8) seems to do multiple retries
+    // If the given file is inaccessible r2d2 (Diesel 1.4.8) seems to do multiple retries
     // and logs errors instead of simply failing and returning and error immediately.
     // Example file name: connection = ":/tmp/aoide.sqlite"
     let _ = diesel::SqliteConnection::establish(connection)?;

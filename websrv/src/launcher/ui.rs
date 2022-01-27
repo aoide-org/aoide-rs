@@ -24,6 +24,7 @@ use std::{
 
 use eframe::epi::{egui::CtxRef, Frame};
 use egui::{Button, CentralPanel, TextEdit, TopBottomPanel};
+use parking_lot::Mutex;
 
 use crate::{
     app_dirs, app_name, config::SQLITE_DATABASE_CONNECTION_IN_MEMORY, join_runtime_thread,
@@ -130,6 +131,7 @@ pub struct App {
     last_config: crate::config::Config,
     state: State,
     config: Config,
+    last_error: Arc<Mutex<Option<String>>>,
 }
 
 #[derive(Debug)]
@@ -150,6 +152,24 @@ impl App {
             last_config,
             state: State::Idle,
             config: config.into(),
+            last_error: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    fn resync_state_on_update(&mut self, ctx: &CtxRef) {
+        let launcher = self.launcher.lock();
+        let launcher_state = launcher.state();
+        if matches!(self.state, State::Terminated) {
+            if matches!(launcher_state, LauncherState::Idle) {
+                // Resync the app state with the launcher state. This is required,
+                // because the launcher state is reset in a detached thread that
+                // joins the runtime thread and then finally triggers a repaint.
+                self.state = State::Idle;
+            }
+        } else if matches!(launcher_state, LauncherState::Terminated) {
+            // If startup fails the launcher may terminate itself unattended
+            drop(launcher);
+            self.after_launcher_terminated(ctx);
         }
     }
 
@@ -243,6 +263,7 @@ impl App {
             next_config.database.connection = database_connection;
         }
         let mut launcher = self.launcher.lock();
+        *self.last_error.lock() = None;
         match launcher.launch_runtime(next_config.clone(), {
             let ctx = ctx.to_owned();
             move |state| {
@@ -280,9 +301,13 @@ impl App {
             // Join runtime thread in a detached thread
             std::thread::spawn({
                 let launcher = Arc::clone(&self.launcher);
+                let last_error = Arc::clone(&self.last_error);
                 let ctx = ctx.to_owned();
                 move || {
-                    join_runtime_thread(runtime_thread);
+                    *last_error.lock() = join_runtime_thread(runtime_thread)
+                        .err()
+                        .map(|err| err.to_string());
+                    trigger_repaint(&ctx);
                     while !matches!(launcher.lock().state(), LauncherState::Terminated) {
                         log::debug!("Awaiting termination of launcher...");
                         std::thread::sleep(Duration::from_millis(1));
@@ -355,7 +380,9 @@ impl eframe::epi::App for App {
                     }
                 }
             }
-            join_runtime_thread(runtime_thread);
+            *self.last_error.lock() = join_runtime_thread(runtime_thread)
+                .err()
+                .map(|err| err.to_string());
         }
         if let Some(app_dirs) = app_dirs() {
             save_app_config(&app_dirs, last_config);
@@ -363,17 +390,7 @@ impl eframe::epi::App for App {
     }
 
     fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
-        if matches!(self.state, State::Terminated) {
-            if matches!(self.launcher.lock().state(), LauncherState::Idle) {
-                // Resync the app state with the launcher state. This is required,
-                // because the launcher state is reset in a detached thread that
-                // joins the runtime thread and then finally triggers a repaint.
-                self.state = State::Idle;
-            }
-        } else if matches!(self.launcher.lock().state(), LauncherState::Terminated) {
-            // If startup fails the launcher may terminate itself unattended
-            self.after_launcher_terminated(ctx);
-        }
+        self.resync_state_on_update(ctx);
         if self.exit_flag.load(Ordering::Acquire) {
             frame.quit();
         }
@@ -392,7 +409,21 @@ impl eframe::epi::App for App {
             });
         });
         TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
-            ui.label(format!("{:?}", self.launcher.lock().state()));
+            egui::Grid::new("config_grid")
+                .num_columns(2)
+                .spacing([40.0, 4.0])
+                .striped(true)
+                .show(ui, |ui| {
+                    ui.label("Current state:");
+                    ui.label(format!("{:?}", self.launcher.lock().state()));
+                    ui.end_row();
+
+                    ui.label("Last error:");
+                    let last_error = self.last_error.lock();
+                    if let Some(last_error) = last_error.as_deref() {
+                        ui.label(last_error);
+                    }
+                });
         });
     }
 }

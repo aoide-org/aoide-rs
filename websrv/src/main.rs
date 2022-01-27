@@ -113,17 +113,21 @@ pub fn save_app_config(app_dirs: &ProjectDirs, config: &Config) {
     }
 }
 
-pub fn join_runtime_thread(join_handle: JoinHandle<anyhow::Result<()>>) {
+pub fn join_runtime_thread(join_handle: JoinHandle<anyhow::Result<()>>) -> anyhow::Result<()> {
     log::info!("Awaiting termination of runtime thread");
     match join_handle.join() {
         Ok(Ok(())) => {
             log::info!("Runtime thread terminated");
+            Ok(())
         }
         Ok(Err(err)) => {
             log::warn!("Runtime thread terminated with error: {}", err);
+            Err(err)
         }
         Err(err) => {
-            log::error!("Failed to await termination of runtime thread: {:?}", err);
+            let err = anyhow::anyhow!("Failed to await termination of runtime thread: {:?}", err);
+            log::error!("{}", err);
+            Err(err)
         }
     }
 }
@@ -206,9 +210,8 @@ fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exi
     };
 
     log::info!("Suspending main thread");
-    if let Err(err) = runtime_thread.join() {
-        log::error!("Failed to join runtime thread: {:?}", err);
-    }
+    // This method will log all outcomes
+    join_runtime_thread(runtime_thread).ok();
     log::info!("Resuming main thread");
 
     if save_config_on_exit {
