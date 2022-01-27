@@ -37,7 +37,7 @@ use std::{
 use directories::ProjectDirs;
 use parking_lot::Mutex;
 
-use crate::{config::Config, launcher::Launcher};
+use crate::{config::Config, launcher::{Launcher, State}, runtime::State as RuntimeState};
 
 mod config;
 mod env;
@@ -187,7 +187,12 @@ fn run_headless(launcher: Arc<Mutex<Launcher>>, save_config_on_exit: bool) {
         log::error!("Failed to register signal handler: {}", err);
     }
 
-    let runtime_thread = match launcher.lock().launch_runtime() {
+    let runtime_thread = match launcher.lock().launch_runtime(|state| {
+        if let State::Running(RuntimeState::Listening { socket_addr }) = state {
+            // Publish socket address on stdout
+            println!("{}", socket_addr);
+        }
+    }) {
         Ok(join_handle) => join_handle,
         Err(err) => {
             log::error!("Failed to launch runtime: {}", err);

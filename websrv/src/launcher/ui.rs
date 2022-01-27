@@ -123,20 +123,17 @@ fn trigger_repaint(ctx: &CtxRef) {
 
 fn on_start(ctx: &CtxRef, launcher: &mut Launcher) -> Option<JoinHandle<anyhow::Result<()>>> {
     let runtime_thread = launcher
-        .launch_runtime()
+        .launch_runtime({
+            let ctx = ctx.to_owned();
+            move |state| {
+                log::debug!("State changed: {:?}", state);
+                trigger_repaint(&ctx);
+            }
+        })
         .map_err(|err| {
             log::error!("Failed to launch runtime: {}", err);
         })
         .ok();
-    if runtime_thread.is_some() {
-        let ctx = ctx.to_owned();
-        launcher
-            .on_state_changed_while_running(move |state| {
-                log::debug!("State changed: {:?}", state);
-                trigger_repaint(&ctx);
-            })
-            .unwrap();
-    }
     runtime_thread
 }
 

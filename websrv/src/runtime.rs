@@ -231,11 +231,7 @@ pub async fn run(
     // not provide any signal when the server has started listening.
     sleep(WEB_SERVER_LISTENING_DELAY).await;
 
-    // -> stderr
     log::info!("Listening on {}", socket_addr);
-    // -> stdout
-    println!("{}", socket_addr);
-
     current_state_tx
         .send(Some(State::Listening { socket_addr }))
         .ok();

@@ -35,9 +35,13 @@ pub enum State {
 enum InternalState {
     Idle,
     Running {
-        tokio_runtime: Arc<tokio::runtime::Runtime>,
         current_state_rx: watch::Receiver<State>,
         runtime_command_tx: mpsc::UnboundedSender<RuntimeCommand>,
+
+        // A reference to the Tokio runtime is kept to allow scheduling
+        // asynchronous worker tasks while running. Currently this ability
+        // is neither used nor needed.
+        _tokio_runtime: Arc<tokio::runtime::Runtime>,
     },
 }
 
@@ -72,34 +76,6 @@ impl Launcher {
         (&self.state).into()
     }
 
-    pub fn on_state_changed_while_running(
-        &self,
-        mut on_state_changed: impl FnMut(State) + Send + 'static,
-    ) -> anyhow::Result<()> {
-        use InternalState::*;
-        match &self.state {
-            Running {
-                tokio_runtime,
-                current_state_rx,
-                ..
-            } => {
-                let mut current_state_rx = current_state_rx.to_owned();
-                tokio_runtime.spawn(async move {
-                    while current_state_rx.changed().await.is_ok() {
-                        let state = current_state_rx.borrow().to_owned();
-                        on_state_changed(state);
-                    }
-                    // Channel closed
-                    log::debug!("Sender of state changes has been dropped");
-                });
-                Ok(())
-            }
-            state => {
-                anyhow::bail!("Not running: {:?}", state);
-            }
-        }
-    }
-
     #[must_use]
     pub fn config(&self) -> &Config {
         &self.config
@@ -115,7 +91,10 @@ impl Launcher {
         }
     }
 
-    pub fn launch_runtime(&mut self) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
+    pub fn launch_runtime(
+        &mut self,
+        mut on_state_changed: impl FnMut(State) + Send + 'static,
+    ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
         if !matches!(self.state(), State::Idle) {
             anyhow::bail!("Invalid state: {:?}", self.state());
         }
@@ -125,18 +104,32 @@ impl Launcher {
                 .enable_all()
                 .build()?,
         );
-        let (runtime_command_tx, runtime_command_rx) = mpsc::unbounded_channel();
 
+        let (current_state_tx, current_state_rx) = watch::channel(State::Idle);
+        tokio_runtime.spawn({
+            let mut current_state_rx = current_state_rx.clone();
+            async move {
+                while current_state_rx.changed().await.is_ok() {
+                    let state = current_state_rx.borrow().to_owned();
+                    on_state_changed(state);
+                }
+                // Channel closed
+                log::debug!("Sender of state changes has been dropped");
+            }
+        });
+
+        let (runtime_command_tx, runtime_command_rx) = mpsc::unbounded_channel();
         let (current_runtime_state_tx, current_runtime_state_rx) = watch::channel(None);
         let join_handle = std::thread::spawn({
             let config = self.config.clone();
+            // TODO: If the Tokio runtime is only accessed within this thread
+            // then wrapping into an Arc and cloning would not be needed.
             let tokio_runtime = Arc::clone(&tokio_runtime);
             move || {
                 tokio_runtime.block_on(run(config, runtime_command_rx, current_runtime_state_tx))
             }
         });
 
-        let (current_state_tx, current_state_rx) = watch::channel(State::Idle);
         tokio_runtime.spawn({
             let mut current_runtime_state_rx = current_runtime_state_rx;
             async move {
@@ -158,9 +151,9 @@ impl Launcher {
         });
 
         self.state = InternalState::Running {
-            tokio_runtime,
             current_state_rx,
             runtime_command_tx,
+            _tokio_runtime: tokio_runtime,
         };
 
         Ok(join_handle)
