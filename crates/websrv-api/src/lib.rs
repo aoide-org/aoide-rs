@@ -109,7 +109,8 @@ impl From<db::Error> for Error {
         use db::Error::*;
         match err {
             Database(err) => Self::Other(err.into()),
-            Connection(err) => Self::Other(err.into()),
+            DatabaseConnection(err) => Self::Other(err.into()),
+            DatabaseConnectionPool(err) => Self::Other(err.into()),
             TaskScheduling(err) => Self::Other(err.into()),
             TaskTimeout { reason } => Self::Timeout { reason },
             Other(err) => Self::Other(err),

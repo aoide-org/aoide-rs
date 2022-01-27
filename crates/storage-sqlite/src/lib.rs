@@ -37,7 +37,10 @@ pub enum Error {
     Database(#[from] diesel::result::Error),
 
     #[error(transparent)]
-    Connection(#[from] r2d2::Error),
+    DatabaseConnection(#[from] diesel::ConnectionError),
+
+    #[error(transparent)]
+    DatabaseConnectionPool(#[from] r2d2::Error),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),

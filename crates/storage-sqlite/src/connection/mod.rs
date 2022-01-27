@@ -15,7 +15,7 @@
 
 use std::num::NonZeroU32;
 
-use diesel::r2d2;
+use diesel::{r2d2, Connection as _};
 
 use crate::Result;
 
@@ -29,6 +29,14 @@ pub type PooledConnection = r2d2::PooledConnection<ConnectionManager>;
 pub mod gatekeeper;
 
 pub fn create_connection_pool(connection: &str, max_size: NonZeroU32) -> Result<ConnectionPool> {
+    // Establish a test connection before creating the connection pool to fail early.
+    // If the given file is inaccesible r2d2 (Diesel 1.4.8) seems to do multiple retries
+    // and logs errors instead of simply failing and returning and error immediately.
+    // Example file name: connection = ":/tmp/aoide.sqlite"
+    let _ = diesel::SqliteConnection::establish(connection)?;
+    // The test connection is dropped immediately without using it
+    // and missing files should have been created after reaching
+    // this point.
     let manager = ConnectionManager::new(connection);
     let pool = ConnectionPool::builder()
         .max_size(max_size.get())
