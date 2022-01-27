@@ -89,16 +89,13 @@ pub async fn run(
     let connection_pool = create_connection_pool(
         sqlite_database_connection,
         config.database.connection_pool.max_size.into(),
-    )
-    .expect("Failed to create database connection pool");
+    )?;
 
     log::info!("Initializing database");
-    initialize_database(&*get_pooled_connection(&connection_pool)?)
-        .expect("Failed to initialize database");
+    initialize_database(&*get_pooled_connection(&connection_pool)?)?;
     if config.database.migrate_schema_on_startup {
         log::info!("Migrating database schema");
-        uc::database::migrate_schema(&*get_pooled_connection(&connection_pool)?)
-            .expect("Failed to migrate database schema");
+        uc::database::migrate_schema(&*get_pooled_connection(&connection_pool)?)?;
     }
 
     let shared_connection_pool = Arc::new(DatabaseConnectionGatekeeper::new(

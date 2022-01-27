@@ -29,12 +29,15 @@ pub mod ui;
 pub enum State {
     Idle,
     Running(RuntimeState),
+    Terminated,
 }
 
 #[derive(Debug)]
 enum InternalState {
     Idle,
     Running {
+        config: Config,
+
         current_state_rx: watch::Receiver<State>,
         runtime_command_tx: mpsc::UnboundedSender<RuntimeCommand>,
 
@@ -52,22 +55,21 @@ impl From<&InternalState> for State {
             Idle => Self::Idle,
             Running {
                 current_state_rx, ..
-            } => current_state_rx.borrow().to_owned(),
+            } => *current_state_rx.borrow(),
         }
     }
 }
 
+#[derive(Debug)]
 pub struct Launcher {
     state: InternalState,
-    config: Config,
 }
 
 impl Launcher {
     #[must_use]
-    pub const fn new(config: Config) -> Self {
+    pub const fn new() -> Self {
         Self {
             state: InternalState::Idle,
-            config,
         }
     }
 
@@ -77,22 +79,17 @@ impl Launcher {
     }
 
     #[must_use]
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
-    #[allow(dead_code)]
-    pub fn decommission(self) -> Result<Config, Self> {
-        if matches!(self.state(), State::Idle) {
-            let Self { config, .. } = self;
-            Ok(config)
+    pub fn config(&self) -> Option<&Config> {
+        if let InternalState::Running { config, .. } = &self.state {
+            Some(config)
         } else {
-            Err(self)
+            None
         }
     }
 
     pub fn launch_runtime(
         &mut self,
+        config: Config,
         mut on_state_changed: impl FnMut(State) + Send + 'static,
     ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
         if !matches!(self.state(), State::Idle) {
@@ -110,7 +107,7 @@ impl Launcher {
             let mut current_state_rx = current_state_rx.clone();
             async move {
                 while current_state_rx.changed().await.is_ok() {
-                    let state = current_state_rx.borrow().to_owned();
+                    let state = *current_state_rx.borrow();
                     on_state_changed(state);
                 }
                 // Channel closed
@@ -121,7 +118,7 @@ impl Launcher {
         let (runtime_command_tx, runtime_command_rx) = mpsc::unbounded_channel();
         let (current_runtime_state_tx, current_runtime_state_rx) = watch::channel(None);
         let join_handle = std::thread::spawn({
-            let config = self.config.clone();
+            let config = config.clone();
             // TODO: If the Tokio runtime is only accessed within this thread
             // then wrapping into an Arc and cloning would not be needed.
             let tokio_runtime = Arc::clone(&tokio_runtime);
@@ -131,26 +128,31 @@ impl Launcher {
         });
 
         tokio_runtime.spawn({
+            debug_assert!(matches!(*current_state_rx.borrow(), State::Idle));
             let mut current_runtime_state_rx = current_runtime_state_rx;
             async move {
+                let send_state_changed = |state| {
+                    if let Err(watch::error::SendError(state)) = current_state_tx.send(state) {
+                        // Channel closed
+                        log::debug!(
+                            "All receivers of state changes have been dropped: {:?}",
+                            state
+                        );
+                    }
+                };
                 while current_runtime_state_rx.changed().await.is_ok() {
                     if let Some(runtime_state) = current_runtime_state_rx.borrow().to_owned() {
-                        if current_state_tx
-                            .send(State::Running(runtime_state))
-                            .is_err()
-                        {
-                            // Channel closed
-                            log::debug!("All receivers of state changes have been dropped");
-                            return;
-                        }
+                        send_state_changed(State::Running(runtime_state));
                     }
                 }
                 // Channel closed
-                log::debug!("Sender of runtime state changes has been dropped");
+                log::debug!("Channel is closed after runtime has been terminated");
+                send_state_changed(State::Terminated);
             }
         });
 
         self.state = InternalState::Running {
+            config,
             current_state_rx,
             runtime_command_tx,
             _tokio_runtime: tokio_runtime,
@@ -181,7 +183,7 @@ impl Launcher {
     }
 
     pub fn reset_after_terminated(&mut self) {
-        debug_assert_eq!(State::Running(RuntimeState::Terminating), self.state());
+        debug_assert!(matches!(self.state(), State::Terminated));
         self.state = InternalState::Idle;
     }
 }

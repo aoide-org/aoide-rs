@@ -18,6 +18,7 @@ use std::{
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     num::{NonZeroU64, NonZeroU8},
     path::PathBuf,
+    str::FromStr,
     time::Duration,
 };
 
@@ -95,6 +96,18 @@ impl AsRef<str> for SqliteDatabaseConnection {
 impl fmt::Display for SqliteDatabaseConnection {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_ref())
+    }
+}
+
+impl FromStr for SqliteDatabaseConnection {
+    type Err = <PathBuf as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.to_lowercase().trim() == SQLITE_DATABASE_CONNECTION_IN_MEMORY {
+            return Ok(Self::InMemory);
+        }
+        let path = s.parse()?;
+        Ok(Self::File { path })
     }
 }
 

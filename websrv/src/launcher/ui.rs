@@ -19,21 +19,19 @@ use std::{
         Arc,
     },
     thread::JoinHandle,
+    time::Duration,
 };
 
 use eframe::epi::{egui::CtxRef, Frame};
-use egui::{Button, CentralPanel, Label, TextEdit, TopBottomPanel};
-use parking_lot::Mutex;
+use egui::{Button, CentralPanel, TextEdit, TopBottomPanel};
 
 use crate::{
-    app_dirs, app_name,
-    config::SQLITE_DATABASE_CONNECTION_IN_MEMORY,
-    join_runtime_thread,
-    launcher::{Launcher, State},
-    runtime::State as RuntimeState,
-    save_app_config,
+    app_dirs, app_name, config::SQLITE_DATABASE_CONNECTION_IN_MEMORY, join_runtime_thread,
+    launcher::State as LauncherState, runtime::State as RuntimeState, save_app_config,
+    LauncherMutex,
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct NetworkConfig {
     endpoint: EndpointConfig,
 }
@@ -47,9 +45,20 @@ impl From<crate::config::NetworkConfig> for NetworkConfig {
     }
 }
 
+impl TryFrom<NetworkConfig> for crate::config::NetworkConfig {
+    type Error = anyhow::Error;
+
+    fn try_from(from: NetworkConfig) -> anyhow::Result<Self> {
+        let NetworkConfig { endpoint } = from;
+        let endpoint = endpoint.try_into()?;
+        Ok(Self { endpoint })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct EndpointConfig {
     ip_addr: String,
-    port: u16,
+    port: String,
 }
 
 impl From<crate::config::EndpointConfig> for EndpointConfig {
@@ -57,11 +66,23 @@ impl From<crate::config::EndpointConfig> for EndpointConfig {
         let crate::config::EndpointConfig { ip_addr, port } = from;
         Self {
             ip_addr: ip_addr.to_string(),
-            port,
+            port: port.to_string(),
         }
     }
 }
 
+impl TryFrom<EndpointConfig> for crate::config::EndpointConfig {
+    type Error = anyhow::Error;
+
+    fn try_from(from: EndpointConfig) -> anyhow::Result<Self> {
+        let EndpointConfig { ip_addr, port } = from;
+        let ip_addr = ip_addr.trim().parse()?;
+        let port = port.trim().parse()?;
+        Ok(Self { ip_addr, port })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct DatabaseConfig {
     sqlite_connection: String,
 }
@@ -76,6 +97,17 @@ impl From<crate::config::DatabaseConfig> for DatabaseConfig {
     }
 }
 
+impl TryFrom<DatabaseConfig> for crate::config::DatabaseConnection {
+    type Error = anyhow::Error;
+
+    fn try_from(from: DatabaseConfig) -> anyhow::Result<Self> {
+        let DatabaseConfig { sqlite_connection } = from;
+        let sqlite_connection = sqlite_connection.parse()?;
+        Ok(Self::Sqlite(sqlite_connection))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Config {
     network: NetworkConfig,
     database: DatabaseConfig,
@@ -91,21 +123,177 @@ impl From<crate::config::Config> for Config {
     }
 }
 
+#[derive(Debug)]
 pub struct App {
-    config: Config,
-    launcher: Arc<Mutex<Launcher>>,
-    runtime_thread: Option<JoinHandle<anyhow::Result<()>>>,
+    launcher: Arc<LauncherMutex>,
     exit_flag: Arc<AtomicBool>,
+    last_config: crate::config::Config,
+    state: State,
+    config: Config,
+}
+
+#[derive(Debug)]
+enum State {
+    Idle,
+    Running {
+        runtime_thread: JoinHandle<anyhow::Result<()>>,
+    },
+    Terminated,
 }
 
 impl App {
-    pub fn new(launcher: Arc<Mutex<Launcher>>) -> Self {
-        let config = launcher.lock().config().to_owned().into();
+    pub fn new(launcher: Arc<LauncherMutex>, config: crate::config::Config) -> Self {
+        let last_config = config.clone();
         Self {
-            config,
             launcher,
-            runtime_thread: None,
             exit_flag: Arc::new(AtomicBool::new(false)),
+            last_config,
+            state: State::Idle,
+            config: config.into(),
+        }
+    }
+
+    fn show_config_grid(&mut self, ui: &mut egui::Ui) {
+        let editing_enabled = matches!(self.state, State::Idle);
+
+        ui.label("Network IP:");
+        ui.add_enabled(
+            editing_enabled,
+            TextEdit::singleline(&mut self.config.network.endpoint.ip_addr)
+                .hint_text("IPv6/IPv4 address, e.g \"::\" (IPv6) or \"127.0.0.1\" (IPv4))"),
+        );
+        ui.end_row();
+
+        ui.label("Network port:");
+        ui.add_enabled(
+            editing_enabled,
+            TextEdit::singleline(&mut self.config.network.endpoint.port)
+                .hint_text("port number, e.g. 8080 or 0 (ephemeral port)"),
+        );
+        ui.end_row();
+
+        ui.label("Database connection:");
+        ui.add_enabled(
+            editing_enabled,
+            TextEdit::singleline(&mut self.config.database.sqlite_connection).hint_text(format!(
+                ".sqlite file or {}",
+                SQLITE_DATABASE_CONNECTION_IN_MEMORY
+            )),
+        );
+        ui.end_row();
+
+        if ui
+            .add_enabled(editing_enabled, Button::new("Reset to defaults"))
+            .clicked()
+        {
+            self.config = crate::config::Config::default().into();
+        }
+        ui.end_row();
+    }
+
+    fn show_launch_controls(&mut self, ctx: &CtxRef, ui: &mut egui::Ui) {
+        ui.with_layout(egui::Layout::left_to_right(), |ui| {
+            let launcher_state = self.launcher.lock().state();
+            let stop_button_text = match launcher_state {
+                LauncherState::Running(RuntimeState::Stopping)
+                | LauncherState::Running(RuntimeState::Terminating) => "Stopping...",
+                _ => "Stop",
+            };
+            let stop_button_enabled = matches!(self.state, State::Running { .. })
+                && matches!(
+                    launcher_state,
+                    LauncherState::Running(RuntimeState::Launching)
+                        | LauncherState::Running(RuntimeState::Starting)
+                        | LauncherState::Running(RuntimeState::Listening { .. })
+                );
+            if ui
+                .add_enabled(stop_button_enabled, Button::new(stop_button_text))
+                .clicked()
+            {
+                self.on_stop(ctx, true);
+            }
+
+            let start_button_text = match launcher_state {
+                LauncherState::Running(RuntimeState::Launching)
+                | LauncherState::Running(RuntimeState::Starting) => "Starting...",
+                _ => "Start",
+            };
+            let start_button_enabled = matches!(self.state, State::Idle);
+            if ui
+                .add_enabled(start_button_enabled, Button::new(start_button_text))
+                .clicked()
+            {
+                self.on_start(ctx);
+            }
+        });
+    }
+
+    fn on_start(&mut self, ctx: &CtxRef) {
+        debug_assert!(matches!(self.state, State::Idle));
+        let Config {
+            network: network_config,
+            database: database_config,
+        } = self.config.clone();
+        let mut next_config = self.last_config.to_owned();
+        if let Ok(network_config) = network_config.try_into() {
+            next_config.network = network_config;
+        }
+        if let Ok(database_connection) = database_config.try_into() {
+            next_config.database.connection = database_connection;
+        }
+        let mut launcher = self.launcher.lock();
+        match launcher.launch_runtime(next_config.clone(), {
+            let ctx = ctx.to_owned();
+            move |state| {
+                log::debug!("Launcher state changed: {:?}", state);
+                trigger_repaint(&ctx);
+            }
+        }) {
+            Ok(runtime_thread) => {
+                debug_assert_eq!(launcher.config(), Some(&next_config));
+                drop(launcher);
+                self.config = next_config.clone().into();
+                self.last_config = next_config;
+                self.state = State::Running { runtime_thread };
+                trigger_repaint(ctx);
+            }
+            Err(err) => {
+                log::warn!("Failed to launch runtime: {}", err);
+            }
+        }
+    }
+
+    fn on_stop(&mut self, ctx: &CtxRef, abort_pending_tasks: bool) {
+        debug_assert!(matches!(self.state, State::Running { .. }));
+        if let Err(err) = self.launcher.lock().terminate_runtime(abort_pending_tasks) {
+            log::error!("Failed to terminate runtime: {}", err);
+            return;
+        }
+        self.after_launcher_terminated(ctx);
+    }
+
+    fn after_launcher_terminated(&mut self, ctx: &CtxRef) {
+        if let State::Running { runtime_thread } =
+            std::mem::replace(&mut self.state, State::Terminated)
+        {
+            // Join runtime thread in a detached thread
+            std::thread::spawn({
+                let launcher = Arc::clone(&self.launcher);
+                let ctx = ctx.to_owned();
+                move || {
+                    join_runtime_thread(runtime_thread);
+                    while !matches!(launcher.lock().state(), LauncherState::Terminated) {
+                        log::debug!("Awaiting termination of launcher...");
+                        std::thread::sleep(Duration::from_millis(1));
+                    }
+                    log::debug!("Launcher terminated");
+                    launcher.lock().reset_after_terminated();
+                    // The application state will be re-synchronized during
+                    // the next invocation of update().
+                    trigger_repaint(&ctx);
+                }
+            });
+            trigger_repaint(ctx);
         }
     }
 }
@@ -117,121 +305,9 @@ fn trigger_repaint(ctx: &CtxRef) {
     // then the last displayed state will remain Running(Starting) even
     // though Running(Listening) has already been received and a repaint
     // has been triggered.
+    log::debug!("Triggering repaint");
     ctx.output().needs_repaint = true;
     ctx.request_repaint();
-}
-
-fn on_start(ctx: &CtxRef, launcher: &mut Launcher) -> Option<JoinHandle<anyhow::Result<()>>> {
-    let runtime_thread = launcher
-        .launch_runtime({
-            let ctx = ctx.to_owned();
-            move |state| {
-                log::debug!("State changed: {:?}", state);
-                trigger_repaint(&ctx);
-            }
-        })
-        .map_err(|err| {
-            log::error!("Failed to launch runtime: {}", err);
-        })
-        .ok();
-    runtime_thread
-}
-
-fn on_stop(
-    ctx: &CtxRef,
-    shared_launcher: &Arc<Mutex<Launcher>>,
-    launcher: &mut Launcher,
-    runtime_thread: &mut Option<JoinHandle<anyhow::Result<()>>>,
-) {
-    if let Err(err) = launcher.terminate_runtime(true) {
-        log::error!("Failed to terminate runtime: {}", err);
-        return;
-    }
-    if let Some(join_handle) = runtime_thread.take() {
-        // Join runtime thread in a detached thread
-        let launcher = Arc::clone(shared_launcher);
-        let ctx = ctx.to_owned();
-        std::thread::spawn(move || {
-            join_runtime_thread(join_handle);
-            let mut launcher = launcher.lock();
-            if launcher.state() == State::Running(RuntimeState::Terminating) {
-                launcher.reset_after_terminated();
-                trigger_repaint(&ctx);
-            }
-        });
-    }
-}
-
-fn show_config_grid(ui: &mut egui::Ui, config: &mut Config, launcher: &mut Launcher) {
-    let editing_enabled = matches!(launcher.state(), State::Idle);
-
-    ui.label("Network IP:");
-    ui.add_enabled(
-        editing_enabled,
-        TextEdit::singleline(&mut config.network.endpoint.ip_addr).hint_text("IPv4/IPv6 address"),
-    );
-    ui.end_row();
-
-    ui.label(format!("Network port: {}", config.network.endpoint.port));
-    ui.add_enabled(
-        editing_enabled,
-        // TODO: Make editable, probably use a spin box
-        Label::new(config.network.endpoint.port.to_string()),
-    );
-    ui.end_row();
-
-    ui.label("Database connection:");
-    ui.add_enabled(
-        editing_enabled,
-        TextEdit::singleline(&mut config.database.sqlite_connection).hint_text(format!(
-            ".sqlite file or {}",
-            SQLITE_DATABASE_CONNECTION_IN_MEMORY
-        )),
-    );
-    ui.end_row();
-}
-
-fn show_launch_controls(
-    ui: &mut egui::Ui,
-    ctx: &CtxRef,
-    shared_launcher: &Arc<Mutex<Launcher>>,
-    launcher: &mut Launcher,
-    runtime_thread: &mut Option<JoinHandle<anyhow::Result<()>>>,
-) {
-    ui.with_layout(egui::Layout::left_to_right(), |ui| {
-        let stop_button_text = match launcher.state() {
-            State::Running(RuntimeState::Stopping) | State::Running(RuntimeState::Terminating) => {
-                "Stopping..."
-            }
-            _ => "Stop",
-        };
-        let stop_button_enabled = matches!(
-            launcher.state(),
-            State::Running(RuntimeState::Launching)
-                | State::Running(RuntimeState::Starting)
-                | State::Running(RuntimeState::Listening { .. })
-        );
-        if ui
-            .add_enabled(stop_button_enabled, Button::new(stop_button_text))
-            .clicked()
-        {
-            on_stop(ctx, shared_launcher, launcher, runtime_thread);
-        }
-
-        let start_button_text = match launcher.state() {
-            State::Running(RuntimeState::Starting) => "Starting...",
-            _ => "Start",
-        };
-        let start_button_enabled =
-            matches!(launcher.state(), State::Idle) && runtime_thread.is_none();
-        if ui
-            .add_enabled(start_button_enabled, Button::new(start_button_text))
-            .clicked()
-        {
-            debug_assert!(runtime_thread.is_none());
-            *runtime_thread = on_start(ctx, launcher);
-        }
-    });
 }
 
 impl eframe::epi::App for App {
@@ -260,55 +336,61 @@ impl eframe::epi::App for App {
     fn on_exit(&mut self) {
         let App {
             launcher,
-            runtime_thread,
+            last_config,
+            state,
             ..
         } = self;
-        let mut launcher = launcher.lock();
-        if let Some(join_handle) = runtime_thread.take() {
+        let state = std::mem::replace(state, State::Idle);
+        if let State::Running { runtime_thread } = state {
+            let mut launcher = launcher.lock();
             match launcher.state() {
-                State::Idle
-                | State::Running(RuntimeState::Stopping)
-                | State::Running(RuntimeState::Terminating) => (),
-                State::Running(_) => {
+                LauncherState::Idle
+                | LauncherState::Running(RuntimeState::Terminating)
+                | LauncherState::Terminated => (),
+                LauncherState::Running(_) => {
                     if let Err(err) = launcher.terminate_runtime(true) {
                         log::error!("Failed to terminate runtime on exit: {}", err);
                     }
                 }
             }
-            join_runtime_thread(join_handle);
+            join_runtime_thread(runtime_thread);
         }
         if let Some(app_dirs) = app_dirs() {
-            save_app_config(&app_dirs, launcher.config());
+            save_app_config(&app_dirs, last_config);
         }
     }
 
     fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
-        let App {
-            config,
-            launcher: shared_launcher,
-            runtime_thread,
-            exit_flag,
-        } = self;
-        if exit_flag.load(Ordering::Acquire) {
+        if matches!(self.state, State::Terminated) {
+            if matches!(self.launcher.lock().state(), LauncherState::Idle) {
+                // Resync the app state with the launcher state. This is required,
+                // because the launcher state is reset in a detached thread that
+                // joins the runtime thread and then finally triggers a repaint.
+                self.state = State::Idle;
+            }
+        } else if matches!(self.launcher.lock().state(), LauncherState::Terminated) {
+            // If startup fails the launcher may terminate itself unattended
+            self.after_launcher_terminated(ctx);
+        }
+        if self.exit_flag.load(Ordering::Acquire) {
             frame.quit();
         }
-        let mut launcher = shared_launcher.lock();
         TopBottomPanel::top("config_panel").show(ctx, |ui| {
             egui::Grid::new("config_grid")
                 .num_columns(2)
                 .spacing([40.0, 4.0])
                 .striped(true)
                 .show(ui, |ui| {
-                    show_config_grid(ui, config, &mut launcher);
+                    self.show_config_grid(ui);
                 });
         });
         CentralPanel::default().show(ctx, |_ui| {
             TopBottomPanel::top("launch_controls").show(ctx, |ui| {
-                show_launch_controls(ui, ctx, shared_launcher, &mut launcher, runtime_thread);
+                self.show_launch_controls(ctx, ui);
             });
         });
         TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
-            ui.label(format!("{:?}", launcher.state()));
+            ui.label(format!("{:?}", self.launcher.lock().state()));
         });
     }
 }

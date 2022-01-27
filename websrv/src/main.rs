@@ -35,9 +35,12 @@ use std::{
 };
 
 use directories::ProjectDirs;
-use parking_lot::Mutex;
 
-use crate::{config::Config, launcher::{Launcher, State}, runtime::State as RuntimeState};
+use crate::{
+    config::Config,
+    launcher::{Launcher, State},
+    runtime::State as RuntimeState,
+};
 
 mod config;
 mod env;
@@ -125,6 +128,8 @@ pub fn join_runtime_thread(join_handle: JoinHandle<anyhow::Result<()>>) {
     }
 }
 
+type LauncherMutex = parking_lot::Mutex<Launcher>;
+
 fn main() {
     env::init_environment();
 
@@ -158,11 +163,11 @@ fn main() {
         save_config_on_exit = true;
     }
 
-    let launcher = Arc::new(Mutex::new(Launcher::new(config)));
+    let launcher = Arc::new(LauncherMutex::new(Launcher::new()));
 
     #[cfg(feature = "with-launcher-ui")]
     if !env::parse_launch_headless().unwrap_or(false) {
-        let app = launcher::ui::App::new(Arc::clone(&launcher));
+        let app = launcher::ui::App::new(Arc::clone(&launcher), config);
         let options = eframe::NativeOptions::default();
         log::info!("Running launcher UI");
         eframe::run_native(Box::new(app), options);
@@ -170,10 +175,10 @@ fn main() {
     }
 
     // This code only runs when the launcher UI is disabled
-    run_headless(launcher, save_config_on_exit);
+    run_headless(launcher, config, save_config_on_exit);
 }
 
-fn run_headless(launcher: Arc<Mutex<Launcher>>, save_config_on_exit: bool) {
+fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exit: bool) {
     log::info!("Running headless");
 
     if let Err(err) = ctrlc::set_handler({
@@ -187,7 +192,7 @@ fn run_headless(launcher: Arc<Mutex<Launcher>>, save_config_on_exit: bool) {
         log::error!("Failed to register signal handler: {}", err);
     }
 
-    let runtime_thread = match launcher.lock().launch_runtime(|state| {
+    let runtime_thread = match launcher.lock().launch_runtime(config, |state| {
         if let State::Running(RuntimeState::Listening { socket_addr }) = state {
             // Publish socket address on stdout
             println!("{}", socket_addr);
@@ -207,8 +212,8 @@ fn run_headless(launcher: Arc<Mutex<Launcher>>, save_config_on_exit: bool) {
     log::info!("Resuming main thread");
 
     if save_config_on_exit {
-        if let Some(app_dirs) = app_dirs() {
-            save_app_config(&app_dirs, launcher.lock().config());
+        if let (Some(app_dirs), Some(config)) = (app_dirs(), launcher.lock().config()) {
+            save_app_config(&app_dirs, config);
         }
     } else {
         log::info!("Discarding current configuration");
