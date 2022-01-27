@@ -172,7 +172,7 @@ impl App {
         );
         ui.end_row();
 
-        ui.label("Database connection:");
+        ui.label("SQLite database:");
         ui.add_enabled(
             editing_enabled,
             TextEdit::singleline(&mut self.config.database.sqlite_connection).hint_text(format!(
