@@ -25,7 +25,7 @@ use crate::{
 #[cfg(feature = "with-launcher-ui")]
 pub mod ui;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum State {
     Idle,
     Running(RuntimeState),
@@ -48,18 +48,6 @@ enum InternalState {
     },
 }
 
-impl From<&InternalState> for State {
-    fn from(from: &InternalState) -> Self {
-        use InternalState::*;
-        match from {
-            Idle => Self::Idle,
-            Running {
-                current_state_rx, ..
-            } => *current_state_rx.borrow(),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct Launcher {
     state: InternalState,
@@ -75,7 +63,12 @@ impl Launcher {
 
     #[must_use]
     pub fn state(&self) -> State {
-        (&self.state).into()
+        match &self.state {
+            InternalState::Idle => State::Idle,
+            InternalState::Running {
+                current_state_rx, ..
+            } => current_state_rx.borrow().to_owned(),
+        }
     }
 
     #[must_use]
@@ -107,7 +100,7 @@ impl Launcher {
             let mut current_state_rx = current_state_rx.clone();
             async move {
                 while current_state_rx.changed().await.is_ok() {
-                    let state = *current_state_rx.borrow();
+                    let state = current_state_rx.borrow().to_owned();
                     on_state_changed(state);
                 }
                 // Channel closed

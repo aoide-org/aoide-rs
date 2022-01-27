@@ -53,13 +53,14 @@ static OPENAPI_YAML: &str = include_str!("../res/openapi.yaml");
 #[cfg(not(feature = "with-webapp"))]
 static INDEX_HTML: &str = include_str!("../res/index.html");
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum State {
     Launching,
     Starting,
     Listening { socket_addr: SocketAddr },
     Stopping,
     Terminating,
+    Failing { error_message: String },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -67,16 +68,7 @@ pub enum Command {
     Terminate { abort_pending_tasks: bool },
 }
 
-pub async fn run(
-    config: Config,
-    command_rx: mpsc::UnboundedReceiver<Command>,
-    current_state_tx: watch::Sender<Option<State>>,
-) -> anyhow::Result<()> {
-    let launched_at = chrono::Utc::now();
-
-    log::info!("Launching");
-    current_state_tx.send(Some(State::Launching)).ok();
-
+fn connect_database(config: &Config) -> anyhow::Result<DatabaseConnectionGatekeeper> {
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
     log::info!(
@@ -98,7 +90,7 @@ pub async fn run(
         uc::database::migrate_schema(&*get_pooled_connection(&connection_pool)?)?;
     }
 
-    let shared_connection_pool = Arc::new(DatabaseConnectionGatekeeper::new(
+    Ok(DatabaseConnectionGatekeeper::new(
         connection_pool,
         DatabaseConnectionGatekeeperConfig {
             acquire_read_timeout: Duration::from_millis(
@@ -116,7 +108,29 @@ pub async fn run(
                     .get(),
             ),
         },
-    ));
+    ))
+}
+
+pub async fn run(
+    config: Config,
+    command_rx: mpsc::UnboundedReceiver<Command>,
+    current_state_tx: watch::Sender<Option<State>>,
+) -> anyhow::Result<()> {
+    let launched_at = chrono::Utc::now();
+
+    log::info!("Launching");
+    current_state_tx.send(Some(State::Launching)).ok();
+
+    let shared_connection_pool = match connect_database(&config) {
+        Ok(connection_gatekeeper) => Arc::new(connection_gatekeeper),
+        Err(err) => {
+            let error_message = err.to_string();
+            current_state_tx
+                .send(Some(State::Failing { error_message }))
+                .ok();
+            return Err(err);
+        }
+    };
 
     let about_json = serde_json::json!({
     "name": env!("CARGO_PKG_NAME"),
