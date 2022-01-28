@@ -175,6 +175,7 @@ impl Launcher {
         Ok(())
     }
 
+    #[cfg_attr(not(feature = "with-launcher-ui"), allow(dead_code))]
     pub fn reset_after_terminated(&mut self) {
         debug_assert!(matches!(self.state(), State::Terminated));
         self.state = InternalState::Idle;

@@ -180,7 +180,7 @@ pub async fn run(
     let static_filters = openapi_yaml;
 
     #[cfg(not(feature = "with-webapp"))]
-    let static_filters = static_filters.or(INDEX_HTML);
+    let static_filters = static_filters.or(warp::path::end().map(|| warp::reply::html(INDEX_HTML)));
 
     let all_filters = api_filters
         .or(static_filters)
