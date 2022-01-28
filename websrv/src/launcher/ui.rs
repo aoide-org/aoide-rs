@@ -216,8 +216,7 @@ impl App {
             let launcher_state = self.launcher.lock().state();
             let stop_button_text = match launcher_state {
                 LauncherState::Running(RuntimeState::Stopping)
-                | LauncherState::Running(RuntimeState::Terminating)
-                | LauncherState::Running(RuntimeState::Failing { .. }) => "Stopping...",
+                | LauncherState::Running(RuntimeState::Terminating) => "Stopping...",
                 _ => "Stop",
             };
             let stop_button_enabled = matches!(self.state, State::Running { .. })
@@ -372,7 +371,6 @@ impl eframe::epi::App for App {
             match launcher.state() {
                 LauncherState::Idle
                 | LauncherState::Running(RuntimeState::Terminating)
-                | LauncherState::Running(RuntimeState::Failing { .. })
                 | LauncherState::Terminated => (),
                 LauncherState::Running(_) => {
                     if let Err(err) = launcher.terminate_runtime(true) {

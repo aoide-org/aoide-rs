@@ -53,14 +53,13 @@ static OPENAPI_YAML: &str = include_str!("../res/openapi.yaml");
 #[cfg(not(feature = "with-webapp"))]
 static INDEX_HTML: &str = include_str!("../res/index.html");
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum State {
     Launching,
     Starting,
     Listening { socket_addr: SocketAddr },
     Stopping,
     Terminating,
-    Failing { error_message: String },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -121,16 +120,7 @@ pub async fn run(
     log::info!("Launching");
     current_state_tx.send(Some(State::Launching)).ok();
 
-    let shared_connection_pool = match connect_database(&config) {
-        Ok(connection_gatekeeper) => Arc::new(connection_gatekeeper),
-        Err(err) => {
-            let error_message = err.to_string();
-            current_state_tx
-                .send(Some(State::Failing { error_message }))
-                .ok();
-            return Err(err);
-        }
-    };
+    let shared_connection_pool = Arc::new(connect_database(&config)?);
 
     let about_json = serde_json::json!({
     "name": env!("CARGO_PKG_NAME"),
