@@ -34,6 +34,7 @@ rust-embed = { version = "*", optional = true }
 # with-launcher-ui
 eframe = { version = "*", optional = true, default-features = false, features = ["default_fonts", "egui_glow"] }
 egui = { version = "*", optional = true, default-features = false }
+rfd = { version = "*", optional = true, default-features = false }
 
 # Workspace dependencies
 aoide-core = "*"
@@ -47,4 +48,4 @@ aoide-websrv-api = "*"
 [features]
 default = ["with-webapp", "with-launcher-ui"]
 with-webapp = ["mime_guess", "rust-embed"]
-with-launcher-ui = ["eframe", "egui"]
+with-launcher-ui = ["eframe", "egui", "rfd"]
