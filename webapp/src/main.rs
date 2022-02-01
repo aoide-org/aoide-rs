@@ -3,6 +3,7 @@
 #![deny(rust_2018_idioms)]
 #![deny(rust_2021_compatibility)]
 #![deny(missing_debug_implementations)]
+#![deny(rustdoc::broken_intra_doc_links)]
 #![deny(clippy::all)]
 #![deny(clippy::explicit_deref_methods)]
 #![deny(clippy::explicit_into_iter_loop)]
