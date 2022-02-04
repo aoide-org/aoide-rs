@@ -36,26 +36,44 @@ pub struct Track {
 
     /// The recording date
     ///
-    /// The distinction of the recording and the release date is
-    /// blurry and sometimes even unknown depending on the format
-    /// were the metadata is originating from. Often only the
-    /// release date instead of the actual recording date is
-    /// available.
+    /// This field resembles what is commonly known as `year`in
+    /// many applications, i.e. a generic year, date or time stamp
+    /// for chronological ordering. If in doubt or nothing else is
+    /// available then use this field.
+    ///
+    /// Proposed tag mapping:
+    ///   - ID3v2.4: "TDRC"
+    ///   - MP4:     "©day"
+    ///   - Vorbis:  "DATE" ("YEAR")
     pub recorded_at: Option<DateOrDateTime>,
 
     /// The release date
     ///
-    /// The release date may differ for tracks from the same album!
-    /// On compilation albums the release date often denotes the
-    /// original release or recording date. Even tracks of the same
-    /// regular album may have different release dates from a different
-    /// calendar year.
+    /// Stores the distinguished release date if available.
     ///
-    /// The release date is supposed to be not earlier than the
-    /// recording date.
+    /// Proposed tag mapping:
+    ///   - ID3v2.4: "TDRL"
+    ///   - MP4:     n/a
+    ///   - Vorbis: "RELEASEDATE" ("RELEASEYEAR")
     pub released_at: Option<DateOrDateTime>,
 
+    /// The original release date
+    ///
+    /// Stores the original or first release date if available.
+    ///
+    /// The original release date is supposed to be not later than
+    /// the release date.
+    ///
+    /// Proposed tag mapping:
+    ///   - ID3v2.4: "TDOR"
+    ///   - MP4:     n/a
+    ///   - Vorbis:  "ORIGINALDATE" ("ORIGINALYEAR")
+    pub released_orig_at: Option<DateOrDateTime>,
+
     /// The publisher, e.g. a record label
+    ///
+    /// Proposed tag mapping:
+    /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html: Record Label
     pub released_by: Option<String>,
 
     pub copyright: Option<String>,
@@ -86,6 +104,7 @@ impl Track {
             media_source,
             recorded_at: Default::default(),
             released_at: Default::default(),
+            released_orig_at: Default::default(),
             released_by: Default::default(),
             copyright: Default::default(),
             album: Default::default(),
@@ -155,6 +174,7 @@ impl Track {
             play_counter,
             recorded_at,
             released_at,
+            released_orig_at,
             released_by,
             tags,
             titles,
@@ -171,6 +191,7 @@ impl Track {
             play_counter: newer_play_counter,
             recorded_at: newer_recorded_at,
             released_at: newer_released_at,
+            released_orig_at: newer_released_orig_at,
             released_by: newer_released_by,
             tags: newer_tags,
             titles: newer_titles,
@@ -202,6 +223,7 @@ impl Track {
         }
         *recorded_at = recorded_at.or(newer_recorded_at);
         *released_at = released_at.or(newer_released_at);
+        *released_orig_at = released_at.or(newer_released_orig_at);
         if newer_released_by.is_some() {
             *released_by = newer_released_by;
         }
@@ -258,7 +280,8 @@ pub enum TrackInvalidity {
     MediaSource(SourceInvalidity),
     RecordedAt(DateOrDateTimeInvalidity),
     ReleasedAt(DateOrDateTimeInvalidity),
-    ReleasedAtBeforeRecordedAt,
+    ReleasedOrigAt(DateOrDateTimeInvalidity),
+    ReleasedOrigAtAfterReleasedAt,
     ReleasedByEmpty,
     CopyrightEmpty,
     Album(AlbumInvalidity),
@@ -279,6 +302,7 @@ impl Validate for Track {
             .validate_with(&self.media_source, Self::Invalidity::MediaSource)
             .validate_with(&self.recorded_at, Self::Invalidity::RecordedAt)
             .validate_with(&self.released_at, Self::Invalidity::ReleasedAt)
+            .validate_with(&self.released_orig_at, Self::Invalidity::ReleasedOrigAt)
             .validate_with(self.album.as_ref(), Self::Invalidity::Album)
             .merge_result_with(
                 Titles::validate(self.titles.iter()),
@@ -300,10 +324,12 @@ impl Validate for Track {
                     })
                     .into(),
             );
-        if let (Some(recorded_at), Some(released_at)) = (self.recorded_at, self.recorded_at) {
+        if let (Some(released_orig_at), Some(released_at)) =
+            (self.released_orig_at, self.released_at)
+        {
             context = context.invalidate_if(
-                released_at < recorded_at,
-                Self::Invalidity::ReleasedAtBeforeRecordedAt,
+                released_orig_at > released_at,
+                Self::Invalidity::ReleasedOrigAtAfterReleasedAt,
             )
         }
         if let Some(ref released_by) = self.released_by {

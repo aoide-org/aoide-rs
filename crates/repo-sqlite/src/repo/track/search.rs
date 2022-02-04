@@ -61,6 +61,9 @@ type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
         Nullable<BigInt>,
         Nullable<Integer>,
         Nullable<Text>,
+        Nullable<BigInt>,
+        Nullable<Integer>,
+        Nullable<Text>,
         Nullable<Text>,
         SmallInt,
         Nullable<SmallInt>,
@@ -198,10 +201,24 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(track::music_key_code.asc()),
                 SortDirection::Descending => query.then_order_by(track::music_key_code.desc()),
             },
+            SortField::RecordedAtDate => match direction {
+                SortDirection::Ascending => query.then_order_by(track::recorded_at_yyyymmdd.asc()),
+                SortDirection::Descending => {
+                    query.then_order_by(track::recorded_at_yyyymmdd.desc())
+                }
+            },
             SortField::ReleasedAtDate => match direction {
                 SortDirection::Ascending => query.then_order_by(track::released_at_yyyymmdd.asc()),
                 SortDirection::Descending => {
                     query.then_order_by(track::released_at_yyyymmdd.desc())
+                }
+            },
+            SortField::ReleasedOrigAtDate => match direction {
+                SortDirection::Ascending => {
+                    query.then_order_by(track::released_orig_at_yyyymmdd.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(track::released_orig_at_yyyymmdd.desc())
                 }
             },
             SortField::ReleasedBy => match direction {
@@ -681,6 +698,29 @@ fn build_numeric_field_filter_expression(
                 }
             }
         },
+        ReleasedOrigAtDate => match filter.predicate {
+            // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
+            LessThan(value) => Box::new(track::released_orig_at_yyyymmdd.lt(value as YYYYMMDD)),
+            LessOrEqual(value) => Box::new(track::released_orig_at_yyyymmdd.le(value as YYYYMMDD)),
+            GreaterThan(value) => Box::new(track::released_orig_at_yyyymmdd.gt(value as YYYYMMDD)),
+            GreaterOrEqual(value) => {
+                Box::new(track::released_orig_at_yyyymmdd.ge(value as YYYYMMDD))
+            }
+            Equal(value) => {
+                if let Some(value) = value {
+                    Box::new(track::released_orig_at_yyyymmdd.eq(value as YYYYMMDD))
+                } else {
+                    Box::new(track::released_orig_at_yyyymmdd.is_null())
+                }
+            }
+            NotEqual(value) => {
+                if let Some(value) = value {
+                    Box::new(track::released_orig_at_yyyymmdd.ne(value as YYYYMMDD))
+                } else {
+                    Box::new(track::released_orig_at_yyyymmdd.is_not_null())
+                }
+            }
+        },
         MusicTempoBpm => match filter.predicate {
             LessThan(value) => Box::new(track::music_tempo_bpm.lt(value)),
             LessOrEqual(value) => Box::new(track::music_tempo_bpm.le(value)),
@@ -809,6 +849,26 @@ fn build_datetime_field_filter_expression(
                     Box::new(track::released_ms.ne(value.timestamp_millis()))
                 } else {
                     Box::new(track::released_ms.is_not_null())
+                }
+            }
+        },
+        ReleasedOrigAt => match filter.predicate {
+            LessThan(value) => Box::new(track::released_orig_ms.lt(value.timestamp_millis())),
+            LessOrEqual(value) => Box::new(track::released_orig_ms.le(value.timestamp_millis())),
+            GreaterThan(value) => Box::new(track::released_orig_ms.gt(value.timestamp_millis())),
+            GreaterOrEqual(value) => Box::new(track::released_orig_ms.ge(value.timestamp_millis())),
+            Equal(value) => {
+                if let Some(value) = value {
+                    Box::new(track::released_orig_ms.eq(value.timestamp_millis()))
+                } else {
+                    Box::new(track::released_orig_ms.is_null())
+                }
+            }
+            NotEqual(value) => {
+                if let Some(value) = value {
+                    Box::new(track::released_orig_ms.ne(value.timestamp_millis()))
+                } else {
+                    Box::new(track::released_orig_ms.is_not_null())
                 }
             }
         },

@@ -52,6 +52,7 @@ pub enum NumericField {
     MusicKeyCode,
     RecordedAtDate,
     ReleasedAtDate,
+    ReleasedOrigAtDate,
     TimesPlayed,
     TrackNumber,
     TrackTotal,
@@ -62,6 +63,7 @@ pub enum DateTimeField {
     LastPlayedAt,
     RecordedAt,
     ReleasedAt,
+    ReleasedOrigAt,
     SourceCollectedAt,
     SourceSynchronizedAt,
 }
@@ -110,7 +112,9 @@ pub enum SortField {
     LastPlayedAt,
     MusicTempoBpm,
     MusicKeyCode,
+    RecordedAtDate,
     ReleasedAtDate,
+    ReleasedOrigAtDate,
     ReleasedBy,
     SourceCollectedAt,
     SourceSynchronizedAt,
@@ -148,9 +152,9 @@ impl SearchFilter {
     #[must_use]
     pub fn recorded_at_equals(recorded_at: DateOrDateTime) -> Self {
         match recorded_at {
-            DateOrDateTime::DateTime(recorded_at) => Self::DateTime(DateTimeFieldFilter {
+            DateOrDateTime::DateTime(dt) => Self::DateTime(DateTimeFieldFilter {
                 field: DateTimeField::RecordedAt,
-                predicate: DateTimePredicate::Equal(Some(recorded_at)),
+                predicate: DateTimePredicate::Equal(Some(dt)),
             }),
             DateOrDateTime::Date(date) => Self::Numeric(NumericFieldFilter {
                 field: NumericField::RecordedAtDate,
@@ -162,12 +166,26 @@ impl SearchFilter {
     #[must_use]
     pub fn released_at_equals(released_at: DateOrDateTime) -> Self {
         match released_at {
-            DateOrDateTime::DateTime(released_at) => Self::DateTime(DateTimeFieldFilter {
+            DateOrDateTime::DateTime(dt) => Self::DateTime(DateTimeFieldFilter {
                 field: DateTimeField::ReleasedAt,
-                predicate: DateTimePredicate::Equal(Some(released_at)),
+                predicate: DateTimePredicate::Equal(Some(dt)),
             }),
             DateOrDateTime::Date(date) => Self::Numeric(NumericFieldFilter {
                 field: NumericField::ReleasedAtDate,
+                predicate: NumericPredicate::Equal(Some(date.to_inner().into())),
+            }),
+        }
+    }
+
+    #[must_use]
+    pub fn released_orig_at_equals(released_orig_at: DateOrDateTime) -> Self {
+        match released_orig_at {
+            DateOrDateTime::DateTime(dt) => Self::DateTime(DateTimeFieldFilter {
+                field: DateTimeField::ReleasedOrigAt,
+                predicate: DateTimePredicate::Equal(Some(dt)),
+            }),
+            DateOrDateTime::Date(date) => Self::Numeric(NumericFieldFilter {
+                field: NumericField::ReleasedOrigAtDate,
                 predicate: NumericPredicate::Equal(Some(date.to_inner().into())),
             }),
         }

@@ -113,7 +113,7 @@ const IDENT_GENRE: Fourcc = Fourcc(*b"\xA9gen");
 
 const IDENT_GROUPING: Fourcc = Fourcc(*b"\xA9grp");
 
-const IDENT_RELEASED_AT: Fourcc = Fourcc(*b"\xA9day");
+const IDENT_YEAR: Fourcc = Fourcc(*b"\xA9day");
 
 const IDENT_XID: Fourcc = Fourcc(*b"xid ");
 
@@ -389,15 +389,15 @@ impl Metadata {
 
         track.album = Canonical::tie(album);
 
-        // A dedicated recording date is not available, only a release date
-        if let Some(released_at) = mp4_tag
-            .take_strings_of(&IDENT_RELEASED_AT)
+        // Dedicated release dates are not available, only a generic recording date
+        if let Some(recorded_at) = mp4_tag
+            .take_strings_of(&IDENT_YEAR)
             .filter_map(|value| {
-                importer.import_year_tag_from_field(&IDENT_RELEASED_AT.to_string(), &value)
+                importer.import_year_tag_from_field(&IDENT_YEAR.to_string(), &value)
             })
             .next()
         {
-            track.released_at = Some(released_at);
+            track.recorded_at = Some(recorded_at);
         }
 
         if let Some(copyright) = mp4_tag
@@ -824,8 +824,8 @@ pub fn export_track_to_path(
 
     // No distinction between recording and release date, i.e.
     // only the release date is stored.
-    if let Some(released_at) = track.released_at {
-        mp4_tag.set_year(released_at.to_string());
+    if let Some(recorded_at) = track.recorded_at {
+        mp4_tag.set_year(recorded_at.to_string());
     } else {
         mp4_tag.remove_year();
     }

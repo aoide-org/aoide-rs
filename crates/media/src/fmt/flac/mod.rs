@@ -312,6 +312,10 @@ impl Metadata {
         if let Some(released_at) = vorbis::import_released_at(importer, metaflac_tag) {
             track.released_at = Some(released_at);
         }
+        if let Some(released_orig_at) = vorbis::import_released_orig_at(importer, metaflac_tag) {
+            track.released_orig_at = Some(released_orig_at);
+        }
+
         if let Some(released_by) = vorbis::import_released_by(metaflac_tag) {
             track.released_by = Some(released_by);
         }

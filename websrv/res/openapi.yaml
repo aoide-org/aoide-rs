@@ -1797,6 +1797,7 @@ components:
         - lastPlayedAt
         - recordedAt
         - releasedAt
+        - releasedOrigAt
         - sourceCollectedAt
         - sourceSynchronizedAt
     DateTimeFieldFilter:
@@ -1868,6 +1869,7 @@ components:
         - musicKeyCode
         - recordedAtDate
         - releasedAtDate
+        - releasedOrigAtDate
         - timesPlayed
         - trackNumber
         - trackTotal
@@ -2323,6 +2325,18 @@ components:
       required:
         - purged
     RecordedAt:
+      description: |
+        The recording date
+
+        This field resembles what is commonly known as `year`in
+        many applications, i.e. a generic year, date or time stamp
+        for chronological ordering. If in doubt or nothing else is
+        available then use this field.
+
+        Proposed tag mapping:
+          - ID3v2.4: "TDRC"
+          - MP4:     "©day"
+          - Vorbis:  "DATE" ("YEAR")
       oneOf:
         - $ref: '#/components/schemas/RecordedAtDate'
         - $ref: '#/components/schemas/RecordedAtDateTime'
@@ -2334,6 +2348,15 @@ components:
       allOf:
         - $ref: '#/components/schemas/DateTime'
     ReleasedAt:
+      description: |
+        The release date
+
+        Stores the distinguished release date if available.
+
+        Proposed tag mapping:
+          - ID3v2.4: "TDRL"
+          - MP4:     n/a
+          - Vorbis:  "RELEASEDATE" ("RELEASEYEAR")
       oneOf:
         - $ref: '#/components/schemas/ReleasedAtDate'
         - $ref: '#/components/schemas/ReleasedAtDateTime'
@@ -2342,6 +2365,29 @@ components:
         - $ref: '#/components/schemas/YYYY'
         - $ref: '#/components/schemas/YYYYMMDD'
     ReleasedAtDateTime:
+      allOf:
+        - $ref: '#/components/schemas/DateTime'
+    ReleasedOrigAt:
+      description: |
+        The original release date
+
+        Stores the original or first release date if available.
+
+        The original release date is supposed to be not later than
+        the release date.
+
+        Proposed tag mapping:
+          - ID3v2.4: "TDOR"
+          - MP4:      n/a
+          - Vorbis:  "ORIGINALDATE" ("ORIGINALYEAR")
+      oneOf:
+        - $ref: '#/components/schemas/ReleasedOrigAtDate'
+        - $ref: '#/components/schemas/ReleasedOrigAtDateTime'
+    ReleasedOrigAtDate:
+      oneOf:
+        - $ref: '#/components/schemas/YYYY'
+        - $ref: '#/components/schemas/YYYYMMDD'
+    ReleasedorigAtDateTime:
       allOf:
         - $ref: '#/components/schemas/DateTime'
     MediaTrackerUntrackDirectoriesRequestBody:
@@ -3070,6 +3116,8 @@ components:
           $ref: '#/components/schemas/RecordedAt'
         releasedAt:
           $ref: '#/components/schemas/ReleasedAt'
+        releasedOrigAt:
+          $ref: '#/components/schemas/ReleasedOrigAt'
         releasedBy:
           type: string
           description: |
@@ -3225,7 +3273,9 @@ components:
         - lastPlayedAt
         - musicTempoBpm
         - musicKeyCode
+        - recordedAtDate
         - releasedAtDate
+        - releasedOrigAtDate
         - sourceCollectedAt
         - sourceSynchronizedAt
         - sourceType

@@ -347,12 +347,12 @@ pub fn import_recorded_at(
     reader: &impl CommentReader,
 ) -> Option<DateOrDateTime> {
     reader
-        .read_first_value("ORIGINALDATE")
-        .and_then(|value| importer.import_year_tag_from_field("ORIGINALDATE", value))
+        .read_first_value("DATE")
+        .and_then(|value| importer.import_year_tag_from_field("DATE", value))
         .or_else(|| {
             reader
-                .read_first_value("ORIGINALYEAR")
-                .and_then(|value| importer.import_year_tag_from_field("ORIGINALYEAR", value))
+                .read_first_value("YEAR")
+                .and_then(|value| importer.import_year_tag_from_field("YEAR", value))
         })
 }
 
@@ -361,12 +361,26 @@ pub fn import_released_at(
     reader: &impl CommentReader,
 ) -> Option<DateOrDateTime> {
     reader
-        .read_first_value("DATE")
-        .and_then(|value| importer.import_year_tag_from_field("DATE", value))
+        .read_first_value("RELEASEDATE")
+        .and_then(|value| importer.import_year_tag_from_field("RELEASEDATE", value))
         .or_else(|| {
             reader
-                .read_first_value("YEAR")
-                .and_then(|value| importer.import_year_tag_from_field("YEAR", value))
+                .read_first_value("RELEASEYEAR")
+                .and_then(|value| importer.import_year_tag_from_field("RELEASEYEAR", value))
+        })
+}
+
+pub fn import_released_orig_at(
+    importer: &mut Importer,
+    reader: &impl CommentReader,
+) -> Option<DateOrDateTime> {
+    reader
+        .read_first_value("ORIGINALDATE")
+        .and_then(|value| importer.import_year_tag_from_field("ORIGINALDATE", value))
+        .or_else(|| {
+            reader
+                .read_first_value("ORIGINALYEAR")
+                .and_then(|value| importer.import_year_tag_from_field("ORIGINALYEAR", value))
         })
 }
 
@@ -568,9 +582,16 @@ pub fn import_into_track(
         track.metrics.key_signature = key_signature;
     }
 
+    if let Some(recorded_at) = import_recorded_at(importer, reader) {
+        track.recorded_at = Some(recorded_at);
+    }
     if let Some(released_at) = import_released_at(importer, reader) {
         track.released_at = Some(released_at);
     }
+    if let Some(released_orig_at) = import_released_orig_at(importer, reader) {
+        track.released_orig_at = Some(released_orig_at);
+    }
+
     if let Some(released_by) = import_released_by(reader) {
         track.released_by = Some(released_by);
     }
@@ -930,18 +951,6 @@ pub fn export_track(
     writer.write_single_value_opt("LABEL".to_owned(), track.released_by.to_owned());
     writer.write_single_value_opt(
         "DATE".to_owned(),
-        track.released_at.as_ref().map(ToString::to_string),
-    );
-    let released_year = track
-        .released_at
-        .map(DateYYYYMMDD::from)
-        .map(DateYYYYMMDD::year);
-    writer.write_single_value_opt(
-        "YEAR".to_owned(),
-        released_year.as_ref().map(ToString::to_string),
-    );
-    writer.write_single_value_opt(
-        "ORIGINALDATE".to_owned(),
         track.recorded_at.as_ref().map(ToString::to_string),
     );
     let recorded_year = track
@@ -949,8 +958,32 @@ pub fn export_track(
         .map(DateYYYYMMDD::from)
         .map(DateYYYYMMDD::year);
     writer.write_single_value_opt(
-        "ORIGINALYEAR".to_owned(),
+        "YEAR".to_owned(),
         recorded_year.as_ref().map(ToString::to_string),
+    );
+    writer.write_single_value_opt(
+        "RELEASEDATE".to_owned(),
+        track.released_at.as_ref().map(ToString::to_string),
+    );
+    let released_year = track
+        .released_at
+        .map(DateYYYYMMDD::from)
+        .map(DateYYYYMMDD::year);
+    writer.write_single_value_opt(
+        "RELEASEYEAR".to_owned(),
+        released_year.as_ref().map(ToString::to_string),
+    );
+    writer.write_single_value_opt(
+        "ORIGINALDATE".to_owned(),
+        track.released_orig_at.as_ref().map(ToString::to_string),
+    );
+    let released_orig_year = track
+        .released_orig_at
+        .map(DateYYYYMMDD::from)
+        .map(DateYYYYMMDD::year);
+    writer.write_single_value_opt(
+        "ORIGINALYEAR".to_owned(),
+        released_orig_year.as_ref().map(ToString::to_string),
     );
 
     // Numbers

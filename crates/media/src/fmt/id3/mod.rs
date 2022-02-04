@@ -432,49 +432,10 @@ pub fn import_metadata_into_track(
 
     track.album = Canonical::tie(album);
 
-    // Release properties
-    let tdrl = import_timestamp_from_first_text_frame(importer, tag, "TDRL");
-    let tdrc = import_timestamp_from_first_text_frame(importer, tag, "TDRC");
-    let recorded_at;
-    let released_at;
-    if config
-        .flags
-        .contains(ImportTrackFlags::COMPATIBILITY_ID3V2_MUSICBRAINZ_PICARD_TDRC_TDOR)
-    {
-        let tdor = import_timestamp_from_first_text_frame(importer, tag, "TDOR");
-        // Use "TDRL" only as a fallback if "TDRC" is not available
-        if let Some(tdor) = tdor {
-            // If a recording date is available it will be exported as "TDOR".
-            // Primarily using this field for the distinction here ensures that
-            // exported metadata will be re-imported consistently!
-            recorded_at = Some(tdor);
-            released_at = if let Some(tdrc) = tdrc {
-                if let Some(tdrl) = tdrl {
-                    if tdrl != tdrc {
-                        importer.add_issue(format!("Using release date {} from frame \"TDRC\" instead of {} from frame \"TDRL\"", tdrc, tdrl));
-                    }
-                }
-                Some(tdrc)
-            } else {
-                tdrl
-            };
-        } else if let Some(tdrl) = tdrl {
-            released_at = Some(tdrl);
-            recorded_at = tdrc;
-        } else {
-            released_at = tdrc;
-            recorded_at = None;
-        }
-    } else {
-        released_at = tdrl;
-        recorded_at = tdrc;
-    }
-    if let Some(recorded_at) = recorded_at {
-        track.recorded_at = Some(recorded_at);
-    }
-    if let Some(released_at) = released_at {
-        track.released_at = Some(released_at);
-    }
+    track.recorded_at = import_timestamp_from_first_text_frame(importer, tag, "TDRC");
+    track.released_at = import_timestamp_from_first_text_frame(importer, tag, "TDRL");
+    track.released_orig_at = import_timestamp_from_first_text_frame(importer, tag, "TDOR");
+
     if let Some(released_by) = first_text_frame(tag, "TPUB").and_then(trimmed_non_empty_from) {
         track.released_by = Some(released_by.into());
     }
@@ -853,29 +814,23 @@ pub fn export_track(
         }
     }
 
-    // Release and recording dates
-    let released_at_key;
-    let recorded_at_key;
-    if config
-        .flags
-        .contains(ExportTrackFlags::COMPATIBILITY_ID3V2_MUSICBRAINZ_PICARD_TDRC_TDOR)
-    {
-        released_at_key = "TDRC";
-        recorded_at_key = "TDOR";
+    if let Some(recorded_at) = &track.recorded_at {
+        let timestamp = export_date_or_date_time(*recorded_at);
+        tag.set_text("TDRC", timestamp.to_string());
     } else {
-        released_at_key = "TDRL";
-        recorded_at_key = "TDRC";
+        tag.remove("TDRC");
     }
     if let Some(released_at) = &track.released_at {
-        tag.set_text(released_at_key, released_at.to_string());
+        let timestamp = export_date_or_date_time(*released_at);
+        tag.set_text("TDRL", timestamp.to_string());
     } else {
-        tag.remove(released_at_key);
+        tag.remove("TDRL");
     }
-    if let Some(recorded_at) = &track.recorded_at {
-        let recorded_at = export_date_or_date_time(*recorded_at);
-        tag.set_text(recorded_at_key, recorded_at.to_string());
+    if let Some(released_orig_at) = &track.released_orig_at {
+        let timestamp = export_date_or_date_time(*released_orig_at);
+        tag.set_text("TDOR", timestamp.to_string());
     } else {
-        tag.remove(recorded_at_key);
+        tag.remove("TDOR");
     }
 
     // Publishing info

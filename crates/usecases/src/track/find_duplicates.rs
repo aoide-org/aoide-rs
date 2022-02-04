@@ -37,14 +37,15 @@ bitflags! {
     /// re-imported from the source.
     pub struct SearchFlags: u8 {
         const NONE           = 0b0000_0000; // least restrictive
-        const SOURCE_TRACKED = 0b0000_0001;
-        const ALBUM_ARTIST   = 0b0000_0010;
-        const ALBUM_TITLE    = 0b0000_0100;
-        const TRACK_ARTIST   = 0b0000_1000;
-        const TRACK_TITLE    = 0b0001_0000;
-        const RELEASED_AT    = 0b0010_0000;
-        const RECORDED_AT    = 0b0100_0000;
-        const ALL            = 0b0111_1111; // most restrictive
+        const SOURCE_TRACKED   = 0b0000_0001;
+        const ALBUM_ARTIST     = 0b0000_0010;
+        const ALBUM_TITLE      = 0b0000_0100;
+        const TRACK_ARTIST     = 0b0000_1000;
+        const TRACK_TITLE      = 0b0001_0000;
+        const RECORDED_AT      = 0b0010_0000;
+        const RELEASED_AT      = 0b0100_0000;
+        const RELEASED_ORIG_AT = 0b1000_0000;
+        const ALL              = 0b1111_1111; // most restrictive
     }
 }
 
@@ -159,6 +160,16 @@ where
         } else {
             SearchFilter::DateTime(DateTimeFieldFilter {
                 field: DateTimeField::ReleasedAt,
+                predicate: DateTimePredicate::Equal(None),
+            })
+        });
+    }
+    if search_flags.contains(SearchFlags::RELEASED_ORIG_AT) {
+        all_filters.push(if let Some(released_orig_at) = track.released_orig_at {
+            SearchFilter::released_at_equals(released_orig_at)
+        } else {
+            SearchFilter::DateTime(DateTimeFieldFilter {
+                field: DateTimeField::ReleasedOrigAt,
                 predicate: DateTimePredicate::Equal(None),
             })
         });

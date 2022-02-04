@@ -83,18 +83,6 @@ bitflags! {
         /// by iTunes v12.5.4.
         const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0000;
 
-        /// Use the `TDRC` and `TDOR` frames for the release and recording date
-        /// respectively.
-        ///
-        /// iTunes and most other applications don't strictly follow the ID3v2.4
-        /// standard that provides `TDRL` (release date), `TDRC` (recording date),
-        /// `TDOR` (original release date), and more date frames for various purposes.
-        /// Instead they simply (mis)use `TDRC` for the release date and `TDOR` for
-        /// both the original release and recording date without further distinction.
-        ///
-        /// See also https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
-        const COMPATIBILITY_ID3V2_MUSICBRAINZ_PICARD_TDRC_TDOR  = 0b0000_0010_0000_0000;
-
         /// Import aoide faceted tags
         ///
         /// Implies METADATA.

@@ -50,6 +50,9 @@ pub struct QueryableRecord {
     pub released_at: Option<String>,
     pub released_ms: Option<TimestampMillis>,
     pub released_at_yyyymmdd: Option<YYYYMMDD>,
+    pub released_orig_at: Option<String>,
+    pub released_orig_ms: Option<TimestampMillis>,
+    pub released_orig_at_yyyymmdd: Option<YYYYMMDD>,
     pub released_by: Option<String>,
     pub copyright: Option<String>,
     pub album_kind: i16,
@@ -124,6 +127,9 @@ pub fn load_repo_entity(
         released_at,
         released_ms,
         released_at_yyyymmdd,
+        released_orig_at,
+        released_orig_ms,
+        released_orig_at_yyyymmdd,
         released_by,
         copyright,
         album_kind,
@@ -174,6 +180,19 @@ pub fn load_repo_entity(
         released_at.map(Into::into)
     } else {
         released_at_yyyymmdd.map(DateYYYYMMDD::new).map(Into::into)
+    };
+    let released_orig_at = if let Some(released_orig_at) = released_orig_at {
+        let released_orig_at =
+            parse_datetime_opt(Some(released_orig_at.as_str()), released_orig_ms);
+        debug_assert_eq!(
+            released_orig_at.map(Into::into),
+            released_orig_at_yyyymmdd.map(DateYYYYMMDD::new),
+        );
+        released_orig_at.map(Into::into)
+    } else {
+        released_orig_at_yyyymmdd
+            .map(DateYYYYMMDD::new)
+            .map(Into::into)
     };
     let album_kind = AlbumKind::from_i16(album_kind)
         .ok_or_else(|| anyhow::anyhow!("Invalid album kind value: {}", album_kind))?;
@@ -232,6 +251,7 @@ pub fn load_repo_entity(
         media_source,
         recorded_at,
         released_at,
+        released_orig_at,
         released_by,
         copyright,
         album,
@@ -262,6 +282,9 @@ pub struct InsertableRecord<'a> {
     pub released_at: Option<String>,
     pub released_ms: Option<TimestampMillis>,
     pub released_at_yyyymmdd: Option<YYYYMMDD>,
+    pub released_orig_at: Option<String>,
+    pub released_orig_ms: Option<TimestampMillis>,
+    pub released_orig_at_yyyymmdd: Option<YYYYMMDD>,
     pub released_by: Option<&'a str>,
     pub copyright: Option<&'a str>,
     pub album_kind: i16,
@@ -296,6 +319,7 @@ impl<'a> InsertableRecord<'a> {
             media_source: _,
             recorded_at,
             released_at,
+            released_orig_at,
             released_by,
             copyright,
             album,
@@ -320,6 +344,12 @@ impl<'a> InsertableRecord<'a> {
             .unwrap_or((None, None));
         let (released_at_yyyymmdd, released_at) = released_at
             .map(|released_at| match released_at {
+                DateOrDateTime::Date(date) => (Some(date), None),
+                DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
+            })
+            .unwrap_or((None, None));
+        let (released_orig_at_yyyymmdd, released_orig_at) = released_orig_at
+            .map(|released_orig_at| match released_orig_at {
                 DateOrDateTime::Date(date) => (Some(date), None),
                 DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
             })
@@ -352,6 +382,9 @@ impl<'a> InsertableRecord<'a> {
             released_at: released_at.as_ref().map(ToString::to_string),
             released_ms: released_at.map(DateTime::timestamp_millis),
             released_at_yyyymmdd: released_at_yyyymmdd.map(Into::into),
+            released_orig_at: released_orig_at.as_ref().map(ToString::to_string),
+            released_orig_ms: released_orig_at.map(DateTime::timestamp_millis),
+            released_orig_at_yyyymmdd: released_orig_at_yyyymmdd.map(Into::into),
             released_by: released_by.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),
             album_kind: *album_kind as i16,
@@ -404,6 +437,9 @@ pub struct UpdatableRecord<'a> {
     pub released_at: Option<String>,
     pub released_ms: Option<TimestampMillis>,
     pub released_at_yyyymmdd: Option<YYYYMMDD>,
+    pub released_orig_at: Option<String>,
+    pub released_orig_ms: Option<TimestampMillis>,
+    pub released_orig_at_yyyymmdd: Option<YYYYMMDD>,
     pub released_by: Option<&'a str>,
     pub copyright: Option<&'a str>,
     pub album_kind: i16,
@@ -442,6 +478,7 @@ impl<'a> UpdatableRecord<'a> {
             media_source: _,
             recorded_at,
             released_at,
+            released_orig_at,
             released_by,
             copyright,
             album,
@@ -466,6 +503,12 @@ impl<'a> UpdatableRecord<'a> {
             .unwrap_or((None, None));
         let (released_at_yyyymmdd, released_at) = released_at
             .map(|released_at| match released_at {
+                DateOrDateTime::Date(date) => (Some(date), None),
+                DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
+            })
+            .unwrap_or((None, None));
+        let (released_orig_at_yyyymmdd, released_orig_at) = released_orig_at
+            .map(|released_orig_at| match released_orig_at {
                 DateOrDateTime::Date(date) => (Some(date), None),
                 DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
             })
@@ -496,6 +539,9 @@ impl<'a> UpdatableRecord<'a> {
             released_at: released_at.as_ref().map(ToString::to_string),
             released_ms: released_at.map(DateTime::timestamp_millis),
             released_at_yyyymmdd: released_at_yyyymmdd.map(Into::into),
+            released_orig_at: released_orig_at.as_ref().map(ToString::to_string),
+            released_orig_ms: released_orig_at.map(DateTime::timestamp_millis),
+            released_orig_at_yyyymmdd: released_orig_at_yyyymmdd.map(Into::into),
             released_by: released_by.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),
             album_kind: *album_kind as i16,

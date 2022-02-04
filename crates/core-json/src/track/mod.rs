@@ -47,10 +47,13 @@ pub struct Track {
     pub recorded_at: Option<DateOrDateTime>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    released_by: Option<String>,
+    released_at: Option<DateOrDateTime>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    released_at: Option<DateOrDateTime>,
+    released_orig_at: Option<DateOrDateTime>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    released_by: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     copyright: Option<String>,
@@ -89,6 +92,7 @@ impl From<_core::Track> for Track {
             media_source,
             recorded_at,
             released_at,
+            released_orig_at,
             released_by,
             copyright,
             album,
@@ -105,6 +109,7 @@ impl From<_core::Track> for Track {
             media_source: media_source.into(),
             recorded_at: recorded_at.map(Into::into),
             released_at: released_at.map(Into::into),
+            released_orig_at: released_orig_at.map(Into::into),
             released_by,
             copyright,
             album: album.untie().into(),
@@ -128,6 +133,7 @@ impl TryFrom<Track> for _core::Track {
             media_source,
             recorded_at,
             released_at,
+            released_orig_at,
             released_by,
             copyright,
             album,
@@ -145,6 +151,7 @@ impl TryFrom<Track> for _core::Track {
             media_source,
             recorded_at: recorded_at.map(Into::into),
             released_at: released_at.map(Into::into),
+            released_orig_at: released_orig_at.map(Into::into),
             released_by,
             copyright,
             album: album.into(),
