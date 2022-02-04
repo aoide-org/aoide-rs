@@ -16,6 +16,7 @@
 use std::{borrow::Cow, io::SeekFrom, path::Path, time::Duration};
 
 use id3::TagLike as _;
+use mpeg_audio_header::{Header, ParseMode};
 
 use aoide_core::{
     audio::{
@@ -26,7 +27,6 @@ use aoide_core::{
     media::{ApicType, Content, ContentMetadataFlags},
     track::Track,
 };
-use mp3_duration::{ParseMode, StreamInfo};
 
 use crate::{
     io::{
@@ -41,7 +41,7 @@ use super::id3::{
     import_metadata_into_track, map_id3_err,
 };
 
-fn map_mp3_duration_err(err: mp3_duration::MP3DurationError) -> Error {
+fn mpeg_audio_header_error(err: mpeg_audio_header::PositionalError) -> Error {
     anyhow::Error::from(err).into()
 }
 
@@ -66,13 +66,13 @@ impl Metadata {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MetadataExt(StreamInfo, Option<Metadata>);
+#[derive(Debug, Clone)]
+pub struct MetadataExt(Header, Option<Metadata>);
 
 impl MetadataExt {
     pub fn read_from(reader: &mut impl Reader) -> Result<Self> {
-        let stream_info =
-            StreamInfo::read(reader, ParseMode::Exact).map_err(map_mp3_duration_err)?;
+        let stream_info = Header::read_from_source(reader, ParseMode::IgnoreVbrHeaders)
+            .map_err(mpeg_audio_header_error)?;
         // Restart the reader for importing the ID3 tag
         let _start_pos = reader.seek(SeekFrom::Start(0))?;
         debug_assert_eq!(0, _start_pos);
@@ -83,11 +83,11 @@ impl MetadataExt {
     #[must_use]
     pub fn import_audio_content(&self, importer: &mut Importer) -> AudioContent {
         let Self(stream_info, metadata) = self;
-        let StreamInfo {
+        let Header {
             max_channel_count,
-            avg_sampling_rate,
-            avg_bitrate,
-            duration,
+            avg_sample_rate_hz,
+            avg_bitrate_bps,
+            total_duration,
             ..
         } = stream_info;
         let loudness;
@@ -100,12 +100,11 @@ impl MetadataExt {
             encoder = None;
         }
         AudioContent {
-            duration: Some(duration.to_owned().into()),
+            duration: Some(total_duration.to_owned().into()),
             channels: Some(ChannelCount(*max_channel_count as NumberOfChannels).into()),
-            sample_rate: Some(SampleRateHz::from_inner(
-                *avg_sampling_rate as SamplesPerSecond,
-            )),
-            bitrate: Some(BitrateBps::from_inner(*avg_bitrate as BitsPerSecond)),
+            sample_rate: avg_sample_rate_hz
+                .map(|hz| SampleRateHz::from_inner(SamplesPerSecond::from(hz))),
+            bitrate: avg_bitrate_bps.map(|bps| BitrateBps::from_inner(BitsPerSecond::from(bps))),
             loudness,
             encoder,
         }

@@ -35,7 +35,7 @@ aoide-core-json = "*"
 id3 = { version = ">=0.6", optional = true }
 lewton = { version = "*", optional = true }
 metaflac = { version = "*", optional = true }
-mp3-duration = { version = "*", optional = true }
+mpeg-audio-header = { version = "*", optional = true }
 mp4ameta = { version = ">=0.11", optional = true }
 opus_headers = { version = "*", optional = true }
 
@@ -44,7 +44,7 @@ opus_headers = { version = "*", optional = true }
 fmt-aiff = [ "id3" ]
 fmt-flac = [ "metaflac" ]
 fmt-mp4 = [ "mp4ameta" ]
-fmt-mp3 = [ "id3", "mp3-duration" ]
+fmt-mp3 = [ "id3", "mpeg-audio-header" ]
 fmt-ogg = [ "lewton", "metaflac" ] # metaflac for decoding FLAC picture blocks
 fmt-opus = [ "opus_headers", "metaflac" ] # metaflac for decoding FLAC picture blocks
 # TODO: Add support for WAV files

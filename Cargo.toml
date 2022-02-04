@@ -38,7 +38,6 @@ aoide-websrv-api = { path = "crates/websrv-api" }
 
 # Unreleased crates
 triseratops = { git = "https://github.com/Holzhaus/triseratops", branch = "main" }
-mp3-duration = { git = "https://github.com/aoide-org/mp3-duration", branch = "streaminfo" }
 
 # Temporary patches
 #mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta" }
