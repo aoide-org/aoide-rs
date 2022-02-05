@@ -228,6 +228,11 @@ impl Metadata {
             for name in remixers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
             }
+        } else if let Some(remixers) = metaflac_tag.get_vorbis("MIXARTIST") {
+            // Fallback for compatibility with Rekordbox, Engine DJ, and Traktor
+            for name in remixers {
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
+            }
         }
         if let Some(mixers) = metaflac_tag.get_vorbis("MIXER") {
             for name in mixers {
