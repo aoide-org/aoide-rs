@@ -388,10 +388,20 @@ pub fn import_released_by(reader: &impl CommentReader) -> Option<String> {
     reader
         .read_first_value("LABEL")
         .and_then(trimmed_non_empty_from)
+        .or_else(|| {
+            reader
+                .read_first_value("PUBLISHER") // primary fallback
+                .and_then(trimmed_non_empty_from)
+        })
+        .or_else(|| {
+            reader
+                .read_first_value("ORGANIZATION") // secondary fallback
+                .and_then(trimmed_non_empty_from)
+        })
         .map(Into::into)
 }
 
-pub fn import_release_copyright(reader: &impl CommentReader) -> Option<String> {
+pub fn import_copyright(reader: &impl CommentReader) -> Option<String> {
     reader
         .read_first_value("COPYRIGHT")
         .and_then(trimmed_non_empty_from)
@@ -595,7 +605,7 @@ pub fn import_into_track(
     if let Some(released_by) = import_released_by(reader) {
         track.released_by = Some(released_by);
     }
-    if let Some(copyright) = import_release_copyright(reader) {
+    if let Some(copyright) = import_copyright(reader) {
         track.copyright = Some(copyright);
     }
 

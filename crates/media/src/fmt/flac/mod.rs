@@ -319,7 +319,7 @@ impl Metadata {
         if let Some(released_by) = vorbis::import_released_by(metaflac_tag) {
             track.released_by = Some(released_by);
         }
-        if let Some(copyright) = vorbis::import_release_copyright(metaflac_tag) {
+        if let Some(copyright) = vorbis::import_copyright(metaflac_tag) {
             track.copyright = Some(copyright);
         }
 
