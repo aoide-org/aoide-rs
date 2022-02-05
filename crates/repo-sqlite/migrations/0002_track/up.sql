@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS track (
     released_ms              INTEGER,
     released_at_yyyymmdd     INTEGER, -- naive, gregorian release date as YYYYMMDD (parsed from released_at)
     released_orig_at          TEXT,
-    released_orig__ms         INTEGER,
+    released_orig_ms          INTEGER,
     released_orig_at_yyyymmdd INTEGER, -- naive, gregorian release date as YYYYMMDD (parsed from released_at)
     released_by              TEXT,    -- publisher or record label
     copyright                TEXT,
