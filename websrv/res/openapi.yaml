@@ -2387,7 +2387,7 @@ components:
       oneOf:
         - $ref: '#/components/schemas/YYYY'
         - $ref: '#/components/schemas/YYYYMMDD'
-    ReleasedorigAtDateTime:
+    ReleasedOrigAtDateTime:
       allOf:
         - $ref: '#/components/schemas/DateTime'
     MediaTrackerUntrackDirectoriesRequestBody:
