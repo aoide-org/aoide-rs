@@ -116,6 +116,11 @@ pub struct Cue {
 
     pub out_marker: Option<OutMarker>,
 
+    /// Application-defined tag for distinguishing cues
+    /// within the same `bank`.
+    pub kind: Option<String>,
+
+    /// A custom, user-defined string
     pub label: Option<String>,
 
     pub color: Option<Color>,

@@ -137,6 +137,9 @@ pub struct Cue {
     pub out_marker: Option<OutMarker>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -153,6 +156,7 @@ impl From<_core::Cue> for Cue {
             slot_index,
             in_marker,
             out_marker,
+            kind,
             label,
             color,
             flags,
@@ -162,7 +166,8 @@ impl From<_core::Cue> for Cue {
             slot_index,
             in_marker: in_marker.map(Into::into),
             out_marker: out_marker.map(Into::into),
-            label: label.map(Into::into),
+            kind,
+            label,
             color: color.map(Into::into),
             flags: flags.bits(),
         }
@@ -176,6 +181,7 @@ impl From<Cue> for _core::Cue {
             slot_index,
             in_marker,
             out_marker,
+            kind,
             label,
             color,
             flags,
@@ -185,7 +191,8 @@ impl From<Cue> for _core::Cue {
             slot_index,
             in_marker: in_marker.map(Into::into),
             out_marker: out_marker.map(Into::into),
-            label: label.map(Into::into),
+            kind,
+            label,
             color: color.map(Into::into),
             flags: CueFlags::from_bits_truncate(flags),
         }

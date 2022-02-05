@@ -35,6 +35,7 @@ pub struct QueryableRecord {
     pub in_position_ms: Option<PositionInMilliseconds>,
     pub out_position_ms: Option<PositionInMilliseconds>,
     pub out_mode: Option<i16>,
+    pub kind: Option<String>,
     pub label: Option<String>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
@@ -51,6 +52,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
             in_position_ms,
             out_position_ms,
             out_mode,
+            kind,
             label,
             color_rgb,
             color_idx,
@@ -68,6 +70,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
             slot_index: slot_idx,
             in_marker,
             out_marker,
+            kind,
             label,
             color: if let Some(color_rgb) = color_rgb {
                 debug_assert!(color_idx.is_none());
@@ -96,6 +99,7 @@ pub struct InsertableRecord<'a> {
     pub in_position_ms: Option<PositionInMilliseconds>,
     pub out_position_ms: Option<PositionInMilliseconds>,
     pub out_mode: Option<i16>,
+    pub kind: Option<&'a str>,
     pub label: Option<&'a str>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
@@ -109,6 +113,7 @@ impl<'a> InsertableRecord<'a> {
             slot_index,
             in_marker,
             out_marker,
+            kind,
             label,
             color,
             flags,
@@ -125,6 +130,7 @@ impl<'a> InsertableRecord<'a> {
             in_position_ms: in_position.map(|pos| pos.0),
             out_position_ms: out_position.map(|pos| pos.0),
             out_mode: out_mode.as_ref().and_then(ToPrimitive::to_i16),
+            kind: kind.as_ref().map(String::as_str),
             label: label.as_ref().map(String::as_str),
             color_rgb: if let Some(Color::Rgb(color)) = color {
                 Some(color.code() as i32)

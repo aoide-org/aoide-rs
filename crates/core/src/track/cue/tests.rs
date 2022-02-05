@@ -22,8 +22,9 @@ fn is_canonical_slice() {
         slot_index: None,
         in_marker: None,
         out_marker: None,
-        color: None,
+        kind: None,
         label: None,
+        color: None,
         flags: Default::default(),
     };
     let mut cues = vec![

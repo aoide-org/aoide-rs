@@ -26,6 +26,7 @@ table! {
         in_position_ms -> Nullable<Double>,
         out_position_ms -> Nullable<Double>,
         out_mode -> Nullable<SmallInt>,
+        kind -> Nullable<Text>,
         label -> Nullable<Text>,
         color_rgb -> Nullable<Integer>,
         color_idx -> Nullable<SmallInt>,

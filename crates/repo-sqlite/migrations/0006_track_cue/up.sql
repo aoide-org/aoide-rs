@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS track_cue (
     --    1 = continue playing at in position of current slot (loop/repeat, i.e. rewind)
     --    2 = continue playing at in position of next slot
     out_mode                 TINYINT,
+    kind                     TEXT,
     label                    TEXT,
     color_rgb                INTEGER, -- 0xRRGGBB (hex)
     color_idx                INTEGER, -- palette index

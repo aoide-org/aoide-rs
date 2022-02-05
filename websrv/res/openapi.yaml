@@ -1693,7 +1693,14 @@ components:
                       the out position. If no in position is defined then
                       playback continues (default behavior).
         type: integer
+    CueKind:
+      description: |
+        Application-defined tag for distinguishing cues within the same `bank`.
+      type: string
+      example: chorus
     CueLabel:
+      description: |
+        A custom, user-defined string
       type: string
       example: Intro Loop
     CueLabelFilter:
@@ -3164,6 +3171,8 @@ components:
           $ref: '#/components/schemas/CueInMarker'
         outMarker:
           $ref: '#/components/schemas/CueOutMarker'
+        kind:
+          $ref: '#/components/schemas/CueKind'
         label:
           $ref: '#/components/schemas/CueLabel'
         color:
