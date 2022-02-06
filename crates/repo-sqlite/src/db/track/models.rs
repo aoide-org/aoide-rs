@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{schema::*, *};
-
-use crate::prelude::*;
+use num_traits::FromPrimitive as _;
 
 use aoide_core::{
     entity::{EntityHeader, EntityRevision},
@@ -30,9 +28,9 @@ use aoide_core::{
 
 use aoide_repo::media::source::RecordId as MediaSourceId;
 
-use num_traits::FromPrimitive as _;
+use crate::prelude::*;
 
-///////////////////////////////////////////////////////////////////////
+use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[table_name = "track"]
@@ -275,10 +273,10 @@ pub struct InsertableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub entity_uid: &'a [u8],
     pub entity_rev: i64,
+    pub media_source_id: RowId,
     pub recorded_at: Option<String>,
     pub recorded_ms: Option<TimestampMillis>,
     pub recorded_at_yyyymmdd: Option<YYYYMMDD>,
-    pub media_source_id: RowId,
     pub released_at: Option<String>,
     pub released_ms: Option<TimestampMillis>,
     pub released_at_yyyymmdd: Option<YYYYMMDD>,
