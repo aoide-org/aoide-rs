@@ -27,27 +27,30 @@ use crate::tag::FacetId;
 pub static FACET_ISRC: Lazy<FacetId> = Lazy::new(|| FacetId::new("isrc".into()));
 
 // The Grouping aka Content Group field
-pub static FACET_GROUPING: Lazy<FacetId> = Lazy::new(|| FacetId::new("grouping".into()));
+pub static FACET_GROUPING: Lazy<FacetId> = Lazy::new(|| FacetId::new("cgrp".into()));
 
-// Description or comment
-pub static FACET_COMMENT: Lazy<FacetId> = Lazy::new(|| FacetId::new("comment".into()));
+// Comment
+pub static FACET_COMMENT: Lazy<FacetId> = Lazy::new(|| FacetId::new("comm".into()));
 
-// Decades like "1980s", "2000s", ..., or other time-based properties
-pub static FACET_DECADE: Lazy<FacetId> = Lazy::new(|| FacetId::new("decade".into()));
+// Description
+pub static FACET_DESCRIPTION: Lazy<FacetId> = Lazy::new(|| FacetId::new("desc".into()));
+
+// ISO 639-3 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
+pub static FACET_LANGUAGE: Lazy<FacetId> = Lazy::new(|| FacetId::new("lang".into()));
 
 // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
 pub static FACET_GENRE: Lazy<FacetId> = Lazy::new(|| FacetId::new("genre".into()));
 
-// ISO 639-3 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
-pub static FACET_LANGUAGE: Lazy<FacetId> = Lazy::new(|| FacetId::new("language".into()));
-
 // Personal mental or emotional state, e.g. "happy", "sexy", "sad", "melancholic", "joyful", ...
 pub static FACET_MOOD: Lazy<FacetId> = Lazy::new(|| FacetId::new("mood".into()));
 
-// Sub-genres or details like "East Coast", "West Coast", ...
+// Custom: Decades like "1980s", "2000s", ..., or other time-based properties
+pub static FACET_DECADE: Lazy<FacetId> = Lazy::new(|| FacetId::new("decade".into()));
+
+// Custom: Sub-genres or details like "East Coast", "West Coast", ...
 pub static FACET_STYLE: Lazy<FacetId> = Lazy::new(|| FacetId::new("style".into()));
 
-// Atmosphere of the situation, e.g. "bouncy", "driving", "dreamy", "poppy", "punchy", "spiritual", "tropical", "uplifting" ...
+// Custom: Atmosphere of the situation, e.g. "bouncy", "driving", "dreamy", "poppy", "punchy", "spiritual", "tropical", "uplifting" ...
 pub static FACET_VIBE: Lazy<FacetId> = Lazy::new(|| FacetId::new("vibe".into()));
 
 // Predefined musical or audio feature scores (as of Spotify/EchoNest).
