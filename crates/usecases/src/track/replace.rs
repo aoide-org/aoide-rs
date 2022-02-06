@@ -37,7 +37,7 @@ use aoide_repo::{
 
 use crate::{
     collection::vfs::{RepoContext, SourcePathContext},
-    media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncStatus},
+    media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncModeParams},
 };
 
 use super::*;
@@ -221,22 +221,26 @@ pub fn import_and_replace_from_file_path<Repo>(
 where
     Repo: EntityRepo,
 {
-    let (media_source_id, last_synchronized_at, collected_track) = repo
+    let (media_source_id, last_synchronized_at, synchronized_rev, collected_track) = repo
         .load_collected_track_entity_by_media_source_path(collection_id, &source_path)
         .optional()?
         .map(|(media_source_id, _, entity)| {
             (
                 Some(media_source_id),
                 entity.body.media_source.synchronized_at,
+                entity.body.media_source_synchronized_rev.map(|rev| {
+                    debug_assert!(rev <= entity.hdr.rev);
+                    rev == entity.hdr.rev
+                }),
                 Some(entity.body),
             )
         })
-        .unwrap_or((None, None, None));
+        .unwrap_or((None, None, None, None));
     let mut invalidities = Default::default();
     match import_track_from_file_path(
         source_path_resolver,
         source_path.clone(),
-        SyncStatus::new(sync_mode, last_synchronized_at),
+        SyncModeParams::new(sync_mode, last_synchronized_at, synchronized_rev),
         import_config,
         DateTime::now_local(),
     ) {
@@ -279,11 +283,19 @@ where
                 }
             }
         }
-        Ok(ImportTrackFromFileOutcome::SkippedSynchronized(_synchronized_at)) => {
+        Ok(ImportTrackFromFileOutcome::SkippedSynchronized { last_modified_at }) => {
             debug_assert!(media_source_id.is_some());
             debug_assert!(last_synchronized_at.is_some());
-            debug_assert!(_synchronized_at <= last_synchronized_at.unwrap());
+            debug_assert!(last_modified_at <= last_synchronized_at.unwrap());
             summary.unchanged.push(source_path);
+            visited_media_source_ids.push(media_source_id.unwrap());
+        }
+        Ok(ImportTrackFromFileOutcome::SkippedUnsynchronized { last_modified_at }) => {
+            debug_assert!(media_source_id.is_some());
+            debug_assert!(last_synchronized_at.is_some());
+            debug_assert!(last_modified_at > last_synchronized_at.unwrap());
+            debug_assert_eq!(Some(false), synchronized_rev);
+            summary.not_imported.push(source_path);
             visited_media_source_ids.push(media_source_id.unwrap());
         }
         Ok(ImportTrackFromFileOutcome::SkippedDirectory) => {

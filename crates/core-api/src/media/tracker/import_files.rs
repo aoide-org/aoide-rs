@@ -56,6 +56,7 @@ pub struct TrackSummary {
     pub unchanged: usize,
     pub skipped: usize,
     pub failed: usize,
+    pub not_imported: usize,
     pub not_created: usize,
     pub not_updated: usize,
 }
@@ -69,6 +70,7 @@ impl AddAssign<&TrackReplaceSummary> for TrackSummary {
             missing: _missing,
             skipped,
             failed,
+            not_imported,
             not_created,
             not_updated,
         } = self;
@@ -79,6 +81,7 @@ impl AddAssign<&TrackReplaceSummary> for TrackSummary {
             unchanged: rhs_unchanged,
             skipped: rhs_skipped,
             failed: rhs_failed,
+            not_imported: rhs_not_imported,
             not_created: rhs_not_created,
             not_updated: rhs_not_updated,
         } = rhs;
@@ -87,6 +90,7 @@ impl AddAssign<&TrackReplaceSummary> for TrackSummary {
         *unchanged += rhs_unchanged.len();
         *skipped += rhs_skipped.len();
         *failed += rhs_failed.len();
+        *not_imported += rhs_not_imported.len();
         *not_created += rhs_not_created.len();
         *not_updated += rhs_not_updated.len();
     }

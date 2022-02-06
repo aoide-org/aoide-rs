@@ -43,6 +43,7 @@ pub struct Summary {
     pub unchanged: Vec<String>,
     pub skipped: Vec<String>,
     pub failed: Vec<String>,
+    pub not_imported: Vec<String>,
     pub not_created: Vec<Track>,
     pub not_updated: Vec<Track>,
 }
@@ -55,6 +56,7 @@ impl From<uc::Summary> for Summary {
             unchanged,
             skipped,
             failed,
+            not_imported,
             not_created,
             not_updated,
         } = from;
@@ -64,6 +66,7 @@ impl From<uc::Summary> for Summary {
             unchanged: unchanged.into_iter().map(Into::into).collect(),
             skipped: skipped.into_iter().map(Into::into).collect(),
             failed: failed.into_iter().map(Into::into).collect(),
+            not_imported: not_imported.into_iter().map(Into::into).collect(),
             not_created: not_created.into_iter().map(Into::into).collect(),
             not_updated: not_updated.into_iter().map(Into::into).collect(),
         }

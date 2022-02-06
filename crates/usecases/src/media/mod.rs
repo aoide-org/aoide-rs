@@ -35,25 +35,37 @@ pub mod source;
 pub mod tracker;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum SyncStatus {
+pub enum SyncModeParams {
     Once {
         synchronized_before: bool,
     },
     Modified {
         last_synchronized_at: Option<DateTime>,
+        is_synchronized: bool,
     },
     Always,
 }
 
-impl SyncStatus {
+impl SyncModeParams {
     #[must_use]
-    pub const fn new(sync_mode: SyncMode, last_synchronized_at: Option<DateTime>) -> Self {
+    pub fn new(
+        sync_mode: SyncMode,
+        last_synchronized_at: Option<DateTime>,
+        synchronized_rev: Option<bool>,
+    ) -> Self {
+        debug_assert!(last_synchronized_at.is_some() || synchronized_rev != Some(true));
         match sync_mode {
             SyncMode::Once => Self::Once {
                 synchronized_before: last_synchronized_at.is_some(),
             },
             SyncMode::Modified => Self::Modified {
                 last_synchronized_at,
+                is_synchronized: last_synchronized_at.is_none() || synchronized_rev.unwrap_or(true),
+            },
+            SyncMode::ModifiedResync => Self::Modified {
+                last_synchronized_at,
+                // Pretend that the revisions are synchronized
+                is_synchronized: true,
             },
             SyncMode::Always => Self::Always,
         }
@@ -64,14 +76,15 @@ impl SyncStatus {
 #[allow(clippy::large_enum_variant)]
 pub enum ImportTrackFromFileOutcome {
     Imported { track: Track, issues: Issues },
-    SkippedSynchronized(DateTime),
+    SkippedSynchronized { last_modified_at: DateTime },
+    SkippedUnsynchronized { last_modified_at: DateTime },
     SkippedDirectory,
 }
 
 pub fn import_track_from_file_path(
     source_path_resolver: &VirtualFilePathResolver,
     source_path: SourcePath,
-    sync_status: SyncStatus,
+    sync_mode_params: SyncModeParams,
     config: &ImportTrackConfig,
     collected_at: DateTime,
 ) -> Result<ImportTrackFromFileOutcome> {
@@ -90,8 +103,8 @@ pub fn import_track_from_file_path(
         );
         DateTime::now_utc()
     });
-    match sync_status {
-        SyncStatus::Once {
+    match sync_mode_params {
+        SyncModeParams::Once {
             synchronized_before,
         } => {
             if synchronized_before {
@@ -100,13 +113,12 @@ pub fn import_track_from_file_path(
                     canonical_path.display(),
                     last_modified_at,
                 );
-                return Ok(ImportTrackFromFileOutcome::SkippedSynchronized(
-                    last_modified_at,
-                ));
+                return Ok(ImportTrackFromFileOutcome::SkippedSynchronized { last_modified_at });
             }
         }
-        SyncStatus::Modified {
+        SyncModeParams::Modified {
             last_synchronized_at,
+            is_synchronized,
         } => {
             if let Some(last_synchronized_at) = last_synchronized_at {
                 if last_modified_at <= last_synchronized_at {
@@ -116,9 +128,14 @@ pub fn import_track_from_file_path(
                         last_modified_at,
                         last_synchronized_at
                     );
-                    return Ok(ImportTrackFromFileOutcome::SkippedSynchronized(
+                    return Ok(ImportTrackFromFileOutcome::SkippedSynchronized {
                         last_modified_at,
-                    ));
+                    });
+                }
+                if !is_synchronized {
+                    return Ok(ImportTrackFromFileOutcome::SkippedUnsynchronized {
+                        last_modified_at,
+                    });
                 }
             } else {
                 log::debug!(
@@ -128,8 +145,8 @@ pub fn import_track_from_file_path(
                 );
             }
         }
-        SyncStatus::Always => {
-            // Continue regardless of last_modified_at
+        SyncModeParams::Always => {
+            // Continue regardless of last_modified_at and synchronized revision
         }
     }
     let input = NewTrackInput {

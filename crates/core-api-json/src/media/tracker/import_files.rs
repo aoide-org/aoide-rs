@@ -173,6 +173,7 @@ pub struct TrackSummary {
     pub unchanged: usize,
     pub skipped: usize,
     pub failed: usize,
+    pub not_imported: usize,
     pub not_created: usize,
     pub not_updated: usize,
 }
@@ -187,6 +188,7 @@ impl From<TrackSummary> for _inner::TrackSummary {
             unchanged,
             skipped,
             failed,
+            not_imported,
             not_created,
             not_updated,
         } = from;
@@ -197,6 +199,7 @@ impl From<TrackSummary> for _inner::TrackSummary {
             unchanged,
             skipped,
             failed,
+            not_imported,
             not_created,
             not_updated,
         }
@@ -213,6 +216,7 @@ impl From<_inner::TrackSummary> for TrackSummary {
             unchanged,
             skipped,
             failed,
+            not_imported,
             not_created,
             not_updated,
         } = from;
@@ -223,6 +227,7 @@ impl From<_inner::TrackSummary> for TrackSummary {
             unchanged,
             skipped,
             failed,
+            not_imported,
             not_created,
             not_updated,
         }

@@ -25,6 +25,7 @@ pub struct Summary {
     pub unchanged: Vec<SourcePath>,
     pub skipped: Vec<SourcePath>,
     pub failed: Vec<SourcePath>,
+    pub not_imported: Vec<SourcePath>,
     pub not_created: Vec<Track>,
     pub not_updated: Vec<Track>,
 }

@@ -2488,10 +2488,22 @@ components:
         syncMode:
           $ref: '#/components/schemas/MediaSyncMode'
     MediaSyncMode:
+      description: |
+        - once: Only import metadata once, never re-import.
+        - modified (recommended): Only (re-)import metadata from media source
+          if modified and if the current track revision matches the synchronized
+          revision.
+        - modified-resync: Only (re-)import metadata from media source if
+          modified but regardless of the synchronized revision, i.e. allow to
+          overwrite changed metadata with metadata imported from the media source
+          for resynchronization.
+        - always: Always (re-)import metadata from media source, regardless
+          of modification time and synchronization status.
       type: string
       enum:
         - once
         - modified
+        - modified-resync
         - always
       default: modified
     MediaTrackerImportResponseBody:
@@ -2571,15 +2583,19 @@ components:
               type: number
               format: int
               minimum: 0
+            failed:
+              type: number
+              format: int
+              minimum: 0
+            notImported:
+              type: number
+              format: int
+              minimum: 0
             notCreated:
               type: number
               format: int
               minimum: 0
             notUpdated:
-              type: number
-              format: int
-              minimum: 0
-            importedFailed:
               type: number
               format: int
               minimum: 0
@@ -2589,9 +2605,10 @@ components:
             - missing
             - unchanged
             - skipped
+            - failed
+            - notImported
             - notCreated
             - notUpdated
-            - importedFailed
     MediaTrackerImportingProgress:
       allOf:
         - $ref: '#/components/schemas/MediaTrackerImportSummary'

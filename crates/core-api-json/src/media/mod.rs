@@ -29,6 +29,7 @@ mod _core {
 pub enum SyncMode {
     Once,
     Modified,
+    ModifiedResync,
     Always,
 }
 
@@ -39,6 +40,7 @@ impl From<SyncMode> for _core::SyncMode {
         match from {
             Once => Self::Once,
             Modified => Self::Modified,
+            ModifiedResync => Self::ModifiedResync,
             Always => Self::Always,
         }
     }
@@ -51,6 +53,7 @@ impl From<_core::SyncMode> for SyncMode {
         match from {
             Once => Self::Once,
             Modified => Self::Modified,
+            ModifiedResync => Self::ModifiedResync,
             Always => Self::Always,
         }
     }

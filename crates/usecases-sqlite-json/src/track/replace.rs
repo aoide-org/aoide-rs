@@ -63,13 +63,15 @@ impl From<uc::Summary> for Summary {
             created,
             updated,
             unchanged,
-            skipped: _skipped,
-            failed: _failed,
+            skipped,
+            failed,
+            not_imported,
             not_created,
             not_updated,
         } = from;
-        debug_assert!(_skipped.is_empty());
-        debug_assert!(_failed.is_empty());
+        debug_assert!(skipped.is_empty());
+        debug_assert!(failed.is_empty());
+        debug_assert!(not_imported.is_empty());
         Self {
             created: created.into_iter().map(Into::into).collect(),
             updated: updated.into_iter().map(Into::into).collect(),
