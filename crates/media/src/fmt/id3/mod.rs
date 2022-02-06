@@ -37,7 +37,10 @@ use aoide_core::{
         actor::ActorRole,
         album::AlbumKind,
         metric::MetricsFlags,
-        tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_LANGUAGE, FACET_MOOD},
+        tag::{
+            FACET_COMMENT, FACET_DESCRIPTION, FACET_GENRE, FACET_GROUPING, FACET_ISRC,
+            FACET_LANGUAGE, FACET_MOOD,
+        },
         title::{TitleKind, Titles},
         Track,
     },
@@ -484,13 +487,25 @@ pub fn import_metadata_into_track(
     // Comment tag
     let comments = tag
         .comments()
-        .filter(|comm| comm.description.is_empty())
+        .filter(|comm| comm.description.trim().is_empty())
         .map(|comm| comm.text.to_owned());
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_COMMENT,
         comments,
+    );
+
+    // Description tag
+    let descriptions = tag
+        .comments()
+        .filter(|comm| comm.description.trim().to_lowercase() == "description")
+        .map(|comm| comm.text.to_owned());
+    importer.import_faceted_tags_from_label_values(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_DESCRIPTION,
+        descriptions,
     );
 
     // Genre tags
@@ -911,12 +926,24 @@ pub fn export_track(
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_COMMENT) {
         export_faceted_tags_comment(
             tag,
-            String::default(),
+            String::new(),
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
     } else {
-        export_faceted_tags_comment(tag, String::default(), None, &[]);
+        export_faceted_tags_comment(tag, String::new(), None, &[]);
+    }
+
+    // Description(s)
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_DESCRIPTION) {
+        export_faceted_tags_comment(
+            tag,
+            "description",
+            config.faceted_tag_mapping.get(facet_id.value()),
+            &tags,
+        );
+    } else {
+        export_faceted_tags_comment(tag, "description", None, &[]);
     }
 
     // Genre(s)
@@ -1119,7 +1146,7 @@ fn export_faceted_tags_comment(
         let description = description.into();
         tag.remove_comment(Some(&description), None);
         let comment = Comment {
-            lang: String::default(),
+            lang: String::new(),
             description,
             text: joined_labels.into(),
         };

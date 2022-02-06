@@ -39,7 +39,10 @@ use aoide_core::{
         actor::ActorRole,
         album::AlbumKind,
         metric::MetricsFlags,
-        tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD, FACET_XID},
+        tag::{
+            FACET_COMMENT, FACET_DESCRIPTION, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD,
+            FACET_XID,
+        },
         title::{TitleKind, Titles},
         Track,
     },
@@ -106,6 +109,8 @@ const IDENT_ARTIST: Fourcc = Fourcc(*b"\xA9ART");
 const IDENT_COMMENT: Fourcc = Fourcc(*b"\xA9cmt");
 
 const IDENT_COMPOSER: Fourcc = Fourcc(*b"\xA9wrt");
+
+const IDENT_DESCRIPTION: Fourcc = Fourcc(*b"desc");
 
 const IDENT_DIRECTOR: Fourcc = Fourcc(*b"\xA9dir");
 
@@ -489,7 +494,15 @@ impl Metadata {
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_COMMENT,
-            mp4_tag.take_comment().into_iter(),
+            mp4_tag.take_strings_of(&IDENT_COMMENT),
+        );
+
+        // Description tag
+        importer.import_faceted_tags_from_label_values(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_DESCRIPTION,
+            mp4_tag.take_strings_of(&IDENT_DESCRIPTION),
         );
 
         // Grouping tags
@@ -919,6 +932,18 @@ pub fn export_track_to_path(
         );
     } else {
         mp4_tag.remove_data_of(&IDENT_COMMENT);
+    }
+
+    // Description(s)
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_DESCRIPTION) {
+        export_faceted_tags(
+            &mut mp4_tag,
+            IDENT_DESCRIPTION,
+            config.faceted_tag_mapping.get(facet_id.value()),
+            tags,
+        );
+    } else {
+        mp4_tag.remove_data_of(&IDENT_DESCRIPTION);
     }
 
     // Grouping(s)

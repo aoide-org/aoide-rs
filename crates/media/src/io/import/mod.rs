@@ -80,8 +80,12 @@ bitflags! {
         /// Use iTunes grouping/movement/work mapping
         ///
         /// Use the mapping for grouping and movement/WORK fields as introduced
-        /// by iTunes v12.5.4.
-        const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0000;
+        /// by iTunes v12.5.4. This is the preferred mapping and existing files
+        /// that still use TIT1 instead of GRP1 for storing the grouping property
+        /// should be updated accordingly.
+        ///
+        /// Implies METADATA.
+        const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0001;
 
         /// Import aoide faceted tags
         ///

@@ -43,8 +43,8 @@ pub struct Track {
     ///
     /// Proposed tag mapping:
     ///   - ID3v2.4: "TDRC"
-    ///   - MP4:     "©day"
     ///   - Vorbis:  "DATE" ("YEAR")
+    ///   - MP4:     "©day"
     pub recorded_at: Option<DateOrDateTime>,
 
     /// The release date
@@ -53,8 +53,8 @@ pub struct Track {
     ///
     /// Proposed tag mapping:
     ///   - ID3v2.4: "TDRL"
-    ///   - MP4:     n/a
     ///   - Vorbis: "RELEASEDATE" ("RELEASEYEAR")
+    ///   - MP4:     n/a
     pub released_at: Option<DateOrDateTime>,
 
     /// The original release date
@@ -66,8 +66,8 @@ pub struct Track {
     ///
     /// Proposed tag mapping:
     ///   - ID3v2.4: "TDOR"
-    ///   - MP4:     n/a
     ///   - Vorbis:  "ORIGINALDATE" ("ORIGINALYEAR")
+    ///   - MP4:     n/a
     pub released_orig_at: Option<DateOrDateTime>,
 
     /// The publisher, e.g. a record label

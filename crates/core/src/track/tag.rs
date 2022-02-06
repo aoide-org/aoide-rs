@@ -24,24 +24,45 @@ use crate::tag::FacetId;
 // https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
 
 // International Standard Recording Code (ISRC, ISO 3901)
+// ID3v2.4: TSRC
+// Vorbis:  ISRC
+// MP4:     isrc
 pub static FACET_ISRC: Lazy<FacetId> = Lazy::new(|| FacetId::new("isrc".into()));
 
 // The Grouping aka Content Group field
+// ID3v2.4: GRP1 (iTunes/newer) / TIT1 (traditional/older)
+// Vorbis:  GROUPING
+// MP4:     ©grp
 pub static FACET_GROUPING: Lazy<FacetId> = Lazy::new(|| FacetId::new("cgrp".into()));
 
 // Comment
+// ID3v2.4: COMM (without `description`)
+// Vorbis:  COMMENT
+// MP4:     ©cmt
 pub static FACET_COMMENT: Lazy<FacetId> = Lazy::new(|| FacetId::new("comm".into()));
 
 // Description
+// ID3v2.4: COMM:description
+// Vorbis:  DESCRIPTION
+// MP4:     desc
 pub static FACET_DESCRIPTION: Lazy<FacetId> = Lazy::new(|| FacetId::new("desc".into()));
 
 // ISO 639-3 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
+// ID3v2.4: TLAN
+// Vorbis:  LANGUAGE
+// MP4:     ----:com.apple.iTunes:LANGUAGE
 pub static FACET_LANGUAGE: Lazy<FacetId> = Lazy::new(|| FacetId::new("lang".into()));
 
 // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
+// ID3v2.4: TCON
+// Vorbis:  GENRE
+// MP4:     ©gen
 pub static FACET_GENRE: Lazy<FacetId> = Lazy::new(|| FacetId::new("genre".into()));
 
 // Personal mental or emotional state, e.g. "happy", "sexy", "sad", "melancholic", "joyful", ...
+// ID3v2.4: TMOO
+// Vorbis:  MOOD
+// MP4:     ----:com.apple.iTunes:MOOD
 pub static FACET_MOOD: Lazy<FacetId> = Lazy::new(|| FacetId::new("mood".into()));
 
 // Custom: Decades like "1980s", "2000s", ..., or other time-based properties

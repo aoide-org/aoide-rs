@@ -31,7 +31,9 @@ use aoide_core::{
         actor::ActorRole,
         album::AlbumKind,
         index::Index,
-        tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD},
+        tag::{
+            FACET_COMMENT, FACET_DESCRIPTION, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD,
+        },
         title::{Title, TitleKind, Titles},
         Track,
     },
@@ -714,29 +716,29 @@ pub fn import_into_track(
         }
     }
 
-    // Comment tag
-    // The original specification only defines a "DESCRIPTION" field,
-    // while MusicBrainz recommends to use "COMMENT".
-    // http://www.xiph.org/vorbis/doc/v-comment.html
-    // https://picard.musicbrainz.org/docs/mappings
-    {
-        import_faceted_text_tags(
-            importer,
-            &mut tags_map,
-            &config.faceted_tag_mapping,
-            &FACET_COMMENT,
-            reader
-                .filter_values("COMMENT")
-                .unwrap_or_default()
-                .into_iter()
-                .chain(
-                    reader
-                        .filter_values("DESCRIPTION")
-                        .unwrap_or_default()
-                        .into_iter(),
-                ),
-        );
-    }
+    // Comment tags
+    import_faceted_text_tags(
+        importer,
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_COMMENT,
+        reader
+            .filter_values("COMMENT")
+            .unwrap_or_default()
+            .into_iter(),
+    );
+
+    // Description tags
+    import_faceted_text_tags(
+        importer,
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_DESCRIPTION,
+        reader
+            .filter_values("DESCRIPTION")
+            .unwrap_or_default()
+            .into_iter(),
+    );
 
     // Genre tags
     import_faceted_text_tags(
@@ -1059,11 +1061,6 @@ pub fn export_track(
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
     // Comment(s)
-    // The original specification only defines a "DESCRIPTION" field,
-    // while MusicBrainz recommends to use "COMMENT".
-    // http://www.xiph.org/vorbis/doc/v-comment.html
-    // https://picard.musicbrainz.org/docs/mappings
-    writer.remove_all_values("DESCRIPTION");
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_COMMENT) {
         export_faceted_tags(
             writer,
@@ -1073,6 +1070,18 @@ pub fn export_track(
         );
     } else {
         writer.remove_all_values("COMMENT");
+    }
+
+    // Description(s)
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_DESCRIPTION) {
+        export_faceted_tags(
+            writer,
+            "DESCRIPTION".to_owned(),
+            config.faceted_tag_mapping.get(facet_id.value()),
+            tags,
+        );
+    } else {
+        writer.remove_all_values("DESCRIPTION");
     }
 
     // Genre(s)
