@@ -107,8 +107,10 @@ pub fn handle_request(
     let replace_mode = mode.unwrap_or(ReplaceMode::UpdateOrCreate);
     let resolve_path_from_url = resolve_path_from_url.unwrap_or(false);
     let params = uc::Params {
+        mode: replace_mode.into(),
         resolve_path_from_url,
-        ..uc::Params::new(replace_mode.into())
+        preserve_collected_at: true,
+        update_media_source_synchronized_rev: false,
     };
     let (tracks, errors): (Vec<_>, _) = request_body
         .into_iter()

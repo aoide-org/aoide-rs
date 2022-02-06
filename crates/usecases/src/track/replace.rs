@@ -32,7 +32,7 @@ use aoide_media::{
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::source::RecordId as MediaSourceId,
-    track::{EntityRepo, ReplaceMode, ReplaceOutcome},
+    track::{EntityRepo, ReplaceMode, ReplaceOutcome, ReplaceParams},
 };
 
 use crate::{
@@ -48,26 +48,15 @@ pub struct Params {
 
     /// Consider the `path` as an URL and resolve it according
     /// the collection's media source configuration.
-    ///
-    /// The default value is `false`.
     pub resolve_path_from_url: bool,
 
     /// Preserve the `collected_at` property of existing media
     /// sources and don't update it.
-    ///
-    /// The default value is `true`.
     pub preserve_collected_at: bool,
-}
 
-impl Params {
-    #[must_use]
-    pub fn new(mode: ReplaceMode) -> Self {
-        Self {
-            mode,
-            resolve_path_from_url: false,
-            preserve_collected_at: true,
-        }
-    }
+    /// Set or update the synchronized revision if the media source
+    /// has a synchronization time stamp
+    pub update_media_source_synchronized_rev: bool,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -88,8 +77,7 @@ pub fn replace_collected_track_by_media_source_path<Repo>(
     summary: &mut Summary,
     repo: &Repo,
     collection_id: CollectionId,
-    replace_mode: ReplaceMode,
-    preserve_collected_at: bool,
+    params: ReplaceParams,
     track: ValidatedInput,
 ) -> Result<Option<MediaSourceId>>
 where
@@ -98,12 +86,7 @@ where
     let ValidatedInput(track) = track;
     let media_source_path = track.media_source.path.clone();
     let outcome = repo
-        .replace_collected_track_by_media_source_path(
-            collection_id,
-            preserve_collected_at,
-            replace_mode,
-            track,
-        )
+        .replace_collected_track_by_media_source_path(collection_id, params, track)
         .map_err(|err| {
             log::warn!(
                 "Failed to replace track by URI '{}': {}",
@@ -114,7 +97,7 @@ where
         })?;
     let media_source_id = match outcome {
         ReplaceOutcome::Created(media_source_id, _, entity) => {
-            debug_assert_ne!(ReplaceMode::UpdateOnly, replace_mode);
+            debug_assert_ne!(ReplaceMode::UpdateOnly, params.mode);
             log::trace!(
                 "Created {}: {:?}",
                 entity.body.media_source.path,
@@ -124,7 +107,7 @@ where
             media_source_id
         }
         ReplaceOutcome::Updated(media_source_id, _, entity) => {
-            debug_assert_ne!(ReplaceMode::CreateOnly, replace_mode);
+            debug_assert_ne!(ReplaceMode::CreateOnly, params.mode);
             log::trace!(
                 "Updated {}: {:?}",
                 entity.body.media_source.path,
@@ -139,13 +122,13 @@ where
             media_source_id
         }
         ReplaceOutcome::NotCreated(track) => {
-            debug_assert_eq!(ReplaceMode::UpdateOnly, replace_mode);
+            debug_assert_eq!(ReplaceMode::UpdateOnly, params.mode);
             log::trace!("Not created: {:?}", track);
             summary.not_created.push(track);
             return Ok(None);
         }
         ReplaceOutcome::NotUpdated(media_source_id, _, track) => {
-            debug_assert_eq!(ReplaceMode::CreateOnly, replace_mode);
+            debug_assert_eq!(ReplaceMode::CreateOnly, params.mode);
             log::trace!("Not updated: {:?}", track);
             summary.not_updated.push(track);
             media_source_id
@@ -167,6 +150,7 @@ where
         mode: replace_mode,
         resolve_path_from_url,
         preserve_collected_at,
+        update_media_source_synchronized_rev,
     } = params;
     let (collection_id, source_path_resolver) = if *resolve_path_from_url {
         let RepoContext {
@@ -209,8 +193,11 @@ where
             &mut summary,
             repo,
             collection_id,
-            *replace_mode,
-            *preserve_collected_at,
+            ReplaceParams {
+                mode: *replace_mode,
+                preserve_collected_at: *preserve_collected_at,
+                update_media_source_synchronized_rev: *update_media_source_synchronized_rev,
+            },
             ValidatedInput(track),
         )?;
     }
@@ -275,8 +262,11 @@ where
                 summary,
                 repo,
                 collection_id,
-                replace_mode,
-                true,
+                ReplaceParams {
+                    mode: replace_mode,
+                    preserve_collected_at: true,
+                    update_media_source_synchronized_rev: true,
+                },
                 track,
             )? {
                 visited_media_source_ids.push(media_source_id);
@@ -320,26 +310,6 @@ where
         },
     };
     Ok(invalidities)
-}
-
-pub fn replace_by_media_source_path(
-    repo: &impl EntityRepo,
-    collection_id: CollectionId,
-    replace_mode: ReplaceMode,
-    tracks: impl IntoIterator<Item = ValidatedInput>,
-) -> Result<Summary> {
-    let mut summary = Summary::default();
-    for track in tracks {
-        replace_collected_track_by_media_source_path(
-            &mut summary,
-            repo,
-            collection_id,
-            replace_mode,
-            true,
-            track,
-        )?;
-    }
-    Ok(summary)
 }
 
 const DEFAULT_MEDIA_SOURCE_COUNT: usize = 1024;

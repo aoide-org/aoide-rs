@@ -409,23 +409,44 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     }
 
     fn load_track_record_trail(&self, id: RecordId) -> RepoResult<RecordTrail> {
-        media_source::table
-            .inner_join(collection::table)
-            .select((media_source::row_id, media_source::path, collection::row_id))
-            .filter(
-                media_source::row_id.eq_any(
-                    track::table
-                        .select(track::media_source_id)
-                        .filter(track::row_id.eq(RowId::from(id))),
-                ),
-            )
-            .first::<(RowId, String, RowId)>(self.as_ref())
+        collection::table
+            .inner_join(media_source::table.inner_join(track::table))
+            .select((
+                collection::row_id,
+                media_source::row_id,
+                media_source::path,
+                media_source::synchronized_at,
+                media_source::synchronized_ms,
+                track::media_source_synchronized_rev,
+            ))
+            .filter(track::row_id.eq(RowId::from(id)))
+            .first::<(
+                RowId,
+                RowId,
+                String,
+                Option<String>,
+                Option<i64>,
+                Option<i64>,
+            )>(self.as_ref())
             .map_err(repo_error)
             .map(
-                |(media_source_id, media_source_path, collection_id)| RecordTrail {
+                |(
+                    collection_id,
+                    media_source_id,
+                    media_source_path,
+                    media_source_synchronized_at,
+                    media_source_synchronized_ms,
+                    media_source_synchronized_rev,
+                )| RecordTrail {
+                    collection_id: collection_id.into(),
                     media_source_id: media_source_id.into(),
                     media_source_path: media_source_path.into(),
-                    collection_id: collection_id.into(),
+                    media_source_synchronized_at: parse_datetime_opt(
+                        media_source_synchronized_at.as_deref(),
+                        media_source_synchronized_ms,
+                    ),
+                    media_source_synchronized_rev: media_source_synchronized_rev
+                        .map(entity_revision_from_sql),
                 },
             )
     }
@@ -565,10 +586,14 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn replace_collected_track_by_media_source_path(
         &self,
         collection_id: CollectionId,
-        preserve_collected_at: bool,
-        replace_mode: ReplaceMode,
+        params: ReplaceParams,
         mut track: Track,
     ) -> RepoResult<ReplaceOutcome> {
+        let ReplaceParams {
+            mode,
+            preserve_collected_at,
+            update_media_source_synchronized_rev,
+        } = params;
         let loaded = self
             .load_collected_track_entity_by_media_source_path(
                 collection_id,
@@ -578,7 +603,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         if let Some((media_source_id, record_header, entity)) = loaded {
             // Update existing entry
             let id = record_header.id;
-            if replace_mode == ReplaceMode::CreateOnly {
+            if mode == ReplaceMode::CreateOnly {
                 return Ok(ReplaceOutcome::NotUpdated(media_source_id, id, track));
             }
             if entity.body == track {
@@ -607,14 +632,21 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 .hdr
                 .next_rev()
                 .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
-            // Mark the track as synchronized with the media source
-            track.media_source_synchronized_rev = Some(entity_hdr.rev);
+            if update_media_source_synchronized_rev {
+                if track.media_source.synchronized_at.is_some() {
+                    // Mark the track as synchronized with the media source
+                    track.media_source_synchronized_rev = Some(entity_hdr.rev);
+                } else {
+                    // Reset the synchronized revision
+                    track.media_source_synchronized_rev = None;
+                }
+            }
             let entity = Entity::new(entity_hdr, track);
             self.update_track_entity(id, updated_at, media_source_id, &entity)?;
             Ok(ReplaceOutcome::Updated(media_source_id, id, entity))
         } else {
             // Create new entry
-            if replace_mode == ReplaceMode::UpdateOnly {
+            if mode == ReplaceMode::UpdateOnly {
                 return Ok(ReplaceOutcome::NotCreated(track));
             }
             let created_at = DateTime::now_utc();
@@ -622,8 +654,15 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 .insert_media_source(created_at, collection_id, &track.media_source)?
                 .id;
             let entity_hdr = EntityHeader::initial_random();
-            // Mark the track as synchronized with the media source
-            track.media_source_synchronized_rev = Some(entity_hdr.rev);
+            if update_media_source_synchronized_rev {
+                if track.media_source.synchronized_at.is_some() {
+                    // Mark the track as synchronized with the media source
+                    track.media_source_synchronized_rev = Some(entity_hdr.rev);
+                } else {
+                    // Reset the synchronized revision
+                    track.media_source_synchronized_rev = None;
+                }
+            }
             let entity = Entity::new(entity_hdr, track);
             let id = self.insert_track_entity(created_at, media_source_id, &entity)?;
             Ok(ReplaceOutcome::Created(media_source_id, id, entity))

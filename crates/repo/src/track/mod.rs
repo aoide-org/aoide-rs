@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::{
-    entity::{EntityHeader, EntityUid},
+    entity::{EntityHeader, EntityRevision, EntityUid},
     media::SourcePath,
     track::{Entity, Track},
     util::clock::DateTime,
@@ -54,11 +54,23 @@ pub enum ReplaceOutcome {
     NotUpdated(MediaSourceId, RecordId, Track),
 }
 
+/// Essential properties that allow to trace down a track from all
+/// directions, i.e. database relations, source path, and source
+/// synchronization.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RecordTrail {
     pub collection_id: CollectionId,
     pub media_source_id: MediaSourceId,
     pub media_source_path: SourcePath,
+    pub media_source_synchronized_at: Option<DateTime>,
+    pub media_source_synchronized_rev: Option<EntityRevision>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReplaceParams {
+    pub mode: ReplaceMode,
+    pub preserve_collected_at: bool,
+    pub update_media_source_synchronized_rev: bool,
 }
 
 pub trait EntityRepo: MediaSourceRepo {
@@ -102,8 +114,7 @@ pub trait EntityRepo: MediaSourceRepo {
     fn replace_collected_track_by_media_source_path(
         &self,
         collection_id: CollectionId,
-        preserve_collected_at: bool,
-        replace_mode: ReplaceMode,
+        params: ReplaceParams,
         track: Track,
     ) -> RepoResult<ReplaceOutcome>;
 
