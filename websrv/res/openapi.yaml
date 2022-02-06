@@ -619,7 +619,6 @@ paths:
         - Tracks
       parameters:
         - $ref: '#/components/parameters/trackUidPath'
-        - $ref: '#/components/parameters/exportTrackMetadataMarkSynchronizedQuery'
       responses:
         '200':
           description: |
@@ -964,13 +963,6 @@ components:
         When this parameter is specified its value is evaluated and
         applied, i.e. a value of 0 will result in an empty set of
         returned items.
-    exportTrackMetadataMarkSynchronizedQuery:
-      name: markSynchronized
-      in: query
-      required: false
-      schema:
-        type: boolean
-        default: false
     replaceCollectedTrackModeQuery:
       name: mode
       in: query
@@ -2825,9 +2817,9 @@ components:
         - summary
     ExportTrackMetadataResponseBody:
       description:
-        The resulting synchronization time stamp of the media source.
+        A boolean value indicating if the file has been modified.
       allOf:
-        - $ref: '#/components/schemas/DateTime'
+        - type: boolean
     RgbColor:
       type: string
       minLength: 7

@@ -20,8 +20,6 @@ use aoide_media::{
     resolver::VirtualFilePathResolver,
 };
 
-use aoide_core_json::util::clock::DateTime;
-
 use crate::media::predefined_faceted_tag_mapping_config;
 
 use super::*;
@@ -33,19 +31,16 @@ mod uc {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct QueryParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mark_synchronized: Option<bool>,
+    // TODO: Add export options
 }
 
-pub type ResponseBody = Option<DateTime>;
+pub type ResponseBody = bool;
 
 pub fn handle_request(
     connection: &SqliteConnection,
     track_uid: &EntityUid,
-    query_params: QueryParams,
+    _query_params: QueryParams,
 ) -> Result<ResponseBody> {
-    let QueryParams { mark_synchronized } = query_params;
-    let update_source_synchronized_at = mark_synchronized.unwrap_or(false);
     // FIXME: Replace hard-coded tag mapping
     let faceted_tag_mapping = predefined_faceted_tag_mapping_config();
     // FIXME: Replace hard-coded export flags
@@ -55,13 +50,6 @@ pub fn handle_request(
         flags,
     };
     let path_resolver = VirtualFilePathResolver::new();
-    uc::export_metadata_into_file(
-        connection,
-        track_uid,
-        &path_resolver,
-        &config,
-        update_source_synchronized_at,
-    )
-    .map(|ok| ok.map(Into::into))
-    .map_err(Into::into)
+    uc::export_metadata_into_file(connection, track_uid, &path_resolver, &config)
+        .map_err(Into::into)
 }

@@ -144,63 +144,11 @@ pub fn import_track_from_file_path(
 }
 
 /// Export track metadata into file tags.
-///
-/// The parameter `update_source_synchronized_at` controls if the synchronization
-/// time stamp of the media source is updated immediately or deferred until the
-/// next re-import. Deferring the update enforces a re-import ensures that
-/// the file tags remain the single source of truth for all track metadata
-/// by completing this round trip.
 pub fn export_track_metadata_into_file(
     source_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,
     track: &mut Track,
-    update_source_synchronized_at: bool,
-) -> Result<()> {
+) -> Result<bool> {
     let file_path = source_path_resolver.build_file_path(&track.media_source.path);
-    let mut source_synchronized_at = DateTime::now_utc();
-    if !export_track_to_path(&file_path, config, track)? {
-        // Unmodified and not exported
-        return Ok(());
-    }
-    if !update_source_synchronized_at {
-        // Defer update of synchronization time stamp until next re-import
-        return Ok(());
-    }
-    // Update the synchronization time stamp immediately
-    match open_file_for_reading(&file_path) {
-        Ok(Some((_canonical_path, file))) => match file_last_modified_at(&file) {
-            Ok(last_modified_at) => {
-                if source_synchronized_at <= last_modified_at {
-                    source_synchronized_at = last_modified_at;
-                } else {
-                    log::warn!(
-                        "Last modification time of file {:?} has not been updated while exporting track metadata",
-                        file
-                    );
-                }
-            }
-            Err(err) => {
-                log::error!(
-                    "Failed to obtain last modification time for file {:?} after exporting track metadata: {}",
-                    file,
-                    err,
-                );
-            }
-        },
-        Ok(None) => {
-            log::error!(
-                "Invalid file path {:?} after exporting track metadata",
-                file_path.display(),
-            );
-        }
-        Err(err) => {
-            log::error!(
-                "Failed to open file path {} for reading after exporting track metadata: {}",
-                file_path.display(),
-                err
-            );
-        }
-    }
-    track.media_source.synchronized_at = Some(source_synchronized_at);
-    Ok(())
+    export_track_to_path(&file_path, config, track).map_err(Into::into)
 }
