@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS track (
     entity_rev               INTEGER NOT NULL, -- RevisionNumber
     -- relations (immutable)
     media_source_id          INTEGER NOT NULL,
+    -- properties: media source
+    media_source_synchronized_rev INTEGER,
     -- properties: album/release
     recorded_at              TEXT,
     recorded_ms              INTEGER,

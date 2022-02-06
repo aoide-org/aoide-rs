@@ -575,7 +575,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 &track.media_source.path,
             )
             .optional()?;
-        if let Some((media_source_id, record_header, mut entity)) = loaded {
+        if let Some((media_source_id, record_header, entity)) = loaded {
             // Update existing entry
             let id = record_header.id;
             if replace_mode == ReplaceMode::CreateOnly {
@@ -603,11 +603,13 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             if track.media_source != entity.body.media_source {
                 self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
-            entity.hdr = entity
+            let entity_hdr = entity
                 .hdr
                 .next_rev()
                 .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
-            entity.body = track;
+            // Mark the track as synchronized with the media source
+            track.media_source_synchronized_rev = Some(entity_hdr.rev);
+            let entity = Entity::new(entity_hdr, track);
             self.update_track_entity(id, updated_at, media_source_id, &entity)?;
             Ok(ReplaceOutcome::Updated(media_source_id, id, entity))
         } else {
@@ -619,7 +621,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             let media_source_id = self
                 .insert_media_source(created_at, collection_id, &track.media_source)?
                 .id;
-            let entity = Entity::new(EntityHeader::initial_random(), track);
+            let entity_hdr = EntityHeader::initial_random();
+            // Mark the track as synchronized with the media source
+            track.media_source_synchronized_rev = Some(entity_hdr.rev);
+            let entity = Entity::new(entity_hdr, track);
             let id = self.insert_track_entity(created_at, media_source_id, &entity)?;
             Ok(ReplaceOutcome::Created(media_source_id, id, entity))
         }

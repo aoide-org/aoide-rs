@@ -259,6 +259,8 @@ where
         }) => {
             debug_assert_eq!(imported_track.media_source.path, source_path);
             let track = if let Some(mut collected_track) = collected_track {
+                // Merge imported properties into existing properties, i.e.
+                // keep existing properties if no replacement is available.
                 collected_track.merge_newer_from_synchronized_media_source(imported_track);
                 collected_track
             } else {

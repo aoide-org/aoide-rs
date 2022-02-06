@@ -34,6 +34,17 @@ use crate::{
 pub struct Track {
     pub media_source: Source,
 
+    /// Last synchronized track entity revision
+    ///
+    /// The last entity revision of this track that is considered
+    /// as synchronized with the underlying media source, or `None`
+    /// if unsynchronized.
+    ///
+    /// This property is read-only and only managed internally. Any
+    /// provided value will be silently ignored when creating or
+    /// updating a track entity if not mentioned otherwise.
+    pub media_source_synchronized_rev: Option<EntityRevision>,
+
     /// The recording date
     ///
     /// This field resembles what is commonly known as `year`in
@@ -102,6 +113,7 @@ impl Track {
     pub fn new_from_media_source(media_source: Source) -> Self {
         Self {
             media_source,
+            media_source_synchronized_rev: None,
             recorded_at: None,
             released_at: None,
             released_orig_at: None,
@@ -170,6 +182,7 @@ impl Track {
             cues,
             indexes,
             media_source,
+            media_source_synchronized_rev: _,
             metrics,
             play_counter,
             recorded_at,
@@ -187,6 +200,7 @@ impl Track {
             cues: newer_cues,
             indexes: newer_indexes,
             media_source: mut newer_media_source,
+            media_source_synchronized_rev: newer_media_source_synchronized_rev,
             metrics: newer_metrics,
             play_counter: newer_play_counter,
             recorded_at: newer_recorded_at,
@@ -201,6 +215,7 @@ impl Track {
             .collected_at
             .min(media_source.collected_at);
         *media_source = newer_media_source;
+        debug_assert!(newer_media_source_synchronized_rev.is_none());
         // Do not replace existing data with empty data
         if !newer_actors.is_empty() {
             *actors = newer_actors;

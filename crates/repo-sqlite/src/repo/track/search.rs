@@ -54,6 +54,7 @@ type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
         Binary,
         BigInt,
         BigInt,
+        Nullable<BigInt>,
         Nullable<Text>,
         Nullable<BigInt>,
         Nullable<Integer>,

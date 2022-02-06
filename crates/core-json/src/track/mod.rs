@@ -18,7 +18,7 @@ use aoide_core::{
     util::canonical::{Canonical, CanonicalizeInto as _},
 };
 
-use crate::{media::Source, prelude::*, tag::*};
+use crate::{entity::EntityRevision, media::Source, prelude::*, tag::*};
 
 pub mod actor;
 pub mod album;
@@ -42,6 +42,9 @@ mod _core {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Track {
     pub media_source: Source,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media_source_synchronized_rev: Option<EntityRevision>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub recorded_at: Option<DateOrDateTime>,
@@ -90,6 +93,7 @@ impl From<_core::Track> for Track {
     fn from(from: _core::Track) -> Self {
         let _core::Track {
             media_source,
+            media_source_synchronized_rev,
             recorded_at,
             released_at,
             released_orig_at,
@@ -107,6 +111,7 @@ impl From<_core::Track> for Track {
         } = from;
         Self {
             media_source: media_source.into(),
+            media_source_synchronized_rev: media_source_synchronized_rev.map(Into::into),
             recorded_at: recorded_at.map(Into::into),
             released_at: released_at.map(Into::into),
             released_orig_at: released_orig_at.map(Into::into),
@@ -131,6 +136,7 @@ impl TryFrom<Track> for _core::Track {
     fn try_from(from: Track) -> anyhow::Result<Self> {
         let Track {
             media_source,
+            media_source_synchronized_rev,
             recorded_at,
             released_at,
             released_orig_at,
@@ -149,6 +155,7 @@ impl TryFrom<Track> for _core::Track {
         let media_source = media_source.try_into()?;
         let into = Self {
             media_source,
+            media_source_synchronized_rev: media_source_synchronized_rev.map(Into::into),
             recorded_at: recorded_at.map(Into::into),
             released_at: released_at.map(Into::into),
             released_orig_at: released_orig_at.map(Into::into),

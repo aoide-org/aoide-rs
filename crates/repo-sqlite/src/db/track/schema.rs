@@ -25,6 +25,7 @@ table! {
         entity_uid -> Binary,
         entity_rev -> BigInt,
         media_source_id -> BigInt,
+        media_source_synchronized_rev -> Nullable<BigInt>,
         recorded_at -> Nullable<Text>,
         recorded_ms -> Nullable<BigInt>,
         recorded_at_yyyymmdd -> Nullable<Integer>,
