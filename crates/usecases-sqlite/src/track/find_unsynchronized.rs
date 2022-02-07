@@ -13,22 +13,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{
-    entity::{EntityHeader, EntityUid},
-    track::*,
-};
+use aoide_core_api::track::find_unsynchronized::{Params, UnsynchronizedTrackEntity};
 
-use aoide_repo::{
-    prelude::*,
-    track::{EntityRepo as _, RecordHeader},
-};
+use aoide_usecases::track::find_unsynchronized as uc;
 
 use super::*;
 
-pub mod export_metadata;
-pub mod find_unsynchronized;
-pub mod load;
-pub mod purge;
-pub mod replace;
-pub mod resolve;
-pub mod search;
+pub fn find_unsynchronized(
+    connection: &SqliteConnection,
+    collection_uid: &EntityUid,
+    params: Params,
+    pagination: &Pagination,
+) -> Result<Vec<UnsynchronizedTrackEntity>> {
+    let db = RepoConnection::new(connection);
+    db.transaction::<_, TransactionError, _>(|| {
+        uc::find_unsynchronized_with_params(&db, collection_uid, params, pagination)
+            .map_err(transaction_error)
+    })
+    .map_err(Into::into)
+}

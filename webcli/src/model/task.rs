@@ -20,8 +20,8 @@ use aoide_client::{
     web::{receive_response_body, ClientEnvironment},
 };
 use aoide_core::entity::EntityUid;
-use aoide_core_api::Pagination;
-use aoide_core_api_json::track::search::client_request_params;
+use aoide_core_api::{track::find_unsynchronized::UnsynchronizedTrackEntity, Pagination};
+use aoide_core_api_json::track::search::{client_query_params, client_request_params};
 
 use super::{Effect, ExportTracksParams, Intent};
 
@@ -35,6 +35,10 @@ pub enum Task {
     MediaSources(media_source::Task),
     MediaTracker(media_tracker::Task),
     AbortPendingRequest,
+    FindUnsynchronizedTracks {
+        collection_uid: EntityUid,
+        params: aoide_core_api::track::find_unsynchronized::Params,
+    },
     ExportTracks {
         collection_uid: EntityUid,
         params: ExportTracksParams,
@@ -74,17 +78,23 @@ impl Task {
                 let res = abort(env).await;
                 Effect::AbortFinished(res)
             }
+            Self::FindUnsynchronizedTracks {
+                collection_uid,
+                params,
+            } => {
+                let res = find_unsynchronized_tracks(env, &collection_uid, params).await;
+                Effect::FindUnsynchronizedTracksFinished(res)
+            }
             Self::ExportTracks {
                 collection_uid,
                 params,
             } => {
                 let ExportTracksParams {
-                    track_search: track_search_params,
+                    track_search: search_params,
                     output_file_path,
                 } = params;
                 let res =
-                    export_tracks(env, &collection_uid, track_search_params, &output_file_path)
-                        .await;
+                    export_tracks(env, &collection_uid, search_params, &output_file_path).await;
                 Effect::ExportTracksFinished(res)
             }
         }
@@ -99,10 +109,42 @@ pub async fn abort<E: ClientEnvironment>(env: &E) -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn find_unsynchronized_tracks<E: ClientEnvironment>(
+    env: &E,
+    collection_uid: &EntityUid,
+    params: aoide_core_api::track::find_unsynchronized::Params,
+) -> anyhow::Result<Vec<UnsynchronizedTrackEntity>> {
+    // Explicitly define an offset with no limit to prevent using
+    // the default limit if no pagination is given!
+    let no_pagination = Pagination {
+        offset: Some(0),
+        limit: None, // unlimited
+    };
+    let aoide_core_api::track::find_unsynchronized::Params {
+        resolve_url_from_path,
+        media_source_path_predicate,
+    } = params;
+    let query_params = client_query_params(resolve_url_from_path, no_pagination);
+    let request_url = env.join_api_url(&format!(
+        "c/{}/t/find-unsynchronized?{}",
+        collection_uid,
+        serde_urlencoded::to_string(query_params)?
+    ))?;
+    let request_body = serde_json::to_vec(
+        &media_source_path_predicate.map(aoide_core_api_json::filtering::StringPredicate::from),
+    )?;
+    let request = env.client().post(request_url).body(request_body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    let entities: Vec<aoide_core_api_json::track::find_unsynchronized::UnsynchronizedTrackEntity> =
+        serde_json::from_slice(&response_body)?;
+    Ok(entities.into_iter().map(Into::into).collect())
+}
+
 async fn export_tracks<E: ClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
-    track_search_params: aoide_core_api::track::search::Params,
+    search_params: aoide_core_api::track::search::Params,
     output_file_path: &Path,
 ) -> anyhow::Result<()> {
     // Explicitly define an offset with no limit to prevent using
@@ -111,7 +153,7 @@ async fn export_tracks<E: ClientEnvironment>(
         offset: Some(0),
         limit: None, // unlimited
     };
-    let (query_params, search_params) = client_request_params(track_search_params, no_pagination);
+    let (query_params, search_params) = client_request_params(search_params, no_pagination);
     let request_url = env.join_api_url(&format!(
         "c/{}/t/search?{}",
         collection_uid,
@@ -126,16 +168,6 @@ async fn export_tracks<E: ClientEnvironment>(
         response_body.len(),
         output_file_path.display()
     );
-    /*
-    let mut file = tokio::fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .open(output_file_path)
-        .await?;
-    // TODO: Wrap file into tokio::io::BufWriter?
-    file.write_all(response_body.as_ref()).await?;
-    file.flush().await?;
-     */
     tokio::fs::write(output_file_path, response_body.as_ref()).await?;
     Ok(())
 }

@@ -136,6 +136,7 @@ pub trait CollectionRepo {
     fn find_unsynchronized_tracks(
         &self,
         collection_id: CollectionId,
-        media_source_path_predicate: StringPredicateBorrowed<'_>,
+        pagination: &Pagination,
+        media_source_path_predicate: Option<StringPredicateBorrowed<'_>>,
     ) -> RepoResult<Vec<(EntityHeader, RecordHeader, RecordTrail)>>;
 }

@@ -190,6 +190,14 @@ async fn main() -> anyhow::Result<()> {
             App::new("tracks")
                 .about("Tasks for tracks")
                 .subcommand(
+                    App::new("find-unsynchronized")
+                        .about("Find all tracks with unsynchronized media sources")
+                        .arg(
+                            active_collection_title_arg
+                                .clone()
+                        )
+                )
+                .subcommand(
                     App::new("export-all-into-file")
                         .about("Exports all tracks of the collection into a JSON file")
                         .arg(
@@ -757,6 +765,23 @@ async fn main() -> anyhow::Result<()> {
                     }
                 },
                 Some(("tracks", matches)) => match matches.subcommand() {
+                    Some(("find-unsynchronized", matches)) => {
+                        require_active_collection(matches, state, &mut collection_uid).map(
+                            |entity| {
+                                let collection_uid = entity.hdr.uid.clone();
+                                let params = aoide_core_api::track::find_unsynchronized::Params {
+                                    resolve_url_from_path: Some(Default::default()),
+                                    media_source_path_predicate: None,
+                                };
+                                subcommand_submitted = true;
+                                let intent = Intent::FindUnsynchronizedTracks {
+                                    collection_uid,
+                                    params,
+                                };
+                                Some(intent)
+                            },
+                        )
+                    }
                     Some(("export-all-into-file", matches)) => {
                         require_active_collection(matches, state, &mut collection_uid).map(
                             |entity| {
@@ -775,8 +800,7 @@ async fn main() -> anyhow::Result<()> {
                                                 aoide_core_api::sorting::SortDirection::Descending,
                                         }],
                                         // TODO: Configurable?
-                                        resolve_url_from_path: true,
-                                        ..Default::default()
+                                        resolve_url_from_path: Some(Default::default()),
                                     },
                                 };
                                 subcommand_submitted = true;

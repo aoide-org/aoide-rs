@@ -14,21 +14,29 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::{
-    entity::{EntityHeader, EntityUid},
-    track::*,
+    entity::{Entity, EntityRevision},
+    media::SourcePath,
+    util::clock::DateTime,
 };
 
-use aoide_repo::{
-    prelude::*,
-    track::{EntityRepo as _, RecordHeader},
-};
+use crate::{filtering::StringPredicate, media::source::ResolveUrlFromPath};
 
-use super::*;
+#[derive(Debug, Clone, Default)]
+pub struct Params {
+    pub resolve_url_from_path: Option<ResolveUrlFromPath>,
+    pub media_source_path_predicate: Option<StringPredicate>,
+}
 
-pub mod export_metadata;
-pub mod find_unsynchronized;
-pub mod load;
-pub mod purge;
-pub mod replace;
-pub mod resolve;
-pub mod search;
+#[derive(Debug, Clone)]
+pub struct UnsynchronizedMediaSource {
+    pub path: SourcePath,
+    pub synchronized_at: Option<DateTime>,
+}
+
+#[derive(Debug, Clone)]
+pub struct UnsynchronizedTrack {
+    pub media_source: UnsynchronizedMediaSource,
+    pub media_source_synchronized_rev: Option<EntityRevision>,
+}
+
+pub type UnsynchronizedTrackEntity = Entity<(), UnsynchronizedTrack>;

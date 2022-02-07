@@ -27,12 +27,18 @@ mod _core {
 }
 
 pub mod export_metadata;
+pub mod find_unsynchronized;
 pub mod import_and_replace;
 pub mod load_many;
 pub mod load_one;
 pub mod replace;
 pub mod resolve;
 pub mod search;
+
+const DEFAULT_PAGINATION: Pagination = Pagination {
+    limit: Some(100),
+    offset: None,
+};
 
 #[derive(Debug, Default)]
 pub struct EntityCollector(Vec<Entity>);

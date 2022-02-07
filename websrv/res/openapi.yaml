@@ -216,6 +216,7 @@ paths:
         - 'Collections: Tracks'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/overrideMediaSourceRootUrlQuery'
         - $ref: '#/components/parameters/resolveMediaSourceUrlFromPathQuery'
         - $ref: '#/components/parameters/paginationOffsetQuery'
         - $ref: '#/components/parameters/paginationLimitQuery'
@@ -287,6 +288,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImportAndReplaceCollectedTracksResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /api/c/{collectionUid}/t/find-unsynchronized:
+    post:
+      summary: Find tracks with unsynchronized media sources
+      description: |
+        Return information about tracks that have are not synchronized
+        with their media sources. This includes all tracks that have
+        either never been imported from sources or that have been
+        modified after the last import. The metadata of the latter
+        is supposed to be exported to keep the sources synchronized.
+      tags:
+        - 'Collections: Tracks'
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/overrideMediaSourceRootUrlQuery'
+        - $ref: '#/components/parameters/resolveMediaSourceUrlFromPathQuery'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindUnsynchronizedTracksRequestBody'
+      responses:
+        '200':
+          description: |
+            An array of matching tracks in the requested order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindUnsynchronizedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
@@ -2837,6 +2871,42 @@ components:
         A boolean value indicating if the file has been modified.
       allOf:
         - type: boolean
+    FindUnsynchronizedTracksRequestBody:
+      type: object
+      properties:
+        mediaSourcePathPredicate:
+          $ref: '#/components/schemas/StringPredicate'
+    FindUnsynchronizedTracksResponseBody:
+      type: array
+      items:
+        $ref: '#/components/schemas/UnsynchronizedTrackEntity'
+    UnsynchronizedTrackEntity:
+      description: |
+        Entity header followed by entity body
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/UnsynchronizedTrack'
+    UnsynchronizedTrack:
+      type: object
+      properties:
+        mediaSource:
+          $ref: '#/components/schemas/UnsynchronizedMediaSource'
+        mediaSourceSynchronizedRev:
+          $ref: '#/components/schemas/EntityRevision'
+    UnsynchronizedMediaSource:
+      type: object
+      properties:
+        path:
+          $ref: '#/components/schemas/MediaSourcePath'
+        synchronizedAt:
+          $ref: '#/components/schemas/DateTime'
+      required:
+        - path
+        - synchronizedAt
     RgbColor:
       type: string
       minLength: 7

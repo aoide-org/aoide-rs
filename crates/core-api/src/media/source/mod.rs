@@ -13,5 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::util::url::BaseUrl;
+
 pub mod purge_orphaned;
 pub mod purge_untracked;
+
+#[derive(Debug, Clone)]
+pub enum ResolveUrlFromPath {
+    CanonicalRootUrl,
+    OverrideRootUrl { root_url: BaseUrl },
+}
+
+impl Default for ResolveUrlFromPath {
+    fn default() -> Self {
+        Self::CanonicalRootUrl
+    }
+}
+
+impl ResolveUrlFromPath {
+    #[must_use]
+    pub const fn override_root_url(&self) -> Option<&BaseUrl> {
+        match self {
+            Self::CanonicalRootUrl => None,
+            Self::OverrideRootUrl { root_url } => Some(root_url),
+        }
+    }
+}

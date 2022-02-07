@@ -19,6 +19,7 @@ use aoide_client::{
     models::{collection, media_source, media_tracker},
     state::state_updated,
 };
+use aoide_core_api::track::find_unsynchronized::UnsynchronizedTrackEntity;
 
 use crate::model::{state::ControlState, Action, Task};
 
@@ -33,6 +34,7 @@ pub enum Effect {
     ActiveCollection(collection::Effect),
     MediaSources(media_source::Effect),
     MediaTracker(media_tracker::Effect),
+    FindUnsynchronizedTracksFinished(anyhow::Result<Vec<UnsynchronizedTrackEntity>>),
     ExportTracksFinished(anyhow::Result<()>),
 }
 
@@ -89,6 +91,21 @@ impl Effect {
             }
             Self::MediaSources(effect) => state_updated(effect.apply_on(&mut state.media_sources)),
             Self::MediaTracker(effect) => state_updated(effect.apply_on(&mut state.media_tracker)),
+            Self::FindUnsynchronizedTracksFinished(res) => {
+                match res {
+                    Ok(entities) => {
+                        // TODO: Store received entities in state
+                        for entity in entities {
+                            log::info!("{:?}", entity);
+                        }
+                        StateUpdated::unchanged(None)
+                    }
+                    Err(err) => {
+                        state.last_errors.push(err);
+                        StateUpdated::maybe_changed(None)
+                    }
+                }
+            }
             Self::ExportTracksFinished(res) => {
                 if let Err(err) = res {
                     state.last_errors.push(err);

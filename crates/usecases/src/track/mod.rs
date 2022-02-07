@@ -22,6 +22,7 @@ use aoide_repo::track::RecordHeader;
 use super::*;
 
 pub mod find_duplicates;
+pub mod find_unsynchronized;
 pub mod purge;
 pub mod replace;
 pub mod resolve;

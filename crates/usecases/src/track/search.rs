@@ -16,7 +16,7 @@
 use std::time::Instant;
 
 use aoide_core::entity::EntityUid;
-use aoide_core_api::track::search::*;
+use aoide_core_api::{media::source::ResolveUrlFromPath, track::search::*};
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
@@ -59,16 +59,21 @@ where
     Repo: CollectionRepo + TrackCollectionRepo,
 {
     let Params {
-        override_root_url,
         resolve_url_from_path,
         filter,
         ordering,
     } = params;
-    debug_assert!(resolve_url_from_path || override_root_url.is_none());
-    let _override_root_url_is_none = override_root_url.is_none();
-    let collection_ctx = RepoContext::resolve_ext(repo, collection_uid, None, override_root_url)?;
+    let collection_ctx = RepoContext::resolve_ext(
+        repo,
+        collection_uid,
+        None,
+        resolve_url_from_path
+            .as_ref()
+            .and_then(ResolveUrlFromPath::override_root_url)
+            .map(ToOwned::to_owned),
+    )?;
     let collection_id = collection_ctx.record_id;
-    if resolve_url_from_path {
+    if resolve_url_from_path.is_some() {
         let vfs_ctx = if let Some(vfs_ctx) = collection_ctx.source_path.vfs {
             vfs_ctx
         } else {
@@ -91,9 +96,6 @@ where
             &mut collector,
         )
     } else {
-        // Providing a base URL without using it to resolve virtual file paths
-        // does no harm but doesn't make any sense and is probably unintended.
-        debug_assert!(_override_root_url_is_none);
         search(repo, collection_id, pagination, filter, ordering, collector)
     }
     .map_err(Into::into)

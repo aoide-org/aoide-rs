@@ -39,6 +39,10 @@ pub enum Intent {
     ActiveCollection(collection::Intent),
     MediaSources(media_source::Intent),
     MediaTracker(media_tracker::Intent),
+    FindUnsynchronizedTracks {
+        collection_uid: EntityUid,
+        params: aoide_core_api::track::find_unsynchronized::Params,
+    },
     ExportTracks {
         collection_uid: EntityUid,
         params: ExportTracksParams,
@@ -142,6 +146,16 @@ impl Intent {
                     return StateUpdated::unchanged(None);
                 }
                 state_updated(intent.apply_on(&mut state.media_tracker))
+            }
+            Self::FindUnsynchronizedTracks {
+                collection_uid,
+                params,
+            } => {
+                let next_action = Action::dispatch_task(Task::FindUnsynchronizedTracks {
+                    collection_uid,
+                    params,
+                });
+                StateUpdated::unchanged(next_action)
             }
             Self::ExportTracks {
                 collection_uid,

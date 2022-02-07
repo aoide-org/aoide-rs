@@ -14,40 +14,26 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::util::url::BaseUrl;
-
 use aoide_core_api::media::source::ResolveUrlFromPath;
-use aoide_core_json::track::Entity;
-
-use aoide_core_api_json::track::search::{QueryParams, SearchParams};
+use aoide_core_api_json::{
+    filtering::StringPredicate,
+    track::{find_unsynchronized::UnsynchronizedTrackEntity, search::QueryParams},
+};
 
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::track::search::Params;
-    pub use aoide_usecases_sqlite::track::search::search;
+    pub use aoide_core_api::track::find_unsynchronized::Params;
+    pub use aoide_usecases_sqlite::track::find_unsynchronized::*;
 }
 
-mod _inner {
-    pub use aoide_core::entity::EntityUid;
-    pub use aoide_core_api::Pagination;
-}
+pub type RequestBody = Option<StringPredicate>;
 
-pub type RequestBody = SearchParams;
+pub type ResponseBody = Vec<UnsynchronizedTrackEntity>;
 
-pub type ResponseBody = Vec<Entity>;
-
-#[tracing::instrument(
-    name = "Searching tracks",
-    skip(
-        connection,
-    ),
-    fields(
-        request_id = %new_request_id(),
-    )
-)]
 pub fn handle_request(
     connection: &SqliteConnection,
-    collection_uid: &_inner::EntityUid,
+    collection_uid: &_core::EntityUid,
     query_params: QueryParams,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
@@ -83,19 +69,11 @@ pub fn handle_request(
             None
         };
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    let RequestBody { filter, ordering } = request_body;
     let params = uc::Params {
         resolve_url_from_path,
-        filter: filter.map(Into::into),
-        ordering: ordering.into_iter().map(Into::into).collect(),
+        media_source_path_predicate: request_body.map(Into::into),
     };
-    let mut collector = EntityCollector::default();
-    uc::search(
-        connection,
-        collection_uid,
-        params,
-        &pagination,
-        &mut collector,
-    )?;
-    Ok(collector.into())
+    uc::find_unsynchronized(connection, collection_uid, params, &pagination)
+        .map(|v| v.into_iter().map(Into::into).collect())
+        .map_err(Into::into)
 }

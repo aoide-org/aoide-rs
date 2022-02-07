@@ -729,10 +729,40 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
+    let collected_tracks_find_unsynchronized = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(tracks_path)
+        .and(warp::path("find-unsynchronized"))
+        .and(warp::path::end())
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(shared_connection_gatekeeper.clone())
+        .and_then(
+            move |uid,
+                  query_params,
+                  request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                webapi::spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        uc_json::track::find_unsynchronized::handle_request(
+                            &*pooled_connection,
+                            &uid,
+                            query_params,
+                            request_body,
+                        )
+                    },
+                )
+                .await
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
     let collected_tracks_filters = collected_tracks_resolve
         .or(collected_tracks_search)
         .or(collected_tracks_replace)
-        .or(collected_tracks_import_and_replace);
+        .or(collected_tracks_import_and_replace)
+        .or(collected_tracks_find_unsynchronized);
 
     // Tracks
     let tracks_load_one = warp::get()

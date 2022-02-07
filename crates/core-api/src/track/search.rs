@@ -18,13 +18,10 @@ use semval::prelude::IsValid as _;
 use aoide_core::{
     audio::DurationMs,
     entity::EntityUid,
-    util::{
-        clock::{DateOrDateTime, DateTime},
-        url::BaseUrl,
-    },
+    util::clock::{DateOrDateTime, DateTime},
 };
 
-use crate::{filtering::*, sorting::*, tag};
+use crate::{filtering::*, media::source::ResolveUrlFromPath, sorting::*, tag};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum StringField {
@@ -219,10 +216,9 @@ impl SearchFilter {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default)]
 pub struct Params {
-    pub override_root_url: Option<BaseUrl>,
+    pub resolve_url_from_path: Option<ResolveUrlFromPath>,
     pub filter: Option<SearchFilter>,
     pub ordering: Vec<SortOrder>,
-    pub resolve_url_from_path: bool,
 }

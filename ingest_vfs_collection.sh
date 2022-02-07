@@ -124,6 +124,7 @@ cargo run --package aoide-webcli --profile ${BUILD_PROFILE} ${FEATURES} -- --web
 cargo run --package aoide-webcli --profile ${BUILD_PROFILE} ${FEATURES} -- --websrv-url "${WEBSRV_URL}" media-sources purge-untracked --collection-title "${COLLECTION_TITLE}" "${MEDIA_TASK_ROOT_URL}"
 cargo run --package aoide-webcli --profile ${BUILD_PROFILE} ${FEATURES} -- --websrv-url "${WEBSRV_URL}" media-sources purge-orphaned --collection-title "${COLLECTION_TITLE}" "${MEDIA_TASK_ROOT_URL}"
 cargo run --package aoide-webcli --profile ${BUILD_PROFILE} ${FEATURES} -- --websrv-url "${WEBSRV_URL}" media-tracker find-untracked-files --collection-title "${COLLECTION_TITLE}" "${MEDIA_TASK_ROOT_URL}"
+cargo run --package aoide-webcli --profile ${BUILD_PROFILE} ${FEATURES} -- --websrv-url "${WEBSRV_URL}" tracks find-unsynchronized --collection-title "${COLLECTION_TITLE}"
 
 # Exports all tracks
 if [ -n "${EXPORT_TRACKS_JSON_FILE}" ]

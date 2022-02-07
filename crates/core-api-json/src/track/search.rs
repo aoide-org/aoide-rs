@@ -518,23 +518,42 @@ pub struct SearchParams {
 }
 
 #[cfg(feature = "frontend")]
+pub fn client_query_params(
+    resolve_url_from_path: Option<aoide_core_api::media::source::ResolveUrlFromPath>,
+    pagination: impl Into<Pagination>,
+) -> QueryParams {
+    use aoide_core_api::media::source::ResolveUrlFromPath;
+
+    let Pagination { limit, offset } = pagination.into();
+    let (resolve_url_from_path, override_root_url) =
+        if let Some(resolve_url_from_path) = resolve_url_from_path {
+            let override_root_url = match resolve_url_from_path {
+                ResolveUrlFromPath::CanonicalRootUrl => None,
+                ResolveUrlFromPath::OverrideRootUrl { root_url } => Some(root_url),
+            };
+            (true, override_root_url)
+        } else {
+            (false, None)
+        };
+    QueryParams {
+        resolve_url_from_path: Some(resolve_url_from_path),
+        override_root_url: override_root_url.map(Into::into),
+        limit,
+        offset,
+    }
+}
+
+#[cfg(feature = "frontend")]
 pub fn client_request_params(
     params: _inner::Params,
     pagination: impl Into<Pagination>,
 ) -> (QueryParams, SearchParams) {
     let _inner::Params {
-        override_root_url,
+        resolve_url_from_path,
         filter,
         ordering,
-        resolve_url_from_path,
     } = params;
-    let Pagination { limit, offset } = pagination.into();
-    let query_params = QueryParams {
-        limit,
-        offset,
-        resolve_url_from_path: Some(resolve_url_from_path),
-        override_root_url: override_root_url.map(Into::into),
-    };
+    let query_params = client_query_params(resolve_url_from_path, pagination);
     let search_params = SearchParams {
         filter: filter.map(Into::into),
         ordering: ordering.into_iter().map(Into::into).collect(),

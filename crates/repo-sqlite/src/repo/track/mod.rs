@@ -723,13 +723,10 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
     fn find_unsynchronized_tracks(
         &self,
         collection_id: CollectionId,
-        media_source_path_predicate: StringPredicateBorrowed<'_>,
+        pagination: &Pagination,
+        media_source_path_predicate: Option<StringPredicateBorrowed<'_>>,
     ) -> RepoResult<Vec<(EntityHeader, RecordHeader, RecordTrail)>> {
-        let media_source_id_subselect = select_media_source_id_filtered_by_path_predicate(
-            collection_id,
-            media_source_path_predicate,
-        );
-        collection::table
+        let mut query = collection::table
             .inner_join(media_source::table.inner_join(track::table))
             .select((
                 collection::row_id,
@@ -744,15 +741,24 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 track::entity_rev,
                 track::media_source_synchronized_rev,
             ))
-            // The optimizer will hopefully be able to inline this subselect that
-            // allows to reuse the filtered select statement!
-            .filter(media_source::row_id.eq_any(media_source_id_subselect))
             .filter(
                 media_source::synchronized_at
                     .is_null()
                     .or(track::media_source_synchronized_rev.is_null())
                     .or(track::media_source_synchronized_rev.ne(track::entity_rev.nullable())),
             )
+            .into_boxed();
+        if let Some(media_source_path_predicate) = media_source_path_predicate {
+            let media_source_id_subselect = select_media_source_id_filtered_by_path_predicate(
+                collection_id,
+                media_source_path_predicate,
+            );
+            // The optimizer will hopefully be able to inline this subselect that
+            // allows to reuse the filtered select statement!
+            query = query.filter(media_source::row_id.eq_any(media_source_id_subselect));
+        }
+        query = apply_pagination(query, pagination);
+        query
             .load::<(
                 RowId,
                 RowId,
