@@ -23,9 +23,7 @@ use aoide_core::{
 use aoide_core_api::track::search::*;
 
 use crate::{
-    collection::RecordId as CollectionId,
-    media::source::{RecordId as MediaSourceId, Repo as MediaSourceRepo},
-    prelude::*,
+    collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
 };
 
 record_id_newtype!(RecordId);
@@ -73,14 +71,12 @@ pub struct ReplaceParams {
     pub update_media_source_synchronized_rev: bool,
 }
 
-pub trait EntityRepo: MediaSourceRepo {
+pub trait EntityRepo {
     fn resolve_track_id(&self, uid: &EntityUid) -> RepoResult<RecordId>;
 
     fn load_track_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)>;
 
     fn load_track_entity_by_uid(&self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)>;
-
-    fn load_track_record_trail(&self, id: RecordId) -> RepoResult<RecordTrail>;
 
     fn insert_track_entity(
         &self,
@@ -98,27 +94,29 @@ pub trait EntityRepo: MediaSourceRepo {
     ) -> RepoResult<()>;
 
     fn purge_track_entity(&self, id: RecordId) -> RepoResult<()>;
+}
 
-    fn load_collected_track_entity_by_media_source_path(
+pub trait CollectionRepo {
+    fn load_track_entity_by_media_source_path(
         &self,
         collection_id: CollectionId,
         media_source_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)>;
 
-    fn resolve_collected_track_entity_header_by_media_source_path(
+    fn resolve_track_entity_header_by_media_source_path(
         &self,
         collection_id: CollectionId,
         media_source_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)>;
 
-    fn replace_collected_track_by_media_source_path(
+    fn replace_track_by_media_source_path(
         &self,
         collection_id: CollectionId,
         params: ReplaceParams,
         track: Track,
     ) -> RepoResult<ReplaceOutcome>;
 
-    fn search_collected_tracks(
+    fn search_tracks(
         &self,
         collection_id: CollectionId,
         pagination: &Pagination,
@@ -127,11 +125,17 @@ pub trait EntityRepo: MediaSourceRepo {
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
     ) -> RepoResult<usize>;
 
-    fn count_collected_tracks(&self, collection_id: CollectionId) -> RepoResult<u64>;
+    fn count_tracks(&self, collection_id: CollectionId) -> RepoResult<u64>;
 
-    fn purge_collected_tracks_by_media_source_path_predicate(
+    fn purge_tracks_by_media_source_path_predicate(
         &self,
         collection_id: CollectionId,
         media_source_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
+
+    fn find_unsynchronized_tracks(
+        &self,
+        collection_id: CollectionId,
+        media_source_path_predicate: StringPredicateBorrowed<'_>,
+    ) -> RepoResult<Vec<(EntityHeader, RecordHeader, RecordTrail)>>;
 }

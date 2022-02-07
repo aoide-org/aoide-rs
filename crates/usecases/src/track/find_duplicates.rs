@@ -27,7 +27,7 @@ use aoide_core_api::track::search::*;
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
-    track::{EntityRepo as TrackRepo, RecordHeader, RecordId as TrackId},
+    track::{CollectionRepo as TrackCollectionRepo, RecordHeader, RecordId as TrackId},
 };
 
 use super::*;
@@ -92,7 +92,7 @@ pub fn find_duplicates<Repo>(
     params: &Params,
 ) -> RepoResult<Vec<(TrackId, TrackEntity)>>
 where
-    Repo: TrackRepo,
+    Repo: TrackCollectionRepo,
 {
     let Params {
         audio_duration_tolerance,
@@ -201,7 +201,7 @@ where
         direction: SortDirection::Descending,
     }];
     let mut candidates = Vec::new();
-    repo.search_collected_tracks(
+    repo.search_tracks(
         collection_id,
         &Default::default(),
         Some(filter),
@@ -229,9 +229,9 @@ pub fn find_duplicate_by_media_source_path<Repo>(
     params: &Params,
 ) -> RepoResult<Vec<(TrackId, TrackEntity)>>
 where
-    Repo: TrackRepo,
+    Repo: TrackCollectionRepo,
 {
     let (_media_source_id, RecordHeader { id: track_id, .. }, entity) =
-        repo.load_collected_track_entity_by_media_source_path(collection_id, media_source_path)?;
+        repo.load_track_entity_by_media_source_path(collection_id, media_source_path)?;
     find_duplicates(repo, collection_id, track_id, entity.body, params)
 }

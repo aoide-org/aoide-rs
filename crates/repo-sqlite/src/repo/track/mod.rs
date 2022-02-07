@@ -36,7 +36,11 @@ use aoide_repo::{
 use crate::{
     db::{
         collection::schema::*,
-        media_source::{schema::*, subselect as media_source_subselect},
+        media_source::{
+            schema::*,
+            select_row_id_filtered_by_collection_id as select_media_source_id_filtered_by_collection_id,
+            select_row_id_filtered_by_path_predicate as select_media_source_id_filtered_by_path_predicate,
+        },
         track::{models::*, schema::*, *},
     },
     prelude::*,
@@ -408,49 +412,6 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .map(Into::into)
     }
 
-    fn load_track_record_trail(&self, id: RecordId) -> RepoResult<RecordTrail> {
-        collection::table
-            .inner_join(media_source::table.inner_join(track::table))
-            .select((
-                collection::row_id,
-                media_source::row_id,
-                media_source::path,
-                media_source::synchronized_at,
-                media_source::synchronized_ms,
-                track::media_source_synchronized_rev,
-            ))
-            .filter(track::row_id.eq(RowId::from(id)))
-            .first::<(
-                RowId,
-                RowId,
-                String,
-                Option<String>,
-                Option<i64>,
-                Option<i64>,
-            )>(self.as_ref())
-            .map_err(repo_error)
-            .map(
-                |(
-                    collection_id,
-                    media_source_id,
-                    media_source_path,
-                    media_source_synchronized_at,
-                    media_source_synchronized_ms,
-                    media_source_synchronized_rev,
-                )| RecordTrail {
-                    collection_id: collection_id.into(),
-                    media_source_id: media_source_id.into(),
-                    media_source_path: media_source_path.into(),
-                    media_source_synchronized_at: parse_datetime_opt(
-                        media_source_synchronized_at.as_deref(),
-                        media_source_synchronized_ms,
-                    ),
-                    media_source_synchronized_rev: media_source_synchronized_rev
-                        .map(entity_revision_from_sql),
-                },
-            )
-    }
-
     fn insert_track_entity(
         &self,
         created_at: DateTime,
@@ -546,13 +507,15 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         }
         Ok(())
     }
+}
 
-    fn load_collected_track_entity_by_media_source_path(
+impl<'db> CollectionRepo for crate::Connection<'db> {
+    fn load_track_entity_by_media_source_path(
         &self,
         collection_id: CollectionId,
         media_source_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)> {
-        let media_source_id_subselect = media_source_subselect::filter_by_path_predicate(
+        let media_source_id_subselect = select_media_source_id_filtered_by_path_predicate(
             collection_id,
             StringPredicateBorrowed::Equals(media_source_path),
         );
@@ -567,12 +530,12 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok((media_source_id, record_header, entity))
     }
 
-    fn resolve_collected_track_entity_header_by_media_source_path(
+    fn resolve_track_entity_header_by_media_source_path(
         &self,
         collection_id: CollectionId,
         media_source_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)> {
-        let media_source_id_subselect = media_source_subselect::filter_by_path_predicate(
+        let media_source_id_subselect = select_media_source_id_filtered_by_path_predicate(
             collection_id,
             StringPredicateBorrowed::Equals(media_source_path),
         );
@@ -583,7 +546,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(queryable.into())
     }
 
-    fn replace_collected_track_by_media_source_path(
+    fn replace_track_by_media_source_path(
         &self,
         collection_id: CollectionId,
         params: ReplaceParams,
@@ -595,10 +558,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             update_media_source_synchronized_rev,
         } = params;
         let loaded = self
-            .load_collected_track_entity_by_media_source_path(
-                collection_id,
-                &track.media_source.path,
-            )
+            .load_track_entity_by_media_source_path(collection_id, &track.media_source.path)
             .optional()?;
         if let Some((media_source_id, record_header, entity)) = loaded {
             // Update existing entry
@@ -669,7 +629,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         }
     }
 
-    fn search_collected_tracks(
+    fn search_tracks(
         &self,
         collection_id: CollectionId,
         pagination: &Pagination,
@@ -731,14 +691,12 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(count)
     }
 
-    fn count_collected_tracks(&self, collection_id: CollectionId) -> RepoResult<u64> {
+    fn count_tracks(&self, collection_id: CollectionId) -> RepoResult<u64> {
         track::table
             .select(count_star())
-            .filter(
-                track::media_source_id.eq_any(media_source_subselect::filter_by_collection_id(
-                    collection_id,
-                )),
-            )
+            .filter(track::media_source_id.eq_any(
+                select_media_source_id_filtered_by_collection_id(collection_id),
+            ))
             .first::<i64>(self.as_ref())
             .map_err(repo_error)
             .map(|count| {
@@ -747,12 +705,12 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             })
     }
 
-    fn purge_collected_tracks_by_media_source_path_predicate(
+    fn purge_tracks_by_media_source_path_predicate(
         &self,
         collection_id: CollectionId,
         media_source_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
-        let media_source_id_subselect = media_source_subselect::filter_by_path_predicate(
+        let media_source_id_subselect = select_media_source_id_filtered_by_path_predicate(
             collection_id,
             media_source_path_predicate,
         );
@@ -760,5 +718,92 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
         Ok(rows_affected)
+    }
+
+    fn find_unsynchronized_tracks(
+        &self,
+        collection_id: CollectionId,
+        media_source_path_predicate: StringPredicateBorrowed<'_>,
+    ) -> RepoResult<Vec<(EntityHeader, RecordHeader, RecordTrail)>> {
+        let media_source_id_subselect = select_media_source_id_filtered_by_path_predicate(
+            collection_id,
+            media_source_path_predicate,
+        );
+        collection::table
+            .inner_join(media_source::table.inner_join(track::table))
+            .select((
+                collection::row_id,
+                media_source::row_id,
+                media_source::path,
+                media_source::synchronized_at,
+                media_source::synchronized_ms,
+                track::row_id,
+                track::row_created_ms,
+                track::row_updated_ms,
+                track::entity_uid,
+                track::entity_rev,
+                track::media_source_synchronized_rev,
+            ))
+            // The optimizer will hopefully be able to inline this subselect that
+            // allows to reuse the filtered select statement!
+            .filter(media_source::row_id.eq_any(media_source_id_subselect))
+            .filter(
+                media_source::synchronized_at
+                    .is_null()
+                    .or(track::media_source_synchronized_rev.is_null())
+                    .or(track::media_source_synchronized_rev.ne(track::entity_rev.nullable())),
+            )
+            .load::<(
+                RowId,
+                RowId,
+                String,
+                Option<String>,
+                Option<i64>,
+                RowId,
+                i64,
+                i64,
+                Vec<u8>,
+                i64,
+                Option<i64>,
+            )>(self.as_ref())
+            .map_err(repo_error)
+            .map(|v| {
+                v.into_iter()
+                    .map(
+                        |(
+                            collection_id,
+                            media_source_id,
+                            media_source_path,
+                            media_source_synchronized_at,
+                            media_source_synchronized_ms,
+                            row_id,
+                            row_created_ms,
+                            row_updated_ms,
+                            entity_uid,
+                            entity_rev,
+                            media_source_synchronized_rev,
+                        )| {
+                            let record_header = RecordHeader {
+                                id: row_id.into(),
+                                created_at: DateTime::new_timestamp_millis(row_created_ms),
+                                updated_at: DateTime::new_timestamp_millis(row_updated_ms),
+                            };
+                            let entity_header = entity_header_from_sql(&entity_uid, entity_rev);
+                            let record_trail = RecordTrail {
+                                collection_id: collection_id.into(),
+                                media_source_id: media_source_id.into(),
+                                media_source_path: media_source_path.into(),
+                                media_source_synchronized_at: parse_datetime_opt(
+                                    media_source_synchronized_at.as_deref(),
+                                    media_source_synchronized_ms,
+                                ),
+                                media_source_synchronized_rev: media_source_synchronized_rev
+                                    .map(entity_revision_from_sql),
+                            };
+                            (entity_header, record_header, record_trail)
+                        },
+                    )
+                    .collect()
+            })
     }
 }

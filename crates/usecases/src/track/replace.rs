@@ -32,7 +32,7 @@ use aoide_media::{
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::source::RecordId as MediaSourceId,
-    track::{EntityRepo, ReplaceMode, ReplaceOutcome, ReplaceParams},
+    track::{CollectionRepo as TrackCollectionRepo, ReplaceMode, ReplaceOutcome, ReplaceParams},
 };
 
 use crate::{
@@ -81,12 +81,12 @@ pub fn replace_collected_track_by_media_source_path<Repo>(
     track: ValidatedInput,
 ) -> Result<Option<MediaSourceId>>
 where
-    Repo: EntityRepo,
+    Repo: TrackCollectionRepo,
 {
     let ValidatedInput(track) = track;
     let media_source_path = track.media_source.path.clone();
     let outcome = repo
-        .replace_collected_track_by_media_source_path(collection_id, params, track)
+        .replace_track_by_media_source_path(collection_id, params, track)
         .map_err(|err| {
             log::warn!(
                 "Failed to replace track by URI '{}': {}",
@@ -144,7 +144,7 @@ pub fn replace_collected_tracks_by_media_source_path<Repo>(
     tracks: impl IntoIterator<Item = ValidatedInput>,
 ) -> Result<Summary>
 where
-    Repo: CollectionRepo + EntityRepo,
+    Repo: CollectionRepo + TrackCollectionRepo,
 {
     let Params {
         mode: replace_mode,
@@ -219,10 +219,10 @@ pub fn import_and_replace_from_file_path<Repo>(
     source_path: SourcePath,
 ) -> Result<Vec<TrackInvalidity>>
 where
-    Repo: EntityRepo,
+    Repo: TrackCollectionRepo,
 {
     let (media_source_id, last_synchronized_at, synchronized_rev, collected_track) = repo
-        .load_collected_track_entity_by_media_source_path(collection_id, &source_path)
+        .load_track_entity_by_media_source_path(collection_id, &source_path)
         .optional()?
         .map(|(media_source_id, _, entity)| {
             (
@@ -339,7 +339,7 @@ pub fn import_and_replace_by_local_file_paths<Repo>(
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
-    Repo: CollectionRepo + EntityRepo,
+    Repo: CollectionRepo + TrackCollectionRepo,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
@@ -407,7 +407,7 @@ pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
-    Repo: CollectionRepo + EntityRepo,
+    Repo: CollectionRepo + TrackCollectionRepo,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
@@ -435,7 +435,7 @@ where
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
 pub fn import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
-    repo: &impl EntityRepo,
+    repo: &impl TrackCollectionRepo,
     collection_id: CollectionId,
     source_path_resolver: &VirtualFilePathResolver,
     sync_mode: SyncMode,

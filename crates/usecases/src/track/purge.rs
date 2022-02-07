@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_repo::{
-    collection::RecordId as CollectionId, media::source::Repo as MediaSourceRepo, track::EntityRepo,
+    collection::RecordId as CollectionId, media::source::Repo as MediaSourceRepo,
+    track::CollectionRepo,
 };
 
 use super::*;
@@ -31,15 +32,13 @@ pub fn purge_by_media_source_path_predicates<Repo>(
     path_predicates: Vec<StringPredicate>,
 ) -> RepoResult<PurgeByMediaSourcePathPredicatesSummary>
 where
-    Repo: EntityRepo + MediaSourceRepo,
+    Repo: CollectionRepo + MediaSourceRepo,
 {
     let mut summary = PurgeByMediaSourcePathPredicatesSummary::default();
     for path_predicate in path_predicates {
         // 1st step: Delete the tracks, leaving the correpsonding media sources orphaned
-        let purged_tracks = repo.purge_collected_tracks_by_media_source_path_predicate(
-            collection_id,
-            path_predicate.borrow(),
-        )?;
+        let purged_tracks = repo
+            .purge_tracks_by_media_source_path_predicate(collection_id, path_predicate.borrow())?;
         // 2nd step: Delete all orphaned media sources
         let purged_media_sources = repo.purge_orphaned_media_sources_by_path_predicate(
             collection_id,

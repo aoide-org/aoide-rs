@@ -20,7 +20,7 @@ use aoide_core_api::track::search::*;
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
-    track::{EntityRepo, RecordHeader},
+    track::{CollectionRepo as TrackCollectionRepo, RecordHeader},
 };
 
 use crate::collection::vfs::RepoContext;
@@ -36,11 +36,10 @@ pub fn search<Repo>(
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> RepoResult<usize>
 where
-    Repo: EntityRepo,
+    Repo: TrackCollectionRepo,
 {
     let timed = Instant::now();
-    let count =
-        repo.search_collected_tracks(collection_id, pagination, filter, ordering, collector)?;
+    let count = repo.search_tracks(collection_id, pagination, filter, ordering, collector)?;
     log::debug!(
         "Search returned {} tracks and took {} ms",
         count,
@@ -57,7 +56,7 @@ pub fn search_with_params<Repo>(
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<usize>
 where
-    Repo: EntityRepo + CollectionRepo,
+    Repo: CollectionRepo + TrackCollectionRepo,
 {
     let Params {
         override_root_url,

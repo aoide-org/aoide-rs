@@ -28,7 +28,10 @@ use aoide_repo::collection::*;
 use crate::{
     db::{
         collection::{models::*, schema::*},
-        media_source::{schema::*, subselect as media_source_subselect},
+        media_source::{
+            schema::*,
+            select_row_id_filtered_by_collection_id as select_media_source_id_filtered_by_collection_id,
+        },
         playlist::schema::*,
         track::schema::*,
     },
@@ -173,7 +176,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let media_source_summary = MediaSourceSummary {
             total_count: media_source_count as u64,
         };
-        let media_source_id_subselect = media_source_subselect::filter_by_collection_id(id);
+        let media_source_id_subselect = select_media_source_id_filtered_by_collection_id(id);
         let track_count = track::table
             .select(count_star())
             .filter(track::media_source_id.eq_any(media_source_id_subselect))

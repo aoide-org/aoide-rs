@@ -32,7 +32,7 @@ use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     media::tracker::{Repo as MediaTrackerRepo, TrackedDirectory},
     prelude::{Pagination, PaginationOffset},
-    track::{EntityRepo as TrackRepo, ReplaceMode},
+    track::{CollectionRepo as TrackCollectionRepo, ReplaceMode},
 };
 
 use crate::{
@@ -52,7 +52,7 @@ pub struct ProgressEvent {
 }
 
 pub fn import_files<
-    Repo: CollectionRepo + MediaTrackerRepo + TrackRepo,
+    Repo: CollectionRepo + MediaTrackerRepo + TrackCollectionRepo,
     ReportProgressFn: FnMut(ProgressEvent),
 >(
     repo: &Repo,

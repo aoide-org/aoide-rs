@@ -15,7 +15,7 @@
 
 use crate::{
     db::{
-        media_source::{models::*, schema::*, subselect},
+        media_source::{models::*, schema::*, select_row_id_filtered_by_path_predicate},
         media_tracker::schema::*,
         track::schema::*,
     },
@@ -65,7 +65,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             // even if it might be slightly less efficient! The query optimizer
             // should detect this.
             .filter(
-                media_source::row_id.eq_any(subselect::filter_by_path_predicate(
+                media_source::row_id.eq_any(select_row_id_filtered_by_path_predicate(
                     collection_id,
                     path_predicate,
                 )),
@@ -107,7 +107,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         // even if it might be slightly less efficient! The query optimizer
         // should detect this.
         diesel::delete(media_source::table.filter(media_source::row_id.eq_any(
-            subselect::filter_by_path_predicate(collection_id, path_predicate),
+            select_row_id_filtered_by_path_predicate(collection_id, path_predicate),
         )))
         .execute(self.as_ref())
         .map_err(repo_error)
@@ -124,7 +124,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         diesel::delete(
             media_source::table
                 .filter(
-                    media_source::row_id.eq_any(subselect::filter_by_path_predicate(
+                    media_source::row_id.eq_any(select_row_id_filtered_by_path_predicate(
                         collection_id,
                         path_predicate,
                     )),
@@ -147,7 +147,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         diesel::delete(
             media_source::table
                 .filter(
-                    media_source::row_id.eq_any(subselect::filter_by_path_predicate(
+                    media_source::row_id.eq_any(select_row_id_filtered_by_path_predicate(
                         collection_id,
                         path_predicate,
                     )),

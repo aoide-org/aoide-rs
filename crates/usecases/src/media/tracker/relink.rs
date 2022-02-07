@@ -26,7 +26,7 @@ use aoide_core_api::track::search::{ConditionFilter, SearchFilter, SortField, So
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::{source::Repo as MediaSourceRepo, tracker::Repo as MediaTrackerRepo},
-    track::EntityRepo as TrackRepo,
+    track::{CollectionRepo as TrackCollectionRepo, EntityRepo as TrackRepo},
 };
 
 use crate::track::find_duplicates::{self, find_duplicates};
@@ -54,12 +54,12 @@ fn relink_moved_track_by_media_source_path<Repo>(
     new_media_source_path: &str,
 ) -> RepoResult<()>
 where
-    Repo: TrackRepo + MediaSourceRepo + MediaTrackerRepo,
+    Repo: TrackRepo + TrackCollectionRepo + MediaSourceRepo + MediaTrackerRepo,
 {
-    let (old_source_id, old_header, old_entity) = repo
-        .load_collected_track_entity_by_media_source_path(collection_id, old_media_source_path)?;
-    let (new_source_id, new_header, new_entity) = repo
-        .load_collected_track_entity_by_media_source_path(collection_id, new_media_source_path)?;
+    let (old_source_id, old_header, old_entity) =
+        repo.load_track_entity_by_media_source_path(collection_id, old_media_source_path)?;
+    let (new_source_id, new_header, new_entity) =
+        repo.load_track_entity_by_media_source_path(collection_id, new_media_source_path)?;
     let updated_track = Track {
         media_source: MediaSource {
             // Preserve the collected_at field from the old source
@@ -91,12 +91,9 @@ where
         repo.update_track_entity(old_header.id, updated_at, old_source_id, &updated_entity)?;
         debug_assert_eq!(
             updated_entity.body,
-            repo.load_collected_track_entity_by_media_source_path(
-                collection_id,
-                new_media_source_path
-            )?
-            .2
-            .body
+            repo.load_track_entity_by_media_source_path(collection_id, new_media_source_path)?
+                .2
+                .body
         );
     }
     Ok(())
@@ -159,7 +156,7 @@ pub fn relink_tracks_with_untracked_media_sources<Repo, ReportProgressFn: FnMut(
     abort_flag: &AtomicBool,
 ) -> RepoResult<Vec<RelocatedMediaSource>>
 where
-    Repo: CollectionRepo + TrackRepo + MediaSourceRepo + MediaTrackerRepo,
+    Repo: CollectionRepo + TrackRepo + TrackCollectionRepo + MediaSourceRepo + MediaTrackerRepo,
 {
     let collection_id = repo.resolve_collection_id(collection_uid)?;
     let source_untracked_filter = SearchFilter::Condition(ConditionFilter::SourceUntracked);
@@ -168,7 +165,7 @@ where
         direction: SortDirection::Descending,
     }];
     let mut lost_tracks = Vec::new();
-    repo.search_collected_tracks(
+    repo.search_tracks(
         collection_id,
         &Default::default(),
         Some(source_untracked_filter),
