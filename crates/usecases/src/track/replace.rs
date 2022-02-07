@@ -221,13 +221,13 @@ pub fn import_and_replace_from_file_path<Repo>(
 where
     Repo: TrackCollectionRepo,
 {
-    let (media_source_id, last_synchronized_at, synchronized_rev, collected_track) = repo
+    let (media_source_id, external_rev, synchronized_rev, collected_track) = repo
         .load_track_entity_by_media_source_path(collection_id, &source_path)
         .optional()?
         .map(|(media_source_id, _, entity)| {
             (
                 Some(media_source_id),
-                entity.body.media_source.synchronized_at,
+                entity.body.media_source.external_rev,
                 entity.body.media_source_synchronized_rev.map(|rev| {
                     debug_assert!(rev <= entity.hdr.rev);
                     rev == entity.hdr.rev
@@ -240,7 +240,7 @@ where
     match import_track_from_file_path(
         source_path_resolver,
         source_path.clone(),
-        SyncModeParams::new(sync_mode, last_synchronized_at, synchronized_rev),
+        SyncModeParams::new(sync_mode, external_rev, synchronized_rev),
         import_config,
         DateTime::now_local(),
     ) {
@@ -283,17 +283,17 @@ where
                 }
             }
         }
-        Ok(ImportTrackFromFileOutcome::SkippedSynchronized { last_modified_at }) => {
+        Ok(ImportTrackFromFileOutcome::SkippedSynchronized {
+            last_modified_at: _,
+        }) => {
             debug_assert!(media_source_id.is_some());
-            debug_assert!(last_synchronized_at.is_some());
-            debug_assert!(last_modified_at <= last_synchronized_at.unwrap());
             summary.unchanged.push(source_path);
             visited_media_source_ids.push(media_source_id.unwrap());
         }
-        Ok(ImportTrackFromFileOutcome::SkippedUnsynchronized { last_modified_at }) => {
+        Ok(ImportTrackFromFileOutcome::SkippedUnsynchronized {
+            last_modified_at: _,
+        }) => {
             debug_assert!(media_source_id.is_some());
-            debug_assert!(last_synchronized_at.is_some());
-            debug_assert!(last_modified_at > last_synchronized_at.unwrap());
             debug_assert_eq!(Some(false), synchronized_rev);
             summary.not_imported.push(source_path);
             visited_media_source_ids.push(media_source_id.unwrap());

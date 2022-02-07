@@ -43,7 +43,7 @@ where
                         collection_id: _,
                         media_source_id: _,
                         media_source_path,
-                        media_source_synchronized_at,
+                        media_source_external_rev,
                         media_source_synchronized_rev,
                     } = record_trail;
                     let mut media_source_path = media_source_path;
@@ -56,7 +56,7 @@ where
                     }
                     let media_source = UnsynchronizedMediaSource {
                         path: media_source_path,
-                        synchronized_at: media_source_synchronized_at,
+                        external_rev: media_source_external_rev,
                     };
                     let track = UnsynchronizedTrack {
                         media_source,

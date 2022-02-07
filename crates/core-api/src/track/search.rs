@@ -62,7 +62,6 @@ pub enum DateTimeField {
     ReleasedAt,
     ReleasedOrigAt,
     SourceCollectedAt,
-    SourceSynchronizedAt,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -114,7 +113,6 @@ pub enum SortField {
     ReleasedOrigAtDate,
     ReleasedBy,
     SourceCollectedAt,
-    SourceSynchronizedAt,
     SourceType,
     SourcePath,
     TimesPlayed,

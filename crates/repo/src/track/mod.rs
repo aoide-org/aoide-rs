@@ -60,7 +60,7 @@ pub struct RecordTrail {
     pub collection_id: CollectionId,
     pub media_source_id: MediaSourceId,
     pub media_source_path: SourcePath,
-    pub media_source_synchronized_at: Option<DateTime>,
+    pub media_source_external_rev: Option<u64>,
     pub media_source_synchronized_rev: Option<EntityRevision>,
 }
 

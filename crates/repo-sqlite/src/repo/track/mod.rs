@@ -593,7 +593,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 .next_rev()
                 .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
             if update_media_source_synchronized_rev {
-                if track.media_source.synchronized_at.is_some() {
+                if track.media_source.external_rev.is_some() {
                     // Mark the track as synchronized with the media source
                     track.media_source_synchronized_rev = Some(entity_hdr.rev);
                 } else {
@@ -615,7 +615,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 .id;
             let entity_hdr = EntityHeader::initial_random();
             if update_media_source_synchronized_rev {
-                if track.media_source.synchronized_at.is_some() {
+                if track.media_source.external_rev.is_some() {
                     // Mark the track as synchronized with the media source
                     track.media_source_synchronized_rev = Some(entity_hdr.rev);
                 } else {
@@ -732,8 +732,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 collection::row_id,
                 media_source::row_id,
                 media_source::path,
-                media_source::synchronized_at,
-                media_source::synchronized_ms,
+                media_source::external_rev,
                 track::row_id,
                 track::row_created_ms,
                 track::row_updated_ms,
@@ -742,7 +741,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 track::media_source_synchronized_rev,
             ))
             .filter(
-                media_source::synchronized_at
+                media_source::external_rev
                     .is_null()
                     .or(track::media_source_synchronized_rev.is_null())
                     .or(track::media_source_synchronized_rev.ne(track::entity_rev.nullable())),
@@ -763,7 +762,6 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 RowId,
                 RowId,
                 String,
-                Option<String>,
                 Option<i64>,
                 RowId,
                 i64,
@@ -780,8 +778,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                             collection_id,
                             media_source_id,
                             media_source_path,
-                            media_source_synchronized_at,
-                            media_source_synchronized_ms,
+                            media_source_external_rev,
                             row_id,
                             row_created_ms,
                             row_updated_ms,
@@ -799,10 +796,8 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                                 collection_id: collection_id.into(),
                                 media_source_id: media_source_id.into(),
                                 media_source_path: media_source_path.into(),
-                                media_source_synchronized_at: parse_datetime_opt(
-                                    media_source_synchronized_at.as_deref(),
-                                    media_source_synchronized_ms,
-                                ),
+                                media_source_external_rev: media_source_external_rev
+                                    .map(|rev| rev as u64),
                                 media_source_synchronized_rev: media_source_synchronized_rev
                                     .map(entity_revision_from_sql),
                             };

@@ -42,7 +42,7 @@ pub trait CollectionRepo {
         &self,
         collection_id: CollectionId,
         path: &str,
-    ) -> RepoResult<(RecordId, Option<DateTime>)>;
+    ) -> RepoResult<(RecordId, Option<u64>)>;
 
     fn resolve_media_source_ids_by_path_predicate(
         &self,

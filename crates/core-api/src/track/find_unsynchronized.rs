@@ -16,7 +16,6 @@
 use aoide_core::{
     entity::{Entity, EntityRevision},
     media::SourcePath,
-    util::clock::DateTime,
 };
 
 use crate::{filtering::StringPredicate, media::source::ResolveUrlFromPath};
@@ -30,7 +29,7 @@ pub struct Params {
 #[derive(Debug, Clone)]
 pub struct UnsynchronizedMediaSource {
     pub path: SourcePath,
-    pub synchronized_at: Option<DateTime>,
+    pub external_rev: Option<u64>,
 }
 
 #[derive(Debug, Clone)]

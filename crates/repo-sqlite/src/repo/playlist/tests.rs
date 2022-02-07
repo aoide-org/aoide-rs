@@ -68,7 +68,7 @@ impl Fixture {
             let created_at = DateTime::now_local();
             let media_source = media::Source {
                 collected_at: created_at,
-                synchronized_at: Some(DateTime::now_utc()),
+                external_rev: None,
                 path: SourcePath::new(format!("/home/test/file{}.mp3", i)),
                 content_type: "audio/mpeg".parse().unwrap(),
                 advisory_rating: None,

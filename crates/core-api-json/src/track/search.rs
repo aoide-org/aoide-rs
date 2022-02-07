@@ -56,7 +56,6 @@ pub enum SortField {
     ReleasedOrigAtDate,
     ReleasedBy,
     SourceCollectedAt,
-    SourceSynchronizedAt,
     SourceType,
     SourcePath,
     TrackArtist,
@@ -90,7 +89,6 @@ impl From<SortField> for _inner::SortField {
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
             ReleasedBy => Self::ReleasedBy,
             SourceCollectedAt => Self::SourceCollectedAt,
-            SourceSynchronizedAt => Self::SourceSynchronizedAt,
             SourcePath => Self::SourcePath,
             SourceType => Self::SourceType,
             TimesPlayed => Self::TimesPlayed,
@@ -126,7 +124,6 @@ impl From<_inner::SortField> for SortField {
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
             ReleasedBy => Self::ReleasedBy,
             SourceCollectedAt => Self::SourceCollectedAt,
-            SourceSynchronizedAt => Self::SourceSynchronizedAt,
             SourcePath => Self::SourcePath,
             SourceType => Self::SourceType,
             TimesPlayed => Self::TimesPlayed,
@@ -296,7 +293,6 @@ pub enum DateTimeField {
     ReleasedAt,
     ReleasedOrigAt,
     SourceCollectedAt,
-    SourceSynchronizedAt,
 }
 
 #[cfg(feature = "backend")]
@@ -309,7 +305,6 @@ impl From<DateTimeField> for _inner::DateTimeField {
             ReleasedAt => Self::ReleasedAt,
             ReleasedOrigAt => Self::ReleasedOrigAt,
             SourceCollectedAt => Self::SourceCollectedAt,
-            SourceSynchronizedAt => Self::SourceSynchronizedAt,
         }
     }
 }
@@ -324,7 +319,6 @@ impl From<_inner::DateTimeField> for DateTimeField {
             ReleasedAt => Self::ReleasedAt,
             ReleasedOrigAt => Self::ReleasedOrigAt,
             SourceCollectedAt => Self::SourceCollectedAt,
-            SourceSynchronizedAt => Self::SourceSynchronizedAt,
         }
     }
 }

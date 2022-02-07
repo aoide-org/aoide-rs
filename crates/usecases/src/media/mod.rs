@@ -40,7 +40,7 @@ pub enum SyncModeParams {
         synchronized_before: bool,
     },
     Modified {
-        last_synchronized_at: Option<DateTime>,
+        external_rev: Option<u64>,
         is_synchronized: bool,
     },
     Always,
@@ -50,20 +50,20 @@ impl SyncModeParams {
     #[must_use]
     pub fn new(
         sync_mode: SyncMode,
-        last_synchronized_at: Option<DateTime>,
+        external_rev: Option<u64>,
         synchronized_rev: Option<bool>,
     ) -> Self {
-        debug_assert!(last_synchronized_at.is_some() || synchronized_rev != Some(true));
+        debug_assert!(external_rev.is_some() || synchronized_rev != Some(true));
         match sync_mode {
             SyncMode::Once => Self::Once {
-                synchronized_before: last_synchronized_at.is_some(),
+                synchronized_before: external_rev.is_some(),
             },
             SyncMode::Modified => Self::Modified {
-                last_synchronized_at,
-                is_synchronized: last_synchronized_at.is_none() || synchronized_rev.unwrap_or(true),
+                external_rev,
+                is_synchronized: external_rev.is_none() || synchronized_rev.unwrap_or(true),
             },
             SyncMode::ModifiedResync => Self::Modified {
-                last_synchronized_at,
+                external_rev,
                 // Pretend that the revisions are synchronized
                 is_synchronized: true,
             },
@@ -103,6 +103,7 @@ pub fn import_track_from_file_path(
         );
         DateTime::now_utc()
     });
+    let last_modified_rev = last_modified_at.timestamp_millis() as u64;
     match sync_mode_params {
         SyncModeParams::Once {
             synchronized_before,
@@ -117,16 +118,15 @@ pub fn import_track_from_file_path(
             }
         }
         SyncModeParams::Modified {
-            last_synchronized_at,
+            external_rev,
             is_synchronized,
         } => {
-            if let Some(last_synchronized_at) = last_synchronized_at {
-                if last_modified_at <= last_synchronized_at {
+            if let Some(external_rev) = external_rev {
+                if last_modified_rev <= external_rev {
                     log::debug!(
-                        "Skipping reimport of synchronized file {} modified at {} <= {}",
+                        "Skipping reimport of synchronized file {} modified at {}",
                         canonical_path.display(),
                         last_modified_at,
-                        last_synchronized_at
                     );
                     return Ok(ImportTrackFromFileOutcome::SkippedSynchronized {
                         last_modified_at,
@@ -151,7 +151,7 @@ pub fn import_track_from_file_path(
     }
     let input = NewTrackInput {
         collected_at,
-        synchronized_at: last_modified_at,
+        external_rev: last_modified_rev,
     };
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let mime = guess_mime_from_path(&canonical_path)?;

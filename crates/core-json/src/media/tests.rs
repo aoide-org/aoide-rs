@@ -23,9 +23,10 @@ fn serde_digest() {
 #[test]
 fn deserialize_audio_source() {
     let now = DateTime::now_local();
+    let external_rev = (now.timestamp_millis() - 1000) as u64;
     let json = serde_json::json!({
         "collectedAt": now.to_string(),
-        "synchronizedAt": now.to_string(),
+        "externalRev": Some(external_rev),
         "path": "/home/test file.mp3",
         "advisoryRating": 0,
         "contentType": "audio/mpeg",
@@ -40,7 +41,7 @@ fn deserialize_audio_source() {
     assert_eq!(
         _core::Source {
             collected_at: now,
-            synchronized_at: Some(now),
+            external_rev: Some(external_rev),
             path: _core::SourcePath::new("/home/test file.mp3".to_owned()),
             content_type: "audio/mpeg".parse().unwrap(),
             advisory_rating: Some(_core::AdvisoryRating::Unrated),

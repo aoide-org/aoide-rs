@@ -130,7 +130,7 @@ pub struct ImportTrackConfig {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct NewTrackInput {
     pub collected_at: DateTime,
-    pub synchronized_at: DateTime,
+    pub external_rev: u64,
 }
 
 impl NewTrackInput {
@@ -138,11 +138,11 @@ impl NewTrackInput {
     pub fn into_new_track(self, path: SourcePath, content_type: Mime) -> Track {
         let Self {
             collected_at,
-            synchronized_at,
+            external_rev,
         } = self;
         let media_source = Source {
             collected_at,
-            synchronized_at: Some(synchronized_at),
+            external_rev: Some(external_rev),
             path,
             content_type,
             advisory_rating: None,

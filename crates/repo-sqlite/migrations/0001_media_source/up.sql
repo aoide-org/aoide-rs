@@ -25,8 +25,7 @@ CREATE TABLE IF NOT EXISTS media_source (
     collected_at           TEXT NOT NULL,
     collected_ms           INTEGER,
     -- properties: content
-    synchronized_at        TEXT,
-    synchronized_ms        INTEGER,
+    external_rev           INTEGER,
     path                   TEXT NOT NULL,
     content_type           TEXT NOT NULL,    -- RFC 6838 media type
     content_digest         BINARY,           -- cryptographic (audio) content hash
@@ -63,14 +62,6 @@ CREATE INDEX idx_media_source_row_updated_ms_desc ON media_source (
 
 CREATE INDEX IF NOT EXISTS idx_media_source_collected_ms_desc ON media_source (
     collected_ms DESC
-);
-
-CREATE INDEX idx_media_source_synchronized_ms ON media_source (
-    synchronized_ms
-);
-
-CREATE INDEX idx_media_source_synchronized_ms_desc ON media_source (
-    synchronized_ms DESC
 );
 
 CREATE INDEX idx_media_source_content_type ON media_source (

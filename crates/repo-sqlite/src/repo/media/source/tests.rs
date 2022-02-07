@@ -72,7 +72,7 @@ fn insert_media_source() -> anyhow::Result<()> {
 
     let created_source = media::Source {
         collected_at: DateTime::now_local(),
-        synchronized_at: Some(DateTime::now_utc()),
+        external_rev: Some(DateTime::now_utc().timestamp_millis() as u64),
         path: SourcePath::new("file:///home/test/file.mp3".to_owned()),
         content_type: "audio/mpeg".parse().unwrap(),
         advisory_rating: None,
@@ -120,7 +120,7 @@ fn filter_by_path_predicate() -> anyhow::Result<()> {
 
     let file_lowercase = media::Source {
         collected_at: DateTime::now_local(),
-        synchronized_at: Some(DateTime::now_utc()),
+        external_rev: Some(DateTime::now_utc().timestamp_millis() as u64),
         path: SourcePath::new("file:///home/file.mp3".to_owned()),
         content_type: "audio/mpeg".parse().unwrap(),
         advisory_rating: None,
@@ -138,7 +138,7 @@ fn filter_by_path_predicate() -> anyhow::Result<()> {
 
     let file_uppercase = media::Source {
         collected_at: DateTime::now_local(),
-        synchronized_at: Some(DateTime::now_utc()),
+        external_rev: Some(DateTime::now_utc().timestamp_millis() as u64),
         path: SourcePath::new("file:///Home/File.mp3".to_owned()),
         content_type: "audio/mpeg".parse().unwrap(),
         advisory_rating: None,
@@ -252,7 +252,7 @@ fn relocate_by_path() -> anyhow::Result<()> {
 
     let file_lowercase = media::Source {
         collected_at: DateTime::now_local(),
-        synchronized_at: Some(DateTime::now_utc()),
+        external_rev: Some(DateTime::now_utc().timestamp_millis() as u64),
         path: SourcePath::new("file:///ho''me/file.mp3".to_owned()),
         content_type: "audio/mpeg".parse().unwrap(),
         advisory_rating: None,
@@ -270,7 +270,7 @@ fn relocate_by_path() -> anyhow::Result<()> {
 
     let file_uppercase = media::Source {
         collected_at: DateTime::now_local(),
-        synchronized_at: Some(DateTime::now_utc()),
+        external_rev: None,
         path: SourcePath::new("file:///Ho''me/File.mp3".to_owned()),
         content_type: "audio/mpeg".parse().unwrap(),
         advisory_rating: None,

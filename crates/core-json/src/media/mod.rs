@@ -452,7 +452,7 @@ pub struct Source {
     collected_at: DateTime,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    synchronized_at: Option<DateTime>,
+    external_rev: Option<u64>,
 
     path: String,
 
@@ -478,7 +478,7 @@ impl From<_core::Source> for Source {
     fn from(from: _core::Source) -> Self {
         let _core::Source {
             collected_at,
-            synchronized_at,
+            external_rev,
             path,
             content_type,
             content_digest,
@@ -489,7 +489,7 @@ impl From<_core::Source> for Source {
         } = from;
         Self {
             collected_at: collected_at.into(),
-            synchronized_at: synchronized_at.map(Into::into),
+            external_rev,
             path: path.into(),
             content_type: content_type.to_string(),
             advisory_rating: advisory_rating.map(Into::into),
@@ -507,7 +507,7 @@ impl TryFrom<Source> for _core::Source {
     fn try_from(from: Source) -> anyhow::Result<Self> {
         let Source {
             collected_at,
-            synchronized_at,
+            external_rev,
             path,
             content_type,
             content_digest,
@@ -521,7 +521,7 @@ impl TryFrom<Source> for _core::Source {
         let artwork = artwork.map(TryFrom::try_from).transpose()?;
         let into = Self {
             collected_at: collected_at.into(),
-            synchronized_at: synchronized_at.map(Into::into),
+            external_rev,
             path: path.into(),
             content_type,
             advisory_rating: advisory_rating.map(Into::into),

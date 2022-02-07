@@ -258,14 +258,6 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(track::track_total.asc()),
                 SortDirection::Descending => query.then_order_by(track::track_total.desc()),
             },
-            SortField::SourceSynchronizedAt => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(media_source::synchronized_ms.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(media_source::synchronized_ms.desc())
-                }
-            },
             SortField::UpdatedAt => match direction {
                 SortDirection::Ascending => query.then_order_by(track::row_updated_ms.asc()),
                 SortDirection::Descending => query.then_order_by(track::row_updated_ms.desc()),
@@ -892,32 +884,6 @@ fn build_datetime_field_filter_expression(
                     Box::new(media_source::collected_ms.ne(value.timestamp_millis()))
                 } else {
                     Box::new(media_source::collected_ms.is_not_null())
-                }
-            }
-        },
-        SourceSynchronizedAt => match filter.predicate {
-            LessThan(value) => Box::new(media_source::synchronized_ms.lt(value.timestamp_millis())),
-            LessOrEqual(value) => {
-                Box::new(media_source::synchronized_ms.le(value.timestamp_millis()))
-            }
-            GreaterThan(value) => {
-                Box::new(media_source::synchronized_ms.gt(value.timestamp_millis()))
-            }
-            GreaterOrEqual(value) => {
-                Box::new(media_source::synchronized_ms.ge(value.timestamp_millis()))
-            }
-            Equal(value) => {
-                if let Some(value) = value {
-                    Box::new(media_source::synchronized_ms.eq(value.timestamp_millis()))
-                } else {
-                    Box::new(media_source::synchronized_ms.is_null())
-                }
-            }
-            NotEqual(value) => {
-                if let Some(value) = value {
-                    Box::new(media_source::synchronized_ms.ne(value.timestamp_millis()))
-                } else {
-                    Box::new(media_source::synchronized_ms.is_not_null())
                 }
             }
         },

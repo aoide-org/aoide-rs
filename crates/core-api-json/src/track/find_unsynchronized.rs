@@ -15,10 +15,7 @@
 
 use schemars::JsonSchema;
 
-use aoide_core_json::{
-    entity::{EntityHeader, EntityRevision},
-    util::clock::DateTime,
-};
+use aoide_core_json::entity::{EntityHeader, EntityRevision};
 
 use crate::prelude::*;
 
@@ -34,19 +31,16 @@ pub struct UnsynchronizedMediaSource {
     pub path: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub synchronized_at: Option<DateTime>,
+    pub external_rev: Option<u64>,
 }
 
 #[cfg(feature = "frontend")]
 impl From<UnsynchronizedMediaSource> for _inner::UnsynchronizedMediaSource {
     fn from(from: UnsynchronizedMediaSource) -> Self {
-        let UnsynchronizedMediaSource {
-            path,
-            synchronized_at,
-        } = from;
+        let UnsynchronizedMediaSource { path, external_rev } = from;
         Self {
             path: path.into(),
-            synchronized_at: synchronized_at.map(Into::into),
+            external_rev,
         }
     }
 }
@@ -54,13 +48,10 @@ impl From<UnsynchronizedMediaSource> for _inner::UnsynchronizedMediaSource {
 #[cfg(feature = "backend")]
 impl From<_inner::UnsynchronizedMediaSource> for UnsynchronizedMediaSource {
     fn from(from: _inner::UnsynchronizedMediaSource) -> Self {
-        let _inner::UnsynchronizedMediaSource {
-            path,
-            synchronized_at,
-        } = from;
+        let _inner::UnsynchronizedMediaSource { path, external_rev } = from;
         Self {
             path: path.into(),
-            synchronized_at: synchronized_at.map(Into::into),
+            external_rev,
         }
     }
 }

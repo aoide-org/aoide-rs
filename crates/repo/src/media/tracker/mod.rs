@@ -197,5 +197,5 @@ pub trait Repo {
         &self,
         collection_id: CollectionId,
         path: &SourcePath,
-    ) -> RepoResult<(MediaSourceId, Option<DateTime>)>;
+    ) -> RepoResult<(MediaSourceId, Option<u64>)>;
 }

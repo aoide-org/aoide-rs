@@ -391,14 +391,10 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &self,
         collection_id: CollectionId,
         path: &SourcePath,
-    ) -> RepoResult<(MediaSourceId, Option<DateTime>)> {
+    ) -> RepoResult<(MediaSourceId, Option<u64>)> {
         debug_assert!(path.is_terminal());
         let tracked_source_query = media_source::table
-            .select((
-                media_source::row_id,
-                media_source::synchronized_at,
-                media_source::synchronized_ms,
-            ))
+            .select((media_source::row_id, media_source::external_rev))
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
             .filter(media_source::path.eq(path.as_ref()))
             .filter(
@@ -406,14 +402,9 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                     .eq_any(media_tracker_source::table.select(media_tracker_source::source_id)),
             );
         tracked_source_query
-            .first::<(RowId, Option<String>, Option<i64>)>(self.as_ref())
+            .first::<(RowId, Option<i64>)>(self.as_ref())
             .map_err(repo_error)
-            .map(|(row_id, synchronized_at, synchronized_ms)| {
-                (
-                    row_id.into(),
-                    parse_datetime_opt(synchronized_at.as_deref(), synchronized_ms),
-                )
-            })
+            .map(|(row_id, external_rev)| (row_id.into(), external_rev.map(|rev| rev as u64)))
     }
 }
 

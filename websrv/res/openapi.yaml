@@ -979,7 +979,7 @@ components:
       required: false
       schema:
         type: integer
-        format: int64
+        format: uint64
         minimum: 0
       description: |
         Number of items to skip before returning the results or 0 if missing.
@@ -989,7 +989,7 @@ components:
       required: false
       schema:
         type: integer
-        format: int64
+        format: uint64
         minimum: 0
       description: |
         Maximum number of items to return or unlimited if missing.
@@ -1538,7 +1538,7 @@ components:
           - $ref: '#/components/schemas/EntityRevision'
     EntityRevision:
       type: integer
-      format: int64
+      format: uint64
       minimum: 1
       example: 3
     EntityUid:
@@ -1563,6 +1563,11 @@ components:
       required:
         - code
         - message
+    ExternalRevision:
+      type: integer
+      format: uint64
+      minimum: 0
+      example: 876387282
     FilterModifier:
       type: string
       enum:
@@ -1749,8 +1754,6 @@ components:
       properties:
         collectedAt:
           $ref: '#/components/schemas/DateTime'
-        synchronizedAt:
-          $ref: '#/components/schemas/DateTime'
         path:
           $ref: '#/components/schemas/MediaSourcePath'
         contentType:
@@ -1845,7 +1848,6 @@ components:
         - releasedAt
         - releasedOrigAt
         - sourceCollectedAt
-        - sourceSynchronizedAt
     DateTimeFieldFilter:
       type: array
       minLength: 2
@@ -2201,7 +2203,7 @@ components:
       description: |
         0-based position number to locate a playlist entry
       type: integer
-      format: int64
+      format: uint64
       minimum: 0
     PlaylistEntryPositionDelta:
       description: |
@@ -2799,7 +2801,7 @@ components:
       properties:
         replacedCount:
           type: number
-          format: int64
+          format: uint64
       required:
         - replacedCount
     ReplaceCollectedTrackMode:
@@ -2902,11 +2904,11 @@ components:
       properties:
         path:
           $ref: '#/components/schemas/MediaSourcePath'
-        synchronizedAt:
-          $ref: '#/components/schemas/DateTime'
+        externalRev:
+          $ref: '#/components/schemas/ExternalRevision'
       required:
         - path
-        - synchronizedAt
+        - externalRev
     RgbColor:
       type: string
       minLength: 7
@@ -2953,11 +2955,11 @@ components:
       properties:
         read:
           type: integer
-          format: int64
+          format: uint64
           example: 3
         write:
           type: integer
-          format: int64
+          format: uint64
           example: 1
       required:
         - read
@@ -3176,7 +3178,7 @@ components:
       example: Yellow Submarine
     TotalCount:
       type: integer
-      format: int64
+      format: uint64
       minimum: 0
       example: 1746
       description: |
@@ -3380,7 +3382,6 @@ components:
         - releasedAtDate
         - releasedOrigAtDate
         - sourceCollectedAt
-        - sourceSynchronizedAt
         - sourceType
         - sourcePath
         - timesPlayed
