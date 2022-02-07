@@ -25,19 +25,10 @@ use aoide_core::{playlist::*, util::clock::DateTime};
 
 use rand::{seq::SliceRandom, thread_rng};
 
-pub trait Repo: EntityRepo + EntryRepo {
-    fn load_playlist_entity_with_entries(&self, id: RecordId) -> RepoResult<EntityWithEntries>;
+pub trait EntityRepo: EntryRepo {
+    entity_repo_trait_common_functions!(RecordId, Entity, Playlist);
 
-    fn load_collected_playlist_entities_with_entries_summary(
-        &self,
-        collection_id: CollectionId,
-        kind: Option<&str>,
-        pagination: Option<&Pagination>,
-        collector: &mut dyn ReservableRecordCollector<
-            Header = RecordHeader,
-            Record = (Entity, EntriesSummary),
-        >,
-    ) -> RepoResult<()>;
+    fn load_playlist_entity_with_entries(&self, id: RecordId) -> RepoResult<EntityWithEntries>;
 
     fn load_playlist_entity_with_entries_summary(
         &self,
@@ -49,15 +40,24 @@ pub trait Repo: EntityRepo + EntryRepo {
     }
 }
 
-pub trait EntityRepo {
-    entity_repo_trait_common_functions!(RecordId, Entity, Playlist);
-
-    fn insert_collected_playlist_entity(
+pub trait CollectionRepo {
+    fn insert_playlist_entity(
         &self,
         collection_id: CollectionId,
         created_at: DateTime,
         created_entity: &Entity,
     ) -> RepoResult<RecordId>;
+
+    fn load_playlist_entities_with_entries_summary(
+        &self,
+        collection_id: CollectionId,
+        kind: Option<&str>,
+        pagination: Option<&Pagination>,
+        collector: &mut dyn ReservableRecordCollector<
+            Header = RecordHeader,
+            Record = (Entity, EntriesSummary),
+        >,
+    ) -> RepoResult<()>;
 }
 
 /// Prepend playlist entries by insertion

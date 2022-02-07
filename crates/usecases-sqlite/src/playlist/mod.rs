@@ -13,19 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 use aoide_core::{
     entity::{EntityHeader, EntityUid},
     playlist::*,
 };
 
 use aoide_repo::{
-    playlist::{EntityRepo as _, EntryRepo as _, RecordHeader, Repo as _},
+    playlist::{CollectionRepo as _, EntityRepo as _, EntryRepo as _, RecordHeader},
     prelude::*,
 };
 
-///////////////////////////////////////////////////////////////////////
+use super::*;
 
 pub mod create;
 pub mod entries;

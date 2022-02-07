@@ -21,7 +21,9 @@ use aoide_core::{
     util::clock::DateTime,
 };
 
-use aoide_repo::{collection::EntityRepo as CollectionRepo, playlist::EntityRepo as PlaylistRepo};
+use aoide_repo::{
+    collection::EntityRepo as CollectionRepo, playlist::CollectionRepo as PlaylistCollectionRepo,
+};
 
 use super::*;
 
@@ -48,11 +50,11 @@ pub fn store_created_entity<Repo>(
     entity: &Entity,
 ) -> RepoResult<()>
 where
-    Repo: CollectionRepo + PlaylistRepo,
+    Repo: CollectionRepo + PlaylistCollectionRepo,
 {
     let collection_id = repo.resolve_collection_id(collection_uid)?;
     let created_at = DateTime::now_utc();
-    repo.insert_collected_playlist_entity(collection_id, created_at, entity)?;
+    repo.insert_playlist_entity(collection_id, created_at, entity)?;
     Ok(())
 }
 

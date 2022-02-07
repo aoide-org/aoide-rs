@@ -58,19 +58,6 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             })
     }
 
-    fn insert_collected_playlist_entity(
-        &self,
-        collection_id: CollectionId,
-        created_at: DateTime,
-        created_entity: &Entity,
-    ) -> RepoResult<RecordId> {
-        let insertable = InsertableRecord::bind(collection_id, created_at, created_entity);
-        let query = diesel::insert_into(playlist::table).values(&insertable);
-        let _rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
-        debug_assert_eq!(1, _rows_affected);
-        self.resolve_playlist_id(&created_entity.hdr.uid)
-    }
-
     fn touch_playlist_entity_revision(
         &self,
         entity_header: &EntityHeader,
@@ -122,6 +109,12 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok((record_header, entity))
     }
 
+    fn load_playlist_entity_with_entries(&self, id: RecordId) -> RepoResult<EntityWithEntries> {
+        let (_, entity) = self.load_playlist_entity(id)?;
+        let entries = self.load_all_playlist_entries(id)?;
+        Ok((entity, entries).into())
+    }
+
     fn purge_playlist_entity(&self, id: RecordId) -> RepoResult<()> {
         let target = playlist::table.filter(playlist::row_id.eq(RowId::from(id)));
         let query = diesel::delete(target);
@@ -129,6 +122,60 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
             return Err(RepoError::NotFound);
+        }
+        Ok(())
+    }
+}
+
+impl<'db> CollectionRepo for crate::Connection<'db> {
+    fn insert_playlist_entity(
+        &self,
+        collection_id: CollectionId,
+        created_at: DateTime,
+        created_entity: &Entity,
+    ) -> RepoResult<RecordId> {
+        let insertable = InsertableRecord::bind(collection_id, created_at, created_entity);
+        let query = diesel::insert_into(playlist::table).values(&insertable);
+        let _rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert_eq!(1, _rows_affected);
+        self.resolve_playlist_id(&created_entity.hdr.uid)
+    }
+
+    fn load_playlist_entities_with_entries_summary(
+        &self,
+        collection_id: CollectionId,
+        kind: Option<&str>,
+        pagination: Option<&Pagination>,
+        collector: &mut dyn ReservableRecordCollector<
+            Header = RecordHeader,
+            Record = (Entity, EntriesSummary),
+        >,
+    ) -> RepoResult<()> {
+        let mut target = playlist::table
+            .filter(playlist::collection_id.eq(RowId::from(collection_id)))
+            .order_by(playlist::row_updated_ms.desc())
+            .into_boxed();
+
+        // Kind
+        if let Some(kind) = kind {
+            target = target.filter(playlist::kind.eq(kind));
+        }
+
+        // Pagination
+        if let Some(pagination) = pagination {
+            target = apply_pagination(target, pagination);
+        }
+
+        let records = target
+            .load::<QueryableRecord>(self.as_ref())
+            .map_err(repo_error)?;
+
+        collector.reserve(records.len());
+        for record in records {
+            let (record_header, _collection_id, entity) = record.into();
+            debug_assert_eq!(collection_id, _collection_id);
+            let entries = self.load_playlist_entries_summary(record_header.id)?;
+            collector.collect(record_header, (entity, entries));
         }
         Ok(())
     }
@@ -571,53 +618,6 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             debug_assert_eq!(1, _rows_affected);
         }
         Ok(copied_count)
-    }
-}
-
-impl<'db> Repo for crate::Connection<'db> {
-    fn load_collected_playlist_entities_with_entries_summary(
-        &self,
-        collection_id: CollectionId,
-        kind: Option<&str>,
-        pagination: Option<&Pagination>,
-        collector: &mut dyn ReservableRecordCollector<
-            Header = RecordHeader,
-            Record = (Entity, EntriesSummary),
-        >,
-    ) -> RepoResult<()> {
-        let mut target = playlist::table
-            .filter(playlist::collection_id.eq(RowId::from(collection_id)))
-            .order_by(playlist::row_updated_ms.desc())
-            .into_boxed();
-
-        // Kind
-        if let Some(kind) = kind {
-            target = target.filter(playlist::kind.eq(kind));
-        }
-
-        // Pagination
-        if let Some(pagination) = pagination {
-            target = apply_pagination(target, pagination);
-        }
-
-        let records = target
-            .load::<QueryableRecord>(self.as_ref())
-            .map_err(repo_error)?;
-
-        collector.reserve(records.len());
-        for record in records {
-            let (record_header, _collection_id, entity) = record.into();
-            debug_assert_eq!(collection_id, _collection_id);
-            let entries = self.load_playlist_entries_summary(record_header.id)?;
-            collector.collect(record_header, (entity, entries));
-        }
-        Ok(())
-    }
-
-    fn load_playlist_entity_with_entries(&self, id: RecordId) -> RepoResult<EntityWithEntries> {
-        let (_, entity) = self.load_playlist_entity(id)?;
-        let entries = self.load_all_playlist_entries(id)?;
-        Ok((entity, entries).into())
     }
 }
 

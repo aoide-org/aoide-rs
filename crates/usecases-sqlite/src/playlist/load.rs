@@ -42,13 +42,8 @@ pub fn load_entities_with_entries_summary(
     let db = RepoConnection::new(connection);
     db.transaction::<_, RepoTransactionError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
-        db.load_collected_playlist_entities_with_entries_summary(
-            collection_id,
-            kind,
-            pagination,
-            collector,
-        )
-        .map_err(Into::into)
+        db.load_playlist_entities_with_entries_summary(collection_id, kind, pagination, collector)
+            .map_err(Into::into)
     })
     .map_err(Into::into)
 }

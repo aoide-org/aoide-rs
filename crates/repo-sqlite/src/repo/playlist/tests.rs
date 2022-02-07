@@ -107,11 +107,8 @@ impl Fixture {
             flags: Default::default(),
         };
         let playlist_entity = Entity::new(EntityHeader::initial_random(), playlist);
-        let playlist_id = db.insert_collected_playlist_entity(
-            self.collection_id,
-            DateTime::now_utc(),
-            &playlist_entity,
-        )?;
+        let playlist_id =
+            db.insert_playlist_entity(self.collection_id, DateTime::now_utc(), &playlist_entity)?;
         let media_sources_and_tracks = self.create_media_sources_and_tracks(track_count)?;
         let mut playlist_entries = Vec::with_capacity(track_count);
         for (i, (_, _, track_uid)) in media_sources_and_tracks.into_iter().enumerate() {
