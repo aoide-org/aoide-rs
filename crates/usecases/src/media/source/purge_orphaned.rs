@@ -18,8 +18,8 @@ use aoide_core::entity::EntityUid;
 use aoide_core_api::media::source::purge_orphaned::{Outcome, Params, Summary};
 
 use aoide_repo::{
-    collection::EntityRepo as CollectionRepo, media::source::Repo as MediaSourceRepo,
-    track::EntityRepo,
+    collection::EntityRepo as CollectionRepo,
+    media::source::CollectionRepo as MediaSourceCollectionRepo,
 };
 
 use crate::collection::vfs::RepoContext;
@@ -33,7 +33,7 @@ pub fn purge_orphaned<Repo>(
     params: &Params,
 ) -> Result<Outcome>
 where
-    Repo: CollectionRepo + EntityRepo + MediaSourceRepo,
+    Repo: CollectionRepo + MediaSourceCollectionRepo,
 {
     let Params { root_url } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;

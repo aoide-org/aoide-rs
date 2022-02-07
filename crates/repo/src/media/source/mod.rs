@@ -25,6 +25,19 @@ use aoide_core::{
 };
 
 pub trait Repo {
+    fn update_media_source(
+        &self,
+        id: RecordId,
+        updated_at: DateTime,
+        updated_source: &Source,
+    ) -> RepoResult<()>;
+
+    fn purge_media_source(&self, id: RecordId) -> RepoResult<()>;
+
+    fn load_media_source(&self, id: RecordId) -> RepoResult<(RecordHeader, Source)>;
+}
+
+pub trait CollectionRepo {
     fn resolve_media_source_id_synchronized_at_by_path(
         &self,
         collection_id: CollectionId,
@@ -39,21 +52,10 @@ pub trait Repo {
 
     fn insert_media_source(
         &self,
-        created_at: DateTime,
         collection_id: CollectionId,
+        created_at: DateTime,
         created_source: &Source,
     ) -> RepoResult<RecordHeader>;
-
-    fn update_media_source(
-        &self,
-        id: RecordId,
-        updated_at: DateTime,
-        updated_source: &Source,
-    ) -> RepoResult<()>;
-
-    fn purge_media_source(&self, id: RecordId) -> RepoResult<()>;
-
-    fn load_media_source(&self, id: RecordId) -> RepoResult<(RecordHeader, Source)>;
 
     fn load_media_source_by_path(
         &self,
@@ -63,8 +65,8 @@ pub trait Repo {
 
     fn relocate_media_sources_by_path_prefix(
         &self,
-        updated_at: DateTime,
         collection_id: CollectionId,
+        updated_at: DateTime,
         old_path_prefix: &SourcePath,
         new_path_prefix: &SourcePath,
     ) -> RepoResult<usize>;

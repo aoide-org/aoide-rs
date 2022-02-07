@@ -100,7 +100,7 @@ fn insert_media_source() -> anyhow::Result<()> {
     let created_at = DateTime::now_local();
 
     let created_header =
-        db.insert_media_source(created_at, fixture.collection_id, &created_source)?;
+        db.insert_media_source(fixture.collection_id, created_at, &created_source)?;
     assert_eq!(created_at, created_header.created_at);
     assert_eq!(created_at, created_header.updated_at);
 
@@ -134,7 +134,7 @@ fn filter_by_path_predicate() -> anyhow::Result<()> {
         artwork: Default::default(),
     };
     let header_lowercase =
-        db.insert_media_source(DateTime::now_utc(), collection_id, &file_lowercase)?;
+        db.insert_media_source(collection_id, DateTime::now_utc(), &file_lowercase)?;
 
     let file_uppercase = media::Source {
         collected_at: DateTime::now_local(),
@@ -152,7 +152,7 @@ fn filter_by_path_predicate() -> anyhow::Result<()> {
         artwork: Default::default(),
     };
     let header_uppercase =
-        db.insert_media_source(DateTime::now_utc(), collection_id, &file_uppercase)?;
+        db.insert_media_source(collection_id, DateTime::now_utc(), &file_uppercase)?;
 
     // Equals is case-sensitive
     assert_eq!(
@@ -266,7 +266,7 @@ fn relocate_by_path() -> anyhow::Result<()> {
         artwork: Default::default(),
     };
     let header_lowercase =
-        db.insert_media_source(DateTime::now_utc(), collection_id, &file_lowercase)?;
+        db.insert_media_source(collection_id, DateTime::now_utc(), &file_lowercase)?;
 
     let file_uppercase = media::Source {
         collected_at: DateTime::now_local(),
@@ -284,7 +284,7 @@ fn relocate_by_path() -> anyhow::Result<()> {
         artwork: Default::default(),
     };
     let header_uppercase =
-        db.insert_media_source(DateTime::now_utc(), collection_id, &file_uppercase)?;
+        db.insert_media_source(collection_id, DateTime::now_utc(), &file_uppercase)?;
 
     let updated_at = DateTime::now_utc();
     let old_path_prefix = SourcePath::new("file:///ho''".to_owned());
@@ -293,8 +293,8 @@ fn relocate_by_path() -> anyhow::Result<()> {
     assert_eq!(
         1,
         db.relocate_media_sources_by_path_prefix(
-            updated_at,
             collection_id,
+            updated_at,
             &old_path_prefix,
             &new_path_prefix
         )?

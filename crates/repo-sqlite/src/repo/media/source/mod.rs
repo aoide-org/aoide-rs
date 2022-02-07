@@ -30,6 +30,44 @@ use aoide_core::{
 use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
 
 impl<'db> Repo for crate::prelude::Connection<'db> {
+    fn update_media_source(
+        &self,
+        id: RecordId,
+        updated_at: DateTime,
+        updated_source: &Source,
+    ) -> RepoResult<()> {
+        let updatable = UpdatableRecord::bind(updated_at, updated_source);
+        let target = media_source::table.filter(media_source::row_id.eq(RowId::from(id)));
+        let query = diesel::update(target).set(&updatable);
+        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert!(rows_affected <= 1);
+        if rows_affected < 1 {
+            return Err(RepoError::NotFound);
+        }
+        Ok(())
+    }
+
+    fn purge_media_source(&self, id: RecordId) -> RepoResult<()> {
+        let target = media_source::table.filter(media_source::row_id.eq(RowId::from(id)));
+        let query = diesel::delete(target);
+        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert!(rows_affected <= 1);
+        if rows_affected < 1 {
+            return Err(RepoError::NotFound);
+        }
+        Ok(())
+    }
+
+    fn load_media_source(&self, id: RecordId) -> RepoResult<(RecordHeader, Source)> {
+        media_source::table
+            .filter(media_source::row_id.eq(RowId::from(id)))
+            .first::<QueryableRecord>(self.as_ref())
+            .map_err(repo_error)
+            .and_then(|record| record.try_into().map_err(Into::into))
+    }
+}
+
+impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     fn resolve_media_source_id_synchronized_at_by_path(
         &self,
         collection_id: CollectionId,
@@ -77,8 +115,8 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
 
     fn relocate_media_sources_by_path_prefix(
         &self,
-        updated_at: DateTime,
         collection_id: CollectionId,
+        updated_at: DateTime,
         old_path_prefix: &SourcePath,
         new_path_prefix: &SourcePath,
     ) -> RepoResult<usize> {
@@ -165,8 +203,8 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
 
     fn insert_media_source(
         &self,
-        created_at: DateTime,
         collection_id: CollectionId,
+        created_at: DateTime,
         created_source: &Source,
     ) -> RepoResult<RecordHeader> {
         let insertable = InsertableRecord::bind(created_at, collection_id, created_source);
@@ -180,42 +218,6 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             created_at,
             updated_at: created_at,
         })
-    }
-
-    fn update_media_source(
-        &self,
-        id: RecordId,
-        updated_at: DateTime,
-        updated_source: &Source,
-    ) -> RepoResult<()> {
-        let updatable = UpdatableRecord::bind(updated_at, updated_source);
-        let target = media_source::table.filter(media_source::row_id.eq(RowId::from(id)));
-        let query = diesel::update(target).set(&updatable);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
-        debug_assert!(rows_affected <= 1);
-        if rows_affected < 1 {
-            return Err(RepoError::NotFound);
-        }
-        Ok(())
-    }
-
-    fn purge_media_source(&self, id: RecordId) -> RepoResult<()> {
-        let target = media_source::table.filter(media_source::row_id.eq(RowId::from(id)));
-        let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
-        debug_assert!(rows_affected <= 1);
-        if rows_affected < 1 {
-            return Err(RepoError::NotFound);
-        }
-        Ok(())
-    }
-
-    fn load_media_source(&self, id: RecordId) -> RepoResult<(RecordHeader, Source)> {
-        media_source::table
-            .filter(media_source::row_id.eq(RowId::from(id)))
-            .first::<QueryableRecord>(self.as_ref())
-            .map_err(repo_error)
-            .and_then(|record| record.try_into().map_err(Into::into))
     }
 
     fn load_media_source_by_path(

@@ -15,7 +15,7 @@
 
 use aoide_core::{entity::EntityUid, media::SourcePath, util::clock::DateTime};
 
-use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _};
+use aoide_repo::{collection::EntityRepo as _, media::source::CollectionRepo as _};
 
 use super::*;
 
@@ -30,8 +30,8 @@ pub fn relocate(
         let collection_id = db.resolve_collection_id(collection_uid)?;
         let updated_at = DateTime::now_utc();
         Ok(db.relocate_media_sources_by_path_prefix(
-            updated_at,
             collection_id,
+            updated_at,
             old_path_prefix,
             new_path_prefix,
         )?)

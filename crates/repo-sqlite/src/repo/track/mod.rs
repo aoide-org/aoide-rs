@@ -29,7 +29,7 @@ use aoide_core_api::track::search::{SearchFilter, SortOrder};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
-    media::source::{RecordId as MediaSourceId, Repo as _},
+    media::source::{CollectionRepo as _, RecordId as MediaSourceId, Repo as _},
     track::*,
 };
 
@@ -611,7 +611,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             }
             let created_at = DateTime::now_utc();
             let media_source_id = self
-                .insert_media_source(created_at, collection_id, &track.media_source)?
+                .insert_media_source(collection_id, created_at, &track.media_source)?
                 .id;
             let entity_hdr = EntityHeader::initial_random();
             if update_media_source_synchronized_rev {

@@ -29,7 +29,7 @@ use aoide_core::{
 
 use aoide_repo::{
     collection::{EntityRepo as _, RecordId as CollectionId},
-    media::source::{RecordId as MediaSourceId, Repo as _},
+    media::source::{CollectionRepo as _, RecordId as MediaSourceId},
     track::RecordId as TrackId,
 };
 
@@ -82,7 +82,7 @@ impl Fixture {
                 artwork: Default::default(),
             };
             let media_source_id = db
-                .insert_media_source(DateTime::now_utc(), self.collection_id, &media_source)?
+                .insert_media_source(self.collection_id, DateTime::now_utc(), &media_source)?
                 .id;
             let track = Track::new_from_media_source(media_source);
             let track_entity = TrackEntity::new(EntityHeader::initial_random(), track);

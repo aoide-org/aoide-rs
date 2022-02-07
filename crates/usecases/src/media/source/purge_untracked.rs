@@ -19,8 +19,7 @@ use aoide_core_api::media::source::purge_untracked::{Outcome, Params, Summary};
 
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
-    media::{source::Repo as MediaSourceRepo, tracker::Repo as MediaTrackerRepo},
-    track::EntityRepo,
+    media::source::CollectionRepo as MediaSourceCollectionRepo,
 };
 
 use crate::collection::vfs::RepoContext;
@@ -33,7 +32,7 @@ pub fn purge_untracked<Repo>(
     params: &Params,
 ) -> Result<Outcome>
 where
-    Repo: CollectionRepo + EntityRepo + MediaSourceRepo + MediaTrackerRepo,
+    Repo: CollectionRepo + MediaSourceCollectionRepo,
 {
     let Params { root_url } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;

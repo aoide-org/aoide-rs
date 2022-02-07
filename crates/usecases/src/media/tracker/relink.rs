@@ -25,7 +25,10 @@ use aoide_core_api::track::search::{ConditionFilter, SearchFilter, SortField, So
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
-    media::{source::Repo as MediaSourceRepo, tracker::Repo as MediaTrackerRepo},
+    media::{
+        source::{CollectionRepo as MediaSourceCollectionRepo, Repo as MediaSourceRepo},
+        tracker::Repo as MediaTrackerRepo,
+    },
     track::{CollectionRepo as TrackCollectionRepo, EntityRepo as TrackRepo},
 };
 
@@ -54,7 +57,7 @@ fn relink_moved_track_by_media_source_path<Repo>(
     new_media_source_path: &str,
 ) -> RepoResult<()>
 where
-    Repo: TrackRepo + TrackCollectionRepo + MediaSourceRepo + MediaTrackerRepo,
+    Repo: TrackRepo + TrackCollectionRepo + MediaSourceRepo + MediaSourceCollectionRepo,
 {
     let (old_source_id, old_header, old_entity) =
         repo.load_track_entity_by_media_source_path(collection_id, old_media_source_path)?;
@@ -156,7 +159,12 @@ pub fn relink_tracks_with_untracked_media_sources<Repo, ReportProgressFn: FnMut(
     abort_flag: &AtomicBool,
 ) -> RepoResult<Vec<RelocatedMediaSource>>
 where
-    Repo: CollectionRepo + TrackRepo + TrackCollectionRepo + MediaSourceRepo + MediaTrackerRepo,
+    Repo: CollectionRepo
+        + TrackRepo
+        + TrackCollectionRepo
+        + MediaSourceRepo
+        + MediaSourceCollectionRepo
+        + MediaTrackerRepo,
 {
     let collection_id = repo.resolve_collection_id(collection_uid)?;
     let source_untracked_filter = SearchFilter::Condition(ConditionFilter::SourceUntracked);

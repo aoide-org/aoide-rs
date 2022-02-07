@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_repo::{
-    collection::RecordId as CollectionId, media::source::Repo as MediaSourceRepo,
-    track::CollectionRepo,
+    collection::RecordId as CollectionId,
+    media::source::CollectionRepo as MediaSourceCollectionRepo, track::CollectionRepo,
 };
 
 use super::*;
@@ -32,7 +32,7 @@ pub fn purge_by_media_source_path_predicates<Repo>(
     path_predicates: Vec<StringPredicate>,
 ) -> RepoResult<PurgeByMediaSourcePathPredicatesSummary>
 where
-    Repo: CollectionRepo + MediaSourceRepo,
+    Repo: CollectionRepo + MediaSourceCollectionRepo,
 {
     let mut summary = PurgeByMediaSourcePathPredicatesSummary::default();
     for path_predicate in path_predicates {
