@@ -54,10 +54,10 @@ pub enum SortField {
     LastPlayedAt,
     MusicTempoBpm,
     MusicKeyCode,
+    Publisher,
     RecordedAtDate,
     ReleasedAtDate,
     ReleasedOrigAtDate,
-    ReleasedBy,
     TrackArtist,
     TrackNumber,
     TrackTitle,
@@ -87,10 +87,10 @@ impl From<SortField> for _inner::SortField {
             LastPlayedAt => Self::LastPlayedAt,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
+            Publisher => Self::Publisher,
             RecordedAtDate => Self::RecordedAtDate,
             ReleasedAtDate => Self::ReleasedAtDate,
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            ReleasedBy => Self::ReleasedBy,
             TimesPlayed => Self::TimesPlayed,
             TrackArtist => Self::TrackArtist,
             TrackNumber => Self::TrackNumber,
@@ -122,10 +122,10 @@ impl From<_inner::SortField> for SortField {
             LastPlayedAt => Self::LastPlayedAt,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
+            Publisher => Self::Publisher,
             RecordedAtDate => Self::RecordedAtDate,
             ReleasedAtDate => Self::ReleasedAtDate,
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            ReleasedBy => Self::ReleasedBy,
             TimesPlayed => Self::TimesPlayed,
             TrackArtist => Self::TrackArtist,
             TrackNumber => Self::TrackNumber,
@@ -170,10 +170,10 @@ pub enum StringField {
     AlbumTitle,
     ContentPath,
     ContentType,
+    Publisher,
     TrackArtist,
     TrackComposer,
     TrackTitle,
-    ReleasedBy,
 }
 
 #[cfg(feature = "backend")]
@@ -185,10 +185,10 @@ impl From<StringField> for _inner::StringField {
             AlbumTitle => Self::AlbumTitle,
             ContentPath => Self::ContentPath,
             ContentType => Self::ContentType,
+            Publisher => Self::Publisher,
             TrackArtist => Self::TrackArtist,
             TrackComposer => Self::TrackComposer,
             TrackTitle => Self::TrackTitle,
-            ReleasedBy => Self::ReleasedBy,
         }
     }
 }
@@ -202,10 +202,10 @@ impl From<_inner::StringField> for StringField {
             AlbumTitle => Self::AlbumTitle,
             ContentPath => Self::ContentPath,
             ContentType => Self::ContentType,
+            Publisher => Self::Publisher,
             TrackArtist => Self::TrackArtist,
             TrackComposer => Self::TrackComposer,
             TrackTitle => Self::TrackTitle,
-            ReleasedBy => Self::ReleasedBy,
         }
     }
 }

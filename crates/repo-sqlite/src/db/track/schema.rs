@@ -35,7 +35,7 @@ table! {
         released_orig_at -> Nullable<Text>,
         released_orig_ms -> Nullable<BigInt>,
         released_orig_at_yyyymmdd -> Nullable<Integer>,
-        released_by -> Nullable<Text>,
+        publisher -> Nullable<Text>,
         copyright -> Nullable<Text>,
         album_kind -> SmallInt,
         track_number -> Nullable<SmallInt>,

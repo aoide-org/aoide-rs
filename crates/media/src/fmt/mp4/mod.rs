@@ -419,7 +419,7 @@ impl Metadata {
             .next()
             .and_then(trimmed_non_empty_from_owned)
         {
-            track.released_by = Some(label.into());
+            track.publisher = Some(label.into());
         }
 
         let mut tags_map = TagsMap::default();
@@ -845,8 +845,8 @@ pub fn export_track_to_path(
     } else {
         mp4_tag.remove_year();
     }
-    if let Some(released_by) = &track.released_by {
-        mp4_tag.set_all_data(IDENT_LABEL, once(Data::Utf8(released_by.to_owned())));
+    if let Some(publisher) = &track.publisher {
+        mp4_tag.set_all_data(IDENT_LABEL, once(Data::Utf8(publisher.to_owned())));
     } else {
         mp4_tag.remove_data_of(&IDENT_LABEL);
     }

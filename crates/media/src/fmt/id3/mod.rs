@@ -443,8 +443,8 @@ pub fn import_metadata_into_track(
     track.released_at = import_timestamp_from_first_text_frame(importer, tag, "TDRL");
     track.released_orig_at = import_timestamp_from_first_text_frame(importer, tag, "TDOR");
 
-    if let Some(released_by) = first_text_frame(tag, "TPUB").and_then(trimmed_non_empty_from) {
-        track.released_by = Some(released_by.into());
+    if let Some(publisher) = first_text_frame(tag, "TPUB").and_then(trimmed_non_empty_from) {
+        track.publisher = Some(publisher.into());
     }
     if let Some(copyright) = first_text_frame(tag, "TCOP").and_then(trimmed_non_empty_from) {
         track.copyright = Some(copyright.into());
@@ -853,8 +853,8 @@ pub fn export_track(
     }
 
     // Publishing info
-    if let Some(released_by) = &track.released_by {
-        tag.set_text("TPUB", released_by);
+    if let Some(publisher) = &track.publisher {
+        tag.set_text("TPUB", publisher);
     } else {
         tag.remove("TPUB");
     }

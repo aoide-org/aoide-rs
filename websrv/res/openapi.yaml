@@ -2969,7 +2969,7 @@ components:
         - albumTitle
         - contentPath
         - contentType
-        - releasedBy
+        - publisher
         - trackArtist
         - trackComposer
         - trackTitle
@@ -3219,7 +3219,7 @@ components:
           $ref: '#/components/schemas/ReleasedAt'
         releasedOrigAt:
           $ref: '#/components/schemas/ReleasedOrigAt'
-        releasedBy:
+        publisher:
           type: string
           description: |
             The publisher or record label

@@ -85,7 +85,7 @@ pub struct Track {
     ///
     /// Proposed tag mapping:
     /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html: Record Label
-    pub released_by: Option<String>,
+    pub publisher: Option<String>,
 
     pub copyright: Option<String>,
 
@@ -117,7 +117,7 @@ impl Track {
             recorded_at: None,
             released_at: None,
             released_orig_at: None,
-            released_by: None,
+            publisher: None,
             copyright: None,
             album: Default::default(),
             indexes: Default::default(),
@@ -188,7 +188,7 @@ impl Track {
             recorded_at,
             released_at,
             released_orig_at,
-            released_by,
+            publisher,
             tags,
             titles,
         } = self;
@@ -206,7 +206,7 @@ impl Track {
             recorded_at: newer_recorded_at,
             released_at: newer_released_at,
             released_orig_at: newer_released_orig_at,
-            released_by: newer_released_by,
+            publisher: newer_publisher,
             tags: newer_tags,
             titles: newer_titles,
         } = newer;
@@ -239,8 +239,8 @@ impl Track {
         *recorded_at = recorded_at.or(newer_recorded_at);
         *released_at = released_at.or(newer_released_at);
         *released_orig_at = released_at.or(newer_released_orig_at);
-        if newer_released_by.is_some() {
-            *released_by = newer_released_by;
+        if newer_publisher.is_some() {
+            *publisher = newer_publisher;
         }
         if !newer_tags.is_empty() {
             *tags = newer_tags;
@@ -297,7 +297,7 @@ pub enum TrackInvalidity {
     ReleasedAt(DateOrDateTimeInvalidity),
     ReleasedOrigAt(DateOrDateTimeInvalidity),
     ReleasedOrigAtAfterReleasedAt,
-    ReleasedByEmpty,
+    PublisherEmpty,
     CopyrightEmpty,
     Album(AlbumInvalidity),
     Titles(TitlesInvalidity),
@@ -347,10 +347,10 @@ impl Validate for Track {
                 Self::Invalidity::ReleasedOrigAtAfterReleasedAt,
             )
         }
-        if let Some(ref released_by) = self.released_by {
+        if let Some(ref publisher) = self.publisher {
             context = context.invalidate_if(
-                released_by.trim().is_empty(),
-                Self::Invalidity::ReleasedByEmpty,
+                publisher.trim().is_empty(),
+                Self::Invalidity::PublisherEmpty,
             );
         }
         if let Some(ref copyright) = self.copyright {

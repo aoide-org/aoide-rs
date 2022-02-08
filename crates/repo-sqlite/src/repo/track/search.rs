@@ -218,6 +218,10 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(track::music_key_code.asc()),
                 SortDirection::Descending => query.then_order_by(track::music_key_code.desc()),
             },
+            SortField::Publisher => match direction {
+                SortDirection::Ascending => query.then_order_by(track::publisher.asc()),
+                SortDirection::Descending => query.then_order_by(track::publisher.desc()),
+            },
             SortField::RecordedAtDate => match direction {
                 SortDirection::Ascending => query.then_order_by(track::recorded_at_yyyymmdd.asc()),
                 SortDirection::Descending => {
@@ -237,10 +241,6 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Descending => {
                     query.then_order_by(track::released_orig_at_yyyymmdd.desc())
                 }
-            },
-            SortField::ReleasedBy => match direction {
-                SortDirection::Ascending => query.then_order_by(track::released_by.asc()),
-                SortDirection::Descending => query.then_order_by(track::released_by.desc()),
             },
             SortField::TimesPlayed => match direction {
                 SortDirection::Ascending => query.then_order_by(track::times_played.asc()),
@@ -430,16 +430,16 @@ fn build_phrase_field_filter_expression(
         || filter
             .fields
             .iter()
-            .any(|target| *target == StringField::ReleasedBy)
+            .any(|target| *target == StringField::Publisher)
     {
         or_expression = if like_expr.is_empty() {
             Box::new(
                 or_expression
-                    .or(track::released_by.is_null())
-                    .or(track::released_by.eq(String::default())),
+                    .or(track::publisher.is_null())
+                    .or(track::publisher.eq(String::default())),
             )
         } else {
-            Box::new(or_expression.or(track::released_by.like(like_expr).escape('\\')))
+            Box::new(or_expression.or(track::publisher.like(like_expr).escape('\\')))
         };
     }
     or_expression

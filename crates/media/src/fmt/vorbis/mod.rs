@@ -390,7 +390,7 @@ pub fn import_released_orig_at(
         })
 }
 
-pub fn import_released_by(reader: &impl CommentReader) -> Option<String> {
+pub fn import_publisher(reader: &impl CommentReader) -> Option<String> {
     reader
         .read_first_value("LABEL")
         .and_then(trimmed_non_empty_from)
@@ -608,8 +608,8 @@ pub fn import_into_track(
         track.released_orig_at = Some(released_orig_at);
     }
 
-    if let Some(released_by) = import_released_by(reader) {
-        track.released_by = Some(released_by);
+    if let Some(publisher) = import_publisher(reader) {
+        track.publisher = Some(publisher);
     }
     if let Some(copyright) = import_copyright(reader) {
         track.copyright = Some(copyright);
@@ -964,7 +964,7 @@ pub fn export_track(
     }
 
     writer.write_single_value_opt("COPYRIGHT".to_owned(), track.copyright.to_owned());
-    writer.write_single_value_opt("LABEL".to_owned(), track.released_by.to_owned());
+    writer.write_single_value_opt("LABEL".to_owned(), track.publisher.to_owned());
     writer.write_single_value_opt(
         "DATE".to_owned(),
         track.recorded_at.as_ref().map(ToString::to_string),

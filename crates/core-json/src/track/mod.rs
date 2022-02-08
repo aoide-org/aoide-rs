@@ -56,7 +56,7 @@ pub struct Track {
     released_orig_at: Option<DateOrDateTime>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    released_by: Option<String>,
+    publisher: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     copyright: Option<String>,
@@ -97,7 +97,7 @@ impl From<_core::Track> for Track {
             recorded_at,
             released_at,
             released_orig_at,
-            released_by,
+            publisher,
             copyright,
             album,
             titles,
@@ -115,7 +115,7 @@ impl From<_core::Track> for Track {
             recorded_at: recorded_at.map(Into::into),
             released_at: released_at.map(Into::into),
             released_orig_at: released_orig_at.map(Into::into),
-            released_by,
+            publisher,
             copyright,
             album: album.untie().into(),
             titles: titles.untie().into_iter().map(Into::into).collect(),
@@ -140,7 +140,7 @@ impl TryFrom<Track> for _core::Track {
             recorded_at,
             released_at,
             released_orig_at,
-            released_by,
+            publisher,
             copyright,
             album,
             titles,
@@ -159,7 +159,7 @@ impl TryFrom<Track> for _core::Track {
             recorded_at: recorded_at.map(Into::into),
             released_at: released_at.map(Into::into),
             released_orig_at: released_orig_at.map(Into::into),
-            released_by,
+            publisher,
             copyright,
             album: album.into(),
             titles: Canonical::tie(
