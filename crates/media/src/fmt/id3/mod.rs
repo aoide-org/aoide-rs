@@ -33,7 +33,6 @@ use aoide_core::{
     audio::signal::LoudnessLufs,
     media::{
         artwork::{ApicType, Artwork},
-        concat_encoder_properties,
         content::ContentMetadata,
     },
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
@@ -196,7 +195,7 @@ pub fn import_loudness(importer: &mut Importer, tag: &id3::Tag) -> Option<Loudne
 
 #[must_use]
 pub fn import_encoder(tag: &id3::Tag) -> Option<Cow<'_, str>> {
-    concat_encoder_properties(first_text_frame(tag, "TENC"), first_text_frame(tag, "TSSE"))
+    first_text_frame(tag, "TENC").map(Into::into)
 }
 
 fn import_faceted_tags_from_text_frames(
@@ -702,8 +701,6 @@ pub fn export_track(
             } else {
                 tag.remove("TENC");
             }
-            // TENC and TSSE have been joined during import
-            tag.remove("TSSE");
         }
     }
 

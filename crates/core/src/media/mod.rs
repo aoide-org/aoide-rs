@@ -56,29 +56,6 @@ where
     }
 }
 
-/// Concatenate encoder properties
-///
-/// Some but not all file formats specify two different encoder
-/// properties, namely *encoded by* and *encoder settings*. In
-/// aoide those properties are represented by a single string.
-///
-/// Both properties are optional.
-#[must_use]
-pub fn concat_encoder_properties<'a>(
-    encoded_by: Option<&'a str>,
-    encoder_settings: Option<&'a str>,
-) -> Option<Cow<'a, str>> {
-    let encoder = concat_encoder_strings(
-        encoded_by.unwrap_or_default(),
-        encoder_settings.unwrap_or_default(),
-    );
-    if encoder.is_empty() {
-        None
-    } else {
-        Some(encoder)
-    }
-}
-
 /// Advisory rating code for content(s)
 ///
 /// Values match the "rtng" MP4 atom containing the advisory rating

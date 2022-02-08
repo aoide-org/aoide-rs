@@ -26,7 +26,6 @@ use aoide_core::{
     audio::signal::LoudnessLufs,
     media::{
         artwork::{ApicType, Artwork},
-        concat_encoder_properties,
         content::ContentMetadata,
     },
     music::{key::KeySignature, tempo::TempoBpm},
@@ -275,10 +274,7 @@ fn export_loudness(writer: &mut impl CommentWriter, loudness: Option<LoudnessLuf
 }
 
 pub fn import_encoder(reader: &'_ impl CommentReader) -> Option<Cow<'_, str>> {
-    concat_encoder_properties(
-        reader.read_first_value("ENCODEDBY"),
-        reader.read_first_value("ENCODERSETTINGS"),
-    )
+    reader.read_first_value("ENCODEDBY").map(Into::into)
 }
 
 fn export_encoder(writer: &mut impl CommentWriter, encoder: Option<impl Into<String>>) {
@@ -287,8 +283,6 @@ fn export_encoder(writer: &mut impl CommentWriter, encoder: Option<impl Into<Str
     } else {
         writer.remove_all_values("ENCODEDBY");
     }
-    // ENCODEDBY and ENCODERSETTINGS have been joined during import
-    writer.remove_all_values("ENCODERSETTINGS");
 }
 
 pub fn import_tempo_bpm(importer: &mut Importer, reader: &impl CommentReader) -> Option<TempoBpm> {
