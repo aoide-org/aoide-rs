@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::{
-    media::SourcePath,
+    media::content::ContentPath,
     track::{Entity, Track},
 };
 
@@ -22,10 +22,10 @@ use aoide_core::{
 pub struct Summary {
     pub created: Vec<Entity>,
     pub updated: Vec<Entity>,
-    pub unchanged: Vec<SourcePath>,
-    pub skipped: Vec<SourcePath>,
-    pub failed: Vec<SourcePath>,
-    pub not_imported: Vec<SourcePath>,
+    pub unchanged: Vec<ContentPath>,
+    pub skipped: Vec<ContentPath>,
+    pub failed: Vec<ContentPath>,
+    pub not_imported: Vec<ContentPath>,
     pub not_created: Vec<Track>,
     pub not_updated: Vec<Track>,
 }

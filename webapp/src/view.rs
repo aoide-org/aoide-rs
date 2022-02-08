@@ -1,5 +1,5 @@
 use crate::{domain::*, Action, Mdl, Msg};
-use aoide_core::media::SourcePathConfig;
+use aoide_core::media::content::ContentPathConfig;
 use seed::{prelude::*, *};
 
 pub fn view(mdl: &Mdl) -> Node<Msg> {
@@ -55,8 +55,8 @@ fn collection(item: &CollectionItem) -> Node<Msg> {
                     } else {
                         empty![]
                     },
-                    match &entity.body.media_source_config.source_path {
-                        SourcePathConfig::VirtualFilePath { root_url } =>
+                    match &entity.body.media_source_config.content_path {
+                        ContentPathConfig::VirtualFilePath { root_url } =>
                             li![b!["VFS Root: "], format!("{}", root_url)],
                         _ => empty![],
                     },

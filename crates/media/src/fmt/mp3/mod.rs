@@ -22,9 +22,11 @@ use aoide_core::{
     audio::{
         channel::{ChannelCount, NumberOfChannels},
         signal::{BitrateBps, BitsPerSecond, SampleRateHz, SamplesPerSecond},
-        AudioContent,
     },
-    media::{ApicType, Content, ContentMetadataFlags},
+    media::{
+        artwork::ApicType,
+        content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
+    },
     track::Track,
 };
 
@@ -81,7 +83,7 @@ impl MetadataExt {
     }
 
     #[must_use]
-    pub fn import_audio_content(&self, importer: &mut Importer) -> AudioContent {
+    pub fn import_audio_content(&self, importer: &mut Importer) -> AudioContentMetadata {
         let Self(stream_info, metadata) = self;
         let Header {
             max_channel_count,
@@ -99,7 +101,7 @@ impl MetadataExt {
             loudness = None;
             encoder = None;
         }
-        AudioContent {
+        AudioContentMetadata {
             duration: Some(total_duration.to_owned().into()),
             channels: Some(ChannelCount(*max_channel_count as NumberOfChannels).into()),
             sample_rate: avg_sample_rate_hz
@@ -137,11 +139,11 @@ impl MetadataExt {
             .content_metadata_flags
             .update(update_metadata_flags)
         {
-            track.media_source.content = Content::Audio(audio_content);
+            track.media_source.content_metadata = ContentMetadata::Audio(audio_content);
         } else {
             log::info!(
                 "Skipping import of audio content for {}",
-                track.media_source.path
+                track.media_source.content_link.path,
             );
         }
 

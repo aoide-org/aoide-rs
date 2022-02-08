@@ -40,8 +40,8 @@ pub type FindCandidateParams = find_duplicates::Params;
 
 /// Relink a moved track.
 ///
-/// Replace the track referenced by `old_media_source_path` with the replacement
-/// referenced by `new_media_source_path`. Afterwards the replacement track is
+/// Replace the track referenced by `old_content_link_path` with the replacement
+/// referenced by `new_content_link_path`. Afterwards the replacement track is
 /// deleted which requires that is not yet referenced in the collection,
 /// e.g. as a playlist entry.
 ///
@@ -50,19 +50,19 @@ pub type FindCandidateParams = find_duplicates::Params;
 ///
 /// The media tracker is also updated, i.e. it will reference the updated
 /// old media source instead of the new media source that is removed.
-fn relink_moved_track_by_media_source_path<Repo>(
+fn relink_moved_track_by_content_link_path<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    old_media_source_path: &str,
-    new_media_source_path: &str,
+    old_content_link_path: &str,
+    new_content_link_path: &str,
 ) -> RepoResult<()>
 where
     Repo: TrackRepo + TrackCollectionRepo + MediaSourceRepo + MediaSourceCollectionRepo,
 {
     let (old_source_id, old_header, old_entity) =
-        repo.load_track_entity_by_media_source_path(collection_id, old_media_source_path)?;
+        repo.load_track_entity_by_media_source_content_path(collection_id, old_content_link_path)?;
     let (new_source_id, new_header, new_entity) =
-        repo.load_track_entity_by_media_source_path(collection_id, new_media_source_path)?;
+        repo.load_track_entity_by_media_source_content_path(collection_id, new_content_link_path)?;
     let updated_track = Track {
         media_source: MediaSource {
             // Preserve the collected_at field from the old source
@@ -86,7 +86,7 @@ where
             repo.update_media_source(old_source_id, updated_at, &updated_track.media_source)?;
             debug_assert_eq!(
                 updated_track.media_source,
-                repo.load_media_source_by_path(collection_id, new_media_source_path)?
+                repo.load_media_source_by_path(collection_id, new_content_link_path)?
                     .1
             );
         }
@@ -94,9 +94,12 @@ where
         repo.update_track_entity(old_header.id, updated_at, old_source_id, &updated_entity)?;
         debug_assert_eq!(
             updated_entity.body,
-            repo.load_track_entity_by_media_source_path(collection_id, new_media_source_path)?
-                .2
-                .body
+            repo.load_track_entity_by_media_source_content_path(
+                collection_id,
+                new_content_link_path
+            )?
+            .2
+            .body
         );
     }
     Ok(())
@@ -169,7 +172,7 @@ where
     let collection_id = repo.resolve_collection_id(collection_uid)?;
     let source_untracked_filter = SearchFilter::Condition(ConditionFilter::SourceUntracked);
     let ordering = vec![SortOrder {
-        field: SortField::SourceCollectedAt,
+        field: SortField::CollectedAt,
         direction: SortDirection::Descending,
     }];
     let mut lost_tracks = Vec::new();
@@ -190,7 +193,7 @@ where
             return Ok(relinked_media_sources);
         }
         report_progress_fn(&progress);
-        let old_media_source_path = old_entity.body.media_source.path.clone();
+        let old_content_link_path = old_entity.body.media_source.content_link.path.clone();
         let candidates = find_duplicates(
             repo,
             collection_id,
@@ -198,22 +201,22 @@ where
             old_entity.body,
             &find_candidate_params,
         )?;
-        let new_media_source_path = match candidates.len() {
+        let new_content_link_path = match candidates.len() {
             0 => {
-                log::warn!("No successor found for {}", old_media_source_path);
+                log::warn!("No successor found for {}", old_content_link_path);
                 progress.skipped += 1;
                 continue;
             }
             1 => candidates
                 .into_iter()
-                .map(|(_, entity)| entity.body.media_source.path)
+                .map(|(_, entity)| entity.body.media_source.content_link.path)
                 .next()
                 .expect("single URI"),
             _ => {
                 log::warn!(
                     "Found {} potential successors for {}: {:?}",
                     candidates.len(),
-                    old_media_source_path,
+                    old_content_link_path,
                     candidates
                 );
                 progress.skipped += 1;
@@ -222,19 +225,19 @@ where
         };
         log::info!(
             "Found successor for {}: {}",
-            old_media_source_path,
-            new_media_source_path
+            old_content_link_path,
+            new_content_link_path
         );
         // TODO: Avoid reloading of both old/new entities by their path
-        relink_moved_track_by_media_source_path(
+        relink_moved_track_by_content_link_path(
             repo,
             collection_id,
-            &old_media_source_path,
-            &new_media_source_path,
+            &old_content_link_path,
+            &new_content_link_path,
         )?;
         relinked_media_sources.push(RelocatedMediaSource {
-            old_path: old_media_source_path.into(),
-            new_path: new_media_source_path.into(),
+            old_path: old_content_link_path.into(),
+            new_path: new_content_link_path.into(),
         });
         progress.relinked += 1;
     }

@@ -21,15 +21,15 @@ mod uc {
     pub use aoide_usecases::{track::purge::*, Error};
 }
 
-pub fn purge_by_media_source_path_predicates(
+pub fn purge_by_media_source_content_path_predicates(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     path_predicates: Vec<StringPredicate>,
-) -> Result<uc::PurgeByMediaSourcePathPredicatesSummary> {
+) -> Result<uc::PurgeByMediaContentPathPredicatesSummary> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, RepoTransactionError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
-        uc::purge_by_media_source_path_predicates(&db, collection_id, path_predicates)
+        uc::purge_by_media_source_content_path_predicates(&db, collection_id, path_predicates)
             .map_err(Into::into)
     })
     .map_err(Into::into)

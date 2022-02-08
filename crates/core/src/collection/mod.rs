@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    media::{SourcePathConfig, SourcePathConfigInvalidity},
+    media::content::{ContentPathConfig, ContentPathConfigInvalidity},
     prelude::*,
 };
 
@@ -22,21 +22,21 @@ use std::fmt::Debug;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MediaSourceConfig {
-    pub source_path: SourcePathConfig,
+    pub content_path: ContentPathConfig,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum MediaSourceConfigInvalidity {
-    SourcePath(SourcePathConfigInvalidity),
+    ContentPath(ContentPathConfigInvalidity),
 }
 
 impl Validate for MediaSourceConfig {
     type Invalidity = MediaSourceConfigInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let Self { source_path } = self;
+        let Self { content_path } = self;
         ValidationContext::new()
-            .validate_with(source_path, Self::Invalidity::SourcePath)
+            .validate_with(content_path, Self::Invalidity::ContentPath)
             .into()
     }
 }

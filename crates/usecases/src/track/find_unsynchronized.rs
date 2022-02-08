@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, media::SourcePath};
-use aoide_core_api::{media::source::ResolveUrlFromPath, track::find_unsynchronized::*};
+use aoide_core::{entity::EntityUid, media::content::ContentPath};
+use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::find_unsynchronized::*};
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
@@ -29,38 +29,33 @@ pub fn find_unsynchronized<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     pagination: &Pagination,
-    media_source_path_predicate: Option<StringPredicateBorrowed<'_>>,
-    source_path_resolver: Option<&VirtualFilePathResolver>,
+    content_path_predicate: Option<StringPredicateBorrowed<'_>>,
+    content_path_resolver: Option<&VirtualFilePathResolver>,
 ) -> RepoResult<Vec<UnsynchronizedTrackEntity>>
 where
     Repo: TrackCollectionRepo,
 {
-    repo.find_unsynchronized_tracks(collection_id, pagination, media_source_path_predicate)
+    repo.find_unsynchronized_tracks(collection_id, pagination, content_path_predicate)
         .map(|v| {
             v.into_iter()
                 .map(|(entity_header, _record_id, record_trail)| {
                     let RecordTrail {
                         collection_id: _,
                         media_source_id: _,
-                        media_source_path,
-                        media_source_external_rev,
-                        media_source_synchronized_rev,
+                        content_link,
+                        last_synchronized_rev,
                     } = record_trail;
-                    let mut media_source_path = media_source_path;
-                    if let Some(source_path_resolver) = source_path_resolver {
+                    let mut content_link = content_link;
+                    if let Some(content_path_resolver) = content_path_resolver {
                         // FIXME: Handle errors
-                        let url = source_path_resolver
-                            .resolve_url_from_path(&media_source_path)
+                        let url = content_path_resolver
+                            .resolve_url_from_content_path(&content_link.path)
                             .unwrap();
-                        media_source_path = SourcePath::new(url.to_string());
+                        content_link.path = ContentPath::new(url.to_string());
                     }
-                    let media_source = UnsynchronizedMediaSource {
-                        path: media_source_path,
-                        external_rev: media_source_external_rev,
-                    };
                     let track = UnsynchronizedTrack {
-                        media_source,
-                        media_source_synchronized_rev,
+                        content_link,
+                        last_synchronized_rev,
                     };
                     UnsynchronizedTrackEntity::new(entity_header, track)
                 })
@@ -78,20 +73,20 @@ where
     Repo: CollectionRepo + TrackCollectionRepo,
 {
     let Params {
-        resolve_url_from_path,
-        media_source_path_predicate,
+        resolve_url_from_content_path,
+        content_path_predicate,
     } = params;
     let collection_ctx = RepoContext::resolve_ext(
         repo,
         collection_uid,
         None,
-        resolve_url_from_path
+        resolve_url_from_content_path
             .as_ref()
-            .and_then(ResolveUrlFromPath::override_root_url)
+            .and_then(ResolveUrlFromContentPath::override_root_url)
             .map(ToOwned::to_owned),
     )?;
     let collection_id = collection_ctx.record_id;
-    let source_path_resolver = if resolve_url_from_path.is_some() {
+    let content_path_resolver = if resolve_url_from_content_path.is_some() {
         if let Some(vfs_ctx) = collection_ctx.source_path.vfs {
             Some(vfs_ctx.path_resolver)
         } else {
@@ -108,10 +103,8 @@ where
         repo,
         collection_id,
         pagination,
-        media_source_path_predicate
-            .as_ref()
-            .map(StringPredicate::borrow),
-        source_path_resolver.as_ref(),
+        content_path_predicate.as_ref().map(StringPredicate::borrow),
+        content_path_resolver.as_ref(),
     )
     .map_err(Into::into)
 }

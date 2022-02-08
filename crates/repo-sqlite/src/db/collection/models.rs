@@ -19,7 +19,7 @@ use url::Url;
 use aoide_core::{
     collection::*,
     entity::{EntityHeader, EntityRevision},
-    media::{SourcePathConfig, SourcePathKind},
+    media::content::{ContentPathConfig, ContentPathKind},
     util::{clock::*, color::*, url::BaseUrl},
 };
 
@@ -65,7 +65,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Entity) {
             created_at: DateTime::new_timestamp_millis(row_created_ms),
             updated_at: DateTime::new_timestamp_millis(row_updated_ms),
         };
-        let media_source_path_kind = match SourcePathKind::from_i16(media_source_path_kind) {
+        let media_source_path_kind = match ContentPathKind::from_i16(media_source_path_kind) {
             Some(path_kind) => path_kind,
             None => {
                 anyhow::bail!(
@@ -78,10 +78,10 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Entity) {
             .as_deref()
             .map(BaseUrl::parse_strict)
             .transpose()?;
-        let media_source_path_config =
-            SourcePathConfig::try_from((media_source_path_kind, media_source_root_url))?;
+        let content_path_config =
+            ContentPathConfig::try_from((media_source_path_kind, media_source_root_url))?;
         let media_source_config = MediaSourceConfig {
-            source_path: media_source_path_config,
+            content_path: content_path_config,
         };
         let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
         let entity_body = Collection {
@@ -134,14 +134,17 @@ impl<'a> InsertableRecord<'a> {
         let (hdr, body) = entity.into();
         let EntityHeader { uid, rev } = hdr;
         let Collection {
-            media_source_config: MediaSourceConfig { source_path },
+            media_source_config:
+                MediaSourceConfig {
+                    content_path: content_path_config,
+                },
             title,
             kind,
             notes,
             color,
         } = body;
-        let media_source_path_kind = source_path.kind();
-        let media_source_root_url: Option<&Url> = source_path.root_url().map(Deref::deref);
+        let media_source_path_kind = content_path_config.kind();
+        let media_source_root_url: Option<&Url> = content_path_config.root_url().map(Deref::deref);
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
@@ -207,14 +210,17 @@ impl<'a> UpdatableRecord<'a> {
     ) -> Self {
         let entity_rev = entity_revision_to_sql(next_rev);
         let Collection {
-            media_source_config: MediaSourceConfig { source_path },
+            media_source_config:
+                MediaSourceConfig {
+                    content_path: content_path_config,
+                },
             title,
             kind,
             notes,
             color,
         } = collection;
-        let media_source_path_kind = source_path.kind();
-        let media_source_root_url: Option<&Url> = source_path.root_url().map(Deref::deref);
+        let media_source_path_kind = content_path_config.kind();
+        let media_source_root_url: Option<&Url> = content_path_config.root_url().map(Deref::deref);
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             entity_rev,

@@ -15,7 +15,10 @@
 
 use schemars::JsonSchema;
 
-use aoide_core_json::entity::{EntityHeader, EntityRevision};
+use aoide_core_json::{
+    entity::{EntityHeader, EntityRevision},
+    media::content::ContentLink,
+};
 
 use crate::prelude::*;
 
@@ -27,56 +30,23 @@ mod _inner {
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(rename_all = "camelCase")]
-pub struct UnsynchronizedMediaSource {
-    pub path: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub external_rev: Option<u64>,
-}
-
-#[cfg(feature = "frontend")]
-impl From<UnsynchronizedMediaSource> for _inner::UnsynchronizedMediaSource {
-    fn from(from: UnsynchronizedMediaSource) -> Self {
-        let UnsynchronizedMediaSource { path, external_rev } = from;
-        Self {
-            path: path.into(),
-            external_rev,
-        }
-    }
-}
-
-#[cfg(feature = "backend")]
-impl From<_inner::UnsynchronizedMediaSource> for UnsynchronizedMediaSource {
-    fn from(from: _inner::UnsynchronizedMediaSource) -> Self {
-        let _inner::UnsynchronizedMediaSource { path, external_rev } = from;
-        Self {
-            path: path.into(),
-            external_rev,
-        }
-    }
-}
-
-#[derive(Debug, JsonSchema)]
-#[cfg_attr(feature = "frontend", derive(Deserialize))]
-#[cfg_attr(feature = "backend", derive(Serialize))]
-#[serde(rename_all = "camelCase")]
 pub struct UnsynchronizedTrack {
-    pub media_source: UnsynchronizedMediaSource,
+    pub content_link: ContentLink,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub media_source_synchronized_rev: Option<EntityRevision>,
+    pub last_synchronized_rev: Option<EntityRevision>,
 }
 
 #[cfg(feature = "frontend")]
 impl From<UnsynchronizedTrack> for _inner::UnsynchronizedTrack {
     fn from(from: UnsynchronizedTrack) -> Self {
         let UnsynchronizedTrack {
-            media_source,
-            media_source_synchronized_rev,
+            content_link,
+            last_synchronized_rev,
         } = from;
         Self {
-            media_source: media_source.into(),
-            media_source_synchronized_rev: media_source_synchronized_rev.map(Into::into),
+            content_link: content_link.into(),
+            last_synchronized_rev: last_synchronized_rev.map(Into::into),
         }
     }
 }
@@ -85,12 +55,12 @@ impl From<UnsynchronizedTrack> for _inner::UnsynchronizedTrack {
 impl From<_inner::UnsynchronizedTrack> for UnsynchronizedTrack {
     fn from(from: _inner::UnsynchronizedTrack) -> Self {
         let _inner::UnsynchronizedTrack {
-            media_source,
-            media_source_synchronized_rev,
+            content_link,
+            last_synchronized_rev,
         } = from;
         Self {
-            media_source: media_source.into(),
-            media_source_synchronized_rev: media_source_synchronized_rev.map(Into::into),
+            content_link: content_link.into(),
+            last_synchronized_rev: last_synchronized_rev.map(Into::into),
         }
     }
 }

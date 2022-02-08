@@ -15,7 +15,7 @@
 
 use std::ops::AddAssign;
 
-use aoide_core::{media::SourcePath, util::url::BaseUrl};
+use aoide_core::{media::content::ContentPath, util::url::BaseUrl};
 
 use crate::{media::SyncMode, track::replace::Summary as TrackReplaceSummary};
 
@@ -29,14 +29,14 @@ pub struct Params {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportedSourceWithIssues {
-    pub path: SourcePath,
+    pub path: ContentPath,
     pub messages: Vec<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
-    pub root_path: SourcePath,
+    pub root_path: ContentPath,
     pub completion: Completion,
     pub summary: Summary,
     pub imported_sources_with_issues: Vec<ImportedSourceWithIssues>,

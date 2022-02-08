@@ -23,14 +23,14 @@ use super::*;
 pub fn export_metadata_into_file(
     connection: &SqliteConnection,
     track_uid: &EntityUid,
-    source_path_resolver: &VirtualFilePathResolver,
+    content_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,
 ) -> Result<bool> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, TransactionError, _>(|| {
         let (_, mut track_entity) = db.load_track_entity_by_uid(track_uid)?;
         uc::media::export_track_metadata_into_file(
-            source_path_resolver,
+            content_path_resolver,
             config,
             &mut track_entity.body,
         )

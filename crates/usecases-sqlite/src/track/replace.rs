@@ -15,7 +15,7 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::media::SourcePath;
+use aoide_core::media::content::ContentPath;
 
 use aoide_core_api::{media::SyncMode, track::replace::Summary};
 
@@ -29,12 +29,12 @@ use super::*;
 mod uc {
     pub use aoide_usecases::track::replace::{
         import_and_replace_by_local_file_path_from_directory,
-        import_and_replace_by_local_file_paths, replace_collected_tracks_by_media_source_path,
-        Outcome, Params,
+        import_and_replace_by_local_file_paths,
+        replace_collected_tracks_by_media_source_content_path, Outcome, Params,
     };
 }
 
-pub fn replace_by_media_source_path(
+pub fn replace_by_media_source_content_path(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     params: &uc::Params,
@@ -42,8 +42,13 @@ pub fn replace_by_media_source_path(
 ) -> Result<Summary> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, TransactionError, _>(|| {
-        uc::replace_collected_tracks_by_media_source_path(&db, collection_uid, params, tracks)
-            .map_err(transaction_error)
+        uc::replace_collected_tracks_by_media_source_content_path(
+            &db,
+            collection_uid,
+            params,
+            tracks,
+        )
+        .map_err(transaction_error)
     })
     .map_err(Into::into)
 }
@@ -56,7 +61,7 @@ pub fn import_and_replace_by_local_file_paths(
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
-    source_paths: impl IntoIterator<Item = SourcePath>,
+    source_paths: impl IntoIterator<Item = ContentPath>,
     expected_source_path_count: Option<usize>,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {

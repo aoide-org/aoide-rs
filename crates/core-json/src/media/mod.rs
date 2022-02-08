@@ -13,106 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use num_traits::{FromPrimitive as _, ToPrimitive as _};
-use url::Url;
+use aoide_core::media::content::ContentMetadataFlags;
 
-use aoide_core::{media::ContentMetadataFlags, util::url::BaseUrl};
+use crate::{
+    audio::{
+        channel::Channels,
+        signal::{BitrateBps, LoudnessLufs, SampleRateHz},
+        DurationMs,
+    },
+    prelude::*,
+    util::clock::DateTime,
+};
 
-use crate::{audio::AudioContent, prelude::*, util::clock::DateTime};
+use self::{
+    artwork::Artwork,
+    content::{ContentLink, ContentMetadata},
+};
+
+pub mod artwork;
+pub mod content;
 
 mod _core {
-    pub use aoide_core::media::*;
+    pub use aoide_core::media::{content::AudioContentMetadata, *};
 }
-
-pub use _core::SourcePath;
-
-#[derive(Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-#[repr(u8)]
-pub enum SourcePathKind {
-    Uri = _core::SourcePathKind::Uri as u8,
-    Url = _core::SourcePathKind::Url as u8,
-    FileUrl = _core::SourcePathKind::FileUrl as u8,
-    VirtualFilePath = _core::SourcePathKind::VirtualFilePath as u8,
-}
-
-impl From<_core::SourcePathKind> for SourcePathKind {
-    fn from(from: _core::SourcePathKind) -> Self {
-        use _core::SourcePathKind::*;
-        match from {
-            Uri => Self::Uri,
-            Url => Self::Url,
-            FileUrl => Self::FileUrl,
-            VirtualFilePath => Self::VirtualFilePath,
-        }
-    }
-}
-
-impl From<SourcePathKind> for _core::SourcePathKind {
-    fn from(from: SourcePathKind) -> Self {
-        use SourcePathKind::*;
-        match from {
-            Uri => Self::Uri,
-            Url => Self::Url,
-            FileUrl => Self::FileUrl,
-            VirtualFilePath => Self::VirtualFilePath,
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SourcePathConfig {
-    pub path_kind: SourcePathKind,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub root_url: Option<Url>,
-}
-
-impl TryFrom<SourcePathConfig> for _core::SourcePathConfig {
-    type Error = anyhow::Error;
-
-    fn try_from(from: SourcePathConfig) -> anyhow::Result<Self> {
-        let SourcePathConfig {
-            path_kind,
-            root_url,
-        } = from;
-        let into = match path_kind {
-            SourcePathKind::Uri => Self::Uri,
-            SourcePathKind::Url => Self::Url,
-            SourcePathKind::FileUrl => Self::FileUrl,
-            SourcePathKind::VirtualFilePath => {
-                if let Some(root_url) = root_url {
-                    let root_url = match BaseUrl::try_from(root_url) {
-                        Ok(root_url) => root_url,
-                        Err(err) => {
-                            anyhow::bail!("Invalid root URL: {}", err);
-                        }
-                    };
-                    Self::VirtualFilePath { root_url }
-                } else {
-                    anyhow::bail!("Missing root URL");
-                }
-            }
-        };
-        Ok(into)
-    }
-}
-
-impl From<_core::SourcePathConfig> for SourcePathConfig {
-    fn from(from: _core::SourcePathConfig) -> Self {
-        let (path_kind, root_url) = from.into();
-        Self {
-            path_kind: path_kind.into(),
-            root_url: root_url.map(Into::into),
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Content
-///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
@@ -188,224 +111,6 @@ impl<'a> TryFrom<DigestRef<'a>> for Vec<u8> {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(PartialEq))]
-#[serde(rename_all = "kebab-case")]
-pub enum Content {
-    Audio(AudioContent),
-}
-
-impl From<Content> for _core::Content {
-    fn from(from: Content) -> Self {
-        use _core::Content::*;
-        match from {
-            Content::Audio(audio_content) => Audio(audio_content.into()),
-        }
-    }
-}
-
-impl From<_core::Content> for Content {
-    fn from(from: _core::Content) -> Self {
-        use _core::Content::*;
-        match from {
-            Audio(audio_content) => Content::Audio(audio_content.into()),
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Artwork
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-#[serde(deny_unknown_fields)]
-pub struct ImageSize(u16, u16);
-
-#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ArtworkImage {
-    media_type: String,
-
-    apic_type: u8,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    size: Option<ImageSize>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    digest: Option<Digest>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    thumbnail: Option<Base64>,
-}
-
-impl From<_core::ArtworkImage> for ArtworkImage {
-    fn from(from: _core::ArtworkImage) -> Self {
-        let _core::ArtworkImage {
-            media_type,
-            apic_type,
-            size,
-            digest,
-            thumbnail,
-        } = from;
-        let size = size.map(|size| {
-            let _core::ImageSize { width, height } = size;
-            ImageSize(width, height)
-        });
-        Self {
-            media_type: media_type.to_string(),
-            apic_type: apic_type.to_u8().expect("u8"),
-            size,
-            digest: digest.as_ref().map(Into::into),
-            thumbnail: thumbnail.as_ref().map(Into::into),
-        }
-    }
-}
-
-impl TryFrom<ArtworkImage> for _core::ArtworkImage {
-    type Error = anyhow::Error;
-
-    fn try_from(from: ArtworkImage) -> anyhow::Result<Self> {
-        let ArtworkImage {
-            media_type,
-            apic_type,
-            size,
-            digest,
-            thumbnail,
-        } = from;
-        let media_type = media_type.parse()?;
-        let apic_type = _core::ApicType::from_u8(apic_type)
-            .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {}", apic_type))?;
-        let size = size.map(|size| {
-            let ImageSize(width, height) = size;
-            _core::ImageSize { width, height }
-        });
-        let digest_data = digest.as_ref().map(Vec::try_from).transpose()?;
-        let digest = digest_data
-            .map(TryFrom::try_from)
-            .transpose()
-            .map_err(|_| anyhow::anyhow!("Failed to deserialize artwork digest"))?;
-        let thumbnail_data = thumbnail.as_ref().map(Vec::try_from).transpose()?;
-        let thumbnail = thumbnail_data
-            .map(TryFrom::try_from)
-            .transpose()
-            .map_err(|_| anyhow::anyhow!("Failed to deserialize artwork thumbnail"))?;
-        let into = Self {
-            media_type,
-            apic_type,
-            size,
-            digest,
-            thumbnail,
-        };
-        Ok(into)
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-#[serde(rename_all = "kebab-case")]
-pub enum ArtworkSource {
-    Missing,
-    Unsupported,
-    Irregular,
-    Embedded,
-    Linked,
-}
-
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Artwork {
-    source: ArtworkSource,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    image: Option<ArtworkImage>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    uri: Option<String>,
-}
-
-impl TryFrom<Artwork> for _core::Artwork {
-    type Error = anyhow::Error;
-
-    fn try_from(from: Artwork) -> anyhow::Result<Self> {
-        let Artwork { source, uri, image } = from;
-        match source {
-            ArtworkSource::Missing => {
-                debug_assert!(uri.is_none());
-                debug_assert!(image.is_none());
-                Ok(_core::Artwork::Missing)
-            }
-            ArtworkSource::Unsupported => {
-                debug_assert!(uri.is_none());
-                debug_assert!(image.is_none());
-                Ok(_core::Artwork::Unsupported)
-            }
-            ArtworkSource::Irregular => {
-                debug_assert!(uri.is_none());
-                debug_assert!(image.is_none());
-                Ok(_core::Artwork::Irregular)
-            }
-            ArtworkSource::Embedded => {
-                debug_assert!(uri.is_none());
-                if let Some(image) = image {
-                    let embedded = _core::EmbeddedArtwork {
-                        image: image.try_into()?,
-                    };
-                    Ok(_core::Artwork::Embedded(embedded))
-                } else {
-                    anyhow::bail!("missing image for embedded artwork");
-                }
-            }
-            ArtworkSource::Linked => {
-                if let (Some(uri), Some(image)) = (uri, image) {
-                    let linked = _core::LinkedArtwork {
-                        uri,
-                        image: image.try_into()?,
-                    };
-                    Ok(_core::Artwork::Linked(linked))
-                } else {
-                    anyhow::bail!("missing URI or image for linked artwork");
-                }
-            }
-        }
-    }
-}
-
-impl From<_core::Artwork> for Artwork {
-    fn from(from: _core::Artwork) -> Self {
-        use _core::Artwork::*;
-        match from {
-            Missing => Self {
-                source: ArtworkSource::Missing,
-                uri: None,
-                image: None,
-            },
-            Unsupported => Self {
-                source: ArtworkSource::Unsupported,
-                uri: None,
-                image: None,
-            },
-            Irregular => Self {
-                source: ArtworkSource::Irregular,
-                uri: None,
-                image: None,
-            },
-            Embedded(embedded) => Self {
-                source: ArtworkSource::Embedded,
-                uri: None,
-                image: Some(embedded.image.into()),
-            },
-            Linked(linked) => Self {
-                source: ArtworkSource::Linked,
-                uri: Some(linked.uri),
-                image: Some(linked.image.into()),
-            },
-        }
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////
 // Source
 ///////////////////////////////////////////////////////////////////////
@@ -451,52 +156,47 @@ fn is_default_content_metadata_flags(flags: &u8) -> bool {
 pub struct Source {
     collected_at: DateTime,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    external_rev: Option<u64>,
-
-    path: String,
+    content_link: ContentLink,
 
     content_type: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    advisory_rating: Option<AdvisoryRating>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     content_digest: Option<Digest>,
+
+    #[serde(flatten)]
+    content_metadata: ContentMetadata,
 
     #[serde(skip_serializing_if = "is_default_content_metadata_flags", default)]
     content_metadata_flags: u8,
 
-    #[serde(flatten)]
-    content: Content,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     artwork: Option<Artwork>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    advisory_rating: Option<AdvisoryRating>,
 }
 
 impl From<_core::Source> for Source {
     fn from(from: _core::Source) -> Self {
         let _core::Source {
             collected_at,
-            external_rev,
-            path,
+            content_link,
             content_type,
             content_digest,
-            advisory_rating,
+            content_metadata,
             content_metadata_flags,
-            content,
             artwork,
+            advisory_rating,
         } = from;
         Self {
             collected_at: collected_at.into(),
-            external_rev,
-            path: path.into(),
+            content_link: content_link.into(),
             content_type: content_type.to_string(),
-            advisory_rating: advisory_rating.map(Into::into),
             content_digest: content_digest.map(Into::into),
+            content_metadata: content_metadata.into(),
             content_metadata_flags: content_metadata_flags.bits(),
-            content: content.into(),
             artwork: artwork.map(Into::into),
+            advisory_rating: advisory_rating.map(Into::into),
         }
     }
 }
@@ -507,32 +207,95 @@ impl TryFrom<Source> for _core::Source {
     fn try_from(from: Source) -> anyhow::Result<Self> {
         let Source {
             collected_at,
-            external_rev,
-            path,
+            content_link,
             content_type,
             content_digest,
-            advisory_rating,
+            content_metadata,
             content_metadata_flags,
-            content,
             artwork,
+            advisory_rating,
         } = from;
         let content_type = content_type.parse()?;
         let content_digest = content_digest.as_ref().map(TryFrom::try_from).transpose()?;
         let artwork = artwork.map(TryFrom::try_from).transpose()?;
         let into = Self {
             collected_at: collected_at.into(),
-            external_rev,
-            path: path.into(),
+            content_link: content_link.into(),
             content_type,
-            advisory_rating: advisory_rating.map(Into::into),
             content_digest,
+            content_metadata: content_metadata.into(),
             content_metadata_flags: ContentMetadataFlags::from_bits_truncate(
                 content_metadata_flags,
             ),
-            content: content.into(),
             artwork,
+            advisory_rating: advisory_rating.map(Into::into),
         };
         Ok(into)
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AudioContentMetadata {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    duration_ms: Option<DurationMs>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    channels: Option<Channels>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sample_rate_hz: Option<SampleRateHz>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bitrate_bps: Option<BitrateBps>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    loudness_lufs: Option<LoudnessLufs>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    encoder: Option<String>,
+}
+
+impl From<AudioContentMetadata> for _core::AudioContentMetadata {
+    fn from(from: AudioContentMetadata) -> Self {
+        let AudioContentMetadata {
+            duration_ms,
+            channels,
+            sample_rate_hz,
+            bitrate_bps,
+            loudness_lufs,
+            encoder,
+        } = from;
+        Self {
+            duration: duration_ms.map(Into::into),
+            channels: channels.map(Into::into),
+            sample_rate: sample_rate_hz.map(Into::into),
+            bitrate: bitrate_bps.map(Into::into),
+            loudness: loudness_lufs.map(Into::into),
+            encoder: encoder.map(Into::into),
+        }
+    }
+}
+
+impl From<_core::AudioContentMetadata> for AudioContentMetadata {
+    fn from(from: _core::AudioContentMetadata) -> Self {
+        let _core::AudioContentMetadata {
+            duration,
+            channels,
+            sample_rate,
+            bitrate,
+            loudness,
+            encoder,
+        } = from;
+        Self {
+            duration_ms: duration.map(Into::into),
+            channels: channels.map(Into::into),
+            sample_rate_hz: sample_rate.map(Into::into),
+            bitrate_bps: bitrate.map(Into::into),
+            loudness_lufs: loudness.map(Into::into),
+            encoder: encoder.map(Into::into),
+        }
     }
 }
 

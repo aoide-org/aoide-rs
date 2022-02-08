@@ -70,7 +70,7 @@ pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
     pub collection_id: RowId,
-    pub path: &'a str,
+    pub content_path: &'a str,
     pub status: i16,
     pub digest: &'a [u8],
 }
@@ -79,7 +79,7 @@ impl<'a> InsertableRecord<'a> {
     pub fn bind(
         created_at: DateTime,
         collection_id: CollectionId,
-        path: &'a str,
+        content_path: &'a str,
         status: DirTrackingStatus,
         digest: &'a DigestBytes,
     ) -> Self {
@@ -88,7 +88,7 @@ impl<'a> InsertableRecord<'a> {
             row_created_ms,
             row_updated_ms: row_created_ms,
             collection_id: RowId::from(collection_id),
-            path,
+            content_path,
             status: status.to_i16().expect("status"),
             digest: &digest[..],
         }

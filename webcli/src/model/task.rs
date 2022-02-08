@@ -121,17 +121,17 @@ async fn find_unsynchronized_tracks<E: ClientEnvironment>(
         limit: None, // unlimited
     };
     let aoide_core_api::track::find_unsynchronized::Params {
-        resolve_url_from_path,
-        media_source_path_predicate,
+        resolve_url_from_content_path,
+        content_path_predicate,
     } = params;
-    let query_params = client_query_params(resolve_url_from_path, no_pagination);
+    let query_params = client_query_params(resolve_url_from_content_path, no_pagination);
     let request_url = env.join_api_url(&format!(
         "c/{}/t/find-unsynchronized?{}",
         collection_uid,
         serde_urlencoded::to_string(query_params)?
     ))?;
     let request_body = serde_json::to_vec(
-        &media_source_path_predicate.map(aoide_core_api_json::filtering::StringPredicate::from),
+        &content_path_predicate.map(aoide_core_api_json::filtering::StringPredicate::from),
     )?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;

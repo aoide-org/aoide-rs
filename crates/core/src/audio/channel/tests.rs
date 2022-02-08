@@ -47,3 +47,24 @@ fn channels_validate() {
     assert!(Channels::Count(ChannelCount::min()).validate().is_ok());
     assert!(Channels::Count(ChannelCount::max()).validate().is_ok());
 }
+
+#[test]
+fn validate_channels() {
+    assert!(Channels::default().validate().is_err());
+    assert!(Channels::Layout(ChannelLayout::Mono).validate().is_ok());
+    assert!(Channels::Layout(ChannelLayout::DualMono).validate().is_ok());
+    assert!(Channels::Layout(ChannelLayout::Stereo).validate().is_ok());
+    assert!(Channels::Count(ChannelCount::min()).validate().is_ok());
+    assert!(Channels::Count(ChannelCount::max()).validate().is_ok());
+}
+
+#[test]
+fn channel_count_default_layout() {
+    assert_eq!(None, ChannelCount::default().default_layout());
+    assert_eq!(Some(ChannelLayout::Mono), ChannelCount(1).default_layout());
+    assert_eq!(
+        Some(ChannelLayout::Stereo),
+        ChannelCount(2).default_layout()
+    );
+    assert_eq!(None, ChannelCount::default_layout(ChannelCount(3)));
+}

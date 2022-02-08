@@ -32,7 +32,7 @@ use semval::{IsValid as _, ValidatedFrom as _};
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{
+    media::artwork::{
         ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
         Thumbnail4x4Rgb8,
     },

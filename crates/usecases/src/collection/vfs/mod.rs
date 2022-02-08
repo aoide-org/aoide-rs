@@ -17,11 +17,11 @@ use std::path::PathBuf;
 
 use aoide_core::{
     entity::EntityUid,
-    media::{SourcePath, SourcePathKind},
+    media::content::{ContentPath, ContentPathKind},
     util::url::BaseUrl,
 };
 
-use aoide_media::resolver::{SourcePathResolver, VirtualFilePathResolver};
+use aoide_media::resolver::{ContentPathResolver, VirtualFilePathResolver};
 
 use aoide_repo::collection::{EntityRepo, RecordId};
 
@@ -31,12 +31,12 @@ fn load_virtual_file_path_resolver<Repo>(
     repo: &Repo,
     collection_id: RecordId,
     override_root_url: Option<BaseUrl>,
-) -> Result<(SourcePathKind, Option<VirtualFilePathResolver>)>
+) -> Result<(ContentPathKind, Option<VirtualFilePathResolver>)>
 where
     Repo: EntityRepo,
 {
     let (_, entity) = repo.load_collection_entity(collection_id)?;
-    let (path_kind, root_url) = entity.body.media_source_config.source_path.into();
+    let (path_kind, root_url) = entity.body.media_source_config.content_path.into();
     let root_url = if let Some(root_url) = root_url {
         root_url
     } else {
@@ -50,7 +50,7 @@ fn resolve_collection_id_for_virtual_file_path<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,
     override_root_url: Option<BaseUrl>,
-) -> Result<(RecordId, SourcePathKind, Option<VirtualFilePathResolver>)>
+) -> Result<(RecordId, ContentPathKind, Option<VirtualFilePathResolver>)>
 where
     Repo: EntityRepo,
 {
@@ -61,10 +61,10 @@ where
 }
 
 fn resolve_path_prefix_from_base_url(
-    source_path_resolver: &impl SourcePathResolver,
+    content_path_resolver: &impl ContentPathResolver,
     url_path_prefix: &BaseUrl,
-) -> Result<SourcePath> {
-    source_path_resolver
+) -> Result<ContentPath> {
+    content_path_resolver
         .resolve_path_from_url(url_path_prefix)
         .map_err(|err| anyhow::format_err!("Invalid URL path prefix: {}", err).into())
 }
@@ -72,13 +72,13 @@ fn resolve_path_prefix_from_base_url(
 #[derive(Debug)]
 pub struct RepoContext {
     pub record_id: RecordId,
-    pub source_path: SourcePathContext,
+    pub source_path: ContentPathContext,
 }
 
 #[derive(Debug)]
-pub struct SourcePathContext {
-    pub kind: SourcePathKind,
-    pub vfs: Option<SourcePathVfsContext>,
+pub struct ContentPathContext {
+    pub kind: ContentPathKind,
+    pub vfs: Option<ContentPathVfsContext>,
 }
 
 impl RepoContext {
@@ -104,9 +104,9 @@ impl RepoContext {
                 .transpose()?
                 .unwrap_or_default();
             let root_url = path_resolver
-                .resolve_url_from_path(&root_path)
+                .resolve_url_from_content_path(&root_path)
                 .map_err(anyhow::Error::from)?;
-            Some(SourcePathVfsContext {
+            Some(ContentPathVfsContext {
                 path_resolver,
                 root_path,
                 root_url: BaseUrl::new(root_url),
@@ -116,7 +116,7 @@ impl RepoContext {
         };
         Ok(Self {
             record_id,
-            source_path: SourcePathContext {
+            source_path: ContentPathContext {
                 kind: path_kind,
                 vfs,
             },
@@ -141,13 +141,13 @@ impl RepoContext {
 }
 
 #[derive(Debug)]
-pub struct SourcePathVfsContext {
+pub struct ContentPathVfsContext {
     pub path_resolver: VirtualFilePathResolver,
-    pub root_path: SourcePath,
+    pub root_path: ContentPath,
     pub root_url: BaseUrl,
 }
 
-impl SourcePathVfsContext {
+impl ContentPathVfsContext {
     #[must_use]
     pub fn build_root_file_path(&self) -> PathBuf {
         self.path_resolver.build_file_path(&self.root_path)

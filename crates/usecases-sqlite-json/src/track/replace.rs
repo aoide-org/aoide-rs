@@ -112,7 +112,7 @@ pub fn handle_request(
         mode: replace_mode.into(),
         resolve_path_from_url,
         preserve_collected_at: true,
-        update_media_source_synchronized_rev: false,
+        update_last_synchronized_rev: false,
     };
     let (tracks, errors): (Vec<_>, _) = request_body
         .into_iter()
@@ -139,7 +139,7 @@ pub fn handle_request(
         return Err(err);
     }
     let tracks = tracks.into_iter().map(Result::unwrap);
-    uc::replace_by_media_source_path(connection, collection_uid, &params, tracks)
+    uc::replace_by_media_source_content_path(connection, collection_uid, &params, tracks)
         .map(Into::into)
         .map_err(Into::into)
 }

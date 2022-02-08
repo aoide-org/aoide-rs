@@ -20,7 +20,7 @@ pub type RecordHeader = crate::RecordHeader<RecordId>;
 use crate::{collection::RecordId as CollectionId, prelude::*};
 
 use aoide_core::{
-    media::{Source, SourcePath},
+    media::{content::ContentPath, Source},
     util::clock::DateTime,
 };
 
@@ -44,10 +44,10 @@ pub trait CollectionRepo {
         path: &str,
     ) -> RepoResult<(RecordId, Option<u64>)>;
 
-    fn resolve_media_source_ids_by_path_predicate(
+    fn resolve_media_source_ids_by_content_path_predicate(
         &self,
         collection_id: CollectionId,
-        path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<Vec<RecordId>>;
 
     fn insert_media_source(
@@ -63,41 +63,41 @@ pub trait CollectionRepo {
         path: &str,
     ) -> RepoResult<(RecordHeader, Source)>;
 
-    fn relocate_media_sources_by_path_prefix(
+    fn relocate_media_sources_by_content_path_prefix(
         &self,
         collection_id: CollectionId,
         updated_at: DateTime,
-        old_path_prefix: &SourcePath,
-        new_path_prefix: &SourcePath,
+        old_content_path_prefix: &ContentPath,
+        new_content_path_prefix: &ContentPath,
     ) -> RepoResult<usize>;
 
-    fn purge_media_sources_by_path_predicate(
+    fn purge_media_sources_by_content_path_predicate(
         &self,
         collection_id: CollectionId,
-        path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
-    fn purge_orphaned_media_sources_by_path_predicate(
+    fn purge_orphaned_media_sources_by_content_path_predicate(
         &self,
         collection_id: CollectionId,
-        path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
     fn purge_orphaned_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize> {
-        self.purge_orphaned_media_sources_by_path_predicate(
+        self.purge_orphaned_media_sources_by_content_path_predicate(
             collection_id,
             StringPredicateBorrowed::Prefix(""),
         )
     }
 
-    fn purge_untracked_media_sources_by_path_predicate(
+    fn purge_untracked_media_sources_by_content_path_predicate(
         &self,
         collection_id: CollectionId,
-        path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
     fn purge_untracked_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize> {
-        self.purge_untracked_media_sources_by_path_predicate(
+        self.purge_untracked_media_sources_by_content_path_predicate(
             collection_id,
             StringPredicateBorrowed::Prefix(""),
         )

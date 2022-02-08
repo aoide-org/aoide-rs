@@ -16,7 +16,7 @@
 use semval::Validate as _;
 
 use aoide_core::track::*;
-use aoide_media::resolver::{FileUrlResolver, SourcePathResolver as _, VirtualFilePathResolver};
+use aoide_media::resolver::{ContentPathResolver as _, FileUrlResolver, VirtualFilePathResolver};
 use aoide_repo::track::RecordHeader;
 
 use super::*;
@@ -30,7 +30,7 @@ pub mod search;
 
 #[derive(Debug)]
 pub struct ResolveUrlFromVirtualFilePathCollector<'c, C> {
-    pub source_path_resolver: VirtualFilePathResolver,
+    pub content_path_resolver: VirtualFilePathResolver,
     pub collector: &'c mut C,
 }
 
@@ -42,10 +42,13 @@ where
     type Record = Entity;
 
     fn collect(&mut self, header: Self::Header, mut record: Self::Record) {
-        let path = &record.body.media_source.path;
-        match self.source_path_resolver.resolve_url_from_path(path) {
+        let path = &record.body.media_source.content_link.path;
+        match self
+            .content_path_resolver
+            .resolve_url_from_content_path(path)
+        {
             Ok(url) => {
-                record.body.media_source.path = FileUrlResolver
+                record.body.media_source.content_link.path = FileUrlResolver
                     .resolve_path_from_url(&url)
                     .expect("percent-encoded URL");
                 self.collector.collect(header, record);

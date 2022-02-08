@@ -22,8 +22,6 @@ use std::{
 use anyhow::anyhow;
 use url::Url;
 
-use aoide_core::util::clock::DateTime;
-
 use crate::{Error, IoError, Result};
 
 pub mod digest;
@@ -55,25 +53,4 @@ pub fn open_file_for_reading(file_path: impl AsRef<Path>) -> Result<Option<(Path
     }
     let file = File::open(std::path::Path::new(&canonical_path))?;
     Ok(Some((canonical_path, file)))
-}
-
-pub fn file_last_modified_at(file: &File) -> Result<DateTime> {
-    file.metadata()
-        .map_err(Error::from)?
-        .modified()
-        .map(DateTime::from)
-        .map_err(Error::from)
-        .map(|last_modified_at| {
-            if last_modified_at.timestamp_millis() > 0 {
-                // Only consider time stamps strictly after the epoch origin
-                // meaningful and valid
-                last_modified_at
-            } else {
-                log::warn!(
-                    "Using current time instead of invalid last modification time {}",
-                    last_modified_at
-                );
-                DateTime::now_utc()
-            }
-        })
 }

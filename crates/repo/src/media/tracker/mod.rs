@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{media::SourcePath, util::clock::DateTime};
+use aoide_core::{media::content::ContentPath, util::clock::DateTime};
 
 use aoide_core_api::media::tracker::{DirTrackingStatus, DirectoriesStatus};
 
@@ -31,7 +31,7 @@ pub type DirCacheRecordHeader = crate::RecordHeader<DirCacheRecordId>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TrackedDirectory {
-    pub path: SourcePath,
+    pub path: ContentPath,
     pub status: DirTrackingStatus,
     pub digest: DigestBytes,
 }
@@ -67,7 +67,7 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path_prefix: &SourcePath,
+        path_prefix: &ContentPath,
         old_status: Option<DirTrackingStatus>,
         new_status: DirTrackingStatus,
     ) -> RepoResult<usize>;
@@ -76,14 +76,14 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path: &SourcePath,
+        path: &ContentPath,
         digest: &DigestBytes,
     ) -> RepoResult<DirUpdateOutcome>;
 
     fn media_tracker_untrack_directories(
         &self,
         collection_id: CollectionId,
-        path_prefix: &SourcePath,
+        path_prefix: &ContentPath,
         status: Option<DirTrackingStatus>,
     ) -> RepoResult<usize>;
 
@@ -99,7 +99,7 @@ pub trait Repo {
     fn media_tracker_purge_orphaned_directories(
         &self,
         collection_id: CollectionId,
-        path_prefix: &SourcePath,
+        path_prefix: &ContentPath,
     ) -> RepoResult<usize> {
         self.media_tracker_untrack_directories(
             collection_id,
@@ -114,7 +114,7 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path_prefix: &SourcePath,
+        path_prefix: &ContentPath,
     ) -> RepoResult<usize> {
         self.media_tracker_update_directories_status(
             updated_at,
@@ -131,7 +131,7 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path_prefix: &SourcePath,
+        path_prefix: &ContentPath,
     ) -> RepoResult<usize> {
         self.media_tracker_update_directories_status(
             updated_at,
@@ -149,14 +149,14 @@ pub trait Repo {
     fn media_tracker_load_directories_requiring_confirmation(
         &self,
         collection_id: CollectionId,
-        path_prefix: &SourcePath,
+        path_prefix: &ContentPath,
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>>;
 
     fn media_tracker_replace_directory_sources(
         &self,
         collection_id: CollectionId,
-        path: &SourcePath,
+        path: &ContentPath,
         media_source_ids: &[MediaSourceId],
     ) -> RepoResult<(usize, usize)>;
 
@@ -171,31 +171,31 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        directory_path: &SourcePath,
+        directory_path: &ContentPath,
         digest: &DigestBytes,
     ) -> RepoResult<bool>;
 
     fn media_tracker_load_directory_tracking_status(
         &self,
         collection_id: CollectionId,
-        directory_path: &SourcePath,
+        directory_path: &ContentPath,
     ) -> RepoResult<DirTrackingStatus>;
 
     fn media_tracker_aggregate_directories_tracking_status(
         &self,
         collection_id: CollectionId,
-        path_prefix: &SourcePath,
+        path_prefix: &ContentPath,
     ) -> RepoResult<DirectoriesStatus>;
 
     fn media_tracker_find_untracked_sources(
         &self,
         collection_id: CollectionId,
-        path_prefix: &SourcePath,
+        path_prefix: &ContentPath,
     ) -> RepoResult<Vec<MediaSourceId>>;
 
     fn media_tracker_resolve_source_id_synchronized_at_by_path(
         &self,
         collection_id: CollectionId,
-        path: &SourcePath,
+        path: &ContentPath,
     ) -> RepoResult<(MediaSourceId, Option<u64>)>;
 }

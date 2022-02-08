@@ -548,9 +548,10 @@ async fn main() -> anyhow::Result<()> {
                         notes: None,
                         color: None,
                         media_source_config: MediaSourceConfig {
-                            source_path: aoide_core::media::SourcePathConfig::VirtualFilePath {
-                                root_url: vfs_root_url,
-                            },
+                            content_path:
+                                aoide_core::media::content::ContentPathConfig::VirtualFilePath {
+                                    root_url: vfs_root_url,
+                                },
                         },
                     };
                     subcommand_submitted = true;
@@ -615,7 +616,7 @@ async fn main() -> anyhow::Result<()> {
                                         entity
                                             .body
                                             .media_source_config
-                                            .source_path
+                                            .content_path
                                             .root_url()
                                             .cloned()
                                             .map(Into::into)
@@ -644,7 +645,7 @@ async fn main() -> anyhow::Result<()> {
                                         entity
                                             .body
                                             .media_source_config
-                                            .source_path
+                                            .content_path
                                             .root_url()
                                             .cloned()
                                             .map(Into::into)
@@ -737,7 +738,7 @@ async fn main() -> anyhow::Result<()> {
                                         entity
                                             .body
                                             .media_source_config
-                                            .source_path
+                                            .content_path
                                             .root_url()
                                             .cloned()
                                             .map(Into::into)
@@ -770,8 +771,8 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let params = aoide_core_api::track::find_unsynchronized::Params {
-                                    resolve_url_from_path: Some(Default::default()),
-                                    media_source_path_predicate: None,
+                                    resolve_url_from_content_path: Some(Default::default()),
+                                    content_path_predicate: None,
                                 };
                                 subcommand_submitted = true;
                                 let intent = Intent::FindUnsynchronizedTracks {
@@ -800,7 +801,7 @@ async fn main() -> anyhow::Result<()> {
                                                 aoide_core_api::sorting::SortDirection::Descending,
                                         }],
                                         // TODO: Configurable?
-                                        resolve_url_from_path: Some(Default::default()),
+                                        resolve_url_from_content_path: Some(Default::default()),
                                     },
                                 };
                                 subcommand_submitted = true;

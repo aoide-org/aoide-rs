@@ -19,8 +19,11 @@ use metaflac::block::PictureType;
 use num_traits::FromPrimitive as _;
 
 use aoide_core::{
-    audio::{channel::ChannelCount, signal::SampleRateHz, AudioContent},
-    media::{ApicType, Artwork, Content, ContentMetadataFlags},
+    audio::{channel::ChannelCount, signal::SampleRateHz},
+    media::{
+        artwork::{ApicType, Artwork},
+        content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
+    },
     tag::TagsMap,
     track::{
         actor::ActorRole,
@@ -134,7 +137,7 @@ impl Metadata {
     }
 
     #[must_use]
-    pub fn import_audio_content(&self, importer: &mut Importer) -> Option<AudioContent> {
+    pub fn import_audio_content(&self, importer: &mut Importer) -> Option<AudioContentMetadata> {
         let Self(metaflac_tag) = self;
         metaflac_tag.get_streaminfo().map(|streaminfo| {
             let channels = Some(ChannelCount(streaminfo.num_channels.into()).into());
@@ -154,7 +157,7 @@ impl Metadata {
             };
             let loudness = vorbis::import_loudness(importer, metaflac_tag);
             let encoder = vorbis::import_encoder(metaflac_tag).map(Into::into);
-            AudioContent {
+            AudioContentMetadata {
                 duration,
                 channels,
                 sample_rate,
@@ -177,7 +180,7 @@ impl Metadata {
             .update(ContentMetadataFlags::RELIABLE)
         {
             if let Some(audio_content) = self.import_audio_content(importer) {
-                track.media_source.content = Content::Audio(audio_content);
+                track.media_source.content_metadata = ContentMetadata::Audio(audio_content);
             }
         }
 
@@ -470,7 +473,7 @@ pub fn export_track_to_path(
         Err(err) => {
             log::warn!(
                 "Failed to parse metadata from media source '{}': {}",
-                track.media_source.path,
+                track.media_source.content_link.path,
                 err
             );
             return Err(map_metaflac_err(err));

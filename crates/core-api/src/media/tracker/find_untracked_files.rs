@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{media::SourcePath, util::url::BaseUrl};
+use aoide_core::{media::content::ContentPath, util::url::BaseUrl};
 
 use super::Completion;
 
@@ -22,7 +22,7 @@ pub type Params = super::FsTraversalParams;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
-    pub root_path: SourcePath,
+    pub root_path: ContentPath,
     pub completion: Completion,
-    pub source_paths: Vec<SourcePath>,
+    pub source_paths: Vec<ContentPath>,
 }

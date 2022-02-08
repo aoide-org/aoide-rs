@@ -25,10 +25,9 @@ table! {
         collection_id -> BigInt,
         collected_at -> Text,
         collected_ms -> BigInt,
-        external_rev -> Nullable<BigInt>,
-        path -> Text,
+        content_link_path -> Text,
+        content_link_rev -> Nullable<BigInt>,
         content_type -> Text,
-        advisory_rating -> Nullable<SmallInt>,
         content_digest -> Nullable<Binary>,
         content_metadata_flags -> SmallInt,
         audio_duration_ms -> Nullable<Double>,
@@ -45,6 +44,7 @@ table! {
         artwork_size_width -> Nullable<SmallInt>,
         artwork_size_height -> Nullable<SmallInt>,
         artwork_thumbnail -> Nullable<Binary>,
+        advisory_rating -> Nullable<SmallInt>,
     }
 }
 

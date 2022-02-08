@@ -178,6 +178,22 @@ impl TrackSearchQueryTransform for SortOrder {
                     query.then_order_by(media_source::audio_samplerate_hz.desc())
                 }
             },
+            SortField::CollectedAt => match direction {
+                SortDirection::Ascending => query.then_order_by(media_source::collected_ms.asc()),
+                SortDirection::Descending => query.then_order_by(media_source::collected_ms.desc()),
+            },
+            SortField::ContentPath => match direction {
+                SortDirection::Ascending => {
+                    query.then_order_by(media_source::content_link_path.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(media_source::content_link_path.desc())
+                }
+            },
+            SortField::ContentType => match direction {
+                SortDirection::Ascending => query.then_order_by(media_source::content_type.asc()),
+                SortDirection::Descending => query.then_order_by(media_source::content_type.desc()),
+            },
             SortField::CreatedAt => match direction {
                 SortDirection::Ascending => query.then_order_by(track::row_created_ms.asc()),
                 SortDirection::Descending => query.then_order_by(track::row_created_ms.desc()),
@@ -225,18 +241,6 @@ impl TrackSearchQueryTransform for SortOrder {
             SortField::ReleasedBy => match direction {
                 SortDirection::Ascending => query.then_order_by(track::released_by.asc()),
                 SortDirection::Descending => query.then_order_by(track::released_by.desc()),
-            },
-            SortField::SourceCollectedAt => match direction {
-                SortDirection::Ascending => query.then_order_by(media_source::collected_ms.asc()),
-                SortDirection::Descending => query.then_order_by(media_source::collected_ms.desc()),
-            },
-            SortField::SourcePath => match direction {
-                SortDirection::Ascending => query.then_order_by(media_source::path.asc()),
-                SortDirection::Descending => query.then_order_by(media_source::path.desc()),
-            },
-            SortField::SourceType => match direction {
-                SortDirection::Ascending => query.then_order_by(media_source::content_type.asc()),
-                SortDirection::Descending => query.then_order_by(media_source::content_type.desc()),
             },
             SortField::TimesPlayed => match direction {
                 SortDirection::Ascending => query.then_order_by(track::times_played.asc()),
@@ -301,23 +305,27 @@ fn build_phrase_field_filter_expression(
         || filter
             .fields
             .iter()
-            .any(|target| *target == StringField::SourcePath)
+            .any(|target| *target == StringField::ContentPath)
     {
         or_expression = if like_expr.is_empty() {
             Box::new(
                 or_expression
-                    .or(media_source::path.is_null())
-                    .or(media_source::path.eq(String::default())),
+                    .or(media_source::content_link_path.is_null())
+                    .or(media_source::content_link_path.eq(String::default())),
             )
         } else {
-            Box::new(or_expression.or(media_source::path.like(like_expr.clone()).escape('\\')))
+            Box::new(
+                or_expression.or(media_source::content_link_path
+                    .like(like_expr.clone())
+                    .escape('\\')),
+            )
         };
     }
     if filter.fields.is_empty()
         || filter
             .fields
             .iter()
-            .any(|target| *target == StringField::SourceType)
+            .any(|target| *target == StringField::ContentType)
     {
         or_expression = if like_expr.is_empty() {
             Box::new(
@@ -785,6 +793,28 @@ fn build_datetime_field_filter_expression(
     use DateTimeField::*;
     use ScalarPredicate::*;
     match filter.field {
+        CollectedAt => match filter.predicate {
+            LessThan(value) => Box::new(media_source::collected_ms.lt(value.timestamp_millis())),
+            LessOrEqual(value) => Box::new(media_source::collected_ms.le(value.timestamp_millis())),
+            GreaterThan(value) => Box::new(media_source::collected_ms.gt(value.timestamp_millis())),
+            GreaterOrEqual(value) => {
+                Box::new(media_source::collected_ms.ge(value.timestamp_millis()))
+            }
+            Equal(value) => {
+                if let Some(value) = value {
+                    Box::new(media_source::collected_ms.eq(value.timestamp_millis()))
+                } else {
+                    Box::new(media_source::collected_ms.is_null())
+                }
+            }
+            NotEqual(value) => {
+                if let Some(value) = value {
+                    Box::new(media_source::collected_ms.ne(value.timestamp_millis()))
+                } else {
+                    Box::new(media_source::collected_ms.is_not_null())
+                }
+            }
+        },
         LastPlayedAt => match filter.predicate {
             LessThan(value) => Box::new(track::last_played_ms.lt(value.timestamp_millis())),
             LessOrEqual(value) => Box::new(track::last_played_ms.le(value.timestamp_millis())),
@@ -862,28 +892,6 @@ fn build_datetime_field_filter_expression(
                     Box::new(track::released_orig_ms.ne(value.timestamp_millis()))
                 } else {
                     Box::new(track::released_orig_ms.is_not_null())
-                }
-            }
-        },
-        SourceCollectedAt => match filter.predicate {
-            LessThan(value) => Box::new(media_source::collected_ms.lt(value.timestamp_millis())),
-            LessOrEqual(value) => Box::new(media_source::collected_ms.le(value.timestamp_millis())),
-            GreaterThan(value) => Box::new(media_source::collected_ms.gt(value.timestamp_millis())),
-            GreaterOrEqual(value) => {
-                Box::new(media_source::collected_ms.ge(value.timestamp_millis()))
-            }
-            Equal(value) => {
-                if let Some(value) = value {
-                    Box::new(media_source::collected_ms.eq(value.timestamp_millis()))
-                } else {
-                    Box::new(media_source::collected_ms.is_null())
-                }
-            }
-            NotEqual(value) => {
-                if let Some(value) = value {
-                    Box::new(media_source::collected_ms.ne(value.timestamp_millis()))
-                } else {
-                    Box::new(media_source::collected_ms.is_not_null())
                 }
             }
         },

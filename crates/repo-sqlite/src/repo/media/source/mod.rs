@@ -15,7 +15,7 @@
 
 use crate::{
     db::{
-        media_source::{models::*, schema::*, select_row_id_filtered_by_path_predicate},
+        media_source::{models::*, schema::*, select_row_id_filtered_by_content_path_predicate},
         media_tracker::schema::*,
         track::schema::*,
     },
@@ -23,7 +23,7 @@ use crate::{
 };
 
 use aoide_core::{
-    media::{Source, SourcePath},
+    media::{content::ContentPath, Source},
     util::clock::DateTime,
 };
 
@@ -75,18 +75,20 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     ) -> RepoResult<(RecordId, Option<u64>)> {
         debug_assert!(!path.ends_with('/'));
         media_source::table
-            .select((media_source::row_id, media_source::external_rev))
+            .select((media_source::row_id, media_source::content_link_rev))
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_source::path.eq(path))
+            .filter(media_source::content_link_path.eq(path))
             .first::<(RowId, Option<i64>)>(self.as_ref())
-            .map(|(row_id, external_rev)| (row_id.into(), external_rev.map(|rev| rev as u64)))
+            .map(|(row_id, content_link_rev)| {
+                (row_id.into(), content_link_rev.map(|rev| rev as u64))
+            })
             .map_err(repo_error)
     }
 
-    fn resolve_media_source_ids_by_path_predicate(
+    fn resolve_media_source_ids_by_content_path_predicate(
         &self,
         collection_id: CollectionId,
-        path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<Vec<RecordId>> {
         media_source::table
             .select(media_source::row_id)
@@ -94,9 +96,9 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
             // even if it might be slightly less efficient! The query optimizer
             // should detect this.
             .filter(
-                media_source::row_id.eq_any(select_row_id_filtered_by_path_predicate(
+                media_source::row_id.eq_any(select_row_id_filtered_by_content_path_predicate(
                     collection_id,
-                    path_predicate,
+                    content_path_predicate,
                 )),
             )
             .load::<RowId>(self.as_ref())
@@ -104,60 +106,63 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
             .map(|v| v.into_iter().map(RecordId::new).collect())
     }
 
-    fn relocate_media_sources_by_path_prefix(
+    fn relocate_media_sources_by_content_path_prefix(
         &self,
         collection_id: CollectionId,
         updated_at: DateTime,
-        old_path_prefix: &SourcePath,
-        new_path_prefix: &SourcePath,
+        old_content_path_prefix: &ContentPath,
+        new_content_path_prefix: &ContentPath,
     ) -> RepoResult<usize> {
         let target = media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
-            .filter(sql_column_substr_prefix_eq("path", old_path_prefix));
+            .filter(sql_column_substr_prefix_eq(
+                "content_link_path",
+                old_content_path_prefix,
+            ));
         diesel::update(target)
             .set((
                 media_source::row_updated_ms.eq(updated_at.timestamp_millis()),
-                media_source::path.eq(diesel::dsl::sql(&format!(
-                    "'{}' || substr(path,{})",
-                    escape_single_quotes(new_path_prefix),
-                    old_path_prefix.len() + 1
+                media_source::content_link_path.eq(diesel::dsl::sql(&format!(
+                    "'{}' || substr(content_link_path,{})",
+                    escape_single_quotes(new_content_path_prefix),
+                    old_content_path_prefix.len() + 1
                 ))),
             ))
             .execute(self.as_ref())
             .map_err(repo_error)
     }
 
-    fn purge_media_sources_by_path_predicate(
+    fn purge_media_sources_by_content_path_predicate(
         &self,
         collection_id: CollectionId,
-        path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
         // Reuse the tested subselect with reliable predicate filtering
         // even if it might be slightly less efficient! The query optimizer
         // should detect this.
         diesel::delete(media_source::table.filter(media_source::row_id.eq_any(
-            select_row_id_filtered_by_path_predicate(collection_id, path_predicate),
+            select_row_id_filtered_by_content_path_predicate(collection_id, content_path_predicate),
         )))
         .execute(self.as_ref())
         .map_err(repo_error)
     }
 
-    fn purge_orphaned_media_sources_by_path_predicate(
+    fn purge_orphaned_media_sources_by_content_path_predicate(
         &self,
         collection_id: CollectionId,
-        path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
         // Reuse the tested subselect with reliable predicate filtering
         // even if it might be slightly less efficient! The query optimizer
         // should detect this.
         diesel::delete(
             media_source::table
-                .filter(
-                    media_source::row_id.eq_any(select_row_id_filtered_by_path_predicate(
+                .filter(media_source::row_id.eq_any(
+                    select_row_id_filtered_by_content_path_predicate(
                         collection_id,
-                        path_predicate,
-                    )),
-                )
+                        content_path_predicate,
+                    ),
+                ))
                 // Restrict to orphaned media sources without a track
                 .filter(media_source::row_id.ne_all(track::table.select(track::media_source_id))),
         )
@@ -165,22 +170,22 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         .map_err(repo_error)
     }
 
-    fn purge_untracked_media_sources_by_path_predicate(
+    fn purge_untracked_media_sources_by_content_path_predicate(
         &self,
         collection_id: CollectionId,
-        path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
         // Reuse the tested subselect with reliable predicate filtering
         // even if it might be slightly less efficient! The query optimizer
         // should detect this.
         diesel::delete(
             media_source::table
-                .filter(
-                    media_source::row_id.eq_any(select_row_id_filtered_by_path_predicate(
+                .filter(media_source::row_id.eq_any(
+                    select_row_id_filtered_by_content_path_predicate(
                         collection_id,
-                        path_predicate,
-                    )),
-                )
+                        content_path_predicate,
+                    ),
+                ))
                 // Restrict to untracked media sources
                 .filter(
                     media_source::row_id.ne_all(
@@ -201,9 +206,11 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         let insertable = InsertableRecord::bind(created_at, collection_id, created_source);
         let query = diesel::insert_into(media_source::table).values(&insertable);
         let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
-        debug_assert!(rows_affected == 1);
-        let (id, _) = self
-            .resolve_media_source_id_synchronized_at_by_path(collection_id, &created_source.path)?;
+        debug_assert_eq!(1, rows_affected);
+        let (id, _) = self.resolve_media_source_id_synchronized_at_by_path(
+            collection_id,
+            &created_source.content_link.path,
+        )?;
         Ok(RecordHeader {
             id,
             created_at,
@@ -218,7 +225,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     ) -> RepoResult<(RecordHeader, Source)> {
         media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_source::path.eq(path))
+            .filter(media_source::content_link_path.eq(path))
             .first::<QueryableRecord>(self.as_ref())
             .map_err(repo_error)
             .and_then(|record| record.try_into().map_err(Into::into))

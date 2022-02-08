@@ -38,7 +38,7 @@ use aoide_repo::{
 use crate::{
     collection::vfs::RepoContext,
     track::replace::{
-        import_and_replace_by_local_file_path_from_directory_with_source_path_resolver,
+        import_and_replace_by_local_file_path_from_directory_with_content_path_resolver,
         Completion as ReplaceCompletion, Outcome as ReplaceOutcome,
     },
 };
@@ -134,7 +134,7 @@ pub fn import_files<
             } = pending_directory;
             debug_assert!(_status.is_pending());
             let outcome =
-                match import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
+                match import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
                     repo,
                     collection_id,
                     &vfs_ctx.path_resolver,

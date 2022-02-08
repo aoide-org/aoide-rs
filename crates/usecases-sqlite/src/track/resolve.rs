@@ -19,7 +19,7 @@ use aoide_usecases::track::resolve as uc;
 
 use super::*;
 
-pub fn resolve_by_media_source_paths(
+pub fn resolve_by_media_source_content_paths(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     media_source_paths: Vec<String>,
@@ -27,7 +27,7 @@ pub fn resolve_by_media_source_paths(
     let db = RepoConnection::new(connection);
     db.transaction::<_, RepoTransactionError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
-        uc::resolve_by_media_source_paths(&db, collection_id, media_source_paths)
+        uc::resolve_by_media_source_content_paths(&db, collection_id, media_source_paths)
             .map_err(Into::into)
     })
     .map_err(Into::into)

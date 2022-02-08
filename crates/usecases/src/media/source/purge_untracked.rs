@@ -50,7 +50,10 @@ where
         repo.purge_untracked_media_sources(collection_id)
     } else {
         let root_path_predicate = StringPredicateBorrowed::Prefix(&vfs_ctx.root_path);
-        repo.purge_untracked_media_sources_by_path_predicate(collection_id, root_path_predicate)
+        repo.purge_untracked_media_sources_by_content_path_predicate(
+            collection_id,
+            root_path_predicate,
+        )
     }?;
     let (root_url, root_path) = collection_ctx
         .source_path

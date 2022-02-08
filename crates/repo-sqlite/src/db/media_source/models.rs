@@ -22,11 +22,18 @@ use aoide_core::{
     audio::{
         channel::{ChannelCount, NumberOfChannels},
         signal::{BitrateBps, BitsPerSecond, LoudnessLufs, SampleRateHz},
-        AudioContent, DurationMs,
+        DurationMs,
     },
     media::{
-        AdvisoryRating, ApicType, Artwork, ArtworkImage, Content, ContentMetadataFlags,
-        EmbeddedArtwork, ImageDimension, ImageSize, LinkedArtwork, Source,
+        artwork::{
+            ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
+            LinkedArtwork,
+        },
+        content::{
+            AudioContentMetadata, ContentLink, ContentMetadata, ContentMetadataFlags,
+            ContentRevision, ContentRevisionSignedValue,
+        },
+        AdvisoryRating, Source,
     },
     util::clock::*,
 };
@@ -48,10 +55,9 @@ pub struct QueryableRecord {
     pub collection_id: RowId,
     pub collected_at: String,
     pub collected_ms: TimestampMillis,
-    pub external_rev: Option<i64>,
-    pub path: String,
+    pub content_link_path: String,
+    pub content_link_rev: Option<ContentRevisionSignedValue>,
     pub content_type: String,
-    pub advisory_rating: Option<i16>,
     pub content_digest: Option<Vec<u8>>,
     pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
@@ -68,6 +74,7 @@ pub struct QueryableRecord {
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
     pub artwork_thumbnail: Option<Vec<u8>>,
+    pub advisory_rating: Option<i16>,
 }
 
 impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
@@ -81,10 +88,9 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             collection_id: _,
             collected_at,
             collected_ms,
-            external_rev,
-            path,
+            content_link_path,
+            content_link_rev,
             content_type,
-            advisory_rating,
             content_digest,
             content_metadata_flags,
             audio_duration_ms,
@@ -101,8 +107,9 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             artwork_size_width,
             artwork_size_height,
             artwork_thumbnail,
+            advisory_rating,
         } = from;
-        let audio_content = AudioContent {
+        let audio_metadata = AudioContentMetadata {
             duration: audio_duration_ms.map(DurationMs::from_inner),
             channels: audio_channel_count.map(|val| ChannelCount(val as NumberOfChannels).into()),
             sample_rate: audio_samplerate_hz.map(SampleRateHz::from_inner),
@@ -166,20 +173,28 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             created_at: DateTime::new_timestamp_millis(row_created_ms),
             updated_at: DateTime::new_timestamp_millis(row_updated_ms),
         };
+
+        let collected_at = parse_datetime(&collected_at, collected_ms);
         let content_type = content_type.parse()?;
-        let source = Source {
-            collected_at: parse_datetime(&collected_at, collected_ms),
-            external_rev: external_rev.map(|rev| rev as u64),
-            path: path.into(),
-            content_type,
-            advisory_rating: advisory_rating.and_then(AdvisoryRating::from_i16),
-            content_digest,
-            content_metadata_flags: ContentMetadataFlags::from_bits_truncate(
-                content_metadata_flags as u8,
-            ),
-            content: Content::Audio(audio_content),
-            artwork,
+        let content_link = ContentLink {
+            path: content_link_path.into(),
+            rev: content_link_rev.map(ContentRevision::from_signed_value),
         };
+        let content_metadata_flags =
+            ContentMetadataFlags::from_bits_truncate(content_metadata_flags as u8);
+        let content_metadata = ContentMetadata::Audio(audio_metadata);
+        let advisory_rating = advisory_rating.and_then(AdvisoryRating::from_i16);
+        let source = Source {
+            collected_at,
+            content_link,
+            content_type,
+            content_digest,
+            content_metadata_flags,
+            content_metadata,
+            artwork,
+            advisory_rating,
+        };
+
         Ok((header, source))
     }
 }
@@ -192,8 +207,8 @@ pub struct InsertableRecord<'a> {
     pub collection_id: RowId,
     pub collected_at: String,
     pub collected_ms: TimestampMillis,
-    pub external_rev: Option<i64>,
-    pub path: &'a str,
+    pub content_link_rev: Option<ContentRevisionSignedValue>,
+    pub content_link_path: &'a str,
     pub content_type: String,
     pub advisory_rating: Option<i16>,
     pub content_digest: Option<&'a [u8]>,
@@ -222,18 +237,21 @@ impl<'a> InsertableRecord<'a> {
     ) -> Self {
         let Source {
             collected_at,
-            external_rev,
-            path,
+            content_link:
+                ContentLink {
+                    path: content_link_path,
+                    rev: content_link_rev,
+                },
             content_type,
-            advisory_rating,
             content_digest,
             content_metadata_flags,
-            content,
+            content_metadata,
             artwork,
+            advisory_rating,
         } = created_source;
-        let audio_content = {
-            match content {
-                Content::Audio(ref audio_content) => Some(audio_content),
+        let audio_metadata = {
+            match content_metadata {
+                ContentMetadata::Audio(ref audio_metadata) => Some(audio_metadata),
             }
         };
         let (artwork_source, artwork_uri, artwork_image) = artwork
@@ -285,28 +303,28 @@ impl<'a> InsertableRecord<'a> {
             collection_id: collection_id.into(),
             collected_at: collected_at.to_string(),
             collected_ms: collected_at.timestamp_millis(),
-            external_rev: external_rev.map(|rev| rev as i64),
-            path: path.as_str(),
+            content_link_path: content_link_path.as_str(),
+            content_link_rev: content_link_rev.map(ContentRevision::to_signed_value),
             content_type: content_type.to_string(),
             advisory_rating: advisory_rating.as_ref().and_then(ToPrimitive::to_i16),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
             content_metadata_flags: content_metadata_flags.bits() as i16,
-            audio_duration_ms: audio_content
+            audio_duration_ms: audio_metadata
                 .and_then(|audio| audio.duration)
                 .map(DurationMs::to_inner),
-            audio_channel_count: audio_content
+            audio_channel_count: audio_metadata
                 .and_then(|audio| audio.channels)
                 .map(|channels| channels.count().0 as i16),
-            audio_samplerate_hz: audio_content
+            audio_samplerate_hz: audio_metadata
                 .and_then(|audio| audio.sample_rate)
                 .map(SampleRateHz::to_inner),
-            audio_bitrate_bps: audio_content
+            audio_bitrate_bps: audio_metadata
                 .and_then(|audio| audio.bitrate)
                 .map(BitrateBps::to_inner),
-            audio_loudness_lufs: audio_content
+            audio_loudness_lufs: audio_metadata
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
-            audio_encoder: audio_content.and_then(|audio| audio.encoder.as_deref()),
+            audio_encoder: audio_metadata.and_then(|audio| audio.encoder.as_deref()),
             artwork_source: artwork_source.map(|v| v.write() as i16),
             artwork_uri,
             artwork_apic_type,
@@ -326,8 +344,8 @@ pub struct UpdatableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub collected_at: String,
     pub collected_ms: TimestampMillis,
-    pub external_rev: Option<i64>,
-    pub path: &'a str,
+    pub content_link_rev: Option<ContentRevisionSignedValue>,
+    pub content_link_path: &'a str,
     pub content_type: String,
     pub advisory_rating: Option<i16>,
     pub content_digest: Option<&'a [u8]>,
@@ -352,18 +370,21 @@ impl<'a> UpdatableRecord<'a> {
     pub fn bind(updated_at: DateTime, updated_source: &'a Source) -> Self {
         let Source {
             collected_at,
-            external_rev,
-            path,
+            content_link:
+                ContentLink {
+                    path: content_link_path,
+                    rev: content_link_rev,
+                },
             content_type,
-            advisory_rating,
             content_digest,
             content_metadata_flags,
-            content,
+            content_metadata,
             artwork,
+            advisory_rating,
         } = updated_source;
-        let audio_content = {
-            match content {
-                Content::Audio(ref audio_content) => Some(audio_content),
+        let audio_metadata = {
+            match content_metadata {
+                ContentMetadata::Audio(ref audio_metadata) => Some(audio_metadata),
             }
         };
         let (artwork_source, artwork_uri, artwork_image) = artwork
@@ -412,28 +433,28 @@ impl<'a> UpdatableRecord<'a> {
             row_updated_ms: updated_at.timestamp_millis(),
             collected_at: collected_at.to_string(),
             collected_ms: collected_at.timestamp_millis(),
-            external_rev: external_rev.map(|rev| rev as i64),
-            path: path.as_str(),
+            content_link_path: content_link_path.as_str(),
+            content_link_rev: content_link_rev.map(ContentRevision::to_signed_value),
             content_type: content_type.to_string(),
             advisory_rating: advisory_rating.as_ref().and_then(ToPrimitive::to_i16),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
             content_metadata_flags: content_metadata_flags.bits() as i16,
-            audio_duration_ms: audio_content
+            audio_duration_ms: audio_metadata
                 .and_then(|audio| audio.duration)
                 .map(DurationMs::to_inner),
-            audio_channel_count: audio_content
+            audio_channel_count: audio_metadata
                 .and_then(|audio| audio.channels)
                 .map(|channels| channels.count().0 as i16),
-            audio_samplerate_hz: audio_content
+            audio_samplerate_hz: audio_metadata
                 .and_then(|audio| audio.sample_rate)
                 .map(SampleRateHz::to_inner),
-            audio_bitrate_bps: audio_content
+            audio_bitrate_bps: audio_metadata
                 .and_then(|audio| audio.bitrate)
                 .map(BitrateBps::to_inner),
-            audio_loudness_lufs: audio_content
+            audio_loudness_lufs: audio_metadata
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
-            audio_encoder: audio_content.and_then(|audio| audio.encoder.as_deref()),
+            audio_encoder: audio_metadata.and_then(|audio| audio.encoder.as_deref()),
             artwork_source: artwork_source.map(|v| v.write() as i16),
             artwork_uri,
             artwork_apic_type,

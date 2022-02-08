@@ -20,9 +20,11 @@ use aoide_core::{
     audio::{
         channel::ChannelCount,
         signal::{BitrateBps, SampleRateHz},
-        AudioContent,
     },
-    media::{ApicType, Content, ContentMetadataFlags},
+    media::{
+        artwork::ApicType,
+        content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
+    },
     track::Track,
 };
 
@@ -56,7 +58,7 @@ impl Metadata {
     }
 
     #[must_use]
-    pub fn import_audio_content(&self, importer: &mut Importer) -> AudioContent {
+    pub fn import_audio_content(&self, importer: &mut Importer) -> AudioContentMetadata {
         let Self(ident_header, vorbis_comments) = &self;
         let channel_count = ChannelCount(ident_header.audio_channels.into());
         let channels = if channel_count.is_valid() {
@@ -83,7 +85,7 @@ impl Metadata {
         let encoder = vorbis::import_encoder(vorbis_comments).map(Into::into);
         // TODO: The duration is not available from any header!?
         let duration = None;
-        AudioContent {
+        AudioContentMetadata {
             duration,
             channels,
             sample_rate,
@@ -105,7 +107,7 @@ impl Metadata {
             .update(ContentMetadataFlags::RELIABLE)
         {
             let audio_content = self.import_audio_content(importer);
-            track.media_source.content = Content::Audio(audio_content);
+            track.media_source.content_metadata = ContentMetadata::Audio(audio_content);
         }
 
         let Self(_, vorbis_comments) = &self;

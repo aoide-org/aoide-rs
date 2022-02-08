@@ -19,7 +19,11 @@ use semval::IsValid as _;
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{ApicType, Content, Source, SourcePath},
+    media::{
+        artwork::ApicType,
+        content::{ContentMetadata, ContentPath, ContentRevision},
+        Source,
+    },
     music::{key::KeySignature, tempo::TempoBpm},
     tag::{
         CowLabel, FacetId as TagFacetId, Label as TagLabel, LabelValue, PlainTag,
@@ -130,26 +134,28 @@ pub struct ImportTrackConfig {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct NewTrackInput {
     pub collected_at: DateTime,
-    pub external_rev: u64,
+    pub content_rev: Option<ContentRevision>,
 }
 
 impl NewTrackInput {
     #[must_use]
-    pub fn into_new_track(self, path: SourcePath, content_type: Mime) -> Track {
+    pub fn into_new_track(self, path: ContentPath, content_type: Mime) -> Track {
         let Self {
             collected_at,
-            external_rev,
+            content_rev,
         } = self;
         let media_source = Source {
             collected_at,
-            external_rev: Some(external_rev),
-            path,
+            content_link: aoide_core::media::content::ContentLink {
+                path,
+                rev: content_rev,
+            },
             content_type,
+            content_metadata: ContentMetadata::Audio(Default::default()),
+            content_metadata_flags: Default::default(),
+            artwork: Default::default(),
             advisory_rating: None,
             content_digest: None,
-            content_metadata_flags: Default::default(),
-            content: Content::Audio(Default::default()),
-            artwork: Default::default(),
         };
         Track::new_from_media_source(media_source)
     }
@@ -222,7 +228,7 @@ pub fn import_into_track(
     .map_err(|err| {
         log::warn!(
             "Failed to parse metadata from media source '{}': {}",
-            track.media_source.path,
+            track.media_source.content_link.path,
             err
         );
         err
@@ -306,9 +312,10 @@ pub fn load_embedded_artwork_image_from_file_path(
                 metadata
                     .find_embedded_artwork_image(importer)
                     .map(|(apic_type, media_type, image_data)| {
+                        let media_type = parse_media_type(&media_type)?;
                         Ok(LoadedArtworkImage {
                             apic_type: Some(apic_type),
-                            media_type: parse_media_type(&media_type)?,
+                            media_type,
                             image_data,
                         })
                     })
@@ -320,9 +327,10 @@ pub fn load_embedded_artwork_image_from_file_path(
             metadata
                 .find_embedded_artwork_image(importer)
                 .map(|(apic_type, media_type, image_data)| {
+                    let media_type = parse_media_type(&media_type)?;
                     Ok(LoadedArtworkImage {
                         apic_type: Some(apic_type),
-                        media_type: parse_media_type(&media_type)?,
+                        media_type,
                         image_data,
                     })
                 })

@@ -45,6 +45,9 @@ pub enum SortField {
     AudioDurationMs,
     AudioLoudnessLufs,
     AudioSampleRateHz,
+    CollectedAt,
+    ContentPath,
+    ContentType,
     CreatedAt,
     DiscNumber,
     DiscTotal,
@@ -55,9 +58,6 @@ pub enum SortField {
     ReleasedAtDate,
     ReleasedOrigAtDate,
     ReleasedBy,
-    SourceCollectedAt,
-    SourceType,
-    SourcePath,
     TrackArtist,
     TrackNumber,
     TrackTitle,
@@ -78,6 +78,9 @@ impl From<SortField> for _inner::SortField {
             AudioDurationMs => Self::AudioDurationMs,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,
             AudioSampleRateHz => Self::AudioSampleRateHz,
+            CollectedAt => Self::CollectedAt,
+            ContentPath => Self::ContentPath,
+            ContentType => Self::ContentType,
             CreatedAt => Self::CreatedAt,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
@@ -88,9 +91,6 @@ impl From<SortField> for _inner::SortField {
             ReleasedAtDate => Self::ReleasedAtDate,
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
             ReleasedBy => Self::ReleasedBy,
-            SourceCollectedAt => Self::SourceCollectedAt,
-            SourcePath => Self::SourcePath,
-            SourceType => Self::SourceType,
             TimesPlayed => Self::TimesPlayed,
             TrackArtist => Self::TrackArtist,
             TrackNumber => Self::TrackNumber,
@@ -113,6 +113,9 @@ impl From<_inner::SortField> for SortField {
             AudioDurationMs => Self::AudioDurationMs,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,
             AudioSampleRateHz => Self::AudioSampleRateHz,
+            CollectedAt => Self::CollectedAt,
+            ContentPath => Self::ContentPath,
+            ContentType => Self::ContentType,
             CreatedAt => Self::CreatedAt,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
@@ -123,9 +126,6 @@ impl From<_inner::SortField> for SortField {
             ReleasedAtDate => Self::ReleasedAtDate,
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
             ReleasedBy => Self::ReleasedBy,
-            SourceCollectedAt => Self::SourceCollectedAt,
-            SourcePath => Self::SourcePath,
-            SourceType => Self::SourceType,
             TimesPlayed => Self::TimesPlayed,
             TrackArtist => Self::TrackArtist,
             TrackNumber => Self::TrackNumber,
@@ -168,8 +168,8 @@ impl From<_inner::SortOrder> for SortOrder {
 pub enum StringField {
     AlbumArtist,
     AlbumTitle,
-    SourceType,
-    SourcePath,
+    ContentPath,
+    ContentType,
     TrackArtist,
     TrackComposer,
     TrackTitle,
@@ -183,8 +183,8 @@ impl From<StringField> for _inner::StringField {
         match from {
             AlbumArtist => Self::AlbumArtist,
             AlbumTitle => Self::AlbumTitle,
-            SourceType => Self::SourceType,
-            SourcePath => Self::SourcePath,
+            ContentPath => Self::ContentPath,
+            ContentType => Self::ContentType,
             TrackArtist => Self::TrackArtist,
             TrackComposer => Self::TrackComposer,
             TrackTitle => Self::TrackTitle,
@@ -200,8 +200,8 @@ impl From<_inner::StringField> for StringField {
         match from {
             AlbumArtist => Self::AlbumArtist,
             AlbumTitle => Self::AlbumTitle,
-            SourceType => Self::SourceType,
-            SourcePath => Self::SourcePath,
+            ContentPath => Self::ContentPath,
+            ContentType => Self::ContentType,
             TrackArtist => Self::TrackArtist,
             TrackComposer => Self::TrackComposer,
             TrackTitle => Self::TrackTitle,
@@ -288,11 +288,11 @@ impl From<_inner::NumericField> for NumericField {
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub enum DateTimeField {
+    CollectedAt,
     LastPlayedAt,
     RecordedAt,
     ReleasedAt,
     ReleasedOrigAt,
-    SourceCollectedAt,
 }
 
 #[cfg(feature = "backend")]
@@ -300,11 +300,11 @@ impl From<DateTimeField> for _inner::DateTimeField {
     fn from(from: DateTimeField) -> Self {
         use DateTimeField::*;
         match from {
+            CollectedAt => Self::CollectedAt,
             LastPlayedAt => Self::LastPlayedAt,
             RecordedAt => Self::RecordedAt,
             ReleasedAt => Self::ReleasedAt,
             ReleasedOrigAt => Self::ReleasedOrigAt,
-            SourceCollectedAt => Self::SourceCollectedAt,
         }
     }
 }
@@ -314,11 +314,11 @@ impl From<_inner::DateTimeField> for DateTimeField {
     fn from(from: _inner::DateTimeField) -> Self {
         use _inner::DateTimeField::*;
         match from {
+            CollectedAt => Self::CollectedAt,
             LastPlayedAt => Self::LastPlayedAt,
             RecordedAt => Self::RecordedAt,
             ReleasedAt => Self::ReleasedAt,
             ReleasedOrigAt => Self::ReleasedOrigAt,
-            SourceCollectedAt => Self::SourceCollectedAt,
         }
     }
 }
@@ -482,7 +482,7 @@ impl From<_inner::SearchFilter> for SearchFilter {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub resolve_url_from_path: Option<bool>,
+    pub resolve_url_from_content_path: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub override_root_url: Option<Url>,
@@ -513,24 +513,24 @@ pub struct SearchParams {
 
 #[cfg(feature = "frontend")]
 pub fn client_query_params(
-    resolve_url_from_path: Option<aoide_core_api::media::source::ResolveUrlFromPath>,
+    resolve_url_from_content_path: Option<aoide_core_api::media::source::ResolveUrlFromContentPath>,
     pagination: impl Into<Pagination>,
 ) -> QueryParams {
-    use aoide_core_api::media::source::ResolveUrlFromPath;
+    use aoide_core_api::media::source::ResolveUrlFromContentPath;
 
     let Pagination { limit, offset } = pagination.into();
-    let (resolve_url_from_path, override_root_url) =
-        if let Some(resolve_url_from_path) = resolve_url_from_path {
-            let override_root_url = match resolve_url_from_path {
-                ResolveUrlFromPath::CanonicalRootUrl => None,
-                ResolveUrlFromPath::OverrideRootUrl { root_url } => Some(root_url),
+    let (resolve_url_from_content_path, override_root_url) =
+        if let Some(resolve_url_from_content_path) = resolve_url_from_content_path {
+            let override_root_url = match resolve_url_from_content_path {
+                ResolveUrlFromContentPath::CanonicalRootUrl => None,
+                ResolveUrlFromContentPath::OverrideRootUrl { root_url } => Some(root_url),
             };
             (true, override_root_url)
         } else {
             (false, None)
         };
     QueryParams {
-        resolve_url_from_path: Some(resolve_url_from_path),
+        resolve_url_from_content_path: Some(resolve_url_from_content_path),
         override_root_url: override_root_url.map(Into::into),
         limit,
         offset,
@@ -543,11 +543,11 @@ pub fn client_request_params(
     pagination: impl Into<Pagination>,
 ) -> (QueryParams, SearchParams) {
     let _inner::Params {
-        resolve_url_from_path,
+        resolve_url_from_content_path,
         filter,
         ordering,
     } = params;
-    let query_params = client_query_params(resolve_url_from_path, pagination);
+    let query_params = client_query_params(resolve_url_from_content_path, pagination);
     let search_params = SearchParams {
         filter: filter.map(Into::into),
         ordering: ordering.into_iter().map(Into::into).collect(),

@@ -13,304 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    borrow::Cow,
-    fmt,
-    ops::{Deref, DerefMut},
-};
+use std::borrow::Cow;
 
-use bitflags::bitflags;
 use mime::Mime;
 use num_derive::{FromPrimitive, ToPrimitive};
 
-use crate::{
-    audio::{AudioContent, AudioContentInvalidity},
-    prelude::{url::BaseUrl, *},
+use crate::prelude::*;
+
+use self::{
+    artwork::{Artwork, ArtworkInvalidity},
+    content::{
+        AudioContentMetadataInvalidity, ContentLink, ContentMetadata, ContentMetadataFlags,
+        ContentMetadataFlagsInvalidity,
+    },
 };
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
-pub struct SourcePath(String);
-
-impl SourcePath {
-    #[must_use]
-    pub const fn new(inner: String) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub fn into_inner(self) -> String {
-        let Self(inner) = self;
-        inner
-    }
-
-    #[must_use]
-    pub fn is_terminal(&self) -> bool {
-        !(self.is_empty() || self.ends_with('/'))
-    }
-}
-
-impl From<String> for SourcePath {
-    fn from(from: String) -> Self {
-        Self::new(from)
-    }
-}
-
-impl From<SourcePath> for String {
-    fn from(from: SourcePath) -> Self {
-        from.into_inner()
-    }
-}
-
-impl AsRef<str> for &SourcePath {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Deref for SourcePath {
-    type Target = String;
-
-    fn deref(&self) -> &String {
-        &self.0
-    }
-}
-
-impl DerefMut for SourcePath {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl fmt::Display for SourcePath {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self)
-    }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
-#[repr(u8)]
-pub enum SourcePathKind {
-    /// Percent-encoded, canonical URI (case-sensitive)
-    Uri = 0,
-
-    /// Percent-encoded, canonical URL (case-sensitive)
-    Url = 1,
-
-    /// Percent-encoded, canonical URL with the scheme "file" (case-sensitive)
-    FileUrl = 2,
-
-    /// Relative file path with '/' as path separator (case-sensitive)
-    ///
-    /// An accompanying root or base URL must be provided by the outer context
-    /// to reconstruct the corresponding `file://` URL.
-    ///
-    /// Relative file paths are NOT percent-encoded, i.e. may contain reserved
-    /// characters like ' ', '#', or '?'.
-    VirtualFilePath = 3,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SourcePathConfig {
-    Uri,
-    Url,
-    FileUrl,
-    VirtualFilePath { root_url: BaseUrl },
-}
-
-impl SourcePathConfig {
-    #[must_use]
-    pub fn kind(&self) -> SourcePathKind {
-        match self {
-            Self::Uri => SourcePathKind::Uri,
-            Self::Url => SourcePathKind::Url,
-            Self::FileUrl => SourcePathKind::FileUrl,
-            Self::VirtualFilePath { .. } => SourcePathKind::VirtualFilePath,
-        }
-    }
-
-    #[must_use]
-    pub fn root_url(&self) -> Option<&BaseUrl> {
-        match self {
-            Self::VirtualFilePath { root_url } => Some(root_url),
-            Self::Uri | Self::Url | Self::FileUrl => None,
-        }
-    }
-}
-
-/// Composition
-impl TryFrom<(SourcePathKind, Option<BaseUrl>)> for SourcePathConfig {
-    type Error = anyhow::Error;
-
-    fn try_from((path_kind, root_url): (SourcePathKind, Option<BaseUrl>)) -> anyhow::Result<Self> {
-        use SourcePathKind::*;
-        let into = match path_kind {
-            Uri => Self::Uri,
-            Url => Self::Url,
-            FileUrl => Self::FileUrl,
-            VirtualFilePath => {
-                if let Some(root_url) = root_url {
-                    Self::VirtualFilePath { root_url }
-                } else {
-                    anyhow::bail!("Missing root URL");
-                }
-            }
-        };
-        Ok(into)
-    }
-}
-
-/// Decomposition
-impl From<SourcePathConfig> for (SourcePathKind, Option<BaseUrl>) {
-    fn from(from: SourcePathConfig) -> Self {
-        use SourcePathConfig::*;
-        match from {
-            Uri => (SourcePathKind::Uri, None),
-            Url => (SourcePathKind::Url, None),
-            FileUrl => (SourcePathKind::FileUrl, None),
-            VirtualFilePath { root_url } => (SourcePathKind::VirtualFilePath, Some(root_url)),
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum SourcePathConfigInvalidity {
-    RootUrl,
-}
-
-impl Validate for SourcePathConfig {
-    type Invalidity = SourcePathConfigInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let mut context = ValidationContext::new();
-        if let Self::VirtualFilePath { root_url } = self {
-            context = context.invalidate_if(!root_url.is_file(), Self::Invalidity::RootUrl);
-        }
-        context.into()
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Content
-///////////////////////////////////////////////////////////////////////
-
-bitflags! {
-    /// A bitmask for controlling how and if content metadata is
-    /// re-imported from the source.
-    pub struct ContentMetadataFlags: u8 {
-        /// Use case: Parsed from file tags which are considered inaccurate
-        /// and are often imprecise.
-        const UNRELIABLE = 0b0000_0000;
-
-        /// Use case: Reported by a decoder when opening an audio/video
-        /// stream for reading. Nevertheless different decoders may report
-        /// slightly differing values.
-        const RELIABLE   = 0b0000_0001;
-
-        /// Locked metadata will not be updated automatically, neither when
-        /// parsing file tags nor when decoding an audio/video stream.
-        ///
-        /// While locked the stale flag is never set.
-        const LOCKED     = 0b0000_0010;
-
-        /// Stale metadata should be re-imported depending on the other
-        /// flags.
-        const STALE      = 0b0000_0100;
-    }
-}
-
-impl ContentMetadataFlags {
-    #[must_use]
-    pub fn is_valid(self) -> bool {
-        Self::all().contains(self)
-    }
-
-    #[must_use]
-    pub fn is_unreliable(self) -> bool {
-        !self.intersects(Self::RELIABLE | Self::LOCKED)
-    }
-
-    #[must_use]
-    pub fn is_reliable(self) -> bool {
-        self.intersects(Self::RELIABLE)
-    }
-
-    #[must_use]
-    pub fn is_locked(self) -> bool {
-        self.intersects(Self::LOCKED)
-    }
-
-    #[must_use]
-    pub fn is_stale(self) -> bool {
-        self.intersects(Self::STALE)
-    }
-
-    /// Update the current state
-    ///
-    /// If the given target state is considered at least as reliable
-    /// as the current state then modifications are allowed by returning
-    /// `true` and the new target state is established.
-    ///
-    /// Otherwise the current state is preserved. The return value
-    /// `false` indicates that modification of metadata is not desired
-    /// to prevent loss of accuracy or precision. Instead the stale flag
-    /// is set (only if currently not locked) to indicate that an update
-    /// from a more reliable source of metadata should be considered.
-    ///
-    /// The given target state MUST NOT be marked as stale!
-    pub fn update(&mut self, target: Self) -> bool {
-        debug_assert!(!target.is_stale());
-        if (*self - Self::STALE) == target
-            || target.is_locked()
-            || (!self.is_locked() && target.is_reliable())
-        {
-            *self = target;
-            true
-        } else {
-            // Metadata does not get stale while locked
-            if !self.is_locked() {
-                *self |= Self::STALE;
-            }
-            false
-        }
-    }
-}
-
-impl Default for ContentMetadataFlags {
-    fn default() -> Self {
-        Self::UNRELIABLE
-    }
-}
-
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
-pub struct ContentMetadataFlagsInvalidity;
-
-impl Validate for ContentMetadataFlags {
-    type Invalidity = ContentMetadataFlagsInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(
-                !ContentMetadataFlags::is_valid(*self),
-                ContentMetadataFlagsInvalidity,
-            )
-            .into()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Content {
-    Audio(AudioContent),
-}
-
-impl From<AudioContent> for Content {
-    fn from(from: AudioContent) -> Self {
-        Self::Audio(from)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Encoder
-///////////////////////////////////////////////////////////////////////
+pub mod artwork;
+pub mod content;
 
 /// Concatenate encoder properties
 ///
@@ -360,172 +79,6 @@ pub fn concat_encoder_properties<'a>(
     }
 }
 
-///////////////////////////////////////////////////////////////////////
-// Artwork
-///////////////////////////////////////////////////////////////////////
-
-/// The APIC picture type code as defined by ID3v2.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, FromPrimitive, ToPrimitive)]
-#[repr(u8)]
-pub enum ApicType {
-    Other = 0x00,
-    Icon = 0x01,
-    OtherIcon = 0x02,
-    CoverFront = 0x03,
-    CoverBack = 0x04,
-    Leaflet = 0x05,
-    Media = 0x06,
-    LeadArtist = 0x07,
-    Artist = 0x08,
-    Conductor = 0x09,
-    Band = 0x0A,
-    Composer = 0x0B,
-    Lyricist = 0x0C,
-    RecordingLocation = 0x0D,
-    DuringRecording = 0x0E,
-    DuringPerformance = 0x0F,
-    ScreenCapture = 0x10,
-    BrightFish = 0x11,
-    Illustration = 0x12,
-    BandLogo = 0x13,
-    PublisherLogo = 0x14,
-}
-
-pub type ImageDimension = u16;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct ImageSize {
-    pub width: ImageDimension,
-    pub height: ImageDimension,
-}
-
-impl ImageSize {
-    #[must_use]
-    pub const fn is_empty(self) -> bool {
-        !(self.width > 0 && self.height > 0)
-    }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum ImageSizeInvalidity {
-    Empty,
-}
-
-impl Validate for ImageSize {
-    type Invalidity = ImageSizeInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(self.is_empty(), Self::Invalidity::Empty)
-            .into()
-    }
-}
-
-pub type Digest = [u8; 32];
-
-pub type Thumbnail4x4Rgb8 = [u8; 4 * 4 * 3];
-
-/// Artwork image properties
-///
-/// All properties are optional for maximum flexibility.
-/// Properties could be missing or are yet unknown at some point
-/// in time.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ArtworkImage {
-    pub media_type: Mime,
-
-    pub apic_type: ApicType,
-
-    /// The dimensions of the image (if known).
-    pub size: Option<ImageSize>,
-
-    /// Identifies the actual content, e.g. for cache lookup or to detect
-    /// modifications.
-    pub digest: Option<Digest>,
-
-    /// A 4x4 R8G8B8 thumbnail image.
-    pub thumbnail: Option<Thumbnail4x4Rgb8>,
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum ArtworkImageInvalidity {
-    MediaTypeEmpty,
-    Size(ImageSizeInvalidity),
-}
-
-impl Validate for ArtworkImage {
-    type Invalidity = ArtworkImageInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(
-                self.media_type.essence_str().is_empty(),
-                Self::Invalidity::MediaTypeEmpty,
-            )
-            .validate_with(&self.size, Self::Invalidity::Size)
-            .into()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EmbeddedArtwork {
-    pub image: ArtworkImage,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LinkedArtwork {
-    /// Absolute or relative URI/URL that links to the image.
-    pub uri: String,
-
-    pub image: ArtworkImage,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Artwork {
-    /// Artwork has been looked up at least once but nothing has been found.
-    Missing,
-
-    /// Artwork has been looked up at least once but the media type was not supported (yet).
-    Unsupported,
-
-    /// Artwork has been looked up at least once but the import failed unexpectedly.
-    Irregular,
-
-    /// The artwork is embedded in the media source.
-    Embedded(EmbeddedArtwork),
-
-    /// The artwork references an external image.
-    Linked(LinkedArtwork),
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum ArtworkInvalidity {
-    Image(ArtworkImageInvalidity),
-}
-
-impl Validate for Artwork {
-    type Invalidity = ArtworkInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let mut context = ValidationContext::new();
-        match self {
-            Self::Missing | Self::Unsupported | Self::Irregular => (),
-            Self::Embedded(embedded) => {
-                context = context.validate_with(&embedded.image, Self::Invalidity::Image);
-            }
-            Self::Linked(linked) => {
-                // TODO: Validate uri
-                context = context.validate_with(&linked.image, Self::Invalidity::Image);
-            }
-        }
-        context.into()
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Source
-///////////////////////////////////////////////////////////////////////
-
 /// Advisory rating code for content(s)
 ///
 /// Values match the "rtng" MP4 atom containing the advisory rating
@@ -559,49 +112,38 @@ impl AdvisoryRating {
 pub struct Source {
     pub collected_at: DateTime,
 
-    /// Revision number representing last, synchronized state of an associated
-    /// external source
-    ///
-    /// The external revision number is supposed to be strongly monotonic, i.e.
-    /// is increased by an arbitrary amount > 0 if the external source has been
-    /// modified. It is supposed to be updated after the internal contents have
-    /// been synchronized with the external source, i.e. both when importing or
-    /// exporting metadata.
-    ///
-    /// Example: For local files the duration in milliseconds since Unix
-    /// epoch origin at 1970-01-01T00:00:00Z of the last modification time
-    /// provided by the file system is stored as the external revision number.
-    pub external_rev: Option<u64>,
-
-    pub path: SourcePath,
+    /// Revisioned link to an external source with the actual contents
+    pub content_link: ContentLink,
 
     pub content_type: Mime,
 
-    pub advisory_rating: Option<AdvisoryRating>,
-
-    /// Content digest for identifying sources independent of their
-    /// URI, e.g. to detect moved files.
+    /// Digest of immutable content data
     ///
-    /// The digest should be calculated from the raw stream data
+    /// Fingerprint for identifying sources independent of their URI,
+    /// e.g. to detect moved files.
+    ///
+    /// The fingerprint should be calculated from the raw stream data
     /// that is supposed to be read-only and immutable over time.
-    /// Additional metadata like file tags that is modified
-    /// frequently is not suitable to be included in the digest
-    /// calculation.
+    /// Additional metadata like file tags that are modified frequently
+    /// and change over time are not suitable to be included in the
+    /// calculation of the fingerprint.
     pub content_digest: Option<Vec<u8>>,
+
+    pub content_metadata: ContentMetadata,
 
     pub content_metadata_flags: ContentMetadataFlags,
 
-    pub content: Content,
-
     pub artwork: Option<Artwork>,
+
+    pub advisory_rating: Option<AdvisoryRating>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum SourceInvalidity {
-    PathEmpty,
+    LinkPathEmpty,
     ContentTypeEmpty,
     ContentMetadataFlags(ContentMetadataFlagsInvalidity),
-    AudioContent(AudioContentInvalidity),
+    AudioContentMetadata(AudioContentMetadataInvalidity),
     Artwork(ArtworkInvalidity),
 }
 
@@ -610,18 +152,21 @@ impl Validate for Source {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let Self {
+            collected_at: _,
+            content_link:
+                ContentLink {
+                    path: link_path,
+                    rev: _,
+                },
+            content_type,
+            content_metadata,
+            content_metadata_flags,
+            content_digest: _,
             advisory_rating: _,
             artwork,
-            collected_at: _,
-            content,
-            content_digest: _,
-            content_metadata_flags,
-            content_type,
-            external_rev: _,
-            path,
         } = self;
         let context = ValidationContext::new()
-            .invalidate_if(path.trim().is_empty(), Self::Invalidity::PathEmpty)
+            .invalidate_if(link_path.trim().is_empty(), Self::Invalidity::LinkPathEmpty)
             .invalidate_if(
                 content_type.essence_str().is_empty(),
                 Self::Invalidity::ContentTypeEmpty,
@@ -632,9 +177,9 @@ impl Validate for Source {
             )
             .validate_with(&artwork, Self::Invalidity::Artwork);
         // TODO: Validate MIME type
-        match content {
-            Content::Audio(ref audio_content) => {
-                context.validate_with(audio_content, Self::Invalidity::AudioContent)
+        match content_metadata {
+            ContentMetadata::Audio(ref audio_content) => {
+                context.validate_with(audio_content, Self::Invalidity::AudioContentMetadata)
             }
         }
         .into()

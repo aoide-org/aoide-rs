@@ -20,13 +20,13 @@ use std::{
 
 use url::Url;
 
-use aoide_core::{entity::EntityUid, media::SourcePath, util::clock::DateTime};
+use aoide_core::{entity::EntityUid, media::content::ContentPath, util::clock::DateTime};
 
 use aoide_core_api::{media::SyncMode, track::replace::Summary};
 
 use aoide_media::{
     io::import::{ImportTrackConfig, Issues},
-    resolver::{SourcePathResolver, VirtualFilePathResolver},
+    resolver::{ContentPathResolver, VirtualFilePathResolver},
 };
 
 use aoide_repo::{
@@ -36,7 +36,7 @@ use aoide_repo::{
 };
 
 use crate::{
-    collection::vfs::{RepoContext, SourcePathContext},
+    collection::vfs::{ContentPathContext, RepoContext},
     media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncModeParams},
 };
 
@@ -56,7 +56,7 @@ pub struct Params {
 
     /// Set or update the synchronized revision if the media source
     /// has a synchronization time stamp
-    pub update_media_source_synchronized_rev: bool,
+    pub update_last_synchronized_rev: bool,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -70,10 +70,10 @@ pub struct Outcome {
     pub completion: Completion,
     pub summary: Summary,
     pub visited_media_source_ids: Vec<MediaSourceId>,
-    pub imported_media_sources_with_issues: Vec<(MediaSourceId, SourcePath, Issues)>,
+    pub imported_media_sources_with_issues: Vec<(MediaSourceId, ContentPath, Issues)>,
 }
 
-pub fn replace_collected_track_by_media_source_path<Repo>(
+pub fn replace_collected_track_by_media_source_content_path<Repo>(
     summary: &mut Summary,
     repo: &Repo,
     collection_id: CollectionId,
@@ -84,9 +84,9 @@ where
     Repo: TrackCollectionRepo,
 {
     let ValidatedInput(track) = track;
-    let media_source_path = track.media_source.path.clone();
+    let media_source_path = track.media_source.content_link.path.clone();
     let outcome = repo
-        .replace_track_by_media_source_path(collection_id, params, track)
+        .replace_track_by_media_source_content_path(collection_id, params, track)
         .map_err(|err| {
             log::warn!(
                 "Failed to replace track by URI '{}': {}",
@@ -100,7 +100,7 @@ where
             debug_assert_ne!(ReplaceMode::UpdateOnly, params.mode);
             log::trace!(
                 "Created {}: {:?}",
-                entity.body.media_source.path,
+                entity.body.media_source.content_link.path,
                 entity.hdr
             );
             summary.created.push(entity);
@@ -110,7 +110,7 @@ where
             debug_assert_ne!(ReplaceMode::CreateOnly, params.mode);
             log::trace!(
                 "Updated {}: {:?}",
-                entity.body.media_source.path,
+                entity.body.media_source.content_link.path,
                 entity.hdr
             );
             summary.updated.push(entity);
@@ -118,7 +118,9 @@ where
         }
         ReplaceOutcome::Unchanged(media_source_id, _, entity) => {
             log::trace!("Unchanged: {:?}", entity);
-            summary.unchanged.push(entity.body.media_source.path);
+            summary
+                .unchanged
+                .push(entity.body.media_source.content_link.path);
             media_source_id
         }
         ReplaceOutcome::NotCreated(track) => {
@@ -137,7 +139,7 @@ where
     Ok(Some(media_source_id))
 }
 
-pub fn replace_collected_tracks_by_media_source_path<Repo>(
+pub fn replace_collected_tracks_by_media_source_content_path<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &Params,
@@ -150,12 +152,12 @@ where
         mode: replace_mode,
         resolve_path_from_url,
         preserve_collected_at,
-        update_media_source_synchronized_rev,
+        update_last_synchronized_rev,
     } = params;
-    let (collection_id, source_path_resolver) = if *resolve_path_from_url {
+    let (collection_id, content_path_resolver) = if *resolve_path_from_url {
         let RepoContext {
             record_id,
-            source_path: SourcePathContext { kind: _, vfs },
+            source_path: ContentPathContext { kind: _, vfs },
         } = RepoContext::resolve(repo, collection_uid, None)?;
         (record_id, vfs.map(|vfs| vfs.path_resolver))
     } else {
@@ -165,20 +167,21 @@ where
     let mut summary = Summary::default();
     for track in tracks {
         let ValidatedInput(mut track) = track;
-        if let Some(source_path_resolver) = source_path_resolver.as_ref() {
+        if let Some(content_path_resolver) = content_path_resolver.as_ref() {
             let url = track
                 .media_source
+                .content_link
                 .path
                 .parse()
                 .map_err(|err| {
                     anyhow::anyhow!(
                         "Failed to parse URL from path '{}': {}",
-                        track.media_source.path,
+                        track.media_source.content_link.path,
                         err
                     )
                 })
                 .map_err(Error::from)?;
-            track.media_source.path = source_path_resolver
+            track.media_source.content_link.path = content_path_resolver
                 .resolve_path_from_url(&url)
                 .map_err(|err| {
                     anyhow::anyhow!(
@@ -189,14 +192,14 @@ where
                 })
                 .map_err(Error::from)?;
         }
-        replace_collected_track_by_media_source_path(
+        replace_collected_track_by_media_source_content_path(
             &mut summary,
             repo,
             collection_id,
             ReplaceParams {
                 mode: *replace_mode,
                 preserve_collected_at: *preserve_collected_at,
-                update_media_source_synchronized_rev: *update_media_source_synchronized_rev,
+                update_last_synchronized_rev: *update_last_synchronized_rev,
             },
             ValidatedInput(track),
         )?;
@@ -209,26 +212,26 @@ where
 pub fn import_and_replace_from_file_path<Repo>(
     summary: &mut Summary,
     visited_media_source_ids: &mut Vec<MediaSourceId>,
-    imported_media_sources_with_issues: &mut Vec<(MediaSourceId, SourcePath, Issues)>,
+    imported_media_sources_with_issues: &mut Vec<(MediaSourceId, ContentPath, Issues)>,
     repo: &Repo,
     collection_id: CollectionId,
-    source_path_resolver: &VirtualFilePathResolver,
+    content_path_resolver: &VirtualFilePathResolver,
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
-    source_path: SourcePath,
+    source_path: ContentPath,
 ) -> Result<Vec<TrackInvalidity>>
 where
     Repo: TrackCollectionRepo,
 {
     let (media_source_id, external_rev, synchronized_rev, collected_track) = repo
-        .load_track_entity_by_media_source_path(collection_id, &source_path)
+        .load_track_entity_by_media_source_content_path(collection_id, &source_path)
         .optional()?
         .map(|(media_source_id, _, entity)| {
             (
                 Some(media_source_id),
-                entity.body.media_source.external_rev,
-                entity.body.media_source_synchronized_rev.map(|rev| {
+                entity.body.media_source.content_link.rev,
+                entity.body.last_synchronized_rev.map(|rev| {
                     debug_assert!(rev <= entity.hdr.rev);
                     rev == entity.hdr.rev
                 }),
@@ -238,7 +241,7 @@ where
         .unwrap_or((None, None, None, None));
     let mut invalidities = Default::default();
     match import_track_from_file_path(
-        source_path_resolver,
+        content_path_resolver,
         source_path.clone(),
         SyncModeParams::new(sync_mode, external_rev, synchronized_rev),
         import_config,
@@ -248,7 +251,7 @@ where
             track: imported_track,
             issues: import_issues,
         }) => {
-            debug_assert_eq!(imported_track.media_source.path, source_path);
+            debug_assert_eq!(imported_track.media_source.content_link.path, source_path);
             let track = if let Some(mut collected_track) = collected_track {
                 // Merge imported properties into existing properties, i.e.
                 // keep existing properties if no replacement is available.
@@ -262,14 +265,14 @@ where
             if !invalidities.is_empty() {
                 log::debug!("{:?} has invalidities: {:?}", track.0, invalidities);
             }
-            if let Some(media_source_id) = replace_collected_track_by_media_source_path(
+            if let Some(media_source_id) = replace_collected_track_by_media_source_content_path(
                 summary,
                 repo,
                 collection_id,
                 ReplaceParams {
                     mode: replace_mode,
                     preserve_collected_at: true,
-                    update_media_source_synchronized_rev: true,
+                    update_last_synchronized_rev: true,
                 },
                 track,
             )? {
@@ -283,16 +286,12 @@ where
                 }
             }
         }
-        Ok(ImportTrackFromFileOutcome::SkippedSynchronized {
-            last_modified_at: _,
-        }) => {
+        Ok(ImportTrackFromFileOutcome::SkippedSynchronized { content_rev: _ }) => {
             debug_assert!(media_source_id.is_some());
             summary.unchanged.push(source_path);
             visited_media_source_ids.push(media_source_id.unwrap());
         }
-        Ok(ImportTrackFromFileOutcome::SkippedUnsynchronized {
-            last_modified_at: _,
-        }) => {
+        Ok(ImportTrackFromFileOutcome::SkippedUnsynchronized { content_rev: _ }) => {
             debug_assert!(media_source_id.is_some());
             debug_assert_eq!(Some(false), synchronized_rev);
             summary.not_imported.push(source_path);
@@ -306,7 +305,9 @@ where
             | Error::Media(MediaError::UnsupportedContentType(_)) => {
                 log::info!(
                     "Skipped import of track from local file path {}: {}",
-                    source_path_resolver.build_file_path(&source_path).display(),
+                    content_path_resolver
+                        .build_file_path(&source_path)
+                        .display(),
                     err
                 );
                 summary.skipped.push(source_path);
@@ -314,7 +315,9 @@ where
             err => {
                 log::warn!(
                     "Failed to import track from local file path {}: {}",
-                    source_path_resolver.build_file_path(&source_path).display(),
+                    content_path_resolver
+                        .build_file_path(&source_path)
+                        .display(),
                     err
                 );
                 summary.failed.push(source_path);
@@ -334,7 +337,7 @@ pub fn import_and_replace_by_local_file_paths<Repo>(
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
-    source_paths: impl IntoIterator<Item = SourcePath>,
+    source_paths: impl IntoIterator<Item = ContentPath>,
     expected_source_path_count: Option<usize>,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
@@ -420,7 +423,7 @@ where
         .into());
     };
     let collection_id = collection_ctx.record_id;
-    import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
+    import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
         repo,
         collection_id,
         &vfs_ctx.path_resolver,
@@ -434,17 +437,17 @@ where
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
+pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
     repo: &impl TrackCollectionRepo,
     collection_id: CollectionId,
-    source_path_resolver: &VirtualFilePathResolver,
+    content_path_resolver: &VirtualFilePathResolver,
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
     source_dir_path: &str,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
-    let dir_path = source_path_resolver.build_file_path(source_dir_path);
+    let dir_path = content_path_resolver.build_file_path(source_dir_path);
     log::debug!("Importing files from directory: {}", dir_path.display());
     let dir_entries = read_dir(dir_path)?;
     let mut summary = Summary::default();
@@ -474,7 +477,7 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_source_path_res
         }
         let source_path = if let Some(source_path) = Url::from_file_path(dir_entry.path())
             .ok()
-            .and_then(|url| source_path_resolver.resolve_path_from_url(&url).ok())
+            .and_then(|url| content_path_resolver.resolve_path_from_url(&url).ok())
         {
             source_path.to_owned()
         } else {
@@ -491,7 +494,7 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_source_path_res
             &mut imported_media_sources_with_issues,
             repo,
             collection_id,
-            source_path_resolver,
+            content_path_resolver,
             sync_mode,
             import_config,
             replace_mode,

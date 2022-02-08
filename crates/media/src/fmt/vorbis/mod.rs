@@ -24,7 +24,11 @@ use triseratops::tag::{
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{concat_encoder_properties, ApicType, Artwork, Content},
+    media::{
+        artwork::{ApicType, Artwork},
+        concat_encoder_properties,
+        content::ContentMetadata,
+    },
     music::{key::KeySignature, tempo::TempoBpm},
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
@@ -841,8 +845,8 @@ pub fn export_track(
     writer: &mut impl CommentWriter,
 ) {
     // Audio properties
-    match &track.media_source.content {
-        Content::Audio(audio) => {
+    match &track.media_source.content_metadata {
+        ContentMetadata::Audio(audio) => {
             export_loudness(writer, audio.loudness);
             export_encoder(writer, audio.encoder.to_owned());
         }

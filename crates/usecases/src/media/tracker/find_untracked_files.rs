@@ -24,7 +24,7 @@ use aoide_core_api::media::tracker::{
 
 use aoide_media::{
     fs::visit::{self, url_from_walkdir_entry},
-    resolver::SourcePathResolver,
+    resolver::ContentPathResolver,
 };
 
 use aoide_repo::{
@@ -80,8 +80,8 @@ impl From<visit::ProgressEvent> for ProgressEvent {
 struct AncestorVisitor<'r, Repo> {
     repo: &'r Repo,
     collection_id: CollectionId,
-    source_path_resolver: &'r VirtualFilePathResolver,
-    source_paths: Vec<SourcePath>,
+    content_path_resolver: &'r VirtualFilePathResolver,
+    source_paths: Vec<ContentPath>,
 }
 
 impl<'r, Repo> AncestorVisitor<'r, Repo> {
@@ -89,24 +89,24 @@ impl<'r, Repo> AncestorVisitor<'r, Repo> {
     pub fn new(
         repo: &'r Repo,
         collection_id: CollectionId,
-        source_path_resolver: &'r VirtualFilePathResolver,
+        content_path_resolver: &'r VirtualFilePathResolver,
     ) -> Self {
         Self {
             repo,
             collection_id,
-            source_path_resolver,
+            content_path_resolver,
             source_paths: Vec::new(),
         }
     }
 }
 
-impl<'r, Repo> visit::AncestorVisitor<Vec<SourcePath>, anyhow::Error> for AncestorVisitor<'r, Repo>
+impl<'r, Repo> visit::AncestorVisitor<Vec<ContentPath>, anyhow::Error> for AncestorVisitor<'r, Repo>
 where
     Repo: MediaTrackerRepo,
 {
     fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> anyhow::Result<()> {
         let url = url_from_walkdir_entry(dir_entry)?;
-        let source_path = self.source_path_resolver.resolve_path_from_url(&url)?;
+        let source_path = self.content_path_resolver.resolve_path_from_url(&url)?;
         if !source_path.is_terminal() {
             // Skip non-terminal paths, i.e. directories
             return Ok(());
@@ -125,14 +125,14 @@ where
             Err(err) => Err(err.into()),
         }
     }
-    fn finalize(self) -> Vec<SourcePath> {
+    fn finalize(self) -> Vec<ContentPath> {
         self.source_paths
     }
 }
 
 fn ancestor_finished(
-    all_source_paths: &mut Vec<SourcePath>,
-    mut source_paths: Vec<SourcePath>,
+    all_source_paths: &mut Vec<ContentPath>,
+    mut source_paths: Vec<ContentPath>,
 ) -> anyhow::Result<visit::AfterAncestorFinished> {
     all_source_paths.append(&mut source_paths);
     Ok(visit::AfterAncestorFinished::Continue)

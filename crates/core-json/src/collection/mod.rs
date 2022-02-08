@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{media::SourcePathConfig, prelude::*, util::color::Color};
+use crate::{media::content::ContentPathConfig, prelude::*, util::color::Color};
 
 mod _core {
     pub use aoide_core::{collection::*, entity::EntityHeader};
@@ -27,16 +27,16 @@ mod _core {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct MediaSourceConfig {
-    pub source_path: SourcePathConfig,
+    pub content_path: ContentPathConfig,
 }
 
 impl TryFrom<MediaSourceConfig> for _core::MediaSourceConfig {
     type Error = anyhow::Error;
 
     fn try_from(from: MediaSourceConfig) -> anyhow::Result<Self> {
-        let MediaSourceConfig { source_path } = from;
+        let MediaSourceConfig { content_path } = from;
         let into = Self {
-            source_path: source_path.try_into()?,
+            content_path: content_path.try_into()?,
         };
         Ok(into)
     }
@@ -44,9 +44,9 @@ impl TryFrom<MediaSourceConfig> for _core::MediaSourceConfig {
 
 impl From<_core::MediaSourceConfig> for MediaSourceConfig {
     fn from(from: _core::MediaSourceConfig) -> Self {
-        let _core::MediaSourceConfig { source_path } = from;
+        let _core::MediaSourceConfig { content_path } = from;
         Self {
-            source_path: source_path.into(),
+            content_path: content_path.into(),
         }
     }
 }

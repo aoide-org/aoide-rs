@@ -19,7 +19,7 @@ use bitflags::bitflags;
 
 use aoide_core::{
     audio::DurationMs,
-    media::Content,
+    media::content::ContentMetadata,
     track::{Entity as TrackEntity, Track},
 };
 
@@ -178,8 +178,8 @@ where
         all_filters.push(SearchFilter::Condition(ConditionFilter::SourceTracked));
     }
     // Only sources with similar audio duration
-    let audio_duration_ms = match track.media_source.content {
-        Content::Audio(content) => content.duration,
+    let audio_duration_ms = match track.media_source.content_metadata {
+        ContentMetadata::Audio(content) => content.duration,
     };
     all_filters.push(if let Some(audio_duration_ms) = audio_duration_ms {
         SearchFilter::audio_duration_around(audio_duration_ms, *audio_duration_tolerance)
@@ -191,13 +191,13 @@ where
     });
     // Only sources with equal content/file type
     all_filters.push(SearchFilter::Phrase(PhraseFieldFilter {
-        fields: vec![StringField::SourceType],
+        fields: vec![StringField::ContentType],
         terms: vec![track.media_source.content_type.to_string()],
     }));
     let filter = SearchFilter::All(all_filters);
     // Prefer recently added sources, e.g. after scanning the file system
     let ordering = vec![SortOrder {
-        field: SortField::SourceCollectedAt,
+        field: SortField::CollectedAt,
         direction: SortDirection::Descending,
     }];
     let mut candidates = Vec::new();
@@ -222,16 +222,16 @@ where
         .collect())
 }
 
-pub fn find_duplicate_by_media_source_path<Repo>(
+pub fn find_duplicate_by_media_source_content_path<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    media_source_path: &str,
+    content_path: &str,
     params: &Params,
 ) -> RepoResult<Vec<(TrackId, TrackEntity)>>
 where
     Repo: TrackCollectionRepo,
 {
     let (_media_source_id, RecordHeader { id: track_id, .. }, entity) =
-        repo.load_track_entity_by_media_source_path(collection_id, media_source_path)?;
+        repo.load_track_entity_by_media_source_content_path(collection_id, content_path)?;
     find_duplicates(repo, collection_id, track_id, entity.body, params)
 }

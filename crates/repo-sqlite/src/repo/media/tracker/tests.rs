@@ -21,7 +21,7 @@ use test_log::test;
 use aoide_core::{
     collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
     entity::EntityHeader,
-    media::SourcePathConfig,
+    media::content::ContentPathConfig,
     util::{clock::DateTime, url::BaseUrl},
 };
 
@@ -43,7 +43,7 @@ impl Fixture {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                source_path: SourcePathConfig::VirtualFilePath {
+                content_path: ContentPathConfig::VirtualFilePath {
                     root_url: BaseUrl::parse_strict("file:///").unwrap(),
                 },
             },
@@ -63,7 +63,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
 
     let updated_at = DateTime::now_utc();
     let collection_id = fixture.collection_id;
-    let path = SourcePath::new("file:///test/".to_owned());
+    let path = ContentPath::new("file:///test/".to_owned());
     let mut digest = DigestBytes::default();
 
     // -> Added
@@ -235,7 +235,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
 
     let updated_at = DateTime::now_utc();
     let collection_id = fixture.collection_id;
-    let path = SourcePath::new("file:///test/".to_owned());
+    let path = ContentPath::new("file:///test/".to_owned());
     let digest = DigestBytes::default();
 
     let mut other_digest = digest;

@@ -17,8 +17,11 @@ use opus_headers::{CommentHeader, OpusHeaders, ParseError as OpusError};
 use semval::IsValid as _;
 
 use aoide_core::{
-    audio::{channel::ChannelCount, signal::SampleRateHz, AudioContent},
-    media::{ApicType, Content, ContentMetadataFlags},
+    audio::{channel::ChannelCount, signal::SampleRateHz},
+    media::{
+        artwork::ApicType,
+        content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
+    },
     track::Track,
 };
 
@@ -59,7 +62,7 @@ impl Metadata {
         vorbis::find_embedded_artwork_image(importer, user_comments)
     }
 
-    pub fn import_audio_content(&self, importer: &mut Importer) -> AudioContent {
+    pub fn import_audio_content(&self, importer: &mut Importer) -> AudioContentMetadata {
         let Self(OpusHeaders {
             id: id_header,
             comments:
@@ -87,7 +90,7 @@ impl Metadata {
         let encoder = vorbis::import_encoder(user_comments).map(Into::into);
         // TODO: The duration is not available from any header!?
         let duration = None;
-        AudioContent {
+        AudioContentMetadata {
             duration,
             channels,
             sample_rate,
@@ -109,7 +112,7 @@ impl Metadata {
             .update(ContentMetadataFlags::RELIABLE)
         {
             let audio_content = self.import_audio_content(importer);
-            track.media_source.content = Content::Audio(audio_content);
+            track.media_source.content_metadata = ContentMetadata::Audio(audio_content);
         }
 
         let Self(OpusHeaders {

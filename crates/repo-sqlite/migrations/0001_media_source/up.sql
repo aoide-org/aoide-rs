@@ -24,14 +24,14 @@ CREATE TABLE IF NOT EXISTS media_source (
     -- properties: collection
     collected_at           TEXT NOT NULL,
     collected_ms           INTEGER,
-    -- properties: content
-    external_rev           INTEGER,
-    path                   TEXT NOT NULL,
+    -- properties: link
+    content_link_path      TEXT NOT NULL,
+    content_link_rev       INTEGER,
+    -- properties: content metadata & digest
     content_type           TEXT NOT NULL,    -- RFC 6838 media type
-    content_digest         BINARY,           -- cryptographic (audio) content hash
+    content_digest         BINARY,           -- cryptographic hash
     content_metadata_flags TINYINT NOT NULL, -- 0x01 = reliable, 0x02 = locked, 0x04 = stale
-    advisory_rating        TINYINT,          -- 0 = unrated, 1 = explicit, 2 = clean
-    -- properties: audio content
+    -- properties: audio content metadata
     audio_duration_ms      REAL,             -- milliseconds
     audio_channel_count    INTEGER,          -- number of channels
     audio_samplerate_hz    REAL,             -- Hz
@@ -47,9 +47,11 @@ CREATE TABLE IF NOT EXISTS media_source (
     artwork_size_width     INTEGER,
     artwork_size_height    INTEGER,
     artwork_thumbnail      BINARY,
+    -- misc properties
+    advisory_rating        TINYINT,          -- 0 = unrated, 1 = explicit, 2 = clean
     --
     FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE,
-    UNIQUE (collection_id, path)
+    UNIQUE (collection_id, content_link_path)
 );
 
 CREATE INDEX idx_media_source_row_created_ms_desc ON media_source (

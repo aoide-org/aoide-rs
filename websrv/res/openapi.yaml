@@ -216,8 +216,8 @@ paths:
         - 'Collections: Tracks'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/resolveMediaSourceUrlFromContentPathQuery'
         - $ref: '#/components/parameters/overrideMediaSourceRootUrlQuery'
-        - $ref: '#/components/parameters/resolveMediaSourceUrlFromPathQuery'
         - $ref: '#/components/parameters/paginationOffsetQuery'
         - $ref: '#/components/parameters/paginationLimitQuery'
       requestBody:
@@ -247,7 +247,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/replaceCollectedTrackModeQuery'
-        - $ref: '#/components/parameters/resolveMediaSourcePathFromUrlQuery'
+        - $ref: '#/components/parameters/resolveMediaContentPathFromUrlQuery'
       requestBody:
         required: true
         content:
@@ -303,8 +303,8 @@ paths:
         - 'Collections: Tracks'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/resolveMediaSourceUrlFromContentPathQuery'
         - $ref: '#/components/parameters/overrideMediaSourceRootUrlQuery'
-        - $ref: '#/components/parameters/resolveMediaSourceUrlFromPathQuery'
         - $ref: '#/components/parameters/paginationOffsetQuery'
         - $ref: '#/components/parameters/paginationLimitQuery'
       requestBody:
@@ -1003,7 +1003,7 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/ReplaceCollectedTrackMode'
-    resolveMediaSourcePathFromUrlQuery:
+    resolveMediaContentPathFromUrlQuery:
       name: resolvePathFromUrl
       description: |
         Consider the provided media source path as an URL and
@@ -1016,8 +1016,8 @@ components:
       schema:
         type: boolean
         default: false
-    resolveMediaSourceUrlFromPathQuery:
-      name: resolveUrlFromPath
+    resolveMediaSourceUrlFromContentPathQuery:
+      name: resolveUrlFromContentPath
       description: |
         Resolve the actual URL of the media source from the stored path according
         to the collection's media source configuration.
@@ -1236,7 +1236,7 @@ components:
         - irregular
         - embedded
         - linked
-    AudioContent:
+    AudioContentMetadata:
       type: object
       properties:
         durationMs:
@@ -1363,7 +1363,7 @@ components:
     CollectionMediaSourceConfig:
       properties:
         pathKind:
-          $ref: '#/components/schemas/MediaSourcePathKind'
+          $ref: '#/components/schemas/MediaContentPathKind'
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
       required:
@@ -1563,7 +1563,7 @@ components:
       required:
         - code
         - message
-    ExternalRevision:
+    MediaContentRevision:
       type: integer
       format: uint64
       minimum: 0
@@ -1741,48 +1741,44 @@ components:
           $ref: '#/components/schemas/FilterModifier'
         value:
           $ref: '#/components/schemas/StringPredicate'
-    MediaSourceContent:
+    MediaSourceContentMetadata:
       allOf:
-        - $ref: '#/components/schemas/MediaSourceAudioContent'
-    MediaSourceAudioContent:
+        - $ref: '#/components/schemas/MediaSourceAudioContentMetadata'
+    MediaSourceAudioContentMetadata:
       type: object
       properties:
         audio:
-          $ref: '#/components/schemas/AudioContent'
+          $ref: '#/components/schemas/AudioContentMetadata'
     MediaSource:
       type: object
       properties:
         collectedAt:
           $ref: '#/components/schemas/DateTime'
-        path:
-          $ref: '#/components/schemas/MediaSourcePath'
+        contentLink:
+          $ref: '#/components/schemas/MediaContentLink'
         contentType:
           $ref: '#/components/schemas/MediaType'
-        advisoryRating:
-          $ref: '#/components/schemas/AdvisoryRatingCode'
         contentDigest:
           $ref: '#/components/schemas/MediaDigest'
-        ContentMetadataFlags:
+        contentMetadataFlags:
           $ref: '#/components/schemas/ContentMetadataFlags'
         artwork:
           $ref: '#/components/schemas/Artwork'
+        advisoryRating:
+          $ref: '#/components/schemas/AdvisoryRatingCode'
       additionalProperties:
-        $ref: '#/components/schemas/MediaSourceContent'
+        $ref: '#/components/schemas/MediaSourceContentMetadata'
       required:
         - collectedAt
-        - path
+        - contentLink
         - contentType
-    MediaSourceSynchronizedEntityRevision:
+    LastSynchronizedEntityRevision:
       description: |
         Last synchronized track entity revision
 
         The last entity revision of this track that is considered
         as synchronized with the underlying media source, or absent
         if unsynchronized.
-
-        This property is read-only and only managed internally. Any
-        provided value will be silently ignored when creating or
-        updating a track entity if not mentioned otherwise.
       allOf:
         - $ref: '#/components/schemas/EntityRevision'
     MediaType:
@@ -1843,11 +1839,11 @@ components:
     DateTimeField:
       type: string
       enum:
+        - collectedAt
         - lastPlayedAt
         - recordedAt
         - releasedAt
         - releasedOrigAt
-        - sourceCollectedAt
     DateTimeFieldFilter:
       type: array
       minLength: 2
@@ -2333,7 +2329,7 @@ components:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         rootPath:
-          $ref: '#/components/schemas/MediaSourcePath'
+          $ref: '#/components/schemas/MediaContentPath'
         summary:
           $ref: '#/components/schemas/PurgeOrphanedMediaSourcessSummary'
       required:
@@ -2357,7 +2353,7 @@ components:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         rootPath:
-          $ref: '#/components/schemas/MediaSourcePath'
+          $ref: '#/components/schemas/MediaContentPath'
         summary:
           $ref: '#/components/schemas/PurgeUntrackeMediaSourcessSummary'
       required:
@@ -2459,7 +2455,7 @@ components:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         rootPath:
-          $ref: '#/components/schemas/MediaSourcePath'
+          $ref: '#/components/schemas/MediaContentPath'
         summary:
           $ref: '#/components/schemas/MediaTrackerUntrackDirectoriesSummary'
       required:
@@ -2548,7 +2544,7 @@ components:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         rootPath:
-          $ref: '#/components/schemas/MediaSourcePath'
+          $ref: '#/components/schemas/MediaContentPath'
         completion:
           $ref: '#/components/schemas/MediaTrackerCompletion'
         summary:
@@ -2566,7 +2562,7 @@ components:
       type: object
       properties:
         path:
-          $ref: '#/components/schemas/MediaSourcePath'
+          $ref: '#/components/schemas/MediaContentPath'
         messages:
           type: array
           items:
@@ -2717,7 +2713,7 @@ components:
       type: string
       minLength: 1
       example: 'album artist/album title/01 the first track.mp3'
-    MediaSourcePathKind:
+    MediaContentPathKind:
       type: integer
       enum: [0, 1, 2, 3]
       description: |
@@ -2731,7 +2727,7 @@ components:
         For collections of local files option 3 is the recommended choice.
         The accompanying `file://` URL is stored as part of the media source
         configuration in the collection.
-    MediaSourcePath:
+    MediaContentPath:
       oneOf:
         - $ref: '#/components/schemas/PercentEncodedUri'
         - $ref: '#/components/schemas/PercentEncodedUrl'
@@ -2742,7 +2738,7 @@ components:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         rootPath:
-          $ref: '#/components/schemas/MediaSourcePath'
+          $ref: '#/components/schemas/MediaContentPath'
         completion:
           $ref: '#/components/schemas/MediaTrackerCompletion'
         summary:
@@ -2758,18 +2754,18 @@ components:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         rootPath:
-          $ref: '#/components/schemas/MediaSourcePath'
+          $ref: '#/components/schemas/MediaContentPath'
         completion:
           $ref: '#/components/schemas/MediaTrackerCompletion'
-        sourcePaths:
+        contentPaths:
           type: array
           items:
-            $ref: '#/components/schemas/MediaSourcePath'
+            $ref: '#/components/schemas/MediaContentPath'
       required:
         - rootUrl
         - rootPath
         - completion
-        - sourcePaths
+        - contentPaths
     PercentEncodedUri:
       type: string
       minLength: 1
@@ -2860,7 +2856,7 @@ components:
                 failed:
                   type: array
                   items:
-                    $ref: '#/components/schemas/MediaSourcePath'
+                    $ref: '#/components/schemas/MediaContentPath'
         importedMediaSourcesWithIssues:
           type: array
           items:
@@ -2876,7 +2872,7 @@ components:
     FindUnsynchronizedTracksRequestBody:
       type: object
       properties:
-        mediaSourcePathPredicate:
+        mediaContentPathPredicate:
           $ref: '#/components/schemas/StringPredicate'
     FindUnsynchronizedTracksResponseBody:
       type: array
@@ -2895,20 +2891,22 @@ components:
     UnsynchronizedTrack:
       type: object
       properties:
-        mediaSource:
-          $ref: '#/components/schemas/UnsynchronizedMediaSource'
-        mediaSourceSynchronizedRev:
+        contentLink:
+          $ref: '#/components/schemas/MediaContentLink'
+        lastSynchronizedRev:
           $ref: '#/components/schemas/EntityRevision'
-    UnsynchronizedMediaSource:
+      required:
+        - contentLink
+        - lastSynchronizedRev
+    MediaContentLink:
       type: object
       properties:
         path:
-          $ref: '#/components/schemas/MediaSourcePath'
-        externalRev:
-          $ref: '#/components/schemas/ExternalRevision'
+          $ref: '#/components/schemas/MediaContentPath'
+        rev:
+          $ref: '#/components/schemas/MediaContentRevision'
       required:
         - path
-        - externalRev
     RgbColor:
       type: string
       minLength: 7
@@ -2969,16 +2967,16 @@ components:
       enum:
         - albumArtist
         - albumTitle
+        - contentPath
+        - contentType
         - releasedBy
-        - sourceType
-        - sourcePath
         - trackArtist
         - trackComposer
         - trackTitle
       description: |
         Selectable fields, including
-          * `sourceType` - RFC 6838 media type
-          * `sourcePath`
+          * `contentType` - RFC 6838 media type
+          * `contentPath`
           * ...
     StringPredicate:
       oneOf:
@@ -3213,8 +3211,8 @@ components:
       properties:
         mediaSource:
           $ref: '#/components/schemas/MediaSource'
-        mediaSourceSynchronizedRev:
-          $ref: '#/components/schemas/MediaSourceSynchronizedEntityRevision'
+        lastSynchronizedRev:
+          $ref: '#/components/schemas/LastSynchronizedEntityRevision'
         recordedAt:
           $ref: '#/components/schemas/RecordedAt'
         releasedAt:
@@ -3372,6 +3370,9 @@ components:
         - audioDurationMs
         - audioLoudnessLufs
         - audioSampleRateHz
+        - collectedAt
+        - contentPath
+        - contentType
         - createdAt
         - discNumber
         - discTotal
@@ -3381,9 +3382,6 @@ components:
         - recordedAtDate
         - releasedAtDate
         - releasedOrigAtDate
-        - sourceCollectedAt
-        - sourceType
-        - sourcePath
         - timesPlayed
         - trackArtist
         - trackNumber

@@ -19,18 +19,18 @@ pub mod purge_orphaned;
 pub mod purge_untracked;
 
 #[derive(Debug, Clone)]
-pub enum ResolveUrlFromPath {
+pub enum ResolveUrlFromContentPath {
     CanonicalRootUrl,
     OverrideRootUrl { root_url: BaseUrl },
 }
 
-impl Default for ResolveUrlFromPath {
+impl Default for ResolveUrlFromContentPath {
     fn default() -> Self {
         Self::CanonicalRootUrl
     }
 }
 
-impl ResolveUrlFromPath {
+impl ResolveUrlFromContentPath {
     #[must_use]
     pub const fn override_root_url(&self) -> Option<&BaseUrl> {
         match self {

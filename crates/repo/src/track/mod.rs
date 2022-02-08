@@ -15,7 +15,7 @@
 
 use aoide_core::{
     entity::{EntityHeader, EntityRevision, EntityUid},
-    media::SourcePath,
+    media::content::ContentLink,
     track::{Entity, Track},
     util::clock::DateTime,
 };
@@ -59,16 +59,15 @@ pub enum ReplaceOutcome {
 pub struct RecordTrail {
     pub collection_id: CollectionId,
     pub media_source_id: MediaSourceId,
-    pub media_source_path: SourcePath,
-    pub media_source_external_rev: Option<u64>,
-    pub media_source_synchronized_rev: Option<EntityRevision>,
+    pub content_link: ContentLink,
+    pub last_synchronized_rev: Option<EntityRevision>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ReplaceParams {
     pub mode: ReplaceMode,
     pub preserve_collected_at: bool,
-    pub update_media_source_synchronized_rev: bool,
+    pub update_last_synchronized_rev: bool,
 }
 
 pub trait EntityRepo {
@@ -97,19 +96,19 @@ pub trait EntityRepo {
 }
 
 pub trait CollectionRepo {
-    fn load_track_entity_by_media_source_path(
+    fn load_track_entity_by_media_source_content_path(
         &self,
         collection_id: CollectionId,
-        media_source_path: &str,
+        content_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)>;
 
-    fn resolve_track_entity_header_by_media_source_path(
+    fn resolve_track_entity_header_by_media_source_content_path(
         &self,
         collection_id: CollectionId,
-        media_source_path: &str,
+        content_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)>;
 
-    fn replace_track_by_media_source_path(
+    fn replace_track_by_media_source_content_path(
         &self,
         collection_id: CollectionId,
         params: ReplaceParams,
@@ -127,16 +126,16 @@ pub trait CollectionRepo {
 
     fn count_tracks(&self, collection_id: CollectionId) -> RepoResult<u64>;
 
-    fn purge_tracks_by_media_source_path_predicate(
+    fn purge_tracks_by_media_source_content_path_predicate(
         &self,
         collection_id: CollectionId,
-        media_source_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
     fn find_unsynchronized_tracks(
         &self,
         collection_id: CollectionId,
         pagination: &Pagination,
-        media_source_path_predicate: Option<StringPredicateBorrowed<'_>>,
+        content_path_predicate: Option<StringPredicateBorrowed<'_>>,
     ) -> RepoResult<Vec<(EntityHeader, RecordHeader, RecordTrail)>>;
 }

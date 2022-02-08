@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::util::url::BaseUrl;
-use aoide_core_api::media::source::ResolveUrlFromPath;
+use aoide_core_api::media::source::ResolveUrlFromContentPath;
 use aoide_core_api_json::{
     filtering::StringPredicate,
     track::{find_unsynchronized::UnsynchronizedTrackEntity, search::QueryParams},
@@ -40,7 +40,7 @@ pub fn handle_request(
     // TODO: Share common code of search/find_unsynchronized use cases
     // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     let QueryParams {
-        resolve_url_from_path,
+        resolve_url_from_content_path,
         override_root_url,
         limit,
         offset,
@@ -57,21 +57,21 @@ pub fn handle_request(
         DEFAULT_PAGINATION
     };
     // Passing a base URL override implies resolving paths
-    let resolve_url_from_path =
-        if resolve_url_from_path.unwrap_or(false) || override_root_url.is_some() {
-            let resolve_url_from_path = if let Some(root_url) = override_root_url {
-                ResolveUrlFromPath::OverrideRootUrl { root_url }
+    let resolve_url_from_content_path =
+        if resolve_url_from_content_path.unwrap_or(false) || override_root_url.is_some() {
+            let resolve_url_from_content_path = if let Some(root_url) = override_root_url {
+                ResolveUrlFromContentPath::OverrideRootUrl { root_url }
             } else {
-                ResolveUrlFromPath::CanonicalRootUrl
+                ResolveUrlFromContentPath::CanonicalRootUrl
             };
-            Some(resolve_url_from_path)
+            Some(resolve_url_from_content_path)
         } else {
             None
         };
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     let params = uc::Params {
-        resolve_url_from_path,
-        media_source_path_predicate: request_body.map(Into::into),
+        resolve_url_from_content_path,
+        content_path_predicate: request_body.map(Into::into),
     };
     uc::find_unsynchronized(connection, collection_uid, params, &pagination)
         .map(|v| v.into_iter().map(Into::into).collect())

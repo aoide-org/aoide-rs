@@ -13,16 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-use crate::prelude::tests::*;
 use test_log::test;
 
+use crate::prelude::tests::*;
+
+use super::*;
+
 use aoide_core::{
-    audio::{AudioContent, DurationMs},
+    audio::DurationMs,
     collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
     entity::EntityHeader,
-    media::{self, SourcePath, SourcePathConfig},
+    media::{
+        self,
+        content::{AudioContentMetadata, ContentLink, ContentPath, ContentPathConfig},
+    },
     track::{Entity as TrackEntity, Track},
     util::{clock::DateTime, url::BaseUrl},
 };
@@ -46,7 +50,7 @@ impl Fixture {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                source_path: SourcePathConfig::VirtualFilePath {
+                content_path: ContentPathConfig::VirtualFilePath {
                     root_url: BaseUrl::parse_strict("file:///").unwrap(),
                 },
             },
@@ -68,18 +72,20 @@ impl Fixture {
             let created_at = DateTime::now_local();
             let media_source = media::Source {
                 collected_at: created_at,
-                external_rev: None,
-                path: SourcePath::new(format!("/home/test/file{}.mp3", i)),
+                content_link: ContentLink {
+                    path: ContentPath::new(format!("/home/test/file{}.mp3", i)),
+                    rev: None,
+                },
                 content_type: "audio/mpeg".parse().unwrap(),
-                advisory_rating: None,
-                content_digest: None,
                 content_metadata_flags: Default::default(),
-                content: AudioContent {
+                content_metadata: AudioContentMetadata {
                     duration: Some(DurationMs::from_inner(i as f64)),
                     ..Default::default()
                 }
                 .into(),
+                content_digest: None,
                 artwork: Default::default(),
+                advisory_rating: None,
             };
             let media_source_id = db
                 .insert_media_source(self.collection_id, DateTime::now_utc(), &media_source)?

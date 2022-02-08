@@ -51,7 +51,7 @@ fn insert_collection() -> TestResult<()> {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                source_path: media::SourcePathConfig::VirtualFilePath {
+                content_path: media::content::ContentPathConfig::VirtualFilePath {
                     root_url: BaseUrl::parse_strict("file:///").unwrap(),
                 },
             },
@@ -75,7 +75,7 @@ fn update_collection() -> TestResult<()> {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                source_path: media::SourcePathConfig::VirtualFilePath {
+                content_path: media::content::ContentPathConfig::VirtualFilePath {
                     root_url: BaseUrl::parse_strict("file:///").unwrap(),
                 },
             },
@@ -137,7 +137,7 @@ fn purge_collection() -> TestResult<()> {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                source_path: media::SourcePathConfig::VirtualFilePath {
+                content_path: media::content::ContentPathConfig::VirtualFilePath {
                     root_url: BaseUrl::parse_strict("file:///").unwrap(),
                 },
             },

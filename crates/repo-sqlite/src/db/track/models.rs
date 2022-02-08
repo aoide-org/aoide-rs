@@ -42,7 +42,7 @@ pub struct QueryableRecord {
     pub entity_uid: Vec<u8>,
     pub entity_rev: i64,
     pub media_source_id: RowId,
-    pub media_source_synchronized_rev: Option<i64>,
+    pub last_synchronized_rev: Option<i64>,
     pub recorded_at: Option<String>,
     pub recorded_ms: Option<TimestampMillis>,
     pub recorded_at_yyyymmdd: Option<YYYYMMDD>,
@@ -120,7 +120,7 @@ pub fn load_repo_entity(
         entity_uid,
         entity_rev,
         media_source_id: _,
-        media_source_synchronized_rev,
+        last_synchronized_rev,
         recorded_at,
         recorded_ms,
         recorded_at_yyyymmdd,
@@ -161,7 +161,7 @@ pub fn load_repo_entity(
         updated_at: DateTime::new_timestamp_millis(row_updated_ms),
     };
     let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
-    let media_source_synchronized_rev = media_source_synchronized_rev.map(entity_revision_from_sql);
+    let last_synchronized_rev = last_synchronized_rev.map(entity_revision_from_sql);
     let recorded_at = if let Some(recorded_at) = recorded_at {
         let recorded_at = parse_datetime_opt(Some(recorded_at.as_str()), recorded_ms);
         debug_assert_eq!(
@@ -250,7 +250,7 @@ pub fn load_repo_entity(
     };
     let track = Track {
         media_source,
-        media_source_synchronized_rev,
+        last_synchronized_rev,
         recorded_at,
         released_at,
         released_orig_at,
@@ -278,7 +278,7 @@ pub struct InsertableRecord<'a> {
     pub entity_uid: &'a [u8],
     pub entity_rev: i64,
     pub media_source_id: RowId,
-    pub media_source_synchronized_rev: Option<i64>,
+    pub last_synchronized_rev: Option<i64>,
     pub recorded_at: Option<String>,
     pub recorded_ms: Option<TimestampMillis>,
     pub recorded_at_yyyymmdd: Option<YYYYMMDD>,
@@ -320,7 +320,7 @@ impl<'a> InsertableRecord<'a> {
         let EntityHeader { uid, rev } = &entity.hdr;
         let Track {
             media_source: _,
-            media_source_synchronized_rev,
+            last_synchronized_rev,
             recorded_at,
             released_at,
             released_orig_at,
@@ -380,8 +380,7 @@ impl<'a> InsertableRecord<'a> {
             entity_uid: uid.as_ref(),
             entity_rev: entity_revision_to_sql(*rev),
             media_source_id: media_source_id.into(),
-            media_source_synchronized_rev: media_source_synchronized_rev
-                .map(entity_revision_to_sql),
+            last_synchronized_rev: last_synchronized_rev.map(entity_revision_to_sql),
             recorded_at: recorded_at.as_ref().map(ToString::to_string),
             recorded_ms: recorded_at.map(DateTime::timestamp_millis),
             recorded_at_yyyymmdd: recorded_at_yyyymmdd.map(Into::into),
@@ -437,7 +436,7 @@ pub struct UpdatableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub entity_rev: i64,
     pub media_source_id: RowId,
-    pub media_source_synchronized_rev: Option<i64>,
+    pub last_synchronized_rev: Option<i64>,
     pub recorded_at: Option<String>,
     pub recorded_ms: Option<TimestampMillis>,
     pub recorded_at_yyyymmdd: Option<YYYYMMDD>,
@@ -483,7 +482,7 @@ impl<'a> UpdatableRecord<'a> {
         let entity_rev = entity_revision_to_sql(next_rev);
         let Track {
             media_source: _,
-            media_source_synchronized_rev,
+            last_synchronized_rev,
             recorded_at,
             released_at,
             released_orig_at,
@@ -541,8 +540,7 @@ impl<'a> UpdatableRecord<'a> {
             row_updated_ms: updated_at.timestamp_millis(),
             entity_rev,
             media_source_id: media_source_id.into(),
-            media_source_synchronized_rev: media_source_synchronized_rev
-                .map(entity_revision_to_sql),
+            last_synchronized_rev: last_synchronized_rev.map(entity_revision_to_sql),
             recorded_at: recorded_at.as_ref().map(ToString::to_string),
             recorded_ms: recorded_at.map(DateTime::timestamp_millis),
             recorded_at_yyyymmdd: recorded_at_yyyymmdd.map(Into::into),

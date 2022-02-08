@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, media::SourcePath};
+use aoide_core::{entity::EntityUid, media::content::ContentPath};
 
 use super::*;
 
@@ -42,8 +42,8 @@ pub fn handle_request(
     aoide_usecases_sqlite::media::source::relocate::relocate(
         connection,
         collection_uid,
-        &SourcePath::new(old_path_prefix),
-        &SourcePath::new(new_path_prefix),
+        &ContentPath::new(old_path_prefix),
+        &ContentPath::new(new_path_prefix),
     )
     .map(|replaced_count| ResponseBody { replaced_count })
     .map_err(Into::into)

@@ -30,9 +30,12 @@ use aoide_core::{
     audio::{
         channel::{ChannelCount, ChannelLayout, Channels},
         signal::{BitrateBps, BitsPerSecond, SampleRateHz, SamplesPerSecond},
-        AudioContent,
     },
-    media::{AdvisoryRating, ApicType, Artwork, Content, ContentMetadataFlags},
+    media::{
+        artwork::{ApicType, Artwork},
+        content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
+        AdvisoryRating,
+    },
     music::tempo::TempoBpm,
     tag::{FacetedTags, PlainTag, Score as TagScore, Tags, TagsMap},
     track::{
@@ -211,7 +214,7 @@ impl Metadata {
         self::find_embedded_artwork_image(mp4_tag)
     }
 
-    pub fn import_audio_content(&mut self, importer: &mut Importer) -> AudioContent {
+    pub fn import_audio_content(&mut self, importer: &mut Importer) -> AudioContentMetadata {
         let Self(mp4_tag) = self;
         let duration = mp4_tag.duration().map(Into::into);
         let channels = mp4_tag.channel_config().map(read_channels);
@@ -229,7 +232,7 @@ impl Metadata {
             .take_encoder()
             .and_then(trimmed_non_empty_from_owned)
             .map(Into::into);
-        AudioContent {
+        AudioContentMetadata {
             duration,
             channels,
             sample_rate,
@@ -251,7 +254,7 @@ impl Metadata {
             .update(ContentMetadataFlags::UNRELIABLE)
         {
             let audio_content = self.import_audio_content(importer);
-            track.media_source.content = Content::Audio(audio_content);
+            track.media_source.content_metadata = ContentMetadata::Audio(audio_content);
         }
 
         let Self(mut mp4_tag) = self;
@@ -679,8 +682,8 @@ pub fn export_track_to_path(
     let mut mp4_tag = mp4_tag_orig.clone();
 
     // Audio properties
-    match &track.media_source.content {
-        Content::Audio(audio) => {
+    match &track.media_source.content_metadata {
+        ContentMetadata::Audio(audio) => {
             if let Some(formatted_track_gain) =
                 audio.loudness.map(format_valid_replay_gain).flatten()
             {

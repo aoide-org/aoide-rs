@@ -23,8 +23,6 @@ mod _core {
     pub use aoide_core::audio::*;
 }
 
-use self::{channel::*, signal::*};
-
 ///////////////////////////////////////////////////////////////////////
 // Position
 ///////////////////////////////////////////////////////////////////////
@@ -65,74 +63,5 @@ impl From<DurationMs> for _core::DurationMs {
     fn from(from: DurationMs) -> Self {
         let DurationMs(ms) = from;
         Self::from_inner(ms)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// AudioContent
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(PartialEq))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AudioContent {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    duration_ms: Option<DurationMs>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    channels: Option<Channels>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    sample_rate_hz: Option<SampleRateHz>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    bitrate_bps: Option<BitrateBps>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    loudness_lufs: Option<LoudnessLufs>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    encoder: Option<String>,
-}
-
-impl From<AudioContent> for _core::AudioContent {
-    fn from(from: AudioContent) -> Self {
-        let AudioContent {
-            duration_ms,
-            channels,
-            sample_rate_hz,
-            bitrate_bps,
-            loudness_lufs,
-            encoder,
-        } = from;
-        Self {
-            duration: duration_ms.map(Into::into),
-            channels: channels.map(Into::into),
-            sample_rate: sample_rate_hz.map(Into::into),
-            bitrate: bitrate_bps.map(Into::into),
-            loudness: loudness_lufs.map(Into::into),
-            encoder: encoder.map(Into::into),
-        }
-    }
-}
-
-impl From<_core::AudioContent> for AudioContent {
-    fn from(from: _core::AudioContent) -> Self {
-        let _core::AudioContent {
-            duration,
-            channels,
-            sample_rate,
-            bitrate,
-            loudness,
-            encoder,
-        } = from;
-        Self {
-            duration_ms: duration.map(Into::into),
-            channels: channels.map(Into::into),
-            sample_rate_hz: sample_rate.map(Into::into),
-            bitrate_bps: bitrate.map(Into::into),
-            loudness_lufs: loudness.map(Into::into),
-            encoder: encoder.map(Into::into),
-        }
     }
 }

@@ -27,7 +27,7 @@ use aoide_core_api::media::tracker::{
 
 use aoide_media::{
     fs::{digest, visit},
-    resolver::SourcePathResolver,
+    resolver::ContentPathResolver,
 };
 
 use aoide_repo::{

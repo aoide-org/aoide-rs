@@ -13,15 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::{fmt, time::Duration};
+
 use crate::prelude::*;
 
 pub mod channel;
 pub mod sample;
 pub mod signal;
-
-use self::{channel::*, sample::*, signal::*};
-
-use std::{fmt, time::Duration};
 
 ///////////////////////////////////////////////////////////////////////
 // Position
@@ -148,58 +146,6 @@ impl TryFrom<DurationMs> for Duration {
 impl fmt::Display for DurationMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.to_inner(), Self::unit_of_measure())
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// AudioContent
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AudioContent {
-    pub duration: Option<DurationMs>,
-
-    pub channels: Option<Channels>,
-
-    pub sample_rate: Option<SampleRateHz>,
-
-    pub bitrate: Option<BitrateBps>,
-
-    pub loudness: Option<LoudnessLufs>,
-
-    // Encoder and settings
-    pub encoder: Option<String>,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum AudioContentInvalidity {
-    Duration(DurationMsInvalidity),
-    Channels(ChannelsInvalidity),
-    SampleRate(SampleRateHzInvalidity),
-    Bitrate(BitrateBpsInvalidity),
-    Loudness(LoudnessLufsInvalidity),
-    EncoderEmpty,
-}
-
-impl Validate for AudioContent {
-    type Invalidity = AudioContentInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .validate_with(&self.duration, Self::Invalidity::Duration)
-            .validate_with(&self.channels, Self::Invalidity::Channels)
-            .validate_with(&self.sample_rate, Self::Invalidity::SampleRate)
-            .validate_with(&self.bitrate, Self::Invalidity::Bitrate)
-            .validate_with(&self.loudness, Self::Invalidity::Loudness)
-            .invalidate_if(
-                self.encoder
-                    .as_deref()
-                    .map(str::trim)
-                    .map(str::is_empty)
-                    .unwrap_or(false),
-                Self::Invalidity::EncoderEmpty,
-            )
-            .into()
     }
 }
 

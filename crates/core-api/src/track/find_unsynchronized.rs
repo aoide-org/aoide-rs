@@ -15,27 +15,21 @@
 
 use aoide_core::{
     entity::{Entity, EntityRevision},
-    media::SourcePath,
+    media::content::ContentLink,
 };
 
-use crate::{filtering::StringPredicate, media::source::ResolveUrlFromPath};
+use crate::{filtering::StringPredicate, media::source::ResolveUrlFromContentPath};
 
 #[derive(Debug, Clone, Default)]
 pub struct Params {
-    pub resolve_url_from_path: Option<ResolveUrlFromPath>,
-    pub media_source_path_predicate: Option<StringPredicate>,
-}
-
-#[derive(Debug, Clone)]
-pub struct UnsynchronizedMediaSource {
-    pub path: SourcePath,
-    pub external_rev: Option<u64>,
+    pub resolve_url_from_content_path: Option<ResolveUrlFromContentPath>,
+    pub content_path_predicate: Option<StringPredicate>,
 }
 
 #[derive(Debug, Clone)]
 pub struct UnsynchronizedTrack {
-    pub media_source: UnsynchronizedMediaSource,
-    pub media_source_synchronized_rev: Option<EntityRevision>,
+    pub content_link: ContentLink,
+    pub last_synchronized_rev: Option<EntityRevision>,
 }
 
 pub type UnsynchronizedTrackEntity = Entity<(), UnsynchronizedTrack>;

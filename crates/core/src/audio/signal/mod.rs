@@ -13,15 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::{f64, fmt};
+
 use crate::{
     audio::{
-        sample::BitsPerSample, ChannelLayout, ChannelLayoutInvalidity, SampleLayout,
-        SampleLayoutInvalidity, SampleLength,
+        channel::{ChannelLayout, ChannelLayoutInvalidity},
+        sample::BitsPerSample,
+        sample::{SampleLayout, SampleLayoutInvalidity, SampleLength},
     },
     prelude::*,
 };
-
-use std::{f64, fmt};
 
 ///////////////////////////////////////////////////////////////////////
 // Bitrate

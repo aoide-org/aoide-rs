@@ -21,15 +21,15 @@ use aoide_core::{
     util::clock::{DateOrDateTime, DateTime},
 };
 
-use crate::{filtering::*, media::source::ResolveUrlFromPath, sorting::*, tag};
+use crate::{filtering::*, media::source::ResolveUrlFromContentPath, sorting::*, tag};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum StringField {
     AlbumArtist,
     AlbumTitle,
     ReleasedBy,
-    SourceType, // RFC 6838 media type
-    SourcePath, // RFC 3986 percent-encoded URI
+    ContentPath,
+    ContentType, // RFC 6838 media type
     TrackArtist,
     TrackComposer,
     TrackTitle,
@@ -57,11 +57,11 @@ pub enum NumericField {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DateTimeField {
+    CollectedAt,
     LastPlayedAt,
     RecordedAt,
     ReleasedAt,
     ReleasedOrigAt,
-    SourceCollectedAt,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -102,6 +102,9 @@ pub enum SortField {
     AudioDurationMs,
     AudioLoudnessLufs,
     AudioSampleRateHz,
+    CollectedAt,
+    ContentPath,
+    ContentType,
     CreatedAt,
     DiscNumber,
     DiscTotal,
@@ -112,9 +115,6 @@ pub enum SortField {
     ReleasedAtDate,
     ReleasedOrigAtDate,
     ReleasedBy,
-    SourceCollectedAt,
-    SourceType,
-    SourcePath,
     TimesPlayed,
     TrackArtist,
     TrackNumber,
@@ -216,7 +216,7 @@ impl SearchFilter {
 
 #[derive(Debug, Clone, Default)]
 pub struct Params {
-    pub resolve_url_from_path: Option<ResolveUrlFromPath>,
+    pub resolve_url_from_content_path: Option<ResolveUrlFromContentPath>,
     pub filter: Option<SearchFilter>,
     pub ordering: Vec<SortOrder>,
 }

@@ -21,26 +21,28 @@ use aoide_repo::{
 use super::*;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct PurgeByMediaSourcePathPredicatesSummary {
+pub struct PurgeByMediaContentPathPredicatesSummary {
     pub purged_media_sources: usize,
     pub purged_tracks: usize,
 }
 
-pub fn purge_by_media_source_path_predicates<Repo>(
+pub fn purge_by_media_source_content_path_predicates<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     path_predicates: Vec<StringPredicate>,
-) -> RepoResult<PurgeByMediaSourcePathPredicatesSummary>
+) -> RepoResult<PurgeByMediaContentPathPredicatesSummary>
 where
     Repo: CollectionRepo + MediaSourceCollectionRepo,
 {
-    let mut summary = PurgeByMediaSourcePathPredicatesSummary::default();
+    let mut summary = PurgeByMediaContentPathPredicatesSummary::default();
     for path_predicate in path_predicates {
         // 1st step: Delete the tracks, leaving the correpsonding media sources orphaned
-        let purged_tracks = repo
-            .purge_tracks_by_media_source_path_predicate(collection_id, path_predicate.borrow())?;
+        let purged_tracks = repo.purge_tracks_by_media_source_content_path_predicate(
+            collection_id,
+            path_predicate.borrow(),
+        )?;
         // 2nd step: Delete all orphaned media sources
-        let purged_media_sources = repo.purge_orphaned_media_sources_by_path_predicate(
+        let purged_media_sources = repo.purge_orphaned_media_sources_by_content_path_predicate(
             collection_id,
             path_predicate.borrow(),
         )?;

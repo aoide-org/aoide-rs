@@ -19,7 +19,10 @@ use diesel::dsl::count_star;
 
 use aoide_core::{
     entity::{EntityHeader, EntityUid},
-    media::Source,
+    media::{
+        content::{ContentLink, ContentRevision},
+        Source,
+    },
     tag::*,
     track::{actor::Actor, cue::Cue, title::Title, *},
     util::{canonical::Canonical, clock::*},
@@ -39,7 +42,7 @@ use crate::{
         media_source::{
             schema::*,
             select_row_id_filtered_by_collection_id as select_media_source_id_filtered_by_collection_id,
-            select_row_id_filtered_by_path_predicate as select_media_source_id_filtered_by_path_predicate,
+            select_row_id_filtered_by_content_path_predicate as select_media_source_id_filtered_by_content_path_predicate,
         },
         track::{models::*, schema::*, *},
     },
@@ -510,14 +513,14 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 }
 
 impl<'db> CollectionRepo for crate::Connection<'db> {
-    fn load_track_entity_by_media_source_path(
+    fn load_track_entity_by_media_source_content_path(
         &self,
         collection_id: CollectionId,
-        media_source_path: &str,
+        content_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)> {
-        let media_source_id_subselect = select_media_source_id_filtered_by_path_predicate(
+        let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
-            StringPredicateBorrowed::Equals(media_source_path),
+            StringPredicateBorrowed::Equals(content_path),
         );
         let queryable = track::table
             .filter(track::media_source_id.eq_any(media_source_id_subselect))
@@ -530,14 +533,14 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         Ok((media_source_id, record_header, entity))
     }
 
-    fn resolve_track_entity_header_by_media_source_path(
+    fn resolve_track_entity_header_by_media_source_content_path(
         &self,
         collection_id: CollectionId,
-        media_source_path: &str,
+        content_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)> {
-        let media_source_id_subselect = select_media_source_id_filtered_by_path_predicate(
+        let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
-            StringPredicateBorrowed::Equals(media_source_path),
+            StringPredicateBorrowed::Equals(content_path),
         );
         let queryable = track::table
             .filter(track::media_source_id.eq_any(media_source_id_subselect))
@@ -546,7 +549,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         Ok(queryable.into())
     }
 
-    fn replace_track_by_media_source_path(
+    fn replace_track_by_media_source_content_path(
         &self,
         collection_id: CollectionId,
         params: ReplaceParams,
@@ -555,10 +558,13 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         let ReplaceParams {
             mode,
             preserve_collected_at,
-            update_media_source_synchronized_rev,
+            update_last_synchronized_rev,
         } = params;
         let loaded = self
-            .load_track_entity_by_media_source_path(collection_id, &track.media_source.path)
+            .load_track_entity_by_media_source_content_path(
+                collection_id,
+                &track.media_source.content_link.path,
+            )
             .optional()?;
         if let Some((media_source_id, record_header, entity)) = loaded {
             // Update existing entry
@@ -592,13 +598,13 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 .hdr
                 .next_rev()
                 .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
-            if update_media_source_synchronized_rev {
-                if track.media_source.external_rev.is_some() {
+            if update_last_synchronized_rev {
+                if track.media_source.content_link.rev.is_some() {
                     // Mark the track as synchronized with the media source
-                    track.media_source_synchronized_rev = Some(entity_hdr.rev);
+                    track.last_synchronized_rev = Some(entity_hdr.rev);
                 } else {
                     // Reset the synchronized revision
-                    track.media_source_synchronized_rev = None;
+                    track.last_synchronized_rev = None;
                 }
             }
             let entity = Entity::new(entity_hdr, track);
@@ -614,13 +620,13 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 .insert_media_source(collection_id, created_at, &track.media_source)?
                 .id;
             let entity_hdr = EntityHeader::initial_random();
-            if update_media_source_synchronized_rev {
-                if track.media_source.external_rev.is_some() {
+            if update_last_synchronized_rev {
+                if track.media_source.content_link.rev.is_some() {
                     // Mark the track as synchronized with the media source
-                    track.media_source_synchronized_rev = Some(entity_hdr.rev);
+                    track.last_synchronized_rev = Some(entity_hdr.rev);
                 } else {
                     // Reset the synchronized revision
-                    track.media_source_synchronized_rev = None;
+                    track.last_synchronized_rev = None;
                 }
             }
             let entity = Entity::new(entity_hdr, track);
@@ -705,14 +711,14 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             })
     }
 
-    fn purge_tracks_by_media_source_path_predicate(
+    fn purge_tracks_by_media_source_content_path_predicate(
         &self,
         collection_id: CollectionId,
-        media_source_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
-        let media_source_id_subselect = select_media_source_id_filtered_by_path_predicate(
+        let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
-            media_source_path_predicate,
+            content_path_predicate,
         );
         let target = track::table.filter(track::media_source_id.eq_any(media_source_id_subselect));
         let query = diesel::delete(target);
@@ -724,34 +730,35 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         &self,
         collection_id: CollectionId,
         pagination: &Pagination,
-        media_source_path_predicate: Option<StringPredicateBorrowed<'_>>,
+        content_path_predicate: Option<StringPredicateBorrowed<'_>>,
     ) -> RepoResult<Vec<(EntityHeader, RecordHeader, RecordTrail)>> {
         let mut query = collection::table
             .inner_join(media_source::table.inner_join(track::table))
             .select((
                 collection::row_id,
                 media_source::row_id,
-                media_source::path,
-                media_source::external_rev,
+                media_source::content_link_path,
+                media_source::content_link_rev,
                 track::row_id,
                 track::row_created_ms,
                 track::row_updated_ms,
                 track::entity_uid,
                 track::entity_rev,
-                track::media_source_synchronized_rev,
+                track::last_synchronized_rev,
             ))
             .filter(
-                media_source::external_rev
+                media_source::content_link_rev
                     .is_null()
-                    .or(track::media_source_synchronized_rev.is_null())
-                    .or(track::media_source_synchronized_rev.ne(track::entity_rev.nullable())),
+                    .or(track::last_synchronized_rev.is_null())
+                    .or(track::last_synchronized_rev.ne(track::entity_rev.nullable())),
             )
             .into_boxed();
-        if let Some(media_source_path_predicate) = media_source_path_predicate {
-            let media_source_id_subselect = select_media_source_id_filtered_by_path_predicate(
-                collection_id,
-                media_source_path_predicate,
-            );
+        if let Some(content_path_predicate) = content_path_predicate {
+            let media_source_id_subselect =
+                select_media_source_id_filtered_by_content_path_predicate(
+                    collection_id,
+                    content_path_predicate,
+                );
             // The optimizer will hopefully be able to inline this subselect that
             // allows to reuse the filtered select statement!
             query = query.filter(media_source::row_id.eq_any(media_source_id_subselect));
@@ -777,14 +784,14 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                         |(
                             collection_id,
                             media_source_id,
-                            media_source_path,
-                            media_source_external_rev,
+                            content_link_path,
+                            content_link_rev,
                             row_id,
                             row_created_ms,
                             row_updated_ms,
                             entity_uid,
                             entity_rev,
-                            media_source_synchronized_rev,
+                            last_synchronized_rev,
                         )| {
                             let record_header = RecordHeader {
                                 id: row_id.into(),
@@ -792,14 +799,17 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                                 updated_at: DateTime::new_timestamp_millis(row_updated_ms),
                             };
                             let entity_header = entity_header_from_sql(&entity_uid, entity_rev);
+                            let content_link = ContentLink {
+                                path: content_link_path.into(),
+                                rev: content_link_rev.map(ContentRevision::from_signed_value),
+                            };
+                            let last_synchronized_rev =
+                                last_synchronized_rev.map(entity_revision_from_sql);
                             let record_trail = RecordTrail {
                                 collection_id: collection_id.into(),
                                 media_source_id: media_source_id.into(),
-                                media_source_path: media_source_path.into(),
-                                media_source_external_rev: media_source_external_rev
-                                    .map(|rev| rev as u64),
-                                media_source_synchronized_rev: media_source_synchronized_rev
-                                    .map(entity_revision_from_sql),
+                                content_link,
+                                last_synchronized_rev,
                             };
                             (entity_header, record_header, record_trail)
                         },

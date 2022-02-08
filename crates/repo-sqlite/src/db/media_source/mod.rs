@@ -66,9 +66,9 @@ where
 ///
 /// URIs are only unambiguous within a collection. Therefore
 /// filtering is restricted to a single collection.
-pub fn select_row_id_filtered_by_path_predicate<'db, DB>(
+pub fn select_row_id_filtered_by_content_path_predicate<'db, DB>(
     collection_id: CollectionId,
-    path_predicate: StringPredicateBorrowed<'db>,
+    content_path_predicate: StringPredicateBorrowed<'db>,
 ) -> BoxedSelectStatement<'db, BigInt, media_source::table, DB>
 where
     DB: diesel::backend::Backend + 'db,
@@ -78,67 +78,87 @@ where
         .select(media_source::row_id)
         .filter(media_source::collection_id.eq(RowId::from(collection_id)))
         .into_boxed();
-    match path_predicate {
+    match content_path_predicate {
         StringPredicateBorrowed::StartsWith(path_prefix_nocase) => {
             if path_prefix_nocase.is_empty() {
                 return statement;
             }
-            statement.filter(media_source::path.like(escape_like_starts_with(path_prefix_nocase)))
+            statement.filter(
+                media_source::content_link_path.like(escape_like_starts_with(path_prefix_nocase)),
+            )
         }
         StringPredicateBorrowed::StartsNotWith(path_prefix_nocase) => {
             if path_prefix_nocase.is_empty() {
                 return statement;
             }
-            statement
-                .filter(media_source::path.not_like(escape_like_starts_with(path_prefix_nocase)))
+            statement.filter(
+                media_source::content_link_path
+                    .not_like(escape_like_starts_with(path_prefix_nocase)),
+            )
         }
         StringPredicateBorrowed::EndsWith(path_suffix_nocase) => {
             if path_suffix_nocase.is_empty() {
                 return statement;
             }
-            statement.filter(media_source::path.like(escape_like_ends_with(path_suffix_nocase)))
+            statement.filter(
+                media_source::content_link_path.like(escape_like_ends_with(path_suffix_nocase)),
+            )
         }
         StringPredicateBorrowed::EndsNotWith(path_suffix_nocase) => {
             if path_suffix_nocase.is_empty() {
                 return statement;
             }
-            statement.filter(media_source::path.not_like(escape_like_ends_with(path_suffix_nocase)))
+            statement.filter(
+                media_source::content_link_path.not_like(escape_like_ends_with(path_suffix_nocase)),
+            )
         }
         StringPredicateBorrowed::Contains(path_fragment_nocase) => {
             if path_fragment_nocase.is_empty() {
                 return statement;
             }
-            statement.filter(media_source::path.like(escape_like_contains(path_fragment_nocase)))
+            statement.filter(
+                media_source::content_link_path.like(escape_like_contains(path_fragment_nocase)),
+            )
         }
         StringPredicateBorrowed::ContainsNot(path_fragment_nocase) => {
             if path_fragment_nocase.is_empty() {
                 return statement;
             }
-            statement
-                .filter(media_source::path.not_like(escape_like_contains(path_fragment_nocase)))
+            statement.filter(
+                media_source::content_link_path
+                    .not_like(escape_like_contains(path_fragment_nocase)),
+            )
         }
         StringPredicateBorrowed::Matches(path_fragment_nocase) => {
             if path_fragment_nocase.is_empty() {
                 return statement;
             }
-            statement.filter(media_source::path.like(escape_like_matches(path_fragment_nocase)))
+            statement.filter(
+                media_source::content_link_path.like(escape_like_matches(path_fragment_nocase)),
+            )
         }
         StringPredicateBorrowed::MatchesNot(path_fragment_nocase) => {
             if path_fragment_nocase.is_empty() {
                 return statement;
             }
-            statement.filter(media_source::path.not_like(escape_like_matches(path_fragment_nocase)))
+            statement.filter(
+                media_source::content_link_path.not_like(escape_like_matches(path_fragment_nocase)),
+            )
         }
         StringPredicateBorrowed::Prefix(path_prefix) => {
             if path_prefix.is_empty() {
                 return statement;
             }
             statement.filter(sql_column_substr_prefix_eq(
-                "media_source.path",
+                "media_source.content_link_path",
                 path_prefix,
             ))
         }
-        StringPredicateBorrowed::Equals(path) => statement.filter(media_source::path.eq(path)),
-        StringPredicateBorrowed::EqualsNot(path) => statement.filter(media_source::path.ne(path)),
+        StringPredicateBorrowed::Equals(path) => {
+            statement.filter(media_source::content_link_path.eq(path))
+        }
+        StringPredicateBorrowed::EqualsNot(path) => {
+            statement.filter(media_source::content_link_path.ne(path))
+        }
     }
 }

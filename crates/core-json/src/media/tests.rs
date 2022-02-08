@@ -1,6 +1,6 @@
 use super::*;
 
-use aoide_core::util::clock::DateTime;
+use aoide_core::{media::content::ContentRevision, util::clock::DateTime};
 
 #[test]
 fn deserialize_artwork_missing() {
@@ -9,7 +9,7 @@ fn deserialize_artwork_missing() {
         .unwrap()
         .try_into()
         .unwrap();
-    assert_eq!(_core::Artwork::Missing, artwork);
+    assert_eq!(_core::artwork::Artwork::Missing, artwork);
 }
 
 #[test]
@@ -23,15 +23,17 @@ fn serde_digest() {
 #[test]
 fn deserialize_audio_source() {
     let now = DateTime::now_local();
-    let external_rev = (now.timestamp_millis() - 1000) as u64;
+    let content_rev = ContentRevision::new(345);
     let json = serde_json::json!({
         "collectedAt": now.to_string(),
-        "externalRev": Some(external_rev),
-        "path": "/home/test file.mp3",
-        "advisoryRating": 0,
+        "contentLink": {
+            "path": "/home/test file.mp3",
+            "rev": Some(content_rev.to_value()),
+        },
         "contentType": "audio/mpeg",
         "contentDigest": "aGVsbG8gaW50ZXJuZXR-Cg",
-        "audio": {}
+        "audio": {},
+        "advisoryRating": 0,
     })
     .to_string();
     let source: _core::Source = serde_json::from_str::<Source>(&json)
@@ -41,15 +43,17 @@ fn deserialize_audio_source() {
     assert_eq!(
         _core::Source {
             collected_at: now,
-            external_rev: Some(external_rev),
-            path: _core::SourcePath::new("/home/test file.mp3".to_owned()),
+            content_link: _core::content::ContentLink {
+                path: _core::content::ContentPath::new("/home/test file.mp3".to_owned()),
+                rev: Some(content_rev),
+            },
             content_type: "audio/mpeg".parse().unwrap(),
-            advisory_rating: Some(_core::AdvisoryRating::Unrated),
+            content_metadata: _core::content::ContentMetadata::Audio(Default::default()),
+            content_metadata_flags: Default::default(),
             content_digest: Digest::from_encoded("aGVsbG8gaW50ZXJuZXR-Cg")
                 .try_decode()
                 .ok(),
-            content_metadata_flags: Default::default(),
-            content: _core::Content::Audio(Default::default()),
+            advisory_rating: Some(_core::AdvisoryRating::Unrated),
             artwork: None,
         },
         source

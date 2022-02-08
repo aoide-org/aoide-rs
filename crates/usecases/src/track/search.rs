@@ -16,7 +16,7 @@
 use std::time::Instant;
 
 use aoide_core::entity::EntityUid;
-use aoide_core_api::{media::source::ResolveUrlFromPath, track::search::*};
+use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::search::*};
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
@@ -59,7 +59,7 @@ where
     Repo: CollectionRepo + TrackCollectionRepo,
 {
     let Params {
-        resolve_url_from_path,
+        resolve_url_from_content_path,
         filter,
         ordering,
     } = params;
@@ -67,13 +67,13 @@ where
         repo,
         collection_uid,
         None,
-        resolve_url_from_path
+        resolve_url_from_content_path
             .as_ref()
-            .and_then(ResolveUrlFromPath::override_root_url)
+            .and_then(ResolveUrlFromContentPath::override_root_url)
             .map(ToOwned::to_owned),
     )?;
     let collection_id = collection_ctx.record_id;
-    if resolve_url_from_path.is_some() {
+    if resolve_url_from_content_path.is_some() {
         let vfs_ctx = if let Some(vfs_ctx) = collection_ctx.source_path.vfs {
             vfs_ctx
         } else {
@@ -84,7 +84,7 @@ where
             .into());
         };
         let mut collector = ResolveUrlFromVirtualFilePathCollector {
-            source_path_resolver: vfs_ctx.path_resolver,
+            content_path_resolver: vfs_ctx.path_resolver,
             collector,
         };
         search(
