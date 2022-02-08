@@ -3228,7 +3228,7 @@ components:
           type: string
         album:
           $ref: '#/components/schemas/Album'
-        tites:
+        titles:
           description: |
             An array of titles
           type: array
