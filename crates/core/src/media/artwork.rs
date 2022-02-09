@@ -20,7 +20,6 @@ use crate::prelude::*;
 
 /// The APIC picture type code as defined by ID3v2.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, FromPrimitive, ToPrimitive)]
-#[repr(u8)]
 pub enum ApicType {
     Other = 0x00,
     Icon = 0x01,

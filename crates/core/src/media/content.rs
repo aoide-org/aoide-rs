@@ -93,7 +93,6 @@ impl fmt::Display for ContentPath {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
-#[repr(u8)]
 pub enum ContentPathKind {
     /// Percent-encoded, canonical URI (case-sensitive)
     Uri = 0,
