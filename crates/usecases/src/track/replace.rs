@@ -100,7 +100,7 @@ where
             debug_assert_ne!(ReplaceMode::UpdateOnly, params.mode);
             log::trace!(
                 "Created {}: {:?}",
-                entity.body.media_source.content_link.path,
+                entity.body.track.media_source.content_link.path,
                 entity.hdr
             );
             summary.created.push(entity);
@@ -110,7 +110,7 @@ where
             debug_assert_ne!(ReplaceMode::CreateOnly, params.mode);
             log::trace!(
                 "Updated {}: {:?}",
-                entity.body.media_source.content_link.path,
+                entity.body.track.media_source.content_link.path,
                 entity.hdr
             );
             summary.updated.push(entity);
@@ -120,7 +120,7 @@ where
             log::trace!("Unchanged: {:?}", entity);
             summary
                 .unchanged
-                .push(entity.body.media_source.content_link.path);
+                .push(entity.body.track.media_source.content_link.path);
             media_source_id
         }
         ReplaceOutcome::NotCreated(track) => {
@@ -224,13 +224,13 @@ pub fn import_and_replace_from_file_path<Repo>(
 where
     Repo: TrackCollectionRepo,
 {
-    let (media_source_id, external_rev, synchronized_rev, collected_track) = repo
+    let (media_source_id, external_rev, synchronized_rev, entity_body) = repo
         .load_track_entity_by_media_source_content_path(collection_id, &source_path)
         .optional()?
         .map(|(media_source_id, _, entity)| {
             (
                 Some(media_source_id),
-                entity.body.media_source.content_link.rev,
+                entity.body.track.media_source.content_link.rev,
                 entity.body.last_synchronized_rev.map(|rev| {
                     debug_assert!(rev <= entity.hdr.rev);
                     rev == entity.hdr.rev
@@ -252,7 +252,9 @@ where
             issues: import_issues,
         }) => {
             debug_assert_eq!(imported_track.media_source.content_link.path, source_path);
-            let track = if let Some(mut collected_track) = collected_track {
+            let track = if let Some(mut collected_track) =
+                entity_body.map(|entity_body| entity_body.track)
+            {
                 // Merge imported properties into existing properties, i.e.
                 // keep existing properties if no replacement is available.
                 collected_track.merge_newer_from_synchronized_media_source(imported_track);

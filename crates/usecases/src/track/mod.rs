@@ -42,13 +42,13 @@ where
     type Record = Entity;
 
     fn collect(&mut self, header: Self::Header, mut record: Self::Record) {
-        let path = &record.body.media_source.content_link.path;
+        let path = &record.body.track.media_source.content_link.path;
         match self
             .content_path_resolver
             .resolve_url_from_content_path(path)
         {
             Ok(url) => {
-                record.body.media_source.content_link.path = FileUrlResolver
+                record.body.track.media_source.content_link.path = FileUrlResolver
                     .resolve_path_from_url(&url)
                     .expect("percent-encoded URL");
                 self.collector.collect(header, record);

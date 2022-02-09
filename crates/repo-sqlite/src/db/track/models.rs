@@ -250,7 +250,6 @@ pub fn load_repo_entity(
     };
     let track = Track {
         media_source,
-        last_synchronized_rev,
         recorded_at,
         released_at,
         released_orig_at,
@@ -266,7 +265,11 @@ pub fn load_repo_entity(
         cues,
         play_counter,
     };
-    let entity = Entity::new(entity_hdr, track);
+    let entity_body = EntityBody {
+        track,
+        last_synchronized_rev,
+    };
+    let entity = Entity::new(entity_hdr, entity_body);
     Ok((header, entity))
 }
 
@@ -318,9 +321,12 @@ impl<'a> InsertableRecord<'a> {
     pub fn bind(created_at: DateTime, media_source_id: MediaSourceId, entity: &'a Entity) -> Self {
         let row_created_updated_ms = created_at.timestamp_millis();
         let EntityHeader { uid, rev } = &entity.hdr;
+        let EntityBody {
+            track,
+            last_synchronized_rev,
+        } = &entity.body;
         let Track {
             media_source: _,
-            last_synchronized_rev,
             recorded_at,
             released_at,
             released_orig_at,
@@ -339,7 +345,7 @@ impl<'a> InsertableRecord<'a> {
                 },
             cues: _,
             tags: _,
-        } = &entity.body;
+        } = track;
         let (recorded_at_yyyymmdd, recorded_at) = recorded_at
             .map(|recorded_at| match recorded_at {
                 DateOrDateTime::Date(date) => (Some(date), None),
@@ -420,11 +426,11 @@ impl<'a> InsertableRecord<'a> {
             last_played_at: last_played_at.as_ref().map(ToString::to_string),
             last_played_ms: last_played_at.map(DateTime::timestamp_millis),
             times_played: times_played.map(|count| count as i64),
-            aux_track_title: entity.body.track_title(),
-            aux_track_artist: entity.body.track_artist(),
-            aux_track_composer: entity.body.track_composer(),
-            aux_album_title: entity.body.album_title(),
-            aux_album_artist: entity.body.album_artist(),
+            aux_track_title: track.track_title(),
+            aux_track_artist: track.track_artist(),
+            aux_track_composer: track.track_composer(),
+            aux_album_title: track.album_title(),
+            aux_album_artist: track.album_artist(),
         }
     }
 }
@@ -477,12 +483,15 @@ impl<'a> UpdatableRecord<'a> {
         updated_at: DateTime,
         next_rev: EntityRevision,
         media_source_id: MediaSourceId,
-        track: &'a Track,
+        entity_body: &'a EntityBody,
     ) -> Self {
         let entity_rev = entity_revision_to_sql(next_rev);
+        let EntityBody {
+            track,
+            last_synchronized_rev,
+        } = entity_body;
         let Track {
             media_source: _,
-            last_synchronized_rev,
             recorded_at,
             released_at,
             released_orig_at,

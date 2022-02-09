@@ -27,7 +27,7 @@ mod _core {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct MediaSourceConfig {
-    pub content_path: ContentPathConfig,
+    content_path: ContentPathConfig,
 }
 
 impl TryFrom<MediaSourceConfig> for _core::MediaSourceConfig {
@@ -55,18 +55,18 @@ impl From<_core::MediaSourceConfig> for MediaSourceConfig {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Collection {
-    pub title: String,
+    title: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub notes: Option<String>,
+    notes: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub kind: Option<String>,
+    kind: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub color: Option<Color>,
+    color: Option<Color>,
 
-    pub media_source_config: MediaSourceConfig,
+    media_source_config: MediaSourceConfig,
 }
 
 impl TryFrom<Collection> for _core::Collection {

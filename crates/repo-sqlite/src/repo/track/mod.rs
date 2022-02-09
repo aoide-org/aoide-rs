@@ -429,17 +429,17 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         insert_track_and_album_titles(
             self,
             id,
-            created_entity.body.titles.as_slice(),
-            created_entity.body.album.titles.as_slice(),
+            created_entity.body.track.titles.as_slice(),
+            created_entity.body.track.album.titles.as_slice(),
         )?;
         insert_track_and_album_actors(
             self,
             id,
-            created_entity.body.actors.as_slice(),
-            created_entity.body.album.actors.as_slice(),
+            created_entity.body.track.actors.as_slice(),
+            created_entity.body.track.album.actors.as_slice(),
         )?;
-        insert_track_cues(self, id, created_entity.body.cues.as_slice())?;
-        insert_track_tags(self, id, &created_entity.body.tags)?;
+        insert_track_cues(self, id, created_entity.body.track.cues.as_slice())?;
+        insert_track_tags(self, id, &created_entity.body.track.tags)?;
         Ok(id)
     }
 
@@ -466,17 +466,17 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         update_track_and_album_titles(
             self,
             id,
-            updated_entity.body.titles.as_slice(),
-            updated_entity.body.album.titles.as_slice(),
+            updated_entity.body.track.titles.as_slice(),
+            updated_entity.body.track.album.titles.as_slice(),
         )?;
         update_track_and_album_actors(
             self,
             id,
-            updated_entity.body.actors.as_slice(),
-            updated_entity.body.album.actors.as_slice(),
+            updated_entity.body.track.actors.as_slice(),
+            updated_entity.body.track.album.actors.as_slice(),
         )?;
-        update_track_cues(self, id, updated_entity.body.cues.as_slice())?;
-        update_track_tags(self, id, &updated_entity.body.tags)?;
+        update_track_cues(self, id, updated_entity.body.track.cues.as_slice())?;
+        update_track_tags(self, id, &updated_entity.body.track.tags)?;
         Ok(())
     }
 
@@ -572,42 +572,52 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             if mode == ReplaceMode::CreateOnly {
                 return Ok(ReplaceOutcome::NotUpdated(media_source_id, id, track));
             }
-            if entity.body == track {
+            if entity.body.track == track
+                && (!update_last_synchronized_rev
+                    || entity.body.last_synchronized_rev == Some(entity.hdr.rev))
+            {
                 return Ok(ReplaceOutcome::Unchanged(media_source_id, id, entity));
             }
             let updated_at = DateTime::now_utc();
             if preserve_collected_at {
-                if track.media_source.collected_at != entity.body.media_source.collected_at {
+                if track.media_source.collected_at != entity.body.track.media_source.collected_at {
                     log::debug!(
                         "Preserving collected_at = {preserved}, discarding {discarded}",
-                        preserved = entity.body.media_source.collected_at,
+                        preserved = entity.body.track.media_source.collected_at,
                         discarded = track.media_source.collected_at
                     );
                 }
-                track.media_source.collected_at = entity.body.media_source.collected_at;
+                track.media_source.collected_at = entity.body.track.media_source.collected_at;
             }
-            if track == entity.body {
+            if track == entity.body.track {
                 return Ok(ReplaceOutcome::Unchanged(media_source_id, id, entity));
             }
             log::trace!("original = {:?}", entity.body);
             log::trace!("updated = {:?}", track);
-            if track.media_source != entity.body.media_source {
+            if track.media_source != entity.body.track.media_source {
                 self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
             let entity_hdr = entity
                 .hdr
                 .next_rev()
                 .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
-            if update_last_synchronized_rev {
+            let last_synchronized_rev = if update_last_synchronized_rev {
                 if track.media_source.content_link.rev.is_some() {
                     // Mark the track as synchronized with the media source
-                    track.last_synchronized_rev = Some(entity_hdr.rev);
+                    Some(entity_hdr.rev)
                 } else {
                     // Reset the synchronized revision
-                    track.last_synchronized_rev = None;
+                    None
                 }
-            }
-            let entity = Entity::new(entity_hdr, track);
+            } else {
+                // Keep the current synchronized revision
+                entity.body.last_synchronized_rev
+            };
+            let entity_body = EntityBody {
+                track,
+                last_synchronized_rev,
+            };
+            let entity = Entity::new(entity_hdr, entity_body);
             self.update_track_entity(id, updated_at, media_source_id, &entity)?;
             Ok(ReplaceOutcome::Updated(media_source_id, id, entity))
         } else {
@@ -620,16 +630,18 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 .insert_media_source(collection_id, created_at, &track.media_source)?
                 .id;
             let entity_hdr = EntityHeader::initial_random();
-            if update_last_synchronized_rev {
-                if track.media_source.content_link.rev.is_some() {
+            let last_synchronized_rev =
+                if update_last_synchronized_rev && track.media_source.content_link.rev.is_some() {
                     // Mark the track as synchronized with the media source
-                    track.last_synchronized_rev = Some(entity_hdr.rev);
+                    Some(entity_hdr.rev)
                 } else {
-                    // Reset the synchronized revision
-                    track.last_synchronized_rev = None;
-                }
-            }
-            let entity = Entity::new(entity_hdr, track);
+                    None
+                };
+            let entity_body = EntityBody {
+                track,
+                last_synchronized_rev,
+            };
+            let entity = Entity::new(entity_hdr, entity_body);
             let id = self.insert_track_entity(created_at, media_source_id, &entity)?;
             Ok(ReplaceOutcome::Created(media_source_id, id, entity))
         }

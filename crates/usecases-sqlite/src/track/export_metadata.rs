@@ -32,7 +32,7 @@ pub fn export_metadata_into_file(
         uc::media::export_track_metadata_into_file(
             content_path_resolver,
             config,
-            &mut track_entity.body,
+            &mut track_entity.body.track,
         )
         .map_err(transaction_error)
     })

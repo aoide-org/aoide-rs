@@ -3205,14 +3205,12 @@ components:
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/Track'
+          - $ref: '#/components/schemas/TrackEntityBody'
     Track:
       type: object
       properties:
         mediaSource:
           $ref: '#/components/schemas/MediaSource'
-        lastSynchronizedRev:
-          $ref: '#/components/schemas/LastSynchronizedEntityRevision'
         recordedAt:
           $ref: '#/components/schemas/RecordedAt'
         releasedAt:
@@ -3273,6 +3271,15 @@ components:
           $ref: '#/components/schemas/Color'
         flags:
           $ref: '#/components/schemas/CueFlags'
+    TrackEntityBody:
+      type: object
+      properties:
+        track:
+          $ref: '#/components/schemas/Track'
+        lastSynchronizedRev:
+          $ref: '#/components/schemas/LastSynchronizedEntityRevision'
+      required:
+        - track
     TrackIndex:
       allOf:
         - $ref: '#/components/schemas/Index'

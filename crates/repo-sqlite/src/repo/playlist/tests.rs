@@ -27,7 +27,7 @@ use aoide_core::{
         self,
         content::{AudioContentMetadata, ContentLink, ContentPath, ContentPathConfig},
     },
-    track::{Entity as TrackEntity, Track},
+    track::{Entity as TrackEntity, EntityBody as TrackEntityBody, Track},
     util::{clock::DateTime, url::BaseUrl},
 };
 
@@ -91,7 +91,11 @@ impl Fixture {
                 .insert_media_source(self.collection_id, DateTime::now_utc(), &media_source)?
                 .id;
             let track = Track::new_from_media_source(media_source);
-            let track_entity = TrackEntity::new(EntityHeader::initial_random(), track);
+            let entity_body = TrackEntityBody {
+                track,
+                last_synchronized_rev: None,
+            };
+            let track_entity = TrackEntity::new(EntityHeader::initial_random(), entity_body);
             let track_id = db.insert_track_entity(created_at, media_source_id, &track_entity)?;
             created.push((media_source_id, track_id, track_entity.hdr.uid));
         }

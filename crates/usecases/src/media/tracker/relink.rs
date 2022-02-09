@@ -18,7 +18,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use aoide_core::{
     entity::EntityUid,
     media::Source as MediaSource,
-    track::{Entity, Track},
+    track::{Entity, EntityBody, Track},
 };
 
 use aoide_core_api::track::search::{ConditionFilter, SearchFilter, SortField, SortOrder};
@@ -66,10 +66,10 @@ where
     let updated_track = Track {
         media_source: MediaSource {
             // Preserve the collected_at field from the old source
-            collected_at: old_entity.body.media_source.collected_at,
-            ..new_entity.body.media_source
+            collected_at: old_entity.body.track.media_source.collected_at,
+            ..new_entity.body.track.media_source
         },
-        ..new_entity.body
+        ..new_entity.body.track
     };
     // Relink the sources in the media tracker
     repo.purge_media_source(new_source_id)?;
@@ -80,17 +80,25 @@ where
         Err(RepoError::NotFound)
     ));
     // Finish with updating the old track
-    if updated_track != old_entity.body {
+    if updated_track != old_entity.body.track {
+        let updated_entity_body = EntityBody {
+            track: updated_track,
+            last_synchronized_rev: old_entity.body.last_synchronized_rev,
+        };
         let updated_at = DateTime::now_utc();
-        if old_entity.body.media_source != updated_track.media_source {
-            repo.update_media_source(old_source_id, updated_at, &updated_track.media_source)?;
+        if old_entity.body.track.media_source != updated_entity_body.track.media_source {
+            repo.update_media_source(
+                old_source_id,
+                updated_at,
+                &updated_entity_body.track.media_source,
+            )?;
             debug_assert_eq!(
-                updated_track.media_source,
+                updated_entity_body.track.media_source,
                 repo.load_media_source_by_path(collection_id, new_content_link_path)?
                     .1
             );
         }
-        let updated_entity = Entity::new(old_entity.hdr, updated_track);
+        let updated_entity = Entity::new(old_entity.hdr, updated_entity_body);
         repo.update_track_entity(old_header.id, updated_at, old_source_id, &updated_entity)?;
         debug_assert_eq!(
             updated_entity.body,
@@ -193,12 +201,12 @@ where
             return Ok(relinked_media_sources);
         }
         report_progress_fn(&progress);
-        let old_content_link_path = old_entity.body.media_source.content_link.path.clone();
+        let old_content_link_path = old_entity.body.track.media_source.content_link.path.clone();
         let candidates = find_duplicates(
             repo,
             collection_id,
             old_header.id,
-            old_entity.body,
+            old_entity.body.track,
             &find_candidate_params,
         )?;
         let new_content_link_path = match candidates.len() {
@@ -209,7 +217,7 @@ where
             }
             1 => candidates
                 .into_iter()
-                .map(|(_, entity)| entity.body.media_source.content_link.path)
+                .map(|(_, entity)| entity.body.track.media_source.content_link.path)
                 .next()
                 .expect("single URI"),
             _ => {

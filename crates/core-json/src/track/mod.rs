@@ -41,13 +41,10 @@ mod _core {
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Track {
-    pub media_source: Source,
+    media_source: Source,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub last_synchronized_rev: Option<EntityRevision>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub recorded_at: Option<DateOrDateTime>,
+    recorded_at: Option<DateOrDateTime>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     released_at: Option<DateOrDateTime>,
@@ -62,38 +59,37 @@ pub struct Track {
     copyright: Option<String>,
 
     #[serde(skip_serializing_if = "Album::is_default", default)]
-    pub album: Album,
+    album: Album,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub titles: Vec<Title>,
+    titles: Vec<Title>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub actors: Vec<Actor>,
+    actors: Vec<Actor>,
 
     #[serde(skip_serializing_if = "Indexes::is_default", default)]
-    pub indexes: Indexes,
+    indexes: Indexes,
 
     #[serde(skip_serializing_if = "Tags::is_empty", default)]
-    pub tags: Tags,
+    tags: Tags,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub color: Option<Color>,
+    color: Option<Color>,
 
     #[serde(skip_serializing_if = "Metrics::is_default", default)]
-    pub metrics: Metrics,
+    metrics: Metrics,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub cues: Vec<Cue>,
+    cues: Vec<Cue>,
 
     #[serde(skip_serializing_if = "PlayCounter::is_default", default)]
-    pub play_counter: PlayCounter,
+    play_counter: PlayCounter,
 }
 
 impl From<_core::Track> for Track {
     fn from(from: _core::Track) -> Self {
         let _core::Track {
             media_source,
-            last_synchronized_rev,
             recorded_at,
             released_at,
             released_orig_at,
@@ -111,7 +107,6 @@ impl From<_core::Track> for Track {
         } = from;
         Self {
             media_source: media_source.into(),
-            last_synchronized_rev: last_synchronized_rev.map(Into::into),
             recorded_at: recorded_at.map(Into::into),
             released_at: released_at.map(Into::into),
             released_orig_at: released_orig_at.map(Into::into),
@@ -136,7 +131,6 @@ impl TryFrom<Track> for _core::Track {
     fn try_from(from: Track) -> anyhow::Result<Self> {
         let Track {
             media_source,
-            last_synchronized_rev,
             recorded_at,
             released_at,
             released_orig_at,
@@ -155,7 +149,6 @@ impl TryFrom<Track> for _core::Track {
         let media_source = media_source.try_into()?;
         let into = Self {
             media_source,
-            last_synchronized_rev: last_synchronized_rev.map(Into::into),
             recorded_at: recorded_at.map(Into::into),
             released_at: released_at.map(Into::into),
             released_orig_at: released_orig_at.map(Into::into),
@@ -196,7 +189,46 @@ impl TryFrom<Track> for _core::Track {
 // Entity
 ///////////////////////////////////////////////////////////////////////
 
-pub type Entity = crate::entity::Entity<Track>;
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityBody {
+    track: Track,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    last_synchronized_rev: Option<EntityRevision>,
+}
+
+impl TryFrom<EntityBody> for _core::EntityBody {
+    type Error = anyhow::Error;
+
+    fn try_from(from: EntityBody) -> anyhow::Result<Self> {
+        let EntityBody {
+            track,
+            last_synchronized_rev,
+        } = from;
+        let track = track.try_into()?;
+        Ok(Self {
+            track,
+            last_synchronized_rev: last_synchronized_rev.map(Into::into),
+        })
+    }
+}
+
+impl From<_core::EntityBody> for EntityBody {
+    fn from(from: _core::EntityBody) -> Self {
+        let _core::EntityBody {
+            track,
+            last_synchronized_rev,
+        } = from;
+        Self {
+            track: track.into(),
+            last_synchronized_rev: last_synchronized_rev.map(Into::into),
+        }
+    }
+}
+
+pub type Entity = crate::entity::Entity<EntityBody>;
 
 impl TryFrom<Entity> for _core::Entity {
     type Error = anyhow::Error;
