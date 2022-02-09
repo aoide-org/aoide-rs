@@ -41,6 +41,8 @@ use aoide_usecases_sqlite as uc;
 
 use aoide_websrv_api::handle_rejection;
 
+use crate::config::DatabaseConfig;
+
 use super::{
     config::{Config, DatabaseConnection},
     routing,
@@ -67,24 +69,24 @@ pub enum Command {
     Terminate { abort_pending_tasks: bool },
 }
 
-fn connect_database(config: &Config) -> anyhow::Result<DatabaseConnectionGatekeeper> {
+fn commission_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnectionGatekeeper> {
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
     log::info!(
         "Creating SQLite connection pool of size {}",
-        config.database.connection_pool.max_size
+        config.connection_pool.max_size
     );
-    let sqlite_database_connection = match &config.database.connection {
+    let sqlite_database_connection = match &config.connection {
         DatabaseConnection::Sqlite(sqlite_connection) => sqlite_connection.as_ref(),
     };
     let connection_pool = create_connection_pool(
         sqlite_database_connection,
-        config.database.connection_pool.max_size.into(),
+        config.connection_pool.max_size.into(),
     )?;
 
     log::info!("Initializing database");
     initialize_database(&*get_pooled_connection(&connection_pool)?)?;
-    if config.database.migrate_schema_on_startup {
+    if config.migrate_schema_on_startup {
         log::info!("Migrating database schema");
         uc::database::migrate_schema(&*get_pooled_connection(&connection_pool)?)?;
     }
@@ -94,14 +96,12 @@ fn connect_database(config: &Config) -> anyhow::Result<DatabaseConnectionGatekee
         DatabaseConnectionGatekeeperConfig {
             acquire_read_timeout: Duration::from_millis(
                 config
-                    .database
                     .connection_gatekeeper
                     .acquire_read_timeout_millis
                     .get(),
             ),
             acquire_write_timeout: Duration::from_millis(
                 config
-                    .database
                     .connection_gatekeeper
                     .acquire_write_timeout_millis
                     .get(),
@@ -120,7 +120,7 @@ pub async fn run(
     log::info!("Launching");
     current_state_tx.send(Some(State::Launching)).ok();
 
-    let shared_connection_pool = Arc::new(connect_database(&config)?);
+    let shared_connection_pool = Arc::new(commission_database(&config.database)?);
 
     let about_json = serde_json::json!({
     "name": env!("CARGO_PKG_NAME"),
