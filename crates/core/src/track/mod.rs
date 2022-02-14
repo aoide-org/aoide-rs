@@ -354,6 +354,10 @@ impl IsCanonical for Track {
     }
 }
 
+/// Entity-aware shell
+///
+/// An entity-aware wrapper around [`Track`] that contains additional
+/// entity-related properties.
 #[derive(Clone, Debug, PartialEq)]
 pub struct EntityBody {
     pub track: Track,
