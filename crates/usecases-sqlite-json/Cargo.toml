@@ -6,17 +6,19 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "*"
-diesel = { version = "*", default-features = false, features = ["sqlite"] }
-log = "*"
-schemars = "*"
-serde = "*"
-thiserror = "*"
-url = "*"
+anyhow = "1"
+diesel = { version = "1.4.8", default-features = false, features = ["sqlite"] }
+log = "0.4"
+serde = { version = "1", default-features = false }
+thiserror = "1"
+url = "2.2"
 
 # tracing
-tracing = { version = "*", features = ["log"] }
-uuid = { version = "*", features = ["v4"] }
+tracing = { version = "0.1", features = ["log"] }
+uuid = { version = "0.8", features = ["v4"] }
+
+# JSON Schema (optional)
+schemars = { version = "0.8", optional = true }
 
 # Workspace dependencies
 aoide-core = "*"
@@ -30,3 +32,8 @@ aoide-usecases-sqlite = "*"
 
 [features]
 default = []
+with-schemars = [
+    "schemars",
+    "aoide-core-api-json/with-schemars",
+    "aoide-core-json/with-schemars",
+]

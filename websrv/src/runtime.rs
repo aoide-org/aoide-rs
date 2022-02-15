@@ -23,6 +23,7 @@ use std::{
     time::Duration,
 };
 
+use time::OffsetDateTime;
 use tokio::{
     sync::{mpsc, watch},
     time::sleep,
@@ -115,7 +116,7 @@ pub async fn run(
     command_rx: mpsc::UnboundedReceiver<Command>,
     current_state_tx: watch::Sender<Option<State>>,
 ) -> anyhow::Result<()> {
-    let launched_at = chrono::Utc::now();
+    let launched_at = OffsetDateTime::now_utc();
 
     log::info!("Launching");
     current_state_tx.send(Some(State::Launching)).ok();

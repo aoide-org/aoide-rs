@@ -13,6 +13,8 @@ fmt:
 
 # Run clippy
 check:
+    cargo clippy --locked --workspace --bins --examples --tests -- -D warnings
+    cargo clippy --locked --workspace --no-default-features --bins --examples --tests -- -D warnings
     cargo clippy --locked --workspace --all-features --bins --examples --tests -- -D warnings
     cd webapp && cargo clippy --target wasm32-unknown-unknown --locked --all-features --bins --examples --tests -- -D warnings
 
@@ -25,6 +27,8 @@ fix:
 
 # Run unit tests
 test:
+    RUST_BACKTRACE=1 cargo test --locked --workspace -- --nocapture
+    RUST_BACKTRACE=1 cargo test --locked --workspace --no-default-features -- --nocapture
     RUST_BACKTRACE=1 cargo test --locked --workspace --all-features -- --nocapture
     cd webapp && RUST_BACKTRACE=1 cargo test --locked --all-features -- --nocapture
 

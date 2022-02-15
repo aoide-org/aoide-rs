@@ -15,9 +15,11 @@
 
 use std::{convert::Infallible, sync::Arc};
 
-use schemars::schema_for;
 use tokio::sync::{watch, Mutex};
 use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
+
+#[cfg(feature = "with-schemars")]
+use schemars::schema_for;
 
 use aoide_core::entity::EntityUid;
 
@@ -58,9 +60,13 @@ pub fn create_filters(
     let media_tracker_path = warp::path("mt");
     let storage_path = warp::path("storage");
 
+    #[cfg(feature = "with-schemars")]
     let schema_path = warp::path("schema");
+    #[cfg(feature = "with-schemars")]
     let schema_get_path = schema_path.and(warp::path("get"));
+    #[cfg(feature = "with-schemars")]
     let schema_post_path = schema_path.and(warp::path("post"));
+    #[cfg(feature = "with-schemars")]
     let schema_put_path = schema_path.and(warp::path("put"));
 
     // Collections
@@ -83,6 +89,7 @@ pub fn create_filters(
                     })
             },
         );
+    #[cfg(feature = "with-schemars")]
     let collections_create_schema = warp::get()
         .and(schema_post_path)
         .and(collections_path)
@@ -124,6 +131,7 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
+    #[cfg(feature = "with-schemars")]
     let collections_update_schema = warp::get()
         .and(schema_put_path)
         .and(collections_path)
@@ -173,6 +181,7 @@ pub fn create_filters(
                     .map(|response_body| warp::reply::json(&response_body))
             },
         );
+    #[cfg(feature = "with-schemars")]
     let collections_load_all_schema = warp::get()
         .and(schema_get_path)
         .and(collections_path)
@@ -211,6 +220,7 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
+    #[cfg(feature = "with-schemars")]
     let collections_load_one_schema = warp::get()
         .and(schema_get_path)
         .and(collections_path)
@@ -243,6 +253,7 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
+    #[cfg(feature = "with-schemars")]
     let collections_load_all_kinds_schema = warp::get()
         .and(schema_get_path)
         .and(collections_path)
@@ -257,16 +268,19 @@ pub fn create_filters(
         });
 
     let collections_filters = collections_load_all
-        .or(collections_load_all_schema)
         .or(collections_load_one)
-        .or(collections_load_one_schema)
         .or(collections_load_all_kinds)
-        .or(collections_load_all_kinds_schema)
         .or(collections_create)
-        .or(collections_create_schema)
         .or(collections_update)
-        .or(collections_update_schema)
         .or(collections_delete);
+
+    #[cfg(feature = "with-schemars")]
+    let collections_filters = collections_filters
+        .or(collections_load_all_schema)
+        .or(collections_load_one_schema)
+        .or(collections_load_all_kinds_schema)
+        .or(collections_create_schema)
+        .or(collections_update_schema);
 
     async fn reply_media_tracker_progress(
         media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,

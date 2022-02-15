@@ -26,9 +26,10 @@ mod _inner {
     pub use aoide_core_api::media::tracker::import_files::*;
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Params {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -69,9 +70,10 @@ impl TryFrom<Params> for _inner::Params {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ImportedSourceWithIssues {
     pub path: String,
@@ -100,9 +102,10 @@ impl From<_inner::ImportedSourceWithIssues> for ImportedSourceWithIssues {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub root_url: Url,
@@ -162,9 +165,10 @@ impl From<_inner::Outcome> for Outcome {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSummary {
     pub created: usize,
@@ -234,9 +238,10 @@ impl From<_inner::TrackSummary> for TrackSummary {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DirectorySummary {
     /// Successfully imported and marked as current.
@@ -288,9 +293,10 @@ impl From<_inner::DirectorySummary> for DirectorySummary {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub tracks: TrackSummary,

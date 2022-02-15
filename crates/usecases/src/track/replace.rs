@@ -245,7 +245,7 @@ where
         source_path.clone(),
         SyncModeParams::new(sync_mode, external_rev, synchronized_rev),
         import_config,
-        DateTime::now_local(),
+        DateTime::now_local_or_utc(),
     ) {
         Ok(ImportTrackFromFileOutcome::Imported {
             track: imported_track,

@@ -23,8 +23,9 @@ mod _core {
 // ChannelCount
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct ChannelCount(_core::NumberOfChannels);
 
 impl From<_core::ChannelCount> for ChannelCount {
@@ -49,8 +50,9 @@ impl Default for ChannelCount {
 // ChannelLayout
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ChannelLayout {
     Mono,
@@ -100,8 +102,9 @@ impl From<ChannelLayout> for _core::ChannelLayout {
 // Channels
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum Channels {
     Count(ChannelCount),

@@ -6,14 +6,14 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "*"
-diesel = { version = "*", default-features = false, features = ["sqlite"] }
-diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
-log = "*"
-semval = "*"
-thiserror = "*"
+anyhow = "1"
+diesel = { version = "1.4.8", default-features = false, features = ["sqlite"] }
+diesel_migrations =  { version = "1.4", default-features = false, features = ["sqlite"] }
+log = "0.4"
+semval = "0.2"
+thiserror = "1"
 
-tokio = { version = "*", optional = true, default-features = false }
+tokio = { version = "1", optional = true, default-features = false }
 
 # Workspace dependencies
 aoide-core = "*"

@@ -27,7 +27,8 @@ mod _core {
 // Position
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct PositionMs(_core::PositionInMilliseconds);
 
@@ -49,7 +50,8 @@ impl From<PositionMs> for _core::PositionMs {
 // Duration
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct DurationMs(_core::DurationInMilliseconds);
 

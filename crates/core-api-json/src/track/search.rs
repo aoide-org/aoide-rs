@@ -15,7 +15,6 @@
 
 use aoide_core_json::{entity::EntityUid, util::clock::DateTime};
 
-use schemars::JsonSchema;
 use url::Url;
 
 use crate::{
@@ -33,9 +32,10 @@ mod _inner {
     pub use crate::_inner::{filtering::*, sorting::*, track::search::*};
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum SortField {
     AlbumArtist,
@@ -136,9 +136,10 @@ impl From<_inner::SortField> for SortField {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SortOrder(SortField, SortDirection);
 
@@ -161,9 +162,10 @@ impl From<_inner::SortOrder> for SortOrder {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum StringField {
     AlbumArtist,
@@ -210,9 +212,10 @@ impl From<_inner::StringField> for StringField {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum NumericField {
     AdvisoryRating,
@@ -283,9 +286,10 @@ impl From<_inner::NumericField> for NumericField {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum DateTimeField {
     CollectedAt,
@@ -323,9 +327,10 @@ impl From<_inner::DateTimeField> for DateTimeField {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum ConditionFilter {
     SourceTracked,
@@ -396,9 +401,10 @@ impl From<_inner::DateTimeFieldFilter> for DateTimeFieldFilter {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct PhraseFieldFilter(Vec<StringField>, Vec<String>);
 
@@ -421,9 +427,10 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum SearchFilter {
     Phrase(PhraseFieldFilter),
@@ -476,9 +483,10 @@ impl From<_inner::SearchFilter> for SearchFilter {
     }
 }
 
-#[derive(Debug, Default, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -499,9 +507,10 @@ pub struct QueryParams {
     //pub pagination: Pagination,
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
     #[serde(skip_serializing_if = "Option::is_none")]

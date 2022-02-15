@@ -30,9 +30,10 @@ pub mod query_status;
 pub mod scan_directories;
 pub mod untrack_directories;
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct FsTraversalParams {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -73,9 +74,10 @@ impl TryFrom<FsTraversalParams> for _core::FsTraversalParams {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "kebab-case")]
 pub enum Progress {
     Idle,
@@ -110,9 +112,10 @@ impl From<_core::Progress> for Progress {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct FsTraversalProgress {
     pub entries: FsTraversalEntriesProgress,
@@ -147,9 +150,10 @@ impl From<_core::FsTraversalProgress> for FsTraversalProgress {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct FsTraversalEntriesProgress {
     pub skipped: usize,
@@ -172,9 +176,10 @@ impl From<_core::FsTraversalEntriesProgress> for FsTraversalEntriesProgress {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct FsTraversalDirectoriesProgress {
     pub finished: usize,
@@ -198,9 +203,10 @@ impl From<_core::FsTraversalDirectoriesProgress> for FsTraversalDirectoriesProgr
 
 pub type ImportingProgress = import_files::Summary;
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum Completion {
     Finished,
@@ -229,9 +235,10 @@ impl From<_core::Completion> for Completion {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Status {
     pub directories: DirectoriesStatus,
@@ -257,9 +264,10 @@ impl From<Status> for _core::Status {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DirectoriesStatus {
     pub current: usize,
@@ -309,7 +317,8 @@ impl From<DirectoriesStatus> for _core::DirectoriesStatus {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum DirTrackingStatus {
     Current,

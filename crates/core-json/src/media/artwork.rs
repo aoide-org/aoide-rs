@@ -23,13 +23,15 @@ mod _core {
     pub use aoide_core::media::artwork::*;
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ImageSize(u16, u16);
 
-#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArtworkImage {
     media_type: String,
@@ -108,8 +110,9 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "kebab-case")]
 pub enum ArtworkSource {
     Missing,
@@ -119,8 +122,9 @@ pub enum ArtworkSource {
     Linked,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Artwork {
     source: ArtworkSource,

@@ -23,8 +23,9 @@ mod _core {
 // Index
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(untagged)]
 pub enum Index {
     Number(u16),
@@ -64,8 +65,9 @@ impl Index {
 // Indexes
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Indexes {
     #[serde(skip_serializing_if = "Option::is_none")]

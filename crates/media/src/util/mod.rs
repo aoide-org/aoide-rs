@@ -15,7 +15,6 @@
 
 use std::{borrow::Cow, convert::TryFrom as _, fmt, path::Path, str::FromStr};
 
-use chrono::{NaiveDateTime, Utc};
 use image::{
     guess_format, load_from_memory, load_from_memory_with_format, DynamicImage, GenericImageView,
     ImageFormat,
@@ -46,9 +45,16 @@ use aoide_core::{
         title::{Title, TitleKind},
     },
     util::{
-        clock::{DateOrDateTime, DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
+        clock::{DateOrDateTime, DateTime, DateYYYYMMDD, YYYYMMDD},
         string::{trimmed_non_empty_from, trimmed_non_empty_from_owned},
     },
+};
+use time::{
+    format_description::{
+        well_known::{Rfc2822, Rfc3339},
+        FormatItem,
+    },
+    OffsetDateTime, PrimitiveDateTime,
 };
 
 use crate::{io::import::Importer, prelude::*};
@@ -303,6 +309,12 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
     None
 }
 
+const RFC3339_WITHOUT_TZ_FORMAT: &[FormatItem<'static>] =
+    time::macros::format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]");
+
+const RFC3339_WITHOUT_T_TZ_FORMAT: &[FormatItem<'static>] =
+    time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+
 pub fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
     let input = value.trim();
     let mut digits_parser = delimited(space0, digit1, space0);
@@ -366,18 +378,21 @@ pub fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
             }
         }
     }
-    if let Ok(datetime) = input.parse::<DateTimeInner>() {
-        return Some(DateTime::from(datetime).into());
+    if let Ok(date_time) =
+        OffsetDateTime::parse(input, &Rfc3339).or_else(|_| OffsetDateTime::parse(input, &Rfc2822))
+    {
+        return Some(DateTime::new(date_time).into());
     }
-    if let Ok(datetime) = input.parse::<NaiveDateTime>() {
+    if let Ok(date_time) = PrimitiveDateTime::parse(input, RFC3339_WITHOUT_TZ_FORMAT)
+        .or_else(|_| PrimitiveDateTime::parse(input, RFC3339_WITHOUT_T_TZ_FORMAT))
+    {
         // Assume UTC if time zone is missing
-        let datetime_utc: chrono::DateTime<Utc> = chrono::DateTime::from_utc(datetime, Utc);
-        return Some(DateTime::from(datetime_utc).into());
+        return Some(DateTime::from(date_time.assume_utc()).into());
     }
-    if let Ok(datetime) = NaiveDateTime::parse_from_str(input, "%Y-%m-%d %H:%M:%S") {
-        // Assume UTC if time zone is missing
-        let datetime_utc: chrono::DateTime<Utc> = chrono::DateTime::from_utc(datetime, Utc);
-        return Some(DateTime::from(datetime_utc).into());
+    // Replace arbitrary whitespace by a single space and try again
+    let recombined = input.split_whitespace().collect::<Vec<_>>().join(" ");
+    if recombined != input {
+        return parse_year_tag(&recombined);
     }
     None
 }

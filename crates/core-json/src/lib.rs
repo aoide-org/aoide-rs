@@ -34,6 +34,7 @@ pub mod prelude {
 
     pub(crate) use crate::util::{clock::*, color::*};
 
+    #[cfg(feature = "with-schemars")]
     pub(crate) use schemars::JsonSchema;
 }
 

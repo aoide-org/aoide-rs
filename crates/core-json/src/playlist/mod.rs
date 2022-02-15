@@ -30,12 +30,14 @@ mod _core {
 // Item
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct SeparatorDummy {}
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub enum Item {
     Separator(SeparatorDummy),
@@ -65,8 +67,9 @@ impl From<_core::Item> for Item {
 // Entry
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Entry {
     added_at: DateTime,
@@ -123,8 +126,9 @@ fn is_default_flags(flags: &u8) -> bool {
     *flags == u8::default()
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Playlist {
     collected_at: DateTime,
@@ -186,8 +190,9 @@ impl From<_core::Playlist> for Playlist {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PlaylistWithEntries {
     #[serde(flatten)]
@@ -252,8 +257,9 @@ impl From<_core::EntityWithEntries> for EntityWithEntries {
 // EntriesSummary
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntriesSummary {
     total_count: usize,
@@ -283,8 +289,9 @@ impl From<_core::EntriesSummary> for EntriesSummary {
 // TracksSummary
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TracksSummary {
     total_count: usize,
@@ -301,8 +308,9 @@ impl From<_core::TracksSummary> for TracksSummary {
 // PlaylistWithEntriesSummary
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PlaylistWithEntriesSummary {
     #[serde(flatten)]

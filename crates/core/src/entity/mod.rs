@@ -16,6 +16,7 @@
 use std::{fmt, marker::PhantomData, mem, str};
 
 use rand::{thread_rng, RngCore};
+use thiserror::Error;
 
 use crate::{
     prelude::*,
@@ -29,9 +30,12 @@ use crate::{
 #[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct EntityUid([u8; 24]);
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Error)]
 pub enum DecodeError {
-    InvalidInput(bs58::decode::Error),
+    #[error(transparent)]
+    InvalidInput(#[from] bs58::decode::Error),
+
+    #[error("invalid length")]
     InvalidLength,
 }
 

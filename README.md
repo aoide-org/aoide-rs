@@ -2,10 +2,10 @@
 
 ![aoide banner](assets/aoide_banner_1280x340.png)
 
-[![GitLab CI](https://gitlab.com/uklotzde/aoide-rs/badges/dev/pipeline.svg)](https://gitlab.com/uklotzde/aoide-rs/pipelines?scope=branches)
-[![GitHub CI](https://github.com/aoide-org/aoide-rs/actions/workflows/continuous-integration.yaml/badge.svg?branch=dev)](https://github.com/aoide-org/aoide-rs/actions/workflows/continuous-integration.yaml)
-[![Security audit](https://github.com/aoide-org/aoide-rs/actions/workflows/security-audit.yaml/badge.svg?branch=dev)](https://github.com/aoide-org/aoide-rs/actions/workflows/security-audit.yaml)
-[![License](https://img.shields.io/badge/license-AGPLv3-blue.svg)](https://gitlab.com/uklotzde/aoide-rs/blob/main/LICENSE.md)
+[![GitLab CI](https://gitlab.com/uklotzde/aoide-rs/badges/dev/pipeline.svg?style=flat-square)](https://gitlab.com/uklotzde/aoide-rs/pipelines?scope=branches)
+[![GitHub CI](https://github.com/aoide-org/aoide-rs/actions/workflows/continuous-integration.yaml/badge.svg?branch=dev&style=flat-square)](https://github.com/aoide-org/aoide-rs/actions/workflows/continuous-integration.yaml)
+[![Security audit](https://github.com/aoide-org/aoide-rs/actions/workflows/security-audit.yaml/badge.svg?branch=dev&style=flat-square)](https://github.com/aoide-org/aoide-rs/actions/workflows/security-audit.yaml)
+[![License](https://img.shields.io/badge/license-AGPLv3-blue.svg?style=flat-square)](https://gitlab.com/uklotzde/aoide-rs/blob/main/LICENSE.md)
 
 A local HTTP/REST service for managing and exploring music collections. Independent and portable. Written in Rust.
 

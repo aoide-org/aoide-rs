@@ -22,9 +22,10 @@ mod _inner {
     pub use crate::_inner::{filtering::*, sorting::*, tag::search::*};
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Filter {
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -7,22 +7,26 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "*"
-base64 = "*"
-chrono = { version = "*", default-features = false, features = ["serde"] }
-mime = "*"
+anyhow = "1"
+base64 = "0.13"
+mime = "0.3"
 num-traits = "*"
-schemars = { version = "*", features = ["chrono", "url"] }
-semval = "*"
-serde = { version = "*", features = ["derive"] }
-serde_repr = "*"
-url = { version = "*", features = ["serde"] }
+semval = "0.2"
+serde = { version = "1", default-features = false, features = ["derive"] }
+serde_repr = "0.1"
+time = { version = "0.3.7", features = ["serde-well-known"] }
+url = { version = "2.2", features = ["serde"] }
+
+# JSON Schema (optional)
+chrono = { version = "0.4", optional = true, features = ["serde"] }
+schemars = { version = "0.8", optional = true, features = ["chrono", "url"] }
 
 # Workspace dependencies
 aoide-core = "*"
 
 [features]
 default = []
+with-schemars = ["schemars", "chrono"]
 
 [dev-dependencies]
 serde_json = "*"

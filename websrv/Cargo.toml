@@ -9,30 +9,39 @@ edition = "2021"
 
 [dependencies]
 anyhow = "*"
-chrono = { version = "*", default-features = false }
 ctrlc = { version = "*", features = ["termination"] }
 directories = "*"
 dotenv = "*"
 log = "*"
 parking_lot = "*"
 ron = "*"
-schemars = "*"
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
 thiserror = "*"
-tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
+time = { version = "0.3", features = ["serde-well-known"] }
+tokio = { version = "*", default-features = false, features = [
+    "macros",
+    "rt-multi-thread",
+    "signal",
+] }
 tracing = "*"
 tracing-log = "*"
 tracing-subscriber = { version = "*", features = ["env-filter"] }
 url = { version = "*", features = ["serde"] }
 warp = { version = "*", default-features = false }
 
+# with-schemars
+schemars = { version = "0.8", optional = true }
+
 # with-webapp
 mime_guess = { version = "*", optional = true }
 rust-embed = { version = "*", optional = true }
 
 # with-launcher-ui
-eframe = { version = "*", optional = true, default-features = false, features = ["default_fonts", "egui_glow"] }
+eframe = { version = "*", optional = true, default-features = false, features = [
+    "default_fonts",
+    "egui_glow",
+] }
 egui = { version = "*", optional = true, default-features = false }
 rfd = { version = "*", optional = true, default-features = false }
 
@@ -46,6 +55,7 @@ aoide-usecases-sqlite-json = "*"
 aoide-websrv-api = "*"
 
 [features]
-default = ["with-webapp", "with-launcher-ui"]
+default = ["with-schemars", "with-webapp", "with-launcher-ui"]
+with-schemars = ["schemars", "aoide-usecases-sqlite-json/with-schemars"]
 with-webapp = ["mime_guess", "rust-embed"]
 with-launcher-ui = ["eframe", "egui", "rfd"]

@@ -34,8 +34,9 @@ fn is_default_flags(flags: &u8) -> bool {
     *flags == u8::default()
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Metrics {
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -13,40 +13,48 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::{fmt, ops::Deref, str::FromStr, time::SystemTime};
+
+use time::{
+    error::{IndeterminateOffset, Parse as ParseError},
+    format_description::{well_known::Rfc3339, FormatItem},
+    Date, Duration, Month, OffsetDateTime,
+};
+
 use crate::prelude::*;
 
-use chrono::{
-    Datelike, Duration, FixedOffset, Local, NaiveDate, NaiveDateTime, ParseError, SecondsFormat,
-    TimeZone, Utc,
-};
-use std::{fmt, str::FromStr, time::SystemTime};
-
-pub type DateTimeInner = chrono::DateTime<FixedOffset>;
+pub type DateTimeInner = OffsetDateTime;
 
 pub type TimestampMillis = i64;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct DateTime(DateTimeInner);
 
-const NANOS_PER_MILLISECOND: u32 = 1_000_000;
+const NANOS_PER_MILLISECOND: i128 = 1_000_000;
+
+const YYYY_MM_DD_FORMAT: &[FormatItem<'static>] =
+    time::macros::format_description!("[year]-[month]-[day]");
 
 /// A DateTime with truncated millisecond precision.
 impl DateTime {
     #[must_use]
     pub fn new(inner: DateTimeInner) -> Self {
+        let subsec_nanos_since_last_millis_boundary =
+            inner.unix_timestamp_nanos() % NANOS_PER_MILLISECOND;
         let subsec_duration_since_last_millis_boundary =
-            Duration::nanoseconds((inner.timestamp_subsec_nanos() % NANOS_PER_MILLISECOND).into());
+            Duration::nanoseconds(subsec_nanos_since_last_millis_boundary as i64);
         let truncated = inner - subsec_duration_since_last_millis_boundary;
-        debug_assert_eq!(
-            0,
-            truncated.timestamp_subsec_nanos() % NANOS_PER_MILLISECOND
-        );
+        debug_assert_eq!(0, truncated.unix_timestamp_nanos() % NANOS_PER_MILLISECOND);
         Self(truncated)
     }
 
     #[must_use]
     pub fn new_timestamp_millis(timestamp_millis: TimestampMillis) -> Self {
-        Utc.timestamp_millis(timestamp_millis).into()
+        DateTimeInner::from_unix_timestamp_nanos(
+            i128::from(timestamp_millis) * NANOS_PER_MILLISECOND,
+        )
+        .expect("valid timestamp")
+        .into()
     }
 
     #[must_use]
@@ -57,28 +65,33 @@ impl DateTime {
 
     #[must_use]
     pub fn now_utc() -> Self {
-        Utc::now().into()
+        DateTimeInner::now_utc().into()
     }
 
     #[must_use]
-    pub fn now_local() -> Self {
-        Local::now().into()
-    }
-
-    #[must_use]
-    pub fn naive_date(self) -> NaiveDate {
-        self.to_inner().naive_local().date()
+    pub fn now_local_or_utc() -> Self {
+        DateTimeInner::now_local()
+            .map(Into::into)
+            .unwrap_or_else(|_: IndeterminateOffset| Self::now_utc())
     }
 
     #[must_use]
     pub fn timestamp_millis(self) -> TimestampMillis {
-        self.to_inner().timestamp_millis()
+        (self.to_inner().unix_timestamp_nanos() / NANOS_PER_MILLISECOND) as TimestampMillis
     }
 }
 
 impl AsRef<DateTimeInner> for DateTime {
     fn as_ref(&self) -> &DateTimeInner {
         &self.0
+    }
+}
+
+impl Deref for DateTime {
+    type Target = DateTimeInner;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
     }
 }
 
@@ -94,51 +107,30 @@ impl From<DateTime> for DateTimeInner {
     }
 }
 
-impl From<chrono::DateTime<Utc>> for DateTime {
-    fn from(from: chrono::DateTime<Utc>) -> Self {
-        Self::new(from.into())
-    }
-}
-
-impl From<DateTime> for chrono::DateTime<Utc> {
-    fn from(from: DateTime) -> Self {
-        from.to_inner().into()
-    }
-}
-
-impl From<chrono::DateTime<Local>> for DateTime {
-    fn from(from: chrono::DateTime<Local>) -> Self {
-        Self::new(from.into())
-    }
-}
-
-impl From<DateTime> for chrono::DateTime<Local> {
-    fn from(from: DateTime) -> Self {
-        from.to_inner().into()
-    }
-}
-
 impl From<SystemTime> for DateTime {
     fn from(from: SystemTime) -> Self {
-        chrono::DateTime::<Utc>::from(from).into()
+        Self::new(from.into())
+    }
+}
+
+impl From<DateTime> for SystemTime {
+    fn from(from: DateTime) -> Self {
+        from.to_inner().into()
     }
 }
 
 impl FromStr for DateTime {
     type Err = ParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::new(s.parse()?))
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        DateTimeInner::parse(input, &Rfc3339).map(Into::into)
     }
 }
 
 impl fmt::Display for DateTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.to_inner().to_rfc3339_opts(SecondsFormat::AutoSi, true)
-        )
+        // TODO: Avoid allocation of temporary String?
+        f.write_str(&self.to_inner().format(&Rfc3339).expect("valid timestamp"))
     }
 }
 
@@ -246,14 +238,16 @@ impl Validate for DateYYYYMMDD {
                 Self::Invalidity::DayWithoutMonth,
             )
             .invalidate_if(
-                self.month() > 0
-                    && self.day_of_month() > 0
-                    && NaiveDate::from_ymd_opt(
-                        i32::from(self.year()),
-                        self.month() as u32,
-                        self.day_of_month() as u32,
+                self.month() >= 1
+                    && self.month() <= 12
+                    && self.day_of_month() >= 1
+                    && self.day_of_month() <= 31
+                    && Date::from_calendar_date(
+                        self.year().into(),
+                        Month::try_from(self.month() as u8).expect("valid month"),
+                        self.day_of_month() as u8,
                     )
-                    .is_none(),
+                    .is_err(),
                 Self::Invalidity::Invalid,
             )
             .into()
@@ -274,13 +268,13 @@ impl From<DateYYYYMMDD> for YYYYMMDD {
 
 impl From<DateTime> for DateYYYYMMDD {
     fn from(from: DateTime) -> Self {
-        from.naive_date().into()
+        from.date().into()
     }
 }
 
-impl From<NaiveDate> for DateYYYYMMDD {
+impl From<Date> for DateYYYYMMDD {
     #[allow(clippy::cast_possible_wrap)]
-    fn from(from: NaiveDate) -> Self {
+    fn from(from: Date) -> Self {
         Self(
             from.year() as YYYYMMDD * 10_000
                 + from.month() as YYYYMMDD * 100
@@ -289,23 +283,20 @@ impl From<NaiveDate> for DateYYYYMMDD {
     }
 }
 
-impl From<NaiveDateTime> for DateYYYYMMDD {
-    fn from(from: NaiveDateTime) -> Self {
-        from.date().into()
-    }
-}
-
 impl fmt::Display for DateYYYYMMDD {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_year() {
             return write!(f, "{:04}", self.year());
         }
-        if let Some(date) = NaiveDate::from_ymd_opt(
-            self.year().into(),
-            self.month() as u32,
-            self.day_of_month() as u32,
-        ) {
-            return write!(f, "{}", date.format("%Y-%m-%d"));
+        if self.month() >= 1 && self.month() <= 12 && self.day_of_month() <= 31 {
+            if let Ok(date) = Date::from_calendar_date(
+                self.year().into(),
+                Month::try_from(self.month() as u8).expect("valid month"),
+                self.day_of_month() as u8,
+            ) {
+                // TODO: Avoid allocation of temporary String?
+                return f.write_str(&date.format(YYYY_MM_DD_FORMAT).expect("valid date"));
+            }
         }
         if self.day_of_month() == 0 {
             return write!(f, "{:04}-{:02}", self.year(), self.month());

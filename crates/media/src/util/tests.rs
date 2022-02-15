@@ -55,12 +55,14 @@ fn parse_year_tag_valid() {
     // No time zone offset
     assert_eq!(
         "2009-09-18T07:00:00Z",
-        parse_year_tag(" 2009-09-18T07:00:00 ").unwrap().to_string()
+        parse_year_tag(" 2009-09-18T07:00:00\n")
+            .unwrap()
+            .to_string()
     );
-    // Date/time separated by whitespace(s) without time zone offset
+    // Date/time separated by arbitrary whitespace without time zone offset
     assert_eq!(
         "2009-09-18T07:12:34Z",
-        parse_year_tag("\t 2009-09-18 \t 07:12:34 ")
+        parse_year_tag("\t 2009-09-18 \t\r\n 07:12:34 \n")
             .unwrap()
             .to_string()
     );

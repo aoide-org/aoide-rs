@@ -13,21 +13,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::*;
+use std::fmt;
 
-mod _core {
-    pub use aoide_core::util::clock::{DateOrDateTime, DateTime, DateYYYYMMDD};
-}
-
-use aoide_core::util::clock::{DateTimeInner, YearType, YYYYMMDD};
-
-use schemars::{gen::SchemaGenerator, schema::Schema};
 use semval::Validate;
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
     Deserializer, Serializer,
 };
-use std::fmt;
+
+use aoide_core::util::clock::{YearType, YYYYMMDD};
+
+use crate::prelude::*;
+
+mod _core {
+    pub use aoide_core::util::clock::{DateOrDateTime, DateTime, DateYYYYMMDD};
+}
 
 ///////////////////////////////////////////////////////////////////////
 // DateTime
@@ -49,13 +49,14 @@ impl From<DateTime> for _core::DateTime {
     }
 }
 
+#[cfg(feature = "with-schemars")]
 impl JsonSchema for DateTime {
     fn schema_name() -> String {
         "DateTime".to_string()
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
-        gen.subschema_for::<DateTimeInner>()
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        gen.subschema_for::<chrono::DateTime<chrono::FixedOffset>>()
     }
 }
 
@@ -65,29 +66,7 @@ impl Serialize for DateTime {
     where
         S: Serializer,
     {
-        // TODO: Avoid creating a temporary string
-        let encoded = self.0.to_string();
-        serializer.serialize_str(&encoded)
-    }
-}
-
-struct DateTimeDeserializeVisitor;
-
-impl<'de> SerdeDeserializeVisitor<'de> for DateTimeDeserializeVisitor {
-    type Value = DateTime;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_fmt(format_args!("RFC 3339 date/time string"))
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        value
-            .parse::<_core::DateTime>()
-            .map(DateTime)
-            .map_err(|e| E::custom(format!("{:?}", e)))
+        time::serde::rfc3339::serialize(self.0.as_ref(), serializer)
     }
 }
 
@@ -96,7 +75,9 @@ impl<'de> Deserialize<'de> for DateTime {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_str(DateTimeDeserializeVisitor)
+        time::serde::rfc3339::deserialize(deserializer)
+            .map(_core::DateTime::new)
+            .map(Into::into)
     }
 }
 
@@ -120,12 +101,13 @@ impl From<DateYYYYMMDD> for _core::DateYYYYMMDD {
     }
 }
 
+#[cfg(feature = "with-schemars")]
 impl JsonSchema for DateYYYYMMDD {
     fn schema_name() -> String {
         "DateYYYYMMDD".to_string()
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
         gen.subschema_for::<YYYYMMDD>()
     }
 }
@@ -189,7 +171,8 @@ impl<'de> Deserialize<'de> for DateYYYYMMDD {
 // DateOrDateTime
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DateOrDateTime {

@@ -7,10 +7,12 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "*"
-schemars = "*"
-serde = { version = "*", features = ["derive"] }
-url = { version = "*", features = ["serde"] }
+anyhow = "1"
+serde = { version = "1", default-features = false, features = ["derive"] }
+url = { version = "2.2", features = ["serde"] }
+
+# JSON Schema (optional)
+schemars = { version = "0.8", optional = true, features = ["url"] }
 
 # Workspace dependencies
 aoide-core = "*"
@@ -21,3 +23,7 @@ aoide-core-api = "*"
 default = []
 frontend = []
 backend = []
+with-schemars = [
+    "schemars",
+    "aoide-core-json/with-schemars",
+]

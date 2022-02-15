@@ -15,7 +15,6 @@
 
 use std::borrow::Cow;
 
-use chrono::{Datelike as _, NaiveDate, NaiveDateTime, NaiveTime, Timelike as _, Utc};
 use id3::{
     self,
     frame::{Comment, EncapsulatedObject, ExtendedText, PictureType},
@@ -24,6 +23,7 @@ use id3::{
 use mime::Mime;
 use num_traits::FromPrimitive as _;
 use semval::IsValid;
+use time::{Date, PrimitiveDateTime, Time};
 use triseratops::tag::{
     format::id3::ID3Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
     TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
@@ -49,7 +49,7 @@ use aoide_core::{
     },
     util::{
         canonical::Canonical,
-        clock::{DateOrDateTime, DateTime, DateYYYYMMDD, MonthType, YearType, YEAR_MAX, YEAR_MIN},
+        clock::{DateOrDateTime, DateYYYYMMDD, MonthType, YearType, YEAR_MAX, YEAR_MIN},
         string::trimmed_non_empty_from,
     },
 };
@@ -97,34 +97,34 @@ fn parse_timestamp(timestamp: id3::Timestamp) -> anyhow::Result<DateOrDateTime> 
     }
     match (timestamp.month, timestamp.day) {
         (Some(month), Some(day)) => {
-            let date = NaiveDate::from_ymd_opt(year, month.into(), day.into());
-            if let Some(date) = date {
-                if let (Some(hour), Some(min), Some(sec)) =
-                    (timestamp.hour, timestamp.minute, timestamp.second)
-                {
-                    let time = NaiveTime::from_hms_opt(hour.into(), min.into(), sec.into());
-                    if let Some(time) = time {
-                        let dt: DateOrDateTime = DateTime::from(chrono::DateTime::<Utc>::from_utc(
-                            NaiveDateTime::new(date, time),
-                            Utc,
-                        ))
-                        .into();
-                        debug_assert!(dt.is_valid());
-                        return Ok(dt);
+            if (1..=12).contains(&month) {
+                let date =
+                    Date::from_calendar_date(year, month.try_into().expect("valid month"), day);
+                if let Ok(date) = date {
+                    if let (Some(hour), Some(min), Some(sec)) =
+                        (timestamp.hour, timestamp.minute, timestamp.second)
+                    {
+                        let time = Time::from_hms(hour, min, sec);
+                        if let Ok(time) = time {
+                            let date_time = DateOrDateTime::DateTime(
+                                PrimitiveDateTime::new(date, time).assume_utc().into(),
+                            );
+                            debug_assert!(date_time.is_valid());
+                            return Ok(date_time);
+                        }
                     }
+                    let dt = DateYYYYMMDD::from(date);
+                    debug_assert!(dt.is_valid());
+                    return Ok(dt.into());
+                } else {
+                    let dt = DateYYYYMMDD::from_year_month(year as YearType, month as MonthType);
+                    debug_assert!(dt.is_valid());
+                    return Ok(dt.into());
                 }
-                let dt = DateYYYYMMDD::from(date);
-                debug_assert!(dt.is_valid());
-                Ok(dt.into())
-            } else if month > 0 && month <= 12 {
-                let dt = DateYYYYMMDD::from_year_month(year as YearType, month as MonthType);
-                debug_assert!(dt.is_valid());
-                Ok(dt.into())
-            } else {
-                let dt = DateYYYYMMDD::from_year(year as YearType);
-                debug_assert!(dt.is_valid());
-                Ok(dt.into())
             }
+            let dt = DateYYYYMMDD::from_year(year as YearType);
+            debug_assert!(dt.is_valid());
+            Ok(dt.into())
         }
         (Some(month), None) => {
             let dt = if month > 0 && month <= 12 {
@@ -1043,7 +1043,7 @@ fn export_date_or_date_time(dt: DateOrDateTime) -> id3::Timestamp {
             }
         }
         DateOrDateTime::DateTime(date_time) => {
-            let date_time = chrono::DateTime::<Utc>::from(date_time);
+            let date_time = date_time.to_inner();
             id3::Timestamp {
                 year: date_time.date().year(),
                 month: Some(date_time.date().month() as _),

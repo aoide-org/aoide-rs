@@ -21,8 +21,9 @@ mod _core {
     pub use aoide_core::music::key::KeyCode;
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct KeyCode(KeyCodeValue);
 
 impl From<_core::KeyCode> for KeyCode {

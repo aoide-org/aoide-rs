@@ -23,8 +23,9 @@ mod _core {
 // Bitrate
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct BitrateBps(_core::BitsPerSecond);
 
 impl From<_core::BitrateBps> for BitrateBps {
@@ -43,8 +44,9 @@ impl From<BitrateBps> for _core::BitrateBps {
 // SampleRate
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct SampleRateHz(_core::SamplesPerSecond);
 
 impl From<_core::SampleRateHz> for SampleRateHz {
@@ -64,8 +66,9 @@ impl From<SampleRateHz> for _core::SampleRateHz {
 // Loudness
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct LoudnessLufs(_core::LufsValue);
 
 impl From<_core::LoudnessLufs> for LoudnessLufs {

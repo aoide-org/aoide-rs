@@ -36,6 +36,7 @@ mod _inner {
 }
 
 #[derive(Debug, Default, Serialize)]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub created: Vec<Entity>,

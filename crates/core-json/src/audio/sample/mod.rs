@@ -23,8 +23,9 @@ mod _core {
 // SamplePosition
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct SamplePosition(_core::SamplePositionType);
 
 impl From<_core::SamplePosition> for SamplePosition {

@@ -19,9 +19,10 @@ mod _inner {
     pub use crate::_inner::sorting::*;
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub enum SortDirection {
     #[serde(rename = "asc")]
     Ascending,

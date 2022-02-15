@@ -22,9 +22,10 @@ mod _core {
     pub use aoide_core_api::media::*;
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "kebab-case")]
 pub enum SyncMode {
     Once,

@@ -34,6 +34,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
 
+#[cfg(feature = "with-schemars")]
+use schemars::JsonSchema;
+
 use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset};
 
 use aoide_core_json::entity::EntityRevision;
@@ -44,11 +47,6 @@ pub mod collection;
 pub mod media;
 pub mod playlist;
 pub mod track;
-
-pub mod prelude {
-    pub(crate) use schemars::JsonSchema;
-}
-use prelude::*;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -76,7 +74,8 @@ impl From<aoide_usecases::Error> for Error {
 
 pub type Result<T> = StdResult<T, Error>;
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRevQueryParams {
     pub rev: EntityRevision,

@@ -69,7 +69,7 @@ impl Fixture {
         let db = crate::Connection::new(&self.db);
         let mut created = Vec::with_capacity(count);
         for i in 0..count {
-            let created_at = DateTime::now_local();
+            let created_at = DateTime::now_local_or_utc();
             let media_source = media::Source {
                 collected_at: created_at,
                 content_link: ContentLink {
@@ -107,7 +107,7 @@ impl Fixture {
         track_count: usize,
     ) -> RepoResult<EntityWithEntries> {
         let db = crate::Connection::new(&self.db);
-        let created_at = DateTime::now_local();
+        let created_at = DateTime::now_local_or_utc();
         let playlist = Playlist {
             collected_at: created_at,
             title: "Playlist".into(),
@@ -123,7 +123,7 @@ impl Fixture {
         let mut playlist_entries = Vec::with_capacity(track_count);
         for (i, (_, _, track_uid)) in media_sources_and_tracks.into_iter().enumerate() {
             let entry = Entry {
-                added_at: DateTime::now_local(),
+                added_at: DateTime::now_local_or_utc(),
                 title: Some(format!("Entry {}", i)),
                 notes: None,
                 item: Item::Track(track::Item { uid: track_uid }),
@@ -137,7 +137,7 @@ impl Fixture {
 
 fn new_separator_entry() -> Entry {
     Entry {
-        added_at: DateTime::now_local(),
+        added_at: DateTime::now_local_or_utc(),
         title: None,
         notes: None,
         item: Item::Separator,
@@ -146,7 +146,7 @@ fn new_separator_entry() -> Entry {
 
 fn new_separator_entry_with_title(title: String) -> Entry {
     Entry {
-        added_at: DateTime::now_local(),
+        added_at: DateTime::now_local_or_utc(),
         title: Some(title),
         notes: None,
         item: Item::Separator,

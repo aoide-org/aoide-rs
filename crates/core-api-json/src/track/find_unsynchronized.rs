@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use schemars::JsonSchema;
-
 use aoide_core_json::{
     entity::{EntityHeader, EntityRevision},
     media::content::ContentLink,
@@ -26,9 +24,10 @@ mod _inner {
     pub use crate::_inner::track::find_unsynchronized::*;
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct UnsynchronizedTrack {
     pub content_link: ContentLink,
@@ -65,9 +64,10 @@ impl From<_inner::UnsynchronizedTrack> for UnsynchronizedTrack {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct UnsynchronizedTrackEntity(EntityHeader, UnsynchronizedTrack);
 
 #[cfg(feature = "frontend")]

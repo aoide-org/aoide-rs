@@ -15,7 +15,6 @@
 
 use std::{collections::HashMap, fmt};
 
-use schemars::{gen::SchemaGenerator, schema::Schema};
 use serde::{de::Visitor, Deserializer, Serializer};
 
 use aoide_core::tag::FacetedTags;
@@ -30,12 +29,13 @@ mod _core {
 #[cfg_attr(test, derive(Clone))]
 pub struct FacetKey(_core::FacetKey);
 
+#[cfg(feature = "with-schemars")]
 impl JsonSchema for FacetKey {
     fn schema_name() -> String {
         "FacetKey".to_string()
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
         gen.subschema_for::<String>()
     }
 }
@@ -97,12 +97,13 @@ impl<'de> Deserialize<'de> for FacetKey {
 #[cfg_attr(test, derive(Clone, PartialEq, Eq))]
 pub struct Label(_core::Label);
 
+#[cfg(feature = "with-schemars")]
 impl JsonSchema for Label {
     fn schema_name() -> String {
         "Label".to_string()
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
         gen.subschema_for::<String>()
     }
 }
@@ -171,12 +172,13 @@ impl<'de> Deserialize<'de> for Label {
 #[cfg_attr(test, derive(Clone, PartialEq))]
 pub struct Score(_core::Score);
 
+#[cfg(feature = "with-schemars")]
 impl JsonSchema for Score {
     fn schema_name() -> String {
         "Score".to_string()
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
         gen.subschema_for::<f64>()
     }
 }
@@ -234,8 +236,9 @@ impl<'de> Deserialize<'de> for Score {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(Clone, PartialEq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum PlainTag {
     Label(Label),
@@ -292,8 +295,9 @@ impl From<_core::PlainTag> for PlainTag {
 
 pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
 
-#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct Tags(TagsMap);
 
 impl Tags {

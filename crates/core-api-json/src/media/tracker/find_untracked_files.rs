@@ -25,9 +25,10 @@ mod _core {
     pub use aoide_core_api::media::tracker::find_untracked_files::*;
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub root_url: Url,

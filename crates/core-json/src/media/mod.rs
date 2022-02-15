@@ -37,8 +37,9 @@ mod _core {
     pub use aoide_core::media::{content::AudioContentMetadata, *};
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct Base64(String);
 
 impl Base64 {
@@ -91,8 +92,9 @@ impl TryFrom<&Base64> for Vec<u8> {
 // https://github.com/signalapp/SecureValueRecovery/blob/master/service/kbupd_util/src/base64.rs
 pub type Digest = Base64;
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct DigestRef<'a>(&'a str);
 
 impl<'a> AsRef<str> for DigestRef<'a> {
@@ -115,8 +117,9 @@ impl<'a> TryFrom<DigestRef<'a>> for Vec<u8> {
 // Source
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[repr(u8)]
 pub enum AdvisoryRating {
     Unrated = _core::AdvisoryRating::Unrated as u8,
@@ -150,8 +153,9 @@ fn is_default_content_metadata_flags(flags: &u8) -> bool {
     *flags == u8::default()
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Source {
     collected_at: DateTime,
@@ -234,8 +238,9 @@ impl TryFrom<Source> for _core::Source {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AudioContentMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]

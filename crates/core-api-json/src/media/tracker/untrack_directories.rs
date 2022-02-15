@@ -26,9 +26,10 @@ mod _inner {
     pub use aoide_core_api::media::tracker::{untrack_directories::*, DirTrackingStatus};
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Params {
     pub root_url: Option<Url>,
@@ -62,9 +63,10 @@ impl TryFrom<Params> for _inner::Params {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub root_url: Url,
@@ -106,9 +108,10 @@ impl From<_inner::Outcome> for Outcome {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub untracked: u64,

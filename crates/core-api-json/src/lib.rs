@@ -31,13 +31,14 @@
 mod prelude {
     pub use aoide_core_api::{PaginationLimit, PaginationOffset};
 
-    pub(crate) use schemars::JsonSchema;
     pub(crate) use serde::{Deserialize, Serialize};
 
     pub(crate) use aoide_core_api as _inner;
-}
 
-use crate::prelude::*;
+    #[cfg(feature = "with-schemars")]
+    pub(crate) use schemars::JsonSchema;
+}
+use self::prelude::*;
 
 pub mod collection;
 pub mod filtering;
@@ -49,6 +50,7 @@ pub mod track;
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Pagination {
     #[serde(skip_serializing_if = "Option::is_none")]

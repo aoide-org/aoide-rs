@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_json::{collection::Collection, entity::Entity};
-use schemars::JsonSchema;
 
 use crate::prelude::*;
 
@@ -28,9 +27,10 @@ mod _inner {
     };
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MediaSourceSummary {
@@ -53,9 +53,10 @@ impl From<_inner::MediaSourceSummary> for MediaSourceSummary {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PlaylistSummary {
@@ -78,9 +79,10 @@ impl From<_inner::PlaylistSummary> for PlaylistSummary {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSummary {
@@ -103,9 +105,10 @@ impl From<_inner::TrackSummary> for TrackSummary {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
@@ -146,9 +149,10 @@ impl From<_inner::Summary> for Summary {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionWithSummary {
     #[serde(flatten)]

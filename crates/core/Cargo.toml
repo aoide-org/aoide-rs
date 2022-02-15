@@ -6,18 +6,18 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "*"
-bs58 = "^0.4"
-bitflags = "*"
-chrono = { version = "*", default-features = false, features = ["clock"] }
-mime = "*"
-num-derive = "*"
-num-traits = "*"
-once_cell = "*"
-rand = "*"
-semval = "*"
-thiserror = "*"
-url = "*"
+anyhow = "1"
+bs58 = "0.4"
+bitflags = "1.3"
+mime = "0.3"
+num-derive = "0.3"
+num-traits = "0.2"
+once_cell = "1.9"
+rand = "0.8"
+semval = "0.2"
+time = {version = "0.3.7", features = ["macros", "local-offset", "parsing", "formatting"] }
+thiserror = "1"
+url = "2.2"
 
 # Dirty hack to support wasm32-unknown-unknown target. Otherwise
 # compilation will fail for this transitive dependency needed
@@ -31,8 +31,8 @@ with-std-file = []
 with-std-system-time = []
 
 [dev-dependencies]
-criterion = "*"
-uuid = { version = "*", features = ["v4"] }
+criterion = "0.3"
+uuid = { version = "0.8", features = ["v4"] }
 
 [[bench]]
 name = "entity_uid_benchmark"

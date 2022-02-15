@@ -79,7 +79,7 @@ fn insert_media_source() -> anyhow::Result<()> {
     let db = crate::Connection::new(&fixture.db);
 
     let created_source = media::Source {
-        collected_at: DateTime::now_local(),
+        collected_at: DateTime::now_local_or_utc(),
         content_link: ContentLink {
             path: ContentPath::new("file:///home/test/file.mp3".to_owned()),
             rev: Some(ContentRevision::new(6)),
@@ -107,7 +107,7 @@ fn insert_media_source() -> anyhow::Result<()> {
         })),
         advisory_rating: None,
     };
-    let created_at = DateTime::now_local();
+    let created_at = DateTime::now_local_or_utc();
 
     let created_header =
         db.insert_media_source(fixture.collection_id, created_at, &created_source)?;
@@ -129,7 +129,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
     let collection_id = fixture.collection_id;
 
     let file_lowercase = media::Source {
-        collected_at: DateTime::now_local(),
+        collected_at: DateTime::now_local_or_utc(),
         content_link: ContentLink {
             path: ContentPath::new("file:///home/file.mp3".to_owned()),
             rev: None,
@@ -149,7 +149,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         db.insert_media_source(collection_id, DateTime::now_utc(), &file_lowercase)?;
 
     let file_uppercase = media::Source {
-        collected_at: DateTime::now_local(),
+        collected_at: DateTime::now_local_or_utc(),
         content_link: ContentLink {
             path: ContentPath::new("file:///Home/File.mp3".to_owned()),
             rev: None,
@@ -271,7 +271,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
     let collection_id = fixture.collection_id;
 
     let file_lowercase = media::Source {
-        collected_at: DateTime::now_local(),
+        collected_at: DateTime::now_local_or_utc(),
         content_link: ContentLink {
             path: ContentPath::new("file:///ho''me/file.mp3".to_owned()),
             rev: None,
@@ -291,7 +291,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         db.insert_media_source(collection_id, DateTime::now_utc(), &file_lowercase)?;
 
     let file_uppercase = media::Source {
-        collected_at: DateTime::now_local(),
+        collected_at: DateTime::now_local_or_utc(),
         content_link: ContentLink {
             path: ContentPath::new("file:///Ho''me/File.mp3".to_owned()),
             rev: None,

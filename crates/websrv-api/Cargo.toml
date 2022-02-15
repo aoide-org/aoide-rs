@@ -8,12 +8,12 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "*"
-log = "*"
-serde = "*"
-thiserror = "*"
-tokio = "*"
-warp = { version = "*", default-features = false }
+anyhow = "1"
+log = "0.4"
+serde = "1"
+thiserror = "1"
+tokio = "1"
+warp = { version = "0.3.2", default-features = false }
 
 # Workspace dependencies
 aoide-repo = "*"

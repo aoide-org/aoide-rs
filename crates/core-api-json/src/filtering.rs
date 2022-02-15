@@ -21,9 +21,10 @@ mod _inner {
     pub use crate::_inner::filtering::*;
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum FilterModifier {
     Complement,
@@ -50,9 +51,10 @@ impl From<_inner::FilterModifier> for FilterModifier {
 }
 
 /// Predicates for matching strings
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum StringPredicate {
     StartsWith(String),
@@ -108,9 +110,10 @@ impl From<_inner::StringPredicate> for StringPredicate {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct WithTokensQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -127,9 +130,10 @@ impl WithTokensQueryParams {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -159,9 +163,10 @@ impl From<_inner::StringFilter> for StringFilter {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub enum ScalarPredicate<V> {
     #[serde(rename = "lt")]
     LessThan(V),
@@ -246,7 +251,8 @@ impl From<_inner::DateTimePredicate> for DateTimePredicate {
     }
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub struct ScalarFieldFilter<F, V>(pub(crate) F, pub(crate) ScalarPredicate<V>);

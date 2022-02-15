@@ -21,7 +21,6 @@ mod _core {
 
 use aoide_core::util::color::ColorIndex;
 
-use schemars::{gen::SchemaGenerator, schema::Schema};
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
     Deserializer, Serializer,
@@ -33,8 +32,9 @@ use std::{fmt, str::FromStr};
 ///////////////////////////////////////////////////////////////////////
 
 /// Either a color code or a color index.
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
 pub enum Color {
     #[serde(rename = "rgb")]
     Rgb(RgbColor),
@@ -70,12 +70,14 @@ impl From<Color> for _core::Color {
 #[derive(Debug, Eq, PartialEq)]
 pub struct RgbColor(_core::RgbColor);
 
+#[cfg(feature = "with-schemars")]
 impl JsonSchema for RgbColor {
     fn schema_name() -> String {
         "RgbColor".to_string()
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        use schemars::schema::Schema;
         let mut schema = gen.subschema_for::<String>();
         if let Schema::Object(mut schema_object) = schema {
             schema_object.metadata().title = Some("RGB color code".into());
