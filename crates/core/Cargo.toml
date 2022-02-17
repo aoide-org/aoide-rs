@@ -1,29 +1,29 @@
 [package]
 name = "aoide-core"
-version = "0.0.0"
+version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
-bs58 = "0.4"
-bitflags = "1.3"
-mime = "0.3"
-num-derive = "0.3"
-num-traits = "0.2"
-once_cell = "1.9"
-rand = "0.8"
-semval = "0.2"
-time = {version = "0.3.7", features = ["macros", "local-offset", "parsing", "formatting"] }
-thiserror = "1"
-url = "2.2"
+anyhow = "1.0.53"
+bs58 = "0.4.0"
+bitflags = "1.3.2"
+mime = "0.3.16"
+num-derive = "0.3.3"
+num-traits = "0.2.14"
+once_cell = "1.9.0"
+rand = "0.8.5"
+semval = "0.2.0"
+time = { version = "0.3.7", features = ["macros", "local-offset", "parsing", "formatting"] }
+thiserror = "1.0.30"
+url = "2.2.2"
 
 # Dirty hack to support wasm32-unknown-unknown target. Otherwise
 # compilation will fail for this transitive dependency needed
 # by uuid and rand_core.
 # TODO: Remove if no longer needed
-getrandom = { version = "*", default-features = false, features = ["js"] }
+getrandom = { version = "0.2.4", default-features = false, features = ["js"] }
 
 [features]
 default = ["with-std-file", "with-std-system-time"]
@@ -31,8 +31,8 @@ with-std-file = []
 with-std-system-time = []
 
 [dev-dependencies]
-criterion = "0.3"
-uuid = { version = "0.8", features = ["v4"] }
+criterion = "0.3.5"
+uuid = { version = "0.8.2", features = ["v4"] }
 
 [[bench]]
 name = "entity_uid_benchmark"

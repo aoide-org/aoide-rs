@@ -33,7 +33,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use clap::{App, Arg, ArgMatches};
+use clap::{Arg, ArgMatches, Command};
 use model::{Effect, Task};
 use tokio::signal;
 
@@ -124,7 +124,7 @@ async fn main() -> anyhow::Result<()> {
         .help("The `title` of the collection")
         .required(true);
 
-    let mut app = App::new("aoide-cli")
+    let mut app = Command::new("aoide-cli")
         .about("An experimental CLI for performing tasks on aoide")
         .version("0.0")
         .arg(
@@ -135,7 +135,7 @@ async fn main() -> anyhow::Result<()> {
                 .default_value(DEFAULT_WEBSRV_URL)
         )
         .subcommand(
-            App::new("create-collection")
+            Command::new("create-collection")
                 .about("Creates a new collection")
                 .arg(
                     Arg::new(CREATE_COLLECTION_TITLE_PARAM)
@@ -163,10 +163,10 @@ async fn main() -> anyhow::Result<()> {
                 .help("The URL of the root directory with media source files")
                 .takes_value(true)
                 .required(true);
-            App::new("media-sources")
+            Command::new("media-sources")
                 .about("Tasks for media sources")
                 .subcommand(
-                    App::new("purge-orphaned")
+                    Command::new("purge-orphaned")
                         .about("Purges orphaned media sources that are not referenced by any track")
                         .arg(
                             active_collection_title_arg.clone()
@@ -176,7 +176,7 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("purge-untracked")
+                    Command::new("purge-untracked")
                         .about("Purges untracked media sources including their tracks")
                         .arg(
                             active_collection_title_arg.clone()
@@ -187,10 +187,10 @@ async fn main() -> anyhow::Result<()> {
                 )
         })
         .subcommand(
-            App::new("tracks")
+            Command::new("tracks")
                 .about("Tasks for tracks")
                 .subcommand(
-                    App::new("find-unsynchronized")
+                    Command::new("find-unsynchronized")
                         .about("Find all tracks with unsynchronized media sources")
                         .arg(
                             active_collection_title_arg
@@ -198,7 +198,7 @@ async fn main() -> anyhow::Result<()> {
                         )
                 )
                 .subcommand(
-                    App::new("export-all-into-file")
+                    Command::new("export-all-into-file")
                         .about("Exports all tracks of the collection into a JSON file")
                         .arg(
                             active_collection_title_arg
@@ -217,14 +217,14 @@ async fn main() -> anyhow::Result<()> {
                 .help("The URL of the root directory containing tracked media files")
                 .takes_value(true)
                 .required(false);
-            App::new("media-tracker")
+            Command::new("media-tracker")
                 .about("Tasks for the media tracker")
                 .subcommand(
-                    App::new("progress").about("Query progress of a pending task"),
+                    Command::new("progress").about("Query progress of a pending task"),
                 )
-                .subcommand(App::new("abort").about("Abort the current task"))
+                .subcommand(Command::new("abort").about("Abort the current task"))
                 .subcommand(
-                    App::new("status")
+                    Command::new("status")
                         .about("Queries the status of the media tracker")
                         .arg(
                             active_collection_title_arg.clone()
@@ -234,7 +234,7 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("scan-directories")
+                    Command::new("scan-directories")
                         .about("Scans directories on the file system for added/modified/removed media sources")
                         .arg(
                             active_collection_title_arg.clone()
@@ -244,7 +244,7 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("untrack-directories")
+                    Command::new("untrack-directories")
                         .about("Untracks directories on the file system")
                         .arg(
                             active_collection_title_arg.clone()
@@ -254,7 +254,7 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("untrack-orphaned-directories")
+                    Command::new("untrack-orphaned-directories")
                         .about("Untracks orphaned directories that have disappeared from the file system (deleted)")
                         .arg(
                             active_collection_title_arg.clone()
@@ -264,7 +264,7 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("import-files")
+                    Command::new("import-files")
                         .about("Imports media sources on the file system from scanned directories")
                         .arg(
                             active_collection_title_arg.clone()
@@ -274,7 +274,7 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("find-untracked-files")
+                    Command::new("find-untracked-files")
                         .about("Scans directories on the file system for untracked entries")
                         .arg(
                             active_collection_title_arg.clone()

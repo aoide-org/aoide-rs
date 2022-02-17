@@ -1,20 +1,20 @@
 [package]
 name = "aoide-repo-sqlite"
 description = "SQLite schema and implementations for aoide-repo"
-version = "0.0.0"
+version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
+anyhow = "1.0.53"
 diesel = { version = "1.4.8", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
-log = "0.4"
-mime = "0.3"
-num-derive = "0.3"
-num-traits = "0.2"
-semval = "0.2"
-url = "2.2"
+log = "0.4.14"
+mime = "0.3.16"
+num-derive = "0.3.3"
+num-traits = "0.2.14"
+semval = "0.2.0"
+url = "2.2.2"
 
 # Workspace dependencies
 aoide-core = "*"
@@ -25,6 +25,6 @@ aoide-repo = "*"
 default = []
 
 [dev-dependencies]
-diesel_migrations =  { version = "*", features = ["sqlite"] }
-env_logger = { version = ">=0.9" }
-test-log = "*"
+diesel_migrations =  { version = "1.4.0", features = ["sqlite"] }
+env_logger = "0.9.0"
+test-log = "0.2.8"

@@ -1,19 +1,19 @@
 [package]
 name = "aoide-repo"
 description = "Types and traits for persistent storage"
-version = "0.0.0"
+version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
-num-derive = "0.3"
-num-traits = "0.2"
-paste = "1.0"
-rand = "0.8"
-semval = "0.2"
-thiserror = "1"
+anyhow = "1.0.53"
+num-derive = "0.3.3"
+num-traits = "0.2.14"
+paste = "1.0.6"
+rand = "0.8.5"
+semval = "0.2.0"
+thiserror = "1.0.30"
 
 # Workspace dependencies
 aoide-core = "*"

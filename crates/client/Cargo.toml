@@ -1,22 +1,22 @@
 [package]
 name = "aoide-client"
-version = "0.0.0"
+version = "0.8.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "*"
-bytes = "*"
-log = "*"
-serde = { version = "1", features = ["derive"], optional = true }
-serde_json = "*"
-serde_urlencoded = "*"
-static_assertions = "*"
+anyhow = "1.0.53"
+bytes = "1.1.0"
+log = "0.4.14"
+serde = { version = "1.0.136", features = ["derive"], optional = true }
+serde_json = "1.0.79"
+serde_urlencoded = "0.7.1"
+static_assertions = "1.1.0"
 
 # Optional dependencies for feature with-tokio
-tokio = { version = "*", optional = true, default-features = false }
+tokio = { version = "1.17.0", optional = true, default-features = false }
 
 # Optional dependencies for feature with-reqwest
-reqwest = { version = "*", optional = true, default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.11.9", optional = true, default-features = false, features = ["rustls-tls"] }
 
 # Workspace dependencies
 aoide-core = "*"

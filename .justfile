@@ -35,6 +35,26 @@ test:
 # Update depenencies and pre-commit hooks
 update:
     rustup self update
+    cargo install \
+        cargo-edit \
+        trunk
+    cargo upgrade --workspace --exclude \
+        aoide-client \
+        aoide-core \
+        aoide-core-api \
+        aoide-core-api-json \
+        aoide-core-json \
+        aoide-media \
+        aoide-repo \
+        aoide-repo-sqlite \
+        aoide-storage-sqlite \
+        aoide-usecases \
+        aoide-usecases-sqlite \
+        aoide-usecases-sqlite-json \
+        aoide-websrv-api \
+        libsqlite3-sys \
+        triseratops
+    #cargo minimal-versions check --workspace
     cargo update
     cd webapp && cargo update
     pip install -U pre-commit

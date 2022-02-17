@@ -1,19 +1,19 @@
 [package]
 name = "aoide-usecases-sqlite"
-version = "0.0.0"
+version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
+anyhow = "1.0.53"
 diesel = { version = "1.4.8", default-features = false, features = ["sqlite"] }
-diesel_migrations =  { version = "1.4", default-features = false, features = ["sqlite"] }
-log = "0.4"
-semval = "0.2"
-thiserror = "1"
+diesel_migrations =  { version = "1.4.0", default-features = false, features = ["sqlite"] }
+log = "0.4.14"
+semval = "0.2.0"
+thiserror = "1.0.30"
 
-tokio = { version = "1", optional = true, default-features = false }
+tokio = { version = "1.17.0", optional = true, default-features = false }
 
 # Workspace dependencies
 aoide-core = "*"

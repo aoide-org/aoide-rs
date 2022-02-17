@@ -1,22 +1,22 @@
 [package]
 name = "aoide-storage-sqlite"
 description = "Utilities for an SQLite storage backend"
-version = "0.0.0"
+version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
+anyhow = "1.0.53"
 diesel = { version = "1.4.8", default-features = false, features = ["r2d2", "sqlite"] }
 # Bundle SQLite code to prevent dynamic linking.
 # The pinned version must be compatible with diesel!
-libsqlite3-sys = { version = "0.22", features = ["bundled"] }
-log = "0.4"
-r2d2 = "0.8"
-thiserror = "1"
+libsqlite3-sys = { version = "0.22.2", features = ["bundled"] }
+log = "0.4.14"
+r2d2 = "0.8.9"
+thiserror = "1.0.30"
 
-tokio = { version = "*", optional = true, default-features = false, features = ["macros", "rt"] }
+tokio = { version = "1.17.0", optional = true, default-features = false, features = ["macros", "rt"] }
 
 [features]
 default = []

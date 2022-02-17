@@ -1,16 +1,16 @@
 [package]
 name = "aoide-core-api"
 description = "Boundary types for aoide-core APIs"
-version = "0.0.0"
+version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false
 edition = "2021"
 
 [dependencies]
-num-derive = "*"
-num-traits = "*"
-semval = "*"
-url = "*"
+num-derive = "0.3.3"
+num-traits = "0.2.14"
+semval = "0.2.0"
+url = "2.2.2"
 
 # Workspace dependencies
 aoide-core = "*"

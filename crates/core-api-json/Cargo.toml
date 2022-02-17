@@ -1,18 +1,18 @@
 [package]
 name = "aoide-core-api-json"
 description = "JSON types for aoide-core APIs"
-version = "0.0.0"
+version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
-serde = { version = "1", default-features = false, features = ["derive"] }
-url = { version = "2.2", features = ["serde"] }
+anyhow = "1.0.53"
+serde = { version = "1.0.136", default-features = false, features = ["derive"] }
+url = { version = "2.2.2", features = ["serde"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8", optional = true, features = ["url"] }
+schemars = { version = "0.8.8", optional = true, features = ["url"] }
 
 # Workspace dependencies
 aoide-core = "*"

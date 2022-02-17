@@ -1,25 +1,25 @@
 [package]
 name = "aoide-core-json"
 description = "JSON types for aoide-core"
-version = "0.0.0"
+version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
-base64 = "0.13"
-mime = "0.3"
-num-traits = "*"
-semval = "0.2"
-serde = { version = "1", default-features = false, features = ["derive"] }
-serde_repr = "0.1"
+anyhow = "1.0.53"
+base64 = "0.13.0"
+mime = "0.3.16"
+num-traits = "0.2.14"
+semval = "0.2.0"
+serde = { version = "1.0.136", default-features = false, features = ["derive"] }
+serde_repr = "0.1.7"
 time = { version = "0.3.7", features = ["serde-well-known"] }
-url = { version = "2.2", features = ["serde"] }
+url = { version = "2.2.2", features = ["serde"] }
 
 # JSON Schema (optional)
-chrono = { version = "0.4", optional = true, features = ["serde"] }
-schemars = { version = "0.8", optional = true, features = ["chrono", "url"] }
+chrono = { version = "0.4.19", optional = true, features = ["serde"] }
+schemars = { version = "0.8.8", optional = true, features = ["chrono", "url"] }
 
 # Workspace dependencies
 aoide-core = "*"
@@ -29,4 +29,4 @@ default = []
 with-schemars = ["schemars", "chrono"]
 
 [dev-dependencies]
-serde_json = "*"
+serde_json = "1.0.79"
