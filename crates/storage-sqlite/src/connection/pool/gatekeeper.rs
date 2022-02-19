@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{
+    num::NonZeroU64,
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc,
@@ -23,15 +24,12 @@ use std::{
 
 use tokio::{sync::RwLock, task::spawn_blocking, time::sleep};
 
+#[cfg(feature = "with-serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::{Error, Result};
 
 use super::{get_pooled_connection, ConnectionPool, PooledConnection};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DatabaseConnectionGatekeeperConfig {
-    pub acquire_read_timeout: Duration,
-    pub acquire_write_timeout: Duration,
-}
 
 /// Manage database connections for asynchronous tasks
 ///
@@ -41,9 +39,10 @@ pub struct DatabaseConnectionGatekeeperConfig {
 /// trying to execute write operations on a shared `SQLite` database
 /// instance.
 #[allow(missing_debug_implementations)]
-pub struct DatabaseConnectionGatekeeper {
-    config: DatabaseConnectionGatekeeperConfig,
+pub struct Gatekeeper {
     connection_pool: Arc<RwLock<ConnectionPool>>,
+    acquire_read_timeout: Duration,
+    acquire_write_timeout: Duration,
     request_counter_state: Arc<RequestCounterState>,
     abort_current_task_flag: Arc<AtomicBool>,
     decommisioned: AtomicBool,
@@ -124,15 +123,19 @@ pub struct PendingTasks {
     pub write: usize,
 }
 
-impl DatabaseConnectionGatekeeper {
+impl Gatekeeper {
     #[must_use]
-    pub fn new(
-        connection_pool: ConnectionPool,
-        config: DatabaseConnectionGatekeeperConfig,
-    ) -> Self {
+    pub fn new(connection_pool: ConnectionPool, config: Config) -> Self {
+        let Config {
+            acquire_read_timeout_millis,
+            acquire_write_timeout_millis,
+        } = config;
+        let acquire_read_timeout = Duration::from_millis(acquire_read_timeout_millis.get());
+        let acquire_write_timeout = Duration::from_millis(acquire_write_timeout_millis.get());
         Self {
-            config,
             connection_pool: Arc::new(RwLock::new(connection_pool)),
+            acquire_read_timeout,
+            acquire_write_timeout,
             request_counter_state: Default::default(),
             abort_current_task_flag: Default::default(),
             decommisioned: AtomicBool::new(false),
@@ -162,7 +165,7 @@ impl DatabaseConnectionGatekeeper {
             Arc::clone(&self.request_counter_state),
             RequestCounterMode::Read,
         );
-        let timeout = sleep(self.config.acquire_read_timeout);
+        let timeout = sleep(self.acquire_read_timeout);
         tokio::pin!(timeout);
         let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
         tokio::select! {
@@ -190,7 +193,7 @@ impl DatabaseConnectionGatekeeper {
             Arc::clone(&self.request_counter_state),
             RequestCounterMode::Write,
         );
-        let timeout = sleep(self.config.acquire_write_timeout);
+        let timeout = sleep(self.acquire_write_timeout);
         tokio::pin!(timeout);
         let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
         tokio::select! {
@@ -224,4 +227,11 @@ impl DatabaseConnectionGatekeeper {
     pub fn abort_current_task(&self) {
         self.abort_current_task_flag.store(true, Ordering::Release);
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
+pub struct Config {
+    pub acquire_read_timeout_millis: NonZeroU64,
+    pub acquire_write_timeout_millis: NonZeroU64,
 }

@@ -14,15 +14,20 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{
-    fmt,
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     num::{NonZeroU64, NonZeroU8},
-    path::PathBuf,
-    str::FromStr,
     time::Duration,
 };
 
 use serde::{Deserialize, Serialize};
+
+use aoide_storage_sqlite::connection::{
+    pool::{
+        gatekeeper::Config as DatabaseConnectionGatekeeperConfig,
+        Config as DatabaseConnectionPoolConfig,
+    },
+    Config as SqliteDatabaseConnection,
+};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
@@ -71,55 +76,9 @@ impl Default for EndpointConfig {
     }
 }
 
-pub const SQLITE_DATABASE_CONNECTION_IN_MEMORY: &str = ":memory:";
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DatabaseConnection {
     Sqlite(SqliteDatabaseConnection),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SqliteDatabaseConnection {
-    InMemory,
-    File { path: PathBuf },
-}
-
-impl AsRef<str> for SqliteDatabaseConnection {
-    fn as_ref(&self) -> &str {
-        match self {
-            Self::InMemory => SQLITE_DATABASE_CONNECTION_IN_MEMORY,
-            Self::File { path } => path.to_str().expect("valid UTF-8 path"),
-        }
-    }
-}
-
-impl fmt::Display for SqliteDatabaseConnection {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
-    }
-}
-
-impl FromStr for SqliteDatabaseConnection {
-    type Err = <PathBuf as FromStr>::Err;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.to_lowercase().trim() == SQLITE_DATABASE_CONNECTION_IN_MEMORY {
-            return Ok(Self::InMemory);
-        }
-        let path = s.parse()?;
-        Ok(Self::File { path })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DatabaseConnectionPoolConfig {
-    pub max_size: NonZeroU8,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DatabaseConnectionGatekeeperConfig {
-    pub acquire_read_timeout_millis: NonZeroU64,
-    pub acquire_write_timeout_millis: NonZeroU64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

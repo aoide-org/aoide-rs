@@ -26,9 +26,9 @@ use tracing_log::LogTracer;
 use tracing_subscriber::EnvFilter;
 use url::Url;
 
-use crate::config::{
-    Config, DatabaseConnection, SqliteDatabaseConnection, SQLITE_DATABASE_CONNECTION_IN_MEMORY,
-};
+use aoide_storage_sqlite::connection::{Config as SqliteDatabaseConnection, IN_MEMORY_CONNECTION};
+
+use crate::config::{Config, DatabaseConnection};
 
 pub fn init_environment() {
     if let Ok(path) = dotenv() {
@@ -144,9 +144,7 @@ fn parse_sqlite_database_connection() -> Option<SqliteDatabaseConnection> {
                 log::debug!("{} = {}", DATABASE_URL_ENV, var);
                 match var.trim() {
                     "" => Ok(None),
-                    SQLITE_DATABASE_CONNECTION_IN_MEMORY => {
-                        Ok(Some(SqliteDatabaseConnection::InMemory))
-                    }
+                    IN_MEMORY_CONNECTION => Ok(Some(SqliteDatabaseConnection::InMemory)),
                     trimmed => trimmed
                         .parse::<Url>()
                         .map_err(|err| err.to_string())

@@ -8,7 +8,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.53"
+anyhow = "1.0.54"
 ctrlc = { version = "3.2.1", features = ["termination"] }
 directories = "4.0.1"
 dotenv = "0.15.0"
@@ -26,7 +26,7 @@ tokio = { version = "1.17.0", default-features = false, features = [
 ] }
 tracing = "0.1.31"
 tracing-log = "0.1.2"
-tracing-subscriber = { version = "0.3.8", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 url = { version = "2.2.2", features = ["serde"] }
 warp = { version = "0.3.2", default-features = false }
 
@@ -48,7 +48,7 @@ rfd = { version = "0.8.0", optional = true, default-features = false, features =
 # Workspace dependencies
 aoide-core = "*"
 aoide-repo-sqlite = "*"
-aoide-storage-sqlite = "*"
+aoide-storage-sqlite = { version = "*", features = ["with-serde", "with-tokio"] }
 aoide-usecases = "*"
 aoide-usecases-sqlite = "*"
 aoide-usecases-sqlite-json = "*"

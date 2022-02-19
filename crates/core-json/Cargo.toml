@@ -7,7 +7,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.53"
+anyhow = "1.0.54"
 base64 = "0.13.0"
 mime = "0.3.16"
 num-traits = "0.2.14"

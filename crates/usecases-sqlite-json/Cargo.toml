@@ -6,7 +6,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.53"
+anyhow = "1.0.54"
 diesel = { version = "1.4.8", default-features = false, features = ["sqlite"] }
 log = "0.4.14"
 serde = { version = "1.0.136", default-features = false }

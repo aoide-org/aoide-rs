@@ -13,37 +13,45 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::num::NonZeroU32;
+use std::{fmt, path::PathBuf, str::FromStr};
 
-use diesel::{r2d2, Connection as _};
+#[cfg(feature = "with-serde")]
+use serde::{Deserialize, Serialize};
 
-use crate::Result;
+pub mod pool;
 
-pub type ConnectionManager = r2d2::ConnectionManager<diesel::SqliteConnection>;
+pub const IN_MEMORY_CONNECTION: &str = ":memory:";
 
-pub type ConnectionPool = r2d2::Pool<ConnectionManager>;
-
-pub type PooledConnection = r2d2::PooledConnection<ConnectionManager>;
-
-#[cfg(feature = "with-tokio")]
-pub mod gatekeeper;
-
-pub fn create_connection_pool(connection: &str, max_size: NonZeroU32) -> Result<ConnectionPool> {
-    // Establish a test connection before creating the connection pool to fail early.
-    // If the given file is inaccessible r2d2 (Diesel 1.4.8) seems to do multiple retries
-    // and logs errors instead of simply failing and returning and error immediately.
-    // Example file name: connection = ":/tmp/aoide.sqlite"
-    let _ = diesel::SqliteConnection::establish(connection)?;
-    // The test connection is dropped immediately without using it
-    // and missing files should have been created after reaching
-    // this point.
-    let manager = ConnectionManager::new(connection);
-    let pool = ConnectionPool::builder()
-        .max_size(max_size.get())
-        .build(manager)?;
-    Ok(pool)
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
+pub enum Config {
+    InMemory,
+    File { path: PathBuf },
 }
 
-pub fn get_pooled_connection(pool: &ConnectionPool) -> Result<PooledConnection> {
-    pool.get().map_err(Into::into)
+impl AsRef<str> for Config {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::InMemory => IN_MEMORY_CONNECTION,
+            Self::File { path } => path.to_str().expect("valid UTF-8 path"),
+        }
+    }
+}
+
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_ref())
+    }
+}
+
+impl FromStr for Config {
+    type Err = <PathBuf as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.to_lowercase().trim() == IN_MEMORY_CONNECTION {
+            return Ok(Self::InMemory);
+        }
+        let path = s.parse()?;
+        Ok(Self::File { path })
+    }
 }

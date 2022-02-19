@@ -29,13 +29,11 @@ use egui::{Button, CentralPanel, TextEdit, TopBottomPanel};
 use parking_lot::Mutex;
 use rfd::FileDialog;
 
+use aoide_storage_sqlite::connection::{Config as SqliteDatabaseConnection, IN_MEMORY_CONNECTION};
+
 use crate::{
-    app_dirs, app_name,
-    config::{SqliteDatabaseConnection, SQLITE_DATABASE_CONNECTION_IN_MEMORY},
-    join_runtime_thread,
-    launcher::State as LauncherState,
-    runtime::State as RuntimeState,
-    save_app_config, LauncherMutex,
+    app_dirs, app_name, join_runtime_thread, launcher::State as LauncherState,
+    runtime::State as RuntimeState, save_app_config, LauncherMutex,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -202,9 +200,8 @@ impl App {
         ui.with_layout(egui::Layout::left_to_right(), |ui| {
             ui.add_enabled(
                 editing_enabled,
-                TextEdit::singleline(&mut self.config.database.sqlite_connection).hint_text(
-                    format!(".sqlite file or {}", SQLITE_DATABASE_CONNECTION_IN_MEMORY),
-                ),
+                TextEdit::singleline(&mut self.config.database.sqlite_connection)
+                    .hint_text(format!(".sqlite file or {}", IN_MEMORY_CONNECTION)),
             );
             if ui
                 .add_enabled(editing_enabled, Button::new("Select..."))

@@ -34,7 +34,9 @@ use std::{
     sync::{atomic::AtomicBool, Arc},
 };
 
-use db::connection::{gatekeeper::DatabaseConnectionGatekeeper, PooledConnection};
+use db::connection::pool::{
+    gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper, PooledConnection,
+};
 use serde::Serialize;
 use thiserror::Error;
 use tokio::task::JoinError;

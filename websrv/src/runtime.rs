@@ -30,9 +30,8 @@ use tokio::{
 };
 use warp::{http::StatusCode, Filter};
 
-use aoide_storage_sqlite::connection::{
-    create_connection_pool,
-    gatekeeper::{DatabaseConnectionGatekeeper, DatabaseConnectionGatekeeperConfig},
+use aoide_storage_sqlite::connection::pool::{
+    create_connection_pool, gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper,
     get_pooled_connection,
 };
 
@@ -94,20 +93,7 @@ fn commission_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnec
 
     Ok(DatabaseConnectionGatekeeper::new(
         connection_pool,
-        DatabaseConnectionGatekeeperConfig {
-            acquire_read_timeout: Duration::from_millis(
-                config
-                    .connection_gatekeeper
-                    .acquire_read_timeout_millis
-                    .get(),
-            ),
-            acquire_write_timeout: Duration::from_millis(
-                config
-                    .connection_gatekeeper
-                    .acquire_write_timeout_millis
-                    .get(),
-            ),
-        },
+        config.connection_gatekeeper,
     ))
 }
 
