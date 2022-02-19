@@ -812,11 +812,11 @@ paths:
       responses:
         '200':
           description: |
-            The new entity revision.
+            The updated playlist entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EntityRevision'
+                $ref: '#/components/schemas/PlaylistWithEntriesSummaryEntity'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '404':
