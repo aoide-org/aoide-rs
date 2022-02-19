@@ -51,6 +51,8 @@ pub fn handle_request(
         flags,
     };
     let path_resolver = VirtualFilePathResolver::new();
-    uc::export_metadata_into_file(connection, track_uid, &path_resolver, &config)
-        .map_err(Into::into)
+    connection.transaction::<_, Error, _>(|| {
+        uc::export_metadata_into_file(connection, track_uid, &path_resolver, &config)
+            .map_err(Into::into)
+    })
 }

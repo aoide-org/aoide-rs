@@ -27,10 +27,6 @@ pub fn search(
     pagination: &Pagination,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<usize> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::search_with_params(&db, collection_uid, params, pagination, collector)
-            .map_err(transaction_error)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    uc::search_with_params(&repo, collection_uid, params, pagination, collector).map_err(Into::into)
 }

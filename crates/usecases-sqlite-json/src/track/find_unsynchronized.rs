@@ -73,7 +73,10 @@ pub fn handle_request(
         resolve_url_from_content_path,
         content_path_predicate: request_body.map(Into::into),
     };
-    uc::find_unsynchronized(connection, collection_uid, params, &pagination)
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::find_unsynchronized(connection, collection_uid, params, &pagination)
+                .map_err(Into::into)
+        })
         .map(|v| v.into_iter().map(Into::into).collect())
-        .map_err(Into::into)
 }

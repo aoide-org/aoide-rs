@@ -36,7 +36,7 @@ use aoide_repo::prelude::RepoError;
 
 use aoide_usecases as uc;
 
-use aoide_repo_sqlite::prelude::{Connection as RepoConnection, *};
+use aoide_repo_sqlite::prelude::Connection as RepoConnection;
 
 use aoide_storage_sqlite::Error as StorageError;
 
@@ -73,15 +73,6 @@ pub enum Error {
     Other(#[from] anyhow::Error),
 }
 
-impl<E> From<DieselTransactionError<E>> for Error
-where
-    E: Into<Error>,
-{
-    fn from(err: DieselTransactionError<E>) -> Self {
-        err.into_inner().into()
-    }
-}
-
 impl From<uc::Error> for Error {
     fn from(err: uc::Error) -> Self {
         use uc::Error::*;
@@ -93,21 +84,6 @@ impl From<uc::Error> for Error {
             Other(err) => Self::Other(err),
         }
     }
-}
-
-pub type TransactionError = DieselTransactionError<Error>;
-
-impl From<Error> for TransactionError {
-    fn from(err: Error) -> Self {
-        Self::new(err)
-    }
-}
-
-fn transaction_error<E>(err: E) -> TransactionError
-where
-    E: Into<Error>,
-{
-    TransactionError::from(err.into())
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

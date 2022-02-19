@@ -79,14 +79,17 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
         faceted_tag_mapping: faceted_tag_mapping_config.into(),
         flags: import_flags,
     };
-    uc::import_files(
-        connection,
-        collection_uid,
-        &params,
-        &import_config,
-        report_progress_fn,
-        abort_flag,
-    )
-    .map(Into::into)
-    .map_err(Into::into)
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::import_files(
+                connection,
+                collection_uid,
+                &params,
+                &import_config,
+                report_progress_fn,
+                abort_flag,
+            )
+            .map_err(Into::into)
+        })
+        .map(Into::into)
 }

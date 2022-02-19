@@ -30,10 +30,13 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let mut collector = EntityCollector::with_capacity(request_body.len());
-    uc::load_many(
-        connection,
-        request_body.into_iter().map(Into::into),
-        &mut collector,
-    )?;
+    connection.transaction::<_, Error, _>(|| {
+        uc::load_many(
+            connection,
+            request_body.into_iter().map(Into::into),
+            &mut collector,
+        )
+        .map_err(Into::into)
+    })?;
     Ok(collector.into())
 }

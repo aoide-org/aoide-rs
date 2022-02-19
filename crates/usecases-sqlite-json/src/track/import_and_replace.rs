@@ -168,16 +168,19 @@ pub fn handle_request(
         flags: import_flags,
     };
     let expected_source_path_count = request_body.len();
-    uc::import_and_replace_by_local_file_paths(
-        connection,
-        collection_uid,
-        sync_mode.into(),
-        &import_config,
-        replace_mode.into(),
-        request_body.into_iter().map(Into::into),
-        Some(expected_source_path_count),
-        abort_flag,
-    )
-    .map(Into::into)
-    .map_err(Into::into)
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::import_and_replace_by_local_file_paths(
+                connection,
+                collection_uid,
+                sync_mode.into(),
+                &import_config,
+                replace_mode.into(),
+                request_body.into_iter().map(Into::into),
+                Some(expected_source_path_count),
+                abort_flag,
+            )
+            .map_err(Into::into)
+        })
+        .map(Into::into)
 }

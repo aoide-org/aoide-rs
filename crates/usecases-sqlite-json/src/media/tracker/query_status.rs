@@ -33,7 +33,9 @@ pub fn handle_request(
         .try_into()
         .map_err(Into::into)
         .map_err(Error::BadRequest)?;
-    uc::query_status(connection, collection_uid, &params)
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::query_status(connection, collection_uid, &params).map_err(Into::into)
+        })
         .map(Into::into)
-        .map_err(Into::into)
 }

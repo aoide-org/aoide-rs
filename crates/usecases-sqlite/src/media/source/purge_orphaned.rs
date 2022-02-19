@@ -26,9 +26,6 @@ pub fn purge_orphaned(
     collection_uid: &EntityUid,
     params: &Params,
 ) -> Result<Outcome> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::purge_orphaned(&db, collection_uid, params).map_err(transaction_error)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    uc::purge_orphaned(&repo, collection_uid, params).map_err(Into::into)
 }

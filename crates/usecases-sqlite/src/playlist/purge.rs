@@ -18,10 +18,7 @@ use aoide_core::entity::EntityUid;
 use super::*;
 
 pub fn purge(connection: &SqliteConnection, uid: &EntityUid) -> Result<()> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        let id = db.resolve_playlist_id(uid)?;
-        db.purge_playlist_entity(id).map_err(Into::into)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    let id = repo.resolve_playlist_id(uid)?;
+    repo.purge_playlist_entity(id).map_err(Into::into)
 }

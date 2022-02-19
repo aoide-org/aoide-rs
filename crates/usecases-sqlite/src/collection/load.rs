@@ -22,18 +22,15 @@ pub fn load_one(
     uid: &EntityUid,
     with_summary: bool,
 ) -> Result<(Entity, Option<Summary>)> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        let id = db.resolve_collection_id(uid)?;
-        let (record_hdr, entity) = db.load_collection_entity(id)?;
-        let summary = if with_summary {
-            Some(db.load_collection_summary(record_hdr.id)?)
-        } else {
-            None
-        };
-        Ok((entity, summary))
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    let id = repo.resolve_collection_id(uid)?;
+    let (record_hdr, entity) = repo.load_collection_entity(id)?;
+    let summary = if with_summary {
+        Some(repo.load_collection_summary(record_hdr.id)?)
+    } else {
+        None
+    };
+    Ok((entity, summary))
 }
 
 pub fn load_all(
@@ -46,16 +43,12 @@ pub fn load_all(
         Record = (Entity, Option<Summary>),
     >,
 ) -> Result<()> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        db.load_collection_entities(kind, with_summary, pagination, collector)
-            .map_err(Into::into)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    repo.load_collection_entities(kind, with_summary, pagination, collector)
+        .map_err(Into::into)
 }
 
 pub fn load_all_kinds(connection: &SqliteConnection) -> Result<Vec<String>> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| db.load_all_kinds().map_err(Into::into))
-        .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    repo.load_all_kinds().map_err(Into::into)
 }

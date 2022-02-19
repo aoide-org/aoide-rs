@@ -31,15 +31,18 @@ pub fn handle_request(
     collection_uid: &_core::EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    uc::resolve_by_media_source_content_paths(
-        connection,
-        collection_uid,
-        request_body.into_iter().map(Into::into).collect(),
-    )
-    .map(|v| {
-        v.into_iter()
-            .map(|(content_path, hdr)| (content_path, hdr.into()))
-            .collect()
-    })
-    .map_err(Into::into)
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::resolve_by_media_source_content_paths(
+                connection,
+                collection_uid,
+                request_body.into_iter().map(Into::into).collect(),
+            )
+            .map_err(Into::into)
+        })
+        .map(|v| {
+            v.into_iter()
+                .map(|(content_path, hdr)| (content_path, hdr.into()))
+                .collect()
+        })
 }

@@ -25,10 +25,7 @@ pub fn find_unsynchronized(
     params: Params,
     pagination: &Pagination,
 ) -> Result<Vec<UnsynchronizedTrackEntity>> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::find_unsynchronized_with_params(&db, collection_uid, params, pagination)
-            .map_err(transaction_error)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    uc::find_unsynchronized_with_params(&repo, collection_uid, params, pagination)
+        .map_err(Into::into)
 }

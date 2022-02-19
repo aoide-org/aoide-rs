@@ -26,7 +26,7 @@ mod uc {
 pub type ResponseBody = Entity;
 
 pub fn handle_request(connection: &SqliteConnection, uid: &EntityUid) -> Result<ResponseBody> {
-    uc::load_one(connection, uid)
+    connection
+        .transaction::<_, Error, _>(|| uc::load_one(connection, uid).map_err(Into::into))
         .map(Into::into)
-        .map_err(Into::into)
 }

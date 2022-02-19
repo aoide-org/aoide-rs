@@ -19,9 +19,7 @@ use super::*;
 
 pub fn create(connection: &SqliteConnection, created_collection: Collection) -> Result<Entity> {
     let new_entity = create_entity(created_collection)?;
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        store_created_entity(&db, &new_entity).map_err(transaction_error)
-    })?;
+    let repo = RepoConnection::new(connection);
+    store_created_entity(&repo, &new_entity)?;
     Ok(new_entity)
 }

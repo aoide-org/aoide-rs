@@ -29,7 +29,7 @@
 
 use std::result::Result as StdResult;
 
-use diesel::prelude::SqliteConnection;
+use diesel::{prelude::SqliteConnection, Connection as _};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
@@ -55,6 +55,9 @@ pub enum Error {
 
     #[error(transparent)]
     UseCase(uc::Error),
+
+    #[error(transparent)]
+    DatabaseTransaction(#[from] diesel::result::Error),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),

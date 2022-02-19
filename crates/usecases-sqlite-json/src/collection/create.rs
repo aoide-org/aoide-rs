@@ -25,7 +25,10 @@ pub fn handle_request(
     connection: &SqliteConnection,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    uc::create(connection, request_body.try_into()?)
+    let created_collection = request_body.try_into()?;
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::create(connection, created_collection).map_err(Into::into)
+        })
         .map(Into::into)
-        .map_err(Into::into)
 }

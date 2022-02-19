@@ -18,7 +18,6 @@ use std::sync::atomic::AtomicBool;
 use aoide_core::entity::EntityUid;
 use aoide_core_api::media::tracker::import_files::Params;
 use aoide_media::io::import::ImportTrackConfig;
-use aoide_storage_sqlite::analyze_and_optimize_database_stats;
 
 use super::*;
 
@@ -38,19 +37,14 @@ pub fn import_files<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
-    let db = RepoConnection::new(connection);
-    let outcome = db.transaction::<_, TransactionError, _>(|| {
-        uc::import_files(
-            &db,
-            collection_uid,
-            params,
-            import_config,
-            report_progress_fn,
-            abort_flag,
-        )
-        .map_err(transaction_error)
-    })?;
-    log::info!("Analyzing and optimizing database after import finished");
-    analyze_and_optimize_database_stats(&db)?;
+    let repo = RepoConnection::new(connection);
+    let outcome = uc::import_files(
+        &repo,
+        collection_uid,
+        params,
+        import_config,
+        report_progress_fn,
+        abort_flag,
+    )?;
     Ok(outcome)
 }

@@ -90,12 +90,15 @@ pub fn handle_request(
         ordering: ordering.into_iter().map(Into::into).collect(),
     };
     let mut collector = EntityCollector::default();
-    uc::search(
-        connection,
-        collection_uid,
-        params,
-        &pagination,
-        &mut collector,
-    )?;
+    connection.transaction::<_, Error, _>(|| {
+        uc::search(
+            connection,
+            collection_uid,
+            params,
+            &pagination,
+            &mut collector,
+        )
+        .map_err(Into::into)
+    })?;
     Ok(collector.into())
 }

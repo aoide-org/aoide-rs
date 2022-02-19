@@ -20,5 +20,5 @@ use super::*;
 pub type ResponseBody = ();
 
 pub fn handle_request(connection: &SqliteConnection, uid: &EntityUid) -> Result<ResponseBody> {
-    uc::purge(connection, uid).map_err(Into::into)
+    connection.transaction::<_, Error, _>(|| uc::purge(connection, uid).map_err(Into::into))
 }

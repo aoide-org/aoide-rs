@@ -142,7 +142,10 @@ pub fn handle_request(
         return Err(err);
     }
     let tracks = tracks.into_iter().map(Result::unwrap);
-    uc::replace_by_media_source_content_path(connection, collection_uid, &params, tracks)
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::replace_by_media_source_content_path(connection, collection_uid, &params, tracks)
+                .map_err(Into::into)
+        })
         .map(Into::into)
-        .map_err(Into::into)
 }

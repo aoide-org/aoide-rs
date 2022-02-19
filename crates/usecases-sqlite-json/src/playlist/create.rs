@@ -26,7 +26,9 @@ pub fn handle_request(
     collection_uid: &EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    uc::create(connection, collection_uid, request_body.into())
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::create(connection, collection_uid, request_body.into()).map_err(Into::into)
+        })
         .map(Into::into)
-        .map_err(Into::into)
 }

@@ -20,5 +20,5 @@ use super::*;
 pub type ResponseBody = Vec<String>;
 
 pub fn handle_request(connection: &SqliteConnection) -> Result<ResponseBody> {
-    uc::load_all_kinds(connection).map_err(Into::into)
+    connection.transaction::<_, Error, _>(|| uc::load_all_kinds(connection).map_err(Into::into))
 }

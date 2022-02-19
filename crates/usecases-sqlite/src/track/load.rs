@@ -16,12 +16,9 @@
 use super::*;
 
 pub fn load_one(connection: &SqliteConnection, uid: &EntityUid) -> Result<Entity> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        let (_, entity) = db.load_track_entity_by_uid(uid)?;
-        Ok(entity)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    let (_, entity) = repo.load_track_entity_by_uid(uid)?;
+    Ok(entity)
 }
 
 pub fn load_many(
@@ -29,23 +26,20 @@ pub fn load_many(
     uids: impl IntoIterator<Item = EntityUid>,
     collector: &mut impl RecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<()> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        for uid in uids {
-            match db.load_track_entity_by_uid(&uid) {
-                Ok((record_header, entity)) => {
-                    collector.collect(record_header, entity);
-                }
-                Err(RepoError::NotFound) => {
-                    log::debug!("Track with UID '{}' not found", uid);
-                    continue;
-                }
-                Err(err) => {
-                    return Err(err.into());
-                }
+    let repo = RepoConnection::new(connection);
+    for uid in uids {
+        match repo.load_track_entity_by_uid(&uid) {
+            Ok((record_header, entity)) => {
+                collector.collect(record_header, entity);
+            }
+            Err(RepoError::NotFound) => {
+                log::debug!("Track with UID '{}' not found", uid);
+                continue;
+            }
+            Err(err) => {
+                return Err(err.into());
             }
         }
-        Ok(())
-    })
-    .map_err(Into::into)
+    }
+    Ok(())
 }

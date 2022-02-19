@@ -108,14 +108,17 @@ pub fn handle_request(
         uid,
         rev: rev.into(),
     };
-    uc::patch(
-        connection,
-        &entity_header,
-        request_body.into_iter().map(Into::into),
-    )
-    .map(|(_, entity_hdr, playlist_with_entries_summary)| {
-        let PlaylistWithEntriesSummary { playlist, entries } = playlist_with_entries_summary;
-        (_core::Entity::new(entity_hdr, playlist), entries).into()
-    })
-    .map_err(Into::into)
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::patch(
+                connection,
+                &entity_header,
+                request_body.into_iter().map(Into::into),
+            )
+            .map_err(Into::into)
+        })
+        .map(|(_, entity_hdr, playlist_with_entries_summary)| {
+            let PlaylistWithEntriesSummary { playlist, entries } = playlist_with_entries_summary;
+            (_core::Entity::new(entity_hdr, playlist), entries).into()
+        })
 }

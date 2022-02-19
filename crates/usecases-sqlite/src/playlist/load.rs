@@ -21,12 +21,10 @@ pub fn load_entity_with_entries(
     connection: &SqliteConnection,
     uid: &EntityUid,
 ) -> Result<EntityWithEntries> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        let id = db.resolve_playlist_id(uid)?;
-        db.load_playlist_entity_with_entries(id).map_err(Into::into)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    let id = repo.resolve_playlist_id(uid)?;
+    repo.load_playlist_entity_with_entries(id)
+        .map_err(Into::into)
 }
 
 pub fn load_entities_with_entries_summary(
@@ -39,11 +37,8 @@ pub fn load_entities_with_entries_summary(
         Record = (Entity, EntriesSummary),
     >,
 ) -> Result<()> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
-        db.load_playlist_entities_with_entries_summary(collection_id, kind, pagination, collector)
-            .map_err(Into::into)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    let collection_id = repo.resolve_collection_id(collection_uid)?;
+    repo.load_playlist_entities_with_entries_summary(collection_id, kind, pagination, collector)
+        .map_err(Into::into)
 }

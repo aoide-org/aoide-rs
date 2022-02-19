@@ -27,16 +27,13 @@ pub fn relink_tracks_with_untracked_media_sources<ReportProgressFn: FnMut(&uc::P
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Vec<uc::RelocatedMediaSource>> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        uc::relink_tracks_with_untracked_media_sources(
-            &db,
-            collection_uid,
-            find_candidate_params,
-            report_progress_fn,
-            abort_flag,
-        )
-        .map_err(Into::into)
-    })
+    let repo = RepoConnection::new(connection);
+    uc::relink_tracks_with_untracked_media_sources(
+        &repo,
+        collection_uid,
+        find_candidate_params,
+        report_progress_fn,
+        abort_flag,
+    )
     .map_err(Into::into)
 }

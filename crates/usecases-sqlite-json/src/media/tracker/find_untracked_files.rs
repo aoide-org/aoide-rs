@@ -50,13 +50,16 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
         .try_into()
         .map_err(Into::into)
         .map_err(Error::BadRequest)?;
-    uc::visit_directories(
-        connection,
-        collection_uid,
-        &params,
-        report_progress_fn,
-        abort_flag,
-    )
-    .map(Into::into)
-    .map_err(Into::into)
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::visit_directories(
+                connection,
+                collection_uid,
+                &params,
+                report_progress_fn,
+                abort_flag,
+            )
+            .map_err(Into::into)
+        })
+        .map(Into::into)
 }

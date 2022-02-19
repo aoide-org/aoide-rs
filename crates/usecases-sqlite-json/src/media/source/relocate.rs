@@ -41,12 +41,15 @@ pub fn handle_request(
         old_path_prefix,
         new_path_prefix,
     } = request_body;
-    aoide_usecases_sqlite::media::source::relocate::relocate(
-        connection,
-        collection_uid,
-        &ContentPath::new(old_path_prefix),
-        &ContentPath::new(new_path_prefix),
-    )
-    .map(|replaced_count| ResponseBody { replaced_count })
-    .map_err(Into::into)
+    connection
+        .transaction::<_, Error, _>(|| {
+            aoide_usecases_sqlite::media::source::relocate::relocate(
+                connection,
+                collection_uid,
+                &ContentPath::new(old_path_prefix),
+                &ContentPath::new(new_path_prefix),
+            )
+            .map_err(Into::into)
+        })
+        .map(|replaced_count| ResponseBody { replaced_count })
 }

@@ -26,11 +26,8 @@ pub fn purge_by_media_source_content_path_predicates(
     collection_uid: &EntityUid,
     path_predicates: Vec<StringPredicate>,
 ) -> Result<uc::PurgeByMediaContentPathPredicatesSummary> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
-        uc::purge_by_media_source_content_path_predicates(&db, collection_id, path_predicates)
-            .map_err(Into::into)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    let collection_id = repo.resolve_collection_id(collection_uid)?;
+    uc::purge_by_media_source_content_path_predicates(&repo, collection_id, path_predicates)
+        .map_err(Into::into)
 }

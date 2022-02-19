@@ -31,11 +31,11 @@ pub mod purge_untracked;
 pub mod relocate;
 
 pub fn resolve_file_path(
-    db: &RepoConnection<'_>,
+    repo: &RepoConnection<'_>,
     collection_uid: &EntityUid,
     source_path: &ContentPath,
 ) -> Result<(CollectionId, PathBuf)> {
-    let collection_ctx = RepoContext::resolve(db, collection_uid, None)?;
+    let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
         vfs_ctx
     } else {
@@ -54,9 +54,9 @@ pub fn load_embedded_artwork_image(
     collection_uid: &EntityUid,
     source_path: &ContentPath,
 ) -> Result<(CollectionId, Option<LoadedArtworkImage>)> {
-    let db = RepoConnection::new(connection);
     let mut importer = Importer::new();
-    resolve_file_path(&db, collection_uid, source_path).and_then(|(collection_id, file_path)| {
+    let repo = RepoConnection::new(connection);
+    resolve_file_path(&repo, collection_uid, source_path).and_then(|(collection_id, file_path)| {
         let loaded_artwork_image =
             load_embedded_artwork_image_from_file_path(&mut importer, &file_path)?;
         for issue_message in importer.finish().into_messages() {

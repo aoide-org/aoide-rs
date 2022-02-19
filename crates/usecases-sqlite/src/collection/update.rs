@@ -25,11 +25,8 @@ pub fn update(
 ) -> Result<Entity> {
     let (hdr, body) = updated_entity_with_current_rev.into();
     let entity = update_entity(hdr, body)?;
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        let updated_at = DateTime::now_utc();
-        db.update_collection_entity_revision(updated_at, &entity)?;
-        Ok(entity)
-    })
-    .map_err(Into::into)
+    let updated_at = DateTime::now_utc();
+    let repo = RepoConnection::new(connection);
+    repo.update_collection_entity_revision(updated_at, &entity)?;
+    Ok(entity)
 }

@@ -50,12 +50,15 @@ pub fn handle_request(
     let pagination = Pagination { limit, offset };
     let pagination: Option<_> = pagination.into();
     let mut collector = EntityWithEntriesSummaryCollector::default();
-    uc::load_entities_with_entries_summary(
-        connection,
-        collection_uid,
-        kind.as_deref(),
-        pagination.as_ref(),
-        &mut collector,
-    )?;
+    connection.transaction::<_, Error, _>(|| {
+        uc::load_entities_with_entries_summary(
+            connection,
+            collection_uid,
+            kind.as_deref(),
+            pagination.as_ref(),
+            &mut collector,
+        )
+        .map_err(Into::into)
+    })?;
     Ok(collector.into())
 }

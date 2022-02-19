@@ -26,15 +26,12 @@ pub fn export_metadata_into_file(
     content_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,
 ) -> Result<bool> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        let (_, mut track_entity) = db.load_track_entity_by_uid(track_uid)?;
-        uc::media::export_track_metadata_into_file(
-            content_path_resolver,
-            config,
-            &mut track_entity.body.track,
-        )
-        .map_err(transaction_error)
-    })
+    let repo = RepoConnection::new(connection);
+    let (_, mut track_entity) = repo.load_track_entity_by_uid(track_uid)?;
+    uc::media::export_track_metadata_into_file(
+        content_path_resolver,
+        config,
+        &mut track_entity.body.track,
+    )
     .map_err(Into::into)
 }

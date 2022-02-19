@@ -27,9 +27,6 @@ pub fn purge_untracked(
     collection_uid: &EntityUid,
     params: &Params,
 ) -> Result<Outcome> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::purge_untracked(&db, collection_uid, params).map_err(transaction_error)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    uc::purge_untracked(&repo, collection_uid, params).map_err(Into::into)
 }

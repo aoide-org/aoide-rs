@@ -16,10 +16,7 @@
 use super::*;
 
 pub fn purge(connection: &SqliteConnection, uid: &EntityUid) -> Result<()> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        let id = db.resolve_collection_id(uid)?;
-        db.purge_collection_entity(id).map_err(Into::into)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    let id = repo.resolve_collection_id(uid)?;
+    repo.purge_collection_entity(id).map_err(Into::into)
 }

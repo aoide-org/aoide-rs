@@ -32,10 +32,13 @@ pub fn visit_directories<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::visit_directories(&db, collection_uid, params, report_progress_fn, abort_flag)
-            .map_err(transaction_error)
-    })
+    let repo = RepoConnection::new(connection);
+    uc::visit_directories(
+        &repo,
+        collection_uid,
+        params,
+        report_progress_fn,
+        abort_flag,
+    )
     .map_err(Into::into)
 }

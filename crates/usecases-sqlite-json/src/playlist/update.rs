@@ -35,7 +35,9 @@ pub fn handle_request(
         },
         request_body,
     );
-    uc::update(connection, updated_entity_with_current_rev)
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::update(connection, updated_entity_with_current_rev).map_err(Into::into)
+        })
         .map(Into::into)
-        .map_err(Into::into)
 }

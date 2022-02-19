@@ -82,6 +82,7 @@ impl From<uc_json::Error> for Error {
         match err {
             BadRequest(err) => Self::BadRequest(err),
             UseCase(err) => err.into(),
+            DatabaseTransaction(err) => Self::Other(err.into()),
             Other(err) => Self::Other(err),
         }
     }

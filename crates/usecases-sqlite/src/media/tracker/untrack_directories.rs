@@ -28,9 +28,6 @@ pub fn untrack_directories(
     collection_uid: &EntityUid,
     params: &Params,
 ) -> Result<Outcome> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::untrack_directories(&db, collection_uid, params).map_err(transaction_error)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    uc::untrack_directories(&repo, collection_uid, params).map_err(Into::into)
 }

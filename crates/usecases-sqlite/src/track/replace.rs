@@ -40,17 +40,9 @@ pub fn replace_by_media_source_content_path(
     params: &uc::Params,
     tracks: impl IntoIterator<Item = ValidatedInput>,
 ) -> Result<Summary> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::replace_collected_tracks_by_media_source_content_path(
-            &db,
-            collection_uid,
-            params,
-            tracks,
-        )
-        .map_err(transaction_error)
-    })
-    .map_err(Into::into)
+    let repo = RepoConnection::new(connection);
+    uc::replace_collected_tracks_by_media_source_content_path(&repo, collection_uid, params, tracks)
+        .map_err(Into::into)
 }
 
 // TODO: Reduce number of arguments
@@ -65,20 +57,17 @@ pub fn import_and_replace_by_local_file_paths(
     expected_source_path_count: Option<usize>,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::import_and_replace_by_local_file_paths(
-            &db,
-            collection_uid,
-            sync_mode,
-            import_config,
-            replace_mode,
-            source_paths,
-            expected_source_path_count,
-            abort_flag,
-        )
-        .map_err(transaction_error)
-    })
+    let repo = RepoConnection::new(connection);
+    uc::import_and_replace_by_local_file_paths(
+        &repo,
+        collection_uid,
+        sync_mode,
+        import_config,
+        replace_mode,
+        source_paths,
+        expected_source_path_count,
+        abort_flag,
+    )
     .map_err(Into::into)
 }
 
@@ -91,18 +80,15 @@ pub fn import_and_replace_by_local_file_path_from_directory(
     source_dir_path: &str,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::import_and_replace_by_local_file_path_from_directory(
-            &db,
-            collection_uid,
-            sync_mode,
-            import_config,
-            replace_mode,
-            source_dir_path,
-            abort_flag,
-        )
-        .map_err(transaction_error)
-    })
+    let repo = RepoConnection::new(connection);
+    uc::import_and_replace_by_local_file_path_from_directory(
+        &repo,
+        collection_uid,
+        sync_mode,
+        import_config,
+        replace_mode,
+        source_dir_path,
+        abort_flag,
+    )
     .map_err(Into::into)
 }

@@ -39,11 +39,14 @@ pub fn handle_request(
         .try_into()
         .map_err(Into::into)
         .map_err(Error::BadRequest)?;
-    aoide_usecases_sqlite::media::source::purge_untracked::purge_untracked(
-        connection,
-        collection_uid,
-        &params,
-    )
-    .map(Into::into)
-    .map_err(Into::into)
+    connection
+        .transaction::<_, Error, _>(|| {
+            aoide_usecases_sqlite::media::source::purge_untracked::purge_untracked(
+                connection,
+                collection_uid,
+                &params,
+            )
+            .map_err(Into::into)
+        })
+        .map(Into::into)
 }

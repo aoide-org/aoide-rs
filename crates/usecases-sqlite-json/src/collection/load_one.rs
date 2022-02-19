@@ -34,7 +34,9 @@ pub fn handle_request(
 ) -> Result<EntityWithSummary> {
     let QueryParams { summary } = query_params;
     let with_summary = summary.unwrap_or(false);
-    let (entity, summary) = uc::load_one(connection, uid, with_summary)?;
+    let (entity, summary) = connection.transaction::<_, Error, _>(|| {
+        uc::load_one(connection, uid, with_summary).map_err(Into::into)
+    })?;
     Ok(merge_entity_with_summary(
         entity.into(),
         summary.map(Into::into),
