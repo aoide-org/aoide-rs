@@ -13,7 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_usecases_sqlite::collection::load::{self as uc, Scope};
+use aoide_core_api::collection::LoadScope;
+use aoide_usecases_sqlite::collection::load::{self as uc};
 
 use super::*;
 
@@ -33,13 +34,14 @@ pub fn handle_request(
     query_params: QueryParams,
 ) -> Result<EntityWithSummary> {
     let QueryParams { summary } = query_params;
-    let scope = if summary.unwrap_or(false) {
-        Scope::EntityWithSummary
+    let load_scope = if summary.unwrap_or(false) {
+        LoadScope::EntityWithSummary
     } else {
-        Scope::Entity
+        LoadScope::Entity
     };
-    let (entity, summary) = connection
-        .transaction::<_, Error, _>(|| uc::load_one(connection, uid, scope).map_err(Into::into))?;
+    let (entity, summary) = connection.transaction::<_, Error, _>(|| {
+        uc::load_one(connection, uid, load_scope).map_err(Into::into)
+    })?;
     Ok(merge_entity_with_summary(
         entity.into(),
         summary.map(Into::into),

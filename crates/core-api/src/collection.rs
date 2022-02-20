@@ -15,6 +15,12 @@
 
 use aoide_core::collection::Collection;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoadScope {
+    Entity,
+    EntityWithSummary,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MediaSourceSummary {
     pub total_count: u64,

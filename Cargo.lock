@@ -1827,9 +1827,9 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e94ac3d41f882c624a82d7945952032388488681f45f9d4077999a6c85688d61"
+checksum = "db207d030ae38f1eb6f240d5a1c1c88ff422aa005d10f8c6c6fc5e75286ab30e"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -3604,7 +3604,8 @@ dependencies = [
 [[package]]
 name = "triseratops"
 version = "0.0.2"
-source = "git+https://github.com/Holzhaus/triseratops?branch=main#d3bd8292be510201b6f48a0c5cb6e89667808f53"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d54d7f39602ee352f329d2b9da6223375217a6d60a9bb8c89a9a12896883ece"
 dependencies = [
  "base64",
  "nom",

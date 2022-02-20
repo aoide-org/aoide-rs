@@ -37,7 +37,7 @@ aoide-usecases-sqlite-json = { path = "crates/usecases-sqlite-json" }
 aoide-websrv-api = { path = "crates/websrv-api" }
 
 # Unreleased crates
-triseratops = { git = "https://github.com/Holzhaus/triseratops", branch = "main" }
+#triseratops = { git = "https://github.com/Holzhaus/triseratops", branch = "main" }
 
 # Temporary patches
 #mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta" }
