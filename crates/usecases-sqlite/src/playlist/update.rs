@@ -20,10 +20,10 @@ use super::*;
 
 pub fn update(
     connection: &SqliteConnection,
-    updated_entity_with_current_rev: Entity,
+    entity_header: EntityHeader,
+    modified_playlist: Playlist,
 ) -> Result<Entity> {
-    let (hdr, body) = updated_entity_with_current_rev.into();
-    let entity = update_entity(hdr, body)?;
+    let entity = update_entity(entity_header, modified_playlist)?;
     let updated_at = DateTime::now_utc();
     let repo = RepoConnection::new(connection);
     repo.update_playlist_entity_revision(updated_at, &entity)?;

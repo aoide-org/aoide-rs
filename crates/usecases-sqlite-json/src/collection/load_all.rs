@@ -15,7 +15,7 @@
 
 use aoide_core_api_json::collection::EntityWithSummary;
 
-use aoide_usecases_sqlite::collection::load as uc;
+use aoide_usecases_sqlite::collection::load::{self as uc, Scope};
 
 use super::*;
 
@@ -52,7 +52,11 @@ pub fn handle_request(
         limit,
         offset,
     } = query_params;
-    let with_summary = summary.unwrap_or(false);
+    let scope = if summary.unwrap_or(false) {
+        Scope::EntityWithSummary
+    } else {
+        Scope::Entity
+    };
     let pagination = Pagination { limit, offset };
     let pagination: Option<_> = pagination.into();
     let mut collector = EntityCollector::default();
@@ -60,7 +64,7 @@ pub fn handle_request(
         uc::load_all(
             connection,
             kind.as_deref(),
-            with_summary,
+            scope,
             pagination.as_ref(),
             &mut collector,
         )

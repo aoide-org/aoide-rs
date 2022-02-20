@@ -28,16 +28,14 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let EntityRevQueryParams { rev } = query_params;
-    let updated_entity_with_current_rev = _core::Entity::new(
-        _core::EntityHeader {
-            uid,
-            rev: rev.into(),
-        },
-        request_body,
-    );
+    let entity_header = _core::EntityHeader {
+        uid,
+        rev: rev.into(),
+    };
+    let modified_playlist = request_body.into();
     connection
         .transaction::<_, Error, _>(|| {
-            uc::update(connection, updated_entity_with_current_rev).map_err(Into::into)
+            uc::update(connection, entity_header, modified_playlist).map_err(Into::into)
         })
         .map(Into::into)
 }

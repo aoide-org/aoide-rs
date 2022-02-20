@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::util::clock::DateTime;
+use aoide_core::{entity::EntityHeader, util::clock::DateTime};
 
 use uc::collection::update_entity;
 
@@ -21,10 +21,10 @@ use super::*;
 
 pub fn update(
     connection: &SqliteConnection,
-    updated_entity_with_current_rev: Entity,
+    entity_header: EntityHeader,
+    modified_collection: Collection,
 ) -> Result<Entity> {
-    let (hdr, body) = updated_entity_with_current_rev.into();
-    let entity = update_entity(hdr, body)?;
+    let entity = update_entity(entity_header, modified_collection)?;
     let updated_at = DateTime::now_utc();
     let repo = RepoConnection::new(connection);
     repo.update_collection_entity_revision(updated_at, &entity)?;

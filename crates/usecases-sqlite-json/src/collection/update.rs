@@ -30,16 +30,14 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let EntityRevQueryParams { rev } = query_params;
-    let updated_entity_with_current_rev = _inner::Entity::try_new(
-        _inner::EntityHeader {
-            uid,
-            rev: rev.into(),
-        },
-        request_body,
-    )?;
+    let entity_header = _inner::EntityHeader {
+        uid,
+        rev: rev.into(),
+    };
+    let modified_collection = request_body.try_into()?;
     connection
         .transaction::<_, Error, _>(|| {
-            uc::update(connection, updated_entity_with_current_rev).map_err(Into::into)
+            uc::update(connection, entity_header, modified_collection).map_err(Into::into)
         })
         .map(Into::into)
 }

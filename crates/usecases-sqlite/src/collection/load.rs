@@ -17,18 +17,23 @@ use aoide_core_api::collection::Summary;
 
 use super::*;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Scope {
+    Entity,
+    EntityWithSummary,
+}
+
 pub fn load_one(
     connection: &SqliteConnection,
     uid: &EntityUid,
-    with_summary: bool,
+    scope: Scope,
 ) -> Result<(Entity, Option<Summary>)> {
     let repo = RepoConnection::new(connection);
     let id = repo.resolve_collection_id(uid)?;
     let (record_hdr, entity) = repo.load_collection_entity(id)?;
-    let summary = if with_summary {
-        Some(repo.load_collection_summary(record_hdr.id)?)
-    } else {
-        None
+    let summary = match scope {
+        Scope::Entity => None,
+        Scope::EntityWithSummary => Some(repo.load_collection_summary(record_hdr.id)?),
     };
     Ok((entity, summary))
 }
@@ -36,7 +41,7 @@ pub fn load_one(
 pub fn load_all(
     connection: &SqliteConnection,
     kind: Option<&str>,
-    with_summary: bool,
+    scope: Scope,
     pagination: Option<&Pagination>,
     collector: &mut impl ReservableRecordCollector<
         Header = RecordHeader,
@@ -44,6 +49,10 @@ pub fn load_all(
     >,
 ) -> Result<()> {
     let repo = RepoConnection::new(connection);
+    let with_summary = match scope {
+        Scope::Entity => false,
+        Scope::EntityWithSummary => true,
+    };
     repo.load_collection_entities(kind, with_summary, pagination, collector)
         .map_err(Into::into)
 }

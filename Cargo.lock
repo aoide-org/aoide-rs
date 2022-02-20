@@ -3604,7 +3604,7 @@ dependencies = [
 [[package]]
 name = "triseratops"
 version = "0.0.2"
-source = "git+https://github.com/Holzhaus/triseratops?branch=main#c546dd905fde313e524faadb0c46030121352538"
+source = "git+https://github.com/Holzhaus/triseratops?branch=main#d3bd8292be510201b6f48a0c5cb6e89667808f53"
 dependencies = [
  "base64",
  "nom",
