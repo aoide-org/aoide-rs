@@ -24,3 +24,6 @@ pub enum Task {
         request: FetchResultPageRequest,
     },
 }
+
+#[cfg(feature = "with-webapi-backend")]
+mod webapi;

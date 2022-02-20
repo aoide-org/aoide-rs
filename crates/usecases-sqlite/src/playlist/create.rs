@@ -22,8 +22,8 @@ pub fn create(
     collection_uid: &EntityUid,
     new_playlist: Playlist,
 ) -> Result<Entity> {
-    let new_entity = create_entity(new_playlist)?;
+    let created_entity = create_entity(new_playlist)?;
     let repo = RepoConnection::new(connection);
-    store_created_entity(&repo, collection_uid, &new_entity)?;
-    Ok(new_entity)
+    store_created_entity(&repo, collection_uid, &created_entity)?;
+    Ok(created_entity)
 }

@@ -17,7 +17,7 @@ use std::{path::Path, time::Instant};
 
 use aoide_client::{
     models::{collection, media_source, media_tracker},
-    web::{receive_response_body, ClientEnvironment},
+    webapi::{receive_response_body, ClientEnvironment},
 };
 use aoide_core::entity::EntityUid;
 use aoide_core_api::{track::find_unsynchronized::UnsynchronizedTrackEntity, Pagination};

@@ -156,17 +156,28 @@ impl State {
         finished
     }
 
-    pub(super) fn after_entity_created(&mut self, entity: CollectionEntity) -> Option<Action> {
+    pub(super) fn after_entity_created_or_updated(
+        &mut self,
+        entity: CollectionEntity,
+    ) -> Option<Action> {
         if let Some(last_snapshot) = self.remote_view.all_kinds.last_snapshot() {
             if last_snapshot
                 .value
                 .iter()
                 .any(|kind| Some(kind) == entity.body.kind.as_ref())
             {
-                // The new entity is of a known kind
+                // The new/modified entity is of a known kind
                 return None;
             }
         }
+        // Refetch all kinds
+        let token = self.remote_view.all_kinds.start_pending_now();
+        let task = Task::FetchAllKinds { token };
+        let next_action = Action::DispatchTask(task);
+        Some(next_action)
+    }
+
+    pub(super) fn after_entity_purged(&mut self, _entity_uid: &EntityUid) -> Option<Action> {
         // Refetch all kinds
         let token = self.remote_view.all_kinds.start_pending_now();
         let task = Task::FetchAllKinds { token };

@@ -23,9 +23,9 @@ pub fn update(
     entity_header: EntityHeader,
     modified_playlist: Playlist,
 ) -> Result<Entity> {
-    let entity = update_entity(entity_header, modified_playlist)?;
+    let updated_entity = update_entity(entity_header, modified_playlist)?;
     let updated_at = DateTime::now_utc();
     let repo = RepoConnection::new(connection);
-    repo.update_playlist_entity_revision(updated_at, &entity)?;
-    Ok(entity)
+    repo.update_playlist_entity_revision(updated_at, &updated_entity)?;
+    Ok(updated_entity)
 }

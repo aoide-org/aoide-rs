@@ -25,11 +25,11 @@ pub enum Scope {
 
 pub fn load_one(
     connection: &SqliteConnection,
-    uid: &EntityUid,
+    entity_uid: &EntityUid,
     scope: Scope,
 ) -> Result<(Entity, Option<Summary>)> {
     let repo = RepoConnection::new(connection);
-    let id = repo.resolve_collection_id(uid)?;
+    let id = repo.resolve_collection_id(entity_uid)?;
     let (record_hdr, entity) = repo.load_collection_entity(id)?;
     let summary = match scope {
         Scope::Entity => None,

@@ -15,9 +15,9 @@
 
 use aoide_core::collection::Entity as CollectionEntity;
 
-use crate::web::{receive_response_body, ClientEnvironment};
+use crate::webapi::{receive_response_body, ClientEnvironment};
 
-use super::{Effect, Task};
+use super::{super::Effect, Task};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
@@ -39,8 +39,19 @@ impl Task {
                 }
             }
             Self::CreateEntity { new_collection } => {
-                let result = create_new_entity(env, new_collection).await;
+                let result = create_entity(env, new_collection).await;
                 Effect::CreateEntityFinished(result)
+            }
+            Self::UpdateEntity {
+                entity_header,
+                modified_collection,
+            } => {
+                let result = update_entity(env, &entity_header, modified_collection).await;
+                Effect::UpdateEntityFinished(result)
+            }
+            Self::PurgeEntity { entity_uid } => {
+                let result = purge_entity(env, &entity_uid).await.map(|()| entity_uid);
+                Effect::PurgeEntityFinished(result)
             }
         }
     }
@@ -82,7 +93,7 @@ pub async fn fetch_filtered_entities<E: ClientEnvironment>(
     Ok(entities)
 }
 
-pub async fn create_new_entity<E: ClientEnvironment>(
+pub async fn create_entity<E: ClientEnvironment>(
     env: &E,
     new_collection: impl Into<aoide_core_json::collection::Collection>,
 ) -> anyhow::Result<CollectionEntity> {
@@ -96,4 +107,38 @@ pub async fn create_new_entity<E: ClientEnvironment>(
         .and_then(TryInto::try_into)?;
     log::debug!("Creating new collection entity succeeded: {:?}", entity);
     Ok(entity)
+}
+
+pub async fn update_entity<E: ClientEnvironment>(
+    env: &E,
+    entity_header: &aoide_core::entity::EntityHeader,
+    modified_collection: impl Into<aoide_core_json::collection::Collection>,
+) -> anyhow::Result<CollectionEntity> {
+    let url = env.join_api_url(&format!(
+        "c/{}?rev={}",
+        entity_header.uid, entity_header.rev
+    ))?;
+    let body = serde_json::to_vec(&modified_collection.into())?;
+    let request = env.client().put(url).body(body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    let entity = serde_json::from_slice::<aoide_core_json::collection::Entity>(&response_body)
+        .map_err(anyhow::Error::from)
+        .and_then(TryInto::try_into)?;
+    log::debug!(
+        "Updating modified collection entity succeeded: {:?}",
+        entity
+    );
+    Ok(entity)
+}
+
+pub async fn purge_entity<E: ClientEnvironment>(
+    env: &E,
+    entity_uid: &aoide_core::entity::EntityUid,
+) -> anyhow::Result<()> {
+    let url = env.join_api_url(&format!("c/{}", entity_uid))?;
+    let request = env.client().delete(url);
+    let _response = request.send().await?;
+    log::debug!("Purging collection entity succeeded: {:?}", entity_uid);
+    Ok(())
 }

@@ -37,8 +37,8 @@ pub fn validate_input(collection: Collection) -> InputResult<ValidatedInput> {
     Ok(ValidatedInput(collection))
 }
 
-pub fn create_entity(collection: Collection) -> Result<Entity> {
-    let ValidatedInput(collection) = validate_input(collection)?;
+pub fn create_entity(new_collection: Collection) -> Result<Entity> {
+    let ValidatedInput(collection) = validate_input(new_collection)?;
     let header = EntityHeader::initial_random();
     let entity = Entity::new(header, collection);
     Ok(entity)
@@ -50,8 +50,8 @@ pub fn store_created_entity(repo: &impl EntityRepo, entity: &Entity) -> Result<(
     Ok(())
 }
 
-pub fn update_entity(hdr: EntityHeader, collection: Collection) -> Result<Entity> {
-    let ValidatedInput(collection) = validate_input(collection)?;
+pub fn update_entity(hdr: EntityHeader, modified_collection: Collection) -> Result<Entity> {
+    let ValidatedInput(collection) = validate_input(modified_collection)?;
     let next_hdr = hdr
         .next_rev()
         .ok_or_else(|| anyhow::anyhow!("no next revision"))?;

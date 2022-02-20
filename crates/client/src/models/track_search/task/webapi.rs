@@ -16,9 +16,12 @@
 use aoide_core::entity::EntityUid;
 use aoide_core_api_json::track::search::client_request_params;
 
-use crate::web::{receive_response_body, ClientEnvironment};
+use crate::webapi::{receive_response_body, ClientEnvironment};
 
-use super::{Effect, FetchResultPageRequest, FetchResultPageResponse, Task};
+use super::{
+    super::{Effect, FetchResultPageRequest, FetchResultPageResponse},
+    Task,
+};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {

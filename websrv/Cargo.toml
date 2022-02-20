@@ -51,7 +51,7 @@ aoide-core = "*"
 aoide-repo-sqlite = "*"
 aoide-storage-sqlite = { version = "*", features = [
     "with-serde",
-    "with-tokio",
+    "with-tokio-runtime",
 ] }
 aoide-usecases = "*"
 aoide-usecases-sqlite = "*"

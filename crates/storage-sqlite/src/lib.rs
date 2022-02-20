@@ -46,11 +46,11 @@ pub enum Error {
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 
-    #[cfg(feature = "with-tokio")]
+    #[cfg(feature = "with-tokio-runtime")]
     #[error("timeout: {reason}")]
     TaskTimeout { reason: String },
 
-    #[cfg(feature = "with-tokio")]
+    #[cfg(feature = "with-tokio-runtime")]
     #[error(transparent)]
     TaskScheduling(#[from] ::tokio::task::JoinError),
 }

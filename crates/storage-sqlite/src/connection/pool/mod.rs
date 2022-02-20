@@ -28,7 +28,7 @@ pub type ConnectionPool = r2d2::Pool<ConnectionManager>;
 
 pub type PooledConnection = r2d2::PooledConnection<ConnectionManager>;
 
-#[cfg(feature = "with-tokio")]
+#[cfg(feature = "with-tokio-runtime")]
 pub mod gatekeeper;
 
 pub fn create_connection_pool(connection: &str, max_size: NonZeroU32) -> Result<ConnectionPool> {

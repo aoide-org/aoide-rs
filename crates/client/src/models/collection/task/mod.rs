@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::collection::Collection;
+use aoide_core::{
+    collection::Collection,
+    entity::{EntityHeader, EntityUid},
+};
 
 use crate::util::roundtrip::PendingToken;
 
@@ -29,4 +32,14 @@ pub enum Task {
     CreateEntity {
         new_collection: Collection,
     },
+    UpdateEntity {
+        entity_header: EntityHeader,
+        modified_collection: Collection,
+    },
+    PurgeEntity {
+        entity_uid: EntityUid,
+    },
 }
+
+#[cfg(feature = "with-webapi-backend")]
+mod webapi;

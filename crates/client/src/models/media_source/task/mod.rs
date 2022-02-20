@@ -19,32 +19,17 @@ use crate::util::roundtrip::PendingToken;
 
 #[derive(Debug)]
 pub enum Task {
-    FetchProgress {
-        token: PendingToken,
-    },
-    FetchStatus {
+    PurgeOrphaned {
         token: PendingToken,
         collection_uid: EntityUid,
-        params: aoide_core_api::media::tracker::query_status::Params,
+        params: aoide_core_api::media::source::purge_orphaned::Params,
     },
-    StartScanDirectories {
+    PurgeUntracked {
         token: PendingToken,
         collection_uid: EntityUid,
-        params: aoide_core_api::media::tracker::scan_directories::Params,
-    },
-    StartImportFiles {
-        token: PendingToken,
-        collection_uid: EntityUid,
-        params: aoide_core_api::media::tracker::import_files::Params,
-    },
-    StartFindUntrackedFiles {
-        token: PendingToken,
-        collection_uid: EntityUid,
-        params: aoide_core_api::media::tracker::find_untracked_files::Params,
-    },
-    UntrackDirectories {
-        token: PendingToken,
-        collection_uid: EntityUid,
-        params: aoide_core_api::media::tracker::untrack_directories::Params,
+        params: aoide_core_api::media::source::purge_untracked::Params,
     },
 }
+
+#[cfg(feature = "with-webapi-backend")]
+mod webapi;

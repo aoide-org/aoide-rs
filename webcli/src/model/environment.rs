@@ -19,7 +19,7 @@ use reqwest::{Client, Url};
 
 use aoide_client::{
     messaging::{send_message, TaskDispatcher},
-    web::ClientEnvironment,
+    webapi::ClientEnvironment,
 };
 
 use super::{Effect, Intent, Message, MessageSender, Task};

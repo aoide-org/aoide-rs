@@ -19,10 +19,10 @@ use super::*;
 
 pub fn load_entity_with_entries(
     connection: &SqliteConnection,
-    uid: &EntityUid,
+    entity_uid: &EntityUid,
 ) -> Result<EntityWithEntries> {
     let repo = RepoConnection::new(connection);
-    let id = repo.resolve_playlist_id(uid)?;
+    let id = repo.resolve_playlist_id(entity_uid)?;
     repo.load_playlist_entity_with_entries(id)
         .map_err(Into::into)
 }

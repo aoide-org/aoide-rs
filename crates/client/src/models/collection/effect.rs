@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::collection::Entity as CollectionEntity;
+use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
 
 use crate::util::roundtrip::PendingToken;
 
@@ -31,6 +31,8 @@ pub enum Effect {
         result: anyhow::Result<Vec<CollectionEntity>>,
     },
     CreateEntityFinished(anyhow::Result<CollectionEntity>),
+    UpdateEntityFinished(anyhow::Result<CollectionEntity>),
+    PurgeEntityFinished(anyhow::Result<EntityUid>),
     ErrorOccurred(anyhow::Error),
 }
 
@@ -84,7 +86,29 @@ impl Effect {
             },
             Self::CreateEntityFinished(res) => match res {
                 Ok(entity) => {
-                    let next_action = state.after_entity_created(entity);
+                    let next_action = state.after_entity_created_or_updated(entity);
+                    if next_action.is_some() {
+                        StateUpdated::maybe_changed(next_action)
+                    } else {
+                        StateUpdated::unchanged(next_action)
+                    }
+                }
+                Err(err) => StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
+            },
+            Self::UpdateEntityFinished(res) => match res {
+                Ok(entity) => {
+                    let next_action = state.after_entity_created_or_updated(entity);
+                    if next_action.is_some() {
+                        StateUpdated::maybe_changed(next_action)
+                    } else {
+                        StateUpdated::unchanged(next_action)
+                    }
+                }
+                Err(err) => StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
+            },
+            Self::PurgeEntityFinished(res) => match res {
+                Ok(entity_uid) => {
+                    let next_action = state.after_entity_purged(&entity_uid);
                     if next_action.is_some() {
                         StateUpdated::maybe_changed(next_action)
                     } else {

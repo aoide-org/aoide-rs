@@ -37,8 +37,8 @@ pub fn validate_input(playlist: Playlist) -> InputResult<ValidatedInput> {
     Ok(ValidatedInput(playlist))
 }
 
-pub fn create_entity(playlist: Playlist) -> Result<Entity> {
-    let ValidatedInput(playlist) = validate_input(playlist)?;
+pub fn create_entity(new_playlist: Playlist) -> Result<Entity> {
+    let ValidatedInput(playlist) = validate_input(new_playlist)?;
     let header = EntityHeader::initial_random();
     let entity = Entity::new(header, playlist);
     Ok(entity)
@@ -58,8 +58,8 @@ where
     Ok(())
 }
 
-pub fn update_entity(hdr: EntityHeader, playlist: Playlist) -> Result<Entity> {
-    let ValidatedInput(playlist) = validate_input(playlist)?;
+pub fn update_entity(hdr: EntityHeader, modified_playlist: Playlist) -> Result<Entity> {
+    let ValidatedInput(playlist) = validate_input(modified_playlist)?;
     let next_hdr = hdr
         .next_rev()
         .ok_or_else(|| anyhow::anyhow!("no next revision"))?;

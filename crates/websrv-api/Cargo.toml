@@ -18,5 +18,5 @@ warp = { version = "0.3.2", default-features = false }
 # Workspace dependencies
 aoide-repo = "*"
 aoide-storage-sqlite = "*"
-aoide-usecases-sqlite = { version = "*", features = ["with-tokio"] }
+aoide-usecases-sqlite = { version = "*", features = ["with-tokio-runtime"] }
 aoide-usecases-sqlite-json = "*"

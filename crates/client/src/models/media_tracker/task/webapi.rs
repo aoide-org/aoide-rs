@@ -15,9 +15,9 @@
 
 use aoide_core::entity::EntityUid;
 
-use crate::web::{receive_response_body, ClientEnvironment};
+use crate::webapi::{receive_response_body, ClientEnvironment};
 
-use super::{Effect, Task};
+use super::{super::Effect, Task};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
