@@ -30,6 +30,7 @@ use aoide_core::{
     util::clock::*,
 };
 
+use aoide_core_api::playlist::EntityWithEntriesSummary;
 use aoide_repo::{collection::RecordId as CollectionId, playlist::*, track::EntityRepo as _};
 use diesel::dsl::count_star;
 
@@ -148,7 +149,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<
             Header = RecordHeader,
-            Record = (Entity, EntriesSummary),
+            Record = EntityWithEntriesSummary,
         >,
     ) -> RepoResult<()> {
         let mut target = playlist::table
@@ -175,7 +176,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             let (record_header, _collection_id, entity) = record.into();
             debug_assert_eq!(collection_id, _collection_id);
             let entries = self.load_playlist_entries_summary(record_header.id)?;
-            collector.collect(record_header, (entity, entries));
+            collector.collect(record_header, EntityWithEntriesSummary { entity, entries });
         }
         Ok(())
     }

@@ -16,6 +16,7 @@
 use super::*;
 
 use aoide_core::util::clock::DateTime;
+use aoide_core_api::playlist::EntityWithEntriesSummary;
 
 use std::ops::Range;
 
@@ -36,7 +37,7 @@ pub fn patch(
     connection: &SqliteConnection,
     entity_header: &EntityHeader,
     operations: impl IntoIterator<Item = PatchOperation>,
-) -> Result<(RecordHeader, EntityHeader, PlaylistWithEntriesSummary)> {
+) -> Result<(RecordHeader, EntityWithEntriesSummary)> {
     let updated_at = DateTime::now_utc();
     let repo = RepoConnection::new(connection);
     let (record_header, _next_rev) =
@@ -91,13 +92,9 @@ pub fn patch(
             }
         }
     }
-    let (record_header, entity, entries_summary) =
+    let (record_header, entity, entries) =
         repo.load_playlist_entity_with_entries_summary(record_header.id)?;
     debug_assert_eq!(_next_rev, entity.hdr.rev);
-    let (entity_hdr, playlist) = entity.into();
-    let playlist_with_entries_summary = PlaylistWithEntriesSummary {
-        playlist,
-        entries: entries_summary,
-    };
-    Ok((record_header, entity_hdr, playlist_with_entries_summary))
+    let entity_with_entries_summary = EntityWithEntriesSummary { entity, entries };
+    Ok((record_header, entity_with_entries_summary))
 }

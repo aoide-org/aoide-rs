@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::playlist::PlaylistWithEntriesSummary;
-
+use aoide_core_api_json::playlist::{export_entity_with_entries_summary, EntityWithEntriesSummary};
 use aoide_usecases_sqlite::playlist::entries as uc;
 
 use aoide_core_json::entity::EntityUid as SerdeEntityUid;
@@ -117,8 +116,7 @@ pub fn handle_request(
             )
             .map_err(Into::into)
         })
-        .map(|(_, entity_hdr, playlist_with_entries_summary)| {
-            let PlaylistWithEntriesSummary { playlist, entries } = playlist_with_entries_summary;
-            (_core::Entity::new(entity_hdr, playlist), entries).into()
+        .map(|(_, entity_with_entries_summary)| {
+            export_entity_with_entries_summary(entity_with_entries_summary)
         })
 }

@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core_api::playlist::EntityWithEntriesSummary;
 use aoide_repo::collection::EntityRepo as _;
 
 use super::*;
@@ -34,7 +35,7 @@ pub fn load_entities_with_entries_summary(
     pagination: Option<&Pagination>,
     collector: &mut impl ReservableRecordCollector<
         Header = RecordHeader,
-        Record = (Entity, EntriesSummary),
+        Record = EntityWithEntriesSummary,
     >,
 ) -> Result<()> {
     let repo = RepoConnection::new(connection);

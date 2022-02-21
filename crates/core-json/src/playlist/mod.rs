@@ -285,6 +285,21 @@ impl From<_core::EntriesSummary> for EntriesSummary {
     }
 }
 
+impl From<EntriesSummary> for _core::EntriesSummary {
+    fn from(from: EntriesSummary) -> Self {
+        let EntriesSummary {
+            total_count,
+            added_at_minmax,
+            tracks,
+        } = from;
+        Self {
+            total_count,
+            added_at_minmax: added_at_minmax.map(|(min, max)| (min.into(), max.into())),
+            tracks: tracks.into(),
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // TracksSummary
 ///////////////////////////////////////////////////////////////////////
@@ -300,6 +315,13 @@ pub struct TracksSummary {
 impl From<_core::TracksSummary> for TracksSummary {
     fn from(from: _core::TracksSummary) -> Self {
         let _core::TracksSummary { total_count } = from;
+        Self { total_count }
+    }
+}
+
+impl From<TracksSummary> for _core::TracksSummary {
+    fn from(from: TracksSummary) -> Self {
+        let TracksSummary { total_count } = from;
         Self { total_count }
     }
 }
@@ -326,19 +348,6 @@ impl From<_core::PlaylistWithEntriesSummary> for PlaylistWithEntriesSummary {
             playlist: playlist.into(),
             entries: entries.into(),
         }
-    }
-}
-
-pub type EntityWithEntriesSummary = crate::entity::Entity<PlaylistWithEntriesSummary>;
-
-impl From<(_core::Entity, _core::EntriesSummary)> for EntityWithEntriesSummary {
-    fn from(from: (_core::Entity, _core::EntriesSummary)) -> Self {
-        let (entity, entries) = from;
-        let body = PlaylistWithEntriesSummary {
-            playlist: entity.body.into(),
-            entries: entries.into(),
-        };
-        Self(entity.hdr.into(), body)
     }
 }
 

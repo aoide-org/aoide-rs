@@ -29,7 +29,7 @@ pub struct PurgeByMediaContentPathPredicatesSummary {
 pub fn purge_by_media_source_content_path_predicates<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    path_predicates: Vec<StringPredicate>,
+    path_predicates: impl IntoIterator<Item = StringPredicate>,
 ) -> RepoResult<PurgeByMediaContentPathPredicatesSummary>
 where
     Repo: CollectionRepo + MediaSourceCollectionRepo,

@@ -16,7 +16,7 @@
 use diesel::Connection as _;
 
 use aoide_core::{entity::EntityUid, track::Entity};
-use aoide_core_api::Pagination;
+use aoide_core_api::{track::find_unsynchronized::UnsynchronizedTrackEntity, Pagination};
 use aoide_repo::{
     prelude::{RecordCollector, ReservableRecordCollector},
     track::RecordHeader,
@@ -65,13 +65,62 @@ impl ReservableRecordCollector for EntityCollector {
     }
 }
 
+pub async fn load_one(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<Entity> {
+    db_gatekeeper
+        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
+            let connection = &*pooled_connection;
+            connection.transaction::<_, Error, _>(|| {
+                aoide_usecases_sqlite::track::load::load_one(&*pooled_connection, &entity_uid)
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
+pub async fn load_many_collecting<I, C>(
+    db_gatekeeper: &Gatekeeper,
+    entity_uids: I,
+    collector: C,
+) -> Result<C>
+where
+    I: IntoIterator<Item = EntityUid> + Send + 'static,
+    C: ReservableRecordCollector<Header = RecordHeader, Record = Entity> + Send + 'static,
+{
+    db_gatekeeper
+        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
+            let connection = &*pooled_connection;
+            connection.transaction::<_, Error, _>(|| {
+                let mut collector = collector;
+                aoide_usecases_sqlite::track::load::load_many(
+                    &*pooled_connection,
+                    entity_uids,
+                    &mut collector,
+                )?;
+                Ok(collector)
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
+pub async fn load_many<I>(db_gatekeeper: &Gatekeeper, entity_uids: I) -> Result<Vec<Entity>>
+where
+    I: IntoIterator<Item = EntityUid> + Send + 'static,
+{
+    load_many_collecting(db_gatekeeper, entity_uids, EntityCollector::new(Vec::new()))
+        .await
+        .map(EntityCollector::finish)
+}
+
 pub async fn search(
     db_gatekeeper: &Gatekeeper,
     collection_uid: EntityUid,
     params: aoide_core_api::track::search::Params,
     pagination: Pagination,
 ) -> Result<Vec<Entity>> {
-    search_with_collector(
+    search_collecting(
         db_gatekeeper,
         collection_uid,
         params,
@@ -82,7 +131,7 @@ pub async fn search(
     .map(EntityCollector::finish)
 }
 
-pub async fn search_with_collector<C>(
+pub async fn search_collecting<C>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: EntityUid,
     params: aoide_core_api::track::search::Params,
@@ -105,6 +154,29 @@ where
                     &mut collector,
                 )?;
                 Ok(collector)
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
+pub async fn find_unsynchronized(
+    db_gatekeeper: &Gatekeeper,
+    collection_uid: EntityUid,
+    params: aoide_core_api::track::find_unsynchronized::Params,
+    pagination: Pagination,
+) -> Result<Vec<UnsynchronizedTrackEntity>> {
+    db_gatekeeper
+        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
+            let connection = &*pooled_connection;
+            connection.transaction::<_, Error, _>(|| {
+                aoide_usecases_sqlite::track::find_unsynchronized::find_unsynchronized(
+                    &*pooled_connection,
+                    &collection_uid,
+                    params,
+                    &pagination,
+                )
             })
         })
         .await

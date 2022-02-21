@@ -50,7 +50,7 @@ pub async fn load_all(
     scope: LoadScope,
     pagination: Option<Pagination>,
 ) -> Result<Vec<EntityWithSummary>> {
-    load_all_with_collector(
+    load_all_collecting(
         db_gatekeeper,
         kind,
         scope,
@@ -61,7 +61,7 @@ pub async fn load_all(
     .map(EntityWithSummaryCollector::finish)
 }
 
-pub async fn load_all_with_collector<C>(
+pub async fn load_all_collecting<C>(
     db_gatekeeper: &Gatekeeper,
     kind: Option<String>,
     scope: LoadScope,

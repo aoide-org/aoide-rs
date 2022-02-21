@@ -332,7 +332,6 @@ impl PlaylistWithEntries {
 pub struct PlaylistWithEntriesSummary {
     pub playlist: Playlist,
 
-    /// Ordered list of playlist entries.
     pub entries: EntriesSummary,
 }
 

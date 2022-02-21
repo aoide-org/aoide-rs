@@ -56,7 +56,7 @@ pub trait CollectionRepo {
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<
             Header = RecordHeader,
-            Record = (Entity, EntriesSummary),
+            Record = EntityWithEntriesSummary,
         >,
     ) -> RepoResult<()>;
 }
@@ -228,11 +228,11 @@ impl EntityWithEntriesSummaryCollector {
 
 impl RecordCollector for EntityWithEntriesSummaryCollector {
     type Header = RecordHeader;
-    type Record = (Entity, EntriesSummary);
+    type Record = EntityWithEntriesSummary;
 
-    fn collect(&mut self, _header: RecordHeader, (entity, entries): (Entity, EntriesSummary)) {
+    fn collect(&mut self, _header: RecordHeader, record: EntityWithEntriesSummary) {
         let Self(inner) = self;
-        inner.push(EntityWithEntriesSummary { entity, entries });
+        inner.push(record);
     }
 }
 

@@ -15,26 +15,19 @@
 
 use aoide_core::entity::EntityUid;
 
+use aoide_core_api_json::playlist::{export_entity_with_entries_summary, EntityWithEntriesSummary};
 use aoide_repo::{
     playlist::RecordHeader,
     prelude::{RecordCollector, ReservableRecordCollector},
 };
 
-use aoide_core_json::{
-    entity::Entity as GenericEntity,
-    playlist::{
-        Entity, EntityWithEntriesSummary, EntriesSummary, Entry, Playlist,
-        PlaylistWithEntriesSummary,
-    },
-};
+use aoide_core_json::playlist::{Entity, Entry, Playlist};
 
 use super::*;
 
 mod _core {
-    pub use aoide_core::{
-        entity::EntityHeader,
-        playlist::{Entity, EntriesSummary},
-    };
+    pub use aoide_core::{entity::EntityHeader, playlist::Entity};
+    pub use aoide_core_api::playlist::EntityWithEntriesSummary;
 }
 
 pub mod create;
@@ -53,33 +46,19 @@ impl EntityWithEntriesSummaryCollector {
     }
 
     #[must_use]
-    pub fn with_capacity(capacity: usize) -> Self {
-        let inner = Vec::with_capacity(capacity);
-        Self(inner)
-    }
-}
-
-impl From<EntityWithEntriesSummaryCollector> for Vec<EntityWithEntriesSummary> {
-    fn from(from: EntityWithEntriesSummaryCollector) -> Self {
-        let EntityWithEntriesSummaryCollector(inner) = from;
+    pub fn finish(self) -> Vec<EntityWithEntriesSummary> {
+        let Self(inner) = self;
         inner
     }
 }
 
 impl RecordCollector for EntityWithEntriesSummaryCollector {
     type Header = RecordHeader;
-    type Record = (_core::Entity, _core::EntriesSummary);
+    type Record = _core::EntityWithEntriesSummary;
 
-    fn collect(
-        &mut self,
-        _header: RecordHeader,
-        (entity, entries): (_core::Entity, _core::EntriesSummary),
-    ) {
+    fn collect(&mut self, _header: RecordHeader, record: _core::EntityWithEntriesSummary) {
         let Self(inner) = self;
-        inner.push(merge_entity_with_entries_summary(
-            entity.into(),
-            entries.into(),
-        ));
+        inner.push(export_entity_with_entries_summary(record));
     }
 }
 
@@ -88,16 +67,4 @@ impl ReservableRecordCollector for EntityWithEntriesSummaryCollector {
         let Self(inner) = self;
         inner.reserve(additional);
     }
-}
-
-fn merge_entity_with_entries_summary(
-    entity: Entity,
-    entries: EntriesSummary,
-) -> EntityWithEntriesSummary {
-    let GenericEntity(hdr, body) = entity;
-    let body = PlaylistWithEntriesSummary {
-        playlist: body,
-        entries,
-    };
-    GenericEntity(hdr, body)
 }
