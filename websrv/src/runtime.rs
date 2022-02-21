@@ -43,10 +43,7 @@ use aoide_websrv_api::handle_rejection;
 
 use crate::config::DatabaseConfig;
 
-use super::{
-    config::{Config, DatabaseConnection},
-    routing,
-};
+use super::{config::Config, routing};
 
 const WEB_SERVER_LISTENING_DELAY: Duration = Duration::from_millis(250);
 
@@ -72,17 +69,12 @@ pub enum Command {
 fn commission_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnectionGatekeeper> {
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
+    let pool_max_size = config.connection.pool.max_size;
     log::info!(
-        "Creating SQLite connection pool of size {}",
-        config.connection_pool.max_size
+        "Creating SQLite connection pool of max. size {}",
+        pool_max_size
     );
-    let sqlite_database_connection = match &config.connection {
-        DatabaseConnection::Sqlite(sqlite_connection) => sqlite_connection.as_ref(),
-    };
-    let connection_pool = create_connection_pool(
-        sqlite_database_connection,
-        config.connection_pool.max_size.into(),
-    )?;
+    let connection_pool = create_connection_pool(&config.connection.storage, pool_max_size)?;
 
     log::info!("Initializing database");
     initialize_database(&*get_pooled_connection(&connection_pool)?)?;
@@ -93,7 +85,7 @@ fn commission_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnec
 
     Ok(DatabaseConnectionGatekeeper::new(
         connection_pool,
-        config.connection_gatekeeper,
+        config.connection.pool.gatekeeper,
     ))
 }
 

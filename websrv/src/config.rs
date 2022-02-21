@@ -15,7 +15,7 @@
 
 use std::{
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
-    num::{NonZeroU64, NonZeroU8},
+    num::{NonZeroU32, NonZeroU64},
     time::Duration,
 };
 
@@ -26,7 +26,7 @@ use aoide_storage_sqlite::connection::{
         gatekeeper::Config as DatabaseConnectionGatekeeperConfig,
         Config as DatabaseConnectionPoolConfig,
     },
-    Config as SqliteDatabaseConnection,
+    Config as DatabaseConnectionConfig, Storage,
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -77,19 +77,12 @@ impl Default for EndpointConfig {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DatabaseConnection {
-    Sqlite(SqliteDatabaseConnection),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DatabaseConfig {
-    pub connection: DatabaseConnection,
-    pub connection_pool: DatabaseConnectionPoolConfig,
-    pub connection_gatekeeper: DatabaseConnectionGatekeeperConfig,
+    pub connection: DatabaseConnectionConfig,
     pub migrate_schema_on_startup: bool,
 }
 
-pub const DEFAULT_DATABASE_CONNECTION_POOL_SIZE: u8 = 8;
+pub const DEFAULT_DATABASE_CONNECTION_POOL_SIZE: u32 = 8;
 
 pub const DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_READ: Duration = Duration::from_secs(10);
 
@@ -104,18 +97,20 @@ fn non_zero_duration_as_millis(duration: Duration) -> NonZeroU64 {
 impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
-            connection: DatabaseConnection::Sqlite(SqliteDatabaseConnection::InMemory),
-            connection_pool: DatabaseConnectionPoolConfig {
-                max_size: NonZeroU8::new(DEFAULT_DATABASE_CONNECTION_POOL_SIZE)
-                    .expect("non-zero size"),
-            },
-            connection_gatekeeper: DatabaseConnectionGatekeeperConfig {
-                acquire_read_timeout_millis: non_zero_duration_as_millis(
-                    DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_READ,
-                ),
-                acquire_write_timeout_millis: non_zero_duration_as_millis(
-                    DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_WRITE,
-                ),
+            connection: DatabaseConnectionConfig {
+                storage: Storage::InMemory,
+                pool: DatabaseConnectionPoolConfig {
+                    max_size: NonZeroU32::new(DEFAULT_DATABASE_CONNECTION_POOL_SIZE)
+                        .expect("non-zero size"),
+                    gatekeeper: DatabaseConnectionGatekeeperConfig {
+                        acquire_read_timeout_millis: non_zero_duration_as_millis(
+                            DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_READ,
+                        ),
+                        acquire_write_timeout_millis: non_zero_duration_as_millis(
+                            DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_WRITE,
+                        ),
+                    },
+                },
             },
             migrate_schema_on_startup: true,
         }

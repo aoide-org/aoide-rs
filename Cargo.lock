@@ -80,11 +80,13 @@ dependencies = [
  "aoide-core-api",
  "aoide-media",
  "aoide-repo",
+ "aoide-repo-sqlite",
  "aoide-storage-sqlite",
  "aoide-usecases",
  "aoide-usecases-sqlite",
  "diesel",
  "log",
+ "serde",
  "thiserror",
 ]
 

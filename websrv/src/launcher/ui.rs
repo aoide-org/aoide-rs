@@ -29,7 +29,7 @@ use egui::{Button, CentralPanel, TextEdit, TopBottomPanel};
 use parking_lot::Mutex;
 use rfd::FileDialog;
 
-use aoide_storage_sqlite::connection::{Config as SqliteDatabaseConnection, IN_MEMORY_CONNECTION};
+use aoide_storage_sqlite::connection::Storage as SqliteDatabaseStorage;
 
 use crate::{
     app_dirs, app_name, join_runtime_thread, launcher::State as LauncherState,
@@ -89,26 +89,23 @@ impl TryFrom<EndpointConfig> for crate::config::EndpointConfig {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct DatabaseConfig {
-    sqlite_connection: String,
+    sqlite_storage: String,
 }
 
 impl From<crate::config::DatabaseConfig> for DatabaseConfig {
     fn from(from: crate::config::DatabaseConfig) -> Self {
-        let crate::config::DatabaseConfig { connection, .. } = from;
-        let sqlite_connection = match connection {
-            crate::config::DatabaseConnection::Sqlite(sqlite) => sqlite.to_string(),
-        };
-        Self { sqlite_connection }
+        let sqlite_storage = from.connection.storage.to_string();
+        Self { sqlite_storage }
     }
 }
 
-impl TryFrom<DatabaseConfig> for crate::config::DatabaseConnection {
+impl TryFrom<DatabaseConfig> for SqliteDatabaseStorage {
     type Error = anyhow::Error;
 
     fn try_from(from: DatabaseConfig) -> anyhow::Result<Self> {
-        let DatabaseConfig { sqlite_connection } = from;
-        let sqlite_connection = sqlite_connection.parse()?;
-        Ok(Self::Sqlite(sqlite_connection))
+        let DatabaseConfig { sqlite_storage } = from;
+        let sqlite_storage = sqlite_storage.parse()?;
+        Ok(sqlite_storage)
     }
 }
 
@@ -200,8 +197,10 @@ impl App {
         ui.with_layout(egui::Layout::left_to_right(), |ui| {
             ui.add_enabled(
                 editing_enabled,
-                TextEdit::singleline(&mut self.config.database.sqlite_connection)
-                    .hint_text(format!(".sqlite file or {}", IN_MEMORY_CONNECTION)),
+                TextEdit::singleline(&mut self.config.database.sqlite_storage).hint_text(format!(
+                    ".sqlite file or {}",
+                    SqliteDatabaseStorage::InMemory
+                )),
             );
             if ui
                 .add_enabled(editing_enabled, Button::new("Select..."))
@@ -211,8 +210,8 @@ impl App {
                     .set_title("Select SQLite database file")
                     .add_filter("SQLite files", &["sqlite"])
                     .add_filter("All files", &["*"]);
-                if let Ok(SqliteDatabaseConnection::File { path: file_path }) =
-                    self.config.database.sqlite_connection.parse()
+                if let Ok(SqliteDatabaseStorage::File { path: file_path }) =
+                    self.config.database.sqlite_storage.parse()
                 {
                     if is_existing_file(&file_path) {
                         if let Some(file_name) = file_path.file_name().and_then(OsStr::to_str) {
@@ -226,7 +225,7 @@ impl App {
                     }
                 }
                 if let Some(file_name) = file_dialog.pick_file() {
-                    self.config.database.sqlite_connection = file_name.display().to_string();
+                    self.config.database.sqlite_storage = file_name.display().to_string();
                 }
             }
         });
@@ -288,8 +287,8 @@ impl App {
         if let Ok(network_config) = network_config.try_into() {
             next_config.network = network_config;
         }
-        if let Ok(database_connection) = database_config.try_into() {
-            next_config.database.connection = database_connection;
+        if let Ok(storage) = database_config.try_into() {
+            next_config.database.connection.storage = storage;
         }
         let mut launcher = self.launcher.lock();
         *self.last_error.lock() = None;

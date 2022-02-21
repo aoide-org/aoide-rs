@@ -16,7 +16,7 @@
 use std::{
     env::{self, VarError},
     net::IpAddr,
-    num::NonZeroU8,
+    num::NonZeroU32,
     str::ParseBoolError,
 };
 
@@ -26,9 +26,9 @@ use tracing_log::LogTracer;
 use tracing_subscriber::EnvFilter;
 use url::Url;
 
-use aoide_storage_sqlite::connection::{Config as SqliteDatabaseConnection, IN_MEMORY_CONNECTION};
+use aoide_storage_sqlite::connection::{Storage as SqliteDatabaseStorage, IN_MEMORY_STORAGE};
 
-use crate::config::{Config, DatabaseConnection};
+use crate::config::Config;
 
 pub fn init_environment() {
     if let Ok(path) = dotenv() {
@@ -136,7 +136,7 @@ fn parse_endpoint_port() -> Option<u16> {
 
 const DATABASE_URL_ENV: &str = "DATABASE_URL";
 
-fn parse_sqlite_database_connection() -> Option<SqliteDatabaseConnection> {
+fn parse_sqlite_database_storage() -> Option<SqliteDatabaseStorage> {
     read_optional_var(DATABASE_URL_ENV)
         .map_err(|err| err.to_string())
         .and_then(|var| {
@@ -144,7 +144,7 @@ fn parse_sqlite_database_connection() -> Option<SqliteDatabaseConnection> {
                 log::debug!("{} = {}", DATABASE_URL_ENV, var);
                 match var.trim() {
                     "" => Ok(None),
-                    IN_MEMORY_CONNECTION => Ok(Some(SqliteDatabaseConnection::InMemory)),
+                    IN_MEMORY_STORAGE => Ok(Some(SqliteDatabaseStorage::InMemory)),
                     trimmed => trimmed
                         .parse::<Url>()
                         .map_err(|err| err.to_string())
@@ -158,7 +158,7 @@ fn parse_sqlite_database_connection() -> Option<SqliteDatabaseConnection> {
                                 DATABASE_URL_ENV, var, err,
                             )
                         })
-                        .map(|path| Some(SqliteDatabaseConnection::File { path })),
+                        .map(|path| Some(SqliteDatabaseStorage::File { path })),
                 }
             })
             .transpose()
@@ -173,7 +173,7 @@ fn parse_sqlite_database_connection() -> Option<SqliteDatabaseConnection> {
 
 const DATABASE_CONNECTION_POOL_SIZE_ENV: &str = "DATABASE_CONNECTION_POOL_SIZE";
 
-fn parse_database_connection_pool_size() -> Option<NonZeroU8> {
+fn parse_database_connection_pool_size() -> Option<NonZeroU32> {
     read_optional_var(DATABASE_CONNECTION_POOL_SIZE_ENV)
         .map_err(|err| err.to_string())
         .and_then(|var| {
@@ -245,11 +245,11 @@ pub fn parse_config_into(config: &mut Config) {
     if let Some(port) = parse_endpoint_port() {
         config.network.endpoint.port = port;
     }
-    if let Some(sqlite_connection) = parse_sqlite_database_connection() {
-        config.database.connection = DatabaseConnection::Sqlite(sqlite_connection);
+    if let Some(storage) = parse_sqlite_database_storage() {
+        config.database.connection.storage = storage;
     }
     if let Some(connection_pool_size) = parse_database_connection_pool_size() {
-        config.database.connection_pool.max_size = connection_pool_size;
+        config.database.connection.pool.max_size = connection_pool_size;
     }
     if let Some(migrate_schema_on_startup) = parse_database_migrate_schema_on_startup() {
         config.database.migrate_schema_on_startup = migrate_schema_on_startup;

@@ -32,6 +32,7 @@ use thiserror::Error;
 pub mod collection;
 pub mod media;
 pub mod playlist;
+pub mod storage;
 pub mod track;
 
 pub type Error = aoide_usecases_sqlite::Error;
