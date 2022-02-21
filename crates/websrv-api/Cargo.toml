@@ -8,7 +8,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.54"
+anyhow = "1.0.55"
 log = "0.4.14"
 serde = "1.0.136"
 thiserror = "1.0.30"

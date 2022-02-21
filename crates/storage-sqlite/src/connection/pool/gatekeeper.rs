@@ -155,7 +155,11 @@ impl Gatekeeper {
         Ok(())
     }
 
-    pub async fn spawn_blocking_read_task<H, R>(&self, connection_handler: H) -> Result<R>
+    pub async fn spawn_blocking_read_task_with_timeout<H, R>(
+        &self,
+        connection_handler: H,
+        acquire_read_timeout: Duration,
+    ) -> Result<R>
     where
         H: FnOnce(PooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
         R: Send + 'static,
@@ -165,7 +169,7 @@ impl Gatekeeper {
             Arc::clone(&self.request_counter_state),
             RequestCounterMode::Read,
         );
-        let timeout = sleep(self.acquire_read_timeout);
+        let timeout = sleep(acquire_read_timeout);
         tokio::pin!(timeout);
         let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
         tokio::select! {
@@ -183,7 +187,20 @@ impl Gatekeeper {
         }
     }
 
-    pub async fn spawn_blocking_write_task<H, R>(&self, connection_handler: H) -> Result<R>
+    pub async fn spawn_blocking_read_task<H, R>(&self, connection_handler: H) -> Result<R>
+    where
+        H: FnOnce(PooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
+        R: Send + 'static,
+    {
+        self.spawn_blocking_read_task_with_timeout(connection_handler, self.acquire_read_timeout)
+            .await
+    }
+
+    pub async fn spawn_blocking_write_task_with_timeout<H, R>(
+        &self,
+        connection_handler: H,
+        acquire_write_timeout: Duration,
+    ) -> Result<R>
     where
         H: FnOnce(PooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
         R: Send + 'static,
@@ -193,7 +210,7 @@ impl Gatekeeper {
             Arc::clone(&self.request_counter_state),
             RequestCounterMode::Write,
         );
-        let timeout = sleep(self.acquire_write_timeout);
+        let timeout = sleep(acquire_write_timeout);
         tokio::pin!(timeout);
         let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
         tokio::select! {
@@ -209,6 +226,15 @@ impl Gatekeeper {
             },
             else => Err(Error::TaskTimeout {reason: "task got stuck".to_string() } )
         }
+    }
+
+    pub async fn spawn_blocking_write_task<H, R>(&self, connection_handler: H) -> Result<R>
+    where
+        H: FnOnce(PooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
+        R: Send + 'static,
+    {
+        self.spawn_blocking_write_task_with_timeout(connection_handler, self.acquire_write_timeout)
+            .await
     }
 
     pub fn pending_tasks(&self) -> PendingTasks {

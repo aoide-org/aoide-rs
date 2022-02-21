@@ -8,7 +8,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.54"
+anyhow = "1.0.55"
 ctrlc = { version = "3.2.1", features = ["termination"] }
 directories = "4.0.1"
 dotenv = "0.15.0"

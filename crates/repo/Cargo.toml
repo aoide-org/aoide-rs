@@ -7,7 +7,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.54"
+anyhow = "1.0.55"
 num-derive = "0.3.3"
 num-traits = "0.2.14"
 paste = "1.0.6"
