@@ -17,7 +17,9 @@ use std::{sync::atomic::AtomicBool, time::Duration};
 
 use url::Url;
 
-use aoide_core::{entity::EntityUid, util::clock::DateTime};
+use aoide_core::{
+    entity::EntityUid, media::content::resolver::ContentPathResolver as _, util::clock::DateTime,
+};
 
 use aoide_core_api::media::tracker::{
     scan_directories::{Outcome, Summary},
@@ -25,10 +27,7 @@ use aoide_core_api::media::tracker::{
     FsTraversalProgress,
 };
 
-use aoide_media::{
-    fs::{digest, visit},
-    resolver::ContentPathResolver,
-};
+use aoide_media::fs::{digest, visit};
 
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,

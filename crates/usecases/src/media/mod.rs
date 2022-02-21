@@ -16,7 +16,7 @@
 use std::io::BufReader;
 
 use aoide_core::{
-    media::content::{ContentPath, ContentRevision},
+    media::content::{resolver::VirtualFilePathResolver, ContentPath, ContentRevision},
     track::Track,
     util::clock::DateTime,
 };
@@ -29,7 +29,6 @@ use aoide_media::{
         export::{export_track_to_path, ExportTrackConfig},
         import::*,
     },
-    resolver::VirtualFilePathResolver,
     util::guess_mime_from_path,
 };
 

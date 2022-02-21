@@ -13,9 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
-
-use aoide_media::{io::export::ExportTrackConfig, resolver::VirtualFilePathResolver};
+use aoide_core::{entity::EntityUid, media::content::resolver::VirtualFilePathResolver};
+use aoide_media::io::export::ExportTrackConfig;
 use aoide_repo::track::EntityRepo as _;
 
 use super::*;

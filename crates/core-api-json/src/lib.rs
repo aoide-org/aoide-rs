@@ -27,6 +27,9 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
+#[cfg(not(any(feature = "frontend", feature = "backend")))]
+compile_error!("at least one of the features \"frontend\" or \"backend\" must be enabled");
+
 // Common imports
 mod prelude {
     pub use aoide_core_api::{PaginationLimit, PaginationOffset};

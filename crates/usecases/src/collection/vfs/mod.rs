@@ -17,11 +17,12 @@ use std::path::PathBuf;
 
 use aoide_core::{
     entity::EntityUid,
-    media::content::{ContentPath, ContentPathKind},
+    media::content::{
+        resolver::{ContentPathResolver, VirtualFilePathResolver},
+        ContentPath, ContentPathKind,
+    },
     util::url::BaseUrl,
 };
-
-use aoide_media::resolver::{ContentPathResolver, VirtualFilePathResolver};
 
 use aoide_repo::collection::{EntityRepo, RecordId};
 

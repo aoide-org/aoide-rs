@@ -13,16 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::path::PathBuf;
-
-use path_slash::PathBufExt as _;
 use thiserror::Error;
 use url::Url;
 
-use aoide_core::{
-    media::content::{ContentPath, ContentPathKind},
-    util::url::{is_valid_base_url, BaseUrl},
-};
+#[cfg(feature = "with-std-file")]
+use std::path::PathBuf;
+
+#[cfg(feature = "with-std-file")]
+use path_slash::PathBufExt as _;
+
+#[cfg(feature = "with-std-file")]
+use crate::util::url::{is_valid_base_url, BaseUrl};
+
+use super::{ContentPath, ContentPathKind};
 
 #[derive(Error, Debug)]
 pub enum ResolveFromPathError {
@@ -91,6 +94,7 @@ impl ContentPathResolver for FileUrlResolver {
     }
 }
 
+#[cfg(feature = "with-std-file")]
 #[derive(Debug, Clone, Default)]
 pub struct VirtualFilePathResolver {
     root_url: Option<BaseUrl>,
@@ -98,6 +102,7 @@ pub struct VirtualFilePathResolver {
     root_slash_path: Option<String>,
 }
 
+#[cfg(feature = "with-std-file")]
 impl VirtualFilePathResolver {
     #[must_use]
     pub const fn new() -> Self {
@@ -150,6 +155,7 @@ impl VirtualFilePathResolver {
     }
 }
 
+#[cfg(feature = "with-std-file")]
 impl ContentPathResolver for VirtualFilePathResolver {
     fn path_kind(&self) -> ContentPathKind {
         ContentPathKind::VirtualFilePath

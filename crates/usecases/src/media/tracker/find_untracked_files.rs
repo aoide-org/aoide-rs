@@ -15,17 +15,14 @@
 
 use std::{sync::atomic::AtomicBool, time::Duration};
 
-use aoide_core::entity::EntityUid;
+use aoide_core::{entity::EntityUid, media::content::resolver::ContentPathResolver as _};
 
 use aoide_core_api::media::tracker::{
     find_untracked_files::Outcome, Completion, FsTraversalDirectoriesProgress,
     FsTraversalEntriesProgress, FsTraversalParams, FsTraversalProgress,
 };
 
-use aoide_media::{
-    fs::visit::{self, url_from_walkdir_entry},
-    resolver::ContentPathResolver,
-};
+use aoide_media::fs::visit::{self, url_from_walkdir_entry};
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},

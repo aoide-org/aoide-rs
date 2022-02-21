@@ -33,6 +33,8 @@ use crate::{
     prelude::{url::BaseUrl, *},
 };
 
+pub mod resolver;
+
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct ContentPath(String);
 
@@ -260,7 +262,7 @@ impl ContentRevision {
             })
     }
 
-    #[cfg(feature = "with-std-file")]
+    #[cfg(all(feature = "with-std-file", feature = "with-std-system-time"))]
     pub fn try_from_file(file: &std::fs::File) -> std::io::Result<Option<Self>> {
         let file_last_modified = file.metadata()?.modified()?;
         Self::try_from_file_time(file_last_modified)

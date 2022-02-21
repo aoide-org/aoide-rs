@@ -15,8 +15,12 @@
 
 use semval::Validate as _;
 
-use aoide_core::track::*;
-use aoide_media::resolver::{ContentPathResolver as _, FileUrlResolver, VirtualFilePathResolver};
+use aoide_core::{
+    media::content::resolver::{
+        ContentPathResolver as _, FileUrlResolver, VirtualFilePathResolver,
+    },
+    track::*,
+};
 use aoide_repo::track::RecordHeader;
 
 use super::*;

@@ -20,14 +20,18 @@ use std::{
 
 use url::Url;
 
-use aoide_core::{entity::EntityUid, media::content::ContentPath, util::clock::DateTime};
+use aoide_core::{
+    entity::EntityUid,
+    media::content::{
+        resolver::{ContentPathResolver as _, VirtualFilePathResolver},
+        ContentPath,
+    },
+    util::clock::DateTime,
+};
 
 use aoide_core_api::{media::SyncMode, track::replace::Summary};
 
-use aoide_media::{
-    io::import::{ImportTrackConfig, Issues},
-    resolver::{ContentPathResolver, VirtualFilePathResolver},
-};
+use aoide_media::io::import::{ImportTrackConfig, Issues};
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},

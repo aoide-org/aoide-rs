@@ -29,6 +29,7 @@ fn resolve_url_from_url_encoded_roundtrip() -> Result<(), ResolveFromPathError> 
     Ok(())
 }
 
+#[cfg(feature = "with-std-file")]
 #[test]
 fn resolve_url_from_empty_path() {
     let empty_path = ContentPath::default();
@@ -41,6 +42,7 @@ fn resolve_url_from_empty_path() {
         .is_err());
 }
 
+#[cfg(feature = "with-std-file")]
 #[test]
 fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathError> {
     let file_url = Url::parse("file:///Test%20path/next%23*path/file.mp3").unwrap();
@@ -69,6 +71,7 @@ fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathErr
     Ok(())
 }
 
+#[cfg(feature = "with-std-file")]
 #[test]
 fn resolve_url_from_local_directory_path_roundtrip() -> Result<(), ResolveFromPathError> {
     let file_url = Url::parse("file:///Test%20path/next%23*path/").unwrap();
@@ -97,6 +100,7 @@ fn resolve_url_from_local_directory_path_roundtrip() -> Result<(), ResolveFromPa
     Ok(())
 }
 
+#[cfg(feature = "with-std-file")]
 #[test]
 fn resolve_url_from_empty_path_with_root_url() -> Result<(), ResolveFromPathError> {
     let root_url = Url::parse("file:///").unwrap();
@@ -118,6 +122,7 @@ fn resolve_url_from_empty_path_with_root_url() -> Result<(), ResolveFromPathErro
     Ok(())
 }
 
+#[cfg(feature = "with-std-file")]
 #[test]
 fn resolve_url_from_relative_path_without_root_url_fails() -> Result<(), ResolveFromPathError> {
     let slash_path = ContentPath::from("Test path/file.mp3".to_owned());

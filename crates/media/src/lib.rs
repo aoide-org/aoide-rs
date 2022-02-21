@@ -30,7 +30,6 @@
 pub mod fmt;
 pub mod fs;
 pub mod io;
-pub mod resolver;
 pub mod util;
 
 use mime::Mime;
