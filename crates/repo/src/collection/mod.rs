@@ -47,3 +47,36 @@ pub trait EntityRepo {
 
     fn load_all_kinds(&self) -> RepoResult<Vec<String>>;
 }
+
+#[derive(Debug, Default)]
+pub struct EntityWithSummaryCollector(Vec<EntityWithSummary>);
+
+impl EntityWithSummaryCollector {
+    #[must_use]
+    pub const fn new(inner: Vec<EntityWithSummary>) -> Self {
+        Self(inner)
+    }
+
+    #[must_use]
+    pub fn finish(self) -> Vec<EntityWithSummary> {
+        let Self(inner) = self;
+        inner
+    }
+}
+
+impl RecordCollector for EntityWithSummaryCollector {
+    type Header = RecordHeader;
+    type Record = (Entity, Option<Summary>);
+
+    fn collect(&mut self, _header: RecordHeader, (entity, summary): (Entity, Option<Summary>)) {
+        let Self(inner) = self;
+        inner.push(EntityWithSummary { entity, summary });
+    }
+}
+
+impl ReservableRecordCollector for EntityWithSummaryCollector {
+    fn reserve(&mut self, additional: usize) {
+        let Self(inner) = self;
+        inner.reserve(additional);
+    }
+}

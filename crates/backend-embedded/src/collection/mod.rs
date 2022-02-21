@@ -20,55 +20,13 @@ use aoide_core::{
     entity::{EntityHeader, EntityUid},
 };
 use aoide_core_api::{
-    collection::{LoadScope, Summary},
+    collection::{EntityWithSummary, LoadScope},
     Pagination,
 };
-use aoide_repo::{
-    collection::RecordHeader,
-    prelude::{RecordCollector, ReservableRecordCollector},
-};
+use aoide_repo::collection::EntityWithSummaryCollector;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::{Error, Result};
-
-#[derive(Debug, Clone)]
-pub struct EntityWithSummary {
-    pub entity: Entity,
-    pub summary: Option<Summary>,
-}
-
-#[derive(Debug, Default)]
-pub struct EntityWithSummaryCollector(Vec<EntityWithSummary>);
-
-impl EntityWithSummaryCollector {
-    #[must_use]
-    pub const fn new(inner: Vec<EntityWithSummary>) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub fn finish(self) -> Vec<EntityWithSummary> {
-        let Self(inner) = self;
-        inner
-    }
-}
-
-impl RecordCollector for EntityWithSummaryCollector {
-    type Header = RecordHeader;
-    type Record = (Entity, Option<Summary>);
-
-    fn collect(&mut self, _header: RecordHeader, (entity, summary): (Entity, Option<Summary>)) {
-        let Self(inner) = self;
-        inner.push(EntityWithSummary { entity, summary });
-    }
-}
-
-impl ReservableRecordCollector for EntityWithSummaryCollector {
-    fn reserve(&mut self, additional: usize) {
-        let Self(inner) = self;
-        inner.reserve(additional);
-    }
-}
 
 pub async fn load_all_kinds(db_gatekeeper: &Gatekeeper) -> Result<Vec<String>> {
     db_gatekeeper

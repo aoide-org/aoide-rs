@@ -12,9 +12,3 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-mod uc {
-    pub use aoide_core_api::media::tracker::*;
-    pub use aoide_usecases::media::tracker::*;
-    pub use aoide_usecases_sqlite::media::tracker::*;
-}

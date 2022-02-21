@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::collection::Collection;
+use aoide_core::collection::{Collection, Entity};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoadScope {
@@ -21,22 +21,22 @@ pub enum LoadScope {
     EntityWithSummary,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MediaSourceSummary {
     pub total_count: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TrackSummary {
     pub total_count: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlaylistSummary {
     pub total_count: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Summary {
     pub media_sources: MediaSourceSummary,
     pub playlists: PlaylistSummary,
@@ -44,7 +44,7 @@ pub struct Summary {
 }
 
 /// Collection with an optional summary
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CollectionWithSummary {
     pub collection: Collection,
     pub summary: Option<Summary>,
@@ -64,4 +64,10 @@ impl From<Collection> for CollectionWithSummary {
     fn from(from: Collection) -> Self {
         Self::without_summary(from)
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct EntityWithSummary {
+    pub entity: Entity,
+    pub summary: Option<Summary>,
 }

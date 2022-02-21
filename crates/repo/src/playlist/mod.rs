@@ -23,6 +23,7 @@ use crate::{collection::RecordId as CollectionId, prelude::*};
 
 use aoide_core::{playlist::*, util::clock::DateTime};
 
+use aoide_core_api::playlist::EntityWithEntriesSummary;
 use rand::{seq::SliceRandom, thread_rng};
 
 pub trait EntityRepo: EntryRepo {
@@ -207,4 +208,37 @@ pub trait EntryRepo {
     fn load_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>>;
 
     fn load_playlist_entries_summary(&self, playlist_id: RecordId) -> RepoResult<EntriesSummary>;
+}
+
+#[derive(Debug, Default)]
+pub struct EntityWithEntriesSummaryCollector(Vec<EntityWithEntriesSummary>);
+
+impl EntityWithEntriesSummaryCollector {
+    #[must_use]
+    pub const fn new(inner: Vec<EntityWithEntriesSummary>) -> Self {
+        Self(inner)
+    }
+
+    #[must_use]
+    pub fn finish(self) -> Vec<EntityWithEntriesSummary> {
+        let Self(inner) = self;
+        inner
+    }
+}
+
+impl RecordCollector for EntityWithEntriesSummaryCollector {
+    type Header = RecordHeader;
+    type Record = (Entity, EntriesSummary);
+
+    fn collect(&mut self, _header: RecordHeader, (entity, entries): (Entity, EntriesSummary)) {
+        let Self(inner) = self;
+        inner.push(EntityWithEntriesSummary { entity, entries });
+    }
+}
+
+impl ReservableRecordCollector for EntityWithEntriesSummaryCollector {
+    fn reserve(&mut self, additional: usize) {
+        let Self(inner) = self;
+        inner.reserve(additional);
+    }
 }
