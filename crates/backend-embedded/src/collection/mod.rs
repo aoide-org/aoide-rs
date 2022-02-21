@@ -23,7 +23,10 @@ use aoide_core_api::{
     collection::{EntityWithSummary, LoadScope},
     Pagination,
 };
-use aoide_repo::collection::EntityWithSummaryCollector;
+use aoide_repo::{
+    collection::{EntityWithSummaryCollector, RecordHeader},
+    prelude::ReservableRecordCollector,
+};
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::{Error, Result};
@@ -47,20 +50,43 @@ pub async fn load_all(
     scope: LoadScope,
     pagination: Option<Pagination>,
 ) -> Result<Vec<EntityWithSummary>> {
+    load_all_with_collector(
+        db_gatekeeper,
+        kind,
+        scope,
+        pagination,
+        EntityWithSummaryCollector::new(Vec::new()),
+    )
+    .await
+    .map(EntityWithSummaryCollector::finish)
+}
+
+pub async fn load_all_with_collector<C>(
+    db_gatekeeper: &Gatekeeper,
+    kind: Option<String>,
+    scope: LoadScope,
+    pagination: Option<Pagination>,
+    collector: C,
+) -> Result<C>
+where
+    C: ReservableRecordCollector<Header = RecordHeader, Record = EntityWithSummary>
+        + Send
+        + 'static,
+{
     db_gatekeeper
         .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-            let mut collector = EntityWithSummaryCollector::new(Vec::new());
             let connection = &*pooled_connection;
             connection.transaction::<_, Error, _>(|| {
+                let mut collector = collector;
                 aoide_usecases_sqlite::collection::load::load_all(
                     &*pooled_connection,
                     kind.as_deref(),
                     scope,
                     pagination.as_ref(),
                     &mut collector,
-                )
-            })?;
-            Ok(collector.finish())
+                )?;
+                Ok(collector)
+            })
         })
         .await
         .map_err(Into::into)

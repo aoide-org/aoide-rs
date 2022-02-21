@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core_api::collection::{LoadScope, Summary};
+use aoide_core_api::collection::{EntityWithSummary, LoadScope};
 
 use super::*;
 
@@ -21,7 +21,7 @@ pub fn load_one(
     connection: &SqliteConnection,
     entity_uid: &EntityUid,
     scope: LoadScope,
-) -> Result<(Entity, Option<Summary>)> {
+) -> Result<EntityWithSummary> {
     let repo = RepoConnection::new(connection);
     let id = repo.resolve_collection_id(entity_uid)?;
     let (record_hdr, entity) = repo.load_collection_entity(id)?;
@@ -29,7 +29,7 @@ pub fn load_one(
         LoadScope::Entity => None,
         LoadScope::EntityWithSummary => Some(repo.load_collection_summary(record_hdr.id)?),
     };
-    Ok((entity, summary))
+    Ok(EntityWithSummary { entity, summary })
 }
 
 pub fn load_all(
@@ -37,10 +37,7 @@ pub fn load_all(
     kind: Option<&str>,
     scope: LoadScope,
     pagination: Option<&Pagination>,
-    collector: &mut impl ReservableRecordCollector<
-        Header = RecordHeader,
-        Record = (Entity, Option<Summary>),
-    >,
+    collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = EntityWithSummary>,
 ) -> Result<()> {
     let repo = RepoConnection::new(connection);
     let with_summary = match scope {

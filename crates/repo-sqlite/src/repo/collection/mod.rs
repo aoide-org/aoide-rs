@@ -21,7 +21,9 @@ use aoide_core::{
     util::clock::*,
 };
 
-use aoide_core_api::collection::{MediaSourceSummary, PlaylistSummary, Summary, TrackSummary};
+use aoide_core_api::collection::{
+    EntityWithSummary, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
+};
 
 use aoide_repo::collection::*;
 
@@ -132,7 +134,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<
             Header = RecordHeader,
-            Record = (Entity, Option<Summary>),
+            Record = EntityWithSummary,
         >,
     ) -> RepoResult<()> {
         let mut target = collection::table
@@ -161,7 +163,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             } else {
                 None
             };
-            collector.collect(record_header, (entity, summary));
+            collector.collect(record_header, EntityWithSummary { entity, summary });
         }
         Ok(())
     }

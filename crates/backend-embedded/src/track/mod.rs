@@ -13,11 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::track::Entity;
+use diesel::Connection as _;
+
+use aoide_core::{entity::EntityUid, track::Entity};
+use aoide_core_api::Pagination;
 use aoide_repo::{
     prelude::{RecordCollector, ReservableRecordCollector},
     track::RecordHeader,
 };
+use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
+
+use crate::{Error, Result};
 
 #[derive(Debug, Default)]
 pub struct EntityCollector(Vec<Entity>);
@@ -57,4 +63,51 @@ impl ReservableRecordCollector for EntityCollector {
         let Self(inner) = self;
         inner.reserve(additional);
     }
+}
+
+pub async fn search(
+    db_gatekeeper: &Gatekeeper,
+    collection_uid: EntityUid,
+    params: aoide_core_api::track::search::Params,
+    pagination: Pagination,
+) -> Result<Vec<Entity>> {
+    search_with_collector(
+        db_gatekeeper,
+        collection_uid,
+        params,
+        pagination,
+        EntityCollector::new(Vec::new()),
+    )
+    .await
+    .map(EntityCollector::finish)
+}
+
+pub async fn search_with_collector<C>(
+    db_gatekeeper: &Gatekeeper,
+    collection_uid: EntityUid,
+    params: aoide_core_api::track::search::Params,
+    pagination: Pagination,
+    collector: C,
+) -> Result<C>
+where
+    C: ReservableRecordCollector<Header = RecordHeader, Record = Entity> + Send + 'static,
+{
+    db_gatekeeper
+        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
+            let connection = &*pooled_connection;
+            connection.transaction::<_, Error, _>(|| {
+                let mut collector = collector;
+                aoide_usecases_sqlite::track::search::search(
+                    &*pooled_connection,
+                    &collection_uid,
+                    params,
+                    &pagination,
+                    &mut collector,
+                )?;
+                Ok(collector)
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
 }

@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_api::collection::LoadScope;
+use aoide_core_api_json::collection::export_entity_with_summary;
 use aoide_usecases_sqlite::collection::load::{self as uc};
 
 use super::*;
@@ -39,11 +40,9 @@ pub fn handle_request(
     } else {
         LoadScope::Entity
     };
-    let (entity, summary) = connection.transaction::<_, Error, _>(|| {
-        uc::load_one(connection, uid, load_scope).map_err(Into::into)
-    })?;
-    Ok(merge_entity_with_summary(
-        entity.into(),
-        summary.map(Into::into),
-    ))
+    connection
+        .transaction::<_, Error, _>(|| {
+            uc::load_one(connection, uid, load_scope).map_err(Into::into)
+        })
+        .map(export_entity_with_summary)
 }

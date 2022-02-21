@@ -60,7 +60,7 @@ pub fn handle_request(
     };
     let pagination = Pagination { limit, offset };
     let pagination: Option<_> = pagination.into();
-    let mut collector = EntityCollector::default();
+    let mut collector = EntityWithSummaryCollector::default();
     connection.transaction::<_, Error, _>(|| {
         uc::load_all(
             connection,
@@ -71,5 +71,5 @@ pub fn handle_request(
         )
         .map_err(Into::into)
     })?;
-    Ok(collector.into())
+    Ok(collector.finish())
 }

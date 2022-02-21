@@ -20,18 +20,15 @@ use aoide_repo::{
     prelude::{RecordCollector, ReservableRecordCollector},
 };
 
-use aoide_core_json::{
-    collection::{Collection, Entity},
-    entity::Entity as GenericEntity,
-};
+use aoide_core_json::collection::{Collection, Entity};
 
-use aoide_core_api_json::collection::{CollectionWithSummary, EntityWithSummary, Summary};
+use aoide_core_api_json::collection::{export_entity_with_summary, EntityWithSummary};
 
 use super::*;
 
 mod _inner {
     pub use aoide_core::{collection::Entity, entity::EntityHeader};
-    pub use aoide_core_api::collection::Summary;
+    pub use aoide_core_api::collection::EntityWithSummary;
 }
 
 pub mod create;
@@ -42,57 +39,34 @@ pub mod purge;
 pub mod update;
 
 #[derive(Debug, Default)]
-pub struct EntityCollector(Vec<EntityWithSummary>);
+pub struct EntityWithSummaryCollector(Vec<EntityWithSummary>);
 
-impl EntityCollector {
+impl EntityWithSummaryCollector {
     #[must_use]
     pub const fn new(inner: Vec<EntityWithSummary>) -> Self {
         Self(inner)
     }
 
     #[must_use]
-    pub fn with_capacity(capacity: usize) -> Self {
-        let inner = Vec::with_capacity(capacity);
-        Self(inner)
-    }
-}
-
-impl From<EntityCollector> for Vec<EntityWithSummary> {
-    fn from(from: EntityCollector) -> Self {
-        let EntityCollector(inner) = from;
+    pub fn finish(self) -> Vec<EntityWithSummary> {
+        let Self(inner) = self;
         inner
     }
 }
 
-impl RecordCollector for EntityCollector {
+impl RecordCollector for EntityWithSummaryCollector {
     type Header = RecordHeader;
-    type Record = (_inner::Entity, Option<_inner::Summary>);
+    type Record = _inner::EntityWithSummary;
 
-    fn collect(
-        &mut self,
-        _header: RecordHeader,
-        (entity, summary): (_inner::Entity, Option<_inner::Summary>),
-    ) {
+    fn collect(&mut self, _header: RecordHeader, record: _inner::EntityWithSummary) {
         let Self(inner) = self;
-        inner.push(merge_entity_with_summary(
-            entity.into(),
-            summary.map(Into::into),
-        ));
+        inner.push(export_entity_with_summary(record));
     }
 }
 
-impl ReservableRecordCollector for EntityCollector {
+impl ReservableRecordCollector for EntityWithSummaryCollector {
     fn reserve(&mut self, additional: usize) {
         let Self(inner) = self;
         inner.reserve(additional);
     }
-}
-
-fn merge_entity_with_summary(entity: Entity, summary: Option<Summary>) -> EntityWithSummary {
-    let GenericEntity(hdr, body) = entity;
-    let body = CollectionWithSummary {
-        collection: body,
-        summary,
-    };
-    GenericEntity(hdr, body)
 }

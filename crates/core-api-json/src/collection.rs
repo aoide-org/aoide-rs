@@ -23,7 +23,7 @@ mod _core {
 
 mod _inner {
     pub use crate::_inner::collection::{
-        MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
+        EntityWithSummary, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
     };
 }
 
@@ -163,6 +163,18 @@ pub struct CollectionWithSummary {
 }
 
 pub type EntityWithSummary = Entity<CollectionWithSummary>;
+
+#[cfg(feature = "backend")]
+#[must_use]
+pub fn export_entity_with_summary(from: _inner::EntityWithSummary) -> EntityWithSummary {
+    let _inner::EntityWithSummary { entity, summary } = from;
+    let (hdr, collection) = entity.into();
+    let body = CollectionWithSummary {
+        collection: collection.into(),
+        summary: summary.map(Into::into),
+    };
+    Entity(hdr.into(), body)
+}
 
 #[cfg(feature = "frontend")]
 pub fn import_entity_with_summary(
