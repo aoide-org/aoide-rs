@@ -84,13 +84,13 @@ where
     Repo: TrackCollectionRepo,
 {
     let ValidatedInput(track) = track;
-    let media_source_path = track.media_source.content_link.path.clone();
+    let media_content_path = track.media_source.content_link.path.clone();
     let outcome = repo
         .replace_track_by_media_source_content_path(collection_id, params, track)
         .map_err(|err| {
             log::warn!(
                 "Failed to replace track by URI '{}': {}",
-                media_source_path,
+                media_content_path,
                 err
             );
             err
@@ -157,7 +157,7 @@ where
     let (collection_id, content_path_resolver) = if *resolve_path_from_url {
         let RepoContext {
             record_id,
-            source_path: ContentPathContext { kind: _, vfs },
+            content_path: ContentPathContext { kind: _, vfs },
         } = RepoContext::resolve(repo, collection_uid, None)?;
         (record_id, vfs.map(|vfs| vfs.path_resolver))
     } else {
@@ -219,13 +219,13 @@ pub fn import_and_replace_from_file_path<Repo>(
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
-    source_path: ContentPath,
+    content_path: ContentPath,
 ) -> Result<Vec<TrackInvalidity>>
 where
     Repo: TrackCollectionRepo,
 {
     let (media_source_id, external_rev, synchronized_rev, entity_body) = repo
-        .load_track_entity_by_media_source_content_path(collection_id, &source_path)
+        .load_track_entity_by_media_source_content_path(collection_id, &content_path)
         .optional()?
         .map(|(media_source_id, _, entity)| {
             (
@@ -242,7 +242,7 @@ where
     let mut invalidities = Default::default();
     match import_track_from_file_path(
         content_path_resolver,
-        source_path.clone(),
+        content_path.clone(),
         SyncModeParams::new(sync_mode, external_rev, synchronized_rev),
         import_config,
         DateTime::now_local_or_utc(),
@@ -251,7 +251,7 @@ where
             track: imported_track,
             issues: import_issues,
         }) => {
-            debug_assert_eq!(imported_track.media_source.content_link.path, source_path);
+            debug_assert_eq!(imported_track.media_source.content_link.path, content_path);
             let track = if let Some(mut collected_track) =
                 entity_body.map(|entity_body| entity_body.track)
             {
@@ -282,7 +282,7 @@ where
                 if !import_issues.is_empty() {
                     imported_media_sources_with_issues.push((
                         media_source_id,
-                        source_path,
+                        content_path,
                         import_issues,
                     ));
                 }
@@ -290,13 +290,13 @@ where
         }
         Ok(ImportTrackFromFileOutcome::SkippedSynchronized { content_rev: _ }) => {
             debug_assert!(media_source_id.is_some());
-            summary.unchanged.push(source_path);
+            summary.unchanged.push(content_path);
             visited_media_source_ids.push(media_source_id.unwrap());
         }
         Ok(ImportTrackFromFileOutcome::SkippedUnsynchronized { content_rev: _ }) => {
             debug_assert!(media_source_id.is_some());
             debug_assert_eq!(Some(false), synchronized_rev);
-            summary.not_imported.push(source_path);
+            summary.not_imported.push(content_path);
             visited_media_source_ids.push(media_source_id.unwrap());
         }
         Ok(ImportTrackFromFileOutcome::SkippedDirectory) => {
@@ -308,21 +308,21 @@ where
                 log::info!(
                     "Skipped import of track from local file path {}: {}",
                     content_path_resolver
-                        .build_file_path(&source_path)
+                        .build_file_path(&content_path)
                         .display(),
                     err
                 );
-                summary.skipped.push(source_path);
+                summary.skipped.push(content_path);
             }
             err => {
                 log::warn!(
                     "Failed to import track from local file path {}: {}",
                     content_path_resolver
-                        .build_file_path(&source_path)
+                        .build_file_path(&content_path)
                         .display(),
                     err
                 );
-                summary.failed.push(source_path);
+                summary.failed.push(content_path);
             }
         },
     };
@@ -339,32 +339,32 @@ pub fn import_and_replace_by_local_file_paths<Repo>(
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
-    source_paths: impl IntoIterator<Item = ContentPath>,
-    expected_source_path_count: Option<usize>,
+    content_paths: impl IntoIterator<Item = ContentPath>,
+    expected_content_path_count: Option<usize>,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: CollectionRepo + TrackCollectionRepo,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
     } else {
         return Err(anyhow::anyhow!(
             "Unsupported path kind: {:?}",
-            collection_ctx.source_path.kind
+            collection_ctx.content_path.kind
         )
         .into());
     };
     let collection_id = collection_ctx.record_id;
     let mut summary = Summary::default();
     let mut visited_media_source_ids =
-        Vec::with_capacity(expected_source_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT));
+        Vec::with_capacity(expected_content_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT));
     let mut imported_media_sources_with_issues =
-        Vec::with_capacity(expected_source_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT) / 4);
-    for source_path in source_paths {
+        Vec::with_capacity(expected_content_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT) / 4);
+    for content_path in content_paths {
         if abort_flag.load(Ordering::Relaxed) {
-            log::debug!("Aborting import of {}", source_path);
+            log::debug!("Aborting import of {}", content_path);
             return Ok(Outcome {
                 completion: Completion::Aborted,
                 summary,
@@ -382,7 +382,7 @@ where
             sync_mode,
             import_config,
             replace_mode,
-            source_path,
+            content_path,
         )?;
         if !invalidities.is_empty() {
             imported_media_sources_with_issues
@@ -415,12 +415,12 @@ where
     Repo: CollectionRepo + TrackCollectionRepo,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
     } else {
         return Err(anyhow::anyhow!(
             "Unsupported path kind: {:?}",
-            collection_ctx.source_path.kind
+            collection_ctx.content_path.kind
         )
         .into());
     };
@@ -477,11 +477,11 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_re
                 imported_media_sources_with_issues,
             });
         }
-        let source_path = if let Some(source_path) = Url::from_file_path(dir_entry.path())
+        let content_path = if let Some(content_path) = Url::from_file_path(dir_entry.path())
             .ok()
             .and_then(|url| content_path_resolver.resolve_path_from_url(&url).ok())
         {
-            source_path.to_owned()
+            content_path.to_owned()
         } else {
             log::warn!(
                 "Skipping invalid/unsupported directory entry: {}",
@@ -500,7 +500,7 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_re
             sync_mode,
             import_config,
             replace_mode,
-            source_path,
+            content_path,
         )?;
     }
     Ok(Outcome {

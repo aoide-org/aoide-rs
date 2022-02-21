@@ -87,12 +87,12 @@ where
     )?;
     let collection_id = collection_ctx.record_id;
     let content_path_resolver = if resolve_url_from_content_path.is_some() {
-        if let Some(vfs_ctx) = collection_ctx.source_path.vfs {
+        if let Some(vfs_ctx) = collection_ctx.content_path.vfs {
             Some(vfs_ctx.path_resolver)
         } else {
             return Err(anyhow::anyhow!(
                 "Unsupported path kind: {:?}",
-                collection_ctx.source_path.kind
+                collection_ctx.content_path.kind
             )
             .into());
         }

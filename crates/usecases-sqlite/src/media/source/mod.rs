@@ -33,30 +33,30 @@ pub mod relocate;
 pub fn resolve_file_path(
     repo: &RepoConnection<'_>,
     collection_uid: &EntityUid,
-    source_path: &ContentPath,
+    content_path: &ContentPath,
 ) -> Result<(CollectionId, PathBuf)> {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
     } else {
         return Err(anyhow::anyhow!(
             "Unsupported path kind: {:?}",
-            collection_ctx.source_path.kind
+            collection_ctx.content_path.kind
         )
         .into());
     };
-    let file_path = vfs_ctx.path_resolver.build_file_path(source_path);
+    let file_path = vfs_ctx.path_resolver.build_file_path(content_path);
     Ok((collection_ctx.record_id, file_path))
 }
 
 pub fn load_embedded_artwork_image(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    source_path: &ContentPath,
+    content_path: &ContentPath,
 ) -> Result<(CollectionId, Option<LoadedArtworkImage>)> {
     let mut importer = Importer::new();
     let repo = RepoConnection::new(connection);
-    resolve_file_path(&repo, collection_uid, source_path).and_then(|(collection_id, file_path)| {
+    resolve_file_path(&repo, collection_uid, content_path).and_then(|(collection_id, file_path)| {
         let loaded_artwork_image =
             load_embedded_artwork_image_from_file_path(&mut importer, &file_path)?;
         for issue_message in importer.finish().into_messages() {

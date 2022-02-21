@@ -24,5 +24,5 @@ pub struct Outcome {
     pub root_url: BaseUrl,
     pub root_path: ContentPath,
     pub completion: Completion,
-    pub source_paths: Vec<ContentPath>,
+    pub content_paths: Vec<ContentPath>,
 }

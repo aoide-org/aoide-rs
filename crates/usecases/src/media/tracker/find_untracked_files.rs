@@ -81,7 +81,7 @@ struct AncestorVisitor<'r, Repo> {
     repo: &'r Repo,
     collection_id: CollectionId,
     content_path_resolver: &'r VirtualFilePathResolver,
-    source_paths: Vec<ContentPath>,
+    content_paths: Vec<ContentPath>,
 }
 
 impl<'r, Repo> AncestorVisitor<'r, Repo> {
@@ -95,7 +95,7 @@ impl<'r, Repo> AncestorVisitor<'r, Repo> {
             repo,
             collection_id,
             content_path_resolver,
-            source_paths: Vec::new(),
+            content_paths: Vec::new(),
         }
     }
 }
@@ -106,8 +106,8 @@ where
 {
     fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> anyhow::Result<()> {
         let url = url_from_walkdir_entry(dir_entry)?;
-        let source_path = self.content_path_resolver.resolve_path_from_url(&url)?;
-        if !source_path.is_terminal() {
+        let content_path = self.content_path_resolver.resolve_path_from_url(&url)?;
+        if !content_path.is_terminal() {
             // Skip non-terminal paths, i.e. directories
             return Ok(());
         }
@@ -115,26 +115,26 @@ where
             .repo
             .media_tracker_resolve_source_id_synchronized_at_by_path(
                 self.collection_id,
-                &source_path,
+                &content_path,
             ) {
             Ok(_) => Ok(()),
             Err(RepoError::NotFound) => {
-                self.source_paths.push(source_path);
+                self.content_paths.push(content_path);
                 Ok(())
             }
             Err(err) => Err(err.into()),
         }
     }
     fn finalize(self) -> Vec<ContentPath> {
-        self.source_paths
+        self.content_paths
     }
 }
 
 fn ancestor_finished(
-    all_source_paths: &mut Vec<ContentPath>,
-    mut source_paths: Vec<ContentPath>,
+    all_content_paths: &mut Vec<ContentPath>,
+    mut content_paths: Vec<ContentPath>,
 ) -> anyhow::Result<visit::AfterAncestorFinished> {
-    all_source_paths.append(&mut source_paths);
+    all_content_paths.append(&mut content_paths);
     Ok(visit::AfterAncestorFinished::Continue)
 }
 
@@ -153,25 +153,25 @@ pub fn visit_directories<
         max_depth,
     } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
     } else {
         return Err(anyhow::anyhow!(
             "Unsupported path kind: {:?}",
-            collection_ctx.source_path.kind
+            collection_ctx.content_path.kind
         )
         .into());
     };
     let collection_id = collection_ctx.record_id;
     let root_file_path = vfs_ctx.build_root_file_path();
-    let mut source_paths = Vec::new();
+    let mut content_paths = Vec::new();
     let completion = visit::visit_directories(
         &root_file_path,
         *max_depth,
         abort_flag,
         &mut |_| AncestorVisitor::new(repo, collection_id, &vfs_ctx.path_resolver),
-        &mut |_path, untracked_source_paths| {
-            ancestor_finished(&mut source_paths, untracked_source_paths)
+        &mut |_path, untracked_content_paths| {
+            ancestor_finished(&mut content_paths, untracked_content_paths)
         },
         &mut |progress_event| {
             log::trace!("{:?}", progress_event);
@@ -186,7 +186,7 @@ pub fn visit_directories<
         let outcome = progress_event.finalize();
         log::info!(
             "Finding {} untracked directory entries in '{}' took {} s",
-            source_paths.len(),
+            content_paths.len(),
             root_file_path.display(),
             elapsed.as_millis() as f64 / 1000.0,
         );
@@ -203,7 +203,7 @@ pub fn visit_directories<
         }
     })?;
     let (root_url, root_path) = collection_ctx
-        .source_path
+        .content_path
         .vfs
         .map(|vfs_context| (vfs_context.root_url, vfs_context.root_path))
         .unwrap();
@@ -211,6 +211,6 @@ pub fn visit_directories<
         root_url,
         root_path,
         completion,
-        source_paths,
+        content_paths,
     })
 }

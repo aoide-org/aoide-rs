@@ -49,7 +49,7 @@ where
         repo.purge_orphaned_media_sources(collection_id)
     }?;
     let (root_url, root_path) = collection_ctx
-        .source_path
+        .content_path
         .vfs
         .map(|vfs| (Some(vfs.root_url), Some(vfs.root_path)))
         .unwrap_or((None, None));

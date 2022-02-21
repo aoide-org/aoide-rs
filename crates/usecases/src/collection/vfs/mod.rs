@@ -72,7 +72,7 @@ fn resolve_path_prefix_from_base_url(
 #[derive(Debug)]
 pub struct RepoContext {
     pub record_id: RecordId,
-    pub source_path: ContentPathContext,
+    pub content_path: ContentPathContext,
 }
 
 #[derive(Debug)]
@@ -116,7 +116,7 @@ impl RepoContext {
         };
         Ok(Self {
             record_id,
-            source_path: ContentPathContext {
+            content_path: ContentPathContext {
                 kind: path_kind,
                 vfs,
             },
@@ -131,7 +131,7 @@ impl RepoContext {
     where
         'b: 'a,
     {
-        self.source_path
+        self.content_path
             .vfs
             .as_ref()
             .map(|vfs| vfs.root_path.as_str())

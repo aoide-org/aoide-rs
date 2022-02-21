@@ -463,15 +463,15 @@ async fn main() -> anyhow::Result<()> {
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_find_untracked_files_outcome {
                     log::info!("Finding untracked media files succeeded: {:?}", outcome);
-                    if !outcome.value.source_paths.is_empty() {
+                    if !outcome.value.content_paths.is_empty() {
                         log::info!(
                             "Found {} untracked entries on file system:\n{}",
-                            outcome.value.source_paths.len(),
+                            outcome.value.content_paths.len(),
                             outcome
                                 .value
-                                .source_paths
+                                .content_paths
                                 .iter()
-                                .map(|source_path| source_path.as_str())
+                                .map(|content_path| content_path.as_str())
                                 .collect::<Vec<_>>()
                                 .join("\n"),
                         );

@@ -34,12 +34,12 @@ where
 {
     let Params { root_url, status } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
     } else {
         return Err(anyhow::anyhow!(
             "Unsupported path kind: {:?}",
-            collection_ctx.source_path.kind
+            collection_ctx.content_path.kind
         )
         .into());
     };
@@ -47,7 +47,7 @@ where
     let untracked =
         repo.media_tracker_untrack_directories(collection_id, &vfs_ctx.root_path, *status)?;
     let (root_url, root_path) = collection_ctx
-        .source_path
+        .content_path
         .vfs
         .map(|vfs_context| (vfs_context.root_url, vfs_context.root_path))
         .unwrap();

@@ -68,12 +68,12 @@ pub fn import_files<
     } = params;
     let sync_mode = sync_mode.unwrap_or(SyncMode::Modified);
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
     } else {
         return Err(anyhow::anyhow!(
             "Unsupported path kind: {:?}",
-            collection_ctx.source_path.kind
+            collection_ctx.content_path.kind
         )
         .into());
     };
@@ -97,7 +97,7 @@ pub fn import_files<
         if pending_directories.is_empty() {
             log::debug!("Finished import of pending directories: {:?}", summary);
             let (root_url, root_path) = collection_ctx
-                .source_path
+                .content_path
                 .vfs
                 .map(|vfs| (vfs.root_url, vfs.root_path))
                 .unwrap();
@@ -114,7 +114,7 @@ pub fn import_files<
             if abort_flag.load(Ordering::Relaxed) {
                 log::debug!("Aborting import of pending directories: {:?}", summary);
                 let (root_url, root_path) = collection_ctx
-                    .source_path
+                    .content_path
                     .vfs
                     .map(|vfs| (vfs.root_url, vfs.root_path))
                     .unwrap();
@@ -188,7 +188,7 @@ pub fn import_files<
                 ReplaceCompletion::Aborted => {
                     log::debug!("Aborting import of pending directories: {:?}", summary);
                     let (root_url, root_path) = collection_ctx
-                        .source_path
+                        .content_path
                         .vfs
                         .map(|vfs| (vfs.root_url, vfs.root_path))
                         .unwrap();

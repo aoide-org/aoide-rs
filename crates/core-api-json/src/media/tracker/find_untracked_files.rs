@@ -34,7 +34,7 @@ pub struct Outcome {
     pub root_url: Url,
     pub root_path: String,
     pub completion: Completion,
-    pub source_paths: Vec<String>,
+    pub content_paths: Vec<String>,
 }
 
 #[cfg(feature = "frontend")]
@@ -46,13 +46,13 @@ impl TryFrom<Outcome> for _core::Outcome {
             root_url,
             root_path,
             completion,
-            source_paths,
+            content_paths,
         } = from;
         Ok(Self {
             root_url: root_url.try_into()?,
             root_path: root_path.into(),
             completion: completion.into(),
-            source_paths: source_paths.into_iter().map(Into::into).collect(),
+            content_paths: content_paths.into_iter().map(Into::into).collect(),
         })
     }
 }
@@ -64,13 +64,13 @@ impl From<_core::Outcome> for Outcome {
             root_url,
             root_path,
             completion,
-            source_paths,
+            content_paths,
         } = from;
         Self {
             root_url: root_url.into(),
             root_path: root_path.into(),
             completion: completion.into(),
-            source_paths: source_paths.into_iter().map(Into::into).collect(),
+            content_paths: content_paths.into_iter().map(Into::into).collect(),
         }
     }
 }
