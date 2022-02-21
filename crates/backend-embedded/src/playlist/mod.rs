@@ -28,6 +28,8 @@ use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::{Error, Result};
 
+pub mod entries;
+
 /// Load a single entity including all entries
 pub async fn load_one(
     db_gatekeeper: &Gatekeeper,
