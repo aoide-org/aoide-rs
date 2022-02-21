@@ -47,6 +47,7 @@ rfd = { version = "0.8.0", optional = true, default-features = false, features =
 ] }
 
 # Workspace dependencies
+aoide-backend-webapi-json = "*"
 aoide-core = "*"
 aoide-repo-sqlite = "*"
 aoide-storage-sqlite = { version = "*", features = [
@@ -55,11 +56,10 @@ aoide-storage-sqlite = { version = "*", features = [
 ] }
 aoide-usecases = "*"
 aoide-usecases-sqlite = "*"
-aoide-usecases-sqlite-json = "*"
 aoide-websrv-api = "*"
 
 [features]
 default = ["with-schemars", "with-webapp", "with-launcher-ui"]
-with-schemars = ["schemars", "aoide-usecases-sqlite-json/with-schemars"]
+with-schemars = ["schemars", "aoide-backend-webapi-json/with-schemars"]
 with-webapp = ["mime_guess", "rust-embed"]
 with-launcher-ui = ["eframe", "egui", "rfd"]

@@ -27,69 +27,12 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
-use diesel::prelude::*;
 use thiserror::Error;
 
-use aoide_media::Error as MediaError;
-
-use aoide_repo::prelude::RepoError;
-
-use aoide_usecases as uc;
-
-use aoide_repo_sqlite::prelude::Connection as RepoConnection;
-
-use aoide_storage_sqlite::Error as StorageError;
-
-#[macro_use]
-extern crate diesel_migrations;
-
 pub mod collection;
-pub mod database;
 pub mod media;
 pub mod playlist;
 pub mod track;
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error(transparent)]
-    Input(anyhow::Error),
-
-    #[error(transparent)]
-    Media(#[from] MediaError),
-
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-
-    #[error(transparent)]
-    Storage(#[from] StorageError),
-
-    #[error(transparent)]
-    DatabaseMigration(#[from] diesel_migrations::RunMigrationsError),
-
-    #[error(transparent)]
-    Repository(#[from] RepoError),
-
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-}
-
-impl From<diesel::result::Error> for Error {
-    fn from(err: diesel::result::Error) -> Self {
-        Error::Storage(err.into())
-    }
-}
-
-impl From<uc::Error> for Error {
-    fn from(err: uc::Error) -> Self {
-        use uc::Error::*;
-        match err {
-            Input(uc::InputError(err)) => Self::Input(err),
-            Media(err) => Self::Media(err),
-            Io(err) => Self::Io(err),
-            Repository(err) => Self::Repository(err),
-            Other(err) => Self::Other(err),
-        }
-    }
-}
-
+pub type Error = aoide_usecases_sqlite::Error;
 pub type Result<T> = std::result::Result<T, Error>;

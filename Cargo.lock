@@ -72,6 +72,46 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a99269dff3bc004caa411f38845c20303f1e393ca2bd6581576fa3a7f59577d"
 
 [[package]]
+name = "aoide-backend-embedded"
+version = "0.8.0"
+dependencies = [
+ "anyhow",
+ "aoide-core",
+ "aoide-core-api",
+ "aoide-media",
+ "aoide-repo",
+ "aoide-storage-sqlite",
+ "aoide-usecases",
+ "aoide-usecases-sqlite",
+ "diesel",
+ "log",
+ "thiserror",
+]
+
+[[package]]
+name = "aoide-backend-webapi-json"
+version = "0.8.0"
+dependencies = [
+ "anyhow",
+ "aoide-core",
+ "aoide-core-api",
+ "aoide-core-api-json",
+ "aoide-core-json",
+ "aoide-media",
+ "aoide-repo",
+ "aoide-usecases",
+ "aoide-usecases-sqlite",
+ "diesel",
+ "log",
+ "schemars",
+ "serde",
+ "thiserror",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "aoide-client"
 version = "0.8.0"
 dependencies = [
@@ -276,29 +316,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoide-usecases-sqlite-json"
-version = "0.8.0"
-dependencies = [
- "anyhow",
- "aoide-core",
- "aoide-core-api",
- "aoide-core-api-json",
- "aoide-core-json",
- "aoide-media",
- "aoide-repo",
- "aoide-usecases",
- "aoide-usecases-sqlite",
- "diesel",
- "log",
- "schemars",
- "serde",
- "thiserror",
- "tracing",
- "url",
- "uuid",
-]
-
-[[package]]
 name = "aoide-webcli"
 version = "0.8.0"
 dependencies = [
@@ -322,12 +339,12 @@ name = "aoide-websrv"
 version = "0.8.0"
 dependencies = [
  "anyhow",
+ "aoide-backend-webapi-json",
  "aoide-core",
  "aoide-repo-sqlite",
  "aoide-storage-sqlite",
  "aoide-usecases",
  "aoide-usecases-sqlite",
- "aoide-usecases-sqlite-json",
  "aoide-websrv-api",
  "ctrlc",
  "directories",
@@ -358,10 +375,10 @@ name = "aoide-websrv-api"
 version = "0.8.0"
 dependencies = [
  "anyhow",
+ "aoide-backend-webapi-json",
  "aoide-repo",
  "aoide-storage-sqlite",
  "aoide-usecases-sqlite",
- "aoide-usecases-sqlite-json",
  "log",
  "serde",
  "thiserror",

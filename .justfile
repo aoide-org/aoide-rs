@@ -50,7 +50,7 @@ update:
         aoide-storage-sqlite \
         aoide-usecases \
         aoide-usecases-sqlite \
-        aoide-usecases-sqlite-json \
+        aoide-backend-webapi-json \
         aoide-websrv-api \
         libsqlite3-sys \
         triseratops

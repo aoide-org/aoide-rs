@@ -1,0 +1,25 @@
+[package]
+name = "aoide-backend-embedded"
+description = "aoide - Asynchronous API for an embedded backend"
+version = "0.8.0"
+license = "AGPL-3.0-or-later"
+publish = false
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.54"
+diesel = { version = "1.4.8", default-features = false, features = ["sqlite"] }
+log = "0.4.14"
+thiserror = "1.0.30"
+
+# Workspace dependencies
+aoide-core = "*"
+aoide-core-api = "*"
+aoide-media = "*"
+aoide-repo = "*"
+aoide-storage-sqlite = { version = "*", features = ["with-tokio-runtime"] }
+aoide-usecases = "*"
+aoide-usecases-sqlite = "*"
+
+[features]
+default = []

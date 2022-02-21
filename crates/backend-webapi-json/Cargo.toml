@@ -1,5 +1,5 @@
 [package]
-name = "aoide-usecases-sqlite-json"
+name = "aoide-backend-webapi-json"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false

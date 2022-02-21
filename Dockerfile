@@ -96,6 +96,10 @@ RUN USER=root cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
     cargo new --vcs none --bin ${PROJECT_NAME}-webcli && \
     mv ${PROJECT_NAME}-webcli webcli && \
     mkdir -p crates && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-backend-embedded && \
+    mv ${PROJECT_NAME}-backend-embedded crates/backend-embedded && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-backend-webapi-json && \
+    mv ${PROJECT_NAME}-backend-webapi-json crates/backend-webapi-json && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-client && \
     mv ${PROJECT_NAME}-client crates/client && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core && \
@@ -118,8 +122,6 @@ RUN USER=root cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-usecases crates/usecases && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite && \
     mv ${PROJECT_NAME}-usecases-sqlite crates/usecases-sqlite && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite-json && \
-    mv ${PROJECT_NAME}-usecases-sqlite-json crates/usecases-sqlite-json && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv-api && \
     mv ${PROJECT_NAME}-websrv-api crates/websrv-api && \
     tree -a
@@ -128,6 +130,12 @@ COPY [ \
     "Cargo.toml", \
     "Cargo.lock", \
     "./" ]
+COPY [ \
+    "crates/backend-embedded/Cargo.toml", \
+    "./crates/backend-embedded/" ]
+COPY [ \
+    "crates/backend-webapi-json/Cargo.toml", \
+    "./crates/backend-webapi-json/" ]
 COPY [ \
     "crates/client/Cargo.toml", \
     "./crates/client/" ]
@@ -165,9 +173,6 @@ COPY [ \
     "crates/usecases-sqlite/Cargo.toml", \
     "./crates/usecases-sqlite/" ]
 COPY [ \
-    "crates/usecases-sqlite-json/Cargo.toml", \
-    "./crates/usecases-sqlite-json/" ]
-COPY [ \
     "crates/websrv-api/Cargo.toml", \
     "./crates/websrv-api/" ]
 COPY [ \
@@ -202,6 +207,12 @@ COPY [ \
     ".pre-commit-config.yaml", \
     ".rustfmt.toml", \
     "./" ]
+COPY [ \
+    "crates/backend-embedded/src", \
+    "./crates/backend-embedded/src/" ]
+COPY [ \
+    "crates/backend-webapi-json/src", \
+    "./crates/backend-webapi-json/src/" ]
 COPY [ \
     "crates/client/src", \
     "./crates/client/src/" ]
@@ -239,9 +250,6 @@ COPY [ \
     "crates/usecases-sqlite/src", \
     "./crates/usecases-sqlite/src/" ]
 COPY [ \
-    "crates/usecases-sqlite-json/src", \
-    "./crates/usecases-sqlite-json/src/" ]
-COPY [ \
     "crates/websrv-api/src", \
     "./crates/websrv-api/src/" ]
 COPY [ \
@@ -270,6 +278,8 @@ RUN tree -a && \
     git init && git add . && git commit -m "pre-commit" && \
     CARGO_BUILD_TARGET=${BUILD_TARGET} pre-commit run --all-files && \
     rm -rf .git && \
+    cargo check -p aoide-backend-embedded --manifest-path crates/backend-embedded/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-backend-webapi-json --manifest-path crates/backend-webapi-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-client --manifest-path crates/client/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core --manifest-path crates/core/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core-json --manifest-path crates/core-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
@@ -281,7 +291,6 @@ RUN tree -a && \
     cargo check -p aoide-storage-sqlite --manifest-path crates/storage-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-usecases-sqlite-json --manifest-path crates/usecases-sqlite-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-websrv-api --manifest-path crates/websrv-api/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml -${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-webcli --manifest-path webcli/Cargo.toml -${PROJECT_CHECK_ARGS} && \

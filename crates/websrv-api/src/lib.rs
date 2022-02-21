@@ -53,7 +53,7 @@ use aoide_storage_sqlite as db;
 
 use aoide_usecases_sqlite as uc;
 
-use aoide_usecases_sqlite_json as uc_json;
+use aoide_backend_webapi_json as api;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -76,9 +76,9 @@ pub enum Error {
     Other(#[from] anyhow::Error),
 }
 
-impl From<uc_json::Error> for Error {
-    fn from(err: uc_json::Error) -> Self {
-        use uc_json::Error::*;
+impl From<api::Error> for Error {
+    fn from(err: api::Error) -> Self {
+        use api::Error::*;
         match err {
             BadRequest(err) => Self::BadRequest(err),
             UseCase(err) => err.into(),
