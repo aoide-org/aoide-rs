@@ -24,7 +24,7 @@ use std::{
     time::Duration,
 };
 
-use eframe::epi::{egui::CtxRef, Frame};
+use eframe::epi::{egui::Context, Frame};
 use egui::{Button, CentralPanel, TextEdit, TopBottomPanel};
 use parking_lot::Mutex;
 use rfd::FileDialog;
@@ -157,7 +157,7 @@ impl App {
         }
     }
 
-    fn resync_state_on_update(&mut self, ctx: &CtxRef) {
+    fn resync_state_on_update(&mut self, ctx: &Context) {
         let launcher = self.launcher.lock();
         let launcher_state = launcher.state();
         if matches!(self.state, State::Terminated) {
@@ -240,7 +240,7 @@ impl App {
         ui.end_row();
     }
 
-    fn show_launch_controls(&mut self, ctx: &CtxRef, ui: &mut egui::Ui) {
+    fn show_launch_controls(&mut self, ctx: &Context, ui: &mut egui::Ui) {
         ui.with_layout(egui::Layout::left_to_right(), |ui| {
             let launcher_state = self.launcher.lock().state();
             let stop_button_text = match launcher_state {
@@ -277,7 +277,7 @@ impl App {
         });
     }
 
-    fn on_start(&mut self, ctx: &CtxRef) {
+    fn on_start(&mut self, ctx: &Context) {
         debug_assert!(matches!(self.state, State::Idle));
         let Config {
             network: network_config,
@@ -313,7 +313,7 @@ impl App {
         }
     }
 
-    fn on_stop(&mut self, ctx: &CtxRef, abort_pending_tasks: bool) {
+    fn on_stop(&mut self, ctx: &Context, abort_pending_tasks: bool) {
         debug_assert!(matches!(self.state, State::Running { .. }));
         if let Err(err) = self.launcher.lock().terminate_runtime(abort_pending_tasks) {
             log::error!("Failed to terminate runtime: {}", err);
@@ -322,7 +322,7 @@ impl App {
         self.after_launcher_terminated(ctx);
     }
 
-    fn after_launcher_terminated(&mut self, ctx: &CtxRef) {
+    fn after_launcher_terminated(&mut self, ctx: &Context) {
         if let State::Running { runtime_thread } =
             std::mem::replace(&mut self.state, State::Terminated)
         {
@@ -360,15 +360,13 @@ fn is_existing_file(path: &Path) -> bool {
     path.canonicalize().map(|p| p.is_file()).unwrap_or(false)
 }
 
-fn trigger_repaint(ctx: &CtxRef) {
+fn trigger_repaint(ctx: &Context) {
     // Calling request_repaint() doesn't seem to be sufficient sometimes!?
-    // Even setting needs_repaint = true doesn't have the desired effect
     // Example: When hitting the Start button and not moving the pointer
     // then the last displayed state will remain Running(Starting) even
     // though Running(Listening) has already been received and a repaint
     // has been triggered.
     log::debug!("Triggering repaint");
-    ctx.output().needs_repaint = true;
     ctx.request_repaint();
 }
 
@@ -379,7 +377,7 @@ impl eframe::epi::App for App {
 
     fn setup(
         &mut self,
-        ctx: &egui::CtxRef,
+        ctx: &egui::Context,
         _frame: &Frame,
         _storage: Option<&dyn eframe::epi::Storage>,
     ) {
@@ -424,7 +422,7 @@ impl eframe::epi::App for App {
         }
     }
 
-    fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
+    fn update(&mut self, ctx: &Context, frame: &Frame) {
         self.resync_state_on_update(ctx);
         if self.exit_flag.load(Ordering::Acquire) {
             frame.quit();
