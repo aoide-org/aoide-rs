@@ -15,7 +15,7 @@
 
 use diesel::Connection as _;
 
-use aoide_core::{entity::EntityUid, track::Entity};
+use aoide_core::{entity::EntityUid, media::content::ContentPath, track::Entity};
 use aoide_core_api::{track::find_unsynchronized::UnsynchronizedTrackEntity, Pagination};
 use aoide_repo::{
     prelude::{RecordCollector, ReservableRecordCollector},
@@ -182,4 +182,59 @@ pub async fn find_unsynchronized(
         .await
         .map_err(Into::into)
         .unwrap_or_else(Err)
+}
+
+pub async fn replace_many_by_media_source_content_path<I>(
+    db_gatekeeper: &Gatekeeper,
+    collection_uid: EntityUid,
+    params: aoide_usecases::track::replace::Params,
+    validated_track_iter: I,
+) -> Result<aoide_core_api::track::replace::Summary>
+where
+    I: IntoIterator<Item = aoide_usecases::track::ValidatedInput> + Send + 'static,
+{
+    db_gatekeeper
+        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+            let connection = &*pooled_connection;
+            connection.transaction::<_, Error, _>(|| {
+                aoide_usecases_sqlite::track::replace::replace_many_by_media_source_content_path(
+                    &*pooled_connection,
+                    &collection_uid,
+                    &params,
+                    validated_track_iter,
+                )
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
+pub async fn import_and_replace_many_by_local_file_path<I>(
+    db_gatekeeper: &Gatekeeper,
+    collection_uid: EntityUid,
+    params: aoide_usecases::track::import_and_replace::Params,
+    content_path_iter: I,
+    expected_content_path_count: Option<usize>,
+) -> Result<aoide_usecases::track::replace::Outcome>
+where
+    I: IntoIterator<Item = ContentPath> + Send + 'static,
+{
+    db_gatekeeper
+    .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
+        let connection = &*pooled_connection;
+        connection.transaction::<_, Error, _>(|| {
+            aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path(
+                &*pooled_connection,
+                &collection_uid,
+                &params,
+                content_path_iter,
+                expected_content_path_count,
+                &abort_flag,
+            )
+        })
+    })
+    .await
+    .map_err(Into::into)
+    .unwrap_or_else(Err)
 }

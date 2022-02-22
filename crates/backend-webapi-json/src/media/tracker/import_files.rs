@@ -85,7 +85,7 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
                 connection,
                 collection_uid,
                 &params,
-                &import_config,
+                import_config,
                 report_progress_fn,
                 abort_flag,
             )

@@ -37,9 +37,11 @@ use aoide_repo::{
 
 use crate::{
     collection::vfs::RepoContext,
-    track::replace::{
-        import_and_replace_by_local_file_path_from_directory_with_content_path_resolver,
-        Completion as ReplaceCompletion, Outcome as ReplaceOutcome,
+    track::{
+        import_and_replace::{
+            self, import_and_replace_by_local_file_path_from_directory_with_content_path_resolver,
+        },
+        replace::{Completion as ReplaceCompletion, Outcome as ReplaceOutcome},
     },
 };
 
@@ -58,7 +60,7 @@ pub fn import_files<
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &Params,
-    config: &ImportTrackConfig,
+    import_config: ImportTrackConfig,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
@@ -66,7 +68,6 @@ pub fn import_files<
         root_url,
         sync_mode,
     } = params;
-    let sync_mode = sync_mode.unwrap_or(SyncMode::Modified);
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
@@ -76,6 +77,11 @@ pub fn import_files<
             collection_ctx.content_path.kind
         )
         .into());
+    };
+    let import_and_replace_params = import_and_replace::Params {
+        sync_mode: sync_mode.unwrap_or(SyncMode::Modified),
+        import_config,
+        replace_mode: ReplaceMode::UpdateOrCreate,
     };
     let collection_id = collection_ctx.record_id;
     let started_at = Instant::now();
@@ -138,9 +144,7 @@ pub fn import_files<
                     repo,
                     collection_id,
                     &vfs_ctx.path_resolver,
-                    sync_mode,
-                    config,
-                    ReplaceMode::UpdateOrCreate,
+                    &import_and_replace_params,
                     &dir_path,
                     abort_flag,
                 ) {

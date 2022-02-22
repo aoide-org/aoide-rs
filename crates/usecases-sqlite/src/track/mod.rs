@@ -27,6 +27,7 @@ use super::*;
 
 pub mod export_metadata;
 pub mod find_unsynchronized;
+pub mod import_and_replace;
 pub mod load;
 pub mod purge;
 pub mod replace;

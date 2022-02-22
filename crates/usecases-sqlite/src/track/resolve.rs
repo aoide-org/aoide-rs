@@ -22,10 +22,10 @@ use super::*;
 pub fn resolve_by_media_source_content_paths(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    media_source_paths: Vec<String>,
+    media_content_paths: Vec<String>,
 ) -> Result<Vec<(String, EntityHeader)>> {
     let repo = RepoConnection::new(connection);
     let collection_id = repo.resolve_collection_id(collection_uid)?;
-    uc::resolve_by_media_source_content_paths(&repo, collection_id, media_source_paths)
+    uc::resolve_by_media_source_content_paths(&repo, collection_id, media_content_paths)
         .map_err(Into::into)
 }

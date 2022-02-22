@@ -144,8 +144,13 @@ pub fn handle_request(
     let tracks = tracks.into_iter().map(Result::unwrap);
     connection
         .transaction::<_, Error, _>(|| {
-            uc::replace_by_media_source_content_path(connection, collection_uid, &params, tracks)
-                .map_err(Into::into)
+            uc::replace_many_by_media_source_content_path(
+                connection,
+                collection_uid,
+                &params,
+                tracks,
+            )
+            .map_err(Into::into)
         })
         .map(Into::into)
 }

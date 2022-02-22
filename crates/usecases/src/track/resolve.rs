@@ -22,22 +22,19 @@ use aoide_repo::{collection::RecordId as CollectionId, track::CollectionRepo};
 pub fn resolve_by_media_source_content_paths<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    media_source_paths: Vec<String>,
+    content_paths: Vec<String>,
 ) -> RepoResult<Vec<(String, EntityHeader)>>
 where
     Repo: CollectionRepo,
 {
-    let mut resolved = Vec::with_capacity(media_source_paths.len());
-    for media_source_path in media_source_paths {
+    let mut resolved = Vec::with_capacity(content_paths.len());
+    for content_path in content_paths {
         let next_resolved = repo
-            .resolve_track_entity_header_by_media_source_content_path(
-                collection_id,
-                &media_source_path,
-            )
+            .resolve_track_entity_header_by_media_source_content_path(collection_id, &content_path)
             .optional()?;
         if let Some(next_resolved) = next_resolved {
             let (_, _, entity_header) = next_resolved;
-            resolved.push((media_source_path, entity_header));
+            resolved.push((content_path, entity_header));
         }
     }
     Ok(resolved)

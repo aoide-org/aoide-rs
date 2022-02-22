@@ -27,6 +27,7 @@ use super::*;
 
 pub mod find_duplicates;
 pub mod find_unsynchronized;
+pub mod import_and_replace;
 pub mod purge;
 pub mod replace;
 pub mod resolve;

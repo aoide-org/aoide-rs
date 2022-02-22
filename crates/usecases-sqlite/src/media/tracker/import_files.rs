@@ -33,7 +33,7 @@ pub fn import_files<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     params: &Params,
-    import_config: &ImportTrackConfig,
+    import_config: ImportTrackConfig,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {

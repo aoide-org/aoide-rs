@@ -27,8 +27,9 @@ use super::{replace::ReplaceMode, *};
 
 mod uc {
     pub use aoide_core_api::track::replace::Summary;
+    pub use aoide_usecases::track::import_and_replace::Params;
     pub use aoide_usecases::track::replace::{Completion, Outcome};
-    pub use aoide_usecases_sqlite::track::replace::*;
+    pub use aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path;
 }
 
 mod _inner {
@@ -167,17 +168,20 @@ pub fn handle_request(
         faceted_tag_mapping: faceted_tag_mapping_config,
         flags: import_flags,
     };
-    let expected_source_path_count = request_body.len();
+    let params = uc::Params {
+        sync_mode: sync_mode.into(),
+        import_config,
+        replace_mode: replace_mode.into(),
+    };
+    let expected_content_path_count = request_body.len();
     connection
         .transaction::<_, Error, _>(|| {
-            uc::import_and_replace_by_local_file_paths(
+            uc::import_and_replace_many_by_local_file_path(
                 connection,
                 collection_uid,
-                sync_mode.into(),
-                &import_config,
-                replace_mode.into(),
+                &params,
                 request_body.into_iter().map(Into::into),
-                Some(expected_source_path_count),
+                Some(expected_content_path_count),
                 abort_flag,
             )
             .map_err(Into::into)
