@@ -684,9 +684,7 @@ pub fn export_track_to_path(
     // Audio properties
     match &track.media_source.content_metadata {
         ContentMetadata::Audio(audio) => {
-            if let Some(formatted_track_gain) =
-                audio.loudness.map(format_valid_replay_gain).flatten()
-            {
+            if let Some(formatted_track_gain) = audio.loudness.and_then(format_valid_replay_gain) {
                 mp4_tag.set_all_data(
                     IDENT_REPLAYGAIN_TRACK_GAIN,
                     once(Data::Utf8(formatted_track_gain)),

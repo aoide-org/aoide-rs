@@ -266,7 +266,7 @@ pub fn import_loudness(
 }
 
 fn export_loudness(writer: &mut impl CommentWriter, loudness: Option<LoudnessLufs>) {
-    if let Some(formatted_track_gain) = loudness.map(format_valid_replay_gain).flatten() {
+    if let Some(formatted_track_gain) = loudness.and_then(format_valid_replay_gain) {
         writer.write_single_value("REPLAYGAIN_TRACK_GAIN".to_owned(), formatted_track_gain);
     } else {
         writer.remove_all_values("REPLAYGAIN_TRACK_GAIN");

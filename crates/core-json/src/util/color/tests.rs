@@ -90,7 +90,6 @@ fn deserialize_json_invalid_suffix() {
 }
 
 #[test]
-#[test]
 fn deserialize_json_too_long() {
     assert!(serde_json::from_str::<RgbColor>("\"#0000000\"").is_err());
 }

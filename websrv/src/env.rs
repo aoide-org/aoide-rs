@@ -59,7 +59,7 @@ fn create_env_filter() -> EnvFilter {
                 );
             }
         }
-        EnvFilter::new(TRACING_SUBSCRIBER_ENV_FILTER_DEFAULT.to_owned())
+        EnvFilter::new(TRACING_SUBSCRIBER_ENV_FILTER_DEFAULT)
     })
 }
 

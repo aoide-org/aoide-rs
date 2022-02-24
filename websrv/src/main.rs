@@ -160,13 +160,13 @@ fn main() {
     log::info!("Patching configuration from .env file and environment variables");
     let mut config = initial_config.clone();
     env::parse_config_into(&mut config);
-    let save_config_on_exit;
-    if config != initial_config {
+    let save_config_on_exit = if config != initial_config {
         log::debug!("Patched configuration: {:?}", config);
-        save_config_on_exit = false;
+        // Don't save on exit if using a temporary configuration
+        false
     } else {
-        save_config_on_exit = true;
-    }
+        true
+    };
 
     let launcher = Arc::new(LauncherMutex::new(Launcher::new()));
 

@@ -24,12 +24,12 @@ fn score_valid() {
     assert!(Score::new(Score::min().0 + Score::max().0)
         .validate()
         .is_ok());
-    assert!(!Score::new(Score::min().0 - Score::max().0)
+    assert!(Score::new(Score::min().0 - Score::max().0)
         .validate()
-        .is_ok());
-    assert!(!Score::new(Score::max().0 + Score::max().0)
+        .is_err());
+    assert!(Score::new(Score::max().0 + Score::max().0)
         .validate()
-        .is_ok());
+        .is_err());
 }
 
 #[test]

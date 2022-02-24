@@ -686,9 +686,7 @@ pub fn export_track(
     // Audio properties
     match &track.media_source.content_metadata {
         ContentMetadata::Audio(audio) => {
-            if let Some(formatted_track_gain) =
-                audio.loudness.map(format_valid_replay_gain).flatten()
-            {
+            if let Some(formatted_track_gain) = audio.loudness.and_then(format_valid_replay_gain) {
                 tag.add_frame(ExtendedText {
                     description: "REPLAYGAIN_TRACK_GAIN".to_owned(),
                     value: formatted_track_gain,

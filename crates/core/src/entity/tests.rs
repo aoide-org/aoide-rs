@@ -17,7 +17,7 @@ use super::*;
 
 #[test]
 fn default_uid() {
-    assert!(!EntityUid::default().validate().is_ok());
+    assert!(EntityUid::default().validate().is_err());
     assert_eq!(
         EntityUid::default().as_ref().len(),
         mem::size_of::<EntityUid>()
@@ -83,7 +83,7 @@ fn rev_sequence() {
 #[test]
 fn hdr_without_uid() {
     let hdr = EntityHeader::initial_with_uid(EntityUid::default());
-    assert!(!hdr.validate().is_ok());
+    assert!(hdr.validate().is_err());
     assert_eq!(EntityRevision::initial(), hdr.rev);
 }
 

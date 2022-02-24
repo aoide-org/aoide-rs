@@ -17,7 +17,7 @@ use super::*;
 
 #[test]
 fn channel_count_default() {
-    assert!(!ChannelCount::default().validate().is_ok());
+    assert!(ChannelCount::default().validate().is_err());
 }
 
 #[test]
@@ -40,7 +40,7 @@ fn channels_default() {
 
 #[test]
 fn channels_validate() {
-    assert!(!Channels::default().validate().is_ok());
+    assert!(Channels::default().validate().is_err());
     assert!(Channels::Layout(ChannelLayout::Mono).validate().is_ok());
     assert!(Channels::Layout(ChannelLayout::DualMono).validate().is_ok());
     assert!(Channels::Layout(ChannelLayout::Stereo).validate().is_ok());
