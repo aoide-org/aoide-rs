@@ -23,8 +23,6 @@ use aoide_core_api::{
 };
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
-use crate::Result;
-
 #[derive(Debug, Clone)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
@@ -68,6 +66,8 @@ pub struct Outcome {
     pub find_unsynchronized_tracks: Option<Vec<UnsynchronizedTrackEntity>>,
 }
 
+pub type Result = crate::Result<Outcome>;
+
 #[derive(Debug, Clone)]
 pub enum Progress {
     Step1ScanDirectories(aoide_usecases::media::tracker::scan_directories::ProgressEvent),
@@ -84,7 +84,7 @@ pub async fn resync_vfs_collection<P>(
     collection_uid: EntityUid,
     params: Params,
     mut report_progress_fn: P,
-) -> Result<Outcome>
+) -> Result
 where
     P: FnMut(Progress) + Clone + Send + 'static,
 {
