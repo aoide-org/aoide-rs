@@ -93,6 +93,27 @@ where
         .unwrap_or_else(Err)
 }
 
+pub async fn load_one(
+    db_gatekeeper: &Gatekeeper,
+    entity_uid: EntityUid,
+    scope: LoadScope,
+) -> Result<EntityWithSummary> {
+    db_gatekeeper
+        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
+            let connection = &*pooled_connection;
+            connection.transaction::<_, Error, _>(|| {
+                aoide_usecases_sqlite::collection::load::load_one(
+                    &*pooled_connection,
+                    &entity_uid,
+                    scope,
+                )
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
 pub async fn create(db_gatekeeper: &Gatekeeper, new_collection: Collection) -> Result<Entity> {
     db_gatekeeper
         .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
