@@ -125,6 +125,8 @@ const IDENT_YEAR: Fourcc = Fourcc(*b"\xA9day");
 
 const IDENT_XID: Fourcc = Fourcc(*b"xid ");
 
+const IDENT_COMPILATION: Fourcc = Fourcc(*b"cpil");
+
 const IDENT_BPM: FreeformIdent<'static> = FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM");
 
 const IDENT_INITIAL_KEY: FreeformIdent<'static> =
@@ -393,6 +395,8 @@ impl Metadata {
         // Album properties
         if mp4_tag.compilation() {
             album.kind = AlbumKind::Compilation;
+        } else if mp4_tag.data_of(&IDENT_COMPILATION).next().is_some() {
+            album.kind = AlbumKind::Unknown;
         }
 
         track.album = Canonical::tie(album);

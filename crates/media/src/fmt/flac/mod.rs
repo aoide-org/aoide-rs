@@ -308,7 +308,7 @@ impl Metadata {
         }
 
         // Album properties
-        if let Some(album_kind) = vorbis::import_album_kind(metaflac_tag) {
+        if let Some(album_kind) = vorbis::import_album_kind(importer, metaflac_tag) {
             album.kind = album_kind;
         }
 

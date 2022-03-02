@@ -65,7 +65,7 @@ use crate::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
         push_next_actor_role_name_from, serato,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
-        try_ingest_embedded_artwork_image,
+        trim_readable, try_ingest_embedded_artwork_image,
     },
     Error, Result,
 };
@@ -275,6 +275,23 @@ pub fn import_timestamp_from_first_text_frame(
     })
 }
 
+pub fn import_album_kind(importer: &mut Importer, tag: &id3::Tag) -> Option<AlbumKind> {
+    let value = first_text_frame(tag, "TCMP");
+    value
+        .and_then(|compilation| trim_readable(compilation).parse::<u8>().ok())
+        .map(|compilation| match compilation {
+            0 => AlbumKind::Unknown, // either Album or Single
+            1 => AlbumKind::Compilation,
+            _ => {
+                importer.add_issue(format!(
+                    "Unexpected tag value: TCMP = '{}'",
+                    value.expect("unreachable")
+                ));
+                AlbumKind::Unknown
+            }
+        })
+}
+
 pub fn import_metadata_into_track(
     importer: &mut Importer,
     tag: &id3::Tag,
@@ -419,22 +436,9 @@ pub fn import_metadata_into_track(
     }
 
     // Album properties
-    album.kind = first_text_frame(tag, "TCMP")
-        .map(|tcmp| tcmp.parse::<u8>())
-        .transpose()
-        .map_err(anyhow::Error::from)?
-        .map(|tcmp| match tcmp {
-            0 => AlbumKind::Unknown, // either album or single
-            1 => AlbumKind::Compilation,
-            _ => {
-                importer.add_issue(format!(
-                    "Unexpected iTunes compilation tag: TCMP = {}",
-                    tcmp
-                ));
-                AlbumKind::Unknown
-            }
-        })
-        .unwrap_or_default();
+    if let Some(album_kind) = import_album_kind(importer, tag) {
+        album.kind = album_kind;
+    }
 
     track.album = Canonical::tie(album);
 

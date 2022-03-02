@@ -58,7 +58,7 @@ use crate::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
         push_next_actor_role_name_from, serato,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
-        try_ingest_embedded_artwork_image,
+        trim_readable, try_ingest_embedded_artwork_image,
     },
     Result,
 };
@@ -329,17 +329,24 @@ fn export_key_signature(writer: &mut impl CommentWriter, key_signature: KeySigna
     }
 }
 
-pub fn import_album_kind(reader: &impl CommentReader) -> Option<AlbumKind> {
-    if reader
-        .read_first_value("COMPILATION")
-        .and_then(|compilation| compilation.parse::<u8>().ok())
-        .unwrap_or_default()
-        == 1
-    {
-        Some(AlbumKind::Compilation)
-    } else {
-        None
-    }
+pub fn import_album_kind(
+    importer: &mut Importer,
+    reader: &impl CommentReader,
+) -> Option<AlbumKind> {
+    let value = reader.read_first_value("COMPILATION");
+    value
+        .and_then(|compilation| trim_readable(compilation).parse::<u8>().ok())
+        .map(|compilation| match compilation {
+            0 => AlbumKind::Unknown, // either Album or Single
+            1 => AlbumKind::Compilation,
+            _ => {
+                importer.add_issue(format!(
+                    "Unexpected tag value: COMPILATION = '{}'",
+                    value.expect("unreachable")
+                ));
+                AlbumKind::Unknown
+            }
+        })
 }
 
 pub fn import_recorded_at(
@@ -699,7 +706,7 @@ pub fn import_into_track(
     }
 
     // Album properties
-    if let Some(album_kind) = import_album_kind(reader) {
+    if let Some(album_kind) = import_album_kind(importer, reader) {
         album.kind = album_kind;
     }
 
