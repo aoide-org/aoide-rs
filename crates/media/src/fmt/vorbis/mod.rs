@@ -344,11 +344,13 @@ pub fn import_key_signature(
     reader: &impl CommentReader,
 ) -> Option<KeySignature> {
     reader
-        .read_first_value("INITIALKEY")
+        .read_first_value("KEY")
         .and_then(|value| importer.import_key_signature(value))
         .or_else(|| {
+            // Fallback for Rekordbox/Serato/Traktor
+            // https://docs.google.com/spreadsheets/d/1zhIJPOtYIueV72Gd81aVnbSa6dIA-azq9fnGC2rHUzo
             reader
-                .read_first_value("KEY")
+                .read_first_value("INITIALKEY")
                 .and_then(|value| importer.import_key_signature(value))
         })
 }
