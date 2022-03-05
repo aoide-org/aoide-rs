@@ -157,7 +157,7 @@ impl App {
         }
     }
 
-    fn resync_state_on_update(&mut self, ctx: &Context) {
+    fn resync_state_on_update(&mut self, frame: &Frame) {
         let launcher = self.launcher.lock();
         let launcher_state = launcher.state();
         if matches!(self.state, State::Terminated) {
@@ -170,7 +170,7 @@ impl App {
         } else if matches!(launcher_state, LauncherState::Terminated) {
             // If startup fails the launcher may terminate itself unattended
             drop(launcher);
-            self.after_launcher_terminated(ctx);
+            self.after_launcher_terminated(frame);
         }
     }
 
@@ -240,7 +240,7 @@ impl App {
         ui.end_row();
     }
 
-    fn show_launch_controls(&mut self, ctx: &Context, ui: &mut egui::Ui) {
+    fn show_launch_controls(&mut self, ui: &mut egui::Ui, frame: &Frame) {
         ui.with_layout(egui::Layout::left_to_right(), |ui| {
             let launcher_state = self.launcher.lock().state();
             let stop_button_text = match launcher_state {
@@ -259,7 +259,7 @@ impl App {
                 .add_enabled(stop_button_enabled, Button::new(stop_button_text))
                 .clicked()
             {
-                self.on_stop(ctx, true);
+                self.on_stop(frame, true);
             }
 
             let start_button_text = match launcher_state {
@@ -272,12 +272,12 @@ impl App {
                 .add_enabled(start_button_enabled, Button::new(start_button_text))
                 .clicked()
             {
-                self.on_start(ctx);
+                self.on_start(frame);
             }
         });
     }
 
-    fn on_start(&mut self, ctx: &Context) {
+    fn on_start(&mut self, frame: &Frame) {
         debug_assert!(matches!(self.state, State::Idle));
         let Config {
             network: network_config,
@@ -293,10 +293,10 @@ impl App {
         let mut launcher = self.launcher.lock();
         *self.last_error.lock() = None;
         match launcher.launch_runtime(next_config.clone(), {
-            let ctx = ctx.to_owned();
+            let frame = frame.to_owned();
             move |state| {
                 log::debug!("Launcher state changed: {:?}", state);
-                trigger_repaint(&ctx);
+                frame.request_repaint();
             }
         }) {
             Ok(runtime_thread) => {
@@ -305,7 +305,7 @@ impl App {
                 self.config = next_config.clone().into();
                 self.last_config = next_config;
                 self.state = State::Running { runtime_thread };
-                trigger_repaint(ctx);
+                frame.request_repaint();
             }
             Err(err) => {
                 log::warn!("Failed to launch runtime: {}", err);
@@ -313,16 +313,16 @@ impl App {
         }
     }
 
-    fn on_stop(&mut self, ctx: &Context, abort_pending_tasks: bool) {
+    fn on_stop(&mut self, frame: &Frame, abort_pending_tasks: bool) {
         debug_assert!(matches!(self.state, State::Running { .. }));
         if let Err(err) = self.launcher.lock().terminate_runtime(abort_pending_tasks) {
             log::error!("Failed to terminate runtime: {}", err);
             return;
         }
-        self.after_launcher_terminated(ctx);
+        self.after_launcher_terminated(frame);
     }
 
-    fn after_launcher_terminated(&mut self, ctx: &Context) {
+    fn after_launcher_terminated(&mut self, frame: &Frame) {
         if let State::Running { runtime_thread } =
             std::mem::replace(&mut self.state, State::Terminated)
         {
@@ -330,12 +330,12 @@ impl App {
             std::thread::spawn({
                 let launcher = Arc::clone(&self.launcher);
                 let last_error = Arc::clone(&self.last_error);
-                let ctx = ctx.to_owned();
+                let frame = frame.to_owned();
                 move || {
                     *last_error.lock() = join_runtime_thread(runtime_thread)
                         .err()
                         .map(|err| err.to_string());
-                    trigger_repaint(&ctx);
+                    frame.request_repaint();
                     while !matches!(launcher.lock().state(), LauncherState::Terminated) {
                         log::debug!("Awaiting termination of launcher...");
                         std::thread::sleep(Duration::from_millis(1));
@@ -344,10 +344,10 @@ impl App {
                     launcher.lock().reset_after_terminated();
                     // The application state will be re-synchronized during
                     // the next invocation of update().
-                    trigger_repaint(&ctx);
+                    frame.request_repaint();
                 }
             });
-            trigger_repaint(ctx);
+            frame.request_repaint();
         }
     }
 }
@@ -360,16 +360,6 @@ fn is_existing_file(path: &Path) -> bool {
     path.canonicalize().map(|p| p.is_file()).unwrap_or(false)
 }
 
-fn trigger_repaint(ctx: &Context) {
-    // Calling request_repaint() doesn't seem to be sufficient sometimes!?
-    // Example: When hitting the Start button and not moving the pointer
-    // then the last displayed state will remain Running(Starting) even
-    // though Running(Listening) has already been received and a repaint
-    // has been triggered.
-    log::debug!("Triggering repaint");
-    ctx.request_repaint();
-}
-
 impl eframe::epi::App for App {
     fn name(&self) -> &str {
         app_name()
@@ -377,16 +367,16 @@ impl eframe::epi::App for App {
 
     fn setup(
         &mut self,
-        ctx: &egui::Context,
-        _frame: &Frame,
+        _ctx: &egui::Context,
+        frame: &Frame,
         _storage: Option<&dyn eframe::epi::Storage>,
     ) {
         if let Err(err) = ctrlc::set_handler({
-            let ctx = ctx.to_owned();
+            let frame = frame.to_owned();
             let exit_flag = Arc::clone(&self.exit_flag);
             move || {
                 exit_flag.store(true, Ordering::Release);
-                trigger_repaint(&ctx);
+                frame.request_repaint();
             }
         }) {
             log::error!("Failed to register signal handler: {}", err);
@@ -423,7 +413,7 @@ impl eframe::epi::App for App {
     }
 
     fn update(&mut self, ctx: &Context, frame: &Frame) {
-        self.resync_state_on_update(ctx);
+        self.resync_state_on_update(frame);
         if self.exit_flag.load(Ordering::Acquire) {
             frame.quit();
         }
@@ -438,7 +428,7 @@ impl eframe::epi::App for App {
         });
         CentralPanel::default().show(ctx, |_ui| {
             TopBottomPanel::top("launch_controls").show(ctx, |ui| {
-                self.show_launch_controls(ctx, ui);
+                self.show_launch_controls(ui, frame);
             });
         });
         TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
