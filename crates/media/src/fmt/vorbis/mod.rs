@@ -67,6 +67,39 @@ pub const MIXXX_CUSTOM_TAGS_KEY: &str = "MIXXX_CUSTOM_TAGS";
 
 pub const AOIDE_TAGS_KEY: &str = "AOIDE_TAGS";
 
+pub const ARTIST_KEY: &str = "ARTIST";
+pub const ARRANGER_KEY: &str = "ARRANGER";
+pub const COMPOSER_KEY: &str = "COMPOSER";
+pub const CONDUCTOR_KEY: &str = "CONDUCTOR";
+pub const PRODUCER_KEY: &str = "PRODUCER";
+pub const REMIXER_KEY: &str = "REMIXER";
+// MIXARTIST: Fallback for compatibility with Rekordbox, Engine DJ, and Traktor
+pub const REMIXER_KEY2: &str = "MIXARTIST";
+pub const MIXER_KEY: &str = "MIXER";
+pub const DJMIXER_KEY: &str = "DJMIXER";
+pub const ENGINEER_KEY: &str = "ENGINEER";
+pub const DIRECTOR_KEY: &str = "DIRECTOR";
+pub const LYRICIST_KEY: &str = "LYRICIST";
+pub const WRITER_KEY: &str = "WRITER";
+
+pub const ALBUM_ARTIST_KEY: &str = "ALBUMARTIST";
+pub const ALBUM_ARTIST_KEY2: &str = "ALBUM_ARTIST";
+pub const ALBUM_ARTIST_KEY3: &str = "ALBUM ARTIST";
+pub const ALBUM_ARTIST_KEY4: &str = "ENSEMBLE";
+
+pub const COMMENT_KEY: &str = "COMMENT";
+pub const COMMENT_KEY2: &str = "DESCRIPTION";
+
+pub const GENRE_KEY: &str = "GENRE";
+pub const GROUPING_KEY: &str = "GROUPING";
+pub const MOOD_KEY: &str = "MOOD";
+
+pub const ISRC_KEY: &str = "ISRC";
+
+pub const MUSICBRAINZ_RECORDING_ID_KEY: &str = "MUSICBRAINZ_TRACKID";
+pub const MUSICBRAINZ_RELEASE_ID_KEY: &str = "MUSICBRAINZ_ALBUMID";
+pub const MUSICBRAINZ_RELEASEGROUP_ID_KEY: &str = "MUSICBRAINZ_RELEASEGROUPID";
+
 fn cmp_eq_comment_key(key1: &str, key2: &str) -> bool {
     key1.eq_ignore_ascii_case(key2)
 }
@@ -396,13 +429,15 @@ pub fn import_publisher(reader: &impl CommentReader) -> Option<String> {
         .read_first_value("LABEL")
         .and_then(trimmed_non_empty_from)
         .or_else(|| {
+            // Primary fallback
             reader
-                .read_first_value("PUBLISHER") // primary fallback
+                .read_first_value("PUBLISHER")
                 .and_then(trimmed_non_empty_from)
         })
         .or_else(|| {
+            // Secondary fallback
             reader
-                .read_first_value("ORGANIZATION") // secondary fallback
+                .read_first_value("ORGANIZATION")
                 .and_then(trimmed_non_empty_from)
         })
         .map(Into::into)
@@ -624,40 +659,46 @@ pub fn import_into_track(
 
     // Track actors
     let mut track_actors = Vec::with_capacity(8);
-    for name in reader.filter_values("ARTIST").unwrap_or_default() {
+    for name in reader.filter_values(ARTIST_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Artist, name);
     }
-    for name in reader.filter_values("ARRANGER").unwrap_or_default() {
+    for name in reader.filter_values(ARRANGER_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Arranger, name);
     }
-    for name in reader.filter_values("COMPOSER").unwrap_or_default() {
+    for name in reader.filter_values(COMPOSER_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Composer, name);
     }
-    for name in reader.filter_values("CONDUCTOR").unwrap_or_default() {
+    for name in reader.filter_values(CONDUCTOR_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Conductor, name);
     }
-    for name in reader.filter_values("PRODUCER").unwrap_or_default() {
+    for name in reader.filter_values(CONDUCTOR_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Producer, name);
     }
-    for name in reader.filter_values("REMIXER").unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
+    if reader.read_first_value(REMIXER_KEY).is_some() {
+        for name in reader.filter_values(REMIXER_KEY).unwrap_or_default() {
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
+        }
+    } else {
+        for name in reader.filter_values(REMIXER_KEY2).unwrap_or_default() {
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
+        }
     }
-    for name in reader.filter_values("MIXER").unwrap_or_default() {
+    for name in reader.filter_values(MIXER_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Mixer, name);
     }
-    for name in reader.filter_values("DJMIXER").unwrap_or_default() {
+    for name in reader.filter_values(DJMIXER_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::DjMixer, name);
     }
-    for name in reader.filter_values("ENGINEER").unwrap_or_default() {
+    for name in reader.filter_values(ENGINEER_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Engineer, name);
     }
-    for name in reader.filter_values("DIRECTOR").unwrap_or_default() {
+    for name in reader.filter_values(DIRECTOR_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Director, name);
     }
-    for name in reader.filter_values("LYRICIST").unwrap_or_default() {
+    for name in reader.filter_values(LYRICIST_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Lyricist, name);
     }
-    for name in reader.filter_values("WRITER").unwrap_or_default() {
+    for name in reader.filter_values(WRITER_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
     }
     let track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
@@ -676,24 +717,24 @@ pub fn import_into_track(
     // Album actors
     let mut album_actors = Vec::with_capacity(4);
     for name in reader
-        .filter_values("ALBUMARTIST")
+        .filter_values(ALBUM_ARTIST_KEY)
         .unwrap_or_default()
         .into_iter()
         .chain(
             reader
-                .filter_values("ALBUM_ARTIST")
+                .filter_values(ALBUM_ARTIST_KEY2)
                 .unwrap_or_default()
                 .into_iter(),
         )
         .chain(
             reader
-                .filter_values("ALBUM ARTIST")
+                .filter_values(ALBUM_ARTIST_KEY3)
                 .unwrap_or_default()
                 .into_iter(),
         )
         .chain(
             reader
-                .filter_values("ENSEMBLE")
+                .filter_values(ALBUM_ARTIST_KEY4)
                 .unwrap_or_default()
                 .into_iter(),
         )
@@ -728,7 +769,7 @@ pub fn import_into_track(
         &config.faceted_tag_mapping,
         &FACET_COMMENT,
         reader
-            .filter_values("COMMENT")
+            .filter_values(COMMENT_KEY)
             .unwrap_or_default()
             .into_iter(),
     );
@@ -740,7 +781,7 @@ pub fn import_into_track(
         &config.faceted_tag_mapping,
         &FACET_DESCRIPTION,
         reader
-            .filter_values("DESCRIPTION")
+            .filter_values(COMMENT_KEY2)
             .unwrap_or_default()
             .into_iter(),
     );
@@ -752,7 +793,7 @@ pub fn import_into_track(
         &config.faceted_tag_mapping,
         &FACET_GENRE,
         reader
-            .filter_values("GENRE")
+            .filter_values(GENRE_KEY)
             .unwrap_or_default()
             .into_iter(),
     );
@@ -763,7 +804,10 @@ pub fn import_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_MOOD,
-        reader.filter_values("MOOD").unwrap_or_default().into_iter(),
+        reader
+            .filter_values(MOOD_KEY)
+            .unwrap_or_default()
+            .into_iter(),
     );
 
     // Grouping tags
@@ -773,7 +817,7 @@ pub fn import_into_track(
         &config.faceted_tag_mapping,
         &FACET_GROUPING,
         reader
-            .filter_values("GROUPING")
+            .filter_values(GROUPING_KEY)
             .unwrap_or_default()
             .into_iter(),
     );
@@ -784,7 +828,10 @@ pub fn import_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_ISRC,
-        reader.filter_values("ISRC").unwrap_or_default().into_iter(),
+        reader
+            .filter_values(ISRC_KEY)
+            .unwrap_or_default()
+            .into_iter(),
     );
 
     if let Some(index) = import_track_index(importer, reader) {
@@ -883,62 +930,62 @@ pub fn export_track(
     // Track actors
     export_filtered_actor_names(
         writer,
-        "ARTIST".to_owned(),
+        ARTIST_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Artist),
     );
     export_filtered_actor_names(
         writer,
-        "ARRANGER".to_owned(),
+        ARRANGER_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Arranger),
     );
     export_filtered_actor_names(
         writer,
-        "COMPOSER".to_owned(),
+        COMPOSER_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Composer),
     );
     export_filtered_actor_names(
         writer,
-        "CONDUCTOR".to_owned(),
+        CONDUCTOR_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Conductor),
     );
     export_filtered_actor_names(
         writer,
-        "PRODUCER".to_owned(),
+        CONDUCTOR_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Producer),
     );
     export_filtered_actor_names(
         writer,
-        "REMIXER".to_owned(),
+        REMIXER_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Remixer),
     );
     export_filtered_actor_names(
         writer,
-        "MIXER".to_owned(),
+        MIXER_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Mixer),
     );
     export_filtered_actor_names(
         writer,
-        "DJMIXER".to_owned(),
+        DJMIXER_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::DjMixer),
     );
     export_filtered_actor_names(
         writer,
-        "ENGINEER".to_owned(),
+        ENGINEER_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Engineer),
     );
     export_filtered_actor_names(
         writer,
-        "DIRECTOR".to_owned(),
+        DIRECTOR_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Director),
     );
     export_filtered_actor_names(
         writer,
-        "LYRICIST".to_owned(),
+        LYRICIST_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Lyricist),
     );
     export_filtered_actor_names(
         writer,
-        "WRITER".to_owned(),
+        WRITER_KEY.to_owned(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Writer),
     );
 
@@ -1069,72 +1116,72 @@ pub fn export_track(
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_COMMENT) {
         export_faceted_tags(
             writer,
-            "COMMENT".to_owned(),
+            COMMENT_KEY.to_owned(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
     } else {
-        writer.remove_all_values("COMMENT");
+        writer.remove_all_values(COMMENT_KEY);
     }
 
     // Description(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_DESCRIPTION) {
         export_faceted_tags(
             writer,
-            "DESCRIPTION".to_owned(),
+            COMMENT_KEY2.to_owned(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
     } else {
-        writer.remove_all_values("DESCRIPTION");
+        writer.remove_all_values(COMMENT_KEY2);
     }
 
     // Genre(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GENRE) {
         export_faceted_tags(
             writer,
-            "GENRE".to_owned(),
+            GENRE_KEY.to_owned(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
     } else {
-        writer.remove_all_values("GENRE");
+        writer.remove_all_values(GENRE_KEY);
     }
 
     // Mood(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_MOOD) {
         export_faceted_tags(
             writer,
-            "MOOD".to_owned(),
+            MOOD_KEY.to_owned(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
     } else {
-        writer.remove_all_values("MOOD");
+        writer.remove_all_values(MOOD_KEY);
     }
 
     // Grouping(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GROUPING) {
         export_faceted_tags(
             writer,
-            "GROUPING".to_owned(),
+            GROUPING_KEY.to_owned(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
     } else {
-        writer.remove_all_values("GROUPING");
+        writer.remove_all_values(GROUPING_KEY);
     }
 
     // ISRC(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ISRC) {
         export_faceted_tags(
             writer,
-            "ISRC".to_owned(),
+            ISRC_KEY.to_owned(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
     } else {
-        writer.remove_all_values("ISRC");
+        writer.remove_all_values(ISRC_KEY);
     }
 }
 

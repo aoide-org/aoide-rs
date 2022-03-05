@@ -34,6 +34,12 @@ use aoide_core::{
 };
 
 use crate::{
+    fmt::vorbis::{
+        ALBUM_ARTIST_KEY, ALBUM_ARTIST_KEY2, ALBUM_ARTIST_KEY3, ALBUM_ARTIST_KEY4, ARRANGER_KEY,
+        ARTIST_KEY, COMMENT_KEY, COMMENT_KEY2, COMPOSER_KEY, CONDUCTOR_KEY, DIRECTOR_KEY,
+        DJMIXER_KEY, ENGINEER_KEY, GENRE_KEY, GROUPING_KEY, ISRC_KEY, LYRICIST_KEY, MIXER_KEY,
+        MOOD_KEY, REMIXER_KEY, REMIXER_KEY2, WRITER_KEY,
+    },
     io::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer, Reader, TrackScope},
@@ -202,67 +208,66 @@ impl Metadata {
 
         // Track actors
         let mut track_actors = Vec::with_capacity(8);
-        if let Some(artists) = metaflac_tag.get_vorbis("ARTIST") {
+        if let Some(artists) = metaflac_tag.get_vorbis(ARTIST_KEY) {
             for name in artists {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Artist, name);
             }
         }
-        if let Some(artists) = metaflac_tag.get_vorbis("ARRANGER") {
+        if let Some(artists) = metaflac_tag.get_vorbis(ARRANGER_KEY) {
             for name in artists {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Arranger, name);
             }
         }
-        if let Some(compersers) = metaflac_tag.get_vorbis("COMPOSER") {
+        if let Some(compersers) = metaflac_tag.get_vorbis(COMPOSER_KEY) {
             for name in compersers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Composer, name);
             }
         }
-        if let Some(conductors) = metaflac_tag.get_vorbis("CONDUCTOR") {
+        if let Some(conductors) = metaflac_tag.get_vorbis(CONDUCTOR_KEY) {
             for name in conductors {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Conductor, name);
             }
         }
-        if let Some(producers) = metaflac_tag.get_vorbis("PRODUCER") {
+        if let Some(producers) = metaflac_tag.get_vorbis(CONDUCTOR_KEY) {
             for name in producers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Producer, name);
             }
         }
-        if let Some(remixers) = metaflac_tag.get_vorbis("REMIXER") {
+        if let Some(remixers) = metaflac_tag.get_vorbis(REMIXER_KEY) {
             for name in remixers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
             }
-        } else if let Some(remixers) = metaflac_tag.get_vorbis("MIXARTIST") {
-            // Fallback for compatibility with Rekordbox, Engine DJ, and Traktor
+        } else if let Some(remixers) = metaflac_tag.get_vorbis(REMIXER_KEY2) {
             for name in remixers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
             }
         }
-        if let Some(mixers) = metaflac_tag.get_vorbis("MIXER") {
+        if let Some(mixers) = metaflac_tag.get_vorbis(MIXER_KEY) {
             for name in mixers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Mixer, name);
             }
         }
-        if let Some(mixers) = metaflac_tag.get_vorbis("DJMIXER") {
+        if let Some(mixers) = metaflac_tag.get_vorbis(DJMIXER_KEY) {
             for name in mixers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::DjMixer, name);
             }
         }
-        if let Some(engineers) = metaflac_tag.get_vorbis("ENGINEER") {
+        if let Some(engineers) = metaflac_tag.get_vorbis(ENGINEER_KEY) {
             for name in engineers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Engineer, name);
             }
         }
-        if let Some(engineers) = metaflac_tag.get_vorbis("DIRECTOR") {
+        if let Some(engineers) = metaflac_tag.get_vorbis(DIRECTOR_KEY) {
             for name in engineers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Director, name);
             }
         }
-        if let Some(engineers) = metaflac_tag.get_vorbis("LYRICIST") {
+        if let Some(engineers) = metaflac_tag.get_vorbis(LYRICIST_KEY) {
             for name in engineers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Lyricist, name);
             }
         }
-        if let Some(engineers) = metaflac_tag.get_vorbis("WRITER") {
+        if let Some(engineers) = metaflac_tag.get_vorbis(WRITER_KEY) {
             for name in engineers {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
             }
@@ -283,22 +288,27 @@ impl Metadata {
         // Album actors
         let mut album_actors = Vec::with_capacity(4);
         for name in metaflac_tag
-            .get_vorbis("ALBUMARTIST")
+            .get_vorbis(ALBUM_ARTIST_KEY)
             .into_iter()
             .flatten()
             .chain(
                 metaflac_tag
-                    .get_vorbis("ALBUM_ARTIST")
+                    .get_vorbis(ALBUM_ARTIST_KEY2)
                     .into_iter()
                     .flatten(),
             )
             .chain(
                 metaflac_tag
-                    .get_vorbis("ALBUM ARTIST")
+                    .get_vorbis(ALBUM_ARTIST_KEY3)
                     .into_iter()
                     .flatten(),
             )
-            .chain(metaflac_tag.get_vorbis("ENSEMBLE").into_iter().flatten())
+            .chain(
+                metaflac_tag
+                    .get_vorbis(ALBUM_ARTIST_KEY4)
+                    .into_iter()
+                    .flatten(),
+            )
         {
             push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
         }
@@ -341,8 +351,8 @@ impl Metadata {
         }
 
         // Comment tag
-        // The original specification only defines a "DESCRIPTION" field,
-        // while MusicBrainz recommends to use "COMMENT".
+        // The original specification only defines a COMMENT_KEY2 field,
+        // while MusicBrainz recommends to use COMMENT_KEY.
         // http://www.xiph.org/vorbis/doc/v-comment.html
         // https://picard.musicbrainz.org/docs/mappings
         vorbis::import_faceted_text_tags(
@@ -351,14 +361,14 @@ impl Metadata {
             &config.faceted_tag_mapping,
             &FACET_COMMENT,
             metaflac_tag
-                .get_vorbis("COMMENT")
+                .get_vorbis(COMMENT_KEY)
                 .into_iter()
                 .flatten()
-                .chain(metaflac_tag.get_vorbis("DESCRIPTION").into_iter().flatten()),
+                .chain(metaflac_tag.get_vorbis(COMMENT_KEY2).into_iter().flatten()),
         );
 
         // Genre tags
-        if let Some(genres) = metaflac_tag.get_vorbis("GENRE") {
+        if let Some(genres) = metaflac_tag.get_vorbis(GENRE_KEY) {
             vorbis::import_faceted_text_tags(
                 importer,
                 &mut tags_map,
@@ -369,7 +379,7 @@ impl Metadata {
         }
 
         // Mood tags
-        if let Some(moods) = metaflac_tag.get_vorbis("MOOD") {
+        if let Some(moods) = metaflac_tag.get_vorbis(MOOD_KEY) {
             vorbis::import_faceted_text_tags(
                 importer,
                 &mut tags_map,
@@ -380,7 +390,7 @@ impl Metadata {
         }
 
         // Grouping tags
-        if let Some(groupings) = metaflac_tag.get_vorbis("GROUPING") {
+        if let Some(groupings) = metaflac_tag.get_vorbis(GROUPING_KEY) {
             vorbis::import_faceted_text_tags(
                 importer,
                 &mut tags_map,
@@ -391,7 +401,7 @@ impl Metadata {
         }
 
         // ISRC tag
-        if let Some(isrc) = metaflac_tag.get_vorbis("ISRC") {
+        if let Some(isrc) = metaflac_tag.get_vorbis(ISRC_KEY) {
             vorbis::import_faceted_text_tags(
                 importer,
                 &mut tags_map,
