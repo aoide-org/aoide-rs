@@ -128,7 +128,7 @@ pub fn hash_directories<
         report_progress_fn,
     )
     .map(|mut progress_event| {
-        progress_event.finish();
+        progress_event.try_finish();
         report_progress_fn(&progress_event);
         let elapsed = progress_event.elapsed_since_started();
         let outcome = progress_event.finalize();

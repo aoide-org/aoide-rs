@@ -177,7 +177,7 @@ pub fn visit_directories<
     )
     .map_err(anyhow::Error::from)
     .map(|mut progress_event| {
-        progress_event.finish();
+        progress_event.try_finish();
         report_progress_fn(progress_event.clone().into());
         let elapsed = progress_event.elapsed_since_started();
         let outcome = progress_event.finalize();

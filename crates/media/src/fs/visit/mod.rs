@@ -104,9 +104,12 @@ impl ProgressEvent {
         self.started_at.elapsed()
     }
 
-    pub fn finish(&mut self) {
-        debug_assert_eq!(self.status, Status::InProgress);
+    pub fn try_finish(&mut self) -> bool {
+        if !matches!(self.status, Status::InProgress) {
+            return false;
+        }
         self.status = Status::Finished;
+        true
     }
 
     pub fn abort(&mut self) {
