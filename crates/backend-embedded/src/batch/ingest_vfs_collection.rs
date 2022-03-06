@@ -35,8 +35,22 @@ pub struct Params {
     pub find_unsynchronized_tracks: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Completion {
+    Finished,
+    Aborted,
+}
+
+impl Default for Completion {
+    fn default() -> Self {
+        Self::Finished
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Outcome {
+    pub completion: Completion,
+
     /// 1st step
     pub scan_directories: Option<aoide_core_api::media::tracker::scan_directories::Outcome>,
 
@@ -106,14 +120,24 @@ where
     };
     outcome.scan_directories = Some({
         let mut report_progress_fn = report_progress_fn.clone();
-        crate::media::tracker::scan_directories(
+        let step_outcome = crate::media::tracker::scan_directories(
             db_gatekeeper,
             collection_uid.clone(),
             scan_directories_params,
             move |event| report_progress_fn(Progress::Step1ScanDirectories(event)),
         )
-        .await?
+        .await?;
+        if matches!(
+            step_outcome.completion,
+            aoide_core_api::media::tracker::Completion::Aborted
+        ) {
+            outcome.completion = Completion::Aborted;
+        }
+        step_outcome
     });
+    if matches!(outcome.completion, Completion::Aborted) {
+        return Ok(outcome);
+    }
     // 2nd step: Untrack orphaned directories
     report_progress_fn(Progress::Step2UntrackOrphanedDirectories);
     let untrack_orphaned_directories_params =
@@ -129,6 +153,9 @@ where
         )
         .await?,
     );
+    if matches!(outcome.completion, Completion::Aborted) {
+        return Ok(outcome);
+    }
     // 3rd step: Import files
     let import_files_params = aoide_core_api::media::tracker::import_files::Params {
         root_url: root_url.clone(),
@@ -136,15 +163,25 @@ where
     };
     outcome.import_files = Some({
         let mut report_progress_fn = report_progress_fn.clone();
-        crate::media::tracker::import_files(
+        let step_outcome = crate::media::tracker::import_files(
             db_gatekeeper,
             collection_uid.clone(),
             import_files_params,
             import_track_config,
             move |event| report_progress_fn(Progress::Step3ImportFiles(event)),
         )
-        .await?
+        .await?;
+        if matches!(
+            step_outcome.completion,
+            aoide_core_api::media::tracker::Completion::Aborted
+        ) {
+            outcome.completion = Completion::Aborted;
+        }
+        step_outcome
     });
+    if matches!(outcome.completion, Completion::Aborted) {
+        return Ok(outcome);
+    }
     // 4th step: Purge untracked media sources (optional)
     report_progress_fn(Progress::Step4PurgeUntrackedMediaSources);
     if purge_untracked_media_sources {
@@ -155,6 +192,9 @@ where
             crate::media::source::purge_untracked(db_gatekeeper, collection_uid.clone(), params)
                 .await?,
         );
+    }
+    if matches!(outcome.completion, Completion::Aborted) {
+        return Ok(outcome);
     }
     // 5th step: Purge orphaned media sources (optional)
     report_progress_fn(Progress::Step5PurgeOrphanedMediaSources);
@@ -167,6 +207,9 @@ where
                 .await?,
         );
     }
+    if matches!(outcome.completion, Completion::Aborted) {
+        return Ok(outcome);
+    }
     // 6th step: Find untracked files (optional/informational)
     if find_untracked_files {
         let params = aoide_core_api::media::tracker::find_untracked_files::Params {
@@ -175,14 +218,24 @@ where
         };
         outcome.find_untracked_files = Some({
             let mut report_progress_fn = report_progress_fn.clone();
-            crate::media::tracker::find_untracked_files(
+            let step_outcome = crate::media::tracker::find_untracked_files(
                 db_gatekeeper,
                 collection_uid.clone(),
                 params,
                 move |event| report_progress_fn(Progress::Step6FindUntrackedFiles(event)),
             )
-            .await?
+            .await?;
+            if matches!(
+                step_outcome.completion,
+                aoide_core_api::media::tracker::Completion::Aborted
+            ) {
+                outcome.completion = Completion::Aborted;
+            }
+            step_outcome
         });
+    }
+    if matches!(outcome.completion, Completion::Aborted) {
+        return Ok(outcome);
     }
     // 7th step: Find unsynchronized tracks (optional/informational)
     report_progress_fn(Progress::Step7FindUnsynchronizedTracks);
