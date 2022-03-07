@@ -35,7 +35,8 @@ use aoide_core::{
         album::AlbumKind,
         index::Index,
         tag::{
-            FACET_COMMENT, FACET_DESCRIPTION, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD,
+            FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
+            FACET_ID_ISRC, FACET_ID_MOOD,
         },
         title::{Title, TitleKind, Titles},
         Track,
@@ -769,7 +770,7 @@ pub fn import_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_COMMENT,
+        &FACET_ID_COMMENT,
         reader
             .filter_values(COMMENT_KEY)
             .unwrap_or_default()
@@ -781,7 +782,7 @@ pub fn import_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_DESCRIPTION,
+        &FACET_ID_DESCRIPTION,
         reader
             .filter_values(COMMENT_KEY2)
             .unwrap_or_default()
@@ -793,7 +794,7 @@ pub fn import_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_GENRE,
+        &FACET_ID_GENRE,
         reader
             .filter_values(GENRE_KEY)
             .unwrap_or_default()
@@ -805,7 +806,7 @@ pub fn import_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_MOOD,
+        &FACET_ID_MOOD,
         reader
             .filter_values(MOOD_KEY)
             .unwrap_or_default()
@@ -817,7 +818,7 @@ pub fn import_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_GROUPING,
+        &FACET_ID_GROUPING,
         reader
             .filter_values(GROUPING_KEY)
             .unwrap_or_default()
@@ -829,7 +830,7 @@ pub fn import_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_ISRC,
+        &FACET_ID_ISRC,
         reader
             .filter_values(ISRC_KEY)
             .unwrap_or_default()
@@ -1115,7 +1116,7 @@ pub fn export_track(
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
     // Comment(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_COMMENT) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_COMMENT) {
         export_faceted_tags(
             writer,
             COMMENT_KEY.to_owned(),
@@ -1127,7 +1128,8 @@ pub fn export_track(
     }
 
     // Description(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_DESCRIPTION) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_DESCRIPTION)
+    {
         export_faceted_tags(
             writer,
             COMMENT_KEY2.to_owned(),
@@ -1139,7 +1141,7 @@ pub fn export_track(
     }
 
     // Genre(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GENRE) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GENRE) {
         export_faceted_tags(
             writer,
             GENRE_KEY.to_owned(),
@@ -1151,7 +1153,7 @@ pub fn export_track(
     }
 
     // Mood(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_MOOD) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_MOOD) {
         export_faceted_tags(
             writer,
             MOOD_KEY.to_owned(),
@@ -1163,7 +1165,7 @@ pub fn export_track(
     }
 
     // Grouping(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GROUPING) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
         export_faceted_tags(
             writer,
             GROUPING_KEY.to_owned(),
@@ -1175,7 +1177,7 @@ pub fn export_track(
     }
 
     // ISRC(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ISRC) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_ISRC) {
         export_faceted_tags(
             writer,
             ISRC_KEY.to_owned(),

@@ -27,7 +27,7 @@ use aoide_core::{
     tag::TagsMap,
     track::{
         actor::ActorRole,
-        tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD},
+        tag::{FACET_ID_COMMENT, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC, FACET_ID_MOOD},
         Track,
     },
     util::canonical::Canonical,
@@ -359,7 +359,7 @@ impl Metadata {
             importer,
             &mut tags_map,
             &config.faceted_tag_mapping,
-            &FACET_COMMENT,
+            &FACET_ID_COMMENT,
             metaflac_tag
                 .get_vorbis(COMMENT_KEY)
                 .into_iter()
@@ -373,7 +373,7 @@ impl Metadata {
                 importer,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
-                &FACET_GENRE,
+                &FACET_ID_GENRE,
                 genres,
             );
         }
@@ -384,7 +384,7 @@ impl Metadata {
                 importer,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
-                &FACET_MOOD,
+                &FACET_ID_MOOD,
                 moods,
             );
         }
@@ -395,7 +395,7 @@ impl Metadata {
                 importer,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
-                &FACET_GROUPING,
+                &FACET_ID_GROUPING,
                 groupings,
             );
         }
@@ -406,7 +406,7 @@ impl Metadata {
                 importer,
                 &mut tags_map,
                 &config.faceted_tag_mapping,
-                &FACET_ISRC,
+                &FACET_ID_ISRC,
                 isrc,
             );
         }

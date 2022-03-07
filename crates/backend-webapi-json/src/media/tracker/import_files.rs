@@ -60,14 +60,14 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
         .map_err(Error::BadRequest)?;
     let mut faceted_tag_mapping_config = FacetedTagMappingConfigInner::default();
     faceted_tag_mapping_config.insert(
-        FACET_GENRE.to_owned().into(),
+        FACET_GENRE.to_owned(),
         TagMappingConfig {
             label_separator: ";".into(),
             split_score_attenuation: 0.75,
         },
     );
     faceted_tag_mapping_config.insert(
-        FACET_MOOD.to_owned().into(),
+        FACET_MOOD.to_owned(),
         TagMappingConfig {
             label_separator: ";".into(),
             split_score_attenuation: 0.75,

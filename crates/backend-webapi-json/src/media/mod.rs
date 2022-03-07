@@ -33,14 +33,14 @@ const DEFAULT_SCORE_ATTENUATION: f64 = 0.75;
 pub fn predefined_faceted_tag_mapping_config() -> FacetedTagMappingConfig {
     let mut config = FacetedTagMappingConfigInner::default();
     config.insert(
-        FACET_GENRE.to_owned().into(),
+        FACET_GENRE.to_owned(),
         TagMappingConfig {
             label_separator: DEFAULT_LABEL_SEPARATOR.to_owned(),
             split_score_attenuation: DEFAULT_SCORE_ATTENUATION,
         },
     );
     config.insert(
-        FACET_MOOD.to_owned().into(),
+        FACET_MOOD.to_owned(),
         TagMappingConfig {
             label_separator: DEFAULT_LABEL_SEPARATOR.to_owned(),
             split_score_attenuation: DEFAULT_SCORE_ATTENUATION,

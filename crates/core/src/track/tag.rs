@@ -27,52 +27,55 @@ use crate::tag::FacetId;
 // ID3v2.4: TSRC
 // Vorbis:  ISRC
 // MP4:     isrc
-pub static FACET_ISRC: Lazy<FacetId> = Lazy::new(|| FacetId::new("isrc".into()));
+pub static FACET_ID_ISRC: Lazy<FacetId> = Lazy::new(|| FacetId::new("isrc".into()));
 
 // The Grouping aka Content Group field
 // ID3v2.4: GRP1 (iTunes/newer) / TIT1 (traditional/older)
 // Vorbis:  GROUPING
 // MP4:     ©grp
-pub static FACET_GROUPING: Lazy<FacetId> = Lazy::new(|| FacetId::new("cgrp".into()));
+pub static FACET_ID_GROUPING: Lazy<FacetId> = Lazy::new(|| FacetId::new("cgrp".into()));
 
 // Comment
 // ID3v2.4: COMM (without `description`)
 // Vorbis:  COMMENT
 // MP4:     ©cmt
-pub static FACET_COMMENT: Lazy<FacetId> = Lazy::new(|| FacetId::new("comm".into()));
+pub const FACET_COMMENT: &str = "comm";
+pub static FACET_ID_COMMENT: Lazy<FacetId> = Lazy::new(|| FacetId::new(FACET_COMMENT.to_owned()));
 
 // Description
 // ID3v2.4: COMM:description
 // Vorbis:  DESCRIPTION
 // MP4:     desc
-pub static FACET_DESCRIPTION: Lazy<FacetId> = Lazy::new(|| FacetId::new("desc".into()));
+pub static FACET_ID_DESCRIPTION: Lazy<FacetId> = Lazy::new(|| FacetId::new("desc".into()));
 
 // ISO 639-3 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
 // ID3v2.4: TLAN
 // Vorbis:  LANGUAGE
 // MP4:     ----:com.apple.iTunes:LANGUAGE
-pub static FACET_LANGUAGE: Lazy<FacetId> = Lazy::new(|| FacetId::new("lang".into()));
+pub static FACET_ID_LANGUAGE: Lazy<FacetId> = Lazy::new(|| FacetId::new("lang".into()));
 
 // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
 // ID3v2.4: TCON
 // Vorbis:  GENRE
 // MP4:     ©gen
-pub static FACET_GENRE: Lazy<FacetId> = Lazy::new(|| FacetId::new("genre".into()));
+pub const FACET_GENRE: &str = "genre";
+pub static FACET_ID_GENRE: Lazy<FacetId> = Lazy::new(|| FacetId::new(FACET_GENRE.to_owned()));
 
 // Personal mental or emotional state, e.g. "happy", "sexy", "sad", "melancholic", "joyful", ...
 // ID3v2.4: TMOO
 // Vorbis:  MOOD
 // MP4:     ----:com.apple.iTunes:MOOD
-pub static FACET_MOOD: Lazy<FacetId> = Lazy::new(|| FacetId::new("mood".into()));
+pub const FACET_MOOD: &str = "mood";
+pub static FACET_ID_MOOD: Lazy<FacetId> = Lazy::new(|| FacetId::new(FACET_MOOD.to_owned()));
 
 // Custom: Decades like "1980s", "2000s", ..., or other time-based properties
-pub static FACET_DECADE: Lazy<FacetId> = Lazy::new(|| FacetId::new("decade".into()));
+pub static FACET_ID_DECADE: Lazy<FacetId> = Lazy::new(|| FacetId::new("decade".into()));
 
 // Custom: Sub-genres or details like "East Coast", "West Coast", ...
-pub static FACET_STYLE: Lazy<FacetId> = Lazy::new(|| FacetId::new("style".into()));
+pub static FACET_ID_STYLE: Lazy<FacetId> = Lazy::new(|| FacetId::new("style".into()));
 
 // Custom: Atmosphere of the situation, e.g. "bouncy", "driving", "dreamy", "poppy", "punchy", "spiritual", "tropical", "uplifting" ...
-pub static FACET_VIBE: Lazy<FacetId> = Lazy::new(|| FacetId::new("vibe".into()));
+pub static FACET_ID_VIBE: Lazy<FacetId> = Lazy::new(|| FacetId::new("vibe".into()));
 
 // Predefined musical or audio feature scores (as of Spotify/EchoNest).
 // A label is optional and could be used for identifying the source of
@@ -83,20 +86,20 @@ pub static FACET_VIBE: Lazy<FacetId> = Lazy::new(|| FacetId::new("vibe".into()))
 // arousel-valence emotion plane.
 //
 // See also: [Spotify Audio Features](https://developer.spotify.com/documentation/web-api/reference/tracks/get-audio-features/)
-pub static FACET_ACOUSTICNESS: Lazy<FacetId> = Lazy::new(|| FacetId::new("acousticness".into()));
-pub static FACET_AROUSAL: Lazy<FacetId> = Lazy::new(|| FacetId::new("arousal".into()));
-pub static FACET_DANCEABILITY: Lazy<FacetId> = Lazy::new(|| FacetId::new("danceability".into()));
-pub static FACET_ENERGY: Lazy<FacetId> = Lazy::new(|| FacetId::new("energy".into()));
-pub static FACET_INSTRUMENTALNESS: Lazy<FacetId> =
+pub static FACET_ID_ACOUSTICNESS: Lazy<FacetId> = Lazy::new(|| FacetId::new("acousticness".into()));
+pub static FACET_ID_AROUSAL: Lazy<FacetId> = Lazy::new(|| FacetId::new("arousal".into()));
+pub static FACET_ID_DANCEABILITY: Lazy<FacetId> = Lazy::new(|| FacetId::new("danceability".into()));
+pub static FACET_ID_ENERGY: Lazy<FacetId> = Lazy::new(|| FacetId::new("energy".into()));
+pub static FACET_ID_INSTRUMENTALNESS: Lazy<FacetId> =
     Lazy::new(|| FacetId::new("instrumentalness".into()));
-pub static FACET_LIVENESS: Lazy<FacetId> = Lazy::new(|| FacetId::new("liveness".into()));
-pub static FACET_POPULARITY: Lazy<FacetId> = Lazy::new(|| FacetId::new("popularity".into()));
-pub static FACET_SPEECHINESS: Lazy<FacetId> = Lazy::new(|| FacetId::new("speechiness".into()));
-pub static FACET_VALENCE: Lazy<FacetId> = Lazy::new(|| FacetId::new("valence".into())); // a measure for happiness
+pub static FACET_ID_LIVENESS: Lazy<FacetId> = Lazy::new(|| FacetId::new("liveness".into()));
+pub static FACET_ID_POPULARITY: Lazy<FacetId> = Lazy::new(|| FacetId::new("popularity".into()));
+pub static FACET_ID_SPEECHINESS: Lazy<FacetId> = Lazy::new(|| FacetId::new("speechiness".into()));
+pub static FACET_ID_VALENCE: Lazy<FacetId> = Lazy::new(|| FacetId::new("valence".into())); // a measure for happiness
 
 // Vendor-supplied, globally unique identifier(s) used by iTunes
 // Format: prefix:scheme:identifier
 // Supported schemes: upc, isrc, isan, grid, uuid, vendor_id
 // Example: "SonyBMG:isrc:USRC10900295"
 // See also: https://www.apple.com/au/itunes/lp-and-extras/docs/Development_Guide.pdf
-pub static FACET_XID: Lazy<FacetId> = Lazy::new(|| FacetId::new("xid".into()));
+pub static FACET_ID_XID: Lazy<FacetId> = Lazy::new(|| FacetId::new("xid".into()));

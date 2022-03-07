@@ -41,8 +41,8 @@ use aoide_core::{
         album::AlbumKind,
         metric::MetricsFlags,
         tag::{
-            FACET_COMMENT, FACET_DESCRIPTION, FACET_GENRE, FACET_GROUPING, FACET_ISRC,
-            FACET_LANGUAGE, FACET_MOOD,
+            FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
+            FACET_ID_ISRC, FACET_ID_LANGUAGE, FACET_ID_MOOD,
         },
         title::{TitleKind, Titles},
         Track,
@@ -499,7 +499,7 @@ pub fn import_metadata_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_COMMENT,
+        &FACET_ID_COMMENT,
         comments,
     );
 
@@ -511,7 +511,7 @@ pub fn import_metadata_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_DESCRIPTION,
+        &FACET_ID_DESCRIPTION,
         descriptions,
     );
 
@@ -520,7 +520,7 @@ pub fn import_metadata_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_GENRE,
+        &FACET_ID_GENRE,
         tag,
         "TCON",
     );
@@ -530,7 +530,7 @@ pub fn import_metadata_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_MOOD,
+        &FACET_ID_MOOD,
         tag,
         "TMOO",
     );
@@ -545,7 +545,7 @@ pub fn import_metadata_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_GROUPING,
+        &FACET_ID_GROUPING,
         tag,
         "GRP1",
     ) > 0
@@ -559,7 +559,7 @@ pub fn import_metadata_into_track(
             importer,
             &mut tags_map,
             &config.faceted_tag_mapping,
-            &FACET_GROUPING,
+            &FACET_ID_GROUPING,
             tag,
             "TIT1",
         ) > 0
@@ -576,7 +576,7 @@ pub fn import_metadata_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_ISRC,
+        &FACET_ID_ISRC,
         tag,
         "TSRC",
     );
@@ -586,7 +586,7 @@ pub fn import_metadata_into_track(
         importer,
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_LANGUAGE,
+        &FACET_ID_LANGUAGE,
         tag,
         "TLAN",
     );
@@ -926,7 +926,7 @@ pub fn export_track(
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
     // Comment(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_COMMENT) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_COMMENT) {
         export_faceted_tags_comment(
             tag,
             String::new(),
@@ -938,7 +938,8 @@ pub fn export_track(
     }
 
     // Description(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_DESCRIPTION) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_DESCRIPTION)
+    {
         export_faceted_tags_comment(
             tag,
             "description",
@@ -950,7 +951,7 @@ pub fn export_track(
     }
 
     // Genre(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GENRE) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GENRE) {
         export_faceted_tags(
             tag,
             "TCON",
@@ -962,7 +963,7 @@ pub fn export_track(
     }
 
     // Mood(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_MOOD) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_MOOD) {
         export_faceted_tags(
             tag,
             "TMOO",
@@ -983,7 +984,7 @@ pub fn export_track(
         tag.remove("GRP1");
         "TIT1"
     };
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GROUPING) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
         export_faceted_tags(
             tag,
             grouping_frame_id,
@@ -995,7 +996,7 @@ pub fn export_track(
     }
 
     // ISRC(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ISRC) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_ISRC) {
         export_faceted_tags(
             tag,
             "TSRC",
@@ -1007,7 +1008,7 @@ pub fn export_track(
     }
 
     // Language(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_LANGUAGE) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_LANGUAGE) {
         export_faceted_tags(
             tag,
             "TLAN",

@@ -43,8 +43,8 @@ use aoide_core::{
         album::AlbumKind,
         metric::MetricsFlags,
         tag::{
-            FACET_COMMENT, FACET_DESCRIPTION, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD,
-            FACET_XID,
+            FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
+            FACET_ID_ISRC, FACET_ID_MOOD, FACET_ID_XID,
         },
         title::{TitleKind, Titles},
         Track,
@@ -457,7 +457,7 @@ impl Metadata {
         // Genre tags (custom + standard)
         {
             // Prefer custom genre tags
-            let tag_mapping_config = config.faceted_tag_mapping.get(FACET_GENRE.value());
+            let tag_mapping_config = config.faceted_tag_mapping.get(FACET_ID_GENRE.value());
             let mut next_score_value = TagScore::default_value();
             let mut plain_tags = Vec::with_capacity(8);
             if mp4_tag.custom_genres().next().is_some() {
@@ -485,14 +485,14 @@ impl Metadata {
                     }
                 }
             }
-            tags_map.update_faceted_plain_tags_by_label_ordering(&FACET_GENRE, plain_tags);
+            tags_map.update_faceted_plain_tags_by_label_ordering(&FACET_ID_GENRE, plain_tags);
         }
 
         // Mood tags
         importer.import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
-            &FACET_MOOD,
+            &FACET_ID_MOOD,
             mp4_tag.take_strings_of(&IDENT_MOOD),
         );
 
@@ -500,7 +500,7 @@ impl Metadata {
         importer.import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
-            &FACET_COMMENT,
+            &FACET_ID_COMMENT,
             mp4_tag.take_strings_of(&IDENT_COMMENT),
         );
 
@@ -508,7 +508,7 @@ impl Metadata {
         importer.import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
-            &FACET_DESCRIPTION,
+            &FACET_ID_DESCRIPTION,
             mp4_tag.take_strings_of(&IDENT_DESCRIPTION),
         );
 
@@ -516,7 +516,7 @@ impl Metadata {
         importer.import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
-            &FACET_GROUPING,
+            &FACET_ID_GROUPING,
             mp4_tag.take_groupings(),
         );
 
@@ -524,7 +524,7 @@ impl Metadata {
         importer.import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
-            &FACET_ISRC,
+            &FACET_ID_ISRC,
             mp4_tag.take_isrc().into_iter(),
         );
 
@@ -532,7 +532,7 @@ impl Metadata {
         importer.import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
-            &FACET_XID,
+            &FACET_ID_XID,
             mp4_tag.take_strings_of(&IDENT_XID),
         );
 
@@ -913,7 +913,7 @@ pub fn export_track_to_path(
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
     // Genre(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GENRE) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GENRE) {
         // Overwrite standard genres with custom genres
         mp4_tag.remove_standard_genres();
         export_faceted_tags(
@@ -928,7 +928,7 @@ pub fn export_track_to_path(
     }
 
     // Comment(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_COMMENT) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_COMMENT) {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_COMMENT,
@@ -940,7 +940,8 @@ pub fn export_track_to_path(
     }
 
     // Description(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_DESCRIPTION) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_DESCRIPTION)
+    {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_DESCRIPTION,
@@ -952,7 +953,7 @@ pub fn export_track_to_path(
     }
 
     // Grouping(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GROUPING) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_GROUPING,
@@ -964,7 +965,7 @@ pub fn export_track_to_path(
     }
 
     // Mood(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_MOOD) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_MOOD) {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_MOOD,
@@ -976,7 +977,7 @@ pub fn export_track_to_path(
     }
 
     // ISRC(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ISRC) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_ISRC) {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_ISRC,
@@ -988,7 +989,7 @@ pub fn export_track_to_path(
     }
 
     // XID(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_XID) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_XID) {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_XID,
