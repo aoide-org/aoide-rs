@@ -1,0 +1,21 @@
+[package]
+name = "aoide-search-tantivy"
+description = "Utilities for a full-text search index based on Tantivy"
+version = "0.8.0"
+license = "AGPL-3.0-or-later"
+publish = false
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.55"
+# Unfortunately Tantivy uses chrono for date fields
+chrono = "0.4.19"
+log = "0.4.14"
+tantivy = "0.16.1"
+thiserror = "1.0.30"
+
+# Workspace dependencies
+aoide-core = "*"
+
+[features]
+default = []

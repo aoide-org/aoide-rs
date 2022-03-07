@@ -47,6 +47,7 @@ update:
         aoide-media \
         aoide-repo \
         aoide-repo-sqlite \
+        aoide-search-tantivy \
         aoide-storage-sqlite \
         aoide-usecases \
         aoide-usecases-sqlite \

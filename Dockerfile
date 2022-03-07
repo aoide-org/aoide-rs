@@ -116,6 +116,8 @@ RUN USER=root cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-repo crates/repo && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-repo-sqlite && \
     mv ${PROJECT_NAME}-repo-sqlite crates/repo-sqlite && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-search-tantivy && \
+    mv ${PROJECT_NAME}-search-tantivy crates/search-tantivy && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-storage-sqlite && \
     mv ${PROJECT_NAME}-storage-sqlite crates/storage-sqlite && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases && \
@@ -163,6 +165,9 @@ COPY [ \
 COPY [ \
     "crates/repo-sqlite/Cargo.toml", \
     "./crates/repo-sqlite/" ]
+COPY [ \
+    "crates/search-tantivy/Cargo.toml", \
+    "./crates/search-tantivy/" ]
 COPY [ \
     "crates/storage-sqlite/Cargo.toml", \
     "./crates/storage-sqlite/" ]
@@ -241,6 +246,9 @@ COPY [ \
     "crates/repo-sqlite/migrations", \
     "./crates/repo-sqlite/migrations/" ]
 COPY [ \
+    "crates/search-tantivy/src", \
+    "./crates/search-tantivy/src/" ]
+COPY [ \
     "crates/storage-sqlite/src", \
     "./crates/storage-sqlite/src/" ]
 COPY [ \
@@ -288,6 +296,7 @@ RUN tree -a && \
     cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-search-tantivy --manifest-path crates/search-tantivy/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-storage-sqlite --manifest-path crates/storage-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
