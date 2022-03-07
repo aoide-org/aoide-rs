@@ -28,6 +28,7 @@
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 use chrono::{NaiveDateTime, Utc};
+use num_traits::cast::ToPrimitive as _;
 use tantivy::{
     schema::{Field, Schema, INDEXED, STORED, STRING, TEXT},
     Document,
@@ -38,39 +39,42 @@ use aoide_core::{
     tag::{FacetedTags, PlainTag},
     track::{
         self,
-        tag::{FACET_COMMENT, FACET_GENRE, FACET_MOOD},
+        tag::{
+            FACET_ACOUSTICNESS, FACET_AROUSAL, FACET_COMMENT, FACET_DANCEABILITY, FACET_ENERGY,
+            FACET_GENRE, FACET_INSTRUMENTALNESS, FACET_LIVENESS, FACET_MOOD, FACET_POPULARITY,
+            FACET_SPEECHINESS, FACET_VALENCE,
+        },
     },
     util::clock::{DateTime, DateYYYYMMDD},
 };
 
 const UID: &str = "uid";
-const CONTENT_PATH: &str = "content-path";
-const CONTENT_TYPE: &str = "content-type";
-const COLLECTED_AT: &str = "collected-at";
-const DURATION_MS: &str = "duration-ms";
-const TRACK_TITLE: &str = "track-title";
-const TRACK_ARTIST: &str = "track-artist";
-const ALBUM_TITLE: &str = "album-title";
-const ALBUM_ARTIST: &str = "album-artist";
+const CONTENT_PATH: &str = "content_path";
+const CONTENT_TYPE: &str = "content_type";
+const COLLECTED_AT: &str = "collected_at";
+const DURATION_MS: &str = "duration_ms";
+const TRACK_TITLE: &str = "track_title";
+const TRACK_ARTIST: &str = "track_artist";
+const ALBUM_TITLE: &str = "album_title";
+const ALBUM_ARTIST: &str = "album_artist";
+const RECORDED_AT_YYYYMMDD: &str = "recorded_at_yyyymmdd";
+const RELEASED_AT_YYYYMMDD: &str = "released_at_yyyymmdd";
+const TEMPO_BPM: &str = "tempo_bpm";
+const KEY_CODE: &str = "key_signature";
+const TIMES_PLAYED: &str = "times_played";
+const LAST_PLAYED_AT: &str = "last_played_at";
 const GENRE: &str = "genre";
 const MOOD: &str = "mood";
 const COMMENT: &str = "comment";
-// const PLAIN_TAG: &str = "tag";
-// const FACETED_TAG: &str = "facet";
-const RECORDED_AT_YYYYMMDD: &str = "recorded-at-yyyymmdd";
-const RELEASED_AT_YYYYMMDD: &str = "released-at-yyyymmdd";
-// const RATING: &str = "rating";
-// const ACOUSTICNESS: &str = "acousticness";
-// const AROUSAL: &str = "arousal";
-// const DANCEABILITY: &str = "danceability";
-// const ENERGY: &str = "energy";
-// const INSTRUMENTALNESS: &str = "instrumentalness";
-// const LIVENESS: &str = "liveness";
-// const POPULARITY: &str = "popularity";
-// const SPEECHINESS: &str = "speechiness";
-// const VALENCE: &str = "valence";
-const TIMES_PLAYED: &str = "times-played";
-const LAST_PLAYED_AT: &str = "last-played-at";
+const ACOUSTICNESS: &str = "acousticness";
+const AROUSAL: &str = "arousal";
+const DANCEABILITY: &str = "danceability";
+const ENERGY: &str = "energy";
+const INSTRUMENTALNESS: &str = "instrumentalness";
+const LIVENESS: &str = "liveness";
+const POPULARITY: &str = "popularity";
+const SPEECHINESS: &str = "speechiness";
+const VALENCE: &str = "valence";
 
 #[derive(Debug, Clone)]
 pub struct TrackFields {
@@ -83,13 +87,24 @@ pub struct TrackFields {
     pub track_artist: Field,
     pub album_title: Field,
     pub album_artist: Field,
+    pub recorded_at_yyyymmdd: Field,
+    pub released_at_yyyymmdd: Field,
+    pub tempo_bpm: Field,
+    pub key_code: Field,
+    pub times_played: Field,
+    pub last_played_at: Field,
     pub genre: Field,
     pub mood: Field,
     pub comment: Field,
-    pub recorded_at_yyyymmdd: Field,
-    pub released_at_yyyymmdd: Field,
-    pub times_played: Field,
-    pub last_played_at: Field,
+    pub acousticness: Field,
+    pub arousal: Field,
+    pub danceability: Field,
+    pub energy: Field,
+    pub instrumentalness: Field,
+    pub liveness: Field,
+    pub popularity: Field,
+    pub speechiness: Field,
+    pub valence: Field,
 }
 
 fn tantivy_date_time(input: DateTime) -> tantivy::DateTime {
@@ -135,6 +150,22 @@ impl TrackFields {
         if let Some(released_at_yyyymmdd) = entity.body.track.released_at.map(DateYYYYMMDD::from) {
             doc.add_i64(self.album_artist, released_at_yyyymmdd.to_inner().into());
         }
+        if let Some(tempo_bpm) = entity.body.track.metrics.tempo_bpm {
+            doc.add_f64(self.tempo_bpm, tempo_bpm.to_raw());
+        }
+        if !entity.body.track.metrics.key_signature.is_unknown() {
+            doc.add_u64(
+                self.key_code,
+                entity
+                    .body
+                    .track
+                    .metrics
+                    .key_signature
+                    .code()
+                    .to_u64()
+                    .expect("valid code"),
+            );
+        }
         if let Some(times_played) = entity.body.track.play_counter.times_played {
             doc.add_u64(self.times_played, times_played);
         }
@@ -143,20 +174,44 @@ impl TrackFields {
         }
         for faceted_tags in &entity.body.track.tags.facets {
             let FacetedTags { facet_id, tags } = faceted_tags;
-            let field = match facet_id.as_str() {
-                FACET_GENRE => self.genre,
-                FACET_MOOD => self.mood,
-                FACET_COMMENT => self.comment,
-                _ => continue,
+            let (label_field, score_field) = match facet_id.as_str() {
+                FACET_GENRE => (Some(self.genre), None),
+                FACET_MOOD => (Some(self.mood), None),
+                FACET_COMMENT => (Some(self.comment), None),
+                FACET_ACOUSTICNESS => (None, Some(self.acousticness)),
+                FACET_AROUSAL => (None, Some(self.arousal)),
+                FACET_DANCEABILITY => (None, Some(self.danceability)),
+                FACET_ENERGY => (None, Some(self.energy)),
+                FACET_INSTRUMENTALNESS => (None, Some(self.instrumentalness)),
+                FACET_LIVENESS => (None, Some(self.liveness)),
+                FACET_POPULARITY => (None, Some(self.popularity)),
+                FACET_SPEECHINESS => (None, Some(self.speechiness)),
+                FACET_VALENCE => (None, Some(self.valence)),
+                _ => (None, None),
             };
-            for tag in tags {
-                let PlainTag {
-                    label,
-                    score: _, // TODO: How to take the score into account?
-                } = tag;
-                if let Some(label) = &label {
-                    doc.add_text(field, label)
+            match (label_field, score_field) {
+                (Some(field), None) => {
+                    for tag in tags {
+                        let PlainTag {
+                            label,
+                            score: _, // TODO: How to take the score into account?
+                        } = tag;
+                        if let Some(label) = &label {
+                            doc.add_text(field, label);
+                        }
+                    }
                 }
+                (None, Some(field)) => {
+                    for tag in tags {
+                        let PlainTag {
+                            label: _,
+                            score, // TODO: How to take the score into account?
+                        } = tag;
+                        doc.add_f64(field, score.value());
+                    }
+                }
+                (None, None) => continue,
+                (Some(..), Some(..)) => unreachable!(),
             }
         }
         doc
@@ -175,25 +230,24 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
     let track_artist = schema_builder.add_text_field(TRACK_ARTIST, TEXT);
     let album_title = schema_builder.add_text_field(ALBUM_TITLE, TEXT);
     let album_artist = schema_builder.add_text_field(ALBUM_ARTIST, TEXT);
+    let recorded_at_yyyymmdd = schema_builder.add_i64_field(RECORDED_AT_YYYYMMDD, INDEXED);
+    let released_at_yyyymmdd = schema_builder.add_i64_field(RELEASED_AT_YYYYMMDD, INDEXED);
+    let tempo_bpm = schema_builder.add_f64_field(TEMPO_BPM, INDEXED);
+    let key_code = schema_builder.add_u64_field(KEY_CODE, INDEXED);
+    let times_played = schema_builder.add_u64_field(TIMES_PLAYED, INDEXED);
+    let last_played_at = schema_builder.add_date_field(LAST_PLAYED_AT, INDEXED);
     let genre = schema_builder.add_text_field(GENRE, TEXT);
     let mood = schema_builder.add_text_field(MOOD, TEXT);
     let comment = schema_builder.add_text_field(COMMENT, TEXT);
-    // schema_builder.add_text_field(PLAIN_TAG, TEXT);
-    // schema_builder.add_facet_field(FACETED_TAG, INDEXED);
-    let recorded_at_yyyymmdd = schema_builder.add_i64_field(RECORDED_AT_YYYYMMDD, INDEXED);
-    let released_at_yyyymmdd = schema_builder.add_i64_field(RELEASED_AT_YYYYMMDD, INDEXED);
-    // schema_builder.add_f64_field(RATING, INDEXED);
-    // schema_builder.add_f64_field(ACOUSTICNESS, INDEXED);
-    // schema_builder.add_f64_field(AROUSAL, INDEXED);
-    // schema_builder.add_f64_field(DANCEABILITY, INDEXED);
-    // schema_builder.add_f64_field(ENERGY, INDEXED);
-    // schema_builder.add_f64_field(INSTRUMENTALNESS, INDEXED);
-    // schema_builder.add_f64_field(LIVENESS, INDEXED);
-    // schema_builder.add_f64_field(POPULARITY, INDEXED);
-    // schema_builder.add_f64_field(SPEECHINESS, INDEXED);
-    // schema_builder.add_f64_field(VALENCE, INDEXED);
-    let times_played = schema_builder.add_u64_field(TIMES_PLAYED, INDEXED);
-    let last_played_at = schema_builder.add_date_field(LAST_PLAYED_AT, INDEXED);
+    let acousticness = schema_builder.add_f64_field(ACOUSTICNESS, INDEXED);
+    let arousal = schema_builder.add_f64_field(AROUSAL, INDEXED);
+    let danceability = schema_builder.add_f64_field(DANCEABILITY, INDEXED);
+    let energy = schema_builder.add_f64_field(ENERGY, INDEXED);
+    let instrumentalness = schema_builder.add_f64_field(INSTRUMENTALNESS, INDEXED);
+    let liveness = schema_builder.add_f64_field(LIVENESS, INDEXED);
+    let popularity = schema_builder.add_f64_field(POPULARITY, INDEXED);
+    let speechiness = schema_builder.add_f64_field(SPEECHINESS, INDEXED);
+    let valence = schema_builder.add_f64_field(VALENCE, INDEXED);
     let schema = schema_builder.build();
     let fields = TrackFields {
         uid,
@@ -205,13 +259,24 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
         track_title,
         album_artist,
         album_title,
+        recorded_at_yyyymmdd,
+        released_at_yyyymmdd,
+        tempo_bpm,
+        key_code,
+        times_played,
+        last_played_at,
         genre,
         mood,
         comment,
-        recorded_at_yyyymmdd,
-        released_at_yyyymmdd,
-        times_played,
-        last_played_at,
+        acousticness,
+        arousal,
+        danceability,
+        energy,
+        instrumentalness,
+        liveness,
+        popularity,
+        speechiness,
+        valence,
     };
     (schema, fields)
 }

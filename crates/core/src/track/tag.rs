@@ -86,16 +86,38 @@ pub static FACET_ID_VIBE: Lazy<FacetId> = Lazy::new(|| FacetId::new("vibe".into(
 // arousel-valence emotion plane.
 //
 // See also: [Spotify Audio Features](https://developer.spotify.com/documentation/web-api/reference/tracks/get-audio-features/)
-pub static FACET_ID_ACOUSTICNESS: Lazy<FacetId> = Lazy::new(|| FacetId::new("acousticness".into()));
-pub static FACET_ID_AROUSAL: Lazy<FacetId> = Lazy::new(|| FacetId::new("arousal".into()));
-pub static FACET_ID_DANCEABILITY: Lazy<FacetId> = Lazy::new(|| FacetId::new("danceability".into()));
-pub static FACET_ID_ENERGY: Lazy<FacetId> = Lazy::new(|| FacetId::new("energy".into()));
+
+pub const FACET_ACOUSTICNESS: &str = "acousticness";
+pub static FACET_ID_ACOUSTICNESS: Lazy<FacetId> =
+    Lazy::new(|| FacetId::new(FACET_ACOUSTICNESS.to_owned()));
+
+pub const FACET_AROUSAL: &str = "arousal";
+pub static FACET_ID_AROUSAL: Lazy<FacetId> = Lazy::new(|| FacetId::new(FACET_AROUSAL.to_owned()));
+
+pub const FACET_DANCEABILITY: &str = "danceability";
+pub static FACET_ID_DANCEABILITY: Lazy<FacetId> =
+    Lazy::new(|| FacetId::new(FACET_DANCEABILITY.to_owned()));
+
+pub const FACET_ENERGY: &str = "energy";
+pub static FACET_ID_ENERGY: Lazy<FacetId> = Lazy::new(|| FacetId::new(FACET_ENERGY.to_owned()));
+
+pub const FACET_INSTRUMENTALNESS: &str = "instrumentalness";
 pub static FACET_ID_INSTRUMENTALNESS: Lazy<FacetId> =
-    Lazy::new(|| FacetId::new("instrumentalness".into()));
-pub static FACET_ID_LIVENESS: Lazy<FacetId> = Lazy::new(|| FacetId::new("liveness".into()));
-pub static FACET_ID_POPULARITY: Lazy<FacetId> = Lazy::new(|| FacetId::new("popularity".into()));
-pub static FACET_ID_SPEECHINESS: Lazy<FacetId> = Lazy::new(|| FacetId::new("speechiness".into()));
-pub static FACET_ID_VALENCE: Lazy<FacetId> = Lazy::new(|| FacetId::new("valence".into())); // a measure for happiness
+    Lazy::new(|| FacetId::new(FACET_INSTRUMENTALNESS.to_owned()));
+
+pub const FACET_LIVENESS: &str = "liveness";
+pub static FACET_ID_LIVENESS: Lazy<FacetId> = Lazy::new(|| FacetId::new(FACET_LIVENESS.to_owned()));
+
+pub const FACET_POPULARITY: &str = "popularity";
+pub static FACET_ID_POPULARITY: Lazy<FacetId> =
+    Lazy::new(|| FacetId::new(FACET_POPULARITY.to_owned()));
+
+pub const FACET_SPEECHINESS: &str = "speechiness";
+pub static FACET_ID_SPEECHINESS: Lazy<FacetId> =
+    Lazy::new(|| FacetId::new(FACET_SPEECHINESS.to_owned()));
+
+pub const FACET_VALENCE: &str = "valence";
+pub static FACET_ID_VALENCE: Lazy<FacetId> = Lazy::new(|| FacetId::new(FACET_VALENCE.to_owned()));
 
 // Vendor-supplied, globally unique identifier(s) used by iTunes
 // Format: prefix:scheme:identifier
