@@ -17,7 +17,6 @@ use aoide_core::{
     entity::{EntityHeader, EntityRevision, EntityUid},
     media::content::ContentLink,
     track::{Entity, Track},
-    util::clock::DateTime,
 };
 
 use aoide_core_api::track::search::*;
@@ -79,7 +78,6 @@ pub trait EntityRepo {
 
     fn insert_track_entity(
         &self,
-        created_at: DateTime,
         media_source_id: MediaSourceId,
         created_entity: &Entity,
     ) -> RepoResult<RecordId>;
@@ -87,7 +85,6 @@ pub trait EntityRepo {
     fn update_track_entity(
         &self,
         id: RecordId,
-        updated_at: DateTime,
         media_source_id: MediaSourceId,
         updated_entity: &Entity,
     ) -> RepoResult<()>;

@@ -417,11 +417,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn insert_track_entity(
         &self,
-        created_at: DateTime,
         media_source_id: MediaSourceId,
         created_entity: &Entity,
     ) -> RepoResult<RecordId> {
-        let record = InsertableRecord::bind(created_at, media_source_id, created_entity);
+        let record = InsertableRecord::bind(media_source_id, created_entity);
         let query = diesel::insert_into(track::table).values(&record);
         let _rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert_eq!(1, _rows_affected);
@@ -446,12 +445,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn update_track_entity(
         &self,
         id: RecordId,
-        updated_at: DateTime,
         media_source_id: MediaSourceId,
         updated_entity: &Entity,
     ) -> RepoResult<()> {
         let record = UpdatableRecord::bind(
-            updated_at,
             updated_entity.hdr.rev,
             media_source_id,
             &updated_entity.body,
@@ -615,10 +612,11 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             };
             let entity_body = EntityBody {
                 track,
+                updated_at,
                 last_synchronized_rev,
             };
             let entity = Entity::new(entity_hdr, entity_body);
-            self.update_track_entity(id, updated_at, media_source_id, &entity)?;
+            self.update_track_entity(id, media_source_id, &entity)?;
             Ok(ReplaceOutcome::Updated(media_source_id, id, entity))
         } else {
             // Create new entry
@@ -639,10 +637,11 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 };
             let entity_body = EntityBody {
                 track,
+                updated_at: created_at,
                 last_synchronized_rev,
             };
             let entity = Entity::new(entity_hdr, entity_body);
-            let id = self.insert_track_entity(created_at, media_source_id, &entity)?;
+            let id = self.insert_track_entity(media_source_id, &entity)?;
             Ok(ReplaceOutcome::Created(media_source_id, id, entity))
         }
     }

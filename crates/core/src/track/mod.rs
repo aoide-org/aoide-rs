@@ -362,6 +362,8 @@ impl IsCanonical for Track {
 pub struct EntityBody {
     pub track: Track,
 
+    pub updated_at: DateTime,
+
     /// Last synchronized track entity revision
     ///
     /// The last entity revision of this track that is considered

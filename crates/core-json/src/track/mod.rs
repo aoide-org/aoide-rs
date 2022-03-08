@@ -197,6 +197,8 @@ impl TryFrom<Track> for _core::Track {
 pub struct EntityBody {
     track: Track,
 
+    updated_at: DateTime,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     last_synchronized_rev: Option<EntityRevision>,
 }
@@ -207,11 +209,13 @@ impl TryFrom<EntityBody> for _core::EntityBody {
     fn try_from(from: EntityBody) -> anyhow::Result<Self> {
         let EntityBody {
             track,
+            updated_at,
             last_synchronized_rev,
         } = from;
         let track = track.try_into()?;
         Ok(Self {
             track,
+            updated_at: updated_at.into(),
             last_synchronized_rev: last_synchronized_rev.map(Into::into),
         })
     }
@@ -221,10 +225,12 @@ impl From<_core::EntityBody> for EntityBody {
     fn from(from: _core::EntityBody) -> Self {
         let _core::EntityBody {
             track,
+            updated_at,
             last_synchronized_rev,
         } = from;
         Self {
             track: track.into(),
+            updated_at: updated_at.into(),
             last_synchronized_rev: last_synchronized_rev.map(Into::into),
         }
     }

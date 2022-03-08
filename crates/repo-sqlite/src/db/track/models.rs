@@ -267,6 +267,7 @@ pub fn load_repo_entity(
     };
     let entity_body = EntityBody {
         track,
+        updated_at: header.updated_at,
         last_synchronized_rev,
     };
     let entity = Entity::new(entity_hdr, entity_body);
@@ -318,13 +319,14 @@ pub struct InsertableRecord<'a> {
 }
 
 impl<'a> InsertableRecord<'a> {
-    pub fn bind(created_at: DateTime, media_source_id: MediaSourceId, entity: &'a Entity) -> Self {
-        let row_created_updated_ms = created_at.timestamp_millis();
+    pub fn bind(media_source_id: MediaSourceId, entity: &'a Entity) -> Self {
         let EntityHeader { uid, rev } = &entity.hdr;
         let EntityBody {
             track,
+            updated_at,
             last_synchronized_rev,
         } = &entity.body;
+        let row_created_updated_ms = updated_at.timestamp_millis();
         let Track {
             media_source: _,
             recorded_at,
@@ -480,7 +482,6 @@ pub struct UpdatableRecord<'a> {
 
 impl<'a> UpdatableRecord<'a> {
     pub fn bind(
-        updated_at: DateTime,
         next_rev: EntityRevision,
         media_source_id: MediaSourceId,
         entity_body: &'a EntityBody,
@@ -488,6 +489,7 @@ impl<'a> UpdatableRecord<'a> {
         let entity_rev = entity_revision_to_sql(next_rev);
         let EntityBody {
             track,
+            updated_at,
             last_synchronized_rev,
         } = entity_body;
         let Track {

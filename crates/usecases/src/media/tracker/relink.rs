@@ -81,11 +81,12 @@ where
     ));
     // Finish with updating the old track
     if updated_track != old_entity.body.track {
+        let updated_at = DateTime::now_local_or_utc();
         let updated_entity_body = EntityBody {
             track: updated_track,
+            updated_at,
             last_synchronized_rev: old_entity.body.last_synchronized_rev,
         };
-        let updated_at = DateTime::now_utc();
         if old_entity.body.track.media_source != updated_entity_body.track.media_source {
             repo.update_media_source(
                 old_source_id,
@@ -99,7 +100,7 @@ where
             );
         }
         let updated_entity = Entity::new(old_entity.hdr, updated_entity_body);
-        repo.update_track_entity(old_header.id, updated_at, old_source_id, &updated_entity)?;
+        repo.update_track_entity(old_header.id, old_source_id, &updated_entity)?;
         debug_assert_eq!(
             updated_entity.body,
             repo.load_track_entity_by_media_source_content_path(

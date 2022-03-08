@@ -3276,10 +3276,13 @@ components:
       properties:
         track:
           $ref: '#/components/schemas/Track'
+        updatedAt:
+          $ref: '#/components/schemas/DateTime'
         lastSynchronizedRev:
           $ref: '#/components/schemas/LastSynchronizedEntityRevision'
       required:
         - track
+        - updatedAt
     TrackIndex:
       allOf:
         - $ref: '#/components/schemas/Index'
