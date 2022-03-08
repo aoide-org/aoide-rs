@@ -13,9 +13,12 @@ log = "0.4.14"
 serde = { version = "1.0.136", features = ["derive"] }
 thiserror = "1.0.30"
 
+tantivy = { version = "0.16.1", optional = true }
+
 # Workspace dependencies
 aoide-core = "*"
 aoide-core-api = "*"
+aoide-index-tantivy = "*"
 aoide-media = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"
@@ -24,4 +27,5 @@ aoide-usecases = "*"
 aoide-usecases-sqlite = "*"
 
 [features]
-default = []
+default = ["with-tantivy"]
+with-tantivy = ["tantivy"]

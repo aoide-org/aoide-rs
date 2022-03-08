@@ -84,6 +84,7 @@ dependencies = [
  "anyhow",
  "aoide-core",
  "aoide-core-api",
+ "aoide-index-tantivy",
  "aoide-media",
  "aoide-repo",
  "aoide-repo-sqlite",
@@ -93,6 +94,7 @@ dependencies = [
  "diesel",
  "log",
  "serde",
+ "tantivy",
  "thiserror",
 ]
 

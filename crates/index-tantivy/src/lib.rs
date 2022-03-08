@@ -33,7 +33,7 @@ use tantivy::{
     collector::TopDocs,
     query::TermQuery,
     schema::{Field, IndexRecordOption, Schema, INDEXED, STORED, STRING, TEXT},
-    Document, Searcher, Term,
+    Document, Index, Searcher, Term,
 };
 
 use aoide_core::{
@@ -325,4 +325,10 @@ pub fn find_track_rev(
     } else {
         Ok(None)
     }
+}
+
+#[derive(Debug)]
+pub struct TrackIndex {
+    pub fields: TrackFields,
+    pub index: Index,
 }
