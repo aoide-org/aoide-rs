@@ -30,11 +30,14 @@
 use chrono::{NaiveDateTime, Utc};
 use num_traits::cast::ToPrimitive as _;
 use tantivy::{
-    schema::{Field, Schema, INDEXED, STORED, STRING, TEXT},
-    Document,
+    collector::TopDocs,
+    query::TermQuery,
+    schema::{Field, IndexRecordOption, Schema, INDEXED, STORED, STRING, TEXT},
+    Document, Searcher, Term,
 };
 
 use aoide_core::{
+    entity::{EntityRevision, EntityUid},
     media::content::ContentMetadata,
     tag::{FacetedTags, PlainTag},
     track::{
@@ -49,6 +52,7 @@ use aoide_core::{
 };
 
 const UID: &str = "uid";
+const REV: &str = "rev";
 const CONTENT_PATH: &str = "content_path";
 const CONTENT_TYPE: &str = "content_type";
 const COLLECTED_AT: &str = "collected_at";
@@ -59,6 +63,7 @@ const ALBUM_TITLE: &str = "album_title";
 const ALBUM_ARTIST: &str = "album_artist";
 const RECORDED_AT_YYYYMMDD: &str = "recorded_at_yyyymmdd";
 const RELEASED_AT_YYYYMMDD: &str = "released_at_yyyymmdd";
+const RELEASED_ORIG_AT_YYYYMMDD: &str = "released_orig_at_yyyymmdd";
 const TEMPO_BPM: &str = "tempo_bpm";
 const KEY_CODE: &str = "key_signature";
 const TIMES_PLAYED: &str = "times_played";
@@ -79,6 +84,7 @@ const VALENCE: &str = "valence";
 #[derive(Debug, Clone)]
 pub struct TrackFields {
     pub uid: Field,
+    pub rev: Field,
     pub content_path: Field,
     pub content_type: Field,
     pub collected_at: Field,
@@ -89,6 +95,7 @@ pub struct TrackFields {
     pub album_artist: Field,
     pub recorded_at_yyyymmdd: Field,
     pub released_at_yyyymmdd: Field,
+    pub released_orig_at_yyyymmdd: Field,
     pub tempo_bpm: Field,
     pub key_code: Field,
     pub times_played: Field,
@@ -117,8 +124,10 @@ fn tantivy_date_time(input: DateTime) -> tantivy::DateTime {
 impl TrackFields {
     #[must_use]
     pub fn create_document(&self, entity: &track::Entity) -> Document {
+        // TODO (optimization): Consuming the entity would avoid string allocations for text fields
         let mut doc = Document::new();
         doc.add_bytes(self.uid, entity.hdr.uid.as_ref());
+        doc.add_u64(self.rev, entity.hdr.rev.to_inner());
         doc.add_text(
             self.content_path,
             &entity.body.track.media_source.content_link.path,
@@ -149,6 +158,14 @@ impl TrackFields {
         }
         if let Some(released_at_yyyymmdd) = entity.body.track.released_at.map(DateYYYYMMDD::from) {
             doc.add_i64(self.album_artist, released_at_yyyymmdd.to_inner().into());
+        }
+        if let Some(released_orig_at_yyyymmdd) =
+            entity.body.track.released_orig_at.map(DateYYYYMMDD::from)
+        {
+            doc.add_i64(
+                self.album_artist,
+                released_orig_at_yyyymmdd.to_inner().into(),
+            );
         }
         if let Some(tempo_bpm) = entity.body.track.metrics.tempo_bpm {
             doc.add_f64(self.tempo_bpm, tempo_bpm.to_raw());
@@ -221,8 +238,9 @@ impl TrackFields {
 #[must_use]
 pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
     let mut schema_builder = Schema::builder();
-    let uid = schema_builder.add_bytes_field(UID, STORED);
-    let content_path = schema_builder.add_text_field(CONTENT_PATH, STRING | STORED);
+    let uid = schema_builder.add_bytes_field(UID, INDEXED | STORED);
+    let rev = schema_builder.add_u64_field(REV, INDEXED | STORED);
+    let content_path = schema_builder.add_text_field(CONTENT_PATH, STRING);
     let content_type = schema_builder.add_text_field(CONTENT_TYPE, STRING);
     let collected_at = schema_builder.add_date_field(COLLECTED_AT, INDEXED);
     let duration_ms = schema_builder.add_f64_field(DURATION_MS, INDEXED);
@@ -232,6 +250,8 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
     let album_artist = schema_builder.add_text_field(ALBUM_ARTIST, TEXT);
     let recorded_at_yyyymmdd = schema_builder.add_i64_field(RECORDED_AT_YYYYMMDD, INDEXED);
     let released_at_yyyymmdd = schema_builder.add_i64_field(RELEASED_AT_YYYYMMDD, INDEXED);
+    let released_orig_at_yyyymmdd =
+        schema_builder.add_i64_field(RELEASED_ORIG_AT_YYYYMMDD, INDEXED);
     let tempo_bpm = schema_builder.add_f64_field(TEMPO_BPM, INDEXED);
     let key_code = schema_builder.add_u64_field(KEY_CODE, INDEXED);
     let times_played = schema_builder.add_u64_field(TIMES_PLAYED, INDEXED);
@@ -251,6 +271,7 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
     let schema = schema_builder.build();
     let fields = TrackFields {
         uid,
+        rev,
         content_path,
         content_type,
         collected_at,
@@ -261,6 +282,7 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
         album_title,
         recorded_at_yyyymmdd,
         released_at_yyyymmdd,
+        released_orig_at_yyyymmdd,
         tempo_bpm,
         key_code,
         times_played,
@@ -279,4 +301,28 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
         valence,
     };
     (schema, fields)
+}
+
+pub fn find_track_rev(
+    searcher: &Searcher,
+    fields: &TrackFields,
+    uid: &EntityUid,
+) -> tantivy::Result<Option<EntityRevision>> {
+    let term = Term::from_field_bytes(fields.uid, uid.as_ref());
+    let query = TermQuery::new(term, IndexRecordOption::Basic);
+    // Search for 2 documents
+    let top_docs = searcher.search(&query, &TopDocs::with_limit(2))?;
+    debug_assert!(top_docs.len() <= 1);
+    if let Some((_score, doc_addr)) = top_docs.into_iter().next() {
+        let doc = searcher.doc(doc_addr)?;
+        debug_assert_eq!(
+            Some(uid.as_ref()),
+            doc.get_first(fields.uid).and_then(|val| val.bytes_value())
+        );
+        let rev_val = doc.get_first(fields.rev).and_then(|val| val.u64_value());
+        debug_assert!(rev_val.is_some());
+        Ok(rev_val.map(EntityRevision::from_inner))
+    } else {
+        Ok(None)
+    }
 }

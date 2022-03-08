@@ -10,7 +10,7 @@ members = [
   "crates/media",
   "crates/repo",
   "crates/repo-sqlite",
-  "crates/search-tantivy",
+  "crates/index-tantivy",
   "crates/storage-sqlite",
   "crates/usecases",
   "crates/usecases-sqlite",
@@ -34,7 +34,7 @@ aoide-core-api-json = { path = "crates/core-api-json" }
 aoide-media = { path = "crates/media" }
 aoide-repo = { path = "crates/repo" }
 aoide-repo-sqlite = { path = "crates/repo-sqlite" }
-aoide-search-tantivy = { path = "crates/search-tantivy" }
+aoide-index-tantivy = { path = "crates/index-tantivy" }
 aoide-storage-sqlite = { path = "crates/storage-sqlite" }
 aoide-usecases = { path = "crates/usecases" }
 aoide-usecases-sqlite = { path = "crates/usecases-sqlite" }

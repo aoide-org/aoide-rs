@@ -7,7 +7,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.55"
+anyhow = "1.0.56"
 diesel = { version = "1.4.8", default-features = false, features = ["r2d2", "sqlite"] }
 # Bundle SQLite code to prevent dynamic linking.
 # The pinned version must be compatible with diesel!

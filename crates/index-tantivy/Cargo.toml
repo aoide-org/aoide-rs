@@ -1,5 +1,5 @@
 [package]
-name = "aoide-search-tantivy"
+name = "aoide-index-tantivy"
 description = "Utilities for a full-text search index based on Tantivy"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
@@ -7,7 +7,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.55"
+anyhow = "1.0.56"
 # Unfortunately Tantivy depends on chrono for date fields
 chrono = "0.4.19"
 num-traits = "0.2.14"
