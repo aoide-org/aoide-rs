@@ -233,6 +233,50 @@ impl TrackFields {
         }
         doc
     }
+
+    #[must_use]
+    pub fn uid_term(&self, uid: &EntityUid) -> Term {
+        Term::from_field_bytes(self.uid, uid.as_ref())
+    }
+
+    #[must_use]
+    pub fn uid_query(&self, uid: &EntityUid) -> TermQuery {
+        TermQuery::new(self.uid_term(uid), IndexRecordOption::Basic)
+    }
+
+    #[must_use]
+    pub fn read_uid(&self, doc: &Document) -> Option<EntityUid> {
+        doc.get_first(self.uid)
+            .and_then(|val| val.as_bytes())
+            .map(EntityUid::from_slice)
+    }
+
+    #[must_use]
+    pub fn read_rev(&self, doc: &Document) -> Option<EntityRevision> {
+        doc.get_first(self.rev)
+            .and_then(|val| val.as_u64())
+            .map(EntityRevision::from_inner)
+    }
+
+    pub fn find_rev_by_uid(
+        &self,
+        searcher: &Searcher,
+        uid: &EntityUid,
+    ) -> tantivy::Result<Option<EntityRevision>> {
+        let query = self.uid_query(uid);
+        // Search for 2 documents
+        let top_docs = searcher.search(&query, &TopDocs::with_limit(2))?;
+        debug_assert!(top_docs.len() <= 1);
+        if let Some((_score, doc_addr)) = top_docs.into_iter().next() {
+            let doc = searcher.doc(doc_addr)?;
+            debug_assert_eq!(Some(uid), self.read_uid(&doc).as_ref());
+            let rev = self.read_rev(&doc);
+            debug_assert!(rev.is_some());
+            Ok(rev)
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 #[must_use]
@@ -301,30 +345,6 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
         valence,
     };
     (schema, fields)
-}
-
-pub fn find_track_rev(
-    searcher: &Searcher,
-    fields: &TrackFields,
-    uid: &EntityUid,
-) -> tantivy::Result<Option<EntityRevision>> {
-    let term = Term::from_field_bytes(fields.uid, uid.as_ref());
-    let query = TermQuery::new(term, IndexRecordOption::Basic);
-    // Search for 2 documents
-    let top_docs = searcher.search(&query, &TopDocs::with_limit(2))?;
-    debug_assert!(top_docs.len() <= 1);
-    if let Some((_score, doc_addr)) = top_docs.into_iter().next() {
-        let doc = searcher.doc(doc_addr)?;
-        debug_assert_eq!(
-            Some(uid.as_ref()),
-            doc.get_first(fields.uid).and_then(|val| val.as_bytes())
-        );
-        let rev_val = doc.get_first(fields.rev).and_then(|val| val.as_u64());
-        debug_assert!(rev_val.is_some());
-        Ok(rev_val.map(EntityRevision::from_inner))
-    } else {
-        Ok(None)
-    }
 }
 
 #[derive(Debug)]

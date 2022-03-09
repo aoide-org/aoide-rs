@@ -16,7 +16,7 @@
 use std::{num::NonZeroU64, sync::Arc};
 
 use diesel::Connection as _;
-use tantivy::{IndexWriter, Term};
+use tantivy::IndexWriter;
 
 use aoide_core::{entity::EntityUid, util::clock::DateTime};
 use aoide_core_api::{
@@ -24,7 +24,7 @@ use aoide_core_api::{
     track::search::{SortField, SortOrder},
     Pagination,
 };
-use aoide_index_tantivy::{find_track_rev, TrackFields};
+use aoide_index_tantivy::TrackFields;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::track::EntityCollector;
@@ -93,21 +93,15 @@ pub async fn reindex_tracks(
                         match mode {
                             IndexingMode::All => {
                                 // Ensure that the no document with this UID exists
-                                let term = Term::from_field_bytes(
-                                    track_fields.uid,
-                                    entity.hdr.uid.as_ref(),
-                                );
+                                let term = track_fields.uid_term(&entity.hdr.uid);
                                 index_writer.delete_term(term);
                             }
                             IndexingMode::RecentlyUpdated => {
-                                if let Some(rev) =
-                                    find_track_rev(&index_searcher, &track_fields, &entity.hdr.uid)?
+                                if let Some(rev) = track_fields
+                                    .find_rev_by_uid(&index_searcher, &entity.hdr.uid)?
                                 {
                                     if rev < entity.hdr.rev {
-                                        let term = Term::from_field_bytes(
-                                            track_fields.uid,
-                                            entity.hdr.uid.as_ref(),
-                                        );
+                                        let term = track_fields.uid_term(&entity.hdr.uid);
                                         index_writer.delete_term(term);
                                     } else {
                                         debug_assert_eq!(rev, entity.hdr.rev);
