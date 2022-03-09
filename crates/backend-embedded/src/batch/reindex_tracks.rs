@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::num::NonZeroU64;
+use std::{num::NonZeroU64, sync::Arc};
 
-use tantivy::{IndexWriter, Searcher, Term};
+use diesel::Connection as _;
+use tantivy::{IndexWriter, Term};
 
 use aoide_core::{entity::EntityUid, util::clock::DateTime};
 use aoide_core_api::{
@@ -26,67 +27,124 @@ use aoide_core_api::{
 use aoide_index_tantivy::{find_track_rev, TrackFields};
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
-pub async fn reindex_recently_updated_tracks(
-    track_fields: &TrackFields,
-    index_writer: &mut IndexWriter,
-    searcher: &Searcher,
-    db_gatekeeper: &Gatekeeper,
-    collection_uid: &EntityUid,
+use crate::track::EntityCollector;
+
+#[derive(Debug, Clone)]
+pub enum IndexingMode {
+    /// Add or replace all existing documents unconditionally
+    All,
+
+    /// Add or replace only documents that have recently been
+    /// updated and stop when no more updated documents are
+    /// expected.
+    RecentlyUpdated,
+}
+
+/// Re-index all recently updated tracks
+///
+/// This task cannot be aborted, otherwise the terminate condition
+/// no longer holds! Moreover the database must not be modified while
+/// this task is running!
+pub async fn reindex_tracks(
+    track_fields: TrackFields,
+    mut index_writer: IndexWriter,
+    db_gatekeeper: Arc<Gatekeeper>,
+    collection_uid: EntityUid,
     batch_size: NonZeroU64,
-    mut progress_fn: impl FnMut(u64),
+    mode: IndexingMode,
+    mut progress_fn: impl FnMut(u64) + Send + 'static,
 ) -> anyhow::Result<u64> {
-    let mut offset = 0;
-    // Last timestamp to consider for updates
-    let mut last_updated_at: Option<DateTime> = None;
-    loop {
-        let params = aoide_core_api::track::search::Params {
-            ordering: vec![SortOrder {
-                field: SortField::UpdatedAt,
-                direction: SortDirection::Descending,
-            }],
-            ..Default::default()
-        };
-        let pagination = Pagination {
-            offset: Some(offset),
-            limit: Some(batch_size.get()),
-        };
-        let entities =
-            crate::track::search(db_gatekeeper, collection_uid.to_owned(), params, pagination)
-                .await?;
-        if entities.is_empty() {
-            break;
-        }
-        for entity in entities {
-            if let Some(rev) = find_track_rev(searcher, track_fields, &entity.hdr.uid)? {
-                if rev < entity.hdr.rev {
-                    let term = Term::from_field_bytes(track_fields.uid, entity.hdr.uid.as_ref());
-                    index_writer.delete_term(term);
-                } else {
-                    debug_assert_eq!(rev, entity.hdr.rev);
-                    // After approaching the first unmodified entity all entities
-                    // with an updated_at timestamp strictly less than the current
-                    // one are guaranteed to be unmodified. But we still need to
-                    // consider all entities with the same timestamp to be sure.
-                    if let Some(last_updated_at) = last_updated_at {
-                        if entity.body.updated_at < last_updated_at {
-                            // No more modified entities to follow
-                            return Ok(offset);
-                        }
-                    } else {
-                        // Initialize the high watermark that will eventually
-                        // terminate the loop.
-                        last_updated_at = Some(entity.body.updated_at);
+    // Obtain an exclusive database connection by pretending to
+    // write although we only read. The connection is locked
+    // for the whole operation!
+    db_gatekeeper
+        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+            let connection = &*pooled_connection;
+            let search_params = aoide_core_api::track::search::Params {
+                ordering: vec![SortOrder {
+                    field: SortField::UpdatedAt,
+                    direction: SortDirection::Descending,
+                }],
+                ..Default::default()
+            };
+            let index_searcher = index_writer.index().reader()?.searcher();
+            let mut offset = 0;
+            let mut collector = EntityCollector::new(Vec::with_capacity(batch_size.get() as usize));
+            // Last timestamp to consider for updates
+            let mut last_updated_at: Option<DateTime> = None;
+            connection.transaction::<_, anyhow::Error, _>(|| {
+                'batch_loop: loop {
+                    let pagination = Pagination {
+                        offset: Some(offset),
+                        limit: Some(batch_size.get()),
+                    };
+                    aoide_usecases_sqlite::track::search::search(
+                        &*pooled_connection,
+                        &collection_uid,
+                        search_params.clone(),
+                        &pagination,
+                        &mut collector,
+                    )?;
+                    let mut entities = collector.finish();
+                    if entities.is_empty() {
+                        break;
                     }
-                    // Skip
-                    continue;
+                    for entity in &entities {
+                        match mode {
+                            IndexingMode::All => {
+                                // Ensure that the no document with this UID exists
+                                let term = Term::from_field_bytes(
+                                    track_fields.uid,
+                                    entity.hdr.uid.as_ref(),
+                                );
+                                index_writer.delete_term(term);
+                            }
+                            IndexingMode::RecentlyUpdated => {
+                                if let Some(rev) =
+                                    find_track_rev(&index_searcher, &track_fields, &entity.hdr.uid)?
+                                {
+                                    if rev < entity.hdr.rev {
+                                        let term = Term::from_field_bytes(
+                                            track_fields.uid,
+                                            entity.hdr.uid.as_ref(),
+                                        );
+                                        index_writer.delete_term(term);
+                                    } else {
+                                        debug_assert_eq!(rev, entity.hdr.rev);
+                                        // After approaching the first unmodified entity all entities
+                                        // with an updated_at timestamp strictly less than the current
+                                        // one are guaranteed to be unmodified. But we still need to
+                                        // consider all entities with the same timestamp to be sure.
+                                        if let Some(last_updated_at) = last_updated_at {
+                                            if entity.body.updated_at < last_updated_at {
+                                                // No more updated entities expected to follow
+                                                break 'batch_loop;
+                                            }
+                                        } else {
+                                            // Initialize the high watermark that will eventually
+                                            // terminate the loop.
+                                            last_updated_at = Some(entity.body.updated_at);
+                                        }
+                                        // Skip and continue with next entity
+                                        continue;
+                                    }
+                                }
+                            }
+                        }
+                        let doc = track_fields.create_document(entity);
+                        index_writer.add_document(doc)?;
+                        offset += 1;
+                    }
+                    // Reuse the capacity of the allocated entities for the next round
+                    entities.clear();
+                    collector = EntityCollector::new(entities);
+                    progress_fn(offset);
                 }
-            }
-            offset += 1;
-            let doc = track_fields.create_document(&entity);
-            index_writer.add_document(doc);
-        }
-        progress_fn(offset);
-    }
-    index_writer.commit()?;
-    Ok(offset)
+                index_writer.commit()?;
+                Ok(offset)
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
 }

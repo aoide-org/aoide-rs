@@ -134,7 +134,7 @@ impl TrackFields {
         );
         doc.add_date(
             self.collected_at,
-            &tantivy_date_time(entity.body.track.media_source.collected_at),
+            tantivy_date_time(entity.body.track.media_source.collected_at),
         );
         let ContentMetadata::Audio(audio_metadata) =
             &entity.body.track.media_source.content_metadata;
@@ -187,7 +187,7 @@ impl TrackFields {
             doc.add_u64(self.times_played, times_played);
         }
         if let Some(last_played_at) = entity.body.track.play_counter.last_played_at {
-            doc.add_date(self.times_played, &tantivy_date_time(last_played_at));
+            doc.add_date(self.times_played, tantivy_date_time(last_played_at));
         }
         for faceted_tags in &entity.body.track.tags.facets {
             let FacetedTags { facet_id, tags } = faceted_tags;
@@ -317,9 +317,9 @@ pub fn find_track_rev(
         let doc = searcher.doc(doc_addr)?;
         debug_assert_eq!(
             Some(uid.as_ref()),
-            doc.get_first(fields.uid).and_then(|val| val.bytes_value())
+            doc.get_first(fields.uid).and_then(|val| val.as_bytes())
         );
-        let rev_val = doc.get_first(fields.rev).and_then(|val| val.u64_value());
+        let rev_val = doc.get_first(fields.rev).and_then(|val| val.as_u64());
         debug_assert!(rev_val.is_some());
         Ok(rev_val.map(EntityRevision::from_inner))
     } else {

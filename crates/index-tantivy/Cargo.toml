@@ -12,7 +12,7 @@ anyhow = "1.0.56"
 chrono = "0.4.19"
 num-traits = "0.2.14"
 log = "0.4.14"
-tantivy = "0.16.1"
+tantivy = "0.17.0"
 thiserror = "1.0.30"
 
 # Workspace dependencies

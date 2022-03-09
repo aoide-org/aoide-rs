@@ -23,17 +23,18 @@ use std::{
 use tantivy::{directory::MmapDirectory, Index};
 
 use aoide_core::entity::EntityUid;
-use aoide_core_api::Pagination;
 use aoide_index_tantivy::TrackIndex;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
+use crate::batch::reindex_tracks::IndexingMode;
+
 pub async fn index_tracks(
     index_path: Option<&Path>,
-    db_gatekeeper: &Gatekeeper,
-    collection_uid: &EntityUid,
+    db_gatekeeper: Arc<Gatekeeper>,
+    collection_uid: EntityUid,
     index_writer_overall_heap_size_in_bytes: NonZeroUsize,
     batch_size: NonZeroU64,
-    mut progress_fn: impl FnMut(u64),
+    progress_fn: impl FnMut(u64) + Send + 'static,
 ) -> anyhow::Result<(Arc<TrackIndex>, u64)> {
     let (schema, fields) = aoide_index_tantivy::build_schema_for_tracks();
     let index = if let Some(index_path) = index_path {
@@ -50,16 +51,14 @@ pub async fn index_tracks(
                     index_schema
                 );
             }
-            let mut index_writer = index.writer(index_writer_overall_heap_size_in_bytes.get())?;
-            let index_reader = index.reader()?;
-            let searcher = index_reader.searcher();
-            let count = super::reindex_tracks::reindex_recently_updated_tracks(
-                &fields,
-                &mut index_writer,
-                &searcher,
+            let index_writer = index.writer(index_writer_overall_heap_size_in_bytes.get())?;
+            let count = super::reindex_tracks::reindex_tracks(
+                fields.clone(),
+                index_writer,
                 db_gatekeeper,
                 collection_uid,
                 batch_size,
+                IndexingMode::RecentlyUpdated,
                 progress_fn,
             )
             .await?;
@@ -75,27 +74,17 @@ pub async fn index_tracks(
         log::warn!("Creating track index in RAM");
         Index::create_in_ram(schema)
     };
-    let mut offset = 0;
-    let mut index_writer = index.writer(index_writer_overall_heap_size_in_bytes.get())?;
-    loop {
-        let params = Default::default();
-        let pagination = Pagination {
-            offset: Some(offset),
-            limit: Some(batch_size.get()),
-        };
-        let entities =
-            crate::track::search(db_gatekeeper, collection_uid.to_owned(), params, pagination)
-                .await?;
-        if entities.is_empty() {
-            break;
-        }
-        offset += entities.len() as u64;
-        for entity in entities {
-            let doc = fields.create_document(&entity);
-            index_writer.add_document(doc);
-        }
-        progress_fn(offset);
-    }
-    index_writer.commit()?;
-    Ok((Arc::new(TrackIndex { fields, index }), offset))
+    let index_writer = index.writer(index_writer_overall_heap_size_in_bytes.get())?;
+    let count = super::reindex_tracks::reindex_tracks(
+        fields.clone(),
+        index_writer,
+        db_gatekeeper,
+        collection_uid,
+        batch_size,
+        IndexingMode::All,
+        progress_fn,
+    )
+    .await?;
+    let track_index = TrackIndex { fields, index };
+    Ok((Arc::new(track_index), count))
 }
