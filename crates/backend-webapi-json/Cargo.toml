@@ -14,7 +14,7 @@ thiserror = "1.0.30"
 url = "2.2.2"
 
 # tracing
-tracing = { version = "0.1.31", features = ["log"] }
+tracing = { version = "0.1.32", features = ["log"] }
 uuid = { version = "0.8.2", features = ["v4"] }
 
 # JSON Schema (optional)

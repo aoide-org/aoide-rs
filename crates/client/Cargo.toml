@@ -16,7 +16,7 @@ static_assertions = "1.1.0"
 tokio = { version = "1.17.0", optional = true, default-features = false }
 
 # Optional dependencies for feature with-webapi-backend
-reqwest = { version = "0.11.9", optional = true, default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.11.10", optional = true, default-features = false, features = ["rustls-tls"] }
 
 # Workspace dependencies
 aoide-core = "*"

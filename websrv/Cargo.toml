@@ -23,7 +23,7 @@ tokio = { version = "1.17.0", default-features = false, features = [
     "rt-multi-thread",
     "signal",
 ] }
-tracing = "0.1.31"
+tracing = "0.1.32"
 tracing-log = "0.1.2"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 url = { version = "2.2.2", features = ["serde"] }
