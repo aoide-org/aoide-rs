@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.56"
 diesel = { version = "1.4.8", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
-log = "0.4.14"
+log = "0.4.16"
 mime = "0.3.16"
 num-derive = "0.3.3"
 num-traits = "0.2.14"
@@ -27,4 +27,4 @@ default = []
 [dev-dependencies]
 diesel_migrations =  { version = "1.4.0", features = ["sqlite"] }
 env_logger = "0.9.0"
-test-log = "0.2.8"
+test-log = "0.2.10"

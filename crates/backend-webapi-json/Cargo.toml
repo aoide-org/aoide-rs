@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.56"
 diesel = { version = "1.4.8", default-features = false, features = ["sqlite"] }
-log = "0.4.14"
+log = "0.4.16"
 serde = { version = "1.0.136", default-features = false }
 thiserror = "1.0.30"
 url = "2.2.2"

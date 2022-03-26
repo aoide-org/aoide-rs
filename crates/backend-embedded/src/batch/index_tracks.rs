@@ -20,13 +20,45 @@ use std::{
     sync::Arc,
 };
 
-use tantivy::{directory::MmapDirectory, Index};
+use tantivy::{
+    directory::{error::OpenDirectoryError, MmapDirectory},
+    Index,
+};
 
 use aoide_core::entity::EntityUid;
 use aoide_index_tantivy::TrackIndex;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::batch::reindex_tracks::IndexingMode;
+
+pub fn try_open_track_index(index_path: &Path) -> anyhow::Result<Option<TrackIndex>> {
+    let index_dir = match MmapDirectory::open(index_path) {
+        Ok(index_dir) => {
+            if !Index::exists(&index_dir)? {
+                return Ok(None);
+            }
+            index_dir
+        }
+        Err(OpenDirectoryError::DoesNotExist(_)) => {
+            return Ok(None);
+        }
+        Err(err) => {
+            return Err(err.into());
+        }
+    };
+    let index = Index::open(index_dir)?;
+    let actual_schema = index.schema();
+    let (expected_schema, fields) = aoide_index_tantivy::build_schema_for_tracks();
+    if actual_schema != expected_schema {
+        anyhow::bail!(
+            "Incompatible track index schema: expected = {:?}, actual = {:?}",
+            expected_schema,
+            actual_schema
+        );
+    }
+    let track_index = TrackIndex { fields, index };
+    Ok(Some(track_index))
+}
 
 pub async fn index_tracks(
     index_path: Option<&Path>,
@@ -36,19 +68,19 @@ pub async fn index_tracks(
     batch_size: NonZeroU64,
     progress_fn: impl FnMut(u64) + Send + 'static,
 ) -> anyhow::Result<(Arc<TrackIndex>, u64)> {
-    let (schema, fields) = aoide_index_tantivy::build_schema_for_tracks();
+    let (expected_schema, fields) = aoide_index_tantivy::build_schema_for_tracks();
     let index = if let Some(index_path) = index_path {
         fs::create_dir_all(&index_path)?;
         let index_dir = MmapDirectory::open(index_path)?;
         if Index::exists(&index_dir)? {
             log::info!("Opening track index in directory: {}", index_path.display());
             let index = Index::open(index_dir)?;
-            let index_schema = index.schema();
-            if index_schema != schema {
+            let actual_schema = index.schema();
+            if actual_schema != expected_schema {
                 anyhow::bail!(
                     "Incompatible track index schema: expected = {:?}, actual = {:?}",
-                    schema,
-                    index_schema
+                    expected_schema,
+                    actual_schema
                 );
             }
             let index_writer = index.writer(index_writer_overall_heap_size_in_bytes.get())?;
@@ -69,10 +101,10 @@ pub async fn index_tracks(
             "Creating track index in directory: {}",
             index_path.display()
         );
-        Index::create_in_dir(index_path, schema)?
+        Index::create_in_dir(index_path, expected_schema)?
     } else {
-        log::warn!("Creating track index in RAM");
-        Index::create_in_ram(schema)
+        log::warn!("Creating temporary track index in RAM");
+        Index::create_in_ram(expected_schema)
     };
     let index_writer = index.writer(index_writer_overall_heap_size_in_bytes.get())?;
     let count = super::reindex_tracks::reindex_tracks(
