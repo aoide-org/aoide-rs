@@ -27,19 +27,21 @@ pub struct DatabaseConfig {
 }
 
 pub fn commission_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper> {
+    log::info!(
+        "Commissioning SQLite database: {}",
+        config.connection.storage,
+    );
+
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
     log::info!(
-        "Creating SQLite connection pool of max. size {}",
+        "Creating connection pool of max. size {}",
         config.connection.pool.max_size
     );
     let connection_pool =
         create_connection_pool(&config.connection.storage, config.connection.pool.max_size)?;
 
-    log::info!(
-        "Initializing SQLite database: {}",
-        config.connection.storage,
-    );
+    log::info!("Initializing database");
     aoide_repo_sqlite::initialize_database(&*get_pooled_connection(&connection_pool)?)?;
 
     if config.migrate_schema {

@@ -67,20 +67,20 @@ pub enum Command {
 }
 
 fn commission_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnectionGatekeeper> {
+    log::info!(
+        "Commissioning SQLite database: {}",
+        config.connection.storage,
+    );
+
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
     let pool_max_size = config.connection.pool.max_size;
-    log::info!(
-        "Creating SQLite connection pool of max. size {}",
-        pool_max_size
-    );
+    log::info!("Creating connection pool of max. size {}", pool_max_size);
     let connection_pool = create_connection_pool(&config.connection.storage, pool_max_size)?;
 
-    log::info!(
-        "Initializing SQLite database: {}",
-        config.connection.storage
-    );
+    log::info!("Initializing database");
     initialize_database(&*get_pooled_connection(&connection_pool)?)?;
+
     if config.migrate_schema_on_startup {
         log::info!("Migrating database schema");
         uc::database::migrate_schema(&*get_pooled_connection(&connection_pool)?)?;
