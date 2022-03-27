@@ -36,7 +36,10 @@ pub fn commission_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper
     let connection_pool =
         create_connection_pool(&config.connection.storage, config.connection.pool.max_size)?;
 
-    log::info!("Initializing database");
+    log::info!(
+        "Initializing SQLite database: {}",
+        config.connection.storage,
+    );
     aoide_repo_sqlite::initialize_database(&*get_pooled_connection(&connection_pool)?)?;
 
     if config.migrate_schema {

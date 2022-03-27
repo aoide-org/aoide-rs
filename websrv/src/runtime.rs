@@ -76,7 +76,10 @@ fn commission_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnec
     );
     let connection_pool = create_connection_pool(&config.connection.storage, pool_max_size)?;
 
-    log::info!("Initializing database");
+    log::info!(
+        "Initializing SQLite database: {}",
+        config.connection.storage
+    );
     initialize_database(&*get_pooled_connection(&connection_pool)?)?;
     if config.migrate_schema_on_startup {
         log::info!("Migrating database schema");
