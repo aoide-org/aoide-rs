@@ -54,7 +54,7 @@ pub async fn reindex_tracks(
     db_gatekeeper: Arc<Gatekeeper>,
     collection_uid: EntityUid,
     batch_size: NonZeroU64,
-    mode: IndexingMode,
+    mode: Option<IndexingMode>,
     mut progress_fn: impl FnMut(u64) + Send + 'static,
 ) -> anyhow::Result<u64> {
     // Obtain an exclusive database connection by pretending to
@@ -72,7 +72,7 @@ pub async fn reindex_tracks(
             };
             let index_searcher = index_writer.index().reader()?.searcher();
             let (index_was_empty, mode) = if AllQuery.count(&index_searcher)? > 0 {
-                (false, mode)
+                (false, mode.unwrap_or(IndexingMode::RecentlyUpdated))
             } else {
                 (true, IndexingMode::All)
             };
