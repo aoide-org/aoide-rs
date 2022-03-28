@@ -71,7 +71,11 @@ pub async fn reindex_tracks(
                 ..Default::default()
             };
             let index_searcher = index_writer.index().reader()?.searcher();
-            let index_was_empty = AllQuery.count(&index_searcher)? == 0;
+            let (index_was_empty, mode) = if AllQuery.count(&index_searcher)? > 0 {
+                (false, mode)
+            } else {
+                (true, IndexingMode::All)
+            };
             let mut offset = 0;
             let mut collector = EntityCollector::new(Vec::with_capacity(batch_size.get() as usize));
             // Last timestamp to consider for updates
