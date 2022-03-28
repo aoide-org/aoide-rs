@@ -38,23 +38,23 @@ update:
     cargo install \
         cargo-edit \
         trunk
-    cargo upgrade --workspace --exclude \
-        aoide-backend-embedded \
-        aoide-backend-webapi-json \
-        aoide-client \
-        aoide-core \
-        aoide-core-api \
-        aoide-core-api-json \
-        aoide-core-json \
-        aoide-index-tantivy \
-        aoide-media \
-        aoide-repo \
-        aoide-repo-sqlite \
-        aoide-storage-sqlite \
-        aoide-usecases \
-        aoide-usecases-sqlite \
-        aoide-websrv-api \
-        libsqlite3-sys
+    cargo upgrade --workspace \
+        --exclude aoide-backend-embedded \
+        --exclude aoide-backend-webapi-json \
+        --exclude aoide-client \
+        --exclude aoide-core \
+        --exclude aoide-core-api \
+        --exclude aoide-core-api-json \
+        --exclude aoide-core-json \
+        --exclude aoide-index-tantivy \
+        --exclude aoide-media \
+        --exclude aoide-repo \
+        --exclude aoide-repo-sqlite \
+        --exclude aoide-storage-sqlite \
+        --exclude aoide-usecases \
+        --exclude aoide-usecases-sqlite \
+        --exclude aoide-websrv-api \
+        --exclude libsqlite3-sys
     #cargo minimal-versions check --workspace
     cargo update
     cd webapp && cargo update
