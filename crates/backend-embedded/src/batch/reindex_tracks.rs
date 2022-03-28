@@ -16,7 +16,10 @@
 use std::{num::NonZeroU64, sync::Arc};
 
 use diesel::Connection as _;
-use tantivy::IndexWriter;
+use tantivy::{
+    query::{AllQuery, Query as _},
+    IndexWriter,
+};
 
 use aoide_core::{entity::EntityUid, util::clock::DateTime};
 use aoide_core_api::{
@@ -68,6 +71,7 @@ pub async fn reindex_tracks(
                 ..Default::default()
             };
             let index_searcher = index_writer.index().reader()?.searcher();
+            let index_was_empty = AllQuery.count(&index_searcher)? == 0;
             let mut offset = 0;
             let mut collector = EntityCollector::new(Vec::with_capacity(batch_size.get() as usize));
             // Last timestamp to consider for updates
@@ -92,9 +96,11 @@ pub async fn reindex_tracks(
                     for entity in &entities {
                         match mode {
                             IndexingMode::All => {
-                                // Ensure that the no document with this UID exists
-                                let term = track_fields.uid_term(&entity.hdr.uid);
-                                index_writer.delete_term(term);
+                                if !index_was_empty {
+                                    // Ensure that the no document with this UID already exists
+                                    let term = track_fields.uid_term(&entity.hdr.uid);
+                                    index_writer.delete_term(term);
+                                }
                             }
                             IndexingMode::RecentlyUpdated => {
                                 if let Some(rev) = track_fields
