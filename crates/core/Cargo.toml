@@ -24,7 +24,7 @@ url = "2.2.2"
 # compilation will fail for this transitive dependency needed
 # by uuid and rand_core.
 # TODO: Remove if no longer needed
-getrandom = { version = "0.2.5", default-features = false, features = ["js"] }
+getrandom = { version = "0.2.6", default-features = false, features = ["js"] }
 
 [features]
 default = []

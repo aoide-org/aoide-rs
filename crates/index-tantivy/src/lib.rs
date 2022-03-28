@@ -27,13 +27,16 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
+use std::{fs, path::Path};
+
 use chrono::{NaiveDateTime, Utc};
 use num_traits::cast::ToPrimitive as _;
 use tantivy::{
     collector::TopDocs,
-    query::TermQuery,
+    directory::MmapDirectory,
+    query::{AllQuery, Query as _, TermQuery},
     schema::{Field, IndexRecordOption, Schema, INDEXED, STORED, STRING, TEXT},
-    Document, Index, Searcher, Term,
+    Document, Index, Searcher, TantivyError, Term,
 };
 
 use aoide_core::{
@@ -351,4 +354,51 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
 pub struct TrackIndex {
     pub fields: TrackFields,
     pub index: Index,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum IndexStorage<'p> {
+    InMemory,
+    TempDir,
+    FileDir { dir_path: &'p Path },
+}
+
+impl TrackIndex {
+    pub fn open_or_recreate(index_storage: IndexStorage<'_>) -> anyhow::Result<TrackIndex> {
+        let (schema, fields) = build_schema_for_tracks();
+        let index = match index_storage {
+            IndexStorage::InMemory => {
+                log::info!("Creating temporary track index in RAM");
+                Index::create_in_ram(schema)
+            }
+            IndexStorage::TempDir => {
+                log::info!("Creating temporary track index");
+                Index::create_from_tempdir(schema)?
+            }
+            IndexStorage::FileDir { dir_path } => {
+                fs::create_dir_all(&dir_path)?;
+                let index_dir = MmapDirectory::open(dir_path)?;
+                match Index::open_or_create(index_dir, schema) {
+                    Ok(index) => index,
+                    Err(TantivyError::SchemaError(err)) => {
+                        log::warn!("Deleting track index with incompatible schema: {}", err,);
+                        // Delete existing index data
+                        fs::remove_dir_all(dir_path)?;
+                        // ...and retry.
+                        return Self::open_or_recreate(index_storage);
+                    }
+                    Err(err) => {
+                        return Err(err.into());
+                    }
+                }
+            }
+        };
+        Ok(Self { fields, index })
+    }
+
+    pub fn count_all(&self) -> anyhow::Result<usize> {
+        let searcher = self.index.reader()?.searcher();
+        let count_all = AllQuery.count(&searcher)?;
+        Ok(count_all)
+    }
 }

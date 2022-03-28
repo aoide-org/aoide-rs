@@ -20,45 +20,13 @@ use std::{
     sync::Arc,
 };
 
-use tantivy::{
-    directory::{error::OpenDirectoryError, MmapDirectory},
-    Index,
-};
+use tantivy::{directory::MmapDirectory, Index};
 
 use aoide_core::entity::EntityUid;
 use aoide_index_tantivy::TrackIndex;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::batch::reindex_tracks::IndexingMode;
-
-pub fn try_open_track_index(index_path: &Path) -> anyhow::Result<Option<TrackIndex>> {
-    let index_dir = match MmapDirectory::open(index_path) {
-        Ok(index_dir) => {
-            if !Index::exists(&index_dir)? {
-                return Ok(None);
-            }
-            index_dir
-        }
-        Err(OpenDirectoryError::DoesNotExist(_)) => {
-            return Ok(None);
-        }
-        Err(err) => {
-            return Err(err.into());
-        }
-    };
-    let index = Index::open(index_dir)?;
-    let actual_schema = index.schema();
-    let (expected_schema, fields) = aoide_index_tantivy::build_schema_for_tracks();
-    if actual_schema != expected_schema {
-        anyhow::bail!(
-            "Incompatible track index schema: expected = {:?}, actual = {:?}",
-            expected_schema,
-            actual_schema
-        );
-    }
-    let track_index = TrackIndex { fields, index };
-    Ok(Some(track_index))
-}
 
 pub async fn index_tracks(
     index_path: Option<&Path>,
