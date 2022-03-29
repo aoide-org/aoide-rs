@@ -34,7 +34,7 @@ use crate::track::EntityCollector;
 
 #[derive(Debug, Clone)]
 pub enum IndexingMode {
-    /// Add or replace all existing documents unconditionally
+    /// Delete all existing documents and re-populate the index.
     All,
 
     /// Add or replace only documents that have recently been
@@ -43,11 +43,14 @@ pub enum IndexingMode {
     RecentlyUpdated,
 }
 
-/// Re-index all recently updated tracks
+/// Re-index all or recently updated tracks
 ///
 /// This task cannot be aborted, otherwise the terminate condition
 /// no longer holds! Moreover the database must not be modified while
 /// this task is running!
+///
+/// The `mode` defaults to `RecentlyUpdated` if unspecified. It is
+/// irrelevant and ignored if the index is empty.
 pub async fn reindex_tracks(
     track_fields: TrackFields,
     mut index_writer: IndexWriter,
@@ -71,11 +74,17 @@ pub async fn reindex_tracks(
                 ..Default::default()
             };
             let index_searcher = index_writer.index().reader()?.searcher();
-            let (index_was_empty, mode) = if AllQuery.count(&index_searcher)? > 0 {
-                (false, mode.unwrap_or(IndexingMode::RecentlyUpdated))
+            let mode = if AllQuery.count(&index_searcher)? > 0 {
+                mode.unwrap_or(IndexingMode::RecentlyUpdated)
             } else {
-                (true, IndexingMode::All)
+                IndexingMode::All
             };
+            match mode {
+                IndexingMode::All => {
+                    index_writer.delete_all_documents()?;
+                }
+                IndexingMode::RecentlyUpdated => (),
+            }
             let mut offset = 0;
             let mut collector = EntityCollector::new(Vec::with_capacity(batch_size.get() as usize));
             // Last timestamp to consider for updates
@@ -99,13 +108,7 @@ pub async fn reindex_tracks(
                     }
                     for entity in &entities {
                         match mode {
-                            IndexingMode::All => {
-                                if !index_was_empty {
-                                    // Ensure that the no document with this UID already exists
-                                    let term = track_fields.uid_term(&entity.hdr.uid);
-                                    index_writer.delete_term(term);
-                                }
-                            }
+                            IndexingMode::All => (),
                             IndexingMode::RecentlyUpdated => {
                                 if let Some(rev) = track_fields
                                     .find_rev_by_uid(&index_searcher, &entity.hdr.uid)?
