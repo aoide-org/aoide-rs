@@ -82,7 +82,7 @@ pub struct Outcome {
 
 pub type Result = crate::Result<Outcome>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Progress {
     Step1ScanDirectories(aoide_usecases::media::tracker::scan_directories::ProgressEvent),
     Step2UntrackOrphanedDirectories,
@@ -93,7 +93,7 @@ pub enum Progress {
     Step7FindUnsynchronizedTracks,
 }
 
-pub async fn ingest_vfs_collection<P>(
+pub async fn ingest_collection_vfs<P>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: EntityUid,
     params: Params,

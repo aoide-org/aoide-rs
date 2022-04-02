@@ -47,7 +47,7 @@ use crate::{
 
 use super::*;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ProgressEvent {
     pub elapsed: Duration,
     pub summary: Summary,

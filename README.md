@@ -35,7 +35,7 @@ aoide is able to ingest the metadata from the audio files and store it in a data
 
 ### Setup
 
-Both the initial ingestion and subsequent re-import of updated metadata can be accomplished by running the bundled shell script [`ingest_vfs_collection.sh`](./ingest_vfs_collection.sh). It is recommended to copy the contents and customize the settings to your needs.
+Both the initial ingestion and subsequent re-import of updated metadata can be accomplished by running the bundled shell script [`ingest_collection_vfs.sh`](./ingest_collection_vfs.sh). It is recommended to copy the contents and customize the settings to your needs.
 
 This sections only lists the most important configuration options that you might need to adjust. Refer to the comments in the script for advanced options.
 
@@ -64,7 +64,7 @@ The VFS root directory of the collection is specified by `COLLECTION_VFS_ROOT_UR
 Run the script whenever metadata in audio files has been modified:
 
 ```shell
-./ingest_vfs_collection.sh
+./ingest_collection_vfs.sh
 ```
 
 You can safely interrupt the script at any point or stop the web server manually at your will. The database will catch up and resynchronize its contents on the next run. Easy and fool-proof.
