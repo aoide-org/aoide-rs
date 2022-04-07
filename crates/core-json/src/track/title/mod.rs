@@ -25,7 +25,7 @@ mod _core {
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[repr(u8)]
 pub enum TitleKind {
     Main = _core::TitleKind::Main as u8,
@@ -79,7 +79,7 @@ impl From<_core::TitleKind> for TitleKind {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FullTitle {
     name: String,
@@ -110,7 +110,7 @@ impl From<FullTitle> for _core::Title {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(untagged)]
 pub enum Title {
     Name(String),                   // name

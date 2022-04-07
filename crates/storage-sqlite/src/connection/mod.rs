@@ -15,7 +15,7 @@
 
 use std::{fmt, path::PathBuf, str::FromStr};
 
-#[cfg(feature = "with-serde")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 pub mod pool;
@@ -23,7 +23,7 @@ pub mod pool;
 pub const IN_MEMORY_STORAGE: &str = ":memory:";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Storage {
     InMemory,
     File { path: PathBuf },
@@ -57,7 +57,7 @@ impl FromStr for Storage {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Config {
     pub storage: Storage,
 

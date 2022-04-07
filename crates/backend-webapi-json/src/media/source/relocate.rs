@@ -18,7 +18,7 @@ use aoide_core::{entity::EntityUid, media::content::ContentPath};
 use super::*;
 
 #[derive(Debug, Deserialize)]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct RequestBody {
     old_path_prefix: String,
@@ -26,7 +26,7 @@ pub struct RequestBody {
 }
 
 #[derive(Debug, Serialize)]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ResponseBody {
     replaced_count: usize,

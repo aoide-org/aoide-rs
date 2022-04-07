@@ -35,7 +35,7 @@ mod _inner {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum SortField {
     AlbumArtist,
@@ -139,7 +139,7 @@ impl From<_inner::SortField> for SortField {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SortOrder(SortField, SortDirection);
 
@@ -165,7 +165,7 @@ impl From<_inner::SortOrder> for SortOrder {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum StringField {
     AlbumArtist,
@@ -215,7 +215,7 @@ impl From<_inner::StringField> for StringField {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum NumericField {
     AdvisoryRating,
@@ -289,7 +289,7 @@ impl From<_inner::NumericField> for NumericField {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum DateTimeField {
     CollectedAt,
@@ -330,7 +330,7 @@ impl From<_inner::DateTimeField> for DateTimeField {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum ConditionFilter {
     SourceTracked,
@@ -404,7 +404,7 @@ impl From<_inner::DateTimeFieldFilter> for DateTimeFieldFilter {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct PhraseFieldFilter(Vec<StringField>, Vec<String>);
 
@@ -430,7 +430,7 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum SearchFilter {
     Phrase(PhraseFieldFilter),
@@ -486,7 +486,7 @@ impl From<_inner::SearchFilter> for SearchFilter {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -510,7 +510,7 @@ pub struct QueryParams {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
     #[serde(skip_serializing_if = "Option::is_none")]

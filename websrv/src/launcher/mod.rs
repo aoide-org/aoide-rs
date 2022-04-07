@@ -22,7 +22,7 @@ use crate::{
     runtime::{run, Command as RuntimeCommand, State as RuntimeState},
 };
 
-#[cfg(feature = "with-launcher-ui")]
+#[cfg(feature = "launcher-ui")]
 pub mod ui;
 
 #[derive(Debug, Clone, Copy)]
@@ -175,7 +175,7 @@ impl Launcher {
         Ok(())
     }
 
-    #[cfg_attr(not(feature = "with-launcher-ui"), allow(dead_code))]
+    #[cfg_attr(not(feature = "launcher-ui"), allow(dead_code))]
     pub fn reset_after_terminated(&mut self) {
         debug_assert!(matches!(self.state(), State::Terminated));
         self.state = InternalState::Idle;

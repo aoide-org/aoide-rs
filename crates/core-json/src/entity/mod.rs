@@ -34,7 +34,7 @@ mod _core {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct EntityUid(_core::EntityUid);
 
-#[cfg(feature = "with-schemars")]
+#[cfg(feature = "schemars")]
 impl JsonSchema for EntityUid {
     fn schema_name() -> String {
         "EntityUid".to_string()
@@ -111,7 +111,7 @@ impl From<_core::EntityUid> for EntityUid {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct EntityRevision(_core::EntityRevisionNumber);
 
 impl From<EntityRevision> for _core::EntityRevision {
@@ -133,7 +133,7 @@ impl From<_core::EntityRevision> for EntityRevision {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct EntityHeader(EntityUid, EntityRevision);
 
 impl From<EntityHeader> for _core::EntityHeader {
@@ -159,5 +159,5 @@ impl From<_core::EntityHeader> for EntityHeader {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct Entity<B>(pub EntityHeader, pub B);

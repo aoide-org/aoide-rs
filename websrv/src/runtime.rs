@@ -49,7 +49,7 @@ const WEB_SERVER_LISTENING_DELAY: Duration = Duration::from_millis(250);
 
 static OPENAPI_YAML: &str = include_str!("../res/openapi.yaml");
 
-#[cfg(not(feature = "with-webapp"))]
+#[cfg(not(feature = "webapp"))]
 static INDEX_HTML: &str = include_str!("../res/index.html");
 
 #[derive(Debug, Clone, Copy)]
@@ -161,7 +161,7 @@ pub async fn run(
     });
     let static_filters = openapi_yaml;
 
-    #[cfg(not(feature = "with-webapp"))]
+    #[cfg(not(feature = "webapp"))]
     let static_filters = static_filters.or(warp::path::end().map(|| warp::reply::html(INDEX_HTML)));
 
     let all_filters = api_filters
@@ -169,7 +169,7 @@ pub async fn run(
         .or(shutdown_filter)
         .or(about_filter);
 
-    #[cfg(feature = "with-webapp")]
+    #[cfg(feature = "webapp")]
     let all_filters = all_filters.or(routing::app::get_index().or(routing::app::get_assets()));
 
     log::info!("Initializing server");

@@ -28,8 +28,8 @@ getrandom = { version = "0.2.6", default-features = false, features = ["js"] }
 
 [features]
 default = []
-with-std-file = []
-with-std-system-time = []
+std-file = []
+std-system-time = []
 
 [dev-dependencies]
 criterion = "0.3.5"

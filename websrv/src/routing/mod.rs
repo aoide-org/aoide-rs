@@ -15,5 +15,5 @@
 
 pub mod api;
 
-#[cfg(feature = "with-webapp")]
+#[cfg(feature = "webapp")]
 pub mod app;

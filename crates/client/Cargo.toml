@@ -12,10 +12,10 @@ serde_json = "1.0.79"
 serde_urlencoded = "0.7.1"
 static_assertions = "1.1.0"
 
-# Optional dependencies for feature with-tokio-runtime
+# Optional dependencies for feature tokio
 tokio = { version = "1.17.0", optional = true, default-features = false }
 
-# Optional dependencies for feature with-webapi-backend
+# Optional dependencies for feature webapi-backend
 reqwest = { version = "0.11.10", optional = true, default-features = false, features = ["rustls-tls"] }
 
 # Workspace dependencies
@@ -26,5 +26,5 @@ aoide-core-api-json = { version = "*", features = ["frontend"] }
 
 [features]
 default = []
-with-webapi-backend = ["reqwest"]
-with-tokio-runtime = ["tokio"]
+webapi-backend = ["reqwest"]
+tokio = ["dep:tokio"]

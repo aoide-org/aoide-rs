@@ -34,7 +34,7 @@ use std::{fmt, str::FromStr};
 /// Either a color code or a color index.
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub enum Color {
     #[serde(rename = "rgb")]
     Rgb(RgbColor),
@@ -70,7 +70,7 @@ impl From<Color> for _core::Color {
 #[derive(Debug, Eq, PartialEq)]
 pub struct RgbColor(_core::RgbColor);
 
-#[cfg(feature = "with-schemars")]
+#[cfg(feature = "schemars")]
 impl JsonSchema for RgbColor {
     fn schema_name() -> String {
         "RgbColor".to_string()

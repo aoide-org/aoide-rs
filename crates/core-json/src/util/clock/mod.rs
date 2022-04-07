@@ -49,7 +49,7 @@ impl From<DateTime> for _core::DateTime {
     }
 }
 
-#[cfg(feature = "with-schemars")]
+#[cfg(feature = "schemars")]
 impl JsonSchema for DateTime {
     fn schema_name() -> String {
         "DateTime".to_string()
@@ -101,7 +101,7 @@ impl From<DateYYYYMMDD> for _core::DateYYYYMMDD {
     }
 }
 
-#[cfg(feature = "with-schemars")]
+#[cfg(feature = "schemars")]
 impl JsonSchema for DateYYYYMMDD {
     fn schema_name() -> String {
         "DateYYYYMMDD".to_string()
@@ -172,7 +172,7 @@ impl<'de> Deserialize<'de> for DateYYYYMMDD {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DateOrDateTime {

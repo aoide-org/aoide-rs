@@ -15,5 +15,5 @@
 
 pub mod ingest_collection_vfs;
 
-#[cfg(feature = "with-tantivy")]
+#[cfg(feature = "tantivy")]
 pub mod reindex_tracks;

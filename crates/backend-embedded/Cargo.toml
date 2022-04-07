@@ -22,10 +22,10 @@ aoide-index-tantivy = "*"
 aoide-media = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"
-aoide-storage-sqlite = { version = "*", features = ["with-tokio-runtime"] }
+aoide-storage-sqlite = { version = "*", features = ["tokio"] }
 aoide-usecases = "*"
 aoide-usecases-sqlite = "*"
 
 [features]
-default = ["with-tantivy"]
-with-tantivy = ["tantivy"]
+default = ["tantivy"]
+tantivy = ["dep:tantivy"]

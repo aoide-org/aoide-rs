@@ -34,7 +34,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
 
-#[cfg(feature = "with-schemars")]
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 
 use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset};
@@ -78,7 +78,7 @@ impl From<aoide_usecases::Error> for Error {
 pub type Result<T> = StdResult<T, Error>;
 
 #[derive(Debug, Deserialize)]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRevQueryParams {
     pub rev: EntityRevision,

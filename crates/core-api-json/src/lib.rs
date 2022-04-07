@@ -38,7 +38,7 @@ mod prelude {
 
     pub(crate) use aoide_core_api as _inner;
 
-    #[cfg(feature = "with-schemars")]
+    #[cfg(feature = "schemars")]
     pub(crate) use schemars::JsonSchema;
 }
 use self::prelude::*;
@@ -54,7 +54,7 @@ pub mod track;
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Pagination {
     #[serde(skip_serializing_if = "Option::is_none")]

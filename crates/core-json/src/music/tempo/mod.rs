@@ -25,7 +25,7 @@ mod _core {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct TempoBpm(_core::Bpm);
 
 impl From<_core::TempoBpm> for TempoBpm {

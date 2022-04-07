@@ -17,7 +17,7 @@ use std::num::NonZeroU32;
 
 use diesel::{r2d2, Connection as _};
 
-#[cfg(feature = "with-serde")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::Result;
@@ -30,7 +30,7 @@ pub type ConnectionPool = r2d2::Pool<ConnectionManager>;
 
 pub type PooledConnection = r2d2::PooledConnection<ConnectionManager>;
 
-#[cfg(feature = "with-tokio-runtime")]
+#[cfg(feature = "tokio")]
 pub mod gatekeeper;
 
 pub fn create_connection_pool(storage: &Storage, max_size: NonZeroU32) -> Result<ConnectionPool> {
@@ -55,10 +55,10 @@ pub fn get_pooled_connection(pool: &ConnectionPool) -> Result<PooledConnection> 
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Config {
     pub max_size: NonZeroU32,
 
-    #[cfg(feature = "with-tokio-runtime")]
+    #[cfg(feature = "tokio")]
     pub gatekeeper: self::gatekeeper::Config,
 }

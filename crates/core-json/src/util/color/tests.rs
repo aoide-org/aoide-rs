@@ -17,7 +17,7 @@ use super::*;
 
 use aoide_core::util::color::RgbColor as CoreRgbColor;
 
-#[cfg(feature = "with-schemars")]
+#[cfg(feature = "schemars")]
 #[test]
 fn generate_json_schema() {
     let json_schema = schemars::schema_for!(Color);

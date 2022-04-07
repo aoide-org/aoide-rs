@@ -24,7 +24,7 @@ use std::{
 
 use tokio::{sync::RwLock, task::spawn_blocking, time::sleep};
 
-#[cfg(feature = "with-serde")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
@@ -256,7 +256,7 @@ impl Gatekeeper {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "with-serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Config {
     pub acquire_read_timeout_millis: NonZeroU64,
     pub acquire_write_timeout_millis: NonZeroU64,

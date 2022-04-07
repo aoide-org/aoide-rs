@@ -170,7 +170,7 @@ fn main() {
 
     let launcher = Arc::new(LauncherMutex::new(Launcher::new()));
 
-    #[cfg(feature = "with-launcher-ui")]
+    #[cfg(feature = "launcher-ui")]
     if !env::parse_launch_headless().unwrap_or(false) {
         let app = launcher::ui::App::new(Arc::clone(&launcher), config);
         let options = eframe::NativeOptions::default();

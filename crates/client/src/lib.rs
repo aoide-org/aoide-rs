@@ -34,8 +34,8 @@ pub mod util;
 
 pub mod models;
 
-#[cfg(feature = "with-tokio-runtime")]
+#[cfg(feature = "tokio")]
 pub mod messaging;
 
-#[cfg(feature = "with-webapi-backend")]
+#[cfg(feature = "webapi-backend")]
 pub mod webapi;

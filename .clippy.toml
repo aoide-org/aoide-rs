@@ -1,4 +1,4 @@
-msrv = "1.59"
+msrv = "1.60"
 
 disallowed-methods = [
 ]

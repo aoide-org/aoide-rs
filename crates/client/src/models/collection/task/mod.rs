@@ -41,5 +41,5 @@ pub enum Task {
     },
 }
 
-#[cfg(feature = "with-webapi-backend")]
+#[cfg(feature = "webapi-backend")]
 mod webapi;

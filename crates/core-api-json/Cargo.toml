@@ -23,7 +23,7 @@ aoide-core-api = "*"
 default = []
 frontend = []
 backend = []
-with-schemars = [
-    "schemars",
-    "aoide-core-json/with-schemars",
+schemars = [
+    "dep:schemars",
+    "aoide-core-json/schemars",
 ]

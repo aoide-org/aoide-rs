@@ -256,10 +256,10 @@ pub fn parse_config_into(config: &mut Config) {
     }
 }
 
-#[cfg(feature = "with-launcher-ui")]
+#[cfg(feature = "launcher-ui")]
 const LAUNCH_HEADLESS_ENV: &str = "LAUNCH_HEADLESS";
 
-#[cfg(feature = "with-launcher-ui")]
+#[cfg(feature = "launcher-ui")]
 pub fn parse_launch_headless() -> Option<bool> {
     parse_option_bool_var_with_key(LAUNCH_HEADLESS_ENV)
 }

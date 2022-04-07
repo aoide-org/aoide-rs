@@ -26,4 +26,4 @@ aoide-usecases = "*"
 
 [features]
 default = []
-with-tokio-runtime = ["tokio", "aoide-storage-sqlite/with-tokio-runtime"]
+tokio = ["dep:tokio", "aoide-storage-sqlite/tokio"]

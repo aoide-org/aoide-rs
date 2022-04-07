@@ -39,7 +39,7 @@ mod _core {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct Base64(String);
 
 impl Base64 {
@@ -94,7 +94,7 @@ pub type Digest = Base64;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct DigestRef<'a>(&'a str);
 
 impl<'a> AsRef<str> for DigestRef<'a> {
@@ -119,7 +119,7 @@ impl<'a> TryFrom<DigestRef<'a>> for Vec<u8> {
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[repr(u8)]
 pub enum AdvisoryRating {
     Unrated = _core::AdvisoryRating::Unrated as u8,
@@ -155,7 +155,7 @@ fn is_default_content_metadata_flags(flags: &u8) -> bool {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Source {
     collected_at: DateTime,
@@ -240,7 +240,7 @@ impl TryFrom<Source> for _core::Source {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[cfg_attr(feature = "with-schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AudioContentMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]

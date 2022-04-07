@@ -16,13 +16,13 @@
 use thiserror::Error;
 use url::Url;
 
-#[cfg(feature = "with-std-file")]
+#[cfg(feature = "std-file")]
 use std::path::PathBuf;
 
-#[cfg(feature = "with-std-file")]
+#[cfg(feature = "std-file")]
 use path_slash::PathBufExt as _;
 
-#[cfg(feature = "with-std-file")]
+#[cfg(feature = "std-file")]
 use crate::util::url::{is_valid_base_url, BaseUrl};
 
 use super::{ContentPath, ContentPathKind};
@@ -94,7 +94,7 @@ impl ContentPathResolver for FileUrlResolver {
     }
 }
 
-#[cfg(feature = "with-std-file")]
+#[cfg(feature = "std-file")]
 #[derive(Debug, Clone, Default)]
 pub struct VirtualFilePathResolver {
     root_url: Option<BaseUrl>,
@@ -102,7 +102,7 @@ pub struct VirtualFilePathResolver {
     root_slash_path: Option<String>,
 }
 
-#[cfg(feature = "with-std-file")]
+#[cfg(feature = "std-file")]
 impl VirtualFilePathResolver {
     #[must_use]
     pub const fn new() -> Self {
@@ -155,7 +155,7 @@ impl VirtualFilePathResolver {
     }
 }
 
-#[cfg(feature = "with-std-file")]
+#[cfg(feature = "std-file")]
 impl ContentPathResolver for VirtualFilePathResolver {
     fn path_kind(&self) -> ContentPathKind {
         ContentPathKind::VirtualFilePath
