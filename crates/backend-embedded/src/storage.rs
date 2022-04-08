@@ -26,7 +26,7 @@ pub struct DatabaseConfig {
     pub migrate_schema: bool,
 }
 
-pub fn commission_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper> {
+pub fn provision_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper> {
     log::info!(
         "Commissioning SQLite database: {}",
         config.connection.storage,

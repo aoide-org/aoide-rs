@@ -66,7 +66,7 @@ pub enum Command {
     Terminate { abort_pending_tasks: bool },
 }
 
-fn commission_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnectionGatekeeper> {
+fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnectionGatekeeper> {
     log::info!(
         "Commissioning SQLite database: {}",
         config.connection.storage,
@@ -102,7 +102,7 @@ pub async fn run(
     log::info!("Launching");
     current_state_tx.send(Some(State::Launching)).ok();
 
-    let shared_connection_pool = Arc::new(commission_database(&config.database)?);
+    let shared_connection_pool = Arc::new(provision_database(&config.database)?);
 
     let about_json = serde_json::json!({
     "name": env!("CARGO_PKG_NAME"),
