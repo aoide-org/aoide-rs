@@ -41,7 +41,7 @@ where
     let timed = Instant::now();
     let count = repo.search_tracks(collection_id, pagination, filter, ordering, collector)?;
     log::debug!(
-        "Search returned {} tracks and took {} ms",
+        "Search returned {} track(s) and took {} ms",
         count,
         (timed.elapsed().as_micros() / 1000) as f64,
     );
