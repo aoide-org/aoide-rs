@@ -611,9 +611,9 @@ dependencies = [
 
 [[package]]
 name = "semval"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87399ce75dcd309d135741ee5b84814c19e8c68c5b944221a9617669d8b54929"
+checksum = "660261c0bcb69cf615ea5e75d600d6f3f05bede105d95aa6c2cd07cd31789041"
 dependencies = [
  "smallvec",
 ]

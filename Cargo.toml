@@ -46,7 +46,7 @@ aoide-websrv-api = { path = "crates/websrv-api" }
 # Temporary patches
 #mp4ameta = { git = "https://github.com/Saecki/rust-mp4ameta", branch = "master" }
 #id3 = { git = "https://github.com/polyfloyd/rust-id3", branch = "master" }
-semval = { git = "https://github.com/slowtec/semval", branch = "main" }
+#semval = { git = "https://github.com/slowtec/semval", branch = "main" }
 
 [profile.dev]
 opt-level = 2

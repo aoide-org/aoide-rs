@@ -13,7 +13,7 @@ log = "0.4.16"
 mime = "0.3.16"
 num-derive = "0.3.3"
 num-traits = "0.2.14"
-semval = "0.2.0"
+semval = "0.3.0"
 url = "2.2.2"
 
 # Workspace dependencies

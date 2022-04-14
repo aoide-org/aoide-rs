@@ -18,7 +18,7 @@ mime = "0.3.16"
 mime_guess = "2.0.4"
 nom = "7.1.1"
 num-traits = "0.2.14"
-semval = "0.2.0"
+semval = "0.3.0"
 serde_json = "1.0.79"
 thiserror = "1.0.30"
 time = { version = "0.3.9", features = ["parsing"] }
