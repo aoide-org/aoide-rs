@@ -19,10 +19,10 @@ tokio = { version = "1.17.0", optional = true, default-features = false }
 reqwest = { version = "0.11.10", optional = true, default-features = false, features = ["rustls-tls"] }
 
 # Workspace dependencies
-aoide-core = "*"
-aoide-core-json = "*"
-aoide-core-api = "*"
-aoide-core-api-json = { version = "*", features = ["frontend"] }
+aoide-core = "=0.8.0"
+aoide-core-json = "=0.8.0"
+aoide-core-api = "=0.8.0"
+aoide-core-api-json = { version = "=0.8.0", features = ["frontend"] }
 
 [features]
 default = []

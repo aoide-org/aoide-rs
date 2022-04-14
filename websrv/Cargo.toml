@@ -47,16 +47,16 @@ rfd = { version = "0.8.1", optional = true, default-features = false, features =
 ] }
 
 # Workspace dependencies
-aoide-backend-webapi-json = "*"
-aoide-core = "*"
-aoide-repo-sqlite = "*"
-aoide-storage-sqlite = { version = "*", features = [
+aoide-backend-webapi-json = "=0.8.0"
+aoide-core = "=0.8.0"
+aoide-repo-sqlite = "=0.8.0"
+aoide-storage-sqlite = { version = "=0.8.0", features = [
     "serde",
     "tokio",
 ] }
-aoide-usecases = "*"
-aoide-usecases-sqlite = "*"
-aoide-websrv-api = "*"
+aoide-usecases = "=0.8.0"
+aoide-usecases-sqlite = "=0.8.0"
+aoide-websrv-api = "=0.8.0"
 
 [features]
 default = ["schemars", "webapp", "launcher-ui"]

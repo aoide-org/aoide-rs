@@ -16,15 +16,15 @@ thiserror = "1.0.30"
 tantivy = { version = "0.17.0", optional = true }
 
 # Workspace dependencies
-aoide-core = "*"
-aoide-core-api = "*"
-aoide-index-tantivy = "*"
-aoide-media = "*"
-aoide-repo = "*"
-aoide-repo-sqlite = "*"
-aoide-storage-sqlite = { version = "*", features = ["tokio"] }
-aoide-usecases = "*"
-aoide-usecases-sqlite = "*"
+aoide-core = "=0.8.0"
+aoide-core-api = "=0.8.0"
+aoide-index-tantivy = "=0.8.0"
+aoide-media = "=0.8.0"
+aoide-repo = "=0.8.0"
+aoide-repo-sqlite = "=0.8.0"
+aoide-storage-sqlite = { version = "=0.8.0", features = ["tokio"] }
+aoide-usecases = "=0.8.0"
+aoide-usecases-sqlite = "=0.8.0"
 
 [features]
 default = ["tantivy"]

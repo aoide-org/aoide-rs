@@ -16,13 +16,13 @@ thiserror = "1.0.30"
 tokio = { version = "1.17.0", optional = true, default-features = false }
 
 # Workspace dependencies
-aoide-core = "*"
-aoide-core-api = "*"
-aoide-media = "*"
-aoide-repo = "*"
-aoide-repo-sqlite = "*"
-aoide-storage-sqlite = "*"
-aoide-usecases = "*"
+aoide-core = "=0.8.0"
+aoide-core-api = "=0.8.0"
+aoide-media = "=0.8.0"
+aoide-repo = "=0.8.0"
+aoide-repo-sqlite = "=0.8.0"
+aoide-storage-sqlite = "=0.8.0"
+aoide-usecases = "=0.8.0"
 
 [features]
 default = []

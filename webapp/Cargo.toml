@@ -14,10 +14,10 @@ thiserror = "*"
 url = "*"
 
 # Workspace dependencies
-aoide-core = { version = "*", default-features = false }
-aoide-core-api = "*"
-aoide-core-json = "*"
-aoide-core-api-json = { version = "*", features = ["frontend"] }
+aoide-core = { version = "=0.8.0", default-features = false }
+aoide-core-api = "=0.8.0"
+aoide-core-json = "=0.8.0"
+aoide-core-api-json = { version = "=0.8.0", features = ["frontend"] }
 
 [patch.crates-io]
 aoide-core = { path = "../crates/core" }

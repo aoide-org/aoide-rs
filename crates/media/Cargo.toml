@@ -27,8 +27,8 @@ url = "2.2.2"
 walkdir = "2.3.2"
 
 # Workspace dependencies
-aoide-core = "*"
-aoide-core-json = "*"
+aoide-core = "=0.8.0"
+aoide-core-json = "=0.8.0"
 
 # Optional dependencies
 id3 = { version = "1.0.2", optional = true }

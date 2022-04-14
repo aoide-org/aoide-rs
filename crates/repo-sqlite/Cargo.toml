@@ -17,9 +17,9 @@ semval = "0.2.0"
 url = "2.2.2"
 
 # Workspace dependencies
-aoide-core = "*"
-aoide-core-api = "*"
-aoide-repo = "*"
+aoide-core = "=0.8.0"
+aoide-core-api = "=0.8.0"
+aoide-repo = "=0.8.0"
 
 [features]
 default = []

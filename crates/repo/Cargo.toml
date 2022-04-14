@@ -16,8 +16,8 @@ semval = "0.2.0"
 thiserror = "1.0.30"
 
 # Workspace dependencies
-aoide-core = "*"
-aoide-core-api = "*"
+aoide-core = "=0.8.0"
+aoide-core-api = "=0.8.0"
 
 [features]
 default = []

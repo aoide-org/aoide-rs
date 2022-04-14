@@ -16,10 +16,10 @@ url = "2.2.2"
 walkdir = "2.3.2"
 
 # Workspace dependencies
-aoide-core = { version = "*", features = ["std-file", "std-system-time"] }
-aoide-core-api = "*"
-aoide-media = "*"
-aoide-repo = "*"
+aoide-core = { version = "=0.8.0", features = ["std-file", "std-system-time"] }
+aoide-core-api = "=0.8.0"
+aoide-media = "=0.8.0"
+aoide-repo = "=0.8.0"
 
 [features]
 default = []

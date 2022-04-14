@@ -21,14 +21,14 @@ uuid = { version = "0.8.2", features = ["v4"] }
 schemars = { version = "0.8.8", optional = true }
 
 # Workspace dependencies
-aoide-core = "*"
-aoide-core-api = "*"
-aoide-core-json = "*"
-aoide-core-api-json = { version = "*", features = ["backend"] }
-aoide-media = "*"
-aoide-repo = "*"
-aoide-usecases = "*"
-aoide-usecases-sqlite = "*"
+aoide-core = "=0.8.0"
+aoide-core-api = "=0.8.0"
+aoide-core-json = "=0.8.0"
+aoide-core-api-json = { version = "=0.8.0", features = ["backend"] }
+aoide-media = "=0.8.0"
+aoide-repo = "=0.8.0"
+aoide-usecases = "=0.8.0"
+aoide-usecases-sqlite = "=0.8.0"
 
 [features]
 default = []
