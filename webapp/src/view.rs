@@ -1,6 +1,8 @@
-use crate::{domain::*, Action, Mdl, Msg};
-use aoide_core::media::content::ContentPathConfig;
 use seed::{prelude::*, *};
+
+use aoide_core::media::content::ContentPathConfig;
+
+use crate::{domain::*, Action, Mdl, Msg};
 
 pub fn view(mdl: &Mdl) -> Node<Msg> {
     div![

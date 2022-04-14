@@ -5,13 +5,13 @@ edition = "2021"
 publish = false
 
 [dependencies]
-anyhow = "*"
-hyper = { version = "*", default-features = false }
-seed = "*"
-serde = { version = "*", features = ["derive"] }
-serde_urlencoded = "*"
-thiserror = "*"
-url = "*"
+anyhow = "1.0.56"
+hyper = { version = "0.14.18", default-features = false }
+seed = "0.9.1"
+serde = { version = "1.0.136", features = ["derive"] }
+serde_urlencoded = "0.7.1"
+thiserror = "1.0.30"
+url = "2.2.2"
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", default-features = false }

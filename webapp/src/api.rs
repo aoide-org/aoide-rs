@@ -299,7 +299,8 @@ impl From<FetchError> for Error {
     fn from(e: FetchError) -> Self {
         use FetchError as E;
         match e {
-            E::SerdeError(err) => Error::DataShape(err.into()),
+            // TODO: Fix after https://github.com/seed-rs/seed/issues/673 has been resolved
+            E::JsonError(err) => Error::DataShape(anyhow::anyhow!("TODO Handle JSON error: {:?}", err)),
             E::NetworkError(_) => Error::Network,
             E::DomException(exception) => Error::Browser(exception.as_string()),
             E::PromiseError(js_value) | E::RequestError(js_value) => {
