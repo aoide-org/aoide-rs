@@ -1,5 +1,10 @@
 # yaml-language-server: $schema=https://json.schemastore.org/pre-commit-config.json
 
+# Configuration file for https://pre-commit.com/
+#
+# Run `pre-commit install` once to install a Git pre-commit hook locally. This will
+# ensure that each commit passes the checks before entering the Git history.
+
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.2.0
@@ -58,6 +63,7 @@ repos:
       --workspace,
       --all-features,
       --all-targets,
+      --no-deps,
       --,
       -D,
       warnings,
