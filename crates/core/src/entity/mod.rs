@@ -266,11 +266,12 @@ impl Validate for EntityHeader {
 // Entity
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Entity<T, B> {
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
+pub struct Entity<T: 'static, B> {
     pub hdr: EntityHeader,
     pub body: B,
-    _phantom: PhantomData<T>,
+    // https://doc.rust-lang.org/std/marker/struct.PhantomData.html#ownership-and-the-drop-check
+    phantom: PhantomData<&'static T>,
 }
 
 impl<T, B> Entity<T, B> {
@@ -279,7 +280,7 @@ impl<T, B> Entity<T, B> {
         Entity {
             hdr: hdr.into(),
             body: body.into(),
-            _phantom: PhantomData,
+            phantom: PhantomData,
         }
     }
 
@@ -293,7 +294,7 @@ impl<T, B> Entity<T, B> {
         Ok(Entity {
             hdr: hdr.into(),
             body: body.try_into()?,
-            _phantom: PhantomData,
+            phantom: PhantomData,
         })
     }
 }
@@ -303,7 +304,7 @@ impl<T, B> From<Entity<T, B>> for (EntityHeader, B) {
         let Entity {
             hdr,
             body,
-            _phantom,
+            phantom: _,
         } = from;
         (hdr, body)
     }
@@ -314,7 +315,7 @@ impl<'a, T, B> From<&'a Entity<T, B>> for (&'a EntityHeader, &'a B) {
         let Entity {
             hdr,
             body,
-            _phantom,
+            phantom: _,
         } = from;
         (hdr, body)
     }
