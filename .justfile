@@ -69,3 +69,6 @@ pre-commit:
 debug-webapp:
     cd webapp && trunk build
     RUST_LOG=debug cargo run --package aoide-websrv --all-features
+
+depgraph-svg:
+    cargo depgraph --all-features --focus aoide-core | dot -T svg -o aoide-depgraph.svg

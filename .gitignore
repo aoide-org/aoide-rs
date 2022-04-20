@@ -11,3 +11,6 @@
 
 # Benchmark directories
 **/target/criterion/*
+
+# Output of `just depgraph-svg`
+/*.svg
