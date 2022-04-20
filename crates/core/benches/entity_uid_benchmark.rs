@@ -7,7 +7,7 @@ fn random_uuid(n: u64) {
     for _ in 0..n {
         let uuid = Uuid::new_v4();
         assert_ne!(Uuid::nil(), uuid);
-        let encoded = uuid.to_simple_ref().to_string();
+        let encoded = uuid.as_simple().to_string();
         assert!(!encoded.is_empty());
     }
 }
