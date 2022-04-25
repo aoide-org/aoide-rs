@@ -13,15 +13,15 @@ fmt:
 
 # Run clippy
 check:
-    cargo clippy --locked --workspace --all-features --no-deps --bins --examples --tests -- -D warnings
+    cargo clippy --locked --workspace --all-features --no-deps --lib --bins --examples --tests -- -D warnings
     cd webapp && cargo clippy --target wasm32-unknown-unknown --locked --all-features --no-deps --bins --examples --tests -- -D warnings
 
 # Fix lint warnings
 fix:
-    cargo fix --workspace --all-features --bins --examples --tests
-    cargo clippy --workspace --all-features --fix --bins --examples --tests
-    cd webapp && cargo fix --target wasm32-unknown-unknown --all-features --examples --tests
-    cd webapp && cargo clippy --target wasm32-unknown-unknown --all-features --fix --examples --tests
+    cargo fix --workspace --all-features --all-targets
+    cargo clippy --workspace --all-features --all-targets --fix
+    cd webapp && cargo fix --target wasm32-unknown-unknown --all-features --all-targets
+    cd webapp && cargo clippy --target wasm32-unknown-unknown --all-features --all-targets --fix
 
 # Run tests
 test:
