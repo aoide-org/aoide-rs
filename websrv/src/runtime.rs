@@ -53,7 +53,7 @@ static OPENAPI_YAML: &str = include_str!("../res/openapi.yaml");
 static INDEX_HTML: &str = include_str!("../res/index.html");
 
 #[derive(Debug, Clone, Copy)]
-pub enum State {
+pub(crate) enum State {
     Launching,
     Starting,
     Listening { socket_addr: SocketAddr },
@@ -62,7 +62,7 @@ pub enum State {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum Command {
+pub(crate) enum Command {
     Terminate { abort_pending_tasks: bool },
 }
 
@@ -92,7 +92,7 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
     ))
 }
 
-pub async fn run(
+pub(crate) async fn run(
     config: Config,
     command_rx: mpsc::UnboundedReceiver<Command>,
     current_state_tx: watch::Sender<Option<State>>,

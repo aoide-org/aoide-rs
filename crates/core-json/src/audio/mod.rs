@@ -20,7 +20,7 @@ pub mod sample;
 pub mod signal;
 
 mod _core {
-    pub use aoide_core::audio::*;
+    pub(super) use aoide_core::audio::*;
 }
 
 ///////////////////////////////////////////////////////////////////////

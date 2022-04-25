@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod models;
-pub mod schema;
+pub(crate) mod models;
+pub(crate) mod schema;
 
 use diesel::{query_builder::BoxedSelectStatement, sql_types::BigInt};
 
@@ -34,7 +34,7 @@ enum ArtworkSource {
 }
 
 impl ArtworkSource {
-    pub fn try_read(value: i16) -> Option<Self> {
+    fn try_read(value: i16) -> Option<Self> {
         let read = match value {
             0 => Self::Missing,
             1 => Self::Embedded,
@@ -44,12 +44,12 @@ impl ArtworkSource {
         Some(read)
     }
 
-    pub const fn write(self) -> i16 {
+    const fn write(self) -> i16 {
         self as i16
     }
 }
 
-pub fn select_row_id_filtered_by_collection_id<'s, 'db, DB>(
+pub(crate) fn select_row_id_filtered_by_collection_id<'s, 'db, DB>(
     collection_id: CollectionId,
 ) -> BoxedSelectStatement<'db, BigInt, media_source::table, DB>
 where
@@ -65,7 +65,7 @@ where
 ///
 /// URIs are only unambiguous within a collection. Therefore
 /// filtering is restricted to a single collection.
-pub fn select_row_id_filtered_by_content_path_predicate<'db, DB>(
+pub(crate) fn select_row_id_filtered_by_content_path_predicate<'db, DB>(
     collection_id: CollectionId,
     content_path_predicate: StringPredicateBorrowed<'db>,
 ) -> BoxedSelectStatement<'db, BigInt, media_source::table, DB>

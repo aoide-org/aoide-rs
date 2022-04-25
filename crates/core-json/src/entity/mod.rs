@@ -23,7 +23,7 @@ use serde::{
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::entity::*;
+    pub(super) use aoide_core::entity::*;
 }
 
 ///////////////////////////////////////////////////////////////////////

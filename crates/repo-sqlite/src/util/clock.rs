@@ -19,13 +19,13 @@ use std::str::FromStr;
 
 /// Try to parse a DateTime value and fallback to the timestamp
 /// milliseconds on error (should never happen).
-pub fn parse_datetime(s: &str, timestamp_millis: TimestampMillis) -> DateTime {
+pub(crate) fn parse_datetime(s: &str, timestamp_millis: TimestampMillis) -> DateTime {
     let res = s.parse();
     debug_assert!(res.is_ok());
     res.unwrap_or_else(|_| DateTime::new_timestamp_millis(timestamp_millis))
 }
 
-pub fn parse_datetime_opt(
+pub(crate) fn parse_datetime_opt(
     s: Option<&str>,
     timestamp_millis: Option<TimestampMillis>,
 ) -> Option<DateTime> {

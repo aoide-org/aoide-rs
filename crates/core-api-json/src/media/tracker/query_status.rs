@@ -21,7 +21,7 @@ use aoide_core::util::url::{BaseUrl, BaseUrlError};
 use crate::prelude::*;
 
 mod _inner {
-    pub use aoide_core_api::media::tracker::query_status::*;
+    pub(super) use aoide_core_api::media::tracker::query_status::*;
 }
 
 #[derive(Debug)]

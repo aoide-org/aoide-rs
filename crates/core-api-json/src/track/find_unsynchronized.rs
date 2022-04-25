@@ -21,7 +21,7 @@ use aoide_core_json::{
 use crate::prelude::*;
 
 mod _inner {
-    pub use crate::_inner::track::find_unsynchronized::*;
+    pub(super) use crate::_inner::track::find_unsynchronized::*;
 }
 
 #[derive(Debug)]

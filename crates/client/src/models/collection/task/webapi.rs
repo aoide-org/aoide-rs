@@ -57,7 +57,7 @@ impl Task {
     }
 }
 
-pub async fn fetch_all_kinds<E: ClientEnvironment>(env: &E) -> anyhow::Result<Vec<String>> {
+async fn fetch_all_kinds<E: ClientEnvironment>(env: &E) -> anyhow::Result<Vec<String>> {
     let request_url = env.join_api_url("c/kinds")?;
     let request = env.client().get(request_url);
     let response = request.send().await?;
@@ -67,7 +67,7 @@ pub async fn fetch_all_kinds<E: ClientEnvironment>(env: &E) -> anyhow::Result<Ve
     Ok(kinds)
 }
 
-pub async fn fetch_filtered_entities<E: ClientEnvironment>(
+async fn fetch_filtered_entities<E: ClientEnvironment>(
     env: &E,
     filter_by_kind: impl Into<Option<&str>>,
 ) -> anyhow::Result<Vec<CollectionEntity>> {
@@ -93,7 +93,7 @@ pub async fn fetch_filtered_entities<E: ClientEnvironment>(
     Ok(entities)
 }
 
-pub async fn create_entity<E: ClientEnvironment>(
+async fn create_entity<E: ClientEnvironment>(
     env: &E,
     new_collection: impl Into<aoide_core_json::collection::Collection>,
 ) -> anyhow::Result<CollectionEntity> {
@@ -109,7 +109,7 @@ pub async fn create_entity<E: ClientEnvironment>(
     Ok(entity)
 }
 
-pub async fn update_entity<E: ClientEnvironment>(
+async fn update_entity<E: ClientEnvironment>(
     env: &E,
     entity_header: &aoide_core::entity::EntityHeader,
     modified_collection: impl Into<aoide_core_json::collection::Collection>,
@@ -132,7 +132,7 @@ pub async fn update_entity<E: ClientEnvironment>(
     Ok(entity)
 }
 
-pub async fn purge_entity<E: ClientEnvironment>(
+async fn purge_entity<E: ClientEnvironment>(
     env: &E,
     entity_uid: &aoide_core::entity::EntityUid,
 ) -> anyhow::Result<()> {

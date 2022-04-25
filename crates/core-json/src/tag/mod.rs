@@ -22,7 +22,7 @@ use aoide_core::tag::FacetedTags;
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::tag::{FacetId, FacetKey, Label, PlainTag, Score, Tags};
+    pub(super) use aoide_core::tag::{FacetId, FacetKey, Label, PlainTag, Score, Tags};
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

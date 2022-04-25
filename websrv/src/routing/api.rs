@@ -40,7 +40,7 @@ use aoide_usecases_sqlite as uc;
 
 use aoide_backend_webapi_json as api;
 
-pub fn create_filters(
+pub(crate) fn create_filters(
     shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
 ) -> BoxedFilter<(impl Reply,)> {
     let shared_connection_gatekeeper =

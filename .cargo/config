@@ -1,0 +1,6 @@
+[alias]
+tq = "test -- -q"
+clippy-lints = "clippy --all-targets --no-deps -- --cap-lints warn"
+
+[build]
+rustflags = "-D warnings -W unreachable-pub -W rust-2021-compatibility"

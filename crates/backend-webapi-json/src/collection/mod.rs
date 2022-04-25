@@ -27,8 +27,8 @@ use aoide_core_api_json::collection::{export_entity_with_summary, EntityWithSumm
 use super::*;
 
 mod _inner {
-    pub use aoide_core::{collection::Entity, entity::EntityHeader};
-    pub use aoide_core_api::collection::EntityWithSummary;
+    pub(super) use aoide_core::entity::EntityHeader;
+    pub(super) use aoide_core_api::collection::EntityWithSummary;
 }
 
 pub mod create;

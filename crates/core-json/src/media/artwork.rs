@@ -20,7 +20,7 @@ use crate::prelude::*;
 use super::{Base64, Digest};
 
 mod _core {
-    pub use aoide_core::media::artwork::*;
+    pub(super) use aoide_core::media::artwork::*;
 }
 
 #[derive(Debug, Serialize, Deserialize)]

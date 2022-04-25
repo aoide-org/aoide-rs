@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::track::actor::{Actor, ActorKind, ActorRole};
+    pub(super) use aoide_core::track::actor::{Actor, ActorKind, ActorRole};
 }
 
 ///////////////////////////////////////////////////////////////////////

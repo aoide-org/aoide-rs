@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod models;
-pub mod schema;
+pub(crate) mod models;
+pub(crate) mod schema;
 
 use aoide_core::{
     media::Source,
@@ -34,12 +34,12 @@ pub enum Scope {
 use aoide_repo::track::RecordHeader;
 
 #[derive(Debug)]
-pub struct EntityPreload {
-    pub media_source: Source,
-    pub track_titles: Canonical<Vec<Title>>,
-    pub track_actors: Canonical<Vec<Actor>>,
-    pub album_titles: Canonical<Vec<Title>>,
-    pub album_actors: Canonical<Vec<Actor>>,
-    pub tags: Canonical<Tags>,
-    pub cues: Canonical<Vec<Cue>>,
+pub(crate) struct EntityPreload {
+    pub(crate) media_source: Source,
+    pub(crate) track_titles: Canonical<Vec<Title>>,
+    pub(crate) track_actors: Canonical<Vec<Actor>>,
+    pub(crate) album_titles: Canonical<Vec<Title>>,
+    pub(crate) album_actors: Canonical<Vec<Actor>>,
+    pub(crate) tags: Canonical<Tags>,
+    pub(crate) cues: Canonical<Vec<Cue>>,
 }

@@ -20,10 +20,7 @@ use crate::{prelude::*, util::clock::DateTime};
 pub mod track;
 
 mod _core {
-    pub use aoide_core::{
-        entity::EntityHeader,
-        playlist::{track, *},
-    };
+    pub(super) use aoide_core::playlist::*;
 }
 
 ///////////////////////////////////////////////////////////////////////

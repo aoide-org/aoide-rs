@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::audio::sample::*;
+    pub(super) use aoide_core::audio::sample::*;
 }
 
 ///////////////////////////////////////////////////////////////////////

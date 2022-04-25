@@ -26,8 +26,8 @@ use aoide_core_json::playlist::{Entity, Entry, Playlist};
 use super::*;
 
 mod _core {
-    pub use aoide_core::{entity::EntityHeader, playlist::Entity};
-    pub use aoide_core_api::playlist::EntityWithEntriesSummary;
+    pub(super) use aoide_core::entity::EntityHeader;
+    pub(super) use aoide_core_api::playlist::EntityWithEntriesSummary;
 }
 
 pub mod create;

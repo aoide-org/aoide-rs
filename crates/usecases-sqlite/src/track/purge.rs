@@ -18,7 +18,7 @@ use aoide_repo::collection::EntityRepo as _;
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::{track::purge::*, Error};
+    pub(super) use aoide_usecases::track::purge::*;
 }
 
 pub fn purge_by_media_source_content_path_predicates(

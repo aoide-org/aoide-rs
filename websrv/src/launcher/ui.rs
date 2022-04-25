@@ -126,7 +126,7 @@ impl From<crate::config::Config> for Config {
 }
 
 #[derive(Debug)]
-pub struct App {
+pub(crate) struct App {
     launcher: Arc<LauncherMutex>,
     exit_flag: Arc<AtomicBool>,
     last_config: crate::config::Config,
@@ -145,7 +145,7 @@ enum State {
 }
 
 impl App {
-    pub fn new(launcher: Arc<LauncherMutex>, config: crate::config::Config) -> Self {
+    pub(crate) fn new(launcher: Arc<LauncherMutex>, config: crate::config::Config) -> Self {
         let last_config = config.clone();
         Self {
             launcher,

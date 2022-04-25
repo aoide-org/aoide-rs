@@ -20,8 +20,8 @@ use aoide_usecases::track::ValidatedInput;
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::track::replace::{
-        replace_many_by_media_source_content_path, Outcome, Params,
+    pub(super) use aoide_usecases::track::replace::{
+        replace_many_by_media_source_content_path, Params,
     };
 }
 

@@ -26,7 +26,7 @@ use aoide_core::util::clock::{YearType, YYYYMMDD};
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::util::clock::{DateOrDateTime, DateTime, DateYYYYMMDD};
+    pub(super) use aoide_core::util::clock::{DateOrDateTime, DateTime, DateYYYYMMDD};
 }
 
 ///////////////////////////////////////////////////////////////////////

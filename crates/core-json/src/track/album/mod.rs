@@ -20,7 +20,7 @@ use crate::prelude::*;
 use super::{actor::Actor, title::Title};
 
 mod _core {
-    pub use aoide_core::track::album::*;
+    pub(super) use aoide_core::track::album::*;
 }
 
 ///////////////////////////////////////////////////////////////////////

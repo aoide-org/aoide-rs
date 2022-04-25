@@ -19,7 +19,7 @@ use aoide_core_api::media::source::purge_untracked::{Outcome, Params};
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::media::source::purge_untracked::purge_untracked;
+    pub(super) use aoide_usecases::media::source::purge_untracked::purge_untracked;
 }
 
 pub fn purge_untracked(

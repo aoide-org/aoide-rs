@@ -32,7 +32,7 @@ compile_error!("at least one of the features \"frontend\" or \"backend\" must be
 
 // Common imports
 mod prelude {
-    pub use aoide_core_api::{PaginationLimit, PaginationOffset};
+    pub(crate) use aoide_core_api::{PaginationLimit, PaginationOffset};
 
     pub(crate) use serde::{Deserialize, Serialize};
 

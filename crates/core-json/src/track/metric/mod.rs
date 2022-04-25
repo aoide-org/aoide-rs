@@ -18,10 +18,7 @@ use super::*;
 use crate::music::{beat::TimeSignature, key::KeyCode, tempo::TempoBpm};
 
 mod _core {
-    pub use aoide_core::{
-        music::{beat::TimeSignature, key::KeyCode, tempo::TempoBpm},
-        track::metric::Metrics,
-    };
+    pub(super) use aoide_core::track::metric::Metrics;
 }
 
 use aoide_core::{music::key::KeySignature, track::metric::MetricsFlags};

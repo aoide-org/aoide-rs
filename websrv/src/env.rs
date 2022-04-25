@@ -30,7 +30,7 @@ use aoide_storage_sqlite::connection::{Storage as SqliteDatabaseStorage, IN_MEMO
 
 use crate::config::Config;
 
-pub fn init_environment() {
+pub(crate) fn init_environment() {
     if let Ok(path) = dotenv() {
         // Print to stderr because logging has not been initialized yet
         eprintln!("Loaded environment from dotenv file {:?}", path);
@@ -72,7 +72,7 @@ fn create_tracing_subscriber() -> anyhow::Result<impl Subscriber> {
     Ok(subscriber)
 }
 
-pub fn init_tracing_and_logging() -> anyhow::Result<()> {
+pub(crate) fn init_tracing_and_logging() -> anyhow::Result<()> {
     // Capture and redirect all log messages as tracing events
     LogTracer::init()?;
 
@@ -238,7 +238,7 @@ fn parse_database_migrate_schema_on_startup() -> Option<bool> {
     parse_option_bool_var_with_key(DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV)
 }
 
-pub fn parse_config_into(config: &mut Config) {
+pub(crate) fn parse_config_into(config: &mut Config) {
     if let Some(ip_addr) = parse_endpoint_ip_addr() {
         config.network.endpoint.ip_addr = ip_addr;
     }
@@ -260,12 +260,12 @@ pub fn parse_config_into(config: &mut Config) {
 const LAUNCH_HEADLESS_ENV: &str = "LAUNCH_HEADLESS";
 
 #[cfg(feature = "launcher-ui")]
-pub fn parse_launch_headless() -> Option<bool> {
+pub(crate) fn parse_launch_headless() -> Option<bool> {
     parse_option_bool_var_with_key(LAUNCH_HEADLESS_ENV)
 }
 
 const DEFAULT_CONFIG_ENV: &str = "DEFAULT_CONFIG";
 
-pub fn parse_default_config() -> Option<bool> {
+pub(crate) fn parse_default_config() -> Option<bool> {
     parse_option_bool_var_with_key(DEFAULT_CONFIG_ENV)
 }

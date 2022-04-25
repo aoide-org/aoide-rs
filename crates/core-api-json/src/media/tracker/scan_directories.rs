@@ -22,7 +22,7 @@ use super::Completion;
 pub type Params = super::FsTraversalParams;
 
 mod _core {
-    pub use aoide_core_api::media::tracker::scan_directories::*;
+    pub(super) use aoide_core_api::media::tracker::scan_directories::*;
 }
 
 #[derive(Debug)]

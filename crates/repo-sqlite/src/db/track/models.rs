@@ -100,7 +100,7 @@ impl From<QueryableRecord> for (MediaSourceId, RecordHeader, EntityHeader) {
     }
 }
 
-pub fn load_repo_entity(
+pub(crate) fn load_repo_entity(
     preload: EntityPreload,
     queryable: QueryableRecord,
 ) -> RepoResult<(RecordHeader, Entity)> {

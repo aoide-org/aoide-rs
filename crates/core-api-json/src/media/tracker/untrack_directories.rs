@@ -23,7 +23,7 @@ use crate::prelude::*;
 use super::DirTrackingStatus;
 
 mod _inner {
-    pub use aoide_core_api::media::tracker::{untrack_directories::*, DirTrackingStatus};
+    pub(super) use aoide_core_api::media::tracker::untrack_directories::*;
 }
 
 #[derive(Debug)]

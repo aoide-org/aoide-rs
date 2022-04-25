@@ -20,8 +20,8 @@ use num_traits::ToPrimitive as _;
 
 use crate::prelude::*;
 
-pub mod clock;
-pub mod entity;
+pub(crate) mod clock;
+pub(crate) mod entity;
 
 pub(crate) fn apply_pagination<'a, ST, QS, DB>(
     source: diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>,
@@ -48,23 +48,23 @@ where
     target
 }
 
-pub enum StringCmpOp {
+pub(crate) enum StringCmpOp {
     Equal(String),
     Prefix(String, usize),
     Like(String),
 }
 
-pub const LIKE_ESCAPE_CHARACTER: char = '\\';
+pub(crate) const LIKE_ESCAPE_CHARACTER: char = '\\';
 
-pub const LIKE_WILDCARD_CHARACTER: char = '%';
-pub const LIKE_PLACEHOLDER_CHARACTER: char = '_';
+pub(crate) const LIKE_WILDCARD_CHARACTER: char = '%';
+pub(crate) const LIKE_PLACEHOLDER_CHARACTER: char = '_';
 
 const LIKE_ESCAPE_CHARACTER_REPLACEMENT: &str = "\\\\"; // LIKE_ESCAPE_CHARACTER + LIKE_ESCAPE_CHARACTER
 
 const LIKE_WILDCARD_CHARACTER_REPLACEMENT: &str = "\\%"; // LIKE_ESCAPE_CHARACTER + LIKE_WILDCARD_CHARACTER
 const LIKE_PLACEHOLDER_CHARACTER_REPLACEMENT: &str = "\\_"; // LIKE_ESCAPE_CHARACTER + LIKE_PLACEHOLDER_CHARACTER
 
-pub fn escape_like_matches(arg: &str) -> String {
+pub(crate) fn escape_like_matches(arg: &str) -> String {
     // The order if replacements matters!
     arg.replace(LIKE_ESCAPE_CHARACTER, LIKE_ESCAPE_CHARACTER_REPLACEMENT)
         .replace(LIKE_WILDCARD_CHARACTER, LIKE_WILDCARD_CHARACTER_REPLACEMENT)
@@ -74,19 +74,19 @@ pub fn escape_like_matches(arg: &str) -> String {
         )
 }
 
-pub fn escape_single_quotes(arg: &str) -> String {
+pub(crate) fn escape_single_quotes(arg: &str) -> String {
     arg.replace('\'', "''")
 }
 
-pub fn escape_like_starts_with(arg: &str) -> String {
+pub(crate) fn escape_like_starts_with(arg: &str) -> String {
     format!("{}{}", escape_like_matches(arg), LIKE_WILDCARD_CHARACTER)
 }
 
-pub fn escape_like_ends_with(arg: &str) -> String {
+pub(crate) fn escape_like_ends_with(arg: &str) -> String {
     format!("{}{}", LIKE_WILDCARD_CHARACTER, escape_like_matches(arg))
 }
 
-pub fn escape_like_contains(arg: &str) -> String {
+pub(crate) fn escape_like_contains(arg: &str) -> String {
     format!(
         "{}{}{}",
         LIKE_WILDCARD_CHARACTER,
@@ -115,10 +115,10 @@ fn sql_column_substr_prefix<ST>(column: &str, prefix: &str, cmp: &str) -> SqlLit
     }
 }
 
-pub fn sql_column_substr_prefix_eq<ST>(column: &str, prefix: &str) -> SqlLiteral<ST> {
+pub(crate) fn sql_column_substr_prefix_eq<ST>(column: &str, prefix: &str) -> SqlLiteral<ST> {
     sql_column_substr_prefix(column, prefix, "=")
 }
 
-pub fn sql_column_substr_prefix_ne<ST>(column: &str, prefix: &str) -> SqlLiteral<ST> {
+pub(crate) fn sql_column_substr_prefix_ne<ST>(column: &str, prefix: &str) -> SqlLiteral<ST> {
     sql_column_substr_prefix(column, prefix, "<>")
 }

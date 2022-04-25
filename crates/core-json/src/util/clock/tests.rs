@@ -20,7 +20,7 @@ use serde_json::json;
 use aoide_core::util::clock::{DateYYYYMMDD, YEAR_MAX, YEAR_MIN};
 
 mod _core {
-    pub use aoide_core::util::clock::DateOrDateTime;
+    pub(super) use aoide_core::util::clock::DateOrDateTime;
 }
 
 #[test]

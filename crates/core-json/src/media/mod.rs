@@ -34,7 +34,7 @@ pub mod artwork;
 pub mod content;
 
 mod _core {
-    pub use aoide_core::media::{content::AudioContentMetadata, *};
+    pub(super) use aoide_core::media::{content::AudioContentMetadata, *};
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -21,8 +21,7 @@ use aoide_core_api::media::tracker::{find_untracked_files::Outcome, FsTraversalP
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::media::tracker::find_untracked_files::*;
-    pub use aoide_usecases::{media::tracker::find_untracked_files::*, Error};
+    pub(super) use aoide_usecases::media::tracker::find_untracked_files::*;
 }
 
 pub fn visit_directories<ReportProgressFn: FnMut(uc::ProgressEvent)>(

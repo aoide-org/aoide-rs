@@ -18,10 +18,7 @@ use aoide_core::track::cue::{BankIndex, CueFlags, SlotIndex};
 use crate::{audio::PositionMs, prelude::*};
 
 mod _core {
-    pub use aoide_core::{
-        audio::{PositionInMilliseconds, PositionMs},
-        track::cue::{Cue, InMarker, OutMarker, OutMode},
-    };
+    pub(super) use aoide_core::track::cue::{Cue, InMarker, OutMarker, OutMode};
 }
 
 ///////////////////////////////////////////////////////////////////////

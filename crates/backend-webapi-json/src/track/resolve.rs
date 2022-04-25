@@ -18,8 +18,7 @@ use aoide_core_json::entity::EntityHeader;
 use super::*;
 
 mod uc {
-    pub use aoide_repo::prelude::StringPredicate;
-    pub use aoide_usecases_sqlite::track::resolve::*;
+    pub(super) use aoide_usecases_sqlite::track::resolve::*;
 }
 
 pub type RequestBody = Vec<String>;

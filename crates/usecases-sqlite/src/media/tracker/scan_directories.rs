@@ -21,8 +21,7 @@ use aoide_core_api::media::tracker::{scan_directories::Outcome, FsTraversalParam
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::media::tracker::scan_directories::*;
-    pub use aoide_usecases::{media::tracker::scan_directories::*, Error};
+    pub(super) use aoide_usecases::media::tracker::scan_directories::*;
 }
 
 pub fn scan_directories<ReportProgressFn: FnMut(uc::ProgressEvent)>(

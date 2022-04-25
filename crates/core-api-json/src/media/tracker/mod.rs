@@ -21,7 +21,7 @@ use aoide_core::util::url::{BaseUrl, BaseUrlError};
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core_api::media::tracker::*;
+    pub(super) use aoide_core_api::media::tracker::*;
 }
 
 pub mod find_untracked_files;

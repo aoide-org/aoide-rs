@@ -23,7 +23,7 @@ use aoide_core_json::track::Entity;
 use super::*;
 
 mod _core {
-    pub use aoide_core::{entity::EntityUid, track::Entity};
+    pub(super) use aoide_core::{entity::EntityUid, track::Entity};
 }
 
 pub mod export_metadata;

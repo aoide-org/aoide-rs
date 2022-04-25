@@ -23,13 +23,12 @@ use aoide_core_api_json::track::search::{QueryParams, SearchParams};
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::track::search::Params;
-    pub use aoide_usecases_sqlite::track::search::search;
+    pub(super) use aoide_core_api::track::search::Params;
+    pub(super) use aoide_usecases_sqlite::track::search::search;
 }
 
 mod _inner {
-    pub use aoide_core::entity::EntityUid;
-    pub use aoide_core_api::Pagination;
+    pub(super) use aoide_core::entity::EntityUid;
 }
 
 pub type RequestBody = SearchParams;

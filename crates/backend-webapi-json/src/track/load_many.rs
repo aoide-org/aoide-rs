@@ -18,7 +18,7 @@ use aoide_core_json::{entity::EntityUid, track::Entity};
 use super::*;
 
 mod uc {
-    pub use aoide_usecases_sqlite::track::load::*;
+    pub(super) use aoide_usecases_sqlite::track::load::*;
 }
 
 pub type RequestBody = Vec<EntityUid>;

@@ -67,7 +67,7 @@ struct RequestCounterScope {
 
 impl RequestCounterScope {
     #[must_use]
-    pub fn new(shared_state: Arc<RequestCounterState>, mode: RequestCounterMode) -> Self {
+    fn new(shared_state: Arc<RequestCounterState>, mode: RequestCounterMode) -> Self {
         match mode {
             RequestCounterMode::Read => {
                 let pending_read_requests_before =

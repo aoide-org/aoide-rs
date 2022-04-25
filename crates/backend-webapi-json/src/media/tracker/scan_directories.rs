@@ -20,8 +20,8 @@ use aoide_core::entity::EntityUid;
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::media::tracker::scan_directories::ProgressEvent;
-    pub use aoide_usecases_sqlite::media::tracker::scan_directories::*;
+    pub(super) use aoide_usecases::media::tracker::scan_directories::ProgressEvent;
+    pub(super) use aoide_usecases_sqlite::media::tracker::scan_directories::*;
 }
 
 pub type RequestBody = aoide_core_api_json::media::tracker::FsTraversalParams;

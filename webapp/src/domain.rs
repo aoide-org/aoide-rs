@@ -1,19 +1,15 @@
-pub use aoide_core::{
-    collection::{Entity as CollectionEntity, MediaSourceConfig},
-    entity::EntityHeader,
-    util::color::*,
-};
+pub(crate) use aoide_core::{collection::Entity as CollectionEntity, entity::EntityHeader};
 
-pub use aoide_core_api::collection::Summary as CollectionSummary;
+pub(crate) use aoide_core_api::collection::Summary as CollectionSummary;
 
 #[derive(Debug, Clone)]
-pub struct CollectionItem {
-    pub entity: CollectionEntity,
-    pub summary: Option<CollectionSummary>,
+pub(crate) struct CollectionItem {
+    pub(crate) entity: CollectionEntity,
+    pub(crate) summary: Option<CollectionSummary>,
 }
 
 impl CollectionItem {
-    pub const fn without_summary(entity: CollectionEntity) -> Self {
+    pub(crate) const fn without_summary(entity: CollectionEntity) -> Self {
         Self {
             entity,
             summary: None,
@@ -21,4 +17,4 @@ impl CollectionItem {
     }
 }
 
-pub type CollectionItems = Vec<CollectionItem>;
+pub(crate) type CollectionItems = Vec<CollectionItem>;

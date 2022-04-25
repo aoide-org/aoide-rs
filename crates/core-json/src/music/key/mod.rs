@@ -18,7 +18,7 @@ use crate::prelude::*;
 use aoide_core::music::key::KeyCodeValue;
 
 mod _core {
-    pub use aoide_core::music::key::KeyCode;
+    pub(super) use aoide_core::music::key::KeyCode;
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -21,7 +21,7 @@ use crate::media::predefined_faceted_tag_mapping_config;
 use super::*;
 
 mod uc {
-    pub use aoide_usecases_sqlite::track::export_metadata::*;
+    pub(super) use aoide_usecases_sqlite::track::export_metadata::*;
 }
 
 #[derive(Debug, Deserialize)]

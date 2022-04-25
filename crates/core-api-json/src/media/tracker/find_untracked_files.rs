@@ -22,7 +22,7 @@ use super::Completion;
 pub type Params = super::FsTraversalParams;
 
 mod _core {
-    pub use aoide_core_api::media::tracker::find_untracked_files::*;
+    pub(super) use aoide_core_api::media::tracker::find_untracked_files::*;
 }
 
 #[derive(Debug)]

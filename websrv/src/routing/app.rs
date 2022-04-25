@@ -8,14 +8,14 @@ use warp::{
 #[folder = "../webapp/dist/"]
 struct Asset;
 
-pub fn get_index() -> BoxedFilter<(impl Reply,)> {
+pub(crate) fn get_index() -> BoxedFilter<(impl Reply,)> {
     let index = warp::path("index.html")
         .and(warp::path::end())
         .or(warp::path::end());
     warp::get().and(index).and_then(|_| serve_index()).boxed()
 }
 
-pub fn get_assets() -> BoxedFilter<(impl Reply,)> {
+pub(crate) fn get_assets() -> BoxedFilter<(impl Reply,)> {
     warp::get().and(warp::path::tail()).and_then(serve).boxed()
 }
 

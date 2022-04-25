@@ -16,11 +16,11 @@
 use aoide_core_json::{entity::Entity, playlist::PlaylistWithEntriesSummary};
 
 mod _core {
-    pub use aoide_core::playlist::{Entity, EntriesSummary, Playlist};
+    pub(super) use aoide_core::playlist::{Entity, Playlist};
 }
 
 mod _inner {
-    pub use crate::_inner::playlist::EntityWithEntriesSummary;
+    pub(super) use crate::_inner::playlist::EntityWithEntriesSummary;
 }
 
 pub type EntityWithEntriesSummary = Entity<PlaylistWithEntriesSummary>;

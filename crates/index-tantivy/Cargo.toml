@@ -7,7 +7,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.56"
+anyhow = "1.0.57"
 # Unfortunately Tantivy depends on chrono for date fields
 chrono = "0.4.19"
 num-traits = "0.2.14"

@@ -13,29 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod effect;
+pub(crate) mod effect;
 use std::path::PathBuf;
 
-pub use self::effect::Effect;
+pub(crate) use self::effect::Effect;
 
-pub mod environment;
-pub use self::environment::Environment;
+pub(crate) mod environment;
+pub(crate) use self::environment::Environment;
 
-pub mod intent;
-pub use self::intent::Intent;
+pub(crate) mod intent;
+pub(crate) use self::intent::Intent;
 
-pub mod state;
-pub use self::state::State;
+pub(crate) mod state;
+pub(crate) use self::state::State;
 
-pub mod task;
-pub use self::task::Task;
+pub(crate) mod task;
+pub(crate) use self::task::Task;
 
-pub type Action = aoide_client::action::Action<Effect, Task>;
+pub(crate) type Action = aoide_client::action::Action<Effect, Task>;
 
-pub type Message = aoide_client::message::Message<Intent, Effect>;
-pub type MessageSender = aoide_client::messaging::MessageSender<Intent, Effect>;
+pub(crate) type Message = aoide_client::message::Message<Intent, Effect>;
+pub(crate) type MessageSender = aoide_client::messaging::MessageSender<Intent, Effect>;
 
-pub type StateUpdated = aoide_client::state::StateUpdated<Effect, Task>;
+pub(crate) type StateUpdated = aoide_client::state::StateUpdated<Effect, Task>;
 
 impl From<Intent> for Message {
     fn from(intent: Intent) -> Self {

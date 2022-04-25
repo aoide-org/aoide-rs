@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::util::color::{Color, RgbColor};
+    pub(super) use aoide_core::util::color::{Color, RgbColor};
 }
 
 use aoide_core::util::color::ColorIndex;

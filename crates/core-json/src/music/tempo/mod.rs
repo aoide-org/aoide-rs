@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::music::tempo::*;
+    pub(super) use aoide_core::music::tempo::*;
 }
 
 ///////////////////////////////////////////////////////////////////////

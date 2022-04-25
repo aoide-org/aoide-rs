@@ -30,7 +30,7 @@ pub mod title;
 use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
 
 mod _core {
-    pub use aoide_core::{tag::Tags, track::*};
+    pub(super) use aoide_core::{tag::Tags, track::*};
 }
 
 ///////////////////////////////////////////////////////////////////////

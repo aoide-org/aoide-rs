@@ -69,20 +69,20 @@ struct Roundtrip {
 }
 
 impl Roundtrip {
-    pub const fn new() -> Self {
+    const fn new() -> Self {
         Self {
             state: RoundtripState::Idle,
             watermark: Watermark::INITIAL,
         }
     }
 
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         let Self { state, watermark } = self;
         watermark.reset();
         *state = RoundtripState::Idle;
     }
 
-    pub fn start_pending(&mut self, since: impl Into<Instant>) -> PendingToken {
+    fn start_pending(&mut self, since: impl Into<Instant>) -> PendingToken {
         let since = since.into();
         let Self { state, watermark } = self;
         match state {
@@ -98,7 +98,7 @@ impl Roundtrip {
         token
     }
 
-    pub fn finish_pending(&mut self, token: PendingToken) -> bool {
+    fn finish_pending(&mut self, token: PendingToken) -> bool {
         let Self { state, watermark } = self;
         if watermark.finish_pending(token) {
             *state = RoundtripState::Idle;

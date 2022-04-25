@@ -15,15 +15,15 @@
 
 use aoide_core::entity::*;
 
-pub fn entity_revision_from_sql(rev: i64) -> EntityRevision {
+pub(crate) fn entity_revision_from_sql(rev: i64) -> EntityRevision {
     EntityRevision::from_inner(rev as EntityRevisionNumber)
 }
 
-pub fn entity_revision_to_sql(rev: EntityRevision) -> i64 {
+pub(crate) fn entity_revision_to_sql(rev: EntityRevision) -> i64 {
     rev.to_inner() as i64
 }
 
-pub fn entity_header_from_sql(uid: &[u8], rev: i64) -> EntityHeader {
+pub(crate) fn entity_header_from_sql(uid: &[u8], rev: i64) -> EntityHeader {
     EntityHeader {
         uid: EntityUid::from_slice(uid),
         rev: entity_revision_from_sql(rev),

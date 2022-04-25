@@ -39,14 +39,14 @@ pub struct Mdl {
 // ------ ------
 
 #[derive(Debug)]
-pub enum Msg {
+pub(crate) enum Msg {
     Action(Action),
     Event(Event),
     ApiError(api::Error),
 }
 
 #[derive(Debug)]
-pub enum Action {
+pub(crate) enum Action {
     LoadCollection(EntityUid),
 }
 
@@ -57,7 +57,7 @@ impl From<Action> for Msg {
 }
 
 #[derive(Debug)]
-pub enum Event {
+pub(crate) enum Event {
     AllCollectionsFetched(Box<CollectionItems>),
     CollectionWithSummaryFetched(Box<CollectionItem>),
 }

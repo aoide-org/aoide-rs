@@ -4,7 +4,7 @@ use aoide_core::media::content::ContentPathConfig;
 
 use crate::{domain::*, Action, Mdl, Msg};
 
-pub fn view(mdl: &Mdl) -> Node<Msg> {
+pub(crate) fn view(mdl: &Mdl) -> Node<Msg> {
     div![
         error_msg(&mdl.error),
         section![

@@ -18,13 +18,16 @@ use aoide_core_json::{collection::Collection, entity::Entity};
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::collection::{Collection, Entity};
+    pub(super) use aoide_core::collection::{Collection, Entity};
 }
 
 mod _inner {
-    pub use crate::_inner::collection::{
-        EntityWithSummary, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
+    pub(super) use crate::_inner::collection::{
+        MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
     };
+
+    #[cfg(feature = "backend")]
+    pub(super) use crate::_inner::collection::EntityWithSummary;
 }
 
 #[derive(Debug)]

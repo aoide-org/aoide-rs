@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 mod _inner {
-    pub use crate::_inner::sorting::*;
+    pub(super) use crate::_inner::sorting::*;
 }
 
 #[derive(Debug)]

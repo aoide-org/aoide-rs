@@ -86,7 +86,7 @@ struct CliState {
 }
 
 impl CliState {
-    pub fn new(matches: ArgMatches) -> Self {
+    fn new(matches: ArgMatches) -> Self {
         Self {
             matches,
             state: Default::default(),

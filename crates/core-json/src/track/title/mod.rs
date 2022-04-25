@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::track::title::{Title, TitleKind};
+    pub(super) use aoide_core::track::title::{Title, TitleKind};
 }
 
 ///////////////////////////////////////////////////////////////////////

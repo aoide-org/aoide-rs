@@ -23,8 +23,8 @@ use aoide_core_api_json::{
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::track::find_unsynchronized::Params;
-    pub use aoide_usecases_sqlite::track::find_unsynchronized::*;
+    pub(super) use aoide_core_api::track::find_unsynchronized::Params;
+    pub(super) use aoide_usecases_sqlite::track::find_unsynchronized::*;
 }
 
 pub type RequestBody = Option<StringPredicate>;

@@ -19,7 +19,7 @@ pub mod source;
 pub mod tracker;
 
 mod _core {
-    pub use aoide_core_api::media::*;
+    pub(super) use aoide_core_api::media::*;
 }
 
 #[derive(Debug)]

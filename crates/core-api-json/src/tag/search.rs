@@ -19,7 +19,7 @@ use crate::{
 };
 
 mod _inner {
-    pub use crate::_inner::{filtering::*, sorting::*, tag::search::*};
+    pub(super) use crate::_inner::tag::search::*;
 }
 
 #[derive(Debug)]

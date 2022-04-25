@@ -20,13 +20,7 @@ use aoide_core_api::media::tracker::{query_status::Params, Status};
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::{
-        media::{
-            tracker::{query_status::*, *},
-            *,
-        },
-        Error,
-    };
+    pub(super) use aoide_usecases::media::tracker::query_status::*;
 }
 
 pub fn query_status(

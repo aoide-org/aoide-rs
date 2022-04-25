@@ -46,7 +46,7 @@ pub struct EndpointConfig {
     pub port: u16,
 }
 
-pub const ENDPOINT_PORT_EPHEMERAL: u16 = 0;
+const ENDPOINT_PORT_EPHEMERAL: u16 = 0;
 
 impl EndpointConfig {
     pub const fn new_v6() -> Self {
@@ -82,11 +82,11 @@ pub struct DatabaseConfig {
     pub migrate_schema_on_startup: bool,
 }
 
-pub const DEFAULT_DATABASE_CONNECTION_POOL_SIZE: u32 = 8;
+const DEFAULT_DATABASE_CONNECTION_POOL_SIZE: u32 = 8;
 
-pub const DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_READ: Duration = Duration::from_secs(10);
+const DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_READ: Duration = Duration::from_secs(10);
 
-pub const DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_WRITE: Duration = Duration::from_secs(30);
+const DEFAULT_DATABASE_CONNECTION_TIMEOUT_ACQUIRE_WRITE: Duration = Duration::from_secs(30);
 
 fn non_zero_duration_as_millis(duration: Duration) -> NonZeroU64 {
     let millis: u64 = duration.as_millis().try_into().unwrap();

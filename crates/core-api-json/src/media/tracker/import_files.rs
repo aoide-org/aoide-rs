@@ -23,7 +23,7 @@ use crate::{media::SyncMode, prelude::*};
 use super::Completion;
 
 mod _inner {
-    pub use aoide_core_api::media::tracker::import_files::*;
+    pub(super) use aoide_core_api::media::tracker::import_files::*;
 }
 
 #[derive(Debug)]

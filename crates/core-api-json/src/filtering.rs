@@ -18,7 +18,7 @@ use aoide_core_json::util::clock::DateTime;
 use crate::prelude::*;
 
 mod _inner {
-    pub use crate::_inner::filtering::*;
+    pub(super) use crate::_inner::filtering::*;
 }
 
 #[derive(Debug)]

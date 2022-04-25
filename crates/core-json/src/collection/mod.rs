@@ -16,7 +16,7 @@
 use crate::{media::content::ContentPathConfig, prelude::*, util::color::Color};
 
 mod _core {
-    pub use aoide_core::{collection::*, entity::EntityHeader};
+    pub(super) use aoide_core::collection::*;
 }
 
 ///////////////////////////////////////////////////////////////////////

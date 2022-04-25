@@ -20,7 +20,7 @@ use aoide_core_api::media::tracker::untrack_directories::{Outcome, Params};
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::{media::tracker::untrack_directories::*, Error};
+    pub(super) use aoide_usecases::media::tracker::untrack_directories::*;
 }
 
 pub fn untrack_directories(

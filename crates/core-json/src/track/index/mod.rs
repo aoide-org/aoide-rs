@@ -16,7 +16,7 @@
 use super::*;
 
 mod _core {
-    pub use aoide_core::track::index::*;
+    pub(super) use aoide_core::track::index::*;
 }
 
 ///////////////////////////////////////////////////////////////////////

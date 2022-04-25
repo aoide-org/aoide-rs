@@ -53,7 +53,10 @@ mod compat {
 
     // TODO: Remove after https://github.com/rust-lang/rust/issues/53485
     // has been stabilized.
-    pub fn is_sorted_by<'a, T, F>(iterable: impl IntoIterator<Item = &'a T>, mut cmp: F) -> bool
+    pub(crate) fn is_sorted_by<'a, T, F>(
+        iterable: impl IntoIterator<Item = &'a T>,
+        mut cmp: F,
+    ) -> bool
     where
         F: FnMut(&'a T, &'a T) -> Ordering,
         T: 'a,

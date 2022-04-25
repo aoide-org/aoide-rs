@@ -23,10 +23,10 @@ use crate::{
 };
 
 #[cfg(feature = "launcher-ui")]
-pub mod ui;
+pub(crate) mod ui;
 
 #[derive(Debug, Clone, Copy)]
-pub enum State {
+pub(crate) enum State {
     Idle,
     Running(RuntimeState),
     Terminated,
@@ -49,20 +49,20 @@ enum InternalState {
 }
 
 #[derive(Debug)]
-pub struct Launcher {
+pub(crate) struct Launcher {
     state: InternalState,
 }
 
 impl Launcher {
     #[must_use]
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             state: InternalState::Idle,
         }
     }
 
     #[must_use]
-    pub fn state(&self) -> State {
+    pub(crate) fn state(&self) -> State {
         match &self.state {
             InternalState::Idle => State::Idle,
             InternalState::Running {
@@ -72,7 +72,7 @@ impl Launcher {
     }
 
     #[must_use]
-    pub fn config(&self) -> Option<&Config> {
+    pub(crate) fn config(&self) -> Option<&Config> {
         if let InternalState::Running { config, .. } = &self.state {
             Some(config)
         } else {
@@ -80,7 +80,7 @@ impl Launcher {
         }
     }
 
-    pub fn launch_runtime(
+    pub(crate) fn launch_runtime(
         &mut self,
         config: Config,
         mut on_state_changed: impl FnMut(State) + Send + 'static,
@@ -154,7 +154,7 @@ impl Launcher {
         Ok(join_handle)
     }
 
-    pub fn terminate_runtime(&mut self, abort_pending_tasks: bool) -> anyhow::Result<()> {
+    pub(crate) fn terminate_runtime(&mut self, abort_pending_tasks: bool) -> anyhow::Result<()> {
         match &mut self.state {
             InternalState::Idle => anyhow::bail!("Invalid state: {:?}", self.state()),
             InternalState::Running {
@@ -176,7 +176,7 @@ impl Launcher {
     }
 
     #[cfg_attr(not(feature = "launcher-ui"), allow(dead_code))]
-    pub fn reset_after_terminated(&mut self) {
+    pub(crate) fn reset_after_terminated(&mut self) {
         debug_assert!(matches!(self.state(), State::Terminated));
         self.state = InternalState::Idle;
     }

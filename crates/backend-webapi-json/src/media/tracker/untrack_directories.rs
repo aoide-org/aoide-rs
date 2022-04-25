@@ -18,7 +18,7 @@ use aoide_core::entity::EntityUid;
 use super::*;
 
 mod uc {
-    pub use aoide_usecases_sqlite::media::tracker::untrack_directories::*;
+    pub(super) use aoide_usecases_sqlite::media::tracker::untrack_directories::*;
 }
 
 pub type RequestBody = aoide_core_api_json::media::tracker::untrack_directories::Params;

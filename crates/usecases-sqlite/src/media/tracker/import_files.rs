@@ -22,11 +22,8 @@ use aoide_media::io::import::ImportTrackConfig;
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::media::tracker::import_files::*;
-    pub use aoide_usecases::media::{
-        tracker::{import_files::*, *},
-        *,
-    };
+    pub(super) use aoide_core_api::media::tracker::import_files::*;
+    pub(super) use aoide_usecases::media::tracker::import_files::*;
 }
 
 pub fn import_files<ReportProgressFn: FnMut(uc::ProgressEvent)>(

@@ -16,8 +16,8 @@
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::track::search::*;
-    pub use aoide_usecases::{track::search::*, Error};
+    pub(super) use aoide_core_api::track::search::*;
+    pub(super) use aoide_usecases::track::search::*;
 }
 
 pub fn search(

@@ -71,7 +71,7 @@ impl TryFrom<CollectionEntityWithSummary> for CollectionItem {
     }
 }
 
-pub async fn fetch_all_collections() -> Result<CollectionItems> {
+pub(crate) async fn fetch_all_collections() -> Result<CollectionItems> {
     let url = format!("{}/c", BASE_URL);
     let response = fetch(url).await?;
     let content: Vec<SerdeCollectionEntity> = response.check_status()?.json().await?;
@@ -86,7 +86,7 @@ pub async fn fetch_all_collections() -> Result<CollectionItems> {
         })
 }
 
-pub async fn fetch_collection_with_summary(uid: EntityUid) -> Result<CollectionItem> {
+pub(crate) async fn fetch_collection_with_summary(uid: EntityUid) -> Result<CollectionItem> {
     let url = format!("{}/c/{}?summary=true", BASE_URL, &uid);
     let response = fetch(url).await?;
     let content: CollectionEntityWithSummary = response.check_status()?.json().await?;
@@ -94,7 +94,9 @@ pub async fn fetch_collection_with_summary(uid: EntityUid) -> Result<CollectionI
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn create_collection(collection: impl Into<SerdeCollection>) -> Result<EntityHeader> {
+pub(crate) async fn create_collection(
+    collection: impl Into<SerdeCollection>,
+) -> Result<EntityHeader> {
     let url = format!("{}/c", BASE_URL);
     let request = Request::new(url)
         .method(Method::Post)
@@ -105,7 +107,7 @@ pub async fn create_collection(collection: impl Into<SerdeCollection>) -> Result
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn update_collection(
+pub(crate) async fn update_collection(
     entity_header: impl Into<SerdeEntityHeader>,
     collection: impl TryInto<SerdeCollection, Error = anyhow::Error>,
 ) -> Result<EntityHeader> {
@@ -121,7 +123,7 @@ pub async fn update_collection(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn delete_collection(entity_header: impl Into<SerdeEntityHeader>) -> Result<()> {
+pub(crate) async fn delete_collection(entity_header: impl Into<SerdeEntityHeader>) -> Result<()> {
     let url = format!("{}/c", BASE_URL);
     let request = Request::new(url)
         .method(Method::Delete)
@@ -133,7 +135,7 @@ pub async fn delete_collection(entity_header: impl Into<SerdeEntityHeader>) -> R
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn scan_media_directories(
+pub(crate) async fn scan_media_directories(
     collection_uid: EntityUid,
     params: impl Into<SerdeFsTraversalParams>,
 ) -> Result<ScanMediaDirectoriesOutcome> {
@@ -150,7 +152,7 @@ pub async fn scan_media_directories(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn import_media_files(
+pub(crate) async fn import_media_files(
     collection_uid: EntityUid,
     params: impl Into<SerdeImportMediaFilesParams>,
 ) -> Result<ImportMediaFileOutcome> {
@@ -167,7 +169,7 @@ pub async fn import_media_files(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn untrack_media_directories(
+pub(crate) async fn untrack_media_directories(
     collection_uid: EntityUid,
     params: impl Into<SerdeUntrackMediaDirectoriesParams>,
 ) -> Result<UntrackMediaDirectoriesOutcome> {
@@ -184,7 +186,7 @@ pub async fn untrack_media_directories(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn purge_orphaned_media_sources(
+pub(crate) async fn purge_orphaned_media_sources(
     collection_uid: EntityUid,
     params: impl Into<SerdePurgeOrphanedMediaSourcesParams>,
 ) -> Result<PurgeOrphanedMediaSourcesOutcome> {
@@ -201,7 +203,7 @@ pub async fn purge_orphaned_media_sources(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn purge_untracked_media_sources(
+pub(crate) async fn purge_untracked_media_sources(
     collection_uid: EntityUid,
     params: impl Into<SerdePurgeUntrackedMediaSourcesParams>,
 ) -> Result<PurgeUntrackedMediaSourcesOutcome> {
@@ -218,7 +220,7 @@ pub async fn purge_untracked_media_sources(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn query_media_tracker_status(
+pub(crate) async fn query_media_tracker_status(
     collection_uid: EntityUid,
     params: impl Into<SerdeQueryMediaTrackerStatusParams>,
 ) -> Result<QueryMediaTrackerStatusOutcome> {
@@ -232,7 +234,7 @@ pub async fn query_media_tracker_status(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn get_media_tracker_progress() -> Result<MediaTrackerProgress> {
+pub(crate) async fn get_media_tracker_progress() -> Result<MediaTrackerProgress> {
     let url = format!("{}/mt/progress", BASE_URL);
     let response = fetch(url).await?;
     let content: SerdeMediaTrackerProgress = response.check_status()?.json().await?;
@@ -240,7 +242,7 @@ pub async fn get_media_tracker_progress() -> Result<MediaTrackerProgress> {
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn storage_abort_current_task() -> Result<()> {
+pub(crate) async fn storage_abort_current_task() -> Result<()> {
     let url = format!("{}/storage/abort-current-task", BASE_URL);
     let request = Request::new(url).method(Method::Post);
     let response = request.fetch().await?.check_status()?;
@@ -250,7 +252,7 @@ pub async fn storage_abort_current_task() -> Result<()> {
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn search_tracks(
+pub(crate) async fn search_tracks(
     collection_uid: EntityUid,
     params: SearchParams,
     pagination: impl Into<SerdePagination>,
@@ -284,7 +286,7 @@ pub async fn search_tracks(
 // ------ ------
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub(crate) enum Error {
     #[error("A network problem has occurred")]
     Network,
     #[error("The form of the data to be processed is insufficient")]
@@ -316,4 +318,4 @@ impl From<FetchError> for Error {
     }
 }
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub(crate) type Result<T> = std::result::Result<T, Error>;

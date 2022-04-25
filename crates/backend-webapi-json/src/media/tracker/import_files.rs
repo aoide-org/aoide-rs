@@ -28,8 +28,8 @@ use aoide_media::{
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::media::tracker::import_files::ProgressEvent;
-    pub use aoide_usecases_sqlite::media::tracker::import_files::*;
+    pub(super) use aoide_usecases::media::tracker::import_files::ProgressEvent;
+    pub(super) use aoide_usecases_sqlite::media::tracker::import_files::*;
 }
 
 pub type RequestBody = aoide_core_api_json::media::tracker::import_files::Params;

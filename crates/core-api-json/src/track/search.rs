@@ -29,7 +29,7 @@ use crate::{
 use crate::Pagination;
 
 mod _inner {
-    pub use crate::_inner::{filtering::*, sorting::*, track::search::*};
+    pub(super) use crate::_inner::{filtering::*, track::search::*};
 }
 
 #[derive(Debug)]

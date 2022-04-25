@@ -13,16 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod collection;
-pub mod media_source;
-pub mod media_tracker;
-pub mod playlist;
-pub mod playlist_entry;
-pub mod track;
-pub mod track_actor;
-pub mod track_cue;
-pub mod track_tag;
-pub mod track_title;
+pub(crate) mod collection;
+pub(crate) mod media_source;
+pub(crate) mod media_tracker;
+pub(crate) mod playlist;
+pub(crate) mod playlist_entry;
+pub(crate) mod track;
+pub(crate) mod track_actor;
+pub(crate) mod track_cue;
+pub(crate) mod track_tag;
+pub(crate) mod track_title;
 
 mod join {
     use crate::db::{

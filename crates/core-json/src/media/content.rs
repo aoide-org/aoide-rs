@@ -27,7 +27,7 @@ use crate::{
 };
 
 mod _core {
-    pub use aoide_core::media::content::*;
+    pub(super) use aoide_core::media::content::*;
 }
 
 #[derive(Debug, Serialize, Deserialize)]

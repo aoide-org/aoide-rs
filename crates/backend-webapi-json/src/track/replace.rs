@@ -19,13 +19,10 @@ use aoide_usecases::InputError;
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::track::replace::Summary;
-    pub use aoide_repo::track::ReplaceMode;
-    pub use aoide_usecases::{
-        track::{replace::Params, validate_input},
-        Error,
-    };
-    pub use aoide_usecases_sqlite::track::replace::*;
+    pub(super) use aoide_core_api::track::replace::Summary;
+    pub(super) use aoide_repo::track::ReplaceMode;
+    pub(super) use aoide_usecases::track::{replace::Params, validate_input};
+    pub(super) use aoide_usecases_sqlite::track::replace::*;
 }
 
 #[derive(Debug, Deserialize)]

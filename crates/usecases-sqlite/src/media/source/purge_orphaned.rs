@@ -18,7 +18,7 @@ use aoide_core_api::media::source::purge_orphaned::{Outcome, Params};
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::media::source::purge_orphaned::purge_orphaned;
+    pub(super) use aoide_usecases::media::source::purge_orphaned::purge_orphaned;
 }
 
 pub fn purge_orphaned(

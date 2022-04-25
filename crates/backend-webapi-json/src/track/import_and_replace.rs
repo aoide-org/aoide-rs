@@ -26,14 +26,14 @@ use crate::media::predefined_faceted_tag_mapping_config;
 use super::{replace::ReplaceMode, *};
 
 mod uc {
-    pub use aoide_core_api::track::replace::Summary;
-    pub use aoide_usecases::track::import_and_replace::Params;
-    pub use aoide_usecases::track::replace::{Completion, Outcome};
-    pub use aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path;
+    pub(super) use aoide_core_api::track::replace::Summary;
+    pub(super) use aoide_usecases::track::import_and_replace::Params;
+    pub(super) use aoide_usecases::track::replace::{Completion, Outcome};
+    pub(super) use aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path;
 }
 
 mod _inner {
-    pub use aoide_core::entity::EntityUid;
+    pub(super) use aoide_core::entity::EntityUid;
 }
 
 #[derive(Debug, Default, Serialize)]

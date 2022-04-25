@@ -26,7 +26,7 @@ struct Fixture {
 }
 
 impl Fixture {
-    pub fn new() -> TestResult<Self> {
+    pub(super) fn new() -> TestResult<Self> {
         let db = establish_connection()?;
         Ok(Self { db })
     }

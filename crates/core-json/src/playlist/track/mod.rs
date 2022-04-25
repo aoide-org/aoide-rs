@@ -18,7 +18,7 @@ use super::*;
 use crate::entity::EntityUid;
 
 mod _core {
-    pub use aoide_core::playlist::track::*;
+    pub(super) use aoide_core::playlist::track::*;
 }
 
 ///////////////////////////////////////////////////////////////////////

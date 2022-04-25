@@ -118,11 +118,11 @@ fn dummy_false_expression() -> TrackSearchBoxedExpression<'static> {
     Box::new(track::row_id.is_null()) // always false
 }
 
-pub trait TrackSearchBoxedExpressionBuilder {
+pub(crate) trait TrackSearchBoxedExpressionBuilder {
     fn build_expression(&self) -> TrackSearchBoxedExpression<'_>;
 }
 
-pub trait TrackSearchQueryTransform {
+pub(crate) trait TrackSearchQueryTransform {
     fn apply_to_query<'a>(&'a self, query: TrackSearchBoxedQuery<'a>) -> TrackSearchBoxedQuery<'a>;
 }
 

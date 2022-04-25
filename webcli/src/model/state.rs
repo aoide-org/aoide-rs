@@ -21,13 +21,13 @@ use aoide_client::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ControlState {
+pub(super) enum ControlState {
     Running,
     Terminating,
 }
 
 impl ControlState {
-    pub const fn default() -> Self {
+    pub(super) const fn default() -> Self {
         Self::Running
     }
 }

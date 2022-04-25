@@ -83,7 +83,7 @@ struct AncestorVisitor<'r, Repo> {
 
 impl<'r, Repo> AncestorVisitor<'r, Repo> {
     #[must_use]
-    pub fn new(
+    fn new(
         repo: &'r Repo,
         collection_id: CollectionId,
         content_path_resolver: &'r VirtualFilePathResolver,
