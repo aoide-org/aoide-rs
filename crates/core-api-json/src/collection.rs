@@ -17,6 +17,7 @@ use aoide_core_json::{collection::Collection, entity::Entity};
 
 use crate::prelude::*;
 
+#[cfg(feature = "frontend")]
 mod _core {
     pub(super) use aoide_core::collection::{Collection, Entity};
 }

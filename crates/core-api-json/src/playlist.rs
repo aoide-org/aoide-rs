@@ -15,6 +15,7 @@
 
 use aoide_core_json::{entity::Entity, playlist::PlaylistWithEntriesSummary};
 
+#[cfg(feature = "frontend")]
 mod _core {
     pub(super) use aoide_core::playlist::{Entity, Playlist};
 }

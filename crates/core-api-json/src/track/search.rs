@@ -29,7 +29,10 @@ use crate::{
 use crate::Pagination;
 
 mod _inner {
-    pub(super) use crate::_inner::{filtering::*, track::search::*};
+    pub(super) use crate::_inner::track::search::*;
+
+    #[cfg(feature = "frontend")]
+    pub(super) use crate::_inner::filtering::*;
 }
 
 #[derive(Debug)]
