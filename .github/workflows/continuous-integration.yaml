@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow
 
-name: Continuous integration
+name: Continuous Integration
 
 on:
   pull_request:
@@ -12,6 +12,7 @@ on:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: short
 
 jobs:
   continuous-integration:
@@ -24,7 +25,7 @@ jobs:
           sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev
 
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -43,7 +44,8 @@ jobs:
         run: |
           cargo install --locked trunk
 
-      - name: Cache Rust toolchain and build artifacts
+      # Cache key depends on Rust toolchain!
+      - name: "Cache build artifacts"
         uses: Swatinem/rust-cache@v1
 
       - name: Check aoide-core

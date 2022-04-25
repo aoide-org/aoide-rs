@@ -13,19 +13,17 @@ fmt:
 
 # Run clippy
 check:
-    cargo clippy --locked --workspace --bins --examples --tests -- -D warnings
-    cargo clippy --locked --workspace --no-default-features --bins --examples --tests -- -D warnings
-    cargo clippy --locked --workspace --all-features --bins --examples --tests -- -D warnings
-    cd webapp && cargo clippy --target wasm32-unknown-unknown --locked --all-features --bins --examples --tests -- -D warnings
+    cargo clippy --locked --workspace --all-features --no-deps --bins --examples --tests -- -D warnings
+    cd webapp && cargo clippy --target wasm32-unknown-unknown --locked --all-features --no-deps --bins --examples --tests -- -D warnings
 
 # Fix lint warnings
 fix:
     cargo fix --workspace --all-features --bins --examples --tests
-    cargo clippy --workspace --all-features --bins --examples --tests --fix
+    cargo clippy --workspace --all-features --fix --bins --examples --tests
     cd webapp && cargo fix --target wasm32-unknown-unknown --all-features --examples --tests
-    cd webapp && cargo clippy --target wasm32-unknown-unknown --all-features --examples --tests
+    cd webapp && cargo clippy --target wasm32-unknown-unknown --all-features --fix --examples --tests
 
-# Run unit tests
+# Run tests
 test:
     RUST_BACKTRACE=1 cargo test --locked --workspace -- --nocapture
     RUST_BACKTRACE=1 cargo test --locked --workspace --no-default-features -- --nocapture
@@ -63,6 +61,7 @@ update:
 
 # Run pre-commit hooks
 pre-commit:
+    #pre-commit install --hook-type commit-msg --hook-type pre-commit
     pre-commit run --all-files
 
 # Launch a debug build of the web service with the webapp enabled
