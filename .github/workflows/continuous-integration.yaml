@@ -154,16 +154,16 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --locked --all-features --workspace --no-run
+          args: --locked --all-features --all-targets --workspace --no-run
 
       - name: Run tests with all features enabled
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --locked --all-features --workspace -- --nocapture --quiet
+          args: --locked --all-features --all-targets --workspace -- --nocapture --quiet
 
       - name: Build release with default features
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --locked --workspace --profile release
+          args: --locked --workspace --all-targets --profile release
