@@ -30,11 +30,3 @@ getrandom = { version = "0.2.6", default-features = false, features = ["js"] }
 default = []
 std-file = []
 std-system-time = []
-
-[dev-dependencies]
-criterion = "0.3.5"
-uuid = { version = "1.0.0", features = ["v4"] }
-
-[[bench]]
-name = "entity_uid_benchmark"
-harness = false
