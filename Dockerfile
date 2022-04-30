@@ -129,6 +129,9 @@ RUN USER=root cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
     tree -a
 
 COPY [ \
+    ".cargo", \
+    "./.cargo/" ]
+COPY [ \
     "Cargo.toml", \
     "Cargo.lock", \
     "./" ]
