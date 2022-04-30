@@ -186,7 +186,7 @@ impl TrackFields {
             doc.add_u64(self.times_played, times_played);
         }
         if let Some(last_played_at) = entity.body.track.play_counter.last_played_at {
-            doc.add_date(self.times_played, tantivy_date_time(last_played_at));
+            doc.add_date(self.last_played_at, tantivy_date_time(last_played_at));
         }
         for faceted_tags in &entity.body.track.tags.facets {
             let FacetedTags { facet_id, tags } = faceted_tags;
