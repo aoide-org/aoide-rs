@@ -14,9 +14,9 @@ diesel = { version = "1.4.8", default-features = false, features = ["r2d2", "sql
 libsqlite3-sys = { version = "0.22.2", features = ["bundled"] }
 log = "0.4.16"
 r2d2 = "0.8.9"
-thiserror = "1.0.30"
+thiserror = "1.0.31"
 
-serde = { version = "1.0.136", optional = true, features = ["derive"] }
+serde = { version = "1.0.137", optional = true, features = ["derive"] }
 tokio = { version = "1.18.0", optional = true, default-features = false, features = ["macros", "rt", "sync", "time"] }
 
 [features]

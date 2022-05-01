@@ -15,9 +15,9 @@ dotenv = "0.15.0"
 log = "0.4.16"
 parking_lot = "0.12.0"
 ron = "0.7.0"
-serde = { version = "1.0.136", features = ["derive"] }
-serde_json = "1.0.79"
-thiserror = "1.0.30"
+serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0.80"
+thiserror = "1.0.31"
 time = { version = "0.3.9", features = ["serde-well-known"] }
 tokio = { version = "1.18.0", default-features = false, features = [
     "rt-multi-thread",
@@ -37,11 +37,10 @@ mime_guess = { version = "2.0.4", optional = true }
 rust-embed = { version = "6.4.0", optional = true }
 
 # launcher-ui
-eframe = { version = "0.17.0", optional = true, default-features = false, features = [
+eframe = { version = "0.18.0", optional = true, default-features = false, features = [
     "default_fonts",
-    "egui_glow",
 ] }
-egui = { version = "0.17.0", optional = true, default-features = false }
+egui = { version = "0.18.1", optional = true, default-features = false }
 rfd = { version = "0.8.2", optional = true, default-features = false, features = [
     "xdg-portal",
 ] }
@@ -50,10 +49,7 @@ rfd = { version = "0.8.2", optional = true, default-features = false, features =
 aoide-backend-webapi-json = "=0.8.0"
 aoide-core = "=0.8.0"
 aoide-repo-sqlite = "=0.8.0"
-aoide-storage-sqlite = { version = "=0.8.0", features = [
-    "serde",
-    "tokio",
-] }
+aoide-storage-sqlite = { version = "=0.8.0", features = ["serde", "tokio"] }
 aoide-usecases = "=0.8.0"
 aoide-usecases-sqlite = "=0.8.0"
 aoide-websrv-api = "=0.8.0"

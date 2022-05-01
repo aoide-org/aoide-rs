@@ -168,10 +168,15 @@ fn main() {
 
     #[cfg(feature = "launcher-ui")]
     if !env::parse_launch_headless().unwrap_or(false) {
-        let app = launcher::ui::App::new(Arc::clone(&launcher), config);
-        let options = eframe::NativeOptions::default();
         log::info!("Running launcher UI");
-        eframe::run_native(Box::new(app), options);
+        eframe::run_native(
+            app_name(),
+            eframe::NativeOptions::default(),
+            Box::new({
+                let launcher = Arc::clone(&launcher);
+                move |_creation_context| Box::new(launcher::ui::App::new(launcher, config))
+            }),
+        );
         // Never returns
     }
 

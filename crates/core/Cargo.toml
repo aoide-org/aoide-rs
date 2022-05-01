@@ -17,7 +17,7 @@ path-slash = "0.1.4"
 rand = "0.8.5"
 semval = "0.3.0"
 time = { version = "0.3.9", features = ["macros", "local-offset", "parsing", "formatting"] }
-thiserror = "1.0.30"
+thiserror = "1.0.31"
 url = "2.2.2"
 
 # Dirty hack to support wasm32-unknown-unknown target. Otherwise

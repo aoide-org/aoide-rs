@@ -24,7 +24,7 @@ use std::{
     time::Duration,
 };
 
-use eframe::epi::{egui::Context, Frame};
+use eframe::{egui::Context, Frame};
 use egui::{Button, CentralPanel, TextEdit, TopBottomPanel};
 use parking_lot::Mutex;
 use rfd::FileDialog;
@@ -32,7 +32,7 @@ use rfd::FileDialog;
 use aoide_storage_sqlite::connection::Storage as SqliteDatabaseStorage;
 
 use crate::{
-    app_dirs, app_name, join_runtime_thread, launcher::State as LauncherState,
+    app_dirs, join_runtime_thread, launcher::State as LauncherState,
     runtime::State as RuntimeState, save_app_config, LauncherMutex,
 };
 
@@ -137,6 +137,7 @@ pub(crate) struct App {
 
 #[derive(Debug)]
 enum State {
+    Setup,
     Idle,
     Running {
         runtime_thread: JoinHandle<anyhow::Result<()>>,
@@ -151,13 +152,13 @@ impl App {
             launcher,
             exit_flag: Arc::new(AtomicBool::new(false)),
             last_config,
-            state: State::Idle,
+            state: State::Setup,
             config: config.into(),
             last_error: Arc::new(Mutex::new(None)),
         }
     }
 
-    fn resync_state_on_update(&mut self, frame: &Frame) {
+    fn resync_state_on_update(&mut self, ctx: &egui::Context) {
         let launcher = self.launcher.lock();
         let launcher_state = launcher.state();
         if matches!(self.state, State::Terminated) {
@@ -170,7 +171,7 @@ impl App {
         } else if matches!(launcher_state, LauncherState::Terminated) {
             // If startup fails the launcher may terminate itself unattended
             drop(launcher);
-            self.after_launcher_terminated(frame);
+            self.after_launcher_terminated(ctx);
         }
     }
 
@@ -240,7 +241,7 @@ impl App {
         ui.end_row();
     }
 
-    fn show_launch_controls(&mut self, ui: &mut egui::Ui, frame: &Frame) {
+    fn show_launch_controls(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         ui.with_layout(egui::Layout::left_to_right(), |ui| {
             let launcher_state = self.launcher.lock().state();
             let stop_button_text = match launcher_state {
@@ -259,7 +260,7 @@ impl App {
                 .add_enabled(stop_button_enabled, Button::new(stop_button_text))
                 .clicked()
             {
-                self.on_stop(frame, true);
+                self.on_stop(ctx, true);
             }
 
             let start_button_text = match launcher_state {
@@ -272,12 +273,12 @@ impl App {
                 .add_enabled(start_button_enabled, Button::new(start_button_text))
                 .clicked()
             {
-                self.on_start(frame);
+                self.on_start(ctx);
             }
         });
     }
 
-    fn on_start(&mut self, frame: &Frame) {
+    fn on_start(&mut self, ctx: &egui::Context) {
         debug_assert!(matches!(self.state, State::Idle));
         let Config {
             network: network_config,
@@ -293,10 +294,10 @@ impl App {
         let mut launcher = self.launcher.lock();
         *self.last_error.lock() = None;
         match launcher.launch_runtime(next_config.clone(), {
-            let frame = frame.to_owned();
+            let ctx = ctx.to_owned();
             move |state| {
                 log::debug!("Launcher state changed: {:?}", state);
-                frame.request_repaint();
+                ctx.request_repaint();
             }
         }) {
             Ok(runtime_thread) => {
@@ -305,7 +306,7 @@ impl App {
                 self.config = next_config.clone().into();
                 self.last_config = next_config;
                 self.state = State::Running { runtime_thread };
-                frame.request_repaint();
+                ctx.request_repaint();
             }
             Err(err) => {
                 log::warn!("Failed to launch runtime: {}", err);
@@ -313,16 +314,16 @@ impl App {
         }
     }
 
-    fn on_stop(&mut self, frame: &Frame, abort_pending_tasks: bool) {
+    fn on_stop(&mut self, ctx: &egui::Context, abort_pending_tasks: bool) {
         debug_assert!(matches!(self.state, State::Running { .. }));
         if let Err(err) = self.launcher.lock().terminate_runtime(abort_pending_tasks) {
             log::error!("Failed to terminate runtime: {}", err);
             return;
         }
-        self.after_launcher_terminated(frame);
+        self.after_launcher_terminated(ctx);
     }
 
-    fn after_launcher_terminated(&mut self, frame: &Frame) {
+    fn after_launcher_terminated(&mut self, ctx: &egui::Context) {
         if let State::Running { runtime_thread } =
             std::mem::replace(&mut self.state, State::Terminated)
         {
@@ -330,12 +331,12 @@ impl App {
             std::thread::spawn({
                 let launcher = Arc::clone(&self.launcher);
                 let last_error = Arc::clone(&self.last_error);
-                let frame = frame.to_owned();
+                let ctx = ctx.to_owned();
                 move || {
                     *last_error.lock() = join_runtime_thread(runtime_thread)
                         .err()
                         .map(|err| err.to_string());
-                    frame.request_repaint();
+                    ctx.request_repaint();
                     while !matches!(launcher.lock().state(), LauncherState::Terminated) {
                         log::debug!("Awaiting termination of launcher...");
                         std::thread::sleep(Duration::from_millis(1));
@@ -344,10 +345,10 @@ impl App {
                     launcher.lock().reset_after_terminated();
                     // The application state will be re-synchronized during
                     // the next invocation of update().
-                    frame.request_repaint();
+                    ctx.request_repaint();
                 }
             });
-            frame.request_repaint();
+            ctx.request_repaint();
         }
     }
 }
@@ -360,30 +361,8 @@ fn is_existing_file(path: &Path) -> bool {
     path.canonicalize().map(|p| p.is_file()).unwrap_or(false)
 }
 
-impl eframe::epi::App for App {
-    fn name(&self) -> &str {
-        app_name()
-    }
-
-    fn setup(
-        &mut self,
-        _ctx: &egui::Context,
-        frame: &Frame,
-        _storage: Option<&dyn eframe::epi::Storage>,
-    ) {
-        if let Err(err) = ctrlc::set_handler({
-            let frame = frame.to_owned();
-            let exit_flag = Arc::clone(&self.exit_flag);
-            move || {
-                exit_flag.store(true, Ordering::Release);
-                frame.request_repaint();
-            }
-        }) {
-            log::error!("Failed to register signal handler: {}", err);
-        }
-    }
-
-    fn on_exit(&mut self) {
+impl eframe::App for App {
+    fn on_exit(&mut self, _: &eframe::glow::Context) {
         let App {
             launcher,
             last_config,
@@ -412,8 +391,22 @@ impl eframe::epi::App for App {
         }
     }
 
-    fn update(&mut self, ctx: &Context, frame: &Frame) {
-        self.resync_state_on_update(frame);
+    fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+        if matches!(self.state, State::Setup) {
+            if let Err(err) = ctrlc::set_handler({
+                let ctx = ctx.to_owned();
+                let exit_flag = Arc::clone(&self.exit_flag);
+                move || {
+                    exit_flag.store(true, Ordering::Release);
+                    ctx.request_repaint();
+                }
+            }) {
+                log::error!("Failed to register signal handler: {}", err);
+            } else {
+                self.state = State::Idle;
+            }
+        }
+        self.resync_state_on_update(ctx);
         if self.exit_flag.load(Ordering::Acquire) {
             frame.quit();
         }
@@ -428,7 +421,7 @@ impl eframe::epi::App for App {
         });
         CentralPanel::default().show(ctx, |_ui| {
             TopBottomPanel::top("launch_controls").show(ctx, |ui| {
-                self.show_launch_controls(ui, frame);
+                self.show_launch_controls(ui, ctx);
             });
         });
         TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
