@@ -9,10 +9,10 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.57"
 diesel = { version = "1.4.8", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
-log = "0.4.16"
+log = "0.4.17"
 mime = "0.3.16"
 num-derive = "0.3.3"
-num-traits = "0.2.14"
+num-traits = "0.2.15"
 semval = "0.3.0"
 url = "2.2.2"
 

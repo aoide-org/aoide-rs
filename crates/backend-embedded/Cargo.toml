@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.57"
 diesel = { version = "1.4.8", default-features = false, features = ["sqlite"] }
-log = "0.4.16"
+log = "0.4.17"
 serde = { version = "1.0.137", features = ["derive"] }
 thiserror = "1.0.31"
 

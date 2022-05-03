@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 num-derive = "0.3.3"
-num-traits = "0.2.14"
+num-traits = "0.2.15"
 semval = "0.3.0"
 url = "2.2.2"
 

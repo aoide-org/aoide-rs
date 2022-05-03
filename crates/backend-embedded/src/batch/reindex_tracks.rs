@@ -133,6 +133,7 @@ pub async fn reindex_tracks(
                                             last_updated_at = Some(entity.body.updated_at);
                                         }
                                         // Skip and continue with next entity
+                                        offset += 1;
                                         continue;
                                     }
                                 }

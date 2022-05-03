@@ -10,7 +10,7 @@ edition = "2021"
 anyhow = "1.0.57"
 base64 = "0.13.0"
 mime = "0.3.16"
-num-traits = "0.2.14"
+num-traits = "0.2.15"
 semval = "0.3.0"
 serde = { version = "1.0.137", default-features = false, features = ["derive"] }
 serde_repr = "0.1.8"
