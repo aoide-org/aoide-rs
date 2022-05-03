@@ -54,7 +54,6 @@ pub enum SortField {
     CreatedAt,
     DiscNumber,
     DiscTotal,
-    LastPlayedAt,
     MusicTempoBpm,
     MusicKeyCode,
     Publisher,
@@ -65,7 +64,6 @@ pub enum SortField {
     TrackNumber,
     TrackTitle,
     TrackTotal,
-    TimesPlayed,
     UpdatedAt,
 }
 
@@ -87,14 +85,12 @@ impl From<SortField> for _inner::SortField {
             CreatedAt => Self::CreatedAt,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
-            LastPlayedAt => Self::LastPlayedAt,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
             Publisher => Self::Publisher,
             RecordedAtDate => Self::RecordedAtDate,
             ReleasedAtDate => Self::ReleasedAtDate,
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            TimesPlayed => Self::TimesPlayed,
             TrackArtist => Self::TrackArtist,
             TrackNumber => Self::TrackNumber,
             TrackTitle => Self::TrackTitle,
@@ -122,14 +118,12 @@ impl From<_inner::SortField> for SortField {
             CreatedAt => Self::CreatedAt,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
-            LastPlayedAt => Self::LastPlayedAt,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
             Publisher => Self::Publisher,
             RecordedAtDate => Self::RecordedAtDate,
             ReleasedAtDate => Self::ReleasedAtDate,
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            TimesPlayed => Self::TimesPlayed,
             TrackArtist => Self::TrackArtist,
             TrackNumber => Self::TrackNumber,
             TrackTitle => Self::TrackTitle,
@@ -234,7 +228,6 @@ pub enum NumericField {
     ReleasedOrigAtDate,
     MusicTempoBpm,
     MusicKeyCode,
-    TimesPlayed,
     TrackNumber,
     TrackTotal,
 }
@@ -259,7 +252,6 @@ impl From<NumericField> for _inner::NumericField {
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
             TrackNumber => Self::TrackNumber,
             TrackTotal => Self::TrackTotal,
-            TimesPlayed => Self::TimesPlayed,
         }
     }
 }
@@ -282,7 +274,6 @@ impl From<_inner::NumericField> for NumericField {
             RecordedAtDate => Self::RecordedAtDate,
             ReleasedAtDate => Self::ReleasedAtDate,
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            TimesPlayed => Self::TimesPlayed,
             TrackNumber => Self::TrackNumber,
             TrackTotal => Self::TrackTotal,
         }
@@ -296,7 +287,6 @@ impl From<_inner::NumericField> for NumericField {
 #[serde(rename_all = "camelCase")]
 pub enum DateTimeField {
     CollectedAt,
-    LastPlayedAt,
     RecordedAt,
     ReleasedAt,
     ReleasedOrigAt,
@@ -308,7 +298,6 @@ impl From<DateTimeField> for _inner::DateTimeField {
         use DateTimeField::*;
         match from {
             CollectedAt => Self::CollectedAt,
-            LastPlayedAt => Self::LastPlayedAt,
             RecordedAt => Self::RecordedAt,
             ReleasedAt => Self::ReleasedAt,
             ReleasedOrigAt => Self::ReleasedOrigAt,
@@ -322,7 +311,6 @@ impl From<_inner::DateTimeField> for DateTimeField {
         use _inner::DateTimeField::*;
         match from {
             CollectedAt => Self::CollectedAt,
-            LastPlayedAt => Self::LastPlayedAt,
             RecordedAt => Self::RecordedAt,
             ReleasedAt => Self::ReleasedAt,
             ReleasedOrigAt => Self::ReleasedOrigAt,

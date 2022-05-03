@@ -50,7 +50,6 @@ pub enum NumericField {
     RecordedAtDate,
     ReleasedAtDate,
     ReleasedOrigAtDate,
-    TimesPlayed,
     TrackNumber,
     TrackTotal,
 }
@@ -58,7 +57,6 @@ pub enum NumericField {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DateTimeField {
     CollectedAt,
-    LastPlayedAt,
     RecordedAt,
     ReleasedAt,
     ReleasedOrigAt,
@@ -108,14 +106,12 @@ pub enum SortField {
     CreatedAt,
     DiscNumber,
     DiscTotal,
-    LastPlayedAt,
     MusicTempoBpm,
     MusicKeyCode,
     Publisher,
     RecordedAtDate,
     ReleasedAtDate,
     ReleasedOrigAtDate,
-    TimesPlayed,
     TrackArtist,
     TrackNumber,
     TrackTitle,

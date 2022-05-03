@@ -82,9 +82,6 @@ pub struct Track {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     cues: Vec<Cue>,
-
-    #[serde(skip_serializing_if = "PlayCounter::is_default", default)]
-    play_counter: PlayCounter,
 }
 
 impl From<_core::Track> for Track {
@@ -104,7 +101,6 @@ impl From<_core::Track> for Track {
             color,
             metrics,
             cues,
-            play_counter,
         } = from;
         Self {
             media_source: media_source.into(),
@@ -121,7 +117,6 @@ impl From<_core::Track> for Track {
             color: color.map(Into::into),
             metrics: metrics.into(),
             cues: cues.untie().into_iter().map(Into::into).collect(),
-            play_counter: play_counter.into(),
         }
     }
 }
@@ -145,7 +140,6 @@ impl TryFrom<Track> for _core::Track {
             color,
             metrics,
             cues,
-            play_counter,
         } = from;
         let media_source = media_source.try_into()?;
         let into = Self {
@@ -180,7 +174,6 @@ impl TryFrom<Track> for _core::Track {
                     .collect::<Vec<_>>()
                     .canonicalize_into(),
             ),
-            play_counter: play_counter.into(),
         };
         Ok(into)
     }
@@ -268,16 +261,6 @@ pub struct PlayCounter {
     times_played: Option<PlayCount>,
 }
 
-impl PlayCounter {
-    pub(crate) fn is_default(&self) -> bool {
-        let Self {
-            last_played_at,
-            times_played,
-        } = self;
-        last_played_at.is_none() && times_played.is_none()
-    }
-}
-
 impl From<_core::PlayCounter> for PlayCounter {
     fn from(from: _core::PlayCounter) -> Self {
         let _core::PlayCounter {
@@ -303,6 +286,3 @@ impl From<PlayCounter> for _core::PlayCounter {
         }
     }
 }
-
-#[cfg(test)]
-mod tests;

@@ -1840,7 +1840,6 @@ components:
       type: string
       enum:
         - collectedAt
-        - lastPlayedAt
         - recordedAt
         - releasedAt
         - releasedOrigAt
@@ -1914,7 +1913,6 @@ components:
         - recordedAtDate
         - releasedAtDate
         - releasedOrigAtDate
-        - timesPlayed
         - trackNumber
         - trackTotal
     NumericFieldFilter:
@@ -3386,13 +3384,11 @@ components:
         - createdAt
         - discNumber
         - discTotal
-        - lastPlayedAt
         - musicTempoBpm
         - musicKeyCode
         - recordedAtDate
         - releasedAtDate
         - releasedOrigAtDate
-        - timesPlayed
         - trackArtist
         - trackNumber
         - trackTitle

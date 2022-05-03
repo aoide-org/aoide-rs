@@ -46,6 +46,7 @@ use aoide_core::{
             FACET_GENRE, FACET_INSTRUMENTALNESS, FACET_LIVENESS, FACET_MOOD, FACET_POPULARITY,
             FACET_SPEECHINESS, FACET_VALENCE,
         },
+        PlayCounter,
     },
     util::clock::{DateTime, DateYYYYMMDD},
 };
@@ -122,7 +123,11 @@ fn tantivy_date_time(input: DateTime) -> tantivy::DateTime {
 
 impl TrackFields {
     #[must_use]
-    pub fn create_document(&self, entity: &track::Entity) -> Document {
+    pub fn create_document(
+        &self,
+        entity: &track::Entity,
+        play_counter: Option<&PlayCounter>,
+    ) -> Document {
         // TODO (optimization): Consuming the entity would avoid string allocations for text fields
         let mut doc = Document::new();
         doc.add_bytes(self.uid, entity.hdr.uid.as_ref());
@@ -182,11 +187,17 @@ impl TrackFields {
                     .expect("valid code"),
             );
         }
-        if let Some(times_played) = entity.body.track.play_counter.times_played {
-            doc.add_u64(self.times_played, times_played);
-        }
-        if let Some(last_played_at) = entity.body.track.play_counter.last_played_at {
-            doc.add_date(self.last_played_at, tantivy_date_time(last_played_at));
+        if let Some(play_counter) = play_counter {
+            let PlayCounter {
+                times_played,
+                last_played_at,
+            } = play_counter;
+            if let Some(times_played) = times_played {
+                doc.add_u64(self.times_played, *times_played);
+            }
+            if let Some(last_played_at) = last_played_at {
+                doc.add_date(self.last_played_at, tantivy_date_time(*last_played_at));
+            }
         }
         for faceted_tags in &entity.body.track.tags.facets {
             let FacetedTags { facet_id, tags } = faceted_tags;

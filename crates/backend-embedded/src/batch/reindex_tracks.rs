@@ -139,7 +139,9 @@ pub async fn reindex_tracks(
                                 }
                             }
                         }
-                        let doc = track_fields.create_document(entity);
+                        // TODO: Load play counter
+                        let play_counter = None;
+                        let doc = track_fields.create_document(entity, play_counter);
                         index_writer.add_document(doc)?;
                         offset += 1;
                     }

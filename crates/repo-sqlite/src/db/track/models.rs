@@ -68,9 +68,6 @@ pub struct QueryableRecord {
     pub music_flags: i16,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
-    pub last_played_at: Option<String>,
-    pub last_played_ms: Option<TimestampMillis>,
-    pub times_played: Option<i64>,
     // TODO: Remove these unused members if no longer required by Diesel
     aux_track_title: Option<String>,
     aux_track_artist: Option<String>,
@@ -146,9 +143,6 @@ pub(crate) fn load_repo_entity(
         music_flags,
         color_rgb,
         color_idx,
-        last_played_at,
-        last_played_ms,
-        times_played,
         aux_track_title: _,
         aux_track_artist: _,
         aux_track_composer: _,
@@ -244,10 +238,6 @@ pub(crate) fn load_repo_entity(
     } else {
         color_idx.map(|idx| Color::Index(idx as ColorIndex))
     };
-    let play_counter = PlayCounter {
-        last_played_at: parse_datetime_opt(last_played_at.as_deref(), last_played_ms),
-        times_played: times_played.map(|val| val as PlayCount),
-    };
     let track = Track {
         media_source,
         recorded_at,
@@ -263,7 +253,6 @@ pub(crate) fn load_repo_entity(
         color,
         metrics,
         cues,
-        play_counter,
     };
     let entity_body = EntityBody {
         track,
@@ -308,9 +297,6 @@ pub struct InsertableRecord<'a> {
     pub music_flags: i16,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
-    pub last_played_at: Option<String>,
-    pub last_played_ms: Option<TimestampMillis>,
-    pub times_played: Option<i64>,
     pub aux_track_title: Option<&'a str>,
     pub aux_track_artist: Option<&'a str>,
     pub aux_track_composer: Option<&'a str>,
@@ -340,11 +326,6 @@ impl<'a> InsertableRecord<'a> {
             indexes,
             metrics,
             color,
-            play_counter:
-                PlayCounter {
-                    last_played_at,
-                    times_played,
-                },
             cues: _,
             tags: _,
         } = track;
@@ -425,9 +406,6 @@ impl<'a> InsertableRecord<'a> {
             } else {
                 None
             },
-            last_played_at: last_played_at.as_ref().map(ToString::to_string),
-            last_played_ms: last_played_at.map(DateTime::timestamp_millis),
-            times_played: times_played.map(|count| count as i64),
             aux_track_title: track.track_title(),
             aux_track_artist: track.track_artist(),
             aux_track_composer: track.track_composer(),
@@ -470,9 +448,6 @@ pub struct UpdatableRecord<'a> {
     pub music_flags: i16,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
-    pub last_played_at: Option<String>,
-    pub last_played_ms: Option<TimestampMillis>,
-    pub times_played: Option<i64>,
     pub aux_track_title: Option<&'a str>,
     pub aux_track_artist: Option<&'a str>,
     pub aux_track_composer: Option<&'a str>,
@@ -505,11 +480,6 @@ impl<'a> UpdatableRecord<'a> {
             indexes,
             metrics,
             color,
-            play_counter:
-                PlayCounter {
-                    last_played_at,
-                    times_played,
-                },
             cues: _,
             tags: _,
         } = track;
@@ -588,9 +558,6 @@ impl<'a> UpdatableRecord<'a> {
             } else {
                 None
             },
-            last_played_at: last_played_at.as_ref().map(ToString::to_string),
-            last_played_ms: last_played_at.map(DateTime::timestamp_millis),
-            times_played: times_played.map(|count| count as i64),
             aux_track_title: Titles::main_title(track_titles.as_ref())
                 .map(|title| title.name.as_str()),
             aux_track_artist: Actors::main_actor(track_actors.iter(), ActorRole::Artist)

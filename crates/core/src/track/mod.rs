@@ -93,8 +93,6 @@ pub struct Track {
     pub metrics: Metrics,
 
     pub cues: Canonical<Vec<Cue>>,
-
-    pub play_counter: PlayCounter,
 }
 
 impl Track {
@@ -115,7 +113,6 @@ impl Track {
             color: None,
             metrics: Default::default(),
             cues: Default::default(),
-            play_counter: Default::default(),
         }
     }
 
@@ -171,7 +168,6 @@ impl Track {
             indexes,
             media_source,
             metrics,
-            play_counter,
             recorded_at,
             released_at,
             released_orig_at,
@@ -188,7 +184,6 @@ impl Track {
             indexes: newer_indexes,
             media_source: mut newer_media_source,
             metrics: newer_metrics,
-            play_counter: newer_play_counter,
             recorded_at: newer_recorded_at,
             released_at: newer_released_at,
             released_orig_at: newer_released_orig_at,
@@ -217,9 +212,6 @@ impl Track {
         }
         if newer_indexes != Default::default() {
             *indexes = newer_indexes;
-        }
-        if newer_play_counter != Default::default() {
-            *play_counter = newer_play_counter;
         }
         *recorded_at = recorded_at.or(newer_recorded_at);
         *released_at = released_at.or(newer_released_at);

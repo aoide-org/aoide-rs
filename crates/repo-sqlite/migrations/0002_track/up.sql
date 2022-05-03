@@ -56,10 +56,6 @@ CREATE TABLE IF NOT EXISTS track (
     -- properties: custom
     color_rgb                INTEGER, -- 0xRRGGBB (hex)
     color_idx                INTEGER, -- palette index
-    -- properties: play counter
-    last_played_at           TEXT,
-    last_played_ms           INTEGER,
-    times_played             INTEGER,
     -- auxiliary properties for filtering and sorting
     aux_track_title          TEXT,    -- main title (derived from entries in track_title)
     aux_track_artist         TEXT,    -- summary/default artist (derived from entries in track_actor)
