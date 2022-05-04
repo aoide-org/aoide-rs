@@ -13,10 +13,9 @@ ctrlc = { version = "3.2.2", features = ["termination"] }
 directories = "4.0.1"
 dotenv = "0.15.0"
 log = "0.4.17"
-parking_lot = "0.12.0"
 ron = "0.7.0"
 serde = { version = "1.0.137", features = ["derive"] }
-serde_json = "1.0.80"
+serde_json = "1.0.81"
 thiserror = "1.0.31"
 time = { version = "0.3.9", features = ["serde-well-known"] }
 tokio = { version = "1.18.1", default-features = false, features = [
