@@ -126,7 +126,3 @@ CREATE INDEX IF NOT EXISTS idx_track_aux_album_title ON track (
 CREATE INDEX IF NOT EXISTS idx_track_aux_album_artist ON track (
     aux_album_artist
 ) WHERE aux_album_artist IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_track_last_played_ms_desc ON track (
-    last_played_ms DESC
-) WHERE last_played_ms IS NOT NULL;
