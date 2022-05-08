@@ -34,7 +34,7 @@ use std::{
     env::current_exe,
     fs,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
     thread::JoinHandle,
 };
 
@@ -136,7 +136,7 @@ pub fn join_runtime_thread(join_handle: JoinHandle<anyhow::Result<()>>) -> anyho
     }
 }
 
-type LauncherMutex = Mutex<Launcher>;
+type LauncherMutex = parking_lot::Mutex<Launcher>;
 
 fn main() {
     env::init_environment();
@@ -197,11 +197,7 @@ fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exi
     if let Err(err) = ctrlc::set_handler({
         let launcher = Arc::clone(&launcher);
         move || {
-            if let Err(err) = launcher
-                .lock()
-                .expect("not poisened")
-                .terminate_runtime(true)
-            {
+            if let Err(err) = launcher.lock().terminate_runtime(true) {
                 log::error!("Failed to terminate runtime: {}", err);
             }
         }
@@ -209,22 +205,18 @@ fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exi
         log::error!("Failed to register signal handler: {}", err);
     }
 
-    let runtime_thread =
-        match launcher
-            .lock()
-            .expect("not poisened")
-            .launch_runtime(config, |state| {
-                if let State::Running(RuntimeState::Listening { socket_addr }) = state {
-                    // Publish socket address on stdout
-                    println!("{}", socket_addr);
-                }
-            }) {
-            Ok(join_handle) => join_handle,
-            Err(err) => {
-                log::error!("Failed to launch runtime: {}", err);
-                return;
-            }
-        };
+    let runtime_thread = match launcher.lock().launch_runtime(config, |state| {
+        if let State::Running(RuntimeState::Listening { socket_addr }) = state {
+            // Publish socket address on stdout
+            println!("{}", socket_addr);
+        }
+    }) {
+        Ok(join_handle) => join_handle,
+        Err(err) => {
+            log::error!("Failed to launch runtime: {}", err);
+            return;
+        }
+    };
 
     log::info!("Suspending main thread");
     // This method will log all outcomes
@@ -232,9 +224,7 @@ fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exi
     log::info!("Resuming main thread");
 
     if save_config_on_exit {
-        if let (Some(app_dirs), Some(config)) =
-            (app_dirs(), launcher.lock().expect("not poisened").config())
-        {
+        if let (Some(app_dirs), Some(config)) = (app_dirs(), launcher.lock().config()) {
             save_app_config(&app_dirs, config);
         }
     } else {

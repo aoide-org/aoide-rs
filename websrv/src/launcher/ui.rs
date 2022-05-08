@@ -18,7 +18,7 @@ use std::{
     path::Path,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
+        Arc,
     },
     thread::JoinHandle,
     time::Duration,
@@ -26,6 +26,7 @@ use std::{
 
 use eframe::{egui::Context, Frame};
 use egui::{Button, CentralPanel, TextEdit, TopBottomPanel};
+use parking_lot::Mutex;
 use rfd::FileDialog;
 
 use aoide_storage_sqlite::connection::Storage as SqliteDatabaseStorage;
@@ -158,7 +159,7 @@ impl App {
     }
 
     fn resync_state_on_update(&mut self, ctx: &egui::Context) {
-        let launcher = self.launcher.lock().expect("not poisened");
+        let launcher = self.launcher.lock();
         let launcher_state = launcher.state();
         if matches!(self.state, State::Terminated) {
             if matches!(launcher_state, LauncherState::Idle) {
@@ -242,7 +243,7 @@ impl App {
 
     fn show_launch_controls(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         ui.with_layout(egui::Layout::left_to_right(), |ui| {
-            let launcher_state = self.launcher.lock().expect("not poisened").state();
+            let launcher_state = self.launcher.lock().state();
             let stop_button_text = match launcher_state {
                 LauncherState::Running(RuntimeState::Stopping)
                 | LauncherState::Running(RuntimeState::Terminating) => "Stopping...",
@@ -290,8 +291,8 @@ impl App {
         if let Ok(storage) = database_config.try_into() {
             next_config.database.connection.storage = storage;
         }
-        let mut launcher = self.launcher.lock().expect("not poisened");
-        *self.last_error.lock().expect("not poisened") = None;
+        let mut launcher = self.launcher.lock();
+        *self.last_error.lock() = None;
         match launcher.launch_runtime(next_config.clone(), {
             let ctx = ctx.to_owned();
             move |state| {
@@ -315,12 +316,7 @@ impl App {
 
     fn on_stop(&mut self, ctx: &egui::Context, abort_pending_tasks: bool) {
         debug_assert!(matches!(self.state, State::Running { .. }));
-        if let Err(err) = self
-            .launcher
-            .lock()
-            .expect("not poisened")
-            .terminate_runtime(abort_pending_tasks)
-        {
+        if let Err(err) = self.launcher.lock().terminate_runtime(abort_pending_tasks) {
             log::error!("Failed to terminate runtime: {}", err);
             return;
         }
@@ -337,22 +333,16 @@ impl App {
                 let last_error = Arc::clone(&self.last_error);
                 let ctx = ctx.to_owned();
                 move || {
-                    *last_error.lock().expect("not poisened") = join_runtime_thread(runtime_thread)
+                    *last_error.lock() = join_runtime_thread(runtime_thread)
                         .err()
                         .map(|err| err.to_string());
                     ctx.request_repaint();
-                    while !matches!(
-                        launcher.lock().expect("not poisened").state(),
-                        LauncherState::Terminated
-                    ) {
+                    while !matches!(launcher.lock().state(), LauncherState::Terminated) {
                         log::debug!("Awaiting termination of launcher...");
                         std::thread::sleep(Duration::from_millis(1));
                     }
                     log::debug!("Launcher terminated");
-                    launcher
-                        .lock()
-                        .expect("not poisened")
-                        .reset_after_terminated();
+                    launcher.lock().reset_after_terminated();
                     // The application state will be re-synchronized during
                     // the next invocation of update().
                     ctx.request_repaint();
@@ -381,7 +371,7 @@ impl eframe::App for App {
         } = self;
         let state = std::mem::replace(state, State::Idle);
         if let State::Running { runtime_thread } = state {
-            let mut launcher = launcher.lock().expect("not poisened");
+            let mut launcher = launcher.lock();
             match launcher.state() {
                 LauncherState::Idle
                 | LauncherState::Running(RuntimeState::Terminating)
@@ -392,7 +382,7 @@ impl eframe::App for App {
                     }
                 }
             }
-            *self.last_error.lock().expect("not poisened") = join_runtime_thread(runtime_thread)
+            *self.last_error.lock() = join_runtime_thread(runtime_thread)
                 .err()
                 .map(|err| err.to_string());
         }
@@ -441,14 +431,11 @@ impl eframe::App for App {
                 .striped(true)
                 .show(ui, |ui| {
                     ui.label("Current state:");
-                    ui.label(format!(
-                        "{:?}",
-                        self.launcher.lock().expect("not poisened").state()
-                    ));
+                    ui.label(format!("{:?}", self.launcher.lock().state()));
                     ui.end_row();
 
                     ui.label("Last error:");
-                    let last_error = self.last_error.lock().expect("not poisened");
+                    let last_error = self.last_error.lock();
                     if let Some(last_error) = last_error.as_deref() {
                         ui.label(last_error);
                     }
