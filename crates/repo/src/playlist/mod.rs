@@ -13,21 +13,25 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::ops::Range;
+
+use rand::{seq::SliceRandom, thread_rng};
+
+use aoide_core::{
+    playlist::{Entity, EntityHeader, EntityUid, EntityWithEntries, EntriesSummary, Entry},
+    util::clock::DateTime,
+};
+
+use aoide_core_api::playlist::EntityWithEntriesSummary;
+
+use crate::{collection::RecordId as CollectionId, prelude::*};
+
 record_id_newtype!(RecordId);
 
 pub type RecordHeader = crate::RecordHeader<RecordId>;
 
-use std::ops::Range;
-
-use crate::{collection::RecordId as CollectionId, prelude::*};
-
-use aoide_core::{playlist::*, util::clock::DateTime};
-
-use aoide_core_api::playlist::EntityWithEntriesSummary;
-use rand::{seq::SliceRandom, thread_rng};
-
 pub trait EntityRepo: EntryRepo {
-    entity_repo_trait_common_functions!(RecordId, Entity, Playlist);
+    entity_repo_trait_common_functions!(RecordId, Entity, EntityUid, EntityHeader, Playlist);
 
     fn load_playlist_entity_with_entries(&self, id: RecordId) -> RepoResult<EntityWithEntries>;
 

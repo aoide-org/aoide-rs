@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
-
-use crate::webapi::{receive_response_body, ClientEnvironment};
+use crate::{
+    prelude::*,
+    webapi::{receive_response_body, ClientEnvironment},
+};
 
 use super::{super::Effect, Task};
 
@@ -87,7 +88,7 @@ async fn fetch_progress<E: ClientEnvironment>(
 
 async fn fetch_status<E: ClientEnvironment>(
     env: &E,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: impl Into<aoide_core_api_json::media::tracker::query_status::Params>,
 ) -> anyhow::Result<aoide_core_api::media::tracker::Status> {
     let request_url = env.join_api_url(&format!("c/{}/mt/query-status", collection_uid))?;
@@ -104,7 +105,7 @@ async fn fetch_status<E: ClientEnvironment>(
 
 async fn start_scan_directories<E: ClientEnvironment>(
     env: &E,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: impl Into<aoide_core_api_json::media::tracker::scan_directories::Params>,
 ) -> anyhow::Result<aoide_core_api::media::tracker::scan_directories::Outcome> {
     let request_url = env.join_api_url(&format!("c/{}/mt/scan-directories", collection_uid))?;
@@ -123,7 +124,7 @@ async fn start_scan_directories<E: ClientEnvironment>(
 
 async fn untrack_directories<E: ClientEnvironment>(
     env: &E,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: impl Into<aoide_core_api_json::media::tracker::untrack_directories::Params>,
 ) -> anyhow::Result<aoide_core_api::media::tracker::untrack_directories::Outcome> {
     let request_url = env.join_api_url(&format!("c/{}/mt/untrack-directories", collection_uid))?;
@@ -142,7 +143,7 @@ async fn untrack_directories<E: ClientEnvironment>(
 
 async fn start_import_files<E: ClientEnvironment>(
     env: &E,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: impl Into<aoide_core_api_json::media::tracker::import_files::Params>,
 ) -> anyhow::Result<aoide_core_api::media::tracker::import_files::Outcome> {
     let request_url = env.join_api_url(&format!("c/{}/mt/import-files", collection_uid))?;
@@ -161,7 +162,7 @@ async fn start_import_files<E: ClientEnvironment>(
 
 async fn start_find_untracked_files<E: ClientEnvironment>(
     env: &E,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: impl Into<aoide_core_api_json::media::tracker::find_untracked_files::Params>,
 ) -> anyhow::Result<aoide_core_api::media::tracker::find_untracked_files::Outcome> {
     let request_url = env.join_api_url(&format!("c/{}/mt/find-untracked-files", collection_uid))?;

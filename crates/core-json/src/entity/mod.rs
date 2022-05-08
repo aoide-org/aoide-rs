@@ -105,6 +105,18 @@ impl From<_core::EntityUid> for EntityUid {
     }
 }
 
+impl<T> From<EntityUid> for _core::EntityUidTyped<T> {
+    fn from(from: EntityUid) -> Self {
+        Self::from_untyped(from.into())
+    }
+}
+
+impl<T> From<_core::EntityUidTyped<T>> for EntityUid {
+    fn from(from: _core::EntityUidTyped<T>) -> Self {
+        from.into_untyped().into()
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // EntityRevision
 ///////////////////////////////////////////////////////////////////////
@@ -146,10 +158,22 @@ impl From<EntityHeader> for _core::EntityHeader {
     }
 }
 
+impl<T> From<EntityHeader> for _core::EntityHeaderTyped<T> {
+    fn from(from: EntityHeader) -> Self {
+        _core::EntityHeaderTyped::from_untyped(_core::EntityHeader::from(from))
+    }
+}
+
 impl From<_core::EntityHeader> for EntityHeader {
     fn from(from: _core::EntityHeader) -> Self {
         let _core::EntityHeader { uid, rev } = from;
         Self(uid.into(), rev.into())
+    }
+}
+
+impl<T> From<_core::EntityHeaderTyped<T>> for EntityHeader {
+    fn from(from: _core::EntityHeaderTyped<T>) -> Self {
+        from.into_untyped().into()
     }
 }
 

@@ -16,6 +16,7 @@
 use aoide_core::util::url::BaseUrl;
 
 use aoide_core_api::media::source::ResolveUrlFromContentPath;
+
 use aoide_core_json::track::Entity;
 
 use aoide_core_api_json::track::search::{QueryParams, SearchParams};
@@ -25,10 +26,6 @@ use super::*;
 mod uc {
     pub(super) use aoide_core_api::track::search::Params;
     pub(super) use aoide_usecases_sqlite::track::search::search;
-}
-
-mod _inner {
-    pub(super) use aoide_core::entity::EntityUid;
 }
 
 pub type RequestBody = SearchParams;
@@ -46,7 +43,7 @@ pub type ResponseBody = Vec<Entity>;
 )]
 pub fn handle_request(
     connection: &SqliteConnection,
-    collection_uid: &_inner::EntityUid,
+    collection_uid: &CollectionUid,
     query_params: QueryParams,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {

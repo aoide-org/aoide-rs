@@ -21,7 +21,7 @@ use super::*;
 
 pub fn resolve_by_media_source_content_paths(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     media_content_paths: Vec<String>,
 ) -> Result<Vec<(String, EntityHeader)>> {
     let repo = RepoConnection::new(connection);

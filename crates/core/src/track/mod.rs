@@ -267,7 +267,7 @@ impl Track {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum TrackInvalidity {
     MediaSource(SourceInvalidity),
     RecordedAt(DateOrDateTimeInvalidity),
@@ -376,7 +376,14 @@ impl Validate for EntityBody {
     }
 }
 
-pub type Entity = crate::entity::Entity<TrackInvalidity, EntityBody>;
+#[derive(Debug, Clone, Copy)]
+pub struct EntityType;
+
+pub type EntityUid = EntityUidTyped<EntityType>;
+
+pub type EntityHeader = EntityHeaderTyped<EntityType>;
+
+pub type Entity = crate::entity::Entity<EntityType, EntityBody, TrackInvalidity>;
 
 ///////////////////////////////////////////////////////////////////////
 // PlayCounter

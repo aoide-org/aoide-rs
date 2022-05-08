@@ -22,7 +22,7 @@ fn dedup_facets(facets: &mut Vec<FacetId>) {
     facets.dedup();
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CountParams {
     pub facets: Option<Vec<FacetId>>,
     pub include_non_faceted_tags: Option<bool>,
@@ -42,7 +42,7 @@ impl CountParams {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FacetCountParams {
     pub facets: Option<Vec<FacetId>>,
     pub ordering: Vec<SortOrder>,
@@ -56,7 +56,7 @@ impl FacetCountParams {
     }
 }
 
-#[derive(Clone, Default, Debug, Eq, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct FacetCount {
     pub facet_id: FacetId,
     pub total_count: usize,

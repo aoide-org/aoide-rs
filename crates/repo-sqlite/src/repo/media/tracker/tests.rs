@@ -20,7 +20,7 @@ use test_log::test;
 
 use aoide_core::{
     collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
-    entity::EntityHeader,
+    entity::EntityHeaderTyped,
     media::content::ContentPathConfig,
     util::{clock::DateTime, url::BaseUrl},
 };
@@ -49,7 +49,8 @@ impl Fixture {
             },
         };
         let db = establish_connection()?;
-        let collection_entity = CollectionEntity::new(EntityHeader::initial_random(), collection);
+        let collection_entity =
+            CollectionEntity::new(EntityHeaderTyped::initial_random(), collection);
         let collection_id = crate::Connection::new(&db)
             .insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
         Ok(Self { db, collection_id })

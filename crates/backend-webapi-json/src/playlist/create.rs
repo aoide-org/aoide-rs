@@ -23,7 +23,7 @@ pub type ResponseBody = Entity;
 
 pub fn handle_request(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     connection

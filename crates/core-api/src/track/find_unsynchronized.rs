@@ -16,6 +16,7 @@
 use aoide_core::{
     entity::{Entity, EntityRevision},
     media::content::ContentLink,
+    track,
 };
 
 use crate::{filtering::StringPredicate, media::source::ResolveUrlFromContentPath};
@@ -32,4 +33,4 @@ pub struct UnsynchronizedTrack {
     pub last_synchronized_rev: Option<EntityRevision>,
 }
 
-pub type UnsynchronizedTrackEntity = Entity<(), UnsynchronizedTrack>;
+pub type UnsynchronizedTrackEntity = Entity<track::EntityType, UnsynchronizedTrack, ()>;

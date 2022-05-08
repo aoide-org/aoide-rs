@@ -27,7 +27,7 @@ pub type ResponseBody = Vec<(String, EntityHeader)>;
 
 pub fn handle_request(
     connection: &SqliteConnection,
-    collection_uid: &_core::EntityUid,
+    collection_uid: &CollectionUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     connection

@@ -28,7 +28,7 @@ pub struct FsTraversalParams {
     pub max_depth: Option<usize>,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
 pub enum DirTrackingStatus {
     Current = 0,
     Outdated = 1,
@@ -60,18 +60,18 @@ impl DirTrackingStatus {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Completion {
     Finished,
     Aborted,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Status {
     pub directories: DirectoriesStatus,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DirectoriesStatus {
     pub current: usize,
     pub outdated: usize,
@@ -80,7 +80,7 @@ pub struct DirectoriesStatus {
     pub orphaned: usize,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Progress {
     Idle,
     Scanning(FsTraversalProgress),
@@ -88,19 +88,19 @@ pub enum Progress {
     FindingUntracked(FsTraversalProgress),
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FsTraversalProgress {
     pub entries: FsTraversalEntriesProgress,
     pub directories: FsTraversalDirectoriesProgress,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FsTraversalEntriesProgress {
     pub skipped: usize,
     pub finished: usize,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FsTraversalDirectoriesProgress {
     pub finished: usize,
 }

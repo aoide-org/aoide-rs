@@ -18,7 +18,7 @@ use std::fmt;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
 pub enum KeyCode {
     Unknown = 0,
 
@@ -671,7 +671,7 @@ impl From<KeyCode> for KeyCodeValue {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum KeyMode {
     Major,
     Minor,
@@ -680,7 +680,7 @@ pub enum KeyMode {
 /// The ordering numbering of the key code follows the
 /// Circle of fifth / Open Key notation in clock-wise orientation,
 /// alternating between major and minor keys.
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct KeySignature(KeyCode);
 
 impl KeySignature {
@@ -740,7 +740,7 @@ impl From<KeySignature> for KeyCode {
 // OpenKeySignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OpenKeySignature(KeySignature);
 
 impl OpenKeySignature {
@@ -798,7 +798,7 @@ impl fmt::Display for OpenKeySignature {
 // LancelotKeySignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LancelotKeySignature(KeySignature);
 
 impl LancelotKeySignature {
@@ -856,7 +856,7 @@ impl fmt::Display for LancelotKeySignature {
 // EngineKeySignature (as found in Denon Engine Prime Library)
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EngineKeySignature(KeySignature);
 
 impl EngineKeySignature {

@@ -1,4 +1,4 @@
-pub(crate) use aoide_core::{collection::Entity as CollectionEntity, entity::EntityHeader};
+pub(crate) use aoide_core::collection::{Entity as CollectionEntity, EntityHeader};
 
 pub(crate) use aoide_core_api::collection::Summary as CollectionSummary;
 

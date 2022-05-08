@@ -15,7 +15,7 @@
 
 use std::{sync::atomic::AtomicBool, time::Duration};
 
-use aoide_core::{entity::EntityUid, media::content::resolver::ContentPathResolver as _};
+use aoide_core::media::content::resolver::ContentPathResolver as _;
 
 use aoide_core_api::media::tracker::{
     find_untracked_files::Outcome, Completion, FsTraversalDirectoriesProgress,
@@ -140,7 +140,7 @@ pub fn visit_directories<
     ReportProgressFn: FnMut(ProgressEvent),
 >(
     repo: &Repo,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &FsTraversalParams,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,

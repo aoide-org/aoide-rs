@@ -25,7 +25,7 @@ use super::{
     title::{Title, Titles, TitlesInvalidity},
 };
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum AlbumKind {
     Unknown = 0,
     Album = 1,
@@ -68,7 +68,7 @@ impl Album {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum AlbumInvalidity {
     Titles(TitlesInvalidity),
     Actors(ActorsInvalidity),

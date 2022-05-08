@@ -37,7 +37,7 @@ impl PositionMs {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum PositionMsInvalidity {
     OutOfRange,
 }
@@ -95,7 +95,7 @@ impl DurationMs {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum DurationMsInvalidity {
     OutOfRange,
 }

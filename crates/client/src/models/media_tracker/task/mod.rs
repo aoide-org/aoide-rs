@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
-
-use crate::util::roundtrip::PendingToken;
+use crate::{prelude::*, util::roundtrip::PendingToken};
 
 #[derive(Debug)]
 pub enum Task {
@@ -24,27 +22,27 @@ pub enum Task {
     },
     FetchStatus {
         token: PendingToken,
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::tracker::query_status::Params,
     },
     StartScanDirectories {
         token: PendingToken,
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::tracker::scan_directories::Params,
     },
     StartImportFiles {
         token: PendingToken,
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::tracker::import_files::Params,
     },
     StartFindUntrackedFiles {
         token: PendingToken,
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::tracker::find_untracked_files::Params,
     },
     UntrackDirectories {
         token: PendingToken,
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::tracker::untrack_directories::Params,
     },
 }

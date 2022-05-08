@@ -30,7 +30,7 @@ pub fn load_entity_with_entries(
 
 pub fn load_entities_with_entries_summary(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     kind: Option<&str>,
     pagination: Option<&Pagination>,
     collector: &mut impl ReservableRecordCollector<

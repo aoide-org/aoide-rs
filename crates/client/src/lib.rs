@@ -42,3 +42,7 @@ pub mod messaging;
 
 #[cfg(feature = "webapi-backend")]
 pub mod webapi;
+
+pub mod prelude {
+    pub use aoide_core::collection::EntityUid as CollectionUid;
+}

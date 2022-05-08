@@ -50,7 +50,7 @@ impl TempoBpm {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum TempoBpmInvalidity {
     OutOfRange,
 }

@@ -50,7 +50,7 @@ impl Filter {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SortField {
     FacetId,
     Label,
@@ -58,7 +58,7 @@ pub enum SortField {
     Count,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct SortOrder {
     pub field: SortField,
     pub direction: SortDirection,

@@ -24,7 +24,7 @@ use crate::prelude::*;
 
 use self::schema::*;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ArtworkSource {
     Irregular = -2,
     Unsupported = -1,

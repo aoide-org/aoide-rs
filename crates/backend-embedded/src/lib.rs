@@ -30,8 +30,6 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
-use thiserror::Error;
-
 pub mod batch;
 pub mod collection;
 pub mod media;
@@ -41,3 +39,9 @@ pub mod track;
 
 pub type Error = aoide_usecases_sqlite::Error;
 pub type Result<T> = std::result::Result<T, Error>;
+
+pub mod prelude {
+    pub use super::{Error, Result};
+
+    pub use aoide_core::collection::EntityUid as CollectionUid;
+}

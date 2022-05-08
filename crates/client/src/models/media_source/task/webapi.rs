@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
-
-use crate::webapi::{receive_response_body, ClientEnvironment};
+use crate::{
+    prelude::*,
+    webapi::{receive_response_body, ClientEnvironment},
+};
 
 use super::{super::Effect, Task};
 
@@ -45,7 +46,7 @@ impl Task {
 
 async fn purge_orphaned<E: ClientEnvironment>(
     env: &E,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: impl Into<aoide_core_api_json::media::source::purge_orphaned::Params>,
 ) -> anyhow::Result<aoide_core_api::media::source::purge_orphaned::Outcome> {
     let request_url = env.join_api_url(&format!("c/{}/ms/purge-orphaned", collection_uid))?;
@@ -63,7 +64,7 @@ async fn purge_orphaned<E: ClientEnvironment>(
 
 async fn purge_untracked<E: ClientEnvironment>(
     env: &E,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: impl Into<aoide_core_api_json::media::source::purge_untracked::Params>,
 ) -> anyhow::Result<aoide_core_api::media::source::purge_untracked::Outcome> {
     let request_url = env.join_api_url(&format!("c/{}/ms/purge-untracked", collection_uid))?;

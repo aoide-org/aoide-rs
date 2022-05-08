@@ -22,12 +22,12 @@ use super::*;
 use aoide_core::{
     audio::DurationMs,
     collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
-    entity::EntityHeader,
+    entity::EntityHeaderTyped,
     media::{
         self,
         content::{AudioContentMetadata, ContentLink, ContentPath, ContentPathConfig},
     },
-    track::{Entity as TrackEntity, EntityBody as TrackEntityBody, Track},
+    track::{Entity as TrackEntity, EntityBody as TrackEntityBody, EntityUid as TrackUid, Track},
     util::{clock::DateTime, url::BaseUrl},
 };
 
@@ -56,7 +56,8 @@ impl Fixture {
             },
         };
         let db = establish_connection()?;
-        let collection_entity = CollectionEntity::new(EntityHeader::initial_random(), collection);
+        let collection_entity =
+            CollectionEntity::new(EntityHeaderTyped::initial_random(), collection);
         let collection_id = crate::Connection::new(&db)
             .insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
         Ok(Self { db, collection_id })
@@ -65,7 +66,7 @@ impl Fixture {
     fn create_media_sources_and_tracks(
         &self,
         count: usize,
-    ) -> RepoResult<Vec<(MediaSourceId, TrackId, EntityUid)>> {
+    ) -> RepoResult<Vec<(MediaSourceId, TrackId, TrackUid)>> {
         let db = crate::Connection::new(&self.db);
         let mut created = Vec::with_capacity(count);
         for i in 0..count {
@@ -96,7 +97,7 @@ impl Fixture {
                 updated_at: created_at,
                 last_synchronized_rev: None,
             };
-            let track_entity = TrackEntity::new(EntityHeader::initial_random(), entity_body);
+            let track_entity = TrackEntity::new(EntityHeaderTyped::initial_random(), entity_body);
             let track_id = db.insert_track_entity(media_source_id, &track_entity)?;
             created.push((media_source_id, track_id, track_entity.hdr.uid));
         }
@@ -117,7 +118,7 @@ impl Fixture {
             color: None,
             flags: Default::default(),
         };
-        let playlist_entity = Entity::new(EntityHeader::initial_random(), playlist);
+        let playlist_entity = Entity::new(EntityHeaderTyped::initial_random(), playlist);
         let playlist_id =
             db.insert_playlist_entity(self.collection_id, DateTime::now_utc(), &playlist_entity)?;
         let media_sources_and_tracks = self.create_media_sources_and_tracks(track_count)?;

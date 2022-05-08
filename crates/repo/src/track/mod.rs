@@ -14,12 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::{
-    entity::{EntityHeader, EntityRevision, EntityUid},
+    entity::EntityRevision,
     media::content::ContentLink,
-    track::{Entity, Track},
+    track::{Entity, EntityHeader, EntityUid, Track},
 };
-
-use aoide_core_api::track::search::*;
+use aoide_core_api::track::search::{SearchFilter, SortOrder, StringField};
 
 use crate::{
     collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
@@ -29,7 +28,7 @@ record_id_newtype!(RecordId);
 
 pub type RecordHeader = crate::RecordHeader<RecordId>;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StringFieldCounts {
     pub field: StringField,
     pub counts: Vec<StringCount>,

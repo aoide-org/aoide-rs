@@ -13,20 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
-
 use crate::util::roundtrip::PendingToken;
+
+use super::CollectionUid;
 
 #[derive(Debug)]
 pub enum Task {
     PurgeOrphaned {
         token: PendingToken,
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::source::purge_orphaned::Params,
     },
     PurgeUntracked {
         token: PendingToken,
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::source::purge_untracked::Params,
     },
 }

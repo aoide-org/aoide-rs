@@ -20,12 +20,12 @@ use crate::{
 
 use std::fmt::Debug;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MediaSourceConfig {
     pub content_path: ContentPathConfig,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum MediaSourceConfigInvalidity {
     ContentPath(ContentPathConfigInvalidity),
 }
@@ -41,7 +41,7 @@ impl Validate for MediaSourceConfig {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Collection {
     pub title: String,
 
@@ -54,7 +54,7 @@ pub struct Collection {
     pub media_source_config: MediaSourceConfig,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum CollectionInvalidity {
     TitleEmpty,
     KindEmpty,
@@ -87,4 +87,11 @@ impl Validate for Collection {
     }
 }
 
-pub type Entity = crate::entity::Entity<CollectionInvalidity, Collection>;
+#[derive(Debug, Clone, Copy)]
+pub struct EntityType;
+
+pub type EntityUid = EntityUidTyped<EntityType>;
+
+pub type EntityHeader = EntityHeaderTyped<EntityType>;
+
+pub type Entity = crate::entity::Entity<EntityType, Collection, CollectionInvalidity>;

@@ -15,18 +15,18 @@
 
 use diesel::Connection as _;
 
-use aoide_core::{
-    entity::{EntityHeader, EntityUid},
-    playlist::{Entity, EntityWithEntries, Playlist},
-};
+use aoide_core::playlist::{Entity, EntityHeader, EntityUid, EntityWithEntries, Playlist};
+
 use aoide_core_api::{playlist::EntityWithEntriesSummary, Pagination};
+
 use aoide_repo::{
     playlist::{EntityWithEntriesSummaryCollector, RecordHeader},
     prelude::ReservableRecordCollector,
 };
+
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
-use crate::{Error, Result};
+use crate::prelude::*;
 
 pub mod entries;
 
@@ -53,7 +53,7 @@ pub async fn load_one(
 /// Load a multiple entities, each with a summary of their entries
 pub async fn load_all(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     kind: Option<String>,
     pagination: Option<Pagination>,
 ) -> Result<Vec<EntityWithEntriesSummary>> {
@@ -71,7 +71,7 @@ pub async fn load_all(
 /// Load a multiple entities, each with a summary of their entries
 pub async fn load_all_collecting<C>(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     kind: Option<String>,
     pagination: Option<Pagination>,
     collector: C,
@@ -103,7 +103,7 @@ where
 
 pub async fn create(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     new_playlist: Playlist,
 ) -> Result<Entity> {
     db_gatekeeper

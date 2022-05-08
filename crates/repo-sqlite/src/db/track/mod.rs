@@ -25,7 +25,7 @@ use aoide_core::{
 
 use num_derive::{FromPrimitive, ToPrimitive};
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, FromPrimitive, ToPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum Scope {
     Track = 0,
     Album = 1,

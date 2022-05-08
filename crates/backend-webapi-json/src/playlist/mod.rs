@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
+use aoide_core::playlist::EntityUid;
 
 use aoide_core_api_json::playlist::{export_entity_with_entries_summary, EntityWithEntriesSummary};
 use aoide_repo::{
@@ -26,7 +26,7 @@ use aoide_core_json::playlist::{Entity, Entry, Playlist};
 use super::*;
 
 mod _core {
-    pub(super) use aoide_core::entity::EntityHeader;
+    pub(super) use aoide_core::playlist::EntityHeader;
     pub(super) use aoide_core_api::playlist::EntityWithEntriesSummary;
 }
 

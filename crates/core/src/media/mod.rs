@@ -63,7 +63,7 @@ where
 ///
 /// Note: Previously Apple used the value 4 for explicit content that
 /// has now been replaced by 1.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum AdvisoryRating {
     /// Inoffensive
     Unrated = 0,
@@ -115,7 +115,7 @@ pub struct Source {
     pub advisory_rating: Option<AdvisoryRating>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum SourceInvalidity {
     LinkPathEmpty,
     ContentTypeEmpty,

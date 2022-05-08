@@ -21,7 +21,7 @@ use super::*;
 
 pub fn find_unsynchronized(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: Params,
     pagination: &Pagination,
 ) -> Result<Vec<UnsynchronizedTrackEntity>> {

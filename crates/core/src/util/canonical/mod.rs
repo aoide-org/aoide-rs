@@ -146,7 +146,7 @@ where
 }
 
 /// Type-safe wrapper for immutable, canonical data.
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Canonical<T>(T);
 
 impl<T> Canonical<T>

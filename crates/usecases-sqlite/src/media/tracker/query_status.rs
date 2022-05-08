@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
-
 use aoide_core_api::media::tracker::{query_status::Params, Status};
 
 use super::*;
@@ -25,7 +23,7 @@ mod uc {
 
 pub fn query_status(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Status> {
     let repo = RepoConnection::new(connection);

@@ -111,7 +111,7 @@ async fn create_entity<E: ClientEnvironment>(
 
 async fn update_entity<E: ClientEnvironment>(
     env: &E,
-    entity_header: &aoide_core::entity::EntityHeader,
+    entity_header: &aoide_core::collection::EntityHeader,
     modified_collection: impl Into<aoide_core_json::collection::Collection>,
 ) -> anyhow::Result<CollectionEntity> {
     let url = env.join_api_url(&format!(

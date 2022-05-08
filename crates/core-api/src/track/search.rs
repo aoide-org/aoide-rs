@@ -23,7 +23,7 @@ use aoide_core::{
 
 use crate::{filtering::*, media::source::ResolveUrlFromContentPath, sorting::*, tag};
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum StringField {
     AlbumArtist,
     AlbumTitle,
@@ -35,7 +35,7 @@ pub enum StringField {
     TrackTitle,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum NumericField {
     AudioBitrateBps,
     AudioChannelCount,
@@ -54,7 +54,7 @@ pub enum NumericField {
     TrackTotal,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DateTimeField {
     CollectedAt,
     RecordedAt,
@@ -62,7 +62,7 @@ pub enum DateTimeField {
     ReleasedOrigAt,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ConditionFilter {
     SourceTracked,
     SourceUntracked,
@@ -72,7 +72,7 @@ pub type NumericFieldFilter = ScalarFieldFilter<NumericField, NumericValue>;
 
 pub type DateTimeFieldFilter = ScalarFieldFilter<DateTimeField, DateTime>;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PhraseFieldFilter {
     // Empty == All available string fields are considered
     // Disjunction, i.e. a match in one of the fields is sufficient
@@ -86,12 +86,12 @@ pub struct PhraseFieldFilter {
     pub terms: Vec<String>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceFilterBorrowed<'s> {
     pub path: StringPredicateBorrowed<'s>,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SortField {
     AlbumArtist,
     AlbumTitle,
@@ -119,7 +119,7 @@ pub enum SortField {
     UpdatedAt,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct SortOrder {
     pub field: SortField,
     pub direction: SortDirection,

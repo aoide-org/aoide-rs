@@ -23,7 +23,7 @@ mod uc {
 
 pub fn purge_by_media_source_content_path_predicates(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     path_predicates: Vec<StringPredicate>,
 ) -> Result<uc::PurgeByMediaContentPathPredicatesSummary> {
     let repo = RepoConnection::new(connection);

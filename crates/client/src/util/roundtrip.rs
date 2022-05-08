@@ -27,7 +27,7 @@ const FINAL_SEQUENCE_NUMBER: SequenceNumber = SequenceNumber::MAX;
 
 const MAX_SEQUENCE_NUMBER_DISTANCE: SequenceNumber = SequenceNumber::MAX / 2;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Watermark {
     epoch: EpochNumber,
     sequence: SequenceNumber,
@@ -133,7 +133,7 @@ impl PartialOrd for Watermark {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PendingToken(Watermark);
 
 impl AsRef<Watermark> for PendingToken {

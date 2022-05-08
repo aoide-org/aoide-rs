@@ -27,3 +27,5 @@ pub use self::task::Task;
 
 pub type Action = crate::action::Action<Effect, Task>;
 pub type StateUpdated = crate::state::StateUpdated<Effect, Task>;
+
+use aoide_core::collection::EntityUid as CollectionUid;

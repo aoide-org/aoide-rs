@@ -27,7 +27,7 @@ mod uc {
 
 pub fn replace_many_by_media_source_content_path(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &uc::Params,
     validated_track_iter: impl IntoIterator<Item = ValidatedInput>,
 ) -> Result<Summary> {

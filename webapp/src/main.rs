@@ -1,21 +1,17 @@
-
 // rustflags
 #![warn(rust_2018_idioms)]
 #![warn(rust_2021_compatibility)]
 #![warn(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
-
 // rustflags (clippy)
 #![warn(clippy::all)]
 #![warn(clippy::explicit_deref_methods)]
 #![warn(clippy::explicit_into_iter_loop)]
 #![warn(clippy::explicit_iter_loop)]
 #![warn(clippy::must_use_candidate)]
-
 // rustdocflags
 #![warn(rustdoc::broken_intra_doc_links)]
-
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
@@ -23,7 +19,7 @@ use std::collections::HashMap;
 
 use seed::prelude::*;
 
-use aoide_core::entity::EntityUid;
+use aoide_core::collection::EntityUid as CollectionUid;
 
 mod api;
 mod domain;
@@ -37,7 +33,7 @@ use domain::*;
 
 #[derive(Debug, Default)]
 pub struct Mdl {
-    collections: HashMap<EntityUid, CollectionItem>,
+    collections: HashMap<CollectionUid, CollectionItem>,
     error: Option<String>,
 }
 
@@ -54,7 +50,7 @@ pub(crate) enum Msg {
 
 #[derive(Debug)]
 pub(crate) enum Action {
-    LoadCollection(EntityUid),
+    LoadCollection(CollectionUid),
 }
 
 impl From<Action> for Msg {

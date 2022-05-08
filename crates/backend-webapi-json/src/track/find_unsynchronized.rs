@@ -33,7 +33,7 @@ pub type ResponseBody = Vec<UnsynchronizedTrackEntity>;
 
 pub fn handle_request(
     connection: &SqliteConnection,
-    collection_uid: &_core::EntityUid,
+    collection_uid: &CollectionUid,
     query_params: QueryParams,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {

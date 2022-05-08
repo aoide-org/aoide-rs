@@ -15,12 +15,12 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use crate::prelude::*;
+use crate::{prelude::*, track::EntityUid as TrackUid};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Item {
     /// A reference to the track.
-    pub uid: EntityUid,
+    pub uid: TrackUid,
 }
 
 #[derive(Copy, Clone, Debug)]

@@ -19,7 +19,7 @@ use crate::prelude::*;
 
 use std::fmt;
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct Index {
     pub number: Option<u16>,
     pub total: Option<u16>,
@@ -37,7 +37,7 @@ impl Index {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum IndexInvalidity {
     NumberInvalid,
     TotalInvalid,
@@ -75,14 +75,14 @@ impl fmt::Display for Index {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Indexes {
     pub disc: Index,
     pub track: Index,
     pub movement: Index,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum IndexesInvalidity {
     Disc(IndexInvalidity),
     Track(IndexInvalidity),

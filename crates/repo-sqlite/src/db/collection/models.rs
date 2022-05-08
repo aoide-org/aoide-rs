@@ -18,7 +18,7 @@ use url::Url;
 
 use aoide_core::{
     collection::*,
-    entity::{EntityHeader, EntityRevision},
+    entity::{EntityHeaderTyped, EntityRevision},
     media::content::{ContentPathConfig, ContentPathKind},
     util::{clock::*, color::*, url::BaseUrl},
 };
@@ -98,7 +98,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Entity) {
             },
             media_source_config,
         };
-        let entity = Entity::new(entity_hdr, entity_body);
+        let entity = Entity::new(EntityHeaderTyped::from_untyped(entity_hdr), entity_body);
         Ok((header, entity))
     }
 }
@@ -132,7 +132,7 @@ impl<'a> InsertableRecord<'a> {
     pub fn bind(created_at: DateTime, entity: &'a Entity) -> Self {
         let row_created_updated_ms = created_at.timestamp_millis();
         let (hdr, body) = entity.into();
-        let EntityHeader { uid, rev } = hdr;
+        let EntityHeaderTyped { uid, rev } = hdr;
         let Collection {
             media_source_config:
                 MediaSourceConfig {

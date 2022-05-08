@@ -21,7 +21,6 @@ use std::{
 use url::Url;
 
 use aoide_core::{
-    entity::EntityUid,
     media::content::{
         resolver::{ContentPathResolver as _, VirtualFilePathResolver},
         ContentPath,
@@ -188,7 +187,7 @@ pub struct Params {
 
 pub fn import_and_replace_many_by_local_file_path<Repo>(
     repo: &Repo,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &Params,
     content_paths: impl IntoIterator<Item = ContentPath>,
     expected_content_path_count: Option<usize>,
@@ -253,7 +252,7 @@ const EXPECTED_NUMBER_OF_DIR_ENTRIES: usize = 1024;
 
 pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
     repo: &Repo,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &Params,
     source_dir_path: &str,
     abort_flag: &AtomicBool,

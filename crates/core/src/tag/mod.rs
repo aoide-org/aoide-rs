@@ -115,7 +115,7 @@ impl Default for Score {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum ScoreInvalidity {
     OutOfRange,
 }
@@ -168,7 +168,7 @@ impl Scored for Score {
 
 pub type LabelValue = String;
 
-#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CowLabel<'a>(Cow<'a, str>);
 
 impl<'a> From<CowLabel<'a>> for Label {
@@ -206,7 +206,7 @@ impl Borrow<str> for CowLabel<'_> {
 /// The name of a tag.
 ///
 /// Format: Uniccode string without leading/trailing whitespace
-#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Label(LabelValue);
 
 impl Label {
@@ -236,7 +236,7 @@ impl Label {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum LabelInvalidity {
     Empty,
     Format,
@@ -311,7 +311,7 @@ impl Labeled for Label {
 
 pub type FacetIdValue = String;
 
-#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CowFacetId<'a>(Cow<'a, str>);
 
 impl<'a> From<CowFacetId<'a>> for FacetId {
@@ -367,7 +367,7 @@ impl Borrow<str> for CowFacetId<'_> {
 ///
 /// References:
 ///   - https://en.wikipedia.org/wiki/Faceted_classification
-#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FacetId(FacetIdValue);
 
 /// The alphabet of facet identifiers
@@ -429,7 +429,7 @@ impl CanonicalOrd for FacetId {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum FacetIdInvalidity {
     Empty,
     Format,
@@ -639,7 +639,7 @@ impl CanonicalOrd for PlainTag {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum PlainTagInvalidity {
     Label(LabelInvalidity),
     Score(ScoreInvalidity),
@@ -722,7 +722,7 @@ impl CanonicalOrd for FacetedTags {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum FacetedTagInvalidity {
     FacetId(FacetIdInvalidity),
     Tag(PlainTagInvalidity),
@@ -828,7 +828,7 @@ impl Canonicalize for Tags {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum TagsInvalidity {
     FacetId(FacetIdInvalidity),
     PlainTag(PlainTagInvalidity),

@@ -15,15 +15,21 @@
 
 use diesel::Connection as _;
 
-use aoide_core::{entity::EntityUid, media::content::ContentPath, track::Entity};
+use aoide_core::{
+    media::content::ContentPath,
+    track::{Entity, EntityUid},
+};
+
 use aoide_core_api::{track::find_unsynchronized::UnsynchronizedTrackEntity, Pagination};
+
 use aoide_repo::{
     prelude::{RecordCollector, ReservableRecordCollector},
     track::RecordHeader,
 };
+
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
-use crate::{Error, Result};
+use crate::prelude::*;
 
 #[derive(Debug, Default)]
 pub struct EntityCollector(Vec<Entity>);
@@ -116,7 +122,7 @@ where
 
 pub async fn search(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_core_api::track::search::Params,
     pagination: Pagination,
 ) -> Result<Vec<Entity>> {
@@ -133,7 +139,7 @@ pub async fn search(
 
 pub async fn search_collecting<C>(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_core_api::track::search::Params,
     pagination: Pagination,
     collector: C,
@@ -163,7 +169,7 @@ where
 
 pub async fn find_unsynchronized(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_core_api::track::find_unsynchronized::Params,
     pagination: Pagination,
 ) -> Result<Vec<UnsynchronizedTrackEntity>> {
@@ -186,7 +192,7 @@ pub async fn find_unsynchronized(
 
 pub async fn replace_many_by_media_source_content_path<I>(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_usecases::track::replace::Params,
     validated_track_iter: I,
 ) -> Result<aoide_core_api::track::replace::Summary>
@@ -212,7 +218,7 @@ where
 
 pub async fn import_and_replace_many_by_local_file_path<I>(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_usecases::track::import_and_replace::Params,
     content_path_iter: I,
     expected_content_path_count: Option<usize>,

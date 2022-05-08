@@ -27,7 +27,7 @@ pub enum Color {
     Index(ColorIndex),
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum ColorInvalidity {
     Rgb(RgbColorInvalidity),
 }
@@ -57,7 +57,7 @@ pub type ColorIndex = i16;
 
 pub type RgbColorCode = u32;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct RgbColor(pub RgbColorCode); // 0xRRGGBB
 
 impl RgbColor {
@@ -143,7 +143,7 @@ impl FromStr for RgbColor {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum RgbColorInvalidity {
     CodeOutOfRange,
 }

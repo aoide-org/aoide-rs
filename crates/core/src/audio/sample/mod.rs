@@ -21,7 +21,7 @@ use std::fmt;
 // SampleLayout
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SampleLayout {
     // Samples grouped by channel
     // Example for stereo signal with channels L+R: [LLLL|RRRR]
@@ -54,7 +54,7 @@ impl fmt::Display for SampleLayout {
 
 pub type BitsPerSample = u8;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SampleFormat {
     Float32,
 }
@@ -80,7 +80,7 @@ pub type SamplePositionType = f64;
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct SamplePosition(pub SamplePositionType);
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum SamplePositionInvalidity {
     OutOfRange,
 }
@@ -122,7 +122,7 @@ pub type NumberOfSamples = f64;
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct SampleLength(pub NumberOfSamples);
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum SampleLengthInvalidity {
     OutOfRange,
 }

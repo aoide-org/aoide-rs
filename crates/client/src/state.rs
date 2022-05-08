@@ -17,7 +17,7 @@ use std::ops::{Add, AddAssign};
 
 use crate::{action::Action, message::Message};
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StateMutation {
     Unchanged,
     MaybeChanged,
@@ -41,7 +41,7 @@ impl AddAssign for StateMutation {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StateUpdated<Effect, Task> {
     pub state_mutation: StateMutation,
     pub next_action: Option<Action<Effect, Task>>,

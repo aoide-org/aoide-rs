@@ -43,7 +43,7 @@ use aoide_core::util::clock::DateTime;
 
 pub type RecordId = i64;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RecordHeader<Id> {
     pub id: Id,
     pub created_at: DateTime,
@@ -121,7 +121,7 @@ pub mod prelude {
         }
     }
 
-    #[derive(Clone, Debug, Eq, PartialEq)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub struct StringCount {
         pub value: Option<String>,
         pub total_count: usize,

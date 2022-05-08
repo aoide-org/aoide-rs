@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
-
 use super::*;
 
 mod uc {
@@ -26,7 +24,7 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::Status;
 
 pub fn handle_request(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let params = request_body

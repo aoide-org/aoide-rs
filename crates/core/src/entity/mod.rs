@@ -13,7 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{fmt, marker::PhantomData, mem, str};
+use std::{
+    fmt,
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+    mem,
+    ops::{Deref, DerefMut},
+    str,
+};
 
 use rand::{thread_rng, RngCore};
 use thiserror::Error;
@@ -27,7 +34,7 @@ use crate::{
 // EntityUid
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EntityUid([u8; 24]);
 
 #[derive(Debug, Error)]
@@ -89,7 +96,7 @@ impl EntityUid {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum EntityUidInvalidity {
     Invalid,
 }
@@ -130,6 +137,99 @@ impl std::str::FromStr for EntityUid {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct EntityUidTyped<T: 'static> {
+    untyped: EntityUid,
+    typed_marker: PhantomData<&'static T>,
+}
+
+impl<T> EntityUidTyped<T> {
+    #[must_use]
+    pub const fn from_untyped(untyped: EntityUid) -> Self {
+        Self {
+            untyped,
+            typed_marker: PhantomData,
+        }
+    }
+
+    #[must_use]
+    pub const fn into_untyped(self) -> EntityUid {
+        let Self {
+            untyped,
+            typed_marker: _,
+        } = self;
+        untyped
+    }
+}
+
+impl<T> From<EntityUidTyped<T>> for EntityUid {
+    fn from(from: EntityUidTyped<T>) -> EntityUid {
+        from.into_untyped()
+    }
+}
+
+impl<T> Deref for EntityUidTyped<T> {
+    type Target = EntityUid;
+
+    fn deref(&self) -> &Self::Target {
+        &self.untyped
+    }
+}
+
+impl<T> DerefMut for EntityUidTyped<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.untyped
+    }
+}
+
+impl<T> fmt::Display for EntityUidTyped<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.deref().fmt(f)
+    }
+}
+
+impl<T> std::str::FromStr for EntityUidTyped<T> {
+    type Err = DecodeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        EntityUid::from_str(s).map(Self::from_untyped)
+    }
+}
+
+impl<T> PartialEq for EntityUidTyped<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.deref().eq(&*other)
+    }
+}
+
+impl<T> Eq for EntityUidTyped<T> {}
+
+impl<T> PartialOrd for EntityUidTyped<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.deref().partial_cmp(&*other)
+    }
+}
+
+impl<T> Ord for EntityUidTyped<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.deref().cmp(&*other)
+    }
+}
+
+impl<T> Hash for EntityUidTyped<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.deref().hash(state);
+    }
+}
+
+impl<T> Validate for EntityUidTyped<T> {
+    type Invalidity = EntityUidInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        self.deref().validate()
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // EntityRevision
 ///////////////////////////////////////////////////////////////////////
@@ -137,7 +237,7 @@ impl std::str::FromStr for EntityUid {
 // A 1-based, non-negative, monotone increasing number
 pub type EntityRevisionNumber = u64;
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EntityRevision(EntityRevisionNumber);
 
 impl EntityRevision {
@@ -186,7 +286,7 @@ impl From<EntityRevision> for EntityRevisionNumber {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum EntityRevisionInvalidity {
     OutOfRange,
 }
@@ -212,7 +312,7 @@ impl fmt::Display for EntityRevision {
 // EntityHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct EntityHeader {
     pub uid: EntityUid,
     pub rev: EntityRevision,
@@ -245,7 +345,7 @@ impl EntityHeader {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum EntityHeaderInvalidity {
     Uid(EntityUidInvalidity),
     Revision(EntityRevisionInvalidity),
@@ -262,30 +362,102 @@ impl Validate for EntityHeader {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct EntityHeaderTyped<T: 'static> {
+    pub uid: EntityUidTyped<T>,
+    pub rev: EntityRevision,
+}
+
+impl<T> EntityHeaderTyped<T> {
+    #[must_use]
+    pub const fn from_untyped(untyped: EntityHeader) -> Self {
+        let EntityHeader { uid, rev } = untyped;
+        Self {
+            uid: EntityUidTyped::from_untyped(uid),
+            rev,
+        }
+    }
+
+    #[must_use]
+    pub const fn into_untyped(self) -> EntityHeader {
+        let Self { uid, rev } = self;
+        EntityHeader {
+            uid: uid.into_untyped(),
+            rev,
+        }
+    }
+
+    #[must_use]
+    pub fn initial_random() -> Self {
+        Self::from_untyped(EntityHeader::initial_random())
+    }
+
+    #[must_use]
+    pub fn initial_with_uid<U: Into<EntityUidTyped<T>>>(uid: U) -> Self {
+        Self::from_untyped(EntityHeader::initial_with_uid(uid.into()))
+    }
+
+    #[must_use]
+    pub fn next_rev(self) -> Option<Self> {
+        self.into_untyped().next_rev().map(Self::from_untyped)
+    }
+
+    #[must_use]
+    pub fn prev_rev(self) -> Option<Self> {
+        self.into_untyped().prev_rev().map(Self::from_untyped)
+    }
+}
+
+impl<T> From<EntityHeaderTyped<T>> for EntityHeader {
+    fn from(from: EntityHeaderTyped<T>) -> EntityHeader {
+        from.into_untyped()
+    }
+}
+
+impl<T> Validate for EntityHeaderTyped<T> {
+    type Invalidity = EntityHeaderInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_with(&*self.uid, Self::Invalidity::Uid)
+            .validate_with(&self.rev, Self::Invalidity::Revision)
+            .into()
+    }
+}
+
+impl<T> PartialEq for EntityHeaderTyped<T> {
+    fn eq(&self, other: &Self) -> bool {
+        let Self { uid, rev } = self;
+        uid == &other.uid && rev == &other.rev
+    }
+}
+
+impl<T> Eq for EntityHeaderTyped<T> {}
+
 ///////////////////////////////////////////////////////////////////////
 // Entity
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
-pub struct Entity<T: 'static, B> {
-    pub hdr: EntityHeader,
+#[derive(Debug, Clone, Default)]
+pub struct Entity<T: 'static, B, I: 'static> {
+    pub hdr: EntityHeaderTyped<T>,
     pub body: B,
     // https://doc.rust-lang.org/std/marker/struct.PhantomData.html#ownership-and-the-drop-check
-    phantom: PhantomData<&'static T>,
+    invalidity_marker: PhantomData<&'static I>,
 }
 
-impl<T, B> Entity<T, B> {
+impl<T, B, I> Entity<T, B, I> {
     #[must_use]
-    pub fn new(hdr: impl Into<EntityHeader>, body: impl Into<B>) -> Self {
+    pub fn new(hdr: impl Into<EntityHeaderTyped<T>>, body: impl Into<B>) -> Self {
         Entity {
             hdr: hdr.into(),
             body: body.into(),
-            phantom: PhantomData,
+            invalidity_marker: PhantomData,
         }
     }
 
     pub fn try_new<TryIntoB>(
-        hdr: impl Into<EntityHeader>,
+        hdr: impl Into<EntityHeaderTyped<T>>,
         body: TryIntoB,
     ) -> Result<Self, TryIntoB::Error>
     where
@@ -294,34 +466,45 @@ impl<T, B> Entity<T, B> {
         Ok(Entity {
             hdr: hdr.into(),
             body: body.try_into()?,
-            phantom: PhantomData,
+            invalidity_marker: PhantomData,
         })
     }
 }
 
-impl<T, B> From<Entity<T, B>> for (EntityHeader, B) {
-    fn from(from: Entity<T, B>) -> Self {
+impl<T, B, I> From<Entity<T, B, I>> for (EntityHeaderTyped<T>, B) {
+    fn from(from: Entity<T, B, I>) -> Self {
         let Entity {
             hdr,
             body,
-            phantom: _,
+            invalidity_marker: _,
         } = from;
         (hdr, body)
     }
 }
 
-impl<'a, T, B> From<&'a Entity<T, B>> for (&'a EntityHeader, &'a B) {
-    fn from(from: &'a Entity<T, B>) -> Self {
+impl<'a, T, B, I> From<&'a Entity<T, B, I>> for (&'a EntityHeaderTyped<T>, &'a B) {
+    fn from(from: &'a Entity<T, B, I>) -> Self {
         let Entity {
             hdr,
             body,
-            phantom: _,
+            invalidity_marker: _,
         } = from;
         (hdr, body)
     }
 }
 
-impl<T, B> IsCanonical for Entity<T, B>
+impl<T, B, I> PartialEq for Entity<T, B, I>
+where
+    B: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.hdr == other.hdr && self.body == other.body
+    }
+}
+
+impl<T, B, I> Eq for Entity<T, B, I> where B: Eq {}
+
+impl<T, B, I> IsCanonical for Entity<T, B, I>
 where
     B: IsCanonical,
 {
@@ -330,7 +513,7 @@ where
     }
 }
 
-impl<T, B> Canonicalize for Entity<T, B>
+impl<T, B, I> Canonicalize for Entity<T, B, I>
 where
     B: Canonicalize,
 {
@@ -339,18 +522,18 @@ where
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum EntityInvalidity<T: Invalidity> {
+#[derive(Debug, Clone)]
+pub enum EntityInvalidity<I: Invalidity> {
     Header(EntityHeaderInvalidity),
-    Body(T),
+    Body(I),
 }
 
-impl<T, B> Validate for Entity<T, B>
+impl<T, B, I> Validate for Entity<T, B, I>
 where
-    T: Invalidity,
-    B: Validate<Invalidity = T>,
+    I: Invalidity,
+    B: Validate<Invalidity = I>,
 {
-    type Invalidity = EntityInvalidity<T>;
+    type Invalidity = EntityInvalidity<I>;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()

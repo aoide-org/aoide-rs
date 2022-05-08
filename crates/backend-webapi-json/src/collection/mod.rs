@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
+use aoide_core::collection::EntityUid;
 
 use aoide_repo::{
     collection::RecordHeader,
@@ -27,7 +27,7 @@ use aoide_core_api_json::collection::{export_entity_with_summary, EntityWithSumm
 use super::*;
 
 mod _inner {
-    pub(super) use aoide_core::entity::EntityHeader;
+    pub(super) use aoide_core::collection::EntityHeader;
     pub(super) use aoide_core_api::collection::EntityWithSummary;
 }
 

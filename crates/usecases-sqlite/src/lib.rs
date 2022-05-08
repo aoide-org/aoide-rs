@@ -33,6 +33,8 @@
 use diesel::prelude::*;
 use thiserror::Error;
 
+use aoide_core::collection::EntityUid as CollectionUid;
+
 use aoide_media::Error as MediaError;
 
 use aoide_repo::prelude::RepoError;

@@ -85,7 +85,7 @@ impl<'de> Deserialize<'de> for DateTime {
 // DateYYYYMMDD
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct DateYYYYMMDD(_core::DateYYYYMMDD);
 

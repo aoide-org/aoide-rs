@@ -15,14 +15,15 @@
 
 use diesel::Connection as _;
 
-use aoide_core::{entity::EntityUid, media::content::ContentPath};
+use aoide_core::media::content::ContentPath;
+
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
-use crate::{Error, Result};
+use crate::prelude::*;
 
 pub async fn purge_orphaned(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_core_api::media::source::purge_orphaned::Params,
 ) -> Result<aoide_core_api::media::source::purge_orphaned::Outcome> {
     db_gatekeeper
@@ -43,7 +44,7 @@ pub async fn purge_orphaned(
 
 pub async fn purge_untracked(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_core_api::media::source::purge_untracked::Params,
 ) -> Result<aoide_core_api::media::source::purge_untracked::Outcome> {
     db_gatekeeper
@@ -64,7 +65,7 @@ pub async fn purge_untracked(
 
 pub async fn relocate(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     old_path_prefix: ContentPath,
     new_path_prefix: ContentPath,
 ) -> Result<usize> {

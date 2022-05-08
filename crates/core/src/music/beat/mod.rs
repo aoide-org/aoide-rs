@@ -41,7 +41,7 @@ pub fn is_valid_beat_unit(beat_unit: BeatUnit) -> bool {
 /// Musical time signature
 ///
 /// https://en.wikipedia.org/wiki/Time_signature
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct TimeSignature {
     /// The number of beats in each measure or bar
     ///
@@ -101,7 +101,7 @@ impl TimeSignature {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum TimeSignatureInvalidity {
     BeatsPerMeasure,
     BeatUnit,

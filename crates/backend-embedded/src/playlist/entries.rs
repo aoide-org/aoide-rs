@@ -15,11 +15,11 @@
 
 use diesel::Connection as _;
 
-use aoide_core::entity::EntityHeader;
+use aoide_core::playlist::EntityHeader;
 use aoide_core_api::playlist::EntityWithEntriesSummary;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
-use crate::{Error, Result};
+use crate::prelude::*;
 
 pub async fn patch(
     db_gatekeeper: &Gatekeeper,

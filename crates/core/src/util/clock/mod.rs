@@ -27,7 +27,7 @@ pub type DateTimeInner = OffsetDateTime;
 
 pub type TimestampMillis = i64;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DateTime(DateTimeInner);
 
 const NANOS_PER_MILLISECOND: i128 = 1_000_000;
@@ -150,7 +150,7 @@ pub const YEAR_MAX: YearType = 9999;
 #[allow(clippy::upper_case_acronyms)]
 pub type YYYYMMDD = i32;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct DateYYYYMMDD(YYYYMMDD);
 
@@ -207,7 +207,7 @@ impl DateYYYYMMDD {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum DateYYYYMMDDInvalidity {
     Min,
@@ -307,7 +307,7 @@ impl fmt::Display for DateYYYYMMDD {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DateOrDateTime {
     Date(DateYYYYMMDD),
     DateTime(DateTime),
@@ -353,7 +353,7 @@ impl fmt::Display for DateOrDateTime {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum DateOrDateTimeInvalidity {
     Date(DateYYYYMMDDInvalidity),
 }

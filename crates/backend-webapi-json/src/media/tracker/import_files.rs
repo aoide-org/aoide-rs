@@ -15,10 +15,7 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::{
-    entity::EntityUid,
-    track::tag::{FACET_GENRE, FACET_MOOD},
-};
+use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
 
 use aoide_media::{
     io::import::{ImportTrackConfig, ImportTrackFlags},
@@ -49,7 +46,7 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::import_files::Outco
 )]
 pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     request_body: RequestBody,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,

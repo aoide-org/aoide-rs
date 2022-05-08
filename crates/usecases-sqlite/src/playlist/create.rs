@@ -19,7 +19,7 @@ use super::*;
 
 pub fn create(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     new_playlist: Playlist,
 ) -> Result<Entity> {
     let created_entity = create_entity(new_playlist)?;

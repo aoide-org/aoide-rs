@@ -16,8 +16,7 @@
 use semval::Validate as _;
 
 use aoide_core::{
-    collection::{Collection, Entity},
-    entity::EntityHeader,
+    collection::{Collection, Entity, EntityHeader as CollectionHeader},
     util::clock::DateTime,
 };
 
@@ -39,7 +38,7 @@ pub fn validate_input(collection: Collection) -> InputResult<ValidatedInput> {
 
 pub fn create_entity(new_collection: Collection) -> Result<Entity> {
     let ValidatedInput(collection) = validate_input(new_collection)?;
-    let header = EntityHeader::initial_random();
+    let header = CollectionHeader::initial_random();
     let entity = Entity::new(header, collection);
     Ok(entity)
 }
@@ -50,7 +49,7 @@ pub fn store_created_entity(repo: &impl EntityRepo, entity: &Entity) -> Result<(
     Ok(())
 }
 
-pub fn update_entity(hdr: EntityHeader, modified_collection: Collection) -> Result<Entity> {
+pub fn update_entity(hdr: CollectionHeader, modified_collection: Collection) -> Result<Entity> {
     let ValidatedInput(collection) = validate_input(modified_collection)?;
     let next_hdr = hdr
         .next_rev()

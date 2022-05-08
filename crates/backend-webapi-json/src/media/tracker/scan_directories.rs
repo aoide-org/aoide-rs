@@ -15,8 +15,6 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::entity::EntityUid;
-
 use super::*;
 
 mod uc {
@@ -41,7 +39,7 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::scan_directories::O
 )]
 pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     request_body: RequestBody,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,

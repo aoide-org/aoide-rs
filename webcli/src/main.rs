@@ -40,9 +40,8 @@ use clap::{Arg, ArgMatches, Command};
 use model::{Effect, Task};
 use tokio::signal;
 
-use aoide_core::{
-    collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
-    entity::EntityUid,
+use aoide_core::collection::{
+    Collection, Entity as CollectionEntity, EntityUid as CollectionUid, MediaSourceConfig,
 };
 
 use aoide_core_api::{
@@ -299,7 +298,7 @@ async fn main() -> anyhow::Result<()> {
     let shared_env = Arc::new(Environment::new(websrv_url));
     let (message_tx, message_rx) = message_channel();
 
-    let mut collection_uid: Option<EntityUid> = None;
+    let mut collection_uid: Option<CollectionUid> = None;
     let mut subcommand_submitted = false;
 
     let mut last_media_sources_purge_orphaned_outcome = None;
@@ -859,7 +858,7 @@ async fn main() -> anyhow::Result<()> {
 fn require_active_collection<'s>(
     matches: &ArgMatches,
     state: &'s State,
-    collection_uid: &mut Option<EntityUid>,
+    collection_uid: &mut Option<CollectionUid>,
 ) -> Result<&'s CollectionEntity, Option<Intent>> {
     if let Some(entity) = state.active_collection.active_entity() {
         debug_assert!(!state.is_pending());

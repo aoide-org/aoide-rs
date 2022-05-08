@@ -42,7 +42,7 @@ pub type PaginationOffset = u64;
 
 pub type PaginationLimit = u64;
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Pagination {
     pub limit: Option<PaginationLimit>,
     pub offset: Option<PaginationOffset>,

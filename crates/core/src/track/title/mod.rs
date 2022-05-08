@@ -26,7 +26,7 @@ use crate::{
 // TitleKind
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
 pub enum TitleKind {
     Main = 0,
     Sub = 1,
@@ -46,7 +46,7 @@ impl Default for TitleKind {
 // Title
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Title {
     pub kind: TitleKind,
 
@@ -85,7 +85,7 @@ pub fn is_valid_title_name(name: impl AsRef<str>) -> bool {
     !trimmed.is_empty() && trimmed == name
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum TitleInvalidity {
     Name,
 }
@@ -103,7 +103,7 @@ impl Validate for Title {
 #[derive(Debug)]
 pub struct Titles;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum TitlesInvalidity {
     Title(TitleInvalidity),
     MainTitleMissing,

@@ -16,8 +16,8 @@
 use semval::Validate as _;
 
 use aoide_core::{
-    entity::{EntityHeader, EntityUid},
-    playlist::{Entity, Playlist},
+    collection::EntityUid as CollectionUid,
+    playlist::{Entity, EntityHeader as PlaylistHeader, Playlist},
     util::clock::DateTime,
 };
 
@@ -39,14 +39,14 @@ pub fn validate_input(playlist: Playlist) -> InputResult<ValidatedInput> {
 
 pub fn create_entity(new_playlist: Playlist) -> Result<Entity> {
     let ValidatedInput(playlist) = validate_input(new_playlist)?;
-    let header = EntityHeader::initial_random();
+    let header = PlaylistHeader::initial_random();
     let entity = Entity::new(header, playlist);
     Ok(entity)
 }
 
 pub fn store_created_entity<Repo>(
     repo: &Repo,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     entity: &Entity,
 ) -> RepoResult<()>
 where
@@ -58,7 +58,7 @@ where
     Ok(())
 }
 
-pub fn update_entity(hdr: EntityHeader, modified_playlist: Playlist) -> Result<Entity> {
+pub fn update_entity(hdr: PlaylistHeader, modified_playlist: Playlist) -> Result<Entity> {
     let ValidatedInput(playlist) = validate_input(modified_playlist)?;
     let next_hdr = hdr
         .next_rev()

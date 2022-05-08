@@ -33,7 +33,7 @@ mod uc {
 #[allow(clippy::too_many_arguments)]
 pub fn import_and_replace_many_by_local_file_path(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &uc::Params,
     content_path_iter: impl IntoIterator<Item = ContentPath>,
     expected_content_path_count: impl Into<Option<usize>>,
@@ -53,7 +53,7 @@ pub fn import_and_replace_many_by_local_file_path(
 
 pub fn import_and_replace_by_local_file_path_from_directory(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &uc::Params,
     source_dir_path: &str,
     abort_flag: &AtomicBool,

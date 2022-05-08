@@ -40,7 +40,7 @@ pub type ResponseBody = Vec<EntityWithEntriesSummary>;
 
 pub fn handle_request(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     query_params: QueryParams,
 ) -> Result<ResponseBody> {
     let QueryParams {

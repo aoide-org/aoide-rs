@@ -35,7 +35,7 @@ mod _inner {
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MediaSourceSummary {
     pub total_count: u64,
@@ -61,7 +61,7 @@ impl From<_inner::MediaSourceSummary> for MediaSourceSummary {
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PlaylistSummary {
     pub total_count: u64,
@@ -87,7 +87,7 @@ impl From<_inner::PlaylistSummary> for PlaylistSummary {
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSummary {
     pub total_count: u64,
@@ -113,7 +113,7 @@ impl From<_inner::TrackSummary> for TrackSummary {
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub media_sources: MediaSourceSummary,

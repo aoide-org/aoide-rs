@@ -19,11 +19,10 @@ use aoide_client::{
     models::{collection, media_source, media_tracker},
     state::state_updated,
 };
-use aoide_core::entity::EntityUid;
 
 use crate::model::state::ControlState;
 
-use super::{Action, Effect, ExportTracksParams, State, StateUpdated, Task};
+use super::{Action, CollectionUid, Effect, ExportTracksParams, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Intent {
@@ -40,11 +39,11 @@ pub enum Intent {
     MediaSources(media_source::Intent),
     MediaTracker(media_tracker::Intent),
     FindUnsynchronizedTracks {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::track::find_unsynchronized::Params,
     },
     ExportTracks {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: ExportTracksParams,
     },
 }

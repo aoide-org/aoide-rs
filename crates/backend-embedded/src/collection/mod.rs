@@ -15,21 +15,21 @@
 
 use diesel::Connection as _;
 
-use aoide_core::{
-    collection::{Collection, Entity},
-    entity::{EntityHeader, EntityUid},
-};
+use aoide_core::collection::{Collection, Entity, EntityHeader, EntityUid};
+
 use aoide_core_api::{
     collection::{EntityWithSummary, LoadScope},
     Pagination,
 };
+
 use aoide_repo::{
     collection::{EntityWithSummaryCollector, RecordHeader},
     prelude::ReservableRecordCollector,
 };
+
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
-use crate::{Error, Result};
+use crate::prelude::*;
 
 pub async fn load_all_kinds(db_gatekeeper: &Gatekeeper) -> Result<Vec<String>> {
     db_gatekeeper

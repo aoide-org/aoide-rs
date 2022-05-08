@@ -16,7 +16,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use aoide_core::{
-    entity::EntityUid,
     media::Source as MediaSource,
     track::{Entity, EntityBody, Track},
 };
@@ -114,13 +113,13 @@ where
     Ok(())
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelocatedMediaSource {
     pub old_path: String,
     pub new_path: String,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Progress {
     total: usize,
     relinked: usize,
@@ -165,7 +164,7 @@ impl Progress {
 
 pub fn relink_tracks_with_untracked_media_sources<Repo, ReportProgressFn: FnMut(&Progress)>(
     repo: &Repo,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     mut find_candidate_params: FindCandidateParams,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,

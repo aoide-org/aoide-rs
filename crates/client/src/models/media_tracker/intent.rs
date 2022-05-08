@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
+use crate::prelude::*;
 
 use super::{Action, State, StateUpdated, Task};
 
@@ -21,23 +21,23 @@ use super::{Action, State, StateUpdated, Task};
 pub enum Intent {
     FetchProgress,
     FetchStatus {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::tracker::query_status::Params,
     },
     StartScanDirectories {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::tracker::scan_directories::Params,
     },
     StartImportFiles {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::tracker::import_files::Params,
     },
     StartFindUntrackedFiles {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::tracker::find_untracked_files::Params,
     },
     UntrackDirectories {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::tracker::untrack_directories::Params,
     },
 }

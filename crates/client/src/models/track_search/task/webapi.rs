@@ -13,10 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
 use aoide_core_api_json::track::search::client_request_params;
 
-use crate::webapi::{receive_response_body, ClientEnvironment};
+use crate::{
+    prelude::*,
+    webapi::{receive_response_body, ClientEnvironment},
+};
 
 use super::{
     super::{Effect, FetchResultPageRequest, FetchResultPageResponse},
@@ -40,7 +42,7 @@ impl Task {
 
 async fn fetch_result_page<E: ClientEnvironment>(
     env: &E,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     request: FetchResultPageRequest,
 ) -> anyhow::Result<FetchResultPageResponse> {
     let FetchResultPageRequest {

@@ -40,6 +40,8 @@ use uuid::Uuid;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 
+use aoide_core::collection::EntityUid as CollectionUid;
+
 use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset};
 
 use aoide_core_json::entity::EntityRevision;

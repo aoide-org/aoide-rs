@@ -19,7 +19,7 @@ use crate::prelude::tests::*;
 
 use test_log::test;
 
-use aoide_core::{entity::EntityHeader, media, util::url::BaseUrl};
+use aoide_core::{entity::EntityHeaderTyped, media, util::url::BaseUrl};
 
 struct Fixture {
     db: SqliteConnection,
@@ -33,7 +33,7 @@ impl Fixture {
 }
 
 fn create_collection(repo: &dyn EntityRepo, collection: Collection) -> RepoResult<Entity> {
-    let entity = Entity::new(EntityHeader::initial_random(), collection);
+    let entity = Entity::new(EntityHeaderTyped::initial_random(), collection);
     repo.insert_collection_entity(DateTime::now_utc(), &entity)
         .and(Ok(entity))
 }

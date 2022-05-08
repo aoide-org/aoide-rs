@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, media::content::ContentPath};
+use aoide_core::media::content::ContentPath;
 
 use aoide_core_api::track::replace::Summary;
 
@@ -29,7 +29,7 @@ use crate::collection::vfs::{ContentPathContext, RepoContext};
 
 use super::*;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Params {
     pub mode: ReplaceMode,
 
@@ -46,7 +46,7 @@ pub struct Params {
     pub update_last_synchronized_rev: bool,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Completion {
     Finished,
     Aborted,
@@ -128,7 +128,7 @@ where
 
 pub fn replace_many_by_media_source_content_path<Repo>(
     repo: &Repo,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &Params,
     validated_track_iter: impl IntoIterator<Item = ValidatedInput>,
 ) -> Result<Summary>

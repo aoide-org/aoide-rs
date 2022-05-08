@@ -61,7 +61,7 @@ impl BitrateBps {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum BitrateBpsInvalidity {
     Min(BitrateBps),
     Max(BitrateBps),
@@ -141,7 +141,7 @@ impl SampleRateHz {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum SampleRateHzInvalidity {
     Min(SampleRateHz),
     Max(SampleRateHz),
@@ -188,7 +188,7 @@ impl PcmSignal {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum PcmSignalInvalidity {
     ChannelLayout(ChannelLayoutInvalidity),
     SampleLayout(SampleLayoutInvalidity),
@@ -239,7 +239,7 @@ impl LatencyMs {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum LatencyMsInvalidity {
     OutOfRange,
 }
@@ -284,7 +284,7 @@ impl LoudnessLufs {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum LoudnessLufsInvalidity {
     OutOfRange,
 }

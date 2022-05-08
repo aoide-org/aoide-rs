@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{collection::*, entity::EntityUid};
+use aoide_core::collection::*;
 
 use aoide_repo::{
     collection::{EntityRepo as _, RecordHeader},

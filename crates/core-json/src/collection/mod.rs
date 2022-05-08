@@ -128,6 +128,6 @@ impl TryFrom<Entity> for _core::Entity {
 
 impl From<_core::Entity> for Entity {
     fn from(from: _core::Entity) -> Self {
-        Self(from.hdr.into(), from.body.into())
+        Self(from.hdr.into_untyped().into(), from.body.into())
     }
 }

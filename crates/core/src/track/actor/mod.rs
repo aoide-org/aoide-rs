@@ -26,7 +26,7 @@ use crate::{
 // ActorRole
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
 pub enum ActorRole {
     Artist = 0,
     Arranger = 1,
@@ -53,7 +53,7 @@ impl Default for ActorRole {
 // ActorKind
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
 pub enum ActorKind {
     Summary = 0, // unspecified for display, may mention multiple actors with differing kinds and roles
     Individual = 1, // single persons or group/band names
@@ -70,7 +70,7 @@ impl Default for ActorKind {
 // Actor
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Actor {
     pub role: ActorRole,
 
@@ -133,7 +133,7 @@ pub fn is_valid_summary_individual_actor_name(
     summary_name.contains(individual_name)
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum ActorInvalidity {
     Name,
 }
@@ -151,7 +151,7 @@ impl Validate for Actor {
 #[derive(Debug)]
 pub struct Actors;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum ActorsInvalidity {
     Actor(ActorInvalidity),
     SummaryActorAmbiguous(ActorRole),

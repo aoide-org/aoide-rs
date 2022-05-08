@@ -25,7 +25,7 @@ use crate::{
 };
 
 use aoide_core::{
-    entity::{EntityHeader, EntityRevision, EntityUid},
+    entity::EntityRevision,
     playlist::{track::Item as TrackItem, *},
     util::clock::*,
 };

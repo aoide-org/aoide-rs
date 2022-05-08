@@ -17,7 +17,7 @@ use std::time::Instant;
 
 use crate::util::roundtrip::{PendingToken, Watermark};
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DataSnapshot<T> {
     pub value: T,
     pub since: Instant,

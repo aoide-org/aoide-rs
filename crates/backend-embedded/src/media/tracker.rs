@@ -13,16 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
-use aoide_media::io::import::ImportTrackConfig;
-use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use diesel::Connection as _;
 
-use crate::{Error, Result};
+use aoide_media::io::import::ImportTrackConfig;
+
+use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
+
+use crate::prelude::*;
 
 pub async fn query_status(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_core_api::media::tracker::query_status::Params,
 ) -> Result<aoide_core_api::media::tracker::Status> {
     db_gatekeeper
@@ -43,7 +44,7 @@ pub async fn query_status(
 
 pub async fn scan_directories<P>(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_core_api::media::tracker::scan_directories::Params,
     report_progress_fn: P,
 ) -> Result<aoide_core_api::media::tracker::scan_directories::Outcome>
@@ -71,7 +72,7 @@ where
 
 pub async fn untrack_directories(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_core_api::media::tracker::untrack_directories::Params,
 ) -> Result<aoide_core_api::media::tracker::untrack_directories::Outcome> {
     db_gatekeeper
@@ -92,7 +93,7 @@ pub async fn untrack_directories(
 
 pub async fn import_files<P>(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_core_api::media::tracker::import_files::Params,
     import_config: ImportTrackConfig,
     report_progress_fn: P,
@@ -122,7 +123,7 @@ where
 
 pub async fn find_untracked_files<P>(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: aoide_core_api::media::tracker::find_untracked_files::Params,
     report_progress_fn: P,
 ) -> Result<aoide_core_api::media::tracker::find_untracked_files::Outcome>

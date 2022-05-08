@@ -67,7 +67,7 @@ impl From<Color> for _core::Color {
 // RgbColor
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RgbColor(_core::RgbColor);
 
 #[cfg(feature = "schemars")]

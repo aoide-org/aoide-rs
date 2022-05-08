@@ -15,7 +15,6 @@
 
 use std::time::Instant;
 
-use aoide_core::entity::EntityUid;
 use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::search::*};
 
 use aoide_repo::{
@@ -50,7 +49,7 @@ where
 
 pub fn search_with_params<Repo>(
     repo: &Repo,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: Params,
     pagination: &Pagination,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,

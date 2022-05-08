@@ -21,7 +21,8 @@ use aoide_media::io::import::{
 
 use aoide_repo::collection::RecordId as CollectionId;
 
-use aoide_core::{entity::EntityUid, media::content::ContentPath};
+use aoide_core::media::content::ContentPath;
+
 use uc::collection::vfs::RepoContext;
 
 use super::*;
@@ -32,7 +33,7 @@ pub mod relocate;
 
 pub fn resolve_file_path(
     repo: &RepoConnection<'_>,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     content_path: &ContentPath,
 ) -> Result<(CollectionId, PathBuf)> {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
@@ -51,7 +52,7 @@ pub fn resolve_file_path(
 
 pub fn load_embedded_artwork_image(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     content_path: &ContentPath,
 ) -> Result<(CollectionId, Option<LoadedArtworkImage>)> {
     let mut importer = Importer::new();

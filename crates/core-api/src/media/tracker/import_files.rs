@@ -21,7 +21,7 @@ use crate::{media::SyncMode, track::replace::Summary as TrackReplaceSummary};
 
 use super::Completion;
 
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
     pub sync_mode: Option<SyncMode>,
@@ -33,7 +33,7 @@ pub struct ImportedSourceWithIssues {
     pub messages: Vec<String>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
     pub root_path: ContentPath,

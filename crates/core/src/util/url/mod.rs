@@ -26,7 +26,7 @@ use thiserror::Error;
 pub mod fs;
 
 /// An absolute URL that ends with a trailing path separator
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BaseUrl(Url);
 
 #[derive(Error, Debug)]

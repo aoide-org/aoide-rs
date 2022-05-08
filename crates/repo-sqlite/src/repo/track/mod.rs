@@ -18,13 +18,13 @@ use std::time::Instant;
 use diesel::dsl::count_star;
 
 use aoide_core::{
-    entity::{EntityHeader, EntityUid},
+    entity::EntityHeaderTyped,
     media::{
         content::{ContentLink, ContentRevision},
         Source,
     },
     tag::*,
-    track::{actor::Actor, cue::Cue, title::Title, *},
+    track::{actor::Actor, cue::Cue, title::Title, EntityHeader, EntityUid, *},
     util::{canonical::Canonical, clock::*},
 };
 
@@ -809,7 +809,9 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                                 created_at: DateTime::new_timestamp_millis(row_created_ms),
                                 updated_at: DateTime::new_timestamp_millis(row_updated_ms),
                             };
-                            let entity_header = entity_header_from_sql(&entity_uid, entity_rev);
+                            let entity_header = EntityHeaderTyped::from_untyped(
+                                entity_header_from_sql(&entity_uid, entity_rev),
+                            );
                             let content_link = ContentLink {
                                 path: content_link_path.into(),
                                 rev: content_link_rev.map(ContentRevision::from_signed_value),

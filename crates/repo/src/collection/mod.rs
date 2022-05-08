@@ -13,9 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{collection::*, util::clock::DateTime};
+use aoide_core::{
+    collection::{Entity, EntityHeader, EntityUid},
+    util::clock::DateTime,
+};
 
-use aoide_core_api::collection::*;
+use aoide_core_api::collection::{EntityWithSummary, Summary};
 
 use crate::prelude::*;
 
@@ -24,7 +27,7 @@ record_id_newtype!(RecordId);
 pub type RecordHeader = crate::RecordHeader<RecordId>;
 
 pub trait EntityRepo {
-    entity_repo_trait_common_functions!(RecordId, Entity, Collection);
+    entity_repo_trait_common_functions!(RecordId, Entity, EntityUid, EntityHeader, Collection);
 
     fn insert_collection_entity(
         &self,

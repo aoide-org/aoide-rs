@@ -23,7 +23,7 @@ mod uc {
 
 pub fn purge_orphaned(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Outcome> {
     let repo = RepoConnection::new(connection);

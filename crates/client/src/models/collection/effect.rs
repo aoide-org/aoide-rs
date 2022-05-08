@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
+use aoide_core::collection::{Entity, EntityUid};
 
 use crate::util::roundtrip::PendingToken;
 
@@ -28,10 +28,10 @@ pub enum Effect {
     FetchFilteredEntitiesFinished {
         token: PendingToken,
         filtered_by_kind: Option<String>,
-        result: anyhow::Result<Vec<CollectionEntity>>,
+        result: anyhow::Result<Vec<Entity>>,
     },
-    CreateEntityFinished(anyhow::Result<CollectionEntity>),
-    UpdateEntityFinished(anyhow::Result<CollectionEntity>),
+    CreateEntityFinished(anyhow::Result<Entity>),
+    UpdateEntityFinished(anyhow::Result<Entity>),
     PurgeEntityFinished(anyhow::Result<EntityUid>),
     ErrorOccurred(anyhow::Error),
 }

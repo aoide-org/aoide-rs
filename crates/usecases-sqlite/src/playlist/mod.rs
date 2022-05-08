@@ -13,10 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{
-    entity::{EntityHeader, EntityUid},
-    playlist::*,
-};
+use aoide_core::playlist::*;
 
 use aoide_repo::{
     playlist::{CollectionRepo as _, EntityRepo as _, EntryRepo as _, RecordHeader},

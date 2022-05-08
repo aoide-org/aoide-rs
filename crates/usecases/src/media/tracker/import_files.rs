@@ -19,8 +19,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use aoide_core::entity::EntityUid;
-
 use aoide_core_api::media::tracker::{
     import_files::{ImportedSourceWithIssues, Outcome, Params, Summary},
     Completion,
@@ -58,7 +56,7 @@ pub fn import_files<
     ReportProgressFn: FnMut(ProgressEvent),
 >(
     repo: &Repo,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &Params,
     import_config: ImportTrackConfig,
     report_progress_fn: &mut ReportProgressFn,

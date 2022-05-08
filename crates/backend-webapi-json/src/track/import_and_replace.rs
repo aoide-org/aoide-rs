@@ -32,10 +32,6 @@ mod uc {
     pub(super) use aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path;
 }
 
-mod _inner {
-    pub(super) use aoide_core::entity::EntityUid;
-}
-
 #[derive(Debug, Default, Serialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -149,7 +145,7 @@ pub type ResponseBody = Outcome;
 )]
 pub fn handle_request(
     connection: &SqliteConnection,
-    collection_uid: &_inner::EntityUid,
+    collection_uid: &CollectionUid,
     query_params: QueryParams,
     request_body: RequestBody,
     abort_flag: &AtomicBool,

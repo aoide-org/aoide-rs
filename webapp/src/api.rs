@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use seed::{prelude::*, *};
 
-use aoide_core::{entity::EntityUid, track::Track};
+use aoide_core::{collection::EntityUid as CollectionUid, track::Track};
 
 use aoide_core_api::{
     media::{
@@ -86,8 +86,10 @@ pub(crate) async fn fetch_all_collections() -> Result<CollectionItems> {
         })
 }
 
-pub(crate) async fn fetch_collection_with_summary(uid: EntityUid) -> Result<CollectionItem> {
-    let url = format!("{}/c/{}?summary=true", BASE_URL, &uid);
+pub(crate) async fn fetch_collection_with_summary(
+    collection_uid: CollectionUid,
+) -> Result<CollectionItem> {
+    let url = format!("{BASE_URL}/c/{collection_uid}?summary=true");
     let response = fetch(url).await?;
     let content: CollectionEntityWithSummary = response.check_status()?.json().await?;
     content.try_into()
@@ -97,7 +99,7 @@ pub(crate) async fn fetch_collection_with_summary(uid: EntityUid) -> Result<Coll
 pub(crate) async fn create_collection(
     collection: impl Into<SerdeCollection>,
 ) -> Result<EntityHeader> {
-    let url = format!("{}/c", BASE_URL);
+    let url = format!("{BASE_URL}/c");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&collection.into())?;
@@ -111,7 +113,7 @@ pub(crate) async fn update_collection(
     entity_header: impl Into<SerdeEntityHeader>,
     collection: impl TryInto<SerdeCollection, Error = anyhow::Error>,
 ) -> Result<EntityHeader> {
-    let url = format!("{}/c", BASE_URL);
+    let url = format!("{BASE_URL}/c");
     let entity = SerdeEntity(
         entity_header.into(),
         collection.try_into().map_err(Error::DataShape)?,
@@ -124,7 +126,7 @@ pub(crate) async fn update_collection(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn delete_collection(entity_header: impl Into<SerdeEntityHeader>) -> Result<()> {
-    let url = format!("{}/c", BASE_URL);
+    let url = format!("{BASE_URL}/c");
     let request = Request::new(url)
         .method(Method::Delete)
         .json(&entity_header.into())?;
@@ -136,10 +138,10 @@ pub(crate) async fn delete_collection(entity_header: impl Into<SerdeEntityHeader
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn scan_media_directories(
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: impl Into<SerdeFsTraversalParams>,
 ) -> Result<ScanMediaDirectoriesOutcome> {
-    let url = format!("{}/c/{}/mt/scan-directories", BASE_URL, collection_uid);
+    let url = format!("{BASE_URL}/c/{collection_uid}/mt/scan-directories");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -153,10 +155,10 @@ pub(crate) async fn scan_media_directories(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn import_media_files(
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: impl Into<SerdeImportMediaFilesParams>,
 ) -> Result<ImportMediaFileOutcome> {
-    let url = format!("{}/c/{}/mt/import-files", BASE_URL, collection_uid);
+    let url = format!("{BASE_URL}/c/{collection_uid}/mt/import-files");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -170,10 +172,10 @@ pub(crate) async fn import_media_files(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn untrack_media_directories(
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: impl Into<SerdeUntrackMediaDirectoriesParams>,
 ) -> Result<UntrackMediaDirectoriesOutcome> {
-    let url = format!("{}/c/{}/mt/untrack-directories", BASE_URL, collection_uid);
+    let url = format!("{BASE_URL}/c/{collection_uid}/mt/untrack-directories");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -187,10 +189,10 @@ pub(crate) async fn untrack_media_directories(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn purge_orphaned_media_sources(
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: impl Into<SerdePurgeOrphanedMediaSourcesParams>,
 ) -> Result<PurgeOrphanedMediaSourcesOutcome> {
-    let url = format!("{}/c/{}/ms/purge-orphaned", BASE_URL, collection_uid);
+    let url = format!("{BASE_URL}/c/{collection_uid}/ms/purge-orphaned");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -204,10 +206,10 @@ pub(crate) async fn purge_orphaned_media_sources(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn purge_untracked_media_sources(
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: impl Into<SerdePurgeUntrackedMediaSourcesParams>,
 ) -> Result<PurgeUntrackedMediaSourcesOutcome> {
-    let url = format!("{}/c/{}/ms/purge-untracked", BASE_URL, collection_uid);
+    let url = format!("{BASE_URL}/c/{collection_uid}/ms/purge-untracked");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -221,10 +223,10 @@ pub(crate) async fn purge_untracked_media_sources(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn query_media_tracker_status(
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: impl Into<SerdeQueryMediaTrackerStatusParams>,
 ) -> Result<QueryMediaTrackerStatusOutcome> {
-    let url = format!("{}/c/{}/mt/query-status", BASE_URL, collection_uid);
+    let url = format!("{BASE_URL}/c/{collection_uid}/mt/query-status");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -235,7 +237,7 @@ pub(crate) async fn query_media_tracker_status(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn get_media_tracker_progress() -> Result<MediaTrackerProgress> {
-    let url = format!("{}/mt/progress", BASE_URL);
+    let url = format!("{BASE_URL}/mt/progress");
     let response = fetch(url).await?;
     let content: SerdeMediaTrackerProgress = response.check_status()?.json().await?;
     Ok(content.into())
@@ -243,7 +245,7 @@ pub(crate) async fn get_media_tracker_progress() -> Result<MediaTrackerProgress>
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn storage_abort_current_task() -> Result<()> {
-    let url = format!("{}/storage/abort-current-task", BASE_URL);
+    let url = format!("{BASE_URL}/storage/abort-current-task");
     let request = Request::new(url).method(Method::Post);
     let response = request.fetch().await?.check_status()?;
     let _status_code = response.check_status()?.status().code;
@@ -253,16 +255,14 @@ pub(crate) async fn storage_abort_current_task() -> Result<()> {
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn search_tracks(
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: SearchParams,
     pagination: impl Into<SerdePagination>,
 ) -> Result<Vec<Track>> {
     let (query_params, search_params) =
         aoide_core_api_json::track::search::client_request_params(params, pagination);
     let url = format!(
-        "{}/c/{}/t/search?{}",
-        BASE_URL,
-        collection_uid,
+        "{BASE_URL}/c/{collection_uid}/t/search?{}",
         serde_urlencoded::to_string(query_params)
             .map_err(Into::into)
             .map_err(Error::DataShape)?,

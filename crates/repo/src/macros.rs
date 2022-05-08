@@ -15,7 +15,7 @@
 
 macro_rules! record_id_newtype {
     ($type_name:ident) => {
-        #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+        #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
         pub struct $type_name($crate::RecordId);
 
         impl $type_name {
@@ -45,21 +45,21 @@ macro_rules! record_id_newtype {
 }
 
 macro_rules! entity_repo_trait_common_functions {
-    ($record_id_type:ident, $entity_type:ident, $entity_type_name:ident) => {
+    ($record_id_type:ident, $entity_type:ident, $entity_uid_type:ident, $entity_header_type:ident, $entity_type_name:ident) => {
         paste::paste! {
-            fn [<resolve_ $entity_type_name:lower _id>](&self, uid: &aoide_core::entity::EntityUid) -> $crate::prelude::RepoResult<$record_id_type> {
+            fn [<resolve_ $entity_type_name:lower _id>](&self, uid: &$entity_uid_type) -> $crate::prelude::RepoResult<$record_id_type> {
                 self.[<resolve_ $entity_type_name:lower _entity_revision>](uid)
                     .map(|(hdr, _rev)| hdr.id)
             }
 
             fn [<resolve_ $entity_type_name:lower _entity_revision>](
                 &self,
-                uid: &aoide_core::entity::EntityUid,
+                uid: &$entity_uid_type,
             ) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, aoide_core::entity::EntityRevision)>;
 
             fn [<touch_ $entity_type_name:lower _entity_revision>](
                 &self,
-                entity_header: &aoide_core::entity::EntityHeader,
+                entity_header: &$entity_header_type,
                 updated_at: aoide_core::util::clock::DateTime,
             ) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, aoide_core::entity::EntityRevision)>;
 

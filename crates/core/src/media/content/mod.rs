@@ -35,7 +35,7 @@ use crate::{
 
 pub mod resolver;
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ContentPath(String);
 
 impl ContentPath {
@@ -94,7 +94,7 @@ impl fmt::Display for ContentPath {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum ContentPathKind {
     /// Percent-encoded, canonical URI (case-sensitive)
     Uri = 0,
@@ -115,7 +115,7 @@ pub enum ContentPathKind {
     VirtualFilePath = 3,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ContentPathConfig {
     Uri,
     Url,
@@ -178,7 +178,7 @@ impl From<ContentPathConfig> for (ContentPathKind, Option<BaseUrl>) {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum ContentPathConfigInvalidity {
     RootUrl,
 }
@@ -382,7 +382,7 @@ impl Default for ContentMetadataFlags {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct ContentMetadataFlagsInvalidity;
 
 impl Validate for ContentMetadataFlags {
@@ -425,7 +425,7 @@ pub struct AudioContentMetadata {
     pub encoder: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum AudioContentMetadataInvalidity {
     Duration(DurationMsInvalidity),
     Channels(ChannelsInvalidity),

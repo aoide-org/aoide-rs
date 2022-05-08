@@ -98,7 +98,7 @@ pub type ResponseBody = Summary;
 
 pub fn handle_request(
     connection: &SqliteConnection,
-    collection_uid: &_core::EntityUid,
+    collection_uid: &CollectionUid,
     query_params: QueryParams,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {

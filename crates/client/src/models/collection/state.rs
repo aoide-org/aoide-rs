@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
+use aoide_core::collection::{Entity as CollectionEntity, EntityUid};
 
 use crate::util::{remote::RemoteData, roundtrip::PendingToken};
 

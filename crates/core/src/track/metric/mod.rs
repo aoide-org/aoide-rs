@@ -48,7 +48,7 @@ impl Default for MetricsFlags {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct MetricsFlagsInvalidity;
 
 impl Validate for MetricsFlags {
@@ -79,7 +79,7 @@ pub struct Metrics {
     pub flags: MetricsFlags,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum MetricsInvalidity {
     TempoBpm(TempoBpmInvalidity),
     TimeSignature(TimeSignatureInvalidity),

@@ -15,7 +15,6 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::entity::EntityUid;
 use aoide_core_api::media::tracker::{find_untracked_files::Outcome, FsTraversalParams};
 
 use super::*;
@@ -26,7 +25,7 @@ mod uc {
 
 pub fn visit_directories<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &FsTraversalParams,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,

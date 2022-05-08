@@ -20,7 +20,7 @@ use aoide_core_api::playlist::EntityWithEntriesSummary;
 
 use std::ops::Range;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PatchOperation {
     Append { entries: Vec<Entry> },
     Prepend { entries: Vec<Entry> },

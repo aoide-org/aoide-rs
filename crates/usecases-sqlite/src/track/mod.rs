@@ -13,10 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{
-    entity::{EntityHeader, EntityUid},
-    track::*,
-};
+use aoide_core::track::*;
 
 use aoide_repo::{
     prelude::*,

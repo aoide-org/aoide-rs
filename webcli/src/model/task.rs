@@ -19,11 +19,10 @@ use aoide_client::{
     models::{collection, media_source, media_tracker},
     webapi::{receive_response_body, ClientEnvironment},
 };
-use aoide_core::entity::EntityUid;
 use aoide_core_api::{track::find_unsynchronized::UnsynchronizedTrackEntity, Pagination};
 use aoide_core_api_json::track::search::{client_query_params, client_request_params};
 
-use super::{Effect, ExportTracksParams, Intent};
+use super::{CollectionUid, Effect, ExportTracksParams, Intent};
 
 #[derive(Debug)]
 pub enum Task {
@@ -36,11 +35,11 @@ pub enum Task {
     MediaTracker(media_tracker::Task),
     AbortPendingRequest,
     FindUnsynchronizedTracks {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::track::find_unsynchronized::Params,
     },
     ExportTracks {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: ExportTracksParams,
     },
 }
@@ -111,7 +110,7 @@ async fn abort<E: ClientEnvironment>(env: &E) -> anyhow::Result<()> {
 
 async fn find_unsynchronized_tracks<E: ClientEnvironment>(
     env: &E,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: aoide_core_api::track::find_unsynchronized::Params,
 ) -> anyhow::Result<Vec<UnsynchronizedTrackEntity>> {
     // Explicitly define an offset with no limit to prevent using
@@ -143,7 +142,7 @@ async fn find_unsynchronized_tracks<E: ClientEnvironment>(
 
 async fn export_tracks<E: ClientEnvironment>(
     env: &E,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     search_params: aoide_core_api::track::search::Params,
     output_file_path: &Path,
 ) -> anyhow::Result<()> {

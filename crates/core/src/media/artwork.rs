@@ -19,7 +19,7 @@ use num_derive::{FromPrimitive, ToPrimitive};
 use crate::prelude::*;
 
 /// The APIC picture type code as defined by ID3v2.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, FromPrimitive, ToPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum ApicType {
     Other = 0x00,
     Icon = 0x01,
@@ -59,7 +59,7 @@ impl ImageSize {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum ImageSizeInvalidity {
     Empty,
 }
@@ -100,7 +100,7 @@ pub struct ArtworkImage {
     pub thumbnail: Option<Thumbnail4x4Rgb8>,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum ArtworkImageInvalidity {
     MediaTypeEmpty,
     Size(ImageSizeInvalidity),
@@ -151,7 +151,7 @@ pub enum Artwork {
     Linked(LinkedArtwork),
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum ArtworkInvalidity {
     Image(ArtworkImageInvalidity),
 }

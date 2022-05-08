@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
-
 use aoide_core_api::media::source::purge_untracked::{Outcome, Params, Summary};
 
 use aoide_repo::{
@@ -28,7 +26,7 @@ use super::*;
 
 pub fn purge_untracked<Repo>(
     repo: &Repo,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Outcome>
 where

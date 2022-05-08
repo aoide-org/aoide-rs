@@ -38,30 +38,30 @@ fn is_hidden_dir_entry(dir_entry: &DirEntry) -> bool {
     false
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AfterAncestorFinished {
     Continue,
     Abort,
 }
 
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Progress {
     pub entries: EntriesProgress,
     pub directories: DirectoriesProgress,
 }
 
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct EntriesProgress {
     pub skipped: usize,
     pub finished: usize,
 }
 
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DirectoriesProgress {
     pub finished: usize,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     InProgress,
     Finished,
@@ -69,20 +69,20 @@ pub enum Status {
     Failed,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Completion {
     Finished,
     Aborted,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub completion: Completion,
     pub progress: Progress,
 }
 
 /// A state machine for tracking progress
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgressEvent {
     pub started_at: Instant,
     pub status: Status,

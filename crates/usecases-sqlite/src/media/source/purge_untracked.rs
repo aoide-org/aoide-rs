@@ -13,7 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
 use aoide_core_api::media::source::purge_untracked::{Outcome, Params};
 
 use super::*;
@@ -24,7 +23,7 @@ mod uc {
 
 pub fn purge_untracked(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Outcome> {
     let repo = RepoConnection::new(connection);

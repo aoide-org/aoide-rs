@@ -21,7 +21,10 @@ use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
 #[cfg(feature = "schemars")]
 use schemars::schema_for;
 
-use aoide_core::entity::EntityUid;
+use aoide_core::{
+    collection::EntityUid as CollectionUid, playlist::EntityUid as PlaylistUid,
+    track::EntityUid as TrackUid,
+};
 
 use aoide_storage_sqlite::{
     cleanse_database,
@@ -51,7 +54,9 @@ pub(crate) fn create_filters(
 
     log::info!("Creating API routes");
 
-    let path_param_uid = warp::path::param::<EntityUid>();
+    let path_param_collection_uid = warp::path::param::<CollectionUid>();
+    let path_param_track_uid = warp::path::param::<TrackUid>();
+    let path_param_playlist_uid = warp::path::param::<PlaylistUid>();
 
     let collections_path = warp::path("c");
     let tracks_path = warp::path("t");
@@ -106,7 +111,7 @@ pub(crate) fn create_filters(
 
     let collections_update = warp::put()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(warp::path::end())
         .and(warp::query())
         .and(warp::body::json())
@@ -135,7 +140,7 @@ pub(crate) fn create_filters(
     let collections_update_schema = warp::get()
         .and(schema_put_path)
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(warp::path::end())
         .map(|_uid| {
             let query_schema = schema_for!(api::collection::update::QueryParams);
@@ -151,7 +156,7 @@ pub(crate) fn create_filters(
 
     let collections_delete = warp::delete()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(warp::path::end())
         .and(shared_connection_gatekeeper.clone())
         .and_then(
@@ -198,7 +203,7 @@ pub(crate) fn create_filters(
 
     let collections_load_one = warp::get()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(warp::path::end())
         .and(warp::query())
         .and(shared_connection_gatekeeper.clone())
@@ -224,7 +229,7 @@ pub(crate) fn create_filters(
     let collections_load_one_schema = warp::get()
         .and(schema_get_path)
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(warp::path::end())
         .map(|_uid| {
             let query_schema = schema_for!(api::collection::load_one::QueryParams);
@@ -303,7 +308,7 @@ pub(crate) fn create_filters(
         );
     let media_tracker_post_collection_query_status = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(media_tracker_path)
         .and(warp::path("query-status"))
         .and(warp::path::end())
@@ -329,7 +334,7 @@ pub(crate) fn create_filters(
         );
     let media_tracker_post_collection_scan = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(media_tracker_path)
         .and(warp::path("scan-directories"))
         .and(warp::path::end())
@@ -391,7 +396,7 @@ pub(crate) fn create_filters(
         );
     let media_tracker_post_collection_import = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(media_tracker_path)
         .and(warp::path("import-files"))
         .and(warp::path::end())
@@ -453,7 +458,7 @@ pub(crate) fn create_filters(
         );
     let media_tracker_post_collection_untrack = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(media_tracker_path)
         .and(warp::path("untrack-directories"))
         .and(warp::path::end())
@@ -479,7 +484,7 @@ pub(crate) fn create_filters(
         );
     let media_tracker_post_collection_find_untracked_files = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(media_tracker_path)
         .and(warp::path("find-untracked-files"))
         .and(warp::path::end())
@@ -549,7 +554,7 @@ pub(crate) fn create_filters(
     // TODO: Add OpenAPI docs for all collected media source requests
     let collected_media_sources_relocate = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(media_source_path)
         .and(warp::path("relocate"))
         .and(warp::path::end())
@@ -575,7 +580,7 @@ pub(crate) fn create_filters(
         );
     let collected_media_sources_purge_orphaned = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(media_source_path)
         .and(warp::path("purge-orphaned"))
         .and(warp::path::end())
@@ -601,7 +606,7 @@ pub(crate) fn create_filters(
         );
     let collected_media_sources_purge_untracked = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(media_source_path)
         .and(warp::path("purge-untracked"))
         .and(warp::path::end())
@@ -631,7 +636,7 @@ pub(crate) fn create_filters(
 
     let collected_tracks_resolve = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(tracks_path)
         .and(warp::path("resolve"))
         .and(warp::path::end())
@@ -653,7 +658,7 @@ pub(crate) fn create_filters(
         );
     let collected_tracks_search = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(tracks_path)
         .and(warp::path("search"))
         .and(warp::path::end())
@@ -682,7 +687,7 @@ pub(crate) fn create_filters(
         );
     let collected_tracks_replace = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(tracks_path)
         .and(warp::path("replace"))
         .and(warp::path::end())
@@ -711,7 +716,7 @@ pub(crate) fn create_filters(
         );
     let collected_tracks_import_and_replace = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(tracks_path)
         .and(warp::path("import-and-replace"))
         .and(warp::path::end())
@@ -741,7 +746,7 @@ pub(crate) fn create_filters(
         );
     let collected_tracks_find_unsynchronized = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(tracks_path)
         .and(warp::path("find-unsynchronized"))
         .and(warp::path::end())
@@ -777,7 +782,7 @@ pub(crate) fn create_filters(
     // Tracks
     let tracks_load_one = warp::get()
         .and(tracks_path)
-        .and(path_param_uid)
+        .and(path_param_track_uid)
         .and(warp::path::end())
         .and(shared_connection_gatekeeper.clone())
         .and_then(
@@ -810,7 +815,7 @@ pub(crate) fn create_filters(
         );
     let tracks_export_metadata = warp::post()
         .and(tracks_path)
-        .and(path_param_uid)
+        .and(path_param_track_uid)
         .and(warp::path("export-metadata"))
         .and(warp::path::end())
         .and(warp::query())
@@ -839,7 +844,7 @@ pub(crate) fn create_filters(
 
     let collected_playlists_create = warp::post()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(playlists_path)
         .and(warp::path::end())
         .and(warp::body::json())
@@ -866,7 +871,7 @@ pub(crate) fn create_filters(
         );
     let collected_playlists_list = warp::get()
         .and(collections_path)
-        .and(path_param_uid)
+        .and(path_param_collection_uid)
         .and(playlists_path)
         .and(warp::path::end())
         .and(warp::query())
@@ -893,7 +898,7 @@ pub(crate) fn create_filters(
 
     let playlists_update = warp::put()
         .and(playlists_path)
-        .and(path_param_uid)
+        .and(path_param_playlist_uid)
         .and(warp::path::end())
         .and(warp::query())
         .and(warp::body::json())
@@ -920,7 +925,7 @@ pub(crate) fn create_filters(
         );
     let playlists_delete = warp::delete()
         .and(playlists_path)
-        .and(path_param_uid)
+        .and(path_param_playlist_uid)
         .and(warp::path::end())
         .and(shared_connection_gatekeeper.clone())
         .and_then(
@@ -937,7 +942,7 @@ pub(crate) fn create_filters(
         );
     let playlists_entries_patch = warp::patch()
         .and(playlists_path)
-        .and(path_param_uid)
+        .and(path_param_playlist_uid)
         .and(warp::path("entries"))
         .and(warp::path::end())
         .and(warp::query())

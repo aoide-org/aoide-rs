@@ -16,7 +16,7 @@
 use std::path::PathBuf;
 
 use aoide_core::{
-    entity::EntityUid,
+    collection::EntityUid,
     media::content::{
         resolver::{ContentPathResolver, VirtualFilePathResolver},
         ContentPath, ContentPathKind,
@@ -49,7 +49,7 @@ where
 
 fn resolve_collection_id_for_virtual_file_path<Repo>(
     repo: &Repo,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     override_root_url: Option<BaseUrl>,
 ) -> Result<(RecordId, ContentPathKind, Option<VirtualFilePathResolver>)>
 where

@@ -15,12 +15,12 @@
 
 use aoide_core::util::clock::DateTime;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum FilterModifier {
     Complement,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum StringCompare {
     StartsWith, // head (case-insensitive)
     EndsWith,   // tail (case-insensitive)
@@ -31,7 +31,7 @@ pub enum StringCompare {
 }
 
 /// Predicates for matching strings
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StringPredicateBorrowed<'s> {
     // Case-sensitive comparison
     StartsWith(&'s str),
@@ -49,7 +49,7 @@ pub enum StringPredicateBorrowed<'s> {
 }
 
 /// Predicates for matching strings
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum StringPredicate {
     // Case-sensitive comparison
     StartsWith(String),
@@ -104,13 +104,13 @@ impl<'s> From<StringPredicateBorrowed<'s>> for (StringCompare, &'s str, bool) {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct StringFilterBorrowed<'s> {
     pub modifier: Option<FilterModifier>,
     pub value: Option<StringPredicateBorrowed<'s>>,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct StringFilter {
     pub modifier: Option<FilterModifier>,
     pub value: Option<StringPredicate>,
@@ -127,7 +127,7 @@ impl StringFilter {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ScalarPredicate<V> {
     LessThan(V),
     LessOrEqual(V),

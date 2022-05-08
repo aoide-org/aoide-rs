@@ -37,7 +37,7 @@ use super::*;
 pub mod source;
 pub mod tracker;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SyncModeParams {
     Once {
         synchronized_before: bool,

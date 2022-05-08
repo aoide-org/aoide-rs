@@ -19,7 +19,7 @@ use super::Completion;
 
 pub type Params = super::FsTraversalParams;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
     pub root_path: ContentPath,

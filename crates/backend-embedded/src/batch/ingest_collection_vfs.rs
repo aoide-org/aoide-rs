@@ -15,13 +15,17 @@
 
 use aoide_media::io::import::ImportTrackConfig;
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_core::util::url::BaseUrl;
+
 use aoide_core_api::{
     filtering::StringPredicate,
     media::{tracker::DirTrackingStatus, SyncMode},
     track::find_unsynchronized::UnsynchronizedTrackEntity,
 };
+
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
+
+use crate::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct Params {
@@ -95,7 +99,7 @@ pub enum Progress {
 
 pub async fn ingest_collection_vfs<P>(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     params: Params,
     mut report_progress_fn: P,
 ) -> Result

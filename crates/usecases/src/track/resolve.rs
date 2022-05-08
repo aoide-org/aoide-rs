@@ -15,7 +15,7 @@
 
 use super::*;
 
-use aoide_core::entity::EntityHeader;
+use aoide_core::track::EntityHeader;
 
 use aoide_repo::{collection::RecordId as CollectionId, track::CollectionRepo};
 

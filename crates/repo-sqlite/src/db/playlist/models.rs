@@ -18,7 +18,7 @@ use super::schema::*;
 use crate::prelude::*;
 
 use aoide_core::{
-    entity::{EntityHeader, EntityRevision},
+    entity::{EntityHeaderTyped, EntityRevision},
     playlist::*,
     util::{clock::*, color::*},
 };
@@ -86,7 +86,11 @@ impl From<QueryableRecord> for (RecordHeader, CollectionId, Entity) {
             },
             flags: Flags::from_bits_truncate(flags as u8),
         };
-        (header, collection_id, Entity::new(entity_hdr, entity_body))
+        (
+            header,
+            collection_id,
+            Entity::new(EntityHeaderTyped::from_untyped(entity_hdr), entity_body),
+        )
     }
 }
 
@@ -112,7 +116,7 @@ impl<'a> InsertableRecord<'a> {
     pub fn bind(collection_id: CollectionId, created_at: DateTime, entity: &'a Entity) -> Self {
         let row_created_updated_ms = created_at.timestamp_millis();
         let (hdr, body) = entity.into();
-        let EntityHeader { uid, rev } = hdr;
+        let EntityHeaderTyped { uid, rev } = hdr;
         let Playlist {
             collected_at,
             title,

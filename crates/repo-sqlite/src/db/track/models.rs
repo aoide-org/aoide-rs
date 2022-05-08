@@ -16,13 +16,15 @@
 use num_traits::FromPrimitive as _;
 
 use aoide_core::{
-    entity::{EntityHeader, EntityRevision},
+    entity::{EntityHeaderTyped, EntityRevision},
     music::{
         beat::{BeatUnit, BeatsPerMeasure, TimeSignature},
         key::{KeyCode, KeyCodeValue, KeySignature},
         tempo::{Bpm, TempoBpm},
     },
-    track::{actor::*, album::*, index::*, metric::*, title::*, *},
+    track::{
+        actor::*, album::*, index::*, metric::*, title::*, Entity, EntityBody, EntityHeader, Track,
+    },
     util::{clock::*, color::*},
 };
 
@@ -93,7 +95,11 @@ impl From<QueryableRecord> for (MediaSourceId, RecordHeader, EntityHeader) {
             updated_at: DateTime::new_timestamp_millis(row_updated_ms),
         };
         let entity_header = entity_header_from_sql(&entity_uid, entity_rev);
-        (media_source_id.into(), record_header, entity_header)
+        (
+            media_source_id.into(),
+            record_header,
+            EntityHeaderTyped::from_untyped(entity_header),
+        )
     }
 }
 
@@ -259,7 +265,7 @@ pub(crate) fn load_repo_entity(
         updated_at: header.updated_at,
         last_synchronized_rev,
     };
-    let entity = Entity::new(entity_hdr, entity_body);
+    let entity = Entity::new(EntityHeaderTyped::from_untyped(entity_hdr), entity_body);
     Ok((header, entity))
 }
 
@@ -306,7 +312,7 @@ pub struct InsertableRecord<'a> {
 
 impl<'a> InsertableRecord<'a> {
     pub fn bind(media_source_id: MediaSourceId, entity: &'a Entity) -> Self {
-        let EntityHeader { uid, rev } = &entity.hdr;
+        let EntityHeaderTyped { uid, rev } = &entity.hdr;
         let EntityBody {
             track,
             updated_at,

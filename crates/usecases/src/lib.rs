@@ -30,6 +30,7 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
+use aoide_core::collection::EntityUid as CollectionUid;
 use aoide_media::Error as MediaError;
 use aoide_repo::prelude::*;
 

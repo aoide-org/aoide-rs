@@ -131,7 +131,7 @@ pub struct ImportTrackConfig {
     pub flags: ImportTrackFlags,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewTrackInput {
     pub collected_at: DateTime,
     pub content_rev: Option<ContentRevision>,
@@ -166,7 +166,7 @@ pub trait Reader: Read + Seek + 'static {}
 impl<T> Reader for T where T: Read + Seek + 'static {}
 
 /// Recoverable errors and warnings
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Issues {
     messages: Vec<String>,
 }

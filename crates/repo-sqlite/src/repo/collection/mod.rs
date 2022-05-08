@@ -15,11 +15,7 @@
 
 use diesel::dsl::count_star;
 
-use aoide_core::{
-    collection::*,
-    entity::{EntityHeader, EntityRevision, EntityUid},
-    util::clock::*,
-};
+use aoide_core::{collection::*, entity::EntityRevision, util::clock::*};
 
 use aoide_core_api::collection::{
     EntityWithSummary, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,

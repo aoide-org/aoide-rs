@@ -62,7 +62,7 @@ impl Validate for Item {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Entry {
     /// Time stamp added when this entry is part of the playlist,
     /// i.e. when it has been created and added.
@@ -121,7 +121,7 @@ impl Default for Flags {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct FlagsInvalidity;
 
 impl Validate for Flags {
@@ -134,7 +134,7 @@ impl Validate for Flags {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Playlist {
     /// Playlists always belong to a collection.
     pub collected_at: DateTime,
@@ -188,9 +188,16 @@ impl Validate for Playlist {
     }
 }
 
-pub type Entity = crate::entity::Entity<PlaylistInvalidity, Playlist>;
+#[derive(Debug, Clone, Copy)]
+pub struct EntityType;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+pub type EntityUid = EntityUidTyped<EntityType>;
+
+pub type EntityHeader = EntityHeaderTyped<EntityType>;
+
+pub type Entity = crate::entity::Entity<EntityType, Playlist, PlaylistInvalidity>;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlaylistWithEntries {
     pub playlist: Playlist,
 
@@ -286,13 +293,13 @@ impl Validate for PlaylistWithEntries {
 }
 
 pub type EntityWithEntries =
-    crate::entity::Entity<PlaylistWithEntriesInvalidity, PlaylistWithEntries>;
+    crate::entity::Entity<EntityType, PlaylistWithEntries, PlaylistWithEntriesInvalidity>;
 
 impl From<(Entity, Vec<Entry>)> for EntityWithEntries {
     fn from(from: (Entity, Vec<Entry>)) -> Self {
         let (entity, entries) = from;
         Self::new(
-            entity.hdr,
+            EntityHeaderTyped::from_untyped(entity.hdr.into_untyped()),
             PlaylistWithEntries {
                 playlist: entity.body,
                 entries,
@@ -301,7 +308,7 @@ impl From<(Entity, Vec<Entry>)> for EntityWithEntries {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EntriesSummary {
     pub total_count: usize,
 
@@ -310,7 +317,7 @@ pub struct EntriesSummary {
     pub tracks: TracksSummary,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TracksSummary {
     pub total_count: usize,
 }
@@ -328,7 +335,7 @@ impl PlaylistWithEntries {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlaylistWithEntriesSummary {
     pub playlist: Playlist,
 

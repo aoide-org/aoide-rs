@@ -16,7 +16,7 @@
 pub mod source;
 pub mod tracker;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyncMode {
     /// Only import metadata once, never re-import.
     Once,

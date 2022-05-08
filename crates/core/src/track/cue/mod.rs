@@ -32,7 +32,7 @@ pub type SlotIndex = i16;
 ///
 /// If no behavior is specified then playback continues at the
 /// out position.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, ToPrimitive, FromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ToPrimitive, FromPrimitive)]
 pub enum OutMode {
     /// Continue playback when reaching the out position.
     Cont = 0,
@@ -82,7 +82,7 @@ impl Default for CueFlags {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct CueFlagsInvalidity;
 
 impl Validate for CueFlags {
@@ -173,7 +173,7 @@ impl Canonicalize for Cue {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum CueInvalidity {
     InOrOutMarkerMissing,
     LabelEmpty,

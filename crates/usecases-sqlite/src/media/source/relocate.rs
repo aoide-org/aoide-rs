@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, media::content::ContentPath, util::clock::DateTime};
+use aoide_core::{media::content::ContentPath, util::clock::DateTime};
 
 use aoide_repo::{collection::EntityRepo as _, media::source::CollectionRepo as _};
 
@@ -21,7 +21,7 @@ use super::*;
 
 pub fn relocate(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     old_content_path_prefix: &ContentPath,
     new_content_path_prefix: &ContentPath,
 ) -> Result<usize> {

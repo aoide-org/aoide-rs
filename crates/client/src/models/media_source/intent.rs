@@ -13,18 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
-
-use super::{Action, State, StateUpdated, Task};
+use super::{Action, CollectionUid, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Intent {
     PurgeOrphaned {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::source::purge_orphaned::Params,
     },
     PurgeUntracked {
-        collection_uid: EntityUid,
+        collection_uid: CollectionUid,
         params: aoide_core_api::media::source::purge_untracked::Params,
     },
 }

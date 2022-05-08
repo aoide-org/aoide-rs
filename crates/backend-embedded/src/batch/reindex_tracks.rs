@@ -21,16 +21,19 @@ use tantivy::{
     IndexWriter,
 };
 
-use aoide_core::{entity::EntityUid, util::clock::DateTime};
+use aoide_core::util::clock::DateTime;
+
 use aoide_core_api::{
     sorting::SortDirection,
     track::search::{SortField, SortOrder},
     Pagination,
 };
+
 use aoide_index_tantivy::TrackFields;
+
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
-use crate::track::EntityCollector;
+use crate::{prelude::*, track::EntityCollector};
 
 #[derive(Debug, Clone)]
 pub enum IndexingMode {
@@ -55,7 +58,7 @@ pub async fn reindex_tracks(
     track_fields: TrackFields,
     mut index_writer: IndexWriter,
     db_gatekeeper: Arc<Gatekeeper>,
-    collection_uid: EntityUid,
+    collection_uid: CollectionUid,
     batch_size: NonZeroU64,
     mode: Option<IndexingMode>,
     mut progress_fn: impl FnMut(u64) + Send + 'static,
