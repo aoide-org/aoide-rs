@@ -232,7 +232,8 @@ impl From<Entity> for _core::Entity {
 
 impl From<_core::Entity> for Entity {
     fn from(from: _core::Entity) -> Self {
-        Self(from.hdr.into_untyped().into(), from.body.into())
+        let (hdr, body) = from.into();
+        Self(hdr.into_untyped().into(), body.into())
     }
 }
 
@@ -246,7 +247,8 @@ impl From<EntityWithEntries> for _core::EntityWithEntries {
 
 impl From<_core::EntityWithEntries> for EntityWithEntries {
     fn from(from: _core::EntityWithEntries) -> Self {
-        Self(from.hdr.into_untyped().into(), from.body.into())
+        let (hdr, body) = from.into();
+        Self(hdr.into_untyped().into(), body.into())
     }
 }
 

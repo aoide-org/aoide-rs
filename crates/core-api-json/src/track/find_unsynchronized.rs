@@ -81,6 +81,7 @@ impl From<UnsynchronizedTrackEntity> for _inner::UnsynchronizedTrackEntity {
 #[cfg(feature = "backend")]
 impl From<_inner::UnsynchronizedTrackEntity> for UnsynchronizedTrackEntity {
     fn from(from: _inner::UnsynchronizedTrackEntity) -> Self {
-        Self(from.hdr.into(), from.body.into())
+        let (hdr, body) = from.into();
+        Self(hdr.into(), body.into())
     }
 }

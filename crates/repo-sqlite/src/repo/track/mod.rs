@@ -595,6 +595,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
             let entity_hdr = entity
+                .raw
                 .hdr
                 .next_rev()
                 .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
@@ -608,7 +609,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 }
             } else {
                 // Keep the current synchronized revision
-                entity.body.last_synchronized_rev
+                entity.raw.body.last_synchronized_rev
             };
             let entity_body = EntityBody {
                 track,

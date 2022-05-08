@@ -188,7 +188,7 @@ impl Validate for Playlist {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct EntityType;
 
 pub type EntityUid = EntityUidTyped<EntityType>;
@@ -298,10 +298,11 @@ pub type EntityWithEntries =
 impl From<(Entity, Vec<Entry>)> for EntityWithEntries {
     fn from(from: (Entity, Vec<Entry>)) -> Self {
         let (entity, entries) = from;
+        let (hdr, body) = entity.into();
         Self::new(
-            EntityHeaderTyped::from_untyped(entity.hdr.into_untyped()),
+            EntityHeaderTyped::from_untyped(hdr.into_untyped()),
             PlaylistWithEntries {
-                playlist: entity.body,
+                playlist: body,
                 entries,
             },
         )

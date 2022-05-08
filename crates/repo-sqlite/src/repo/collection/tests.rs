@@ -103,7 +103,13 @@ fn update_collection() -> TestResult<()> {
     assert_eq!(entity, db.load_collection_entity(id)?.1);
 
     // Revision bumped twice -> Conflict
-    updated_entity.hdr = updated_entity.hdr.next_rev().unwrap().next_rev().unwrap();
+    updated_entity.raw.hdr = updated_entity
+        .raw
+        .hdr
+        .next_rev()
+        .unwrap()
+        .next_rev()
+        .unwrap();
     assert!(matches!(
         db.update_collection_entity_revision(DateTime::now_utc(), &updated_entity),
         Err(RepoError::Conflict),
@@ -112,7 +118,7 @@ fn update_collection() -> TestResult<()> {
     assert_eq!(entity, db.load_collection_entity(id)?.1);
 
     // Revision bumped once -> Success
-    updated_entity.hdr = updated_entity.hdr.prev_rev().unwrap();
+    updated_entity.raw.hdr = updated_entity.raw.hdr.prev_rev().unwrap();
     db.update_collection_entity_revision(DateTime::now_local_or_utc(), &updated_entity)?;
     // Updated
     assert_eq!(updated_entity, db.load_collection_entity(id)?.1);

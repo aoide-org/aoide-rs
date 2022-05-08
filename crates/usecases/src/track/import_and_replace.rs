@@ -74,7 +74,7 @@ where
                     debug_assert!(rev <= entity.hdr.rev);
                     rev == entity.hdr.rev
                 }),
-                Some(entity.body),
+                Some(entity.raw.body),
             )
         })
         .unwrap_or((None, None, None, None));

@@ -37,7 +37,7 @@ where
     Repo: EntityRepo,
 {
     let (_, entity) = repo.load_collection_entity(collection_id)?;
-    let (path_kind, root_url) = entity.body.media_source_config.content_path.into();
+    let (path_kind, root_url) = entity.raw.body.media_source_config.content_path.into();
     let root_url = if let Some(root_url) = root_url {
         root_url
     } else {

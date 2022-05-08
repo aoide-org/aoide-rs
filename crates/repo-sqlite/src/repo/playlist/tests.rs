@@ -99,7 +99,7 @@ impl Fixture {
             };
             let track_entity = TrackEntity::new(EntityHeaderTyped::initial_random(), entity_body);
             let track_id = db.insert_track_entity(media_source_id, &track_entity)?;
-            created.push((media_source_id, track_id, track_entity.hdr.uid));
+            created.push((media_source_id, track_id, track_entity.raw.hdr.uid));
         }
         Ok(created)
     }

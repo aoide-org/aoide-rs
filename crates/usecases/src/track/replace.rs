@@ -107,7 +107,7 @@ where
             log::trace!("Unchanged: {:?}", entity);
             summary
                 .unchanged
-                .push(entity.body.track.media_source.content_link.path);
+                .push(entity.raw.body.track.media_source.content_link.path);
             media_source_id
         }
         ReplaceOutcome::NotCreated(track) => {

@@ -137,7 +137,6 @@ impl std::str::FromStr for EntityUid {
     }
 }
 
-#[derive(Clone, Debug, Default)]
 pub struct EntityUidTyped<T: 'static> {
     untyped: EntityUid,
     typed_marker: PhantomData<&'static T>,
@@ -193,6 +192,30 @@ impl<T> std::str::FromStr for EntityUidTyped<T> {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         EntityUid::from_str(s).map(Self::from_untyped)
+    }
+}
+
+impl<T> Default for EntityUidTyped<T> {
+    fn default() -> Self {
+        Self {
+            untyped: Default::default(),
+            typed_marker: PhantomData,
+        }
+    }
+}
+
+impl<T> fmt::Debug for EntityUidTyped<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.deref().fmt(f)
+    }
+}
+
+impl<T> Clone for EntityUidTyped<T> {
+    fn clone(&self) -> Self {
+        Self {
+            untyped: self.untyped.clone(),
+            typed_marker: PhantomData,
+        }
     }
 }
 
@@ -362,7 +385,7 @@ impl Validate for EntityHeader {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct EntityHeaderTyped<T: 'static> {
     pub uid: EntityUidTyped<T>,
     pub rev: EntityRevision,
@@ -425,23 +448,73 @@ impl<T> Validate for EntityHeaderTyped<T> {
     }
 }
 
-impl<T> PartialEq for EntityHeaderTyped<T> {
-    fn eq(&self, other: &Self) -> bool {
-        let Self { uid, rev } = self;
-        uid == &other.uid && rev == &other.rev
-    }
-}
-
-impl<T> Eq for EntityHeaderTyped<T> {}
-
 ///////////////////////////////////////////////////////////////////////
 // Entity
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Clone, Default)]
-pub struct Entity<T: 'static, B, I: 'static> {
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct RawEntity<T: 'static, B> {
     pub hdr: EntityHeaderTyped<T>,
     pub body: B,
+}
+
+impl<T, B> RawEntity<T, B> {
+    #[must_use]
+    pub fn new(hdr: impl Into<EntityHeaderTyped<T>>, body: impl Into<B>) -> Self {
+        Self {
+            hdr: hdr.into(),
+            body: body.into(),
+        }
+    }
+
+    pub fn try_new<TryIntoB>(
+        hdr: impl Into<EntityHeaderTyped<T>>,
+        body: TryIntoB,
+    ) -> Result<Self, TryIntoB::Error>
+    where
+        TryIntoB: TryInto<B>,
+    {
+        Ok(Self {
+            hdr: hdr.into(),
+            body: body.try_into()?,
+        })
+    }
+}
+
+impl<T, B> From<RawEntity<T, B>> for (EntityHeaderTyped<T>, B) {
+    fn from(from: RawEntity<T, B>) -> Self {
+        let RawEntity { hdr, body } = from;
+        (hdr, body)
+    }
+}
+
+impl<'a, T, B> From<&'a RawEntity<T, B>> for (&'a EntityHeaderTyped<T>, &'a B) {
+    fn from(from: &'a RawEntity<T, B>) -> Self {
+        let RawEntity { hdr, body } = from;
+        (hdr, body)
+    }
+}
+
+impl<T, B> IsCanonical for RawEntity<T, B>
+where
+    B: IsCanonical,
+{
+    fn is_canonical(&self) -> bool {
+        self.body.is_canonical()
+    }
+}
+
+impl<T, B> Canonicalize for RawEntity<T, B>
+where
+    B: Canonicalize,
+{
+    fn canonicalize(&mut self) {
+        self.body.canonicalize();
+    }
+}
+
+pub struct Entity<T: 'static, B, I: 'static> {
+    pub raw: RawEntity<T, B>,
     // https://doc.rust-lang.org/std/marker/struct.PhantomData.html#ownership-and-the-drop-check
     invalidity_marker: PhantomData<&'static I>,
 }
@@ -449,9 +522,8 @@ pub struct Entity<T: 'static, B, I: 'static> {
 impl<T, B, I> Entity<T, B, I> {
     #[must_use]
     pub fn new(hdr: impl Into<EntityHeaderTyped<T>>, body: impl Into<B>) -> Self {
-        Entity {
-            hdr: hdr.into(),
-            body: body.into(),
+        Self {
+            raw: RawEntity::new(hdr, body),
             invalidity_marker: PhantomData,
         }
     }
@@ -463,9 +535,8 @@ impl<T, B, I> Entity<T, B, I> {
     where
         TryIntoB: TryInto<B>,
     {
-        Ok(Entity {
-            hdr: hdr.into(),
-            body: body.try_into()?,
+        Ok(Self {
+            raw: RawEntity::try_new(hdr, body)?,
             invalidity_marker: PhantomData,
         })
     }
@@ -474,42 +545,100 @@ impl<T, B, I> Entity<T, B, I> {
 impl<T, B, I> From<Entity<T, B, I>> for (EntityHeaderTyped<T>, B) {
     fn from(from: Entity<T, B, I>) -> Self {
         let Entity {
-            hdr,
-            body,
+            raw,
             invalidity_marker: _,
         } = from;
-        (hdr, body)
+        raw.into()
     }
 }
 
 impl<'a, T, B, I> From<&'a Entity<T, B, I>> for (&'a EntityHeaderTyped<T>, &'a B) {
     fn from(from: &'a Entity<T, B, I>) -> Self {
-        let Entity {
-            hdr,
-            body,
+        from.deref().into()
+    }
+}
+
+impl<T, B, I> Deref for Entity<T, B, I> {
+    type Target = RawEntity<T, B>;
+
+    fn deref(&self) -> &Self::Target {
+        let Self {
+            raw,
             invalidity_marker: _,
-        } = from;
-        (hdr, body)
+        } = self;
+        raw
+    }
+}
+
+impl<T, B, I> DerefMut for Entity<T, B, I> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        let Self {
+            raw,
+            invalidity_marker: _,
+        } = self;
+        raw
+    }
+}
+
+impl<T, B, I> Default for Entity<T, B, I>
+where
+    T: Default,
+    B: Default,
+{
+    fn default() -> Self {
+        Self {
+            raw: Default::default(),
+            invalidity_marker: PhantomData,
+        }
+    }
+}
+
+impl<T, B, I> fmt::Debug for Entity<T, B, I>
+where
+    T: fmt::Debug,
+    B: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.deref().fmt(f)
+    }
+}
+
+impl<T, B, I> Clone for Entity<T, B, I>
+where
+    T: Clone,
+    B: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            raw: self.deref().clone(),
+            invalidity_marker: PhantomData,
+        }
     }
 }
 
 impl<T, B, I> PartialEq for Entity<T, B, I>
 where
+    T: PartialEq,
     B: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        self.hdr == other.hdr && self.body == other.body
+        self.deref().eq(&*other)
     }
 }
 
-impl<T, B, I> Eq for Entity<T, B, I> where B: Eq {}
+impl<T, B, I> Eq for Entity<T, B, I>
+where
+    T: Eq,
+    B: Eq,
+{
+}
 
 impl<T, B, I> IsCanonical for Entity<T, B, I>
 where
     B: IsCanonical,
 {
     fn is_canonical(&self) -> bool {
-        self.body.is_canonical()
+        self.deref().is_canonical()
     }
 }
 
@@ -518,7 +647,7 @@ where
     B: Canonicalize,
 {
     fn canonicalize(&mut self) {
-        self.body.canonicalize();
+        self.deref_mut().canonicalize();
     }
 }
 

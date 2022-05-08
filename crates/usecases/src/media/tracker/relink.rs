@@ -66,9 +66,9 @@ where
         media_source: MediaSource {
             // Preserve the collected_at field from the old source
             collected_at: old_entity.body.track.media_source.collected_at,
-            ..new_entity.body.track.media_source
+            ..new_entity.raw.body.track.media_source
         },
-        ..new_entity.body.track
+        ..new_entity.raw.body.track
     };
     // Relink the sources in the media tracker
     repo.purge_media_source(new_source_id)?;
@@ -98,7 +98,7 @@ where
                     .1
             );
         }
-        let updated_entity = Entity::new(old_entity.hdr, updated_entity_body);
+        let updated_entity = Entity::new(old_entity.raw.hdr, updated_entity_body);
         repo.update_track_entity(old_header.id, old_source_id, &updated_entity)?;
         debug_assert_eq!(
             updated_entity.body,
@@ -206,7 +206,7 @@ where
             repo,
             collection_id,
             old_header.id,
-            old_entity.body.track,
+            old_entity.raw.body.track,
             &find_candidate_params,
         )?;
         let new_content_link_path = match candidates.len() {
@@ -217,7 +217,7 @@ where
             }
             1 => candidates
                 .into_iter()
-                .map(|(_, entity)| entity.body.track.media_source.content_link.path)
+                .map(|(_, entity)| entity.raw.body.track.media_source.content_link.path)
                 .next()
                 .expect("single URI"),
             _ => {
