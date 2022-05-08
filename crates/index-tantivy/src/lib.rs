@@ -53,7 +53,7 @@ use aoide_core::{
             FACET_GENRE, FACET_INSTRUMENTALNESS, FACET_LIVENESS, FACET_MOOD, FACET_POPULARITY,
             FACET_SPEECHINESS, FACET_VALENCE,
         },
-        PlayCounter,
+        EntityUid as TrackUid, PlayCounter,
     },
     util::clock::{DateTime, DateYYYYMMDD},
 };
@@ -262,10 +262,11 @@ impl TrackFields {
     }
 
     #[must_use]
-    pub fn read_uid(&self, doc: &Document) -> Option<EntityUid> {
+    pub fn read_uid(&self, doc: &Document) -> Option<TrackUid> {
         doc.get_first(self.uid)
             .and_then(|val| val.as_bytes())
             .map(EntityUid::from_slice)
+            .map(TrackUid::from_untyped)
     }
 
     #[must_use]
@@ -278,7 +279,7 @@ impl TrackFields {
     pub fn find_rev_by_uid(
         &self,
         searcher: &Searcher,
-        uid: &EntityUid,
+        uid: &TrackUid,
     ) -> tantivy::Result<Option<EntityRevision>> {
         let query = self.uid_query(uid);
         // Search for 2 documents
