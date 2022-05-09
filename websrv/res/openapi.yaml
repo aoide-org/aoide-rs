@@ -3,6 +3,8 @@ info:
   version: 0.8.0
   title: aoide
   description: Music library management
+  contact:
+    url: https://gitlab.com/uklotzde/aoide-rs
   license:
     name: AGPL-3.0-or-later
     url: 'https://www.gnu.org/licenses/agpl-3.0.html'
@@ -10,16 +12,16 @@ servers:
   - url: 'http://[::1]:8080'
     description: Local development server
 tags:
-  - name: Collections
+  - name: 'Collections'
   - name: 'Collections: Media Sources'
   - name: 'Collections: Media Tracker'
   - name: 'Collections: Playlists'
   - name: 'Collections: Tracks'
-  - name: Media Tracker
-  - name: Tracks
-  - name: Playlists
-  - name: Storage
-  - name: Administration
+  - name: 'Media Tracker'
+  - name: 'Tracks'
+  - name: 'Playlists'
+  - name: 'Storage'
+  - name: 'Administration'
 paths:
   /api/c:
     get:
@@ -198,8 +200,8 @@ paths:
                 type: array
                 items:
                   type: array
-                  minLength: 2
-                  maxLength: 2
+                  minItems: 2
+                  maxItems: 2
                   items:
                     oneOf:
                       - $ref: '#/components/schemas/PercentEncodedUri'
@@ -412,6 +414,7 @@ paths:
     post:
       summary: Query the aggregated status of tracked directories
       description: |
+        Fetches the aggregated status of tracked directories from the database.
       tags:
         - 'Collections: Media Tracker'
       parameters:
@@ -736,7 +739,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaylistEntity'
+                $ref: '#/components/schemas/PlaylistWithEntriesEntity'
         '404':
           $ref: '#/components/responses/404NotFound'
         '500':
@@ -902,6 +905,8 @@ paths:
   /about:
     get:
       summary: Report service properties
+      description: |
+        Inspect the service environment.
       tags:
         - Administration
       responses:
@@ -1003,6 +1008,8 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/ReplaceCollectedTrackMode'
+      description: |
+        Controls if track entities are created and/or updated.
     resolveMediaContentPathFromUrlQuery:
       name: resolvePathFromUrl
       description: |
@@ -1265,13 +1272,14 @@ components:
       description: |
         A number for counting beats in a measure.
     BeatsPerMeasure:
+      allOf:
+        - $ref: '#/components/schemas/BeatNumber'
+      example: 3
       description: |
         The number of beats in each measure.
 
         This number appears as the nominator/upper value in the
         stacked notation for time signature.
-      allOf:
-        - $ref: '#/components/schemas/BeatNumber'
     BeatUnit:
       type: integer
       minimum: 0
@@ -1332,8 +1340,8 @@ components:
       description: |
         Entity header and body
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
@@ -1385,8 +1393,8 @@ components:
       description: |
         Entity header and body
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
@@ -1595,8 +1603,8 @@ components:
       description: |
         Width and height of an image in pixels
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         type: integer
         minimum: 1
@@ -1784,7 +1792,7 @@ components:
     MediaType:
       type: string
       minLength: 1
-      example:
+      example: audio/mpeg
       description: |
         A MIME media type string according to RFC 6838.
 
@@ -1845,8 +1853,8 @@ components:
         - releasedOrigAt
     DateTimeFieldFilter:
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/DateTimeField'
@@ -1917,8 +1925,8 @@ components:
         - trackTotal
     NumericFieldFilter:
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/NumericField'
@@ -1977,8 +1985,8 @@ components:
           format: double
     PhraseFieldFilter:
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - type: array
@@ -2009,8 +2017,8 @@ components:
         - $ref: '#/components/schemas/TagLabel'
         - $ref: '#/components/schemas/TagScore'
         - type: array
-          minLength: 2
-          maxLength: 2
+          minItems: 2
+          maxItems: 2
           items:
             oneOf:
               - $ref: '#/components/schemas/TagLabel'
@@ -2040,8 +2048,8 @@ components:
     PlaylistEntity:
       description: Entity header and body
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
@@ -2151,8 +2159,8 @@ components:
             Minimum (lower bound) and maximum (upper bound) `addedAt`
             time stamp of all playlist entries
           type: array
-          minLength: 2
-          maxLength: 2
+          minItems: 2
+          maxItems: 2
           items:
             $ref: '#/components/schemas/PlaylistEntryAddedAt'
         totalCount:
@@ -2295,8 +2303,8 @@ components:
     PlaylistWithEntriesEntity:
       description: Entity header and body
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
@@ -2304,8 +2312,8 @@ components:
     PlaylistWithEntriesSummaryEntity:
       description: Entity header and body
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
@@ -2863,8 +2871,7 @@ components:
         - completion
         - summary
     ExportTrackMetadataResponseBody:
-      description:
-        A boolean value indicating if the file has been modified.
+      description: A boolean value indicating if the file has been modified.
       allOf:
         - type: boolean
     FindUnsynchronizedTracksRequestBody:
@@ -2880,8 +2887,8 @@ components:
       description: |
         Entity header followed by entity body
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
@@ -3129,10 +3136,14 @@ components:
     TimeSignatureTop:
       allOf:
         - $ref: '#/components/schemas/BeatsPerMeasure'
+      example: 4
+      description: |
+        Simplified time signature with only the beats per measure and
+        unknown beat unit.
     TimeSignatureTopBottom:
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/BeatsPerMeasure'
@@ -3148,6 +3159,7 @@ components:
         A time stamp.
 
         Values are truncated to millisecond precision.
+      example: '2019-10-12T07:20:50.52Z'
     Title:
       oneOf:
         - $ref: '#/components/schemas/TitleName'
@@ -3198,8 +3210,8 @@ components:
       description: |
         Entity header followed by entity body
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
@@ -3396,8 +3408,8 @@ components:
         - updatedAt
     TrackSortOrder:
       type: array
-      minLength: 2
-      maxLength: 2
+      minItems: 2
+      maxItems: 2
       items:
         oneOf:
           - $ref: '#/components/schemas/TrackSortField'

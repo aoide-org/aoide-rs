@@ -1,0 +1,10 @@
+# Configuration file for https://stoplight.io/open-source/spectral
+
+extends: [[spectral:oas, all]]
+rules:
+  contact-properties: false
+  tag-description: false
+  openapi-tags-alphabetical: false
+  operation-operationId: false
+  operation-singular-tag: true
+  operation-default-response: false
