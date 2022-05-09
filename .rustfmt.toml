@@ -1,16 +1,15 @@
 # Only add deviations from the default settings!
 
-# Use a single edition only (should match Cargo.toml)
+# Consistently use a single edition for all workspace crates, should match Cargo.toml
 edition = "2021"
 
-# Prevent carriage returns
-newline_style = "Unix"
-
 use_field_init_shorthand = true
+use_try_shorthand = true
 
 # TODO: Enable when available on the stable channel
 #format_strings = true
 #imports_granularity = "Crate"
+#group_imports = "StdExternalCrate"
 
 # Treat code in doc comments as regular code
 # TODO: Enable when available on the stable channel and still not the default!
