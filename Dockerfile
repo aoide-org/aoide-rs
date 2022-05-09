@@ -148,9 +148,6 @@ COPY [ \
     "crates/core/Cargo.toml", \
     "./crates/core/" ]
 COPY [ \
-    "crates/core/benches", \
-    "./crates/core/benches/" ]
-COPY [ \
     "crates/core-json/Cargo.toml", \
     "./crates/core-json/" ]
 COPY [ \
