@@ -18,7 +18,7 @@ use num_derive::{FromPrimitive, ToPrimitive};
 
 use crate::prelude::*;
 
-/// The APIC picture type code as defined by ID3v2.
+/// The `APIC` picture type code as defined by `ID3v2`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum ApicType {
     Other = 0x00,

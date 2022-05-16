@@ -40,7 +40,7 @@ pub fn patch(
 ) -> Result<(RecordHeader, EntityWithEntriesSummary)> {
     let updated_at = DateTime::now_utc();
     let repo = RepoConnection::new(connection);
-    let (record_header, _next_rev) =
+    let (record_header, next_rev) =
         repo.touch_playlist_entity_revision(entity_header, updated_at)?;
     for operation in operations {
         use PatchOperation::*;
@@ -94,7 +94,7 @@ pub fn patch(
     }
     let (record_header, entity, entries) =
         repo.load_playlist_entity_with_entries_summary(record_header.id)?;
-    debug_assert_eq!(_next_rev, entity.hdr.rev);
+    debug_assert_eq!(next_rev, entity.hdr.rev);
     let entity_with_entries_summary = EntityWithEntriesSummary { entity, entries };
     Ok((record_header, entity_with_entries_summary))
 }

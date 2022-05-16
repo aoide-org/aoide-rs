@@ -48,7 +48,7 @@ fn actors() {
         },
     ];
 
-    assert!(Actors::validate(actors.iter()).is_ok());
+    assert!(Actors::validate(&actors.iter()).is_ok());
 
     // Artist(s)
     assert_eq!(
@@ -111,7 +111,7 @@ fn actors() {
 #[test]
 fn validate_empty_actors() {
     let actors = [];
-    assert!(Actors::validate(actors.iter()).is_ok());
+    assert!(Actors::validate(&actors.iter()).is_ok());
 }
 
 #[test]

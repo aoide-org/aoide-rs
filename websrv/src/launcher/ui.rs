@@ -354,11 +354,11 @@ impl App {
 }
 
 fn is_existing_directory(path: &Path) -> bool {
-    path.canonicalize().map(|p| p.is_dir()).unwrap_or(false)
+    path.canonicalize().map_or(false, |p| p.is_dir())
 }
 
 fn is_existing_file(path: &Path) -> bool {
-    path.canonicalize().map(|p| p.is_file()).unwrap_or(false)
+    path.canonicalize().map_or(false, |p| p.is_file())
 }
 
 impl eframe::App for App {

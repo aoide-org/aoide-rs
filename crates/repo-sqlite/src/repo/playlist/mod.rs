@@ -137,8 +137,8 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(collection_id, created_at, created_entity);
         let query = diesel::insert_into(playlist::table).values(&insertable);
-        let _rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
-        debug_assert_eq!(1, _rows_affected);
+        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert_eq!(1, rows_affected);
         self.resolve_playlist_id(&created_entity.hdr.uid)
     }
 
@@ -173,8 +173,8 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
 
         collector.reserve(records.len());
         for record in records {
-            let (record_header, _collection_id, entity) = record.into();
-            debug_assert_eq!(collection_id, _collection_id);
+            let (record_header, record_collection_id, entity) = record.into();
+            debug_assert_eq!(collection_id, record_collection_id);
             let entries = self.load_playlist_entries_summary(record_header.id)?;
             collector.collect(record_header, EntityWithEntriesSummary { entity, entries });
         }
@@ -301,8 +301,8 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         let records = load_playlist_entry_records(self, playlist_id)?;
         let mut entries = Vec::with_capacity(records.len());
         for record in records {
-            let (_playlist_id, _ordering, _track_id, entry) = record.into();
-            debug_assert_eq!(_playlist_id, playlist_id);
+            let (record_playlist_id, _ordering, _track_id, entry) = record.into();
+            debug_assert_eq!(playlist_id, record_playlist_id);
             entries.push(entry);
         }
         Ok(entries)
@@ -384,11 +384,11 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             };
             let insertable =
                 InsertableRecord::bind(playlist_id, track_id, ordering, created_at, entry);
-            let _rows_affected = diesel::insert_into(playlist_entry::table)
+            let rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
                 .execute(self.as_ref())
                 .map_err(repo_error)?;
-            debug_assert_eq!(1, _rows_affected);
+            debug_assert_eq!(1, rows_affected);
         }
         Ok(())
     }
@@ -414,11 +414,11 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             };
             let insertable =
                 InsertableRecord::bind(playlist_id, track_id, ordering, created_at, entry);
-            let _rows_affected = diesel::insert_into(playlist_entry::table)
+            let rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
                 .execute(self.as_ref())
                 .map_err(repo_error)?;
-            debug_assert_eq!(1, _rows_affected);
+            debug_assert_eq!(1, rows_affected);
             ordering = ordering.saturating_add(1);
         }
         Ok(())
@@ -589,11 +589,11 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             };
             let insertable =
                 InsertableRecord::bind(playlist_id, track_id, ordering, created_at, entry);
-            let _rows_affected = diesel::insert_into(playlist_entry::table)
+            let rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
                 .execute(self.as_ref())
                 .map_err(repo_error)?;
-            debug_assert_eq!(1, _rows_affected);
+            debug_assert_eq!(1, rows_affected);
             ordering = ordering.saturating_add(1);
         }
         Ok(())
@@ -612,11 +612,11 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             let (_playlist_id, ordering, track_id, entry) = record.into();
             let insertable =
                 InsertableRecord::bind(target_playlist_id, track_id, ordering, created_at, &entry);
-            let _rows_affected = diesel::insert_into(playlist_entry::table)
+            let rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
                 .execute(self.as_ref())
                 .map_err(repo_error)?;
-            debug_assert_eq!(1, _rows_affected);
+            debug_assert_eq!(1, rows_affected);
         }
         Ok(copied_count)
     }

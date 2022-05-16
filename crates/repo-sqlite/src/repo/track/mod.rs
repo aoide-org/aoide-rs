@@ -422,8 +422,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     ) -> RepoResult<RecordId> {
         let record = InsertableRecord::bind(media_source_id, created_entity);
         let query = diesel::insert_into(track::table).values(&record);
-        let _rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
-        debug_assert_eq!(1, _rows_affected);
+        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert_eq!(1, rows_affected);
         let id = self.resolve_track_id(&created_entity.hdr.uid)?;
         insert_track_and_album_titles(
             self,

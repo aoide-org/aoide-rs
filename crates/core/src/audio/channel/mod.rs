@@ -104,8 +104,7 @@ impl ChannelLayout {
         use ChannelLayout::*;
         match self {
             Mono => ChannelCount(1),
-            DualMono => ChannelCount(2),
-            Stereo => ChannelCount(2),
+            DualMono | Stereo => ChannelCount(2),
             Three => ChannelCount(3),
             Four => ChannelCount(4),
             Five => ChannelCount(5),

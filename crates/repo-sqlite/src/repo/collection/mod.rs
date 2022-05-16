@@ -68,8 +68,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(created_at, created_entity);
         let query = diesel::insert_into(collection::table).values(&insertable);
-        let _rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
-        debug_assert_eq!(1, _rows_affected);
+        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert_eq!(1, rows_affected);
         self.resolve_collection_id(&created_entity.hdr.uid)
     }
 

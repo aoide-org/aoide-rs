@@ -335,24 +335,21 @@ impl<'a> InsertableRecord<'a> {
             cues: _,
             tags: _,
         } = track;
-        let (recorded_at_yyyymmdd, recorded_at) = recorded_at
-            .map(|recorded_at| match recorded_at {
+        let (recorded_at_yyyymmdd, recorded_at) =
+            recorded_at.map_or((None, None), |recorded_at| match recorded_at {
                 DateOrDateTime::Date(date) => (Some(date), None),
                 DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
-            })
-            .unwrap_or((None, None));
-        let (released_at_yyyymmdd, released_at) = released_at
-            .map(|released_at| match released_at {
+            });
+        let (released_at_yyyymmdd, released_at) =
+            released_at.map_or((None, None), |released_at| match released_at {
                 DateOrDateTime::Date(date) => (Some(date), None),
                 DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
-            })
-            .unwrap_or((None, None));
-        let (released_orig_at_yyyymmdd, released_orig_at) = released_orig_at
-            .map(|released_orig_at| match released_orig_at {
+            });
+        let (released_orig_at_yyyymmdd, released_orig_at) =
+            released_orig_at.map_or((None, None), |released_orig_at| match released_orig_at {
                 DateOrDateTime::Date(date) => (Some(date), None),
                 DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
-            })
-            .unwrap_or((None, None));
+            });
         let Album {
             actors: _,
             titles: _,

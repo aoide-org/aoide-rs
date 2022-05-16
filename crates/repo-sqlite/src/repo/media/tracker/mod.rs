@@ -351,13 +351,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     ) -> RepoResult<bool> {
         // Drop all references to old_source_id that are obsolete and
         // could cause conflicts during the following update
-        let _rows_deleted = diesel::delete(
+        let rows_deleted = diesel::delete(
             media_tracker_source::table
                 .filter(media_tracker_source::source_id.eq(RowId::from(old_source_id))),
         )
         .execute(self.as_ref())
         .map_err(repo_error)?;
-        debug_assert!(_rows_deleted <= 1);
+        debug_assert!(rows_deleted <= 1);
         // Replace all references of new_source_id with old_source_id
         let target = media_tracker_source::table
             .filter(media_tracker_source::source_id.eq(RowId::from(new_source_id)));

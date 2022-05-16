@@ -88,9 +88,9 @@ impl Roundtrip {
         match state {
             RoundtripState::Idle => (),
             RoundtripState::Pending {
-                since: _since_before,
+                since: since_before,
             } => {
-                debug_assert!(*_since_before <= since);
+                debug_assert!(*since_before <= since);
             }
         };
         let token = watermark.start_pending();

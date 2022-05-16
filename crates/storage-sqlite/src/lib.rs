@@ -63,8 +63,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub fn vacuum_database(connection: &SqliteConnection) -> Result<()> {
     diesel::dsl::sql_query("VACUUM")
         .execute(connection)
-        .map(|_count| {
-            debug_assert_eq!(0, _count);
+        .map(|count| {
+            debug_assert_eq!(0, count);
         })
         .map_err(Into::into)
 }

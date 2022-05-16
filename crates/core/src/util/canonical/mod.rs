@@ -40,7 +40,7 @@ pub trait CanonicalOrd {
     /// Ordering fore deduplication.
     ///
     /// Only used for disambiguation, i.e. Will be chained with
-    /// canonical_cmp(). Should return `Ordering::Less` for items
+    /// `canonical_cmp()`. Should return `Ordering::Less` for items
     /// that should take precedence during deduplication.
     fn canonical_dedup_cmp(&self, other: &Self) -> Ordering {
         debug_assert_eq!(Ordering::Equal, self.canonical_cmp(other));
@@ -57,7 +57,7 @@ where
     T: IsCanonical,
 {
     fn is_canonical(&self) -> bool {
-        self.as_ref().map(T::is_canonical).unwrap_or(true)
+        self.as_ref().map_or(true, T::is_canonical)
     }
 }
 
@@ -66,8 +66,7 @@ where
     T: IsCanonical + CanonicalOrd,
 {
     fn is_canonical(&self) -> bool {
-        self.iter().all(T::is_canonical)
-            && is_sorted_strictly_by(self, |lhs, rhs| lhs.canonical_cmp(rhs))
+        self.iter().all(T::is_canonical) && is_sorted_strictly_by(self, CanonicalOrd::canonical_cmp)
     }
 }
 
@@ -105,6 +104,7 @@ pub trait Canonicalize: IsCanonical {
 pub trait CanonicalizeInto: Canonicalize {
     // The return type Canonical<Self> would be more appropriate,
     // but is not permitted.
+    #[must_use]
     fn canonicalize_into(self) -> Self;
 }
 

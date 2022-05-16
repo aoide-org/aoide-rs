@@ -19,12 +19,27 @@
 #![warn(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
-// rustflags (clippy)
-#![warn(clippy::all)]
-#![warn(clippy::explicit_deref_methods)]
-#![warn(clippy::explicit_into_iter_loop)]
-#![warn(clippy::explicit_iter_loop)]
-#![warn(clippy::must_use_candidate)]
+#![warn(clippy::pedantic)]
+// Repitions of module/type names occur frequently when using many
+// modules for keeping the size of the source files handy. Often
+// types have the same name as their parent module.
+#![allow(clippy::module_name_repetitions)]
+// Repeating the type name in `..Default::default()` expressions
+// is not needed since the context is obvious.
+#![allow(clippy::default_trait_access)]
+// Using wildcard imports consciously is acceptable.
+#![allow(clippy::wildcard_imports)]
+// Importing all enum variants into a narrow, local scope is acceptable.
+#![allow(clippy::enum_glob_use)]
+// TODO: Review type casts
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_sign_loss)]
+// TODO: Either globally allow exceptions from `clippy::pedantic`
+// and comment why or fix the root causes in the code.
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
 // rustdocflags
 #![warn(rustdoc::broken_intra_doc_links)]
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]

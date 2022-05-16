@@ -43,46 +43,46 @@ pub enum KeyCode {
     /// A major
     Amaj = 7,
 
-    /// F♯/G♭ minor
+    /// F\u{266F}/G\u{266D} minor
     Gbmin = 8,
 
     /// E major
     Emaj = 9,
 
-    /// D♭ minor
+    /// D\u{266D} minor
     Dbmin = 10,
 
     /// B major
     Bmaj = 11,
 
-    /// A♭ minor
+    /// A\u{266D} minor
     Abmin = 12,
 
-    /// F♯/G♭ major
+    /// F\u{266F}/G\u{266D} major
     Gbmaj = 13,
 
-    /// E♭ minor
+    /// E\u{266D} minor
     Ebmin = 14,
 
-    /// D♭ major
+    /// D\u{266D} major
     Dbmaj = 15,
 
-    /// B♭ minor
+    /// B\u{266D} minor
     Bbmin = 16,
 
-    /// A♭ major
+    /// A\u{266D} major
     Abmaj = 17,
 
     /// F minor
     Fmin = 18,
 
-    /// E♭ major
+    /// E\u{266D} major
     Ebmaj = 19,
 
     /// C minor
     Cmin = 20,
 
-    /// B♭ major
+    /// B\u{266D} major
     Bbmaj = 21,
 
     /// G minor
@@ -184,20 +184,20 @@ impl KeyCode {
             Dmaj => "D",
             Bmin => "Bm",
             Amaj => "A",
-            Gbmin => "G♭m/F♯m",
+            Gbmin => "G\u{266D}m/F\u{266F}m",
             Emaj => "E",
-            Dbmin => "D♭m/C♯m",
+            Dbmin => "D\u{266D}m/C\u{266F}m",
             Bmaj => "B",
-            Abmin => "A♭m/G♯m",
-            Gbmaj => "G♭/F♯",
-            Ebmin => "E♭m/D♯m",
-            Dbmaj => "D♭/C♯",
-            Bbmin => "B♭m",
-            Abmaj => "A♭/G♯",
+            Abmin => "A\u{266D}m/G\u{266F}m",
+            Gbmaj => "G\u{266D}/F\u{266F}",
+            Ebmin => "E\u{266D}m/D\u{266F}m",
+            Dbmaj => "D\u{266D}/C\u{266F}",
+            Bbmin => "B\u{266D}m",
+            Abmaj => "A\u{266D}/G\u{266F}",
             Fmin => "Fm",
-            Ebmaj => "E♭/D♯",
+            Ebmaj => "E\u{266D}/D\u{266F}",
             Cmin => "Cm",
-            Bbmaj => "B♭",
+            Bbmaj => "B\u{266D}",
             Gmin => "Gm",
             Fmaj => "F",
             Dmin => "Dm",
@@ -215,28 +215,48 @@ impl KeyCode {
             "D" => Dmaj,
             "b" | "Bm" => Bmin,
             "A" => Amaj,
-            "G♭m/F♯m" | "G♭m" | "F♯m" | "F♯m/G♭m" | "g♭/f♯" | "g♭" | "f♯" | "f♯/g♭" => {
-                Gbmin
-            }
+            "G\u{266D}m/F\u{266F}m"
+            | "G\u{266D}m"
+            | "F\u{266F}m"
+            | "F\u{266F}m/G\u{266D}m"
+            | "g\u{266D}/f\u{266F}"
+            | "g\u{266D}"
+            | "f\u{266F}"
+            | "f\u{266F}/g\u{266D}" => Gbmin,
             "E" => Emaj,
-            "D♭m/C♯m" | "D♭m" | "C♯m" | "C♯m/D♭m" | "d♭/c♯" | "d♭" | "c♯" | "c♯/d♭" => {
-                Dbmin
-            }
+            "D\u{266D}m/C\u{266F}m"
+            | "D\u{266D}m"
+            | "C\u{266F}m"
+            | "C\u{266F}m/D\u{266D}m"
+            | "d\u{266D}/c\u{266F}"
+            | "d\u{266D}"
+            | "c\u{266F}"
+            | "c\u{266F}/d\u{266D}" => Dbmin,
             "B" => Bmaj,
-            "A♭/G♯m" | "A♭m" | "G♯m" | "G♯m/A♭m" | "a♭/g♯" | "a♭" | "g♯" | "g♯/a♭" => {
-                Abmin
-            }
-            "G♭/F♯" | "G♭" | "F♯" | "F♯/G♭" => Gbmaj,
-            "E♭m/D♯m" | "E♭m" | "D♯m" | "D♯m/E♭m" | "e♭/d♯" | "e♭" | "d♯" | "d♯/e♭" => {
-                Ebmin
-            }
-            "D♭/C♯" | "D♭" | "C♯" | "C♯/D♭" => Dbmaj,
-            "B♭m" | "b♭" => Bbmin,
-            "A♭/G♯" | "A♭" | "G♯" | "G♯/A♭" => Abmaj,
+            "A\u{266D}/G\u{266F}m"
+            | "A\u{266D}m"
+            | "G\u{266F}m"
+            | "G\u{266F}m/A\u{266D}m"
+            | "a\u{266D}/g\u{266F}"
+            | "a\u{266D}"
+            | "g\u{266F}"
+            | "g\u{266F}/a\u{266D}" => Abmin,
+            "G\u{266D}/F\u{266F}" | "G\u{266D}" | "F\u{266F}" | "F\u{266F}/G\u{266D}" => Gbmaj,
+            "E\u{266D}m/D\u{266F}m"
+            | "E\u{266D}m"
+            | "D\u{266F}m"
+            | "D\u{266F}m/E\u{266D}m"
+            | "e\u{266D}/d\u{266F}"
+            | "e\u{266D}"
+            | "d\u{266F}"
+            | "d\u{266F}/e\u{266D}" => Ebmin,
+            "D\u{266D}/C\u{266F}" | "D\u{266D}" | "C\u{266F}" | "C\u{266F}/D\u{266D}" => Dbmaj,
+            "B\u{266D}m" | "b\u{266D}" => Bbmin,
+            "A\u{266D}/G\u{266F}" | "A\u{266D}" | "G\u{266F}" | "G\u{266F}/A\u{266D}" => Abmaj,
             "Fm" | "f" => Fmin,
-            "E♭/D♯" | "E♭" | "D♯" | "D♯/E♭" => Ebmaj,
+            "E\u{266D}/D\u{266F}" | "E\u{266D}" | "D\u{266F}" | "D\u{266F}/E\u{266D}" => Ebmaj,
             "Cm" | "c" => Cmin,
-            "B♭" => Bbmaj,
+            "B\u{266D}" => Bbmaj,
             "Gm" | "g" => Gmin,
             "F" => Fmaj,
             "Dm" | "d" => Dmin,
@@ -300,7 +320,7 @@ impl KeyCode {
             "Fm" | "f" => Fmin,
             "Eb/D#" | "Eb" | "D#" | "D#/Eb" => Ebmaj,
             "Cm" | "c" => Cmin,
-            "B♭" => Bbmaj,
+            "B\u{266D}" => Bbmaj,
             "Gm" | "g" => Gmin,
             "F" => Fmaj,
             "Dm" | "d" => Dmin,
@@ -512,20 +532,20 @@ impl KeyCode {
             Dmaj => "D maj",
             Bmin => "B min",
             Amaj => "Amaj",
-            Gbmin => "G♭/F♯ min",
+            Gbmin => "G\u{266D}/F\u{266F} min",
             Emaj => "E maj",
-            Dbmin => "D♭/C♯ min",
+            Dbmin => "D\u{266D}/C\u{266F} min",
             Bmaj => "B maj",
-            Abmin => "A♭/G♯ min",
-            Gbmaj => "G♭/F♯ maj",
-            Ebmin => "E♭/D♯ min",
-            Dbmaj => "D♭/C♯ maj",
-            Bbmin => "B♭/A♯ min",
-            Abmaj => "A♭/G♯ maj",
+            Abmin => "A\u{266D}/G\u{266F} min",
+            Gbmaj => "G\u{266D}/F\u{266F} maj",
+            Ebmin => "E\u{266D}/D\u{266F} min",
+            Dbmaj => "D\u{266D}/C\u{266F} maj",
+            Bbmin => "B\u{266D}/A\u{266F} min",
+            Abmaj => "A\u{266D}/G\u{266F} maj",
             Fmin => "F min",
-            Ebmaj => "E♭/D♯ maj",
+            Ebmaj => "E\u{266D}/D\u{266F} maj",
             Cmin => "C min",
-            Bbmaj => "B♭/A♯ maj",
+            Bbmaj => "B\u{266D}/A\u{266F} maj",
             Gmin => "G min",
             Fmaj => "F maj",
             Dmin => "D min",
@@ -543,36 +563,20 @@ impl KeyCode {
             "D maj" => Dmaj,
             "B min" => Bmin,
             "A maj" => Amaj,
-            "G♭ min" => Gbmin,
-            "F♯ min" => Gbmin,
-            "G♭/F♯ min" => Gbmin,
+            "G\u{266D} min" | "F\u{266F} min" | "G\u{266D}/F\u{266F} min" => Gbmin,
             "E maj" => Emaj,
-            "D♭ min" => Dbmin,
-            "C♯ min" => Dbmin,
-            "D♭/C♯ min" => Dbmin,
+            "D\u{266D} min" | "C\u{266F} min" | "D\u{266D}/C\u{266F} min" => Dbmin,
             "B maj" => Bmaj,
-            "A♭♯ min" => Abmin,
-            "G♯ min" => Abmin,
-            "A♭/G♯ min" => Abmin,
-            "G♭ maj" => Gbmaj,
-            "F♯ maj" => Gbmaj,
-            "G♭/F♯ maj" => Gbmaj,
-            "E♭ min" => Ebmin,
-            "D♯ min" => Ebmin,
-            "E♭/D♯ min" => Ebmin,
-            "D♭ maj" => Dbmaj,
-            "C♯ maj" => Dbmaj,
-            "D♭/C♯ maj" => Dbmaj,
-            "B♭ min" => Bbmin,
-            "A♭ maj" => Abmaj,
-            "G♯ maj" => Abmaj,
-            "A♭/G♯ maj" => Abmaj,
+            "A\u{266D}\u{266F} min" | "G\u{266F} min" | "A\u{266D}/G\u{266F} min" => Abmin,
+            "G\u{266D} maj" | "F\u{266F} maj" | "G\u{266D}/F\u{266F} maj" => Gbmaj,
+            "E\u{266D} min" | "D\u{266F} min" | "E\u{266D}/D\u{266F} min" => Ebmin,
+            "D\u{266D} maj" | "C\u{266F} maj" | "D\u{266D}/C\u{266F} maj" => Dbmaj,
+            "B\u{266D} min" => Bbmin,
+            "A\u{266D} maj" | "G\u{266F} maj" | "A\u{266D}/G\u{266F} maj" => Abmaj,
             "F min" => Fmin,
-            "E♭ maj" => Ebmaj,
-            "D♯ maj" => Ebmaj,
-            "E♭/D♯ maj" => Ebmaj,
+            "E\u{266D} maj" | "D\u{266F} maj" | "E\u{266D}/D\u{266F} maj" => Ebmaj,
             "C min" => Cmin,
-            "B♭ maj" => Bbmaj,
+            "B\u{266D} maj" => Bbmaj,
             "G min" => Gmin,
             "F maj" => Fmaj,
             "D min" => Dmin,
@@ -754,6 +758,7 @@ impl OpenKeySignature {
     }
 
     #[must_use]
+    #[allow(clippy::similar_names)]
     pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
         let code = KeyCode::from_value(
             2 * code
@@ -812,6 +817,7 @@ impl LancelotKeySignature {
     }
 
     #[must_use]
+    #[allow(clippy::similar_names)]
     pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
         let code = KeyCode::from_value(
             ((code * 2 + 9) % 24)

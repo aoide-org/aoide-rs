@@ -169,7 +169,7 @@ impl IsCanonical for Cue {
 
 impl Canonicalize for Cue {
     fn canonicalize(&mut self) {
-        debug_assert!(self.is_canonical())
+        debug_assert!(self.is_canonical());
     }
 }
 
@@ -191,7 +191,7 @@ impl Validate for Cue {
             )
             .validate_with(&self.flags, Self::Invalidity::Flags);
         if let Some(ref label) = self.label {
-            context = context.invalidate_if(label.trim().is_empty(), Self::Invalidity::LabelEmpty)
+            context = context.invalidate_if(label.trim().is_empty(), Self::Invalidity::LabelEmpty);
         }
         context.into()
     }

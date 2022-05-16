@@ -121,8 +121,9 @@ impl<'a> InsertableRecord<'a> {
         let in_position = in_marker.as_ref().map(|InMarker { position }| position);
         let (out_position, out_mode) = out_marker
             .to_owned()
-            .map(|OutMarker { position, mode }| (Some(position), mode))
-            .unwrap_or((None, None));
+            .map_or((None, None), |OutMarker { position, mode }| {
+                (Some(position), mode)
+            });
         Self {
             track_id: track_id.into(),
             bank_idx: *bank_index,

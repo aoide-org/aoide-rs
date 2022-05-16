@@ -76,8 +76,8 @@ impl MetadataExt {
         let stream_info = Header::read_from_source(reader, ParseMode::IgnoreVbrHeaders)
             .map_err(mpeg_audio_header_error)?;
         // Restart the reader for importing the ID3 tag
-        let _start_pos = reader.seek(SeekFrom::Start(0))?;
-        debug_assert_eq!(0, _start_pos);
+        let start_pos = reader.seek(SeekFrom::Start(0))?;
+        debug_assert_eq!(0, start_pos);
         let metadata = Metadata::read_from(reader)?;
         Ok(Self(stream_info, metadata))
     }

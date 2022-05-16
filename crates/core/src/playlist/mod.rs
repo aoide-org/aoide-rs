@@ -93,8 +93,7 @@ impl Validate for Entry {
             .invalidate_if(
                 title
                     .as_ref()
-                    .map(|title| title.trim().is_empty())
-                    .unwrap_or(false),
+                    .map_or(false, |title| title.trim().is_empty()),
                 Self::Invalidity::TitleEmpty,
             )
             .validate_with(item, Self::Invalidity::Item)
@@ -177,9 +176,7 @@ impl Validate for Playlist {
         ValidationContext::new()
             .invalidate_if(title.trim().is_empty(), Self::Invalidity::TitleEmpty)
             .invalidate_if(
-                kind.as_ref()
-                    .map(|kind| kind.trim().is_empty())
-                    .unwrap_or(false),
+                kind.as_ref().map_or(false, |kind| kind.trim().is_empty()),
                 Self::Invalidity::KindEmpty,
             )
             .validate_with(color, Self::Invalidity::Color)

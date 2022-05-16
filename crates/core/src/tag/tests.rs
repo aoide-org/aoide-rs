@@ -284,6 +284,7 @@ fn duplicate_facets() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn duplicate_facets_and_labels() {
     let mut tags = Tags {
         plain: vec![

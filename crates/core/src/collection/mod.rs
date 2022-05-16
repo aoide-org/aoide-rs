@@ -76,9 +76,7 @@ impl Validate for Collection {
         ValidationContext::new()
             .invalidate_if(title.trim().is_empty(), Self::Invalidity::TitleEmpty)
             .invalidate_if(
-                kind.as_ref()
-                    .map(|kind| kind.trim().is_empty())
-                    .unwrap_or(false),
+                kind.as_ref().map_or(false, |kind| kind.trim().is_empty()),
                 Self::Invalidity::KindEmpty,
             )
             .validate_with(color, Self::Invalidity::Color)

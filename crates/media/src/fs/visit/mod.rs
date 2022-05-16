@@ -32,8 +32,7 @@ fn is_hidden_dir_entry(dir_entry: &DirEntry) -> bool {
         return dir_entry
             .file_name()
             .to_str()
-            .map(|dir_name| dir_name == ".DS_Store")
-            .unwrap_or(false);
+            .map_or(false, |dir_name| dir_name == ".DS_Store");
     }
     false
 }

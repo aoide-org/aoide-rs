@@ -357,7 +357,7 @@ impl Borrow<str> for CowFacetId<'_> {
 /// in English and the facet "venue" could be mapped to "Veranstaltungsort" in German.
 ///
 /// Value constraints:
-///   - charset/alphabet: +-./0123456789@[]_abcdefghijklmnopqrstuvwxyz
+///   - charset/alphabet: `+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz`
 ///   - no leading/trailing/inner whitespace
 ///
 /// Rationale for the value constraints:
@@ -366,7 +366,7 @@ impl Borrow<str> for CowFacetId<'_> {
 ///   - ASCII characters can be encoded by a single byte in UTF-8
 ///
 /// References:
-///   - https://en.wikipedia.org/wiki/Faceted_classification
+///   - <https://en.wikipedia.org/wiki/Faceted_classification>
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FacetId(FacetIdValue);
 
@@ -445,8 +445,7 @@ impl Validate for FacetId {
                 self.value()
                     .chars()
                     .next()
-                    .map(|c| !c.is_ascii_lowercase())
-                    .unwrap_or(false),
+                    .map_or(false, |c| !c.is_ascii_lowercase()),
                 Self::Invalidity::Format,
             )
             .invalidate_if(
@@ -948,10 +947,7 @@ impl TagsMap {
 
     pub fn count(&mut self, facet_id: &FacetId) -> usize {
         let Self(inner) = self;
-        inner
-            .get(facet_id.value().as_str())
-            .map(|val| val.len())
-            .unwrap_or(0)
+        inner.get(facet_id.value().as_str()).map_or(0, Vec::len)
     }
 
     #[must_use]
@@ -1045,7 +1041,7 @@ impl TagsMap {
         if plain_tags.is_empty() {
             self.remove_faceted_tags(facet_id);
         } else {
-            self.replace_faceted_plain_tags(facet_id.to_owned(), plain_tags);
+            self.replace_faceted_plain_tags(facet_id.clone(), plain_tags);
         }
         true
     }

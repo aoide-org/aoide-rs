@@ -66,7 +66,7 @@ where
     let (media_source_id, external_rev, synchronized_rev, entity_body) = repo
         .load_track_entity_by_media_source_content_path(collection_id, &content_path)
         .optional()?
-        .map(|(media_source_id, _, entity)| {
+        .map_or((None, None, None, None), |(media_source_id, _, entity)| {
             (
                 Some(media_source_id),
                 entity.body.track.media_source.content_link.rev,
@@ -76,8 +76,7 @@ where
                 }),
                 Some(entity.raw.body),
             )
-        })
-        .unwrap_or((None, None, None, None));
+        });
     let Params {
         sync_mode,
         import_config,

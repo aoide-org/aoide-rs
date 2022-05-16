@@ -601,8 +601,8 @@ async fn main() -> anyhow::Result<()> {
                             },
                         )
                     }
-                    Some((_subcommand, _)) => {
-                        unreachable!("Unknown subcommand {}", _subcommand);
+                    Some((subcommand, _)) => {
+                        unreachable!("Unknown subcommand {}", subcommand);
                     }
                     None => Err(None),
                 },
@@ -759,8 +759,8 @@ async fn main() -> anyhow::Result<()> {
                             },
                         )
                     }
-                    Some((_subcommand, _)) => {
-                        unreachable!("Unknown subcommand {}", _subcommand);
+                    Some((subcommand, _)) => {
+                        unreachable!("Unknown subcommand {}", subcommand);
                     }
                     None => {
                         println!("{}", app_usage);
@@ -815,13 +815,13 @@ async fn main() -> anyhow::Result<()> {
                             },
                         )
                     }
-                    Some((_subcommand, _)) => {
-                        unreachable!("Unknown subcommand {}", _subcommand);
+                    Some((subcommand, _)) => {
+                        unreachable!("Unknown subcommand {}", subcommand);
                     }
                     None => Err(None),
                 },
-                Some((_subcommand, _)) => {
-                    unreachable!("Unknown subcommand {}", _subcommand);
+                Some((subcommand, _)) => {
+                    unreachable!("Unknown subcommand {}", subcommand);
                 }
                 None => Err(None),
             }

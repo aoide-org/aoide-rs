@@ -40,7 +40,7 @@ pub fn is_valid_beat_unit(beat_unit: BeatUnit) -> bool {
 
 /// Musical time signature
 ///
-/// https://en.wikipedia.org/wiki/Time_signature
+/// <https://en.wikipedia.org/wiki/Time_signature>
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct TimeSignature {
     /// The number of beats in each measure or bar
@@ -160,7 +160,7 @@ pub fn is_valid_measure_number(measure_number: MeasureNumber) -> bool {
 
 pub type PreciseMeasureOffset = f64;
 
-/// Beat offset within a measure [0.0, beat_per_measure)
+/// Beat offset within a measure `[0.0, beat_per_measure)`
 pub type BeatOffsetInMeasure = f32;
 
 #[must_use]

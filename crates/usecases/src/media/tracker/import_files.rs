@@ -133,10 +133,10 @@ pub fn import_files<
             }
             let TrackedDirectory {
                 path: dir_path,
-                status: _status,
+                status,
                 digest,
             } = pending_directory;
-            debug_assert!(_status.is_pending());
+            debug_assert!(status.is_pending());
             let outcome =
                 match import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
                     repo,

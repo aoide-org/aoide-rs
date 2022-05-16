@@ -28,7 +28,7 @@ fn title_names() {
 #[test]
 fn validate_empty_titles() {
     let titles = [];
-    assert!(Titles::validate(titles.iter()).is_ok());
+    assert!(Titles::validate(&titles.iter()).is_ok());
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn validate_main_title() {
         name: "title1".into(),
         kind: TitleKind::Main,
     }];
-    assert!(Titles::validate(titles.iter()).is_ok());
+    assert!(Titles::validate(&titles.iter()).is_ok());
 }
 
 #[test]
@@ -46,7 +46,7 @@ fn validate_single_main_title() {
         name: "title1".into(),
         kind: TitleKind::Main,
     }];
-    assert!(Titles::validate(titles.iter()).is_ok());
+    assert!(Titles::validate(&titles.iter()).is_ok());
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn validate_missing_main_title() {
     }];
     assert_eq!(
         1,
-        Titles::validate(titles.iter())
+        Titles::validate(&titles.iter())
             .err()
             .unwrap()
             .into_iter()
@@ -79,7 +79,7 @@ fn validate_ambiguous_main_title() {
     ];
     assert_eq!(
         1,
-        Titles::validate(titles.iter())
+        Titles::validate(&titles.iter())
             .err()
             .unwrap()
             .into_iter()
@@ -111,5 +111,5 @@ fn validate_multiple_titles() {
             kind: TitleKind::Movement,
         },
     ];
-    assert!(Titles::validate(titles.iter()).is_ok());
+    assert!(Titles::validate(&titles.iter()).is_ok());
 }

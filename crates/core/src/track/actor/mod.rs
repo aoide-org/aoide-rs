@@ -164,7 +164,7 @@ pub const ANY_ROLE_FILTER: Option<ActorRole> = None;
 pub const ANY_RANK_FILTER: Option<ActorKind> = None;
 
 impl Actors {
-    pub fn validate<'a, I>(actors: I) -> ValidationResult<ActorsInvalidity>
+    pub fn validate<'a, I>(actors: &I) -> ValidationResult<ActorsInvalidity>
     where
         I: Iterator<Item = &'a Actor> + Clone,
     {
@@ -201,7 +201,7 @@ impl Actors {
                                 is_valid_summary_individual_actor_name(&summary_actor.name, name)
                             }),
                         ActorsInvalidity::SummaryNameInconsistentWithIndividualNames(role),
-                    )
+                    );
                 } else {
                     // No summary actor
                     debug_assert_eq!(

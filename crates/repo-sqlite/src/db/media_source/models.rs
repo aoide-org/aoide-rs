@@ -254,20 +254,20 @@ impl<'a> InsertableRecord<'a> {
                 ContentMetadata::Audio(ref audio_metadata) => Some(audio_metadata),
             }
         };
-        let (artwork_source, artwork_uri, artwork_image) = artwork
-            .as_ref()
-            .map(|artwork| match artwork {
-                Artwork::Missing => (Some(ArtworkSource::Missing), None, None),
-                Artwork::Unsupported => (Some(ArtworkSource::Unsupported), None, None),
-                Artwork::Irregular => (Some(ArtworkSource::Irregular), None, None),
-                Artwork::Embedded(EmbeddedArtwork { image }) => {
-                    (Some(ArtworkSource::Embedded), None, Some(image))
-                }
-                Artwork::Linked(LinkedArtwork { uri, image }) => {
-                    (Some(ArtworkSource::Linked), Some(uri.as_str()), Some(image))
-                }
-            })
-            .unwrap_or((None, None, None));
+        let (artwork_source, artwork_uri, artwork_image) =
+            artwork
+                .as_ref()
+                .map_or((None, None, None), |artwork| match artwork {
+                    Artwork::Missing => (Some(ArtworkSource::Missing), None, None),
+                    Artwork::Unsupported => (Some(ArtworkSource::Unsupported), None, None),
+                    Artwork::Irregular => (Some(ArtworkSource::Irregular), None, None),
+                    Artwork::Embedded(EmbeddedArtwork { image }) => {
+                        (Some(ArtworkSource::Embedded), None, Some(image))
+                    }
+                    Artwork::Linked(LinkedArtwork { uri, image }) => {
+                        (Some(ArtworkSource::Linked), Some(uri.as_str()), Some(image))
+                    }
+                });
         let artwork_apic_type;
         let artwork_media_type;
         let artwork_size_width;

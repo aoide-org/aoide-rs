@@ -107,8 +107,8 @@ fn move_playlist_entries_default<R: EntryRepo + ?Sized>(
     moved_entries.truncate(index_range.end.min(moved_entries.len()));
     moved_entries.drain(0..index_range.start.min(moved_entries.len()));
     debug_assert_eq!(moved_entries.len(), index_range.len());
-    let _removed_count = entry_repo.remove_playlist_entries(playlist_id, index_range)?;
-    debug_assert_eq!(_removed_count, index_range.len());
+    let removed_count = entry_repo.remove_playlist_entries(playlist_id, index_range)?;
+    debug_assert_eq!(removed_count, index_range.len());
     let insert_index = if delta_index > 0 {
         (index_range.start + delta_index as usize)
             .min(entry_repo.count_playlist_entries(playlist_id)?)

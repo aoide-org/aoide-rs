@@ -20,7 +20,7 @@ use url::Url;
 use std::path::PathBuf;
 
 #[cfg(feature = "std-file")]
-use path_slash::PathBufExt as _;
+use path_slash::PathBufExt;
 
 #[cfg(feature = "std-file")]
 use crate::util::url::{is_valid_base_url, BaseUrl};
@@ -131,7 +131,7 @@ impl VirtualFilePathResolver {
                 .and_then(|path| Url::from_directory_path(path).ok())
                 .and_then(|url| BaseUrl::try_from(url).ok())
         );
-        let root_slash_path = root_file_path.as_ref().ok().and_then(|p| p.to_slash());
+        let root_slash_path = root_file_path.as_ref().ok().and_then(PathBufExt::to_slash);
         debug_assert_eq!(root_file_path.is_ok(), root_slash_path.is_some());
         Self {
             root_url,

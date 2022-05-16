@@ -35,7 +35,7 @@ const NANOS_PER_MILLISECOND: i128 = 1_000_000;
 const YYYY_MM_DD_FORMAT: &[FormatItem<'static>] =
     time::macros::format_description!("[year]-[month]-[day]");
 
-/// A DateTime with truncated millisecond precision.
+/// A `DateTime` with truncated millisecond precision.
 impl DateTime {
     #[must_use]
     pub fn new(inner: DateTimeInner) -> Self {
@@ -70,9 +70,7 @@ impl DateTime {
 
     #[must_use]
     pub fn now_local_or_utc() -> Self {
-        DateTimeInner::now_local()
-            .map(Into::into)
-            .unwrap_or_else(|_: IndeterminateOffset| Self::now_utc())
+        DateTimeInner::now_local().map_or_else(|_: IndeterminateOffset| Self::now_utc(), Into::into)
     }
 
     #[must_use]
@@ -278,7 +276,7 @@ impl From<Date> for DateYYYYMMDD {
         Self(
             from.year() as YYYYMMDD * 10_000
                 + from.month() as YYYYMMDD * 100
-                + from.day() as YYYYMMDD,
+                + YYYYMMDD::from(from.day()),
         )
     }
 }

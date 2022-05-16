@@ -67,14 +67,14 @@ impl AddAssign<&TrackReplaceSummary> for TrackSummary {
             created,
             updated,
             unchanged,
-            missing: _missing,
+            missing,
             skipped,
             failed,
             not_imported,
             not_created,
             not_updated,
         } = self;
-        debug_assert_eq!(0, *_missing);
+        debug_assert_eq!(0, *missing);
         let TrackReplaceSummary {
             created: rhs_created,
             updated: rhs_updated,

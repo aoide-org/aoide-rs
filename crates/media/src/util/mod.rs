@@ -226,12 +226,12 @@ pub fn format_valid_replay_gain(loudness: LoudnessLufs) -> Option<String> {
     LoudnessLufs::validated_from(loudness).ok().map(|loudness| {
         let mut replay_gain_db = lufs2db(*loudness);
         let formatted = format!("{}, dB", format_parseable_value(&mut replay_gain_db));
-        let mut _importer = Importer::new();
+        let mut importer = Importer::new();
         debug_assert_eq!(
             Some(db2lufs(replay_gain_db)),
-            _importer.import_replay_gain(&formatted)
+            importer.import_replay_gain(&formatted)
         );
-        debug_assert!(_importer.finish().into_messages().is_empty());
+        debug_assert!(importer.finish().into_messages().is_empty());
         formatted
     })
 }
@@ -258,9 +258,9 @@ pub fn format_validated_tempo_bpm(tempo_bpm: &mut Option<TempoBpm>) -> Option<St
 
 pub fn format_tempo_bpm(tempo_bpm: &mut TempoBpm) -> String {
     let formatted_bpm = format_parseable_value(&mut tempo_bpm.to_raw());
-    let mut _importer = Importer::new();
-    debug_assert_eq!(Some(*tempo_bpm), _importer.import_tempo_bpm(&formatted_bpm));
-    debug_assert!(_importer.finish().into_messages().is_empty());
+    let mut importer = Importer::new();
+    debug_assert_eq!(Some(*tempo_bpm), importer.import_tempo_bpm(&formatted_bpm));
+    debug_assert!(importer.finish().into_messages().is_empty());
     formatted_bpm
 }
 

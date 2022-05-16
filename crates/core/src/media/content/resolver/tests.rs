@@ -106,28 +106,18 @@ fn resolve_url_from_empty_path_with_root_url() -> Result<(), ResolveFromPathErro
     let root_url = Url::parse("file:///").unwrap();
     let resolver = VirtualFilePathResolver::with_root_url(root_url.clone().try_into().unwrap());
 
-    assert_eq!(
-        root_url,
-        resolver.resolve_url_from_content_path("").unwrap()
-    );
-    assert_eq!(
-        root_url,
-        resolver.resolve_url_from_content_path("/").unwrap()
-    );
-    assert_eq!(
-        root_url,
-        resolver.resolve_url_from_content_path("//").unwrap()
-    );
+    assert_eq!(root_url, resolver.resolve_url_from_content_path("")?);
+    assert_eq!(root_url, resolver.resolve_url_from_content_path("/")?);
+    assert_eq!(root_url, resolver.resolve_url_from_content_path("//")?);
 
     Ok(())
 }
 
 #[cfg(feature = "std-file")]
 #[test]
-fn resolve_url_from_relative_path_without_root_url_fails() -> Result<(), ResolveFromPathError> {
+fn resolve_url_from_relative_path_without_root_url_fails() {
     let slash_path = ContentPath::from("Test path/file.mp3".to_owned());
     assert!(VirtualFilePathResolver::default()
         .resolve_url_from_content_path(&slash_path)
         .is_err());
-    Ok(())
 }

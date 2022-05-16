@@ -131,8 +131,8 @@ pub(crate) async fn delete_collection(entity_header: impl Into<SerdeEntityHeader
         .method(Method::Delete)
         .json(&entity_header.into())?;
     let response = request.fetch().await?.check_status()?;
-    let _status_code = response.check_status()?.status().code;
-    debug_assert_eq!(StatusCode::NO_CONTENT, _status_code);
+    let status_code = response.check_status()?.status().code;
+    debug_assert_eq!(StatusCode::NO_CONTENT, status_code);
     Ok(())
 }
 
@@ -248,8 +248,8 @@ pub(crate) async fn storage_abort_current_task() -> Result<()> {
     let url = format!("{BASE_URL}/storage/abort-current-task");
     let request = Request::new(url).method(Method::Post);
     let response = request.fetch().await?.check_status()?;
-    let _status_code = response.check_status()?.status().code;
-    debug_assert_eq!(StatusCode::ACCEPTED, _status_code);
+    let status_code = response.check_status()?.status().code;
+    debug_assert_eq!(StatusCode::ACCEPTED, status_code);
     Ok(())
 }
 

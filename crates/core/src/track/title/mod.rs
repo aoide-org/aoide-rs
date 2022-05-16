@@ -115,19 +115,19 @@ pub const ANY_KIND_FILTER: Option<TitleKind> = None;
 pub const ANY_LANGUAGE_FILTER: Option<Option<&'static str>> = None;
 
 impl Titles {
-    pub fn validate<'a, I>(titles: I) -> ValidationResult<TitlesInvalidity>
+    pub fn validate<'a, I>(titles: &I) -> ValidationResult<TitlesInvalidity>
     where
         I: Iterator<Item = &'a Title> + Clone,
     {
         let mut at_least_one_title = false;
         let mut context = titles
-            .clone()
+            .to_owned()
             .fold(ValidationContext::new(), |context, title| {
                 at_least_one_title = true;
                 context.validate_with(title, TitlesInvalidity::Title)
             });
         if context.is_valid() && at_least_one_title {
-            context = match Self::main_titles(titles).count() {
+            context = match Self::main_titles(titles.to_owned()).count() {
                 0 => context.invalidate(TitlesInvalidity::MainTitleMissing),
                 1 => context, // ok
                 _ => context.invalidate(TitlesInvalidity::MainTitleAmbiguous),
@@ -175,8 +175,8 @@ impl Titles {
             let new_titles = once(Title { kind, name })
                 .chain(old_titles.into_iter().filter(|title| title.kind != kind))
                 .collect();
-            let _placeholder = std::mem::replace(titles, new_titles);
-            debug_assert!(_placeholder.is_empty());
+            let placeholder = std::mem::replace(titles, new_titles);
+            debug_assert!(placeholder.is_empty());
         } else {
             // Add
             titles.push(Title {

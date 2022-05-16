@@ -158,6 +158,7 @@ impl Track {
             .map(|actor| actor.name.as_str())
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn merge_newer_from_synchronized_media_source(&mut self, newer: Track) {
         let Self {
             actors,
@@ -297,11 +298,11 @@ impl Validate for Track {
             .validate_with(&self.released_orig_at, Self::Invalidity::ReleasedOrigAt)
             .validate_with(self.album.as_ref(), Self::Invalidity::Album)
             .merge_result_with(
-                Titles::validate(self.titles.iter()),
+                Titles::validate(&self.titles.iter()),
                 Self::Invalidity::Titles,
             )
             .merge_result_with(
-                Actors::validate(self.actors.iter()),
+                Actors::validate(&self.actors.iter()),
                 Self::Invalidity::Actors,
             )
             .validate_with(&self.indexes, Self::Invalidity::Indexes)
@@ -322,7 +323,7 @@ impl Validate for Track {
             context = context.invalidate_if(
                 released_orig_at > released_at,
                 Self::Invalidity::ReleasedOrigAtAfterReleasedAt,
-            )
+            );
         }
         if let Some(ref publisher) = self.publisher {
             context = context.invalidate_if(
