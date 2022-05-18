@@ -48,10 +48,11 @@ use aoide_core::{
     tag::{FacetedTags, PlainTag},
     track::{
         self,
+        actor::Actors,
         tag::{
             FACET_ACOUSTICNESS, FACET_AROUSAL, FACET_COMMENT, FACET_DANCEABILITY, FACET_ENERGY,
-            FACET_GENRE, FACET_INSTRUMENTALNESS, FACET_LIVENESS, FACET_MOOD, FACET_POPULARITY,
-            FACET_SPEECHINESS, FACET_VALENCE,
+            FACET_GENRE, FACET_GROUPING, FACET_INSTRUMENTALNESS, FACET_LIVENESS, FACET_MOOD,
+            FACET_POPULARITY, FACET_SPEECHINESS, FACET_VALENCE,
         },
         EntityUid as TrackUid, PlayCounter,
     },
@@ -78,6 +79,8 @@ const LAST_PLAYED_AT: &str = "last_played_at";
 const GENRE: &str = "genre";
 const MOOD: &str = "mood";
 const COMMENT: &str = "comment";
+const GROUPING: &str = "grouping";
+const TAG: &str = "tag";
 const ACOUSTICNESS: &str = "acousticness";
 const AROUSAL: &str = "arousal";
 const DANCEABILITY: &str = "danceability";
@@ -110,6 +113,8 @@ pub struct TrackFields {
     pub genre: Field,
     pub mood: Field,
     pub comment: Field,
+    pub grouping: Field,
+    pub tag: Field,
     pub acousticness: Field,
     pub arousal: Field,
     pub danceability: Field,
@@ -155,13 +160,17 @@ impl TrackFields {
         if let Some(track_title) = entity.body.track.track_title() {
             doc.add_text(self.track_title, track_title);
         }
-        if let Some(track_artist) = entity.body.track.track_artist() {
+        // Index all track actors as `track_artist` by name, independent of their role
+        for track_artist in &Actors::collect_all_unique_actor_names(entity.body.track.actors.iter())
+        {
             doc.add_text(self.track_artist, track_artist);
         }
         if let Some(album_title) = entity.body.track.album_title() {
             doc.add_text(self.album_title, album_title);
         }
-        if let Some(album_artist) = entity.body.track.album_artist() {
+        // Index all album actors as `album_artist` by name, independent of their role
+        for album_artist in &Actors::collect_all_unique_actor_names(entity.body.track.actors.iter())
+        {
             doc.add_text(self.album_artist, album_artist);
         }
         if let Some(recorded_at_yyyymmdd) = entity.body.track.recorded_at.map(DateYYYYMMDD::from) {
@@ -208,20 +217,26 @@ impl TrackFields {
         }
         for faceted_tags in &entity.body.track.tags.facets {
             let FacetedTags { facet_id, tags } = faceted_tags;
-            let (label_field, score_field) = match facet_id.as_str() {
-                FACET_GENRE => (Some(self.genre), None),
-                FACET_MOOD => (Some(self.mood), None),
-                FACET_COMMENT => (Some(self.comment), None),
-                FACET_ACOUSTICNESS => (None, Some(self.acousticness)),
-                FACET_AROUSAL => (None, Some(self.arousal)),
-                FACET_DANCEABILITY => (None, Some(self.danceability)),
-                FACET_ENERGY => (None, Some(self.energy)),
-                FACET_INSTRUMENTALNESS => (None, Some(self.instrumentalness)),
-                FACET_LIVENESS => (None, Some(self.liveness)),
-                FACET_POPULARITY => (None, Some(self.popularity)),
-                FACET_SPEECHINESS => (None, Some(self.speechiness)),
-                FACET_VALENCE => (None, Some(self.valence)),
-                _ => (None, None),
+            let (label_field, score_field) = if facet_id.is_empty() {
+                // a plain tag
+                (Some(self.tag), None)
+            } else {
+                match facet_id.as_str() {
+                    FACET_GENRE => (Some(self.genre), None),
+                    FACET_MOOD => (Some(self.mood), None),
+                    FACET_COMMENT => (Some(self.comment), None),
+                    FACET_GROUPING => (Some(self.grouping), None),
+                    FACET_ACOUSTICNESS => (None, Some(self.acousticness)),
+                    FACET_AROUSAL => (None, Some(self.arousal)),
+                    FACET_DANCEABILITY => (None, Some(self.danceability)),
+                    FACET_ENERGY => (None, Some(self.energy)),
+                    FACET_INSTRUMENTALNESS => (None, Some(self.instrumentalness)),
+                    FACET_LIVENESS => (None, Some(self.liveness)),
+                    FACET_POPULARITY => (None, Some(self.popularity)),
+                    FACET_SPEECHINESS => (None, Some(self.speechiness)),
+                    FACET_VALENCE => (None, Some(self.valence)),
+                    _ => (None, None),
+                }
             };
             match (label_field, score_field) {
                 (Some(field), None) => {
@@ -237,10 +252,7 @@ impl TrackFields {
                 }
                 (None, Some(field)) => {
                     for tag in tags {
-                        let PlainTag {
-                            label: _,
-                            score, // TODO: How to take the score into account?
-                        } = tag;
+                        let PlainTag { label: _, score } = tag;
                         doc.add_f64(field, score.value());
                     }
                 }
@@ -321,6 +333,8 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
     let genre = schema_builder.add_text_field(GENRE, TEXT);
     let mood = schema_builder.add_text_field(MOOD, TEXT);
     let comment = schema_builder.add_text_field(COMMENT, TEXT);
+    let grouping = schema_builder.add_text_field(GROUPING, TEXT);
+    let tag = schema_builder.add_text_field(TAG, TEXT);
     let acousticness = schema_builder.add_f64_field(ACOUSTICNESS, INDEXED);
     let arousal = schema_builder.add_f64_field(AROUSAL, INDEXED);
     let danceability = schema_builder.add_f64_field(DANCEABILITY, INDEXED);
@@ -352,6 +366,8 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
         genre,
         mood,
         comment,
+        grouping,
+        tag,
         acousticness,
         arousal,
         danceability,

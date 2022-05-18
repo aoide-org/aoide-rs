@@ -30,7 +30,7 @@ url = { version = "2.2.2", features = ["serde"] }
 warp = { version = "0.3.2", default-features = false }
 
 # schemars
-schemars = { version = "0.8.8", optional = true }
+schemars = { version = "0.8.10", optional = true }
 
 # webapp
 mime_guess = { version = "2.0.4", optional = true }

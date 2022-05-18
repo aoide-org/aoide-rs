@@ -271,6 +271,16 @@ impl Actors {
         Self::summary_actor(actors.clone(), role)
             .or_else(|| Self::singular_individual_actor(actors, role))
     }
+
+    pub fn collect_all_unique_actor_names<'a, I>(actors: I) -> Vec<&'a str>
+    where
+        I: Iterator<Item = &'a Actor> + Clone,
+    {
+        let mut actor_names: Vec<_> = actors.map(|actor| actor.name.as_str()).collect();
+        actor_names.sort_unstable();
+        actor_names.dedup();
+        actor_names
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

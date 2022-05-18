@@ -33,7 +33,8 @@ pub static FACET_ID_ISRC: Lazy<FacetId> = Lazy::new(|| FacetId::new("isrc".into(
 // ID3v2.4: GRP1 (iTunes/newer) / TIT1 (traditional/older)
 // Vorbis:  GROUPING
 // MP4:     ©grp
-pub static FACET_ID_GROUPING: Lazy<FacetId> = Lazy::new(|| FacetId::new("cgrp".into()));
+pub const FACET_GROUPING: &str = "cgrp";
+pub static FACET_ID_GROUPING: Lazy<FacetId> = Lazy::new(|| FacetId::new(FACET_GROUPING.to_owned()));
 
 // Comment
 // ID3v2.4: COMM (without `description`)

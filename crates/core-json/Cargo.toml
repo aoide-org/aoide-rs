@@ -19,7 +19,7 @@ url = { version = "2.2.2", features = ["serde"] }
 
 # JSON Schema (optional)
 chrono = { version = "0.4.19", optional = true, features = ["serde"] }
-schemars = { version = "0.8.8", optional = true, features = ["chrono", "url"] }
+schemars = { version = "0.8.10", optional = true, features = ["chrono", "url"] }
 
 # Workspace dependencies
 aoide-core = "=0.8.0"
