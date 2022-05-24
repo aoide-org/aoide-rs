@@ -6,12 +6,12 @@ CREATE TABLE IF NOT EXISTS track_title (
     -- relations (immutable)
     track_id                 INTEGER NOT NULL,
     -- properties
-    scope                    TINYINT NOT NULL, -- 0: track, 1: album
-    kind                     TINYINT NOT NULL,
+    scope                    INTEGER NOT NULL, -- 0: track, 1: album
+    kind                     INTEGER NOT NULL,
     name                     TEXT NOT NULL,
     --
     FOREIGN KEY(track_id) REFERENCES track(row_id) ON DELETE CASCADE
-);
+) STRICT;
 
 CREATE INDEX IF NOT EXISTS idx_track_title_track_id ON track_title (
     track_id

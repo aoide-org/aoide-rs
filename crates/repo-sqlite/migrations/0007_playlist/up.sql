@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS playlist (
     -- row header (mutable)
     row_updated_ms           INTEGER NOT NULL,
     -- entity header (immutable)
-    entity_uid               BINARY(24) NOT NULL,
+    entity_uid               BLOB NOT NULL, -- BINARY(24)
     -- entity header (mutable)
     entity_rev               INTEGER NOT NULL, -- RevisionNumber
     -- relations (immutable)
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS playlist (
     --
     UNIQUE (entity_uid), -- only the last revision is stored
     FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE
-);
+) STRICT;
 
 CREATE INDEX IF NOT EXISTS idx_playlist_row_created_ms_desc ON playlist (
     row_created_ms DESC

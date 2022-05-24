@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS track_tag (
     --
     FOREIGN KEY(track_id) REFERENCES track(row_id) ON DELETE CASCADE,
     UNIQUE (track_id, facet, label)
-);
+) STRICT;
 
 -- Canonical ordering on load
 CREATE INDEX IF NOT EXISTS idx_track_tag_facet_label_score_desc ON track_tag (

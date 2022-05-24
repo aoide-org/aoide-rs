@@ -11,12 +11,12 @@ CREATE TABLE IF NOT EXISTS media_tracker_directory (
     collection_id          INTEGER NOT NULL,
     -- properties
     content_path           TEXT NOT NULL,
-    status                 TINYINT NOT NULL, -- 0 = current, 1 = outdated, 3 = added, 3 = modified, 4 = orphaned
-    digest                 BINARY,           -- cryptographic hash of the directory's contents (file metadata)
+    status                 INTEGER NOT NULL, -- 0 = current, 1 = outdated, 3 = added, 3 = modified, 4 = orphaned
+    digest                 BLOB,             -- cryptographic hash of the directory's contents (file metadata)
     --
     FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE,
     UNIQUE (collection_id, content_path)
-);
+) STRICT;
 
 CREATE TABLE IF NOT EXISTS media_tracker_source (
     -- relations (immutable)
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS media_tracker_source (
     FOREIGN KEY(directory_id) REFERENCES media_tracker_directory(row_id) ON DELETE CASCADE,
     FOREIGN KEY(source_id) REFERENCES media_source(row_id) ON DELETE CASCADE,
     UNIQUE (source_id)
-);
+) STRICT;
 
 CREATE INDEX IF NOT EXISTS idx_media_tracker_source_directory_id ON media_tracker_source (
     directory_id

@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS track_cue (
     -- relations (immutable)
     track_id                 INTEGER NOT NULL,
     -- properties
-    bank_idx                 SMALLINT NOT NULL, -- index for separating cues into banks (hot cues, loops, samples, ...)
-    slot_idx                 SMALLINT,          -- optional index if the bank supports multiple slots
+    bank_idx                 INTEGER NOT NULL, -- index for separating cues into banks (hot cues, loops, samples, ...)
+    slot_idx                 INTEGER,          -- optional index if the bank supports multiple slots
     -- either in or out position must be NOT NULL
     in_position_ms           REAL,     -- offset from start of media source in milliseconds
     out_position_ms          REAL,     -- offset from start of media source in milliseconds
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS track_cue (
     --    0 = stop playing at out position
     --    1 = continue playing at in position of current slot (loop/repeat, i.e. rewind)
     --    2 = continue playing at in position of next slot
-    out_mode                 TINYINT,
+    out_mode                 INTEGER,
     kind                     TEXT,
     label                    TEXT,
     color_rgb                INTEGER, -- 0xRRGGBB (hex)
@@ -25,4 +25,4 @@ CREATE TABLE IF NOT EXISTS track_cue (
     --
     FOREIGN KEY(track_id) REFERENCES track(row_id) ON DELETE CASCADE,
     UNIQUE (track_id, bank_idx, slot_idx)
-);
+) STRICT;

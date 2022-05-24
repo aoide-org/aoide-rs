@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS media_source (
     content_link_rev       INTEGER,
     -- properties: content metadata & digest
     content_type           TEXT NOT NULL,    -- RFC 6838 media type
-    content_digest         BINARY,           -- cryptographic hash
-    content_metadata_flags TINYINT NOT NULL, -- 0x01 = reliable, 0x02 = locked, 0x04 = stale
+    content_digest         BLOB,             -- cryptographic hash
+    content_metadata_flags INTEGER NOT NULL, -- 0x01 = reliable, 0x02 = locked, 0x04 = stale
     -- properties: audio content metadata
     audio_duration_ms      REAL,             -- milliseconds
     audio_channel_count    INTEGER,          -- number of channels
@@ -27,20 +27,20 @@ CREATE TABLE IF NOT EXISTS media_source (
     audio_loudness_lufs    REAL,             -- LUFS (dB)
     audio_encoder          TEXT,             -- both name and settings, often referred to as encoded_by
     -- properties: artwork
-    artwork_source         TINYINT,          -- 0 = Missing, 1 = Embedded, 2 = Linked (URI)
+    artwork_source         INTEGER,          -- 0 = Missing, 1 = Embedded, 2 = Linked (URI)
     artwork_uri            TEXT,             -- RFC 3986, absolute or relative to the media_source URI
-    artwork_apic_type      TINYINT,          -- APIC picture type
+    artwork_apic_type      INTEGER,          -- APIC picture type
     artwork_media_type     TEXT,             -- RFC 6838 media type
-    artwork_digest         BINARY,           -- cryptographic artwork content hash
+    artwork_digest         BLOB,             -- cryptographic artwork content hash
     artwork_size_width     INTEGER,
     artwork_size_height    INTEGER,
-    artwork_thumbnail      BINARY,
+    artwork_thumbnail      BLOB,
     -- misc properties
-    advisory_rating        TINYINT,          -- 0 = unrated, 1 = explicit, 2 = clean
+    advisory_rating        INTEGER,          -- 0 = unrated, 1 = explicit, 2 = clean
     --
     FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE,
     UNIQUE (collection_id, content_link_path)
-);
+) STRICT;
 
 CREATE INDEX idx_media_source_row_created_ms_desc ON media_source (
     row_created_ms DESC

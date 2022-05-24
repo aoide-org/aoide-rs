@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS playlist_entry (
     UNIQUE(playlist_id, ordering),
     FOREIGN KEY(playlist_id) REFERENCES playlist(row_id) ON DELETE CASCADE,
     FOREIGN KEY(track_id) REFERENCES track(row_id) ON DELETE CASCADE
-);
+) STRICT;
 
 CREATE INDEX IF NOT EXISTS idx_playlist_entry_row_created_ms_desc ON playlist (
     row_created_ms DESC
