@@ -30,11 +30,11 @@ pub enum Intent {
 
 impl Intent {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying intent {:?} on {:?}", self, state);
+        log::trace!("Applying intent {self:?} on {state:?}");
         match self {
             Self::Reset(search_params) => {
                 if !state.can_reset() {
-                    log::warn!("Cannot fetch results: {:?}", search_params);
+                    log::warn!("Cannot fetch results: {search_params:?}");
                     return StateUpdated::unchanged(None);
                 }
                 state.reset(search_params);
@@ -49,7 +49,7 @@ impl Intent {
                     request,
                 };
                 if !state.can_fetch_results() {
-                    log::warn!("Cannot fetch results: {:?}", task);
+                    log::warn!("Cannot fetch results: {task:?}");
                     return StateUpdated::unchanged(None);
                 }
                 state.set_fetching_results();

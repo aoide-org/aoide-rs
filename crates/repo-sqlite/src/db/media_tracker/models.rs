@@ -52,7 +52,7 @@ impl TryFrom<QueryableRecord> for TrackedDirectory {
             digest,
         } = from;
         let status = DirTrackingStatus::from_i16(status)
-            .ok_or_else(|| anyhow::anyhow!("Invalid entry status value: {}", status))?;
+            .ok_or_else(|| anyhow::anyhow!("Invalid entry status value: {status}"))?;
         let digest = read_digest_from_slice(digest.as_slice())
             .ok_or_else(|| anyhow::anyhow!("Invalid digest: {:?}", digest.as_slice()))?;
         let into = Self {

@@ -59,7 +59,7 @@ use aoide_core_api_json::{
 
 use crate::domain::*;
 
-const BASE_URL: &str = "/api";
+const BASE_URL: &str = "/api/";
 
 impl TryFrom<CollectionEntityWithSummary> for CollectionItem {
     type Error = Error;
@@ -72,7 +72,7 @@ impl TryFrom<CollectionEntityWithSummary> for CollectionItem {
 }
 
 pub(crate) async fn fetch_all_collections() -> Result<CollectionItems> {
-    let url = format!("{}/c", BASE_URL);
+    let url = format!("{BASE_URL}c");
     let response = fetch(url).await?;
     let content: Vec<SerdeCollectionEntity> = response.check_status()?.json().await?;
     let capacity = content.len();
@@ -89,7 +89,7 @@ pub(crate) async fn fetch_all_collections() -> Result<CollectionItems> {
 pub(crate) async fn fetch_collection_with_summary(
     collection_uid: CollectionUid,
 ) -> Result<CollectionItem> {
-    let url = format!("{BASE_URL}/c/{collection_uid}?summary=true");
+    let url = format!("{BASE_URL}c/{collection_uid}?summary=true");
     let response = fetch(url).await?;
     let content: CollectionEntityWithSummary = response.check_status()?.json().await?;
     content.try_into()
@@ -99,7 +99,7 @@ pub(crate) async fn fetch_collection_with_summary(
 pub(crate) async fn create_collection(
     collection: impl Into<SerdeCollection>,
 ) -> Result<EntityHeader> {
-    let url = format!("{BASE_URL}/c");
+    let url = format!("{BASE_URL}c");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&collection.into())?;
@@ -113,7 +113,7 @@ pub(crate) async fn update_collection(
     entity_header: impl Into<SerdeEntityHeader>,
     collection: impl TryInto<SerdeCollection, Error = anyhow::Error>,
 ) -> Result<EntityHeader> {
-    let url = format!("{BASE_URL}/c");
+    let url = format!("{BASE_URL}c");
     let entity = SerdeEntity(
         entity_header.into(),
         collection.try_into().map_err(Error::DataShape)?,
@@ -126,7 +126,7 @@ pub(crate) async fn update_collection(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn delete_collection(entity_header: impl Into<SerdeEntityHeader>) -> Result<()> {
-    let url = format!("{BASE_URL}/c");
+    let url = format!("{BASE_URL}c");
     let request = Request::new(url)
         .method(Method::Delete)
         .json(&entity_header.into())?;
@@ -141,7 +141,7 @@ pub(crate) async fn scan_media_directories(
     collection_uid: CollectionUid,
     params: impl Into<SerdeFsTraversalParams>,
 ) -> Result<ScanMediaDirectoriesOutcome> {
-    let url = format!("{BASE_URL}/c/{collection_uid}/mt/scan-directories");
+    let url = format!("{BASE_URL}c/{collection_uid}/mt/scan-directories");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -158,7 +158,7 @@ pub(crate) async fn import_media_files(
     collection_uid: CollectionUid,
     params: impl Into<SerdeImportMediaFilesParams>,
 ) -> Result<ImportMediaFileOutcome> {
-    let url = format!("{BASE_URL}/c/{collection_uid}/mt/import-files");
+    let url = format!("{BASE_URL}c/{collection_uid}/mt/import-files");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -175,7 +175,7 @@ pub(crate) async fn untrack_media_directories(
     collection_uid: CollectionUid,
     params: impl Into<SerdeUntrackMediaDirectoriesParams>,
 ) -> Result<UntrackMediaDirectoriesOutcome> {
-    let url = format!("{BASE_URL}/c/{collection_uid}/mt/untrack-directories");
+    let url = format!("{BASE_URL}c/{collection_uid}/mt/untrack-directories");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -192,7 +192,7 @@ pub(crate) async fn purge_orphaned_media_sources(
     collection_uid: CollectionUid,
     params: impl Into<SerdePurgeOrphanedMediaSourcesParams>,
 ) -> Result<PurgeOrphanedMediaSourcesOutcome> {
-    let url = format!("{BASE_URL}/c/{collection_uid}/ms/purge-orphaned");
+    let url = format!("{BASE_URL}c/{collection_uid}/ms/purge-orphaned");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -209,7 +209,7 @@ pub(crate) async fn purge_untracked_media_sources(
     collection_uid: CollectionUid,
     params: impl Into<SerdePurgeUntrackedMediaSourcesParams>,
 ) -> Result<PurgeUntrackedMediaSourcesOutcome> {
-    let url = format!("{BASE_URL}/c/{collection_uid}/ms/purge-untracked");
+    let url = format!("{BASE_URL}c/{collection_uid}/ms/purge-untracked");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -226,7 +226,7 @@ pub(crate) async fn query_media_tracker_status(
     collection_uid: CollectionUid,
     params: impl Into<SerdeQueryMediaTrackerStatusParams>,
 ) -> Result<QueryMediaTrackerStatusOutcome> {
-    let url = format!("{BASE_URL}/c/{collection_uid}/mt/query-status");
+    let url = format!("{BASE_URL}c/{collection_uid}/mt/query-status");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -237,7 +237,7 @@ pub(crate) async fn query_media_tracker_status(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn get_media_tracker_progress() -> Result<MediaTrackerProgress> {
-    let url = format!("{BASE_URL}/mt/progress");
+    let url = format!("{BASE_URL}mt/progress");
     let response = fetch(url).await?;
     let content: SerdeMediaTrackerProgress = response.check_status()?.json().await?;
     Ok(content.into())
@@ -245,7 +245,7 @@ pub(crate) async fn get_media_tracker_progress() -> Result<MediaTrackerProgress>
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub(crate) async fn storage_abort_current_task() -> Result<()> {
-    let url = format!("{BASE_URL}/storage/abort-current-task");
+    let url = format!("{BASE_URL}storage/abort-current-task");
     let request = Request::new(url).method(Method::Post);
     let response = request.fetch().await?.check_status()?;
     let status_code = response.check_status()?.status().code;
@@ -261,12 +261,10 @@ pub(crate) async fn search_tracks(
 ) -> Result<Vec<Track>> {
     let (query_params, search_params) =
         aoide_core_api_json::track::search::client_request_params(params, pagination);
-    let url = format!(
-        "{BASE_URL}/c/{collection_uid}/t/search?{}",
-        serde_urlencoded::to_string(query_params)
-            .map_err(Into::into)
-            .map_err(Error::DataShape)?,
-    );
+    let query_params_urlencoded = serde_urlencoded::to_string(query_params)
+        .map_err(Into::into)
+        .map_err(Error::DataShape)?;
+    let url = format!("{BASE_URL}c/{collection_uid}/t/search?{query_params_urlencoded}");
     let request = Request::new(url)
         .method(Method::Post)
         .json(&search_params)?;
@@ -303,7 +301,7 @@ impl From<FetchError> for Error {
         match e {
             // TODO: Fix after https://github.com/seed-rs/seed/issues/673 has been resolved
             E::JsonError(err) => {
-                Error::DataShape(anyhow::anyhow!("TODO Handle JSON error: {:?}", err))
+                Error::DataShape(anyhow::anyhow!("TODO Handle JSON error: {err:?}"))
             }
             E::NetworkError(_) => Error::Network,
             E::DomException(exception) => Error::Browser(exception.as_string()),

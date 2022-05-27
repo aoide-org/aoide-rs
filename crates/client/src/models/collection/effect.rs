@@ -38,7 +38,7 @@ pub enum Effect {
 
 impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying effect {:?} on {:?}", self, state);
+        log::trace!("Applying effect {self:?} on {state:?}");
         match self {
             Self::FetchAllKindsFinished { token, result } => match result {
                 Ok(all_kinds) => {

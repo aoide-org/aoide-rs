@@ -409,7 +409,7 @@ impl TrackIndex {
                 match Index::open_or_create(index_dir, schema) {
                     Ok(index) => index,
                     Err(TantivyError::SchemaError(err)) => {
-                        log::warn!("Deleting track index with incompatible schema: {}", err,);
+                        log::warn!("Deleting track index with incompatible schema: {err}");
                         // Delete existing index data
                         fs::remove_dir_all(dir_path)?;
                         // ...and retry.

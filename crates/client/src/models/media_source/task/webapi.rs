@@ -22,7 +22,7 @@ use super::{super::Effect, Task};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
-        log::debug!("Executing task: {:?}", self);
+        log::debug!("Executing task {self:?}");
         match self {
             Self::PurgeOrphaned {
                 token,
@@ -58,7 +58,7 @@ async fn purge_orphaned<E: ClientEnvironment>(
         aoide_core_api_json::media::source::purge_orphaned::Outcome,
     >(&response_body)?
     .try_into()?;
-    log::debug!("Purge orphaned media sources succeeded: {:?}", outcome);
+    log::debug!("Purge orphaned media sources succeeded: {outcome:?}");
     Ok(outcome)
 }
 
@@ -76,6 +76,6 @@ async fn purge_untracked<E: ClientEnvironment>(
         aoide_core_api_json::media::source::purge_untracked::Outcome,
     >(&response_body)?
     .try_into()?;
-    log::debug!("Purge untracked media sources succeeded: {:?}", outcome);
+    log::debug!("Purge untracked media sources succeeded: {outcome:?}");
     Ok(outcome)
 }

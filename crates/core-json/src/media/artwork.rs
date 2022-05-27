@@ -84,7 +84,7 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
         } = from;
         let media_type = media_type.parse()?;
         let apic_type = _core::ApicType::from_u8(apic_type)
-            .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {}", apic_type))?;
+            .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {apic_type}"))?;
         let size = size.map(|size| {
             let ImageSize(width, height) = size;
             _core::ImageSize { width, height }

@@ -70,11 +70,8 @@ pub fn import_files<
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!(
-            "Unsupported path kind: {:?}",
-            collection_ctx.content_path.kind
-        )
-        .into());
+        let path_kind = collection_ctx.content_path.kind;
+        return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
     let import_and_replace_params = import_and_replace::Params {
         sync_mode: sync_mode.unwrap_or(SyncMode::Modified),
@@ -99,7 +96,7 @@ pub fn import_files<
             },
         )?;
         if pending_directories.is_empty() {
-            log::debug!("Finished import of pending directories: {:?}", summary);
+            log::debug!("Finished import of pending directories: {summary:?}");
             let (root_url, root_path) = collection_ctx
                 .content_path
                 .vfs
@@ -116,7 +113,7 @@ pub fn import_files<
         }
         for pending_directory in pending_directories {
             if abort_flag.load(Ordering::Relaxed) {
-                log::debug!("Aborting import of pending directories: {:?}", summary);
+                log::debug!("Aborting import of pending directories: {summary:?}");
                 let (root_url, root_path) = collection_ctx
                     .content_path
                     .vfs
@@ -150,7 +147,7 @@ pub fn import_files<
                     Err(err) => {
                         let err = if let Error::Io(io_err) = err {
                             if io_err.kind() == io::ErrorKind::NotFound {
-                                log::info!("Untracking missing directory '{}'", dir_path);
+                                log::info!("Untracking missing directory '{dir_path}'");
                                 summary.directories.untracked += repo
                                     .media_tracker_untrack_directories(
                                         collection_id,
@@ -165,7 +162,7 @@ pub fn import_files<
                             // Pass-through error
                             err
                         };
-                        log::warn!("Failed to import pending directory '{}': {}", dir_path, err);
+                        log::warn!("Failed to import pending directory '{dir_path}': {err}");
                         // Skip this directory and keep going
                         summary.directories.skipped += 1;
                         continue;
@@ -188,7 +185,7 @@ pub fn import_files<
             match completion {
                 ReplaceCompletion::Finished => {}
                 ReplaceCompletion::Aborted => {
-                    log::debug!("Aborting import of pending directories: {:?}", summary);
+                    log::debug!("Aborting import of pending directories: {summary:?}");
                     let (root_url, root_path) = collection_ctx
                         .content_path
                         .vfs
@@ -213,24 +210,17 @@ pub fn import_files<
                     &digest,
                 ) {
                     Ok(true) => {
-                        log::debug!("Confirmed pending directory '{}'", dir_path);
+                        log::debug!("Confirmed pending directory '{dir_path}'");
                         summary.directories.confirmed += 1;
                     }
                     Ok(false) => {
                         // Might be rejected if the digest has been updated meanwhile
-                        log::info!(
-                            "Confirmation of imported directory '{}' was rejected",
-                            dir_path
-                        );
+                        log::info!("Confirmation of imported directory '{dir_path}' was rejected",);
                         // Keep going and retry to import this directory later
                         continue;
                     }
                     Err(err) => {
-                        log::warn!(
-                            "Failed to confirm pending directory '{}': {}",
-                            dir_path,
-                            err
-                        );
+                        log::warn!("Failed to confirm pending directory '{dir_path}': {err}");
                         // Skip this directory, but remember the sources imported from
                         // this directory (see below)
                         summary.directories.skipped += 1;
@@ -238,9 +228,8 @@ pub fn import_files<
                 }
             } else {
                 log::warn!(
-                    "Postponing confirmation of pending directory '{}' after {} import failure(s)",
-                    dir_path,
-                    tracks_summary.failed.len()
+                    "Postponing confirmation of pending directory '{dir_path}' after {num_failures} import failure(s)",
+                    num_failures = tracks_summary.failed.len(),
                 );
                 // Skip this directory, but remember the sources imported from
                 // this directory (see below)
@@ -251,11 +240,7 @@ pub fn import_files<
                 &dir_path,
                 &visited_media_source_ids,
             ) {
-                log::warn!(
-                    "Failed replace imported sources in directory '{}': {}",
-                    dir_path,
-                    err
-                );
+                log::warn!("Failed replace imported sources in directory '{dir_path}': {err}");
             }
         }
     };

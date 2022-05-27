@@ -21,7 +21,7 @@ use super::{super::Effect, Task};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
-        log::trace!("Executing task: {:?}", self);
+        log::trace!("Executing task {self:?}");
         match self {
             Self::FetchAllKinds { token } => {
                 let result = fetch_all_kinds(env).await;
@@ -105,7 +105,7 @@ async fn create_entity<E: ClientEnvironment>(
     let entity = serde_json::from_slice::<aoide_core_json::collection::Entity>(&response_body)
         .map_err(anyhow::Error::from)
         .and_then(TryInto::try_into)?;
-    log::debug!("Creating new collection entity succeeded: {:?}", entity);
+    log::debug!("Creating new collection entity succeeded: {entity:?}");
     Ok(entity)
 }
 
@@ -125,10 +125,7 @@ async fn update_entity<E: ClientEnvironment>(
     let entity = serde_json::from_slice::<aoide_core_json::collection::Entity>(&response_body)
         .map_err(anyhow::Error::from)
         .and_then(TryInto::try_into)?;
-    log::debug!(
-        "Updating modified collection entity succeeded: {:?}",
-        entity
-    );
+    log::debug!("Updating modified collection entity succeeded: {entity:?}");
     Ok(entity)
 }
 
@@ -136,9 +133,9 @@ async fn purge_entity<E: ClientEnvironment>(
     env: &E,
     entity_uid: &aoide_core::entity::EntityUid,
 ) -> anyhow::Result<()> {
-    let url = env.join_api_url(&format!("c/{}", entity_uid))?;
+    let url = env.join_api_url(&format!("c/{entity_uid}"))?;
     let request = env.client().delete(url);
     let _response = request.send().await?;
-    log::debug!("Purging collection entity succeeded: {:?}", entity_uid);
+    log::debug!("Purging collection entity succeeded: {entity_uid:?}");
     Ok(())
 }

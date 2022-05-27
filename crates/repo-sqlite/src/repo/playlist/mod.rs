@@ -231,7 +231,7 @@ fn shift_playlist_entries_forward(
             diesel::update(playlist_entry::table.filter(playlist_entry::row_id.eq(row_id)))
                 .set(
                     playlist_entry::ordering
-                        .eq(diesel::dsl::sql(&format!("ordering+{}", delta_ordering))),
+                        .eq(diesel::dsl::sql(&format!("ordering+{delta_ordering}"))),
                 )
                 .execute(db.as_ref())
                 .map_err(repo_error)?;
@@ -565,10 +565,9 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                     delta_ordering,
                 )?;
                 log::debug!(
-                    "Reordered {} entries of playlist {} before inserting {} entries",
-                    rows_updated,
-                    RowId::from(playlist_id),
-                    new_entries.len()
+                    "Reordered {rows_updated} entries of playlist {row_id} before inserting {num_new_entries} entries",
+                    row_id = RowId::from(playlist_id),
+                    num_new_entries = new_entries.len(),
                 );
             }
             new_ordering_range

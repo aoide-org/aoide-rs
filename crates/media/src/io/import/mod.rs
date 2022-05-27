@@ -227,9 +227,8 @@ pub fn import_into_track(
     .map(move |()| importer.finish())
     .map_err(|err| {
         log::warn!(
-            "Failed to parse metadata from media source '{}': {}",
+            "Failed to parse metadata from media source '{}': {err}",
             track.media_source.content_link.path,
-            err
         );
         err
     })
@@ -401,8 +400,7 @@ impl Importer {
         let parsed = parse_year_tag(input);
         if parsed.is_none() {
             self.issues.messages.push(format!(
-                "Failed to parse year tag from input '{}' in field '{}'",
-                input, field
+                "Failed to parse year tag from input '{input}' in field '{field}'"
             ));
         }
         parsed
@@ -458,19 +456,17 @@ impl Importer {
                     // Silently ignore this special value to prevent log spam.
                     if bpm != 0.0 {
                         self.add_issue(format!(
-                            "Invalid tempo parsed from input '{}': {}",
-                            input, tempo_bpm
+                            "Invalid tempo parsed from input '{input}': {tempo_bpm}"
                         ));
                     }
                     return None;
                 }
-                log::debug!("Parsed tempo from input '{}': {}", input, tempo_bpm);
+                log::debug!("Parsed tempo from input '{input}': {tempo_bpm}");
                 Some(tempo_bpm)
             }
             Err(err) => {
                 self.add_issue(format!(
-                    "Failed to parse tempo (BPM) from input '{}': {}",
-                    input, err
+                    "Failed to parse tempo (BPM) from input '{input}': {err}"
                 ));
                 None
             }
@@ -487,37 +483,26 @@ impl Importer {
             Ok((remainder, relative_gain_db)) => {
                 if !remainder.is_empty() {
                     self.add_issue(format!(
-                        "Unexpected remainder '{}' after parsing replay gain input '{}'",
-                        remainder, input
+                        "Unexpected remainder '{remainder}' after parsing replay gain input '{input}'"
                     ));
                 }
                 let loudness_lufs = db2lufs(relative_gain_db);
                 if !loudness_lufs.is_valid() {
                     self.add_issue(format!(
-                        "Invalid loudness parsed from replay gain input '{}': {}",
-                        input, loudness_lufs
+                        "Invalid loudness parsed from replay gain input '{input}': {loudness_lufs}"
                     ));
                     return None;
                 }
-                log::debug!(
-                    "Parsed loudness from replay gain input '{}': {}",
-                    input,
-                    loudness_lufs
-                );
+                log::debug!("Parsed loudness from replay gain input '{input}': {loudness_lufs}");
                 Some(loudness_lufs)
             }
             Err(err) => {
                 // Silently ignore any 0 values
                 if input.parse().ok() == Some(0.0) {
-                    log::debug!(
-                        "Ignoring invalid replay gain (dB) from input '{}': {}",
-                        input,
-                        err
-                    );
+                    log::debug!("Ignoring invalid replay gain (dB) from input '{input}': {err}");
                 } else {
                     self.add_issue(format!(
-                        "Failed to parse replay gain (dB) from input '{}': {}",
-                        input, err
+                        "Failed to parse replay gain (dB) from input '{input}': {err}"
                     ));
                 }
                 None
@@ -528,10 +513,9 @@ impl Importer {
     pub fn import_key_signature(&mut self, input: &str) -> Option<KeySignature> {
         let key_signature = parse_key_signature(input);
         if key_signature.is_none() {
+            let input_bytes = input.as_bytes();
             self.add_issue(format!(
-                "Failed to parse musical key signature from input '{}' (UTF-8 bytes: {:X?})",
-                input,
-                input.as_bytes()
+                "Failed to parse musical key signature from input '{input}' (UTF-8 bytes: {input_bytes:X?})",
             ));
         }
         key_signature
@@ -542,8 +526,7 @@ impl Importer {
         let index = parse_index_numbers(input);
         if index.is_none() {
             self.add_issue(format!(
-                "Failed to parse index numbers from input '{}' in field '{}'",
-                input, field,
+                "Failed to parse index numbers from input '{input}' in field '{field}'"
             ));
         }
         index
@@ -571,9 +554,8 @@ impl Importer {
         let count = plain_tags.len();
         if count < total_import_count {
             self.issues.add_message(format!(
-                "Discarded {} duplicate tag labels for facet '{}'",
+                "Discarded {} duplicate tag labels for facet '{facet_id}'",
                 total_import_count - count,
-                facet_id,
             ));
         }
         if plain_tags.is_empty() {
@@ -607,8 +589,7 @@ impl Importer {
                             }
                             Err(plain_tag) => {
                                 self.add_issue(format!(
-                                    "Failed to import plain tag: {:?}",
-                                    plain_tag
+                                    "Failed to import plain tag: {plain_tag:?}"
                                 ));
                             }
                         }
@@ -627,7 +608,7 @@ impl Importer {
                         }
                     }
                     Err(plain_tag) => {
-                        self.add_issue(format!("Failed to import plain tag: {:?}", plain_tag));
+                        self.add_issue(format!("Failed to import plain tag: {plain_tag:?}"));
                     }
                 }
             }

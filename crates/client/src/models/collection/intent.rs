@@ -27,19 +27,16 @@ pub enum Intent {
 
 impl Intent {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying intent {:?} on {:?}", self, state);
+        log::trace!("Applying intent {self:?} on {state:?}");
         match self {
             Self::FetchAllKinds => {
                 if let Some(token) = state.remote_view.all_kinds.try_start_pending_now() {
                     let task = Task::FetchAllKinds { token };
-                    log::debug!("Dispatching task {:?}", task);
+                    log::debug!("Dispatching task {task:?}");
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::FetchAllKinds;
-                    log::warn!(
-                        "Discarding intent while already pending: {:?}",
-                        self_reconstructed
-                    );
+                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
                     StateUpdated::unchanged(None)
                 }
             }
@@ -49,14 +46,11 @@ impl Intent {
                         token,
                         filter_by_kind,
                     };
-                    log::debug!("Dispatching task {:?}", task);
+                    log::debug!("Dispatching task {task:?}");
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::FetchFilteredEntities { filter_by_kind };
-                    log::warn!(
-                        "Discarding intent while already pending: {:?}",
-                        self_reconstructed
-                    );
+                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
                     StateUpdated::unchanged(None)
                 }
             }
@@ -66,7 +60,7 @@ impl Intent {
             }
             Self::CreateEntity { new_collection } => {
                 let task = Task::CreateEntity { new_collection };
-                log::debug!("Dispatching task {:?}", task);
+                log::debug!("Dispatching task {task:?}");
                 StateUpdated::unchanged(Action::dispatch_task(task))
             }
         }

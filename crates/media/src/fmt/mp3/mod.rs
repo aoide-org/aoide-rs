@@ -160,7 +160,7 @@ pub fn export_track_to_path(
 
     let mut id3_tag = id3_tag_orig.clone();
     export_track_into_id3_tag(config, track, &mut id3_tag)
-        .map_err(|err| Error::Other(anyhow::anyhow!("Failed to export ID3 tag: {:?}", err)))?;
+        .map_err(|err| Error::Other(anyhow::anyhow!("Failed to export ID3 tag: {err:?}")))?;
 
     if id3_tag == id3_tag_orig {
         // Unmodified

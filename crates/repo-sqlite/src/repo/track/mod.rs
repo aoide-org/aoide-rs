@@ -590,7 +590,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 return Ok(ReplaceOutcome::Unchanged(media_source_id, id, entity));
             }
             log::trace!("original = {:?}", entity.body);
-            log::trace!("updated = {:?}", track);
+            log::trace!("updated = {track:?}");
             if track.media_source != entity.body.track.media_source {
                 self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
@@ -686,8 +686,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             .map_err(repo_error)?;
         let count = records.len();
         log::debug!(
-            "Executing search query returned {} record(s) and took {} ms",
-            count,
+            "Executing search query returned {count} record(s) and took {} ms",
             (timed.elapsed().as_micros() / 1000) as f64,
         );
 
@@ -701,8 +700,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             collector.collect(record_header, entity);
         }
         log::debug!(
-            "Loading and collecting {} track(s) from database took {} ms",
-            count,
+            "Loading and collecting {count} track(s) from database took {} ms",
             (timed.elapsed().as_micros() / 1000) as f64,
         );
 

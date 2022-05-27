@@ -68,10 +68,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Entity) {
         let media_source_path_kind = match ContentPathKind::from_i16(media_source_path_kind) {
             Some(path_kind) => path_kind,
             None => {
-                anyhow::bail!(
-                    "Invalid media source path kind value: {}",
-                    media_source_path_kind
-                );
+                anyhow::bail!("Invalid media source path kind value: {media_source_path_kind}");
             }
         };
         let media_source_root_url = media_source_root_url

@@ -93,7 +93,7 @@ pub(crate) fn map_id3_err(err: id3::Error) -> Error {
 fn parse_timestamp(timestamp: id3::Timestamp) -> anyhow::Result<DateOrDateTime> {
     let year = timestamp.year;
     if year < i32::from(YEAR_MIN) || year > i32::from(YEAR_MAX) {
-        anyhow::bail!("Year out of range in {:?}", timestamp);
+        anyhow::bail!("Year out of range in {timestamp:?}");
     }
     match (timestamp.month, timestamp.day) {
         (Some(month), Some(day)) => {
@@ -267,8 +267,7 @@ pub fn import_timestamp_from_first_text_frame(
             .and_then(parse_timestamp)
             .map_err(|err| {
                 importer.add_issue(format!(
-                    "Failed to parse ID3 time stamp from input '{}' in text frame '{}': {}",
-                    text, frame_id, err
+                    "Failed to parse ID3 time stamp from input '{text}' in text frame '{frame_id}': {err}",
                 ));
             })
             .ok()
@@ -477,8 +476,8 @@ pub fn import_metadata_into_track(
             if let Some(custom_tags) = serde_json::from_slice::<SerdeTags>(&geob.data)
                 .map_err(|err| {
                     importer.add_issue(format!(
-                        "Failed to parse GEOB '{}': {}",
-                        geob.description, err
+                        "Failed to parse GEOB '{}': {err}",
+                        geob.description
                     ));
                     err
                 })
@@ -646,7 +645,7 @@ pub fn import_metadata_into_track(
                     serato_tags
                         .parse_markers(&geob.data, SeratoTagFormat::ID3)
                         .map_err(|err| {
-                            importer.add_issue(format!("Failed to parse Serato Markers: {}", err));
+                            importer.add_issue(format!("Failed to parse Serato Markers: {err}"));
                         })
                         .ok();
                 }
@@ -654,7 +653,7 @@ pub fn import_metadata_into_track(
                     serato_tags
                         .parse_markers2(&geob.data, SeratoTagFormat::ID3)
                         .map_err(|err| {
-                            importer.add_issue(format!("Failed to parse Serato Markers2: {}", err));
+                            importer.add_issue(format!("Failed to parse Serato Markers2: {err}"));
                         })
                         .ok();
                 }
@@ -886,12 +885,12 @@ pub fn export_track(
     }
     if let Some(movement_number) = track.indexes.movement.number {
         if let Some(movement_total) = track.indexes.movement.total {
-            tag.set_text("MVIN", format!("{}/{}", movement_number, movement_total));
+            tag.set_text("MVIN", format!("{movement_number}/{movement_total}"));
         } else {
             tag.set_text("MVIN", movement_number.to_string());
         }
     } else if let Some(movement_total) = track.indexes.movement.total {
-        tag.set_text("MVIN", format!("/{}", movement_total));
+        tag.set_text("MVIN", format!("/{movement_total}"));
     } else {
         tag.remove("MVIN");
     }
@@ -911,11 +910,7 @@ pub fn export_track(
                 });
             }
             Err(err) => {
-                log::warn!(
-                    "Failed to write GEOB '{}': {}",
-                    AOIDE_TAGS_GEOB_DESCRIPTION,
-                    err
-                );
+                log::warn!("Failed to write GEOB '{AOIDE_TAGS_GEOB_DESCRIPTION}': {err}");
             }
         }
     } else {

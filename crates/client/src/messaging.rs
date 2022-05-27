@@ -44,7 +44,7 @@ pub fn send_message<Intent: fmt::Debug, Effect: fmt::Debug>(
     message: impl Into<Message<Intent, Effect>>,
 ) {
     let message = message.into();
-    log::debug!("Sending message: {:?}", message);
+    log::debug!("Sending message: {message:?}");
     if let Err(message) = message_tx.send(message) {
         // Channel is closed, i.e. receiver has been dropped
         log::debug!("Failed to send message: {:?}", message.0);
@@ -85,31 +85,28 @@ where
             number_of_next_actions += 1;
             match next_action {
                 Action::ApplyEffect(effect) => {
-                    log::debug!("Applying subsequent effect immediately: {:?}", effect);
+                    log::debug!("Applying subsequent effect immediately: {effect:?}");
                     next_message = Message::Effect(effect);
                     continue 'process_next_message;
                 }
                 Action::DispatchTask(task) => {
-                    log::debug!("Dispatching task asynchronously: {:?}", task);
+                    log::debug!("Dispatching task asynchronously: {task:?}");
                     shared_env.dispatch_task(shared_env.clone(), message_tx.clone(), task);
                     number_of_tasks_dispatched += 1;
                 }
             }
         }
         if state_mutation == StateMutation::MaybeChanged || number_of_next_actions > 0 {
-            log::debug!("Rendering current state: {:?}", state);
+            log::debug!("Rendering current state: {state:?}");
             if let Some(observation_intent) = render_fn(state) {
-                log::debug!(
-                    "Received intent after observing state: {:?}",
-                    observation_intent
-                );
+                log::debug!("Received intent after observing state: {observation_intent:?}");
                 send_message(message_tx, Message::Intent(observation_intent));
                 number_of_messages_sent += 1;
             }
         }
         break;
     }
-    log::debug!("number_of_next_actions = {}, number_of_messages_sent = {}, number_of_tasks_dispatched = {}", number_of_next_actions, number_of_messages_sent, number_of_tasks_dispatched);
+    log::debug!("number_of_next_actions = {number_of_next_actions}, number_of_messages_sent = {number_of_messages_sent}, number_of_tasks_dispatched = {number_of_tasks_dispatched}");
     if number_of_messages_sent + number_of_tasks_dispatched > 0 {
         MessageHandled::Progressing
     } else {

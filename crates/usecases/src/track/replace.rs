@@ -75,11 +75,7 @@ where
     let outcome = repo
         .replace_track_by_media_source_content_path(collection_id, params, track)
         .map_err(|err| {
-            log::warn!(
-                "Failed to replace track by URI '{}': {}",
-                media_content_path,
-                err
-            );
+            log::warn!("Failed to replace track by URI '{media_content_path}': {err}");
             err
         })?;
     let media_source_id = match outcome {
@@ -104,7 +100,7 @@ where
             media_source_id
         }
         ReplaceOutcome::Unchanged(media_source_id, _, entity) => {
-            log::trace!("Unchanged: {:?}", entity);
+            log::trace!("Unchanged: {entity:?}");
             summary
                 .unchanged
                 .push(entity.raw.body.track.media_source.content_link.path);
@@ -112,13 +108,13 @@ where
         }
         ReplaceOutcome::NotCreated(track) => {
             debug_assert_eq!(ReplaceMode::UpdateOnly, params.mode);
-            log::trace!("Not created: {:?}", track);
+            log::trace!("Not created: {track:?}");
             summary.not_created.push(track);
             return Ok(None);
         }
         ReplaceOutcome::NotUpdated(media_source_id, _, track) => {
             debug_assert_eq!(ReplaceMode::CreateOnly, params.mode);
-            log::trace!("Not updated: {:?}", track);
+            log::trace!("Not updated: {track:?}");
             summary.not_updated.push(track);
             media_source_id
         }
@@ -162,20 +158,15 @@ where
                 .parse()
                 .map_err(|err| {
                     anyhow::anyhow!(
-                        "Failed to parse URL from path '{}': {}",
+                        "Failed to parse URL from path '{}': {err}",
                         track.media_source.content_link.path,
-                        err
                     )
                 })
                 .map_err(Error::from)?;
             track.media_source.content_link.path = content_path_resolver
                 .resolve_path_from_url(&url)
                 .map_err(|err| {
-                    anyhow::anyhow!(
-                        "Failed to resolve local file path from URL '{}': {}",
-                        url,
-                        err
-                    )
+                    anyhow::anyhow!("Failed to resolve local file path from URL '{url}': {err}")
                 })
                 .map_err(Error::from)?;
         }

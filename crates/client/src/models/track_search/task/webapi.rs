@@ -27,7 +27,7 @@ use super::{
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
-        log::debug!("Executing task: {:?}", self);
+        log::debug!("Executing task {self:?}");
         match self {
             Self::FetchResultPage {
                 collection_uid,
@@ -50,10 +50,9 @@ async fn fetch_result_page<E: ClientEnvironment>(
         pagination,
     } = request;
     let (query_params, search_params) = client_request_params(search_params, pagination.clone());
+    let query_params_urlencoded = serde_urlencoded::to_string(query_params)?;
     let request_url = env.join_api_url(&format!(
-        "c/{}/t/search?{}",
-        collection_uid,
-        serde_urlencoded::to_string(query_params)?
+        "c/{collection_uid}/t/search?{query_params_urlencoded}",
     ))?;
     let request_body = serde_json::to_vec(&search_params)?;
     let request = env.client().post(request_url).body(request_body);
@@ -69,9 +68,8 @@ async fn fetch_result_page<E: ClientEnvironment>(
     }
     let entities: Vec<_> = entities.into_iter().map(Result::unwrap).collect();
     log::debug!(
-        "Received {} entities with pagination {:?}",
-        entities.len(),
-        pagination
+        "Received {num_entities} entities with pagination {pagination:?}",
+        num_entities = entities.len()
     );
     Ok(FetchResultPageResponse {
         entities,

@@ -153,7 +153,7 @@ impl<'de> SerdeDeserializeVisitor<'de> for DateYYYYMMDDDeserializeVisitor {
         };
         value
             .validate()
-            .map_err(|e| E::custom(format!("{:?}", e)))
+            .map_err(|err| E::custom(format!("{err:?}")))
             .map(|()| DateYYYYMMDD(value))
     }
 }

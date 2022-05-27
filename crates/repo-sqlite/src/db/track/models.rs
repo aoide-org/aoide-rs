@@ -196,7 +196,7 @@ pub(crate) fn load_repo_entity(
             .map(Into::into)
     };
     let album_kind = AlbumKind::from_i16(album_kind)
-        .ok_or_else(|| anyhow::anyhow!("Invalid album kind value: {}", album_kind))?;
+        .ok_or_else(|| anyhow::anyhow!("Invalid album kind value: {album_kind}"))?;
     let album = Canonical::tie(Album {
         kind: album_kind,
         actors: album_actors,

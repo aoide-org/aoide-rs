@@ -113,7 +113,7 @@ where
             let (track, invalidities_from_input_validation) = validate_input(track)?;
             invalidities = invalidities_from_input_validation;
             if !invalidities.is_empty() {
-                log::debug!("{:?} has invalidities: {:?}", track.0, invalidities);
+                log::debug!("{:?} has invalidities: {invalidities:?}", track.0);
             }
             if let Some(media_source_id) =
                 super::replace::replace_collected_track_by_media_source_content_path(
@@ -152,21 +152,19 @@ where
             Error::Media(MediaError::UnknownContentType)
             | Error::Media(MediaError::UnsupportedContentType(_)) => {
                 log::info!(
-                    "Skipped import of track from local file path {}: {}",
+                    "Skipped import of track from local file path {}: {err}",
                     content_path_resolver
                         .build_file_path(&content_path)
-                        .display(),
-                    err
+                        .display()
                 );
                 summary.skipped.push(content_path);
             }
             err => {
                 log::warn!(
-                    "Failed to import track from local file path {}: {}",
+                    "Failed to import track from local file path {}: {err}",
                     content_path_resolver
                         .build_file_path(&content_path)
-                        .display(),
-                    err
+                        .display()
                 );
                 summary.failed.push(content_path);
             }
@@ -199,11 +197,8 @@ where
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!(
-            "Unsupported path kind: {:?}",
-            collection_ctx.content_path.kind
-        )
-        .into());
+        let path_kind = collection_ctx.content_path.kind;
+        return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
     let collection_id = collection_ctx.record_id;
     let mut summary = Summary::default();
@@ -213,7 +208,7 @@ where
         Vec::with_capacity(expected_content_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT) / 4);
     for content_path in content_paths {
         if abort_flag.load(Ordering::Relaxed) {
-            log::debug!("Aborting import of {}", content_path);
+            log::debug!("Aborting import of {content_path}");
             return Ok(Outcome {
                 completion: Completion::Aborted,
                 summary,
@@ -236,7 +231,7 @@ where
                 .last_mut()
                 .unwrap()
                 .2
-                .add_message(format!("Track invalidities: {:?}", invalidities));
+                .add_message(format!("Track invalidities: {invalidities:?}"));
         }
     }
     Ok(Outcome {
@@ -263,11 +258,8 @@ where
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!(
-            "Unsupported path kind: {:?}",
-            collection_ctx.content_path.kind
-        )
-        .into());
+        let path_kind = collection_ctx.content_path.kind;
+        return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
     let collection_id = collection_ctx.record_id;
     import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
@@ -299,7 +291,7 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_re
         let dir_entry = match dir_entry {
             Ok(dir_entry) => dir_entry,
             Err(err) => {
-                log::warn!("Failed to access directory entry: {}", err);
+                log::warn!("Failed to access directory entry: {err}");
                 // Skip entry and keep going
                 continue;
             }

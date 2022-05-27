@@ -50,7 +50,7 @@ impl ClientEnvironment for Environment {
 
     fn join_api_url(&self, query_suffix: &str) -> anyhow::Result<Url> {
         let api_url = self.service_url.join("api/")?.join(query_suffix)?;
-        log::debug!("API URL: {}", api_url);
+        log::debug!("API URL: {api_url}");
         Ok(api_url)
     }
 }
@@ -67,9 +67,9 @@ impl TaskDispatcher<Intent, Effect, Task> for Environment {
             log::debug!("Started first pending task");
         }
         tokio::spawn(async move {
-            log::debug!("Executing task: {:?}", task);
+            log::debug!("Executing task {task:?}");
             let effect = task.execute(&*shared_self).await;
-            log::debug!("Task finished with effect: {:?}", effect);
+            log::debug!("Task finished with effect: {effect:?}");
             send_message(&message_tx, Message::Effect(effect));
             if shared_self.pending_tasks_counter.finish_pending_task() == 0 {
                 log::debug!("Finished last pending task");

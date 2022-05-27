@@ -82,12 +82,12 @@ pub fn load_app_config(app_dirs: &ProjectDirs) -> Config {
     match fs::read(&file_path) {
         Ok(bytes) => ron::de::from_bytes(&bytes)
             .map_err(|err| {
-                log::warn!("Failed to parse configuration data: {}", err);
+                log::warn!("Failed to parse configuration data: {err}");
             })
             .unwrap_or_default(),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Default::default(),
         Err(err) => {
-            log::warn!("Failed to read configuration data from file: {}", err);
+            log::warn!("Failed to read configuration data from file: {err}");
             Default::default()
         }
     }
@@ -101,19 +101,16 @@ pub fn save_app_config(app_dirs: &ProjectDirs, config: &Config) {
     );
     let mut bytes = vec![];
     if let Err(err) = ron::ser::to_writer_pretty(&mut bytes, &config, Default::default()) {
-        log::warn!("Failed to store configuration data: {}", err);
+        log::warn!("Failed to store configuration data: {err}");
         return;
     }
     if let Some(parent_path) = file_path.parent() {
         if let Err(err) = fs::create_dir_all(&parent_path) {
-            log::warn!(
-                "Failed to create parent directories for configuration file: {}",
-                err
-            );
+            log::warn!("Failed to create parent directories for configuration file: {err}");
         }
     }
     if let Err(err) = fs::write(&file_path, &bytes) {
-        log::warn!("Failed to write configuration data into file: {}", err);
+        log::warn!("Failed to write configuration data into file: {err}");
     }
 }
 
@@ -125,12 +122,12 @@ pub fn join_runtime_thread(join_handle: JoinHandle<anyhow::Result<()>>) -> anyho
             Ok(())
         }
         Ok(Err(err)) => {
-            log::warn!("Runtime thread terminated with error: {}", err);
+            log::warn!("Runtime thread terminated with error: {err}");
             Err(err)
         }
         Err(err) => {
-            let err = anyhow::anyhow!("Failed to await termination of runtime thread: {:?}", err);
-            log::error!("{}", err);
+            let err = anyhow::anyhow!("Failed to await termination of runtime thread: {err:?}");
+            log::error!("{err}");
             Err(err)
         }
     }
@@ -142,7 +139,7 @@ fn main() {
     env::init_environment();
 
     if let Err(err) = env::init_tracing_and_logging() {
-        eprintln!("Failed to initialize tracing and logging: {}", err);
+        eprintln!("Failed to initialize tracing and logging: {err}");
         return;
     }
 
@@ -157,14 +154,14 @@ fn main() {
     } else {
         app_dirs().as_ref().map(load_app_config).unwrap_or_default()
     };
-    log::debug!("Initial configuration: {:?}", initial_config);
+    log::debug!("Initial configuration: {initial_config:?}");
 
     // Override config with environment variables
     log::info!("Patching configuration from .env file and environment variables");
     let mut config = initial_config.clone();
     env::parse_config_into(&mut config);
     let save_config_on_exit = if config != initial_config {
-        log::debug!("Patched configuration: {:?}", config);
+        log::debug!("Patched configuration: {config:?}");
         // Don't save on exit if using a temporary configuration
         false
     } else {
@@ -198,22 +195,22 @@ fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exi
         let launcher = Arc::clone(&launcher);
         move || {
             if let Err(err) = launcher.lock().terminate_runtime(true) {
-                log::error!("Failed to terminate runtime: {}", err);
+                log::error!("Failed to terminate runtime: {err}");
             }
         }
     }) {
-        log::error!("Failed to register signal handler: {}", err);
+        log::error!("Failed to register signal handler: {err}");
     }
 
     let runtime_thread = match launcher.lock().launch_runtime(config, |state| {
         if let State::Running(RuntimeState::Listening { socket_addr }) = state {
             // Publish socket address on stdout
-            println!("{}", socket_addr);
+            println!("{socket_addr}");
         }
     }) {
         Ok(join_handle) => join_handle,
         Err(err) => {
-            log::error!("Failed to launch runtime: {}", err);
+            log::error!("Failed to launch runtime: {err}");
             return;
         }
     };

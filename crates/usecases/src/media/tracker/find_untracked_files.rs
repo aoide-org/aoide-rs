@@ -153,11 +153,8 @@ pub fn visit_directories<
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!(
-            "Unsupported path kind: {:?}",
-            collection_ctx.content_path.kind
-        )
-        .into());
+        let path_kind = collection_ctx.content_path.kind;
+        return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
     let collection_id = collection_ctx.record_id;
     let root_file_path = vfs_ctx.build_root_file_path();
@@ -171,7 +168,7 @@ pub fn visit_directories<
             ancestor_finished(&mut content_paths, untracked_content_paths)
         },
         &mut |progress_event| {
-            log::trace!("{:?}", progress_event);
+            log::trace!("{progress_event:?}");
             report_progress_fn(progress_event.to_owned().into());
         },
     )

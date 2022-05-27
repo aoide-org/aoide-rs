@@ -79,39 +79,29 @@ pub(crate) fn escape_single_quotes(arg: &str) -> String {
 }
 
 pub(crate) fn escape_like_starts_with(arg: &str) -> String {
-    format!("{}{}", escape_like_matches(arg), LIKE_WILDCARD_CHARACTER)
+    format!("{}{LIKE_WILDCARD_CHARACTER}", escape_like_matches(arg))
 }
 
 pub(crate) fn escape_like_ends_with(arg: &str) -> String {
-    format!("{}{}", LIKE_WILDCARD_CHARACTER, escape_like_matches(arg))
+    format!("{LIKE_WILDCARD_CHARACTER}{}", escape_like_matches(arg))
 }
 
 pub(crate) fn escape_like_contains(arg: &str) -> String {
     format!(
-        "{}{}{}",
-        LIKE_WILDCARD_CHARACTER,
+        "{LIKE_WILDCARD_CHARACTER}{}{LIKE_WILDCARD_CHARACTER}",
         escape_like_matches(arg),
-        LIKE_WILDCARD_CHARACTER
     )
 }
 
 fn sql_column_substr_prefix<ST>(column: &str, prefix: &str, cmp: &str) -> SqlLiteral<ST> {
+    let prefix_len = prefix.len();
     if prefix.contains('\'') {
+        let prefix_escaped = escape_single_quotes(prefix);
         diesel::dsl::sql(&format!(
-            "substr({},1,{}){}'{}'",
-            column,
-            prefix.len(),
-            cmp,
-            escape_single_quotes(prefix),
+            "substr({column},1,{prefix_len}){cmp}'{prefix_escaped}'",
         ))
     } else {
-        diesel::dsl::sql(&format!(
-            "substr({},1,{}){}'{}'",
-            column,
-            prefix.len(),
-            cmp,
-            prefix,
-        ))
+        diesel::dsl::sql(&format!("substr({column},1,{prefix_len}){cmp}'{prefix}'",))
     }
 }
 

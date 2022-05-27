@@ -103,7 +103,7 @@ fn update(msg: Msg, mdl: &mut Mdl, orders: &mut impl Orders<Msg>) {
             }
         },
         Msg::ApiError(err) => {
-            mdl.error = Some(format!("{}", err));
+            mdl.error = Some(format!("{err}"));
         }
     }
 }

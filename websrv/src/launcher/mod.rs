@@ -127,10 +127,7 @@ impl Launcher {
                 let send_state_changed = |state| {
                     if let Err(watch::error::SendError(state)) = current_state_tx.send(state) {
                         // Channel closed
-                        log::debug!(
-                            "All receivers of state changes have been dropped: {:?}",
-                            state
-                        );
+                        log::debug!("All receivers of state changes have been dropped: {state:?}");
                     }
                 };
                 while current_runtime_state_rx.changed().await.is_ok() {
@@ -165,8 +162,7 @@ impl Launcher {
                 };
                 if let Err(command) = runtime_command_tx.send(command) {
                     anyhow::bail!(
-                        "Failed to send command {:?} in state {:?}",
-                        command,
+                        "Failed to send command {command:?} in state {:?}",
                         self.state()
                     );
                 }

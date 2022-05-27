@@ -432,8 +432,7 @@ impl From<ArtworkImageError> for Error {
     fn from(err: ArtworkImageError) -> Error {
         match err {
             ArtworkImageError::UnsupportedFormat(image_format) => Self::Other(anyhow::anyhow!(
-                "Unsupported artwork image format: {:?}",
-                image_format
+                "Unsupported artwork image format: {image_format:?}"
             )),
             ArtworkImageError::Other(err) => Self::Other(err),
         }
@@ -488,9 +487,7 @@ pub fn load_artwork_picture(
                     .parse::<Mime>()
                     .map_err(|err| {
                         recoverable_errors.push(anyhow::anyhow!(
-                            "Invalid media type hint '{}': {}",
-                            media_type_hint,
-                            err
+                            "Invalid media type hint '{media_type_hint}': {err}"
                         ));
                         err
                     })
@@ -535,9 +532,7 @@ pub fn ingest_artwork_image(
     let clamped_height = height as ImageDimension;
     if width != clamped_with as u32 && height != clamped_height as u32 {
         return Err(ArtworkImageError::Other(anyhow::anyhow!(
-            "Unsupported image size: {}x{}",
-            width,
-            height
+            "Unsupported image size: {width}x{height}"
         )));
     }
     let size = ImageSize {
@@ -624,8 +619,7 @@ pub fn try_ingest_embedded_artwork_image(
                 .into_iter()
                 .map(|err| {
                     format!(
-                        "Recoverable error while loading embedded {:?} artwork image: {}",
-                        apic_type, err
+                        "Recoverable error while loading embedded {apic_type:?} artwork image: {err}"
                     )
                 })
                 .collect();
@@ -634,11 +628,11 @@ pub fn try_ingest_embedded_artwork_image(
     )
     .unwrap_or_else(|err| match err {
         ArtworkImageError::UnsupportedFormat(unsupported_format) => {
-            let issue = format!("Unsupported image format: {:?}", unsupported_format);
+            let issue = format!("Unsupported image format: {unsupported_format:?}");
             (Artwork::Unsupported, None, vec![issue])
         }
         ArtworkImageError::Other(err) => {
-            let issue = format!("Failed to load embedded artwork image: {}", err);
+            let issue = format!("Failed to load embedded artwork image: {err}");
             (Artwork::Irregular, None, vec![issue])
         }
     })

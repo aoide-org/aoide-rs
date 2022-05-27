@@ -44,12 +44,12 @@ pub enum Intent {
 
 impl Intent {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying intent {:?} on {:?}", self, state);
+        log::trace!("Applying intent {self:?} on {state:?}");
         match self {
             Self::FetchProgress => {
                 let token = state.remote_view.progress.start_pending_now();
                 let task = Task::FetchProgress { token };
-                log::debug!("Dispatching task {:?}", task);
+                log::debug!("Dispatching task {task:?}");
                 StateUpdated::maybe_changed(Action::dispatch_task(task))
             }
             Self::FetchStatus {
@@ -62,7 +62,7 @@ impl Intent {
                     collection_uid,
                     params,
                 };
-                log::debug!("Dispatching task {:?}", task);
+                log::debug!("Dispatching task {task:?}");
                 StateUpdated::maybe_changed(Action::dispatch_task(task))
             }
             Self::StartScanDirectories {
@@ -79,17 +79,14 @@ impl Intent {
                         collection_uid,
                         params,
                     };
-                    log::debug!("Dispatching task {:?}", task);
+                    log::debug!("Dispatching task {task:?}");
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::StartScanDirectories {
                         collection_uid,
                         params,
                     };
-                    log::warn!(
-                        "Discarding intent while already pending: {:?}",
-                        self_reconstructed
-                    );
+                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
                     StateUpdated::unchanged(None)
                 }
             }
@@ -107,17 +104,14 @@ impl Intent {
                         collection_uid,
                         params,
                     };
-                    log::debug!("Dispatching task {:?}", task);
+                    log::debug!("Dispatching task {task:?}");
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::StartImportFiles {
                         collection_uid,
                         params,
                     };
-                    log::warn!(
-                        "Discarding intent while already pending: {:?}",
-                        self_reconstructed
-                    );
+                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
                     StateUpdated::unchanged(None)
                 }
             }
@@ -135,17 +129,14 @@ impl Intent {
                         collection_uid,
                         params,
                     };
-                    log::debug!("Dispatching task {:?}", task);
+                    log::debug!("Dispatching task {task:?}");
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::StartFindUntrackedFiles {
                         collection_uid,
                         params,
                     };
-                    log::warn!(
-                        "Discarding intent while already pending: {:?}",
-                        self_reconstructed
-                    );
+                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
                     StateUpdated::unchanged(None)
                 }
             }
@@ -163,17 +154,14 @@ impl Intent {
                         collection_uid,
                         params,
                     };
-                    log::debug!("Dispatching task {:?}", task);
+                    log::debug!("Dispatching task {task:?}");
                     StateUpdated::maybe_changed(Action::dispatch_task(task))
                 } else {
                     let self_reconstructed = Self::UntrackDirectories {
                         collection_uid,
                         params,
                     };
-                    log::warn!(
-                        "Discarding intent while already pending: {:?}",
-                        self_reconstructed
-                    );
+                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
                     StateUpdated::unchanged(None)
                 }
             }

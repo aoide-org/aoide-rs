@@ -430,20 +430,16 @@ impl Metadata {
         if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
             // Pre-populate tags
             if let Some(data) = mp4_tag.data_of(&AOIDE_TAGS_IDENT).next() {
-                if let Some(tags) = match data {
+                if let Some(tags) = match &data {
                     Data::Utf8(input) => serde_json::from_str::<SerdeTags>(input)
                         .map_err(|err| {
-                            importer.add_issue(format!(
-                                "Failed to parse {}: {}",
-                                AOIDE_TAGS_IDENT, err
-                            ));
+                            importer
+                                .add_issue(format!("Failed to parse {AOIDE_TAGS_IDENT}: {err}"));
                         })
                         .ok(),
                     data => {
-                        importer.add_issue(format!(
-                            "Unexpected data for {}: {:?}",
-                            AOIDE_TAGS_IDENT, data
-                        ));
+                        importer
+                            .add_issue(format!("Unexpected data for {AOIDE_TAGS_IDENT}: {data:?}"));
                         None
                     }
                 }
@@ -593,13 +589,12 @@ impl Metadata {
                             .parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
                             .map_err(|err| {
                                 importer
-                                    .add_issue(format!("Failed to parse Serato Markers: {}", err));
+                                    .add_issue(format!("Failed to parse Serato Markers: {err}"));
                             })
                             .ok();
                     }
                     data => {
-                        importer
-                            .add_issue(format!("Unexpected data for Serato Markers: {:?}", data));
+                        importer.add_issue(format!("Unexpected data for Serato Markers: {data:?}"));
                     }
                 }
             }
@@ -611,13 +606,13 @@ impl Metadata {
                             .parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
                             .map_err(|err| {
                                 importer
-                                    .add_issue(format!("Failed to parse Serato Markers2: {}", err));
+                                    .add_issue(format!("Failed to parse Serato Markers2: {err}"));
                             })
                             .ok();
                     }
                     data => {
                         importer
-                            .add_issue(format!("Unexpected data for Serato Markers2: {:?}", data));
+                            .add_issue(format!("Unexpected data for Serato Markers2: {data:?}"));
                     }
                 }
             }
@@ -903,7 +898,7 @@ pub fn export_track_to_path(
                     mp4_tag.set_data(AOIDE_TAGS_IDENT.to_owned(), Data::Utf8(value));
                 }
                 Err(err) => {
-                    log::warn!("Failed to write {}: {}", AOIDE_TAGS_IDENT, err);
+                    log::warn!("Failed to write {AOIDE_TAGS_IDENT}: {err}");
                 }
             }
         }

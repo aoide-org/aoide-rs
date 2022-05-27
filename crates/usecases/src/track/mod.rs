@@ -59,11 +59,7 @@ where
                 self.collector.collect(header, record);
             }
             Err(err) => {
-                log::error!(
-                    "Failed to convert media source path '{}' to URL: {}",
-                    path,
-                    err
-                );
+                log::error!("Failed to convert media source path '{path}' to URL: {err}");
             }
         }
     }

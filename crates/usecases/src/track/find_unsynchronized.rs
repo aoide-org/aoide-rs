@@ -91,11 +91,8 @@ where
         if let Some(vfs_ctx) = collection_ctx.content_path.vfs {
             Some(vfs_ctx.path_resolver)
         } else {
-            return Err(anyhow::anyhow!(
-                "Unsupported path kind: {:?}",
-                collection_ctx.content_path.kind
-            )
-            .into());
+            let path_kind = collection_ctx.content_path.kind;
+            return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
         }
     } else {
         None

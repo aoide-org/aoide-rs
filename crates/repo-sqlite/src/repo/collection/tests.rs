@@ -58,7 +58,7 @@ fn insert_collection() -> TestResult<()> {
         },
     )
     .unwrap();
-    println!("Created entity: {:?}", entity);
+    println!("Created entity: {entity:?}");
     Ok(())
 }
 
@@ -150,9 +150,10 @@ fn purge_collection() -> TestResult<()> {
         },
     )
     .unwrap();
-    println!("Created entity: {:?}", entity);
-    let id = db.resolve_collection_id(&entity.hdr.uid)?;
+    println!("Created entity: {entity:?}");
+    let uid = &entity.hdr.uid;
+    let id = db.resolve_collection_id(uid)?;
     db.purge_collection_entity(id)?;
-    println!("Removed entity: {}", entity.hdr.uid);
+    println!("Removed entity: {uid}");
     Ok(())
 }

@@ -387,8 +387,7 @@ pub(crate) fn create_filters(
                 .await;
                 if let Err(err) = watcher.await {
                     log::error!(
-                        "Failed to terminate media tracker scanning progress watcher: {}",
-                        err
+                        "Failed to terminate media tracker scanning progress watcher: {err}"
                     );
                 }
                 response.map(|response_body| warp::reply::json(&response_body))
@@ -449,8 +448,7 @@ pub(crate) fn create_filters(
                 .await;
                 if let Err(err) = watcher.await {
                     log::error!(
-                        "Failed to terminate media tracker importing progress watcher: {}",
-                        err
+                        "Failed to terminate media tracker importing progress watcher: {err}"
                     );
                 }
                 response.map(|response_body| warp::reply::json(&response_body))
@@ -537,8 +535,7 @@ pub(crate) fn create_filters(
                 .await;
                 if let Err(err) = watcher.await {
                     log::error!(
-                        "Failed to terminate media tracker finding untracked progress watcher: {}",
-                        err
+                        "Failed to terminate media tracker finding untracked progress watcher: {err}"
                     );
                 }
                 response.map(|response_body| warp::reply::json(&response_body))

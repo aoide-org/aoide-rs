@@ -43,11 +43,11 @@ impl TryFrom<QueryableRecord> for (RecordId, Record) {
             role_notes,
         } = from;
         let kind = ActorKind::from_i16(kind)
-            .ok_or_else(|| anyhow::anyhow!("Invalid actor kind value: {}", kind))?;
+            .ok_or_else(|| anyhow::anyhow!("Invalid actor kind value: {kind}"))?;
         let role = ActorRole::from_i16(role)
-            .ok_or_else(|| anyhow::anyhow!("Invalid actor role value: {}", role))?;
+            .ok_or_else(|| anyhow::anyhow!("Invalid actor role value: {role}"))?;
         let scope = Scope::from_i16(scope)
-            .ok_or_else(|| anyhow::anyhow!("Invalid scope value: {}", scope))?;
+            .ok_or_else(|| anyhow::anyhow!("Invalid scope value: {scope}"))?;
         let record = Record {
             track_id: track_id.into(),
             scope,

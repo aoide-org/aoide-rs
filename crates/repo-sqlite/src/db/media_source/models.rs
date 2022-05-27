@@ -127,7 +127,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                     let apic_type = artwork_apic_type
                         .map(|apic_type| {
                             ApicType::from_i16(apic_type)
-                                .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {}", apic_type))
+                                .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {apic_type}"))
                         })
                         .transpose()?
                         .unwrap_or(ApicType::Other);

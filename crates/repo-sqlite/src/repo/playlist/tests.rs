@@ -74,7 +74,7 @@ impl Fixture {
             let media_source = media::Source {
                 collected_at: created_at,
                 content_link: ContentLink {
-                    path: ContentPath::new(format!("/home/test/file{}.mp3", i)),
+                    path: ContentPath::new(format!("/home/test/file{i}.mp3")),
                     rev: None,
                 },
                 content_type: "audio/mpeg".parse().unwrap(),
@@ -126,7 +126,7 @@ impl Fixture {
         for (i, (_, _, track_uid)) in media_sources_and_tracks.into_iter().enumerate() {
             let entry = Entry {
                 added_at: DateTime::now_local_or_utc(),
-                title: Some(format!("Entry {}", i)),
+                title: Some(format!("Entry {i}")),
                 notes: None,
                 item: Item::Track(track::Item { uid: track_uid }),
             };

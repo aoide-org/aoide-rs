@@ -32,7 +32,7 @@ pub enum Effect {
 
 impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying effect {:?} on {:?}", self, state);
+        log::trace!("Applying effect {self:?} on {state:?}");
         match self {
             Self::PurgeOrphanedFinished { token, result } => {
                 let next_action = match result {
@@ -46,7 +46,7 @@ impl Effect {
                                 token,
                                 result: Ok(outcome),
                             };
-                            log::warn!("Discarding outdated effect: {:?}", effect_reconstructed);
+                            log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
                             return StateUpdated::unchanged(None);
                         }
                         None
@@ -70,7 +70,7 @@ impl Effect {
                                 token,
                                 result: Ok(outcome),
                             };
-                            log::warn!("Discarding outdated effect: {:?}", effect_reconstructed);
+                            log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
                             return StateUpdated::unchanged(None);
                         }
                         None

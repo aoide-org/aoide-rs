@@ -227,8 +227,7 @@ pub fn find_embedded_artwork_image(
                 base64::decode(base64_data)
                     .map_err(|err| {
                         issues.push(format!(
-                            "Failed to decode base64 encoded picture block: {}",
-                            err
+                            "Failed to decode base64 encoded picture block: {err}"
                         ));
                     })
                     .map(|decoded| (decoded, issues))
@@ -237,7 +236,7 @@ pub fn find_embedded_artwork_image(
             .filter_map(|(decoded, mut issues)| {
                 metaflac::block::Picture::from_bytes(&decoded[..])
                     .map_err(|err| {
-                        issues.push(format!("Failed to decode FLAC picture block: {}", err));
+                        issues.push(format!("Failed to decode FLAC picture block: {err}"));
                     })
                     .map(|picture| (picture, issues))
                     .ok()
@@ -472,8 +471,7 @@ pub fn import_track_index(importer: &mut Importer, reader: &impl CommentReader) 
         {
             if let Some(index_total) = index.total {
                 importer.add_issue(format!(
-                    "Overwriting total number of tracks {} parsed from field '{}' with {}",
-                    index_total, "TRACKNUMBER", total,
+                    "Overwriting total number of tracks {index_total} parsed from field 'TRACKNUMBER' with {total}"
                 ));
             }
             index.total = Some(total);
@@ -500,8 +498,7 @@ pub fn import_disc_index(importer: &mut Importer, reader: &impl CommentReader) -
         {
             if let Some(index_total) = index.total {
                 importer.add_issue(format!(
-                    "Overwriting total number of discs {} parsed from field '{}' with {}",
-                    index_total, "DISCNUMBER", total,
+                    "Overwriting total number of discs {index_total} parsed from field 'DISCNUMBER' with {total}"
                 ));
             }
             index.total = Some(total);
@@ -526,8 +523,7 @@ pub fn import_movement_index(
         {
             if let Some(index_total) = index.total {
                 importer.add_issue(format!(
-                    "Overwriting total number of movements {} parsed from field '{}' with {}",
-                    index_total, "MOVEMENT", total,
+                    "Overwriting total number of movements {index_total} parsed from field 'MOVEMENT' with {total}"
                 ));
             }
             index.total = Some(total);
@@ -592,7 +588,7 @@ pub fn import_aoide_tags(importer: &mut Importer, reader: &impl CommentReader) -
         .and_then(|json| {
             serde_json::from_str::<SerdeTags>(json)
                 .map_err(|err| {
-                    importer.add_issue(format!("Failed to parse {}: {}", key, err));
+                    importer.add_issue(format!("Failed to parse {key}: {err}"));
                 })
                 .ok()
         })
@@ -617,7 +613,7 @@ pub fn import_serato_markers2(
         serato_tags
             .parse_markers2(data.as_bytes(), format)
             .map_err(|err| {
-                importer.add_issue(format!("Failed to import Serato Markers2: {}", err));
+                importer.add_issue(format!("Failed to import Serato Markers2: {err}"));
             })
             .ok()
     });
@@ -1105,7 +1101,7 @@ pub fn export_track(
                 writer.write_single_value(AOIDE_TAGS_KEY.to_owned(), value);
             }
             Err(err) => {
-                log::warn!("Failed to write {}: {}", AOIDE_TAGS_KEY, err);
+                log::warn!("Failed to write {AOIDE_TAGS_KEY}: {err}");
             }
         }
     } else {

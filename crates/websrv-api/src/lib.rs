@@ -264,9 +264,9 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
         code = StatusCode::METHOD_NOT_ALLOWED;
         message = err.to_string();
     } else {
-        log::error!("Unhandled rejection {:?}", reject);
+        log::error!("Unhandled rejection {reject:?}");
         code = StatusCode::INTERNAL_SERVER_ERROR;
-        message = format!("{:?}", reject);
+        message = format!("{reject:?}");
     }
 
     let json_reply = warp::reply::json(&ErrorResponseBody {

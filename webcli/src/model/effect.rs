@@ -58,7 +58,7 @@ impl From<media_tracker::Effect> for Effect {
 
 impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::debug!("Applying effect {:?} on {:?}", self, state);
+        log::debug!("Applying effect {self:?} on {state:?}");
         match self {
             Self::ErrorOccurred(error)
             | Self::ActiveCollection(collection::Effect::ErrorOccurred(error))
@@ -96,7 +96,7 @@ impl Effect {
                     Ok(entities) => {
                         // TODO: Store received entities in state
                         for entity in entities {
-                            log::info!("{:?}", entity);
+                            log::info!("{entity:?}");
                         }
                         StateUpdated::unchanged(None)
                     }

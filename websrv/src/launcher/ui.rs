@@ -296,7 +296,7 @@ impl App {
         match launcher.launch_runtime(next_config.clone(), {
             let ctx = ctx.to_owned();
             move |state| {
-                log::debug!("Launcher state changed: {:?}", state);
+                log::debug!("Launcher state changed: {state:?}");
                 ctx.request_repaint();
             }
         }) {
@@ -309,7 +309,7 @@ impl App {
                 ctx.request_repaint();
             }
             Err(err) => {
-                log::warn!("Failed to launch runtime: {}", err);
+                log::warn!("Failed to launch runtime: {err}");
             }
         }
     }
@@ -317,7 +317,7 @@ impl App {
     fn on_stop(&mut self, ctx: &egui::Context, abort_pending_tasks: bool) {
         debug_assert!(matches!(self.state, State::Running { .. }));
         if let Err(err) = self.launcher.lock().terminate_runtime(abort_pending_tasks) {
-            log::error!("Failed to terminate runtime: {}", err);
+            log::error!("Failed to terminate runtime: {err}");
             return;
         }
         self.after_launcher_terminated(ctx);
@@ -378,7 +378,7 @@ impl eframe::App for App {
                 | LauncherState::Terminated => (),
                 LauncherState::Running(_) => {
                     if let Err(err) = launcher.terminate_runtime(true) {
-                        log::error!("Failed to terminate runtime on exit: {}", err);
+                        log::error!("Failed to terminate runtime on exit: {err}");
                     }
                 }
             }
@@ -401,7 +401,7 @@ impl eframe::App for App {
                     ctx.request_repaint();
                 }
             }) {
-                log::error!("Failed to register signal handler: {}", err);
+                log::error!("Failed to register signal handler: {err}");
             } else {
                 self.state = State::Idle;
             }

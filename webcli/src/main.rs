@@ -320,7 +320,7 @@ async fn main() -> anyhow::Result<()> {
 
             if !state.last_errors().is_empty() {
                 for err in state.last_errors() {
-                    log::error!("{}", err);
+                    log::error!("{err}");
                 }
                 // Terminate after errors occurred
                 return Some(Intent::Terminate);
@@ -340,7 +340,7 @@ async fn main() -> anyhow::Result<()> {
                     .last_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_sources_purge_orphaned_outcome {
-                    log::info!("Purging orphaned media sources succeeded: {:?}", outcome);
+                    log::info!("Purging orphaned media sources succeeded: {outcome:?}");
                 }
             }
             if last_media_sources_purge_untracked_outcome.as_ref()
@@ -357,7 +357,7 @@ async fn main() -> anyhow::Result<()> {
                     .last_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_sources_purge_untracked_outcome {
-                    log::info!("Purging untracked media sources succeeded: {:?}", outcome);
+                    log::info!("Purging untracked media sources succeeded: {outcome:?}");
                 }
             }
             if last_media_tracker_progress.as_ref()
@@ -370,7 +370,7 @@ async fn main() -> anyhow::Result<()> {
                     .last_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(progress) = &last_media_tracker_progress {
-                    log::info!("Media tracker progress: {:?}", progress);
+                    log::info!("Media tracker progress: {progress:?}");
                 }
             }
             if last_media_tracker_status.as_ref()
@@ -383,7 +383,7 @@ async fn main() -> anyhow::Result<()> {
                     .last_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(status) = &last_media_tracker_status {
-                    log::info!("Media tracker status: {:?}", status);
+                    log::info!("Media tracker status: {status:?}");
                 }
             }
             if last_media_tracker_scan_directories_outcome.as_ref()
@@ -400,7 +400,7 @@ async fn main() -> anyhow::Result<()> {
                     .last_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_scan_directories_outcome {
-                    log::info!("Scanning media directories succeeded: {:?}", outcome);
+                    log::info!("Scanning media directories succeeded: {outcome:?}");
                 }
             }
             if last_media_tracker_untrack_directories_outcome.as_ref()
@@ -417,7 +417,7 @@ async fn main() -> anyhow::Result<()> {
                     .last_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_untrack_directories_outcome {
-                    log::info!("Untracking media directories succeeded: {:?}", outcome);
+                    log::info!("Untracking media directories succeeded: {outcome:?}");
                 }
             }
             if last_media_tracker_import_files_outcome.as_ref()
@@ -464,12 +464,12 @@ async fn main() -> anyhow::Result<()> {
                     .last_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_find_untracked_files_outcome {
-                    log::info!("Finding untracked media files succeeded: {:?}", outcome);
+                    log::info!("Finding untracked media files succeeded: {outcome:?}");
                     if !outcome.value.content_paths.is_empty() {
                         log::info!(
-                            "Found {} untracked entries on file system:\n{}",
-                            outcome.value.content_paths.len(),
-                            outcome
+                            "Found {num_untracked_entities} untracked entries on file system:\n{content_paths}",
+                            num_untracked_entities = outcome.value.content_paths.len(),
+                            content_paths = outcome
                                 .value
                                 .content_paths
                                 .iter()
@@ -602,7 +602,7 @@ async fn main() -> anyhow::Result<()> {
                         )
                     }
                     Some((subcommand, _)) => {
-                        unreachable!("Unknown subcommand {}", subcommand);
+                        unreachable!("Unknown subcommand {subcommand}");
                     }
                     None => Err(None),
                 },
@@ -760,10 +760,10 @@ async fn main() -> anyhow::Result<()> {
                         )
                     }
                     Some((subcommand, _)) => {
-                        unreachable!("Unknown subcommand {}", subcommand);
+                        unreachable!("Unknown subcommand {subcommand}");
                     }
                     None => {
-                        println!("{}", app_usage);
+                        println!("{app_usage}");
                         Err(None)
                     }
                 },
@@ -816,19 +816,19 @@ async fn main() -> anyhow::Result<()> {
                         )
                     }
                     Some((subcommand, _)) => {
-                        unreachable!("Unknown subcommand {}", subcommand);
+                        unreachable!("Unknown subcommand {subcommand}");
                     }
                     None => Err(None),
                 },
                 Some((subcommand, _)) => {
-                    unreachable!("Unknown subcommand {}", subcommand);
+                    unreachable!("Unknown subcommand {subcommand}");
                 }
                 None => Err(None),
             }
             .unwrap_or_else(|intent| {
                 // No command submitted
                 if intent.is_none() && !state.is_pending() {
-                    println!("{}", app_usage);
+                    println!("{app_usage}");
                 }
                 intent
             })
@@ -840,7 +840,7 @@ async fn main() -> anyhow::Result<()> {
         let message_tx = message_tx.clone();
         async move {
             if let Err(err) = signal::ctrl_c().await {
-                log::error!("Failed to receive Ctrl+C/SIGINT signal: {}", err);
+                log::error!("Failed to receive Ctrl+C/SIGINT signal: {err}");
             }
             log::info!("Terminating after receiving Ctrl+C/SIGINT...");
             send_message(&message_tx, Intent::Terminate);
@@ -900,7 +900,7 @@ fn require_active_collection<'s>(
                 let intent = collection::Intent::ActivateEntity { entity_uid };
                 return Err(Some(intent.into()));
             } else {
-                log::warn!("No collection with title '{}' found", collection_title);
+                log::warn!("No collection with title '{collection_title}' found");
             }
         }
     } else if !state

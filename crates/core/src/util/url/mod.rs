@@ -131,7 +131,7 @@ impl FromStr for BaseUrl {
             s.parse()
         } else {
             // Autocomplete the string before parsing
-            format!("{}/", s).parse()
+            format!("{s}/").parse()
         }
         .map_err(anyhow::Error::from)?;
         Self::try_from(url)

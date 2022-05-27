@@ -211,7 +211,7 @@ where
         )?;
         let new_content_link_path = match candidates.len() {
             0 => {
-                log::warn!("No successor found for {}", old_content_link_path);
+                log::warn!("No successor found for {old_content_link_path}");
                 progress.skipped += 1;
                 continue;
             }
@@ -222,20 +222,14 @@ where
                 .expect("single URI"),
             _ => {
                 log::warn!(
-                    "Found {} potential successors for {}: {:?}",
-                    candidates.len(),
-                    old_content_link_path,
-                    candidates
+                    "Found {num_candidates} potential successor(s) for {old_content_link_path}: {candidates:?}",
+                    num_candidates = candidates.len(),
                 );
                 progress.skipped += 1;
                 continue;
             }
         };
-        log::info!(
-            "Found successor for {}: {}",
-            old_content_link_path,
-            new_content_link_path
-        );
+        log::info!("Found successor for {old_content_link_path}: {new_content_link_path}");
         // TODO: Avoid reloading of both old/new entities by their path
         relink_moved_track_by_content_link_path(
             repo,

@@ -33,7 +33,7 @@ use crate::config::Config;
 pub(crate) fn init_environment() {
     if let Ok(path) = dotenv() {
         // Print to stderr because logging has not been initialized yet
-        eprintln!("Loaded environment from dotenv file {:?}", path);
+        eprintln!("Loaded environment from dotenv file {path:?}");
     }
 }
 
@@ -54,8 +54,7 @@ fn create_env_filter() -> EnvFilter {
         if let Some(rust_log_from_env) = rust_log_from_env {
             if !rust_log_from_env.is_empty() {
                 eprintln!(
-                    "Failed to parse RUST_LOG environment variable '{}': {}",
-                    rust_log_from_env, err
+                    "Failed to parse RUST_LOG environment variable '{rust_log_from_env}': {err}"
                 );
             }
         }
@@ -89,15 +88,14 @@ fn parse_endpoint_ip_addr() -> Option<IpAddr> {
         .map_err(|err| err.to_string())
         .and_then(|var| {
             var.map(|var| {
-                log::debug!("{} = {}", ENDPOINT_IP_ENV, var);
-                var.parse().map_err(|err| {
-                    format!("Failed to parse '{}' = '{}': {}", ENDPOINT_IP_ENV, var, err)
-                })
+                log::debug!("{ENDPOINT_IP_ENV} = {var}");
+                var.parse()
+                    .map_err(|err| format!("Failed to parse '{ENDPOINT_IP_ENV}' = '{var}': {err}"))
             })
             .transpose()
         })
         .map_err(|err| {
-            log::warn!("{}", err);
+            log::warn!("{err}");
         })
         .ok()
         .flatten()
@@ -110,16 +108,13 @@ fn parse_endpoint_port() -> Option<u16> {
         .map_err(|err| err.to_string())
         .and_then(|var| {
             var.map(|var| {
-                log::debug!("{} = {}", ENDPOINT_PORT_ENV, var);
+                log::debug!("{ENDPOINT_PORT_ENV} = {var}");
                 if var.trim().is_empty() {
                     Ok(None)
                 } else {
                     var.parse()
                         .map_err(|err| {
-                            format!(
-                                "Failed to parse '{}' = '{}': {}",
-                                ENDPOINT_PORT_ENV, var, err
-                            )
+                            format!("Failed to parse '{ENDPOINT_PORT_ENV}' = '{var}': {err}")
                         })
                         .map(Some)
                 }
@@ -128,7 +123,7 @@ fn parse_endpoint_port() -> Option<u16> {
             .map(Option::flatten)
         })
         .map_err(|err| {
-            log::warn!("{}", err);
+            log::warn!("{err}");
         })
         .ok()
         .flatten()
@@ -141,7 +136,7 @@ fn parse_sqlite_database_storage() -> Option<SqliteDatabaseStorage> {
         .map_err(|err| err.to_string())
         .and_then(|var| {
             var.map(|var| {
-                log::debug!("{} = {}", DATABASE_URL_ENV, var);
+                log::debug!("{DATABASE_URL_ENV} = {var}");
                 match var.trim() {
                     "" => Ok(None),
                     IN_MEMORY_STORAGE => Ok(Some(SqliteDatabaseStorage::InMemory)),
@@ -153,10 +148,7 @@ fn parse_sqlite_database_storage() -> Option<SqliteDatabaseStorage> {
                                 .map_err(|()| "not a file path".to_owned())
                         })
                         .map_err(|err| {
-                            format!(
-                                "Failed to parse '{}' = '{}': {}",
-                                DATABASE_URL_ENV, var, err,
-                            )
+                            format!("Failed to parse '{DATABASE_URL_ENV}' = '{var}': {err}")
                         })
                         .map(|path| Some(SqliteDatabaseStorage::File { path })),
                 }
@@ -165,7 +157,7 @@ fn parse_sqlite_database_storage() -> Option<SqliteDatabaseStorage> {
             .map(Option::flatten)
         })
         .map_err(|err| {
-            log::warn!("{}", err);
+            log::warn!("{err}");
         })
         .ok()
         .flatten()
@@ -178,15 +170,14 @@ fn parse_database_connection_pool_size() -> Option<NonZeroU32> {
         .map_err(|err| err.to_string())
         .and_then(|var| {
             var.map(|var| {
-                log::debug!("{} = {}", DATABASE_CONNECTION_POOL_SIZE_ENV, var);
+                log::debug!("{DATABASE_CONNECTION_POOL_SIZE_ENV} = {var}");
                 if var.trim().is_empty() {
                     // Silently ignore whitespace
                     Ok(None)
                 } else {
                     var.parse().map(Some).map_err(|err| {
                         format!(
-                            "Failed to parse '{}' = '{}': {}",
-                            DATABASE_CONNECTION_POOL_SIZE_ENV, var, err
+                            "Failed to parse '{DATABASE_CONNECTION_POOL_SIZE_ENV}' = '{var}': {err}"
                         )
                     })
                 }
@@ -195,7 +186,7 @@ fn parse_database_connection_pool_size() -> Option<NonZeroU32> {
             .map(Option::flatten)
         })
         .map_err(|err| {
-            log::warn!("{}", err);
+            log::warn!("{err}");
         })
         .ok()
         .flatten()
@@ -219,14 +210,14 @@ fn parse_option_bool_var_with_key(key: &str) -> Option<bool> {
         .map_err(|err| err.to_string())
         .and_then(|var| {
             var.map(|var| {
-                log::debug!("{} = {}", key, var);
+                log::debug!("{key} = {var}");
                 parse_bool_var(&var)
-                    .map_err(|err| format!("Failed to parse '{}' = '{}': {}", key, var, err,))
+                    .map_err(|err| format!("Failed to parse '{key}' = '{var}': {err}"))
             })
             .transpose()
         })
         .map_err(|err| {
-            log::warn!("{}", err);
+            log::warn!("{err}");
         })
         .ok()
         .flatten()

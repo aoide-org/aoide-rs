@@ -67,7 +67,7 @@ fn resolve_path_prefix_from_base_url(
 ) -> Result<ContentPath> {
     content_path_resolver
         .resolve_path_from_url(url_path_prefix)
-        .map_err(|err| anyhow::format_err!("Invalid URL path prefix: {}", err).into())
+        .map_err(|err| anyhow::format_err!("Invalid URL path prefix: {err}").into())
 }
 
 #[derive(Debug)]

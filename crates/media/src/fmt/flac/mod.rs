@@ -481,11 +481,8 @@ pub fn export_track_to_path(
     let mut metaflac_tag = match metaflac::Tag::read_from_path(path) {
         Ok(metaflac_tag) => metaflac_tag,
         Err(err) => {
-            log::warn!(
-                "Failed to parse metadata from media source '{}': {}",
-                track.media_source.content_link.path,
-                err
-            );
+            let content_path = &track.media_source.content_link.path;
+            log::warn!("Failed to parse metadata from media source '{content_path}': {err}");
             return Err(map_metaflac_err(err));
         }
     };

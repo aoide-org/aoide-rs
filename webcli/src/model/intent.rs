@@ -68,7 +68,7 @@ impl From<media_tracker::Intent> for Intent {
 
 impl Intent {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::debug!("Applying intent {:?} on {:?}", self, state);
+        log::debug!("Applying intent {self:?} on {state:?}");
         match self {
             Self::RenderState => StateUpdated::maybe_changed(None), // enfore re-rendering
             Self::Deferred { not_before, intent } => {
@@ -79,10 +79,7 @@ impl Intent {
                     }))
                 } else {
                     let self_reconstructed = Self::Deferred { not_before, intent };
-                    log::debug!(
-                        "Discarding intent while not running: {:?}",
-                        self_reconstructed
-                    );
+                    log::debug!("Discarding intent while not running: {self_reconstructed:?}");
                     None
                 };
                 StateUpdated::unchanged(next_action)
@@ -98,9 +95,7 @@ impl Intent {
                     if num_errors < num_errors_requested {
                         debug_assert!(num_errors_requested.get() > 1);
                         log::debug!(
-                            "Discarding only {} instead of {} errors",
-                            num_errors,
-                            num_errors_requested
+                            "Discarding only {num_errors} instead of {num_errors_requested} errors"
                         );
                     }
                     Some(Action::apply_effect(Effect::FirstErrorsDiscarded(
@@ -127,21 +122,21 @@ impl Intent {
             }
             Self::ActiveCollection(intent) => {
                 if state.control_state != ControlState::Running {
-                    log::debug!("Discarding intent while not running: {:?}", intent);
+                    log::debug!("Discarding intent while not running: {intent:?}");
                     return StateUpdated::unchanged(None);
                 }
                 state_updated(intent.apply_on(&mut state.active_collection))
             }
             Self::MediaSources(intent) => {
                 if state.control_state != ControlState::Running {
-                    log::debug!("Discarding intent while not running: {:?}", intent);
+                    log::debug!("Discarding intent while not running: {intent:?}");
                     return StateUpdated::unchanged(None);
                 }
                 state_updated(intent.apply_on(&mut state.media_sources))
             }
             Self::MediaTracker(intent) => {
                 if state.control_state != ControlState::Running {
-                    log::debug!("Discarding intent while not running: {:?}", intent);
+                    log::debug!("Discarding intent while not running: {intent:?}");
                     return StateUpdated::unchanged(None);
                 }
                 state_updated(intent.apply_on(&mut state.media_tracker))

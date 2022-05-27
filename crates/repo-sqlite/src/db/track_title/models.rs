@@ -39,9 +39,9 @@ impl TryFrom<QueryableRecord> for (RecordId, Record) {
             name,
         } = from;
         let kind = TitleKind::from_i16(kind)
-            .ok_or_else(|| anyhow::anyhow!("Invalid title kind value: {}", kind))?;
+            .ok_or_else(|| anyhow::anyhow!("Invalid title kind value: {kind}"))?;
         let scope = Scope::from_i16(scope)
-            .ok_or_else(|| anyhow::anyhow!("Invalid scope value: {}", scope))?;
+            .ok_or_else(|| anyhow::anyhow!("Invalid scope value: {scope}"))?;
         let record = Record {
             track_id: track_id.into(),
             scope,

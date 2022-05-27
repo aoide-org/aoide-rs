@@ -75,7 +75,7 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
     let pool_max_size = config.connection.pool.max_size;
-    log::info!("Creating connection pool of max. size {}", pool_max_size);
+    log::info!("Creating connection pool of max. size {pool_max_size}");
     let connection_pool = create_connection_pool(&config.connection.storage, pool_max_size)?;
 
     log::info!("Initializing database");
@@ -214,7 +214,7 @@ pub(crate) async fn run(
     // not provide any signal when the server has started listening.
     sleep(WEB_SERVER_LISTENING_DELAY).await;
 
-    log::info!("Listening on {}", socket_addr);
+    log::info!("Listening on {socket_addr}");
     current_state_tx
         .send(Some(State::Listening { socket_addr }))
         .ok();

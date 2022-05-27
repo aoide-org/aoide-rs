@@ -38,13 +38,12 @@ where
     Repo: TrackCollectionRepo,
 {
     let timed = Instant::now();
-    let count = repo.search_tracks(collection_id, pagination, filter, ordering, collector)?;
+    let num_tracks = repo.search_tracks(collection_id, pagination, filter, ordering, collector)?;
     log::debug!(
-        "Search returned {} track(s) and took {} ms",
-        count,
+        "Search returned {num_tracks} track(s) and took {} ms",
         (timed.elapsed().as_micros() / 1000) as f64,
     );
-    Ok(count)
+    Ok(num_tracks)
 }
 
 pub fn search_with_params<Repo>(
@@ -76,11 +75,8 @@ where
         let vfs_ctx = if let Some(vfs_ctx) = collection_ctx.content_path.vfs {
             vfs_ctx
         } else {
-            return Err(anyhow::anyhow!(
-                "Unsupported path kind: {:?}",
-                collection_ctx.content_path.kind
-            )
-            .into());
+            let path_kind = collection_ctx.content_path.kind;
+            return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
         };
         let mut collector = ResolveUrlFromVirtualFilePathCollector {
             content_path_resolver: vfs_ctx.path_resolver,

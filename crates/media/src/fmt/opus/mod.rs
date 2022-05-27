@@ -75,7 +75,10 @@ impl Metadata {
         let channels = if channel_count.is_valid() {
             Some(channel_count.into())
         } else {
-            importer.add_issue(format!("Invalid channel count: {}", channel_count.0));
+            importer.add_issue(format!(
+                "Invalid number of channels: {num_channels}",
+                num_channels = channel_count.0
+            ));
             None
         };
         let bitrate = None;
@@ -83,7 +86,7 @@ impl Metadata {
         let sample_rate = if sample_rate.is_valid() {
             Some(sample_rate)
         } else {
-            importer.add_issue(format!("Invalid sample rate: {}", sample_rate));
+            importer.add_issue(format!("Invalid sample rate: {sample_rate}"));
             None
         };
         let loudness = vorbis::import_loudness(importer, user_comments);

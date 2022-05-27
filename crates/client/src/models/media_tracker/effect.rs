@@ -48,7 +48,7 @@ pub enum Effect {
 
 impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying effect {:?} on {:?}", self, state);
+        log::trace!("Applying effect {self:?} on {state:?}");
         match self {
             Self::FetchProgressFinished { token, result } => match result {
                 Ok(progress) => {
@@ -62,7 +62,7 @@ impl Effect {
                             result: Ok(outcome),
                         };
                         // Doesn't matter when fetching data
-                        log::debug!("Discarding outdated effect: {:?}", effect_reconstructed);
+                        log::debug!("Discarding outdated effect: {effect_reconstructed:?}");
                         return StateUpdated::unchanged(None);
                     }
                     StateUpdated::maybe_changed(None)
@@ -89,7 +89,7 @@ impl Effect {
                             result: Ok(outcome),
                         };
                         // Doesn't matter when fetching data
-                        log::debug!("Discarding outdated effect: {:?}", effect_reconstructed);
+                        log::debug!("Discarding outdated effect: {effect_reconstructed:?}");
                         return StateUpdated::unchanged(None);
                     }
                     StateUpdated::maybe_changed(None)
@@ -116,7 +116,7 @@ impl Effect {
                                 token,
                                 result: Ok(outcome),
                             };
-                            log::warn!("Discarding outdated effect: {:?}", effect_reconstructed);
+                            log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
                             return StateUpdated::unchanged(None);
                         }
                         let token = state.remote_view.progress.start_pending_now();
@@ -141,7 +141,7 @@ impl Effect {
                                 token,
                                 result: Ok(outcome),
                             };
-                            log::warn!("Discarding outdated effect: {:?}", effect_reconstructed);
+                            log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
                             return StateUpdated::unchanged(None);
                         }
                         let token = state.remote_view.progress.start_pending_now();
@@ -166,7 +166,7 @@ impl Effect {
                                 token,
                                 result: Ok(outcome),
                             };
-                            log::warn!("Discarding outdated effect: {:?}", effect_reconstructed);
+                            log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
                             return StateUpdated::unchanged(None);
                         }
                         let token = state.remote_view.progress.start_pending_now();
@@ -191,7 +191,7 @@ impl Effect {
                                 token,
                                 result: Ok(outcome),
                             };
-                            log::warn!("Discarding outdated effect: {:?}", effect_reconstructed);
+                            log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
                             return StateUpdated::unchanged(None);
                         }
                         let token = state.remote_view.progress.start_pending_now();

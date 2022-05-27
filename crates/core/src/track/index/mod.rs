@@ -68,9 +68,9 @@ impl fmt::Display for Index {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match (self.number, self.total) {
             (None, None) => f.write_str(""),
-            (Some(number), None) => write!(f, "{}", number),
-            (None, Some(total)) => write!(f, "/{}", total),
-            (Some(number), Some(total)) => write!(f, "{}/{}", number, total),
+            (Some(number), None) => write!(f, "{number}"),
+            (None, Some(total)) => write!(f, "/{total}"),
+            (Some(number), Some(total)) => write!(f, "{number}/{total}"),
         }
     }
 }
