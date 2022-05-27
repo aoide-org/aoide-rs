@@ -32,7 +32,6 @@
 
 use std::{fs, path::Path};
 
-use chrono::{NaiveDateTime, Utc};
 use num_traits::cast::ToPrimitive as _;
 use tantivy::{
     collector::TopDocs,
@@ -126,11 +125,8 @@ pub struct TrackFields {
     pub valence: Field,
 }
 
-fn tantivy_date_time(input: DateTime) -> tantivy::DateTime {
-    let nanos = input.unix_timestamp_nanos();
-    let secs = (nanos / 1_000_000_000) as i64;
-    let nsecs = (nanos % 1_000_000_000) as u32;
-    tantivy::DateTime::from_utc(NaiveDateTime::from_timestamp(secs, nsecs), Utc)
+fn add_date_field(doc: &mut Document, field: Field, date_time: DateTime) {
+    doc.add_date(field, tantivy::DateTime::from_utc(date_time.to_inner()));
 }
 
 impl TrackFields {
@@ -148,9 +144,10 @@ impl TrackFields {
             self.content_path,
             &entity.body.track.media_source.content_link.path,
         );
-        doc.add_date(
+        add_date_field(
+            &mut doc,
             self.collected_at,
-            tantivy_date_time(entity.body.track.media_source.collected_at),
+            entity.body.track.media_source.collected_at,
         );
         let ContentMetadata::Audio(audio_metadata) =
             &entity.body.track.media_source.content_metadata;
@@ -212,7 +209,7 @@ impl TrackFields {
                 doc.add_u64(self.times_played, *times_played);
             }
             if let Some(last_played_at) = last_played_at {
-                doc.add_date(self.last_played_at, tantivy_date_time(*last_played_at));
+                add_date_field(&mut doc, self.last_played_at, *last_played_at);
             }
         }
         for faceted_tags in &entity.body.track.tags.facets {

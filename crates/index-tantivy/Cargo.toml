@@ -8,11 +8,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.57"
-# Unfortunately Tantivy depends on chrono for date fields
-chrono = "0.4.19"
 num-traits = "0.2.15"
 log = "0.4.17"
-tantivy = "0.17.0"
+tantivy = "0.18.0"
 thiserror = "1.0.31"
 
 # Workspace dependencies
