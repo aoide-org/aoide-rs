@@ -13,12 +13,9 @@ log = "0.4.17"
 serde = { version = "1.0.137", features = ["derive"] }
 thiserror = "1.0.31"
 
-tantivy = { version = "0.18.0", optional = true }
-
 # Workspace dependencies
 aoide-core = "=0.8.0"
 aoide-core-api = "=0.8.0"
-aoide-index-tantivy = "=0.8.0"
 aoide-media = "=0.8.0"
 aoide-repo = "=0.8.0"
 aoide-repo-sqlite = "=0.8.0"
@@ -26,6 +23,10 @@ aoide-storage-sqlite = { version = "=0.8.0", features = ["serde", "tokio"] }
 aoide-usecases = "=0.8.0"
 aoide-usecases-sqlite = "=0.8.0"
 
+# Optional: tantivy index
+aoide-index-tantivy = { version = "=0.8.0", optional = true }
+tantivy = { version = "0.18.0", optional = true }
+
 [features]
-default = ["tantivy"]
-tantivy = ["dep:tantivy"]
+default = []
+tantivy = ["aoide-index-tantivy", "dep:tantivy"]

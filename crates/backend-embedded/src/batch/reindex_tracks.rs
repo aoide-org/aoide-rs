@@ -29,8 +29,6 @@ use aoide_core_api::{
     Pagination,
 };
 
-use aoide_index_tantivy::TrackFields;
-
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::{prelude::*, track::EntityCollector};
@@ -46,6 +44,7 @@ pub enum IndexingMode {
     RecentlyUpdated,
 }
 
+#[cfg(feature = "tantivy")]
 /// Re-index all or recently updated tracks
 ///
 /// This task cannot be aborted, otherwise the terminate condition
@@ -55,7 +54,7 @@ pub enum IndexingMode {
 /// The `mode` defaults to `RecentlyUpdated` if unspecified. It is
 /// irrelevant and ignored if the index is empty.
 pub async fn reindex_tracks(
-    track_fields: TrackFields,
+    track_fields: aoide_index_tantivy::TrackFields,
     mut index_writer: IndexWriter,
     db_gatekeeper: Arc<Gatekeeper>,
     collection_uid: CollectionUid,
