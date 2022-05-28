@@ -28,7 +28,7 @@ pub struct DatabaseConfig {
 
 pub fn provision_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper> {
     log::info!(
-        "Commissioning SQLite database: {}",
+        "Provisioning SQLite database: {}",
         config.connection.storage,
     );
 
