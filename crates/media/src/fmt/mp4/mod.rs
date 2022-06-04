@@ -21,10 +21,6 @@ use mp4ameta::{
     Ident, ImgFmt, SampleRate as Mp4SampleRate, Tag as Mp4Tag, STANDARD_GENRES,
 };
 use semval::IsValid as _;
-use triseratops::tag::{
-    format::mp4::MP4Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
-    TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
-};
 
 use aoide_core::{
     audio::{
@@ -37,7 +33,7 @@ use aoide_core::{
         AdvisoryRating,
     },
     music::tempo::TempoBpm,
-    tag::{FacetedTags, PlainTag, Score as TagScore, Tags, TagsMap},
+    tag::{FacetedTags, PlainTag, Score as TagScore, TagsMap},
     track::{
         actor::ActorRole,
         album::AlbumKind,
@@ -52,17 +48,14 @@ use aoide_core::{
     util::{canonical::Canonical, string::trimmed_non_empty_from_owned},
 };
 
-use aoide_core_json::tag::Tags as SerdeTags;
-
 use crate::{
     io::{
-        export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
+        export::{ExportTrackConfig, FilteredActorNames},
         import::{ImportTrackConfig, ImportTrackFlags, Importer, Reader, TrackScope},
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from_owned,
-        push_next_actor_role_name, serato, tag::TagMappingConfig,
-        try_ingest_embedded_artwork_image,
+        push_next_actor_role_name, tag::TagMappingConfig, try_ingest_embedded_artwork_image,
     },
     Error, Result,
 };
@@ -166,23 +159,29 @@ const IDENT_MOOD: FreeformIdent<'static> =
 const IDENT_ISRC: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "ISRC");
 
+#[cfg(feature = "aoide-tags")]
 const ORG_MIXXX_DJ_FREEFORM_MEAN: &str = "org.mixxx.dj";
 
-const MIXXX_CUSTOM_TAGS_IDENT: FreeformIdent<'static> =
+#[cfg(feature = "aoide-tags")]
+const MIXXX_AOIDE_TAGS_IDENT: FreeformIdent<'static> =
     FreeformIdent::new(ORG_MIXXX_DJ_FREEFORM_MEAN, "CustomTags");
 
+#[cfg(feature = "aoide-tags")]
 const AOIDE_FREEFORM_MEAN: &str = "aoide";
 
+#[cfg(feature = "aoide-tags")]
 const AOIDE_TAGS_IDENT: FreeformIdent<'static> = FreeformIdent::new(AOIDE_FREEFORM_MEAN, "Tags");
 
+#[cfg(feature = "serato-markers")]
 const SERATO_MARKERS_IDENT: FreeformIdent<'static> = FreeformIdent::new(
-    SeratoMarkers::MP4_ATOM_FREEFORM_MEAN,
-    SeratoMarkers::MP4_ATOM_FREEFORM_NAME,
+    <triseratops::tag::Markers as triseratops::tag::format::mp4::MP4Tag>::MP4_ATOM_FREEFORM_MEAN,
+    <triseratops::tag::Markers as triseratops::tag::format::mp4::MP4Tag>::MP4_ATOM_FREEFORM_NAME,
 );
 
+#[cfg(feature = "serato-markers")]
 const SERATO_MARKERS2_IDENT: FreeformIdent<'static> = FreeformIdent::new(
-    SeratoMarkers2::MP4_ATOM_FREEFORM_MEAN,
-    SeratoMarkers2::MP4_ATOM_FREEFORM_NAME,
+    <triseratops::tag::Markers2 as triseratops::tag::format::mp4::MP4Tag>::MP4_ATOM_FREEFORM_MEAN,
+    <triseratops::tag::Markers2 as triseratops::tag::format::mp4::MP4Tag>::MP4_ATOM_FREEFORM_NAME,
 );
 
 fn find_embedded_artwork_image(tag: &Mp4Tag) -> Option<(ApicType, ImageFormat, &[u8])> {
@@ -427,11 +426,12 @@ impl Metadata {
         }
 
         let mut tags_map = TagsMap::default();
-        if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
+        #[cfg(feature = "aoide-tags")]
+        if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
             // Pre-populate tags
             if let Some(data) = mp4_tag.data_of(&AOIDE_TAGS_IDENT).next() {
                 if let Some(tags) = match &data {
-                    Data::Utf8(input) => serde_json::from_str::<SerdeTags>(input)
+                    Data::Utf8(input) => serde_json::from_str::<aoide_core_json::tag::Tags>(input)
                         .map_err(|err| {
                             importer
                                 .add_issue(format!("Failed to parse {AOIDE_TAGS_IDENT}: {err}"));
@@ -443,7 +443,7 @@ impl Metadata {
                         None
                     }
                 }
-                .map(Tags::from)
+                .map(aoide_core::tag::Tags::from)
                 {
                     tags_map = tags.into();
                 }
@@ -575,18 +575,15 @@ impl Metadata {
             track.media_source.artwork = Some(artwork);
         }
 
-        // Serato Tags
-        if config
-            .flags
-            .contains(ImportTrackFlags::CUSTOM_SERATO_MARKERS)
-        {
-            let mut serato_tags = SeratoTagContainer::new();
+        #[cfg(feature = "serato-markers")]
+        if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
+            let mut serato_tags = triseratops::tag::TagContainer::new();
 
             if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS_IDENT).next() {
                 match data {
                     Data::Utf8(input) => {
                         serato_tags
-                            .parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
+                            .parse_markers(input.as_bytes(), triseratops::tag::TagFormat::MP4)
                             .map_err(|err| {
                                 importer
                                     .add_issue(format!("Failed to parse Serato Markers: {err}"));
@@ -603,7 +600,7 @@ impl Metadata {
                 match data {
                     Data::Utf8(input) => {
                         serato_tags
-                            .parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
+                            .parse_markers2(input.as_bytes(), triseratops::tag::TagFormat::MP4)
                             .map_err(|err| {
                                 importer
                                     .add_issue(format!("Failed to parse Serato Markers2: {err}"));
@@ -617,12 +614,12 @@ impl Metadata {
                 }
             }
 
-            let track_cues = serato::import_cues(&serato_tags);
+            let track_cues = crate::util::serato::import_cues(&serato_tags);
             if !track_cues.is_empty() {
                 track.cues = Canonical::tie(track_cues);
             }
 
-            track.color = serato::import_track_color(&serato_tags);
+            track.color = crate::util::serato::import_track_color(&serato_tags);
         }
 
         Ok(())
@@ -885,20 +882,26 @@ pub fn export_track_to_path(
         mp4_tag.remove_movement_count();
     }
 
-    // Export all tags
-    mp4_tag.remove_data_of(&MIXXX_CUSTOM_TAGS_IDENT); // legacy atom
-    if config.flags.contains(ExportTrackFlags::CUSTOM_AOIDE_TAGS) {
-        if track.tags.is_empty() {
-            mp4_tag.remove_data_of(&AOIDE_TAGS_IDENT);
-        } else {
-            match serde_json::to_string(&aoide_core_json::tag::Tags::from(
-                track.tags.clone().untie(),
-            )) {
-                Ok(value) => {
-                    mp4_tag.set_data(AOIDE_TAGS_IDENT.to_owned(), Data::Utf8(value));
-                }
-                Err(err) => {
-                    log::warn!("Failed to write {AOIDE_TAGS_IDENT}: {err}");
+    #[cfg(feature = "aoide-tags")]
+    {
+        // Export all tags
+        mp4_tag.remove_data_of(&MIXXX_AOIDE_TAGS_IDENT); // legacy atom
+        if config
+            .flags
+            .contains(crate::io::export::ExportTrackFlags::AOIDE_TAGS)
+        {
+            if track.tags.is_empty() {
+                mp4_tag.remove_data_of(&AOIDE_TAGS_IDENT);
+            } else {
+                match serde_json::to_string(&aoide_core_json::tag::Tags::from(
+                    track.tags.clone().untie(),
+                )) {
+                    Ok(value) => {
+                        mp4_tag.set_data(AOIDE_TAGS_IDENT.to_owned(), Data::Utf8(value));
+                    }
+                    Err(err) => {
+                        log::warn!("Failed to write {AOIDE_TAGS_IDENT}: {err}");
+                    }
                 }
             }
         }

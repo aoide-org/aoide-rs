@@ -40,8 +40,8 @@ use crate::{
     util::{
         db2lufs,
         digest::MediaDigest,
-        guess_mime_from_path, media_type_from_image_format, parse_index_numbers,
-        parse_key_signature, parse_replay_gain_db, parse_year_tag,
+        guess_mime_from_path, parse_index_numbers, parse_key_signature, parse_replay_gain_db,
+        parse_year_tag,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         trim_readable,
     },
@@ -91,15 +91,17 @@ bitflags! {
         /// Implies METADATA.
         const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0001;
 
+        #[cfg(feature = "aoide-tags")]
         /// Import aoide faceted tags
         ///
         /// Implies METADATA.
-        const CUSTOM_AOIDE_TAGS                                 = 0b0001_0000_0000_0001;
+        const AOIDE_TAGS                                        = 0b0001_0000_0000_0001;
 
+        #[cfg(feature = "serato-markers")]
         /// Import metadata (cue points, loops, track color) from Serato file tags
         ///
         /// Implies METADATA.
-        const CUSTOM_SERATO_MARKERS                             = 0b0010_0000_0000_0001;
+        const SERATO_MARKERS                                    = 0b0010_0000_0000_0001;
     }
 }
 
@@ -198,8 +200,9 @@ impl Issues {
     }
 }
 
+#[allow(unused_mut)]
 pub fn import_into_track(
-    reader: &mut Box<dyn Reader>,
+    #[allow(unused)] reader: &mut Box<dyn Reader>,
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<Issues> {
@@ -220,9 +223,15 @@ pub fn import_into_track(
         #[cfg(feature = "fmt-opus")]
         "audio/opus" => crate::fmt::opus::Metadata::read_from(reader)
             .and_then(|metadata| metadata.import_into_track(&mut importer, config, track)),
-        _ => Err(Error::UnsupportedContentType(
-            track.media_source.content_type.to_owned(),
-        )),
+        _ => {
+            log::debug!(
+                "Skipping import of track {media_source_content_link:?}: {config:?}",
+                media_source_content_link = track.media_source.content_link
+            );
+            Err(Error::UnsupportedContentType(
+                track.media_source.content_type.to_owned(),
+            ))
+        }
     }
     .map(move |()| importer.finish())
     .map_err(|err| {
@@ -248,6 +257,7 @@ pub struct LoadedArtworkImage {
     pub image_data: Vec<u8>,
 }
 
+#[allow(unused)]
 fn parse_media_type(media_type: &str) -> Result<Mime> {
     media_type
         .parse()
@@ -255,8 +265,9 @@ fn parse_media_type(media_type: &str) -> Result<Mime> {
         .map_err(Into::into)
 }
 
+#[allow(unused_mut)]
 pub fn load_embedded_artwork_image_from_file_path(
-    importer: &mut Importer,
+    #[allow(unused)] importer: &mut Importer,
     file_path: &Path,
 ) -> Result<Option<LoadedArtworkImage>> {
     let file = File::open(file_path)?;
@@ -296,9 +307,10 @@ pub fn load_embedded_artwork_image_from_file_path(
                 metadata
                     .find_embedded_artwork_image()
                     .map(|(apic_type, image_format, image_data)| {
+                        let media_type = crate::util::media_type_from_image_format(image_format)?;
                         Ok(LoadedArtworkImage {
                             apic_type: Some(apic_type),
-                            media_type: media_type_from_image_format(image_format)?,
+                            media_type,
                             image_data: image_data.to_owned(),
                         })
                     })

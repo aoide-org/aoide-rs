@@ -29,8 +29,12 @@ use super::import::ImportTrackFlags;
 bitflags! {
     pub struct ExportTrackFlags: u16 {
         const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = ImportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK.bits();
-        const CUSTOM_AOIDE_TAGS = ImportTrackFlags::CUSTOM_AOIDE_TAGS.bits();
-        const CUSTOM_SERATO_MARKERS = ImportTrackFlags::CUSTOM_SERATO_MARKERS.bits();
+
+        #[cfg(feature = "aoide-tags")]
+        const AOIDE_TAGS = ImportTrackFlags::AOIDE_TAGS.bits();
+
+        #[cfg(feature = "serato-markers")]
+        const SERATO_MARKERS = ImportTrackFlags::SERATO_MARKERS.bits();
     }
 }
 
@@ -53,9 +57,15 @@ pub fn export_track_to_path(
         #[cfg(feature = "fmt-mp4")]
         "audio/m4a" | "video/mp4" => crate::fmt::mp4::export_track_to_path(path, config, track),
         // TODO: Add support for audio/ogg
-        _ => Err(Error::UnsupportedContentType(
-            track.media_source.content_type.to_owned(),
-        )),
+        _ => {
+            log::debug!(
+                "Skipping export of track {media_source_content_link:?}: {path:?} {config:?}",
+                media_source_content_link = track.media_source.content_link
+            );
+            Err(Error::UnsupportedContentType(
+                track.media_source.content_type.to_owned(),
+            ))
+        }
     }
 }
 

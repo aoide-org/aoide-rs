@@ -62,8 +62,10 @@ use crate::{io::import::Importer, prelude::*};
 use self::digest::MediaDigest;
 
 pub mod digest;
-pub mod serato;
 pub mod tag;
+
+#[cfg(feature = "serato-markers")]
+pub mod serato;
 
 #[must_use]
 pub fn trim_readable(input: &str) -> &str {

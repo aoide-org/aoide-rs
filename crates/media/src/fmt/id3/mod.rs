@@ -17,17 +17,12 @@ use std::borrow::Cow;
 
 use id3::{
     self,
-    frame::{Comment, EncapsulatedObject, ExtendedText, PictureType},
+    frame::{Comment, ExtendedText, PictureType},
     TagLike as _,
 };
-use mime::Mime;
 use num_traits::FromPrimitive as _;
 use semval::IsValid;
 use time::{Date, PrimitiveDateTime, Time};
-use triseratops::tag::{
-    format::id3::ID3Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
-    TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
-};
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
@@ -35,7 +30,7 @@ use aoide_core::{
         artwork::{ApicType, Artwork},
         content::ContentMetadata,
     },
-    tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
+    tag::{FacetId, FacetedTags, PlainTag, TagsMap},
     track::{
         actor::ActorRole,
         album::AlbumKind,
@@ -53,8 +48,7 @@ use aoide_core::{
         string::trimmed_non_empty_from,
     },
 };
-
-use aoide_core_json::tag::Tags as SerdeTags;
+use triseratops::tag::format::id3::ID3Tag;
 
 use crate::{
     io::{
@@ -63,15 +57,17 @@ use crate::{
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
-        push_next_actor_role_name_from, serato,
+        push_next_actor_role_name_from,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         trim_readable, try_ingest_embedded_artwork_image,
     },
     Error, Result,
 };
 
-const MIXXX_CUSTOM_TAGS_GEOB_DESCRIPTION: &str = "Mixxx CustomTags";
+#[cfg(feature = "aoide-tags")]
+const MIXXX_AOIDE_TAGS_GEOB_DESCRIPTION: &str = "Mixxx CustomTags";
 
+#[cfg(feature = "aoide-tags")]
 const AOIDE_TAGS_GEOB_DESCRIPTION: &str = "aoide Tags";
 
 pub(crate) fn map_id3_err(err: id3::Error) -> Error {
@@ -453,7 +449,8 @@ pub fn import_metadata_into_track(
     }
 
     let mut tags_map = TagsMap::default();
-    if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
+    #[cfg(feature = "aoide-tags")]
+    if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
         // Pre-populate tags
         for geob in tag
             .encapsulated_objects()
@@ -461,10 +458,10 @@ pub fn import_metadata_into_track(
         {
             if geob
                 .mime_type
-                .parse::<Mime>()
+                .parse::<mime::Mime>()
                 .ok()
                 .as_ref()
-                .map(Mime::type_)
+                .map(mime::Mime::type_)
                 != Some(mime::APPLICATION_JSON.type_())
             {
                 importer.add_issue(format!(
@@ -473,16 +470,18 @@ pub fn import_metadata_into_track(
                 ));
                 continue;
             }
-            if let Some(custom_tags) = serde_json::from_slice::<SerdeTags>(&geob.data)
-                .map_err(|err| {
-                    importer.add_issue(format!(
-                        "Failed to parse GEOB '{}': {err}",
-                        geob.description
-                    ));
-                    err
-                })
-                .ok()
-                .map(Tags::from)
+            #[cfg(feature = "aoide-tags")]
+            if let Some(custom_tags) =
+                serde_json::from_slice::<aoide_core_json::tag::Tags>(&geob.data)
+                    .map_err(|err| {
+                        importer.add_issue(format!(
+                            "Failed to parse GEOB '{}': {err}",
+                            geob.description
+                        ));
+                        err
+                    })
+                    .ok()
+                    .map(aoide_core::tag::Tags::from)
             {
                 debug_assert_eq!(0, tags_map.total_count());
                 tags_map = custom_tags.into();
@@ -632,26 +631,23 @@ pub fn import_metadata_into_track(
         track.media_source.artwork = Some(artwork);
     }
 
-    // Serato Tags
-    if config
-        .flags
-        .contains(ImportTrackFlags::CUSTOM_SERATO_MARKERS)
-    {
-        let mut serato_tags = SeratoTagContainer::new();
+    #[cfg(feature = "serato-markers")]
+    if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
+        let mut serato_tags = triseratops::tag::TagContainer::new();
 
         for geob in tag.encapsulated_objects() {
             match geob.description.as_str() {
-                SeratoMarkers::ID3_TAG => {
+                triseratops::tag::Markers::ID3_TAG => {
                     serato_tags
-                        .parse_markers(&geob.data, SeratoTagFormat::ID3)
+                        .parse_markers(&geob.data, triseratops::tag::TagFormat::ID3)
                         .map_err(|err| {
                             importer.add_issue(format!("Failed to parse Serato Markers: {err}"));
                         })
                         .ok();
                 }
-                SeratoMarkers2::ID3_TAG => {
+                triseratops::tag::Markers2::ID3_TAG => {
                     serato_tags
-                        .parse_markers2(&geob.data, SeratoTagFormat::ID3)
+                        .parse_markers2(&geob.data, triseratops::tag::TagFormat::ID3)
                         .map_err(|err| {
                             importer.add_issue(format!("Failed to parse Serato Markers2: {err}"));
                         })
@@ -661,12 +657,12 @@ pub fn import_metadata_into_track(
             }
         }
 
-        let track_cues = serato::import_cues(&serato_tags);
+        let track_cues = crate::util::serato::import_cues(&serato_tags);
         if !track_cues.is_empty() {
             track.cues = Canonical::tie(track_cues);
         }
 
-        track.color = serato::import_track_color(&serato_tags);
+        track.color = crate::util::serato::import_track_color(&serato_tags);
     }
 
     Ok(())
@@ -895,26 +891,29 @@ pub fn export_track(
         tag.remove("MVIN");
     }
 
-    // Export all tags
-    tag.remove_encapsulated_object(Some(MIXXX_CUSTOM_TAGS_GEOB_DESCRIPTION), None, None, None); // legacy frame
-    if config.flags.contains(ExportTrackFlags::CUSTOM_AOIDE_TAGS) && !track.tags.is_empty() {
-        match serde_json::to_vec(&aoide_core_json::tag::Tags::from(
-            track.tags.clone().untie(),
-        )) {
-            Ok(value) => {
-                tag.add_frame(EncapsulatedObject {
-                    description: AOIDE_TAGS_GEOB_DESCRIPTION.to_owned(),
-                    mime_type: mime::APPLICATION_JSON.type_().to_string(),
-                    filename: String::new(),
-                    data: value,
-                });
+    #[cfg(feature = "aoide-tags")]
+    {
+        // Export all custom tags
+        tag.remove_encapsulated_object(Some(MIXXX_AOIDE_TAGS_GEOB_DESCRIPTION), None, None, None); // legacy frame
+        if config.flags.contains(ExportTrackFlags::AOIDE_TAGS) && !track.tags.is_empty() {
+            match serde_json::to_vec(&aoide_core_json::tag::Tags::from(
+                track.tags.clone().untie(),
+            )) {
+                Ok(value) => {
+                    tag.add_frame(id3::frame::EncapsulatedObject {
+                        description: AOIDE_TAGS_GEOB_DESCRIPTION.to_owned(),
+                        mime_type: mime::APPLICATION_JSON.type_().to_string(),
+                        filename: String::new(),
+                        data: value,
+                    });
+                }
+                Err(err) => {
+                    log::warn!("Failed to write GEOB '{AOIDE_TAGS_GEOB_DESCRIPTION}': {err}");
+                }
             }
-            Err(err) => {
-                log::warn!("Failed to write GEOB '{AOIDE_TAGS_GEOB_DESCRIPTION}': {err}");
-            }
+        } else {
+            tag.remove_encapsulated_object(Some(AOIDE_TAGS_GEOB_DESCRIPTION), None, None, None);
         }
-    } else {
-        tag.remove_encapsulated_object(Some(AOIDE_TAGS_GEOB_DESCRIPTION), None, None, None);
     }
 
     // Export selected tags into dedicated fields

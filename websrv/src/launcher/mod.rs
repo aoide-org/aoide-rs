@@ -163,7 +163,7 @@ impl Launcher {
         Ok(())
     }
 
-    #[cfg_attr(not(feature = "launcher-ui"), allow(dead_code))]
+    #[cfg_attr(not(feature = "launcher-ui"), allow(unused))]
     pub(crate) fn reset_on_termination(&mut self) {
         debug_assert!(matches!(self.state(), State::Terminating));
         self.state = InternalState::Idle;

@@ -19,33 +19,49 @@ mime_guess = "2.0.4"
 nom = "7.1.1"
 num-traits = "0.2.15"
 semval = "0.3.0"
-serde_json = "1.0.81"
 thiserror = "1.0.31"
 time = { version = "0.3.9", features = ["parsing"] }
-triseratops = "0.0.2"
 url = "2.2.2"
 walkdir = "2.3.2"
 
-# Workspace dependencies
-aoide-core = "=0.8.0"
-aoide-core-json = "=0.8.0"
-
-# Optional dependencies
+# Dependencies (optional)
 id3 = { version = "1.1.2", optional = true }
 lewton = { version = "0.10.2", optional = true }
 metaflac = { version = "0.2.5", optional = true }
 mpeg-audio-header = { version = "0.0.2", optional = true }
 mp4ameta = { version = "0.11.0", optional = true }
 opus_headers = { version = "0.1.2", optional = true }
+serde_json = { version = "1.0.81", optional = true }
+
+# Dependencies (optional): serato-markers
+triseratops = { version = "0.0.2", optional = true }
+
+# Workspace dependencies
+aoide-core = "=0.8.0"
+
+# Workspace dependencies (optional): aoide-tags
+aoide-core-json = { version = "=0.8.0", optional = true }
 
 [features]
-# TODO: Add support for AIFF files
-fmt-aiff = [ "id3" ]
-fmt-flac = [ "metaflac" ]
-fmt-mp4 = [ "mp4ameta" ]
-fmt-mp3 = [ "id3", "mpeg-audio-header" ]
-fmt-ogg = [ "lewton", "metaflac" ] # metaflac for decoding FLAC picture blocks
-fmt-opus = [ "opus_headers", "metaflac" ] # metaflac for decoding FLAC picture blocks
-# TODO: Add support for WAV files
-fmt-wav = [ "id3" ]
-default = [ "fmt-aiff", "fmt-flac", "fmt-mp3", "fmt-mp4", "fmt-ogg", "fmt-opus", "fmt-wav" ]
+default = ["fmt-all", "aoide-tags", "serato-markers"]
+fmt-all = [
+    "fmt-aiff",
+    "fmt-flac",
+    "fmt-mp3",
+    "fmt-mp4",
+    "fmt-ogg",
+    "fmt-opus",
+    "fmt-wav",
+]
+fmt-aiff = ["id3"]
+fmt-flac = ["metaflac"]
+fmt-mp3 = ["id3", "mpeg-audio-header"]
+fmt-mp4 = ["mp4ameta"]
+fmt-ogg = ["lewton", "metaflac"] # metaflac for decoding FLAC picture blocks
+fmt-opus = [
+    "opus_headers",
+    "metaflac",
+] # metaflac for decoding FLAC picture blocks
+fmt-wav = ["id3"]
+aoide-tags = ["aoide-core-json", "serde_json"]
+serato-markers = ["triseratops"]

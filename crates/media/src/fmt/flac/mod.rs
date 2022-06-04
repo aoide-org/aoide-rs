@@ -44,7 +44,7 @@ use crate::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer, Reader, TrackScope},
     },
-    util::{push_next_actor_role_name_from, serato, try_ingest_embedded_artwork_image},
+    util::{push_next_actor_role_name_from, try_ingest_embedded_artwork_image},
     Error, Result,
 };
 
@@ -72,8 +72,6 @@ impl vorbis::CommentWriter for metaflac::Tag {
         self.remove_vorbis(key);
     }
 }
-
-use triseratops::tag::{TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat};
 
 fn map_metaflac_err(err: metaflac::Error) -> Error {
     let metaflac::Error { kind, description } = err;
@@ -342,7 +340,8 @@ impl Metadata {
         }
 
         let mut tags_map = TagsMap::default();
-        if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
+        #[cfg(feature = "aoide-tags")]
+        if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
             // Pre-populate tags
             if let Some(tags) = vorbis::import_aoide_tags(importer, metaflac_tag) {
                 debug_assert_eq!(0, tags_map.total_count());
@@ -449,10 +448,8 @@ impl Metadata {
         track.tags = Canonical::tie(tags_map.into());
 
         // Serato Tags
-        if config
-            .flags
-            .contains(ImportTrackFlags::CUSTOM_SERATO_MARKERS)
-        {
+        #[cfg(feature = "serator-markers")]
+        if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
             let mut serato_tags = SeratoTagContainer::new();
             vorbis::import_serato_markers2(
                 importer,

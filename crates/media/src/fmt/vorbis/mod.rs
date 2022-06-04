@@ -17,10 +17,6 @@ use std::{borrow::Cow, collections::HashMap};
 
 use metaflac::block::{Picture, PictureType};
 use num_traits::FromPrimitive as _;
-use triseratops::tag::{
-    format::flac::FLACTag, format::ogg::OggTag, Markers2 as SeratoMarkers2,
-    TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
-};
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
@@ -29,7 +25,7 @@ use aoide_core::{
         content::ContentMetadata,
     },
     music::{key::KeySignature, tempo::TempoBpm},
-    tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
+    tag::{FacetId, FacetedTags, PlainTag, TagsMap},
     track::{
         actor::ActorRole,
         album::AlbumKind,
@@ -48,24 +44,24 @@ use aoide_core::{
     },
 };
 
-use aoide_core_json::tag::Tags as SerdeTags;
-
 use crate::{
     io::{
-        export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
+        export::{ExportTrackConfig, FilteredActorNames},
         import::{ImportTrackConfig, ImportTrackFlags, Importer, TrackScope},
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
-        push_next_actor_role_name_from, serato,
+        push_next_actor_role_name_from,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         trim_readable, try_ingest_embedded_artwork_image,
     },
     Result,
 };
 
-pub const MIXXX_CUSTOM_TAGS_KEY: &str = "MIXXX_CUSTOM_TAGS";
+#[cfg(feature = "aoide-tags")]
+pub const MIXXX_AOIDE_TAGS_KEY: &str = "MIXXX_AOIDE_TAGS";
 
+#[cfg(feature = "aoide-tags")]
 pub const AOIDE_TAGS_KEY: &str = "AOIDE_TAGS";
 
 pub const ARTIST_KEY: &str = "ARTIST";
@@ -581,12 +577,16 @@ pub fn import_album_titles(
     importer.finish_import_of_titles(TrackScope::Album, album_titles)
 }
 
-pub fn import_aoide_tags(importer: &mut Importer, reader: &impl CommentReader) -> Option<Tags> {
+#[cfg(feature = "aoide-tags")]
+pub fn import_aoide_tags(
+    importer: &mut Importer,
+    reader: &impl CommentReader,
+) -> Option<aoide_core::tag::Tags> {
     let key = AOIDE_TAGS_KEY;
     reader
         .read_first_value(key)
         .and_then(|json| {
-            serde_json::from_str::<SerdeTags>(json)
+            serde_json::from_str::<aoide_core_json::tag::Tags>(json)
                 .map_err(|err| {
                     importer.add_issue(format!("Failed to parse {key}: {err}"));
                 })
@@ -595,15 +595,20 @@ pub fn import_aoide_tags(importer: &mut Importer, reader: &impl CommentReader) -
         .map(Into::into)
 }
 
+#[cfg(feature = "serato-markers")]
 pub fn import_serato_markers2(
     importer: &mut Importer,
     reader: &impl CommentReader,
-    serato_tags: &mut SeratoTagContainer,
-    format: SeratoTagFormat,
+    serato_tags: &mut triseratops::tag::TagContainer,
+    format: triseratops::tag::TagFormat,
 ) {
     let vorbis_comment = match format {
-        SeratoTagFormat::FLAC => SeratoMarkers2::FLAC_COMMENT,
-        SeratoTagFormat::Ogg => SeratoMarkers2::OGG_COMMENT,
+        triseratops::tag::TagFormat::FLAC => {
+            <triseratops::tag::Markers2 as triseratops::tag::format::flac::FLACTag>::FLAC_COMMENT
+        }
+        triseratops::tag::TagFormat::Ogg => {
+            <triseratops::tag::Markers2 as triseratops::tag::format::ogg::OggTag>::OGG_COMMENT
+        }
         _ => {
             return;
         }
@@ -753,7 +758,8 @@ pub fn import_into_track(
     track.album = Canonical::tie(album);
 
     let mut tags_map = TagsMap::default();
-    if config.flags.contains(ImportTrackFlags::CUSTOM_AOIDE_TAGS) {
+    #[cfg(feature = "aoide-tags")]
+    if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
         // Pre-populate tags
         if let Some(tags) = import_aoide_tags(importer, reader) {
             debug_assert_eq!(0, tags_map.total_count());
@@ -867,20 +873,22 @@ pub fn import_into_track(
         track.media_source.artwork = Some(artwork);
     }
 
-    // Serato Tags
-    if config
-        .flags
-        .contains(ImportTrackFlags::CUSTOM_SERATO_MARKERS)
-    {
-        let mut serato_tags = SeratoTagContainer::new();
-        import_serato_markers2(importer, reader, &mut serato_tags, SeratoTagFormat::Ogg);
+    #[cfg(feature = "serato-markers")]
+    if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
+        let mut serato_tags = triseratops::tag::TagContainer::new();
+        import_serato_markers2(
+            importer,
+            reader,
+            &mut serato_tags,
+            triseratops::tag::TagFormat::Ogg,
+        );
 
-        let track_cues = serato::import_cues(&serato_tags);
+        let track_cues = crate::util::serato::import_cues(&serato_tags);
         if !track_cues.is_empty() {
             track.cues = Canonical::tie(track_cues);
         }
 
-        track.color = serato::import_track_color(&serato_tags);
+        track.color = crate::util::serato::import_track_color(&serato_tags);
     }
 
     Ok(())
@@ -1091,21 +1099,28 @@ pub fn export_track(
             .map(ToString::to_string),
     );
 
-    // Export all tags
-    writer.remove_all_values(MIXXX_CUSTOM_TAGS_KEY); // drop legacy key
-    if config.flags.contains(ExportTrackFlags::CUSTOM_AOIDE_TAGS) && !track.tags.is_empty() {
-        match serde_json::to_string(&aoide_core_json::tag::Tags::from(
-            track.tags.clone().untie(),
-        )) {
-            Ok(value) => {
-                writer.write_single_value(AOIDE_TAGS_KEY.to_owned(), value);
+    #[cfg(feature = "aoide-tags")]
+    {
+        // Export all tags
+        writer.remove_all_values(MIXXX_AOIDE_TAGS_KEY); // drop legacy key
+        if config
+            .flags
+            .contains(crate::io::export::ExportTrackFlags::AOIDE_TAGS)
+            && !track.tags.is_empty()
+        {
+            match serde_json::to_string(&aoide_core_json::tag::Tags::from(
+                track.tags.clone().untie(),
+            )) {
+                Ok(value) => {
+                    writer.write_single_value(AOIDE_TAGS_KEY.to_owned(), value);
+                }
+                Err(err) => {
+                    log::warn!("Failed to write {AOIDE_TAGS_KEY}: {err}");
+                }
             }
-            Err(err) => {
-                log::warn!("Failed to write {AOIDE_TAGS_KEY}: {err}");
-            }
+        } else {
+            writer.remove_all_values(AOIDE_TAGS_KEY);
         }
-    } else {
-        writer.remove_all_values(AOIDE_TAGS_KEY);
     }
 
     // Export selected tags into dedicated fields

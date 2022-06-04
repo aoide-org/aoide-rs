@@ -56,7 +56,7 @@ impl EndpointConfig {
         }
     }
 
-    #[allow(dead_code)]
+    #[allow(unused)]
     pub const fn new_v4() -> Self {
         Self {
             ip_addr: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
