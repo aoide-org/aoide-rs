@@ -20,8 +20,8 @@ use crate::tag::FacetId;
 // Some predefined facets that are commonly used and could serve as
 // a starting point for complex tagging schemes
 //
-// https://picard-docs.musicbrainz.org/en/variables/variables.html
-// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
+// <https://picard-docs.musicbrainz.org/en/variables/variables.html>
+// <https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html>
 
 // International Standard Recording Code (ISRC, ISO 3901)
 // ID3v2.4: TSRC

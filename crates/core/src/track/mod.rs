@@ -73,7 +73,7 @@ pub struct Track {
     /// The publisher, e.g. a record label
     ///
     /// Proposed tag mapping:
-    /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html: Record Label
+    /// <https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html>: Record Label
     pub publisher: Option<String>,
 
     pub copyright: Option<String>,

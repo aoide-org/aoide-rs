@@ -67,3 +67,11 @@ repos:
             -D,
             warnings,
           ]
+  - repo: local
+    hooks:
+      - id: cargo-doc
+        name: cargo-doc
+        entry: env RUSTDOCFLAGS=-Dwarnings cargo
+        language: system
+        pass_filenames: false
+        args: [doc, --locked, --workspace, --no-deps]

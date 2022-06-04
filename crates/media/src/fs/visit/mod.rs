@@ -166,7 +166,7 @@ pub trait AncestorVisitor<T, E> {
 ///
 /// Returns the unfinished progress event that could be finished and
 /// finalized by the caller for reporting, i.e. for sending a final
-/// update after invoking [`ProgressEvent::finish()`] and for obtaining
+/// update after invoking [`ProgressEvent::try_finish()`] and for obtaining
 /// execution statistics by invoking [`ProgressEvent::finalize()`].
 pub fn visit_directories<
     T,
