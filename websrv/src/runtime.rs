@@ -24,10 +24,7 @@ use std::{
 };
 
 use time::OffsetDateTime;
-use tokio::{
-    sync::{mpsc, watch},
-    time::sleep,
-};
+use tokio::{sync::mpsc, time::sleep};
 use warp::{http::StatusCode, Filter};
 
 use aoide_storage_sqlite::connection::pool::{
@@ -95,12 +92,12 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
 pub(crate) async fn run(
     config: Config,
     command_rx: mpsc::UnboundedReceiver<Command>,
-    current_state_tx: watch::Sender<Option<State>>,
+    current_state_tx: discro::Publisher<Option<State>>,
 ) -> anyhow::Result<()> {
     let launched_at = OffsetDateTime::now_utc();
 
     log::info!("Launching");
-    current_state_tx.send(Some(State::Launching)).ok();
+    current_state_tx.write(Some(State::Launching));
 
     let shared_connection_pool = Arc::new(provision_database(&config.database)?);
 
@@ -181,7 +178,7 @@ pub(crate) async fn run(
     );
 
     log::info!("Starting");
-    current_state_tx.send(Some(State::Starting)).ok();
+    current_state_tx.write(Some(State::Starting));
 
     let abort_pending_tasks_on_termination = Arc::new(AtomicBool::new(false));
     let (socket_addr, server_listener) = {
@@ -215,14 +212,12 @@ pub(crate) async fn run(
     sleep(WEB_SERVER_LISTENING_DELAY).await;
 
     log::info!("Listening on {socket_addr}");
-    current_state_tx
-        .send(Some(State::Listening { socket_addr }))
-        .ok();
+    current_state_tx.write(Some(State::Listening { socket_addr }));
 
     server_listener.await;
 
     log::info!("Stopping");
-    current_state_tx.send(Some(State::Stopping)).ok();
+    current_state_tx.write(Some(State::Stopping));
 
     shared_connection_pool.decommission();
     // Abort the current task after decommissioning to prevent
@@ -233,7 +228,7 @@ pub(crate) async fn run(
     }
 
     log::info!("Terminating");
-    current_state_tx.send(Some(State::Terminating)).ok();
+    current_state_tx.write(Some(State::Terminating));
 
     Ok(())
 }

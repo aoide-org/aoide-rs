@@ -15,7 +15,7 @@
 
 use std::{sync::Arc, thread::JoinHandle};
 
-use tokio::sync::{mpsc, watch};
+use tokio::sync::mpsc;
 
 use crate::{
     config::Config,
@@ -29,7 +29,7 @@ pub(crate) mod ui;
 pub(crate) enum State {
     Idle,
     Running(RuntimeState),
-    Terminated,
+    Terminating,
 }
 
 #[derive(Debug)]
@@ -38,7 +38,7 @@ enum InternalState {
     Running {
         config: Config,
 
-        current_state_rx: watch::Receiver<State>,
+        current_state_rx: discro::Subscriber<State>,
         runtime_command_tx: mpsc::UnboundedSender<RuntimeCommand>,
 
         // A reference to the Tokio runtime is kept to allow scheduling
@@ -67,7 +67,7 @@ impl Launcher {
             InternalState::Idle => State::Idle,
             InternalState::Running {
                 current_state_rx, ..
-            } => *current_state_rx.borrow(),
+            } => *current_state_rx.read(),
         }
     }
 
@@ -95,21 +95,20 @@ impl Launcher {
                 .build()?,
         );
 
-        let (current_state_tx, current_state_rx) = watch::channel(State::Idle);
+        let (current_state_tx, current_state_rx) = discro::new_pubsub(State::Idle);
         tokio_runtime.spawn({
             let mut current_state_rx = current_state_rx.clone();
             async move {
                 while current_state_rx.changed().await.is_ok() {
-                    let state = *current_state_rx.borrow();
+                    let state = *current_state_rx.read_ack();
                     on_state_changed(state);
                 }
-                // Channel closed
-                log::debug!("Sender of state changes has been dropped");
+                log::debug!("Stop listening for state changes after launcher has been terminated");
             }
         });
 
         let (runtime_command_tx, runtime_command_rx) = mpsc::unbounded_channel();
-        let (current_runtime_state_tx, current_runtime_state_rx) = watch::channel(None);
+        let (current_runtime_state_tx, current_runtime_state_rx) = discro::new_pubsub(None);
         let join_handle = std::thread::spawn({
             let config = config.clone();
             // TODO: If the Tokio runtime is only accessed within this thread
@@ -121,23 +120,16 @@ impl Launcher {
         });
 
         tokio_runtime.spawn({
-            debug_assert!(matches!(*current_state_rx.borrow(), State::Idle));
+            debug_assert!(matches!(*current_state_rx.read(), State::Idle));
             let mut current_runtime_state_rx = current_runtime_state_rx;
             async move {
-                let send_state_changed = |state| {
-                    if let Err(watch::error::SendError(state)) = current_state_tx.send(state) {
-                        // Channel closed
-                        log::debug!("All receivers of state changes have been dropped: {state:?}");
-                    }
-                };
                 while current_runtime_state_rx.changed().await.is_ok() {
-                    if let Some(runtime_state) = *current_runtime_state_rx.borrow() {
-                        send_state_changed(State::Running(runtime_state));
+                    if let Some(runtime_state) = *current_runtime_state_rx.read_ack() {
+                        current_state_tx.write(State::Running(runtime_state));
                     }
                 }
-                // Channel closed
-                log::debug!("Channel is closed after runtime has been terminated");
-                send_state_changed(State::Terminated);
+                log::debug!("Stop listening for state changes after runtime has been terminated");
+                current_state_tx.write(State::Terminating);
             }
         });
 
@@ -172,8 +164,8 @@ impl Launcher {
     }
 
     #[cfg_attr(not(feature = "launcher-ui"), allow(dead_code))]
-    pub(crate) fn reset_after_terminated(&mut self) {
-        debug_assert!(matches!(self.state(), State::Terminated));
+    pub(crate) fn reset_on_termination(&mut self) {
+        debug_assert!(matches!(self.state(), State::Terminating));
         self.state = InternalState::Idle;
     }
 }

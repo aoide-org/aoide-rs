@@ -168,10 +168,10 @@ impl App {
                 // joins the runtime thread and then finally triggers a repaint.
                 self.state = State::Idle;
             }
-        } else if matches!(launcher_state, LauncherState::Terminated) {
+        } else if matches!(launcher_state, LauncherState::Terminating) {
             // If startup fails the launcher may terminate itself unattended
             drop(launcher);
-            self.after_launcher_terminated(ctx);
+            self.on_launcher_terminating(ctx);
         }
     }
 
@@ -320,10 +320,10 @@ impl App {
             log::error!("Failed to terminate runtime: {err}");
             return;
         }
-        self.after_launcher_terminated(ctx);
+        self.on_launcher_terminating(ctx);
     }
 
-    fn after_launcher_terminated(&mut self, ctx: &egui::Context) {
+    fn on_launcher_terminating(&mut self, ctx: &egui::Context) {
         if let State::Running { runtime_thread } =
             std::mem::replace(&mut self.state, State::Terminated)
         {
@@ -337,12 +337,12 @@ impl App {
                         .err()
                         .map(|err| err.to_string());
                     ctx.request_repaint();
-                    while !matches!(launcher.lock().state(), LauncherState::Terminated) {
+                    while !matches!(launcher.lock().state(), LauncherState::Terminating) {
                         log::debug!("Awaiting termination of launcher...");
                         std::thread::sleep(Duration::from_millis(1));
                     }
-                    log::debug!("Launcher terminated");
-                    launcher.lock().reset_after_terminated();
+                    log::debug!("Launcher is terminating");
+                    launcher.lock().reset_on_termination();
                     // The application state will be re-synchronized during
                     // the next invocation of update().
                     ctx.request_repaint();
@@ -375,7 +375,7 @@ impl eframe::App for App {
             match launcher.state() {
                 LauncherState::Idle
                 | LauncherState::Running(RuntimeState::Terminating)
-                | LauncherState::Terminated => (),
+                | LauncherState::Terminating => (),
                 LauncherState::Running(_) => {
                     if let Err(err) = launcher.terminate_runtime(true) {
                         log::error!("Failed to terminate runtime on exit: {err}");

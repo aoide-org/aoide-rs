@@ -362,6 +362,7 @@ dependencies = [
  "aoide-websrv-api",
  "ctrlc",
  "directories",
+ "discro",
  "dotenv",
  "eframe",
  "egui",
@@ -1168,6 +1169,17 @@ dependencies = [
  "libc",
  "redox_users",
  "winapi",
+]
+
+[[package]]
+name = "discro"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ae4a60a3577e304a1a4e522046a27c7b6e1ca448c08500fb5add5330ae18cfd"
+dependencies = [
+ "async-trait",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]
