@@ -1,5 +1,6 @@
 [package]
 name = "aoide-webcli"
+description = "aoide - Media tracker CLI for web server"
 version = "0.8.0"
 edition = "2021"
 

@@ -1,5 +1,6 @@
 [package]
 name = "aoide-webapp"
+description = "aoide - [experimental] Web app prototype"
 version = "0.8.0"
 edition = "2021"
 publish = false

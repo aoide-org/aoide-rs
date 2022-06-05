@@ -1,6 +1,6 @@
 [package]
 name = "aoide-storage-sqlite"
-description = "Utilities for an SQLite storage backend"
+description = "aoide - Utilities for an SQLite storage backend"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false

@@ -1,6 +1,9 @@
 [package]
 name = "aoide-client"
+description = "aoide - [experimental] Unidirectional dataflow client components"
 version = "0.8.0"
+license = "AGPL-3.0-or-later"
+publish = false
 edition = "2021"
 
 [dependencies]

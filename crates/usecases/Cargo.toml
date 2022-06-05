@@ -1,5 +1,6 @@
 [package]
 name = "aoide-usecases"
+description = "aoide - Storage-agnostic use case implementations"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false

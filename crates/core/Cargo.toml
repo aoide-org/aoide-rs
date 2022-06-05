@@ -1,5 +1,6 @@
 [package]
 name = "aoide-core"
+description = "aoide - Core domain model"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false

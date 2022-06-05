@@ -1,5 +1,6 @@
 [package]
 name = "aoide-media"
+description = "aoide - Import/export of metadata for media sources and tracks"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false

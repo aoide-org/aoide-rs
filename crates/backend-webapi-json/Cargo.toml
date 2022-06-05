@@ -1,5 +1,6 @@
 [package]
 name = "aoide-backend-webapi-json"
+description = "aoide - Asynchronous API for a standalone web server (JSON/HTTP)"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false

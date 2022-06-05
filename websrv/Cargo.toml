@@ -1,9 +1,9 @@
 [package]
 name = "aoide-websrv"
+description = "aoide - Standalone web server with embedded SQLite database"
+keywords = ["music", "collection"]
 version = "0.8.0"
 license-file = "LICENSE.md"
-description = "A web service for managing and exploring music collections"
-keywords = ["music", "collection"]
 publish = false
 edition = "2021"
 

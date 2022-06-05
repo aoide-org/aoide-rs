@@ -1,6 +1,6 @@
 [package]
 name = "aoide-repo"
-description = "Types and traits for persistent storage"
+description = "aoide - Types and traits for repositories"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false

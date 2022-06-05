@@ -1,6 +1,6 @@
 [package]
 name = "aoide-core-json"
-description = "JSON types for aoide-core"
+description = "aoide - JSON mapping for aoide-core boundary types"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false

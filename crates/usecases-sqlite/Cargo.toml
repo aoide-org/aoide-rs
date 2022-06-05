@@ -1,5 +1,6 @@
 [package]
 name = "aoide-usecases-sqlite"
+description = "aoide - SQLite wrappers for aoide-usecases"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false
