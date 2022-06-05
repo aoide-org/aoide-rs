@@ -18,6 +18,3 @@ thiserror = "1.0.31"
 # Workspace dependencies
 aoide-core = "=0.8.0"
 aoide-core-api = "=0.8.0"
-
-[features]
-default = []

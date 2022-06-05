@@ -14,6 +14,3 @@ url = "2.2.2"
 
 # Workspace dependencies
 aoide-core = "=0.8.0"
-
-[features]
-default = []
