@@ -42,7 +42,7 @@ eframe = { version = "0.18.0", optional = true, default-features = false, featur
     "default_fonts",
 ] }
 egui = { version = "0.18.1", optional = true, default-features = false }
-rfd = { version = "0.8.3", optional = true, default-features = false, features = [
+rfd = { version = "0.8.4", optional = true, default-features = false, features = [
     "xdg-portal",
 ] }
 
@@ -53,7 +53,7 @@ aoide-repo-sqlite = "=0.8.0"
 aoide-storage-sqlite = { version = "=0.8.0", features = ["serde", "tokio"] }
 aoide-usecases = "=0.8.0"
 aoide-usecases-sqlite = "=0.8.0"
-aoide-websrv-api = "=0.8.0"
+aoide-websrv-warp-sqlite = "=0.8.0"
 
 [features]
 default = ["schemars", "webapp", "launcher-ui"]

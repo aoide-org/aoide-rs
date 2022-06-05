@@ -78,10 +78,10 @@ dependencies = [
  "anyhow",
  "aoide-core",
  "aoide-core-api",
- "aoide-index-tantivy",
  "aoide-media",
  "aoide-repo",
  "aoide-repo-sqlite",
+ "aoide-search-index-tantivy",
  "aoide-storage-sqlite",
  "aoide-usecases",
  "aoide-usecases-sqlite",
@@ -198,18 +198,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoide-index-tantivy"
-version = "0.8.0"
-dependencies = [
- "anyhow",
- "aoide-core",
- "log",
- "num-traits",
- "tantivy",
- "thiserror",
-]
-
-[[package]]
 name = "aoide-media"
 version = "0.8.0"
 dependencies = [
@@ -275,6 +263,18 @@ dependencies = [
  "semval",
  "test-log",
  "url",
+]
+
+[[package]]
+name = "aoide-search-index-tantivy"
+version = "0.8.0"
+dependencies = [
+ "anyhow",
+ "aoide-core",
+ "log",
+ "num-traits",
+ "tantivy",
+ "thiserror",
 ]
 
 [[package]]
@@ -359,7 +359,7 @@ dependencies = [
  "aoide-storage-sqlite",
  "aoide-usecases",
  "aoide-usecases-sqlite",
- "aoide-websrv-api",
+ "aoide-websrv-warp-sqlite",
  "ctrlc",
  "directories",
  "discro",
@@ -386,7 +386,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoide-websrv-api"
+name = "aoide-websrv-warp-sqlite"
 version = "0.8.0"
 dependencies = [
  "anyhow",
@@ -1758,7 +1758,7 @@ dependencies = [
  "indexmap",
  "slab",
  "tokio",
- "tokio-util 0.7.2",
+ "tokio-util 0.7.3",
  "tracing",
 ]
 
@@ -3057,9 +3057,9 @@ dependencies = [
 
 [[package]]
 name = "rfd"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3d17df821b0da0e25ac29b1a6da5a6101d3593079b4d92a3001ee692da6f78f"
+checksum = "1f756b55bff8f256a1a8c24dbabb1430ac8110628e418a02e4a1c5ff67179f56"
 dependencies = [
  "ashpd",
  "block",
@@ -3071,6 +3071,7 @@ dependencies = [
  "objc_id",
  "pollster",
  "raw-window-handle",
+ "urlencoding",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -3743,9 +3744,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-macros"
-version = "1.7.0"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b557f72f448c511a979e2564e55d74e6c4432fc96ff4f6241bc6bded342643b7"
+checksum = "9724f9a975fb987ef7a3cd9be0350edcbe130698af5b8f7a631e23d42d052484"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3765,9 +3766,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-stream"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50145484efff8818b5ccd256697f36863f587da82cf8b409c53adf1e840798e3"
+checksum = "df54d54117d6fdc4e4fea40fe1e4e566b3505700e148a6827e59b34b0d2600d9"
 dependencies = [
  "futures-core",
  "pin-project-lite",
@@ -3790,9 +3791,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f988a1a1adc2fb21f9c12aa96441da33a1728193ae0b95d2be22dbd17fcb4e5c"
+checksum = "cc463cd8deddc3770d20f9852143d50bf6094e640b485cb2e189a2099085ff45"
 dependencies = [
  "bytes",
  "futures-core",
@@ -3967,6 +3968,12 @@ dependencies = [
  "percent-encoding",
  "serde",
 ]
+
+[[package]]
+name = "urlencoding"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68b90931029ab9b034b300b797048cf23723400aa757e8a2bfb9d748102f9821"
 
 [[package]]
 name = "utf8-ranges"

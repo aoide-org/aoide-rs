@@ -96,6 +96,12 @@ jobs:
           command: check
           args: --locked --all-features --all-targets --manifest-path crates/storage-sqlite/Cargo.toml
 
+      - name: Check aoide-search-index-tantivy
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --locked --all-features --all-targets --manifest-path crates/search-index-tantivy/Cargo.toml
+
       - name: Check aoide-usecases
         uses: actions-rs/cargo@v1
         with:
@@ -120,11 +126,11 @@ jobs:
           command: check
           args: --locked --all-features --all-targets --manifest-path crates/backend-webapi-json/Cargo.toml
 
-      - name: Check aoide-websrv-api
+      - name: Check aoide-websrv-warp-sqlite
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --all-features --all-targets --manifest-path crates/websrv-api/Cargo.toml
+          args: --locked --all-features --all-targets --manifest-path crates/websrv-warp-sqlite/Cargo.toml
 
       - name: Build aoide-webapp artifacts
         run: |

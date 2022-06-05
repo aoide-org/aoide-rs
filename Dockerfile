@@ -116,16 +116,16 @@ RUN USER=root cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-repo crates/repo && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-repo-sqlite && \
     mv ${PROJECT_NAME}-repo-sqlite crates/repo-sqlite && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-index-tantivy && \
-    mv ${PROJECT_NAME}-index-tantivy crates/index-tantivy && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-search-index-tantivy && \
+    mv ${PROJECT_NAME}-search-index-tantivy crates/search-index-tantivy && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-storage-sqlite && \
     mv ${PROJECT_NAME}-storage-sqlite crates/storage-sqlite && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases && \
     mv ${PROJECT_NAME}-usecases crates/usecases && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite && \
     mv ${PROJECT_NAME}-usecases-sqlite crates/usecases-sqlite && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv-api && \
-    mv ${PROJECT_NAME}-websrv-api crates/websrv-api && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv-warp-sqlite && \
+    mv ${PROJECT_NAME}-websrv-warp-sqlite crates/websrv-warp-sqlite && \
     tree -a
 
 COPY [ \
@@ -166,8 +166,8 @@ COPY [ \
     "crates/repo-sqlite/Cargo.toml", \
     "./crates/repo-sqlite/" ]
 COPY [ \
-    "crates/index-tantivy/Cargo.toml", \
-    "./crates/index-tantivy/" ]
+    "crates/search-index-tantivy/Cargo.toml", \
+    "./crates/search-index-tantivy/" ]
 COPY [ \
     "crates/storage-sqlite/Cargo.toml", \
     "./crates/storage-sqlite/" ]
@@ -178,8 +178,8 @@ COPY [ \
     "crates/usecases-sqlite/Cargo.toml", \
     "./crates/usecases-sqlite/" ]
 COPY [ \
-    "crates/websrv-api/Cargo.toml", \
-    "./crates/websrv-api/" ]
+    "crates/websrv-warp-sqlite/Cargo.toml", \
+    "./crates/websrv-warp-sqlite/" ]
 COPY [ \
     "webcli/Cargo.toml", \
     "./webcli/" ]
@@ -246,8 +246,8 @@ COPY [ \
     "crates/repo-sqlite/migrations", \
     "./crates/repo-sqlite/migrations/" ]
 COPY [ \
-    "crates/index-tantivy/src", \
-    "./crates/index-tantivy/src/" ]
+    "crates/search-index-tantivy/src", \
+    "./crates/search-index-tantivy/src/" ]
 COPY [ \
     "crates/storage-sqlite/src", \
     "./crates/storage-sqlite/src/" ]
@@ -258,8 +258,8 @@ COPY [ \
     "crates/usecases-sqlite/src", \
     "./crates/usecases-sqlite/src/" ]
 COPY [ \
-    "crates/websrv-api/src", \
-    "./crates/websrv-api/src/" ]
+    "crates/websrv-warp-sqlite/src", \
+    "./crates/websrv-warp-sqlite/src/" ]
 COPY [ \
     "webapp", \
     "./webapp/" ]
@@ -296,11 +296,11 @@ RUN tree -a && \
     cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-index-tantivy --manifest-path crates/index-tantivy/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-search-index-tantivy --manifest-path crates/index-tantivy/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-storage-sqlite --manifest-path crates/storage-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-websrv-api --manifest-path crates/websrv-api/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-websrv-warp-sqlite --manifest-path crates/websrv-warp-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml -${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-webcli --manifest-path webcli/Cargo.toml -${PROJECT_CHECK_ARGS} && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \

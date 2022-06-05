@@ -37,11 +37,11 @@ use aoide_usecases::media::tracker::{
     scan_directories::ProgressEvent as ScanProgressEvent, Progress as MediaTrackerProgress,
 };
 
-use aoide_websrv_api as webapi;
-
-use aoide_usecases_sqlite as uc;
+use aoide_websrv_warp_sqlite as websrv;
 
 use aoide_backend_webapi_json as api;
+
+use aoide_usecases_sqlite as uc;
 
 pub(crate) fn create_filters(
     shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
@@ -82,7 +82,7 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |request_body, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(&shared_connection_gatekeeper, move |pooled_connection, _abort_flag| {
+                websrv::spawn_blocking_write_task(&shared_connection_gatekeeper, move |pooled_connection, _abort_flag| {
                         api::collection::create::handle_request(&*pooled_connection, request_body)
                     })
                     .await
@@ -121,7 +121,7 @@ pub(crate) fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::collection::update::handle_request(
@@ -161,7 +161,7 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::collection::purge::handle_request(&*pooled_connection, &uid)
@@ -179,7 +179,7 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |query_params, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(&shared_connection_gatekeeper,move |pooled_connection, _abort_flag| {
+                websrv::spawn_blocking_read_task(&shared_connection_gatekeeper,move |pooled_connection, _abort_flag| {
                         api::collection::load_all::handle_request(&*pooled_connection, query_params)
                     })
                     .await
@@ -211,7 +211,7 @@ pub(crate) fn create_filters(
             move |uid,
                   query_params,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(
+                websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::collection::load_one::handle_request(
@@ -248,7 +248,7 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(
+                websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::collection::load_all_kinds::handle_request(&*pooled_connection)
@@ -318,7 +318,7 @@ pub(crate) fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(
+                websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::media::tracker::query_status::handle_request(
@@ -365,7 +365,7 @@ pub(crate) fn create_filters(
                     log::debug!("Unwatching media tracker scanning");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
-                let response = webapi::spawn_blocking_write_task(
+                let response = websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, abort_flag| {
                         api::media::tracker::scan_directories::handle_request(
@@ -426,7 +426,7 @@ pub(crate) fn create_filters(
                     log::debug!("Unwatching media tracker importing");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
-                let response = webapi::spawn_blocking_write_task(
+                let response = websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, abort_flag| {
                         api::media::tracker::import_files::handle_request(
@@ -466,7 +466,7 @@ pub(crate) fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::media::tracker::untrack_directories::handle_request(
@@ -513,7 +513,7 @@ pub(crate) fn create_filters(
                     log::debug!("Unwatching media tracker finding untracked");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
-                let response = webapi::spawn_blocking_read_task(
+                let response = websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, abort_flag| {
                         api::media::tracker::find_untracked_files::handle_request(
@@ -561,7 +561,7 @@ pub(crate) fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::media::source::relocate::handle_request(
@@ -587,7 +587,7 @@ pub(crate) fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::media::source::purge_orphaned::handle_request(
@@ -613,7 +613,7 @@ pub(crate) fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::media::source::purge_untracked::handle_request(
@@ -643,7 +643,7 @@ pub(crate) fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(
+                websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::track::resolve::handle_request(&*pooled_connection, &uid, request_body)
@@ -667,7 +667,7 @@ pub(crate) fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(
+                websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::track::search::handle_request(
@@ -696,7 +696,7 @@ pub(crate) fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::track::replace::handle_request(
@@ -725,7 +725,7 @@ pub(crate) fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, abort_flag| {
                         api::track::import_and_replace::handle_request(
@@ -755,7 +755,7 @@ pub(crate) fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(
+                websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::track::find_unsynchronized::handle_request(
@@ -784,7 +784,7 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(
+                websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::track::load_one::handle_request(&*pooled_connection, &uid)
@@ -802,7 +802,7 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |request_body, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(
+                websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,move |pooled_connection, _abort_flag| {
                         api::track::load_many::handle_request(&*pooled_connection, request_body)
                     })
@@ -821,7 +821,7 @@ pub(crate) fn create_filters(
             move |track_uid,
                   query_params,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::track::export_metadata::handle_request(
@@ -850,7 +850,7 @@ pub(crate) fn create_filters(
             move |collection_uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::playlist::create::handle_request(
@@ -877,7 +877,7 @@ pub(crate) fn create_filters(
             move |collection_uid,
                   query_params,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(
+                websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::playlist::load::handle_request(
@@ -905,7 +905,7 @@ pub(crate) fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::playlist::update::handle_request(
@@ -927,7 +927,7 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::playlist::purge::handle_request(&*pooled_connection, &uid)
@@ -950,7 +950,7 @@ pub(crate) fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         api::playlist::entries::patch::handle_request(
@@ -1002,7 +1002,7 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_write_task(
+                websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc::database::migrate_schema(&pooled_connection)
@@ -1026,7 +1026,7 @@ pub(crate) fn create_filters(
         .and_then(
             move |query_params, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
                 let CleanseDatabaseQueryParams { vacuum } = query_params;
-                webapi::spawn_blocking_write_task(&shared_connection_gatekeeper,
+                websrv::spawn_blocking_write_task(&shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         cleanse_database(&*pooled_connection, vacuum)
                     })

@@ -35,14 +35,14 @@ upgrade:
         --exclude aoide-core-api \
         --exclude aoide-core-api-json \
         --exclude aoide-core-json \
-        --exclude aoide-index-tantivy \
         --exclude aoide-media \
         --exclude aoide-repo \
         --exclude aoide-repo-sqlite \
+        --exclude aoide-search-index-tantivy \
         --exclude aoide-storage-sqlite \
         --exclude aoide-usecases \
         --exclude aoide-usecases-sqlite \
-        --exclude aoide-websrv-api \
+        --exclude aoide-websrv-warp-sqlite \
         --exclude libsqlite3-sys
     cargo update
     cd webapp && cargo update
@@ -55,16 +55,16 @@ check:
     cargo check --locked --all-features --all-targets -p aoide-core-api
     cargo check --locked --all-features --all-targets -p aoide-core-api-json
     cargo check --locked --all-features --all-targets -p aoide-core-json
-    cargo check --locked --all-features --all-targets -p aoide-index-tantivy
     cargo check --locked --all-features --all-targets -p aoide-media
     cargo check --locked --all-features --all-targets -p aoide-repo
     cargo check --locked --all-features --all-targets -p aoide-repo-sqlite
+    cargo check --locked --all-features --all-targets -p aoide-search-index-tantivy
     cargo check --locked --all-features --all-targets -p aoide-storage-sqlite
     cargo check --locked --all-features --all-targets -p aoide-usecases
     cargo check --locked --all-features --all-targets -p aoide-usecases-sqlite
     cargo check --locked --all-features --all-targets -p aoide-webcli
     cargo check --locked --all-features --all-targets -p aoide-websrv
-    cargo check --locked --all-features --all-targets -p aoide-websrv-api
+    cargo check --locked --all-features --all-targets -p aoide-websrv-warp-sqlite
 
 # Run clippy on the workspace (both dev and release profile)
 clippy:

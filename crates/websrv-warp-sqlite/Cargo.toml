@@ -1,9 +1,8 @@
 [package]
-name = "aoide-websrv-api"
+name = "aoide-websrv-warp-sqlite"
+description = "aoide - Routes and handlers for a web server (warp/SQLite)"
 version = "0.8.0"
 license-file = "LICENSE.md"
-description = "A web service for managing and exploring music collections"
-keywords = ["music", "collection"]
 publish = false
 edition = "2021"
 

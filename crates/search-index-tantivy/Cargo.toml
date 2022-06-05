@@ -1,6 +1,6 @@
 [package]
-name = "aoide-index-tantivy"
-description = "Utilities for a full-text search index based on Tantivy"
+name = "aoide-search-index-tantivy"
+description = "aoide - [experimental] Full-text search index based on Tantivy"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 publish = false
@@ -15,6 +15,3 @@ thiserror = "1.0.31"
 
 # Workspace dependencies
 aoide-core = "=0.8.0"
-
-[features]
-default = []

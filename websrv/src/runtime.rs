@@ -36,7 +36,7 @@ use aoide_repo_sqlite::initialize_database;
 
 use aoide_usecases_sqlite as uc;
 
-use aoide_websrv_api::handle_rejection;
+use aoide_websrv_warp_sqlite::handle_rejection;
 
 use crate::config::DatabaseConfig;
 
