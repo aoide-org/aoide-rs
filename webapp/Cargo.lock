@@ -15,7 +15,6 @@ dependencies = [
  "anyhow",
  "bitflags",
  "bs58",
- "getrandom",
  "mime",
  "num-derive",
  "num-traits",

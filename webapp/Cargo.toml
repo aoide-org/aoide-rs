@@ -15,7 +15,7 @@ thiserror = "1.0.30"
 url = "2.2.2"
 
 # Workspace dependencies
-aoide-core = { version = "=0.8.0", default-features = false }
+aoide-core = "=0.8.0"
 aoide-core-api = "=0.8.0"
 aoide-core-json = "=0.8.0"
 aoide-core-api-json = { version = "=0.8.0", features = ["frontend"] }

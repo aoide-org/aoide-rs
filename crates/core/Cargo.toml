@@ -14,8 +14,6 @@ mime = "0.3.16"
 num-derive = "0.3.3"
 num-traits = "0.2.15"
 once_cell = "1.12.0"
-path-slash = "0.1.4"
-rand = "0.8.5"
 semval = "0.3.0"
 time = { version = "0.3.9", features = [
     "macros",
@@ -26,14 +24,9 @@ time = { version = "0.3.9", features = [
 thiserror = "1.0.31"
 url = "2.2.2"
 
-# Dirty hack to support wasm32-unknown-unknown target. Otherwise
-# compilation will fail for this transitive dependency needed
-# by uuid and rand_core.
-# TODO: Remove if no longer needed
-getrandom = { version = "0.2.6", default-features = false, features = ["js"] }
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+path-slash = "0.1.4"
+rand = "0.8.5"
 
 [features]
-default = ["std"]
-std = ["std-file", "std-system-time"]
-std-file = []
-std-system-time = []
+default = []

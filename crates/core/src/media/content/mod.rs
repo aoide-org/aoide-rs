@@ -243,7 +243,7 @@ impl ContentRevision {
         self.to_value() as ContentRevisionSignedValue
     }
 
-    #[cfg(feature = "std-system-time")]
+    #[cfg(not(target_family = "wasm"))]
     pub fn try_from_file_time(
         file_time: std::time::SystemTime,
     ) -> Result<Option<Self>, std::time::SystemTimeError> {
@@ -262,7 +262,7 @@ impl ContentRevision {
             })
     }
 
-    #[cfg(all(feature = "std-file", feature = "std-system-time"))]
+    #[cfg(not(target_family = "wasm"))]
     pub fn try_from_file(file: &std::fs::File) -> std::io::Result<Option<Self>> {
         let file_last_modified = file.metadata()?.modified()?;
         Self::try_from_file_time(file_last_modified)

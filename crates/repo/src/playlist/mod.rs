@@ -141,7 +141,7 @@ fn shuffle_all_playlist_entries_default<R: EntryRepo + ?Sized>(
     playlist_id: RecordId,
 ) -> RepoResult<()> {
     let mut entries = entry_repo.load_all_playlist_entries(playlist_id)?;
-    entries.shuffle(&mut thread_rng());
+    entries.shuffle(&mut thread_rng() as _);
     entry_repo.remove_all_playlist_entries(playlist_id)?;
     entry_repo.append_playlist_entries(playlist_id, &entries)?;
     Ok(())

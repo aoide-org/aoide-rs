@@ -13,15 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
+use std::ops::RangeBounds;
 
-pub mod track;
+use bitflags::bitflags;
 
 use crate::prelude::*;
 
-use bitflags::bitflags;
-use rand::{seq::SliceRandom, thread_rng};
-use std::ops::RangeBounds;
+pub mod track;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Item {
@@ -243,8 +241,9 @@ impl PlaylistWithEntries {
         self.entries.clear();
     }
 
+    #[cfg(not(target_family = "wasm"))]
     pub fn shuffle_entries(&mut self) {
-        self.entries.shuffle(&mut thread_rng());
+        rand::seq::SliceRandom::shuffle(self.entries.as_mut_slice(), &mut rand::thread_rng() as _);
     }
 
     // Sort entries by their creation time stamp, preserving the

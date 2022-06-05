@@ -16,14 +16,11 @@ schemars = { version = "0.8.10", optional = true, features = ["url"] }
 
 # Workspace dependencies
 aoide-core = "=0.8.0"
-aoide-core-json = "=0.8.0"
 aoide-core-api = "=0.8.0"
+aoide-core-json = "=0.8.0"
 
 [features]
 default = []
 frontend = []
 backend = []
-schemars = [
-    "dep:schemars",
-    "aoide-core-json/schemars",
-]
+schemars = ["dep:schemars", "aoide-core-json/schemars"]

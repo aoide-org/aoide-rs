@@ -22,7 +22,6 @@ use std::{
     str,
 };
 
-use rand::{thread_rng, RngCore};
 use thiserror::Error;
 
 use crate::{
@@ -52,11 +51,12 @@ impl EntityUid {
     pub const MAX_STR_LEN: usize = 33;
     pub const BASE58_ALPHABET: &'static bs58::alphabet::Alphabet = bs58::Alphabet::BITCOIN;
 
+    #[cfg(not(target_family = "wasm"))]
     #[must_use]
     pub fn random() -> Self {
         // Generate 24 random bytes
         let mut new = Self::default();
-        thread_rng().fill_bytes(&mut new.0);
+        rand::RngCore::fill_bytes(&mut rand::thread_rng() as _, &mut new.0);
         new
     }
 
@@ -342,6 +342,7 @@ pub struct EntityHeader {
 }
 
 impl EntityHeader {
+    #[cfg(not(target_family = "wasm"))]
     #[must_use]
     pub fn initial_random() -> Self {
         Self::initial_with_uid(EntityUid::random())
@@ -410,6 +411,7 @@ impl<T> EntityHeaderTyped<T> {
         }
     }
 
+    #[cfg(not(target_family = "wasm"))]
     #[must_use]
     pub fn initial_random() -> Self {
         Self::from_untyped(EntityHeader::initial_random())

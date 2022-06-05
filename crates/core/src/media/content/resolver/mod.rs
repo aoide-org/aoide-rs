@@ -16,13 +16,10 @@
 use thiserror::Error;
 use url::Url;
 
-#[cfg(feature = "std-file")]
+#[cfg(not(target_family = "wasm"))]
 use std::path::PathBuf;
 
-#[cfg(feature = "std-file")]
-use path_slash::PathBufExt;
-
-#[cfg(feature = "std-file")]
+#[cfg(not(target_family = "wasm"))]
 use crate::util::url::{is_valid_base_url, BaseUrl};
 
 use super::{ContentPath, ContentPathKind};
@@ -94,7 +91,7 @@ impl ContentPathResolver for FileUrlResolver {
     }
 }
 
-#[cfg(feature = "std-file")]
+#[cfg(not(target_family = "wasm"))]
 #[derive(Debug, Clone, Default)]
 pub struct VirtualFilePathResolver {
     root_url: Option<BaseUrl>,
@@ -102,7 +99,7 @@ pub struct VirtualFilePathResolver {
     root_slash_path: Option<String>,
 }
 
-#[cfg(feature = "std-file")]
+#[cfg(not(target_family = "wasm"))]
 impl VirtualFilePathResolver {
     #[must_use]
     pub const fn new() -> Self {
@@ -131,7 +128,10 @@ impl VirtualFilePathResolver {
                 .and_then(|path| Url::from_directory_path(path).ok())
                 .and_then(|url| BaseUrl::try_from(url).ok())
         );
-        let root_slash_path = root_file_path.as_ref().ok().and_then(PathBufExt::to_slash);
+        let root_slash_path = root_file_path
+            .as_ref()
+            .ok()
+            .and_then(path_slash::PathBufExt::to_slash);
         debug_assert_eq!(root_file_path.is_ok(), root_slash_path.is_some());
         Self {
             root_url,
@@ -142,7 +142,7 @@ impl VirtualFilePathResolver {
 
     #[must_use]
     pub fn build_file_path(&self, slash_path: &str) -> PathBuf {
-        let path_suffix = PathBuf::from_slash(slash_path);
+        let path_suffix = path_slash::PathBufExt::from_slash(slash_path);
         if let Some(root_file_path) = &self.root_file_path {
             let mut path_buf =
                 PathBuf::with_capacity(root_file_path.as_os_str().len() + slash_path.len());
@@ -155,7 +155,7 @@ impl VirtualFilePathResolver {
     }
 }
 
-#[cfg(feature = "std-file")]
+#[cfg(not(target_family = "wasm"))]
 impl ContentPathResolver for VirtualFilePathResolver {
     fn path_kind(&self) -> ContentPathKind {
         ContentPathKind::VirtualFilePath
@@ -172,7 +172,7 @@ impl ContentPathResolver for VirtualFilePathResolver {
         match url.to_file_path() {
             Ok(file_path) => {
                 if file_path.is_absolute() {
-                    if let Some(slash_path) = file_path.to_slash() {
+                    if let Some(slash_path) = path_slash::PathBufExt::to_slash(&file_path) {
                         if let Some(root_slash_path) = &self.root_slash_path {
                             let stripped_path = slash_path.strip_prefix(root_slash_path);
                             if let Some(stripped_path) = stripped_path {

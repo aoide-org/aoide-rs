@@ -54,11 +54,16 @@ check:
     cargo check --locked --all-targets --no-default-features -p aoide-backend-embedded
     cargo check --locked --all-targets --all-features -p aoide-backend-webapi-json
     cargo check --locked --all-targets --all-features -p aoide-client
-    cargo check --locked --all-targets --all-features -p aoide-core
-    cargo check --locked --all-targets --no-default-features -p aoide-core
-    cargo check --locked --all-targets --all-features -p aoide-core-api
+    cargo check --locked --all-targets -p aoide-core
+    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core
+    cargo check --locked --all-targets -p aoide-core-api
+    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-api
+    cargo check --locked --all-targets -p aoide-core-api-json
     cargo check --locked --all-targets --all-features -p aoide-core-api-json
+    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets -p aoide-core-json
     cargo check --locked --all-targets --all-features -p aoide-core-json
+    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-json
     cargo check --locked --all-targets --all-features -p aoide-media
     cargo check --locked --all-targets --no-default-features -p aoide-media
     cargo check --locked --all-targets --all-features -p aoide-repo
