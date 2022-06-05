@@ -678,5 +678,7 @@ where
 // Tests
 ///////////////////////////////////////////////////////////////////////
 
+// TODO: Renable tests for wasm when generating random UIDs is available
+#[cfg(not(target_family = "wasm"))]
 #[cfg(test)]
 mod tests;

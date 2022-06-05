@@ -58,9 +58,10 @@ check:
     cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core
     cargo check --locked --all-targets -p aoide-core-api
     cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-api
-    cargo check --locked --all-targets -p aoide-core-api-json
+    cargo check --locked --all-targets --features backend -p aoide-core-api-json
+    cargo check --locked --all-targets --features frontend -p aoide-core-api-json
     cargo check --locked --all-targets --all-features -p aoide-core-api-json
-    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets --all-features --target wasm32-unknown-unknown -p aoide-core-api-json
     cargo check --locked --all-targets -p aoide-core-json
     cargo check --locked --all-targets --all-features -p aoide-core-json
     cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-json
