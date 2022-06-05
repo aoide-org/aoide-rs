@@ -56,7 +56,9 @@ impl JsonSchema for DateTime {
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        gen.subschema_for::<chrono::DateTime<chrono::FixedOffset>>()
+        // TODO: Use predefined schema for `ime::OffsetDateTime` when available
+        //gen.subschema_for::<time::OffsetDateTime>()
+        gen.subschema_for::<String>()
     }
 }
 
