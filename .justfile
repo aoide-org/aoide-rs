@@ -50,35 +50,40 @@ upgrade:
 
 # Check all crates individually (takes a long time)
 check:
-    cargo check --locked --all-features --all-targets -p aoide-client
-    cargo check --locked --all-features --all-targets -p aoide-core
-    cargo check --locked --all-features --all-targets -p aoide-core-api
-    cargo check --locked --all-features --all-targets -p aoide-core-api-json
-    cargo check --locked --all-features --all-targets -p aoide-core-json
-    cargo check --locked --all-features --all-targets -p aoide-media
-    cargo check --locked --all-features --all-targets -p aoide-repo
-    cargo check --locked --all-features --all-targets -p aoide-repo-sqlite
-    cargo check --locked --all-features --all-targets -p aoide-search-index-tantivy
-    cargo check --locked --all-features --all-targets -p aoide-storage-sqlite
-    cargo check --locked --all-features --all-targets -p aoide-usecases
-    cargo check --locked --all-features --all-targets -p aoide-usecases-sqlite
-    cargo check --locked --all-features --all-targets -p aoide-webcli
-    cargo check --locked --all-features --all-targets -p aoide-websrv
-    cargo check --locked --all-features --all-targets -p aoide-websrv-warp-sqlite
+    cargo check --locked --all-targets --all-features -p aoide-backend-embedded
+    cargo check --locked --all-targets --no-default-features -p aoide-backend-embedded
+    cargo check --locked --all-targets --all-features -p aoide-backend-webapi-json
+    cargo check --locked --all-targets --all-features -p aoide-client
+    cargo check --locked --all-targets --all-features -p aoide-core
+    cargo check --locked --all-targets --no-default-features -p aoide-core
+    cargo check --locked --all-targets --all-features -p aoide-core-api
+    cargo check --locked --all-targets --all-features -p aoide-core-api-json
+    cargo check --locked --all-targets --all-features -p aoide-core-json
+    cargo check --locked --all-targets --all-features -p aoide-media
+    cargo check --locked --all-targets --no-default-features -p aoide-media
+    cargo check --locked --all-targets --all-features -p aoide-repo
+    cargo check --locked --all-targets --all-features -p aoide-repo-sqlite
+    cargo check --locked --all-targets --all-features -p aoide-search-index-tantivy
+    cargo check --locked --all-targets --all-features -p aoide-storage-sqlite
+    cargo check --locked --all-targets --all-features -p aoide-usecases
+    cargo check --locked --all-targets --all-features -p aoide-usecases-sqlite
+    cargo check --locked --all-targets --all-features -p aoide-webcli
+    cargo check --locked --all-targets --all-features -p aoide-websrv
+    cargo check --locked --all-targets --all-features -p aoide-websrv-warp-sqlite
 
 # Run clippy on the workspace (both dev and release profile)
 clippy:
     cargo clippy --locked --workspace --all-targets --no-deps --profile dev -- -D warnings --cap-lints warn
     cargo clippy --locked --workspace --all-targets --no-deps --profile release -- -D warnings --cap-lints warn
-    cd webapp && cargo clippy --locked --no-deps --target wasm32-unknown-unknown --all-features --all-targets --profile dev -- -D warnings --cap-lints warn
-    cd webapp && cargo clippy --locked --no-deps --target wasm32-unknown-unknown --all-features --all-targets --profile release -- -D warnings --cap-lints warn
+    cd webapp && cargo clippy --locked --no-deps --target wasm32-unknown-unknown --all-targets --all-features --profile dev -- -D warnings --cap-lints warn
+    cd webapp && cargo clippy --locked --no-deps --target wasm32-unknown-unknown --all-targets --all-features --profile release -- -D warnings --cap-lints warn
 
 # Fix lint warnings
 fix:
-    cargo fix --locked --workspace --all-features --all-targets
-    cargo clippy --locked --workspace --no-deps --all-features --all-targets --fix
-    cd webapp && cargo fix --locked --target wasm32-unknown-unknown --all-features --all-targets
-    cd webapp && cargo clippy --locked --no-deps --target wasm32-unknown-unknown --all-features --all-targets --fix
+    cargo fix --locked --workspace --all-targets --all-features
+    cargo clippy --locked --workspace --no-deps --all-targets --all-features --fix
+    cd webapp && cargo fix --locked --target wasm32-unknown-unknown --all-targets --all-features
+    cd webapp && cargo clippy --locked --no-deps --target wasm32-unknown-unknown --all-targets --all-features --fix
 
 # Run tests
 test:

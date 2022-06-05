@@ -347,7 +347,10 @@ pub fn load_embedded_artwork_image_from_file_path(
                 })
                 .transpose()
         }),
-        _ => Err(Error::UnsupportedContentType(mime)),
+        _ => {
+            drop(reader); // Suppress unused warning
+            Err(Error::UnsupportedContentType(mime))
+        }
     }
 }
 

@@ -46,7 +46,7 @@ ARG BUILD_PROFILE
 ARG BUILD_BIN
 
 # Enable all features and targets for the individual project checks
-ARG PROJECT_CHECK_ARGS="--locked --all-features --all-targets --target ${BUILD_TARGET} --profile ${BUILD_PROFILE}"
+ARG PROJECT_CHECK_ARGS="--locked --all-targets --all-features --target ${BUILD_TARGET} --profile ${BUILD_PROFILE}"
 
 # Enable select features for the workspace build or leave empty
 # for using the default features

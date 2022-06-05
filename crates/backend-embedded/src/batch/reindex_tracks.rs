@@ -54,7 +54,7 @@ pub enum IndexingMode {
 /// The `mode` defaults to `RecentlyUpdated` if unspecified. It is
 /// irrelevant and ignored if the index is empty.
 pub async fn reindex_tracks(
-    track_fields: aoide_index_tantivy::TrackFields,
+    track_fields: aoide_search_index_tantivy::TrackFields,
     mut index_writer: IndexWriter,
     db_gatekeeper: Arc<Gatekeeper>,
     collection_uid: CollectionUid,
