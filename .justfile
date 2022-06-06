@@ -50,32 +50,38 @@ upgrade:
 
 # Check all crates individually (takes a long time)
 check:
-    cargo check --locked --all-targets --all-features -p aoide-backend-embedded
-    cargo check --locked --all-targets --no-default-features -p aoide-backend-embedded
-    cargo check --locked --all-targets --all-features -p aoide-backend-webapi-json
-    cargo check --locked --all-targets --all-features -p aoide-client
+    cargo check --locked --all-targets -p aoide-backend-embedded
+    cargo check --locked --all-targets -p aoide-backend-embedded --all-features
+    cargo check --locked --all-targets -p aoide-backend-webapi-json
+    cargo check --locked --all-targets -p aoide-backend-webapi-json --all-features
+    cargo check --locked --all-targets -p aoide-client
+    cargo check --locked --all-targets -p aoide-client --all-features
     cargo check --locked --all-targets -p aoide-core
-    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core
-    cargo check --locked --all-targets -p aoide-core-api
-    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-api
-    cargo check --locked --all-targets --features backend -p aoide-core-api-json
-    cargo check --locked --all-targets --features frontend -p aoide-core-api-json
-    cargo check --locked --all-targets --all-features -p aoide-core-api-json
-    cargo check --locked --all-targets --all-features --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets -p aoide-core-api-json --features backend
+    cargo check --locked --all-targets -p aoide-core-api-json --features frontend
+    cargo check --locked --all-targets -p aoide-core-api-json --all-features
     cargo check --locked --all-targets -p aoide-core-json
-    cargo check --locked --all-targets --all-features -p aoide-core-json
-    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-json
-    cargo check --locked --all-targets --all-features -p aoide-media
-    cargo check --locked --all-targets --no-default-features -p aoide-media
-    cargo check --locked --all-targets --all-features -p aoide-repo
-    cargo check --locked --all-targets --all-features -p aoide-repo-sqlite
-    cargo check --locked --all-targets --all-features -p aoide-search-index-tantivy
-    cargo check --locked --all-targets --all-features -p aoide-storage-sqlite
-    cargo check --locked --all-targets --all-features -p aoide-usecases
-    cargo check --locked --all-targets --all-features -p aoide-usecases-sqlite
-    cargo check --locked --all-targets --all-features -p aoide-webcli
-    cargo check --locked --all-targets --all-features -p aoide-websrv
-    cargo check --locked --all-targets --all-features -p aoide-websrv-warp-sqlite
+    cargo check --locked --all-targets -p aoide-core-json --all-features
+    cargo check --locked --all-targets -p aoide-media --all-features
+    cargo check --locked --all-targets -p aoide-media --no-default-features
+    cargo check --locked --all-targets -p aoide-repo --all-features
+    cargo check --locked --all-targets -p aoide-repo-sqlite --all-features
+    cargo check --locked --all-targets -p aoide-search-index-tantivy --all-features
+    cargo check --locked --all-targets -p aoide-storage-sqlite --all-features
+    cargo check --locked --all-targets -p aoide-usecases --all-features
+    cargo check --locked --all-targets -p aoide-usecases --no-default-features
+    cargo check --locked --all-targets -p aoide-usecases-sqlite --all-features
+    cargo check --locked --all-targets -p aoide-webcli --all-features
+    cargo check --locked --all-targets -p aoide-websrv --all-features
+    cargo check --locked --all-targets -p aoide-websrv-warp-sqlite --all-features
+
+check-wasm:
+    cargo check --locked --all-targets --target wasm32-unknown-unknown --features js -p aoide-core
+    cargo check --locked --all-targets --target wasm32-unknown-unknown --features js -p aoide-core-api
+    cargo check --locked --all-targets --target wasm32-unknown-unknown --features js,backend -p aoide-core-api-json
+    cargo check --locked --all-targets --target wasm32-unknown-unknown --features js,frontend -p aoide-core-api-json
+    cargo check --locked --all-targets --target wasm32-unknown-unknown --features js -p aoide-core-json
+    cargo check --locked --all-targets --target wasm32-unknown-unknown --features js -p aoide-repo
 
 # Run clippy on the workspace (both dev and release profile)
 clippy:

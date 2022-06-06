@@ -22,6 +22,7 @@ use std::{
     str,
 };
 
+use rand::RngCore;
 use thiserror::Error;
 
 use crate::{
@@ -51,12 +52,26 @@ impl EntityUid {
     pub const MAX_STR_LEN: usize = 33;
     pub const BASE58_ALPHABET: &'static bs58::alphabet::Alphabet = bs58::Alphabet::BITCOIN;
 
+    #[cfg(target_family = "wasm")]
+    #[must_use]
+    pub fn random() -> Self {
+        let mut new = Self::default();
+        // Generate 24 random bytes
+        getrandom::getrandom(&mut new.0).expect("random bytes");
+        new
+    }
+
     #[cfg(not(target_family = "wasm"))]
     #[must_use]
     pub fn random() -> Self {
-        // Generate 24 random bytes
+        Self::random_with(&mut crate::util::random::adhoc_rng())
+    }
+
+    #[must_use]
+    pub fn random_with<T: RngCore>(rng: &mut T) -> Self {
         let mut new = Self::default();
-        rand::RngCore::fill_bytes(&mut rand::thread_rng() as _, &mut new.0);
+        // Generate 24 random bytes
+        rand::RngCore::fill_bytes(rng, &mut new.0);
         new
     }
 
@@ -342,12 +357,17 @@ pub struct EntityHeader {
 }
 
 impl EntityHeader {
-    #[cfg(not(target_family = "wasm"))]
     #[must_use]
     pub fn initial_random() -> Self {
         Self::initial_with_uid(EntityUid::random())
     }
 
+    #[must_use]
+    pub fn initial_random_with<T: RngCore>(rng: &mut T) -> Self {
+        Self::initial_with_uid(EntityUid::random_with(rng))
+    }
+
+    #[must_use]
     pub fn initial_with_uid<T: Into<EntityUid>>(uid: T) -> Self {
         let initial_rev = EntityRevision::initial();
         Self {
@@ -411,7 +431,6 @@ impl<T> EntityHeaderTyped<T> {
         }
     }
 
-    #[cfg(not(target_family = "wasm"))]
     #[must_use]
     pub fn initial_random() -> Self {
         Self::from_untyped(EntityHeader::initial_random())
@@ -678,7 +697,5 @@ where
 // Tests
 ///////////////////////////////////////////////////////////////////////
 
-// TODO: Renable tests for wasm when generating random UIDs is available
-#[cfg(not(target_family = "wasm"))]
 #[cfg(test)]
 mod tests;

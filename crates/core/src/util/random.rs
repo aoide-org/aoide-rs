@@ -13,25 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod canonical;
-pub mod clock;
-pub mod color;
-pub mod random;
-pub mod string;
-pub mod url;
+//! Stateless, cryptographically insecure random generator for simple,
+//! noncritical use cases.
 
-pub trait IsInteger {
-    fn is_integer(&self) -> bool;
+#[cfg(target_family = "wasm")]
+pub type AdhocRng = rand::rngs::StdRng;
+
+#[cfg(target_family = "wasm")]
+#[must_use]
+pub fn adhoc_rng() -> AdhocRng {
+    <AdhocRng as rand::SeedableRng>::from_entropy()
 }
 
-impl IsInteger for f64 {
-    fn is_integer(&self) -> bool {
-        (self.trunc() - self).abs() == 0_f64
-    }
-}
+#[cfg(not(target_family = "wasm"))]
+pub type AdhocRng = rand::rngs::ThreadRng;
 
-impl IsInteger for f32 {
-    fn is_integer(&self) -> bool {
-        (self.trunc() - self).abs() == 0_f32
-    }
+#[cfg(not(target_family = "wasm"))]
+#[must_use]
+pub fn adhoc_rng() -> AdhocRng {
+    rand::thread_rng()
 }

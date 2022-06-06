@@ -16,8 +16,9 @@
 use std::ops::RangeBounds;
 
 use bitflags::bitflags;
+use rand::{seq::SliceRandom as _, RngCore};
 
-use crate::prelude::*;
+use crate::prelude::{random::adhoc_rng, *};
 
 pub mod track;
 
@@ -241,9 +242,12 @@ impl PlaylistWithEntries {
         self.entries.clear();
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub fn shuffle_entries(&mut self) {
-        rand::seq::SliceRandom::shuffle(self.entries.as_mut_slice(), &mut rand::thread_rng() as _);
+        self.shuffle_entries_with(&mut adhoc_rng());
+    }
+
+    pub fn shuffle_entries_with<T: RngCore>(&mut self, rng: &mut T) {
+        self.entries.shuffle(rng);
     }
 
     // Sort entries by their creation time stamp, preserving the

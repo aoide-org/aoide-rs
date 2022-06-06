@@ -15,11 +15,11 @@
 
 use std::ops::Range;
 
-use rand::{seq::SliceRandom, thread_rng};
+use rand::seq::SliceRandom as _;
 
 use aoide_core::{
     playlist::{Entity, EntityHeader, EntityUid, EntityWithEntries, EntriesSummary, Entry},
-    util::clock::DateTime,
+    util::{clock::DateTime, random::adhoc_rng},
 };
 
 use aoide_core_api::playlist::EntityWithEntriesSummary;
@@ -141,7 +141,7 @@ fn shuffle_all_playlist_entries_default<R: EntryRepo + ?Sized>(
     playlist_id: RecordId,
 ) -> RepoResult<()> {
     let mut entries = entry_repo.load_all_playlist_entries(playlist_id)?;
-    entries.shuffle(&mut thread_rng() as _);
+    entries.shuffle(&mut adhoc_rng() as _);
     entry_repo.remove_all_playlist_entries(playlist_id)?;
     entry_repo.append_playlist_entries(playlist_id, &entries)?;
     Ok(())
