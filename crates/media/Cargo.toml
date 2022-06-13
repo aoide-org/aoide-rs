@@ -26,7 +26,7 @@ url = "2.2.2"
 walkdir = "2.3.2"
 
 # Dependencies (optional)
-id3 = { version = "1.1.3", optional = true }
+id3 = { version = "1.2.0", optional = true }
 lewton = { version = "0.10.2", optional = true }
 metaflac = { version = "0.2.5", optional = true }
 mpeg-audio-header = { version = "0.0.2", optional = true }

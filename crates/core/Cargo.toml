@@ -26,7 +26,7 @@ thiserror = "1.0.31"
 url = "2.2.2"
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = "0.2.6"
+getrandom = "0.2.7"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 path-slash = "0.1.4"
