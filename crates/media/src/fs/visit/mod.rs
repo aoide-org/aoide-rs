@@ -173,14 +173,14 @@ pub fn visit_directories<
     E1: Into<Error>,
     E2: Into<Error>,
     V: AncestorVisitor<T, E1>,
-    NewAncestorVistorFn: FnMut(&walkdir::DirEntry) -> V,
+    NewAncestorVisitorFn: FnMut(&walkdir::DirEntry) -> V,
     AncestorFinishedFn: FnMut(&Path, T) -> StdResult<AfterAncestorFinished, E2>,
     ReportProgressFn: FnMut(&ProgressEvent),
 >(
     root_path: &Path,
     max_depth: Option<usize>,
     abort_flag: &AtomicBool,
-    new_ancestor_visitor_fn: &mut NewAncestorVistorFn,
+    new_ancestor_visitor_fn: &mut NewAncestorVisitorFn,
     ancestor_finished_fn: &mut AncestorFinishedFn,
     report_progress_fn: &mut ReportProgressFn,
 ) -> Result<ProgressEvent> {

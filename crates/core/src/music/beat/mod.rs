@@ -189,7 +189,7 @@ pub struct MeasurePosition {
     /// The offset in beats since the start of the current measure.
     ///
     /// The minimum value 0.0 marks the 1st beat or *downbeat* in the
-    /// current measure. The maximm value must be strictly less than
+    /// current measure. The maximum value must be strictly less than
     /// the value of *beats per measure* for the current time signature.
     pub beat_offset_in_measure: BeatOffsetInMeasure,
 }

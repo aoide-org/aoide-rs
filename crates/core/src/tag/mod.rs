@@ -205,7 +205,7 @@ impl Borrow<str> for CowLabel<'_> {
 
 /// The name of a tag.
 ///
-/// Format: Uniccode string without leading/trailing whitespace
+/// Format: Unicode string without leading/trailing whitespace
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Label(LabelValue);
 
@@ -351,7 +351,7 @@ impl Borrow<str> for CowFacetId<'_> {
 /// Facets are used for grouping/categorizing and providing context or meaning.
 ///
 /// Serves as a symbolic, internal identifier that is not intended to be displayed
-/// literally in the UI. The restrictive nameing constraints ensure that they are
+/// literally in the UI. The restrictive naming constraints ensure that they are
 /// not used for storing arbitrary text. Instead facet identifiers should be mapped
 /// to translated display strings, e.g. the facet "genre" could be mapped to "Genre"
 /// in English and the facet "venue" could be mapped to "Veranstaltungsort" in German.
