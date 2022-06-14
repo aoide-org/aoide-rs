@@ -15,6 +15,7 @@
 
 use std::{
     fs::read_link,
+    ops::Not as _,
     path::{Path, PathBuf},
     result::Result as StdResult,
     sync::atomic::{AtomicBool, Ordering},
@@ -202,7 +203,7 @@ pub fn visit_directories<
     }
     for dir_entry in walkdir
         .into_iter()
-        .filter_entry(|e| !is_hidden_dir_entry(e))
+        .filter_entry(|e| is_hidden_dir_entry(e).not())
     {
         if abort_flag.load(Ordering::Relaxed) {
             log::debug!("Aborting directory tree traversal");

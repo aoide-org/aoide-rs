@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::path::PathBuf;
+use std::{ops::Not as _, path::PathBuf};
 
 use aoide_core::{
     collection::EntityUid,
@@ -137,7 +137,7 @@ impl RepoContext {
             .as_ref()
             .map(|vfs| vfs.root_path.as_str())
             .or_else(|| default_root_url.map(|root_url| root_url.as_str()))
-            .filter(|root_path_prefix| !root_path_prefix.is_empty())
+            .filter(|root_path_prefix| root_path_prefix.is_empty().not())
     }
 }
 

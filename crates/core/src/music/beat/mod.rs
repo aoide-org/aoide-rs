@@ -15,7 +15,7 @@
 
 use crate::prelude::*;
 
-use std::{f64, fmt};
+use std::{f64, fmt, ops::Not as _};
 
 ///////////////////////////////////////////////////////////////////////
 // TimeSignature
@@ -118,7 +118,7 @@ impl Validate for TimeSignature {
             )
             .invalidate_if(
                 self.beat_unit
-                    .map(|beat_unit| !is_valid_beat_unit(beat_unit))
+                    .map(|beat_unit| is_valid_beat_unit(beat_unit).not())
                     .unwrap_or_default(),
                 Self::Invalidity::BeatUnit,
             )

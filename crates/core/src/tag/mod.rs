@@ -23,7 +23,7 @@ use std::{
     fmt,
     hash::{Hash, Hasher},
     iter::once,
-    ops::Deref,
+    ops::{Deref, Not as _},
 };
 
 use crate::{
@@ -445,7 +445,7 @@ impl Validate for FacetId {
                 self.value()
                     .chars()
                     .next()
-                    .map_or(false, |c| !c.is_ascii_lowercase()),
+                    .map_or(false, |c| c.is_ascii_lowercase().not()),
                 Self::Invalidity::Format,
             )
             .invalidate_if(
@@ -805,7 +805,7 @@ impl Canonicalize for Tags {
             facets,
         } = self;
         plain_tags.canonicalize();
-        facets.retain(|f| !f.tags.is_empty());
+        facets.retain(|f| f.tags.is_empty().not());
         facets.sort_unstable_by(|lhs, rhs| lhs.facet_id.canonical_cmp(&rhs.facet_id));
         facets.dedup_by(|next, prev| {
             if prev
