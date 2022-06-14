@@ -15,8 +15,6 @@ jobs:
   security-audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
       # TODO: Remove manual installation of toolchain after
       # https://github.com/actions-rs/audit-check/issues/215
       # has been resolved.
@@ -25,6 +23,8 @@ jobs:
           toolchain: stable
           profile: minimal
           override: true
+
+      - uses: actions/checkout@v3
 
       - uses: actions-rs/audit-check@v1
         with:

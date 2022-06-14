@@ -14,25 +14,38 @@ env:
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: short
+  BUILD_TARGET: x86_64-unknown-linux-musl
 
 jobs:
   continuous-integration:
     name: Building project and running tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner_os }}
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+        include:
+          - target: x86_64-unknown-linux-musl
+            runner_os: ubuntu-latest
 
     steps:
-      - name: Install extra dependencies for egui on Linux
+      - name: Install dependencies for `musl libc`
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt -y install musl-tools
+
+      - name: 'Install dependencies for `egui`'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev
-
-      - name: Check out repository
-        uses: actions/checkout@v3
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
+          target: ${{ matrix.target }}
           toolchain: stable
           profile: minimal
+          override: true
 
       - name: Install Rust toolchain for webapp
         uses: actions-rs/toolchain@v1
@@ -40,13 +53,16 @@ jobs:
           target: wasm32-unknown-unknown
           toolchain: stable
           profile: minimal
+          override: true
 
       - name: Install Trunk for building the webapp
         run: |
           cargo install --locked trunk
 
-      # Cache key depends on Rust toolchain!
-      - name: "Cache build artifacts"
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v1
 
       - name: Check aoide-core
@@ -161,16 +177,16 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --locked --all-targets --all-features --workspace --no-run
+          args: --locked --workspace --all-targets --all-features --no-run
 
       - name: Run tests with all features enabled
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --locked --all-targets --all-features --workspace -- --nocapture --quiet
+          args: --locked --workspace --all-targets --all-features -- --nocapture --quiet
 
-      - name: Build release with default features
+      - name: Build workspace with profile `production` and default features
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --locked --workspace --all-targets --profile release
+          args: --locked --workspace --all-targets --profile production

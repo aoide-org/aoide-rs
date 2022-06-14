@@ -17,45 +17,45 @@ jobs:
     name: Detecting code style issues
     runs-on: ubuntu-latest
     steps:
-    - name: Check out repository
-      uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v3
 
-    - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        profile: minimal
-        components: rustfmt, clippy
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          components: rustfmt, clippy
 
-    - name: Install Rust toolchain for webapp
-      uses: actions-rs/toolchain@v1
-      with:
-        target: wasm32-unknown-unknown
-        toolchain: stable
-        profile: minimal
+      - name: Install Rust toolchain for webapp
+        uses: actions-rs/toolchain@v1
+        with:
+          target: wasm32-unknown-unknown
+          toolchain: stable
+          profile: minimal
 
-    - name: Install Trunk for building the webapp
-      run: |
-        cargo install --locked trunk
+      - name: Install Trunk for building the webapp
+        run: |
+          cargo install --locked trunk
 
-    - name: Cache Rust toolchain and build artifacts
-      uses: Swatinem/rust-cache@v1
+      - name: Check out repository
+        uses: actions/checkout@v3
 
-    - name: Build aoide-webapp artifacts
-      run: |
-        cd webapp
-        trunk build
-        cd -
+      - name: Cache Rust toolchain and build artifacts
+        uses: Swatinem/rust-cache@v1
 
-    - name: Setup Python
-      uses: actions/setup-python@v3
+      - name: Build aoide-webapp artifacts
+        run: |
+          cd webapp
+          trunk build
+          cd -
 
-    - name: Detect code style issues (push)
-      uses: pre-commit/action@v2.0.3
-      if: github.event_name == 'push'
+      - name: Detect code style issues (push)
+        uses: pre-commit/action@v2.0.3
+        if: github.event_name == 'push'
 
-    - name: Detect code style issues (pull_request)
-      uses: pre-commit/action@v2.0.3
-      if: github.event_name == 'pull_request'
-      env:
-        SKIP: no-commit-to-branch
+      - name: Detect code style issues (pull_request)
+        uses: pre-commit/action@v2.0.3
+        if: github.event_name == 'pull_request'
+        env:
+          SKIP: no-commit-to-branch

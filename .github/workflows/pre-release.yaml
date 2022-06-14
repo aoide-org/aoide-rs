@@ -17,6 +17,8 @@ jobs:
     runs-on: ${{ matrix.runner_os }}
     strategy:
       matrix:
+        build_profile:
+          - production
         target:
           - x86_64-unknown-linux-musl
           - x86_64-apple-darwin
@@ -33,13 +35,15 @@ jobs:
             artifact_suffix: .7z
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Install musl-tools on Linux
+      - name: Install dependencies for `musl libc`
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           sudo apt -y install musl-tools
+
+      - name: 'Install dependencies for `egui`'
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -47,6 +51,7 @@ jobs:
           target: ${{ matrix.target }}
           toolchain: stable
           profile: minimal
+          override: true
 
       - name: Install Rust toolchain for webapp
         uses: actions-rs/toolchain@v1
@@ -54,6 +59,14 @@ jobs:
           target: wasm32-unknown-unknown
           toolchain: stable
           profile: minimal
+          override: true
+
+      - name: Install Trunk for building the webapp
+        run: |
+          cargo install --locked trunk
+
+      - name: Check out repository
+        uses: actions/checkout@v3
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v1
@@ -62,20 +75,18 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --locked --target ${{ matrix.target }}
+          args: --locked --target ${{ matrix.target }} --profile ${{ matrix.build_profile }}
 
       - name: Prepare artifact on Linux/macOS
         if: runner.os == 'Linux' || runner.os == 'macOS'
         run: |
-          cd target/${{ matrix.target }}/release
-          strip aoide
+          cd target/${{ matrix.target }}/${{ matrix.build_profile }}
           tar cJvf ../../../aoide-${{ matrix.target }}${{ matrix.artifact_suffix }} aoide
           cd -
       - name: Prepare artifact on Windows
         if: runner.os == 'Windows'
         run: |
-          cd target/${{ matrix.target }}/release
-          strip aoide.exe
+          cd target/${{ matrix.target }}/${{ matrix.build_profile }}
           7z a ../../../aoide-${{ matrix.target }}${{ matrix.artifact_suffix }} aoide.exe
           cd -
 
