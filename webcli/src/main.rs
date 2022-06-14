@@ -290,7 +290,7 @@ async fn main() -> anyhow::Result<()> {
     let matches = app.get_matches();
 
     let websrv_url = matches
-        .value_of(WEBSRV_URL_PARAM)
+        .get_one(WEBSRV_URL_PARAM)
         .unwrap_or(&default_websrv_url)
         .parse()
         .expect(WEBSRV_URL_PARAM);
@@ -535,13 +535,13 @@ async fn main() -> anyhow::Result<()> {
             match matches.subcommand() {
                 Some(("create-collection", matches)) => {
                     let title = matches
-                        .value_of(CREATE_COLLECTION_TITLE_PARAM)
+                        .get_one::<String>(CREATE_COLLECTION_TITLE_PARAM)
                         .expect(CREATE_COLLECTION_TITLE_PARAM);
                     let kind = matches
-                        .value_of(CREATE_COLLECTION_KIND_PARAM)
+                        .get_one::<String>(CREATE_COLLECTION_KIND_PARAM)
                         .filter(|kind| !kind.trim().is_empty());
                     let vfs_root_url = matches
-                        .value_of(CREATE_COLLECTION_VFS_ROOT_URL_PARAM)
+                        .get_one::<String>(CREATE_COLLECTION_VFS_ROOT_URL_PARAM)
                         .map(|s| s.parse().expect(CREATE_COLLECTION_VFS_ROOT_URL_PARAM))
                         .expect(CREATE_COLLECTION_VFS_ROOT_URL_PARAM);
                     let new_collection = Collection {
@@ -566,7 +566,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
                                     .map(|s| s.parse().expect("URL"));
                                 let params =
                                     aoide_core_api::media::source::purge_orphaned::Params {
@@ -586,7 +586,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
                                     .map(|s| s.parse().expect("URL"));
                                 let params =
                                     aoide_core_api::media::source::purge_untracked::Params {
@@ -612,7 +612,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {
                                         entity
@@ -641,7 +641,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {
                                         entity
@@ -671,7 +671,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
                                     .map(|s| s.parse().expect("URL"))
                                     .expect("required");
                                 let params =
@@ -693,7 +693,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
                                     .map(|s| s.parse().expect("URL"));
                                 let params =
                                     aoide_core_api::media::tracker::untrack_directories::Params {
@@ -714,7 +714,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
                                     .map(|s| s.parse().expect("URL"));
                                 let params = aoide_core_api::media::tracker::import_files::Params {
                                     root_url: media_root_url,
@@ -734,7 +734,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .value_of(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {
                                         entity
@@ -790,7 +790,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let output_file_path = matches
-                                    .value_of(OUTPUT_FILE_PARAM)
+                                    .get_one::<String>(OUTPUT_FILE_PARAM)
                                     .expect(OUTPUT_FILE_PARAM)
                                     .to_owned();
                                 let params = ExportTracksParams {
@@ -870,7 +870,7 @@ fn require_active_collection<'s>(
         return Ok(entity);
     }
     let collection_title =
-        if let Some(collection_title) = matches.value_of(ACTIVE_COLLECTION_TITLE_PARAM) {
+        if let Some(collection_title) = matches.get_one::<String>(ACTIVE_COLLECTION_TITLE_PARAM) {
             collection_title
         } else {
             return Err(None);
