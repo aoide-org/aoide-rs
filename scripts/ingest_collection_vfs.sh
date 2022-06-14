@@ -56,6 +56,7 @@ COLLECTION_VFS_ROOT_URL="file://${XDG_MUSIC_DIR}/"
 
 # Build profile(s)
 BUILD_PROFILE="production"
+#BUILD_PROFILE="release"
 #BUILD_PROFILE="dev"
 
 # Log levels
