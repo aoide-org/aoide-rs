@@ -9,13 +9,39 @@ Pronounced /eɪˈiːdiː/ or _ay-ee-dee_ in English.
 
 Aimed at DJs who need to organize and search their music collections.
 
-- A modular platform for managing _collections_ of _media sources_.
-- Focused on audio contents, namely _tracks_.
-- Supports grouping of _tracks_ into (static) _playlists_.
-- Provides rich _sorting and filtering_ capabilities based on _metadata_ for creating _dynamic playlists_
+## Features
+
+- Designed for large _collections_ of _tracks_ and _playlists_
+  - 100k and more tracks
+- Extended _metadata_ support for DJ applications
+  - Multi-valued fields
+  - Analysis results and performance data
+  - Custom, faceted tags
+- Bidirectional synchronization of metadata with file tags
+  - MP3/ID3v2, MP4/M4A/ALAC, FLAC, Ogg Vorbis, Opus
+  - Mapping (largely) follows [MusicBrainz Picard](https://picard-docs.musicbrainz.org/appendices/tag_mapping.html)
+- Rich _filtering and sorting_ capabilities
+  - Query DSL
+  - For creating _dynamic/smart playlists_
+- Embedded storage backend
+  - Primary: Relational database using [SQLite](https://www.sqlite.org/)
+  - Secondary (optional): Full-text search engine using [Tantivy](https://github.com/quickwit-oss/tantivy)
+- Modular architecture
+  - Standalone (web) server executables as backend
+  - Desktop applications with embedded backend
+  - Web apps (WASM)
+- Multi-platform
+  - Linux/Windows/macOS
+  - WASM (partially, only `core`/`-api` components)
 - Written in pure _Rust_
 
-## Fundamentals
+## Axioms
+
+### Globally unique identifiers
+
+All entities in _aoide_, namely _collections_, _tracks_, and _playlists_ are identified by a globally unique `UID` that is independent of any database backend.
+
+Each `UID` is made up of 24 arbitrary bytes that are encoded as 32 or 33 _Base58_ characters for a textual representation.
 
 ### Source-centric
 
@@ -33,7 +59,7 @@ audio files should be recoverable.
 Backing up only the media sources should preserve as much metadata as possible. This is also helpful
 when switching from _aoide_ to some other platform or when using different applications in parallel.
 
-### Bidirectional synchronization
+### Always synchronized
 
 Any modification of external metadata in media sources should be reflected in the database
 and vice versa. Changes are prioritized according to time stamps, i.e. newer metadata
@@ -42,6 +68,11 @@ replaces older metadata.
 Switching between different applications that modify the metadata of the underlying
 media sources should work seamlessly. At least when reducing conflicting, non-synchronized
 modifications to a minimum.
+
+#### Limitation (temporary)
+
+Export of modified metadata into file tags is implemented, but is untested and
+has not been enabled yet.
 
 ### Prepared queries
 
@@ -67,7 +98,7 @@ applications can manage and organize _smart playlists_ on their own.
 The service only manages metadata. It is not supposed to provide audio streams for
 playing the music that is contained in the media sources.
 
-### No _folders_
+### No _folder-like_ organizational structures
 
 Grouping any kind of entities (collections/tracks/playlists) into custom, hierarchical
 structures like _folders_ is not supported. Client applications are responsible for providing
@@ -77,7 +108,7 @@ for this purpose.
 Various file formats (JSON/YAML/TOML/...) are much more suitable for storing hierarchical
 structures than a (relational) database.
 
-### Only local files
+### Tested for local files
 
 Currently the focus is on local, file-based storage. The domain model is flexible enough
 to also include online media sources that could be referenced by arbitrary URIs.
@@ -85,7 +116,7 @@ to also include online media sources that could be referenced by arbitrary URIs.
 Exemplary use case for testing this ability: Ingest the playlists and corresponding
 tracks from a user's Spotify account as a separate collection.
 
-### Single root directory (VFS)
+### Single root directory for relative, local file paths (VFS)
 
 The ability for referencing media sources through a relative path by using a
 _virtual file system_ (VFS) is restricted to a single, local root directory.
