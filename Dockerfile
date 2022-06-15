@@ -27,12 +27,16 @@ ARG WORKDIR_ROOT=/usr/src
 
 ARG PROJECT_NAME=aoide
 
+# A corresponding sub directory with the same name must exist in the
+# target directory. This is the case if the build target doesn't match
+# the default build target (which is x86_64-unknown-linux-gnu).
 ARG BUILD_TARGET=x86_64-unknown-linux-musl
 
+# The corresponding target directory must match the profile name!
+# Counterexample: For the `dev` profile the directory is named `debug`.
 ARG BUILD_PROFILE=production
 
 ARG BUILD_BIN=aoide-websrv
-
 
 ###############################################################################
 # 1st Build Stage
@@ -46,15 +50,12 @@ ARG BUILD_PROFILE
 ARG BUILD_BIN
 
 # Enable all features and targets for the individual project checks
-ARG PROJECT_CHECK_ARGS="--locked --all-targets --all-features --target ${BUILD_TARGET} --profile ${BUILD_PROFILE}"
+ARG PROJECT_CHECK_ARGS="--locked --all-targets --all-features --profile ${BUILD_PROFILE}"
 
 # Enable select features for the workspace build or leave empty
 # for using the default features
 # Example: "--features feature-foobar"
-ARG WORKSPACE_BUILD_AND_TEST_ARGS="--locked --all-features --target ${BUILD_TARGET} --profile ${BUILD_PROFILE}"
-
-# Enable all features in the executable
-ARG BUILD_BIN_ARGS="--locked --all-features --target ${BUILD_TARGET} --profile ${BUILD_PROFILE}"
+ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace ${PROJECT_CHECK_ARGS}"
 
 # Prepare for musl libc build target
 # git and python3-pip are required for pre-commit
@@ -91,7 +92,11 @@ RUN mkdir -p ${WORKDIR_ROOT}/${PROJECT_NAME}
 WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
 
 # Create all projects and crates in workspace
-RUN USER=root cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
+RUN USER=root mkdir .cargo && \
+    echo "[build]" > .cargo/config.toml && \
+    echo "target = \"${BUILD_TARGET}\"" >> .cargo/config.toml && \
+    cat .cargo/config.toml && \
+    cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-websrv websrv && \
     cargo new --vcs none --bin ${PROJECT_NAME}-webcli && \
     mv ${PROJECT_NAME}-webcli webcli && \
@@ -196,7 +201,7 @@ COPY [ \
 # - For each sub-project delete both the corresponding deps/ AND .fingerprint/
 #   directories!
 RUN tree -a && \
-    CARGO_INCREMENTAL=0 cargo build --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} && \
+    CARGO_INCREMENTAL=0 cargo build ${WORKSPACE_BUILD_AND_TEST_ARGS} && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_PROFILE}/${PROJECT_NAME}* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_PROFILE}/deps/${PROJECT_NAME}-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_PROFILE}/deps/${PROJECT_NAME}_* && \
@@ -283,8 +288,9 @@ RUN tree -a && \
     cd webapp && trunk build && cd - && \
     git config --global user.email "pre-commit@example.com" && \
     git config --global user.name "pre-commit" && \
+    git config --global init.defaultBranch main && \
     git init && git add . && git commit -m "pre-commit" && \
-    CARGO_BUILD_TARGET=${BUILD_TARGET} pre-commit run --all-files && \
+    SKIP=no-commit-to-branch pre-commit run --all-files && \
     rm -rf .git && \
     cargo check -p aoide-backend-embedded --manifest-path crates/backend-embedded/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-backend-webapi-json --manifest-path crates/backend-webapi-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
@@ -303,9 +309,9 @@ RUN tree -a && \
     cargo check -p aoide-websrv-warp-sqlite --manifest-path crates/websrv-warp-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml -${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-webcli --manifest-path webcli/Cargo.toml -${PROJECT_CHECK_ARGS} && \
-    cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
-    cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
-    cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml ${BUILD_BIN_ARGS} && \
+    cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
+    cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
+    cargo build -p ${BUILD_BIN} --manifest-path websrv/Cargo.toml --locked --all-features --profile ${BUILD_PROFILE} && \
     strip ./target/${BUILD_TARGET}/${BUILD_PROFILE}/${BUILD_BIN}
 
 
