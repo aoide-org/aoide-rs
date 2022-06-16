@@ -302,7 +302,7 @@ RUN tree -a && \
     cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-search-index-tantivy --manifest-path crates/index-tantivy/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-search-index-tantivy --manifest-path crates/search-index-tantivy/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-storage-sqlite --manifest-path crates/storage-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
