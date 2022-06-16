@@ -20,12 +20,9 @@ use aoide_core::media::content::ContentPath;
 use super::*;
 
 mod uc {
-    pub(super) use aoide_usecases::track::{
-        import_and_replace::{
-            import_and_replace_by_local_file_path_from_directory,
-            import_and_replace_many_by_local_file_path, Params,
-        },
-        replace::Outcome,
+    pub(super) use aoide_usecases::track::import_and_replace::{
+        import_and_replace_by_local_file_path_from_directory,
+        import_and_replace_many_by_local_file_path, Outcome, Params,
     };
 }
 

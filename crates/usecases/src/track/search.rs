@@ -15,6 +15,8 @@
 
 use std::time::Instant;
 
+use aoide_core::track::Entity;
+
 use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::search::*};
 
 use aoide_repo::{
@@ -78,7 +80,7 @@ where
             let path_kind = collection_ctx.content_path.kind;
             return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
         };
-        let mut collector = ResolveUrlFromVirtualFilePathCollector {
+        let mut collector = super::vfs::ResolveUrlFromVirtualFilePathCollector {
             content_path_resolver: vfs_ctx.path_resolver,
             collector,
         };

@@ -43,10 +43,17 @@ use crate::{
     media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncModeParams},
 };
 
-use super::{
-    replace::{Completion, Outcome},
-    *,
-};
+use super::*;
+
+pub use super::replace::Completion;
+
+#[derive(Debug, Clone)]
+pub struct Outcome {
+    pub completion: Completion,
+    pub summary: Summary,
+    pub visited_media_source_ids: Vec<MediaSourceId>,
+    pub imported_media_sources_with_issues: Vec<(MediaSourceId, ContentPath, Issues)>,
+}
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]

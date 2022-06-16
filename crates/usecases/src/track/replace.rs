@@ -13,11 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::media::content::ContentPath;
+use aoide_core::media::content::resolver::ContentPathResolver as _;
 
 use aoide_core_api::track::replace::Summary;
-
-use aoide_media::io::import::Issues;
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
@@ -50,14 +48,6 @@ pub struct Params {
 pub enum Completion {
     Finished,
     Aborted,
-}
-
-#[derive(Debug, Clone)]
-pub struct Outcome {
-    pub completion: Completion,
-    pub summary: Summary,
-    pub visited_media_source_ids: Vec<MediaSourceId>,
-    pub imported_media_sources_with_issues: Vec<(MediaSourceId, ContentPath, Issues)>,
 }
 
 pub fn replace_collected_track_by_media_source_content_path<Repo>(

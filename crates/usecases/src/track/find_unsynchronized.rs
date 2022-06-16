@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::media::content::ContentPath;
-
 use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::find_unsynchronized::*};
+
+use aoide_core::media::content::{resolver::ContentPathResolver, ContentPath};
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
@@ -26,15 +26,16 @@ use crate::collection::vfs::RepoContext;
 
 use super::*;
 
-pub fn find_unsynchronized<Repo>(
+pub fn find_unsynchronized<Repo, Resolver>(
     repo: &Repo,
     collection_id: CollectionId,
     pagination: &Pagination,
     content_path_predicate: Option<StringPredicateBorrowed<'_>>,
-    content_path_resolver: Option<&VirtualFilePathResolver>,
+    content_path_resolver: Option<&Resolver>,
 ) -> RepoResult<Vec<UnsynchronizedTrackEntity>>
 where
     Repo: TrackCollectionRepo,
+    Resolver: ContentPathResolver,
 {
     repo.find_unsynchronized_tracks(collection_id, pagination, content_path_predicate)
         .map(|v| {

@@ -38,8 +38,9 @@ use crate::{
     track::{
         import_and_replace::{
             self, import_and_replace_by_local_file_path_from_directory_with_content_path_resolver,
+            Outcome as ImportAndReplaceOutcome,
         },
-        replace::{Completion as ReplaceCompletion, Outcome as ReplaceOutcome},
+        replace::Completion as ReplaceCompletion,
     },
 };
 
@@ -168,7 +169,7 @@ pub fn import_files<
                         continue;
                     }
                 };
-            let ReplaceOutcome {
+            let ImportAndReplaceOutcome {
                 completion,
                 summary: tracks_summary,
                 visited_media_source_ids,

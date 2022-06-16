@@ -222,7 +222,7 @@ pub async fn import_and_replace_many_by_local_file_path<I>(
     params: aoide_usecases::track::import_and_replace::Params,
     content_path_iter: I,
     expected_content_path_count: Option<usize>,
-) -> Result<aoide_usecases::track::replace::Outcome>
+) -> Result<aoide_usecases::track::import_and_replace::Outcome>
 where
     I: IntoIterator<Item = ContentPath> + Send + 'static,
 {
