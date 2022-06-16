@@ -74,24 +74,33 @@ where
     )?;
     let collection_id = collection_ctx.record_id;
     if resolve_url_from_content_path.is_some() {
-        let vfs_ctx = if let Some(vfs_ctx) = collection_ctx.content_path.vfs {
-            vfs_ctx
-        } else {
-            let path_kind = collection_ctx.content_path.kind;
-            return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
-        };
-        let mut collector = super::vfs::ResolveUrlFromVirtualFilePathCollector {
-            content_path_resolver: vfs_ctx.path_resolver,
-            collector,
-        };
-        search(
-            repo,
-            collection_id,
-            pagination,
-            filter,
-            ordering,
-            &mut collector,
-        )
+        #[cfg(feature = "media")]
+        {
+            let vfs_ctx = if let Some(vfs_ctx) = collection_ctx.content_path.vfs {
+                vfs_ctx
+            } else {
+                let path_kind = collection_ctx.content_path.kind;
+                return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
+            };
+            let mut collector = super::vfs::ResolveUrlFromVirtualFilePathCollector {
+                content_path_resolver: vfs_ctx.path_resolver,
+                collector,
+            };
+            search(
+                repo,
+                collection_id,
+                pagination,
+                filter,
+                ordering,
+                &mut collector,
+            )
+        }
+        #[cfg(not(feature = "media"))]
+        {
+            // TODO: Support relative paths for URLs?
+            log::warn!("Ignoring unsupported parameter {resolve_url_from_content_path:?}");
+            search(repo, collection_id, pagination, filter, ordering, collector)
+        }
     } else {
         search(repo, collection_id, pagination, filter, ordering, collector)
     }

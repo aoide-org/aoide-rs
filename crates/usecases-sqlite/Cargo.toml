@@ -23,7 +23,7 @@ aoide-media = "=0.8.0"
 aoide-repo = "=0.8.0"
 aoide-repo-sqlite = "=0.8.0"
 aoide-storage-sqlite = "=0.8.0"
-aoide-usecases = "=0.8.0"
+aoide-usecases = { version = "=0.8.0", features = ["media"] }
 
 [features]
 default = []

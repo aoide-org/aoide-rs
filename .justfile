@@ -82,6 +82,7 @@ check-wasm:
     cargo check --locked --all-targets --target wasm32-unknown-unknown --features js,frontend -p aoide-core-api-json
     cargo check --locked --all-targets --target wasm32-unknown-unknown --features js -p aoide-core-json
     cargo check --locked --all-targets --target wasm32-unknown-unknown --features js -p aoide-repo
+    cargo check --locked --all-targets --target wasm32-unknown-unknown --features js -p aoide-usecases
 
 # Run clippy on the workspace (both dev and release profile)
 clippy:

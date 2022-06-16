@@ -13,16 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::media::content::resolver::ContentPathResolver as _;
-
 use aoide_core_api::track::replace::Summary;
 
 use aoide_repo::{
-    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
+    collection::RecordId as CollectionId,
     media::source::RecordId as MediaSourceId,
     track::{CollectionRepo as TrackCollectionRepo, ReplaceMode, ReplaceOutcome, ReplaceParams},
 };
 
+#[cfg(feature = "media")]
+use aoide_core::media::content::resolver::ContentPathResolver as _;
+
+#[cfg(feature = "media")]
 use crate::collection::vfs::{ContentPathContext, RepoContext};
 
 use super::*;
@@ -112,6 +114,7 @@ where
     Ok(Some(media_source_id))
 }
 
+#[cfg(feature = "media")]
 pub fn replace_many_by_media_source_content_path<Repo>(
     repo: &Repo,
     collection_uid: &CollectionUid,
@@ -119,7 +122,7 @@ pub fn replace_many_by_media_source_content_path<Repo>(
     validated_track_iter: impl IntoIterator<Item = ValidatedInput>,
 ) -> Result<Summary>
 where
-    Repo: CollectionRepo + TrackCollectionRepo,
+    Repo: aoide_repo::collection::EntityRepo + TrackCollectionRepo,
 {
     let Params {
         mode: replace_mode,

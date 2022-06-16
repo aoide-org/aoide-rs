@@ -28,16 +28,20 @@
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 use aoide_core::collection::EntityUid as CollectionUid;
-use aoide_media::Error as MediaError;
 use aoide_repo::prelude::*;
 
 use std::result::Result as StdResult;
 use thiserror::Error;
 
 pub mod collection;
-pub mod media;
 pub mod playlist;
 pub mod track;
+
+#[cfg(feature = "media")]
+use aoide_media::Error as MediaError;
+
+#[cfg(feature = "media")]
+pub mod media;
 
 #[derive(Error, Debug)]
 #[error(transparent)]
@@ -50,6 +54,7 @@ pub enum Error {
     #[error(transparent)]
     Input(#[from] InputError),
 
+    #[cfg(feature = "media")]
     #[error(transparent)]
     Media(#[from] MediaError),
 

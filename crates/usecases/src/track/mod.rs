@@ -20,12 +20,18 @@ use aoide_core::track::{Track, TrackInvalidity};
 use super::*;
 
 pub mod find_duplicates;
-pub mod find_unsynchronized;
-pub mod import_and_replace;
 pub mod purge;
 pub mod replace;
 pub mod resolve;
 pub mod search;
+
+#[cfg(feature = "media")]
+pub mod find_unsynchronized;
+
+#[cfg(feature = "media")]
+pub mod import_and_replace;
+
+#[cfg(feature = "media")]
 pub mod vfs;
 
 #[derive(Debug)]
