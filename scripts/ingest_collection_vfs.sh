@@ -111,7 +111,6 @@ cargo run --package aoide-websrv --profile ${BUILD_PROFILE} ${FEATURES} &>"${LOG
 
 sleep 2
 
-cd crates/client
 export RUST_BACKTRACE=${RUST_BACKTRACE}
 export RUST_LOG=${WEBCLI_LOG}
 
