@@ -307,8 +307,8 @@ RUN tree -a && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-websrv-warp-sqlite --manifest-path crates/websrv-warp-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml -${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-webcli --manifest-path webcli/Cargo.toml -${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-webcli --manifest-path webcli/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
     cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
     cargo build -p ${BUILD_BIN} --manifest-path websrv/Cargo.toml --locked --all-features --profile ${BUILD_PROFILE} && \
