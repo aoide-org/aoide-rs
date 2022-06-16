@@ -9,6 +9,11 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.57"
 diesel = { version = "1.4.8", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
+# Bundle SQLite code to prevent dynamic linking.
+# The pinned version must be compatible with diesel!
+# Could be avoided by adding aoide-storage-sqlite as a dependency
+# instead, but currently nothing from this crate is actually used.
+libsqlite3-sys = { version = "0.22.2", features = ["bundled"] }
 log = "0.4.17"
 mime = "0.3.16"
 num-derive = "0.3.3"
