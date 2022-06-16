@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use thiserror::Error;
-use url::Url;
-
 #[cfg(not(target_family = "wasm"))]
 use std::path::PathBuf;
+
+use thiserror::Error;
+use url::Url;
 
 #[cfg(not(target_family = "wasm"))]
 use crate::util::url::{is_valid_base_url, BaseUrl};
@@ -27,7 +27,11 @@ use super::{ContentPath, ContentPathKind};
 #[derive(Error, Debug)]
 pub enum ResolveFromPathError {
     #[error("invalid path")]
-    InvalidPath,
+    InvalidPath(String),
+
+    #[cfg(not(target_family = "wasm"))]
+    #[error("invalid file path")]
+    InvalidFilePath(PathBuf),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -61,7 +65,7 @@ impl ContentPathResolver for UrlResolver {
     }
 
     fn resolve_url_from_content_path(&self, path: &str) -> Result<Url, ResolveFromPathError> {
-        Url::parse(path).map_err(|_| ResolveFromPathError::InvalidPath)
+        Url::parse(path).map_err(|_| ResolveFromPathError::InvalidPath(path.to_owned()))
     }
 }
 
@@ -85,7 +89,7 @@ impl ContentPathResolver for FileUrlResolver {
     fn resolve_url_from_content_path(&self, path: &str) -> Result<Url, ResolveFromPathError> {
         let url = UrlResolver.resolve_url_from_content_path(path)?;
         if url.scheme() != FILE_URL_SCHEME {
-            return Err(ResolveFromPathError::InvalidPath);
+            return Err(ResolveFromPathError::InvalidPath(path.to_owned()));
         }
         Ok(url)
     }
@@ -193,11 +197,11 @@ impl ContentPathResolver for VirtualFilePathResolver {
         let file_path = self.build_file_path(slash_path);
         let url = if slash_path.is_empty() || slash_path.ends_with('/') {
             // Preserve the trailing slash
-            Url::from_directory_path(file_path)
+            Url::from_directory_path(&file_path)
         } else {
-            Url::from_file_path(file_path)
+            Url::from_file_path(&file_path)
         }
-        .map_err(|()| ResolveFromPathError::InvalidPath)?;
+        .map_err(|()| ResolveFromPathError::InvalidFilePath(file_path))?;
         debug_assert!(
             slash_path.is_empty() || slash_path.ends_with('/') == url.as_str().ends_with('/')
         );
