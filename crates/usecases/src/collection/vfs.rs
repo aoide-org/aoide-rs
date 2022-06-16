@@ -21,14 +21,14 @@ use aoide_core::{
     util::url::BaseUrl,
 };
 
-#[cfg(feature = "media")]
+#[cfg(not(target_family = "wasm"))]
 use aoide_core::media::content::resolver::{ContentPathResolver, VirtualFilePathResolver};
 
 use aoide_repo::collection::{EntityRepo, RecordId};
 
 use super::*;
 
-#[cfg(feature = "media")]
+#[cfg(not(target_family = "wasm"))]
 fn resolve_path_prefix_from_base_url(
     content_path_resolver: &impl ContentPathResolver,
     url_path_prefix: &BaseUrl,
@@ -122,7 +122,7 @@ pub struct ContentPathContext {
 }
 
 impl ContentPathContext {
-    #[cfg_attr(not(feature = "media"), allow(unused_variables))]
+    #[cfg_attr(target_family = "wasm", allow(unused_variables))]
     fn new(
         repo_props: RepoContextProps,
         root_url: Option<&BaseUrl>,
@@ -135,7 +135,7 @@ impl ContentPathContext {
         } = repo_props;
         let vfs = match kind {
             ContentPathKind::Url | ContentPathKind::Uri | ContentPathKind::FileUrl => None,
-            #[cfg(feature = "media")]
+            #[cfg(not(target_family = "wasm"))]
             ContentPathKind::VirtualFilePath => {
                 let repo_root_url = if let Some(repo_root_url) = repo_root_url {
                     repo_root_url
@@ -160,7 +160,7 @@ impl ContentPathContext {
                     path_resolver,
                 })
             }
-            #[cfg(not(feature = "media"))]
+            #[cfg(target_family = "wasm")]
             ContentPathKind::VirtualFilePath => {
                 return Err(anyhow::anyhow!("Unsupported content path kind: {kind:?}").into());
             }
@@ -173,11 +173,11 @@ impl ContentPathContext {
 pub struct ContentPathVfsContext {
     pub root_path: ContentPath,
     pub root_url: BaseUrl,
-    #[cfg(feature = "media")]
+    #[cfg(not(target_family = "wasm"))]
     pub path_resolver: VirtualFilePathResolver,
 }
 
-#[cfg(feature = "media")]
+#[cfg(not(target_family = "wasm"))]
 impl ContentPathVfsContext {
     #[must_use]
     pub fn build_root_file_path(&self) -> std::path::PathBuf {

@@ -27,6 +27,5 @@ walkdir = { version = "2.3.2", optional = true }
 # Feature to enable JavaScript bindings on wasm32-unknown-unknown
 [features]
 default = []
-# The features "media" and "js" are mutually exclusive
 media = ["aoide-media", "blake3", "url", "walkdir"]
 js = ["aoide-core/js", "aoide-core-api/js", "aoide-repo/js"]

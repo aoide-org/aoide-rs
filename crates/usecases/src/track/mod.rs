@@ -25,13 +25,13 @@ pub mod replace;
 pub mod resolve;
 pub mod search;
 
-#[cfg(feature = "media")]
+#[cfg(not(target_family = "wasm"))]
 pub mod find_unsynchronized;
 
-#[cfg(feature = "media")]
+#[cfg(all(feature = "media", not(target_family = "wasm")))]
 pub mod import_and_replace;
 
-#[cfg(feature = "media")]
+#[cfg(not(target_family = "wasm"))]
 pub mod vfs;
 
 #[derive(Debug)]

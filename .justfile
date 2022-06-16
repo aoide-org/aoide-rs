@@ -68,8 +68,8 @@ check:
     cargo check --locked --all-targets -p aoide-repo-sqlite --all-features
     cargo check --locked --all-targets -p aoide-search-index-tantivy --all-features
     cargo check --locked --all-targets -p aoide-storage-sqlite --all-features
-    cargo check --locked --all-targets -p aoide-usecases --all-features
-    cargo check --locked --all-targets -p aoide-usecases --no-default-features
+    cargo check --locked --all-targets -p aoide-usecases
+    cargo check --locked --all-targets -p aoide-usecases --features media
     cargo check --locked --all-targets -p aoide-usecases-sqlite --all-features
     cargo check --locked --all-targets -p aoide-webcli --all-features
     cargo check --locked --all-targets -p aoide-websrv --all-features

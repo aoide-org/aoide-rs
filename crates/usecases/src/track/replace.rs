@@ -21,10 +21,10 @@ use aoide_repo::{
     track::{CollectionRepo as TrackCollectionRepo, ReplaceMode, ReplaceOutcome, ReplaceParams},
 };
 
-#[cfg(feature = "media")]
+#[cfg(not(target_family = "wasm"))]
 use aoide_core::media::content::resolver::ContentPathResolver as _;
 
-#[cfg(feature = "media")]
+#[cfg(not(target_family = "wasm"))]
 use crate::collection::vfs::{ContentPathContext, RepoContext};
 
 use super::*;
@@ -114,7 +114,7 @@ where
     Ok(Some(media_source_id))
 }
 
-#[cfg(feature = "media")]
+#[cfg(not(target_family = "wasm"))]
 pub fn replace_many_by_media_source_content_path<Repo>(
     repo: &Repo,
     collection_uid: &CollectionUid,

@@ -74,7 +74,7 @@ where
     )?;
     let collection_id = collection_ctx.record_id;
     if resolve_url_from_content_path.is_some() {
-        #[cfg(feature = "media")]
+        #[cfg(not(target_family = "wasm"))]
         {
             let vfs_ctx = if let Some(vfs_ctx) = collection_ctx.content_path.vfs {
                 vfs_ctx
@@ -95,7 +95,7 @@ where
                 &mut collector,
             )
         }
-        #[cfg(not(feature = "media"))]
+        #[cfg(target_family = "wasm")]
         {
             // TODO: Support relative paths for URLs?
             log::warn!("Ignoring unsupported parameter {resolve_url_from_content_path:?}");
