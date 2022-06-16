@@ -27,9 +27,6 @@ ARG WORKDIR_ROOT=/usr/src
 
 ARG PROJECT_NAME=aoide
 
-# A corresponding sub directory with the same name must exist in the
-# target directory. This is the case if the build target doesn't match
-# the default build target (which is x86_64-unknown-linux-gnu).
 ARG BUILD_TARGET=x86_64-unknown-linux-musl
 
 # The corresponding target directory must match the profile name!
@@ -202,10 +199,10 @@ COPY [ \
 #   directories!
 RUN tree -a && \
     CARGO_INCREMENTAL=0 cargo build ${WORKSPACE_BUILD_AND_TEST_ARGS} && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_PROFILE}/${PROJECT_NAME}* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_PROFILE}/deps/${PROJECT_NAME}-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_PROFILE}/deps/${PROJECT_NAME}_* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_PROFILE}/.fingerprint/${PROJECT_NAME}-* && \
+    rm -f ./target/${BUILD_PROFILE}/${PROJECT_NAME}* && \
+    rm -f ./target/${BUILD_PROFILE}/deps/${PROJECT_NAME}-* && \
+    rm -f ./target/${BUILD_PROFILE}/deps/${PROJECT_NAME}_* && \
+    rm -rf ./target/${BUILD_PROFILE}/.fingerprint/${PROJECT_NAME}-* && \
     tree -a
 
 # Copy all project (re-)sources that are required for pre-commit and building
@@ -312,7 +309,7 @@ RUN tree -a && \
     cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
     cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
     cargo build -p ${BUILD_BIN} --manifest-path websrv/Cargo.toml --locked --all-features --profile ${BUILD_PROFILE} && \
-    strip ./target/${BUILD_TARGET}/${BUILD_PROFILE}/${BUILD_BIN}
+    strip ./target/${BUILD_PROFILE}/${BUILD_BIN}
 
 
 ###############################################################################
@@ -322,7 +319,6 @@ FROM scratch
 # Import global ARGs
 ARG WORKDIR_ROOT
 ARG PROJECT_NAME
-ARG BUILD_TARGET
 ARG BUILD_PROFILE
 ARG BUILD_BIN
 
@@ -332,7 +328,7 @@ ARG EXPOSE_PORT=8080
 
 # Copy the statically-linked executable into the minimal scratch image
 COPY --from=build [ \
-    "${WORKDIR_ROOT}/${PROJECT_NAME}/target/${BUILD_TARGET}/${BUILD_PROFILE}/${BUILD_BIN}", \
+    "${WORKDIR_ROOT}/${PROJECT_NAME}/target/${BUILD_PROFILE}/${BUILD_BIN}", \
     "./entrypoint" ]
 
 VOLUME [ ${DATA_VOLUME} ]
