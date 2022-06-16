@@ -46,13 +46,7 @@ ARG BUILD_TARGET
 ARG BUILD_PROFILE
 ARG BUILD_BIN
 
-# Enable all features and targets for the individual project checks
-ARG PROJECT_CHECK_ARGS="--locked --all-targets --all-features --profile ${BUILD_PROFILE}"
-
-# Enable select features for the workspace build or leave empty
-# for using the default features
-# Example: "--features feature-foobar"
-ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace ${PROJECT_CHECK_ARGS}"
+ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace --locked --all-targets --profile ${BUILD_PROFILE}"
 
 # Prepare for musl libc build target
 # git and python3-pip are required for pre-commit
@@ -276,10 +270,9 @@ COPY [ \
     "./websrv/src/" ]
 
 # 1. Run pre-commit
-# 2. Check all sub-projects using their local manifest for an isolated, standalone build
-# 3. Build workspace and run all unit tests
-# 4. Build the target binary
-# 5. Strip debug infos from the executable
+# 2. Build workspace and run all unit tests
+# 3. Build the target binary
+# 4. Strip debug infos from the executable
 RUN tree -a && \
     export CARGO_INCREMENTAL=0 && \
     cd webapp && trunk build && cd - && \
@@ -289,23 +282,6 @@ RUN tree -a && \
     git init && git add . && git commit -m "pre-commit" && \
     SKIP=no-commit-to-branch pre-commit run --all-files && \
     rm -rf .git && \
-    cargo check -p aoide-backend-embedded --manifest-path crates/backend-embedded/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-backend-webapi-json --manifest-path crates/backend-webapi-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-client --manifest-path crates/client/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-core --manifest-path crates/core/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-core-json --manifest-path crates/core-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-core-api --manifest-path crates/core-api/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-core-api-json --manifest-path crates/core-api-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-search-index-tantivy --manifest-path crates/search-index-tantivy/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-storage-sqlite --manifest-path crates/storage-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-websrv-warp-sqlite --manifest-path crates/websrv-warp-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-webcli --manifest-path webcli/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
     cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
     cargo build -p ${BUILD_BIN} --manifest-path websrv/Cargo.toml --locked --all-features --profile ${BUILD_PROFILE} && \
