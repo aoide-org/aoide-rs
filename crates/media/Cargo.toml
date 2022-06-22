@@ -32,7 +32,7 @@ metaflac = { version = "0.2.5", optional = true }
 mpeg-audio-header = { version = "0.0.2", optional = true }
 mp4ameta = { version = "0.11.0", optional = true }
 opus_headers = { version = "0.1.2", optional = true }
-serde_json = { version = "1.0.81", optional = true }
+serde_json = { version = "1.0.82", optional = true }
 
 # Dependencies (optional): serato-markers
 triseratops = { version = "0.0.2", optional = true }

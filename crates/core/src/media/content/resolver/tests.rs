@@ -42,12 +42,20 @@ fn resolve_url_from_empty_path() {
         .is_err());
 }
 
-#[cfg(not(target_family = "wasm"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 #[test]
 fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathError> {
-    let file_url = Url::parse("file:///Test%20path/next%23*path/file.mp3").unwrap();
+    #[cfg(target_family = "unix")]
+    let file_url = Url::parse("file:///Test%20path/next%23*%3Fpath/file.mp3").unwrap();
+    #[cfg(target_family = "windows")]
+    // <https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions>
+    let file_url = Url::parse("file:///C:/Test%20path/next%23path/file.mp3").unwrap();
 
-    let slash_path = ContentPath::from("/Test path/next#*path/file.mp3".to_owned());
+    #[cfg(target_family = "unix")]
+    let slash_path = ContentPath::from("/Test path/next#*?path/file.mp3".to_owned());
+    #[cfg(target_family = "windows")]
+    let slash_path = ContentPath::from("C:/Test path/next#path/file.mp3".to_owned());
+
     let url = VirtualFilePathResolver::default().resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
     assert_eq!(
@@ -57,13 +65,27 @@ fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathErr
             .unwrap()
     );
 
+    #[cfg(target_family = "unix")]
     let root_url = BaseUrl::parse_strict("file:///Test%20path/").unwrap();
+    #[cfg(target_family = "windows")]
+    let root_url = BaseUrl::parse_strict("file:///C:/Test%20path/").unwrap();
+
     let resolver = VirtualFilePathResolver::with_root_url(root_url);
-    let slash_path = ContentPath::from("next#*path/file.mp3".to_owned());
+
+    #[cfg(target_family = "unix")]
+    let slash_path = ContentPath::from("next#*?path/file.mp3".to_owned());
+    #[cfg(target_family = "windows")]
+    let slash_path = ContentPath::from("next#path/file.mp3".to_owned());
+
     let url = resolver.resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
     assert_eq!(slash_path, resolver.resolve_path_from_url(&url).unwrap());
-    let slash_path = ContentPath::from("next#*path/file.mp3".to_owned());
+
+    #[cfg(target_family = "unix")]
+    let slash_path = ContentPath::from("next#*?path/file.mp3".to_owned());
+    #[cfg(target_family = "windows")]
+    let slash_path = ContentPath::from("next#path/file.mp3".to_owned());
+
     let url = resolver.resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
     assert_eq!(slash_path, resolver.resolve_path_from_url(&url).unwrap());
@@ -71,12 +93,20 @@ fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathErr
     Ok(())
 }
 
-#[cfg(not(target_family = "wasm"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 #[test]
 fn resolve_url_from_local_directory_path_roundtrip() -> Result<(), ResolveFromPathError> {
-    let file_url = Url::parse("file:///Test%20path/next%23*path/").unwrap();
+    #[cfg(target_family = "unix")]
+    let file_url = Url::parse("file:///Test%20path/next%23*%3Fpath/").unwrap();
+    #[cfg(target_family = "windows")]
+    // <https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions>
+    let file_url = Url::parse("file:///C:/Test%20path/next%23path/").unwrap();
 
-    let slash_path = ContentPath::from("/Test path/next#*path/".to_owned());
+    #[cfg(target_family = "unix")]
+    let slash_path = ContentPath::from("/Test path/next#*?path/".to_owned());
+    #[cfg(target_family = "windows")]
+    let slash_path = ContentPath::from("C:/Test path/next#path/".to_owned());
+
     let url = VirtualFilePathResolver::default().resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
     assert_eq!(
@@ -86,13 +116,27 @@ fn resolve_url_from_local_directory_path_roundtrip() -> Result<(), ResolveFromPa
             .unwrap()
     );
 
+    #[cfg(target_family = "unix")]
     let root_url = BaseUrl::parse_strict("file:///Test%20path/").unwrap();
+    #[cfg(target_family = "windows")]
+    let root_url = BaseUrl::parse_strict("file:///C:/Test%20path/").unwrap();
+
     let resolver = VirtualFilePathResolver::with_root_url(root_url);
-    let slash_path = ContentPath::from("next#*path/".to_owned());
+
+    #[cfg(target_family = "unix")]
+    let slash_path = ContentPath::from("next#*?path/".to_owned());
+    #[cfg(target_family = "windows")]
+    let slash_path = ContentPath::from("next#path/".to_owned());
+
     let url = resolver.resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
     assert_eq!(slash_path, resolver.resolve_path_from_url(&url).unwrap());
-    let slash_path = ContentPath::from("next#*path/".to_owned());
+
+    #[cfg(target_family = "unix")]
+    let slash_path = ContentPath::from("next#*?path/".to_owned());
+    #[cfg(target_family = "windows")]
+    let slash_path = ContentPath::from("next#path/".to_owned());
+
     let url = resolver.resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
     assert_eq!(slash_path, resolver.resolve_path_from_url(&url).unwrap());
@@ -100,10 +144,14 @@ fn resolve_url_from_local_directory_path_roundtrip() -> Result<(), ResolveFromPa
     Ok(())
 }
 
-#[cfg(not(target_family = "wasm"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 #[test]
 fn resolve_url_from_empty_path_with_root_url() -> Result<(), ResolveFromPathError> {
+    #[cfg(target_family = "unix")]
     let root_url = Url::parse("file:///").unwrap();
+    #[cfg(target_family = "windows")]
+    let root_url = Url::parse("file:///C:/").unwrap();
+
     let resolver = VirtualFilePathResolver::with_root_url(root_url.clone().try_into().unwrap());
 
     assert_eq!(root_url, resolver.resolve_url_from_content_path("")?);
