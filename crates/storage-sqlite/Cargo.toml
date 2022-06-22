@@ -7,13 +7,13 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.57"
+anyhow = "1.0.58"
 diesel = { version = "1.4.8", default-features = false, features = ["r2d2", "sqlite"] }
 # Bundle SQLite code to prevent dynamic linking.
 # The pinned version must be compatible with diesel!
 libsqlite3-sys = { version = "0.22.2", features = ["bundled"] }
 log = "0.4.17"
-r2d2 = "0.8.9"
+r2d2 = "0.8.10"
 thiserror = "1.0.31"
 
 serde = { version = "1.0.137", optional = true, features = ["derive"] }

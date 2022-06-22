@@ -2,6 +2,9 @@
 
 name: pre-commit
 
+permissions:
+  contents: read
+
 on:
   pull_request:
   push:
@@ -18,7 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -51,11 +56,11 @@ jobs:
           cd -
 
       - name: Detect code style issues (push)
-        uses: pre-commit/action@v2.0.3
+        uses: pre-commit/action@v3.0.0
         if: github.event_name == 'push'
 
       - name: Detect code style issues (pull_request)
-        uses: pre-commit/action@v2.0.3
+        uses: pre-commit/action@v3.0.0
         if: github.event_name == 'pull_request'
         env:
           SKIP: no-commit-to-branch

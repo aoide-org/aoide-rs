@@ -2,6 +2,9 @@
 
 name: security-audit
 
+permissions:
+  contents: read
+
 on:
   push:
     paths:

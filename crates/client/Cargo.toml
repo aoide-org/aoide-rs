@@ -7,7 +7,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.57"
+anyhow = "1.0.58"
 bytes = "1.1.0"
 log = "0.4.17"
 serde = { version = "1.0.137", features = ["derive"], optional = true }
