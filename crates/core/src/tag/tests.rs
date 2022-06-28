@@ -18,116 +18,6 @@ use crate::util::canonical::CanonicalizeInto as _;
 use super::*;
 
 #[test]
-fn score_valid() {
-    assert!(Score::min().validate().is_ok());
-    assert!(Score::max().validate().is_ok());
-    assert!(Score::new(Score::min().0 + Score::max().0)
-        .validate()
-        .is_ok());
-    assert!(Score::new(Score::min().0 - Score::max().0)
-        .validate()
-        .is_err());
-    assert!(Score::new(Score::max().0 + Score::max().0)
-        .validate()
-        .is_err());
-}
-
-#[test]
-fn score_display() {
-    assert_eq!("0.0%", format!("{}", Score::min()));
-    assert_eq!("100.0%", format!("{}", Score::max()));
-    assert_eq!("90.1%", format!("{}", Score(0.901_234_5)));
-    assert_eq!("90.2%", format!("{}", Score(0.901_5)));
-}
-
-#[test]
-fn parse_label() {
-    assert_eq!(
-        Some(Label::new("A Label".into())),
-        Label::clamp_from("A Label")
-    );
-}
-
-#[test]
-fn clamp_label_value() {
-    assert_eq!(
-        Some("A Label"),
-        Label::clamp_value("\tA Label  ")
-            .as_ref()
-            .map(Borrow::borrow)
-    );
-}
-
-#[test]
-fn clamp_facet_value() {
-    assert_eq!(
-        Some(FACET_ID_ALPHABET),
-        FacetId::clamp_value(FACET_ID_ALPHABET)
-            .as_ref()
-            .map(Borrow::borrow)
-    );
-    assert_eq!(
-        Some(concat!(
-            "+-./",
-            "0123456789",
-            "@[]_",
-            "abcdefghijklmnopqrstuvwxyz",
-        )),
-        FacetId::clamp_value(concat!(
-            "\t !\"#$%&'()*+,-./0123456789:;<=>?",
-            " @ ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_",
-            " `abcdefghijklmn opqrstuvwxyz{|}~\n"
-        ))
-        .as_ref()
-        .map(Borrow::borrow)
-    );
-}
-
-#[test]
-fn validate_label() {
-    assert!(Label::new("A Term".into()).validate().is_ok());
-    assert!(Label::new("\tA Term  ".into()).validate().is_err());
-}
-
-#[test]
-fn validate_facet() {
-    // FACET_ID_ALPHABET Does not start with a lowercase ASCII letter
-    // but ends with one.
-    let reverse_alphabet: String = FACET_ID_ALPHABET.chars().rev().collect();
-    assert!(FacetId::new(reverse_alphabet).validate().is_ok());
-    assert!(FacetId::new(FACET_ID_ALPHABET.to_owned())
-        .validate()
-        .is_err());
-    assert!(FacetId::new("Facet".into()).validate().is_err());
-    assert!(FacetId::new("a facet".into()).validate().is_err());
-}
-
-#[test]
-fn default_facet_is_invalid() {
-    assert!(FacetId::default().validate().is_err());
-}
-
-#[test]
-fn empty_facet_is_invalid() {
-    assert!(FacetId::new("".into()).validate().is_err());
-}
-
-#[test]
-fn parse_empty_facet_id() {
-    assert!(FacetId::clamp_from("").is_none());
-}
-
-#[test]
-fn default_label_is_invalid() {
-    assert!(Label::default().validate().is_err());
-}
-
-#[test]
-fn parse_empty_label() {
-    assert!(Label::clamp_from("").is_none());
-}
-
-#[test]
 fn default_plain_tag_score() {
     assert_eq!(PlainTag::default_score(), PlainTag::default().score);
 }
@@ -386,7 +276,7 @@ fn duplicate_facets_and_labels() {
         facet_id: FacetId::new("facet2".into()),
         tags: vec![PlainTag {
             label: Some(Label::new("label2".into())),
-            score: Score(0.75),
+            score: Score::new(0.75),
         },],
     }));
 }

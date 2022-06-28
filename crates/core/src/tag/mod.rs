@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{
-    borrow::{Borrow, Cow},
+    borrow::Borrow,
     cmp::Ordering,
     collections::{
         hash_map::Entry::{Occupied, Vacant},
@@ -23,581 +23,23 @@ use std::{
     fmt,
     hash::{Hash, Hasher},
     iter::once,
-    ops::{Deref, Not as _},
+    ops::Not as _,
 };
 
 use crate::{
     compat::is_sorted_by,
     prelude::*,
-    util::{
-        canonical::{CanonicalOrd, Canonicalize, IsCanonical},
-        string::trimmed_non_empty_from,
-    },
+    util::canonical::{CanonicalOrd, Canonicalize, IsCanonical},
 };
 
-///////////////////////////////////////////////////////////////////////
-// Score
-///////////////////////////////////////////////////////////////////////
+pub mod facet;
+pub use facet::{CowFacetId, FacetId, FacetIdInvalidity, FacetIdValue, Faceted};
 
-pub type ScoreValue = f64;
+pub mod label;
+pub use label::{CowLabel, Label, LabelInvalidity, LabelValue, Labeled};
 
-#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct Score(ScoreValue);
-
-impl Score {
-    #[must_use]
-    pub const fn min_value() -> ScoreValue {
-        0.0
-    }
-
-    #[must_use]
-    pub const fn max_value() -> ScoreValue {
-        1.0
-    }
-
-    #[must_use]
-    pub const fn default_value() -> ScoreValue {
-        Self::max_value()
-    }
-
-    pub fn clamp_value(value: impl Into<ScoreValue>) -> ScoreValue {
-        value.into().clamp(Self::min_value(), Self::max_value())
-    }
-
-    pub fn clamp_from(value: impl Into<ScoreValue>) -> Self {
-        Self::clamp_value(value).into()
-    }
-
-    #[must_use]
-    pub const fn min() -> Self {
-        Self(Self::min_value())
-    }
-
-    #[must_use]
-    pub const fn max() -> Self {
-        Self(Self::max_value())
-    }
-
-    #[must_use]
-    pub const fn default() -> Self {
-        Self(Self::default_value())
-    }
-
-    #[must_use]
-    pub const fn new(inner: ScoreValue) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub const fn value(self) -> ScoreValue {
-        let Self(value) = self;
-        value
-    }
-
-    // Convert to percentage value with a single decimal digit
-    #[must_use]
-    pub fn to_percentage(self) -> ScoreValue {
-        debug_assert!(self.validate().is_ok());
-        (self.value() * ScoreValue::from(1_000)).round() / ScoreValue::from(10)
-    }
-
-    // Convert to an integer permille value
-    #[must_use]
-    pub fn to_permille(self) -> u16 {
-        debug_assert!(self.validate().is_ok());
-        (self.value() * ScoreValue::from(1_000)).round() as u16
-    }
-}
-
-impl Default for Score {
-    fn default() -> Self {
-        Self::default()
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum ScoreInvalidity {
-    OutOfRange,
-}
-
-impl Validate for Score {
-    type Invalidity = ScoreInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(
-                !(*self >= Self::min() && *self <= Self::max()),
-                Self::Invalidity::OutOfRange,
-            )
-            .into()
-    }
-}
-
-impl From<Score> for ScoreValue {
-    fn from(from: Score) -> Self {
-        from.value()
-    }
-}
-
-impl From<ScoreValue> for Score {
-    fn from(value: ScoreValue) -> Self {
-        Self::new(value)
-    }
-}
-
-impl fmt::Display for Score {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        debug_assert!(self.validate().is_ok());
-        write!(f, "{:.1}%", self.to_percentage())
-    }
-}
-
-pub trait Scored {
-    fn score(&self) -> Score;
-}
-
-impl Scored for Score {
-    fn score(&self) -> Self {
-        *self
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Label
-///////////////////////////////////////////////////////////////////////
-
-pub type LabelValue = String;
-
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CowLabel<'a>(Cow<'a, str>);
-
-impl<'a> From<CowLabel<'a>> for Label {
-    fn from(from: CowLabel<'a>) -> Self {
-        Self(from.0.into())
-    }
-}
-
-impl<'a> From<&'a Label> for CowLabel<'a> {
-    fn from(from: &'a Label) -> Self {
-        Self(from.0.as_str().into())
-    }
-}
-
-impl<'a> AsRef<Cow<'a, str>> for CowLabel<'a> {
-    fn as_ref(&self) -> &Cow<'a, str> {
-        &self.0
-    }
-}
-
-impl<'a> Deref for CowLabel<'a> {
-    type Target = Cow<'a, str>;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl Borrow<str> for CowLabel<'_> {
-    fn borrow(&self) -> &str {
-        self.as_ref()
-    }
-}
-
-/// The name of a tag.
-///
-/// Format: Unicode string without leading/trailing whitespace
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Label(LabelValue);
-
-impl Label {
-    pub fn clamp_value<'a>(value: impl Into<Cow<'a, str>>) -> Option<CowLabel<'a>> {
-        trimmed_non_empty_from(value).map(CowLabel)
-    }
-
-    pub fn clamp_from<'a>(value: impl Into<Cow<'a, str>>) -> Option<Self> {
-        Self::clamp_value(value).map(Into::into)
-    }
-
-    #[must_use]
-    pub const fn new(value: LabelValue) -> Self {
-        Self(value)
-    }
-
-    #[must_use]
-    pub const fn value(&self) -> &LabelValue {
-        let Self(value) = self;
-        value
-    }
-
-    #[must_use]
-    pub fn into_value(self) -> LabelValue {
-        let Self(value) = self;
-        value
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum LabelInvalidity {
-    Empty,
-    Format,
-}
-
-impl Validate for Label {
-    type Invalidity = LabelInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(self.value().is_empty(), Self::Invalidity::Empty)
-            .invalidate_if(
-                Self::clamp_value(self.value().as_str()) != Some(self.into()),
-                Self::Invalidity::Format,
-            )
-            .into()
-    }
-}
-
-impl From<LabelValue> for Label {
-    fn from(value: LabelValue) -> Self {
-        Self::new(value)
-    }
-}
-
-impl From<Label> for LabelValue {
-    fn from(from: Label) -> Self {
-        from.into_value()
-    }
-}
-
-impl AsRef<LabelValue> for Label {
-    fn as_ref(&self) -> &LabelValue {
-        let Self(value) = self;
-        value
-    }
-}
-
-impl Deref for Label {
-    type Target = LabelValue;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl AsRef<str> for Label {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
-impl fmt::Display for Label {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
-    }
-}
-
-pub trait Labeled {
-    fn label(&self) -> Option<&Label>;
-}
-
-impl Labeled for Label {
-    fn label(&self) -> Option<&Self> {
-        Some(self)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Facet
-///////////////////////////////////////////////////////////////////////
-
-pub type FacetIdValue = String;
-
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CowFacetId<'a>(Cow<'a, str>);
-
-impl<'a> From<CowFacetId<'a>> for FacetId {
-    fn from(from: CowFacetId<'a>) -> Self {
-        Self(from.0.into())
-    }
-}
-
-impl<'a> From<&'a FacetId> for CowFacetId<'a> {
-    fn from(from: &'a FacetId) -> Self {
-        Self(from.0.as_str().into())
-    }
-}
-
-impl<'a> AsRef<Cow<'a, str>> for CowFacetId<'a> {
-    fn as_ref(&self) -> &Cow<'a, str> {
-        &self.0
-    }
-}
-
-impl<'a> Deref for CowFacetId<'a> {
-    type Target = Cow<'a, str>;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl Borrow<str> for CowFacetId<'_> {
-    fn borrow(&self) -> &str {
-        self.as_ref()
-    }
-}
-
-/// An identifier for referencing tag categories.
-///
-/// Facets are used for grouping/categorizing and providing context or meaning.
-///
-/// Serves as a symbolic, internal identifier that is not intended to be displayed
-/// literally in the UI. The restrictive naming constraints ensure that they are
-/// not used for storing arbitrary text. Instead facet identifiers should be mapped
-/// to translated display strings, e.g. the facet "genre" could be mapped to "Genre"
-/// in English and the facet "venue" could be mapped to "Veranstaltungsort" in German.
-///
-/// Value constraints:
-///   - charset/alphabet: `+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz`
-///   - no leading/trailing/inner whitespace
-///
-/// Rationale for the value constraints:
-///   - Facet identifiers are intended to be created, shared, and parsed worldwide
-///   - The Lingua franca of IT is English
-///   - ASCII characters can be encoded by a single byte in UTF-8
-///
-/// References:
-///   - <https://en.wikipedia.org/wiki/Faceted_classification>
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FacetId(FacetIdValue);
-
-/// The alphabet of facet identifiers
-///
-/// All valid characters, ordered by their ASCII codes.
-pub const FACET_ID_ALPHABET: &str = "+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz";
-
-impl FacetId {
-    pub fn clamp_value<'a>(value: impl Into<Cow<'a, str>>) -> Option<CowFacetId<'a>> {
-        let mut value: String = value.into().into();
-        value.retain(Self::is_valid_char);
-        if value.is_empty() {
-            None
-        } else {
-            Some(CowFacetId(Cow::Owned(value)))
-        }
-    }
-
-    pub fn clamp_from<'a>(value: impl Into<Cow<'a, str>>) -> Option<Self> {
-        Self::clamp_value(value).map(Into::into)
-    }
-
-    #[must_use]
-    pub const fn new(value: FacetIdValue) -> Self {
-        Self(value)
-    }
-
-    #[must_use]
-    pub fn into_value(self) -> FacetIdValue {
-        let Self(value) = self;
-        value
-    }
-
-    #[must_use]
-    pub const fn value(&self) -> &FacetIdValue {
-        let Self(value) = self;
-        value
-    }
-
-    fn is_valid_char(c: char) -> bool {
-        // TODO: Use regex?
-        if !c.is_ascii() || c.is_ascii_whitespace() || c.is_ascii_uppercase() {
-            return false;
-        }
-        if c.is_ascii_alphanumeric() {
-            return true;
-        }
-        "+-./@[]_".contains(c)
-    }
-
-    fn is_invalid_char(c: char) -> bool {
-        !Self::is_valid_char(c)
-    }
-}
-
-impl CanonicalOrd for FacetId {
-    fn canonical_cmp(&self, other: &Self) -> Ordering {
-        self.cmp(other)
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum FacetIdInvalidity {
-    Empty,
-    Format,
-}
-
-impl Validate for FacetId {
-    type Invalidity = FacetIdInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(self.value().is_empty(), Self::Invalidity::Empty)
-            .invalidate_if(
-                self.value()
-                    .chars()
-                    .next()
-                    .map_or(false, |c| c.is_ascii_lowercase().not()),
-                Self::Invalidity::Format,
-            )
-            .invalidate_if(
-                self.value().chars().any(FacetId::is_invalid_char),
-                Self::Invalidity::Format,
-            )
-            .into()
-    }
-}
-
-impl From<FacetIdValue> for FacetId {
-    fn from(from: FacetIdValue) -> Self {
-        Self::new(from)
-    }
-}
-
-impl From<FacetId> for FacetIdValue {
-    fn from(from: FacetId) -> Self {
-        from.into_value()
-    }
-}
-
-impl AsRef<FacetIdValue> for FacetId {
-    fn as_ref(&self) -> &FacetIdValue {
-        let Self(value) = self;
-        value
-    }
-}
-
-impl Deref for FacetId {
-    type Target = FacetIdValue;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl AsRef<str> for FacetId {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
-impl fmt::Display for FacetId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.value())
-    }
-}
-
-pub trait Faceted {
-    fn facet(&self) -> Option<&FacetId>;
-}
-
-impl Faceted for FacetId {
-    fn facet(&self) -> Option<&Self> {
-        Some(self)
-    }
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct FacetKey(Option<FacetId>);
-
-impl FacetKey {
-    #[must_use]
-    pub const fn new(inner: Option<FacetId>) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub fn into_inner(self) -> Option<FacetId> {
-        let Self(inner) = self;
-        inner
-    }
-}
-
-impl From<Option<FacetId>> for FacetKey {
-    fn from(inner: Option<FacetId>) -> Self {
-        FacetKey::new(inner)
-    }
-}
-
-impl From<FacetKey> for Option<FacetId> {
-    fn from(from: FacetKey) -> Self {
-        from.into_inner()
-    }
-}
-
-impl From<FacetId> for FacetKey {
-    fn from(from: FacetId) -> Self {
-        FacetKey(Some(from))
-    }
-}
-
-impl AsRef<Option<FacetId>> for FacetKey {
-    fn as_ref(&self) -> &Option<FacetId> {
-        let Self(inner) = self;
-        inner
-    }
-}
-
-impl AsRef<str> for FacetKey {
-    fn as_ref(&self) -> &str {
-        let Self(inner) = self;
-        match inner {
-            Some(facet_id) => facet_id.as_ref(),
-            None => "",
-        }
-    }
-}
-
-impl Borrow<str> for FacetKey {
-    fn borrow(&self) -> &str {
-        self.as_ref()
-    }
-}
-
-impl fmt::Display for FacetKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
-    }
-}
-
-impl PartialEq for FacetKey {
-    fn eq(&self, other: &Self) -> bool {
-        let self_str: &str = self.as_ref();
-        let other_str: &str = other.as_ref();
-        self_str == other_str
-    }
-}
-
-impl Eq for FacetKey {}
-
-impl Ord for FacetKey {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let self_str: &str = self.as_ref();
-        let other_str: &str = other.as_ref();
-        self_str.cmp(other_str)
-    }
-}
-
-impl PartialOrd for FacetKey {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Hash for FacetKey {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let self_str: &str = self.as_ref();
-        self_str.hash(state);
-    }
-}
+pub mod score;
+pub use score::{Score, ScoreInvalidity, ScoreValue, Scored};
 
 ///////////////////////////////////////////////////////////////////////
 // PlainTag
@@ -914,6 +356,100 @@ impl Validate for Tags {
 // TagsMap
 ///////////////////////////////////////////////////////////////////////
 
+#[derive(Clone, Default, Debug)]
+pub struct FacetKey(Option<FacetId>);
+
+impl FacetKey {
+    #[must_use]
+    pub const fn new(inner: Option<FacetId>) -> Self {
+        Self(inner)
+    }
+
+    #[must_use]
+    pub fn into_inner(self) -> Option<FacetId> {
+        let Self(inner) = self;
+        inner
+    }
+}
+
+impl From<Option<FacetId>> for FacetKey {
+    fn from(inner: Option<FacetId>) -> Self {
+        FacetKey::new(inner)
+    }
+}
+
+impl From<FacetKey> for Option<FacetId> {
+    fn from(from: FacetKey) -> Self {
+        from.into_inner()
+    }
+}
+
+impl From<FacetId> for FacetKey {
+    fn from(from: FacetId) -> Self {
+        FacetKey(Some(from))
+    }
+}
+
+impl AsRef<Option<FacetId>> for FacetKey {
+    fn as_ref(&self) -> &Option<FacetId> {
+        let Self(inner) = self;
+        inner
+    }
+}
+
+impl AsRef<str> for FacetKey {
+    fn as_ref(&self) -> &str {
+        let Self(inner) = self;
+        match inner {
+            Some(facet_id) => facet_id.as_ref(),
+            None => "",
+        }
+    }
+}
+
+impl Borrow<str> for FacetKey {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
+}
+
+impl fmt::Display for FacetKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_ref())
+    }
+}
+
+impl PartialEq for FacetKey {
+    fn eq(&self, other: &Self) -> bool {
+        let self_str: &str = self.as_ref();
+        let other_str: &str = other.as_ref();
+        self_str == other_str
+    }
+}
+
+impl Eq for FacetKey {}
+
+impl Ord for FacetKey {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let self_str: &str = self.as_ref();
+        let other_str: &str = other.as_ref();
+        self_str.cmp(other_str)
+    }
+}
+
+impl PartialOrd for FacetKey {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Hash for FacetKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let self_str: &str = self.as_ref();
+        self_str.hash(state);
+    }
+}
+
 /// Unified map of both plain and faceted tags
 pub type TagsMapInner = HashMap<FacetKey, Vec<PlainTag>>;
 
@@ -1102,10 +638,6 @@ impl From<TagsMap> for Tags {
         tags
     }
 }
-
-///////////////////////////////////////////////////////////////////////
-// Tests
-///////////////////////////////////////////////////////////////////////
 
 #[cfg(test)]
 mod tests;
