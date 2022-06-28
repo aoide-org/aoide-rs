@@ -91,7 +91,7 @@ jobs:
           cd -
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: aoide-${{ matrix.target }}${{ matrix.artifact_suffix }}
           path: aoide-${{ matrix.target }}${{ matrix.artifact_suffix }}
@@ -108,7 +108,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
 
       - name: Generate artifact checksums
         run: for file in aoide-*/aoide-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
