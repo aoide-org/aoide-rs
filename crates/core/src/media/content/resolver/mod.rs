@@ -104,6 +104,37 @@ pub struct VirtualFilePathResolver {
 }
 
 #[cfg(not(target_family = "wasm"))]
+fn has_trailing_path_separator(path: &std::path::Path) -> Option<bool> {
+    // Path::ends_with() cannot be used for this purpose
+    path.to_str()
+        .map(|s| s.ends_with(std::path::MAIN_SEPARATOR))
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn path_to_slash(path: &std::path::Path) -> Option<String> {
+    // On Windows a trailing slash is missing after invoking `PathBufExt::to_slash()`.
+    // TODO: Remove workaround when fixed.
+    // <https://github.com/rhysd/path-slash/issues/10>
+    #[cfg(target_family = "windows")]
+    let path_has_trailing_separator = has_trailing_path_separator(path);
+    let slash_path = path_slash::PathExt::to_slash(path);
+    #[cfg(target_family = "windows")]
+    let slash_path = slash_path.map(|mut slash_path| {
+        if path_has_trailing_separator == Some(true) && !slash_path.ends_with('/') {
+            slash_path.push('/');
+        }
+        slash_path
+    });
+    debug_assert_eq!(
+        has_trailing_path_separator(path),
+        slash_path
+            .as_deref()
+            .map(|slash_path| slash_path.ends_with('/'))
+    );
+    slash_path
+}
+
+#[cfg(not(target_family = "wasm"))]
 impl VirtualFilePathResolver {
     #[must_use]
     pub const fn new() -> Self {
@@ -123,6 +154,11 @@ impl VirtualFilePathResolver {
     pub fn with_root_url(root_url: BaseUrl) -> Self {
         debug_assert!(Self::is_valid_root_url(&root_url));
         let root_file_path = root_url.to_file_path();
+        debug_assert!(root_file_path
+            .as_deref()
+            .ok()
+            .and_then(has_trailing_path_separator)
+            .unwrap_or(true));
         let root_url = Some(root_url);
         debug_assert_eq!(
             root_url,
@@ -132,10 +168,10 @@ impl VirtualFilePathResolver {
                 .and_then(|path| Url::from_directory_path(path).ok())
                 .and_then(|url| BaseUrl::try_from(url).ok())
         );
-        let root_slash_path = root_file_path
+        let root_slash_path = root_file_path.as_deref().ok().and_then(path_to_slash);
+        debug_assert!(root_slash_path
             .as_ref()
-            .ok()
-            .and_then(path_slash::PathBufExt::to_slash);
+            .map_or(true, |path| path.ends_with('/')));
         debug_assert_eq!(root_file_path.is_ok(), root_slash_path.is_some());
         Self {
             root_url,
@@ -176,7 +212,7 @@ impl ContentPathResolver for VirtualFilePathResolver {
         match url.to_file_path() {
             Ok(file_path) => {
                 if file_path.is_absolute() {
-                    if let Some(slash_path) = path_slash::PathBufExt::to_slash(&file_path) {
+                    if let Some(slash_path) = path_to_slash(&file_path) {
                         if let Some(root_slash_path) = &self.root_slash_path {
                             let stripped_path = slash_path.strip_prefix(root_slash_path);
                             if let Some(stripped_path) = stripped_path {
