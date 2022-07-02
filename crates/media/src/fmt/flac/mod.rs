@@ -340,12 +340,23 @@ impl Metadata {
         }
 
         let mut tags_map = TagsMap::default();
-        #[cfg(feature = "aoide-tags")]
-        if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
-            // Pre-populate tags
-            if let Some(tags) = vorbis::import_aoide_tags(importer, metaflac_tag) {
-                debug_assert_eq!(0, tags_map.total_count());
-                tags_map = tags.into();
+
+        // Grouping tags
+        if let Some(groupings) = metaflac_tag.get_vorbis(GROUPING_KEY) {
+            vorbis::import_faceted_text_tags(
+                importer,
+                &mut tags_map,
+                &config.faceted_tag_mapping,
+                &FACET_ID_GROUPING,
+                groupings,
+            );
+        }
+
+        // Import gigtags from raw grouping tags before any other tags.
+        #[cfg(feature = "gigtags")]
+        if config.flags.contains(ImportTrackFlags::GIGTAGS) {
+            if let Some(faceted_tags) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
+                tags_map = crate::util::gigtags::import_from_faceted_tags(faceted_tags);
             }
         }
 
@@ -385,17 +396,6 @@ impl Metadata {
                 &config.faceted_tag_mapping,
                 &FACET_ID_MOOD,
                 moods,
-            );
-        }
-
-        // Grouping tags
-        if let Some(groupings) = metaflac_tag.get_vorbis(GROUPING_KEY) {
-            vorbis::import_faceted_text_tags(
-                importer,
-                &mut tags_map,
-                &config.faceted_tag_mapping,
-                &FACET_ID_GROUPING,
-                groupings,
             );
         }
 

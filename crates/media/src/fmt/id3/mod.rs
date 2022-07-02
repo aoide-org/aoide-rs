@@ -64,12 +64,6 @@ use crate::{
     Error, Result,
 };
 
-#[cfg(feature = "aoide-tags")]
-const MIXXX_AOIDE_TAGS_GEOB_DESCRIPTION: &str = "Mixxx CustomTags";
-
-#[cfg(feature = "aoide-tags")]
-const AOIDE_TAGS_GEOB_DESCRIPTION: &str = "aoide Tags";
-
 pub(crate) fn map_id3_err(err: id3::Error) -> Error {
     let id3::Error {
         kind,
@@ -449,43 +443,48 @@ pub fn import_metadata_into_track(
     }
 
     let mut tags_map = TagsMap::default();
-    #[cfg(feature = "aoide-tags")]
-    if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
-        // Pre-populate tags
-        for geob in tag
-            .encapsulated_objects()
-            .filter(|geob| geob.description == AOIDE_TAGS_GEOB_DESCRIPTION)
+
+    // Grouping tags
+    // Apple decided to store the Work in the traditional ID3v2 Content Group
+    // frame (TIT1) and introduced new Grouping (GRP1) and Movement Name (MVNM)
+    // frames.
+    // https://discussions.apple.com/thread/7900430
+    // http://blog.jthink.net/2016/11/the-reason-why-is-grouping-field-no.html
+    if import_faceted_tags_from_text_frames(
+        importer,
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_ID_GROUPING,
+        tag,
+        "GRP1",
+    ) > 0
+    {
+        if !imported_work_from_itunes_tit1 {
+            importer.add_issue("Imported grouping tag(s) from ID3 text frame GRP1 instead of TIT1");
+        }
+    } else {
+        // Use the legacy/classical text frame only as a fallback
+        if import_faceted_tags_from_text_frames(
+            importer,
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_ID_GROUPING,
+            tag,
+            "TIT1",
+        ) > 0
+            && config
+                .flags
+                .contains(ImportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
         {
-            if geob
-                .mime_type
-                .parse::<mime::Mime>()
-                .ok()
-                .as_ref()
-                .map(mime::Mime::type_)
-                != Some(mime::APPLICATION_JSON.type_())
-            {
-                importer.add_issue(format!(
-                    "Unexpected MIME type for GEOB '{}': {}",
-                    geob.description, geob.mime_type
-                ));
-                continue;
-            }
-            #[cfg(feature = "aoide-tags")]
-            if let Some(custom_tags) =
-                serde_json::from_slice::<aoide_core_json::tag::Tags>(&geob.data)
-                    .map_err(|err| {
-                        importer.add_issue(format!(
-                            "Failed to parse GEOB '{}': {err}",
-                            geob.description
-                        ));
-                        err
-                    })
-                    .ok()
-                    .map(aoide_core::tag::Tags::from)
-            {
-                debug_assert_eq!(0, tags_map.total_count());
-                tags_map = custom_tags.into();
-            }
+            importer.add_issue("Imported grouping tag(s) from ID3 text frame TIT1 instead of GRP1");
+        }
+    }
+
+    // Import gigtags from raw grouping tags before any other tags.
+    #[cfg(feature = "gigtags")]
+    if config.flags.contains(ImportTrackFlags::GIGTAGS) {
+        if let Some(faceted_tags) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
+            tags_map = crate::util::gigtags::import_from_faceted_tags(faceted_tags);
         }
     }
 
@@ -532,42 +531,6 @@ pub fn import_metadata_into_track(
         tag,
         "TMOO",
     );
-
-    // Grouping tags
-    // Apple decided to store the Work in the traditional ID3v2 Content Group
-    // frame (TIT1) and introduced new Grouping (GRP1) and Movement Name (MVNM)
-    // frames.
-    // https://discussions.apple.com/thread/7900430
-    // http://blog.jthink.net/2016/11/the-reason-why-is-grouping-field-no.html
-    if import_faceted_tags_from_text_frames(
-        importer,
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_ID_GROUPING,
-        tag,
-        "GRP1",
-    ) > 0
-    {
-        if !imported_work_from_itunes_tit1 {
-            importer.add_issue("Imported grouping tag(s) from ID3 text frame GRP1 instead of TIT1");
-        }
-    } else {
-        // Use the legacy/classical text frame only as a fallback
-        if import_faceted_tags_from_text_frames(
-            importer,
-            &mut tags_map,
-            &config.faceted_tag_mapping,
-            &FACET_ID_GROUPING,
-            tag,
-            "TIT1",
-        ) > 0
-            && config
-                .flags
-                .contains(ImportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
-        {
-            importer.add_issue("Imported grouping tag(s) from ID3 text frame TIT1 instead of GRP1");
-        }
-    }
 
     // ISRC tag
     import_faceted_tags_from_text_frames(
@@ -891,31 +854,6 @@ pub fn export_track(
         tag.remove("MVIN");
     }
 
-    #[cfg(feature = "aoide-tags")]
-    {
-        // Export all custom tags
-        tag.remove_encapsulated_object(Some(MIXXX_AOIDE_TAGS_GEOB_DESCRIPTION), None, None, None); // legacy frame
-        if config.flags.contains(ExportTrackFlags::AOIDE_TAGS) && !track.tags.is_empty() {
-            match serde_json::to_vec(&aoide_core_json::tag::Tags::from(
-                track.tags.clone().untie(),
-            )) {
-                Ok(value) => {
-                    tag.add_frame(id3::frame::EncapsulatedObject {
-                        description: AOIDE_TAGS_GEOB_DESCRIPTION.to_owned(),
-                        mime_type: mime::APPLICATION_JSON.type_().to_string(),
-                        filename: String::new(),
-                        data: value,
-                    });
-                }
-                Err(err) => {
-                    log::warn!("Failed to write GEOB '{AOIDE_TAGS_GEOB_DESCRIPTION}': {err}");
-                }
-            }
-        } else {
-            tag.remove_encapsulated_object(Some(AOIDE_TAGS_GEOB_DESCRIPTION), None, None, None);
-        }
-    }
-
     // Export selected tags into dedicated fields
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
@@ -968,27 +906,6 @@ pub fn export_track(
         export_faceted_tags(tag, "TMOO", None, &[]);
     }
 
-    // Grouping(s)
-    let grouping_frame_id = if config
-        .flags
-        .contains(ExportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
-    {
-        "GRP1"
-    } else {
-        tag.remove("GRP1");
-        "TIT1"
-    };
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
-        export_faceted_tags(
-            tag,
-            grouping_frame_id,
-            config.faceted_tag_mapping.get(facet_id.value()),
-            &tags,
-        );
-    } else {
-        export_faceted_tags(tag, grouping_frame_id, None, &[]);
-    }
-
     // ISRC(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_ISRC) {
         export_faceted_tags(
@@ -1011,6 +928,43 @@ pub fn export_track(
         );
     } else {
         export_faceted_tags(tag, "TLAN", None, &[]);
+    }
+
+    // Grouping(s)
+    {
+        let facet_id = &FACET_ID_GROUPING;
+        let mut tags = tags_map
+            .take_faceted_tags(facet_id)
+            .map(|FacetedTags { facet_id: _, tags }| tags)
+            .unwrap_or_default();
+        #[cfg(feature = "gigtags")]
+        if config.flags.contains(ExportTrackFlags::GIGTAGS) {
+            if let Err(err) = crate::util::gigtags::export_and_encode_remaining_tags_into(
+                tags_map.into(),
+                &mut tags,
+            ) {
+                log::error!("Failed to export gigitags: {err}");
+            }
+        }
+        let grouping_frame_id = if config
+            .flags
+            .contains(ExportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
+        {
+            "GRP1"
+        } else {
+            tag.remove("GRP1");
+            "TIT1"
+        };
+        if tags.is_empty() {
+            export_faceted_tags(tag, grouping_frame_id, None, &[]);
+        } else {
+            export_faceted_tags(
+                tag,
+                grouping_frame_id,
+                config.faceted_tag_mapping.get(facet_id.value()),
+                &tags,
+            );
+        }
     }
 
     Ok(())

@@ -58,12 +58,6 @@ use crate::{
     Result,
 };
 
-#[cfg(feature = "aoide-tags")]
-pub const MIXXX_AOIDE_TAGS_KEY: &str = "MIXXX_AOIDE_TAGS";
-
-#[cfg(feature = "aoide-tags")]
-pub const AOIDE_TAGS_KEY: &str = "AOIDE_TAGS";
-
 pub const ARTIST_KEY: &str = "ARTIST";
 pub const ARRANGER_KEY: &str = "ARRANGER";
 pub const COMPOSER_KEY: &str = "COMPOSER";
@@ -577,24 +571,6 @@ pub fn import_album_titles(
     importer.finish_import_of_titles(TrackScope::Album, album_titles)
 }
 
-#[cfg(feature = "aoide-tags")]
-pub fn import_aoide_tags(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Option<aoide_core::tag::Tags> {
-    let key = AOIDE_TAGS_KEY;
-    reader
-        .read_first_value(key)
-        .and_then(|json| {
-            serde_json::from_str::<aoide_core_json::tag::Tags>(json)
-                .map_err(|err| {
-                    importer.add_issue(format!("Failed to parse {key}: {err}"));
-                })
-                .ok()
-        })
-        .map(Into::into)
-}
-
 #[cfg(feature = "serato-markers")]
 pub fn import_serato_markers2(
     importer: &mut Importer,
@@ -758,12 +734,24 @@ pub fn import_into_track(
     track.album = Canonical::tie(album);
 
     let mut tags_map = TagsMap::default();
-    #[cfg(feature = "aoide-tags")]
-    if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
-        // Pre-populate tags
-        if let Some(tags) = import_aoide_tags(importer, reader) {
-            debug_assert_eq!(0, tags_map.total_count());
-            tags_map = tags.into();
+
+    // Grouping tags
+    import_faceted_text_tags(
+        importer,
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_ID_GROUPING,
+        reader
+            .filter_values(GROUPING_KEY)
+            .unwrap_or_default()
+            .into_iter(),
+    );
+
+    // Import gigtags from raw grouping tags before any other tags.
+    #[cfg(feature = "gigtags")]
+    if config.flags.contains(ImportTrackFlags::GIGTAGS) {
+        if let Some(faceted_tags) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
+            tags_map = crate::util::gigtags::import_from_faceted_tags(faceted_tags);
         }
     }
 
@@ -811,18 +799,6 @@ pub fn import_into_track(
         &FACET_ID_MOOD,
         reader
             .filter_values(MOOD_KEY)
-            .unwrap_or_default()
-            .into_iter(),
-    );
-
-    // Grouping tags
-    import_faceted_text_tags(
-        importer,
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_ID_GROUPING,
-        reader
-            .filter_values(GROUPING_KEY)
             .unwrap_or_default()
             .into_iter(),
     );
@@ -1099,30 +1075,6 @@ pub fn export_track(
             .map(ToString::to_string),
     );
 
-    #[cfg(feature = "aoide-tags")]
-    {
-        // Export all tags
-        writer.remove_all_values(MIXXX_AOIDE_TAGS_KEY); // drop legacy key
-        if config
-            .flags
-            .contains(crate::io::export::ExportTrackFlags::AOIDE_TAGS)
-            && !track.tags.is_empty()
-        {
-            match serde_json::to_string(&aoide_core_json::tag::Tags::from(
-                track.tags.clone().untie(),
-            )) {
-                Ok(value) => {
-                    writer.write_single_value(AOIDE_TAGS_KEY.to_owned(), value);
-                }
-                Err(err) => {
-                    log::warn!("Failed to write {AOIDE_TAGS_KEY}: {err}");
-                }
-            }
-        } else {
-            writer.remove_all_values(AOIDE_TAGS_KEY);
-        }
-    }
-
     // Export selected tags into dedicated fields
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
@@ -1175,18 +1127,6 @@ pub fn export_track(
         writer.remove_all_values(MOOD_KEY);
     }
 
-    // Grouping(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
-        export_faceted_tags(
-            writer,
-            GROUPING_KEY.to_owned(),
-            config.faceted_tag_mapping.get(facet_id.value()),
-            tags,
-        );
-    } else {
-        writer.remove_all_values(GROUPING_KEY);
-    }
-
     // ISRC(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_ISRC) {
         export_faceted_tags(
@@ -1197,6 +1137,37 @@ pub fn export_track(
         );
     } else {
         writer.remove_all_values(ISRC_KEY);
+    }
+
+    // Grouping(s)
+    {
+        let facet_id = &FACET_ID_GROUPING;
+        let mut tags = tags_map
+            .take_faceted_tags(facet_id)
+            .map(|FacetedTags { facet_id: _, tags }| tags)
+            .unwrap_or_default();
+        #[cfg(feature = "gigtags")]
+        if config
+            .flags
+            .contains(crate::io::export::ExportTrackFlags::GIGTAGS)
+        {
+            if let Err(err) = crate::util::gigtags::export_and_encode_remaining_tags_into(
+                tags_map.into(),
+                &mut tags,
+            ) {
+                log::error!("Failed to export gigitags: {err}");
+            }
+        }
+        if tags.is_empty() {
+            writer.remove_all_values(GROUPING_KEY);
+        } else {
+            export_faceted_tags(
+                writer,
+                GROUPING_KEY.to_owned(),
+                config.faceted_tag_mapping.get(facet_id.value()),
+                tags,
+            );
+        }
     }
 }
 

@@ -50,7 +50,7 @@ use aoide_core::{
 
 use crate::{
     io::{
-        export::{ExportTrackConfig, FilteredActorNames},
+        export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
         import::{ImportTrackConfig, ImportTrackFlags, Importer, Reader, TrackScope},
     },
     util::{
@@ -158,19 +158,6 @@ const IDENT_MOOD: FreeformIdent<'static> =
 
 const IDENT_ISRC: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "ISRC");
-
-#[cfg(feature = "aoide-tags")]
-const ORG_MIXXX_DJ_FREEFORM_MEAN: &str = "org.mixxx.dj";
-
-#[cfg(feature = "aoide-tags")]
-const MIXXX_AOIDE_TAGS_IDENT: FreeformIdent<'static> =
-    FreeformIdent::new(ORG_MIXXX_DJ_FREEFORM_MEAN, "CustomTags");
-
-#[cfg(feature = "aoide-tags")]
-const AOIDE_FREEFORM_MEAN: &str = "aoide";
-
-#[cfg(feature = "aoide-tags")]
-const AOIDE_TAGS_IDENT: FreeformIdent<'static> = FreeformIdent::new(AOIDE_FREEFORM_MEAN, "Tags");
 
 #[cfg(feature = "serato-markers")]
 const SERATO_MARKERS_IDENT: FreeformIdent<'static> = FreeformIdent::new(
@@ -426,27 +413,20 @@ impl Metadata {
         }
 
         let mut tags_map = TagsMap::default();
-        #[cfg(feature = "aoide-tags")]
-        if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
-            // Pre-populate tags
-            if let Some(data) = mp4_tag.data_of(&AOIDE_TAGS_IDENT).next() {
-                if let Some(tags) = match &data {
-                    Data::Utf8(input) => serde_json::from_str::<aoide_core_json::tag::Tags>(input)
-                        .map_err(|err| {
-                            importer
-                                .add_issue(format!("Failed to parse {AOIDE_TAGS_IDENT}: {err}"));
-                        })
-                        .ok(),
-                    data => {
-                        importer
-                            .add_issue(format!("Unexpected data for {AOIDE_TAGS_IDENT}: {data:?}"));
-                        None
-                    }
-                }
-                .map(aoide_core::tag::Tags::from)
-                {
-                    tags_map = tags.into();
-                }
+
+        // Grouping tags
+        importer.import_faceted_tags_from_label_values(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_ID_GROUPING,
+            mp4_tag.take_groupings(),
+        );
+
+        // Import gigtags from raw grouping tags before any other tags.
+        #[cfg(feature = "gigtags")]
+        if config.flags.contains(ImportTrackFlags::GIGTAGS) {
+            if let Some(faceted_tags) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
+                tags_map = crate::util::gigtags::import_from_faceted_tags(faceted_tags);
             }
         }
 
@@ -506,14 +486,6 @@ impl Metadata {
             &config.faceted_tag_mapping,
             &FACET_ID_DESCRIPTION,
             mp4_tag.take_strings_of(&IDENT_DESCRIPTION),
-        );
-
-        // Grouping tags
-        importer.import_faceted_tags_from_label_values(
-            &mut tags_map,
-            &config.faceted_tag_mapping,
-            &FACET_ID_GROUPING,
-            mp4_tag.take_groupings(),
         );
 
         // ISRC tag
@@ -882,31 +854,6 @@ pub fn export_track_to_path(
         mp4_tag.remove_movement_count();
     }
 
-    #[cfg(feature = "aoide-tags")]
-    {
-        // Export all tags
-        mp4_tag.remove_data_of(&MIXXX_AOIDE_TAGS_IDENT); // legacy atom
-        if config
-            .flags
-            .contains(crate::io::export::ExportTrackFlags::AOIDE_TAGS)
-        {
-            if track.tags.is_empty() {
-                mp4_tag.remove_data_of(&AOIDE_TAGS_IDENT);
-            } else {
-                match serde_json::to_string(&aoide_core_json::tag::Tags::from(
-                    track.tags.clone().untie(),
-                )) {
-                    Ok(value) => {
-                        mp4_tag.set_data(AOIDE_TAGS_IDENT.to_owned(), Data::Utf8(value));
-                    }
-                    Err(err) => {
-                        log::warn!("Failed to write {AOIDE_TAGS_IDENT}: {err}");
-                    }
-                }
-            }
-        }
-    }
-
     // Export selected tags into dedicated fields
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
@@ -950,18 +897,6 @@ pub fn export_track_to_path(
         mp4_tag.remove_data_of(&IDENT_DESCRIPTION);
     }
 
-    // Grouping(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
-        export_faceted_tags(
-            &mut mp4_tag,
-            IDENT_GROUPING,
-            config.faceted_tag_mapping.get(facet_id.value()),
-            tags,
-        );
-    } else {
-        mp4_tag.remove_data_of(&IDENT_GROUPING);
-    }
-
     // Mood(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_MOOD) {
         export_faceted_tags(
@@ -996,6 +931,34 @@ pub fn export_track_to_path(
         );
     } else {
         mp4_tag.remove_data_of(&IDENT_XID);
+    }
+
+    // Grouping(s)
+    {
+        let facet_id = &FACET_ID_GROUPING;
+        let mut tags = tags_map
+            .take_faceted_tags(facet_id)
+            .map(|FacetedTags { facet_id: _, tags }| tags)
+            .unwrap_or_default();
+        #[cfg(feature = "gigtags")]
+        if config.flags.contains(ExportTrackFlags::GIGTAGS) {
+            if let Err(err) = crate::util::gigtags::export_and_encode_remaining_tags_into(
+                tags_map.into(),
+                &mut tags,
+            ) {
+                log::error!("Failed to export gigitags: {err}");
+            }
+        }
+        if tags.is_empty() {
+            mp4_tag.remove_data_of(&IDENT_GROUPING);
+        } else {
+            export_faceted_tags(
+                &mut mp4_tag,
+                IDENT_GROUPING,
+                config.faceted_tag_mapping.get(facet_id.value()),
+                tags,
+            );
+        }
     }
 
     if mp4_tag == mp4_tag_orig {

@@ -91,11 +91,11 @@ bitflags! {
         /// Implies METADATA.
         const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0001;
 
-        #[cfg(feature = "aoide-tags")]
-        /// Import aoide faceted tags
+        #[cfg(feature = "gigtags")]
+        /// Import gigtags from Content Group/Grouping file tag
         ///
         /// Implies METADATA.
-        const AOIDE_TAGS                                        = 0b0001_0000_0000_0001;
+        const GIGTAGS                                           = 0b0001_0000_0000_0001;
 
         #[cfg(feature = "serato-markers")]
         /// Import metadata (cue points, loops, track color) from Serato file tags

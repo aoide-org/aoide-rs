@@ -25,6 +25,3 @@ aoide-core = { path = "../crates/core" }
 aoide-core-json = { path = "../crates/core-json" }
 aoide-core-api = { path = "../crates/core-api" }
 aoide-core-api-json = { path = "../crates/core-api-json" }
-
-# Fix build issues with seed v0.9.1
-seed = { git = "https://github.com/seed-rs/seed.git", branch = "master" }
