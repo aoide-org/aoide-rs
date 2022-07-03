@@ -28,7 +28,7 @@ fn clamp_value() {
             "+-./",
             "0123456789",
             "@[]_",
-            "abcdefghijklmnopqrstuvwxyz",
+            "abcdefghijklmnopqrstuvwxyz~",
         )),
         FacetId::clamp_value(concat!(
             "\t !\"#$%&'()*+,-./0123456789:;<=>?",
@@ -43,7 +43,7 @@ fn clamp_value() {
 #[test]
 fn validate() {
     // FACET_ID_ALPHABET Does not start with a lowercase ASCII letter
-    // but ends with one.
+    // but ends with '~' which is a valid first character.
     let reverse_alphabet: String = FACET_ID_ALPHABET.chars().rev().collect();
     assert!(FacetId::new(reverse_alphabet).validate().is_ok());
     assert!(FacetId::new(FACET_ID_ALPHABET.to_owned())

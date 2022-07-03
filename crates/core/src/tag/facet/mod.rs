@@ -71,7 +71,8 @@ impl Borrow<str> for CowFacetId<'_> {
 /// in English and the facet "venue" could be mapped to "Veranstaltungsort" in German.
 ///
 /// Value constraints:
-///   - charset/alphabet: `+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz`
+///   - charset/alphabet: `+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz~`
+///   - starts with an ASCII lowercase character or '~'
 ///   - no leading/trailing/inner whitespace
 ///
 /// Rationale for the value constraints:
@@ -87,7 +88,7 @@ pub struct FacetId(FacetIdValue);
 /// The alphabet of facet identifiers
 ///
 /// All valid characters, ordered by their ASCII codes.
-pub const FACET_ID_ALPHABET: &str = "+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz";
+pub const FACET_ID_ALPHABET: &str = "+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz~";
 
 impl FacetId {
     pub fn clamp_value<'a>(value: impl Into<Cow<'a, str>>) -> Option<CowFacetId<'a>> {
@@ -129,7 +130,7 @@ impl FacetId {
         if c.is_ascii_alphanumeric() {
             return true;
         }
-        "+-./@[]_".contains(c)
+        "+-./@[]_~".contains(c)
     }
 
     fn is_invalid_char(c: char) -> bool {
@@ -159,7 +160,7 @@ impl Validate for FacetId {
                 self.value()
                     .chars()
                     .next()
-                    .map_or(false, |c| c.is_ascii_lowercase().not()),
+                    .map_or(false, |c| (c.is_ascii_lowercase() || c == '~').not()),
                 Self::Invalidity::Format,
             )
             .invalidate_if(
