@@ -94,15 +94,19 @@ fn export_tags(tags: &Tags) -> Vec<Tag> {
         })
 }
 
-pub fn export_and_encode_tags_into(tags: &Tags, encoded: &mut String) -> std::fmt::Result {
-    let exported_tags = export_tags(tags);
+pub fn update_tags_in_encoded(tags: &Tags, encoded: &mut String) -> std::fmt::Result {
+    let mut exported_tags = export_tags(tags);
     if exported_tags.is_empty() {
         return Ok(());
     }
-    let mut decoded_tags = DecodedTags::decode_str(encoded);
-    decoded_tags.tags = exported_tags;
+    // Preserve all gig tags that could not be imported as aoide tags,
+    // thereby essentially replacing the old aoide tags (that are simply
+    // discarded after decoding) with the new exported aoide tags.
+    let (mut decoded_tags, _num_imported) = decode_tags_eagerly_into(encoded, None);
+    decoded_tags.tags.append(&mut exported_tags);
     decoded_tags.dedup();
     decoded_tags.reorder_date_like();
+    encoded.clear();
     decoded_tags.encode_into(encoded)
 }
 
@@ -113,7 +117,7 @@ pub fn export_and_encode_remaining_tags_into(
     if encoded_tags.len() == 1 {
         let PlainTag { label, score } = encoded_tags.drain(..).next().unwrap();
         let mut encoded = label.unwrap_or_default().into_value();
-        crate::util::gigtags::export_and_encode_tags_into(&remaining_tags, &mut encoded)?;
+        crate::util::gigtags::update_tags_in_encoded(&remaining_tags, &mut encoded)?;
         let tag = PlainTag {
             label: aoide_core::tag::Label::clamp_from(encoded),
             score,
@@ -121,7 +125,7 @@ pub fn export_and_encode_remaining_tags_into(
         *encoded_tags = vec![tag];
     } else {
         let mut encoded = String::new();
-        crate::util::gigtags::export_and_encode_tags_into(&remaining_tags, &mut encoded)?;
+        crate::util::gigtags::update_tags_in_encoded(&remaining_tags, &mut encoded)?;
         let tag = PlainTag {
             label: aoide_core::tag::Label::clamp_from(encoded),
             ..Default::default()
@@ -183,47 +187,71 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag)> {
     (facet_key, plain_tag).into()
 }
 
+fn decode_tags_eagerly_into(
+    encoded: &str,
+    mut tags_map: Option<&mut TagsMap>,
+) -> (DecodedTags, usize) {
+    let mut num_imported = 0;
+    let mut decoded_tags = DecodedTags::decode_str(encoded);
+    decoded_tags.tags.retain(|tag| {
+        if let Some((facet_key, plain_tag)) = try_import_tag(tag) {
+            log::debug!("Imported {facet_key:?} {plain_tag:?} from {tag:?}");
+            if let Some(tags_map) = tags_map.as_mut() {
+                tags_map.insert(facet_key, plain_tag);
+            }
+            num_imported += 1;
+            // Discard the imported tag
+            false
+        } else {
+            log::debug!("Skipped import of {tag:?}");
+            // Preserve the unknown tag
+            true
+        }
+    });
+    (decoded_tags, num_imported)
+}
+
+fn import_and_extract_tags_from_label_eagerly_into(
+    label: &mut aoide_core::tag::Label,
+    tags_map: Option<&mut TagsMap>,
+) -> (bool, usize) {
+    let (decoded_tags, num_imported) = decode_tags_eagerly_into(label.as_str(), tags_map);
+    if num_imported == 0 {
+        // Preserve as is
+        return (true, num_imported);
+    }
+    // Re-encode undecoded prefix and remaining tags
+    let reencoded = match decoded_tags.reencode() {
+        Ok(reencoded) => reencoded,
+        Err(err) => {
+            // This is unexpected and should never happen
+            log::error!("Failed to re-encode undecoded prefix and remaining tags: {err}");
+            // Preserve everything as is (even though some tags have already been imported)
+            return (true, num_imported);
+        }
+    };
+    if let Some(remaining_label) = aoide_core::tag::Label::clamp_from(reencoded) {
+        *label = remaining_label;
+    } else {
+        // Nothing remaining that needs to be preserved
+        return (false, num_imported);
+    }
+    (true, num_imported)
+}
+
 #[must_use]
 pub fn import_from_faceted_tags(mut faceted_tags: FacetedTags) -> TagsMap {
     let mut tags_map = TagsMap::default();
     faceted_tags.tags.retain_mut(|plain_tag| {
         if let Some(label) = plain_tag.label.as_mut() {
-            let mut decoded_tags = DecodedTags::decode_str(label.as_str());
-            let mut num_imported = 0;
-            decoded_tags.tags.retain(|tag| {
-                if let Some((facet_key, plain_tag)) = try_import_tag(tag) {
-                    log::debug!("Imported {facet_key:?} {plain_tag:?} from {tag:?}");
-                    tags_map.insert(facet_key, plain_tag);
-                    num_imported += 1;
-                    // Discard the imported tag
-                    false
-                } else {
-                    log::debug!("Skipped import of {tag:?}");
-                    // Preserve the unknown tag
-                    true
-                }
-            });
-            if num_imported == 0 {
-                // Preserve as is
-                return true;
+            let (retain, num_imported) =
+                import_and_extract_tags_from_label_eagerly_into(label, Some(&mut tags_map));
+            if retain {
+                log::debug!("Imported {num_imported} tag(s) retaining {plain_tag:?}");
+            } else {
+                log::debug!("Imported {num_imported} tag(s)");
             }
-            // Re-encode undecoded prefix and remaining tags
-            let reencoded = match decoded_tags.reencode() {
-                Ok(reencoded) => reencoded,
-                Err(err) => {
-                    // This is unexpected and should never happen
-                    log::error!("Failed to re-encode undecoded prefix and remaining tags: {err}");
-                    // Preserve everything as is (even though some tags have already been imported)
-                    return true;
-                }
-            };
-            let label = aoide_core::tag::Label::clamp_from(reencoded);
-            if label.is_none() {
-                // Nothing remaining that needs to be preserved
-                return false;
-            }
-            plain_tag.label = label;
-            true
+            retain
         } else {
             true
         }
@@ -403,5 +431,38 @@ mod tests {
         tag.props.first_mut().unwrap().name =
             prop_name_from_str(&format!("{}{}", SCORE_PROP_NAME, SCORE_PROP_NAME));
         assert!(try_import_tag(&tag).is_none());
+    }
+
+    #[test]
+    fn reencode_roundtrip() {
+        let encoded =
+            "Some text\n facet~20220703#Tag2 ?name=value#TagWithUnsupportedProperties #Tag1";
+
+        let mut encoded_label = aoide_core::tag::Label::clamp_from(encoded.to_string()).unwrap();
+        let mut tags_map = TagsMap::default();
+        let (retain, num_imported) = import_and_extract_tags_from_label_eagerly_into(
+            &mut encoded_label,
+            Some(&mut tags_map),
+        );
+        assert!(retain);
+        assert_eq!(2, num_imported);
+        assert_eq!(tags_map.total_count(), num_imported);
+        assert_eq!(
+            "Some text\n ?name=value#TagWithUnsupportedProperties",
+            encoded_label.as_str()
+        );
+
+        // Replace #Tag1 with #Tag3
+        tags_map.replace_faceted_plain_tags(
+            Default::default(),
+            vec![plain_tag_with_label("Tag3".to_string())],
+        );
+
+        let mut reencoded = encoded.to_string();
+        assert!(update_tags_in_encoded(&tags_map.into(), &mut reencoded).is_ok());
+        assert_eq!(
+            "Some text\n ?name=value#TagWithUnsupportedProperties #Tag3 facet~20220703#Tag2",
+            reencoded
+        );
     }
 }
