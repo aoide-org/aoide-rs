@@ -105,26 +105,16 @@ pub struct VirtualFilePathResolver {
 
 #[cfg(not(target_family = "wasm"))]
 fn has_trailing_path_separator(path: &std::path::Path) -> Option<bool> {
-    // Path::ends_with() cannot be used for this purpose
+    // Path::ends_with() cannot be used for this purpose. This
+    // function is only used in a debug assertion and performance
+    // doesn't matter.
     path.to_str()
         .map(|s| s.ends_with(std::path::MAIN_SEPARATOR))
 }
 
 #[cfg(not(target_family = "wasm"))]
-fn path_to_slash(path: &std::path::Path) -> Option<String> {
-    // On Windows a trailing slash is missing after invoking `PathBufExt::to_slash()`.
-    // TODO: Remove workaround when fixed.
-    // <https://github.com/rhysd/path-slash/issues/10>
-    #[cfg(target_family = "windows")]
-    let path_has_trailing_separator = has_trailing_path_separator(path);
+fn path_to_slash(path: &std::path::Path) -> Option<std::borrow::Cow<'_, str>> {
     let slash_path = path_slash::PathExt::to_slash(path);
-    #[cfg(target_family = "windows")]
-    let slash_path = slash_path.map(|mut slash_path| {
-        if path_has_trailing_separator == Some(true) && !slash_path.ends_with('/') {
-            slash_path.push('/');
-        }
-        slash_path
-    });
     debug_assert_eq!(
         has_trailing_path_separator(path),
         slash_path
@@ -168,7 +158,11 @@ impl VirtualFilePathResolver {
                 .and_then(|path| Url::from_directory_path(path).ok())
                 .and_then(|url| BaseUrl::try_from(url).ok())
         );
-        let root_slash_path = root_file_path.as_deref().ok().and_then(path_to_slash);
+        let root_slash_path = root_file_path
+            .as_deref()
+            .ok()
+            .and_then(path_to_slash)
+            .map(std::borrow::Cow::into_owned);
         debug_assert!(root_slash_path
             .as_ref()
             .map_or(true, |path| path.ends_with('/')));
@@ -219,7 +213,7 @@ impl ContentPathResolver for VirtualFilePathResolver {
                                 return Ok(stripped_path.to_owned().into());
                             }
                         } else {
-                            return Ok(slash_path.into());
+                            return Ok(slash_path.into_owned().into());
                         }
                     }
                 }
