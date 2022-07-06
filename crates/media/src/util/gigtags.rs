@@ -44,18 +44,19 @@ fn export_facet(facet_id: &FacetId) -> Facet {
     facet
 }
 
-fn export_score(score: Score) -> Option<Property> {
-    (score != Default::default()).then(|| Property {
-        name: gigtags::props::Name::from_str(SCORE_PROP_NAME),
-        value: format_compact!("{score}", score = score.value()),
-    })
-}
-
 #[must_use]
 fn try_export_plain_tag(facet: Facet, plain_tag: &PlainTag) -> Option<Tag> {
     debug_assert!((facet.is_valid()));
-    let label = plain_tag.label.as_ref().and_then(export_valid_label)?;
-    let score = export_score(plain_tag.score);
+    let label = if let Some(label) = plain_tag.label.as_ref() {
+        export_valid_label(label)?
+    } else {
+        Default::default()
+    };
+    // A default score could only be omitted if the tag has a label!
+    let score = (plain_tag.score != Default::default() || label.is_empty()).then(|| Property {
+        name: gigtags::props::Name::from_str(SCORE_PROP_NAME),
+        value: format_compact!("{score}", score = plain_tag.score.value()),
+    });
     let tag = Tag {
         facet,
         label,
@@ -274,6 +275,8 @@ pub fn import_from_faceted_tags(mut faceted_tags: FacetedTags) -> TagsMap {
 
 #[cfg(test)]
 mod tests {
+    use aoide_core::util::canonical::CanonicalizeInto;
+
     use super::*;
 
     fn label_from_str(label: &str) -> Label {
@@ -464,5 +467,81 @@ mod tests {
             "Some text\n ?name=value#TagWithUnsupportedProperties #Tag3 facet~20220703#Tag2",
             reencoded
         );
+    }
+
+    #[test]
+    fn encode_decode_roundtrip_with_valid_tags() {
+        let mut tags_map = TagsMap::default();
+        // Only a facet, no label, default score
+        tags_map.insert(
+            FacetKey::new(FacetId::clamp_from("facet_default_score")),
+            Default::default(),
+        );
+        // Only a facet, no label, min. score
+        tags_map.insert(
+            FacetKey::new(FacetId::clamp_from("facet_min_score")),
+            PlainTag {
+                label: None,
+                score: Score::min(),
+            },
+        );
+        // Only a facet, no label, max. score
+        tags_map.insert(
+            FacetKey::new(FacetId::clamp_from("facet_max_score")),
+            PlainTag {
+                label: None,
+                score: Score::max(),
+            },
+        );
+        // Only a label, no facet, default score
+        tags_map.insert(
+            FacetKey::new(None),
+            plain_tag_with_label("label_default_score".to_string()),
+        );
+        // Only a label, no facet, min. score
+        tags_map.insert(
+            FacetKey::new(None),
+            plain_tag_with_label_and_score("label_min_score".to_string(), Score::min()),
+        );
+        // Only a label, no facet, max. score
+        tags_map.insert(
+            FacetKey::new(None),
+            plain_tag_with_label_and_score("label_max_score".to_string(), Score::max()),
+        );
+        // Both facet and label, default score
+        tags_map.insert(
+            FacetKey::new(FacetId::clamp_from("facet")),
+            plain_tag_with_label("label_default_score".to_string()),
+        );
+        // Both facet and label, min. score
+        tags_map.insert(
+            FacetKey::new(FacetId::clamp_from("facet")),
+            plain_tag_with_label_and_score("label_min_score".to_string(), Score::min()),
+        );
+        // Both facet and label, max. score
+        tags_map.insert(
+            FacetKey::new(FacetId::clamp_from("facet")),
+            plain_tag_with_label_and_score("label_max_score".to_string(), Score::max()),
+        );
+        let expected_count = tags_map.total_count();
+
+        let tags: Tags = tags_map.into();
+        let tags = tags.canonicalize_into();
+        assert!(tags.is_valid());
+        assert_eq!(expected_count, tags.total_count());
+
+        let mut encoded = String::new();
+        assert!(update_tags_in_encoded(&tags, &mut encoded).is_ok());
+        println!("encoded = {encoded}");
+
+        let mut tags_map = TagsMap::default();
+        let (decoded, decoded_count) = decode_tags_eagerly_into(&encoded, Some(&mut tags_map));
+        assert_eq!(decoded_count, tags_map.total_count());
+        assert_eq!(expected_count, decoded_count);
+        assert!(decoded.undecoded_prefix.is_empty());
+
+        let decoded_tags: Tags = tags_map.into();
+        let decoded_tags = decoded_tags.canonicalize_into();
+        assert_eq!(tags, decoded_tags);
     }
 }

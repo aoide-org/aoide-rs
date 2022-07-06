@@ -25,7 +25,7 @@ fmt:
 pre-commit:
     pre-commit run --all-files
 
-# Upgrade (and update) depenencies
+# Upgrade (and update) dependencies
 upgrade:
     cargo upgrade --workspace \
         --exclude aoide-backend-embedded \
