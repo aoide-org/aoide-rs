@@ -8,13 +8,15 @@ _default:
 
 # Set up (and update) tooling
 setup:
-    rustup self update
+    # Ignore rustup failures, because not everyone might use it
+    rustup self update || true
+    # cargo-edit is needed for `cargo upgrade`
     cargo install \
         cargo-edit \
         trunk
     pip install -U pre-commit
     pre-commit autoupdate
-    #pre-commit install --hook-type commit-msg --hook-type pre-commit
+    pre-commit install --hook-type commit-msg --hook-type pre-commit
 
 # Format source code
 fmt:
@@ -45,7 +47,11 @@ upgrade:
         --exclude aoide-websrv-warp-sqlite \
         --exclude libsqlite3-sys
     cargo update
-    cd webapp && cargo update
+    cd webapp && cargo upgrade \
+        --exclude aoide-core \
+        --exclude aoide-core-api \
+        --exclude aoide-core-api-json \
+        --exclude aoide-core-json
     #cargo minimal-versions check --workspace
 
 # Check all crates individually (takes a long time)
