@@ -1677,9 +1677,9 @@ dependencies = [
 
 [[package]]
 name = "gigtags"
-version = "0.0.7"
+version = "0.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ec801aa49fa34639f94b64c7287d4f031125917cef2ccafb43ea140cb48fc41"
+checksum = "85a96ab95b12131662dde161062ea9a272a509316fe1252c243d7538cd1bc643"
 dependencies = [
  "anyhow",
  "compact_str",

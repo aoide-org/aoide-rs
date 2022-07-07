@@ -56,7 +56,7 @@ fn plain_tag_with_label_and_score(
 #[test]
 fn try_import_tags() {
     let label_value = "DJ";
-    let date_like_facet = facet_from_str("~20220703");
+    let date_like_facet = facet_from_str("@20220703");
     let score_value = 0.75;
 
     // Label
@@ -176,7 +176,7 @@ fn try_import_tag_should_skip_tags_with_unknown_props() {
 
 #[test]
 fn reencode_roundtrip() {
-    let encoded = "Some text\n facet~20220703#Tag2 ?name=value#TagWithUnsupportedProperties #Tag1";
+    let encoded = "Some text\n facet@20220703#Tag2 ?name=value#TagWithUnsupportedProperties #Tag1";
 
     let mut encoded_label = aoide_core::tag::Label::clamp_from(encoded.to_string()).unwrap();
     let mut tags_map = TagsMap::default();
@@ -199,13 +199,16 @@ fn reencode_roundtrip() {
     let mut reencoded = encoded.to_string();
     assert!(update_tags_in_encoded(&tags_map.into(), &mut reencoded).is_ok());
     assert_eq!(
-        "Some text\n ?name=value#TagWithUnsupportedProperties #Tag3 facet~20220703#Tag2",
+        "Some text\n ?name=value#TagWithUnsupportedProperties #Tag3 facet@20220703#Tag2",
         reencoded
     );
 }
 
 #[test]
 fn encode_decode_roundtrip_with_valid_tags() {
+    let half_score = Score::clamp_from(
+        Score::min().value() + (Score::max().value() - Score::min().value()) / 2.0,
+    );
     let mut tags_map = TagsMap::default();
     // Only a facet, no label, default score
     tags_map.insert(
@@ -228,35 +231,53 @@ fn encode_decode_roundtrip_with_valid_tags() {
             score: Score::max(),
         },
     );
+    // Only a facet, no label, half score
+    tags_map.insert(
+        FacetKey::new(FacetId::clamp_from("facet_half_score")),
+        PlainTag {
+            label: None,
+            score: half_score,
+        },
+    );
     // Only a label, no facet, default score
     tags_map.insert(
         FacetKey::new(None),
-        plain_tag_with_label("label_default_score".to_string()),
+        plain_tag_with_label("Label with default score".to_string()),
     );
     // Only a label, no facet, min. score
     tags_map.insert(
         FacetKey::new(None),
-        plain_tag_with_label_and_score("label_min_score".to_string(), Score::min()),
+        plain_tag_with_label_and_score("Label with min. score".to_string(), Score::min()),
     );
     // Only a label, no facet, max. score
     tags_map.insert(
         FacetKey::new(None),
-        plain_tag_with_label_and_score("label_max_score".to_string(), Score::max()),
+        plain_tag_with_label_and_score("Label with max. score".to_string(), Score::max()),
+    );
+    // Only a label, no facet, half score
+    tags_map.insert(
+        FacetKey::new(None),
+        plain_tag_with_label_and_score("Label with half score".to_string(), half_score),
     );
     // Both facet and label, default score
     tags_map.insert(
         FacetKey::new(FacetId::clamp_from("facet")),
-        plain_tag_with_label("label_default_score".to_string()),
+        plain_tag_with_label("Label with default score".to_string()),
     );
     // Both facet and label, min. score
     tags_map.insert(
         FacetKey::new(FacetId::clamp_from("facet")),
-        plain_tag_with_label_and_score("label_min_score".to_string(), Score::min()),
+        plain_tag_with_label_and_score("Label with min. score".to_string(), Score::min()),
     );
     // Both facet and label, max. score
     tags_map.insert(
         FacetKey::new(FacetId::clamp_from("facet")),
-        plain_tag_with_label_and_score("label_max_score".to_string(), Score::max()),
+        plain_tag_with_label_and_score("Label with max. score".to_string(), Score::max()),
+    );
+    // Both facet and label, half score
+    tags_map.insert(
+        FacetKey::new(FacetId::clamp_from("facet")),
+        plain_tag_with_label_and_score("Label with half score".to_string(), half_score),
     );
     let expected_count = tags_map.total_count();
 
