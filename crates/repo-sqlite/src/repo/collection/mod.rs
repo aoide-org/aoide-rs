@@ -126,6 +126,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn load_collection_entities(
         &self,
         kind: Option<&str>,
+        media_source_root_url: Option<&MediaSourceRootUrlFilter>,
         with_summary: bool,
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<
@@ -140,6 +141,21 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         // Kind
         if let Some(kind) = kind {
             target = target.filter(collection::kind.eq(kind));
+        }
+
+        // Media source root URL
+        if let Some(media_source_root_url) = media_source_root_url {
+            match media_source_root_url {
+                MediaSourceRootUrlFilter::Equals(root_url) => {
+                    target = target.filter(collection::media_source_root_url.eq(root_url.as_str()));
+                }
+                MediaSourceRootUrlFilter::Prefix(prefix_url) => {
+                    target = target.filter(sql_column_substr_prefix_eq(
+                        "collection.media_source_root_url",
+                        prefix_url.as_str(),
+                    ));
+                }
+            }
         }
 
         // Pagination

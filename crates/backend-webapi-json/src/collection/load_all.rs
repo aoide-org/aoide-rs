@@ -53,6 +53,8 @@ pub fn handle_request(
         limit,
         offset,
     } = query_params;
+    // TODO: Optionally filter by media source root URL
+    let media_source_root_url = None;
     let load_scope = if summary.unwrap_or(false) {
         LoadScope::EntityWithSummary
     } else {
@@ -65,6 +67,7 @@ pub fn handle_request(
         uc::load_all(
             connection,
             kind.as_deref(),
+            media_source_root_url,
             load_scope,
             pagination.as_ref(),
             &mut collector,

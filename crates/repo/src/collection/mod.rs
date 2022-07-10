@@ -15,7 +15,7 @@
 
 use aoide_core::{
     collection::{Entity, EntityHeader, EntityUid},
-    util::clock::DateTime,
+    util::{clock::DateTime, url::BaseUrl},
 };
 
 use aoide_core_api::collection::{EntityWithSummary, Summary};
@@ -25,6 +25,12 @@ use crate::prelude::*;
 record_id_newtype!(RecordId);
 
 pub type RecordHeader = crate::RecordHeader<RecordId>;
+
+#[derive(Debug, Clone)]
+pub enum MediaSourceRootUrlFilter {
+    Prefix(BaseUrl),
+    Equals(BaseUrl),
+}
 
 pub trait EntityRepo {
     entity_repo_trait_common_functions!(RecordId, Entity, EntityUid, EntityHeader, Collection);
@@ -38,6 +44,7 @@ pub trait EntityRepo {
     fn load_collection_entities(
         &self,
         kind: Option<&str>,
+        media_source_root_url: Option<&MediaSourceRootUrlFilter>,
         with_summary: bool,
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<

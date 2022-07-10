@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
+use aoide_repo::collection::MediaSourceRootUrlFilter;
 
 use super::*;
 
@@ -35,6 +36,7 @@ pub fn load_one(
 pub fn load_all(
     connection: &SqliteConnection,
     kind: Option<&str>,
+    media_source_root_url: Option<&MediaSourceRootUrlFilter>,
     scope: LoadScope,
     pagination: Option<&Pagination>,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = EntityWithSummary>,
@@ -44,8 +46,14 @@ pub fn load_all(
         LoadScope::Entity => false,
         LoadScope::EntityWithSummary => true,
     };
-    repo.load_collection_entities(kind, with_summary, pagination, collector)
-        .map_err(Into::into)
+    repo.load_collection_entities(
+        kind,
+        media_source_root_url,
+        with_summary,
+        pagination,
+        collector,
+    )
+    .map_err(Into::into)
 }
 
 pub fn load_all_kinds(connection: &SqliteConnection) -> Result<Vec<String>> {
