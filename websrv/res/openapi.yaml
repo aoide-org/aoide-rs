@@ -3047,7 +3047,7 @@ components:
     StringPredicatePrefix:
       type: object
       properties:
-        equals:
+        prefix:
           type: string
       description: Prefix match (case-sensitive)
     StringPredicateEquals:
@@ -3059,7 +3059,7 @@ components:
     StringPredicateEqualsNot:
       type: object
       properties:
-        equals:
+        equalsNot:
           type: string
       description: Exact mismatch (case-sensitive)
     TagFacetId:
