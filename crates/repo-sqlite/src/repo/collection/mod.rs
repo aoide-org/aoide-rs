@@ -134,50 +134,96 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             Record = EntityWithSummary,
         >,
     ) -> RepoResult<()> {
-        let mut target = collection::table
-            .order_by(collection::row_updated_ms.desc())
-            .into_boxed();
+        let fetch = move |pagination: Option<&_>| {
+            let mut target = collection::table
+                .order_by(collection::row_updated_ms.desc())
+                .into_boxed();
 
-        // Kind
-        if let Some(kind) = kind {
-            target = target.filter(collection::kind.eq(kind));
-        }
+            // Kind
+            if let Some(kind) = kind {
+                target = target.filter(collection::kind.eq(kind));
+            }
 
-        // Media source root URL
-        if let Some(media_source_root_url) = media_source_root_url {
-            match media_source_root_url {
-                MediaSourceRootUrlFilter::Equals(root_url) => {
-                    target = target.filter(collection::media_source_root_url.eq(root_url.as_str()));
-                }
-                MediaSourceRootUrlFilter::Prefix(prefix_url) => {
-                    target = target.filter(sql_column_substr_prefix_eq(
-                        "collection.media_source_root_url",
-                        prefix_url.as_str(),
-                    ));
+            // Media source root URL
+            if let Some(media_source_root_url) = media_source_root_url {
+                match media_source_root_url {
+                    MediaSourceRootUrlFilter::Equal(root_url) => {
+                        if let Some(root_url) = root_url {
+                            target = target
+                                .filter(collection::media_source_root_url.eq(root_url.as_str()));
+                        } else {
+                            target = target.filter(collection::media_source_root_url.is_null());
+                        }
+                    }
+                    MediaSourceRootUrlFilter::Prefix(prefix_url) => {
+                        target = target.filter(sql_column_substr_prefix_eq(
+                            "collection.media_source_root_url",
+                            prefix_url.as_str(),
+                        ));
+                    }
+                    MediaSourceRootUrlFilter::PrefixOf(prefix_of_url) => {
+                        if prefix_of_url.as_str().is_empty() {
+                            // Nothing to do
+                            return Ok(Default::default());
+                        }
+                        // Post-fetch filtering (see below)
+                    }
                 }
             }
-        }
 
-        // Pagination
-        if let Some(pagination) = pagination {
-            target = apply_pagination(target, pagination);
-        }
+            // Pagination
+            if let Some(pagination) = pagination {
+                target = apply_pagination(target, pagination);
+            }
 
-        let records = target
-            .load::<QueryableRecord>(self.as_ref())
-            .map_err(repo_error)?;
+            target
+                .load::<QueryableRecord>(self.as_ref())
+                .map_err(repo_error)
+        };
 
-        collector.reserve(records.len());
-        for record in records {
-            let (record_header, entity) = record.try_into()?;
-            let summary = if with_summary {
-                Some(self.load_collection_summary(record_header.id)?)
-            } else {
-                None
+        let filter_map =
+            move |record: QueryableRecord| {
+                let (record_header, entity) = record.try_into()?;
+                if let Some(media_source_root_url) = media_source_root_url {
+                    match media_source_root_url {
+                        MediaSourceRootUrlFilter::Equal(root_url) => {
+                            debug_assert_eq!(
+                                root_url.as_ref(),
+                                entity.body.media_source_config.content_path.root_url()
+                            );
+                        }
+                        MediaSourceRootUrlFilter::Prefix(prefix_url) => {
+                            debug_assert_eq!(
+                                Some(true),
+                                entity.body.media_source_config.content_path.root_url().map(
+                                    |root_url| root_url.as_str().starts_with(prefix_url.as_str())
+                                )
+                            );
+                        }
+                        MediaSourceRootUrlFilter::PrefixOf(prefix_of_url) => {
+                            if let Some(root_url) =
+                                entity.body.media_source_config.content_path.root_url()
+                            {
+                                if !prefix_of_url.as_str().starts_with(root_url.as_str()) {
+                                    // Discard
+                                    return Ok(None);
+                                }
+                            } else {
+                                // Discard
+                                return Ok(None);
+                            }
+                        }
+                    }
+                }
+                let summary = if with_summary {
+                    Some(self.load_collection_summary(record_header.id)?)
+                } else {
+                    None
+                };
+                Ok(Some((record_header, EntityWithSummary { entity, summary })))
             };
-            collector.collect(record_header, EntityWithSummary { entity, summary });
-        }
-        Ok(())
+
+        fetch_and_collect_filtered_records(pagination, fetch, filter_map, collector)
     }
 
     fn load_collection_summary(&self, id: RecordId) -> RepoResult<Summary> {

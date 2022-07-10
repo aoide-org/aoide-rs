@@ -85,6 +85,56 @@ pub mod prelude {
         }
     }
 
+    pub fn fetch_and_collect_filtered_records<T, Header, Record, Fetch, FilterMap, Collector>(
+        pagination: Option<&Pagination>,
+        mut fetch: Fetch,
+        mut filter_map: FilterMap,
+        collector: &mut Collector,
+    ) -> RepoResult<()>
+    where
+        Fetch: FnMut(Option<&Pagination>) -> RepoResult<Vec<T>>,
+        FilterMap: FnMut(T) -> RepoResult<Option<(Header, Record)>>,
+        Collector: ReservableRecordCollector<Header = Header, Record = Record> + ?Sized,
+    {
+        let mut pagination = pagination.cloned();
+        loop {
+            let fetched_records = fetch(pagination.as_ref())?;
+            if fetched_records.is_empty() {
+                break;
+            }
+            collector.reserve(fetched_records.len());
+            let num_fetched_records = fetched_records.len() as PaginationOffset;
+            let mut num_discarded_records = 0usize;
+            for record in fetched_records {
+                if let Some((header, record)) = filter_map(record)? {
+                    collector.collect(header, record);
+                } else {
+                    num_discarded_records += 1;
+                }
+            }
+            if num_discarded_records == 0 {
+                break;
+            }
+            if let Some(pagination) = &mut pagination {
+                if let Some(limit) = &mut pagination.limit {
+                    debug_assert!(num_fetched_records <= *limit);
+                    if num_fetched_records >= *limit {
+                        break;
+                    }
+                    // Fetch remaining records according to pagination with
+                    // one or more subsequent queries.
+                    pagination.offset = Some(pagination.offset.unwrap_or(0) + num_fetched_records);
+                    *limit -= num_fetched_records;
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+        Ok(())
+    }
+
     #[derive(Error, Debug)]
     pub enum RepoError {
         #[error("not found")]
