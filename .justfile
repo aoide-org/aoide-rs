@@ -29,6 +29,7 @@ pre-commit:
 
 # Upgrade (and update) dependencies
 upgrade:
+    cargo update
     cargo upgrade --workspace \
         --exclude aoide-backend-embedded \
         --exclude aoide-backend-webapi-json \
@@ -47,11 +48,14 @@ upgrade:
         --exclude aoide-websrv-warp-sqlite \
         --exclude libsqlite3-sys
     cargo update
-    cd webapp && cargo upgrade \
-        --exclude aoide-core \
-        --exclude aoide-core-api \
-        --exclude aoide-core-api-json \
-        --exclude aoide-core-json
+    cd webapp \
+        && cargo update \
+        && cargo upgrade \
+            --exclude aoide-core \
+            --exclude aoide-core-api \
+            --exclude aoide-core-api-json \
+            --exclude aoide-core-json \
+        && cargo update
     #cargo minimal-versions check --workspace
 
 # Check all crates individually (takes a long time)

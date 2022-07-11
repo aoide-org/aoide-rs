@@ -16,7 +16,7 @@ log = "0.4.17"
 r2d2 = "0.8.10"
 thiserror = "1.0.31"
 
-serde = { version = "1.0.138", optional = true, features = ["derive"] }
+serde = { version = "1.0.139", optional = true, features = ["derive"] }
 tokio = { version = "1.19.2", optional = true, default-features = false, features = ["macros", "rt", "sync", "time"] }
 
 [features]
