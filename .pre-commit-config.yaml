@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: CC0-1.0
+
 # yaml-language-server: $schema=https://json.schemastore.org/pre-commit-config.json
 
 # Configuration file for https://pre-commit.com/
@@ -50,6 +53,12 @@ repos:
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
+  # https://reuse.software
+  # TODO: Enable after fixing license headers to files in webapp/assets
+  #- repo: https://github.com/fsfe/reuse-tool
+  #  rev: v1.0.0
+  #  hooks:
+  #    - id: reuse
   - repo: https://github.com/doublify/pre-commit-rust
     rev: v1.0
     hooks:

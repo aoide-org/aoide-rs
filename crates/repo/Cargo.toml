@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 [package]
 name = "aoide-repo"
 description = "aoide - Storage-agnostic repository types and traits for the backend"
@@ -12,7 +15,7 @@ num-derive = "0.3.3"
 num-traits = "0.2.15"
 paste = "1.0.7"
 rand = "0.8.5"
-semval = "0.3.0"
+semval = "0.4.0"
 thiserror = "1.0.31"
 
 # Workspace dependencies

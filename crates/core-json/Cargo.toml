@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 [package]
 name = "aoide-core-json"
 description = "aoide - JSON mapping for aoide-core boundary types"
@@ -11,7 +14,7 @@ anyhow = "1.0.58"
 base64 = "0.13.0"
 mime = "0.3.16"
 num-traits = "0.2.15"
-semval = "0.3.0"
+semval = "0.4.0"
 serde = { version = "1.0.139", default-features = false, features = ["derive"] }
 serde_repr = "0.1.8"
 time = { version = "0.3.11", features = ["serde-well-known"] }

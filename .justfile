@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: CC0-1.0
+
 # just manual: https://github.com/casey/just/#readme
 
 # Ignore the .env file that is only used by the web service

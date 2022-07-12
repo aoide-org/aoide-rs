@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al. -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

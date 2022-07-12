@@ -1,9 +1,12 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 [package]
 name = "aoide-websrv"
 description = "aoide - Standalone web server with embedded SQLite database"
 keywords = ["music", "collection"]
 version = "0.8.0"
-license-file = "LICENSE.md"
+license = "AGPL-3.0-or-later"
 publish = false
 edition = "2021"
 

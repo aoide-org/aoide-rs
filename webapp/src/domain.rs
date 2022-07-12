@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 pub(crate) use aoide_core::collection::{Entity as CollectionEntity, EntityHeader};
 
 pub(crate) use aoide_core_api::collection::Summary as CollectionSummary;

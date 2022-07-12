@@ -1,7 +1,11 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 [package]
 name = "aoide-webapp"
 description = "aoide - [experimental] Web app prototype"
 version = "0.8.0"
+license = "AGPL-3.0-or-later"
 edition = "2021"
 publish = false
 

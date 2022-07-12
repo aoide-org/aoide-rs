@@ -1,6 +1,7 @@
-# aoide
+<!-- SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al. -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-![aoide banner](assets/aoide_banner_1280x340.png)
+# aoide
 
 [![GitLab CI](https://gitlab.com/uklotzde/aoide-rs/badges/dev/pipeline.svg)](https://gitlab.com/uklotzde/aoide-rs/pipelines?scope=branches)
 [![GitHub CI](https://github.com/aoide-org/aoide-rs/actions/workflows/continuous-integration.yaml/badge.svg?branch=dev)](https://github.com/aoide-org/aoide-rs/actions/workflows/continuous-integration.yaml)

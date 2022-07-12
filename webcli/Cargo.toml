@@ -1,12 +1,17 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 [package]
 name = "aoide-webcli"
 description = "aoide - Media tracker CLI for web server"
 version = "0.8.0"
+license = "AGPL-3.0-or-later"
+publish = false
 edition = "2021"
 
 [dependencies]
 anyhow = "1.0.58"
-clap = "3.2.8"
+clap = "3.2.10"
 env_logger = "0.9.0"
 log = "0.4.17"
 reqwest = { version = "0.11.11", default-features = false, features = ["rustls-tls"] }

@@ -746,9 +746,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.2.8"
+version = "3.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "190814073e85d238f31ff738fcb0bf6910cedeb73376c87cd69291028966fd83"
+checksum = "69c5a7f9997be616e47f0577ee38c91decb33392c5be4866494f34cdf329a9aa"
 dependencies = [
  "atty",
  "bitflags",
@@ -2357,9 +2357,9 @@ checksum = "07dcca13d1740c0a665f77104803360da0bdb3323ecce2e93fa2c959a6d52806"
 
 [[package]]
 name = "mpeg-audio-header"
-version = "0.0.2"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e304eb7184f436804c3d904088f47a6b854d4667527c3f50072e96983706bf38"
+checksum = "06755cd01ad7a27f01207616085edd96a05c71543fded1aca8e4c92cdfb6e264"
 dependencies = [
  "thiserror",
 ]
@@ -3315,9 +3315,9 @@ dependencies = [
 
 [[package]]
 name = "semval"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "660261c0bcb69cf615ea5e75d600d6f3f05bede105d95aa6c2cd07cd31789041"
+checksum = "ff6c27810150862ca6567b77ef10516ef35174b17bb95f4cd1858d089d85835f"
 dependencies = [
  "smallvec",
 ]

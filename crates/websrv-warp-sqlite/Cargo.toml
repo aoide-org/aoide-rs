@@ -1,8 +1,11 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 [package]
 name = "aoide-websrv-warp-sqlite"
 description = "aoide - Routes and handlers for a web server (warp/SQLite)"
 version = "0.8.0"
-license-file = "LICENSE.md"
+license = "AGPL-3.0-or-later"
 publish = false
 edition = "2021"
 

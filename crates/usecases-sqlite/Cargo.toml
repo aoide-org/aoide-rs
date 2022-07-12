@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 [package]
 name = "aoide-usecases-sqlite"
 description = "aoide - SQLite wrappers for aoide-usecases"
@@ -11,7 +14,7 @@ anyhow = "1.0.58"
 diesel = { version = "1.4.8", default-features = false, features = ["sqlite"] }
 diesel_migrations =  { version = "1.4.0", default-features = false, features = ["sqlite"] }
 log = "0.4.17"
-semval = "0.3.0"
+semval = "0.4.0"
 thiserror = "1.0.31"
 
 tokio = { version = "1.19.2", optional = true, default-features = false }

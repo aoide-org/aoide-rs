@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: CC0-1.0
+
 # Only add deviations from the default settings!
 
 # Consistently use a single edition for all workspace crates, should match Cargo.toml
