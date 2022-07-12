@@ -113,9 +113,6 @@ RUN USER=root mkdir .cargo && \
     tree -a
 
 COPY [ \
-    ".cargo", \
-    "./.cargo/" ]
-COPY [ \
     "Cargo.toml", \
     "Cargo.lock", \
     "./" ]
