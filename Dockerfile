@@ -71,45 +71,42 @@ RUN mkdir -p ${WORKDIR_ROOT}/${PROJECT_NAME}
 WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
 
 # Create all projects and crates in workspace
-RUN USER=root mkdir .cargo && \
-    echo "[build]" > .cargo/config.toml && \
-    echo "target = \"${BUILD_TARGET}\"" >> .cargo/config.toml && \
-    cat .cargo/config.toml && \
-    cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
-    mv ${PROJECT_NAME}-websrv websrv && \
+RUN USER=root \
+    mkdir -p crates && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-backend-embedded && \
+    mv ${PROJECT_NAME}-backend-embedded crates/backend-embedded && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-backend-webapi-json && \
+    mv ${PROJECT_NAME}-backend-webapi-json crates/backend-webapi-json && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-client && \
+    mv ${PROJECT_NAME}-client crates/client && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-core && \
+    mv ${PROJECT_NAME}-core crates/core && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-core-json && \
+    mv ${PROJECT_NAME}-core-json crates/core-json && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-core-api && \
+    mv ${PROJECT_NAME}-core-api crates/core-api && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-core-api-json && \
+    mv ${PROJECT_NAME}-core-api-json crates/core-api-json && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-media && \
+    mv ${PROJECT_NAME}-media crates/media && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-repo && \
+    mv ${PROJECT_NAME}-repo crates/repo && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-repo-sqlite && \
+    mv ${PROJECT_NAME}-repo-sqlite crates/repo-sqlite && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-search-index-tantivy && \
+    mv ${PROJECT_NAME}-search-index-tantivy crates/search-index-tantivy && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-storage-sqlite && \
+    mv ${PROJECT_NAME}-storage-sqlite crates/storage-sqlite && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-usecases && \
+    mv ${PROJECT_NAME}-usecases crates/usecases && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite && \
+    mv ${PROJECT_NAME}-usecases-sqlite crates/usecases-sqlite && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-websrv-warp-sqlite && \
+    mv ${PROJECT_NAME}-websrv-warp-sqlite crates/websrv-warp-sqlite && \
     cargo new --vcs none --bin ${PROJECT_NAME}-webcli && \
     mv ${PROJECT_NAME}-webcli webcli && \
-    mkdir -p crates && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-backend-embedded && \
-    mv ${PROJECT_NAME}-backend-embedded crates/backend-embedded && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-backend-webapi-json && \
-    mv ${PROJECT_NAME}-backend-webapi-json crates/backend-webapi-json && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-client && \
-    mv ${PROJECT_NAME}-client crates/client && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core && \
-    mv ${PROJECT_NAME}-core crates/core && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-json && \
-    mv ${PROJECT_NAME}-core-json crates/core-json && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-api && \
-    mv ${PROJECT_NAME}-core-api crates/core-api && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-api-json && \
-    mv ${PROJECT_NAME}-core-api-json crates/core-api-json && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-media && \
-    mv ${PROJECT_NAME}-media crates/media && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-repo && \
-    mv ${PROJECT_NAME}-repo crates/repo && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-repo-sqlite && \
-    mv ${PROJECT_NAME}-repo-sqlite crates/repo-sqlite && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-search-index-tantivy && \
-    mv ${PROJECT_NAME}-search-index-tantivy crates/search-index-tantivy && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-storage-sqlite && \
-    mv ${PROJECT_NAME}-storage-sqlite crates/storage-sqlite && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases && \
-    mv ${PROJECT_NAME}-usecases crates/usecases && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite && \
-    mv ${PROJECT_NAME}-usecases-sqlite crates/usecases-sqlite && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv-warp-sqlite && \
-    mv ${PROJECT_NAME}-websrv-warp-sqlite crates/websrv-warp-sqlite && \
+    cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
+    mv ${PROJECT_NAME}-websrv websrv && \
     tree -a
 
 COPY [ \

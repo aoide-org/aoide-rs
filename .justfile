@@ -61,7 +61,7 @@ upgrade:
         && cargo update
     #cargo minimal-versions check --workspace
 
-# Check all crates individually (takes a long time)
+# Check all lib/bin projects individually with selected features (takes a long time)
 check:
     cargo check --locked --all-targets -p aoide-backend-embedded
     cargo check --locked --all-targets -p aoide-backend-embedded --all-features
@@ -84,9 +84,9 @@ check:
     cargo check --locked --all-targets -p aoide-usecases
     cargo check --locked --all-targets -p aoide-usecases --features media
     cargo check --locked --all-targets -p aoide-usecases-sqlite --all-features
+    cargo check --locked --all-targets -p aoide-websrv-warp-sqlite --all-features
     cargo check --locked --all-targets -p aoide-webcli --all-features
     cargo check --locked --all-targets -p aoide-websrv --all-features
-    cargo check --locked --all-targets -p aoide-websrv-warp-sqlite --all-features
 
 check-wasm:
     cargo check --locked --all-targets --target wasm32-unknown-unknown --features js -p aoide-core
