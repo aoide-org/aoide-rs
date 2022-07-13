@@ -186,8 +186,8 @@ RUN tree -a && \
 
 # Copy all project (re-)sources that are required for pre-commit and building
 COPY [ \
-    ".clippy.toml", \
     ".codespellignore", \
+    ".commitlintrc.json", \
     ".gitignore", \
     ".markdownlint-cli2.yaml", \
     ".pre-commit-config.yaml", \
