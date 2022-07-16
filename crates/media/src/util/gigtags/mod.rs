@@ -94,7 +94,7 @@ pub fn update_tags_in_encoded(tags: &Tags, encoded: &mut String) -> std::fmt::Re
     let (mut decoded_tags, _num_imported) = decode_tags_eagerly_into(encoded, None);
     decoded_tags.tags.append(&mut exported_tags);
     decoded_tags.dedup();
-    decoded_tags.reorder_date_like();
+    decoded_tags.reorder();
     encoded.clear();
     decoded_tags.encode_into(encoded)
 }
