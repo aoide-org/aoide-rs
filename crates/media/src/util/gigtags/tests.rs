@@ -178,16 +178,23 @@ fn reencode_roundtrip() {
         encoded_label.as_str()
     );
 
-    // Replace #Tag1 with #Tag3
+    // Replace plain tag #Tag1 with #Tag2
     tags_map.replace_faceted_plain_tags(
         Default::default(),
-        vec![plain_tag_with_label("Tag3".to_string())],
+        vec![plain_tag_with_label("Tag2".to_string())],
+    );
+
+    // Add #Tag2 with a non-date-like facet
+    tags_map.replace_faceted_plain_tags(
+        FacetId::new("facet".into()),
+        vec![plain_tag_with_label("Tag2".to_string())],
     );
 
     let mut reencoded = encoded.to_string();
     assert!(update_tags_in_encoded(&tags_map.into(), &mut reencoded).is_ok());
+    // Encoding implicitly reorders the tags
     assert_eq!(
-        "Some text\n ?name=value#TagWithUnsupportedProperties #Tag3 facet@20220703#Tag2",
+        "Some text\n #Tag2 ?name=value#TagWithUnsupportedProperties facet#Tag2 facet@20220703#Tag2",
         reencoded
     );
 }
