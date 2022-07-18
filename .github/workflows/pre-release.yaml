@@ -48,7 +48,7 @@ jobs:
         run: |
           sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev
 
-      - name: Install Rust toolchain
+      - name: Install Rust toolchain for target
         uses: actions-rs/toolchain@v1
         with:
           target: ${{ matrix.target }}
@@ -56,7 +56,7 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Install Rust toolchain for webapp
+      - name: Install Rust toolchain for WASM
         uses: actions-rs/toolchain@v1
         with:
           target: wasm32-unknown-unknown
@@ -64,15 +64,15 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Install Trunk for building the webapp
-        run: |
-          cargo install --locked trunk
-
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Cache Rust toolchain and build artifacts
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Trunk for building the webapp
+        run: |
+          cargo install --locked trunk
 
       - name: Build artifact
         uses: actions-rs/cargo@v1

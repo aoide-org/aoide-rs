@@ -54,7 +54,7 @@ jobs:
         if: runner.os == 'Windows'
         run: echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Install Rust toolchain
+      - name: Install Rust toolchain for target
         uses: actions-rs/toolchain@v1
         with:
           target: ${{ matrix.target }}
@@ -62,7 +62,7 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Install Rust toolchain for webapp
+      - name: Install Rust toolchain for WASM
         uses: actions-rs/toolchain@v1
         with:
           target: wasm32-unknown-unknown
@@ -70,15 +70,15 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Install Trunk for building the webapp
-        run: |
-          cargo install --locked trunk
-
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Cache Rust toolchain and build artifacts
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Trunk for building the webapp
+        run: |
+          cargo install --locked trunk
 
       - name: Check aoide-core
         uses: actions-rs/cargo@v1
