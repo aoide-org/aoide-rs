@@ -10,6 +10,7 @@ members = [
   "crates/core-json",
   "crates/core-api",
   "crates/core-api-json",
+  "crates/desktop-app",
   "crates/media",
   "crates/repo",
   "crates/repo-sqlite",
@@ -34,6 +35,7 @@ aoide-core = { path = "crates/core" }
 aoide-core-json = { path = "crates/core-json" }
 aoide-core-api = { path = "crates/core-api" }
 aoide-core-api-json = { path = "crates/core-api-json" }
+aoide-desktop-app = { path = "crates/desktop-app" }
 aoide-media = { path = "crates/media" }
 aoide-repo = { path = "crates/repo" }
 aoide-repo-sqlite = { path = "crates/repo-sqlite" }

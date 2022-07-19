@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "aoide-desktop-app"
+description = "aoide - Desktop app support"
+version = "0.8.0"
+license = "AGPL-3.0-or-later"
+publish = false
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.58"
+discro = "0.5.0"
+log = "0.4.17"
+percent-encoding = "2.1.0"
+rfd = { version = "0.9.1", default-features = false, features = ["xdg-portal"] }
+ron = "0.7.1"
+serde = { version = "1.0.139", default-features = false, features = ["derive"] }
+tokio = { version = "1.20.0", default-features = false }
+url = { version = "2.2.2", features = ["serde"] }
+
+# Workspace dependencies
+aoide-backend-embedded = "0.8.0"
+aoide-storage-sqlite = { version = "0.8.0", features = ["serde", "tokio"] }

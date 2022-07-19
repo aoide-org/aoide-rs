@@ -104,6 +104,12 @@ jobs:
           command: check
           args: --locked --all-targets --all-features --manifest-path crates/core-api-json/Cargo.toml
 
+      - name: Check aoide-desktop-app
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --locked --all-targets --all-features --manifest-path crates/desktop-app/Cargo.toml
+
       - name: Check aoide-media
         uses: actions-rs/cargo@v1
         with:

@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{fmt, path::PathBuf, str::FromStr};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -15,6 +19,16 @@ pub const IN_MEMORY_STORAGE: &str = ":memory:";
 pub enum Storage {
     InMemory,
     File { path: PathBuf },
+}
+
+impl Storage {
+    #[must_use]
+    pub fn parent_dir(&self) -> Option<&Path> {
+        match self {
+            Self::InMemory => None,
+            Self::File { path } => path.parent(),
+        }
+    }
 }
 
 impl AsRef<str> for Storage {
@@ -50,4 +64,11 @@ pub struct Config {
     pub storage: Storage,
 
     pub pool: self::pool::Config,
+}
+
+impl Config {
+    #[must_use]
+    pub fn storage_dir(&self) -> Option<&Path> {
+        self.storage.parent_dir()
+    }
 }

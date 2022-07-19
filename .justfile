@@ -19,7 +19,7 @@ setup:
         trunk
     pip install -U pre-commit
     pre-commit autoupdate
-    pre-commit install --hook-type commit-msg --hook-type pre-commit
+    #pre-commit install --hook-type commit-msg --hook-type pre-commit
 
 # Format source code
 fmt:
@@ -41,6 +41,7 @@ upgrade:
         --exclude aoide-core-api \
         --exclude aoide-core-api-json \
         --exclude aoide-core-json \
+        --exclude aoide-desktop-app \
         --exclude aoide-media \
         --exclude aoide-repo \
         --exclude aoide-repo-sqlite \
@@ -75,6 +76,8 @@ check:
     cargo check --locked --all-targets -p aoide-core-api-json --all-features
     cargo check --locked --all-targets -p aoide-core-json
     cargo check --locked --all-targets -p aoide-core-json --all-features
+    cargo check --locked --all-targets -p aoide-desktop-app
+    cargo check --locked --all-targets -p aoide-desktop-app --all-features
     cargo check --locked --all-targets -p aoide-media --all-features
     cargo check --locked --all-targets -p aoide-media --no-default-features
     cargo check --locked --all-targets -p aoide-repo --all-features

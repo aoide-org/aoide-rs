@@ -87,6 +87,8 @@ RUN USER=root \
     mv ${PROJECT_NAME}-core-api crates/core-api && \
     cargo new --vcs none --lib ${PROJECT_NAME}-core-api-json && \
     mv ${PROJECT_NAME}-core-api-json crates/core-api-json && \
+    cargo new --vcs none --lib ${PROJECT_NAME}-desktop-app && \
+    mv ${PROJECT_NAME}-desktop-app crates/desktop-app && \
     cargo new --vcs none --lib ${PROJECT_NAME}-media && \
     mv ${PROJECT_NAME}-media crates/media && \
     cargo new --vcs none --lib ${PROJECT_NAME}-repo && \
@@ -137,6 +139,9 @@ COPY [ \
 COPY [ \
     "crates/media/Cargo.toml", \
     "./crates/media/" ]
+COPY [ \
+    "crates/desktop-app/Cargo.toml", \
+    "./crates/desktop-app/" ]
 COPY [ \
     "crates/repo/Cargo.toml", \
     "./crates/repo/" ]
@@ -214,6 +219,9 @@ COPY [ \
 COPY [ \
     "crates/media/src", \
     "./crates/media/src/" ]
+COPY [ \
+    "crates/desktop-app/src", \
+    "./crates/desktop-app/src/" ]
 COPY [ \
     "crates/repo/src", \
     "./crates/repo/src/" ]
