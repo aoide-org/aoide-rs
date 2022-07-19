@@ -3,6 +3,7 @@
 
 use std::{
     fs,
+    future::Future,
     path::{Path, PathBuf},
 };
 
@@ -205,5 +206,24 @@ impl ObservableState {
     #[allow(clippy::must_use_candidate)]
     pub fn reset_music_dir(&self) -> bool {
         self.update_state(|state| state.update_music_dir(None))
+    }
+
+    pub fn saver_task(
+        &self,
+        settings_dir: PathBuf,
+        mut report_save_error: impl FnMut(anyhow::Error) + Send + 'static,
+    ) -> impl Future<Output = ()> + Send + 'static {
+        let mut settings_sub = self.subscribe_state();
+        async move {
+            log::debug!("Starting saver task");
+            while settings_sub.changed().await.is_ok() {
+                let settings = settings_sub.read().to_owned();
+                log::debug!("Saving changed settings: {settings:?}");
+                if let Err(err) = settings.save_spawn_blocking(settings_dir.clone()).await {
+                    report_save_error(err);
+                }
+            }
+            log::debug!("Stopped saver task");
+        }
     }
 }
