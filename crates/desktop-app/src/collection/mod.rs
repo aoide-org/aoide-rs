@@ -388,13 +388,13 @@ impl ObservableState {
 
     pub async fn update_music_dir(
         &self,
-        environment: &Environment,
+        db_gatekeeper: &Arc<Gatekeeper>,
         new_music_dir: Option<&Path>,
         collection_kind: Option<Cow<'static, str>>,
     ) -> anyhow::Result<bool> {
         let modified = if let Some(new_music_dir) = new_music_dir {
             if self.modify(|state| state.update_music_dir(new_music_dir)) {
-                self.refresh_from_db(Arc::clone(environment.db_gatekeeper()), collection_kind)
+                self.refresh_from_db(Arc::clone(db_gatekeeper), collection_kind)
                     .await?;
                 true
             } else {
