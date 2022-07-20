@@ -10,18 +10,59 @@ use crate::{collection, fs::DirPath, settings};
 
 use super::State;
 
-/// Listen for changes of [`State::is_pending()`].
+/// Listen for state changes.
 ///
 /// The `on_changed` callback closure must return `true` to continue
 /// listening and `false` to abort listening.
-pub fn on_is_pending_changed(
+pub fn on_state_changed(
+    mut state_sub: Subscriber<State>,
+    mut on_changed: impl FnMut(&super::State) -> bool + Send + 'static,
+) -> impl Future<Output = ()> + Send + 'static {
+    // Read the initial value immediately before spawning the async task
+    let mut value = state_sub.read().clone();
+    async move {
+        log::debug!("Starting on_state_changed");
+        // Enforce initial update
+        let mut value_changed = true;
+        loop {
+            #[allow(clippy::collapsible_if)] // suppress false positive warning
+            if value_changed {
+                if !on_changed(&value) {
+                    // Consumer has rejected the notification
+                    log::debug!("Aborting on_state_changed");
+                    return;
+                }
+            }
+            value_changed = false;
+            if state_sub.changed().await.is_err() {
+                // Publisher has disappeared
+                log::debug!("Aborting on_state_changed");
+                break;
+            }
+            let new_value = state_sub.read_ack();
+            if value != *new_value {
+                value = new_value.clone();
+                value_changed = true;
+            } else {
+                log::debug!("state unchanged: {value:?}");
+            }
+        }
+        log::debug!("Stopping on_state_changed");
+    }
+}
+
+/// Listen for changes of [`State::is_ready()`].
+///
+/// The `on_changed` callback closure must return `true` to continue
+/// listening and `false` to abort listening.
+pub fn on_is_ready_changed(
     mut state_sub: Subscriber<State>,
     mut on_changed: impl FnMut(bool) -> bool + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     // Read the initial value immediately before spawning the async task
-    let mut value = state_sub.read_ack().is_pending();
+    let mut value = state_sub.read().is_ready();
     async move {
-        log::debug!("Starting on_is_pending_changed");
+        log::debug!("Starting on_is_ready_changed");
         // Enforce initial update
         let mut value_changed = true;
         loop {
@@ -29,25 +70,25 @@ pub fn on_is_pending_changed(
             if value_changed {
                 if !on_changed(value) {
                     // Consumer has rejected the notification
-                    log::debug!("Aborting on_is_pending_changed");
+                    log::debug!("Aborting on_is_ready_changed");
                     return;
                 }
             }
             value_changed = false;
             if state_sub.changed().await.is_err() {
                 // Publisher has disappeared
-                log::debug!("Aborting on_is_pending_changed");
+                log::debug!("Aborting on_is_ready_changed");
                 break;
             }
-            let new_value = state_sub.read_ack().is_pending();
+            let new_value = state_sub.read_ack().is_ready();
             if value != new_value {
                 value = new_value;
                 value_changed = true;
             } else {
-                log::debug!("is_pending unchanged: {value}");
+                log::debug!("is_ready unchanged: {value}");
             }
         }
-        log::debug!("Stopping on_is_pending_changed");
+        log::debug!("Stopping on_is_ready_changed");
     }
 }
 

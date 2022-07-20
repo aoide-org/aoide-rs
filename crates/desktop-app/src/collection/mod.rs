@@ -142,7 +142,7 @@ pub async fn refresh_entity_with_summary_from_db(
         .map_err(Into::into)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ready {
     pub entity: Entity,
     pub summary: Option<Summary>,
@@ -160,7 +160,7 @@ impl Ready {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum State {
     Initial,
@@ -218,6 +218,11 @@ impl State {
             Self::Initial | Self::Ready(_) => false,
             Self::PendingMusicDir(_) | Self::PendingEntityUid(_) => true,
         }
+    }
+
+    #[must_use]
+    pub fn is_ready(&self) -> bool {
+        matches!(self, Self::Ready(_))
     }
 
     pub fn reset(&mut self) -> bool {
