@@ -46,6 +46,25 @@ pub struct State {
 }
 
 impl State {
+    pub fn restore_from_parent_dir(parent_dir: &Path) -> anyhow::Result<Self> {
+        log::info!("Loading saved settings from: {}", parent_dir.display());
+        let mut settings = Self::load(parent_dir)
+            .map_err(|err| {
+                log::warn!("Failed to load saved settings: {}", err);
+            })
+            .unwrap_or_default();
+        if settings.database_url.is_none() {
+            let database_file_path = default_database_file_path(parent_dir.to_path_buf());
+            log::info!(
+                "Using default SQLite database: {}",
+                database_file_path.display()
+            );
+            settings.database_url = Url::from_file_path(&database_file_path).ok();
+        }
+        debug_assert!(settings.database_url.is_some());
+        Ok(settings)
+    }
+
     pub fn load(parent_dir: &Path) -> anyhow::Result<State> {
         let file_path = new_settings_file_path(parent_dir.to_path_buf());
         log::info!("Loading settings from file: {}", file_path.display());
@@ -150,25 +169,6 @@ fn default_database_file_path(parent_dir: PathBuf) -> PathBuf {
     path_buf.push(DEFAULT_DATABASE_FILE_NAME);
     path_buf.set_extension(DEFAULT_DATABASE_FILE_SUFFIX);
     path_buf
-}
-
-pub fn restore_from_parent_dir(parent_dir: &Path) -> anyhow::Result<State> {
-    log::info!("Loading saved settings from: {}", parent_dir.display());
-    let mut settings = State::load(parent_dir)
-        .map_err(|err| {
-            log::warn!("Failed to load saved settings: {}", err);
-        })
-        .unwrap_or_default();
-    if settings.database_url.is_none() {
-        let database_file_path = default_database_file_path(parent_dir.to_path_buf());
-        log::info!(
-            "Using default SQLite database: {}",
-            database_file_path.display()
-        );
-        settings.database_url = Url::from_file_path(&database_file_path).ok();
-    }
-    debug_assert!(settings.database_url.is_some());
-    Ok(settings)
 }
 
 /// Manages the mutable, observable state
