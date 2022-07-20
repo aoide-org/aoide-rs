@@ -3,7 +3,6 @@
 
 use std::{
     fs,
-    future::Future,
     path::{Path, PathBuf},
 };
 
@@ -22,6 +21,8 @@ pub const FILE_SUFFIX: &str = "ron";
 pub const DEFAULT_DATABASE_FILE_NAME: &str = "aoide";
 
 pub const DEFAULT_DATABASE_FILE_SUFFIX: &str = "sqlite";
+
+pub mod tasklet;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Settings {
@@ -198,31 +199,6 @@ impl ObservableState {
         self.state_pub.modify(modify_state)
     }
 
-    /// Save the settings after changed.
-    pub fn on_state_changed_saver_task(
-        &self,
-        settings_dir: PathBuf,
-        mut report_save_error: impl FnMut(anyhow::Error) + Send + 'static,
-    ) -> impl Future<Output = ()> + Send + 'static {
-        let mut settings_sub = self.subscribe_state();
-        // Read the initial settings immediately before spawning the async task
-        let mut old_settings = settings_sub.read().to_owned();
-        async move {
-            log::debug!("Starting on_state_changed_saver_task");
-            while settings_sub.changed().await.is_ok() {
-                let new_settings = settings_sub.read_ack().to_owned();
-                if old_settings != new_settings {
-                    log::debug!("Saving changed settings: {old_settings:?} -> {new_settings:?}");
-                    old_settings = new_settings.clone();
-                    if let Err(err) = new_settings.save_spawn_blocking(settings_dir.clone()).await {
-                        report_save_error(err);
-                    }
-                }
-            }
-            log::debug!("Stopping on_state_changed_saver_task");
-        }
-    }
-
     #[allow(clippy::must_use_candidate)]
     pub fn update_music_dir(&self, new_music_dir: &DirPath<'_>) -> bool {
         self.update_state(|state| state.update_music_dir(Some(new_music_dir)))
@@ -231,46 +207,5 @@ impl ObservableState {
     #[allow(clippy::must_use_candidate)]
     pub fn reset_music_dir(&self) -> bool {
         self.update_state(|state| state.update_music_dir(None))
-    }
-
-    /// Listen for changes of the music directory.
-    ///
-    /// The `on_changed` callback closure must return `true` to continue
-    /// listening and `false` to abort listening.
-    pub fn on_music_dir_changed_task(
-        &self,
-        mut on_changed: impl FnMut(Option<&OwnedDirPath>) -> bool + Send + 'static,
-    ) -> impl Future<Output = ()> + Send + 'static {
-        let mut settings_sub = self.subscribe_state();
-        // Read the initial value immediately before spawning the async task
-        let mut value = settings_sub.read_ack().music_dir.clone();
-        async move {
-            log::debug!("Starting on_music_dir_changed_task");
-            // Enforce initial update
-            let mut value_changed = true;
-            loop {
-                #[allow(clippy::collapsible_if)] // suppress false positive warning
-                if value_changed {
-                    if !on_changed(value.as_ref()) {
-                        // Consumer has rejected the notification
-                        log::debug!("Aborting on_music_dir_changed_task");
-                        return;
-                    }
-                }
-                value_changed = false;
-                if settings_sub.changed().await.is_err() {
-                    // Publisher has disappeared
-                    log::debug!("Aborting on_music_dir_changed_task");
-                    break;
-                }
-                let settings = settings_sub.read_ack();
-                let new_value = settings.music_dir.as_ref();
-                if value.as_ref() != new_value {
-                    value = new_value.cloned();
-                    value_changed = true;
-                }
-            }
-            log::debug!("Stopping on_music_dir_changed_task");
-        }
     }
 }
