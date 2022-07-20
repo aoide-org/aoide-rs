@@ -209,3 +209,9 @@ impl ObservableState {
         self.modify_state(|state| state.update_music_dir(None))
     }
 }
+
+impl Default for ObservableState {
+    fn default() -> Self {
+        Self::new(Default::default())
+    }
+}

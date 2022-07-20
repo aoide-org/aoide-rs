@@ -421,6 +421,12 @@ impl ObservableState {
     }
 }
 
+impl Default for ObservableState {
+    fn default() -> Self {
+        Self::new(Default::default())
+    }
+}
+
 pub async fn ingest_vfs<ReportProgressFn>(
     environment: &Environment,
     collection_uid: EntityUid,
