@@ -3,9 +3,10 @@
 
 use std::{future::Future, sync::Arc};
 
+use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use discro::Subscriber;
 
-use crate::{collection, fs::DirPath, settings, Environment};
+use crate::{collection, fs::DirPath, settings};
 
 use super::State;
 
@@ -48,38 +49,31 @@ pub fn on_is_pending_changed(
     }
 }
 
-pub fn on_music_dir_changed_updater(
-    environment: &Environment,
+pub async fn on_music_dir_changed_updater(
+    db_gatekeeper: Arc<Gatekeeper>,
     settings_state: Arc<settings::ObservableState>,
     collection_state: Arc<super::ObservableState>,
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
-) -> impl Future<Output = ()> + Send + 'static {
-    let db_gatekeeper = Arc::clone(environment.db_gatekeeper());
-    async move {
-        log::debug!("Starting on_music_dir_changed_updater");
-        let mut settings_state_sub = settings_state.subscribe();
-        while settings_state_sub.changed().await.is_ok() {
-            let (music_dir, collection_kind) = {
-                let settings_state = settings_state_sub.read();
-                let music_dir = settings_state.music_dir.clone();
-                let collection_kind = settings_state.collection_kind.clone();
-                (music_dir, collection_kind)
-            };
-            if let Err(err) = collection_state
-                .update_music_dir(
-                    &db_gatekeeper,
-                    music_dir.as_deref(),
-                    collection_kind.map(Into::into),
-                )
-                .await
-            {
-                report_error(err);
-                collection_state.modify(collection::State::reset);
-            } else {
-                let music_dir = collection_state.read().music_dir().map(DirPath::into_owned);
-                settings_state.modify(|settings| settings.update_music_dir(music_dir.as_ref()));
-            }
+) {
+    log::debug!("Starting on_music_dir_changed_updater");
+    let mut settings_state_sub = settings_state.subscribe();
+    while settings_state_sub.changed().await.is_ok() {
+        let (music_dir, collection_kind) = {
+            let settings_state = settings_state_sub.read();
+            let music_dir = settings_state.music_dir.clone();
+            let collection_kind = settings_state.collection_kind.clone();
+            (music_dir, collection_kind)
+        };
+        if let Err(err) = collection_state
+            .update_music_dir(&db_gatekeeper, music_dir, collection_kind.map(Into::into))
+            .await
+        {
+            report_error(err);
+            collection_state.modify(collection::State::reset);
+        } else {
+            let music_dir = collection_state.read().music_dir().map(DirPath::into_owned);
+            settings_state.modify(|settings| settings.update_music_dir(music_dir.as_ref()));
         }
-        log::debug!("Stopping on_music_dir_changed_updater");
     }
+    log::debug!("Stopping on_music_dir_changed_updater");
 }

@@ -237,7 +237,7 @@ impl State {
         }
     }
 
-    pub fn update_music_dir(&mut self, new_music_dir: &Path) -> bool {
+    pub fn update_music_dir(&mut self, new_music_dir: DirPath<'_>) -> bool {
         match self {
             Self::Initial => (),
             Self::PendingMusicDir(_) | Self::PendingEntityUid(_) => {
@@ -248,17 +248,22 @@ impl State {
             }
             Self::Ready(ready) => {
                 let vfs_music_dir = ready.vfs_music_dir();
-                // Using Path::as_os_str() os required to handle trailing slashes consistently!
-                // https://www.reddit.com/r/rust/comments/ooh5wn/damn_trailing_slash/
-                if vfs_music_dir.as_deref().map(Path::as_os_str) == Some(new_music_dir.as_os_str())
-                {
+                if vfs_music_dir.as_ref() == Some(&new_music_dir) {
                     // Unchanged
+                    log::debug!(
+                        "Music directory unchanged and not updated: {}",
+                        new_music_dir.display()
+                    );
                     return false;
                 }
                 // If the music directory doesn't match that of the ready
                 // collection then reset the collection back to pending.
             }
         }
+        log::debug!(
+            "Pending after music directory updated: {}",
+            new_music_dir.display()
+        );
         *self = Self::PendingMusicDir(new_music_dir.to_path_buf().into());
         true
     }
@@ -386,10 +391,11 @@ impl ObservableState {
     pub async fn update_music_dir(
         &self,
         db_gatekeeper: &Arc<Gatekeeper>,
-        new_music_dir: Option<&Path>,
+        new_music_dir: Option<DirPath<'_>>,
         collection_kind: Option<Cow<'static, str>>,
     ) -> anyhow::Result<bool> {
         let modified = if let Some(new_music_dir) = new_music_dir {
+            log::debug!("Updating music directory: {}", new_music_dir.display());
             if self.modify(|state| state.update_music_dir(new_music_dir)) {
                 self.refresh_from_db(Arc::clone(db_gatekeeper), collection_kind)
                     .await?;
