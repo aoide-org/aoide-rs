@@ -172,7 +172,7 @@ fn default_database_file_path(parent_dir: PathBuf) -> PathBuf {
 }
 
 /// Manages the mutable, observable state
-#[allow(missing_debug_implementations)]
+#[derive(Debug)]
 pub struct ObservableState {
     state_pub: Publisher<State>,
 }
