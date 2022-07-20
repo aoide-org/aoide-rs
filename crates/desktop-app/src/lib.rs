@@ -20,4 +20,5 @@ pub use self::environment::Environment;
 
 pub mod fs;
 
+pub mod collection;
 pub mod settings;

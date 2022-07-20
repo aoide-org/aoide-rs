@@ -22,4 +22,7 @@ url = { version = "2.2.2", features = ["serde"] }
 
 # Workspace dependencies
 aoide-backend-embedded = "0.8.0"
+aoide-core = "0.8.0"
+aoide-core-api = "0.8.0"
+aoide-repo = "0.8.0"
 aoide-storage-sqlite = { version = "0.8.0", features = ["serde", "tokio"] }
