@@ -27,6 +27,8 @@ pub fn on_state_changed_saver(
                 if let Err(err) = new_settings.save_spawn_blocking(settings_dir.clone()).await {
                     report_error(err);
                 }
+            } else {
+                log::debug!("Settings unchanged: {old_settings:?}");
             }
         }
         log::debug!("Stopping on_state_changed_saver");
@@ -67,6 +69,8 @@ pub fn on_music_dir_changed(
             if value.as_ref() != new_value {
                 value = new_value.cloned();
                 value_changed = true;
+            } else {
+                log::debug!("Music directory unchanged: {value:?}");
             }
         }
         log::debug!("Stopping on_music_dir_changed");

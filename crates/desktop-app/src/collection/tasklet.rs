@@ -43,6 +43,8 @@ pub fn on_is_pending_changed(
             if value != new_value {
                 value = new_value;
                 value_changed = true;
+            } else {
+                log::debug!("is_pending unchanged: {value}");
             }
         }
         log::debug!("Stopping on_is_pending_changed");
