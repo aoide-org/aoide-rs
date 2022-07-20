@@ -25,7 +25,7 @@ pub const DEFAULT_DATABASE_FILE_SUFFIX: &str = "sqlite";
 pub mod tasklet;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Settings {
+pub struct State {
     /// File path of the SQLite database.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub database_url: Option<Url>,
@@ -45,8 +45,8 @@ pub struct Settings {
     pub collection_kind: Option<String>,
 }
 
-impl Settings {
-    pub fn load(parent_dir: &Path) -> anyhow::Result<Settings> {
+impl State {
+    pub fn load(parent_dir: &Path) -> anyhow::Result<State> {
         let file_path = new_settings_file_path(parent_dir.to_path_buf());
         log::info!("Loading settings from file: {}", file_path.display());
         match fs::read(&file_path) {
@@ -152,9 +152,9 @@ fn default_database_file_path(parent_dir: PathBuf) -> PathBuf {
     path_buf
 }
 
-pub fn restore_from_parent_dir(parent_dir: &Path) -> anyhow::Result<Settings> {
+pub fn restore_from_parent_dir(parent_dir: &Path) -> anyhow::Result<State> {
     log::info!("Loading saved settings from: {}", parent_dir.display());
-    let mut settings = Settings::load(parent_dir)
+    let mut settings = State::load(parent_dir)
         .map_err(|err| {
             log::warn!("Failed to load saved settings: {}", err);
         })
@@ -174,38 +174,38 @@ pub fn restore_from_parent_dir(parent_dir: &Path) -> anyhow::Result<Settings> {
 /// Manages the mutable, observable state
 #[allow(missing_debug_implementations)]
 pub struct ObservableState {
-    state_pub: Publisher<Settings>,
+    state_pub: Publisher<State>,
 }
 
 impl ObservableState {
     #[must_use]
-    pub fn new(initial_state: Settings) -> Self {
+    pub fn new(initial_state: State) -> Self {
         let (state_pub, _) = new_pubsub(initial_state);
         Self { state_pub }
     }
 
     #[must_use]
-    pub fn state(&self) -> Ref<'_, Settings> {
+    pub fn state(&self) -> Ref<'_, State> {
         self.state_pub.read()
     }
 
     #[must_use]
-    pub fn subscribe_state(&self) -> Subscriber<Settings> {
+    pub fn subscribe_state(&self) -> Subscriber<State> {
         self.state_pub.subscribe()
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn update_state(&self, modify_state: impl FnOnce(&mut Settings) -> bool) -> bool {
+    pub fn modify_state(&self, modify_state: impl FnOnce(&mut State) -> bool) -> bool {
         self.state_pub.modify(modify_state)
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn update_music_dir(&self, new_music_dir: &DirPath<'_>) -> bool {
-        self.update_state(|state| state.update_music_dir(Some(new_music_dir)))
+        self.modify_state(|state| state.update_music_dir(Some(new_music_dir)))
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn reset_music_dir(&self) -> bool {
-        self.update_state(|state| state.update_music_dir(None))
+        self.modify_state(|state| state.update_music_dir(None))
     }
 }
