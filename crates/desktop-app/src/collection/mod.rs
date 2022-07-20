@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Cow, path::Path};
+use std::{borrow::Cow, path::Path, sync::Arc};
 
+use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
 use url::Url;
 
@@ -46,8 +47,8 @@ pub fn vfs_music_dir(collection: &Collection) -> Option<OwnedDirPath> {
     })
 }
 
-pub async fn refresh_entity_with_summary(
-    environment: &Environment,
+pub async fn refresh_entity_with_summary_from_db(
+    db_gatekeeper: &Gatekeeper,
     collection_uid: Option<&EntityUid>,
     music_dir: Option<&Path>,
     collection_kind: Option<&str>,
@@ -56,7 +57,7 @@ pub async fn refresh_entity_with_summary(
     if let Some(entity_uid) = collection_uid {
         // Try to reload the current collection
         match aoide_backend_embedded::collection::load_one(
-            environment.db_gatekeeper(),
+            db_gatekeeper,
             entity_uid.clone(),
             load_scope,
         )
@@ -85,7 +86,7 @@ pub async fn refresh_entity_with_summary(
         .map_err(|()| anyhow::anyhow!("invalid music directory"))?;
     // Search for an existing collection that matches the music directory
     let candidates = aoide_backend_embedded::collection::load_all(
-        environment.db_gatekeeper(),
+        db_gatekeeper,
         collection_kind.map(ToOwned::to_owned),
         Some(MediaSourceRootUrlFilter::PrefixOf(root_url.clone())),
         load_scope,
@@ -133,20 +134,15 @@ pub async fn refresh_entity_with_summary(
         notes: None,
         color: None,
     };
-    let entity_uid =
-        aoide_backend_embedded::collection::create(environment.db_gatekeeper(), new_collection)
-            .await?
-            .raw
-            .hdr
-            .uid;
+    let entity_uid = aoide_backend_embedded::collection::create(db_gatekeeper, new_collection)
+        .await?
+        .raw
+        .hdr
+        .uid;
     // Reload the newly created entity with its summary
-    aoide_backend_embedded::collection::load_one(
-        environment.db_gatekeeper(),
-        entity_uid,
-        load_scope,
-    )
-    .await
-    .map_err(Into::into)
+    aoide_backend_embedded::collection::load_one(db_gatekeeper, entity_uid, load_scope)
+        .await
+        .map_err(Into::into)
 }
 
 #[derive(Debug)]
@@ -197,14 +193,14 @@ impl RefreshingTask {
         })
     }
 
-    pub async fn execute(self, environment: &Environment) -> anyhow::Result<EntityWithSummary> {
+    pub async fn execute(self, db_gatekeeper: &Gatekeeper) -> anyhow::Result<EntityWithSummary> {
         let Self {
             music_dir,
             entity_uid,
             collection_kind,
         } = self;
-        refresh_entity_with_summary(
-            environment,
+        refresh_entity_with_summary_from_db(
+            db_gatekeeper,
             entity_uid.as_ref(),
             music_dir.as_deref(),
             collection_kind.as_deref(),
@@ -398,7 +394,8 @@ impl ObservableState {
     ) -> anyhow::Result<bool> {
         let modified = if let Some(new_music_dir) = new_music_dir {
             if self.modify(|state| state.update_music_dir(new_music_dir)) {
-                self.refresh(environment, collection_kind).await?;
+                self.refresh_from_db(Arc::clone(environment.db_gatekeeper()), collection_kind)
+                    .await?;
                 true
             } else {
                 false
@@ -409,13 +406,13 @@ impl ObservableState {
         Ok(modified)
     }
 
-    pub async fn refresh(
+    pub async fn refresh_from_db(
         &self,
-        environment: &Environment,
+        db_gatekeeper: Arc<Gatekeeper>,
         collection_kind: Option<Cow<'static, str>>,
     ) -> anyhow::Result<()> {
         let task = RefreshingTask::new(&*self.read(), collection_kind)?;
-        let refreshed = task.execute(environment).await?;
+        let refreshed = task.execute(&db_gatekeeper).await?;
         self.modify(|state| state.refreshing_succeeded(refreshed));
         Ok(())
     }
