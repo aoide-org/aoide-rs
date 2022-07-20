@@ -376,17 +376,17 @@ impl ObservableState {
     }
 
     #[must_use]
-    pub fn state(&self) -> Ref<'_, State> {
+    pub fn read(&self) -> Ref<'_, State> {
         self.state_pub.read()
     }
 
     #[must_use]
-    pub fn subscribe_state(&self) -> Subscriber<State> {
+    pub fn subscribe(&self) -> Subscriber<State> {
         self.state_pub.subscribe()
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn modify_state(&self, modify_state: impl FnOnce(&mut State) -> bool) -> bool {
+    pub fn modify(&self, modify_state: impl FnOnce(&mut State) -> bool) -> bool {
         self.state_pub.modify(modify_state)
     }
 
@@ -397,14 +397,14 @@ impl ObservableState {
         collection_kind: Option<Cow<'static, str>>,
     ) -> anyhow::Result<bool> {
         let modified = if let Some(new_music_dir) = new_music_dir {
-            if self.modify_state(|state| state.update_music_dir(new_music_dir)) {
+            if self.modify(|state| state.update_music_dir(new_music_dir)) {
                 self.refresh(environment, collection_kind).await?;
                 true
             } else {
                 false
             }
         } else {
-            self.modify_state(State::reset)
+            self.modify(State::reset)
         };
         Ok(modified)
     }
@@ -414,9 +414,9 @@ impl ObservableState {
         environment: &Environment,
         collection_kind: Option<Cow<'static, str>>,
     ) -> anyhow::Result<()> {
-        let task = RefreshingTask::new(&*self.state(), collection_kind)?;
+        let task = RefreshingTask::new(&*self.read(), collection_kind)?;
         let refreshed = task.execute(environment).await?;
-        self.modify_state(|state| state.refreshing_succeeded(refreshed));
+        self.modify(|state| state.refreshing_succeeded(refreshed));
         Ok(())
     }
 }

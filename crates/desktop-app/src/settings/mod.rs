@@ -185,28 +185,28 @@ impl ObservableState {
     }
 
     #[must_use]
-    pub fn state(&self) -> Ref<'_, State> {
+    pub fn read(&self) -> Ref<'_, State> {
         self.state_pub.read()
     }
 
     #[must_use]
-    pub fn subscribe_state(&self) -> Subscriber<State> {
+    pub fn subscribe(&self) -> Subscriber<State> {
         self.state_pub.subscribe()
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn modify_state(&self, modify_state: impl FnOnce(&mut State) -> bool) -> bool {
+    pub fn modify(&self, modify_state: impl FnOnce(&mut State) -> bool) -> bool {
         self.state_pub.modify(modify_state)
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn update_music_dir(&self, new_music_dir: &DirPath<'_>) -> bool {
-        self.modify_state(|state| state.update_music_dir(Some(new_music_dir)))
+        self.modify(|state| state.update_music_dir(Some(new_music_dir)))
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn reset_music_dir(&self) -> bool {
-        self.modify_state(|state| state.update_music_dir(None))
+        self.modify(|state| state.update_music_dir(None))
     }
 }
 
