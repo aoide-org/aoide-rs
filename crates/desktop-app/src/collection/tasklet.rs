@@ -52,7 +52,7 @@ pub fn on_music_dir_changed_updater(
     environment: &Environment,
     settings_state: Arc<settings::ObservableState>,
     collection_state: Arc<super::ObservableState>,
-    mut report_error: impl FnMut(&str, &anyhow::Error) + Send + 'static,
+    mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     let db_gatekeeper = Arc::clone(environment.db_gatekeeper());
     async move {
@@ -73,10 +73,7 @@ pub fn on_music_dir_changed_updater(
                 )
                 .await
             {
-                report_error(
-                    "Failed to update collection after music directory changed",
-                    &err,
-                );
+                report_error(err);
                 collection_state.modify(collection::State::reset);
             } else {
                 let music_dir = collection_state.read().music_dir().map(DirPath::into_owned);

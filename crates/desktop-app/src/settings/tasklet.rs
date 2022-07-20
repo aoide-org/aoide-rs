@@ -13,7 +13,7 @@ use super::State;
 pub fn on_state_changed_saver(
     mut state_sub: Subscriber<State>,
     settings_dir: PathBuf,
-    mut report_save_error: impl FnMut(anyhow::Error) + Send + 'static,
+    mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     // Read the initial settings immediately before spawning the async task
     let mut old_settings = state_sub.read().to_owned();
@@ -25,7 +25,7 @@ pub fn on_state_changed_saver(
                 log::debug!("Saving changed settings: {old_settings:?} -> {new_settings:?}");
                 old_settings = new_settings.clone();
                 if let Err(err) = new_settings.save_spawn_blocking(settings_dir.clone()).await {
-                    report_save_error(err);
+                    report_error(err);
                 }
             }
         }
