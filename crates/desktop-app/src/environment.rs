@@ -54,6 +54,7 @@ impl Environment {
     }
 
     /// Manage the settings.
+    #[must_use]
     pub fn settings_state(&self) -> &Arc<settings::ObservableState> {
         &self.settings_state
     }
