@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Cow, path::Path, sync::Arc};
+use std::{borrow::Cow, path::Path};
 
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
@@ -390,20 +390,20 @@ impl ObservableState {
 
     pub async fn update_music_dir(
         &self,
-        db_gatekeeper: &Arc<Gatekeeper>,
+        db_gatekeeper: &Gatekeeper,
         new_music_dir: Option<DirPath<'_>>,
         collection_kind: Option<Cow<'static, str>>,
     ) -> anyhow::Result<bool> {
         let modified = if let Some(new_music_dir) = new_music_dir {
             log::debug!("Updating music directory: {}", new_music_dir.display());
             if self.modify(|state| state.update_music_dir(new_music_dir)) {
-                self.refresh_from_db(Arc::clone(db_gatekeeper), collection_kind)
-                    .await?;
+                self.refresh_from_db(db_gatekeeper, collection_kind).await?;
                 true
             } else {
                 false
             }
         } else {
+            log::debug!("Resetting music directory");
             self.modify(State::reset)
         };
         Ok(modified)
@@ -411,11 +411,11 @@ impl ObservableState {
 
     pub async fn refresh_from_db(
         &self,
-        db_gatekeeper: Arc<Gatekeeper>,
+        db_gatekeeper: &Gatekeeper,
         collection_kind: Option<Cow<'static, str>>,
     ) -> anyhow::Result<()> {
         let task = RefreshingTask::new(&*self.read(), collection_kind)?;
-        let refreshed = task.execute(&db_gatekeeper).await?;
+        let refreshed = task.execute(db_gatekeeper).await?;
         self.modify(|state| state.refreshing_succeeded(refreshed));
         Ok(())
     }
