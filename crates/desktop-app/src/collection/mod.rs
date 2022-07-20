@@ -16,10 +16,7 @@ use aoide_core::{
 use aoide_core_api::collection::{EntityWithSummary, LoadScope, Summary};
 use aoide_repo::{collection::MediaSourceRootUrlFilter, prelude::RepoError};
 
-use crate::{
-    fs::{DirPath, OwnedDirPath},
-    Environment,
-};
+use crate::fs::{DirPath, OwnedDirPath};
 
 pub mod tasklet;
 
@@ -425,7 +422,7 @@ impl Default for ObservableState {
 }
 
 pub async fn ingest_vfs<ReportProgressFn>(
-    environment: &Environment,
+    db_gatekeeper: &Gatekeeper,
     collection_uid: EntityUid,
     report_progress_fn: ReportProgressFn,
 ) -> anyhow::Result<batch::ingest_collection_vfs::Outcome>
@@ -443,7 +440,7 @@ where
         sync_mode: None,
     };
     batch::ingest_collection_vfs::ingest_collection_vfs(
-        &*environment.db_gatekeeper(),
+        db_gatekeeper,
         collection_uid,
         params,
         report_progress_fn,
