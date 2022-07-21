@@ -6,7 +6,7 @@ use std::{future::Future, sync::Arc};
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use discro::Subscriber;
 
-use crate::{collection, fs::DirPath, settings};
+use crate::{fs::DirPath, settings};
 
 use super::State;
 
@@ -112,8 +112,12 @@ pub async fn on_music_dir_changed_updater(
             .await
         {
             report_error(err);
-            collection_state.modify(collection::State::reset);
+            // Reset the music directory in the settings state. This will
+            // reset the collection state subsequently.
+            settings_state.modify(|settings| settings.update_music_dir(None));
         } else {
+            // Get the actual music directory from the collection state
+            // and feed it back into the settings state.
             let music_dir = collection_state.read().music_dir().map(DirPath::into_owned);
             settings_state.modify(|settings| settings.update_music_dir(music_dir.as_ref()));
         }
