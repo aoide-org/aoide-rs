@@ -5,26 +5,9 @@ use std::{
     borrow::Cow,
     ops::Deref,
     path::{Path, PathBuf},
-    str::Utf8Error,
 };
 
-use percent_encoding::percent_decode_str;
 use serde::{Deserialize, Serialize};
-
-/// Decode percent-encoded RFD path
-///
-/// The returned path seems to be percent-encoded, e.g. space characters
-/// are replaced by %20!?
-///
-/// # Errors
-///
-/// Fails if the path is not a valid UTF-8 string.
-fn percent_decode_path(path: &Path) -> Result<PathBuf, Utf8Error> {
-    let encoded = path.display().to_string();
-    percent_decode_str(&encoded)
-        .decode_utf8()
-        .map(|decoded| Path::new(decoded.as_ref()).to_path_buf())
-}
 
 pub async fn choose_directory(dir_path: impl Into<Option<&Path>>) -> Option<OwnedDirPath> {
     log::debug!("Open rfd::AsyncFileDialog");
@@ -34,16 +17,7 @@ pub async fn choose_directory(dir_path: impl Into<Option<&Path>>) -> Option<Owne
     }
     let dir_handle = file_dialog.pick_folder().await;
     log::debug!("rfd::AsyncFileDialog closed");
-    dir_handle.and_then(|file_handle| {
-        percent_decode_path(file_handle.path())
-            .map_err(|err| {
-                // TODO: Replace with inspect_err()
-                log::warn!("Failed to decode path: {err}");
-                err
-            })
-            .map(DirPath::from_owned)
-            .ok()
-    })
+    dir_handle.map(|file_handle| DirPath::from_owned(file_handle.path().to_path_buf()))
 }
 
 /// A `Cow<'_, Path>` with more restrictive/sensitive `PartialEq`/`Eq` semantics.

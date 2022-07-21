@@ -13,7 +13,6 @@ edition = "2021"
 anyhow = "1.0.58"
 discro = { version = "0.5.0", features = ["tokio"] }
 log = "0.4.17"
-percent-encoding = "2.1.0"
 rfd = { version = "0.9.1", default-features = false, features = ["xdg-portal"] }
 ron = "0.7.1"
 serde = { version = "1.0.139", default-features = false, features = ["derive"] }

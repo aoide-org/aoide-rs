@@ -53,6 +53,9 @@ aoide-websrv-warp-sqlite = { path = "crates/websrv-warp-sqlite" }
 #id3 = { git = "https://github.com/polyfloyd/rust-id3", branch = "master" }
 #semval = { git = "https://github.com/slowtec/semval", branch = "main" }
 
+# TODO: Remove after https://github.com/PolyMeilex/rfd/pull/70 has been released
+rfd = { git = "https://github.com/PolyMeilex/rfd", branch = "master" }
+
 [profile.dev]
 opt-level = 2
 split-debuginfo = "unpacked"
