@@ -54,7 +54,7 @@ impl From<Collection> for CollectionWithSummary {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct EntityWithSummary {
     pub entity: Entity,
     pub summary: Option<Summary>,

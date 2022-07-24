@@ -12,7 +12,7 @@ use aoide_core_api::{
 
 use aoide_repo::{
     collection::{EntityWithSummaryCollector, MediaSourceRootUrlFilter, RecordHeader},
-    prelude::ReservableRecordCollector,
+    prelude::{RepoError, ReservableRecordCollector},
 };
 
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
@@ -88,7 +88,7 @@ where
 pub async fn load_one(
     db_gatekeeper: &Gatekeeper,
     entity_uid: EntityUid,
-    scope: LoadScope,
+    load_scope: LoadScope,
 ) -> Result<EntityWithSummary> {
     db_gatekeeper
         .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
@@ -97,13 +97,25 @@ pub async fn load_one(
                 aoide_usecases_sqlite::collection::load::load_one(
                     &*pooled_connection,
                     &entity_uid,
-                    scope,
+                    load_scope,
                 )
             })
         })
         .await
         .map_err(Into::into)
         .unwrap_or_else(Err)
+}
+
+pub async fn try_load_one(
+    db_gatekeeper: &Gatekeeper,
+    entity_uid: EntityUid,
+    load_scope: LoadScope,
+) -> Result<Option<EntityWithSummary>> {
+    match load_one(db_gatekeeper, entity_uid.clone(), load_scope).await {
+        Ok(entity_with_summary) => Ok(Some(entity_with_summary)),
+        Err(Error::Repository(RepoError::NotFound)) => Ok(None),
+        Err(err) => Err(err),
+    }
 }
 
 pub async fn create(db_gatekeeper: &Gatekeeper, new_collection: Collection) -> Result<Entity> {

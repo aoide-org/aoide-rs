@@ -8,7 +8,7 @@ use discro::Subscriber;
 
 use crate::{fs::DirPath, settings};
 
-use super::State;
+use super::{NestedMusicDirectoriesStrategy, State};
 
 /// Listen for state changes.
 ///
@@ -92,13 +92,14 @@ pub fn on_is_ready_changed(
     }
 }
 
-pub async fn on_music_dir_changed_updater(
+pub async fn on_settings_changed_updater(
     db_gatekeeper: Arc<Gatekeeper>,
     settings_state: Arc<settings::ObservableState>,
     collection_state: Arc<super::ObservableState>,
+    nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) {
-    log::debug!("Starting on_music_dir_changed_updater");
+    log::debug!("Starting on_settings_changed_updater");
     let mut settings_state_sub = settings_state.subscribe();
     while settings_state_sub.changed().await.is_ok() {
         let (music_dir, collection_kind) = {
@@ -108,7 +109,12 @@ pub async fn on_music_dir_changed_updater(
             (music_dir, collection_kind)
         };
         if let Err(err) = collection_state
-            .update_music_dir(&db_gatekeeper, music_dir, collection_kind.map(Into::into))
+            .update_music_dir(
+                &db_gatekeeper,
+                collection_kind.map(Into::into),
+                music_dir,
+                nested_music_directories_strategy,
+            )
             .await
         {
             report_error(err);
@@ -122,5 +128,5 @@ pub async fn on_music_dir_changed_updater(
             settings_state.modify(|settings| settings.update_music_dir(music_dir.as_ref()));
         }
     }
-    log::debug!("Stopping on_music_dir_changed_updater");
+    log::debug!("Stopping on_settings_changed_updater");
 }

@@ -846,9 +846,9 @@ dependencies = [
 
 [[package]]
 name = "compact_str"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ba3349bf59715e02cd76930d3b3825e395b888955f9426b7f3e738e08eb2ca6"
+checksum = "5857fc4f27cd0fa2cd7c4a4fa780c0da3d898ae27e66bf6a719343e219e9a559"
 dependencies = [
  "castaway",
  "itoa",
@@ -2897,9 +2897,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.40"
+version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd96a1e8ed2596c337f8eae5f24924ec83f5ad5ab21ea8e455d3566c69fbcaf7"
+checksum = "cdcc2916cde080c1876ff40292a396541241fe0072ef928cd76582e9ea5d60d2"
 dependencies = [
  "unicode-ident",
 ]
@@ -3702,9 +3702,9 @@ dependencies = [
 
 [[package]]
 name = "tiff"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cfada0986f446a770eca461e8c6566cb879682f7d687c8348aa0c857bd52286"
+checksum = "7259662e32d1e219321eb309d5f9d898b779769d81b76e762c07c8e5d38fcb65"
 dependencies = [
  "flate2",
  "jpeg-decoder",
@@ -4610,9 +4610,9 @@ dependencies = [
 
 [[package]]
 name = "zbus_names"
-version = "2.1.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45dfcdcf87b71dad505d30cc27b1b7b88a64b6d1c435648f48f9dbc1fdc4b7e1"
+checksum = "41a408fd8a352695690f53906dc7fd036be924ec51ea5e05666ff42685ed0af5"
 dependencies = [
  "serde",
  "static_assertions",
@@ -4621,9 +4621,9 @@ dependencies = [
 
 [[package]]
 name = "zvariant"
-version = "3.4.1"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf2c71467724d4a77f0a1f0339dab10ca5d63f6a82411289cdcdfbfd47d2e407"
+checksum = "1bd68e4e6432ef19df47d7e90e2e72b5e7e3d778e0ae3baddf12b951265cc758"
 dependencies = [
  "byteorder",
  "enumflags2",
@@ -4635,9 +4635,9 @@ dependencies = [
 
 [[package]]
 name = "zvariant_derive"
-version = "3.4.1"
+version = "3.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c47f3630ce926a03abf21f5a8db90c60c81ed71599b5c86ad1a54fd3c7564c5"
+checksum = "08e977eaa3af652f63d479ce50d924254ad76722a6289ec1a1eac3231ca30430"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",

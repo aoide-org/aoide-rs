@@ -23,7 +23,7 @@ pub async fn choose_directory(dir_path: impl Into<Option<&Path>>) -> Option<Owne
 /// A `Cow<'_, Path>` with more restrictive/sensitive `PartialEq`/`Eq` semantics.
 ///
 /// Distinguishes paths with/-out trailing slashes.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DirPath<'p>(Cow<'p, Path>);
 
 pub type OwnedDirPath = DirPath<'static>;
