@@ -10,12 +10,12 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.58"
-serde = { version = "1.0.139", default-features = false, features = ["derive"] }
-url = { version = "2.2.2", features = ["serde"] }
+anyhow = "1.0"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+url = { version = "2.2", features = ["serde"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.10", optional = true, features = ["url"] }
+schemars = { version = "0.8", optional = true, features = ["url"] }
 
 # Workspace dependencies
 aoide-core = "=0.8.0"

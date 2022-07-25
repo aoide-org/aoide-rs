@@ -10,11 +10,11 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.58"
-num-traits = "0.2.15"
-log = "0.4.17"
-tantivy = "0.18.0"
-thiserror = "1.0.31"
+anyhow = "1.0"
+num-traits = "0.2"
+log = "0.4"
+tantivy = "0.18"
+thiserror = "1.0"
 
 # Workspace dependencies
 aoide-core = "=0.8.0"

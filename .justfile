@@ -32,8 +32,8 @@ pre-commit:
 
 # Upgrade (and update) dependencies
 upgrade:
-    cargo update
-    cargo upgrade --workspace \
+    cargo update --workspace
+    cargo upgrade --workspace --to-lockfile \
         --exclude aoide-backend-embedded \
         --exclude aoide-backend-webapi-json \
         --exclude aoide-client \

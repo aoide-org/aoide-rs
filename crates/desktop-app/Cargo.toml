@@ -10,14 +10,14 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.58"
-discro = { version = "0.5.0", features = ["tokio"] }
-log = "0.4.17"
-rfd = { version = "0.9.1", default-features = false, features = ["xdg-portal"] }
-ron = "0.7.1"
-serde = { version = "1.0.139", default-features = false, features = ["derive"] }
-tokio = { version = "1.20.0", default-features = false }
-url = { version = "2.2.2", features = ["serde"] }
+anyhow = "1.0"
+discro = { version = "0.5", features = ["tokio"] }
+log = "0.4"
+rfd = { version = "0.9", default-features = false, features = ["xdg-portal"] }
+ron = "0.7"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+tokio = { version = "1.20", default-features = false }
+url = { version = "2.2", features = ["serde"] }
 
 # Workspace dependencies
 aoide-backend-embedded = "0.8.0"
