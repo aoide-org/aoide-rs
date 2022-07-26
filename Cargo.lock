@@ -1206,9 +1206,9 @@ dependencies = [
 
 [[package]]
 name = "discro"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28adc7e417868b18aef76f2bfdea6d228311663a086a3345794305cc886c8d2c"
+checksum = "7cfabd0ce18a372dbdda9035c7b87cccaa8124b0926b142eb9eb1a4652515680"
 dependencies = [
  "thiserror",
  "tokio",

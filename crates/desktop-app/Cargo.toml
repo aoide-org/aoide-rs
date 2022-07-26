@@ -11,7 +11,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-discro = { version = "0.5", features = ["tokio"] }
+discro = { version = "0.6", features = ["tokio"] }
 log = "0.4"
 rfd = { version = "0.9", default-features = false, features = ["xdg-portal"] }
 ron = "0.7"

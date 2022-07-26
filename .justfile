@@ -32,6 +32,24 @@ pre-commit:
 
 # Upgrade (and update) dependencies
 upgrade:
+    cargo upgrade --workspace \
+        --exclude aoide-backend-embedded \
+        --exclude aoide-backend-webapi-json \
+        --exclude aoide-client \
+        --exclude aoide-core \
+        --exclude aoide-core-api \
+        --exclude aoide-core-api-json \
+        --exclude aoide-core-json \
+        --exclude aoide-desktop-app \
+        --exclude aoide-media \
+        --exclude aoide-repo \
+        --exclude aoide-repo-sqlite \
+        --exclude aoide-search-index-tantivy \
+        --exclude aoide-storage-sqlite \
+        --exclude aoide-usecases \
+        --exclude aoide-usecases-sqlite \
+        --exclude aoide-websrv-warp-sqlite \
+        --exclude libsqlite3-sys
     cargo update --workspace
     cargo upgrade --workspace --to-lockfile \
         --exclude aoide-backend-embedded \
@@ -51,15 +69,18 @@ upgrade:
         --exclude aoide-usecases-sqlite \
         --exclude aoide-websrv-warp-sqlite \
         --exclude libsqlite3-sys
-    cargo update
     cd webapp \
-        && cargo update \
         && cargo upgrade \
             --exclude aoide-core \
             --exclude aoide-core-api \
             --exclude aoide-core-api-json \
             --exclude aoide-core-json \
-        && cargo update
+        && cargo update \
+        && cargo upgrade --to-lockfile \
+            --exclude aoide-core \
+            --exclude aoide-core-api \
+            --exclude aoide-core-api-json \
+            --exclude aoide-core-json
     #cargo minimal-versions check --workspace
 
 # Check all lib/bin projects individually with selected features (takes a long time)
