@@ -50,7 +50,7 @@ upgrade:
         --exclude aoide-usecases-sqlite \
         --exclude aoide-websrv-warp-sqlite \
         --exclude libsqlite3-sys
-    cargo update --workspace
+    cargo update
     cargo upgrade --workspace --to-lockfile \
         --exclude aoide-backend-embedded \
         --exclude aoide-backend-webapi-json \
