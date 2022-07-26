@@ -33,55 +33,14 @@ pre-commit:
 # Upgrade (and update) dependencies
 upgrade:
     cargo upgrade --workspace \
-        --exclude aoide-backend-embedded \
-        --exclude aoide-backend-webapi-json \
-        --exclude aoide-client \
-        --exclude aoide-core \
-        --exclude aoide-core-api \
-        --exclude aoide-core-api-json \
-        --exclude aoide-core-json \
-        --exclude aoide-desktop-app \
-        --exclude aoide-media \
-        --exclude aoide-repo \
-        --exclude aoide-repo-sqlite \
-        --exclude aoide-search-index-tantivy \
-        --exclude aoide-storage-sqlite \
-        --exclude aoide-usecases \
-        --exclude aoide-usecases-sqlite \
-        --exclude aoide-websrv-warp-sqlite \
         --exclude libsqlite3-sys
     cargo update
     cargo upgrade --workspace --to-lockfile \
-        --exclude aoide-backend-embedded \
-        --exclude aoide-backend-webapi-json \
-        --exclude aoide-client \
-        --exclude aoide-core \
-        --exclude aoide-core-api \
-        --exclude aoide-core-api-json \
-        --exclude aoide-core-json \
-        --exclude aoide-desktop-app \
-        --exclude aoide-media \
-        --exclude aoide-repo \
-        --exclude aoide-repo-sqlite \
-        --exclude aoide-search-index-tantivy \
-        --exclude aoide-storage-sqlite \
-        --exclude aoide-usecases \
-        --exclude aoide-usecases-sqlite \
-        --exclude aoide-websrv-warp-sqlite \
         --exclude libsqlite3-sys
     cd webapp \
         && cargo upgrade \
-            --exclude aoide-core \
-            --exclude aoide-core-api \
-            --exclude aoide-core-api-json \
-            --exclude aoide-core-json \
         && cargo update \
-        && cargo upgrade --to-lockfile \
-            --exclude aoide-core \
-            --exclude aoide-core-api \
-            --exclude aoide-core-api-json \
-            --exclude aoide-core-json
-    #cargo minimal-versions check --workspace
+        && cargo upgrade --to-lockfile
 
 # Check all lib/bin projects individually with selected features (takes a long time)
 check:
