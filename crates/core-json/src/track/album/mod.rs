@@ -67,11 +67,7 @@ impl Default for AlbumKind {
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Album {
-    #[serde(
-        rename = "type",
-        skip_serializing_if = "AlbumKind::is_default",
-        default
-    )]
+    #[serde(skip_serializing_if = "AlbumKind::is_default", default)]
     pub kind: AlbumKind,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
