@@ -23,6 +23,7 @@ dependencies = [
  "path-slash",
  "rand",
  "semval",
+ "serde",
  "thiserror",
  "time",
  "url",

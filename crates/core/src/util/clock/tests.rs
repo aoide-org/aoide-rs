@@ -14,16 +14,16 @@ fn min_max_date_year() {
 #[test]
 fn into_release_yyyymmdd() {
     assert_eq!(
-        19_961_219,
-        DateYYYYMMDD::from("1996-12-19T02:00:57Z".parse::<DateTime>().unwrap()).into()
+        DateYYYYMMDD::new(19_961_219),
+        DateYYYYMMDD::from("1996-12-19T02:00:57Z".parse::<DateTime>().unwrap()),
     );
     assert_eq!(
-        19_961_219,
-        DateYYYYMMDD::from("1996-12-19T02:00:57-12:00".parse::<DateTime>().unwrap()).into()
+        DateYYYYMMDD::new(19_961_219),
+        DateYYYYMMDD::from("1996-12-19T02:00:57-12:00".parse::<DateTime>().unwrap()),
     );
     assert_eq!(
-        19_961_219,
-        DateYYYYMMDD::from("1996-12-19T02:00:57+12:00".parse::<DateTime>().unwrap()).into()
+        DateYYYYMMDD::new(19_961_219),
+        DateYYYYMMDD::from("1996-12-19T02:00:57+12:00".parse::<DateTime>().unwrap()),
     );
 }
 

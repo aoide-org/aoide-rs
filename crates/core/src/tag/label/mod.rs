@@ -13,6 +13,9 @@ use crate::{prelude::*, util::string::trimmed_non_empty_from};
 pub type LabelValue = String;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct CowLabel<'a>(Cow<'a, str>);
 
 impl<'a> From<CowLabel<'a>> for Label {
@@ -51,6 +54,9 @@ impl Borrow<str> for CowLabel<'_> {
 ///
 /// Format: Unicode string without leading/trailing whitespace
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct Label(LabelValue);
 
 impl Label {

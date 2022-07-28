@@ -19,6 +19,9 @@ use crate::{
 pub type BitsPerSecond = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct BitrateBps(BitsPerSecond);
 
 impl BitrateBps {
@@ -79,6 +82,9 @@ impl fmt::Display for BitrateBps {
 pub type SamplesPerSecond = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct SampleRateHz(SamplesPerSecond);
 
 impl SampleRateHz {
@@ -202,6 +208,9 @@ impl Validate for PcmSignal {
 pub type LatencyInMilliseconds = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct LatencyMs(pub LatencyInMilliseconds);
 
 impl LatencyMs {
@@ -258,6 +267,9 @@ impl fmt::Display for LatencyMs {
 pub type LufsValue = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct LoudnessLufs(pub LufsValue);
 
 // Loudness is measured according to ITU-R BS.1770 in "Loudness Units

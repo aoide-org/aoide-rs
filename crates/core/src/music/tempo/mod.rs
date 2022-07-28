@@ -8,6 +8,9 @@ use crate::prelude::*;
 pub type Bpm = f64;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct TempoBpm(Bpm);
 
 impl TempoBpm {

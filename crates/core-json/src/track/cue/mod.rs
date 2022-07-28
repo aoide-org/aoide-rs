@@ -60,7 +60,7 @@ impl From<_core::InMarker> for InMarker {
     fn from(from: _core::InMarker) -> Self {
         let _core::InMarker { position } = from;
         Self {
-            position_ms: position.into(),
+            position_ms: position,
         }
     }
 }
@@ -69,7 +69,7 @@ impl From<InMarker> for _core::InMarker {
     fn from(from: InMarker) -> Self {
         let InMarker { position_ms } = from;
         Self {
-            position: position_ms.into(),
+            position: position_ms,
         }
     }
 }
@@ -89,7 +89,7 @@ impl From<_core::OutMarker> for OutMarker {
     fn from(from: _core::OutMarker) -> Self {
         let _core::OutMarker { position, mode } = from;
         Self {
-            position_ms: position.into(),
+            position_ms: position,
             mode: mode.map(Into::into),
         }
     }
@@ -99,7 +99,7 @@ impl From<OutMarker> for _core::OutMarker {
     fn from(from: OutMarker) -> Self {
         let OutMarker { position_ms, mode } = from;
         Self {
-            position: position_ms.into(),
+            position: position_ms,
             mode: mode.map(Into::into),
         }
     }

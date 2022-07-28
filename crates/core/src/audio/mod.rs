@@ -16,6 +16,9 @@ pub mod signal;
 pub type PositionInMilliseconds = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct PositionMs(pub PositionInMilliseconds);
 
 impl PositionMs {
@@ -53,6 +56,9 @@ impl fmt::Display for PositionMs {
 pub type DurationInMilliseconds = f64;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct DurationMs(DurationInMilliseconds);
 
 impl DurationMs {

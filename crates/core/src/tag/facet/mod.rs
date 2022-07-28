@@ -14,6 +14,9 @@ use crate::{prelude::*, util::canonical::CanonicalOrd};
 pub type FacetIdValue = String;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct CowFacetId<'a>(Cow<'a, str>);
 
 impl<'a> From<CowFacetId<'a>> for FacetId {
@@ -71,6 +74,9 @@ impl Borrow<str> for CowFacetId<'_> {
 /// References:
 ///   - <https://en.wikipedia.org/wiki/Faceted_classification>
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[repr(transparent)]
 pub struct FacetId(FacetIdValue);
 
 /// The alphabet of facet identifiers

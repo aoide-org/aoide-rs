@@ -16,6 +16,7 @@ pub type DateTimeInner = OffsetDateTime;
 pub type TimestampMillis = i64;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(transparent)]
 pub struct DateTime(DateTimeInner);
 
 const NANOS_PER_MILLISECOND: i128 = 1_000_000;
@@ -138,6 +139,7 @@ pub type YYYYMMDD = i32;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(clippy::upper_case_acronyms)]
+#[repr(transparent)]
 pub struct DateYYYYMMDD(YYYYMMDD);
 
 impl DateYYYYMMDD {
