@@ -206,8 +206,6 @@ queries are used for this purpose.
 
 ## Build & run
 
-[build & run]: #build-and-run
-
 ### Prerequisites
 
 #### Trunk
@@ -277,7 +275,7 @@ cargo test --workspace --all-features --verbose -- --nocapture
 
 ### Native
 
-Follow the instructions in [Build & run](#build-and-run) for building a dynamically
+Follow the instructions in [Build & run](#build--run) for building a dynamically
 linked executable for the host system.
 
 ### Docker

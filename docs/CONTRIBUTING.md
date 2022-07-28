@@ -49,7 +49,7 @@ rustup update stable
 ### Format the Code
 
 Before submitting code in a PR, make sure that you have formatted the codebase using
-[rustfmt](rustfmt). `rustfmt` is a tool for formatting Rust code, which helps keep style
+[rustfmt][rustfmt]. `rustfmt` is a tool for formatting Rust code, which helps keep style
 consistent across the project.
 
 If you have not already configured `rustfmt` for the stable toolchain, install the most recent
@@ -65,8 +65,8 @@ To run `rustfmt`, use this command:
 cargo fmt
 ```
 
-You can configure a git pre-commit hook (see [Customizing Git - Git Hooks](githooks))
-to make sure you only commit properly formatted code. This [hook](hook) emits an
+You can configure a git pre-commit hook (see [Customizing Git - Git Hooks][githooks])
+to make sure you only commit properly formatted code. This [hook][hook] emits an
 error when code is not formatted according to `rustfmt` or tests fail.
 
 [rustfmt]: https://github.com/rust-lang-nursery/rustfmt/
@@ -105,7 +105,7 @@ Keep your change sets small per commit:
 
 * Revert any unnecessary changes or changes to unrelated files
 * Use separate commits when moving or renaming files and when fixing formatting issues with `rustfmt`
-* Don't accidentilly check in any temporary files
+* Don't accidentally check in any temporary files
 
 Make sure that the code compiles without errors. The only exception is allowed for tests that might neither compile
 nor succeed for an intermediate commit.
