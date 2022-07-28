@@ -13,7 +13,7 @@ edition = "2021"
 anyhow = "1.0"
 discro = { version = "0.6", features = ["tokio"] }
 log = "0.4"
-rfd = { version = "0.9", default-features = false, features = ["xdg-portal"] }
+rfd = { version = "0.10", default-features = false, features = ["xdg-portal"] }
 ron = "0.7"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 tokio = { version = "1.20", default-features = false }
