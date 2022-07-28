@@ -14,20 +14,17 @@ use crate::{
 // TitleKind
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
+#[derive(
+    Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive,
+)]
 pub enum TitleKind {
+    #[default]
     Main = 0,
     Sub = 1,
     Sorting = 2,
     // for classical music, only used for tracks not albums
     Work = 3,
     Movement = 4,
-}
-
-impl Default for TitleKind {
-    fn default() -> TitleKind {
-        TitleKind::Main
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////

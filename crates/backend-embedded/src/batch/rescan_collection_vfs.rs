@@ -27,16 +27,11 @@ pub struct Params {
     pub find_unsynchronized_tracks: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum Completion {
+    #[default]
     Finished,
     Aborted,
-}
-
-impl Default for Completion {
-    fn default() -> Self {
-        Self::Finished
-    }
 }
 
 #[derive(Debug, Clone, Default)]

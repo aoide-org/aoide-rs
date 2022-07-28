@@ -6,8 +6,11 @@ use std::fmt;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
+#[derive(
+    Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive,
+)]
 pub enum KeyCode {
+    #[default]
     Unknown = 0,
 
     /// C major
@@ -81,12 +84,6 @@ pub enum KeyCode {
 
     /// D minor
     Dmin = 24,
-}
-
-impl Default for KeyCode {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 impl fmt::Display for KeyCode {

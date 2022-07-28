@@ -20,9 +20,10 @@ pub type SlotIndex = i16;
 ///
 /// If no behavior is specified then playback continues at the
 /// out position.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, ToPrimitive, FromPrimitive)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ToPrimitive, FromPrimitive)]
 pub enum OutMode {
     /// Continue playback when reaching the out position.
+    #[default]
     Cont = 0,
 
     /// Stop playback when reaching the out position.
@@ -41,12 +42,6 @@ pub enum OutMode {
     /// If the cue has no in position then playback continues
     /// (default behavior).
     Loop = 3,
-}
-
-impl Default for OutMode {
-    fn default() -> Self {
-        OutMode::Cont
-    }
 }
 
 use bitflags::bitflags;

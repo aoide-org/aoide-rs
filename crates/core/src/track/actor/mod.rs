@@ -14,8 +14,11 @@ use crate::{
 // ActorRole
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
+#[derive(
+    Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive,
+)]
 pub enum ActorRole {
+    #[default]
     Artist = 0,
     Arranger = 1,
     Composer = 2,
@@ -29,12 +32,6 @@ pub enum ActorRole {
     Director = 10,
     Remixer = 11,
     Writer = 12,
-}
-
-impl Default for ActorRole {
-    fn default() -> ActorRole {
-        ActorRole::Artist
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////

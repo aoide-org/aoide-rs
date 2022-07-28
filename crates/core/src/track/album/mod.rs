@@ -13,18 +13,13 @@ use super::{
     title::{Title, Titles, TitlesInvalidity},
 };
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum AlbumKind {
+    #[default]
     Unknown = 0,
     Album = 1,
     Single = 2,
     Compilation = 3,
-}
-
-impl Default for AlbumKind {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 #[derive(Clone, Debug, Default, Eq)]

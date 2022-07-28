@@ -7,17 +7,12 @@ use aoide_core_api::track::search::Params;
 
 use super::FetchResultPageResponse;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum ControlState {
+    #[default]
     Idle,
     FetchingResults,
     Done,
-}
-
-impl Default for ControlState {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 #[derive(Debug, Default)]
