@@ -518,15 +518,15 @@ impl Default for ObservableState {
     }
 }
 
-pub async fn ingest_vfs<ReportProgressFn>(
+pub async fn rescan_vfs<ReportProgressFn>(
     db_gatekeeper: &Gatekeeper,
     entity_uid: EntityUid,
     report_progress_fn: ReportProgressFn,
-) -> anyhow::Result<batch::ingest_collection_vfs::Outcome>
+) -> anyhow::Result<batch::rescan_collection_vfs::Outcome>
 where
-    ReportProgressFn: FnMut(batch::ingest_collection_vfs::Progress) + Clone + Send + 'static,
+    ReportProgressFn: FnMut(batch::rescan_collection_vfs::Progress) + Clone + Send + 'static,
 {
-    let params = batch::ingest_collection_vfs::Params {
+    let params = batch::rescan_collection_vfs::Params {
         find_unsynchronized_tracks: true,
         find_untracked_files: true,
         import_track_config: Default::default(),
@@ -536,7 +536,7 @@ where
         root_url: None,
         sync_mode: None,
     };
-    batch::ingest_collection_vfs::ingest_collection_vfs(
+    batch::rescan_collection_vfs::rescan_collection_vfs(
         db_gatekeeper,
         entity_uid,
         params,

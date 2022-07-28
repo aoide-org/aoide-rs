@@ -85,7 +85,7 @@ pub enum Progress {
     Step7FindUnsynchronizedTracks,
 }
 
-pub async fn ingest_collection_vfs<P>(
+pub async fn rescan_collection_vfs<P>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,
     params: Params,

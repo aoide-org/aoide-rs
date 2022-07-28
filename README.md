@@ -49,7 +49,7 @@ Each `UID` is made up of 24 arbitrary bytes that are encoded as 32 or 33 _Base58
 ### Source-centric
 
 Internally metadata is stored and indexed in one or more databases (relational/index). This metadata
-is ingested from media sources, which are considered the actual _book of records_.
+is imported from media sources, which are considered the actual _book of records_.
 
 Media sources should primarily carry all the precious information that has been collected
 and curated over the years. This includes analyzed audio properties like _perceived loudness_,
