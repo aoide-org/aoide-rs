@@ -25,7 +25,7 @@ uuid = { version = "1.1.2", features = ["v4"] }
 schemars = { version = "0.8", optional = true }
 
 # Workspace dependencies
-aoide-core = "=0.8.0"
+aoide-core = { version = "=0.8.0", features = ["serde"] }
 aoide-core-api = "=0.8.0"
 aoide-core-json = "=0.8.0"
 aoide-core-api-json = { version = "=0.8.0", features = ["backend"] }
@@ -38,6 +38,7 @@ aoide-usecases-sqlite = "=0.8.0"
 default = []
 schemars = [
     "dep:schemars",
+    "aoide-core/schemars",
     "aoide-core-api-json/schemars",
     "aoide-core-json/schemars",
 ]

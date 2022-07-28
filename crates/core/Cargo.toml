@@ -46,5 +46,5 @@ schemars = { version = "0.8", optional = true, features = ["url"] }
 default = []
 # Feature to enable JavaScript bindings on wasm32-unknown-unknown
 js = ["getrandom/js"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "url/serde"]
 schemars = ["dep:schemars"]

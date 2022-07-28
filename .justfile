@@ -51,6 +51,7 @@ check:
     cargo check --locked --all-targets -p aoide-client
     cargo check --locked --all-targets -p aoide-client --all-features
     cargo check --locked --all-targets -p aoide-core
+    cargo check --locked --all-targets -p aoide-core --all-features
     cargo check --locked --all-targets -p aoide-core-api-json --features backend
     cargo check --locked --all-targets -p aoide-core-api-json --features frontend
     cargo check --locked --all-targets -p aoide-core-api-json --all-features
