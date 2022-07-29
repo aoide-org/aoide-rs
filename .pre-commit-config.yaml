@@ -69,7 +69,6 @@ repos:
           [
             --locked,
             --workspace,
-            --all-features,
             --all-targets,
             --no-deps,
             --,
