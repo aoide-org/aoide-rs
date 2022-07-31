@@ -407,7 +407,7 @@ impl Metadata {
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_ID_GROUPING,
-            mp4_tag.take_groupings(),
+            mp4_tag.take_groupings().map(Into::into),
         );
 
         // Import gigtags from raw grouping tags before any other tags.
@@ -457,7 +457,7 @@ impl Metadata {
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_ID_MOOD,
-            mp4_tag.take_strings_of(&IDENT_MOOD),
+            mp4_tag.take_strings_of(&IDENT_MOOD).map(Into::into),
         );
 
         // Comment tag
@@ -465,7 +465,7 @@ impl Metadata {
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_ID_COMMENT,
-            mp4_tag.take_strings_of(&IDENT_COMMENT),
+            mp4_tag.take_strings_of(&IDENT_COMMENT).map(Into::into),
         );
 
         // Description tag
@@ -473,7 +473,7 @@ impl Metadata {
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_ID_DESCRIPTION,
-            mp4_tag.take_strings_of(&IDENT_DESCRIPTION),
+            mp4_tag.take_strings_of(&IDENT_DESCRIPTION).map(Into::into),
         );
 
         // ISRC tag
@@ -481,7 +481,7 @@ impl Metadata {
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_ID_ISRC,
-            mp4_tag.take_isrc().into_iter(),
+            mp4_tag.take_isrc().into_iter().map(Into::into),
         );
 
         // iTunes XID tags
@@ -489,7 +489,7 @@ impl Metadata {
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_ID_XID,
-            mp4_tag.take_strings_of(&IDENT_XID),
+            mp4_tag.take_strings_of(&IDENT_XID).map(Into::into),
         );
 
         debug_assert!(track.tags.is_empty());

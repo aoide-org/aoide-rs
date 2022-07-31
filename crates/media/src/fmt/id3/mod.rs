@@ -188,7 +188,7 @@ fn import_faceted_tags_from_text_frames(
         tags_map,
         faceted_tag_mapping_config,
         facet_id,
-        text_frames(tag, frame_id).map(ToOwned::to_owned),
+        text_frames(tag, frame_id).map(Into::into),
     )
 }
 
@@ -485,7 +485,7 @@ pub fn import_metadata_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_ID_COMMENT,
-        comments,
+        comments.map(Into::into),
     );
 
     // Description tag
@@ -497,7 +497,7 @@ pub fn import_metadata_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_ID_DESCRIPTION,
-        descriptions,
+        descriptions.map(Into::into),
     );
 
     // Genre tags

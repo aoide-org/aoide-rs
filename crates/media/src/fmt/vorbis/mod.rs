@@ -263,7 +263,7 @@ pub fn import_faceted_text_tags<'a>(
         tags_map,
         faceted_tag_mapping_config,
         facet_id,
-        label_values.into_iter().map(ToOwned::to_owned),
+        label_values.into_iter().map(Into::into),
     );
 }
 

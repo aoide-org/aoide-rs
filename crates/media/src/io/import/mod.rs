@@ -14,8 +14,8 @@ use aoide_core::{
     },
     music::{key::KeySignature, tempo::TempoBpm},
     tag::{
-        CowLabel, FacetId as TagFacetId, Label as TagLabel, LabelValue, PlainTag,
-        Score as TagScore, ScoreValue, TagsMap,
+        CowLabel, FacetId as TagFacetId, Label as TagLabel, PlainTag, Score as TagScore,
+        ScoreValue, TagsMap,
     },
     track::{actor::Actor, index::Index, title::Title, Track},
     util::{
@@ -535,12 +535,12 @@ impl Importer {
         index
     }
 
-    pub fn import_faceted_tags_from_label_values(
+    pub fn import_faceted_tags_from_label_values<'a>(
         &mut self,
         tags_map: &mut TagsMap,
         faceted_tag_mapping_config: &FacetedTagMappingConfig,
         facet_id: &TagFacetId,
-        label_values: impl IntoIterator<Item = LabelValue>,
+        label_values: impl IntoIterator<Item = Cow<'a, str>>,
     ) -> usize {
         let tag_mapping_config = faceted_tag_mapping_config.get(facet_id.value());
         let mut total_import_count = 0;
