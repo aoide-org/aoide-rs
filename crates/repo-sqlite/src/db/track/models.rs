@@ -11,7 +11,12 @@ use aoide_core::{
         tempo::{Bpm, TempoBpm},
     },
     track::{
-        actor::*, album::*, index::*, metric::*, title::*, Entity, EntityBody, EntityHeader, Track,
+        actor::*,
+        album::{Album, Kind as AlbumKind},
+        index::*,
+        metric::*,
+        title::*,
+        Entity, EntityBody, EntityHeader, Track,
     },
     util::{clock::*, color::*},
 };

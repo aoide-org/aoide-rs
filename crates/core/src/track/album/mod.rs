@@ -14,7 +14,7 @@ use super::{
 };
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromPrimitive, ToPrimitive)]
-pub enum AlbumKind {
+pub enum Kind {
     #[default]
     Unknown = 0,
     Album = 1,
@@ -24,7 +24,7 @@ pub enum AlbumKind {
 
 #[derive(Clone, Debug, Default, Eq)]
 pub struct Album {
-    pub kind: AlbumKind,
+    pub kind: Kind,
 
     pub titles: Canonical<Vec<Title>>,
 

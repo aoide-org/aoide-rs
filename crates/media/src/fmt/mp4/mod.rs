@@ -20,11 +20,11 @@ use aoide_core::{
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
         AdvisoryRating,
     },
-    music::tempo::TempoBpm,
+    music::{key::KeySignature, tempo::TempoBpm},
     tag::{FacetedTags, PlainTag, Score as TagScore, TagsMap},
     track::{
         actor::ActorRole,
-        album::AlbumKind,
+        album::Kind as AlbumKind,
         metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
@@ -105,8 +105,6 @@ const IDENT_GROUPING: Fourcc = Fourcc(*b"\xA9grp");
 const IDENT_YEAR: Fourcc = Fourcc(*b"\xA9day");
 
 const IDENT_XID: Fourcc = Fourcc(*b"xid ");
-
-const IDENT_COMPILATION: Fourcc = Fourcc(*b"cpil");
 
 const IDENT_BPM: FreeformIdent<'static> = FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM");
 
@@ -234,15 +232,15 @@ impl Metadata {
         }
 
         let Self(mut mp4_tag) = self;
-        if let Some(advisory_rating) = mp4_tag.advisory_rating() {
-            let advisory_rating = match advisory_rating {
-                Mp4AdvisoryRating::Inoffensive => AdvisoryRating::Unrated,
-                Mp4AdvisoryRating::Clean => AdvisoryRating::Clean,
-                Mp4AdvisoryRating::Explicit => AdvisoryRating::Explicit,
-            };
-            debug_assert!(track.media_source.advisory_rating.is_none());
-            track.media_source.advisory_rating = Some(advisory_rating);
-        }
+
+        track.media_source.advisory_rating =
+            mp4_tag
+                .advisory_rating()
+                .map(|advisory_rating| match advisory_rating {
+                    Mp4AdvisoryRating::Inoffensive => AdvisoryRating::Unrated,
+                    Mp4AdvisoryRating::Clean => AdvisoryRating::Clean,
+                    Mp4AdvisoryRating::Explicit => AdvisoryRating::Explicit,
+                });
 
         let mut tempo_bpm_non_fractional = false;
         let tempo_bpm = mp4_tag
@@ -263,6 +261,8 @@ impl Metadata {
                 MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
                 tempo_bpm_non_fractional,
             );
+        } else {
+            track.metrics.tempo_bpm = None;
         }
 
         let key_signature = mp4_tag
@@ -273,6 +273,8 @@ impl Metadata {
             .next();
         if let Some(key_signature) = key_signature {
             track.metrics.key_signature = key_signature;
+        } else {
+            track.metrics.key_signature = KeySignature::unknown();
         }
 
         // Track titles
@@ -303,9 +305,7 @@ impl Metadata {
             track_titles.push(title);
         }
         let track_titles = importer.finish_import_of_titles(TrackScope::Track, track_titles);
-        if !track_titles.is_empty() {
-            track.titles = track_titles;
-        }
+        track.titles = track_titles;
 
         // Track actors
         let mut track_actors = Vec::with_capacity(8);
@@ -337,9 +337,7 @@ impl Metadata {
             push_next_actor_role_name(&mut track_actors, ActorRole::Director, name);
         }
         let track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
-        if !track_actors.is_empty() {
-            track.actors = track_actors;
-        }
+        track.actors = track_actors;
 
         let mut album = track.album.untie_replace(Default::default());
 
@@ -352,9 +350,7 @@ impl Metadata {
             album_titles.push(title);
         }
         let album_titles = importer.finish_import_of_titles(TrackScope::Album, album_titles);
-        if !album_titles.is_empty() {
-            album.titles = album_titles;
-        }
+        album.titles = album_titles;
 
         // Album actors
         let mut album_actors = Vec::with_capacity(4);
@@ -362,43 +358,34 @@ impl Metadata {
             push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name);
         }
         let album_actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
-        if !album_actors.is_empty() {
-            album.actors = album_actors;
-        }
+        album.actors = album_actors;
 
         // Album properties
         if mp4_tag.compilation() {
             album.kind = AlbumKind::Compilation;
-        } else if mp4_tag.data_of(&IDENT_COMPILATION).next().is_some() {
+        } else {
             album.kind = AlbumKind::Unknown;
         }
 
         track.album = Canonical::tie(album);
 
         // Dedicated release dates are not available, only a generic recording date
-        if let Some(recorded_at) = mp4_tag
+        track.recorded_at = mp4_tag
             .take_strings_of(&IDENT_YEAR)
             .filter_map(|value| {
                 importer.import_year_tag_from_field(&IDENT_YEAR.to_string(), &value)
             })
-            .next()
-        {
-            track.recorded_at = Some(recorded_at);
-        }
+            .next();
 
-        if let Some(copyright) = mp4_tag
+        track.copyright = mp4_tag
             .take_copyright()
             .and_then(trimmed_non_empty_from_owned)
-        {
-            track.copyright = Some(copyright.into());
-        }
-        if let Some(label) = mp4_tag
+            .map(Into::into);
+        track.publisher = mp4_tag
             .take_strings_of(&IDENT_LABEL)
+            .filter_map(trimmed_non_empty_from_owned)
             .next()
-            .and_then(trimmed_non_empty_from_owned)
-        {
-            track.publisher = Some(label.into());
-        }
+            .map(Into::into);
 
         let mut tags_map = TagsMap::default();
 
@@ -500,14 +487,23 @@ impl Metadata {
         if mp4_tag.track_number().is_some() || mp4_tag.total_tracks().is_some() {
             track.indexes.track.number = mp4_tag.track_number();
             track.indexes.track.total = mp4_tag.total_tracks();
+        } else {
+            // Reset
+            track.indexes.track = Default::default();
         }
         if mp4_tag.disc_number().is_some() || mp4_tag.total_discs().is_some() {
             track.indexes.disc.number = mp4_tag.disc_number();
             track.indexes.disc.total = mp4_tag.total_discs();
+        } else {
+            // Reset
+            track.indexes.disc = Default::default();
         }
         if mp4_tag.movement_index().is_some() || mp4_tag.movement_count().is_some() {
             track.indexes.movement.number = mp4_tag.movement_index();
             track.indexes.movement.total = mp4_tag.movement_count();
+        } else {
+            // Reset
+            track.indexes.movement = Default::default();
         }
 
         // Artwork
@@ -536,19 +532,24 @@ impl Metadata {
         }
 
         #[cfg(feature = "serato-markers")]
+        #[allow(clippy::blocks_in_if_conditions)]
         if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
             let mut serato_tags = triseratops::tag::TagContainer::new();
+            let mut parsed = false;
 
             if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS_IDENT).next() {
                 match data {
                     Data::Utf8(input) => {
-                        serato_tags
+                        if serato_tags
                             .parse_markers(input.as_bytes(), triseratops::tag::TagFormat::MP4)
                             .map_err(|err| {
                                 importer
                                     .add_issue(format!("Failed to parse Serato Markers: {err}"));
                             })
-                            .ok();
+                            .is_ok()
+                        {
+                            parsed = true;
+                        }
                     }
                     data => {
                         importer.add_issue(format!("Unexpected data for Serato Markers: {data:?}"));
@@ -559,13 +560,16 @@ impl Metadata {
             if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS2_IDENT).next() {
                 match data {
                     Data::Utf8(input) => {
-                        serato_tags
+                        if serato_tags
                             .parse_markers2(input.as_bytes(), triseratops::tag::TagFormat::MP4)
                             .map_err(|err| {
                                 importer
                                     .add_issue(format!("Failed to parse Serato Markers2: {err}"));
                             })
-                            .ok();
+                            .is_ok()
+                        {
+                            parsed = true;
+                        }
                     }
                     data => {
                         importer
@@ -574,12 +578,10 @@ impl Metadata {
                 }
             }
 
-            let track_cues = crate::util::serato::import_cues(&serato_tags);
-            if !track_cues.is_empty() {
-                track.cues = Canonical::tie(track_cues);
+            if parsed {
+                track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
+                track.color = crate::util::serato::import_track_color(&serato_tags);
             }
-
-            track.color = crate::util::serato::import_track_color(&serato_tags);
         }
 
         Ok(())

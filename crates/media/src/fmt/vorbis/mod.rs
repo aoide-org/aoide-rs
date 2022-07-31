@@ -16,7 +16,7 @@ use aoide_core::{
     tag::{FacetId, FacetedTags, PlainTag, TagsMap},
     track::{
         actor::ActorRole,
-        album::AlbumKind,
+        album::Kind as AlbumKind,
         index::Index,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
@@ -560,12 +560,13 @@ pub fn import_album_titles(
 }
 
 #[cfg(feature = "serato-markers")]
+#[must_use]
 pub fn import_serato_markers2(
     importer: &mut Importer,
     reader: &impl CommentReader,
     serato_tags: &mut triseratops::tag::TagContainer,
     format: triseratops::tag::TagFormat,
-) {
+) -> bool {
     let vorbis_comment = match format {
         triseratops::tag::TagFormat::FLAC => {
             <triseratops::tag::Markers2 as triseratops::tag::format::flac::FLACTag>::FLAC_COMMENT
@@ -574,18 +575,21 @@ pub fn import_serato_markers2(
             <triseratops::tag::Markers2 as triseratops::tag::format::ogg::OggTag>::OGG_COMMENT
         }
         _ => {
-            return;
+            return false;
         }
     };
 
-    reader.read_first_value(vorbis_comment).and_then(|data| {
-        serato_tags
-            .parse_markers2(data.as_bytes(), format)
-            .map_err(|err| {
-                importer.add_issue(format!("Failed to import Serato Markers2: {err}"));
-            })
-            .ok()
-    });
+    reader
+        .read_first_value(vorbis_comment)
+        .and_then(|data| {
+            serato_tags
+                .parse_markers2(data.as_bytes(), format)
+                .map_err(|err| {
+                    importer.add_issue(format!("Failed to import Serato Markers2: {err}"));
+                })
+                .ok()
+        })
+        .is_some()
 }
 
 pub fn import_into_track(
@@ -840,19 +844,15 @@ pub fn import_into_track(
     #[cfg(feature = "serato-markers")]
     if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
         let mut serato_tags = triseratops::tag::TagContainer::new();
-        import_serato_markers2(
+        if import_serato_markers2(
             importer,
             reader,
             &mut serato_tags,
             triseratops::tag::TagFormat::Ogg,
-        );
-
-        let track_cues = crate::util::serato::import_cues(&serato_tags);
-        if !track_cues.is_empty() {
-            track.cues = Canonical::tie(track_cues);
+        ) {
+            track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
+            track.color = crate::util::serato::import_track_color(&serato_tags);
         }
-
-        track.color = crate::util::serato::import_track_color(&serato_tags);
     }
 
     Ok(())

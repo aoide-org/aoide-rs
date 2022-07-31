@@ -18,10 +18,11 @@ use aoide_core::{
         artwork::{ApicType, Artwork},
         content::ContentMetadata,
     },
+    music::key::KeySignature,
     tag::{FacetId, FacetedTags, PlainTag, TagsMap},
     track::{
         actor::ActorRole,
-        album::AlbumKind,
+        album::Kind as AlbumKind,
         metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
@@ -293,12 +294,17 @@ pub fn import_metadata_into_track(
             MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
             tempo_bpm_non_fractional,
         );
+    } else {
+        // Reset
+        track.metrics.tempo_bpm = None;
     }
 
     if let Some(key_signature) =
         first_text_frame(tag, "TKEY").and_then(|text| importer.import_key_signature(text))
     {
         track.metrics.key_signature = key_signature;
+    } else {
+        track.metrics.key_signature = KeySignature::unknown();
     }
 
     // Track titles
@@ -351,10 +357,7 @@ pub fn import_metadata_into_track(
     }) {
         track_titles.push(title);
     }
-    let track_titles = importer.finish_import_of_titles(TrackScope::Track, track_titles);
-    if !track_titles.is_empty() {
-        track.titles = track_titles;
-    }
+    track.titles = importer.finish_import_of_titles(TrackScope::Track, track_titles);
 
     // Track actors
     let mut track_actors = Vec::with_capacity(8);
@@ -382,10 +385,7 @@ pub fn import_metadata_into_track(
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
     }
     // TODO: Import TIPL frames
-    let track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
-    if !track_actors.is_empty() {
-        track.actors = track_actors;
-    }
+    track.actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
 
     let mut album = track.album.untie_replace(Default::default());
 
@@ -397,24 +397,20 @@ pub fn import_metadata_into_track(
     {
         album_titles.push(title);
     }
-    let album_titles = importer.finish_import_of_titles(TrackScope::Album, album_titles);
-    if !album_titles.is_empty() {
-        album.titles = album_titles;
-    }
+    album.titles = importer.finish_import_of_titles(TrackScope::Album, album_titles);
 
     // Album actors
     let mut album_actors = Vec::with_capacity(4);
     if let Some(name) = tag.album_artist() {
         push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
     }
-    let album_actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
-    if !album_actors.is_empty() {
-        album.actors = album_actors;
-    }
+    album.actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
 
     // Album properties
     if let Some(album_kind) = import_album_kind(importer, tag) {
         album.kind = album_kind;
+    } else {
+        album.kind = AlbumKind::Unknown;
     }
 
     track.album = Canonical::tie(album);
@@ -423,12 +419,12 @@ pub fn import_metadata_into_track(
     track.released_at = import_timestamp_from_first_text_frame(importer, tag, "TDRL");
     track.released_orig_at = import_timestamp_from_first_text_frame(importer, tag, "TDOR");
 
-    if let Some(publisher) = first_text_frame(tag, "TPUB").and_then(trimmed_non_empty_from) {
-        track.publisher = Some(publisher.into());
-    }
-    if let Some(copyright) = first_text_frame(tag, "TCOP").and_then(trimmed_non_empty_from) {
-        track.copyright = Some(copyright.into());
-    }
+    track.publisher = first_text_frame(tag, "TPUB")
+        .and_then(trimmed_non_empty_from)
+        .map(Into::into);
+    track.copyright = first_text_frame(tag, "TCOP")
+        .and_then(trimmed_non_empty_from)
+        .map(Into::into);
 
     let mut tags_map = TagsMap::default();
 
@@ -547,15 +543,22 @@ pub fn import_metadata_into_track(
     if tag.track().is_some() || tag.total_tracks().is_some() {
         track.indexes.track.number = tag.track().map(|i| (i & 0xFFFF) as u16);
         track.indexes.track.total = tag.total_tracks().map(|i| (i & 0xFFFF) as u16);
+    } else {
+        track.indexes.track = Default::default();
     }
     if tag.disc().is_some() || tag.total_discs().is_some() {
         track.indexes.disc.number = tag.disc().map(|i| (i & 0xFFFF) as u16);
         track.indexes.disc.total = tag.total_discs().map(|i| (i & 0xFFFF) as u16);
+    } else {
+        track.indexes.disc = Default::default();
     }
     if let Some(movement) = first_text_frame(tag, "MVIN")
         .and_then(|text| importer.import_index_numbers_from_field("MVIN", text))
     {
         track.indexes.movement = movement;
+    } else {
+        // Reset
+        track.indexes.movement = Default::default();
     }
 
     // Artwork
@@ -583,37 +586,33 @@ pub fn import_metadata_into_track(
     }
 
     #[cfg(feature = "serato-markers")]
+    #[allow(clippy::blocks_in_if_conditions)]
     if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
         let mut serato_tags = triseratops::tag::TagContainer::new();
-
+        let mut parsed = false;
         for geob in tag.encapsulated_objects() {
-            match geob.description.as_str() {
-                triseratops::tag::Markers::ID3_TAG => {
-                    serato_tags
-                        .parse_markers(&geob.data, triseratops::tag::TagFormat::ID3)
-                        .map_err(|err| {
-                            importer.add_issue(format!("Failed to parse Serato Markers: {err}"));
-                        })
-                        .ok();
-                }
-                triseratops::tag::Markers2::ID3_TAG => {
-                    serato_tags
-                        .parse_markers2(&geob.data, triseratops::tag::TagFormat::ID3)
-                        .map_err(|err| {
-                            importer.add_issue(format!("Failed to parse Serato Markers2: {err}"));
-                        })
-                        .ok();
-                }
-                _ => (),
+            if match geob.description.as_str() {
+                triseratops::tag::Markers::ID3_TAG => serato_tags
+                    .parse_markers(&geob.data, triseratops::tag::TagFormat::ID3)
+                    .map_err(|err| {
+                        importer.add_issue(format!("Failed to parse Serato Markers: {err}"));
+                    })
+                    .is_ok(),
+                triseratops::tag::Markers2::ID3_TAG => serato_tags
+                    .parse_markers2(&geob.data, triseratops::tag::TagFormat::ID3)
+                    .map_err(|err| {
+                        importer.add_issue(format!("Failed to parse Serato Markers2: {err}"));
+                    })
+                    .is_ok(),
+                _ => false,
+            } {
+                parsed = true;
             }
         }
-
-        let track_cues = crate::util::serato::import_cues(&serato_tags);
-        if !track_cues.is_empty() {
-            track.cues = Canonical::tie(track_cues);
+        if parsed {
+            track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
+            track.color = crate::util::serato::import_track_color(&serato_tags);
         }
-
-        track.color = crate::util::serato::import_track_color(&serato_tags);
     }
 
     Ok(())

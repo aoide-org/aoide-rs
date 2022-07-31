@@ -12,9 +12,11 @@ use aoide_core::{
         artwork::{ApicType, Artwork},
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
     },
+    music::key::KeySignature,
     tag::TagsMap,
     track::{
         actor::ActorRole,
+        album::Kind as AlbumKind,
         tag::{FACET_ID_COMMENT, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC, FACET_ID_MOOD},
         Track,
     },
@@ -178,19 +180,15 @@ impl Metadata {
 
         let Self(metaflac_tag) = &self;
 
-        if let Some(tempo_bpm) = vorbis::import_tempo_bpm(importer, metaflac_tag) {
-            track.metrics.tempo_bpm = Some(tempo_bpm);
-        }
+        track.metrics.tempo_bpm = vorbis::import_tempo_bpm(importer, metaflac_tag);
 
         if let Some(key_signature) = vorbis::import_key_signature(importer, metaflac_tag) {
             track.metrics.key_signature = key_signature;
+        } else {
+            track.metrics.key_signature = KeySignature::unknown();
         }
 
-        // Track titles
-        let track_titles = vorbis::import_track_titles(importer, metaflac_tag);
-        if !track_titles.is_empty() {
-            track.titles = track_titles;
-        }
+        track.titles = vorbis::import_track_titles(importer, metaflac_tag);
 
         // Track actors
         let mut track_actors = Vec::with_capacity(8);
@@ -258,18 +256,12 @@ impl Metadata {
                 push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
             }
         }
-        let track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
-        if !track_actors.is_empty() {
-            track.actors = track_actors;
-        }
+        track.actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
 
         let mut album = track.album.untie_replace(Default::default());
 
         // Album titles
-        let album_titles = vorbis::import_album_titles(importer, metaflac_tag);
-        if !album_titles.is_empty() {
-            album.titles = album_titles;
-        }
+        album.titles = vorbis::import_album_titles(importer, metaflac_tag);
 
         // Album actors
         let mut album_actors = Vec::with_capacity(4);
@@ -298,34 +290,23 @@ impl Metadata {
         {
             push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
         }
-        let album_actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
-        if !album_actors.is_empty() {
-            album.actors = album_actors;
-        }
+        album.actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
 
         // Album properties
         if let Some(album_kind) = vorbis::import_album_kind(importer, metaflac_tag) {
             album.kind = album_kind;
+        } else {
+            album.kind = AlbumKind::Unknown;
         }
 
         track.album = Canonical::tie(album);
 
-        if let Some(recorded_at) = vorbis::import_recorded_at(importer, metaflac_tag) {
-            track.recorded_at = Some(recorded_at);
-        }
-        if let Some(released_at) = vorbis::import_released_at(importer, metaflac_tag) {
-            track.released_at = Some(released_at);
-        }
-        if let Some(released_orig_at) = vorbis::import_released_orig_at(importer, metaflac_tag) {
-            track.released_orig_at = Some(released_orig_at);
-        }
+        track.recorded_at = vorbis::import_recorded_at(importer, metaflac_tag);
+        track.released_at = vorbis::import_released_at(importer, metaflac_tag);
+        track.released_orig_at = vorbis::import_released_orig_at(importer, metaflac_tag);
 
-        if let Some(publisher) = vorbis::import_publisher(metaflac_tag) {
-            track.publisher = Some(publisher);
-        }
-        if let Some(copyright) = vorbis::import_copyright(metaflac_tag) {
-            track.copyright = Some(copyright);
-        }
+        track.publisher = vorbis::import_publisher(metaflac_tag);
+        track.copyright = vorbis::import_copyright(metaflac_tag);
 
         let mut tags_map = TagsMap::default();
 
@@ -400,12 +381,21 @@ impl Metadata {
 
         if let Some(index) = vorbis::import_track_index(importer, metaflac_tag) {
             track.indexes.track = index;
+        } else {
+            // Reset
+            track.indexes.track = Default::default();
         }
         if let Some(index) = vorbis::import_disc_index(importer, metaflac_tag) {
             track.indexes.disc = index;
+        } else {
+            // Reset
+            track.indexes.disc = Default::default();
         }
         if let Some(index) = vorbis::import_movement_index(importer, metaflac_tag) {
             track.indexes.movement = index;
+        } else {
+            // Reset
+            track.indexes.movement = Default::default();
         }
 
         if config
@@ -435,23 +425,18 @@ impl Metadata {
         debug_assert!(track.tags.is_empty());
         track.tags = Canonical::tie(tags_map.into());
 
-        // Serato Tags
         #[cfg(feature = "serator-markers")]
         if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
             let mut serato_tags = SeratoTagContainer::new();
-            vorbis::import_serato_markers2(
+            if vorbis::import_serato_markers2(
                 importer,
                 metaflac_tag,
                 &mut serato_tags,
                 SeratoTagFormat::FLAC,
-            );
-
-            let track_cues = serato::import_cues(&serato_tags);
-            if !track_cues.is_empty() {
-                track.cues = Canonical::tie(track_cues);
+            ) {
+                track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
+                track.color = crate::util::serato::import_track_color(&serato_tags);
             }
-
-            track.color = serato::import_track_color(&serato_tags);
         }
 
         Ok(())

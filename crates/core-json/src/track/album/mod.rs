@@ -19,22 +19,22 @@ mod _core {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[repr(u8)]
-pub enum AlbumKind {
+pub enum Kind {
     Unknown = 0,
     Album = 1,
     Single = 2,
     Compilation = 3,
 }
 
-impl AlbumKind {
+impl Kind {
     fn is_default(&self) -> bool {
         matches!(self, Self::Unknown)
     }
 }
 
-impl From<_core::AlbumKind> for AlbumKind {
-    fn from(from: _core::AlbumKind) -> Self {
-        use _core::AlbumKind::*;
+impl From<_core::Kind> for Kind {
+    fn from(from: _core::Kind) -> Self {
+        use _core::Kind::*;
         match from {
             Unknown => Self::Unknown,
             Album => Self::Album,
@@ -44,9 +44,9 @@ impl From<_core::AlbumKind> for AlbumKind {
     }
 }
 
-impl From<AlbumKind> for _core::AlbumKind {
-    fn from(from: AlbumKind) -> Self {
-        use AlbumKind::*;
+impl From<Kind> for _core::Kind {
+    fn from(from: Kind) -> Self {
+        use Kind::*;
         match from {
             Unknown => Self::Unknown,
             Album => Self::Album,
@@ -56,9 +56,9 @@ impl From<AlbumKind> for _core::AlbumKind {
     }
 }
 
-impl Default for AlbumKind {
+impl Default for Kind {
     fn default() -> Self {
-        _core::AlbumKind::default().into()
+        _core::Kind::default().into()
     }
 }
 
@@ -67,8 +67,8 @@ impl Default for AlbumKind {
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Album {
-    #[serde(skip_serializing_if = "AlbumKind::is_default", default)]
-    pub kind: AlbumKind,
+    #[serde(skip_serializing_if = "Kind::is_default", default)]
+    pub kind: Kind,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,

@@ -561,9 +561,6 @@ impl Importer {
                 total_import_count - count,
             ));
         }
-        if plain_tags.is_empty() {
-            return 0;
-        }
         tags_map.update_faceted_plain_tags_by_label_ordering(facet_id, plain_tags);
         count
     }
