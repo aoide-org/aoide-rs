@@ -5,8 +5,17 @@
 
 # Configuration file for https://pre-commit.com/
 #
-# Run `pre-commit install` once to install a Git pre-commit hook locally. This will
-# ensure that each commit passes the checks before entering the Git history.
+# Install or update pre-commit:
+# pip install -U pre-commit
+#
+# Update all pre-commit hooks that are used in this config:
+# pre-commit autoupdate
+#
+# Run pre-commit manually:
+# pre-commit run --all-files
+#
+# Install Git hooks:
+# pre-commit install --hook-type commit-msg --hook-type pre-commit
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
