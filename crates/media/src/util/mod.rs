@@ -250,7 +250,7 @@ pub fn format_validated_tempo_bpm(tempo_bpm: &mut Option<TempoBpm>) -> Option<St
 }
 
 pub fn format_tempo_bpm(tempo_bpm: &mut TempoBpm) -> String {
-    let formatted_bpm = format_parseable_value(&mut tempo_bpm.to_raw());
+    let formatted_bpm = format_parseable_value(&mut tempo_bpm.to_inner());
     let mut importer = Importer::new();
     debug_assert_eq!(Some(*tempo_bpm), importer.import_tempo_bpm(&formatted_bpm));
     debug_assert!(importer.finish().into_messages().is_empty());

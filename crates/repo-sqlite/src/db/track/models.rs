@@ -224,7 +224,7 @@ pub(crate) fn load_repo_entity(
         }
     };
     let metrics = Metrics {
-        tempo_bpm: music_tempo_bpm.map(TempoBpm::from_raw),
+        tempo_bpm: music_tempo_bpm.map(TempoBpm::from_inner),
         key_signature: KeySignature::new(KeyCode::from_value(music_key_code as KeyCodeValue)),
         time_signature,
         flags: MetricsFlags::from_bits_truncate(music_flags as u8),
@@ -384,7 +384,7 @@ impl<'a> InsertableRecord<'a> {
             disc_total: disc_index.total.map(|idx| idx as i16),
             movement_number: movement_index.number.map(|idx| idx as i16),
             movement_total: movement_index.total.map(|idx| idx as i16),
-            music_tempo_bpm: tempo_bpm.map(TempoBpm::to_raw),
+            music_tempo_bpm: tempo_bpm.map(TempoBpm::to_inner),
             music_key_code: key_signature.code().to_value() as i16,
             music_beats_per_measure: time_signature
                 .map(|time_sig| time_sig.beats_per_measure as i16),
@@ -536,7 +536,7 @@ impl<'a> UpdatableRecord<'a> {
             disc_total: disc_index.total.map(|total| total as i16),
             movement_number: movement_index.number.map(|number| number as i16),
             movement_total: movement_index.total.map(|total| total as i16),
-            music_tempo_bpm: tempo_bpm.map(TempoBpm::to_raw),
+            music_tempo_bpm: tempo_bpm.map(TempoBpm::to_inner),
             music_key_code: key_signature.code().to_value() as i16,
             music_beats_per_measure: time_signature
                 .map(|time_sig| time_sig.beats_per_measure as i16),

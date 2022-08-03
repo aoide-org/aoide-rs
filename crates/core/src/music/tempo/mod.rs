@@ -30,14 +30,14 @@ impl TempoBpm {
     }
 
     #[must_use]
-    pub const fn from_raw(raw: Bpm) -> Self {
-        Self(raw)
+    pub const fn from_inner(inner: Bpm) -> Self {
+        Self(inner)
     }
 
     #[must_use]
-    pub const fn to_raw(self) -> Bpm {
-        let Self(raw) = self;
-        raw
+    pub const fn to_inner(self) -> Bpm {
+        let Self(inner) = self;
+        inner
     }
 }
 

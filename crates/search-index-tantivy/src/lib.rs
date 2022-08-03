@@ -173,7 +173,7 @@ impl TrackFields {
             );
         }
         if let Some(tempo_bpm) = entity.body.track.metrics.tempo_bpm {
-            doc.add_f64(self.tempo_bpm, tempo_bpm.to_raw());
+            doc.add_f64(self.tempo_bpm, tempo_bpm.to_inner());
         }
         if !entity.body.track.metrics.key_signature.is_unknown() {
             doc.add_u64(

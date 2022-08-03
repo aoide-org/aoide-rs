@@ -664,7 +664,7 @@ pub fn export_track(
                 .metrics
                 .tempo_bpm
                 .expect("valid bpm")
-                .to_raw()
+                .to_inner()
                 .round()
                 .to_string(),
         );

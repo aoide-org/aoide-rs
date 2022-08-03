@@ -250,7 +250,7 @@ impl Metadata {
             .or_else(|| {
                 mp4_tag.bpm().and_then(|bpm| {
                     tempo_bpm_non_fractional = true;
-                    let bpm = TempoBpm::from_raw(bpm.into());
+                    let bpm = TempoBpm::from_inner(bpm.into());
                     bpm.is_valid().then(|| bpm)
                 })
             });
@@ -664,9 +664,9 @@ pub fn export_track_to_path(
                 .metrics
                 .tempo_bpm
                 .expect("valid bpm")
-                .to_raw()
+                .to_inner()
                 .round()
-                .max(TempoBpm::from_raw(u16::MAX.into()).to_raw()) as u16,
+                .max(TempoBpm::from_inner(u16::MAX.into()).to_inner()) as u16,
         );
     } else {
         mp4_tag.remove_bpm();
