@@ -116,6 +116,13 @@ pub type NumberOfSamples = f64;
 #[repr(transparent)]
 pub struct SampleLength(pub NumberOfSamples);
 
+impl SampleLength {
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub enum SampleLengthInvalidity {
     OutOfRange,

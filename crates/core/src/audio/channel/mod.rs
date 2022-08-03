@@ -41,6 +41,11 @@ impl ChannelCount {
             _ => None,
         }
     }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]

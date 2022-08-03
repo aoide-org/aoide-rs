@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use opus_headers::{CommentHeader, OpusHeaders, ParseError as OpusError};
-use semval::IsValid as _;
 
 use aoide_core::{
     audio::{channel::ChannelCount, signal::SampleRateHz},

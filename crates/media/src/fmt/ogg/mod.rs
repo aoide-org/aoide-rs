@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use lewton::{header::IdentHeader, inside_ogg::OggStreamReader, OggReadError, VorbisError};
-use semval::IsValid as _;
 
 use aoide_core::{
     audio::{

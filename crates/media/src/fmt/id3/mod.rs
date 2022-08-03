@@ -9,7 +9,7 @@ use id3::{
     TagLike as _,
 };
 use num_traits::FromPrimitive as _;
-use semval::IsValid;
+use semval::IsValid as _;
 use time::{Date, PrimitiveDateTime, Time};
 
 use aoide_core::{

@@ -6,7 +6,7 @@ use compact_str::{format_compact, CompactString};
 use gigtags::facet::Facet as _;
 
 use aoide_core::tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, Tags, TagsMap};
-use semval::IsValid;
+use semval::IsValid as _;
 
 pub type Facet = gigtags::facet::CompactFacet;
 

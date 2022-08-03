@@ -8,7 +8,6 @@ use mp4ameta::{
     AdvisoryRating as Mp4AdvisoryRating, ChannelConfig, Data, DataIdent, Fourcc, FreeformIdent,
     Ident, ImgFmt, SampleRate as Mp4SampleRate, Tag as Mp4Tag, STANDARD_GENRES,
 };
-use semval::IsValid as _;
 
 use aoide_core::{
     audio::{

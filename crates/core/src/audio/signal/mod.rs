@@ -50,6 +50,11 @@ impl BitrateBps {
         let Self(inner) = self;
         inner
     }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -133,6 +138,11 @@ impl SampleRateHz {
         let Self(inner) = self;
         inner
     }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -179,6 +189,11 @@ impl PcmSignal {
             * (self.sample_rate.0.round() as BitsPerSecond)
             * BitsPerSecond::from(bits_per_sample);
         BitrateBps(bps)
+    }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
     }
 }
 
@@ -234,6 +249,11 @@ impl LatencyMs {
         debug_assert!(sample_rate.validate().is_ok());
         Self((sample_length.0 * Self::units_per_second()) / sample_rate.0)
     }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -281,6 +301,11 @@ impl LoudnessLufs {
     #[must_use]
     pub const fn unit_of_measure() -> &'static str {
         "LUFS"
+    }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
     }
 }
 

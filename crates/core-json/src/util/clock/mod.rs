@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use semval::Validate;
+use semval::Validate as _;
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
     Deserializer, Serializer,
