@@ -174,6 +174,11 @@ impl State {
         self.should_fetch_more_trigger
     }
 
+    fn trigger_should_fetch_more(&mut self) {
+        debug_assert!(self.should_fetch_more());
+        self.should_fetch_more_trigger = self.should_fetch_more_trigger.wrapping_add(1);
+    }
+
     #[must_use]
     pub fn can_fetch_more(&self) -> Option<bool> {
         self.context
@@ -194,6 +199,7 @@ impl State {
             return false;
         }
         *self = reset;
+        debug_assert!(!self.should_fetch_more());
         true
     }
 
@@ -207,8 +213,7 @@ impl State {
         self.context.collection_uid = collection_uid.take();
         self.fetch.reset();
         if self.context.collection_uid.is_some() {
-            debug_assert!(self.should_fetch_more());
-            self.should_fetch_more_trigger = self.should_fetch_more_trigger.wrapping_add(1);
+            self.trigger_should_fetch_more();
         }
         log::debug!(
             "Collection UID updated: {collection_uid:?}",
@@ -227,8 +232,7 @@ impl State {
         self.context.params = std::mem::take(params);
         self.fetch.reset();
         if self.context.collection_uid.is_some() {
-            debug_assert!(self.should_fetch_more());
-            self.should_fetch_more_trigger = self.should_fetch_more_trigger.wrapping_add(1);
+            self.trigger_should_fetch_more();
         }
         log::debug!("Params updated: {params:?}", params = self.context.params);
         true
@@ -257,6 +261,16 @@ impl State {
 
     pub fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
         self.fetch.fetch_more_failed(err)
+    }
+
+    pub fn reset_fetched(&mut self) -> bool {
+        if !self.fetch.reset() {
+            return false;
+        }
+        if self.should_fetch_more() {
+            self.trigger_should_fetch_more();
+        }
+        true
     }
 }
 
