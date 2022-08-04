@@ -60,9 +60,9 @@ impl FetchState {
     #[must_use]
     pub fn can_fetch_more(&self) -> Option<bool> {
         match self {
-            Self::Initial => Some(true),
-            Self::Pending { .. } | Self::Failed { .. } => None,
-            Self::Ready { can_fetch_more, .. } => Some(*can_fetch_more),
+            Self::Initial => Some(true),                                 // sure
+            Self::Pending { .. } | Self::Failed { .. } => None,          // undefined
+            Self::Ready { can_fetch_more, .. } => Some(*can_fetch_more), // maybe
         }
     }
 
@@ -72,6 +72,19 @@ impl FetchState {
         }
         *self = Self::Initial;
         log::debug!("Reset: {self:?}");
+        true
+    }
+
+    pub fn try_fetch_more(&mut self) -> bool {
+        debug_assert_eq!(Some(true), self.can_fetch_more());
+        let fetched_before = match self {
+            Self::Initial => None,
+            Self::Pending { .. } | Self::Failed { .. } => {
+                return false;
+            }
+            Self::Ready { fetched, .. } => Some(std::mem::take(fetched)),
+        };
+        *self = Self::Pending { fetched_before };
         true
     }
 
@@ -210,6 +223,11 @@ impl State {
         true
     }
 
+    pub fn try_fetch_more(&mut self) -> bool {
+        debug_assert_eq!(Some(true), self.can_fetch_more());
+        self.fetch.try_fetch_more()
+    }
+
     pub fn fetch_more_succeeded(&mut self, succeeded: FetchMoreSucceeded) -> bool {
         let FetchMoreSucceeded {
             context,
@@ -256,13 +274,7 @@ pub async fn fetch_more(
     let params = params.clone();
     let offset = pagination.offset.unwrap_or(0) as usize;
     let limit = pagination.limit;
-    let fetched = search(
-        db_gatekeeper,
-        collection_uid,
-        params,
-        pagination,
-    )
-    .await?;
+    let fetched = search(db_gatekeeper, collection_uid, params, pagination).await?;
     let can_fetch_more = if let Some(limit) = limit {
         limit <= fetched.len() as u64
     } else {
@@ -319,11 +331,20 @@ impl ObservableState {
 
     pub async fn fetch_more(&self, db_gatekeeper: &Gatekeeper, fetch_limit: Option<usize>) -> bool {
         let (context, pagination) = {
-            let state = self.read();
-            let context = state.context().clone();
-            let limit = fetch_limit.map(|limit| limit as u64);
-            let offset = state.fetched().map(|slice| slice.len() as u64);
-            let pagination = Pagination { offset, limit };
+            let mut context = Default::default();
+            let mut pagination = Default::default();
+            if !self.modify(|state| {
+                if state.can_fetch_more() != Some(true) || !state.try_fetch_more() {
+                    return false;
+                }
+                context = state.context().clone();
+                let limit = fetch_limit.map(|limit| limit as u64);
+                let offset = state.fetched().map(|slice| slice.len() as u64);
+                pagination = Pagination { offset, limit };
+                true
+            }) {
+                return false;
+            }
             (context, pagination)
         };
         let res = self::fetch_more(db_gatekeeper, context, pagination).await;
