@@ -34,11 +34,6 @@ pub enum FetchState {
 
 impl FetchState {
     #[must_use]
-    pub fn is_initial(&self) -> bool {
-        matches!(self, Self::Initial)
-    }
-
-    #[must_use]
     pub fn is_idle(&self) -> bool {
         match self {
             Self::Initial | Self::Ready { .. } | Self::Failed { .. } => true,
@@ -55,6 +50,11 @@ impl FetchState {
                 fetched_before.as_deref()
             }
         }
+    }
+
+    #[must_use]
+    pub fn should_fetch_more(&self) -> bool {
+        matches!(self, Self::Initial)
     }
 
     #[must_use]
@@ -150,7 +150,7 @@ impl FetchState {
 pub struct State {
     context: Context,
     fetch: FetchState,
-    initial_fetch_trigger: usize,
+    should_fetch_more_trigger: usize,
 }
 
 impl State {
@@ -160,26 +160,27 @@ impl State {
     }
 
     #[must_use]
-    pub fn initial_fetch_trigger(&self) -> usize {
-        self.initial_fetch_trigger
-    }
-
-    #[must_use]
-    pub fn is_fetch_initial(&self) -> bool {
-        self.fetch.is_initial()
-    }
-
-    #[must_use]
-    pub fn is_fetch_idle(&self) -> bool {
+    pub fn is_idle(&self) -> bool {
         self.fetch.is_idle()
     }
 
     #[must_use]
+    pub fn should_fetch_more(&self) -> bool {
+        self.context.collection_uid.is_some() && self.fetch.should_fetch_more()
+    }
+
+    #[must_use]
+    pub fn should_fetch_more_trigger(&self) -> usize {
+        self.should_fetch_more_trigger
+    }
+
+    #[must_use]
     pub fn can_fetch_more(&self) -> Option<bool> {
-        if self.context.collection_uid.is_none() {
-            return Some(false);
-        }
-        self.fetch.can_fetch_more()
+        self.context
+            .collection_uid
+            .is_none()
+            .then_some(false)
+            .or_else(|| self.fetch.can_fetch_more())
     }
 
     #[must_use]
@@ -206,7 +207,8 @@ impl State {
         self.context.collection_uid = collection_uid.take();
         self.fetch.reset();
         if self.context.collection_uid.is_some() {
-            self.initial_fetch_trigger = self.initial_fetch_trigger.wrapping_add(1);
+            debug_assert!(self.should_fetch_more());
+            self.should_fetch_more_trigger = self.should_fetch_more_trigger.wrapping_add(1);
         }
         log::debug!(
             "Collection UID updated: {collection_uid:?}",
@@ -224,7 +226,10 @@ impl State {
         }
         self.context.params = std::mem::take(params);
         self.fetch.reset();
-        self.initial_fetch_trigger = self.initial_fetch_trigger.wrapping_add(1);
+        if self.context.collection_uid.is_some() {
+            debug_assert!(self.should_fetch_more());
+            self.should_fetch_more_trigger = self.should_fetch_more_trigger.wrapping_add(1);
+        }
         log::debug!("Params updated: {params:?}", params = self.context.params);
         true
     }
