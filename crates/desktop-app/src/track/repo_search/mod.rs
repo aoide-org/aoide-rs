@@ -7,6 +7,8 @@ use aoide_core_api::{track::search::Params, Pagination};
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
 
+pub mod tasklet;
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Context {
     pub collection_uid: CollectionUid,
@@ -31,6 +33,11 @@ pub enum FetchState {
 }
 
 impl FetchState {
+    #[must_use]
+    pub fn is_initial(&self) -> bool {
+        matches!(self, Self::Initial)
+    }
+
     #[must_use]
     pub fn is_idle(&self) -> bool {
         match self {
@@ -137,7 +144,12 @@ impl State {
     }
 
     #[must_use]
-    pub fn is_idle(&self) -> bool {
+    pub fn is_fetch_initial(&self) -> bool {
+        self.fetch.is_initial()
+    }
+
+    #[must_use]
+    pub fn is_fetch_idle(&self) -> bool {
         self.fetch.is_idle()
     }
 

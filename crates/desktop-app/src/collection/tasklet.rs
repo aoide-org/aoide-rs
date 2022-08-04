@@ -22,6 +22,30 @@ pub fn on_state_changed(
     discro::tasklet::capture_changes(subscriber, Clone::clone, PartialEq::ne, on_changed)
 }
 
+pub fn on_is_pending_changed(
+    subscriber: Subscriber<State>,
+    mut on_changed: impl FnMut(bool) -> bool + Send + 'static,
+) -> impl Future<Output = ()> + Send + 'static {
+    discro::tasklet::capture_changes(
+        subscriber,
+        |state| state.is_pending(),
+        |is_pending, state| *is_pending != state.is_pending(),
+        move |is_pending| on_changed(*is_pending),
+    )
+}
+
+pub fn on_is_ready_changed(
+    subscriber: Subscriber<State>,
+    mut on_changed: impl FnMut(bool) -> bool + Send + 'static,
+) -> impl Future<Output = ()> + Send + 'static {
+    discro::tasklet::capture_changes(
+        subscriber,
+        |state| state.is_ready(),
+        |is_ready, state| *is_ready != state.is_ready(),
+        move |is_ready| on_changed(*is_ready),
+    )
+}
+
 pub async fn on_settings_changed_updater(
     db_gatekeeper: Arc<Gatekeeper>,
     settings_state: Arc<settings::ObservableState>,
