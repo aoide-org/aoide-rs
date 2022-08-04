@@ -11,7 +11,7 @@ pub mod tasklet;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Context {
-    pub collection_uid: CollectionUid,
+    pub collection_uid: Option<CollectionUid>,
     pub params: Params,
 }
 
@@ -60,7 +60,8 @@ impl FetchState {
     #[must_use]
     pub fn can_fetch_more(&self) -> Option<bool> {
         match self {
-            Self::Initial | Self::Pending { .. } | Self::Failed { .. } => None,
+            Self::Initial => Some(true),
+            Self::Pending { .. } | Self::Failed { .. } => None,
             Self::Ready { can_fetch_more, .. } => Some(*can_fetch_more),
         }
     }
@@ -161,6 +162,9 @@ impl State {
 
     #[must_use]
     pub fn can_fetch_more(&self) -> Option<bool> {
+        if self.context.collection_uid.is_none() {
+            return Some(false);
+        }
         self.fetch.can_fetch_more()
     }
 
@@ -181,13 +185,15 @@ impl State {
     /// Update the collection UID
     ///
     /// Consumed the argument when returning `true`.
-    pub fn update_collection_uid(&mut self, collection_uid: &mut CollectionUid) -> bool {
-        if collection_uid == &self.context.collection_uid {
+    pub fn update_collection_uid(&mut self, collection_uid: &mut Option<CollectionUid>) -> bool {
+        if collection_uid.as_ref() == self.context.collection_uid.as_ref() {
             return false;
         }
-        self.context.collection_uid = std::mem::take(collection_uid);
+        self.context.collection_uid = collection_uid.take();
         self.fetch.reset();
-        self.initial_fetch_trigger = self.initial_fetch_trigger.wrapping_add(1);
+        if self.context.collection_uid.is_some() {
+            self.initial_fetch_trigger = self.initial_fetch_trigger.wrapping_add(1);
+        }
         log::debug!("Collection UID updated: {self:?}");
         true
     }
@@ -244,12 +250,18 @@ pub async fn fetch_more(
         collection_uid,
         params,
     } = &context;
+    let collection_uid = if let Some(collection_uid) = collection_uid {
+        collection_uid.clone()
+    } else {
+        anyhow::bail!("Cannot fetch more without collection");
+    };
+    let params = params.clone();
     let offset = pagination.offset.unwrap_or(0) as usize;
     let limit = pagination.limit;
     let fetched = search(
         db_gatekeeper,
-        collection_uid.clone(),
-        params.clone(),
+        collection_uid,
+        params,
         pagination,
     )
     .await?;
@@ -299,7 +311,7 @@ impl ObservableState {
         self.modify(|state| state.reset())
     }
 
-    pub fn update_collection_uid(&self, collection_uid: &mut CollectionUid) -> bool {
+    pub fn update_collection_uid(&self, collection_uid: &mut Option<CollectionUid>) -> bool {
         self.modify(|state| state.update_collection_uid(collection_uid))
     }
 
