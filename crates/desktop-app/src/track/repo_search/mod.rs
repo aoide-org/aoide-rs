@@ -71,7 +71,6 @@ impl FetchState {
             return false;
         }
         *self = Self::Initial;
-        log::debug!("Reset: {self:?}");
         true
     }
 
@@ -94,50 +93,54 @@ impl FetchState {
         fetched: Vec<TrackEntity>,
         can_fetch_more: bool,
     ) -> bool {
+        log::debug!(
+            "Fetching succeeded with {num_fetched} newly fetched entities",
+            num_fetched = fetched.len()
+        );
         if let Self::Pending { fetched_before } = self {
             let expected_offset = fetched_before.as_ref().map(Vec::len).unwrap_or(0);
-            if offset != expected_offset {
-                log::warn!("Mismatching offset after fetching succeeded: expected = {expected_offset}, actual = {offset}");
-                return false;
-            }
-            let fetched = if let Some(mut fetched_before) = fetched_before.take() {
-                if fetched_before.is_empty() {
-                    fetched
+            if offset == expected_offset {
+                let fetched = if let Some(mut fetched_before) = fetched_before.take() {
+                    if fetched_before.is_empty() {
+                        fetched
+                    } else {
+                        let mut fetched = fetched;
+                        fetched_before.append(&mut fetched);
+                        std::mem::take(&mut fetched_before)
+                    }
                 } else {
-                    let mut fetched = fetched;
-                    fetched_before.append(&mut fetched);
-                    std::mem::take(&mut fetched_before)
-                }
-            } else {
-                fetched
-            };
-            *self = Self::Ready {
-                fetched,
-                can_fetch_more,
-            };
-            log::debug!("Fetching succeeded: {self:?}");
-            true
+                    fetched
+                };
+                let num_fetched = fetched.len();
+                *self = Self::Ready {
+                    fetched,
+                    can_fetch_more,
+                };
+                log::debug!("Caching {num_fetched} fetched entities");
+                return true;
+            }
+            log::warn!("Mismatching offset after fetching succeeded: expected = {expected_offset}, actual = {offset}");
         } else {
-            log::error!("Illegal state when fetching succeeded: {self:?}");
-            log::warn!(
-                "Discarding {num_fetched} fetched entities",
-                num_fetched = fetched.len()
-            );
-            false
+            log::error!("Not pending when fetching succeeded");
         }
+        log::warn!(
+            "Discarding {num_fetched} newly fetched entities",
+            num_fetched = fetched.len()
+        );
+        false
     }
 
     pub fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
+        log::warn!("Fetching failed: {err}");
         if let Self::Pending { fetched_before } = self {
             let fetched_before = std::mem::take(fetched_before);
             *self = Self::Failed {
                 fetched_before,
                 err_msg: err.to_string(),
             };
-            log::debug!("Fetching failed: {self:?}");
             true
         } else {
-            log::error!("Illegal state when fetching failed: {self:?}");
+            log::error!("Not pending when fetching failed");
             false
         }
     }
