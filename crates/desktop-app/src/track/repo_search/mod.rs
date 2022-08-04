@@ -380,6 +380,10 @@ impl ObservableState {
             Err(err) => state.fetch_more_failed(err),
         })
     }
+
+    pub fn reset_fetched(&self) -> bool {
+        self.modify(|state| state.reset_fetched())
+    }
 }
 
 impl Default for ObservableState {
