@@ -330,6 +330,8 @@ impl ObservableState {
     }
 
     pub async fn fetch_more(&self, db_gatekeeper: &Gatekeeper, fetch_limit: Option<usize>) -> bool {
+        // TODO: How to fix this complex code?
+        #[allow(clippy::blocks_in_if_conditions)]
         let (context, pagination) = {
             let mut context = Default::default();
             let mut pagination = Default::default();
