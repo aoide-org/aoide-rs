@@ -381,6 +381,7 @@ impl ObservableState {
         })
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn reset_fetched(&self) -> bool {
         self.modify(|state| state.reset_fetched())
     }
