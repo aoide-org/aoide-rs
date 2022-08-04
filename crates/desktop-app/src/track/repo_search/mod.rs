@@ -105,7 +105,6 @@ impl FetchState {
             log::debug!("Fetching succeeded: {self:?}");
             true
         } else {
-            debug_assert!(false);
             log::error!("Illegal state when fetching succeeded: {self:?}");
             log::warn!(
                 "Discarding {num_fetched} fetched entities",
@@ -125,7 +124,6 @@ impl FetchState {
             log::debug!("Fetching failed: {self:?}");
             true
         } else {
-            debug_assert!(false);
             log::error!("Illegal state when fetching failed: {self:?}");
             false
         }

@@ -244,7 +244,6 @@ impl State {
             Self::Initial => (),
             Self::PendingMusicDir { .. } | Self::PendingEntityUid { .. } => {
                 // Updating the music directory again while already pending is not allowed
-                debug_assert!(false);
                 log::error!("Illegal state when updating music directory: {self:?}");
                 return false;
             }
