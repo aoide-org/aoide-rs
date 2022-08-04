@@ -7,15 +7,15 @@ use discro::Subscriber;
 
 use super::State;
 
-pub fn on_fetch_is_initial_changed(
+pub fn on_initial_fetch_trigger(
     subscriber: Subscriber<State>,
-    mut on_changed: impl FnMut(bool) -> bool + Send + 'static,
+    mut on_trigger: impl FnMut() -> bool + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     discro::tasklet::capture_changes(
         subscriber,
-        |state| state.is_fetch_initial(),
-        |is_fetch_initial, state| *is_fetch_initial != state.is_fetch_initial(),
-        move |is_fetch_initial| on_changed(*is_fetch_initial),
+        |state| state.initial_fetch_trigger(),
+        |initial_fetch_trigger, state| *initial_fetch_trigger != state.initial_fetch_trigger(),
+        move |_| on_trigger(),
     )
 }
 

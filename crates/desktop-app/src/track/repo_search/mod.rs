@@ -135,12 +135,18 @@ impl FetchState {
 pub struct State {
     context: Context,
     fetch: FetchState,
+    initial_fetch_trigger: usize,
 }
 
 impl State {
     #[must_use]
     pub fn context(&self) -> &Context {
         &self.context
+    }
+
+    #[must_use]
+    pub fn initial_fetch_trigger(&self) -> usize {
+        self.initial_fetch_trigger
     }
 
     #[must_use]
@@ -181,6 +187,7 @@ impl State {
         }
         self.context.collection_uid = std::mem::take(collection_uid);
         self.fetch.reset();
+        self.initial_fetch_trigger = self.initial_fetch_trigger.wrapping_add(1);
         log::debug!("Collection UID updated: {self:?}");
         true
     }
@@ -194,6 +201,7 @@ impl State {
         }
         self.context.params = std::mem::take(params);
         self.fetch.reset();
+        self.initial_fetch_trigger = self.initial_fetch_trigger.wrapping_add(1);
         log::debug!("Params updated: {self:?}");
         true
     }
