@@ -208,7 +208,10 @@ impl State {
         if self.context.collection_uid.is_some() {
             self.initial_fetch_trigger = self.initial_fetch_trigger.wrapping_add(1);
         }
-        log::debug!("Collection UID updated: {self:?}");
+        log::debug!(
+            "Collection UID updated: {collection_uid:?}",
+            collection_uid = self.context.collection_uid
+        );
         true
     }
 
@@ -222,7 +225,7 @@ impl State {
         self.context.params = std::mem::take(params);
         self.fetch.reset();
         self.initial_fetch_trigger = self.initial_fetch_trigger.wrapping_add(1);
-        log::debug!("Params updated: {self:?}");
+        log::debug!("Params updated: {params:?}", params = self.context.params);
         true
     }
 
