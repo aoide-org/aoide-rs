@@ -196,76 +196,6 @@ pub enum State {
     },
 }
 
-#[derive(Debug)]
-pub struct RefreshingStateTask {
-    entity_uid: Option<EntityUid>,
-    kind: Option<Cow<'static, str>>,
-    music_dir: Option<OwnedDirPath>,
-    nested_music_dirs: NestedMusicDirectoriesStrategy,
-}
-
-impl RefreshingStateTask {
-    pub fn new(
-        entity_uid: Option<EntityUid>,
-        kind: Option<Cow<'static, str>>,
-        music_dir: Option<OwnedDirPath>,
-        nested_music_dirs: NestedMusicDirectoriesStrategy,
-    ) -> anyhow::Result<Self> {
-        if entity_uid.is_none() && music_dir.is_none() {
-            anyhow::bail!(
-                "Neither entity UID nor music directory available for refreshing the state"
-            );
-        };
-        Ok(Self {
-            entity_uid,
-            kind,
-            music_dir,
-            nested_music_dirs,
-        })
-    }
-
-    pub async fn execute(self, db_gatekeeper: &Gatekeeper) -> anyhow::Result<State> {
-        let Self {
-            music_dir,
-            entity_uid,
-            kind,
-            nested_music_dirs,
-        } = self;
-        let load_scope = LoadScope::EntityWithSummary;
-        let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
-            try_refresh_entity_from_db(db_gatekeeper, entity_uid.clone(), load_scope).await?
-        } else {
-            None
-        };
-        if let Some(entity_with_summary) = entity_with_summary {
-            if kind.is_none() || kind.as_deref() == entity_with_summary.entity.body.kind.as_deref()
-            {
-                if let Some(expected_music_dir) = &music_dir {
-                    let actual_music_dir = vfs_music_dir(&entity_with_summary.entity.body);
-                    if Some(expected_music_dir) == actual_music_dir.as_ref() {
-                        return Ok(State::Ready(entity_with_summary));
-                    }
-                } else {
-                    return Ok(State::Ready(entity_with_summary));
-                }
-            }
-            log::debug!(
-                "Discarding collection with UID {uid}",
-                uid = entity_with_summary.entity.hdr.uid
-            );
-        }
-        let music_dir = music_dir.ok_or_else(|| anyhow::anyhow!("no music directory"))?;
-        restore_or_create_entity_from_db(
-            db_gatekeeper,
-            kind.map(Cow::into_owned),
-            &music_dir,
-            nested_music_dirs,
-            load_scope,
-        )
-        .await
-    }
-}
-
 impl State {
     #[must_use]
     pub const fn new() -> Self {
@@ -515,6 +445,76 @@ impl ObservableState {
 impl Default for ObservableState {
     fn default() -> Self {
         Self::new(Default::default())
+    }
+}
+
+#[derive(Debug)]
+pub struct RefreshingStateTask {
+    entity_uid: Option<EntityUid>,
+    kind: Option<Cow<'static, str>>,
+    music_dir: Option<OwnedDirPath>,
+    nested_music_dirs: NestedMusicDirectoriesStrategy,
+}
+
+impl RefreshingStateTask {
+    pub fn new(
+        entity_uid: Option<EntityUid>,
+        kind: Option<Cow<'static, str>>,
+        music_dir: Option<OwnedDirPath>,
+        nested_music_dirs: NestedMusicDirectoriesStrategy,
+    ) -> anyhow::Result<Self> {
+        if entity_uid.is_none() && music_dir.is_none() {
+            anyhow::bail!(
+                "Neither entity UID nor music directory available for refreshing the state"
+            );
+        };
+        Ok(Self {
+            entity_uid,
+            kind,
+            music_dir,
+            nested_music_dirs,
+        })
+    }
+
+    pub async fn execute(self, db_gatekeeper: &Gatekeeper) -> anyhow::Result<State> {
+        let Self {
+            music_dir,
+            entity_uid,
+            kind,
+            nested_music_dirs,
+        } = self;
+        let load_scope = LoadScope::EntityWithSummary;
+        let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
+            try_refresh_entity_from_db(db_gatekeeper, entity_uid.clone(), load_scope).await?
+        } else {
+            None
+        };
+        if let Some(entity_with_summary) = entity_with_summary {
+            if kind.is_none() || kind.as_deref() == entity_with_summary.entity.body.kind.as_deref()
+            {
+                if let Some(expected_music_dir) = &music_dir {
+                    let actual_music_dir = vfs_music_dir(&entity_with_summary.entity.body);
+                    if Some(expected_music_dir) == actual_music_dir.as_ref() {
+                        return Ok(State::Ready(entity_with_summary));
+                    }
+                } else {
+                    return Ok(State::Ready(entity_with_summary));
+                }
+            }
+            log::debug!(
+                "Discarding collection with UID {uid}",
+                uid = entity_with_summary.entity.hdr.uid
+            );
+        }
+        let music_dir = music_dir.ok_or_else(|| anyhow::anyhow!("no music directory"))?;
+        restore_or_create_entity_from_db(
+            db_gatekeeper,
+            kind.map(Cow::into_owned),
+            &music_dir,
+            nested_music_dirs,
+            load_scope,
+        )
+        .await
     }
 }
 

@@ -22,3 +22,4 @@ pub mod fs;
 
 pub mod collection;
 pub mod settings;
+pub mod track;

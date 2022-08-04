@@ -6,7 +6,7 @@ use aoide_core::util::url::BaseUrl;
 pub mod purge_orphaned;
 pub mod purge_untracked;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResolveUrlFromContentPath {
     CanonicalRootUrl,
     OverrideRootUrl { root_url: BaseUrl },

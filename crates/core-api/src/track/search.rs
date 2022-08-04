@@ -198,7 +198,7 @@ impl SearchFilter {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Params {
     pub resolve_url_from_content_path: Option<ResolveUrlFromContentPath>,
     pub filter: Option<SearchFilter>,
