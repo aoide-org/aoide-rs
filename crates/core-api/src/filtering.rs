@@ -21,7 +21,7 @@ pub enum StringCompare {
 /// Predicates for matching strings
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StringPredicateBorrowed<'s> {
-    // Case-sensitive comparison
+    // Case-insensitive comparison
     StartsWith(&'s str),
     StartsNotWith(&'s str),
     EndsWith(&'s str),
@@ -39,7 +39,7 @@ pub enum StringPredicateBorrowed<'s> {
 /// Predicates for matching strings
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum StringPredicate {
-    // Case-sensitive comparison
+    // Case-insensitive comparison
     StartsWith(String),
     StartsNotWith(String),
     EndsWith(String),
