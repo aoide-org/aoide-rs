@@ -114,7 +114,7 @@ pub struct SortOrder {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum SearchFilter {
+pub enum Filter {
     Phrase(PhraseFieldFilter),
     Numeric(NumericFieldFilter),
     DateTime(DateTimeFieldFilter),
@@ -122,12 +122,12 @@ pub enum SearchFilter {
     Tag(tag::search::Filter),
     CueLabel(StringFilter),
     PlaylistUid(EntityUid),
-    All(Vec<SearchFilter>),
-    Any(Vec<SearchFilter>),
-    Not(Box<SearchFilter>),
+    All(Vec<Filter>),
+    Any(Vec<Filter>),
+    Not(Box<Filter>),
 }
 
-impl SearchFilter {
+impl Filter {
     #[must_use]
     pub fn recorded_at_equals(recorded_at: DateOrDateTime) -> Self {
         match recorded_at {
@@ -201,6 +201,6 @@ impl SearchFilter {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Params {
     pub resolve_url_from_content_path: Option<ResolveUrlFromContentPath>,
-    pub filter: Option<SearchFilter>,
+    pub filter: Option<Filter>,
     pub ordering: Vec<SortOrder>,
 }

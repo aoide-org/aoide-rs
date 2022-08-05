@@ -1051,9 +1051,9 @@ where
         .into_boxed()
 }
 
-impl TrackSearchBoxedExpressionBuilder for SearchFilter {
+impl TrackSearchBoxedExpressionBuilder for Filter {
     fn build_expression(&self) -> TrackSearchBoxedExpression<'_> {
-        use SearchFilter::*;
+        use Filter::*;
         match self {
             Phrase(filter) => build_phrase_field_filter_expression(filter),
             Numeric(filter) => build_numeric_field_filter_expression(filter),

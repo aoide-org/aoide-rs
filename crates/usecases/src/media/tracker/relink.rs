@@ -8,7 +8,7 @@ use aoide_core::{
     track::{Entity, EntityBody, Track},
 };
 
-use aoide_core_api::track::search::{ConditionFilter, SearchFilter, SortField, SortOrder};
+use aoide_core_api::track::search::{ConditionFilter, Filter, SortField, SortOrder};
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
@@ -166,7 +166,7 @@ where
         + MediaTrackerRepo,
 {
     let collection_id = repo.resolve_collection_id(collection_uid)?;
-    let source_untracked_filter = SearchFilter::Condition(ConditionFilter::SourceUntracked);
+    let source_untracked_filter = Filter::Condition(ConditionFilter::SourceUntracked);
     let ordering = vec![SortOrder {
         field: SortField::CollectedAt,
         direction: SortDirection::Descending,

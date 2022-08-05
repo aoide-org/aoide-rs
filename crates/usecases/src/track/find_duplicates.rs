@@ -92,7 +92,7 @@ where
         if let Some(track_artist) = track.track_artist() {
             let track_artist = track_artist.trim();
             if !track_artist.is_empty() {
-                all_filters.push(SearchFilter::Phrase(PhraseFieldFilter {
+                all_filters.push(Filter::Phrase(PhraseFieldFilter {
                     fields: vec![StringField::TrackArtist],
                     terms: vec![track_artist.to_owned()],
                 }));
@@ -103,7 +103,7 @@ where
         if let Some(track_title) = track.track_title() {
             let track_title = track_title.trim();
             if !track_title.is_empty() {
-                all_filters.push(SearchFilter::Phrase(PhraseFieldFilter {
+                all_filters.push(Filter::Phrase(PhraseFieldFilter {
                     fields: vec![StringField::TrackTitle],
                     terms: vec![track_title.to_owned()],
                 }));
@@ -114,7 +114,7 @@ where
         if let Some(album_artist) = track.album_artist() {
             let album_artist = album_artist.trim();
             if !album_artist.is_empty() {
-                all_filters.push(SearchFilter::Phrase(PhraseFieldFilter {
+                all_filters.push(Filter::Phrase(PhraseFieldFilter {
                     fields: vec![StringField::AlbumArtist],
                     terms: vec![album_artist.to_owned()],
                 }));
@@ -125,7 +125,7 @@ where
         if let Some(album_title) = track.album_title() {
             let album_title = album_title.trim();
             if !album_title.is_empty() {
-                all_filters.push(SearchFilter::Phrase(PhraseFieldFilter {
+                all_filters.push(Filter::Phrase(PhraseFieldFilter {
                     fields: vec![StringField::AlbumTitle],
                     terms: vec![album_title.to_owned()],
                 }));
@@ -134,9 +134,9 @@ where
     }
     if search_flags.contains(SearchFlags::RECORDED_AT) {
         all_filters.push(if let Some(recorded_at) = track.recorded_at {
-            SearchFilter::recorded_at_equals(recorded_at)
+            Filter::recorded_at_equals(recorded_at)
         } else {
-            SearchFilter::DateTime(DateTimeFieldFilter {
+            Filter::DateTime(DateTimeFieldFilter {
                 field: DateTimeField::RecordedAt,
                 predicate: DateTimePredicate::Equal(None),
             })
@@ -144,9 +144,9 @@ where
     }
     if search_flags.contains(SearchFlags::RELEASED_AT) {
         all_filters.push(if let Some(released_at) = track.released_at {
-            SearchFilter::released_at_equals(released_at)
+            Filter::released_at_equals(released_at)
         } else {
-            SearchFilter::DateTime(DateTimeFieldFilter {
+            Filter::DateTime(DateTimeFieldFilter {
                 field: DateTimeField::ReleasedAt,
                 predicate: DateTimePredicate::Equal(None),
             })
@@ -154,35 +154,35 @@ where
     }
     if search_flags.contains(SearchFlags::RELEASED_ORIG_AT) {
         all_filters.push(if let Some(released_orig_at) = track.released_orig_at {
-            SearchFilter::released_at_equals(released_orig_at)
+            Filter::released_at_equals(released_orig_at)
         } else {
-            SearchFilter::DateTime(DateTimeFieldFilter {
+            Filter::DateTime(DateTimeFieldFilter {
                 field: DateTimeField::ReleasedOrigAt,
                 predicate: DateTimePredicate::Equal(None),
             })
         });
     }
     if search_flags.contains(SearchFlags::SOURCE_TRACKED) {
-        all_filters.push(SearchFilter::Condition(ConditionFilter::SourceTracked));
+        all_filters.push(Filter::Condition(ConditionFilter::SourceTracked));
     }
     // Only sources with similar audio duration
     let audio_duration_ms = match track.media_source.content_metadata {
         ContentMetadata::Audio(content) => content.duration,
     };
     all_filters.push(if let Some(audio_duration_ms) = audio_duration_ms {
-        SearchFilter::audio_duration_around(audio_duration_ms, *audio_duration_tolerance)
+        Filter::audio_duration_around(audio_duration_ms, *audio_duration_tolerance)
     } else {
-        SearchFilter::Numeric(NumericFieldFilter {
+        Filter::Numeric(NumericFieldFilter {
             field: NumericField::AudioDurationMs,
             predicate: NumericPredicate::Equal(None),
         })
     });
     // Only sources with equal content/file type
-    all_filters.push(SearchFilter::Phrase(PhraseFieldFilter {
+    all_filters.push(Filter::Phrase(PhraseFieldFilter {
         fields: vec![StringField::ContentType],
         terms: vec![track.media_source.content_type.to_string()],
     }));
-    let filter = SearchFilter::All(all_filters);
+    let filter = Filter::All(all_filters);
     // Prefer recently added sources, e.g. after scanning the file system
     let ordering = vec![SortOrder {
         field: SortField::CollectedAt,

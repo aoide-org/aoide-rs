@@ -16,7 +16,7 @@ use aoide_core::{
     util::{canonical::Canonical, clock::*},
 };
 
-use aoide_core_api::track::search::{SearchFilter, SortOrder};
+use aoide_core_api::track::search::{Filter, SortOrder};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -639,7 +639,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         &self,
         collection_id: CollectionId,
         pagination: &Pagination,
-        filter: Option<SearchFilter>,
+        filter: Option<Filter>,
         ordering: Vec<SortOrder>,
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
     ) -> RepoResult<usize> {

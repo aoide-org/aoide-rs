@@ -20,7 +20,7 @@ pub fn search<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     pagination: &Pagination,
-    filter: Option<SearchFilter>,
+    filter: Option<Filter>,
     ordering: Vec<SortOrder>,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> RepoResult<usize>

@@ -6,7 +6,7 @@ use aoide_core::{
     media::content::ContentLink,
     track::{Entity, EntityHeader, EntityUid, Track},
 };
-use aoide_core_api::track::search::{SearchFilter, SortOrder, StringField};
+use aoide_core_api::track::search::{Filter, SortOrder, StringField};
 
 use crate::{
     collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
@@ -103,7 +103,7 @@ pub trait CollectionRepo {
         &self,
         collection_id: CollectionId,
         pagination: &Pagination,
-        filter: Option<SearchFilter>,
+        filter: Option<Filter>,
         ordering: Vec<SortOrder>,
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
     ) -> RepoResult<usize>;

@@ -8,7 +8,7 @@
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
 #![warn(clippy::pedantic)]
-// Repitions of module/type names occur frequently when using many
+// Repetitions of module/type names occur frequently when using many
 // modules for keeping the size of the source files handy. Often
 // types have the same name as their parent module.
 #![allow(clippy::module_name_repetitions)]

@@ -411,7 +411,7 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
-pub enum SearchFilter {
+pub enum Filter {
     Phrase(PhraseFieldFilter),
     Numeric(NumericFieldFilter),
     DateTime(DateTimeFieldFilter),
@@ -419,15 +419,15 @@ pub enum SearchFilter {
     Tag(TagFilter),
     CueLabel(StringFilter),
     PlaylistUid(EntityUid),
-    All(Vec<SearchFilter>),
-    Any(Vec<SearchFilter>),
-    Not(Box<SearchFilter>),
+    All(Vec<Filter>),
+    Any(Vec<Filter>),
+    Not(Box<Filter>),
 }
 
 #[cfg(feature = "backend")]
-impl From<SearchFilter> for _inner::SearchFilter {
-    fn from(from: SearchFilter) -> Self {
-        use SearchFilter::*;
+impl From<Filter> for _inner::Filter {
+    fn from(from: Filter) -> Self {
+        use Filter::*;
         match from {
             Phrase(from) => Self::Phrase(from.into()),
             Numeric(from) => Self::Numeric(from.into()),
@@ -444,9 +444,9 @@ impl From<SearchFilter> for _inner::SearchFilter {
 }
 
 #[cfg(feature = "frontend")]
-impl From<_inner::SearchFilter> for SearchFilter {
-    fn from(from: _inner::SearchFilter) -> Self {
-        use _inner::SearchFilter::*;
+impl From<_inner::Filter> for Filter {
+    fn from(from: _inner::Filter) -> Self {
+        use _inner::Filter::*;
         match from {
             Phrase(from) => Self::Phrase(from.into()),
             Numeric(from) => Self::Numeric(from.into()),
@@ -493,7 +493,7 @@ pub struct QueryParams {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub filter: Option<SearchFilter>,
+    pub filter: Option<Filter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub ordering: Vec<SortOrder>,
