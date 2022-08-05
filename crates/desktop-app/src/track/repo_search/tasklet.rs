@@ -3,13 +3,13 @@
 
 use std::future::Future;
 
-use discro::Subscriber;
+use discro::{tasklet::OnChanged, Subscriber};
 
 use super::State;
 
 pub fn on_should_fetch_more_trigger(
     subscriber: Subscriber<State>,
-    mut on_trigger: impl FnMut() -> bool + Send + 'static,
+    mut on_trigger: impl FnMut() -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     discro::tasklet::capture_changes(
         subscriber,
@@ -23,7 +23,7 @@ pub fn on_should_fetch_more_trigger(
 
 pub fn on_is_idle_changed(
     subscriber: Subscriber<State>,
-    mut on_changed: impl FnMut(bool) -> bool + Send + 'static,
+    mut on_changed: impl FnMut(bool) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     discro::tasklet::capture_changes(
         subscriber,

@@ -3,8 +3,9 @@
 
 use std::{future::Future, sync::Arc};
 
+use discro::{tasklet::OnChanged, Subscriber};
+
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
-use discro::Subscriber;
 
 use crate::{fs::DirPath, settings};
 
@@ -17,14 +18,14 @@ use super::{NestedMusicDirectoriesStrategy, ObservableState, State};
 /// `on_changed` is invoked.
 pub fn on_state_changed(
     subscriber: Subscriber<State>,
-    on_changed: impl FnMut(&State) -> bool + Send + 'static,
+    on_changed: impl FnMut(&State) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     discro::tasklet::capture_changes(subscriber, Clone::clone, PartialEq::ne, on_changed)
 }
 
 pub fn on_is_pending_changed(
     subscriber: Subscriber<State>,
-    mut on_changed: impl FnMut(bool) -> bool + Send + 'static,
+    mut on_changed: impl FnMut(bool) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     discro::tasklet::capture_changes(
         subscriber,
@@ -36,7 +37,7 @@ pub fn on_is_pending_changed(
 
 pub fn on_is_ready_changed(
     subscriber: Subscriber<State>,
-    mut on_changed: impl FnMut(bool) -> bool + Send + 'static,
+    mut on_changed: impl FnMut(bool) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     discro::tasklet::capture_changes(
         subscriber,

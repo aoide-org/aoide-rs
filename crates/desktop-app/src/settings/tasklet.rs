@@ -3,7 +3,7 @@
 
 use std::{future::Future, path::PathBuf};
 
-use discro::Subscriber;
+use discro::{tasklet::OnChanged, Subscriber};
 
 use crate::fs::OwnedDirPath;
 
@@ -15,7 +15,7 @@ use super::State;
 /// listening and `false` to abort listening.
 pub fn on_state_changed(
     subscriber: Subscriber<State>,
-    on_changed: impl FnMut(&super::State) -> bool + Send + 'static,
+    on_changed: impl FnMut(&super::State) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     discro::tasklet::capture_changes(subscriber, Clone::clone, PartialEq::ne, on_changed)
 }
@@ -67,7 +67,7 @@ pub fn on_state_changed_saver(
 /// listening and `false` to abort listening.
 pub fn on_music_dir_changed(
     mut subscriber: Subscriber<State>,
-    mut on_changed: impl FnMut(Option<&OwnedDirPath>) -> bool + Send + 'static,
+    mut on_changed: impl FnMut(Option<&OwnedDirPath>) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     // Read the initial value immediately before spawning the async task
     let mut value = subscriber.read().music_dir.clone();
@@ -78,10 +78,13 @@ pub fn on_music_dir_changed(
         loop {
             #[allow(clippy::collapsible_if)] // suppress false positive warning
             if value_changed {
-                if !on_changed(value.as_ref()) {
-                    // Consumer has rejected the notification
-                    log::debug!("Aborting on_music_dir_changed");
-                    return;
+                match on_changed(value.as_ref()) {
+                    OnChanged::Continue => (),
+                    OnChanged::Abort => {
+                        // Consumer has rejected the notification
+                        log::debug!("Aborting on_music_dir_changed");
+                        return;
+                    }
                 }
             }
             value_changed = false;
