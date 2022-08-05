@@ -13,9 +13,10 @@ pub fn on_should_fetch_more_trigger(
 ) -> impl Future<Output = ()> + Send + 'static {
     discro::tasklet::capture_changes(
         subscriber,
-        |state| state.should_fetch_more_trigger(),
-        |should_fetch_more_trigger, state| {
-            *should_fetch_more_trigger != state.should_fetch_more_trigger()
+        |_| (),
+        |(), state| {
+            // Keep nagging the listener until should_fetch_more() returns false
+            state.should_fetch_more()
         },
         move |_| on_trigger(),
     )

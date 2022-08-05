@@ -150,7 +150,6 @@ impl FetchState {
 pub struct State {
     context: Context,
     fetch: FetchState,
-    should_fetch_more_trigger: usize,
 }
 
 impl State {
@@ -167,16 +166,6 @@ impl State {
     #[must_use]
     pub fn should_fetch_more(&self) -> bool {
         self.context.collection_uid.is_some() && self.fetch.should_fetch_more()
-    }
-
-    #[must_use]
-    pub fn should_fetch_more_trigger(&self) -> usize {
-        self.should_fetch_more_trigger
-    }
-
-    fn trigger_should_fetch_more(&mut self) {
-        debug_assert!(self.should_fetch_more());
-        self.should_fetch_more_trigger = self.should_fetch_more_trigger.wrapping_add(1);
     }
 
     #[must_use]
@@ -212,9 +201,6 @@ impl State {
         }
         self.context.collection_uid = collection_uid.take();
         self.fetch.reset();
-        if self.context.collection_uid.is_some() {
-            self.trigger_should_fetch_more();
-        }
         log::debug!(
             "Collection UID updated: {collection_uid:?}",
             collection_uid = self.context.collection_uid
@@ -231,9 +217,6 @@ impl State {
         }
         self.context.params = std::mem::take(params);
         self.fetch.reset();
-        if self.context.collection_uid.is_some() {
-            self.trigger_should_fetch_more();
-        }
         log::debug!("Params updated: {params:?}", params = self.context.params);
         true
     }
@@ -266,9 +249,6 @@ impl State {
     pub fn reset_fetched(&mut self) -> bool {
         if !self.fetch.reset() {
             return false;
-        }
-        if self.should_fetch_more() {
-            self.trigger_should_fetch_more();
         }
         true
     }
