@@ -18,6 +18,7 @@ ron = "0.7"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 tokio = { version = "1.20", default-features = false }
 url = { version = "2.2", features = ["serde"] }
+xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
 
 # Workspace dependencies
 aoide-backend-embedded = "0.8.0"

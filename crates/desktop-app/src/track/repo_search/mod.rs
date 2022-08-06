@@ -1,11 +1,16 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use discro::{new_pubsub, Publisher, Ref, Subscriber};
+use xxhash_rust::xxh3::Xxh3;
+
 use aoide_backend_embedded::track::search;
-use aoide_core::{collection::EntityUid as CollectionUid, track::Entity as TrackEntity};
+use aoide_core::{
+    collection::EntityUid as CollectionUid,
+    track::{Entity, EntityHeader},
+};
 use aoide_core_api::{track::search::Params, Pagination};
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
-use discro::{new_pubsub, Publisher, Ref, Subscriber};
 
 pub mod tasklet;
 
@@ -39,19 +44,36 @@ impl FetchStateTag {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct FetchedEntity {
+    pub offset_hash: u64,
+    pub entity: Entity,
+}
+
+#[must_use]
+pub fn last_offset_hash_of_fetched_entities<'a>(
+    fetched_entities: impl Into<Option<&'a [FetchedEntity]>>,
+) -> u64 {
+    fetched_entities
+        .into()
+        .and_then(|fetched_entities| fetched_entities.last())
+        .map(|fetched_entity| fetched_entity.offset_hash)
+        .unwrap_or(INITIAL_OFFSET_HASH_SEED)
+}
+
 #[derive(Debug, Default)]
 enum FetchState {
     #[default]
     Initial,
     Ready {
-        fetched: Vec<TrackEntity>,
+        fetched_entities: Vec<FetchedEntity>,
         can_fetch_more: bool,
     },
     Pending {
-        fetched_before: Option<Vec<TrackEntity>>,
+        fetched_entities_before: Option<Vec<FetchedEntity>>,
     },
     Failed {
-        fetched_before: Option<Vec<TrackEntity>>,
+        fetched_entities_before: Option<Vec<FetchedEntity>>,
         _err_msg: String,
     },
 }
@@ -73,13 +95,20 @@ impl FetchState {
     }
 
     #[must_use]
-    fn fetched(&self) -> Option<&[TrackEntity]> {
+    fn fetched_entities(&self) -> Option<&[FetchedEntity]> {
         match self {
             Self::Initial => None,
-            Self::Ready { fetched, .. } => Some(fetched),
-            Self::Pending { fetched_before, .. } | Self::Failed { fetched_before, .. } => {
-                fetched_before.as_deref()
+            Self::Ready {
+                fetched_entities, ..
+            } => Some(fetched_entities),
+            Self::Pending {
+                fetched_entities_before,
+                ..
             }
+            | Self::Failed {
+                fetched_entities_before,
+                ..
+            } => fetched_entities_before.as_deref(),
         }
     }
 
@@ -107,66 +136,84 @@ impl FetchState {
 
     fn try_fetch_more(&mut self) -> bool {
         debug_assert_eq!(Some(true), self.can_fetch_more());
-        let fetched_before = match self {
+        let fetched_entities_before = match self {
             Self::Initial => None,
             Self::Pending { .. } | Self::Failed { .. } => {
                 return false;
             }
-            Self::Ready { fetched, .. } => Some(std::mem::take(fetched)),
+            Self::Ready {
+                fetched_entities, ..
+            } => Some(std::mem::take(fetched_entities)),
         };
-        *self = Self::Pending { fetched_before };
+        *self = Self::Pending {
+            fetched_entities_before,
+        };
         true
     }
 
     fn fetch_more_succeeded(
         &mut self,
         offset: usize,
-        fetched: Vec<TrackEntity>,
+        offset_hash: u64,
+        fetched_entities: Vec<Entity>,
         can_fetch_more: bool,
     ) -> bool {
         log::debug!(
-            "Fetching succeeded with {num_fetched} newly fetched entities",
-            num_fetched = fetched.len()
+            "Fetching succeeded with {num_fetched_entities} newly fetched entities",
+            num_fetched_entities = fetched_entities.len()
         );
-        if let Self::Pending { fetched_before } = self {
-            let expected_offset = fetched_before.as_ref().map(Vec::len).unwrap_or(0);
-            if offset == expected_offset {
-                let fetched = if let Some(mut fetched_before) = fetched_before.take() {
-                    if fetched_before.is_empty() {
-                        fetched
-                    } else {
-                        let mut fetched = fetched;
-                        fetched_before.append(&mut fetched);
-                        std::mem::take(&mut fetched_before)
+        if let Self::Pending {
+            fetched_entities_before,
+        } = self
+        {
+            let expected_offset = fetched_entities_before.as_ref().map(Vec::len).unwrap_or(0);
+            let expected_offset_hash =
+                last_offset_hash_of_fetched_entities(fetched_entities_before.as_deref());
+            if offset == expected_offset && offset_hash == expected_offset_hash {
+                let mut offset = offset;
+                let mut offset_hash_seed = offset_hash;
+                let mut fetched_entities_before =
+                    std::mem::take(fetched_entities_before).unwrap_or_default();
+                fetched_entities_before.reserve(fetched_entities.len());
+                fetched_entities_before.extend(fetched_entities.into_iter().map(|entity| {
+                    let offset_hash =
+                        hash_entity_header_at_offset(offset_hash_seed, offset, &entity.hdr);
+                    offset_hash_seed = offset_hash;
+                    offset += 1;
+                    FetchedEntity {
+                        offset_hash,
+                        entity,
                     }
-                } else {
-                    fetched
-                };
-                let num_fetched = fetched.len();
+                }));
+                let fetched_entities = fetched_entities_before;
+                let num_fetched_entities = fetched_entities.len();
                 *self = Self::Ready {
-                    fetched,
+                    fetched_entities,
                     can_fetch_more,
                 };
-                log::debug!("Caching {num_fetched} fetched entities");
+                log::debug!("Caching {num_fetched_entities} fetched entities");
                 return true;
             }
-            log::warn!("Mismatching offset after fetching succeeded: expected = {expected_offset}, actual = {offset}");
+            log::warn!("Mismatching offset/hash after fetching succeeded: expected = {expected_offset}/{expected_offset_hash}, actual = {offset}/{offset_hash}");
         } else {
             log::error!("Not pending when fetching succeeded");
         }
         log::warn!(
-            "Discarding {num_fetched} newly fetched entities",
-            num_fetched = fetched.len()
+            "Discarding {num_fetched_entities} newly fetched entities",
+            num_fetched_entities = fetched_entities.len()
         );
         false
     }
 
     fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
         log::warn!("Fetching failed: {err}");
-        if let Self::Pending { fetched_before } = self {
-            let fetched_before = std::mem::take(fetched_before);
+        if let Self::Pending {
+            fetched_entities_before,
+        } = self
+        {
+            let fetched_entities_before = std::mem::take(fetched_entities_before);
             *self = Self::Failed {
-                fetched_before,
+                fetched_entities_before,
                 _err_msg: err.to_string(),
             };
             true
@@ -213,8 +260,8 @@ impl State {
     }
 
     #[must_use]
-    pub fn fetched(&self) -> Option<&[TrackEntity]> {
-        self.fetch.fetched()
+    pub fn fetched_entities(&self) -> Option<&[FetchedEntity]> {
+        self.fetch.fetched_entities()
     }
 
     pub fn reset(&mut self) -> bool {
@@ -265,6 +312,7 @@ impl State {
         let FetchMoreSucceeded {
             context,
             offset,
+            offset_hash,
             fetched,
             can_fetch_more,
         } = succeeded;
@@ -274,7 +322,7 @@ impl State {
             return false;
         }
         self.fetch
-            .fetch_more_succeeded(offset, fetched, can_fetch_more)
+            .fetch_more_succeeded(offset, offset_hash, fetched, can_fetch_more)
     }
 
     pub fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
@@ -293,13 +341,15 @@ impl State {
 pub struct FetchMoreSucceeded {
     context: Context,
     offset: usize,
-    fetched: Vec<TrackEntity>,
+    offset_hash: u64,
+    fetched: Vec<Entity>,
     can_fetch_more: bool,
 }
 
 pub async fn fetch_more(
     db_gatekeeper: &Gatekeeper,
     context: Context,
+    offset_hash: u64,
     pagination: Pagination,
 ) -> anyhow::Result<FetchMoreSucceeded> {
     let Context {
@@ -323,6 +373,7 @@ pub async fn fetch_more(
     Ok(FetchMoreSucceeded {
         context,
         offset,
+        offset_hash,
         fetched,
         can_fetch_more,
     })
@@ -372,24 +423,26 @@ impl ObservableState {
     pub async fn fetch_more(&self, db_gatekeeper: &Gatekeeper, fetch_limit: Option<usize>) -> bool {
         // TODO: How to fix this complex code?
         #[allow(clippy::blocks_in_if_conditions)]
-        let (context, pagination) = {
+        let (context, offset_hash, pagination) = {
             let mut context = Default::default();
+            let mut offset_hash = Default::default();
             let mut pagination = Default::default();
             if !self.modify(|state| {
                 if state.can_fetch_more() != Some(true) || !state.try_fetch_more() {
                     return false;
                 }
                 context = state.context().clone();
+                offset_hash = last_offset_hash_of_fetched_entities(state.fetched_entities());
+                let offset = state.fetched_entities().map(|slice| slice.len() as u64);
                 let limit = fetch_limit.map(|limit| limit as u64);
-                let offset = state.fetched().map(|slice| slice.len() as u64);
                 pagination = Pagination { offset, limit };
                 true
             }) {
                 return false;
             }
-            (context, pagination)
+            (context, offset_hash, pagination)
         };
-        let res = self::fetch_more(db_gatekeeper, context, pagination).await;
+        let res = self::fetch_more(db_gatekeeper, context, offset_hash, pagination).await;
         self.modify(|state| match res {
             Ok(succeeded) => state.fetch_more_succeeded(succeeded),
             Err(err) => state.fetch_more_failed(err),
@@ -406,4 +459,16 @@ impl Default for ObservableState {
     fn default() -> Self {
         Self::new(Default::default())
     }
+}
+
+const INITIAL_OFFSET_HASH_SEED: u64 = 0;
+
+fn hash_entity_header_at_offset(seed: u64, offset: usize, entity_header: &EntityHeader) -> u64 {
+    debug_assert_eq!(seed == INITIAL_OFFSET_HASH_SEED, offset == 0);
+    let mut hasher = Xxh3::with_seed(seed);
+    hasher.update(&offset.to_le_bytes());
+    let EntityHeader { uid, rev } = entity_header;
+    hasher.update(uid.as_ref());
+    hasher.update(&rev.to_inner().to_le_bytes());
+    hasher.digest()
 }
