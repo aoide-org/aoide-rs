@@ -176,9 +176,9 @@ pub async fn restore_or_create_entity_from_db(
         .map_err(Into::into)
 }
 
+/// A light-weight tag that denotes the [`State`] variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(clippy::large_enum_variant)]
-pub enum Status {
+pub enum StateTag {
     Initial,
     PendingMusicDir,
     PendingEntityUid,
@@ -186,17 +186,17 @@ pub enum Status {
     NestedMusicDirectories,
 }
 
-impl Status {
+impl StateTag {
     #[must_use]
-    pub fn is_pending(&self) -> bool {
+    pub const fn is_idle(&self) -> bool {
         match self {
-            Self::Initial | Self::Ready | Self::NestedMusicDirectories => false,
-            Self::PendingMusicDir | Self::PendingEntityUid => true,
+            Self::Initial | Self::Ready | Self::NestedMusicDirectories => true,
+            Self::PendingMusicDir | Self::PendingEntityUid => false,
         }
     }
 
     #[must_use]
-    pub fn is_ready(&self) -> bool {
+    pub const fn is_ready(&self) -> bool {
         matches!(self, Self::Ready)
     }
 }
@@ -224,14 +224,24 @@ pub enum State {
 
 impl State {
     #[must_use]
-    pub fn status(&self) -> Status {
+    pub const fn state_tag(&self) -> StateTag {
         match self {
-            Self::Initial => Status::Initial,
-            Self::Ready(_) => Status::Ready,
-            Self::PendingMusicDir { .. } => Status::PendingMusicDir,
-            Self::PendingEntityUid { .. } => Status::PendingEntityUid,
-            Self::NestedMusicDirectories { .. } => Status::NestedMusicDirectories,
+            Self::Initial => StateTag::Initial,
+            Self::Ready(_) => StateTag::Ready,
+            Self::PendingMusicDir { .. } => StateTag::PendingMusicDir,
+            Self::PendingEntityUid { .. } => StateTag::PendingEntityUid,
+            Self::NestedMusicDirectories { .. } => StateTag::NestedMusicDirectories,
         }
+    }
+
+    #[must_use]
+    pub const fn is_idle(&self) -> bool {
+        self.state_tag().is_idle()
+    }
+
+    #[must_use]
+    pub const fn is_ready(&self) -> bool {
+        self.state_tag().is_ready()
     }
 
     pub fn reset(&mut self) -> bool {
@@ -355,7 +365,8 @@ impl State {
 
     #[must_use]
     fn replace(&mut self, mut replacement: State) -> bool {
-        debug_assert!(self.status().is_pending());
+        // Only invoked while pending
+        debug_assert!(!self.is_idle());
         if self == &replacement {
             return false;
         }

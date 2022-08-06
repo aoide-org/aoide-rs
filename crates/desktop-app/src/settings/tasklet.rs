@@ -9,19 +9,8 @@ use crate::fs::OwnedDirPath;
 
 use super::State;
 
-/// Listen for state changes.
-///
-/// The `on_changed` callback closure must return `true` to continue
-/// listening and `false` to abort listening.
-pub fn on_state_changed(
-    subscriber: Subscriber<State>,
-    on_changed: impl FnMut(&super::State) -> OnChanged + Send + 'static,
-) -> impl Future<Output = ()> + Send + 'static {
-    discro::tasklet::capture_changes(subscriber, Clone::clone, PartialEq::ne, on_changed)
-}
-
 /// Save the settings after changed.
-pub fn on_state_changed_saver(
+pub fn on_state_changed_save_to_file(
     mut subscriber: Subscriber<State>,
     settings_dir: PathBuf,
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
@@ -33,7 +22,7 @@ pub fn on_state_changed_saver(
     // intermediate changes would slip through unnoticed!
     let mut old_settings = subscriber.read().clone();
     async move {
-        log::debug!("Starting on_state_changed_saver");
+        log::debug!("Starting on_state_changed_save_to_file");
         let mut settings_changed = false;
         loop {
             #[allow(clippy::collapsible_if)] // suppress false positive warning
@@ -47,7 +36,7 @@ pub fn on_state_changed_saver(
             settings_changed = false;
             if subscriber.changed().await.is_err() {
                 // Publisher has disappeared
-                log::debug!("Aborting on_state_changed_saver");
+                log::debug!("Aborting on_state_changed_save_to_file");
                 break;
             }
             let new_settings = subscriber.read_ack();

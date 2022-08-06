@@ -15,17 +15,18 @@ pub struct Context {
     pub params: Params,
 }
 
+/// A light-weight tag that denotes the [`State`] variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FetchStatus {
+pub enum FetchStateTag {
     Initial,
     Ready,
     Pending,
     Failed,
 }
 
-impl FetchStatus {
+impl FetchStateTag {
     #[must_use]
-    pub fn is_idle(&self) -> bool {
+    pub const fn is_idle(&self) -> bool {
         match self {
             Self::Initial | Self::Ready | Self::Failed => true,
             Self::Pending => false,
@@ -33,7 +34,7 @@ impl FetchStatus {
     }
 
     #[must_use]
-    pub fn should_fetch_more(&self) -> bool {
+    pub const fn should_prefetch(&self) -> bool {
         matches!(self, Self::Initial)
     }
 }
@@ -57,13 +58,18 @@ enum FetchState {
 
 impl FetchState {
     #[must_use]
-    fn status(&self) -> FetchStatus {
+    const fn state_tag(&self) -> FetchStateTag {
         match self {
-            Self::Initial => FetchStatus::Initial,
-            Self::Ready { .. } => FetchStatus::Ready,
-            Self::Failed { .. } => FetchStatus::Failed,
-            Self::Pending { .. } => FetchStatus::Pending,
+            Self::Initial => FetchStateTag::Initial,
+            Self::Ready { .. } => FetchStateTag::Ready,
+            Self::Failed { .. } => FetchStateTag::Failed,
+            Self::Pending { .. } => FetchStateTag::Pending,
         }
+    }
+
+    #[must_use]
+    const fn is_idle(&self) -> bool {
+        self.state_tag().is_idle()
     }
 
     #[must_use]
@@ -78,7 +84,12 @@ impl FetchState {
     }
 
     #[must_use]
-    fn can_fetch_more(&self) -> Option<bool> {
+    const fn should_prefetch(&self) -> bool {
+        self.state_tag().should_prefetch()
+    }
+
+    #[must_use]
+    const fn can_fetch_more(&self) -> Option<bool> {
         match self {
             Self::Initial => Some(true),                                 // sure
             Self::Pending { .. } | Self::Failed { .. } => None,          // undefined
@@ -174,27 +185,31 @@ pub struct State {
 
 impl State {
     #[must_use]
-    pub fn context(&self) -> &Context {
+    pub const fn context(&self) -> &Context {
         &self.context
     }
 
     #[must_use]
-    pub fn fetch_status(&self) -> FetchStatus {
-        self.fetch.status()
+    pub const fn fetch_state_tag(&self) -> FetchStateTag {
+        self.fetch.state_tag()
     }
 
     #[must_use]
-    pub fn should_fetch_more(&self) -> bool {
-        self.context.collection_uid.is_some() && self.fetch_status().should_fetch_more()
+    pub const fn is_idle(&self) -> bool {
+        self.fetch.is_idle()
     }
 
     #[must_use]
-    pub fn can_fetch_more(&self) -> Option<bool> {
-        self.context
-            .collection_uid
-            .is_none()
-            .then_some(false)
-            .or_else(|| self.fetch.can_fetch_more())
+    pub const fn should_prefetch(&self) -> bool {
+        self.context.collection_uid.is_some() && self.fetch.should_prefetch()
+    }
+
+    #[must_use]
+    pub const fn can_fetch_more(&self) -> Option<bool> {
+        if self.context.collection_uid.is_none() {
+            return Some(false);
+        }
+        self.fetch.can_fetch_more()
     }
 
     #[must_use]
@@ -204,11 +219,11 @@ impl State {
 
     pub fn reset(&mut self) -> bool {
         let reset = Self::default();
-        if self.context == reset.context && self.fetch_status() == reset.fetch_status() {
+        if self.context == reset.context && self.fetch.state_tag() == reset.fetch.state_tag() {
             return false;
         }
         *self = reset;
-        debug_assert!(!self.should_fetch_more());
+        debug_assert!(!self.should_prefetch());
         true
     }
 
