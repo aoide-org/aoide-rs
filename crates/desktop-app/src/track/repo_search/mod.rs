@@ -15,8 +15,31 @@ pub struct Context {
     pub params: Params,
 }
 
-#[derive(Debug, Default, PartialEq)]
-pub enum FetchState {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FetchStatus {
+    Initial,
+    Ready,
+    Pending,
+    Failed,
+}
+
+impl FetchStatus {
+    #[must_use]
+    pub fn is_idle(&self) -> bool {
+        match self {
+            Self::Initial | Self::Ready | Self::Failed => true,
+            Self::Pending => false,
+        }
+    }
+
+    #[must_use]
+    pub fn should_fetch_more(&self) -> bool {
+        matches!(self, Self::Initial)
+    }
+}
+
+#[derive(Debug, Default)]
+enum FetchState {
     #[default]
     Initial,
     Ready {
@@ -28,21 +51,23 @@ pub enum FetchState {
     },
     Failed {
         fetched_before: Option<Vec<TrackEntity>>,
-        err_msg: String,
+        _err_msg: String,
     },
 }
 
 impl FetchState {
     #[must_use]
-    pub fn is_idle(&self) -> bool {
+    fn status(&self) -> FetchStatus {
         match self {
-            Self::Initial | Self::Ready { .. } | Self::Failed { .. } => true,
-            Self::Pending { .. } => false,
+            Self::Initial => FetchStatus::Initial,
+            Self::Ready { .. } => FetchStatus::Ready,
+            Self::Failed { .. } => FetchStatus::Failed,
+            Self::Pending { .. } => FetchStatus::Pending,
         }
     }
 
     #[must_use]
-    pub fn fetched(&self) -> Option<&[TrackEntity]> {
+    fn fetched(&self) -> Option<&[TrackEntity]> {
         match self {
             Self::Initial => None,
             Self::Ready { fetched, .. } => Some(fetched),
@@ -53,12 +78,7 @@ impl FetchState {
     }
 
     #[must_use]
-    pub fn should_fetch_more(&self) -> bool {
-        matches!(self, Self::Initial)
-    }
-
-    #[must_use]
-    pub fn can_fetch_more(&self) -> Option<bool> {
+    fn can_fetch_more(&self) -> Option<bool> {
         match self {
             Self::Initial => Some(true),                                 // sure
             Self::Pending { .. } | Self::Failed { .. } => None,          // undefined
@@ -66,7 +86,7 @@ impl FetchState {
         }
     }
 
-    pub fn reset(&mut self) -> bool {
+    fn reset(&mut self) -> bool {
         if matches!(self, Self::Initial) {
             return false;
         }
@@ -74,7 +94,7 @@ impl FetchState {
         true
     }
 
-    pub fn try_fetch_more(&mut self) -> bool {
+    fn try_fetch_more(&mut self) -> bool {
         debug_assert_eq!(Some(true), self.can_fetch_more());
         let fetched_before = match self {
             Self::Initial => None,
@@ -87,7 +107,7 @@ impl FetchState {
         true
     }
 
-    pub fn fetch_more_succeeded(
+    fn fetch_more_succeeded(
         &mut self,
         offset: usize,
         fetched: Vec<TrackEntity>,
@@ -130,13 +150,13 @@ impl FetchState {
         false
     }
 
-    pub fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
+    fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
         log::warn!("Fetching failed: {err}");
         if let Self::Pending { fetched_before } = self {
             let fetched_before = std::mem::take(fetched_before);
             *self = Self::Failed {
                 fetched_before,
-                err_msg: err.to_string(),
+                _err_msg: err.to_string(),
             };
             true
         } else {
@@ -146,7 +166,7 @@ impl FetchState {
     }
 }
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default)]
 pub struct State {
     context: Context,
     fetch: FetchState,
@@ -159,13 +179,13 @@ impl State {
     }
 
     #[must_use]
-    pub fn is_idle(&self) -> bool {
-        self.fetch.is_idle()
+    pub fn fetch_status(&self) -> FetchStatus {
+        self.fetch.status()
     }
 
     #[must_use]
     pub fn should_fetch_more(&self) -> bool {
-        self.context.collection_uid.is_some() && self.fetch.should_fetch_more()
+        self.context.collection_uid.is_some() && self.fetch_status().should_fetch_more()
     }
 
     #[must_use]
@@ -184,7 +204,7 @@ impl State {
 
     pub fn reset(&mut self) -> bool {
         let reset = Self::default();
-        if *self == reset {
+        if self.context == reset.context && self.fetch_status() == reset.fetch_status() {
             return false;
         }
         *self = reset;

@@ -176,9 +176,35 @@ pub async fn restore_or_create_entity_from_db(
         .map_err(Into::into)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
+pub enum Status {
+    Initial,
+    PendingMusicDir,
+    PendingEntityUid,
+    Ready,
+    NestedMusicDirectories,
+}
+
+impl Status {
+    #[must_use]
+    pub fn is_pending(&self) -> bool {
+        match self {
+            Self::Initial | Self::Ready | Self::NestedMusicDirectories => false,
+            Self::PendingMusicDir | Self::PendingEntityUid => true,
+        }
+    }
+
+    #[must_use]
+    pub fn is_ready(&self) -> bool {
+        matches!(self, Self::Ready)
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum State {
+    #[default]
     Initial,
     PendingMusicDir {
         kind: Option<String>,
@@ -198,21 +224,14 @@ pub enum State {
 
 impl State {
     #[must_use]
-    pub const fn new() -> Self {
-        Self::Initial
-    }
-
-    #[must_use]
-    pub fn is_pending(&self) -> bool {
+    pub fn status(&self) -> Status {
         match self {
-            Self::Initial | Self::Ready(_) | Self::NestedMusicDirectories { .. } => false,
-            Self::PendingMusicDir { .. } | Self::PendingEntityUid { .. } => true,
+            Self::Initial => Status::Initial,
+            Self::Ready(_) => Status::Ready,
+            Self::PendingMusicDir { .. } => Status::PendingMusicDir,
+            Self::PendingEntityUid { .. } => Status::PendingEntityUid,
+            Self::NestedMusicDirectories { .. } => Status::NestedMusicDirectories,
         }
-    }
-
-    #[must_use]
-    pub fn is_ready(&self) -> bool {
-        matches!(self, Self::Ready(_))
     }
 
     pub fn reset(&mut self) -> bool {
@@ -336,19 +355,13 @@ impl State {
 
     #[must_use]
     fn replace(&mut self, mut replacement: State) -> bool {
-        debug_assert!(self.is_pending());
+        debug_assert!(self.status().is_pending());
         if self == &replacement {
             return false;
         }
         log::debug!("Replacing state: {self:?} -> {replacement:?}");
         std::mem::swap(self, &mut replacement);
         true
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
