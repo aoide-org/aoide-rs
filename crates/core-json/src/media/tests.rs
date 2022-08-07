@@ -29,13 +29,15 @@ fn deserialize_audio_source() {
     let content_rev = ContentRevision::new(345);
     let json = serde_json::json!({
         "collectedAt": now.to_string(),
-        "contentLink": {
-            "path": "/home/test file.mp3",
-            "rev": Some(content_rev.to_value()),
+        "content": {
+            "link": {
+                "path": "/home/test file.mp3",
+                "rev": Some(content_rev.to_value()),
+            },
+            "type": "audio/mpeg",
+            "digest": "aGVsbG8gaW50ZXJuZXR-Cg",
+            "audio": {},
         },
-        "contentType": "audio/mpeg",
-        "contentDigest": "aGVsbG8gaW50ZXJuZXR-Cg",
-        "audio": {},
         "advisoryRating": 0,
     })
     .to_string();
@@ -46,16 +48,18 @@ fn deserialize_audio_source() {
     assert_eq!(
         _core::Source {
             collected_at: now,
-            content_link: _core::content::ContentLink {
-                path: _core::content::ContentPath::new("/home/test file.mp3".to_owned()),
-                rev: Some(content_rev),
+            content: _core::Content {
+                link: _core::content::ContentLink {
+                    path: _core::content::ContentPath::new("/home/test file.mp3".to_owned()),
+                    rev: Some(content_rev),
+                },
+                r#type: "audio/mpeg".parse().unwrap(),
+                metadata: _core::content::ContentMetadata::Audio(Default::default()),
+                metadata_flags: Default::default(),
+                digest: Digest::from_encoded("aGVsbG8gaW50ZXJuZXR-Cg")
+                    .try_decode()
+                    .ok(),
             },
-            content_type: "audio/mpeg".parse().unwrap(),
-            content_metadata: _core::content::ContentMetadata::Audio(Default::default()),
-            content_metadata_flags: Default::default(),
-            content_digest: Digest::from_encoded("aGVsbG8gaW50ZXJuZXR-Cg")
-                .try_decode()
-                .ok(),
             advisory_rating: Some(_core::AdvisoryRating::Unrated),
             artwork: None,
         },

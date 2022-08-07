@@ -10,7 +10,7 @@ use aoide_core::{
     media::{
         artwork::ApicType,
         content::{ContentMetadata, ContentPath, ContentRevision},
-        Source,
+        Content, Source,
     },
     music::{key::KeySignature, tempo::TempoBpm},
     tag::{
@@ -134,18 +134,21 @@ impl NewTrackInput {
             collected_at,
             content_rev,
         } = self;
-        let media_source = Source {
-            collected_at,
-            content_link: aoide_core::media::content::ContentLink {
+        let content = Content {
+            link: aoide_core::media::content::ContentLink {
                 path,
                 rev: content_rev,
             },
-            content_type,
-            content_metadata: ContentMetadata::Audio(Default::default()),
-            content_metadata_flags: Default::default(),
+            r#type: content_type,
+            metadata: ContentMetadata::Audio(Default::default()),
+            metadata_flags: Default::default(),
+            digest: None,
+        };
+        let media_source = Source {
+            collected_at,
+            content,
             artwork: Default::default(),
             advisory_rating: None,
-            content_digest: None,
         };
         Track::new_from_media_source(media_source)
     }
@@ -195,7 +198,7 @@ pub fn import_into_track(
     track: &mut Track,
 ) -> Result<Issues> {
     let mut importer = Importer::new();
-    match track.media_source.content_type.essence_str() {
+    match track.media_source.content.r#type.essence_str() {
         #[cfg(feature = "fmt-flac")]
         "audio/flac" => crate::fmt::flac::Metadata::read_from(reader)
             .and_then(|metadata| metadata.import_into_track(&mut importer, config, track)),
@@ -214,10 +217,10 @@ pub fn import_into_track(
         _ => {
             log::debug!(
                 "Skipping import of track {media_source_content_link:?}: {config:?}",
-                media_source_content_link = track.media_source.content_link
+                media_source_content_link = track.media_source.content.link
             );
             Err(Error::UnsupportedContentType(
-                track.media_source.content_type.to_owned(),
+                track.media_source.content.r#type.to_owned(),
             ))
         }
     }
@@ -225,7 +228,7 @@ pub fn import_into_track(
     .map_err(|err| {
         log::warn!(
             "Failed to parse metadata from media source '{}': {err}",
-            track.media_source.content_link.path,
+            track.media_source.content.link.path,
         );
         err
     })

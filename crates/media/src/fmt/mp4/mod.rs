@@ -223,11 +223,12 @@ impl Metadata {
     ) -> Result<()> {
         if track
             .media_source
-            .content_metadata_flags
+            .content
+            .metadata_flags
             .update(ContentMetadataFlags::UNRELIABLE)
         {
             let audio_content = self.import_audio_content(importer);
-            track.media_source.content_metadata = ContentMetadata::Audio(audio_content);
+            track.media_source.content.metadata = ContentMetadata::Audio(audio_content);
         }
 
         let Self(mut mp4_tag) = self;
@@ -639,7 +640,7 @@ pub fn export_track_to_path(
     let mut mp4_tag = mp4_tag_orig.clone();
 
     // Audio properties
-    match &track.media_source.content_metadata {
+    match &track.media_source.content.metadata {
         ContentMetadata::Audio(audio) => {
             if let Some(formatted_track_gain) = audio.loudness.and_then(format_valid_replay_gain) {
                 mp4_tag.set_all_data(

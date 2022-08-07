@@ -548,7 +548,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         let loaded = self
             .load_track_entity_by_media_source_content_path(
                 collection_id,
-                &track.media_source.content_link.path,
+                &track.media_source.content.link.path,
             )
             .optional()?;
         if let Some((media_source_id, record_header, entity)) = loaded {
@@ -588,7 +588,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 .next_rev()
                 .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
             let last_synchronized_rev = if update_last_synchronized_rev {
-                if track.media_source.content_link.rev.is_some() {
+                if track.media_source.content.link.rev.is_some() {
                     // Mark the track as synchronized with the media source
                     Some(entity_hdr.rev)
                 } else {
@@ -619,7 +619,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 .id;
             let entity_hdr = EntityHeader::initial_random();
             let last_synchronized_rev =
-                if update_last_synchronized_rev && track.media_source.content_link.rev.is_some() {
+                if update_last_synchronized_rev && track.media_source.content.link.rev.is_some() {
                     // Mark the track as synchronized with the media source
                     Some(entity_hdr.rev)
                 } else {

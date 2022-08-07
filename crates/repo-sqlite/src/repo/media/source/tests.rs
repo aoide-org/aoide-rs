@@ -69,18 +69,20 @@ fn insert_media_source() -> anyhow::Result<()> {
 
     let created_source = media::Source {
         collected_at: DateTime::now_local_or_utc(),
-        content_link: ContentLink {
-            path: ContentPath::new("file:///home/test/file.mp3".to_owned()),
-            rev: Some(ContentRevision::new(6)),
+        content: media::Content {
+            link: ContentLink {
+                path: ContentPath::new("file:///home/test/file.mp3".to_owned()),
+                rev: Some(ContentRevision::new(6)),
+            },
+            r#type: "audio/mpeg".parse().unwrap(),
+            digest: None,
+            metadata_flags: Default::default(),
+            metadata: AudioContentMetadata {
+                duration: Some(DurationMs::from_inner(543.0)),
+                ..Default::default()
+            }
+            .into(),
         },
-        content_type: "audio/mpeg".parse().unwrap(),
-        content_digest: None,
-        content_metadata_flags: Default::default(),
-        content_metadata: AudioContentMetadata {
-            duration: Some(DurationMs::from_inner(543.0)),
-            ..Default::default()
-        }
-        .into(),
         artwork: Some(Artwork::Linked(LinkedArtwork {
             uri: "file://folder.jpg".to_owned(),
             image: ArtworkImage {
@@ -119,19 +121,21 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
 
     let file_lowercase = media::Source {
         collected_at: DateTime::now_local_or_utc(),
-        content_link: ContentLink {
-            path: ContentPath::new("file:///home/file.mp3".to_owned()),
-            rev: None,
+        content: media::Content {
+            link: ContentLink {
+                path: ContentPath::new("file:///home/file.mp3".to_owned()),
+                rev: None,
+            },
+            r#type: "audio/mpeg".parse().unwrap(),
+            digest: None,
+            metadata_flags: Default::default(),
+            metadata: AudioContentMetadata {
+                duration: Some(DurationMs::from_inner(1.0)),
+                ..Default::default()
+            }
+            .into(),
         },
-        content_type: "audio/mpeg".parse().unwrap(),
         advisory_rating: None,
-        content_digest: None,
-        content_metadata_flags: Default::default(),
-        content_metadata: AudioContentMetadata {
-            duration: Some(DurationMs::from_inner(1.0)),
-            ..Default::default()
-        }
-        .into(),
         artwork: Default::default(),
     };
     let header_lowercase =
@@ -139,19 +143,21 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
 
     let file_uppercase = media::Source {
         collected_at: DateTime::now_local_or_utc(),
-        content_link: ContentLink {
-            path: ContentPath::new("file:///Home/File.mp3".to_owned()),
-            rev: None,
+        content: media::Content {
+            link: ContentLink {
+                path: ContentPath::new("file:///Home/File.mp3".to_owned()),
+                rev: None,
+            },
+            r#type: "audio/mpeg".parse().unwrap(),
+            digest: None,
+            metadata_flags: ContentMetadataFlags::RELIABLE,
+            metadata: AudioContentMetadata {
+                duration: Some(DurationMs::from_inner(1.0)),
+                ..Default::default()
+            }
+            .into(),
         },
-        content_type: "audio/mpeg".parse().unwrap(),
         advisory_rating: None,
-        content_digest: None,
-        content_metadata_flags: ContentMetadataFlags::RELIABLE,
-        content_metadata: AudioContentMetadata {
-            duration: Some(DurationMs::from_inner(1.0)),
-            ..Default::default()
-        }
-        .into(),
         artwork: Default::default(),
     };
     let header_uppercase =
@@ -161,25 +167,25 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
     assert_eq!(
         vec![header_lowercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Equals(
-            &file_lowercase.content_link.path
+            &file_lowercase.content.link.path
         ))?
     );
     assert!(fixture
         .resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Equals(
-            &file_lowercase.content_link.path.to_uppercase()
+            &file_lowercase.content.link.path.to_uppercase()
         ))?
         .is_empty());
 
     assert_eq!(
         vec![header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Equals(
-            &file_uppercase.content_link.path
+            &file_uppercase.content.link.path
         ))?
     );
     assert_eq!(
         vec![header_lowercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Equals(
-            &file_uppercase.content_link.path.to_lowercase()
+            &file_uppercase.content.link.path.to_lowercase()
         ))?
     );
 
@@ -211,13 +217,13 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
-            StringPredicateBorrowed::StartsWith(&file_lowercase.content_link.path)
+            StringPredicateBorrowed::StartsWith(&file_lowercase.content.link.path)
         )?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
-            StringPredicateBorrowed::StartsWith(&file_uppercase.content_link.path)
+            StringPredicateBorrowed::StartsWith(&file_uppercase.content.link.path)
         )?
     );
     assert_eq!(
@@ -261,19 +267,21 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
 
     let file_lowercase = media::Source {
         collected_at: DateTime::now_local_or_utc(),
-        content_link: ContentLink {
-            path: ContentPath::new("file:///ho''me/file.mp3".to_owned()),
-            rev: None,
+        content: media::Content {
+            link: ContentLink {
+                path: ContentPath::new("file:///ho''me/file.mp3".to_owned()),
+                rev: None,
+            },
+            r#type: "audio/mpeg".parse().unwrap(),
+            digest: None,
+            metadata_flags: Default::default(),
+            metadata: AudioContentMetadata {
+                duration: Some(DurationMs::from_inner(1.0)),
+                ..Default::default()
+            }
+            .into(),
         },
-        content_type: "audio/mpeg".parse().unwrap(),
         advisory_rating: None,
-        content_digest: None,
-        content_metadata_flags: Default::default(),
-        content_metadata: AudioContentMetadata {
-            duration: Some(DurationMs::from_inner(1.0)),
-            ..Default::default()
-        }
-        .into(),
         artwork: Default::default(),
     };
     let header_lowercase =
@@ -281,18 +289,20 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
 
     let file_uppercase = media::Source {
         collected_at: DateTime::now_local_or_utc(),
-        content_link: ContentLink {
-            path: ContentPath::new("file:///Ho''me/File.mp3".to_owned()),
-            rev: None,
+        content: media::Content {
+            link: ContentLink {
+                path: ContentPath::new("file:///Ho''me/File.mp3".to_owned()),
+                rev: None,
+            },
+            r#type: "audio/mpeg".parse().unwrap(),
+            digest: None,
+            metadata_flags: ContentMetadataFlags::RELIABLE,
+            metadata: AudioContentMetadata {
+                duration: Some(DurationMs::from_inner(1.0)),
+                ..Default::default()
+            }
+            .into(),
         },
-        content_type: "audio/mpeg".parse().unwrap(),
-        content_digest: None,
-        content_metadata_flags: ContentMetadataFlags::RELIABLE,
-        content_metadata: AudioContentMetadata {
-            duration: Some(DurationMs::from_inner(1.0)),
-            ..Default::default()
-        }
-        .into(),
         artwork: Default::default(),
         advisory_rating: None,
     };

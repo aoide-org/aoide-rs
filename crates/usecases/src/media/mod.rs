@@ -172,6 +172,6 @@ pub fn export_track_metadata_into_file(
     config: &ExportTrackConfig,
     track: &mut Track,
 ) -> Result<bool> {
-    let file_path = content_path_resolver.build_file_path(&track.media_source.content_link.path);
+    let file_path = content_path_resolver.build_file_path(&track.media_source.content.link.path);
     export_track_to_path(&file_path, config, track).map_err(Into::into)
 }

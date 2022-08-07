@@ -37,7 +37,7 @@ pub fn export_track_to_path(
     config: &ExportTrackConfig,
     track: &mut Track,
 ) -> Result<bool> {
-    match track.media_source.content_type.essence_str() {
+    match track.media_source.content.r#type.essence_str() {
         #[cfg(feature = "fmt-flac")]
         "audio/flac" => crate::fmt::flac::export_track_to_path(path, config, track),
         #[cfg(feature = "fmt-mp3")]
@@ -48,10 +48,10 @@ pub fn export_track_to_path(
         _ => {
             log::debug!(
                 "Skipping export of track {media_source_content_link:?}: {path:?} {config:?}",
-                media_source_content_link = track.media_source.content_link
+                media_source_content_link = track.media_source.content.link
             );
             Err(Error::UnsupportedContentType(
-                track.media_source.content_type.to_owned(),
+                track.media_source.content.r#type.to_owned(),
             ))
         }
     }

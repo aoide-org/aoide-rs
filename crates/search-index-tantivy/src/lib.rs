@@ -130,7 +130,7 @@ impl TrackFields {
         doc.add_u64(self.rev, entity.hdr.rev.to_inner());
         doc.add_text(
             self.content_path,
-            &entity.body.track.media_source.content_link.path,
+            &entity.body.track.media_source.content.link.path,
         );
         add_date_field(
             &mut doc,
@@ -138,7 +138,7 @@ impl TrackFields {
             entity.body.track.media_source.collected_at,
         );
         let ContentMetadata::Audio(audio_metadata) =
-            &entity.body.track.media_source.content_metadata;
+            &entity.body.track.media_source.content.metadata;
         if let Some(duration) = audio_metadata.duration {
             doc.add_f64(self.duration_ms, duration.to_inner());
         }

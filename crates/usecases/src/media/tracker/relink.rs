@@ -190,7 +190,7 @@ where
             return Ok(relinked_media_sources);
         }
         report_progress_fn(&progress);
-        let old_content_link_path = old_entity.body.track.media_source.content_link.path.clone();
+        let old_content_link_path = old_entity.body.track.media_source.content.link.path.clone();
         let candidates = find_duplicates(
             repo,
             collection_id,
@@ -206,7 +206,7 @@ where
             }
             1 => candidates
                 .into_iter()
-                .map(|(_, entity)| entity.raw.body.track.media_source.content_link.path)
+                .map(|(_, entity)| entity.raw.body.track.media_source.content.link.path)
                 .next()
                 .expect("single URI"),
             _ => {

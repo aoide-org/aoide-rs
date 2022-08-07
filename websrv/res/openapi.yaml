@@ -1752,7 +1752,7 @@ components:
           $ref: '#/components/schemas/FilterModifier'
         value:
           $ref: '#/components/schemas/StringPredicate'
-    MediaSourceContentMetadata:
+    MediaContentMetadata:
       allOf:
         - $ref: '#/components/schemas/MediaSourceAudioContentMetadata'
     MediaSourceAudioContentMetadata:
@@ -1760,29 +1760,36 @@ components:
       properties:
         audio:
           $ref: '#/components/schemas/AudioContentMetadata'
+    MediaContent:
+      type: object
+      properties:
+        link:
+          $ref: '#/components/schemas/MediaContentLink'
+        type:
+          $ref: '#/components/schemas/MediaType'
+        digest:
+          $ref: '#/components/schemas/MediaDigest'
+        metadataFlags:
+          $ref: '#/components/schemas/ContentMetadataFlags'
+      additionalProperties:
+        $ref: '#/components/schemas/MediaContentMetadata'
+      required:
+        - link
+        - type
     MediaSource:
       type: object
       properties:
         collectedAt:
           $ref: '#/components/schemas/DateTime'
-        contentLink:
-          $ref: '#/components/schemas/MediaContentLink'
-        contentType:
-          $ref: '#/components/schemas/MediaType'
-        contentDigest:
-          $ref: '#/components/schemas/MediaDigest'
-        contentMetadataFlags:
-          $ref: '#/components/schemas/ContentMetadataFlags'
+        content:
+          $ref: '#/components/schemas/MediaContent'
         artwork:
           $ref: '#/components/schemas/Artwork'
         advisoryRating:
           $ref: '#/components/schemas/AdvisoryRatingCode'
-      additionalProperties:
-        $ref: '#/components/schemas/MediaSourceContentMetadata'
       required:
         - collectedAt
-        - contentLink
-        - contentType
+        - content
     LastSynchronizedEntityRevision:
       description: |
         Last synchronized track entity revision

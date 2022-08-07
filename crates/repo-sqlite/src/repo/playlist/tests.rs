@@ -61,18 +61,20 @@ impl Fixture {
             let created_at = DateTime::now_local_or_utc();
             let media_source = media::Source {
                 collected_at: created_at,
-                content_link: ContentLink {
-                    path: ContentPath::new(format!("/home/test/file{i}.mp3")),
-                    rev: None,
+                content: media::Content {
+                    link: ContentLink {
+                        path: ContentPath::new(format!("/home/test/file{i}.mp3")),
+                        rev: None,
+                    },
+                    r#type: "audio/mpeg".parse().unwrap(),
+                    metadata_flags: Default::default(),
+                    metadata: AudioContentMetadata {
+                        duration: Some(DurationMs::from_inner(i as f64)),
+                        ..Default::default()
+                    }
+                    .into(),
+                    digest: None,
                 },
-                content_type: "audio/mpeg".parse().unwrap(),
-                content_metadata_flags: Default::default(),
-                content_metadata: AudioContentMetadata {
-                    duration: Some(DurationMs::from_inner(i as f64)),
-                    ..Default::default()
-                }
-                .into(),
-                content_digest: None,
                 artwork: Default::default(),
                 advisory_rating: None,
             };

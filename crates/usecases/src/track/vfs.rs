@@ -24,7 +24,7 @@ where
     type Record = Entity;
 
     fn collect(&mut self, header: Self::Header, mut record: Self::Record) {
-        let path = &record.body.track.media_source.content_link.path;
+        let path = &record.body.track.media_source.content.link.path;
         debug_assert!(record.body.content_url.is_none());
         record.body.content_url = self
             .content_path_resolver

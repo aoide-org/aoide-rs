@@ -864,7 +864,7 @@ pub fn export_track(
     writer: &mut impl CommentWriter,
 ) {
     // Audio properties
-    match &track.media_source.content_metadata {
+    match &track.media_source.content.metadata {
         ContentMetadata::Audio(audio) => {
             export_loudness(writer, audio.loudness);
             export_encoder(writer, audio.encoder.to_owned());

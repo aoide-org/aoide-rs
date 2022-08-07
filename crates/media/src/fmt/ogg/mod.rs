@@ -93,11 +93,12 @@ impl Metadata {
     ) -> Result<()> {
         if track
             .media_source
-            .content_metadata_flags
+            .content
+            .metadata_flags
             .update(ContentMetadataFlags::RELIABLE)
         {
             let audio_content = self.import_audio_content(importer);
-            track.media_source.content_metadata = ContentMetadata::Audio(audio_content);
+            track.media_source.content.metadata = ContentMetadata::Audio(audio_content);
         }
 
         let Self(_, vorbis_comments) = &self;

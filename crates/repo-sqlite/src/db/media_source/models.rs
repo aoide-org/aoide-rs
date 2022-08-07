@@ -21,7 +21,7 @@ use aoide_core::{
             AudioContentMetadata, ContentLink, ContentMetadata, ContentMetadataFlags,
             ContentRevision, ContentRevisionSignedValue,
         },
-        AdvisoryRating, Source,
+        AdvisoryRating, Content, Source,
     },
     util::clock::*,
 };
@@ -174,11 +174,13 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
         let advisory_rating = advisory_rating.and_then(AdvisoryRating::from_i16);
         let source = Source {
             collected_at,
-            content_link,
-            content_type,
-            content_digest,
-            content_metadata_flags,
-            content_metadata,
+            content: Content {
+                link: content_link,
+                r#type: content_type,
+                digest: content_digest,
+                metadata: content_metadata,
+                metadata_flags: content_metadata_flags,
+            },
             artwork,
             advisory_rating,
         };
@@ -225,15 +227,18 @@ impl<'a> InsertableRecord<'a> {
     ) -> Self {
         let Source {
             collected_at,
-            content_link:
-                ContentLink {
-                    path: content_link_path,
-                    rev: content_link_rev,
+            content:
+                Content {
+                    link:
+                        ContentLink {
+                            path: content_link_path,
+                            rev: content_link_rev,
+                        },
+                    r#type: content_type,
+                    digest: content_digest,
+                    metadata: content_metadata,
+                    metadata_flags: content_metadata_flags,
                 },
-            content_type,
-            content_digest,
-            content_metadata_flags,
-            content_metadata,
             artwork,
             advisory_rating,
         } = created_source;
@@ -358,15 +363,18 @@ impl<'a> UpdatableRecord<'a> {
     pub fn bind(updated_at: DateTime, updated_source: &'a Source) -> Self {
         let Source {
             collected_at,
-            content_link:
-                ContentLink {
-                    path: content_link_path,
-                    rev: content_link_rev,
+            content:
+                Content {
+                    link:
+                        ContentLink {
+                            path: content_link_path,
+                            rev: content_link_rev,
+                        },
+                    r#type: content_type,
+                    digest: content_digest,
+                    metadata: content_metadata,
+                    metadata_flags: content_metadata_flags,
                 },
-            content_type,
-            content_digest,
-            content_metadata_flags,
-            content_metadata,
             artwork,
             advisory_rating,
         } = updated_source;

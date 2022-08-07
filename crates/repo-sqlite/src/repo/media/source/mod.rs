@@ -197,7 +197,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         debug_assert_eq!(1, rows_affected);
         let (id, _) = self.resolve_media_source_id_synchronized_at_by_path(
             collection_id,
-            &created_source.content_link.path,
+            &created_source.content.link.path,
         )?;
         Ok(RecordHeader {
             id,

@@ -170,11 +170,12 @@ impl Metadata {
     ) -> Result<()> {
         if track
             .media_source
-            .content_metadata_flags
+            .content
+            .metadata_flags
             .update(ContentMetadataFlags::RELIABLE)
         {
             if let Some(audio_content) = self.import_audio_content(importer) {
-                track.media_source.content_metadata = ContentMetadata::Audio(audio_content);
+                track.media_source.content.metadata = ContentMetadata::Audio(audio_content);
             }
         }
 
@@ -451,7 +452,7 @@ pub fn export_track_to_path(
     let mut metaflac_tag = match metaflac::Tag::read_from_path(path) {
         Ok(metaflac_tag) => metaflac_tag,
         Err(err) => {
-            let content_path = &track.media_source.content_link.path;
+            let content_path = &track.media_source.content.link.path;
             log::warn!("Failed to parse metadata from media source '{content_path}': {err}");
             return Err(map_metaflac_err(err));
         }

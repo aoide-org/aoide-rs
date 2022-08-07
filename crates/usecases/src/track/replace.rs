@@ -51,7 +51,7 @@ where
     Repo: TrackCollectionRepo,
 {
     let ValidatedInput(track) = track;
-    let media_content_path = track.media_source.content_link.path.clone();
+    let media_content_path = track.media_source.content.link.path.clone();
     let outcome = repo
         .replace_track_by_media_source_content_path(collection_id, params, track)
         .map_err(|err| {
@@ -63,7 +63,7 @@ where
             debug_assert_ne!(ReplaceMode::UpdateOnly, params.mode);
             log::trace!(
                 "Created {}: {:?}",
-                entity.body.track.media_source.content_link.path,
+                entity.body.track.media_source.content.link.path,
                 entity.hdr
             );
             summary.created.push(entity);
@@ -73,7 +73,7 @@ where
             debug_assert_ne!(ReplaceMode::CreateOnly, params.mode);
             log::trace!(
                 "Updated {}: {:?}",
-                entity.body.track.media_source.content_link.path,
+                entity.body.track.media_source.content.link.path,
                 entity.hdr
             );
             summary.updated.push(entity);
@@ -83,7 +83,7 @@ where
             log::trace!("Unchanged: {entity:?}");
             summary
                 .unchanged
-                .push(entity.raw.body.track.media_source.content_link.path);
+                .push(entity.raw.body.track.media_source.content.link.path);
             media_source_id
         }
         ReplaceOutcome::NotCreated(track) => {
@@ -134,17 +134,18 @@ where
         if let Some(content_path_resolver) = content_path_resolver.as_ref() {
             let url = track
                 .media_source
-                .content_link
+                .content
+                .link
                 .path
                 .parse()
                 .map_err(|err| {
                     anyhow::anyhow!(
                         "Failed to parse URL from path '{}': {err}",
-                        track.media_source.content_link.path,
+                        track.media_source.content.link.path,
                     )
                 })
                 .map_err(Error::from)?;
-            track.media_source.content_link.path = content_path_resolver
+            track.media_source.content.link.path = content_path_resolver
                 .resolve_path_from_url(&url)
                 .map_err(|err| {
                     anyhow::anyhow!("Failed to resolve local file path from URL '{url}': {err}")

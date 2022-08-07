@@ -166,7 +166,7 @@ where
         all_filters.push(Filter::Condition(ConditionFilter::SourceTracked));
     }
     // Only sources with similar audio duration
-    let audio_duration_ms = match track.media_source.content_metadata {
+    let audio_duration_ms = match track.media_source.content.metadata {
         ContentMetadata::Audio(content) => content.duration,
     };
     all_filters.push(if let Some(audio_duration_ms) = audio_duration_ms {
@@ -180,7 +180,7 @@ where
     // Only sources with equal content/file type
     all_filters.push(Filter::Phrase(PhraseFieldFilter {
         fields: vec![StringField::ContentType],
-        terms: vec![track.media_source.content_type.to_string()],
+        terms: vec![track.media_source.content.r#type.to_string()],
     }));
     let filter = Filter::All(all_filters);
     // Prefer recently added sources, e.g. after scanning the file system

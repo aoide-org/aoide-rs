@@ -74,13 +74,11 @@ impl AdvisoryRating {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Source {
-    pub collected_at: DateTime,
-
+pub struct Content {
     /// Revisioned link to an external source with the actual contents
-    pub content_link: ContentLink,
+    pub link: ContentLink,
 
-    pub content_type: Mime,
+    pub r#type: Mime,
 
     /// Digest of immutable content data
     ///
@@ -92,11 +90,18 @@ pub struct Source {
     /// Additional metadata like file tags that are modified frequently
     /// and change over time are not suitable to be included in the
     /// calculation of the fingerprint.
-    pub content_digest: Option<Vec<u8>>,
+    pub digest: Option<Vec<u8>>,
 
-    pub content_metadata: ContentMetadata,
+    pub metadata: ContentMetadata,
 
-    pub content_metadata_flags: ContentMetadataFlags,
+    pub metadata_flags: ContentMetadataFlags,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Source {
+    pub collected_at: DateTime,
+
+    pub content: Content,
 
     pub artwork: Option<Artwork>,
 
@@ -118,15 +123,18 @@ impl Validate for Source {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let Self {
             collected_at: _,
-            content_link:
-                ContentLink {
-                    path: link_path,
-                    rev: _,
+            content:
+                Content {
+                    link:
+                        ContentLink {
+                            path: link_path,
+                            rev: _,
+                        },
+                    r#type: content_type,
+                    metadata: content_metadata,
+                    metadata_flags: content_metadata_flags,
+                    digest: _,
                 },
-            content_type,
-            content_metadata,
-            content_metadata_flags,
-            content_digest: _,
             advisory_rating: _,
             artwork,
         } = self;

@@ -633,7 +633,7 @@ pub fn export_track(
     }
 
     // Audio properties
-    match &track.media_source.content_metadata {
+    match &track.media_source.content.metadata {
         ContentMetadata::Audio(audio) => {
             if let Some(formatted_track_gain) = audio.loudness.and_then(format_valid_replay_gain) {
                 tag.add_frame(ExtendedText {

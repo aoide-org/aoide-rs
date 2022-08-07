@@ -145,21 +145,73 @@ fn is_default_content_metadata_flags(flags: &u8) -> bool {
 #[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Content {
+    link: ContentLink,
+
+    #[serde(rename = "type")]
+    r#type: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    digest: Option<Digest>,
+
+    #[serde(flatten)]
+    metadata: ContentMetadata,
+
+    #[serde(skip_serializing_if = "is_default_content_metadata_flags", default)]
+    metadata_flags: u8,
+}
+
+impl From<_core::Content> for Content {
+    fn from(from: _core::Content) -> Self {
+        let _core::Content {
+            link,
+            r#type,
+            digest,
+            metadata,
+            metadata_flags,
+        } = from;
+        Self {
+            link: link.into(),
+            r#type: r#type.to_string(),
+            digest: digest.map(Into::into),
+            metadata: metadata.into(),
+            metadata_flags: metadata_flags.bits(),
+        }
+    }
+}
+
+impl TryFrom<Content> for _core::Content {
+    type Error = anyhow::Error;
+
+    fn try_from(from: Content) -> anyhow::Result<Self> {
+        let Content {
+            link,
+            r#type,
+            digest,
+            metadata,
+            metadata_flags,
+        } = from;
+        let r#type = r#type.parse()?;
+        let digest = digest.as_ref().map(TryFrom::try_from).transpose()?;
+        let into = Self {
+            link: link.into(),
+            r#type,
+            digest,
+            metadata: metadata.into(),
+            metadata_flags: ContentMetadataFlags::from_bits_truncate(metadata_flags),
+        };
+        Ok(into)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Source {
     collected_at: DateTime,
 
-    content_link: ContentLink,
-
-    content_type: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    content_digest: Option<Digest>,
-
-    #[serde(flatten)]
-    content_metadata: ContentMetadata,
-
-    #[serde(skip_serializing_if = "is_default_content_metadata_flags", default)]
-    content_metadata_flags: u8,
+    content: Content,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     artwork: Option<Artwork>,
@@ -172,21 +224,13 @@ impl From<_core::Source> for Source {
     fn from(from: _core::Source) -> Self {
         let _core::Source {
             collected_at,
-            content_link,
-            content_type,
-            content_digest,
-            content_metadata,
-            content_metadata_flags,
+            content,
             artwork,
             advisory_rating,
         } = from;
         Self {
             collected_at: collected_at.into(),
-            content_link: content_link.into(),
-            content_type: content_type.to_string(),
-            content_digest: content_digest.map(Into::into),
-            content_metadata: content_metadata.into(),
-            content_metadata_flags: content_metadata_flags.bits(),
+            content: content.into(),
             artwork: artwork.map(Into::into),
             advisory_rating: advisory_rating.map(Into::into),
         }
@@ -199,26 +243,15 @@ impl TryFrom<Source> for _core::Source {
     fn try_from(from: Source) -> anyhow::Result<Self> {
         let Source {
             collected_at,
-            content_link,
-            content_type,
-            content_digest,
-            content_metadata,
-            content_metadata_flags,
+            content,
             artwork,
             advisory_rating,
         } = from;
-        let content_type = content_type.parse()?;
-        let content_digest = content_digest.as_ref().map(TryFrom::try_from).transpose()?;
+        let content = content.try_into()?;
         let artwork = artwork.map(TryFrom::try_from).transpose()?;
         let into = Self {
             collected_at: collected_at.into(),
-            content_link: content_link.into(),
-            content_type,
-            content_digest,
-            content_metadata: content_metadata.into(),
-            content_metadata_flags: ContentMetadataFlags::from_bits_truncate(
-                content_metadata_flags,
-            ),
+            content,
             artwork,
             advisory_rating: advisory_rating.map(Into::into),
         };

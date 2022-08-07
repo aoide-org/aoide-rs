@@ -64,7 +64,7 @@ where
         .map_or((None, None, None, None), |(media_source_id, _, entity)| {
             (
                 Some(media_source_id),
-                entity.body.track.media_source.content_link.rev,
+                entity.body.track.media_source.content.link.rev,
                 entity.body.last_synchronized_rev.map(|rev| {
                     debug_assert!(rev <= entity.hdr.rev);
                     rev == entity.hdr.rev
@@ -94,7 +94,7 @@ where
             track: imported_track,
             issues: import_issues,
         }) => {
-            debug_assert_eq!(imported_track.media_source.content_link.path, content_path);
+            debug_assert_eq!(imported_track.media_source.content.link.path, content_path);
             let track = if let Some(mut collected_track) =
                 entity_body.map(|entity_body| entity_body.track)
             {

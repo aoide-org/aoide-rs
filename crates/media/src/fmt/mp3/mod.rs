@@ -124,14 +124,15 @@ impl MetadataExt {
         };
         if track
             .media_source
-            .content_metadata_flags
+            .content
+            .metadata_flags
             .update(update_metadata_flags)
         {
-            track.media_source.content_metadata = ContentMetadata::Audio(audio_content);
+            track.media_source.content.metadata = ContentMetadata::Audio(audio_content);
         } else {
             log::info!(
                 "Skipping import of audio content for {}",
-                track.media_source.content_link.path,
+                track.media_source.content.link.path,
             );
         }
 
