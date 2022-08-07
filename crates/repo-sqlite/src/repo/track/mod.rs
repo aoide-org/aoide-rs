@@ -603,6 +603,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 track,
                 updated_at,
                 last_synchronized_rev,
+                content_url: None,
             };
             let entity = Entity::new(entity_hdr, entity_body);
             self.update_track_entity(id, media_source_id, &entity)?;
@@ -628,6 +629,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 track,
                 updated_at: created_at,
                 last_synchronized_rev,
+                content_url: None,
             };
             let entity = Entity::new(entity_hdr, entity_body);
             let id = self.insert_track_entity(media_source_id, &entity)?;

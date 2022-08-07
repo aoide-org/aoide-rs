@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{
-    media::content::resolver::{
-        ContentPathResolver as _, FileUrlResolver, VirtualFilePathResolver,
-    },
+    media::content::resolver::{ContentPathResolver as _, VirtualFilePathResolver},
     track::Entity,
 };
 
@@ -27,20 +25,15 @@ where
 
     fn collect(&mut self, header: Self::Header, mut record: Self::Record) {
         let path = &record.body.track.media_source.content_link.path;
-        match self
+        debug_assert!(record.body.content_url.is_none());
+        record.body.content_url = self
             .content_path_resolver
             .resolve_url_from_content_path(path)
-        {
-            Ok(url) => {
-                record.body.track.media_source.content_link.path = FileUrlResolver
-                    .resolve_path_from_url(&url)
-                    .expect("percent-encoded URL");
-                self.collector.collect(header, record);
-            }
-            Err(err) => {
+            .map_err(|err| {
                 log::error!("Failed to convert media source path '{path}' to URL: {err}");
-            }
-        }
+            })
+            .ok();
+        self.collector.collect(header, record);
     }
 }
 

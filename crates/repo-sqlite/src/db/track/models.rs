@@ -257,6 +257,7 @@ pub(crate) fn load_repo_entity(
         track,
         updated_at: header.updated_at,
         last_synchronized_rev,
+        content_url: None,
     };
     let entity = Entity::new(EntityHeaderTyped::from_untyped(entity_hdr), entity_body);
     Ok((header, entity))
@@ -310,6 +311,7 @@ impl<'a> InsertableRecord<'a> {
             track,
             updated_at,
             last_synchronized_rev,
+            content_url: _,
         } = &entity.body;
         let row_created_updated_ms = updated_at.timestamp_millis();
         let Track {
@@ -462,6 +464,7 @@ impl<'a> UpdatableRecord<'a> {
             track,
             updated_at,
             last_synchronized_rev,
+            content_url: _,
         } = entity_body;
         let Track {
             media_source: _,

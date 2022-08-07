@@ -3293,6 +3293,8 @@ components:
           $ref: '#/components/schemas/DateTime'
         lastSynchronizedRev:
           $ref: '#/components/schemas/LastSynchronizedEntityRevision'
+        contentUrl:
+          $ref: '#/components/schemas/PercentEncodedUrl'
       required:
         - track
         - updatedAt

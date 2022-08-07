@@ -6,16 +6,13 @@ use aoide_core::util::url::BaseUrl;
 pub mod purge_orphaned;
 pub mod purge_untracked;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ResolveUrlFromContentPath {
+    #[default]
     CanonicalRootUrl,
-    OverrideRootUrl { root_url: BaseUrl },
-}
-
-impl Default for ResolveUrlFromContentPath {
-    fn default() -> Self {
-        Self::CanonicalRootUrl
-    }
+    OverrideRootUrl {
+        root_url: BaseUrl,
+    },
 }
 
 impl ResolveUrlFromContentPath {

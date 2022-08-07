@@ -9,6 +9,8 @@ pub mod metric;
 pub mod tag;
 pub mod title;
 
+use ::url::Url;
+
 use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
 
 use crate::{
@@ -355,6 +357,9 @@ pub struct EntityBody {
     /// provided value will be silently ignored when creating or
     /// updating a track entity if not mentioned otherwise.
     pub last_synchronized_rev: Option<EntityRevision>,
+
+    /// URL as resolved from the content path of the media source
+    pub content_url: Option<Url>,
 }
 
 impl Validate for EntityBody {

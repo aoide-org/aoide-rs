@@ -84,6 +84,7 @@ impl Fixture {
                 track,
                 updated_at: created_at,
                 last_synchronized_rev: None,
+                content_url: None,
             };
             let track_entity = TrackEntity::new(EntityHeaderTyped::initial_random(), entity_body);
             let track_id = db.insert_track_entity(media_source_id, &track_entity)?;

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use url::Url;
+
 use aoide_core::{
     track::PlayCount,
     util::canonical::{Canonical, CanonicalizeInto as _},
@@ -182,6 +184,9 @@ pub struct EntityBody {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     last_synchronized_rev: Option<EntityRevision>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    content_url: Option<Url>,
 }
 
 impl TryFrom<EntityBody> for _core::EntityBody {
@@ -192,12 +197,14 @@ impl TryFrom<EntityBody> for _core::EntityBody {
             track,
             updated_at,
             last_synchronized_rev,
+            content_url,
         } = from;
         let track = track.try_into()?;
         Ok(Self {
             track,
             updated_at: updated_at.into(),
             last_synchronized_rev: last_synchronized_rev.map(Into::into),
+            content_url,
         })
     }
 }
@@ -208,11 +215,13 @@ impl From<_core::EntityBody> for EntityBody {
             track,
             updated_at,
             last_synchronized_rev,
+            content_url,
         } = from;
         Self {
             track: track.into(),
             updated_at: updated_at.into(),
             last_synchronized_rev: last_synchronized_rev.map(Into::into),
+            content_url,
         }
     }
 }

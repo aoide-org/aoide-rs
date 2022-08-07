@@ -73,6 +73,7 @@ where
             track: updated_track,
             updated_at,
             last_synchronized_rev: old_entity.body.last_synchronized_rev,
+            content_url: None,
         };
         if old_entity.body.track.media_source != updated_entity_body.track.media_source {
             repo.update_media_source(
