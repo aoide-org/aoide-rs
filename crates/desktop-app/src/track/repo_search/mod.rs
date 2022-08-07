@@ -14,7 +14,7 @@ use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 pub mod tasklet;
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Context {
     pub collection_uid: Option<CollectionUid>,
     pub params: Params,
@@ -224,13 +224,32 @@ impl FetchState {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct State {
+    default_params: Params,
     context: Context,
     fetch: FetchState,
 }
 
 impl State {
+    #[must_use]
+    pub fn new(default_params: Params) -> Self {
+        let context = Context {
+            params: default_params.clone(),
+            ..Default::default()
+        };
+        Self {
+            default_params,
+            context,
+            fetch: Default::default(),
+        }
+    }
+
+    #[must_use]
+    pub const fn default_params(&self) -> &Params {
+        &self.default_params
+    }
+
     #[must_use]
     pub const fn context(&self) -> &Context {
         &self.context
@@ -265,7 +284,7 @@ impl State {
     }
 
     pub fn reset(&mut self) -> bool {
-        let reset = Self::default();
+        let reset = Self::new(self.default_params.clone());
         if self.context == reset.context && self.fetch.state_tag() == reset.fetch.state_tag() {
             return false;
         }
@@ -452,12 +471,6 @@ impl ObservableState {
     #[allow(clippy::must_use_candidate)]
     pub fn reset_fetched(&self) -> bool {
         self.modify(|state| state.reset_fetched())
-    }
-}
-
-impl Default for ObservableState {
-    fn default() -> Self {
-        Self::new(Default::default())
     }
 }
 
