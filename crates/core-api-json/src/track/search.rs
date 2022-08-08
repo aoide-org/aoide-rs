@@ -412,6 +412,7 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum Filter {
+    EntityUid(EntityUid),
     Phrase(PhraseFieldFilter),
     Numeric(NumericFieldFilter),
     DateTime(DateTimeFieldFilter),
@@ -429,6 +430,7 @@ impl From<Filter> for _inner::Filter {
     fn from(from: Filter) -> Self {
         use Filter::*;
         match from {
+            EntityUid(from) => Self::EntityUid(from.into()),
             Phrase(from) => Self::Phrase(from.into()),
             Numeric(from) => Self::Numeric(from.into()),
             DateTime(from) => Self::DateTime(from.into()),
@@ -448,6 +450,7 @@ impl From<_inner::Filter> for Filter {
     fn from(from: _inner::Filter) -> Self {
         use _inner::Filter::*;
         match from {
+            EntityUid(from) => Self::EntityUid(from.into()),
             Phrase(from) => Self::Phrase(from.into()),
             Numeric(from) => Self::Numeric(from.into()),
             DateTime(from) => Self::DateTime(from.into()),

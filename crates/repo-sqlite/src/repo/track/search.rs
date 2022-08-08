@@ -247,6 +247,10 @@ impl TrackSearchQueryTransform for SortOrder {
     }
 }
 
+fn build_entity_uid_filter_expression(entity_uid: &EntityUid) -> TrackSearchBoxedExpression<'_> {
+    Box::new(track::entity_uid.eq(entity_uid.as_ref()))
+}
+
 fn build_phrase_field_filter_expression(
     filter: &PhraseFieldFilter,
 ) -> TrackSearchBoxedExpression<'_> {
@@ -1055,6 +1059,7 @@ impl TrackSearchBoxedExpressionBuilder for Filter {
     fn build_expression(&self) -> TrackSearchBoxedExpression<'_> {
         use Filter::*;
         match self {
+            EntityUid(entity_uid) => build_entity_uid_filter_expression(entity_uid),
             Phrase(filter) => build_phrase_field_filter_expression(filter),
             Numeric(filter) => build_numeric_field_filter_expression(filter),
             DateTime(filter) => build_datetime_field_filter_expression(filter),
