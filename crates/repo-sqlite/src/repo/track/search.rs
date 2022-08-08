@@ -7,7 +7,9 @@ use diesel::{
     BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods,
 };
 
-use aoide_core::{entity::EntityUid, util::clock::YYYYMMDD};
+use aoide_core::{
+    playlist::EntityUid as PlaylistUid, track::EntityUid as TrackUid, util::clock::YYYYMMDD,
+};
 
 use aoide_core_api::{tag::search::Filter as TagFilter, track::search::*};
 
@@ -247,8 +249,8 @@ impl TrackSearchQueryTransform for SortOrder {
     }
 }
 
-fn build_entity_uid_filter_expression(entity_uid: &EntityUid) -> TrackSearchBoxedExpression<'_> {
-    Box::new(track::entity_uid.eq(entity_uid.as_ref()))
+fn build_track_uid_filter_expression(track_uid: &TrackUid) -> TrackSearchBoxedExpression<'_> {
+    Box::new(track::entity_uid.eq(track_uid.as_ref()))
 }
 
 fn build_phrase_field_filter_expression(
@@ -1032,14 +1034,14 @@ where
 }
 
 fn build_playlist_uid_filter_expression(
-    playlist_uid: &EntityUid,
+    playlist_uid: &PlaylistUid,
 ) -> TrackSearchBoxedExpression<'_> {
     let subselect = select_track_ids_matching_playlist_uid_filter(playlist_uid);
     Box::new(track::row_id.eq_any(subselect))
 }
 
 fn select_track_ids_matching_playlist_uid_filter<'db, DB>(
-    playlist_uid: &'db EntityUid,
+    playlist_uid: &'db PlaylistUid,
 ) -> diesel::query_builder::BoxedSelectStatement<'db, diesel::sql_types::BigInt, track::table, DB>
 where
     DB: diesel::backend::Backend + 'db,
@@ -1059,13 +1061,13 @@ impl TrackSearchBoxedExpressionBuilder for Filter {
     fn build_expression(&self) -> TrackSearchBoxedExpression<'_> {
         use Filter::*;
         match self {
-            EntityUid(entity_uid) => build_entity_uid_filter_expression(entity_uid),
             Phrase(filter) => build_phrase_field_filter_expression(filter),
             Numeric(filter) => build_numeric_field_filter_expression(filter),
             DateTime(filter) => build_datetime_field_filter_expression(filter),
             Condition(filter) => build_condition_filter_expression(*filter),
             Tag(filter) => build_tag_filter_expression(filter),
             CueLabel(filter) => build_cue_label_filter_expression(filter.borrow()),
+            TrackUid(track_uid) => build_track_uid_filter_expression(track_uid),
             PlaylistUid(playlist_uid) => build_playlist_uid_filter_expression(playlist_uid),
             All(filters) => filters
                 .iter()

@@ -6,7 +6,7 @@ use semval::prelude::IsValid as _;
 use aoide_core::{
     audio::DurationMs,
     playlist::EntityUid as PlaylistUid,
-    track::EntityUid,
+    track::EntityUid as TrackUid,
     util::clock::{DateOrDateTime, DateTime},
 };
 
@@ -116,13 +116,13 @@ pub struct SortOrder {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Filter {
-    EntityUid(EntityUid),
     Phrase(PhraseFieldFilter),
     Numeric(NumericFieldFilter),
     DateTime(DateTimeFieldFilter),
     Condition(ConditionFilter),
     Tag(tag::search::Filter),
     CueLabel(StringFilter),
+    TrackUid(TrackUid),
     PlaylistUid(PlaylistUid),
     All(Vec<Filter>),
     Any(Vec<Filter>),

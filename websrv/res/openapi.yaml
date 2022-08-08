@@ -3328,13 +3328,13 @@ components:
         - any
     TrackSearchFilterNode:
       oneOf:
-        - $ref: '#/components/schemas/TrackSearchEntityUidFilterNode'
         - $ref: '#/components/schemas/TrackSearchPhraseFieldFilterNode'
         - $ref: '#/components/schemas/TrackSearchNumericFieldFilterNode'
         - $ref: '#/components/schemas/TrackSearchDateTimeFieldFilterNode'
         - $ref: '#/components/schemas/TrackSearchConditionFilterNode'
         - $ref: '#/components/schemas/TrackSearchTagFilterNode'
         - $ref: '#/components/schemas/TrackSearchCueLabelFilterNode'
+        - $ref: '#/components/schemas/TrackSearchTrackUidFilterNode'
         - $ref: '#/components/schemas/TrackSearchPlaylistUidFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
@@ -3346,13 +3346,13 @@ components:
           $ref: '#/components/schemas/CueLabelFilter'
       required:
         - cueLabel
-    TrackSearchEntityUidFilterNode:
+    TrackSearchTrackUidFilterNode:
       type: object
       properties:
-        entityUid:
+        trackUid:
           $ref: '#/components/schemas/EntityUid'
       required:
-        - entityUid
+        - trackUid
     TrackSearchPlaylistUidFilterNode:
       type: object
       properties:

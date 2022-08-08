@@ -412,13 +412,13 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum Filter {
-    EntityUid(EntityUid),
     Phrase(PhraseFieldFilter),
     Numeric(NumericFieldFilter),
     DateTime(DateTimeFieldFilter),
     Condition(ConditionFilter),
     Tag(TagFilter),
     CueLabel(StringFilter),
+    TrackUid(EntityUid),
     PlaylistUid(EntityUid),
     All(Vec<Filter>),
     Any(Vec<Filter>),
@@ -430,13 +430,13 @@ impl From<Filter> for _inner::Filter {
     fn from(from: Filter) -> Self {
         use Filter::*;
         match from {
-            EntityUid(from) => Self::EntityUid(from.into()),
             Phrase(from) => Self::Phrase(from.into()),
             Numeric(from) => Self::Numeric(from.into()),
             DateTime(from) => Self::DateTime(from.into()),
             Condition(from) => Self::Condition(from.into()),
             Tag(from) => Self::Tag(from.into()),
             CueLabel(from) => Self::CueLabel(from.into()),
+            TrackUid(from) => Self::TrackUid(from.into()),
             PlaylistUid(from) => Self::PlaylistUid(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),
             Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
@@ -450,13 +450,13 @@ impl From<_inner::Filter> for Filter {
     fn from(from: _inner::Filter) -> Self {
         use _inner::Filter::*;
         match from {
-            EntityUid(from) => Self::EntityUid(from.into()),
             Phrase(from) => Self::Phrase(from.into()),
             Numeric(from) => Self::Numeric(from.into()),
             DateTime(from) => Self::DateTime(from.into()),
             Condition(from) => Self::Condition(from.into()),
             Tag(from) => Self::Tag(from.into()),
             CueLabel(from) => Self::CueLabel(from.into()),
+            TrackUid(from) => Self::TrackUid(from.into()),
             PlaylistUid(from) => Self::PlaylistUid(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),
             Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
