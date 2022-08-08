@@ -24,6 +24,8 @@ pub async fn choose_directory(dir_path: impl Into<Option<&Path>>) -> Option<Owne
 ///
 /// Distinguishes paths with/-out trailing slashes.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[repr(transparent)]
+#[serde(transparent)]
 pub struct DirPath<'p>(Cow<'p, Path>);
 
 pub type OwnedDirPath = DirPath<'static>;
