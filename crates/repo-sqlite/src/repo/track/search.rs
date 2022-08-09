@@ -885,7 +885,7 @@ where
 
     // Filter labels
     if let Some(ref label) = tag_filter.label {
-        let (cmp, val, dir) = label.borrow().into();
+        let (val, cmp, dir) = decompose_string_predicate(label.borrow());
         let string_cmp_op = match cmp {
             // Equal comparison without escape characters
             StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
@@ -989,7 +989,7 @@ where
 
     // Filter labels
     if let Some(label) = cue_label_filter.value {
-        let (cmp, val, dir) = label.into();
+        let (val, cmp, dir) = decompose_string_predicate(label);
         let string_cmp_op = match cmp {
             // Equal comparison without escape characters
             StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
@@ -1081,5 +1081,23 @@ impl TrackSearchBoxedExpressionBuilder for Filter {
                 }),
             Not(filter) => Box::new(diesel::dsl::not(filter.build_expression())),
         }
+    }
+}
+
+/// (Value, Comparison, Include(true)/Exclude(false))
+fn decompose_string_predicate(p: StringPredicateBorrowed<'_>) -> (&str, StringCompare, bool) {
+    use StringPredicateBorrowed::*;
+    match p {
+        StartsWith(s) => (s, StringCompare::StartsWith, true),
+        StartsNotWith(s) => (s, StringCompare::StartsWith, false),
+        EndsWith(s) => (s, StringCompare::EndsWith, true),
+        EndsNotWith(s) => (s, StringCompare::EndsWith, false),
+        Contains(s) => (s, StringCompare::Contains, true),
+        ContainsNot(s) => (s, StringCompare::Contains, false),
+        Matches(s) => (s, StringCompare::Matches, true),
+        MatchesNot(s) => (s, StringCompare::Matches, false),
+        Prefix(s) => (s, StringCompare::Prefix, true),
+        Equals(s) => (s, StringCompare::Equals, true),
+        EqualsNot(s) => (s, StringCompare::Equals, false),
     }
 }

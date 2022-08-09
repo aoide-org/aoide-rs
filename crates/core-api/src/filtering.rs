@@ -73,25 +73,6 @@ impl StringPredicate {
     }
 }
 
-impl<'s> From<StringPredicateBorrowed<'s>> for (StringCompare, &'s str, bool) {
-    fn from(from: StringPredicateBorrowed<'s>) -> (StringCompare, &'s str, bool) {
-        use StringPredicateBorrowed::*;
-        match from {
-            StartsWith(s) => (StringCompare::StartsWith, s, true),
-            StartsNotWith(s) => (StringCompare::StartsWith, s, false),
-            EndsWith(s) => (StringCompare::EndsWith, s, true),
-            EndsNotWith(s) => (StringCompare::EndsWith, s, false),
-            Contains(s) => (StringCompare::Contains, s, true),
-            ContainsNot(s) => (StringCompare::Contains, s, false),
-            Matches(s) => (StringCompare::Matches, s, true),
-            MatchesNot(s) => (StringCompare::Matches, s, false),
-            Prefix(s) => (StringCompare::Prefix, s, true),
-            Equals(s) => (StringCompare::Equals, s, true),
-            EqualsNot(s) => (StringCompare::Equals, s, false),
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct StringFilterBorrowed<'s> {
     pub modifier: Option<FilterModifier>,
