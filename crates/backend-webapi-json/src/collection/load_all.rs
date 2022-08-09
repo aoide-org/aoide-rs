@@ -9,7 +9,7 @@ use aoide_usecases_sqlite::collection::load::{self as uc};
 use super::*;
 
 #[derive(Debug, Default, Deserialize)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]

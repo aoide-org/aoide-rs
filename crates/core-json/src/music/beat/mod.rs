@@ -13,7 +13,7 @@ mod _core {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum TimeSignature {
     Top(_core::BeatNumber),

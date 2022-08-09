@@ -187,6 +187,7 @@ dependencies = [
  "anyhow",
  "aoide-core",
  "base64",
+ "chrono",
  "mime",
  "num-traits",
  "schemars",
@@ -763,6 +764,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ced0551234e87afee12411d535648dd89d2e7f34c78b753395567aff3d447ff"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "chrono"
+version = "0.4.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f725f340c3854e3cb3ab736dc21f0cca183303acea3b3ffec30f141503ac8eb"
+dependencies = [
+ "js-sys",
+ "num-integer",
+ "num-traits",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -3250,6 +3263,7 @@ version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1847b767a3d62d95cbf3d8a9f0e421cf57a0d8aa4f411d4b16525afb0284d4ed"
 dependencies = [
+ "chrono",
  "dyn-clone",
  "schemars_derive",
  "serde",

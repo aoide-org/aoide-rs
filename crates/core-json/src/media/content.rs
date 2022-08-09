@@ -20,7 +20,7 @@ mod _core {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ContentLink {
     pub path: String,
@@ -51,7 +51,7 @@ impl From<_core::ContentLink> for ContentLink {
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[repr(u8)]
 pub enum ContentPathKind {
     Uri = _core::ContentPathKind::Uri as u8,
@@ -86,7 +86,7 @@ impl From<ContentPathKind> for _core::ContentPathKind {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ContentPathConfig {
     pub path_kind: ContentPathKind,
@@ -137,7 +137,7 @@ impl From<_core::ContentPathConfig> for ContentPathConfig {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "kebab-case")]
 pub enum ContentMetadata {
     Audio(AudioContentMetadata),
@@ -163,7 +163,7 @@ impl From<_core::ContentMetadata> for ContentMetadata {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AudioContentMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]

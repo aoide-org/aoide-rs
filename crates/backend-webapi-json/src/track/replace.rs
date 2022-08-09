@@ -14,7 +14,7 @@ mod uc {
 }
 
 #[derive(Debug, Deserialize)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum ReplaceMode {
     CreateOnly,
@@ -34,7 +34,7 @@ impl From<ReplaceMode> for uc::ReplaceMode {
 }
 
 #[derive(Debug, Default, Serialize)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub created: Vec<Entity>,
@@ -70,7 +70,7 @@ impl From<uc::Summary> for Summary {
 }
 
 #[derive(Debug, Deserialize)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]

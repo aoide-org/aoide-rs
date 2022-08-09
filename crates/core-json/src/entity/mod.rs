@@ -20,17 +20,12 @@ mod _core {
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-pub struct EntityUid(_core::EntityUid);
-
-#[cfg(feature = "schemars")]
-impl JsonSchema for EntityUid {
-    fn schema_name() -> String {
-        "EntityUid".to_string()
-    }
-
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        gen.subschema_for::<String>()
-    }
+#[repr(transparent)]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
+pub struct EntityUid {
+    #[cfg_attr(feature = "json-schema", schemars(with = "String"))]
+    inner: _core::EntityUid,
 }
 
 // Serialize (and deserialize) as string for maximum compatibility and portability
@@ -40,7 +35,7 @@ impl Serialize for EntityUid {
         S: Serializer,
     {
         // TODO: Avoid creating a temporary string
-        let encoded = self.0.encode_to_string();
+        let encoded = self.inner.encode_to_string();
         serializer.serialize_str(&encoded)
     }
 }
@@ -59,7 +54,7 @@ impl<'de> SerdeDeserializeVisitor<'de> for EntityUidDeserializeVisitor {
         E: de::Error,
     {
         _core::EntityUid::decode_from_str(value)
-            .map(EntityUid)
+            .map(|inner| EntityUid { inner })
             .map_err(<E as de::Error>::custom)
     }
 }
@@ -75,21 +70,21 @@ impl<'de> Deserialize<'de> for EntityUid {
 
 impl AsRef<_core::EntityUid> for EntityUid {
     fn as_ref(&self) -> &_core::EntityUid {
-        let Self(inner) = self;
+        let Self { inner } = self;
         inner
     }
 }
 
 impl From<EntityUid> for _core::EntityUid {
     fn from(from: EntityUid) -> Self {
-        let EntityUid(inner) = from;
+        let EntityUid { inner } = from;
         inner
     }
 }
 
 impl From<_core::EntityUid> for EntityUid {
-    fn from(from: _core::EntityUid) -> Self {
-        Self(from)
+    fn from(inner: _core::EntityUid) -> Self {
+        Self { inner }
     }
 }
 
@@ -108,10 +103,12 @@ impl<T> From<_core::EntityUidTyped<T>> for EntityUid {
 ///////////////////////////////////////////////////////////////////////
 // EntityRevision
 ///////////////////////////////////////////////////////////////////////
-
+///
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[repr(transparent)]
+#[serde(transparent)]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct EntityRevision(_core::EntityRevisionNumber);
 
 impl From<EntityRevision> for _core::EntityRevision {
@@ -133,7 +130,7 @@ impl From<_core::EntityRevision> for EntityRevision {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct EntityHeader(EntityUid, EntityRevision);
 
 impl From<EntityHeader> for _core::EntityHeader {
@@ -171,5 +168,5 @@ impl<T> From<_core::EntityHeaderTyped<T>> for EntityHeader {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct Entity<B>(pub EntityHeader, pub B);

@@ -15,34 +15,29 @@ mod _core {
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(test, derive(Clone))]
-pub struct FacetKey(_core::FacetKey);
-
-#[cfg(feature = "schemars")]
-impl JsonSchema for FacetKey {
-    fn schema_name() -> String {
-        "FacetKey".to_string()
-    }
-
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        gen.subschema_for::<String>()
-    }
+#[repr(transparent)]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
+pub struct FacetKey {
+    #[cfg_attr(feature = "json-schema", schemars(with = "String"))]
+    inner: _core::FacetKey,
 }
 
 impl From<_core::FacetKey> for FacetKey {
-    fn from(from: _core::FacetKey) -> Self {
-        Self(from)
+    fn from(inner: _core::FacetKey) -> Self {
+        Self { inner }
     }
 }
 
 impl From<FacetKey> for _core::FacetKey {
     fn from(from: FacetKey) -> Self {
-        from.0
+        from.inner
     }
 }
 
 impl AsRef<_core::FacetKey> for FacetKey {
     fn as_ref(&self) -> &_core::FacetKey {
-        &self.0
+        &self.inner
     }
 }
 
@@ -51,7 +46,7 @@ impl Serialize for FacetKey {
     where
         S: Serializer,
     {
-        serializer.serialize_str(self.0.as_ref())
+        serializer.serialize_str(self.inner.as_ref())
     }
 }
 
@@ -68,7 +63,8 @@ impl<'de> Visitor<'de> for FacetKeyVisitor {
     where
         E: serde::de::Error,
     {
-        Ok(FacetKey(_core::FacetId::clamp_from(s).into()))
+        let inner = _core::FacetId::clamp_from(s).into();
+        Ok(FacetKey { inner })
     }
 }
 
@@ -83,34 +79,29 @@ impl<'de> Deserialize<'de> for FacetKey {
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone, PartialEq, Eq))]
-pub struct Label(_core::Label);
-
-#[cfg(feature = "schemars")]
-impl JsonSchema for Label {
-    fn schema_name() -> String {
-        "Label".to_string()
-    }
-
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        gen.subschema_for::<String>()
-    }
+#[repr(transparent)]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
+pub struct Label {
+    #[cfg_attr(feature = "json-schema", schemars(with = "String"))]
+    inner: _core::Label,
 }
 
 impl From<_core::Label> for Label {
-    fn from(from: _core::Label) -> Self {
-        Self(from)
+    fn from(inner: _core::Label) -> Self {
+        Self { inner }
     }
 }
 
 impl From<Label> for _core::Label {
     fn from(from: Label) -> Self {
-        from.0
+        from.inner
     }
 }
 
 impl AsRef<_core::Label> for Label {
     fn as_ref(&self) -> &_core::Label {
-        &self.0
+        &self.inner
     }
 }
 
@@ -119,7 +110,7 @@ impl Serialize for Label {
     where
         S: Serializer,
     {
-        serializer.serialize_str(self.0.as_ref())
+        serializer.serialize_str(self.inner.as_ref())
     }
 }
 
@@ -158,18 +149,10 @@ impl<'de> Deserialize<'de> for Label {
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone, PartialEq))]
+#[repr(transparent)]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(with = "f64"))]
 pub struct Score(_core::Score);
-
-#[cfg(feature = "schemars")]
-impl JsonSchema for Score {
-    fn schema_name() -> String {
-        "Score".to_string()
-    }
-
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        gen.subschema_for::<f64>()
-    }
-}
 
 impl From<_core::Score> for Score {
     fn from(from: _core::Score) -> Self {
@@ -226,7 +209,7 @@ impl<'de> Deserialize<'de> for Score {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(Clone, PartialEq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum PlainTag {
     Label(Label),
@@ -285,7 +268,8 @@ pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[repr(transparent)]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct Tags(TagsMap);
 
 impl Tags {
@@ -327,8 +311,8 @@ impl From<Tags> for _core::Tags {
         let mut facets = Vec::with_capacity(from.len());
         for (key, tags) in from {
             let tags = tags.into_iter().map(Into::into).collect();
-            let FacetKey(key) = key;
-            if let Some(facet_id) = key.into() {
+            let FacetKey { inner } = key;
+            if let Some(facet_id) = inner.into() {
                 facets.push(FacetedTags { facet_id, tags })
             } else {
                 debug_assert!(plain_tags.is_empty());

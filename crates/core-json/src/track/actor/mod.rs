@@ -13,7 +13,7 @@ mod _core {
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[repr(u8)]
 pub enum Kind {
     Summary = _core::Kind::Summary as u8,
@@ -61,7 +61,7 @@ impl From<_core::Kind> for Kind {
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[repr(u8)]
 pub enum Role {
     Artist = _core::Role::Artist as u8,
@@ -139,7 +139,7 @@ impl From<_core::Role> for Role {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FullActor {
     #[serde(skip_serializing_if = "Kind::is_default", default)]
@@ -190,7 +190,7 @@ impl From<FullActor> for _core::Actor {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(untagged)]
 pub enum Actor {
     Name(String),              // name

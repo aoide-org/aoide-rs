@@ -260,7 +260,7 @@ impl<T> Validate for EntityUidTyped<T> {
 // EntityRevision
 ///////////////////////////////////////////////////////////////////////
 
-// A 1-based, non-negative, monotone increasing number
+// A 1-based, non-negative, monotonously increasing number
 pub type EntityRevisionNumber = u64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]

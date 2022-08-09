@@ -6,7 +6,7 @@ use std::{convert::Infallible, sync::Arc};
 use tokio::sync::{watch, Mutex};
 use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
 
-#[cfg(feature = "schemars")]
+#[cfg(feature = "json-schema")]
 use schemars::schema_for;
 
 use aoide_core::{
@@ -53,13 +53,13 @@ pub(crate) fn create_filters(
     let media_tracker_path = warp::path("mt");
     let storage_path = warp::path("storage");
 
-    #[cfg(feature = "schemars")]
+    #[cfg(feature = "json-schema")]
     let schema_path = warp::path("schema");
-    #[cfg(feature = "schemars")]
+    #[cfg(feature = "json-schema")]
     let schema_get_path = schema_path.and(warp::path("get"));
-    #[cfg(feature = "schemars")]
+    #[cfg(feature = "json-schema")]
     let schema_post_path = schema_path.and(warp::path("post"));
-    #[cfg(feature = "schemars")]
+    #[cfg(feature = "json-schema")]
     let schema_put_path = schema_path.and(warp::path("put"));
 
     // Collections
@@ -82,7 +82,7 @@ pub(crate) fn create_filters(
                     })
             },
         );
-    #[cfg(feature = "schemars")]
+    #[cfg(feature = "json-schema")]
     let collections_create_schema = warp::get()
         .and(schema_post_path)
         .and(collections_path)
@@ -124,7 +124,7 @@ pub(crate) fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    #[cfg(feature = "schemars")]
+    #[cfg(feature = "json-schema")]
     let collections_update_schema = warp::get()
         .and(schema_put_path)
         .and(collections_path)
@@ -174,7 +174,7 @@ pub(crate) fn create_filters(
                     .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    #[cfg(feature = "schemars")]
+    #[cfg(feature = "json-schema")]
     let collections_load_all_schema = warp::get()
         .and(schema_get_path)
         .and(collections_path)
@@ -213,7 +213,7 @@ pub(crate) fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    #[cfg(feature = "schemars")]
+    #[cfg(feature = "json-schema")]
     let collections_load_one_schema = warp::get()
         .and(schema_get_path)
         .and(collections_path)
@@ -246,7 +246,7 @@ pub(crate) fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    #[cfg(feature = "schemars")]
+    #[cfg(feature = "json-schema")]
     let collections_load_all_kinds_schema = warp::get()
         .and(schema_get_path)
         .and(collections_path)
@@ -267,7 +267,7 @@ pub(crate) fn create_filters(
         .or(collections_update)
         .or(collections_delete);
 
-    #[cfg(feature = "schemars")]
+    #[cfg(feature = "json-schema")]
     let collections_filters = collections_filters
         .or(collections_load_all_schema)
         .or(collections_load_one_schema)

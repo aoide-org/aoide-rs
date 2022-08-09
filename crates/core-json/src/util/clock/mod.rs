@@ -22,31 +22,27 @@ mod _core {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DateTime(_core::DateTime);
+#[repr(transparent)]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
+pub struct DateTime {
+    #[cfg_attr(
+        feature = "json-schema",
+        schemars(with = "chrono::DateTime<chrono::FixedOffset>")
+    )]
+    inner: _core::DateTime,
+}
 
 impl From<_core::DateTime> for DateTime {
-    fn from(from: _core::DateTime) -> Self {
-        Self(from)
+    fn from(inner: _core::DateTime) -> Self {
+        Self { inner }
     }
 }
 
 impl From<DateTime> for _core::DateTime {
     fn from(from: DateTime) -> Self {
-        let DateTime(inner) = from;
+        let DateTime { inner } = from;
         inner
-    }
-}
-
-#[cfg(feature = "schemars")]
-impl JsonSchema for DateTime {
-    fn schema_name() -> String {
-        "DateTime".to_string()
-    }
-
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        // TODO: Use predefined schema for `time::OffsetDateTime` when available
-        //gen.subschema_for::<time::OffsetDateTime>()
-        gen.subschema_for::<String>()
     }
 }
 
@@ -56,7 +52,7 @@ impl Serialize for DateTime {
     where
         S: Serializer,
     {
-        time::serde::rfc3339::serialize(self.0.as_ref(), serializer)
+        time::serde::rfc3339::serialize(self.inner.as_ref(), serializer)
     }
 }
 
@@ -76,6 +72,7 @@ impl<'de> Deserialize<'de> for DateTime {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[repr(transparent)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct DateYYYYMMDD(_core::DateYYYYMMDD);
 
@@ -91,8 +88,8 @@ impl From<DateYYYYMMDD> for _core::DateYYYYMMDD {
     }
 }
 
-#[cfg(feature = "schemars")]
-impl JsonSchema for DateYYYYMMDD {
+#[cfg(feature = "json-schema")]
+impl schemars::JsonSchema for DateYYYYMMDD {
     fn schema_name() -> String {
         "DateYYYYMMDD".to_string()
     }
@@ -162,7 +159,7 @@ impl<'de> Deserialize<'de> for DateYYYYMMDD {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DateOrDateTime {

@@ -17,7 +17,7 @@ pub type PositionInMilliseconds = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[repr(transparent)]
 pub struct PositionMs(pub PositionInMilliseconds);
 
@@ -57,7 +57,7 @@ pub type DurationInMilliseconds = f64;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[repr(transparent)]
 pub struct DurationMs(DurationInMilliseconds);
 

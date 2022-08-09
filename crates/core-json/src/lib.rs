@@ -24,9 +24,6 @@ pub mod prelude {
     pub(crate) use serde_repr::*;
 
     pub(crate) use crate::util::{clock::*, color::*};
-
-    #[cfg(feature = "schemars")]
-    pub(crate) use schemars::JsonSchema;
 }
 
 pub mod audio;

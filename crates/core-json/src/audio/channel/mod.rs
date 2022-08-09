@@ -19,7 +19,7 @@ pub use aoide_core::audio::channel::ChannelCount;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ChannelLayout {
     Mono,
@@ -71,7 +71,7 @@ impl From<ChannelLayout> for _core::ChannelLayout {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum Channels {
     Count(ChannelCount),

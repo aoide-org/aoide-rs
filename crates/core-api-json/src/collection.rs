@@ -22,7 +22,7 @@ mod _inner {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MediaSourceSummary {
@@ -48,7 +48,7 @@ impl From<_inner::MediaSourceSummary> for MediaSourceSummary {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PlaylistSummary {
@@ -74,7 +74,7 @@ impl From<_inner::PlaylistSummary> for PlaylistSummary {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSummary {
@@ -100,7 +100,7 @@ impl From<_inner::TrackSummary> for TrackSummary {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
@@ -144,7 +144,7 @@ impl From<_inner::Summary> for Summary {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionWithSummary {
     #[serde(flatten)]

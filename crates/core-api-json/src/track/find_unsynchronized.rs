@@ -15,7 +15,7 @@ mod _inner {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct UnsynchronizedTrack {
     pub content_link: ContentLink,
@@ -55,7 +55,7 @@ impl From<_inner::UnsynchronizedTrack> for UnsynchronizedTrack {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct UnsynchronizedTrackEntity(EntityHeader, UnsynchronizedTrack);
 
 #[cfg(feature = "frontend")]
