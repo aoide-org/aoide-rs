@@ -18,14 +18,9 @@ use crate::{filtering::*, media::source::ResolveUrlFromContentPath, sorting::*, 
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum StringField {
-    AlbumArtist,
-    AlbumTitle,
     ContentPath,
     ContentType, // RFC 6838 media type
     Publisher,
-    TrackArtist,
-    TrackComposer,
-    TrackTitle,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

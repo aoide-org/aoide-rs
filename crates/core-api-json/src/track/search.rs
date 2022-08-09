@@ -160,14 +160,9 @@ impl From<_inner::SortOrder> for SortOrder {
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum StringField {
-    AlbumArtist,
-    AlbumTitle,
     ContentPath,
     ContentType,
     Publisher,
-    TrackArtist,
-    TrackComposer,
-    TrackTitle,
 }
 
 #[cfg(feature = "backend")]
@@ -175,14 +170,9 @@ impl From<StringField> for _inner::StringField {
     fn from(from: StringField) -> Self {
         use StringField::*;
         match from {
-            AlbumArtist => Self::AlbumArtist,
-            AlbumTitle => Self::AlbumTitle,
             ContentPath => Self::ContentPath,
             ContentType => Self::ContentType,
             Publisher => Self::Publisher,
-            TrackArtist => Self::TrackArtist,
-            TrackComposer => Self::TrackComposer,
-            TrackTitle => Self::TrackTitle,
         }
     }
 }
@@ -192,14 +182,9 @@ impl From<_inner::StringField> for StringField {
     fn from(from: _inner::StringField) -> Self {
         use _inner::StringField::*;
         match from {
-            AlbumArtist => Self::AlbumArtist,
-            AlbumTitle => Self::AlbumTitle,
             ContentPath => Self::ContentPath,
             ContentType => Self::ContentType,
             Publisher => Self::Publisher,
-            TrackArtist => Self::TrackArtist,
-            TrackComposer => Self::TrackComposer,
-            TrackTitle => Self::TrackTitle,
         }
     }
 }

@@ -3001,14 +3001,9 @@ components:
     StringField:
       type: string
       enum:
-        - albumArtist
-        - albumTitle
         - contentPath
         - contentType
         - publisher
-        - trackArtist
-        - trackComposer
-        - trackTitle
       description: |
         Selectable fields, including
           * `contentType` - RFC 6838 media type

@@ -8,7 +8,7 @@ use bitflags::bitflags;
 use aoide_core::{
     audio::DurationMs,
     media::content::ContentMetadata,
-    track::{Entity as TrackEntity, Track},
+    track::{actor::Role as ActorRole, Entity as TrackEntity, Track},
 };
 
 use aoide_core_api::track::search::*;
@@ -92,9 +92,10 @@ where
         if let Some(track_artist) = track.track_artist() {
             let track_artist = track_artist.trim();
             if !track_artist.is_empty() {
-                all_filters.push(Filter::Phrase(PhraseFieldFilter {
-                    fields: vec![StringField::TrackArtist],
-                    terms: vec![track_artist.to_owned()],
+                all_filters.push(Filter::TrackActor(ActorFilter {
+                    roles: vec![ActorRole::Artist],
+                    name: Some(StringPredicate::Equals(track_artist.to_owned())),
+                    ..Default::default()
                 }));
             }
         }
@@ -103,9 +104,9 @@ where
         if let Some(track_title) = track.track_title() {
             let track_title = track_title.trim();
             if !track_title.is_empty() {
-                all_filters.push(Filter::Phrase(PhraseFieldFilter {
-                    fields: vec![StringField::TrackTitle],
-                    terms: vec![track_title.to_owned()],
+                all_filters.push(Filter::TrackTitle(TitleFilter {
+                    name: Some(StringPredicate::Equals(track_title.to_owned())),
+                    ..Default::default()
                 }));
             }
         }
@@ -114,9 +115,10 @@ where
         if let Some(album_artist) = track.album_artist() {
             let album_artist = album_artist.trim();
             if !album_artist.is_empty() {
-                all_filters.push(Filter::Phrase(PhraseFieldFilter {
-                    fields: vec![StringField::AlbumArtist],
-                    terms: vec![album_artist.to_owned()],
+                all_filters.push(Filter::AlbumActor(ActorFilter {
+                    roles: vec![ActorRole::Artist],
+                    name: Some(StringPredicate::Equals(album_artist.to_owned())),
+                    ..Default::default()
                 }));
             }
         }
@@ -125,9 +127,9 @@ where
         if let Some(album_title) = track.album_title() {
             let album_title = album_title.trim();
             if !album_title.is_empty() {
-                all_filters.push(Filter::Phrase(PhraseFieldFilter {
-                    fields: vec![StringField::AlbumTitle],
-                    terms: vec![album_title.to_owned()],
+                all_filters.push(Filter::AlbumTitle(TitleFilter {
+                    name: Some(StringPredicate::Equals(album_title.to_owned())),
+                    ..Default::default()
                 }));
             }
         }
