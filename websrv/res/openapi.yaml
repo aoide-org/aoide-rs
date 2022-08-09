@@ -1127,7 +1127,7 @@ components:
 
         Only a single `summary` and `sorting` actor is allowed per track/album,
         while multiple `individual` actors are allowed.
-    ActorFilter:
+    ActorPhraseFilter:
       type: object
       properties:
         modifier:
@@ -1146,8 +1146,15 @@ components:
           description: |
             A non-empty array will match any of the given kinds.
             An empty or missing array will match any kind.
-        name:
-          $ref: '#/components/schemas/StringPredicate'
+        nameTerms:
+          type: array
+          items:
+            type: string
+          description: |
+            The terms are concatenated with wildcards, and filtered
+            using case-insensitive "contains" semantics for each of the
+            selected fields, e.g. ["pa", "lab", "ll"] or ["tt", "ll"] both
+            match the string "Patti LaBelle".
     ActorName:
       type: string
       minLength: 1
@@ -2032,8 +2039,8 @@ components:
             description: |
               The terms are concatenated with wildcards, and filtered
               using case-insensitive "contains" semantics for each of the
-              selected fields, e.g. "Pa la bell" or "tt ll" both match "Patti
-              LaBelle".
+              selected fields, e.g. ["pa", "lab", "ll"] or ["tt", "ll"] both
+              match the string "Patti LaBelle".
 
               An empty array matches both empty and missing/null fields.
       required:
@@ -3196,7 +3203,7 @@ components:
               - $ref: '#/components/schemas/TitleKind'
       description: |
         Mandatory name, followed by optional level
-    TitleFilter:
+    TitlePhraseFilter:
       type: object
       properties:
         modifier:
@@ -3208,8 +3215,15 @@ components:
           description: |
             A non-empty array will match any of the given kinds.
             An empty or missing array will match any kind.
-        name:
-          $ref: '#/components/schemas/StringPredicate'
+        nameTerms:
+          type: array
+          items:
+            type: string
+          description: |
+            The terms are concatenated with wildcards, and filtered
+            using case-insensitive "contains" semantics for each of the
+            selected fields, e.g. ["pa", "lab", "ll"] or ["tt", "ll"] both
+            match the string "Patti LaBelle".
     TitleKind:
       type: integer
       enum: [0, 1, 2, 3, 4]
@@ -3366,10 +3380,10 @@ components:
         - $ref: '#/components/schemas/TrackSearchCueLabelFilterNode'
         - $ref: '#/components/schemas/TrackSearchTrackUidFilterNode'
         - $ref: '#/components/schemas/TrackSearchPlaylistUidFilterNode'
-        - $ref: '#/components/schemas/TrackSearchTrackActorFilterNode'
-        - $ref: '#/components/schemas/TrackSearchAlbumActorFilterNode'
-        - $ref: '#/components/schemas/TrackSearchTrackTitleFilterNode'
-        - $ref: '#/components/schemas/TrackSearchAlbumTitleFilterNode'
+        - $ref: '#/components/schemas/TrackSearchTrackActorPhraseFilterNode'
+        - $ref: '#/components/schemas/TrackSearchAlbumActorPhraseFilterNode'
+        - $ref: '#/components/schemas/TrackSearchTrackTitlePhraseFilterNode'
+        - $ref: '#/components/schemas/TrackSearchAlbumTitlePhraseFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
         - $ref: '#/components/schemas/TrackSearchNotFilterNode'
@@ -3394,32 +3408,32 @@ components:
           $ref: '#/components/schemas/EntityUid'
       required:
         - playlistUid
-    TrackSearchTrackActorFilterNode:
+    TrackSearchTrackActorPhraseFilterNode:
       type: object
       properties:
         trackActor:
-          $ref: '#/components/schemas/ActorFilter'
+          $ref: '#/components/schemas/ActorPhraseFilter'
       required:
         - trackActor
-    TrackSearchAlbumActorFilterNode:
+    TrackSearchAlbumActorPhraseFilterNode:
       type: object
       properties:
         albumActor:
-          $ref: '#/components/schemas/ActorFilter'
+          $ref: '#/components/schemas/ActorPhraseFilter'
       required:
         - albumActor
-    TrackSearchTrackTitleFilterNode:
+    TrackSearchTrackTitlePhraseFilterNode:
       type: object
       properties:
         trackTitle:
-          $ref: '#/components/schemas/TitleFilter'
+          $ref: '#/components/schemas/TitlePhraseFilter'
       required:
         - trackTitle
-    TrackSearchAlbumTitleFilterNode:
+    TrackSearchAlbumTitlePhraseFilterNode:
       type: object
       properties:
         albumTitle:
-          $ref: '#/components/schemas/TitleFilter'
+          $ref: '#/components/schemas/TitlePhraseFilter'
       required:
         - albumTitle
     TrackSearchNotFilterNode:

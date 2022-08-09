@@ -80,23 +80,23 @@ pub struct SourceFilterBorrowed<'s> {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct ActorFilter {
+pub struct ActorPhraseFilter {
     pub modifier: Option<FilterModifier>,
 
     pub roles: Vec<ActorRole>,
 
     pub kinds: Vec<ActorKind>,
 
-    pub name: Option<StringPredicate>,
+    pub name_terms: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct TitleFilter {
+pub struct TitlePhraseFilter {
     pub modifier: Option<FilterModifier>,
 
     pub kinds: Vec<TitleKind>,
 
-    pub name: Option<StringPredicate>,
+    pub name_terms: Vec<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -143,10 +143,10 @@ pub enum Filter {
     CueLabel(StringFilter),
     TrackUid(TrackUid),
     PlaylistUid(PlaylistUid),
-    TrackActor(ActorFilter),
-    AlbumActor(ActorFilter),
-    TrackTitle(TitleFilter),
-    AlbumTitle(TitleFilter),
+    TrackActorPhrase(ActorPhraseFilter),
+    AlbumActorPhrase(ActorPhraseFilter),
+    TrackTitlePhrase(TitlePhraseFilter),
+    AlbumTitlePhrase(TitlePhraseFilter),
     All(Vec<Filter>),
     Any(Vec<Filter>),
     Not(Box<Filter>),

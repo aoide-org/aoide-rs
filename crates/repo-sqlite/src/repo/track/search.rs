@@ -262,34 +262,32 @@ fn build_track_uid_filter_expression(track_uid: &TrackUid) -> TrackSearchBoxedEx
     Box::new(track::entity_uid.eq(track_uid.as_ref()))
 }
 
+fn build_phrase_like_expr_escaped<'term>(
+    terms: impl IntoIterator<Item = &'term str>,
+) -> Option<String> {
+    let escaped_terms: Vec<_> = terms.into_iter().map(escape_like_matches).collect();
+    let escaped_terms_str_len = escaped_terms.iter().fold(0, |len, term| len + term.len());
+    if escaped_terms_str_len == 0 {
+        return None;
+    }
+    let mut like_expr = escaped_terms.iter().fold(
+        String::with_capacity(escaped_terms_str_len + escaped_terms.len() + 1),
+        |mut like_expr, term| {
+            // Prepend wildcard character before each part
+            like_expr.push(LIKE_WILDCARD_CHARACTER);
+            like_expr.push_str(term);
+            like_expr
+        },
+    );
+    // Append final wildcard character after last part
+    like_expr.push(LIKE_WILDCARD_CHARACTER);
+    Some(like_expr)
+}
+
 fn build_phrase_field_filter_expression(
     filter: &PhraseFieldFilter,
 ) -> TrackSearchBoxedExpression<'_> {
-    // Escape wildcard character with backslash (see below)
-    let escaped_terms: Vec<_> = filter
-        .terms
-        .iter()
-        .map(|t| escape_like_matches(t))
-        .collect();
-    let escaped_terms_str_len = escaped_terms.iter().fold(0, |len, term| len + term.len());
-    // TODO: Use Rc<String> to avoid cloning strings?
-    let like_expr = if escaped_terms_str_len > 0 {
-        let mut like_expr = escaped_terms.iter().fold(
-            String::with_capacity(escaped_terms_str_len + escaped_terms.len() + 1),
-            |mut like_expr, term| {
-                // Prepend wildcard character before each part
-                like_expr.push(LIKE_WILDCARD_CHARACTER);
-                like_expr.push_str(term);
-                like_expr
-            },
-        );
-        // Append final wildcard character after last part
-        like_expr.push(LIKE_WILDCARD_CHARACTER);
-        like_expr
-    } else {
-        // unused
-        String::new()
-    };
+    let like_expr = build_phrase_like_expr_escaped(filter.terms.iter().map(String::as_str));
 
     let mut or_expression = dummy_false_expression();
     // media_source (join)
@@ -299,17 +297,17 @@ fn build_phrase_field_filter_expression(
             .iter()
             .any(|target| *target == StringField::ContentPath)
     {
-        or_expression = if like_expr.is_empty() {
+        or_expression = if let Some(like_expr) = &like_expr {
+            Box::new(
+                or_expression.or(media_source::content_link_path
+                    .like(like_expr.clone())
+                    .escape(LIKE_ESCAPE_CHARACTER)),
+            )
+        } else {
             Box::new(
                 or_expression
                     .or(media_source::content_link_path.is_null())
                     .or(media_source::content_link_path.eq(String::default())),
-            )
-        } else {
-            Box::new(
-                or_expression.or(media_source::content_link_path
-                    .like(like_expr.clone())
-                    .escape('\\')),
             )
         };
     }
@@ -319,17 +317,17 @@ fn build_phrase_field_filter_expression(
             .iter()
             .any(|target| *target == StringField::ContentType)
     {
-        or_expression = if like_expr.is_empty() {
+        or_expression = if let Some(like_expr) = &like_expr {
+            Box::new(
+                or_expression.or(media_source::content_type
+                    .like(like_expr.clone())
+                    .escape(LIKE_ESCAPE_CHARACTER)),
+            )
+        } else {
             Box::new(
                 or_expression
                     .or(media_source::content_type.is_null())
                     .or(media_source::content_type.eq(String::default())),
-            )
-        } else {
-            Box::new(
-                or_expression.or(media_source::content_type
-                    .like(like_expr.clone())
-                    .escape('\\')),
             )
         };
     }
@@ -340,14 +338,18 @@ fn build_phrase_field_filter_expression(
             .iter()
             .any(|target| *target == StringField::Publisher)
     {
-        or_expression = if like_expr.is_empty() {
+        or_expression = if let Some(like_expr) = like_expr {
+            Box::new(
+                or_expression.or(track::publisher
+                    .like(like_expr)
+                    .escape(LIKE_ESCAPE_CHARACTER)),
+            )
+        } else {
             Box::new(
                 or_expression
                     .or(track::publisher.is_null())
                     .or(track::publisher.eq(String::default())),
             )
-        } else {
-            Box::new(or_expression.or(track::publisher.like(like_expr).escape('\\')))
         };
     }
     or_expression
@@ -991,7 +993,7 @@ where
 
 fn select_track_ids_matching_actor_filter<'a, DB>(
     scope: Scope,
-    filter: &'a ActorFilter,
+    filter: &'a ActorPhraseFilter,
 ) -> (
     diesel::query_builder::BoxedSelectStatement<
         'a,
@@ -1009,11 +1011,11 @@ where
         .filter(track_actor::scope.eq(scope.to_i16().expect("actor scope")))
         .into_boxed();
 
-    let ActorFilter {
+    let ActorPhraseFilter {
         modifier,
         roles,
         kinds,
-        name,
+        name_terms,
     } = filter;
 
     // Filter role(s)
@@ -1031,54 +1033,22 @@ where
     }
 
     // Filter name
-    if let Some(ref name) = name {
-        let (val, cmp, dir) = decompose_string_predicate(name.borrow());
-        let string_cmp_op = match cmp {
-            // Equal comparison without escape characters
-            StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
-            StringCompare::Prefix => StringCmpOp::Prefix(escape_single_quotes(val), val.len()),
-            // Like comparisons with escaped wildcard character
-            StringCompare::StartsWith => StringCmpOp::Like(escape_like_starts_with(val)),
-            StringCompare::EndsWith => StringCmpOp::Like(escape_like_ends_with(val)),
-            StringCompare::Contains => StringCmpOp::Like(escape_like_contains(val)),
-            StringCompare::Matches => StringCmpOp::Like(escape_like_matches(val)),
-        };
-        select = match string_cmp_op {
-            StringCmpOp::Equal(eq) => {
-                if dir {
-                    select.filter(track_actor::name.eq(eq))
-                } else {
-                    select.filter(track_actor::name.ne(eq))
-                }
-            }
-            StringCmpOp::Prefix(prefix, len) => {
-                let sql_prefix_filter = if dir {
-                    sql_column_substr_prefix_eq("track_actor.name", &prefix[..len])
-                } else {
-                    sql_column_substr_prefix_ne("track_actor.name", &prefix[..len])
-                };
-                select.filter(sql_prefix_filter)
-            }
-            StringCmpOp::Like(like) => {
-                if dir {
-                    select.filter(track_actor::name.like(like).escape(LIKE_ESCAPE_CHARACTER))
-                } else {
-                    select.filter(
-                        track_actor::name
-                            .not_like(like)
-                            .escape(LIKE_ESCAPE_CHARACTER),
-                    )
-                }
-            }
-        };
-    }
+    let name_like_expr_escaped =
+        build_phrase_like_expr_escaped(name_terms.iter().map(String::as_str));
+    if let Some(name_like_expr_escaped) = name_like_expr_escaped {
+        select = select.filter(
+            track_actor::name
+                .like(name_like_expr_escaped)
+                .escape(LIKE_ESCAPE_CHARACTER),
+        );
+    };
 
     (select, *modifier)
 }
 
 fn build_actor_filter_expression(
     scope: Scope,
-    filter: &ActorFilter,
+    filter: &ActorPhraseFilter,
 ) -> TrackSearchBoxedExpression<'_> {
     let (subselect, filter_modifier) = select_track_ids_matching_actor_filter(scope, filter);
     match filter_modifier {
@@ -1089,7 +1059,7 @@ fn build_actor_filter_expression(
 
 fn select_track_ids_matching_title_filter<'a, DB>(
     scope: Scope,
-    filter: &'a TitleFilter,
+    filter: &'a TitlePhraseFilter,
 ) -> (
     diesel::query_builder::BoxedSelectStatement<
         'a,
@@ -1107,10 +1077,10 @@ where
         .filter(track_title::scope.eq(scope.to_i16().expect("title scope")))
         .into_boxed();
 
-    let TitleFilter {
+    let TitlePhraseFilter {
         modifier,
         kinds,
-        name,
+        name_terms,
     } = filter;
 
     // Filter kind(s)
@@ -1121,54 +1091,22 @@ where
     }
 
     // Filter name
-    if let Some(ref name) = name {
-        let (val, cmp, dir) = decompose_string_predicate(name.borrow());
-        let string_cmp_op = match cmp {
-            // Equal comparison without escape characters
-            StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
-            StringCompare::Prefix => StringCmpOp::Prefix(escape_single_quotes(val), val.len()),
-            // Like comparisons with escaped wildcard character
-            StringCompare::StartsWith => StringCmpOp::Like(escape_like_starts_with(val)),
-            StringCompare::EndsWith => StringCmpOp::Like(escape_like_ends_with(val)),
-            StringCompare::Contains => StringCmpOp::Like(escape_like_contains(val)),
-            StringCompare::Matches => StringCmpOp::Like(escape_like_matches(val)),
-        };
-        select = match string_cmp_op {
-            StringCmpOp::Equal(eq) => {
-                if dir {
-                    select.filter(track_title::name.eq(eq))
-                } else {
-                    select.filter(track_title::name.ne(eq))
-                }
-            }
-            StringCmpOp::Prefix(prefix, len) => {
-                let sql_prefix_filter = if dir {
-                    sql_column_substr_prefix_eq("track_title.name", &prefix[..len])
-                } else {
-                    sql_column_substr_prefix_ne("track_title.name", &prefix[..len])
-                };
-                select.filter(sql_prefix_filter)
-            }
-            StringCmpOp::Like(like) => {
-                if dir {
-                    select.filter(track_title::name.like(like).escape(LIKE_ESCAPE_CHARACTER))
-                } else {
-                    select.filter(
-                        track_title::name
-                            .not_like(like)
-                            .escape(LIKE_ESCAPE_CHARACTER),
-                    )
-                }
-            }
-        };
-    }
+    let name_like_expr_escaped =
+        build_phrase_like_expr_escaped(name_terms.iter().map(String::as_str));
+    if let Some(name_like_expr_escaped) = name_like_expr_escaped {
+        select = select.filter(
+            track_title::name
+                .like(name_like_expr_escaped)
+                .escape(LIKE_ESCAPE_CHARACTER),
+        );
+    };
 
     (select, *modifier)
 }
 
 fn build_title_filter_expression(
     scope: Scope,
-    filter: &TitleFilter,
+    filter: &TitlePhraseFilter,
 ) -> TrackSearchBoxedExpression<'_> {
     let (subselect, filter_modifier) = select_track_ids_matching_title_filter(scope, filter);
     match filter_modifier {
@@ -1189,10 +1127,10 @@ impl TrackSearchBoxedExpressionBuilder for Filter {
             CueLabel(filter) => build_cue_label_filter_expression(filter.borrow()),
             TrackUid(track_uid) => build_track_uid_filter_expression(track_uid),
             PlaylistUid(playlist_uid) => build_playlist_uid_filter_expression(playlist_uid),
-            TrackActor(filter) => build_actor_filter_expression(Scope::Track, filter),
-            AlbumActor(filter) => build_actor_filter_expression(Scope::Album, filter),
-            TrackTitle(filter) => build_title_filter_expression(Scope::Track, filter),
-            AlbumTitle(filter) => build_title_filter_expression(Scope::Album, filter),
+            TrackActorPhrase(filter) => build_actor_filter_expression(Scope::Track, filter),
+            AlbumActorPhrase(filter) => build_actor_filter_expression(Scope::Album, filter),
+            TrackTitlePhrase(filter) => build_title_filter_expression(Scope::Track, filter),
+            AlbumTitlePhrase(filter) => build_title_filter_expression(Scope::Album, filter),
             All(filters) => filters
                 .iter()
                 .fold(dummy_true_expression(), |expr, filter| {

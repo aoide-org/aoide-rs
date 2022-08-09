@@ -14,7 +14,7 @@ use url::Url;
 
 use crate::{
     _inner::filtering::NumericValue,
-    filtering::{FilterModifier, ScalarFieldFilter, StringFilter, StringPredicate},
+    filtering::{FilterModifier, ScalarFieldFilter, StringFilter},
     prelude::*,
     sorting::SortDirection,
     tag::search::Filter as TagFilter,
@@ -403,7 +403,7 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct ActorFilter {
+pub struct ActorPhraseFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
 
@@ -413,42 +413,42 @@ pub struct ActorFilter {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub kinds: Vec<ActorKind>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<StringPredicate>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub name_terms: Vec<String>,
 }
 
 #[cfg(feature = "backend")]
-impl From<ActorFilter> for _inner::ActorFilter {
-    fn from(from: ActorFilter) -> Self {
-        let ActorFilter {
+impl From<ActorPhraseFilter> for _inner::ActorPhraseFilter {
+    fn from(from: ActorPhraseFilter) -> Self {
+        let ActorPhraseFilter {
             modifier,
             roles,
             kinds,
-            name,
+            name_terms,
         } = from;
         Self {
             modifier: modifier.map(Into::into),
             roles: roles.into_iter().map(Into::into).collect(),
             kinds: kinds.into_iter().map(Into::into).collect(),
-            name: name.map(Into::into),
+            name_terms: name_terms.into_iter().map(Into::into).collect(),
         }
     }
 }
 
 #[cfg(feature = "frontend")]
-impl From<_inner::ActorFilter> for ActorFilter {
-    fn from(from: _inner::ActorFilter) -> Self {
-        let _inner::ActorFilter {
+impl From<_inner::ActorPhraseFilter> for ActorPhraseFilter {
+    fn from(from: _inner::ActorPhraseFilter) -> Self {
+        let _inner::ActorPhraseFilter {
             modifier,
             roles,
             kinds,
-            name,
+            name_terms,
         } = from;
         Self {
             modifier: modifier.map(Into::into),
             roles: roles.into_iter().map(Into::into).collect(),
             kinds: kinds.into_iter().map(Into::into).collect(),
-            name: name.map(Into::into),
+            name_terms: name_terms.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -458,45 +458,45 @@ impl From<_inner::ActorFilter> for ActorFilter {
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct TitleFilter {
+pub struct TitlePhraseFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub kinds: Vec<TitleKind>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<StringPredicate>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub name_terms: Vec<String>,
 }
 
 #[cfg(feature = "backend")]
-impl From<TitleFilter> for _inner::TitleFilter {
-    fn from(from: TitleFilter) -> Self {
-        let TitleFilter {
+impl From<TitlePhraseFilter> for _inner::TitlePhraseFilter {
+    fn from(from: TitlePhraseFilter) -> Self {
+        let TitlePhraseFilter {
             modifier,
             kinds,
-            name,
+            name_terms,
         } = from;
         Self {
             modifier: modifier.map(Into::into),
             kinds: kinds.into_iter().map(Into::into).collect(),
-            name: name.map(Into::into),
+            name_terms: name_terms.into_iter().map(Into::into).collect(),
         }
     }
 }
 
 #[cfg(feature = "frontend")]
-impl From<_inner::TitleFilter> for TitleFilter {
-    fn from(from: _inner::TitleFilter) -> Self {
-        let _inner::TitleFilter {
+impl From<_inner::TitlePhraseFilter> for TitlePhraseFilter {
+    fn from(from: _inner::TitlePhraseFilter) -> Self {
+        let _inner::TitlePhraseFilter {
             modifier,
             kinds,
-            name,
+            name_terms,
         } = from;
         Self {
             modifier: modifier.map(Into::into),
             kinds: kinds.into_iter().map(Into::into).collect(),
-            name: name.map(Into::into),
+            name_terms: name_terms.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -515,10 +515,10 @@ pub enum Filter {
     CueLabel(StringFilter),
     TrackUid(EntityUid),
     PlaylistUid(EntityUid),
-    TrackActor(ActorFilter),
-    AlbumActor(ActorFilter),
-    TrackTitle(TitleFilter),
-    AlbumTitle(TitleFilter),
+    TrackActorPhrase(ActorPhraseFilter),
+    AlbumActorPhrase(ActorPhraseFilter),
+    TrackTitlePhrase(TitlePhraseFilter),
+    AlbumTitlePhrase(TitlePhraseFilter),
     All(Vec<Filter>),
     Any(Vec<Filter>),
     Not(Box<Filter>),
@@ -537,10 +537,10 @@ impl From<Filter> for _inner::Filter {
             CueLabel(from) => Self::CueLabel(from.into()),
             TrackUid(from) => Self::TrackUid(from.into()),
             PlaylistUid(from) => Self::PlaylistUid(from.into()),
-            TrackActor(from) => Self::TrackActor(from.into()),
-            AlbumActor(from) => Self::AlbumActor(from.into()),
-            TrackTitle(from) => Self::TrackTitle(from.into()),
-            AlbumTitle(from) => Self::AlbumTitle(from.into()),
+            TrackActorPhrase(from) => Self::TrackActorPhrase(from.into()),
+            AlbumActorPhrase(from) => Self::AlbumActorPhrase(from.into()),
+            TrackTitlePhrase(from) => Self::TrackTitlePhrase(from.into()),
+            AlbumTitlePhrase(from) => Self::AlbumTitlePhrase(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),
             Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
             Not(from) => Self::Not(Box::new((*from).into())),
@@ -561,10 +561,10 @@ impl From<_inner::Filter> for Filter {
             CueLabel(from) => Self::CueLabel(from.into()),
             TrackUid(from) => Self::TrackUid(from.into()),
             PlaylistUid(from) => Self::PlaylistUid(from.into()),
-            TrackActor(from) => Self::TrackActor(from.into()),
-            AlbumActor(from) => Self::AlbumActor(from.into()),
-            TrackTitle(from) => Self::TrackTitle(from.into()),
-            AlbumTitle(from) => Self::AlbumTitle(from.into()),
+            TrackActorPhrase(from) => Self::TrackActorPhrase(from.into()),
+            AlbumActorPhrase(from) => Self::AlbumActorPhrase(from.into()),
+            TrackTitlePhrase(from) => Self::TrackTitlePhrase(from.into()),
+            AlbumTitlePhrase(from) => Self::AlbumTitlePhrase(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),
             Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
             Not(from) => Self::Not(Box::new((*from).into())),

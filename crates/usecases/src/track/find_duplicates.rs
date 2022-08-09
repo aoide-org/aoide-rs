@@ -92,9 +92,9 @@ where
         if let Some(track_artist) = track.track_artist() {
             let track_artist = track_artist.trim();
             if !track_artist.is_empty() {
-                all_filters.push(Filter::TrackActor(ActorFilter {
+                all_filters.push(Filter::TrackActorPhrase(ActorPhraseFilter {
                     roles: vec![ActorRole::Artist],
-                    name: Some(StringPredicate::Equals(track_artist.to_owned())),
+                    name_terms: vec![track_artist.to_owned()],
                     ..Default::default()
                 }));
             }
@@ -104,8 +104,8 @@ where
         if let Some(track_title) = track.track_title() {
             let track_title = track_title.trim();
             if !track_title.is_empty() {
-                all_filters.push(Filter::TrackTitle(TitleFilter {
-                    name: Some(StringPredicate::Equals(track_title.to_owned())),
+                all_filters.push(Filter::TrackTitlePhrase(TitlePhraseFilter {
+                    name_terms: vec![track_title.to_owned()],
                     ..Default::default()
                 }));
             }
@@ -115,9 +115,9 @@ where
         if let Some(album_artist) = track.album_artist() {
             let album_artist = album_artist.trim();
             if !album_artist.is_empty() {
-                all_filters.push(Filter::AlbumActor(ActorFilter {
+                all_filters.push(Filter::AlbumActorPhrase(ActorPhraseFilter {
                     roles: vec![ActorRole::Artist],
-                    name: Some(StringPredicate::Equals(album_artist.to_owned())),
+                    name_terms: vec![album_artist.to_owned()],
                     ..Default::default()
                 }));
             }
@@ -127,8 +127,8 @@ where
         if let Some(album_title) = track.album_title() {
             let album_title = album_title.trim();
             if !album_title.is_empty() {
-                all_filters.push(Filter::AlbumTitle(TitleFilter {
-                    name: Some(StringPredicate::Equals(album_title.to_owned())),
+                all_filters.push(Filter::AlbumTitlePhrase(TitlePhraseFilter {
+                    name_terms: vec![album_title.to_owned()],
                     ..Default::default()
                 }));
             }
