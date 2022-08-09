@@ -4,9 +4,11 @@
 pub(crate) mod models;
 pub(crate) mod schema;
 
-use crate::{db::track::Scope, prelude::*};
+use crate::prelude::*;
 
 use aoide_core::track::title::*;
+
+use aoide_core_api::track::search::Scope;
 
 use aoide_repo::track::RecordId;
 

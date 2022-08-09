@@ -11,14 +11,6 @@ use aoide_core::{
     util::canonical::Canonical,
 };
 
-use num_derive::{FromPrimitive, ToPrimitive};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, ToPrimitive)]
-pub enum Scope {
-    Track = 0,
-    Album = 1,
-}
-
 use aoide_repo::track::RecordHeader;
 
 #[derive(Debug)]

@@ -16,10 +16,7 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let EntityRevQueryParams { rev } = query_params;
-    let entity_header = _core::EntityHeader {
-        uid,
-        rev: rev.into(),
-    };
+    let entity_header = _core::EntityHeader { uid, rev };
     let modified_playlist = request_body.into();
     connection
         .transaction::<_, Error, _>(|| {

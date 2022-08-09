@@ -1132,6 +1132,8 @@ components:
       properties:
         modifier:
           $ref: '#/components/schemas/FilterModifier'
+        scope:
+          $ref: '#/components/schemas/TrackScope'
         roles:
           type: array
           items:
@@ -3208,6 +3210,8 @@ components:
       properties:
         modifier:
           $ref: '#/components/schemas/FilterModifier'
+        scope:
+          $ref: '#/components/schemas/TrackScope'
         kinds:
           type: array
           items:
@@ -3352,6 +3356,12 @@ components:
     TrackIndex:
       allOf:
         - $ref: '#/components/schemas/Index'
+    TrackScope:
+      type: integer
+      enum: [0, 1]
+      description: |
+        * 0 = track
+        * 1 = album
     TrackSearchAllFilterNode:
       type: object
       properties:
@@ -3380,10 +3390,8 @@ components:
         - $ref: '#/components/schemas/TrackSearchCueLabelFilterNode'
         - $ref: '#/components/schemas/TrackSearchTrackUidFilterNode'
         - $ref: '#/components/schemas/TrackSearchPlaylistUidFilterNode'
-        - $ref: '#/components/schemas/TrackSearchTrackActorPhraseFilterNode'
-        - $ref: '#/components/schemas/TrackSearchAlbumActorPhraseFilterNode'
-        - $ref: '#/components/schemas/TrackSearchTrackTitlePhraseFilterNode'
-        - $ref: '#/components/schemas/TrackSearchAlbumTitlePhraseFilterNode'
+        - $ref: '#/components/schemas/TrackSearchActorPhraseFilterNode'
+        - $ref: '#/components/schemas/TrackSearchTitlePhraseFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
         - $ref: '#/components/schemas/TrackSearchNotFilterNode'
@@ -3408,34 +3416,20 @@ components:
           $ref: '#/components/schemas/EntityUid'
       required:
         - playlistUid
-    TrackSearchTrackActorPhraseFilterNode:
+    TrackSearchActorPhraseFilterNode:
       type: object
       properties:
         trackActor:
           $ref: '#/components/schemas/ActorPhraseFilter'
       required:
-        - trackActor
-    TrackSearchAlbumActorPhraseFilterNode:
-      type: object
-      properties:
-        albumActor:
-          $ref: '#/components/schemas/ActorPhraseFilter'
-      required:
-        - albumActor
-    TrackSearchTrackTitlePhraseFilterNode:
+        - actorPhrase
+    TrackSearchTitlePhraseFilterNode:
       type: object
       properties:
         trackTitle:
           $ref: '#/components/schemas/TitlePhraseFilter'
       required:
-        - trackTitle
-    TrackSearchAlbumTitlePhraseFilterNode:
-      type: object
-      properties:
-        albumTitle:
-          $ref: '#/components/schemas/TitlePhraseFilter'
-      required:
-        - albumTitle
+        - titlePhrase
     TrackSearchNotFilterNode:
       type: object
       properties:

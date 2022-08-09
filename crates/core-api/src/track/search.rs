@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use num_derive::{FromPrimitive, ToPrimitive};
 use semval::prelude::IsValid as _;
 
 use aoide_core::{
@@ -79,12 +80,23 @@ pub struct SourceFilterBorrowed<'s> {
     pub path: StringPredicateBorrowed<'s>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+pub enum Scope {
+    Track = 0,
+    Album = 1,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ActorPhraseFilter {
     pub modifier: Option<FilterModifier>,
 
+    /// Any or the given scope.
+    pub scope: Option<Scope>,
+
+    /// Any or the given roles.
     pub roles: Vec<ActorRole>,
 
+    /// Any or the given kinds.
     pub kinds: Vec<ActorKind>,
 
     pub name_terms: Vec<String>,
@@ -94,6 +106,10 @@ pub struct ActorPhraseFilter {
 pub struct TitlePhraseFilter {
     pub modifier: Option<FilterModifier>,
 
+    /// Any or the given scope.
+    pub scope: Option<Scope>,
+
+    /// Any or the given kinds.
     pub kinds: Vec<TitleKind>,
 
     pub name_terms: Vec<String>,
@@ -143,10 +159,8 @@ pub enum Filter {
     CueLabel(StringFilter),
     TrackUid(TrackUid),
     PlaylistUid(PlaylistUid),
-    TrackActorPhrase(ActorPhraseFilter),
-    AlbumActorPhrase(ActorPhraseFilter),
-    TrackTitlePhrase(TitlePhraseFilter),
-    AlbumTitlePhrase(TitlePhraseFilter),
+    ActorPhrase(ActorPhraseFilter),
+    TitlePhrase(TitlePhraseFilter),
     All(Vec<Filter>),
     Any(Vec<Filter>),
     Not(Box<Filter>),

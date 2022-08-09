@@ -120,7 +120,7 @@ impl From<EntityHeader> for _core::EntityHeader {
         let EntityHeader(uid, rev) = from;
         Self {
             uid: uid.into(),
-            rev: rev.into(),
+            rev,
         }
     }
 }
@@ -134,7 +134,7 @@ impl<T> From<EntityHeader> for _core::EntityHeaderTyped<T> {
 impl From<_core::EntityHeader> for EntityHeader {
     fn from(from: _core::EntityHeader) -> Self {
         let _core::EntityHeader { uid, rev } = from;
-        Self(uid.into(), rev.into())
+        Self(uid.into(), rev)
     }
 }
 

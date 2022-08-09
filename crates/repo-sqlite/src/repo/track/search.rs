@@ -17,15 +17,9 @@ use aoide_core_api::{tag::search::Filter as TagFilter, track::search::*};
 
 use crate::{
     db::{
-        media_source::schema::*,
-        media_tracker::schema::*,
-        playlist::schema::*,
-        playlist_entry::schema::*,
-        track::{schema::*, Scope},
-        track_actor::schema::*,
-        track_cue::schema::*,
-        track_tag::schema::*,
-        track_title::schema::*,
+        media_source::schema::*, media_tracker::schema::*, playlist::schema::*,
+        playlist_entry::schema::*, track::schema::*, track_actor::schema::*, track_cue::schema::*,
+        track_tag::schema::*, track_title::schema::*,
     },
     prelude::*,
 };
@@ -992,7 +986,6 @@ where
 }
 
 fn select_track_ids_matching_actor_filter<'a, DB>(
-    scope: Scope,
     filter: &'a ActorPhraseFilter,
 ) -> (
     diesel::query_builder::BoxedSelectStatement<
@@ -1008,15 +1001,19 @@ where
 {
     let mut select = track_actor::table
         .select(track_actor::track_id)
-        .filter(track_actor::scope.eq(scope.to_i16().expect("actor scope")))
         .into_boxed();
 
     let ActorPhraseFilter {
         modifier,
+        scope,
         roles,
         kinds,
         name_terms,
     } = filter;
+
+    if let Some(scope) = scope {
+        select = select.filter(track_actor::scope.eq(scope.to_i16().expect("actor scope")));
+    }
 
     // Filter role(s)
     if !roles.is_empty() {
@@ -1046,11 +1043,8 @@ where
     (select, *modifier)
 }
 
-fn build_actor_filter_expression(
-    scope: Scope,
-    filter: &ActorPhraseFilter,
-) -> TrackSearchBoxedExpression<'_> {
-    let (subselect, filter_modifier) = select_track_ids_matching_actor_filter(scope, filter);
+fn build_actor_filter_expression(filter: &ActorPhraseFilter) -> TrackSearchBoxedExpression<'_> {
+    let (subselect, filter_modifier) = select_track_ids_matching_actor_filter(filter);
     match filter_modifier {
         None => Box::new(track::row_id.eq_any(subselect)),
         Some(FilterModifier::Complement) => Box::new(track::row_id.ne_all(subselect)),
@@ -1058,7 +1052,6 @@ fn build_actor_filter_expression(
 }
 
 fn select_track_ids_matching_title_filter<'a, DB>(
-    scope: Scope,
     filter: &'a TitlePhraseFilter,
 ) -> (
     diesel::query_builder::BoxedSelectStatement<
@@ -1074,14 +1067,18 @@ where
 {
     let mut select = track_title::table
         .select(track_title::track_id)
-        .filter(track_title::scope.eq(scope.to_i16().expect("title scope")))
         .into_boxed();
 
     let TitlePhraseFilter {
         modifier,
+        scope,
         kinds,
         name_terms,
     } = filter;
+
+    if let Some(scope) = scope {
+        select = select.filter(track_title::scope.eq(scope.to_i16().expect("title scope")));
+    }
 
     // Filter kind(s)
     if !kinds.is_empty() {
@@ -1104,11 +1101,8 @@ where
     (select, *modifier)
 }
 
-fn build_title_filter_expression(
-    scope: Scope,
-    filter: &TitlePhraseFilter,
-) -> TrackSearchBoxedExpression<'_> {
-    let (subselect, filter_modifier) = select_track_ids_matching_title_filter(scope, filter);
+fn build_title_filter_expression(filter: &TitlePhraseFilter) -> TrackSearchBoxedExpression<'_> {
+    let (subselect, filter_modifier) = select_track_ids_matching_title_filter(filter);
     match filter_modifier {
         None => Box::new(track::row_id.eq_any(subselect)),
         Some(FilterModifier::Complement) => Box::new(track::row_id.ne_all(subselect)),
@@ -1127,10 +1121,8 @@ impl TrackSearchBoxedExpressionBuilder for Filter {
             CueLabel(filter) => build_cue_label_filter_expression(filter.borrow()),
             TrackUid(track_uid) => build_track_uid_filter_expression(track_uid),
             PlaylistUid(playlist_uid) => build_playlist_uid_filter_expression(playlist_uid),
-            TrackActorPhrase(filter) => build_actor_filter_expression(Scope::Track, filter),
-            AlbumActorPhrase(filter) => build_actor_filter_expression(Scope::Album, filter),
-            TrackTitlePhrase(filter) => build_title_filter_expression(Scope::Track, filter),
-            AlbumTitlePhrase(filter) => build_title_filter_expression(Scope::Album, filter),
+            ActorPhrase(filter) => build_actor_filter_expression(filter),
+            TitlePhrase(filter) => build_title_filter_expression(filter),
             All(filters) => filters
                 .iter()
                 .fold(dummy_true_expression(), |expr, filter| {

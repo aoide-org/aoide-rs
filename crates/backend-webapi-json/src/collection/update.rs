@@ -18,10 +18,7 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let EntityRevQueryParams { rev } = query_params;
-    let entity_header = _inner::EntityHeader {
-        uid,
-        rev: rev.into(),
-    };
+    let entity_header = _inner::EntityHeader { uid, rev };
     let modified_collection = request_body.try_into()?;
     connection
         .transaction::<_, Error, _>(|| {
