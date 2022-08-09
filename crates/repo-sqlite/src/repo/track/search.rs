@@ -25,6 +25,7 @@ use crate::{
         track_actor::schema::*,
         track_cue::schema::*,
         track_tag::schema::*,
+        track_title::schema::*,
     },
     prelude::*,
 };
@@ -1095,6 +1096,7 @@ where
     let ActorFilter {
         modifier,
         roles,
+        kinds,
         name,
     } = filter;
 
@@ -1102,6 +1104,13 @@ where
     if !roles.is_empty() {
         select = select.filter(
             track_actor::role.eq_any(roles.iter().map(|role| role.to_i16().expect("actor role"))),
+        );
+    }
+
+    // Filter kind(s)
+    if !kinds.is_empty() {
+        select = select.filter(
+            track_actor::kind.eq_any(kinds.iter().map(|kind| kind.to_i16().expect("actor kind"))),
         );
     }
 
@@ -1162,6 +1171,96 @@ fn build_actor_filter_expression(
     }
 }
 
+fn select_track_ids_matching_title_filter<'a, DB>(
+    scope: Scope,
+    filter: &'a TitleFilter,
+) -> (
+    diesel::query_builder::BoxedSelectStatement<
+        'a,
+        diesel::sql_types::BigInt,
+        track_title::table,
+        DB,
+    >,
+    Option<FilterModifier>,
+)
+where
+    DB: diesel::backend::Backend + 'a,
+{
+    let mut select = track_title::table
+        .select(track_title::track_id)
+        .filter(track_title::scope.eq(scope.to_i16().expect("title scope")))
+        .into_boxed();
+
+    let TitleFilter {
+        modifier,
+        kinds,
+        name,
+    } = filter;
+
+    // Filter kind(s)
+    if !kinds.is_empty() {
+        select = select.filter(
+            track_title::kind.eq_any(kinds.iter().map(|kind| kind.to_i16().expect("title kind"))),
+        );
+    }
+
+    // Filter name
+    if let Some(ref name) = name {
+        let (val, cmp, dir) = decompose_string_predicate(name.borrow());
+        let string_cmp_op = match cmp {
+            // Equal comparison without escape characters
+            StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
+            StringCompare::Prefix => StringCmpOp::Prefix(escape_single_quotes(val), val.len()),
+            // Like comparisons with escaped wildcard character
+            StringCompare::StartsWith => StringCmpOp::Like(escape_like_starts_with(val)),
+            StringCompare::EndsWith => StringCmpOp::Like(escape_like_ends_with(val)),
+            StringCompare::Contains => StringCmpOp::Like(escape_like_contains(val)),
+            StringCompare::Matches => StringCmpOp::Like(escape_like_matches(val)),
+        };
+        select = match string_cmp_op {
+            StringCmpOp::Equal(eq) => {
+                if dir {
+                    select.filter(track_title::name.eq(eq))
+                } else {
+                    select.filter(track_title::name.ne(eq))
+                }
+            }
+            StringCmpOp::Prefix(prefix, len) => {
+                let sql_prefix_filter = if dir {
+                    sql_column_substr_prefix_eq("track_title.name", &prefix[..len])
+                } else {
+                    sql_column_substr_prefix_ne("track_title.name", &prefix[..len])
+                };
+                select.filter(sql_prefix_filter)
+            }
+            StringCmpOp::Like(like) => {
+                if dir {
+                    select.filter(track_title::name.like(like).escape(LIKE_ESCAPE_CHARACTER))
+                } else {
+                    select.filter(
+                        track_title::name
+                            .not_like(like)
+                            .escape(LIKE_ESCAPE_CHARACTER),
+                    )
+                }
+            }
+        };
+    }
+
+    (select, *modifier)
+}
+
+fn build_title_filter_expression(
+    scope: Scope,
+    filter: &TitleFilter,
+) -> TrackSearchBoxedExpression<'_> {
+    let (subselect, filter_modifier) = select_track_ids_matching_title_filter(scope, filter);
+    match filter_modifier {
+        None => Box::new(track::row_id.eq_any(subselect)),
+        Some(FilterModifier::Complement) => Box::new(track::row_id.ne_all(subselect)),
+    }
+}
+
 impl TrackSearchBoxedExpressionBuilder for Filter {
     fn build_expression(&self) -> TrackSearchBoxedExpression<'_> {
         use Filter::*;
@@ -1176,6 +1275,8 @@ impl TrackSearchBoxedExpressionBuilder for Filter {
             PlaylistUid(playlist_uid) => build_playlist_uid_filter_expression(playlist_uid),
             TrackActor(filter) => build_actor_filter_expression(Scope::Track, filter),
             AlbumActor(filter) => build_actor_filter_expression(Scope::Album, filter),
+            TrackTitle(filter) => build_title_filter_expression(Scope::Track, filter),
+            AlbumTitle(filter) => build_title_filter_expression(Scope::Album, filter),
             All(filters) => filters
                 .iter()
                 .fold(dummy_true_expression(), |expr, filter| {

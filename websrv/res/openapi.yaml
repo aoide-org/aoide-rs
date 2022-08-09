@@ -1139,6 +1139,13 @@ components:
           description: |
             A non-empty array will match any of the given roles.
             An empty or missing array will match any role.
+        kinds:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActorKind'
+          description: |
+            A non-empty array will match any of the given kinds.
+            An empty or missing array will match any kind.
         name:
           $ref: '#/components/schemas/StringPredicate'
     ActorName:
@@ -3194,6 +3201,20 @@ components:
               - $ref: '#/components/schemas/TitleKind'
       description: |
         Mandatory name, followed by optional level
+    TitleFilter:
+      type: object
+      properties:
+        modifier:
+          $ref: '#/components/schemas/FilterModifier'
+        kinds:
+          type: array
+          items:
+            $ref: '#/components/schemas/TitleKind'
+          description: |
+            A non-empty array will match any of the given kinds.
+            An empty or missing array will match any kind.
+        name:
+          $ref: '#/components/schemas/StringPredicate'
     TitleKind:
       type: integer
       enum: [0, 1, 2, 3, 4]
@@ -3352,6 +3373,8 @@ components:
         - $ref: '#/components/schemas/TrackSearchPlaylistUidFilterNode'
         - $ref: '#/components/schemas/TrackSearchTrackActorFilterNode'
         - $ref: '#/components/schemas/TrackSearchAlbumActorFilterNode'
+        - $ref: '#/components/schemas/TrackSearchTrackTitleFilterNode'
+        - $ref: '#/components/schemas/TrackSearchAlbumTitleFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
         - $ref: '#/components/schemas/TrackSearchNotFilterNode'
@@ -3390,6 +3413,20 @@ components:
           $ref: '#/components/schemas/ActorFilter'
       required:
         - albumActor
+    TrackSearchTrackTitleFilterNode:
+      type: object
+      properties:
+        trackTitle:
+          $ref: '#/components/schemas/TitleFilter'
+      required:
+        - trackTitle
+    TrackSearchAlbumTitleFilterNode:
+      type: object
+      properties:
+        albumTitle:
+          $ref: '#/components/schemas/TitleFilter'
+      required:
+        - albumTitle
     TrackSearchNotFilterNode:
       type: object
       properties:
