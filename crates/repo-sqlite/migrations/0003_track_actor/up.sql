@@ -19,10 +19,17 @@ CREATE INDEX IF NOT EXISTS idx_track_actor_track_id ON track_actor (
     track_id
 );
 
--- Canonical ordering on load
+-- Covering index (= contains all columns) for loading
+-- Ordering of columns matches the canonical ordering on load
 CREATE INDEX IF NOT EXISTS idx_track_actor_scope_role_kind_name ON track_actor (
     scope,
     role,
     kind,
     name
+);
+
+-- Searching
+CREATE INDEX IF NOT EXISTS idx_track_actor_name_role ON track_actor (
+    name,
+    role
 );

@@ -17,9 +17,15 @@ CREATE INDEX IF NOT EXISTS idx_track_title_track_id ON track_title (
     track_id
 );
 
--- Canonical ordering on load
+-- Covering index (= contains all columns) for loading
+-- Ordering of columns matches the canonical ordering on load
 CREATE INDEX IF NOT EXISTS idx_track_title_scope_kind_name ON track_title (
     scope,
     kind,
+    name
+);
+
+-- Searching
+CREATE INDEX IF NOT EXISTS idx_track_title_name ON track_title (
     name
 );
