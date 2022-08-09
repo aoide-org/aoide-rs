@@ -4,131 +4,131 @@
 use crate::prelude::*;
 
 mod _core {
-    pub(super) use aoide_core::track::actor::{Actor, ActorKind, ActorRole};
+    pub(super) use aoide_core::track::actor::{Actor, Kind, Role};
 }
 
 ///////////////////////////////////////////////////////////////////////
-// ActorKind
+// Kind
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[repr(u8)]
-pub enum ActorKind {
-    Summary = _core::ActorKind::Summary as u8,
-    Individual = _core::ActorKind::Individual as u8,
-    Sorting = _core::ActorKind::Sorting as u8,
+pub enum Kind {
+    Summary = _core::Kind::Summary as u8,
+    Individual = _core::Kind::Individual as u8,
+    Sorting = _core::Kind::Sorting as u8,
 }
 
-impl ActorKind {
+impl Kind {
     fn is_default(&self) -> bool {
-        matches!(self, ActorKind::Summary)
+        matches!(self, Kind::Summary)
     }
 }
 
-impl Default for ActorKind {
-    fn default() -> ActorKind {
-        _core::ActorKind::default().into()
+impl Default for Kind {
+    fn default() -> Kind {
+        _core::Kind::default().into()
     }
 }
 
-impl From<ActorKind> for _core::ActorKind {
-    fn from(from: ActorKind) -> Self {
-        use _core::ActorKind::*;
+impl From<Kind> for _core::Kind {
+    fn from(from: Kind) -> Self {
+        use _core::Kind::*;
         match from {
-            ActorKind::Summary => Summary,
-            ActorKind::Individual => Individual,
-            ActorKind::Sorting => Sorting,
+            Kind::Summary => Summary,
+            Kind::Individual => Individual,
+            Kind::Sorting => Sorting,
         }
     }
 }
 
-impl From<_core::ActorKind> for ActorKind {
-    fn from(from: _core::ActorKind) -> Self {
-        use _core::ActorKind::*;
+impl From<_core::Kind> for Kind {
+    fn from(from: _core::Kind) -> Self {
+        use _core::Kind::*;
         match from {
-            Summary => ActorKind::Summary,
-            Individual => ActorKind::Individual,
-            Sorting => ActorKind::Sorting,
+            Summary => Kind::Summary,
+            Individual => Kind::Individual,
+            Sorting => Kind::Sorting,
         }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
-// ActorRole
+// Role
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[repr(u8)]
-pub enum ActorRole {
-    Artist = _core::ActorRole::Artist as u8,
-    Arranger = _core::ActorRole::Arranger as u8,
-    Composer = _core::ActorRole::Composer as u8,
-    Conductor = _core::ActorRole::Conductor as u8,
-    DjMixer = _core::ActorRole::DjMixer as u8,
-    Engineer = _core::ActorRole::Engineer as u8,
-    Lyricist = _core::ActorRole::Lyricist as u8,
-    Mixer = _core::ActorRole::Mixer as u8,
-    Performer = _core::ActorRole::Performer as u8,
-    Producer = _core::ActorRole::Producer as u8,
-    Director = _core::ActorRole::Director as u8,
-    Remixer = _core::ActorRole::Remixer as u8,
-    Writer = _core::ActorRole::Writer as u8,
+pub enum Role {
+    Artist = _core::Role::Artist as u8,
+    Arranger = _core::Role::Arranger as u8,
+    Composer = _core::Role::Composer as u8,
+    Conductor = _core::Role::Conductor as u8,
+    DjMixer = _core::Role::DjMixer as u8,
+    Engineer = _core::Role::Engineer as u8,
+    Lyricist = _core::Role::Lyricist as u8,
+    Mixer = _core::Role::Mixer as u8,
+    Performer = _core::Role::Performer as u8,
+    Producer = _core::Role::Producer as u8,
+    Director = _core::Role::Director as u8,
+    Remixer = _core::Role::Remixer as u8,
+    Writer = _core::Role::Writer as u8,
 }
 
-impl ActorRole {
+impl Role {
     fn is_default(&self) -> bool {
         matches!(self, Self::Artist)
     }
 }
 
-impl Default for ActorRole {
-    fn default() -> ActorRole {
-        _core::ActorRole::default().into()
+impl Default for Role {
+    fn default() -> Role {
+        _core::Role::default().into()
     }
 }
 
-impl From<ActorRole> for _core::ActorRole {
-    fn from(from: ActorRole) -> Self {
-        use _core::ActorRole::*;
+impl From<Role> for _core::Role {
+    fn from(from: Role) -> Self {
+        use _core::Role::*;
         match from {
-            ActorRole::Artist => Artist,
-            ActorRole::Arranger => Arranger,
-            ActorRole::Composer => Composer,
-            ActorRole::Conductor => Conductor,
-            ActorRole::DjMixer => DjMixer,
-            ActorRole::Engineer => Engineer,
-            ActorRole::Lyricist => Lyricist,
-            ActorRole::Mixer => Mixer,
-            ActorRole::Performer => Performer,
-            ActorRole::Producer => Producer,
-            ActorRole::Director => Director,
-            ActorRole::Remixer => Remixer,
-            ActorRole::Writer => Writer,
+            Role::Artist => Artist,
+            Role::Arranger => Arranger,
+            Role::Composer => Composer,
+            Role::Conductor => Conductor,
+            Role::DjMixer => DjMixer,
+            Role::Engineer => Engineer,
+            Role::Lyricist => Lyricist,
+            Role::Mixer => Mixer,
+            Role::Performer => Performer,
+            Role::Producer => Producer,
+            Role::Director => Director,
+            Role::Remixer => Remixer,
+            Role::Writer => Writer,
         }
     }
 }
 
-impl From<_core::ActorRole> for ActorRole {
-    fn from(from: _core::ActorRole) -> Self {
-        use _core::ActorRole::*;
+impl From<_core::Role> for Role {
+    fn from(from: _core::Role) -> Self {
+        use _core::Role::*;
         match from {
-            Artist => ActorRole::Artist,
-            Arranger => ActorRole::Arranger,
-            Composer => ActorRole::Composer,
-            Conductor => ActorRole::Conductor,
-            DjMixer => ActorRole::DjMixer,
-            Engineer => ActorRole::Engineer,
-            Lyricist => ActorRole::Lyricist,
-            Mixer => ActorRole::Mixer,
-            Performer => ActorRole::Performer,
-            Producer => ActorRole::Producer,
-            Director => ActorRole::Director,
-            Remixer => ActorRole::Remixer,
-            Writer => ActorRole::Writer,
+            Artist => Role::Artist,
+            Arranger => Role::Arranger,
+            Composer => Role::Composer,
+            Conductor => Role::Conductor,
+            DjMixer => Role::DjMixer,
+            Engineer => Role::Engineer,
+            Lyricist => Role::Lyricist,
+            Mixer => Role::Mixer,
+            Performer => Role::Performer,
+            Producer => Role::Producer,
+            Director => Role::Director,
+            Remixer => Role::Remixer,
+            Writer => Role::Writer,
         }
     }
 }
@@ -142,13 +142,13 @@ impl From<_core::ActorRole> for ActorRole {
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FullActor {
-    #[serde(skip_serializing_if = "ActorKind::is_default", default)]
-    kind: ActorKind,
+    #[serde(skip_serializing_if = "Kind::is_default", default)]
+    kind: Kind,
 
     name: String,
 
-    #[serde(skip_serializing_if = "ActorRole::is_default", default)]
-    role: ActorRole,
+    #[serde(skip_serializing_if = "Role::is_default", default)]
+    role: Role,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     role_notes: Option<String>,
@@ -193,9 +193,9 @@ impl From<FullActor> for _core::Actor {
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(untagged)]
 pub enum Actor {
-    Name(String),                   // name
-    NameAndRole(String, ActorRole), // [name,role]
-    FullActor(FullActor),           // {name,role,..}
+    Name(String),              // name
+    NameAndRole(String, Role), // [name,role]
+    FullActor(FullActor),      // {name,role,..}
 }
 
 impl From<_core::Actor> for Actor {
@@ -206,8 +206,8 @@ impl From<_core::Actor> for Actor {
             role,
             role_notes,
         } = from;
-        if kind == _core::ActorKind::Summary && role_notes.is_none() {
-            if role == _core::ActorRole::Artist {
+        if kind == _core::Kind::Summary && role_notes.is_none() {
+            if role == _core::Role::Artist {
                 return Self::Name(name);
             } else {
                 return Self::NameAndRole(name, role.into());
@@ -227,13 +227,13 @@ impl From<Actor> for _core::Actor {
         use Actor::*;
         match from {
             Name(name) => Self {
-                kind: _core::ActorKind::Summary,
+                kind: _core::Kind::Summary,
                 name,
-                role: _core::ActorRole::Artist,
+                role: _core::Role::Artist,
                 role_notes: None,
             },
             NameAndRole(name, role) => Self {
-                kind: _core::ActorKind::Summary,
+                kind: _core::Kind::Summary,
                 name,
                 role: role.into(),
                 role_notes: None,

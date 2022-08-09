@@ -11,13 +11,13 @@ use crate::{
 };
 
 ///////////////////////////////////////////////////////////////////////
-// ActorRole
+// Role
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(
     Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive,
 )]
-pub enum ActorRole {
+pub enum Role {
     #[default]
     Artist = 0,
     Arranger = 1,
@@ -35,19 +35,19 @@ pub enum ActorRole {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// ActorKind
+// Kind
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
-pub enum ActorKind {
+pub enum Kind {
     Summary = 0, // unspecified for display, may mention multiple actors with differing kinds and roles
     Individual = 1, // single persons or group/band names
     Sorting = 2,
 }
 
-impl Default for ActorKind {
-    fn default() -> ActorKind {
-        ActorKind::Summary
+impl Default for Kind {
+    fn default() -> Kind {
+        Kind::Summary
     }
 }
 
@@ -57,9 +57,9 @@ impl Default for ActorKind {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Actor {
-    pub role: ActorRole,
+    pub role: Role,
 
-    pub kind: ActorKind,
+    pub kind: Kind,
 
     pub name: String,
 
@@ -139,14 +139,14 @@ pub struct Actors;
 #[derive(Copy, Clone, Debug)]
 pub enum ActorsInvalidity {
     Actor(ActorInvalidity),
-    SummaryActorAmbiguous(ActorRole),
-    SortingActorAmbiguous(ActorRole),
-    SummaryNameInconsistentWithIndividualNames(ActorRole),
-    MainActorUndefined(ActorRole),
+    SummaryActorAmbiguous(Role),
+    SortingActorAmbiguous(Role),
+    SummaryNameInconsistentWithIndividualNames(Role),
+    MainActorUndefined(Role),
 }
 
-pub const ANY_ROLE_FILTER: Option<ActorRole> = None;
-pub const ANY_RANK_FILTER: Option<ActorKind> = None;
+pub const ANY_ROLE_FILTER: Option<Role> = None;
+pub const ANY_RANK_FILTER: Option<Kind> = None;
 
 impl Actors {
     pub fn validate<'a, I>(actors: &I) -> ValidationResult<ActorsInvalidity>
@@ -169,7 +169,7 @@ impl Actors {
             roles.dedup();
             for role in roles {
                 let mut summary_actors_iter =
-                    Self::filter_kind_role(actors.clone(), ActorKind::Summary, role);
+                    Self::filter_kind_role(actors.clone(), Kind::Summary, role);
                 let summary_actor = summary_actors_iter.next();
                 if let Some(summary_actor) = summary_actor {
                     debug_assert!(Self::main_actor(actors.clone(), role).is_some());
@@ -180,7 +180,7 @@ impl Actors {
                     );
                     // All individual actors must be consistent with the summary actor
                     context = context.invalidate_if(
-                        !Self::filter_kind_role(actors.clone(), ActorKind::Individual, role)
+                        !Self::filter_kind_role(actors.clone(), Kind::Individual, role)
                             .map(|actor| &actor.name)
                             .all(|name| {
                                 is_valid_summary_individual_actor_name(&summary_actor.name, name)
@@ -192,18 +192,16 @@ impl Actors {
                     debug_assert_eq!(
                         Self::main_actor(actors.clone(), role).is_none(),
                         // Optimization to skip finding the missing summary actor again
-                        Self::filter_kind_role(actors.clone(), ActorKind::Individual, role).count()
-                            != 1,
+                        Self::filter_kind_role(actors.clone(), Kind::Individual, role).count() != 1,
                     );
                     context = context.invalidate_if(
-                        Self::filter_kind_role(actors.clone(), ActorKind::Individual, role).count()
-                            != 1,
+                        Self::filter_kind_role(actors.clone(), Kind::Individual, role).count() != 1,
                         ActorsInvalidity::MainActorUndefined(role),
                     );
                 }
                 // At most one sorting entry exists for each role.
                 context = context.invalidate_if(
-                    Self::filter_kind_role(actors.clone(), ActorKind::Sorting, role).count() > 1,
+                    Self::filter_kind_role(actors.clone(), Kind::Sorting, role).count() > 1,
                     ActorsInvalidity::SortingActorAmbiguous(role),
                 );
             }
@@ -213,8 +211,8 @@ impl Actors {
 
     pub fn filter_kind_role<'a, I>(
         actors: I,
-        kind: impl Into<Option<ActorKind>>,
-        role: impl Into<Option<ActorRole>>,
+        kind: impl Into<Option<Kind>>,
+        role: impl Into<Option<Role>>,
     ) -> impl Iterator<Item = &'a Actor>
     where
         I: IntoIterator<Item = &'a Actor>,
@@ -227,18 +225,18 @@ impl Actors {
         })
     }
 
-    pub fn summary_actor<'a, I>(actors: I, role: ActorRole) -> Option<&'a Actor>
+    pub fn summary_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
     where
         I: Iterator<Item = &'a Actor> + Clone,
     {
-        Self::filter_kind_role(actors, ActorKind::Summary, role).next()
+        Self::filter_kind_role(actors, Kind::Summary, role).next()
     }
 
-    pub fn singular_individual_actor<'a, I>(actors: I, role: ActorRole) -> Option<&'a Actor>
+    pub fn singular_individual_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
     where
         I: Iterator<Item = &'a Actor> + Clone,
     {
-        let mut iter = Self::filter_kind_role(actors, ActorKind::Individual, role);
+        let mut iter = Self::filter_kind_role(actors, Kind::Individual, role);
         let first = iter.next();
         if first.is_some() && iter.next().is_none() {
             first
@@ -249,7 +247,7 @@ impl Actors {
     }
 
     // The singular summary actor or if none exists then the singular individual actor
-    pub fn main_actor<'a, I>(actors: I, role: ActorRole) -> Option<&'a Actor>
+    pub fn main_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
     where
         I: Iterator<Item = &'a Actor> + Clone,
     {

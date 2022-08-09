@@ -26,7 +26,7 @@ impl TryFrom<QueryableRecord> for (RecordId, Record) {
             kind,
             name,
         } = from;
-        let kind = TitleKind::from_i16(kind)
+        let kind = Kind::from_i16(kind)
             .ok_or_else(|| anyhow::anyhow!("Invalid title kind value: {kind}"))?;
         let scope = Scope::from_i16(scope)
             .ok_or_else(|| anyhow::anyhow!("Invalid scope value: {scope}"))?;

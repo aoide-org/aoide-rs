@@ -22,14 +22,14 @@ use aoide_core::{
     music::{key::KeySignature, tempo::TempoBpm},
     tag::{FacetedTags, PlainTag, Score as TagScore, TagsMap},
     track::{
-        actor::ActorRole,
+        actor::Role as ActorRole,
         album::Kind as AlbumKind,
         metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
             FACET_ID_ISRC, FACET_ID_MOOD, FACET_ID_XID,
         },
-        title::{TitleKind, Titles},
+        title::{Kind as TitleKind, Titles},
         Track,
     },
     util::{canonical::Canonical, string::trimmed_non_empty_from_owned},

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use crate::track::title::TitleKind;
+use crate::track::{actor, title};
 
 use super::*;
 
@@ -10,7 +10,7 @@ fn with_main_title() {
     let album = Album {
         titles: Canonical::tie(vec![Title {
             name: "main".to_string(),
-            kind: TitleKind::Main,
+            kind: title::Kind::Main,
         }]),
         ..Default::default()
     };
@@ -22,7 +22,7 @@ fn without_main_title() {
     let album = Album {
         titles: Canonical::tie(vec![Title {
             name: "sub".to_string(),
-            kind: TitleKind::Sub,
+            kind: title::Kind::Sub,
         }]),
         ..Default::default()
     };
@@ -34,11 +34,11 @@ fn with_main_artist() {
     let album = Album {
         titles: Canonical::tie(vec![Title {
             name: "main".to_string(),
-            kind: TitleKind::Main,
+            kind: title::Kind::Main,
         }]),
         actors: Canonical::tie(vec![Actor {
             name: "artist".to_string(),
-            role: ActorRole::Artist,
+            role: actor::Role::Artist,
             ..Default::default()
         }]),
         ..Default::default()
@@ -52,11 +52,11 @@ fn without_main_artist() {
     let album = Album {
         titles: Canonical::tie(vec![Title {
             name: "main".to_string(),
-            kind: TitleKind::Main,
+            kind: title::Kind::Main,
         }]),
         actors: Canonical::tie(vec![Actor {
             name: "composer".to_string(),
-            role: ActorRole::Composer,
+            role: actor::Role::Composer,
             ..Default::default()
         }]),
         ..Default::default()

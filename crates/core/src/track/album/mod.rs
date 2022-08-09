@@ -9,7 +9,7 @@ use crate::{
 };
 
 use super::{
-    actor::*,
+    actor::{self, Actor, Actors, ActorsInvalidity},
     title::{Title, Titles, TitlesInvalidity},
 };
 
@@ -41,13 +41,13 @@ impl Album {
     }
 
     #[must_use]
-    pub fn main_actor(&self, role: ActorRole) -> Option<&Actor> {
+    pub fn main_actor(&self, role: actor::Role) -> Option<&Actor> {
         Actors::main_actor(self.actors.iter(), role)
     }
 
     #[must_use]
     pub fn main_artist(&self) -> Option<&Actor> {
-        Actors::main_actor(self.actors.iter(), ActorRole::Artist)
+        Actors::main_actor(self.actors.iter(), actor::Role::Artist)
     }
 }
 

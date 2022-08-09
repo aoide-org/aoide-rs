@@ -11,7 +11,7 @@ use aoide_core::{
         tempo::{Bpm, TempoBpm},
     },
     track::{
-        actor::*,
+        actor::{Actors, Role as ActorRole},
         album::{Album, Kind as AlbumKind},
         index::*,
         metric::*,

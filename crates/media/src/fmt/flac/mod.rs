@@ -15,7 +15,7 @@ use aoide_core::{
     music::key::KeySignature,
     tag::TagsMap,
     track::{
-        actor::ActorRole,
+        actor::Role as ActorRole,
         album::Kind as AlbumKind,
         tag::{FACET_ID_COMMENT, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC, FACET_ID_MOOD},
         Track,

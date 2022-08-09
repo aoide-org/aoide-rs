@@ -15,14 +15,14 @@ use aoide_core::{
     music::{key::KeySignature, tempo::TempoBpm},
     tag::{FacetId, FacetedTags, PlainTag, TagsMap},
     track::{
-        actor::ActorRole,
+        actor::Role as ActorRole,
         album::Kind as AlbumKind,
         index::Index,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
             FACET_ID_ISRC, FACET_ID_MOOD,
         },
-        title::{Title, TitleKind, Titles},
+        title::{Kind as TitleKind, Title, Titles},
         Track,
     },
     util::{

@@ -15,23 +15,23 @@ fn actors() {
         },
         Actor {
             name: individual_artist_names[0].into(),
-            kind: ActorKind::Individual,
+            kind: Kind::Individual,
             ..Default::default()
         },
         Actor {
             name: individual_artist_names[1].into(),
-            kind: ActorKind::Individual,
+            kind: Kind::Individual,
             ..Default::default()
         },
         Actor {
             name: individual_producer_name.into(),
-            role: ActorRole::Producer,
-            kind: ActorKind::Individual,
+            role: Role::Producer,
+            kind: Kind::Individual,
             ..Default::default()
         },
         Actor {
             name: individual_artist_names[2].into(),
-            kind: ActorKind::Individual,
+            kind: Kind::Individual,
             ..Default::default()
         },
     ];
@@ -41,21 +41,21 @@ fn actors() {
     // Artist(s)
     assert_eq!(
         &[summary_artist_name],
-        Actors::filter_kind_role(actors.iter(), ActorKind::Summary, ActorRole::Artist)
+        Actors::filter_kind_role(actors.iter(), Kind::Summary, Role::Artist)
             .map(|actor| actor.name.as_str())
             .collect::<Vec<_>>()
             .as_slice()
     );
     assert_eq!(
         individual_artist_names,
-        Actors::filter_kind_role(actors.iter(), ActorKind::Individual, ActorRole::Artist)
+        Actors::filter_kind_role(actors.iter(), Kind::Individual, Role::Artist)
             .map(|actor| actor.name.as_str())
             .collect::<Vec<_>>()
             .as_slice()
     );
     assert_eq!(
         summary_artist_name,
-        Actors::main_actor(actors.iter(), ActorRole::Artist)
+        Actors::main_actor(actors.iter(), Role::Artist)
             .unwrap()
             .name
     );
@@ -63,37 +63,30 @@ fn actors() {
     // Producer(s)
     assert_eq!(
         0,
-        Actors::filter_kind_role(&actors, ActorKind::Summary, ActorRole::Producer).count()
+        Actors::filter_kind_role(&actors, Kind::Summary, Role::Producer).count()
     );
     assert_eq!(
         &[individual_producer_name],
-        Actors::filter_kind_role(&actors, ActorKind::Individual, ActorRole::Producer)
+        Actors::filter_kind_role(&actors, Kind::Individual, Role::Producer)
             .map(|actor| actor.name.as_str())
             .collect::<Vec<_>>()
             .as_slice()
     );
     assert_eq!(
         individual_producer_name,
-        Actors::main_actor(actors.iter(), ActorRole::Producer)
+        Actors::main_actor(actors.iter(), Role::Producer)
             .unwrap()
             .name
     );
 
     // Conductor(s)
-    for kind in &[
-        ActorKind::Summary,
-        ActorKind::Individual,
-        ActorKind::Individual,
-    ] {
+    for kind in &[Kind::Summary, Kind::Individual, Kind::Individual] {
         assert_eq!(
             0,
-            Actors::filter_kind_role(&actors, *kind, ActorRole::Conductor).count()
+            Actors::filter_kind_role(&actors, *kind, Role::Conductor).count()
         );
     }
-    assert_eq!(
-        None,
-        Actors::main_actor(actors.iter(), ActorRole::Conductor)
-    );
+    assert_eq!(None, Actors::main_actor(actors.iter(), Role::Conductor));
 }
 
 #[test]

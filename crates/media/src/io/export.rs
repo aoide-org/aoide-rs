@@ -6,7 +6,7 @@ use std::path::Path;
 use bitflags::bitflags;
 
 use aoide_core::track::{
-    actor::{Actor, ActorKind, ActorRole, Actors},
+    actor::{Actor, Actors, Kind as ActorKind, Role as ActorRole},
     Track,
 };
 

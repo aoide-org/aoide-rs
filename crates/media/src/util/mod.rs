@@ -28,9 +28,11 @@ use aoide_core::{
         tempo::TempoBpm,
     },
     track::{
-        actor::{is_valid_summary_individual_actor_name, Actor, ActorKind, ActorRole},
+        actor::{
+            is_valid_summary_individual_actor_name, Actor, Kind as ActorKind, Role as ActorRole,
+        },
         index::Index,
-        title::{Title, TitleKind},
+        title::{Kind as TitleKind, Title},
     },
     util::{
         clock::{DateOrDateTime, DateTime, DateYYYYMMDD, YYYYMMDD},

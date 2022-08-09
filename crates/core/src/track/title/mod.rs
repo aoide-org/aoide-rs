@@ -11,13 +11,13 @@ use crate::{
 };
 
 ///////////////////////////////////////////////////////////////////////
-// TitleKind
+// Kind
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(
     Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive,
 )]
-pub enum TitleKind {
+pub enum Kind {
     #[default]
     Main = 0,
     Sub = 1,
@@ -33,7 +33,7 @@ pub enum TitleKind {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Title {
-    pub kind: TitleKind,
+    pub kind: Kind,
 
     pub name: String,
 }
@@ -95,7 +95,7 @@ pub enum TitlesInvalidity {
     MainTitleAmbiguous,
 }
 
-pub const ANY_KIND_FILTER: Option<TitleKind> = None;
+pub const ANY_KIND_FILTER: Option<Kind> = None;
 
 pub const ANY_LANGUAGE_FILTER: Option<Option<&'static str>> = None;
 
@@ -123,7 +123,7 @@ impl Titles {
 
     pub fn filter_kind<'a, I>(
         titles: I,
-        kind: impl Into<Option<TitleKind>>,
+        kind: impl Into<Option<Kind>>,
     ) -> impl Iterator<Item = &'a Title>
     where
         I: IntoIterator<Item = &'a Title>,
@@ -138,7 +138,7 @@ impl Titles {
     where
         I: IntoIterator<Item = &'a Title>,
     {
-        Self::filter_kind(titles, TitleKind::Main)
+        Self::filter_kind(titles, Kind::Main)
     }
 
     pub fn main_title<'a, I>(titles: I) -> Option<&'a Title>
@@ -166,7 +166,7 @@ impl Titles {
             // Add
             titles.push(Title {
                 name,
-                kind: TitleKind::Main,
+                kind: Kind::Main,
             });
         }
         true // modified

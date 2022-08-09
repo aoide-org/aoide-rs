@@ -7,14 +7,14 @@ use super::*;
 
 #[test]
 fn is_default() {
-    assert!(ActorRole::default().is_default());
-    assert!(ActorKind::default().is_default());
+    assert!(Role::default().is_default());
+    assert!(Kind::default().is_default());
 }
 
 #[test]
 fn into_default() {
-    assert_eq!(_core::ActorRole::default(), ActorRole::default().into());
-    assert_eq!(ActorRole::default(), _core::ActorRole::default().into());
-    assert_eq!(_core::ActorKind::default(), ActorKind::default().into());
-    assert_eq!(ActorKind::default(), _core::ActorKind::default().into());
+    assert_eq!(_core::Role::default(), Role::default().into());
+    assert_eq!(Role::default(), _core::Role::default().into());
+    assert_eq!(_core::Kind::default(), Kind::default().into());
+    assert_eq!(Kind::default(), _core::Kind::default().into());
 }

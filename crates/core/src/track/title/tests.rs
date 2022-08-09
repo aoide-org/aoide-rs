@@ -23,7 +23,7 @@ fn validate_empty_titles() {
 fn validate_main_title() {
     let titles = [Title {
         name: "title1".into(),
-        kind: TitleKind::Main,
+        kind: Kind::Main,
     }];
     assert!(Titles::validate(&titles.iter()).is_ok());
 }
@@ -32,7 +32,7 @@ fn validate_main_title() {
 fn validate_single_main_title() {
     let titles = [Title {
         name: "title1".into(),
-        kind: TitleKind::Main,
+        kind: Kind::Main,
     }];
     assert!(Titles::validate(&titles.iter()).is_ok());
 }
@@ -41,7 +41,7 @@ fn validate_single_main_title() {
 fn validate_missing_main_title() {
     let titles = [Title {
         name: "title1".into(),
-        kind: TitleKind::Sub,
+        kind: Kind::Sub,
     }];
     assert_eq!(
         1,
@@ -58,11 +58,11 @@ fn validate_ambiguous_main_title() {
     let titles = [
         Title {
             name: "title1".into(),
-            kind: TitleKind::Main,
+            kind: Kind::Main,
         },
         Title {
             name: "title2".into(),
-            kind: TitleKind::Main,
+            kind: Kind::Main,
         },
     ];
     assert_eq!(
@@ -80,23 +80,23 @@ fn validate_multiple_titles() {
     let titles = [
         Title {
             name: "title1".into(),
-            kind: TitleKind::Main,
+            kind: Kind::Main,
         },
         Title {
             name: "title2".into(),
-            kind: TitleKind::Sub,
+            kind: Kind::Sub,
         },
         Title {
             name: "title3".into(),
-            kind: TitleKind::Sub,
+            kind: Kind::Sub,
         },
         Title {
             name: "title4".into(),
-            kind: TitleKind::Work,
+            kind: Kind::Work,
         },
         Title {
             name: "title4".into(),
-            kind: TitleKind::Movement,
+            kind: Kind::Movement,
         },
     ];
     assert!(Titles::validate(&titles.iter()).is_ok());

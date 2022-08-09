@@ -21,14 +21,14 @@ use aoide_core::{
     music::key::KeySignature,
     tag::{FacetId, FacetedTags, PlainTag, TagsMap},
     track::{
-        actor::ActorRole,
+        actor::Role as ActorRole,
         album::Kind as AlbumKind,
         metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
             FACET_ID_ISRC, FACET_ID_LANGUAGE, FACET_ID_MOOD,
         },
-        title::{TitleKind, Titles},
+        title::{Kind as TitleKind, Titles},
         Track,
     },
     util::{
