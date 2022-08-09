@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core_json::{entity::EntityUid, util::clock::DateTime};
+use aoide_core_json::{entity::EntityUid, track::actor::Role as ActorRole, util::clock::DateTime};
 
 use url::Url;
 
 use crate::{
     _inner::filtering::NumericValue,
-    filtering::{ScalarFieldFilter, StringFilter},
+    filtering::{FilterModifier, ScalarFieldFilter, StringFilter, StringPredicate},
     prelude::*,
     sorting::SortDirection,
     tag::search::Filter as TagFilter,
@@ -411,6 +411,54 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
+pub struct ActorFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub roles: Vec<ActorRole>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<StringPredicate>,
+}
+
+#[cfg(feature = "backend")]
+impl From<ActorFilter> for _inner::ActorFilter {
+    fn from(from: ActorFilter) -> Self {
+        let ActorFilter {
+            modifier,
+            roles,
+            name,
+        } = from;
+        Self {
+            modifier: modifier.map(Into::into),
+            roles: roles.into_iter().map(Into::into).collect(),
+            name: name.map(Into::into),
+        }
+    }
+}
+
+#[cfg(feature = "frontend")]
+impl From<_inner::ActorFilter> for ActorFilter {
+    fn from(from: _inner::ActorFilter) -> Self {
+        let _inner::ActorFilter {
+            modifier,
+            roles,
+            name,
+        } = from;
+        Self {
+            modifier: modifier.map(Into::into),
+            roles: roles.into_iter().map(Into::into).collect(),
+            name: name.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
 pub enum Filter {
     Phrase(PhraseFieldFilter),
     Numeric(NumericFieldFilter),
@@ -420,6 +468,8 @@ pub enum Filter {
     CueLabel(StringFilter),
     TrackUid(EntityUid),
     PlaylistUid(EntityUid),
+    TrackActor(ActorFilter),
+    AlbumActor(ActorFilter),
     All(Vec<Filter>),
     Any(Vec<Filter>),
     Not(Box<Filter>),
@@ -438,6 +488,8 @@ impl From<Filter> for _inner::Filter {
             CueLabel(from) => Self::CueLabel(from.into()),
             TrackUid(from) => Self::TrackUid(from.into()),
             PlaylistUid(from) => Self::PlaylistUid(from.into()),
+            TrackActor(from) => Self::TrackActor(from.into()),
+            AlbumActor(from) => Self::AlbumActor(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),
             Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
             Not(from) => Self::Not(Box::new((*from).into())),
@@ -458,6 +510,8 @@ impl From<_inner::Filter> for Filter {
             CueLabel(from) => Self::CueLabel(from.into()),
             TrackUid(from) => Self::TrackUid(from.into()),
             PlaylistUid(from) => Self::PlaylistUid(from.into()),
+            TrackActor(from) => Self::TrackActor(from.into()),
+            AlbumActor(from) => Self::AlbumActor(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),
             Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
             Not(from) => Self::Not(Box::new((*from).into())),

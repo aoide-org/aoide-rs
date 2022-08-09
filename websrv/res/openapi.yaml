@@ -1127,6 +1127,20 @@ components:
 
         Only a single `summary` and `sorting` actor is allowed per track/album,
         while multiple `individual` actors are allowed.
+    ActorFilter:
+      type: object
+      properties:
+        modifier:
+          $ref: '#/components/schemas/FilterModifier'
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActorRole'
+          description: |
+            A non-empty array will match any of the given roles.
+            An empty or missing array will match any role.
+        name:
+          $ref: '#/components/schemas/StringPredicate'
     ActorName:
       type: string
       minLength: 1
@@ -3336,6 +3350,8 @@ components:
         - $ref: '#/components/schemas/TrackSearchCueLabelFilterNode'
         - $ref: '#/components/schemas/TrackSearchTrackUidFilterNode'
         - $ref: '#/components/schemas/TrackSearchPlaylistUidFilterNode'
+        - $ref: '#/components/schemas/TrackSearchTrackActorFilterNode'
+        - $ref: '#/components/schemas/TrackSearchAlbumActorFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
         - $ref: '#/components/schemas/TrackSearchNotFilterNode'
@@ -3360,6 +3376,20 @@ components:
           $ref: '#/components/schemas/EntityUid'
       required:
         - playlistUid
+    TrackSearchTrackActorFilterNode:
+      type: object
+      properties:
+        trackActor:
+          $ref: '#/components/schemas/ActorFilter'
+      required:
+        - trackActor
+    TrackSearchAlbumActorFilterNode:
+      type: object
+      properties:
+        albumActor:
+          $ref: '#/components/schemas/ActorFilter'
+      required:
+        - albumActor
     TrackSearchNotFilterNode:
       type: object
       properties:

@@ -6,7 +6,7 @@ use semval::prelude::IsValid as _;
 use aoide_core::{
     audio::DurationMs,
     playlist::EntityUid as PlaylistUid,
-    track::EntityUid as TrackUid,
+    track::{actor::Role as ActorRole, EntityUid as TrackUid},
     util::clock::{DateOrDateTime, DateTime},
 };
 
@@ -80,6 +80,15 @@ pub struct SourceFilterBorrowed<'s> {
     pub path: StringPredicateBorrowed<'s>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ActorFilter {
+    pub modifier: Option<FilterModifier>,
+
+    pub roles: Vec<ActorRole>,
+
+    pub name: Option<StringPredicate>,
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SortField {
     AlbumArtist,
@@ -124,6 +133,8 @@ pub enum Filter {
     CueLabel(StringFilter),
     TrackUid(TrackUid),
     PlaylistUid(PlaylistUid),
+    TrackActor(ActorFilter),
+    AlbumActor(ActorFilter),
     All(Vec<Filter>),
     Any(Vec<Filter>),
     Not(Box<Filter>),

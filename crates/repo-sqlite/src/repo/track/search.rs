@@ -7,6 +7,8 @@ use diesel::{
     BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods,
 };
 
+use num_traits::ToPrimitive as _;
+
 use aoide_core::{
     playlist::EntityUid as PlaylistUid, track::EntityUid as TrackUid, util::clock::YYYYMMDD,
 };
@@ -15,8 +17,14 @@ use aoide_core_api::{tag::search::Filter as TagFilter, track::search::*};
 
 use crate::{
     db::{
-        media_source::schema::*, media_tracker::schema::*, playlist::schema::*,
-        playlist_entry::schema::*, track::schema::*, track_cue::schema::*, track_tag::schema::*,
+        media_source::schema::*,
+        media_tracker::schema::*,
+        playlist::schema::*,
+        playlist_entry::schema::*,
+        track::{schema::*, Scope},
+        track_actor::schema::*,
+        track_cue::schema::*,
+        track_tag::schema::*,
     },
     prelude::*,
 };
@@ -857,7 +865,7 @@ fn build_condition_filter_expression(
 }
 
 fn select_track_ids_matching_tag_filter<'a, DB>(
-    tag_filter: &'a TagFilter,
+    filter: &'a TagFilter,
 ) -> (
     diesel::query_builder::BoxedSelectStatement<
         'a,
@@ -872,8 +880,15 @@ where
 {
     let mut select = track_tag::table.select(track_tag::track_id).into_boxed();
 
+    let TagFilter {
+        modifier,
+        facets,
+        label,
+        score,
+    } = filter;
+
     // Filter facet(s)
-    if let Some(ref facets) = tag_filter.facets {
+    if let Some(ref facets) = facets {
         if facets.is_empty() {
             // unfaceted tags without a facet
             select = select.filter(track_tag::facet.is_null());
@@ -884,7 +899,7 @@ where
     }
 
     // Filter labels
-    if let Some(ref label) = tag_filter.label {
+    if let Some(ref label) = label {
         let (val, cmp, dir) = decompose_string_predicate(label.borrow());
         let string_cmp_op = match cmp {
             // Equal comparison without escape characters
@@ -927,7 +942,7 @@ where
     }
 
     // Filter tag score
-    if let Some(score) = tag_filter.score {
+    if let Some(score) = score {
         select = match score {
             NumericPredicate::LessThan(value) => select.filter(track_tag::score.lt(value)),
             NumericPredicate::GreaterOrEqual(value) => select.filter(track_tag::score.ge(value)),
@@ -950,7 +965,7 @@ where
         };
     }
 
-    (select, tag_filter.modifier)
+    (select, *modifier)
 }
 
 fn build_tag_filter_expression(filter: &TagFilter) -> TrackSearchBoxedExpression<'_> {
@@ -972,7 +987,7 @@ fn build_cue_label_filter_expression(
 }
 
 fn select_track_ids_matching_cue_filter<'s, 'db, DB>(
-    cue_label_filter: StringFilterBorrowed<'s>,
+    filter: StringFilterBorrowed<'s>,
 ) -> (
     diesel::query_builder::BoxedSelectStatement<
         'db,
@@ -988,7 +1003,7 @@ where
     let mut select = track_cue::table.select(track_cue::track_id).into_boxed();
 
     // Filter labels
-    if let Some(label) = cue_label_filter.value {
+    if let Some(label) = filter.value {
         let (val, cmp, dir) = decompose_string_predicate(label);
         let string_cmp_op = match cmp {
             // Equal comparison without escape characters
@@ -1030,7 +1045,7 @@ where
         };
     }
 
-    (select, cue_label_filter.modifier)
+    (select, filter.modifier)
 }
 
 fn build_playlist_uid_filter_expression(
@@ -1057,6 +1072,96 @@ where
         .into_boxed()
 }
 
+fn select_track_ids_matching_actor_filter<'a, DB>(
+    scope: Scope,
+    filter: &'a ActorFilter,
+) -> (
+    diesel::query_builder::BoxedSelectStatement<
+        'a,
+        diesel::sql_types::BigInt,
+        track_actor::table,
+        DB,
+    >,
+    Option<FilterModifier>,
+)
+where
+    DB: diesel::backend::Backend + 'a,
+{
+    let mut select = track_actor::table
+        .select(track_actor::track_id)
+        .filter(track_actor::scope.eq(scope.to_i16().expect("actor scope")))
+        .into_boxed();
+
+    let ActorFilter {
+        modifier,
+        roles,
+        name,
+    } = filter;
+
+    // Filter role(s)
+    if !roles.is_empty() {
+        select = select.filter(
+            track_actor::role.eq_any(roles.iter().map(|role| role.to_i16().expect("actor role"))),
+        );
+    }
+
+    // Filter name
+    if let Some(ref name) = name {
+        let (val, cmp, dir) = decompose_string_predicate(name.borrow());
+        let string_cmp_op = match cmp {
+            // Equal comparison without escape characters
+            StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
+            StringCompare::Prefix => StringCmpOp::Prefix(escape_single_quotes(val), val.len()),
+            // Like comparisons with escaped wildcard character
+            StringCompare::StartsWith => StringCmpOp::Like(escape_like_starts_with(val)),
+            StringCompare::EndsWith => StringCmpOp::Like(escape_like_ends_with(val)),
+            StringCompare::Contains => StringCmpOp::Like(escape_like_contains(val)),
+            StringCompare::Matches => StringCmpOp::Like(escape_like_matches(val)),
+        };
+        select = match string_cmp_op {
+            StringCmpOp::Equal(eq) => {
+                if dir {
+                    select.filter(track_actor::name.eq(eq))
+                } else {
+                    select.filter(track_actor::name.ne(eq))
+                }
+            }
+            StringCmpOp::Prefix(prefix, len) => {
+                let sql_prefix_filter = if dir {
+                    sql_column_substr_prefix_eq("track_actor.name", &prefix[..len])
+                } else {
+                    sql_column_substr_prefix_ne("track_actor.name", &prefix[..len])
+                };
+                select.filter(sql_prefix_filter)
+            }
+            StringCmpOp::Like(like) => {
+                if dir {
+                    select.filter(track_actor::name.like(like).escape(LIKE_ESCAPE_CHARACTER))
+                } else {
+                    select.filter(
+                        track_actor::name
+                            .not_like(like)
+                            .escape(LIKE_ESCAPE_CHARACTER),
+                    )
+                }
+            }
+        };
+    }
+
+    (select, *modifier)
+}
+
+fn build_actor_filter_expression(
+    scope: Scope,
+    filter: &ActorFilter,
+) -> TrackSearchBoxedExpression<'_> {
+    let (subselect, filter_modifier) = select_track_ids_matching_actor_filter(scope, filter);
+    match filter_modifier {
+        None => Box::new(track::row_id.eq_any(subselect)),
+        Some(FilterModifier::Complement) => Box::new(track::row_id.ne_all(subselect)),
+    }
+}
+
 impl TrackSearchBoxedExpressionBuilder for Filter {
     fn build_expression(&self) -> TrackSearchBoxedExpression<'_> {
         use Filter::*;
@@ -1069,6 +1174,8 @@ impl TrackSearchBoxedExpressionBuilder for Filter {
             CueLabel(filter) => build_cue_label_filter_expression(filter.borrow()),
             TrackUid(track_uid) => build_track_uid_filter_expression(track_uid),
             PlaylistUid(playlist_uid) => build_playlist_uid_filter_expression(playlist_uid),
+            TrackActor(filter) => build_actor_filter_expression(Scope::Track, filter),
+            AlbumActor(filter) => build_actor_filter_expression(Scope::Album, filter),
             All(filters) => filters
                 .iter()
                 .fold(dummy_true_expression(), |expr, filter| {
