@@ -103,26 +103,8 @@ impl<T> From<_core::EntityUidTyped<T>> for EntityUid {
 ///////////////////////////////////////////////////////////////////////
 // EntityRevision
 ///////////////////////////////////////////////////////////////////////
-///
-#[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-#[repr(transparent)]
-#[serde(transparent)]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
-pub struct EntityRevision(_core::EntityRevisionNumber);
 
-impl From<EntityRevision> for _core::EntityRevision {
-    fn from(from: EntityRevision) -> Self {
-        let EntityRevision(number) = from;
-        Self::from_inner(number)
-    }
-}
-
-impl From<_core::EntityRevision> for EntityRevision {
-    fn from(from: _core::EntityRevision) -> Self {
-        Self(from.to_inner())
-    }
-}
+pub type EntityRevision = _core::EntityRevision;
 
 ///////////////////////////////////////////////////////////////////////
 // EntityHeader

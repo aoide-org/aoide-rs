@@ -15,7 +15,9 @@ pub type FacetIdValue = String;
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
 #[repr(transparent)]
 pub struct CowFacetId<'a>(Cow<'a, str>);
 
@@ -75,7 +77,9 @@ impl Borrow<str> for CowFacetId<'_> {
 ///   - <https://en.wikipedia.org/wiki/Faceted_classification>
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
 #[repr(transparent)]
 pub struct FacetId(FacetIdValue);
 

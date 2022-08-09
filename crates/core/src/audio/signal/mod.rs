@@ -20,7 +20,9 @@ pub type BitsPerSecond = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
 #[repr(transparent)]
 pub struct BitrateBps(BitsPerSecond);
 
@@ -88,7 +90,9 @@ pub type SamplesPerSecond = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
 #[repr(transparent)]
 pub struct SampleRateHz(SamplesPerSecond);
 
@@ -224,7 +228,9 @@ pub type LatencyInMilliseconds = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
 #[repr(transparent)]
 pub struct LatencyMs(pub LatencyInMilliseconds);
 
@@ -288,7 +294,9 @@ pub type LufsValue = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
 #[repr(transparent)]
 pub struct LoudnessLufs(pub LufsValue);
 
