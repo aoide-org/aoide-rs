@@ -44,11 +44,6 @@ CREATE TABLE IF NOT EXISTS track (
     -- properties: custom
     color_rgb                INTEGER, -- 0xRRGGBB (hex)
     color_idx                INTEGER, -- palette index
-    -- auxiliary properties for filtering and sorting
-    aux_track_title          TEXT,    -- main title (derived from entries in track_title)
-    aux_track_artist         TEXT,    -- summary/default artist (derived from entries in track_actor)
-    aux_album_title          TEXT,    -- main album title (derived from entries in track_title)
-    aux_album_artist         TEXT,    -- summary/default album artist (derived from track_actor)
     --
     FOREIGN KEY(media_source_id) REFERENCES media_source(row_id) ON DELETE CASCADE,
     UNIQUE (entity_uid) -- only the last revision is stored
@@ -93,19 +88,3 @@ CREATE INDEX IF NOT EXISTS idx_track_music_tempo_bpm_desc ON track (
 CREATE INDEX IF NOT EXISTS idx_track_music_key_code ON track (
     music_key_code
 ) WHERE music_key_code IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_track_aux_track_title ON track (
-    aux_track_title
-);
-
-CREATE INDEX IF NOT EXISTS idx_track_aux_track_artist ON track (
-    aux_track_artist
-);
-
-CREATE INDEX IF NOT EXISTS idx_track_aux_album_title ON track (
-    aux_album_title
-) WHERE aux_album_title IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_track_aux_album_artist ON track (
-    aux_album_artist
-) WHERE aux_album_artist IS NOT NULL;

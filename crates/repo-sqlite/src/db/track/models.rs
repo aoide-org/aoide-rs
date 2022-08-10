@@ -11,11 +11,9 @@ use aoide_core::{
         tempo::{Bpm, TempoBpm},
     },
     track::{
-        actor::{Actors, Role as ActorRole},
         album::{Album, Kind as AlbumKind},
         index::*,
         metric::*,
-        title::*,
         Entity, EntityBody, EntityHeader, Track,
     },
     util::{clock::*, color::*},
@@ -29,7 +27,6 @@ use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[table_name = "track"]
-#[allow(dead_code)] // aux_ members are required for Diesel but never read
 pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,
@@ -63,11 +60,6 @@ pub struct QueryableRecord {
     pub music_flags: i16,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
-    // TODO: Remove these unused members if no longer required by Diesel
-    aux_track_title: Option<String>,
-    aux_track_artist: Option<String>,
-    aux_album_title: Option<String>,
-    aux_album_artist: Option<String>,
 }
 
 impl From<QueryableRecord> for (MediaSourceId, RecordHeader, EntityHeader) {
@@ -141,10 +133,6 @@ pub(crate) fn load_repo_entity(
         music_flags,
         color_rgb,
         color_idx,
-        aux_track_title: _,
-        aux_track_artist: _,
-        aux_album_title: _,
-        aux_album_artist: _,
     } = queryable;
     let header = RecordHeader {
         id: id.into(),
@@ -295,10 +283,6 @@ pub struct InsertableRecord<'a> {
     pub music_flags: i16,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
-    pub aux_track_title: Option<&'a str>,
-    pub aux_track_artist: Option<&'a str>,
-    pub aux_album_title: Option<&'a str>,
-    pub aux_album_artist: Option<&'a str>,
 }
 
 impl<'a> InsertableRecord<'a> {
@@ -401,10 +385,6 @@ impl<'a> InsertableRecord<'a> {
             } else {
                 None
             },
-            aux_track_title: track.track_title(),
-            aux_track_artist: track.track_artist(),
-            aux_album_title: track.album_title(),
-            aux_album_artist: track.album_artist(),
         }
     }
 }
@@ -442,10 +422,6 @@ pub struct UpdatableRecord<'a> {
     pub music_flags: i16,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
-    pub aux_track_title: Option<&'a str>,
-    pub aux_track_artist: Option<&'a str>,
-    pub aux_album_title: Option<&'a str>,
-    pub aux_album_artist: Option<&'a str>,
 }
 
 impl<'a> UpdatableRecord<'a> {
@@ -469,8 +445,8 @@ impl<'a> UpdatableRecord<'a> {
             publisher,
             copyright,
             album,
-            actors: track_actors,
-            titles: track_titles,
+            actors: _,
+            titles: _,
             indexes,
             metrics,
             color,
@@ -496,8 +472,8 @@ impl<'a> UpdatableRecord<'a> {
             })
             .unwrap_or((None, None));
         let Album {
-            actors: album_actors,
-            titles: album_titles,
+            actors: _,
+            titles: _,
             kind: album_kind,
         } = album.as_ref();
         let Indexes {
@@ -552,14 +528,6 @@ impl<'a> UpdatableRecord<'a> {
             } else {
                 None
             },
-            aux_track_title: Titles::main_title(track_titles.as_ref())
-                .map(|title| title.name.as_str()),
-            aux_track_artist: Actors::main_actor(track_actors.iter(), ActorRole::Artist)
-                .map(|actor| actor.name.as_str()),
-            aux_album_title: Titles::main_title(album_titles.as_ref())
-                .map(|title| title.name.as_str()),
-            aux_album_artist: Actors::main_actor(album_actors.iter(), ActorRole::Artist)
-                .map(|actor| actor.name.as_str()),
         }
     }
 }

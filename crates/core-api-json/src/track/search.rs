@@ -36,8 +36,6 @@ mod _inner {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum SortField {
-    AlbumArtist,
-    AlbumTitle,
     AudioBitrateBps,
     AudioChannelCount,
     AudioDurationMs,
@@ -55,9 +53,7 @@ pub enum SortField {
     RecordedAtDate,
     ReleasedAtDate,
     ReleasedOrigAtDate,
-    TrackArtist,
     TrackNumber,
-    TrackTitle,
     TrackTotal,
     UpdatedAt,
 }
@@ -67,8 +63,6 @@ impl From<SortField> for _inner::SortField {
     fn from(from: SortField) -> Self {
         use SortField::*;
         match from {
-            AlbumArtist => Self::AlbumArtist,
-            AlbumTitle => Self::AlbumTitle,
             AudioBitrateBps => Self::AudioBitrateBps,
             AudioChannelCount => Self::AudioChannelCount,
             AudioDurationMs => Self::AudioDurationMs,
@@ -86,9 +80,7 @@ impl From<SortField> for _inner::SortField {
             RecordedAtDate => Self::RecordedAtDate,
             ReleasedAtDate => Self::ReleasedAtDate,
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            TrackArtist => Self::TrackArtist,
             TrackNumber => Self::TrackNumber,
-            TrackTitle => Self::TrackTitle,
             TrackTotal => Self::TrackTotal,
             UpdatedAt => Self::UpdatedAt,
         }
@@ -100,8 +92,6 @@ impl From<_inner::SortField> for SortField {
     fn from(from: _inner::SortField) -> Self {
         use _inner::SortField::*;
         match from {
-            AlbumArtist => Self::AlbumArtist,
-            AlbumTitle => Self::AlbumTitle,
             AudioBitrateBps => Self::AudioBitrateBps,
             AudioChannelCount => Self::AudioChannelCount,
             AudioDurationMs => Self::AudioDurationMs,
@@ -119,9 +109,7 @@ impl From<_inner::SortField> for SortField {
             RecordedAtDate => Self::RecordedAtDate,
             ReleasedAtDate => Self::ReleasedAtDate,
             ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            TrackArtist => Self::TrackArtist,
             TrackNumber => Self::TrackNumber,
-            TrackTitle => Self::TrackTitle,
             TrackTotal => Self::TrackTotal,
             UpdatedAt => Self::UpdatedAt,
         }

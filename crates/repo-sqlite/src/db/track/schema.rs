@@ -39,10 +39,6 @@ table! {
         music_flags -> SmallInt,
         color_rgb -> Nullable<Integer>,
         color_idx -> Nullable<SmallInt>,
-        aux_track_title -> Nullable<Text>,
-        aux_track_artist -> Nullable<Text>,
-        aux_album_title -> Nullable<Text>,
-        aux_album_artist -> Nullable<Text>,
     }
 }
 

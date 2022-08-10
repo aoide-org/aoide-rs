@@ -117,8 +117,6 @@ pub struct TitlePhraseFilter {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SortField {
-    AlbumArtist,
-    AlbumTitle,
     AudioBitrateBps,
     AudioChannelCount,
     AudioDurationMs,
@@ -136,9 +134,7 @@ pub enum SortField {
     RecordedAtDate,
     ReleasedAtDate,
     ReleasedOrigAtDate,
-    TrackArtist,
     TrackNumber,
-    TrackTitle,
     TrackTotal,
     UpdatedAt,
 }
