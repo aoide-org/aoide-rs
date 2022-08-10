@@ -41,7 +41,6 @@ table! {
         color_idx -> Nullable<SmallInt>,
         aux_track_title -> Nullable<Text>,
         aux_track_artist -> Nullable<Text>,
-        aux_track_composer -> Nullable<Text>,
         aux_album_title -> Nullable<Text>,
         aux_album_artist -> Nullable<Text>,
     }

@@ -77,7 +77,6 @@ type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
         Nullable<Text>,
         Nullable<Text>,
         Nullable<Text>,
-        Nullable<Text>,
         //),
         /*
         // media_source

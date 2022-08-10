@@ -47,7 +47,6 @@ CREATE TABLE IF NOT EXISTS track (
     -- auxiliary properties for filtering and sorting
     aux_track_title          TEXT,    -- main title (derived from entries in track_title)
     aux_track_artist         TEXT,    -- summary/default artist (derived from entries in track_actor)
-    aux_track_composer       TEXT,    -- summary composer (derived from entries in track_actor)
     aux_album_title          TEXT,    -- main album title (derived from entries in track_title)
     aux_album_artist         TEXT,    -- summary/default album artist (derived from track_actor)
     --
@@ -102,10 +101,6 @@ CREATE INDEX IF NOT EXISTS idx_track_aux_track_title ON track (
 CREATE INDEX IF NOT EXISTS idx_track_aux_track_artist ON track (
     aux_track_artist
 );
-
-CREATE INDEX IF NOT EXISTS idx_track_aux_track_composer ON track (
-    aux_track_composer
-) WHERE aux_track_composer IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_track_aux_album_title ON track (
     aux_album_title

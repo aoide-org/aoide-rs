@@ -66,7 +66,6 @@ pub struct QueryableRecord {
     // TODO: Remove these unused members if no longer required by Diesel
     aux_track_title: Option<String>,
     aux_track_artist: Option<String>,
-    aux_track_composer: Option<String>,
     aux_album_title: Option<String>,
     aux_album_artist: Option<String>,
 }
@@ -144,7 +143,6 @@ pub(crate) fn load_repo_entity(
         color_idx,
         aux_track_title: _,
         aux_track_artist: _,
-        aux_track_composer: _,
         aux_album_title: _,
         aux_album_artist: _,
     } = queryable;
@@ -299,7 +297,6 @@ pub struct InsertableRecord<'a> {
     pub color_idx: Option<i16>,
     pub aux_track_title: Option<&'a str>,
     pub aux_track_artist: Option<&'a str>,
-    pub aux_track_composer: Option<&'a str>,
     pub aux_album_title: Option<&'a str>,
     pub aux_album_artist: Option<&'a str>,
 }
@@ -406,7 +403,6 @@ impl<'a> InsertableRecord<'a> {
             },
             aux_track_title: track.track_title(),
             aux_track_artist: track.track_artist(),
-            aux_track_composer: track.track_composer(),
             aux_album_title: track.album_title(),
             aux_album_artist: track.album_artist(),
         }
@@ -448,7 +444,6 @@ pub struct UpdatableRecord<'a> {
     pub color_idx: Option<i16>,
     pub aux_track_title: Option<&'a str>,
     pub aux_track_artist: Option<&'a str>,
-    pub aux_track_composer: Option<&'a str>,
     pub aux_album_title: Option<&'a str>,
     pub aux_album_artist: Option<&'a str>,
 }
@@ -560,8 +555,6 @@ impl<'a> UpdatableRecord<'a> {
             aux_track_title: Titles::main_title(track_titles.as_ref())
                 .map(|title| title.name.as_str()),
             aux_track_artist: Actors::main_actor(track_actors.iter(), ActorRole::Artist)
-                .map(|actor| actor.name.as_str()),
-            aux_track_composer: Actors::main_actor(track_actors.iter(), ActorRole::Composer)
                 .map(|actor| actor.name.as_str()),
             aux_album_title: Titles::main_title(album_titles.as_ref())
                 .map(|title| title.name.as_str()),
