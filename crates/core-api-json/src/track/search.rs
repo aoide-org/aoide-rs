@@ -551,8 +551,8 @@ pub enum Filter {
     Condition(ConditionFilter),
     Tag(TagFilter),
     CueLabel(StringFilter),
-    TrackUid(EntityUid),
-    PlaylistUid(EntityUid),
+    AnyTrackUid(Vec<EntityUid>),
+    AnyPlaylistUid(Vec<EntityUid>),
     ActorPhrase(ActorPhraseFilter),
     TitlePhrase(TitlePhraseFilter),
     All(Vec<Filter>),
@@ -571,8 +571,10 @@ impl From<Filter> for _inner::Filter {
             Condition(from) => Self::Condition(from.into()),
             Tag(from) => Self::Tag(from.into()),
             CueLabel(from) => Self::CueLabel(from.into()),
-            TrackUid(from) => Self::TrackUid(from.into()),
-            PlaylistUid(from) => Self::PlaylistUid(from.into()),
+            AnyTrackUid(from) => Self::AnyTrackUid(from.into_iter().map(Into::into).collect()),
+            AnyPlaylistUid(from) => {
+                Self::AnyPlaylistUid(from.into_iter().map(Into::into).collect())
+            }
             ActorPhrase(from) => Self::ActorPhrase(from.into()),
             TitlePhrase(from) => Self::TitlePhrase(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),
@@ -593,8 +595,10 @@ impl From<_inner::Filter> for Filter {
             Condition(from) => Self::Condition(from.into()),
             Tag(from) => Self::Tag(from.into()),
             CueLabel(from) => Self::CueLabel(from.into()),
-            TrackUid(from) => Self::TrackUid(from.into()),
-            PlaylistUid(from) => Self::PlaylistUid(from.into()),
+            AnyTrackUid(from) => Self::AnyTrackUid(from.into_iter().map(Into::into).collect()),
+            AnyPlaylistUid(from) => {
+                Self::AnyPlaylistUid(from.into_iter().map(Into::into).collect())
+            }
             ActorPhrase(from) => Self::ActorPhrase(from.into()),
             TitlePhrase(from) => Self::TitlePhrase(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),

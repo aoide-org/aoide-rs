@@ -3389,8 +3389,8 @@ components:
         - $ref: '#/components/schemas/TrackSearchConditionFilterNode'
         - $ref: '#/components/schemas/TrackSearchTagFilterNode'
         - $ref: '#/components/schemas/TrackSearchCueLabelFilterNode'
-        - $ref: '#/components/schemas/TrackSearchTrackUidFilterNode'
-        - $ref: '#/components/schemas/TrackSearchPlaylistUidFilterNode'
+        - $ref: '#/components/schemas/TrackSearchAnyTrackUidFilterNode'
+        - $ref: '#/components/schemas/TrackSearchAnyPlaylistUidFilterNode'
         - $ref: '#/components/schemas/TrackSearchActorPhraseFilterNode'
         - $ref: '#/components/schemas/TrackSearchTitlePhraseFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
@@ -3403,20 +3403,24 @@ components:
           $ref: '#/components/schemas/CueLabelFilter'
       required:
         - cueLabel
-    TrackSearchTrackUidFilterNode:
+    TrackSearchAnyTrackUidFilterNode:
       type: object
       properties:
-        trackUid:
-          $ref: '#/components/schemas/EntityUid'
+        anyTrackUid:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntityUid'
       required:
-        - trackUid
-    TrackSearchPlaylistUidFilterNode:
+        - anyTrackUid
+    TrackSearchAnyPlaylistUidFilterNode:
       type: object
       properties:
-        playlistUid:
-          $ref: '#/components/schemas/EntityUid'
+        anyPlaylistUid:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntityUid'
       required:
-        - playlistUid
+        - anyPlaylistUid
     TrackSearchActorPhraseFilterNode:
       type: object
       properties:

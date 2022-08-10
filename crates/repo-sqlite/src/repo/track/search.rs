@@ -235,8 +235,10 @@ impl TrackSearchQueryTransform for SortOrder {
     }
 }
 
-fn build_track_uid_filter_expression(track_uid: &TrackUid) -> TrackSearchBoxedExpression<'_> {
-    Box::new(track::entity_uid.eq(track_uid.as_ref()))
+fn build_any_track_uid_filter_expression(
+    any_track_uid: &[TrackUid],
+) -> TrackSearchBoxedExpression<'_> {
+    Box::new(track::entity_uid.eq_any(any_track_uid.iter().map(|uid| uid.as_ref())))
 }
 
 fn build_phrase_like_expr_escaped<'term>(
@@ -964,15 +966,15 @@ where
     (select, filter.modifier)
 }
 
-fn build_playlist_uid_filter_expression(
-    playlist_uid: &PlaylistUid,
+fn build_any_playlist_uid_filter_expression(
+    any_playlist_uid: &[PlaylistUid],
 ) -> TrackSearchBoxedExpression<'_> {
-    let subselect = select_track_ids_matching_playlist_uid_filter(playlist_uid);
+    let subselect = select_track_ids_matching_any_playlist_uid_filter(any_playlist_uid);
     Box::new(track::row_id.eq_any(subselect))
 }
 
-fn select_track_ids_matching_playlist_uid_filter<'db, DB>(
-    playlist_uid: &'db PlaylistUid,
+fn select_track_ids_matching_any_playlist_uid_filter<'db, DB>(
+    any_playlist_uid: impl IntoIterator<Item = &'db PlaylistUid>,
 ) -> diesel::query_builder::BoxedSelectStatement<'db, diesel::sql_types::BigInt, track::table, DB>
 where
     DB: diesel::backend::Backend + 'db,
@@ -980,7 +982,7 @@ where
     let subselect = playlist::table
         .inner_join(playlist_entry::table)
         .select(playlist_entry::track_id)
-        .filter(playlist::entity_uid.eq(playlist_uid.as_ref()))
+        .filter(playlist::entity_uid.eq_any(any_playlist_uid.into_iter().map(|uid| uid.as_ref())))
         .filter(playlist_entry::track_id.is_not_null());
     track::table
         .select(track::row_id)
@@ -1122,8 +1124,10 @@ impl TrackSearchBoxedExpressionBuilder for Filter {
             Condition(filter) => build_condition_filter_expression(*filter),
             Tag(filter) => build_tag_filter_expression(filter),
             CueLabel(filter) => build_cue_label_filter_expression(filter.borrow()),
-            TrackUid(track_uid) => build_track_uid_filter_expression(track_uid),
-            PlaylistUid(playlist_uid) => build_playlist_uid_filter_expression(playlist_uid),
+            AnyTrackUid(any_track_uid) => build_any_track_uid_filter_expression(any_track_uid),
+            AnyPlaylistUid(any_playlist_uid) => {
+                build_any_playlist_uid_filter_expression(any_playlist_uid)
+            }
             ActorPhrase(filter) => build_actor_filter_expression(filter),
             TitlePhrase(filter) => build_title_filter_expression(filter),
             All(filters) => filters

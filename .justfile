@@ -15,6 +15,7 @@ setup:
     rustup self update || true
     # cargo-edit is needed for `cargo upgrade`
     cargo install \
+        just \
         cargo-edit \
         trunk
     pip install -U pre-commit
