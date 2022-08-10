@@ -3012,6 +3012,7 @@ components:
       enum:
         - contentPath
         - contentType
+        - copyright
         - publisher
       description: |
         Selectable fields, including
@@ -3481,6 +3482,7 @@ components:
         - collectedAt
         - contentPath
         - contentType
+        - copyright
         - createdAt
         - discNumber
         - discTotal

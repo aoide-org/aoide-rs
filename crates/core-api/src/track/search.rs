@@ -21,6 +21,7 @@ use crate::{filtering::*, media::source::ResolveUrlFromContentPath, sorting::*, 
 pub enum StringField {
     ContentPath,
     ContentType, // RFC 6838 media type
+    Copyright,
     Publisher,
 }
 
@@ -125,6 +126,7 @@ pub enum SortField {
     CollectedAt,
     ContentPath,
     ContentType,
+    Copyright,
     CreatedAt,
     DiscNumber,
     DiscTotal,

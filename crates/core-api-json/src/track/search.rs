@@ -44,6 +44,7 @@ pub enum SortField {
     CollectedAt,
     ContentPath,
     ContentType,
+    Copyright,
     CreatedAt,
     DiscNumber,
     DiscTotal,
@@ -71,6 +72,7 @@ impl From<SortField> for _inner::SortField {
             CollectedAt => Self::CollectedAt,
             ContentPath => Self::ContentPath,
             ContentType => Self::ContentType,
+            Copyright => Self::Copyright,
             CreatedAt => Self::CreatedAt,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
@@ -100,6 +102,7 @@ impl From<_inner::SortField> for SortField {
             CollectedAt => Self::CollectedAt,
             ContentPath => Self::ContentPath,
             ContentType => Self::ContentType,
+            Copyright => Self::Copyright,
             CreatedAt => Self::CreatedAt,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
@@ -150,6 +153,7 @@ impl From<_inner::SortOrder> for SortOrder {
 pub enum StringField {
     ContentPath,
     ContentType,
+    Copyright,
     Publisher,
 }
 
@@ -160,6 +164,7 @@ impl From<StringField> for _inner::StringField {
         match from {
             ContentPath => Self::ContentPath,
             ContentType => Self::ContentType,
+            Copyright => Self::Copyright,
             Publisher => Self::Publisher,
         }
     }
@@ -172,6 +177,7 @@ impl From<_inner::StringField> for StringField {
         match from {
             ContentPath => Self::ContentPath,
             ContentType => Self::ContentType,
+            Copyright => Self::Copyright,
             Publisher => Self::Publisher,
         }
     }

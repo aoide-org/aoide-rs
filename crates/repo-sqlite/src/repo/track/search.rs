@@ -171,6 +171,10 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(media_source::content_type.asc()),
                 SortDirection::Descending => query.then_order_by(media_source::content_type.desc()),
             },
+            SortField::Copyright => match direction {
+                SortDirection::Ascending => query.then_order_by(track::copyright.asc()),
+                SortDirection::Descending => query.then_order_by(track::copyright.desc()),
+            },
             SortField::CreatedAt => match direction {
                 SortDirection::Ascending => query.then_order_by(track::row_created_ms.asc()),
                 SortDirection::Descending => query.then_order_by(track::row_created_ms.desc()),
@@ -305,6 +309,26 @@ fn build_phrase_field_filter_expression(
         };
     }
     // track (join)
+    if filter.fields.is_empty()
+        || filter
+            .fields
+            .iter()
+            .any(|target| *target == StringField::Copyright)
+    {
+        or_expression = if let Some(like_expr) = &like_expr {
+            Box::new(
+                or_expression.or(track::copyright
+                    .like(like_expr.clone())
+                    .escape(LIKE_ESCAPE_CHARACTER)),
+            )
+        } else {
+            Box::new(
+                or_expression
+                    .or(track::copyright.is_null())
+                    .or(track::copyright.eq(String::default())),
+            )
+        };
+    }
     if filter.fields.is_empty()
         || filter
             .fields
