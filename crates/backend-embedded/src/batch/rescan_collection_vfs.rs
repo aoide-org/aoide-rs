@@ -69,7 +69,7 @@ pub struct Outcome {
 
 pub type Result = crate::Result<Outcome>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Progress {
     Step1ScanDirectories(aoide_usecases::media::tracker::scan_directories::ProgressEvent),
     Step2UntrackOrphanedDirectories,

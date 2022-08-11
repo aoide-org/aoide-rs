@@ -224,7 +224,7 @@ impl<T> Clone for EntityUidTyped<T> {
 
 impl<T> PartialEq for EntityUidTyped<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.deref().eq(&*other)
+        self.deref().eq(other)
     }
 }
 
@@ -232,13 +232,13 @@ impl<T> Eq for EntityUidTyped<T> {}
 
 impl<T> PartialOrd for EntityUidTyped<T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.deref().partial_cmp(&*other)
+        self.deref().partial_cmp(other)
     }
 }
 
 impl<T> Ord for EntityUidTyped<T> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.deref().cmp(&*other)
+        self.deref().cmp(other)
     }
 }
 
@@ -636,7 +636,7 @@ where
     B: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        self.deref().eq(&*other)
+        self.deref().eq(other)
     }
 }
 

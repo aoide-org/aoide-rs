@@ -168,7 +168,7 @@ impl Gatekeeper {
                 self.check_not_decommissioned()?;
                 // Every tasks gets the chance to run when ready
                 abort_current_task_flag.store(false, Ordering::Release);
-                return spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await
+                spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await
                     .map_err(Error::TaskScheduling)
             },
             else => Err(Error::TaskTimeout {reason: "task got stuck".to_string() } )
@@ -209,7 +209,7 @@ impl Gatekeeper {
                 self.check_not_decommissioned()?;
                 // Every tasks gets the chance to run when ready
                 abort_current_task_flag.store(false, Ordering::Release);
-                return spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await
+                spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await
                 .map_err(Error::TaskScheduling)
             },
             else => Err(Error::TaskTimeout {reason: "task got stuck".to_string() } )

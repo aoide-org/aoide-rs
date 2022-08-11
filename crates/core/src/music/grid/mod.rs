@@ -12,7 +12,7 @@ pub struct TempoAnchor {
     pub tempo_bpm: TempoBpm,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct KeyAnchor {
     pub key_signature: KeySignature,
 }
