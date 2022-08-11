@@ -37,7 +37,6 @@ use aoide_core::{
         string::trimmed_non_empty_from,
     },
 };
-use triseratops::tag::format::id3::ID3Tag;
 
 use crate::{
     io::{
@@ -591,6 +590,7 @@ pub fn import_metadata_into_track(
         let mut serato_tags = triseratops::tag::TagContainer::new();
         let mut parsed = false;
         for geob in tag.encapsulated_objects() {
+            use triseratops::tag::format::id3::ID3Tag;
             if match geob.description.as_str() {
                 triseratops::tag::Markers::ID3_TAG => serato_tags
                     .parse_markers(&geob.data, triseratops::tag::TagFormat::ID3)
