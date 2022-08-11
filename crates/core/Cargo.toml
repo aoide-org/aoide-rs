@@ -35,9 +35,7 @@ getrandom = "0.2"
 path-slash = "0.2"
 
 # Serialization of selected, primitive types
-serde = { version = "1.0", optional = true, default-features = false, features = [
-    "derive",
-] }
+serde = { version = "1.0", optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8", optional = true, features = ["url"] }

@@ -13,7 +13,7 @@ edition = "2021"
 anyhow = "1.0"
 diesel = { version = "1.4", default-features = false, features = ["sqlite"] }
 log = "0.4"
-serde = { version = "1.0", default-features = false }
+serde = { version = "1.0" }
 thiserror = "1.0"
 url = "2.2"
 
