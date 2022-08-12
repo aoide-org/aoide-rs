@@ -10,7 +10,7 @@ mod uc {
 }
 
 pub fn query_status(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Status> {

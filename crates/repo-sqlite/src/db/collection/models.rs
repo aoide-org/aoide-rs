@@ -14,7 +14,7 @@ use aoide_core::{
 use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
-#[table_name = "collection"]
+#[diesel(table_name = collection)]
 pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,
@@ -98,7 +98,7 @@ impl TryFrom<QueryableRecord> for Entity {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "collection"]
+#[diesel(table_name = collection)]
 pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
@@ -155,8 +155,7 @@ impl<'a> InsertableRecord<'a> {
 }
 
 #[derive(Debug, AsChangeset)]
-#[changeset_options(treat_none_as_null = "true")]
-#[table_name = "collection"]
+#[diesel(table_name = collection, treat_none_as_null = true)]
 pub struct TouchableRecord {
     pub row_updated_ms: TimestampMillis,
     pub entity_rev: i64,
@@ -173,8 +172,7 @@ impl TouchableRecord {
 }
 
 #[derive(Debug, AsChangeset)]
-#[changeset_options(treat_none_as_null = "true")]
-#[table_name = "collection"]
+#[diesel(table_name = collection, treat_none_as_null = true)]
 pub struct UpdatableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub entity_rev: i64,

@@ -8,7 +8,7 @@ use aoide_usecases::media::tracker::relink as uc;
 use super::*;
 
 pub fn relink_tracks_with_untracked_media_sources<ReportProgressFn: FnMut(&uc::Progress)>(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     find_candidate_params: uc::FindCandidateParams,
     report_progress_fn: &mut ReportProgressFn,

@@ -8,7 +8,7 @@ use aoide_usecases::track::resolve as uc;
 use super::*;
 
 pub fn resolve_by_media_source_content_paths(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     media_content_paths: Vec<String>,
 ) -> Result<Vec<(String, EntityHeader)>> {

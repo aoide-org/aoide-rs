@@ -20,9 +20,7 @@
 
 use std::result::Result as StdResult;
 
-//FIXME: Add transactions after upgrading to diesel v2.0
-//use diesel::{prelude::SqliteConnection, Connection as _};
-use diesel::prelude::SqliteConnection;
+use diesel::Connection as _;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
@@ -30,6 +28,8 @@ use uuid::Uuid;
 use aoide_core::collection::EntityUid as CollectionUid;
 
 use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset};
+
+use aoide_repo_sqlite::DbConnection;
 
 use aoide_core_json::entity::EntityRevision;
 

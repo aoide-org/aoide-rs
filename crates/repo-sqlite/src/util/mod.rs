@@ -6,35 +6,45 @@ use std::i64;
 use diesel::expression::SqlLiteral;
 use num_traits::ToPrimitive as _;
 
-use crate::prelude::*;
+use aoide_core_api::Pagination;
 
 pub(crate) mod clock;
 pub(crate) mod entity;
 
-pub(crate) fn apply_pagination<'db, ST, QS, DB>(
-    source: diesel::query_builder::BoxedSelectStatement<'db, ST, QS, DB>,
-    pagination: &Pagination,
-) -> diesel::query_builder::BoxedSelectStatement<'db, ST, QS, DB>
-where
-    QS: diesel::query_source::QuerySource,
-    DB: diesel::backend::Backend + diesel::sql_types::HasSqlType<ST> + 'db,
-{
+pub(crate) fn pagination_to_limit_offset(pagination: &Pagination) -> (Option<i64>, Option<i64>) {
     if !pagination.is_paginated() {
-        return source;
+        return (None, None);
     }
-    let mut target = source;
     // TODO: Verify that this restriction still applies!
     // SQLite: OFFSET can only be used in conjunction with LIMIT
-    if pagination.has_offset() || pagination.is_limited() {
-        let limit = pagination.mandatory_limit().to_i64().unwrap_or(i64::MAX);
-        target = target.limit(limit);
-    }
-    if let Some(offset) = pagination.offset {
-        let offset = offset.to_i64().unwrap_or(i64::MAX);
-        target = target.offset(offset);
-    }
-    target
+    let limit = if pagination.has_offset() || pagination.is_limited() {
+        Some(pagination.mandatory_limit().to_i64().unwrap_or(i64::MAX))
+    } else {
+        None
+    };
+    let offset = pagination
+        .offset
+        .map(|offset| offset.to_i64().unwrap_or(i64::MAX));
+    (limit, offset)
 }
+
+//FIXME: Figure types and trait bounds for a generic implementation of this function.
+// pub(crate) fn apply_pagination<'db, Source>(
+//     source: IntoBoxed<'db, Source, DbBackend>,
+//     pagination: &Pagination,
+// ) -> IntoBoxed<'db, Source, DbBackend>
+// where
+//     Source: BoxedDsl/LimitDsl/OffsetDsl???
+// {
+//     let (limit, offset) = pagination_to_limit_offset(pagination);
+//     if let Some(limit) = limit {
+//         target = target.limit(limit);
+//     }
+//     if let Some(offset) = offset {
+//         target = target.offset(offset);
+//     }
+//     target
+// }
 
 pub(crate) enum StringCmpOp {
     Equal(String),
@@ -89,11 +99,13 @@ fn sql_column_substr_prefix(
     let prefix_len = prefix.len();
     if prefix.contains('\'') {
         let prefix_escaped = escape_single_quotes(prefix);
-        diesel::dsl::sql(&format!(
+        diesel::dsl::sql::<diesel::sql_types::Bool>(&format!(
             "substr({column},1,{prefix_len}){cmp}'{prefix_escaped}'",
         ))
     } else {
-        diesel::dsl::sql(&format!("substr({column},1,{prefix_len}){cmp}'{prefix}'",))
+        diesel::dsl::sql::<diesel::sql_types::Bool>(&format!(
+            "substr({column},1,{prefix_len}){cmp}'{prefix}'",
+        ))
     }
 }
 

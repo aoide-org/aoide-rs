@@ -23,10 +23,10 @@ use crate::{
 
 #[derive(QueryableByName)]
 struct StatusCountRow {
-    #[sql_type = "diesel::sql_types::SmallInt"]
+    #[diesel(sql_type = diesel::sql_types::SmallInt)]
     status: i16,
 
-    #[sql_type = "diesel::sql_types::BigInt"]
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
     count: i64,
 }
 
@@ -317,7 +317,17 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 content_path_prefix,
             ));
         }
-        let query = apply_pagination(query, pagination);
+
+        // Pagination
+        //FIXME: Extract into generic function crate::util::apply_pagination()
+        let (limit, offset) = pagination_to_limit_offset(pagination);
+        if let Some(limit) = limit {
+            query = query.limit(limit);
+        }
+        if let Some(offset) = offset {
+            query = query.offset(offset);
+        }
+
         let records = query
             .load::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)?;

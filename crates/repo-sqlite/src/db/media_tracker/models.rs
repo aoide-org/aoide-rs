@@ -15,7 +15,7 @@ use aoide_repo::{
 use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
-#[table_name = "media_tracker_directory"]
+#[diesel(table_name = media_tracker_directory)]
 pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,
@@ -53,7 +53,7 @@ impl TryFrom<QueryableRecord> for TrackedDirectory {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "media_tracker_directory"]
+#[diesel(table_name = media_tracker_directory)]
 pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
@@ -84,8 +84,7 @@ impl<'a> InsertableRecord<'a> {
 }
 
 #[derive(Debug, AsChangeset)]
-#[changeset_options(treat_none_as_null = "true")]
-#[table_name = "media_tracker_directory"]
+#[diesel(table_name = media_tracker_directory, treat_none_as_null = true)]
 pub struct UpdateDigest<'a> {
     pub row_updated_ms: TimestampMillis,
     pub status: i16,

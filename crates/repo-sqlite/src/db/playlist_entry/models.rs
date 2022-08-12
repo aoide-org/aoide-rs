@@ -62,7 +62,7 @@ impl From<QueryableRecord> for (PlaylistId, i64, Option<TrackId>, Entry) {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "playlist_entry"]
+#[diesel(table_name = playlist_entry)]
 pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
@@ -105,8 +105,7 @@ impl<'a> InsertableRecord<'a> {
 }
 
 #[derive(Debug, AsChangeset)]
-#[changeset_options(treat_none_as_null = "true")]
-#[table_name = "playlist_entry"]
+#[diesel(table_name = playlist_entry, treat_none_as_null = true)]
 pub struct UpdatableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub added_at: &'a str,

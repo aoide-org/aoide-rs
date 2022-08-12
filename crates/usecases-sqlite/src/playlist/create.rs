@@ -6,7 +6,7 @@ use uc::playlist::{create_entity, store_created_entity};
 use super::*;
 
 pub fn create(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     new_playlist: Playlist,
 ) -> Result<Entity> {

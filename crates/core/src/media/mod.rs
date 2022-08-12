@@ -51,9 +51,10 @@ where
 ///
 /// Note: Previously Apple used the value 4 for explicit content that
 /// has now been replaced by 1.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum AdvisoryRating {
     /// Inoffensive
+    #[default]
     Unrated = 0,
 
     /// Offensive

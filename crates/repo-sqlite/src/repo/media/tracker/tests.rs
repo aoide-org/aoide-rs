@@ -19,7 +19,7 @@ use aoide_repo::{
 };
 
 struct Fixture {
-    db: SqliteConnection,
+    db: DbConnection,
     collection_id: CollectionId,
 }
 

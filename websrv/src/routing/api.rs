@@ -996,8 +996,8 @@ pub(crate) fn create_filters(
             move |shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
                 websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
-                    move |pooled_connection, _abort_flag| {
-                        uc::database::migrate_schema(&pooled_connection)
+                    move |mut pooled_connection, _abort_flag| {
+                        uc::database::migrate_schema(&mut pooled_connection)
                     },
                 )
                 .await

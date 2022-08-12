@@ -11,10 +11,8 @@ mod uc {
 
 pub type ResponseBody = Entity;
 
-pub fn handle_request(connection: &mut SqliteConnection, uid: &EntityUid) -> Result<ResponseBody> {
-    //FIXME: Add transactions after upgrading to diesel v2.0
-    //connection.transaction::<_, Error, _>(|connection|
-    uc::load_one(connection, uid).map_err(Into::into)
-    //)
+pub fn handle_request(connection: &mut DbConnection, uid: &EntityUid) -> Result<ResponseBody> {
+    connection
+        .transaction::<_, Error, _>(|connection| uc::load_one(connection, uid).map_err(Into::into))
         .map(Into::into)
 }

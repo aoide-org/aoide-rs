@@ -7,7 +7,7 @@ use aoide_repo::collection::EntityRepo as _;
 use super::*;
 
 pub fn load_entity_with_entries(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     entity_uid: &EntityUid,
 ) -> Result<EntityWithEntries> {
     let mut repo = RepoConnection::new(connection);
@@ -17,7 +17,7 @@ pub fn load_entity_with_entries(
 }
 
 pub fn load_entities_with_entries_summary(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     kind: Option<&str>,
     pagination: Option<&Pagination>,

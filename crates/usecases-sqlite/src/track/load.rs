@@ -3,14 +3,14 @@
 
 use super::*;
 
-pub fn load_one(connection: &mut SqliteConnection, entity_uid: &EntityUid) -> Result<Entity> {
+pub fn load_one(connection: &mut DbConnection, entity_uid: &EntityUid) -> Result<Entity> {
     let mut repo = RepoConnection::new(connection);
     let (_, entity) = repo.load_track_entity_by_uid(entity_uid)?;
     Ok(entity)
 }
 
 pub fn load_many(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     entity_uids: impl IntoIterator<Item = EntityUid>,
     collector: &mut impl RecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<()> {

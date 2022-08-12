@@ -19,7 +19,7 @@ pub type ResponseBody = aoide_core_api_json::media::source::purge_orphaned::Outc
     )
 )]
 pub fn handle_request(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
@@ -27,9 +27,9 @@ pub fn handle_request(
         .try_into()
         .map_err(Into::into)
         .map_err(Error::BadRequest)?;
-    //FIXME: Add transactions after upgrading to diesel v2.0
-    //connection.transaction::<_, Error, _>(|connection| {
-    purge_orphaned(connection, collection_uid, &params).map_err(Into::into)
-        //})
+    connection
+        .transaction::<_, Error, _>(|connection| {
+            purge_orphaned(connection, collection_uid, &params).map_err(Into::into)
+        })
         .map(Into::into)
 }

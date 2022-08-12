@@ -14,7 +14,7 @@ mod uc {
 }
 
 pub fn replace_many_by_media_source_content_path(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     params: &uc::Params,
     validated_track_iter: impl IntoIterator<Item = ValidatedInput>,

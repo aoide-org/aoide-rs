@@ -10,7 +10,7 @@ mod uc {
 }
 
 pub fn purge_by_media_source_content_path_predicates(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     path_predicates: Vec<StringPredicate>,
 ) -> Result<uc::PurgeByMediaContentPathPredicatesSummary> {

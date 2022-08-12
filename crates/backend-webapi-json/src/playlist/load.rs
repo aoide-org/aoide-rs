@@ -27,7 +27,7 @@ pub struct QueryParams {
 pub type ResponseBody = Vec<EntityWithEntriesSummary>;
 
 pub fn handle_request(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     query_params: QueryParams,
 ) -> Result<ResponseBody> {
@@ -39,16 +39,15 @@ pub fn handle_request(
     let pagination = Pagination { limit, offset };
     let pagination: Option<_> = pagination.into();
     let mut collector = EntityWithEntriesSummaryCollector::default();
-    //FIXME: Add transactions after upgrading to diesel v2.0
-    //connection.transaction::<_, Error, _>(|connection| {
-    uc::load_entities_with_entries_summary(
+    connection.transaction::<_, Error, _>(|connection| {
+        uc::load_entities_with_entries_summary(
             connection,
             collection_uid,
             kind.as_deref(),
             pagination.as_ref(),
             &mut collector,
         )
-        //.map_err(Into::into)})
-    ?;
+        .map_err(Into::into)
+    })?;
     Ok(collector.finish())
 }

@@ -23,7 +23,7 @@ pub struct QueryParams {
 pub type ResponseBody = bool;
 
 pub fn handle_request(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     track_uid: &EntityUid,
     _query_params: QueryParams,
 ) -> Result<ResponseBody> {
@@ -36,9 +36,8 @@ pub fn handle_request(
         flags,
     };
     let path_resolver = VirtualFilePathResolver::new();
-    //FIXME: Add transactions after upgrading to diesel v2.0
-    //connection.transaction::<_, Error, _>(|connection| {
-    uc::export_metadata_into_file(connection, track_uid, &path_resolver, &config)
-        .map_err(Into::into)
-    //})
+    connection.transaction::<_, Error, _>(|connection| {
+        uc::export_metadata_into_file(connection, track_uid, &path_resolver, &config)
+            .map_err(Into::into)
+    })
 }

@@ -87,7 +87,7 @@ impl From<uc::Error> for Error {
             Io(err) => Self::Other(err.into()),
             Media(err) => Self::Other(err.into()),
             Storage(err) => err.into(),
-            DatabaseMigration(err) => Self::Other(err.into()),
+            DatabaseMigration(err) => Self::Other(err),
             Repository(err) => match err {
                 RepoError::NotFound => Self::NotFound,
                 RepoError::Conflict => Self::Conflict,

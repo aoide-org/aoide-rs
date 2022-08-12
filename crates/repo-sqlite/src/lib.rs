@@ -14,61 +14,58 @@
 #![warn(rustdoc::broken_intra_doc_links)]
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
-// TODO: Remove after upgrading Diesel
-#![allow(clippy::extra_unused_lifetimes)]
+// recursion_limit was required for diesel
+#![recursion_limit = "256"]
 
-use diesel::{QueryResult, RunQueryDsl as _, SqliteConnection};
+use diesel::{
+    migration::{MigrationVersion, Result as MigrationResult},
+    QueryResult, RunQueryDsl as _,
+};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness as _};
 
-// The following workaround is need to avoid cluttering the code with
-// #[cfg_attr(feature = "diesel", ...)] to specify custom diesel
-// attributes.
-#[macro_use]
-extern crate diesel;
-
-// Workaround for using the embed_migrations!() macro in tests.
-#[cfg(test)]
-#[macro_use]
-extern crate diesel_migrations;
+pub type DbBackend = diesel::sqlite::Sqlite;
+pub type DbConnection = diesel::sqlite::SqliteConnection;
 
 pub mod prelude {
     pub(crate) use crate::util::{clock::*, entity::*, *};
     pub(crate) use aoide_repo::prelude::*;
-    pub(crate) use diesel::{prelude::*, result::Error as DieselError, SqliteConnection};
+    pub(crate) use diesel::{prelude::*, result::Error as DieselError};
     pub(crate) use semval::prelude::*;
     pub(crate) use std::ops::Deref;
     use std::ops::DerefMut;
 
-    pub use diesel::Connection as _;
+    pub use crate::{DbBackend, DbConnection};
 
+    pub use diesel::Connection as _;
     #[allow(missing_debug_implementations)]
-    pub struct Connection<'db>(&'db mut SqliteConnection);
+    pub struct Connection<'db>(&'db mut DbConnection);
 
     impl<'db> Connection<'db> {
-        pub fn new(inner: &'db mut SqliteConnection) -> Self {
+        pub fn new(inner: &'db mut DbConnection) -> Self {
             Self(inner)
         }
     }
 
-    impl<'db> From<&'db mut SqliteConnection> for Connection<'db> {
-        fn from(inner: &'db mut SqliteConnection) -> Self {
+    impl<'db> From<&'db mut DbConnection> for Connection<'db> {
+        fn from(inner: &'db mut DbConnection) -> Self {
             Self::new(inner)
         }
     }
 
-    impl<'db> AsRef<SqliteConnection> for Connection<'db> {
-        fn as_ref(&self) -> &SqliteConnection {
+    impl<'db> AsRef<DbConnection> for Connection<'db> {
+        fn as_ref(&self) -> &DbConnection {
             self.0
         }
     }
 
-    impl<'db> AsMut<SqliteConnection> for Connection<'db> {
-        fn as_mut(&mut self) -> &mut SqliteConnection {
+    impl<'db> AsMut<DbConnection> for Connection<'db> {
+        fn as_mut(&mut self) -> &mut DbConnection {
             self.0
         }
     }
 
     impl<'db> Deref for Connection<'db> {
-        type Target = SqliteConnection;
+        type Target = DbConnection;
 
         fn deref(&self) -> &Self::Target {
             self.as_ref()
@@ -127,18 +124,16 @@ pub mod prelude {
 
     #[cfg(test)]
     pub mod tests {
-        use super::SqliteConnection;
-
+        use super::DbConnection;
         use diesel::Connection as _;
 
         pub type TestResult<T> = anyhow::Result<T>;
 
-        embed_migrations!("migrations");
-
-        pub fn establish_connection() -> TestResult<SqliteConnection> {
-            let connection =
-                SqliteConnection::establish(":memory:").expect("in-memory database connection");
-            embedded_migrations::run(&connection)?;
+        pub fn establish_connection() -> TestResult<DbConnection> {
+            let mut connection =
+                DbConnection::establish(":memory:").expect("in-memory database connection");
+            crate::run_pending_migrations(&mut connection)
+                .map_err(|err| anyhow::anyhow!(err.to_string()))?;
             Ok(connection)
         }
     }
@@ -159,7 +154,7 @@ use prelude::Connection;
 ///
 /// Some values like the text encoding can only be changed once after the
 /// database has initially been created.
-pub fn initialize_database(connection: &SqliteConnection) -> QueryResult<()> {
+pub fn initialize_database(connection: &mut DbConnection) -> QueryResult<()> {
     diesel::sql_query(r#"
 PRAGMA journal_mode = WAL;        -- better write-concurrency
 PRAGMA synchronous = NORMAL;      -- fsync only in critical moments, safe for journal_mode = WAL
@@ -173,4 +168,16 @@ PRAGMA recursive_triggers = 1;    -- for recursive ON CASCADE DELETE actions
 PRAGMA encoding = 'UTF-8';
 "#).execute(connection)?;
     Ok(())
+}
+
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+
+pub fn has_pending_migration(connection: &mut DbConnection) -> MigrationResult<bool> {
+    connection.has_pending_migration(MIGRATIONS)
+}
+
+pub fn run_pending_migrations(
+    connection: &mut DbConnection,
+) -> MigrationResult<Vec<MigrationVersion<'_>>> {
+    connection.run_pending_migrations(MIGRATIONS)
 }

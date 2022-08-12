@@ -18,7 +18,6 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
-use diesel::prelude::*;
 use thiserror::Error;
 
 use aoide_core::collection::EntityUid as CollectionUid;
@@ -29,12 +28,9 @@ use aoide_repo::prelude::RepoError;
 
 use aoide_usecases as uc;
 
-use aoide_repo_sqlite::prelude::Connection as RepoConnection;
+use aoide_repo_sqlite::{prelude::Connection as RepoConnection, DbConnection};
 
 use aoide_storage_sqlite::Error as StorageError;
-
-#[macro_use]
-extern crate diesel_migrations;
 
 pub mod collection;
 pub mod database;
@@ -57,7 +53,7 @@ pub enum Error {
     Storage(#[from] StorageError),
 
     #[error(transparent)]
-    DatabaseMigration(#[from] diesel_migrations::RunMigrationsError),
+    DatabaseMigration(anyhow::Error),
 
     #[error(transparent)]
     Repository(#[from] RepoError),

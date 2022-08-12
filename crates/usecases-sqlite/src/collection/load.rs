@@ -7,7 +7,7 @@ use aoide_repo::collection::MediaSourceRootUrlFilter;
 use super::*;
 
 pub fn load_one(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     entity_uid: &EntityUid,
     scope: LoadScope,
 ) -> Result<EntityWithSummary> {
@@ -22,7 +22,7 @@ pub fn load_one(
 }
 
 pub fn load_all(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     kind: Option<&str>,
     media_source_root_url: Option<&MediaSourceRootUrlFilter>,
     scope: LoadScope,
@@ -44,7 +44,7 @@ pub fn load_all(
     .map_err(Into::into)
 }
 
-pub fn load_all_kinds(connection: &mut SqliteConnection) -> Result<Vec<String>> {
+pub fn load_all_kinds(connection: &mut DbConnection) -> Result<Vec<String>> {
     let mut repo = RepoConnection::new(connection);
     repo.load_all_kinds().map_err(Into::into)
 }

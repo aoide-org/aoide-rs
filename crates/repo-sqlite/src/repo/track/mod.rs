@@ -42,7 +42,7 @@ use crate::{
 };
 
 mod search;
-use self::search::{TrackSearchBoxedExpressionBuilder as _, TrackSearchQueryTransform as _};
+use self::search::{TrackSearchExpressionBoxedBuilder as _, TrackSearchQueryTransform as _};
 
 // TODO: Define a dedicated return type
 #[allow(clippy::type_complexity)]
@@ -669,7 +669,14 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         query = query.then_order_by(view_track_search::row_id);
 
         // Pagination
-        query = apply_pagination(query, pagination);
+        //FIXME: Extract into generic function crate::util::apply_pagination()
+        let (limit, offset) = pagination_to_limit_offset(pagination);
+        if let Some(limit) = limit {
+            query = query.limit(limit);
+        }
+        if let Some(offset) = offset {
+            query = query.offset(offset);
+        }
 
         let timed = Instant::now();
 
@@ -769,7 +776,17 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             // allows to reuse the filtered select statement!
             query = query.filter(media_source::row_id.eq_any(media_source_id_subselect));
         }
-        query = apply_pagination(query, pagination);
+
+        // Pagination
+        //FIXME: Extract into generic function crate::util::apply_pagination()
+        let (limit, offset) = pagination_to_limit_offset(pagination);
+        if let Some(limit) = limit {
+            query = query.limit(limit);
+        }
+        if let Some(offset) = offset {
+            query = query.offset(offset);
+        }
+
         query
             .load::<(
                 RowId,

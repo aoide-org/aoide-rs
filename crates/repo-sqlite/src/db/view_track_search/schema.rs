@@ -3,7 +3,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-table! {
+diesel::table! {
     view_track_search (row_id) {
         row_id -> BigInt,
         row_created_ms -> BigInt,

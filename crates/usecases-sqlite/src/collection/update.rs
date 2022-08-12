@@ -8,7 +8,7 @@ use uc::collection::update_entity;
 use super::*;
 
 pub fn update(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     entity_header: EntityHeader,
     modified_collection: Collection,
 ) -> Result<Entity> {

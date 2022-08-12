@@ -16,7 +16,7 @@ use aoide_repo::{collection::RecordId as CollectionId, playlist::RecordHeader};
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable, Identifiable)]
-#[table_name = "playlist"]
+#[diesel(table_name = playlist)]
 pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,
@@ -83,7 +83,7 @@ impl From<QueryableRecord> for (RecordHeader, CollectionId, Entity) {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "playlist"]
+#[diesel(table_name = playlist)]
 pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
@@ -140,8 +140,7 @@ impl<'a> InsertableRecord<'a> {
 }
 
 #[derive(Debug, AsChangeset)]
-#[changeset_options(treat_none_as_null = "true")]
-#[table_name = "playlist"]
+#[diesel(table_name = playlist, treat_none_as_null = true)]
 pub struct TouchableRecord {
     pub row_updated_ms: TimestampMillis,
     pub entity_rev: i64,
@@ -158,8 +157,7 @@ impl TouchableRecord {
 }
 
 #[derive(Debug, AsChangeset)]
-#[changeset_options(treat_none_as_null = "true")]
-#[table_name = "playlist"]
+#[diesel(table_name = playlist, treat_none_as_null = true)]
 pub struct UpdatableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub entity_rev: i64,

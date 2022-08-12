@@ -14,7 +14,7 @@ mod uc {
 }
 
 pub fn import_files<ReportProgressFn: FnMut(uc::ProgressEvent)>(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     params: &Params,
     import_config: ImportTrackConfig,

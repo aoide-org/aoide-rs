@@ -11,12 +11,13 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-diesel = { version = "1.4", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
+diesel = { version = "2.0.0-rc.1", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
+diesel_migrations =  { version = "2.0.0-rc.1", default-features = false, features = ["sqlite"] }
 # Bundle SQLite code to prevent dynamic linking.
 # The pinned version must be compatible with diesel!
 # Could be avoided by adding aoide-storage-sqlite as a dependency
 # instead, but currently nothing from this crate is actually used.
-libsqlite3-sys = { version = "0.22", features = ["bundled"] }
+libsqlite3-sys = { version = "0.25", features = ["bundled"] }
 log = "0.4"
 mime = "0.3"
 num-derive = "0.3"
@@ -30,6 +31,5 @@ aoide-core-api = "=0.8.0"
 aoide-repo = "=0.8.0"
 
 [dev-dependencies]
-diesel_migrations =  { version = "1.4", features = ["sqlite"] }
 env_logger = "0.9"
 test-log = "0.2"

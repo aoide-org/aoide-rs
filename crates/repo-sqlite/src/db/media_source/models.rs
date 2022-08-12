@@ -35,7 +35,7 @@ use super::{schema::*, *};
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable, Identifiable)]
-#[table_name = "media_source"]
+#[diesel(table_name = media_source)]
 pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,
@@ -190,7 +190,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "media_source"]
+#[diesel(table_name = media_source)]
 pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
@@ -331,8 +331,7 @@ impl<'a> InsertableRecord<'a> {
 }
 
 #[derive(Debug, AsChangeset)]
-#[table_name = "media_source"]
-#[changeset_options(treat_none_as_null = "true")]
+#[diesel(table_name = media_source, treat_none_as_null = true)]
 pub struct UpdatableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub collected_at: String,

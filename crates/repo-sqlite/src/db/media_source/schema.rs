@@ -5,7 +5,7 @@
 
 use crate::db::collection::schema::*;
 
-table! {
+diesel::table! {
     media_source (row_id) {
         row_id -> BigInt,
         row_created_ms -> BigInt,
@@ -36,4 +36,4 @@ table! {
     }
 }
 
-joinable!(media_source -> collection (collection_id));
+diesel::joinable!(media_source -> collection (collection_id));

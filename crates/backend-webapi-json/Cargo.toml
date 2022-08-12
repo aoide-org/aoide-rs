@@ -11,7 +11,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-diesel = { version = "1.4", default-features = false, features = ["sqlite"] }
+diesel = { version = "2.0.0-rc.1", default-features = false, features = ["sqlite"] }
 log = "0.4"
 serde = { version = "1.0" }
 thiserror = "1.0"
@@ -31,6 +31,7 @@ aoide-core-json = "=0.8.0"
 aoide-core-api-json = { version = "=0.8.0", features = ["backend"] }
 aoide-media = "=0.8.0"
 aoide-repo = "=0.8.0"
+aoide-repo-sqlite = "=0.8.0"
 aoide-usecases = "=0.8.0"
 aoide-usecases-sqlite = "=0.8.0"
 

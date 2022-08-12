@@ -15,7 +15,7 @@ use crate::prelude::*;
 use super::schema::*;
 
 #[derive(Debug, Insertable)]
-#[table_name = "track"]
+#[diesel(table_name = track)]
 pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
@@ -155,8 +155,7 @@ impl<'a> InsertableRecord<'a> {
 }
 
 #[derive(Debug, AsChangeset)]
-#[changeset_options(treat_none_as_null = "true")]
-#[table_name = "track"]
+#[diesel(table_name = track, treat_none_as_null = true)]
 pub struct UpdatableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub entity_rev: i64,

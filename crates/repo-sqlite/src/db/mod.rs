@@ -20,7 +20,7 @@ mod join {
         view_track_search::schema::*,
     };
 
-    allow_tables_to_appear_in_same_query!(
+    diesel::allow_tables_to_appear_in_same_query!(
         collection,
         media_source,
         track,

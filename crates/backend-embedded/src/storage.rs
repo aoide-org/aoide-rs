@@ -30,11 +30,11 @@ pub fn provision_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper>
         create_connection_pool(&config.connection.storage, config.connection.pool.max_size)?;
 
     log::info!("Initializing database");
-    aoide_repo_sqlite::initialize_database(&*get_pooled_connection(&connection_pool)?)?;
+    aoide_repo_sqlite::initialize_database(&mut *get_pooled_connection(&connection_pool)?)?;
 
     if config.migrate_schema {
         log::info!("Migrating database schema");
-        aoide_usecases_sqlite::database::migrate_schema(&*get_pooled_connection(
+        aoide_usecases_sqlite::database::migrate_schema(&mut *get_pooled_connection(
             &connection_pool,
         )?)?;
     }

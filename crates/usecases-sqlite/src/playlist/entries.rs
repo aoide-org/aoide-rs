@@ -22,7 +22,7 @@ pub enum PatchOperation {
 }
 
 pub fn patch(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     entity_header: &EntityHeader,
     operations: impl IntoIterator<Item = PatchOperation>,
 ) -> Result<(RecordHeader, EntityWithEntriesSummary)> {

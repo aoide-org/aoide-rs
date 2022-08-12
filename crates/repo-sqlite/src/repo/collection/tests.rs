@@ -10,7 +10,7 @@ use test_log::test;
 use aoide_core::{entity::EntityHeaderTyped, media, util::url::BaseUrl};
 
 struct Fixture {
-    db: SqliteConnection,
+    db: DbConnection,
 }
 
 impl Fixture {

@@ -26,7 +26,7 @@ use crate::{db::track::EntityPreload, prelude::*};
 use super::schema::*;
 
 #[derive(Debug, Queryable, Identifiable)]
-#[table_name = "view_track_search"]
+#[diesel(table_name = view_track_search)]
 pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,

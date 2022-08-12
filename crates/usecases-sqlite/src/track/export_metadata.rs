@@ -10,7 +10,7 @@ use aoide_repo::track::EntityRepo as _;
 use super::*;
 
 pub fn export_metadata_into_file(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     track_uid: &EntityUid,
     content_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,

@@ -8,7 +8,7 @@ use aoide_repo::{collection::EntityRepo as _, media::source::CollectionRepo as _
 use super::*;
 
 pub fn relocate(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     old_content_path_prefix: &ContentPath,
     new_content_path_prefix: &ContentPath,

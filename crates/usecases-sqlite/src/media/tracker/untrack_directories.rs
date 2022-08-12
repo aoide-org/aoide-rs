@@ -10,7 +10,7 @@ mod uc {
 }
 
 pub fn untrack_directories(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Outcome> {

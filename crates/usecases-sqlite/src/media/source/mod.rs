@@ -36,7 +36,7 @@ pub fn resolve_file_path(
 }
 
 pub fn load_embedded_artwork_image(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     content_path: &ContentPath,
 ) -> Result<(CollectionId, Option<LoadedArtworkImage>)> {

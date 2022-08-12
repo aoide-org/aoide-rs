@@ -14,7 +14,7 @@ use num_traits::{FromPrimitive, ToPrimitive};
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable, Identifiable)]
-#[table_name = "track_cue"]
+#[diesel(table_name = track_cue)]
 pub struct QueryableRecord {
     pub id: RowId,
     pub track_id: RowId,
@@ -79,7 +79,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "track_cue"]
+#[diesel(table_name = track_cue)]
 pub struct InsertableRecord<'a> {
     pub track_id: RowId,
     pub bank_idx: BankIndex,

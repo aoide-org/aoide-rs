@@ -6,7 +6,7 @@ use num_traits::FromPrimitive as _;
 use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
-#[table_name = "track_actor"]
+#[diesel(table_name = track_actor)]
 pub struct QueryableRecord {
     pub id: RowId,
     pub track_id: RowId,
@@ -51,7 +51,7 @@ impl TryFrom<QueryableRecord> for (RecordId, Record) {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "track_actor"]
+#[diesel(table_name = track_actor)]
 pub struct InsertableRecord<'a> {
     pub track_id: RowId,
     pub scope: i16,

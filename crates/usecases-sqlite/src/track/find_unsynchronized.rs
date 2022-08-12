@@ -8,7 +8,7 @@ use aoide_usecases::track::find_unsynchronized as uc;
 use super::*;
 
 pub fn find_unsynchronized(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     params: Params,
     pagination: &Pagination,

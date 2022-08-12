@@ -37,12 +37,9 @@ impl ArtworkSource {
     }
 }
 
-pub(crate) fn select_row_id_filtered_by_collection_id<'s, 'db, DB>(
+pub(crate) fn select_row_id_filtered_by_collection_id<'db>(
     collection_id: CollectionId,
-) -> media_source::BoxedQuery<'db, DB, BigInt>
-where
-    DB: diesel::backend::Backend + 'db,
-{
+) -> media_source::BoxedQuery<'db, DbBackend, BigInt> {
     media_source::table
         .select(media_source::row_id)
         .filter(media_source::collection_id.eq(RowId::from(collection_id)))
@@ -53,13 +50,10 @@ where
 ///
 /// URIs are only unambiguous within a collection. Therefore
 /// filtering is restricted to a single collection.
-pub(crate) fn select_row_id_filtered_by_content_path_predicate<'db, DB>(
+pub(crate) fn select_row_id_filtered_by_content_path_predicate(
     collection_id: CollectionId,
-    content_path_predicate: StringPredicateBorrowed<'db>,
-) -> media_source::BoxedQuery<'db, DB, BigInt>
-where
-    DB: diesel::backend::Backend + 'db,
-{
+    content_path_predicate: StringPredicateBorrowed<'_>,
+) -> media_source::BoxedQuery<'_, DbBackend, BigInt> {
     // Source URI filtering
     let statement = media_source::table
         .select(media_source::row_id)

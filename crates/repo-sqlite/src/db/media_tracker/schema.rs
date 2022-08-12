@@ -3,7 +3,7 @@
 
 use crate::db::{collection::schema::*, media_source::schema::*};
 
-table! {
+diesel::table! {
     media_tracker_directory (row_id) {
         row_id -> BigInt,
         row_created_ms -> BigInt,
@@ -15,9 +15,9 @@ table! {
     }
 }
 
-joinable!(media_tracker_directory -> collection (collection_id));
+diesel::joinable!(media_tracker_directory -> collection (collection_id));
 
-table! {
+diesel::table! {
     media_tracker_source (row_id) {
         row_id -> BigInt,
         directory_id -> BigInt,
@@ -25,5 +25,5 @@ table! {
     }
 }
 
-joinable!(media_tracker_source -> media_tracker_directory (directory_id));
-joinable!(media_tracker_source -> media_source (source_id));
+diesel::joinable!(media_tracker_source -> media_tracker_directory (directory_id));
+diesel::joinable!(media_tracker_source -> media_source (source_id));

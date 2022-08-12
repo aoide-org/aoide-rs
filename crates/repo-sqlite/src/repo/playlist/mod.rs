@@ -152,7 +152,15 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
 
         // Pagination
         if let Some(pagination) = pagination {
-            target = apply_pagination(target, pagination);
+            // Pagination
+            //FIXME: Extract into generic function crate::util::apply_pagination()
+            let (limit, offset) = pagination_to_limit_offset(pagination);
+            if let Some(limit) = limit {
+                target = target.limit(limit);
+            }
+            if let Some(offset) = offset {
+                target = target.offset(offset);
+            }
         }
 
         let records = target

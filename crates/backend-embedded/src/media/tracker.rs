@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//FIXME: Add transactions after upgrading to diesel v2.0
-//use diesel::Connection as _;
+use diesel::Connection as _;
 
 use aoide_media::io::import::ImportTrackConfig;
 
@@ -17,15 +16,14 @@ pub async fn query_status(
 ) -> Result<aoide_core_api::media::tracker::Status> {
     db_gatekeeper
         .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
-            //FIXME: Add transactions after upgrading to diesel v2.0
             let connection = &mut *pooled_connection;
-            //connection.transaction::<_, Error, _>(|connection| {
-            aoide_usecases_sqlite::media::tracker::query_status::query_status(
-                connection,
-                &collection_uid,
-                &params,
-            )
-            //})
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::media::tracker::query_status::query_status(
+                    connection,
+                    &collection_uid,
+                    &params,
+                )
+            })
         })
         .await
         .map_err(Into::into)
@@ -44,17 +42,16 @@ where
     db_gatekeeper
         .spawn_blocking_write_task(move |mut pooled_connection, abort_flag| {
             let mut report_progress_fn = report_progress_fn;
-            //FIXME: Add transactions after upgrading to diesel v2.0
             let connection = &mut *pooled_connection;
-            //connection.transaction::<_, Error, _>(|connection| {
-            aoide_usecases_sqlite::media::tracker::scan_directories::scan_directories(
-                connection,
-                &collection_uid,
-                &params,
-                &mut report_progress_fn,
-                &abort_flag,
-            )
-            //})
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::media::tracker::scan_directories::scan_directories(
+                    connection,
+                    &collection_uid,
+                    &params,
+                    &mut report_progress_fn,
+                    &abort_flag,
+                )
+            })
         })
         .await
         .map_err(Into::into)
@@ -68,15 +65,14 @@ pub async fn untrack_directories(
 ) -> Result<aoide_core_api::media::tracker::untrack_directories::Outcome> {
     db_gatekeeper
         .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
-            //FIXME: Add transactions after upgrading to diesel v2.0
             let connection = &mut *pooled_connection;
-            //connection.transaction::<_, Error, _>(|connection| {
-            aoide_usecases_sqlite::media::tracker::untrack_directories::untrack_directories(
-                connection,
-                &collection_uid,
-                &params,
-            )
-            //})
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::media::tracker::untrack_directories::untrack_directories(
+                    connection,
+                    &collection_uid,
+                    &params,
+                )
+            })
         })
         .await
         .map_err(Into::into)
@@ -96,18 +92,17 @@ where
     db_gatekeeper
         .spawn_blocking_write_task(move |mut pooled_connection, abort_flag| {
             let mut report_progress_fn = report_progress_fn;
-            //FIXME: Add transactions after upgrading to diesel v2.0
             let connection = &mut *pooled_connection;
-            //connection.transaction::<_, Error, _>(|connection| {
-            aoide_usecases_sqlite::media::tracker::import_files::import_files(
-                connection,
-                &collection_uid,
-                &params,
-                import_config,
-                &mut report_progress_fn,
-                &abort_flag,
-            )
-            //})
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::media::tracker::import_files::import_files(
+                    connection,
+                    &collection_uid,
+                    &params,
+                    import_config,
+                    &mut report_progress_fn,
+                    &abort_flag,
+                )
+            })
         })
         .await
         .map_err(Into::into)
@@ -126,17 +121,16 @@ where
     db_gatekeeper
         .spawn_blocking_read_task(move |mut pooled_connection, abort_flag| {
             let mut report_progress_fn = report_progress_fn;
-            //FIXME: Add transactions after upgrading to diesel v2.0
             let connection = &mut *pooled_connection;
-            //connection.transaction::<_, Error, _>(|connection| {
-            aoide_usecases_sqlite::media::tracker::find_untracked_files::visit_directories(
-                connection,
-                &collection_uid,
-                &params,
-                &mut report_progress_fn,
-                &abort_flag,
-            )
-            //})
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::media::tracker::find_untracked_files::visit_directories(
+                    connection,
+                    &collection_uid,
+                    &params,
+                    &mut report_progress_fn,
+                    &abort_flag,
+                )
+            })
         })
         .await
         .map_err(Into::into)

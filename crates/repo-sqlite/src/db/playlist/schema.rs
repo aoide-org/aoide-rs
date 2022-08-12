@@ -5,7 +5,7 @@
 
 use crate::db::collection::schema::*;
 
-table! {
+diesel::table! {
     playlist (row_id) {
         row_id -> BigInt,
         row_created_ms -> BigInt,
@@ -24,4 +24,4 @@ table! {
     }
 }
 
-joinable!(playlist -> collection (collection_id));
+diesel::joinable!(playlist -> collection (collection_id));

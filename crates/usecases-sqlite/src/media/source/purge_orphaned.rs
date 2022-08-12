@@ -10,7 +10,7 @@ mod uc {
 }
 
 pub fn purge_orphaned(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Outcome> {

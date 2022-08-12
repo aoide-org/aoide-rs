@@ -12,7 +12,7 @@ mod uc {
 }
 
 pub fn visit_directories<ReportProgressFn: FnMut(uc::ProgressEvent)>(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     params: &FsTraversalParams,
     report_progress_fn: &mut ReportProgressFn,

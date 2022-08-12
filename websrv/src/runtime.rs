@@ -64,11 +64,11 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
     let connection_pool = create_connection_pool(&config.connection.storage, pool_max_size)?;
 
     log::info!("Initializing database");
-    initialize_database(&*get_pooled_connection(&connection_pool)?)?;
+    initialize_database(&mut *get_pooled_connection(&connection_pool)?)?;
 
     if config.migrate_schema_on_startup {
         log::info!("Migrating database schema");
-        uc::database::migrate_schema(&*get_pooled_connection(&connection_pool)?)?;
+        uc::database::migrate_schema(&mut *get_pooled_connection(&connection_pool)?)?;
     }
 
     Ok(DatabaseConnectionGatekeeper::new(

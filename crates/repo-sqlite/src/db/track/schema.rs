@@ -5,7 +5,7 @@
 
 use crate::db::media_source::schema::*;
 
-table! {
+diesel::table! {
     track (row_id) {
         row_id -> BigInt,
         row_created_ms -> BigInt,
@@ -42,4 +42,4 @@ table! {
     }
 }
 
-joinable!(track -> media_source (media_source_id));
+diesel::joinable!(track -> media_source (media_source_id));

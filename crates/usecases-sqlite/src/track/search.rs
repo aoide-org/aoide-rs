@@ -9,7 +9,7 @@ mod uc {
 }
 
 pub fn search(
-    connection: &mut SqliteConnection,
+    connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     params: uc::Params,
     pagination: &Pagination,

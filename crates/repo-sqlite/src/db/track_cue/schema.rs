@@ -5,7 +5,7 @@
 
 use crate::db::track::schema::*;
 
-table! {
+diesel::table! {
     track_cue (row_id) {
         row_id -> BigInt,
         track_id -> BigInt,
@@ -22,4 +22,4 @@ table! {
     }
 }
 
-joinable!(track_cue -> track (track_id));
+diesel::joinable!(track_cue -> track (track_id));
