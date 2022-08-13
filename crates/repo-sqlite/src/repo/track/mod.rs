@@ -33,6 +33,10 @@ use crate::{
             select_row_id_filtered_by_content_path_predicate as select_media_source_id_filtered_by_content_path_predicate,
         },
         track::{models::*, schema::*, *},
+        view_track_search::{
+            models::{load_repo_entity, QueryableRecord as SearchQueryableRecord},
+            schema::*,
+        },
     },
     prelude::*,
 };
@@ -469,9 +473,9 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     }
 
     fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
-        let queryable = track::table
-            .filter(track::row_id.eq(RowId::from(id)))
-            .first::<QueryableRecord>(self.as_mut())
+        let queryable = view_track_search::table
+            .filter(view_track_search::row_id.eq(RowId::from(id)))
+            .first::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
         let preload = preload_entity(self, id, media_source)?;
@@ -479,9 +483,9 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     }
 
     fn load_track_entity_by_uid(&mut self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)> {
-        let queryable = track::table
-            .filter(track::entity_uid.eq(uid.as_ref()))
-            .first::<QueryableRecord>(self.as_mut())
+        let queryable = view_track_search::table
+            .filter(view_track_search::entity_uid.eq(uid.as_ref()))
+            .first::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
         let preload = preload_entity(self, queryable.id.into(), media_source)?;
@@ -510,9 +514,9 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             collection_id,
             StringPredicateBorrowed::Equals(content_path),
         );
-        let queryable = track::table
-            .filter(track::media_source_id.eq_any(media_source_id_subselect))
-            .first::<QueryableRecord>(self.as_mut())
+        let queryable = view_track_search::table
+            .filter(view_track_search::media_source_id.eq_any(media_source_id_subselect))
+            .first::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let media_source_id = queryable.media_source_id.into();
         let (_, media_source) = self.load_media_source(media_source_id)?;
@@ -530,9 +534,9 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             collection_id,
             StringPredicateBorrowed::Equals(content_path),
         );
-        let queryable = track::table
-            .filter(track::media_source_id.eq_any(media_source_id_subselect))
-            .first::<QueryableRecord>(self.as_mut())
+        let queryable = view_track_search::table
+            .filter(view_track_search::media_source_id.eq_any(media_source_id_subselect))
+            .first::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         Ok(queryable.into())
     }
@@ -648,10 +652,9 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         ordering: Vec<SortOrder>,
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
     ) -> RepoResult<usize> {
-        let mut query = track::table
-            .inner_join(media_source::table)
-            .select(track::all_columns)
-            .filter(media_source::collection_id.eq(RowId::from(collection_id)))
+        let mut query = view_track_search::table
+            .select(view_track_search::all_columns)
+            .filter(view_track_search::collection_id.eq(RowId::from(collection_id)))
             .into_boxed();
 
         if let Some(ref filter) = filter {
@@ -663,7 +666,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         }
         // Finally order by PK to preserve the relative order of results
         // even if no sorting was requested.
-        query = query.then_order_by(track::row_id);
+        query = query.then_order_by(view_track_search::row_id);
 
         // Pagination
         query = apply_pagination(query, pagination);
@@ -675,7 +678,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             diesel::debug_query(&query)
         );
         let records = query
-            .load::<QueryableRecord>(self.as_mut())
+            .load::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let count = records.len();
         log::debug!(

@@ -11,11 +11,13 @@ pub(crate) mod track_actor;
 pub(crate) mod track_cue;
 pub(crate) mod track_tag;
 pub(crate) mod track_title;
+pub(crate) mod view_track_search;
 
 mod join {
     use crate::db::{
         collection::schema::*, media_source::schema::*, media_tracker::schema::*,
         playlist::schema::*, playlist_entry::schema::*, track::schema::*,
+        view_track_search::schema::*,
     };
 
     allow_tables_to_appear_in_same_query!(
@@ -26,5 +28,6 @@ mod join {
         playlist_entry,
         media_tracker_directory,
         media_tracker_source,
+        view_track_search,
     );
 }

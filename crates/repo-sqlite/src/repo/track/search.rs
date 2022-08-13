@@ -1,10 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::{
-    query_source::joins as diesel_joins, sql_types, BoolExpressionMethods, BoxableExpression,
-    ExpressionMethods, TextExpressionMethods,
-};
+use diesel::{BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods};
 
 use num_traits::ToPrimitive as _;
 
@@ -16,83 +13,25 @@ use aoide_core_api::{tag::search::Filter as TagFilter, track::search::*};
 
 use crate::{
     db::{
-        media_source::schema::*, media_tracker::schema::*, playlist::schema::*,
-        playlist_entry::schema::*, track::schema::*, track_actor::schema::*, track_cue::schema::*,
-        track_tag::schema::*, track_title::schema::*,
+        media_tracker::schema::*, playlist::schema::*, playlist_entry::schema::*,
+        track_actor::schema::*, track_cue::schema::*, track_tag::schema::*, track_title::schema::*,
+        view_track_search::schema::*,
     },
     prelude::*,
 };
 
 ///////////////////////////////////////////////////////////////////////
 
-// The following type expression has been copied from a compiler error message ;)
-type TrackSearchQuery = diesel_joins::JoinOn<
-    diesel_joins::Join<track::table, media_source::table, diesel_joins::Inner>,
-    diesel::expression::operators::Eq<
-        diesel::expression::nullable::Nullable<track::columns::media_source_id>,
-        diesel::expression::nullable::Nullable<media_source::columns::row_id>,
-    >,
+type TrackSearchBoxedExpression<'db, DB> = Box<
+    dyn BoxableExpression<view_track_search::table, DB, SqlType = diesel::sql_types::Bool> + 'db,
 >;
-
-// The following type expression has been copied from a compiler error message ;)
-type TrackSearchBoxedQuery<'db, DB> = diesel::query_builder::BoxedSelectStatement<
-    'db,
-    (
-        // track
-        //(
-        sql_types::BigInt,
-        sql_types::BigInt,
-        sql_types::BigInt,
-        sql_types::Binary,
-        sql_types::BigInt,
-        sql_types::BigInt,
-        sql_types::Nullable<sql_types::BigInt>,
-        sql_types::Nullable<sql_types::Text>,
-        sql_types::Nullable<sql_types::BigInt>,
-        sql_types::Nullable<sql_types::Integer>,
-        sql_types::Nullable<sql_types::Text>,
-        sql_types::Nullable<sql_types::BigInt>,
-        sql_types::Nullable<sql_types::Integer>,
-        sql_types::Nullable<sql_types::Text>,
-        sql_types::Nullable<sql_types::BigInt>,
-        sql_types::Nullable<sql_types::Integer>,
-        sql_types::Nullable<sql_types::Text>,
-        sql_types::Nullable<sql_types::Text>,
-        sql_types::SmallInt,
-        sql_types::Nullable<sql_types::SmallInt>,
-        sql_types::Nullable<sql_types::SmallInt>,
-        sql_types::Nullable<sql_types::SmallInt>,
-        sql_types::Nullable<sql_types::SmallInt>,
-        sql_types::Nullable<sql_types::SmallInt>,
-        sql_types::Nullable<sql_types::SmallInt>,
-        sql_types::Nullable<sql_types::Double>,
-        sql_types::SmallInt,
-        sql_types::Nullable<sql_types::SmallInt>,
-        sql_types::Nullable<sql_types::SmallInt>,
-        sql_types::SmallInt,
-        sql_types::Nullable<sql_types::Integer>,
-        sql_types::Nullable<sql_types::SmallInt>,
-        //),
-        /*
-        // media_source
-        (
-            ...add when needed...
-        ),
-        */
-    ),
-    TrackSearchQuery,
-    DB,
->;
-
-type TrackSearchBoxedExpression<'db, DB> =
-    Box<dyn BoxableExpression<TrackSearchQuery, DB, SqlType = diesel::sql_types::Bool> + 'db>;
 
 // TODO: replace with "True"
 fn dummy_true_expression<'db, DB>() -> TrackSearchBoxedExpression<'db, DB>
 where
     DB: diesel::backend::Backend + 'db,
 {
-    Box::new(track::row_id.is_not_null()) // always true
+    Box::new(view_track_search::row_id.is_not_null()) // always true
 }
 
 // TODO: replace with "False"
@@ -100,7 +39,7 @@ fn dummy_false_expression<'db, DB>() -> TrackSearchBoxedExpression<'db, DB>
 where
     DB: diesel::backend::Backend + 'db,
 {
-    Box::new(track::row_id.is_null()) // always false
+    Box::new(view_track_search::row_id.is_null()) // always false
 }
 
 pub(crate) trait TrackSearchBoxedExpressionBuilder<'db, DB> {
@@ -110,8 +49,8 @@ pub(crate) trait TrackSearchBoxedExpressionBuilder<'db, DB> {
 pub(crate) trait TrackSearchQueryTransform<'db, DB> {
     fn apply_to_query(
         &'db self,
-        query: TrackSearchBoxedQuery<'db, DB>,
-    ) -> TrackSearchBoxedQuery<'db, DB>;
+        query: view_track_search::BoxedQuery<'db, DB>,
+    ) -> view_track_search::BoxedQuery<'db, DB>;
 }
 
 impl<'db, DB> TrackSearchQueryTransform<'db, DB> for SortOrder
@@ -120,137 +59,185 @@ where
 {
     fn apply_to_query(
         &self,
-        query: TrackSearchBoxedQuery<'db, DB>,
-    ) -> TrackSearchBoxedQuery<'db, DB> {
+        query: view_track_search::BoxedQuery<'db, DB>,
+    ) -> view_track_search::BoxedQuery<'db, DB> {
         let direction = self.direction;
         match self.field {
             SortField::AudioBitrateBps => match direction {
                 SortDirection::Ascending => {
-                    query.then_order_by(media_source::audio_bitrate_bps.asc())
+                    query.then_order_by(view_track_search::audio_bitrate_bps.asc())
                 }
                 SortDirection::Descending => {
-                    query.then_order_by(media_source::audio_bitrate_bps.desc())
+                    query.then_order_by(view_track_search::audio_bitrate_bps.desc())
                 }
             },
             SortField::AudioChannelCount => match direction {
                 SortDirection::Ascending => {
-                    query.then_order_by(media_source::audio_channel_count.asc())
+                    query.then_order_by(view_track_search::audio_channel_count.asc())
                 }
                 SortDirection::Descending => {
-                    query.then_order_by(media_source::audio_channel_count.desc())
+                    query.then_order_by(view_track_search::audio_channel_count.desc())
                 }
             },
             SortField::AudioDurationMs => match direction {
                 SortDirection::Ascending => {
-                    query.then_order_by(media_source::audio_duration_ms.asc())
+                    query.then_order_by(view_track_search::audio_duration_ms.asc())
                 }
                 SortDirection::Descending => {
-                    query.then_order_by(media_source::audio_duration_ms.desc())
+                    query.then_order_by(view_track_search::audio_duration_ms.desc())
                 }
             },
             SortField::AudioLoudnessLufs => match direction {
                 SortDirection::Ascending => {
-                    query.then_order_by(media_source::audio_loudness_lufs.asc())
+                    query.then_order_by(view_track_search::audio_loudness_lufs.asc())
                 }
                 SortDirection::Descending => {
-                    query.then_order_by(media_source::audio_loudness_lufs.desc())
+                    query.then_order_by(view_track_search::audio_loudness_lufs.desc())
                 }
             },
             SortField::AudioSampleRateHz => match direction {
                 SortDirection::Ascending => {
-                    query.then_order_by(media_source::audio_samplerate_hz.asc())
+                    query.then_order_by(view_track_search::audio_samplerate_hz.asc())
                 }
                 SortDirection::Descending => {
-                    query.then_order_by(media_source::audio_samplerate_hz.desc())
+                    query.then_order_by(view_track_search::audio_samplerate_hz.desc())
                 }
             },
             SortField::CollectedAt => match direction {
-                SortDirection::Ascending => query.then_order_by(media_source::collected_ms.asc()),
-                SortDirection::Descending => query.then_order_by(media_source::collected_ms.desc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::collected_ms.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::collected_ms.desc())
+                }
             },
             SortField::ContentPath => match direction {
                 SortDirection::Ascending => {
-                    query.then_order_by(media_source::content_link_path.asc())
+                    query.then_order_by(view_track_search::content_link_path.asc())
                 }
                 SortDirection::Descending => {
-                    query.then_order_by(media_source::content_link_path.desc())
+                    query.then_order_by(view_track_search::content_link_path.desc())
                 }
             },
             SortField::ContentType => match direction {
-                SortDirection::Ascending => query.then_order_by(media_source::content_type.asc()),
-                SortDirection::Descending => query.then_order_by(media_source::content_type.desc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::content_type.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::content_type.desc())
+                }
             },
             SortField::Copyright => match direction {
-                SortDirection::Ascending => query.then_order_by(track::copyright.asc()),
-                SortDirection::Descending => query.then_order_by(track::copyright.desc()),
+                SortDirection::Ascending => query.then_order_by(view_track_search::copyright.asc()),
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::copyright.desc())
+                }
             },
             SortField::CreatedAt => match direction {
-                SortDirection::Ascending => query.then_order_by(track::row_created_ms.asc()),
-                SortDirection::Descending => query.then_order_by(track::row_created_ms.desc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::row_created_ms.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::row_created_ms.desc())
+                }
             },
             SortField::DiscNumber => match direction {
-                SortDirection::Ascending => query.then_order_by(track::disc_number.asc()),
-                SortDirection::Descending => query.then_order_by(track::disc_number.desc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::disc_number.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::disc_number.desc())
+                }
             },
             SortField::DiscTotal => match direction {
-                SortDirection::Ascending => query.then_order_by(track::disc_total.asc()),
-                SortDirection::Descending => query.then_order_by(track::disc_total.desc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::disc_total.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::disc_total.desc())
+                }
             },
             SortField::MusicTempoBpm => match direction {
-                SortDirection::Ascending => query.then_order_by(track::music_tempo_bpm.asc()),
-                SortDirection::Descending => query.then_order_by(track::music_tempo_bpm.desc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::music_tempo_bpm.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::music_tempo_bpm.desc())
+                }
             },
             SortField::MusicKeyCode => match direction {
-                SortDirection::Ascending => query.then_order_by(track::music_key_code.asc()),
-                SortDirection::Descending => query.then_order_by(track::music_key_code.desc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::music_key_code.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::music_key_code.desc())
+                }
             },
             SortField::Publisher => match direction {
-                SortDirection::Ascending => query.then_order_by(track::publisher.asc()),
-                SortDirection::Descending => query.then_order_by(track::publisher.desc()),
+                SortDirection::Ascending => query.then_order_by(view_track_search::publisher.asc()),
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::publisher.desc())
+                }
             },
             SortField::RecordedAtDate => match direction {
-                SortDirection::Ascending => query.then_order_by(track::recorded_at_yyyymmdd.asc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::recorded_at_yyyymmdd.asc())
+                }
                 SortDirection::Descending => {
-                    query.then_order_by(track::recorded_at_yyyymmdd.desc())
+                    query.then_order_by(view_track_search::recorded_at_yyyymmdd.desc())
                 }
             },
             SortField::ReleasedAtDate => match direction {
-                SortDirection::Ascending => query.then_order_by(track::released_at_yyyymmdd.asc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::released_at_yyyymmdd.asc())
+                }
                 SortDirection::Descending => {
-                    query.then_order_by(track::released_at_yyyymmdd.desc())
+                    query.then_order_by(view_track_search::released_at_yyyymmdd.desc())
                 }
             },
             SortField::ReleasedOrigAtDate => match direction {
                 SortDirection::Ascending => {
-                    query.then_order_by(track::released_orig_at_yyyymmdd.asc())
+                    query.then_order_by(view_track_search::released_orig_at_yyyymmdd.asc())
                 }
                 SortDirection::Descending => {
-                    query.then_order_by(track::released_orig_at_yyyymmdd.desc())
+                    query.then_order_by(view_track_search::released_orig_at_yyyymmdd.desc())
                 }
             },
             SortField::TrackNumber => match direction {
-                SortDirection::Ascending => query.then_order_by(track::track_number.asc()),
-                SortDirection::Descending => query.then_order_by(track::track_number.desc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::track_number.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::track_number.desc())
+                }
             },
             SortField::TrackTotal => match direction {
-                SortDirection::Ascending => query.then_order_by(track::track_total.asc()),
-                SortDirection::Descending => query.then_order_by(track::track_total.desc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::track_total.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::track_total.desc())
+                }
             },
             SortField::UpdatedAt => match direction {
-                SortDirection::Ascending => query.then_order_by(track::row_updated_ms.asc()),
-                SortDirection::Descending => query.then_order_by(track::row_updated_ms.desc()),
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::row_updated_ms.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::row_updated_ms.desc())
+                }
             },
         }
     }
 }
 
 fn build_any_track_uid_filter_expression<'db, DB>(
-    any_track_uid: &[TrackUid],
-) -> TrackSearchBoxedExpression<'_, DB>
+    any_track_uid: &'db [TrackUid],
+) -> TrackSearchBoxedExpression<'db, DB>
 where
     DB: diesel::backend::Backend + 'db,
 {
-    Box::new(track::entity_uid.eq_any(any_track_uid.iter().map(|uid| uid.as_ref())))
+    Box::new(view_track_search::entity_uid.eq_any(any_track_uid.iter().map(|uid| uid.as_ref())))
 }
 
 fn build_phrase_like_expr_escaped<'term>(
@@ -293,15 +280,15 @@ where
     {
         or_expression = if let Some(like_expr) = &like_expr {
             Box::new(
-                or_expression.or(media_source::content_link_path
+                or_expression.or(view_track_search::content_link_path
                     .like(like_expr.clone())
                     .escape(LIKE_ESCAPE_CHARACTER)),
             )
         } else {
             Box::new(
                 or_expression
-                    .or(media_source::content_link_path.is_null())
-                    .or(media_source::content_link_path.eq(String::default())),
+                    .or(view_track_search::content_link_path.is_null())
+                    .or(view_track_search::content_link_path.eq(String::default())),
             )
         };
     }
@@ -313,15 +300,15 @@ where
     {
         or_expression = if let Some(like_expr) = &like_expr {
             Box::new(
-                or_expression.or(media_source::content_type
+                or_expression.or(view_track_search::content_type
                     .like(like_expr.clone())
                     .escape(LIKE_ESCAPE_CHARACTER)),
             )
         } else {
             Box::new(
                 or_expression
-                    .or(media_source::content_type.is_null())
-                    .or(media_source::content_type.eq(String::default())),
+                    .or(view_track_search::content_type.is_null())
+                    .or(view_track_search::content_type.eq(String::default())),
             )
         };
     }
@@ -334,15 +321,15 @@ where
     {
         or_expression = if let Some(like_expr) = &like_expr {
             Box::new(
-                or_expression.or(track::copyright
+                or_expression.or(view_track_search::copyright
                     .like(like_expr.clone())
                     .escape(LIKE_ESCAPE_CHARACTER)),
             )
         } else {
             Box::new(
                 or_expression
-                    .or(track::copyright.is_null())
-                    .or(track::copyright.eq(String::default())),
+                    .or(view_track_search::copyright.is_null())
+                    .or(view_track_search::copyright.eq(String::default())),
             )
         };
     }
@@ -354,15 +341,15 @@ where
     {
         or_expression = if let Some(like_expr) = like_expr {
             Box::new(
-                or_expression.or(track::publisher
+                or_expression.or(view_track_search::publisher
                     .like(like_expr)
                     .escape(LIKE_ESCAPE_CHARACTER)),
             )
         } else {
             Box::new(
                 or_expression
-                    .or(track::publisher.is_null())
-                    .or(track::publisher.eq(String::default())),
+                    .or(view_track_search::publisher.is_null())
+                    .or(view_track_search::publisher.eq(String::default())),
             )
         };
     }
@@ -379,314 +366,338 @@ where
     use ScalarPredicate::*;
     match filter.field {
         AudioDurationMs => match filter.predicate {
-            LessThan(value) => Box::new(media_source::audio_duration_ms.lt(value)),
-            LessOrEqual(value) => Box::new(media_source::audio_duration_ms.le(value)),
-            GreaterThan(value) => Box::new(media_source::audio_duration_ms.gt(value)),
-            GreaterOrEqual(value) => Box::new(media_source::audio_duration_ms.ge(value)),
+            LessThan(value) => Box::new(view_track_search::audio_duration_ms.lt(value)),
+            LessOrEqual(value) => Box::new(view_track_search::audio_duration_ms.le(value)),
+            GreaterThan(value) => Box::new(view_track_search::audio_duration_ms.gt(value)),
+            GreaterOrEqual(value) => Box::new(view_track_search::audio_duration_ms.ge(value)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::audio_duration_ms.eq(value))
+                    Box::new(view_track_search::audio_duration_ms.eq(value))
                 } else {
-                    Box::new(media_source::audio_duration_ms.is_null())
+                    Box::new(view_track_search::audio_duration_ms.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::audio_duration_ms.ne(value))
+                    Box::new(view_track_search::audio_duration_ms.ne(value))
                 } else {
-                    Box::new(media_source::audio_duration_ms.is_not_null())
+                    Box::new(view_track_search::audio_duration_ms.is_not_null())
                 }
             }
         },
         AudioSampleRateHz => match filter.predicate {
-            LessThan(value) => Box::new(media_source::audio_samplerate_hz.lt(value)),
-            LessOrEqual(value) => Box::new(media_source::audio_samplerate_hz.le(value)),
-            GreaterThan(value) => Box::new(media_source::audio_samplerate_hz.gt(value)),
-            GreaterOrEqual(value) => Box::new(media_source::audio_samplerate_hz.ge(value)),
+            LessThan(value) => Box::new(view_track_search::audio_samplerate_hz.lt(value)),
+            LessOrEqual(value) => Box::new(view_track_search::audio_samplerate_hz.le(value)),
+            GreaterThan(value) => Box::new(view_track_search::audio_samplerate_hz.gt(value)),
+            GreaterOrEqual(value) => Box::new(view_track_search::audio_samplerate_hz.ge(value)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::audio_samplerate_hz.eq(value))
+                    Box::new(view_track_search::audio_samplerate_hz.eq(value))
                 } else {
-                    Box::new(media_source::audio_samplerate_hz.is_null())
+                    Box::new(view_track_search::audio_samplerate_hz.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::audio_samplerate_hz.ne(value))
+                    Box::new(view_track_search::audio_samplerate_hz.ne(value))
                 } else {
-                    Box::new(media_source::audio_samplerate_hz.is_not_null())
+                    Box::new(view_track_search::audio_samplerate_hz.is_not_null())
                 }
             }
         },
         AudioBitrateBps => match filter.predicate {
-            LessThan(value) => Box::new(media_source::audio_bitrate_bps.lt(value)),
-            LessOrEqual(value) => Box::new(media_source::audio_bitrate_bps.le(value)),
-            GreaterThan(value) => Box::new(media_source::audio_bitrate_bps.gt(value)),
-            GreaterOrEqual(value) => Box::new(media_source::audio_bitrate_bps.ge(value)),
+            LessThan(value) => Box::new(view_track_search::audio_bitrate_bps.lt(value)),
+            LessOrEqual(value) => Box::new(view_track_search::audio_bitrate_bps.le(value)),
+            GreaterThan(value) => Box::new(view_track_search::audio_bitrate_bps.gt(value)),
+            GreaterOrEqual(value) => Box::new(view_track_search::audio_bitrate_bps.ge(value)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::audio_bitrate_bps.eq(value))
+                    Box::new(view_track_search::audio_bitrate_bps.eq(value))
                 } else {
-                    Box::new(media_source::audio_bitrate_bps.is_null())
+                    Box::new(view_track_search::audio_bitrate_bps.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::audio_bitrate_bps.ne(value))
+                    Box::new(view_track_search::audio_bitrate_bps.ne(value))
                 } else {
-                    Box::new(media_source::audio_bitrate_bps.is_not_null())
+                    Box::new(view_track_search::audio_bitrate_bps.is_not_null())
                 }
             }
         },
         AudioChannelCount => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to i16
-            LessThan(value) => Box::new(media_source::audio_channel_count.lt(value as i16)),
-            LessOrEqual(value) => Box::new(media_source::audio_channel_count.le(value as i16)),
-            GreaterThan(value) => Box::new(media_source::audio_channel_count.gt(value as i16)),
-            GreaterOrEqual(value) => Box::new(media_source::audio_channel_count.ge(value as i16)),
+            LessThan(value) => Box::new(view_track_search::audio_channel_count.lt(value as i16)),
+            LessOrEqual(value) => Box::new(view_track_search::audio_channel_count.le(value as i16)),
+            GreaterThan(value) => Box::new(view_track_search::audio_channel_count.gt(value as i16)),
+            GreaterOrEqual(value) => {
+                Box::new(view_track_search::audio_channel_count.ge(value as i16))
+            }
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::audio_channel_count.eq(value as i16))
+                    Box::new(view_track_search::audio_channel_count.eq(value as i16))
                 } else {
-                    Box::new(media_source::audio_channel_count.is_null())
+                    Box::new(view_track_search::audio_channel_count.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::audio_channel_count.ne(value as i16))
+                    Box::new(view_track_search::audio_channel_count.ne(value as i16))
                 } else {
-                    Box::new(media_source::audio_channel_count.is_not_null())
+                    Box::new(view_track_search::audio_channel_count.is_not_null())
                 }
             }
         },
         AudioLoudnessLufs => match filter.predicate {
-            LessThan(value) => Box::new(media_source::audio_loudness_lufs.lt(value)),
-            LessOrEqual(value) => Box::new(media_source::audio_loudness_lufs.le(value)),
-            GreaterThan(value) => Box::new(media_source::audio_loudness_lufs.gt(value)),
-            GreaterOrEqual(value) => Box::new(media_source::audio_loudness_lufs.ge(value)),
+            LessThan(value) => Box::new(view_track_search::audio_loudness_lufs.lt(value)),
+            LessOrEqual(value) => Box::new(view_track_search::audio_loudness_lufs.le(value)),
+            GreaterThan(value) => Box::new(view_track_search::audio_loudness_lufs.gt(value)),
+            GreaterOrEqual(value) => Box::new(view_track_search::audio_loudness_lufs.ge(value)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::audio_loudness_lufs.eq(value))
+                    Box::new(view_track_search::audio_loudness_lufs.eq(value))
                 } else {
-                    Box::new(media_source::audio_loudness_lufs.is_null())
+                    Box::new(view_track_search::audio_loudness_lufs.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::audio_loudness_lufs.ne(value))
+                    Box::new(view_track_search::audio_loudness_lufs.ne(value))
                 } else {
-                    Box::new(media_source::audio_loudness_lufs.is_not_null())
+                    Box::new(view_track_search::audio_loudness_lufs.is_not_null())
                 }
             }
         },
         AdvisoryRating => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to i16
-            LessThan(value) => Box::new(media_source::advisory_rating.lt(value as i16)),
-            LessOrEqual(value) => Box::new(media_source::advisory_rating.le(value as i16)),
-            GreaterThan(value) => Box::new(media_source::advisory_rating.gt(value as i16)),
-            GreaterOrEqual(value) => Box::new(media_source::advisory_rating.ge(value as i16)),
+            LessThan(value) => Box::new(view_track_search::advisory_rating.lt(value as i16)),
+            LessOrEqual(value) => Box::new(view_track_search::advisory_rating.le(value as i16)),
+            GreaterThan(value) => Box::new(view_track_search::advisory_rating.gt(value as i16)),
+            GreaterOrEqual(value) => Box::new(view_track_search::advisory_rating.ge(value as i16)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::advisory_rating.eq(value as i16))
+                    Box::new(view_track_search::advisory_rating.eq(value as i16))
                 } else {
-                    Box::new(media_source::advisory_rating.is_null())
+                    Box::new(view_track_search::advisory_rating.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::advisory_rating.ne(value as i16))
+                    Box::new(view_track_search::advisory_rating.ne(value as i16))
                 } else {
-                    Box::new(media_source::advisory_rating.is_not_null())
+                    Box::new(view_track_search::advisory_rating.is_not_null())
                 }
             }
         },
         TrackNumber => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to i16
-            LessThan(value) => Box::new(track::track_number.lt(value as i16)),
-            LessOrEqual(value) => Box::new(track::track_number.le(value as i16)),
-            GreaterThan(value) => Box::new(track::track_number.gt(value as i16)),
-            GreaterOrEqual(value) => Box::new(track::track_number.ge(value as i16)),
+            LessThan(value) => Box::new(view_track_search::track_number.lt(value as i16)),
+            LessOrEqual(value) => Box::new(view_track_search::track_number.le(value as i16)),
+            GreaterThan(value) => Box::new(view_track_search::track_number.gt(value as i16)),
+            GreaterOrEqual(value) => Box::new(view_track_search::track_number.ge(value as i16)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::track_number.eq(value as i16))
+                    Box::new(view_track_search::track_number.eq(value as i16))
                 } else {
-                    Box::new(track::track_number.is_null())
+                    Box::new(view_track_search::track_number.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::track_number.ne(value as i16))
+                    Box::new(view_track_search::track_number.ne(value as i16))
                 } else {
-                    Box::new(track::track_number.is_not_null())
+                    Box::new(view_track_search::track_number.is_not_null())
                 }
             }
         },
         TrackTotal => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to i16
-            LessThan(value) => Box::new(track::track_total.lt(value as i16)),
-            LessOrEqual(value) => Box::new(track::track_total.le(value as i16)),
-            GreaterThan(value) => Box::new(track::track_total.gt(value as i16)),
-            GreaterOrEqual(value) => Box::new(track::track_total.ge(value as i16)),
+            LessThan(value) => Box::new(view_track_search::track_total.lt(value as i16)),
+            LessOrEqual(value) => Box::new(view_track_search::track_total.le(value as i16)),
+            GreaterThan(value) => Box::new(view_track_search::track_total.gt(value as i16)),
+            GreaterOrEqual(value) => Box::new(view_track_search::track_total.ge(value as i16)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::track_total.eq(value as i16))
+                    Box::new(view_track_search::track_total.eq(value as i16))
                 } else {
-                    Box::new(track::track_total.is_null())
+                    Box::new(view_track_search::track_total.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::track_total.ne(value as i16))
+                    Box::new(view_track_search::track_total.ne(value as i16))
                 } else {
-                    Box::new(track::track_total.is_not_null())
+                    Box::new(view_track_search::track_total.is_not_null())
                 }
             }
         },
         DiscNumber => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to i16
-            LessThan(value) => Box::new(track::disc_number.lt(value as i16)),
-            LessOrEqual(value) => Box::new(track::disc_number.le(value as i16)),
-            GreaterThan(value) => Box::new(track::disc_number.gt(value as i16)),
-            GreaterOrEqual(value) => Box::new(track::disc_number.ge(value as i16)),
+            LessThan(value) => Box::new(view_track_search::disc_number.lt(value as i16)),
+            LessOrEqual(value) => Box::new(view_track_search::disc_number.le(value as i16)),
+            GreaterThan(value) => Box::new(view_track_search::disc_number.gt(value as i16)),
+            GreaterOrEqual(value) => Box::new(view_track_search::disc_number.ge(value as i16)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::disc_number.eq(value as i16))
+                    Box::new(view_track_search::disc_number.eq(value as i16))
                 } else {
-                    Box::new(track::disc_number.is_null())
+                    Box::new(view_track_search::disc_number.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::disc_number.ne(value as i16))
+                    Box::new(view_track_search::disc_number.ne(value as i16))
                 } else {
-                    Box::new(track::disc_number.is_not_null())
+                    Box::new(view_track_search::disc_number.is_not_null())
                 }
             }
         },
         DiscTotal => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to i16
-            LessThan(value) => Box::new(track::disc_total.lt(value as i16)),
-            LessOrEqual(value) => Box::new(track::disc_total.le(value as i16)),
-            GreaterThan(value) => Box::new(track::disc_total.gt(value as i16)),
-            GreaterOrEqual(value) => Box::new(track::disc_total.ge(value as i16)),
+            LessThan(value) => Box::new(view_track_search::disc_total.lt(value as i16)),
+            LessOrEqual(value) => Box::new(view_track_search::disc_total.le(value as i16)),
+            GreaterThan(value) => Box::new(view_track_search::disc_total.gt(value as i16)),
+            GreaterOrEqual(value) => Box::new(view_track_search::disc_total.ge(value as i16)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::disc_total.eq(value as i16))
+                    Box::new(view_track_search::disc_total.eq(value as i16))
                 } else {
-                    Box::new(track::disc_total.is_null())
+                    Box::new(view_track_search::disc_total.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::disc_total.ne(value as i16))
+                    Box::new(view_track_search::disc_total.ne(value as i16))
                 } else {
-                    Box::new(track::disc_total.is_not_null())
+                    Box::new(view_track_search::disc_total.is_not_null())
                 }
             }
         },
         RecordedAtDate => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
-            LessThan(value) => Box::new(track::recorded_at_yyyymmdd.lt(value as YYYYMMDD)),
-            LessOrEqual(value) => Box::new(track::recorded_at_yyyymmdd.le(value as YYYYMMDD)),
-            GreaterThan(value) => Box::new(track::recorded_at_yyyymmdd.gt(value as YYYYMMDD)),
-            GreaterOrEqual(value) => Box::new(track::recorded_at_yyyymmdd.ge(value as YYYYMMDD)),
+            LessThan(value) => {
+                Box::new(view_track_search::recorded_at_yyyymmdd.lt(value as YYYYMMDD))
+            }
+            LessOrEqual(value) => {
+                Box::new(view_track_search::recorded_at_yyyymmdd.le(value as YYYYMMDD))
+            }
+            GreaterThan(value) => {
+                Box::new(view_track_search::recorded_at_yyyymmdd.gt(value as YYYYMMDD))
+            }
+            GreaterOrEqual(value) => {
+                Box::new(view_track_search::recorded_at_yyyymmdd.ge(value as YYYYMMDD))
+            }
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::recorded_at_yyyymmdd.eq(value as YYYYMMDD))
+                    Box::new(view_track_search::recorded_at_yyyymmdd.eq(value as YYYYMMDD))
                 } else {
-                    Box::new(track::recorded_at_yyyymmdd.is_null())
+                    Box::new(view_track_search::recorded_at_yyyymmdd.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::recorded_at_yyyymmdd.ne(value as YYYYMMDD))
+                    Box::new(view_track_search::recorded_at_yyyymmdd.ne(value as YYYYMMDD))
                 } else {
-                    Box::new(track::recorded_at_yyyymmdd.is_not_null())
+                    Box::new(view_track_search::recorded_at_yyyymmdd.is_not_null())
                 }
             }
         },
         ReleasedAtDate => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
-            LessThan(value) => Box::new(track::released_at_yyyymmdd.lt(value as YYYYMMDD)),
-            LessOrEqual(value) => Box::new(track::released_at_yyyymmdd.le(value as YYYYMMDD)),
-            GreaterThan(value) => Box::new(track::released_at_yyyymmdd.gt(value as YYYYMMDD)),
-            GreaterOrEqual(value) => Box::new(track::released_at_yyyymmdd.ge(value as YYYYMMDD)),
+            LessThan(value) => {
+                Box::new(view_track_search::released_at_yyyymmdd.lt(value as YYYYMMDD))
+            }
+            LessOrEqual(value) => {
+                Box::new(view_track_search::released_at_yyyymmdd.le(value as YYYYMMDD))
+            }
+            GreaterThan(value) => {
+                Box::new(view_track_search::released_at_yyyymmdd.gt(value as YYYYMMDD))
+            }
+            GreaterOrEqual(value) => {
+                Box::new(view_track_search::released_at_yyyymmdd.ge(value as YYYYMMDD))
+            }
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::released_at_yyyymmdd.eq(value as YYYYMMDD))
+                    Box::new(view_track_search::released_at_yyyymmdd.eq(value as YYYYMMDD))
                 } else {
-                    Box::new(track::released_at_yyyymmdd.is_null())
+                    Box::new(view_track_search::released_at_yyyymmdd.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::released_at_yyyymmdd.ne(value as YYYYMMDD))
+                    Box::new(view_track_search::released_at_yyyymmdd.ne(value as YYYYMMDD))
                 } else {
-                    Box::new(track::released_at_yyyymmdd.is_not_null())
+                    Box::new(view_track_search::released_at_yyyymmdd.is_not_null())
                 }
             }
         },
         ReleasedOrigAtDate => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
-            LessThan(value) => Box::new(track::released_orig_at_yyyymmdd.lt(value as YYYYMMDD)),
-            LessOrEqual(value) => Box::new(track::released_orig_at_yyyymmdd.le(value as YYYYMMDD)),
-            GreaterThan(value) => Box::new(track::released_orig_at_yyyymmdd.gt(value as YYYYMMDD)),
+            LessThan(value) => {
+                Box::new(view_track_search::released_orig_at_yyyymmdd.lt(value as YYYYMMDD))
+            }
+            LessOrEqual(value) => {
+                Box::new(view_track_search::released_orig_at_yyyymmdd.le(value as YYYYMMDD))
+            }
+            GreaterThan(value) => {
+                Box::new(view_track_search::released_orig_at_yyyymmdd.gt(value as YYYYMMDD))
+            }
             GreaterOrEqual(value) => {
-                Box::new(track::released_orig_at_yyyymmdd.ge(value as YYYYMMDD))
+                Box::new(view_track_search::released_orig_at_yyyymmdd.ge(value as YYYYMMDD))
             }
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::released_orig_at_yyyymmdd.eq(value as YYYYMMDD))
+                    Box::new(view_track_search::released_orig_at_yyyymmdd.eq(value as YYYYMMDD))
                 } else {
-                    Box::new(track::released_orig_at_yyyymmdd.is_null())
+                    Box::new(view_track_search::released_orig_at_yyyymmdd.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::released_orig_at_yyyymmdd.ne(value as YYYYMMDD))
+                    Box::new(view_track_search::released_orig_at_yyyymmdd.ne(value as YYYYMMDD))
                 } else {
-                    Box::new(track::released_orig_at_yyyymmdd.is_not_null())
+                    Box::new(view_track_search::released_orig_at_yyyymmdd.is_not_null())
                 }
             }
         },
         MusicTempoBpm => match filter.predicate {
-            LessThan(value) => Box::new(track::music_tempo_bpm.lt(value)),
-            LessOrEqual(value) => Box::new(track::music_tempo_bpm.le(value)),
-            GreaterThan(value) => Box::new(track::music_tempo_bpm.gt(value)),
-            GreaterOrEqual(value) => Box::new(track::music_tempo_bpm.ge(value)),
+            LessThan(value) => Box::new(view_track_search::music_tempo_bpm.lt(value)),
+            LessOrEqual(value) => Box::new(view_track_search::music_tempo_bpm.le(value)),
+            GreaterThan(value) => Box::new(view_track_search::music_tempo_bpm.gt(value)),
+            GreaterOrEqual(value) => Box::new(view_track_search::music_tempo_bpm.ge(value)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::music_tempo_bpm.eq(value))
+                    Box::new(view_track_search::music_tempo_bpm.eq(value))
                 } else {
-                    Box::new(track::music_tempo_bpm.is_null())
+                    Box::new(view_track_search::music_tempo_bpm.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::music_tempo_bpm.ne(value))
+                    Box::new(view_track_search::music_tempo_bpm.ne(value))
                 } else {
-                    Box::new(track::music_tempo_bpm.is_not_null())
+                    Box::new(view_track_search::music_tempo_bpm.is_not_null())
                 }
             }
         },
         MusicKeyCode => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to i16
-            LessThan(value) => Box::new(track::music_key_code.lt(value as i16)),
-            LessOrEqual(value) => Box::new(track::music_key_code.le(value as i16)),
-            GreaterThan(value) => Box::new(track::music_key_code.gt(value as i16)),
-            GreaterOrEqual(value) => Box::new(track::music_key_code.ge(value as i16)),
+            LessThan(value) => Box::new(view_track_search::music_key_code.lt(value as i16)),
+            LessOrEqual(value) => Box::new(view_track_search::music_key_code.le(value as i16)),
+            GreaterThan(value) => Box::new(view_track_search::music_key_code.gt(value as i16)),
+            GreaterOrEqual(value) => Box::new(view_track_search::music_key_code.ge(value as i16)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::music_key_code.eq(value as i16))
+                    Box::new(view_track_search::music_key_code.eq(value as i16))
                 } else {
-                    Box::new(track::music_key_code.is_null())
+                    Box::new(view_track_search::music_key_code.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::music_key_code.ne(value as i16))
+                    Box::new(view_track_search::music_key_code.ne(value as i16))
                 } else {
-                    Box::new(track::music_key_code.is_not_null())
+                    Box::new(view_track_search::music_key_code.is_not_null())
                 }
             }
         },
@@ -703,84 +714,114 @@ where
     use ScalarPredicate::*;
     match filter.field {
         CollectedAt => match filter.predicate {
-            LessThan(value) => Box::new(media_source::collected_ms.lt(value.timestamp_millis())),
-            LessOrEqual(value) => Box::new(media_source::collected_ms.le(value.timestamp_millis())),
-            GreaterThan(value) => Box::new(media_source::collected_ms.gt(value.timestamp_millis())),
+            LessThan(value) => {
+                Box::new(view_track_search::collected_ms.lt(value.timestamp_millis()))
+            }
+            LessOrEqual(value) => {
+                Box::new(view_track_search::collected_ms.le(value.timestamp_millis()))
+            }
+            GreaterThan(value) => {
+                Box::new(view_track_search::collected_ms.gt(value.timestamp_millis()))
+            }
             GreaterOrEqual(value) => {
-                Box::new(media_source::collected_ms.ge(value.timestamp_millis()))
+                Box::new(view_track_search::collected_ms.ge(value.timestamp_millis()))
             }
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::collected_ms.eq(value.timestamp_millis()))
+                    Box::new(view_track_search::collected_ms.eq(value.timestamp_millis()))
                 } else {
-                    Box::new(media_source::collected_ms.is_null())
+                    Box::new(view_track_search::collected_ms.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(media_source::collected_ms.ne(value.timestamp_millis()))
+                    Box::new(view_track_search::collected_ms.ne(value.timestamp_millis()))
                 } else {
-                    Box::new(media_source::collected_ms.is_not_null())
+                    Box::new(view_track_search::collected_ms.is_not_null())
                 }
             }
         },
         RecordedAt => match filter.predicate {
-            LessThan(value) => Box::new(track::recorded_ms.lt(value.timestamp_millis())),
-            LessOrEqual(value) => Box::new(track::recorded_ms.le(value.timestamp_millis())),
-            GreaterThan(value) => Box::new(track::recorded_ms.gt(value.timestamp_millis())),
-            GreaterOrEqual(value) => Box::new(track::recorded_ms.ge(value.timestamp_millis())),
+            LessThan(value) => {
+                Box::new(view_track_search::recorded_ms.lt(value.timestamp_millis()))
+            }
+            LessOrEqual(value) => {
+                Box::new(view_track_search::recorded_ms.le(value.timestamp_millis()))
+            }
+            GreaterThan(value) => {
+                Box::new(view_track_search::recorded_ms.gt(value.timestamp_millis()))
+            }
+            GreaterOrEqual(value) => {
+                Box::new(view_track_search::recorded_ms.ge(value.timestamp_millis()))
+            }
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::recorded_ms.eq(value.timestamp_millis()))
+                    Box::new(view_track_search::recorded_ms.eq(value.timestamp_millis()))
                 } else {
-                    Box::new(track::recorded_ms.is_null())
+                    Box::new(view_track_search::recorded_ms.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::recorded_ms.ne(value.timestamp_millis()))
+                    Box::new(view_track_search::recorded_ms.ne(value.timestamp_millis()))
                 } else {
-                    Box::new(track::recorded_ms.is_not_null())
+                    Box::new(view_track_search::recorded_ms.is_not_null())
                 }
             }
         },
         ReleasedAt => match filter.predicate {
-            LessThan(value) => Box::new(track::released_ms.lt(value.timestamp_millis())),
-            LessOrEqual(value) => Box::new(track::released_ms.le(value.timestamp_millis())),
-            GreaterThan(value) => Box::new(track::released_ms.gt(value.timestamp_millis())),
-            GreaterOrEqual(value) => Box::new(track::released_ms.ge(value.timestamp_millis())),
+            LessThan(value) => {
+                Box::new(view_track_search::released_ms.lt(value.timestamp_millis()))
+            }
+            LessOrEqual(value) => {
+                Box::new(view_track_search::released_ms.le(value.timestamp_millis()))
+            }
+            GreaterThan(value) => {
+                Box::new(view_track_search::released_ms.gt(value.timestamp_millis()))
+            }
+            GreaterOrEqual(value) => {
+                Box::new(view_track_search::released_ms.ge(value.timestamp_millis()))
+            }
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::released_ms.eq(value.timestamp_millis()))
+                    Box::new(view_track_search::released_ms.eq(value.timestamp_millis()))
                 } else {
-                    Box::new(track::released_ms.is_null())
+                    Box::new(view_track_search::released_ms.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::released_ms.ne(value.timestamp_millis()))
+                    Box::new(view_track_search::released_ms.ne(value.timestamp_millis()))
                 } else {
-                    Box::new(track::released_ms.is_not_null())
+                    Box::new(view_track_search::released_ms.is_not_null())
                 }
             }
         },
         ReleasedOrigAt => match filter.predicate {
-            LessThan(value) => Box::new(track::released_orig_ms.lt(value.timestamp_millis())),
-            LessOrEqual(value) => Box::new(track::released_orig_ms.le(value.timestamp_millis())),
-            GreaterThan(value) => Box::new(track::released_orig_ms.gt(value.timestamp_millis())),
-            GreaterOrEqual(value) => Box::new(track::released_orig_ms.ge(value.timestamp_millis())),
+            LessThan(value) => {
+                Box::new(view_track_search::released_orig_ms.lt(value.timestamp_millis()))
+            }
+            LessOrEqual(value) => {
+                Box::new(view_track_search::released_orig_ms.le(value.timestamp_millis()))
+            }
+            GreaterThan(value) => {
+                Box::new(view_track_search::released_orig_ms.gt(value.timestamp_millis()))
+            }
+            GreaterOrEqual(value) => {
+                Box::new(view_track_search::released_orig_ms.ge(value.timestamp_millis()))
+            }
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(track::released_orig_ms.eq(value.timestamp_millis()))
+                    Box::new(view_track_search::released_orig_ms.eq(value.timestamp_millis()))
                 } else {
-                    Box::new(track::released_orig_ms.is_null())
+                    Box::new(view_track_search::released_orig_ms.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(track::released_orig_ms.ne(value.timestamp_millis()))
+                    Box::new(view_track_search::released_orig_ms.ne(value.timestamp_millis()))
                 } else {
-                    Box::new(track::released_orig_ms.is_not_null())
+                    Box::new(view_track_search::released_orig_ms.is_not_null())
                 }
             }
         },
@@ -796,11 +837,11 @@ where
     use ConditionFilter::*;
     match filter {
         SourceTracked => Box::new(
-            media_source::row_id
+            view_track_search::media_source_id
                 .eq_any(media_tracker_source::table.select(media_tracker_source::source_id)),
         ),
         SourceUntracked => Box::new(
-            media_source::row_id
+            view_track_search::media_source_id
                 .ne_all(media_tracker_source::table.select(media_tracker_source::source_id)),
         ),
     }
@@ -913,8 +954,8 @@ where
 {
     let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(filter);
     match filter_modifier {
-        None => Box::new(track::row_id.eq_any(subselect)),
-        Some(FilterModifier::Complement) => Box::new(track::row_id.ne_all(subselect)),
+        None => Box::new(view_track_search::row_id.eq_any(subselect)),
+        Some(FilterModifier::Complement) => Box::new(view_track_search::row_id.ne_all(subselect)),
     }
 }
 
@@ -926,8 +967,8 @@ where
 {
     let (subselect, filter_modifier) = select_track_ids_matching_cue_filter(filter);
     match filter_modifier {
-        None => Box::new(track::row_id.eq_any(subselect)),
-        Some(FilterModifier::Complement) => Box::new(track::row_id.ne_all(subselect)),
+        None => Box::new(view_track_search::row_id.eq_any(subselect)),
+        Some(FilterModifier::Complement) => Box::new(view_track_search::row_id.ne_all(subselect)),
     }
 }
 
@@ -995,12 +1036,12 @@ where
     DB: diesel::backend::Backend + 'db,
 {
     let subselect = select_track_ids_matching_any_playlist_uid_filter(any_playlist_uid);
-    Box::new(track::row_id.eq_any(subselect))
+    Box::new(view_track_search::row_id.eq_any(subselect))
 }
 
 fn select_track_ids_matching_any_playlist_uid_filter<'db, DB>(
     any_playlist_uid: impl IntoIterator<Item = &'db PlaylistUid>,
-) -> track::BoxedQuery<'db, DB, diesel::sql_types::BigInt>
+) -> view_track_search::BoxedQuery<'db, DB, diesel::sql_types::BigInt>
 where
     DB: diesel::backend::Backend + 'db,
 {
@@ -1009,9 +1050,9 @@ where
         .select(playlist_entry::track_id)
         .filter(playlist::entity_uid.eq_any(any_playlist_uid.into_iter().map(|uid| uid.as_ref())))
         .filter(playlist_entry::track_id.is_not_null());
-    track::table
-        .select(track::row_id)
-        .filter(track::row_id.nullable().eq_any(subselect))
+    view_track_search::table
+        .select(view_track_search::row_id)
+        .filter(view_track_search::row_id.nullable().eq_any(subselect))
         .into_boxed()
 }
 
@@ -1076,8 +1117,8 @@ where
 {
     let (subselect, filter_modifier) = select_track_ids_matching_actor_filter(filter);
     match filter_modifier {
-        None => Box::new(track::row_id.eq_any(subselect)),
-        Some(FilterModifier::Complement) => Box::new(track::row_id.ne_all(subselect)),
+        None => Box::new(view_track_search::row_id.eq_any(subselect)),
+        Some(FilterModifier::Complement) => Box::new(view_track_search::row_id.ne_all(subselect)),
     }
 }
 
@@ -1134,8 +1175,8 @@ where
 {
     let (subselect, filter_modifier) = select_track_ids_matching_title_filter(filter);
     match filter_modifier {
-        None => Box::new(track::row_id.eq_any(subselect)),
-        Some(FilterModifier::Complement) => Box::new(track::row_id.ne_all(subselect)),
+        None => Box::new(view_track_search::row_id.eq_any(subselect)),
+        Some(FilterModifier::Complement) => Box::new(view_track_search::row_id.ne_all(subselect)),
     }
 }
 

@@ -11,8 +11,6 @@ use aoide_core::{
     util::canonical::Canonical,
 };
 
-use aoide_repo::track::RecordHeader;
-
 #[derive(Debug)]
 pub(crate) struct EntityPreload {
     pub(crate) media_source: Source,
