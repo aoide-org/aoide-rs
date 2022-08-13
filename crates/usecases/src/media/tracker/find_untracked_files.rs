@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{sync::atomic::AtomicBool, time::Duration};
+use std::{marker::PhantomData, sync::atomic::AtomicBool, time::Duration};
 
 use aoide_core::media::content::resolver::ContentPathResolver as _;
 
@@ -63,45 +63,47 @@ impl From<visit::ProgressEvent> for ProgressEvent {
 }
 
 struct AncestorVisitor<'r, Repo> {
-    repo: &'r Repo,
     collection_id: CollectionId,
     content_path_resolver: &'r VirtualFilePathResolver,
     content_paths: Vec<ContentPath>,
+    _repo_marker: PhantomData<Repo>,
 }
 
 impl<'r, Repo> AncestorVisitor<'r, Repo> {
     #[must_use]
     fn new(
-        repo: &'r Repo,
         collection_id: CollectionId,
         content_path_resolver: &'r VirtualFilePathResolver,
     ) -> Self {
         Self {
-            repo,
             collection_id,
             content_path_resolver,
             content_paths: Vec::new(),
+            _repo_marker: PhantomData,
         }
     }
 }
 
-impl<'r, Repo> visit::AncestorVisitor<Vec<ContentPath>, anyhow::Error> for AncestorVisitor<'r, Repo>
+impl<'r, Repo> visit::AncestorVisitor<Repo, Vec<ContentPath>, anyhow::Error>
+    for AncestorVisitor<'r, Repo>
 where
     Repo: MediaTrackerRepo,
 {
-    fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> anyhow::Result<()> {
+    fn visit_dir_entry(
+        &mut self,
+        repo: &mut Repo,
+        dir_entry: &walkdir::DirEntry,
+    ) -> anyhow::Result<()> {
         let url = url_from_walkdir_entry(dir_entry)?;
         let content_path = self.content_path_resolver.resolve_path_from_url(&url)?;
         if !content_path.is_terminal() {
             // Skip non-terminal paths, i.e. directories
             return Ok(());
         }
-        match self
-            .repo
-            .media_tracker_resolve_source_id_synchronized_at_by_path(
-                self.collection_id,
-                &content_path,
-            ) {
+        match repo.media_tracker_resolve_source_id_synchronized_at_by_path(
+            self.collection_id,
+            &content_path,
+        ) {
             Ok(_) => Ok(()),
             Err(RepoError::NotFound) => {
                 self.content_paths.push(content_path);
@@ -127,7 +129,7 @@ pub fn visit_directories<
     Repo: CollectionRepo + MediaTrackerRepo,
     ReportProgressFn: FnMut(ProgressEvent),
 >(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &FsTraversalParams,
     report_progress_fn: &mut ReportProgressFn,
@@ -148,10 +150,11 @@ pub fn visit_directories<
     let root_file_path = vfs_ctx.build_root_file_path();
     let mut content_paths = Vec::new();
     let completion = visit::visit_directories(
+        repo,
         &root_file_path,
         *max_depth,
         abort_flag,
-        &mut |_| AncestorVisitor::new(repo, collection_id, &vfs_ctx.path_resolver),
+        &mut move |_| AncestorVisitor::new(collection_id, &vfs_ctx.path_resolver),
         &mut |_path, untracked_content_paths| {
             ancestor_finished(&mut content_paths, untracked_content_paths)
         },

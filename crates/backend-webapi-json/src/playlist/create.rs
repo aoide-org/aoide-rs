@@ -10,13 +10,13 @@ pub type RequestBody = Playlist;
 pub type ResponseBody = Entity;
 
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    connection
-        .transaction::<_, Error, _>(|| {
-            uc::create(connection, collection_uid, request_body.into()).map_err(Into::into)
-        })
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::create(connection, collection_uid, request_body.into()).map_err(Into::into)
+        //})
         .map(Into::into)
 }

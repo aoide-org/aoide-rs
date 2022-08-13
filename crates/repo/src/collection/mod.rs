@@ -25,13 +25,13 @@ pub trait EntityRepo {
     entity_repo_trait_common_functions!(RecordId, Entity, EntityUid, EntityHeader, Collection);
 
     fn insert_collection_entity(
-        &self,
+        &mut self,
         created_at: DateTime,
         created_entity: &Entity,
     ) -> RepoResult<RecordId>;
 
     fn load_collection_entities(
-        &self,
+        &mut self,
         kind: Option<&str>,
         media_source_root_url: Option<&MediaSourceRootUrlFilter>,
         with_summary: bool,
@@ -42,9 +42,9 @@ pub trait EntityRepo {
         >,
     ) -> RepoResult<()>;
 
-    fn load_collection_summary(&self, id: RecordId) -> RepoResult<Summary>;
+    fn load_collection_summary(&mut self, id: RecordId) -> RepoResult<Summary>;
 
-    fn load_all_kinds(&self) -> RepoResult<Vec<String>>;
+    fn load_all_kinds(&mut self) -> RepoResult<Vec<String>>;
 }
 
 #[derive(Debug, Default)]

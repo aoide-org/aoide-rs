@@ -10,12 +10,12 @@ use aoide_repo::track::EntityRepo as _;
 use super::*;
 
 pub fn export_metadata_into_file(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     track_uid: &EntityUid,
     content_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,
 ) -> Result<bool> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     let (_, mut track_entity) = repo.load_track_entity_by_uid(track_uid)?;
     uc::media::export_track_metadata_into_file(
         content_path_resolver,

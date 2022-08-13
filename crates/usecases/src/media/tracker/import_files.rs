@@ -44,7 +44,7 @@ pub fn import_files<
     Repo: CollectionRepo + MediaTrackerRepo + TrackCollectionRepo,
     ReportProgressFn: FnMut(ProgressEvent),
 >(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &Params,
     import_config: ImportTrackConfig,

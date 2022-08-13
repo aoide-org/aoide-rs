@@ -12,7 +12,7 @@ use crate::collection::vfs::RepoContext;
 use super::*;
 
 pub fn query_status<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Status>

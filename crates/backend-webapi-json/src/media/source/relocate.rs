@@ -21,7 +21,7 @@ pub struct ResponseBody {
 }
 
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
@@ -29,15 +29,15 @@ pub fn handle_request(
         old_path_prefix,
         new_path_prefix,
     } = request_body;
-    connection
-        .transaction::<_, Error, _>(|| {
-            aoide_usecases_sqlite::media::source::relocate::relocate(
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    aoide_usecases_sqlite::media::source::relocate::relocate(
                 connection,
                 collection_uid,
                 &ContentPath::new(old_path_prefix),
                 &ContentPath::new(new_path_prefix),
             )
             .map_err(Into::into)
-        })
+        //})
         .map(|replaced_count| ResponseBody { replaced_count })
 }

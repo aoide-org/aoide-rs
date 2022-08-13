@@ -7,17 +7,17 @@ use aoide_repo::collection::EntityRepo as _;
 use super::*;
 
 pub fn load_entity_with_entries(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     entity_uid: &EntityUid,
 ) -> Result<EntityWithEntries> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     let id = repo.resolve_playlist_id(entity_uid)?;
     repo.load_playlist_entity_with_entries(id)
         .map_err(Into::into)
 }
 
 pub fn load_entities_with_entries_summary(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     kind: Option<&str>,
     pagination: Option<&Pagination>,
@@ -26,7 +26,7 @@ pub fn load_entities_with_entries_summary(
         Record = EntityWithEntriesSummary,
     >,
 ) -> Result<()> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     let collection_id = repo.resolve_collection_id(collection_uid)?;
     repo.load_playlist_entities_with_entries_summary(collection_id, kind, pagination, collector)
         .map_err(Into::into)

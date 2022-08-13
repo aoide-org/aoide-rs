@@ -14,16 +14,16 @@ mod uc {
 }
 
 pub fn import_files<ReportProgressFn: FnMut(uc::ProgressEvent)>(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: &Params,
     import_config: ImportTrackConfig,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     let outcome = uc::import_files(
-        &repo,
+        &mut repo,
         collection_uid,
         params,
         import_config,

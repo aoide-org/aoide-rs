@@ -36,21 +36,21 @@ pub mod prelude {
     pub(crate) use diesel::{prelude::*, result::Error as DieselError, SqliteConnection};
     pub(crate) use semval::prelude::*;
     pub(crate) use std::ops::Deref;
+    use std::ops::DerefMut;
 
     pub use diesel::Connection as _;
 
-    #[derive(Clone, Copy)]
     #[allow(missing_debug_implementations)]
-    pub struct Connection<'db>(&'db SqliteConnection);
+    pub struct Connection<'db>(&'db mut SqliteConnection);
 
     impl<'db> Connection<'db> {
-        pub const fn new(inner: &'db SqliteConnection) -> Self {
+        pub fn new(inner: &'db mut SqliteConnection) -> Self {
             Self(inner)
         }
     }
 
-    impl<'db> From<&'db SqliteConnection> for Connection<'db> {
-        fn from(inner: &'db SqliteConnection) -> Self {
+    impl<'db> From<&'db mut SqliteConnection> for Connection<'db> {
+        fn from(inner: &'db mut SqliteConnection) -> Self {
             Self::new(inner)
         }
     }
@@ -61,11 +61,23 @@ pub mod prelude {
         }
     }
 
+    impl<'db> AsMut<SqliteConnection> for Connection<'db> {
+        fn as_mut(&mut self) -> &mut SqliteConnection {
+            self.0
+        }
+    }
+
     impl<'db> Deref for Connection<'db> {
         type Target = SqliteConnection;
 
         fn deref(&self) -> &Self::Target {
             self.as_ref()
+        }
+    }
+
+    impl<'db> DerefMut for Connection<'db> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            self.as_mut()
         }
     }
 

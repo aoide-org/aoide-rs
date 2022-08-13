@@ -69,7 +69,7 @@ pub fn scan_directories<
     Repo: CollectionRepo + MediaTrackerRepo,
     ReportProgressFn: FnMut(ProgressEvent),
 >(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &FsTraversalParams,
     report_progress_fn: &mut ReportProgressFn,

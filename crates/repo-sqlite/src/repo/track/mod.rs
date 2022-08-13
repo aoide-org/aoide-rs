@@ -43,7 +43,7 @@ use self::search::{TrackSearchBoxedExpressionBuilder as _, TrackSearchQueryTrans
 // TODO: Define a dedicated return type
 #[allow(clippy::type_complexity)]
 fn load_track_and_album_titles(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     id: RecordId,
 ) -> RepoResult<(Canonical<Vec<Title>>, Canonical<Vec<Title>>)> {
     use crate::db::track_title::{models::*, schema::*, *};
@@ -53,7 +53,7 @@ fn load_track_and_album_titles(
         .then_order_by(track_title::scope)
         .then_order_by(track_title::kind)
         .then_order_by(track_title::name)
-        .load::<QueryableRecord>(db.as_ref())
+        .load::<QueryableRecord>(db.as_mut())
         .map_err(repo_error)?;
     let (mut track_titles, mut album_titles) = (
         Vec::with_capacity(queryables.len()),
@@ -79,17 +79,17 @@ fn load_track_and_album_titles(
 }
 
 fn delete_track_and_album_titles(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
 ) -> RepoResult<usize> {
     use crate::db::track_title::schema::*;
     diesel::delete(track_title::table.filter(track_title::track_id.eq(RowId::from(track_id))))
-        .execute(db.as_ref())
+        .execute(db.as_mut())
         .map_err(repo_error)
 }
 
 fn insert_track_and_album_titles(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
     track_titles: Canonical<&[Title]>,
     album_titles: Canonical<&[Title]>,
@@ -99,21 +99,21 @@ fn insert_track_and_album_titles(
         let insertable = InsertableRecord::bind(track_id, Scope::Track, track_title);
         diesel::insert_into(track_title::table)
             .values(&insertable)
-            .execute(db.as_ref())
+            .execute(db.as_mut())
             .map_err(repo_error)?;
     }
     for album_title in album_titles.iter() {
         let insertable = InsertableRecord::bind(track_id, Scope::Album, album_title);
         diesel::insert_into(track_title::table)
             .values(&insertable)
-            .execute(db.as_ref())
+            .execute(db.as_mut())
             .map_err(repo_error)?;
     }
     Ok(())
 }
 
 fn update_track_and_album_titles(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
     new_track_titles: Canonical<&[Title]>,
     new_album_titles: Canonical<&[Title]>,
@@ -133,7 +133,7 @@ fn update_track_and_album_titles(
 // TODO: Define a dedicated return type
 #[allow(clippy::type_complexity)]
 fn load_track_and_album_actors(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     id: RecordId,
 ) -> RepoResult<(Canonical<Vec<Actor>>, Canonical<Vec<Actor>>)> {
     use crate::db::track_actor::{models::*, schema::*, *};
@@ -144,7 +144,7 @@ fn load_track_and_album_actors(
         .then_order_by(track_actor::role)
         .then_order_by(track_actor::kind)
         .then_order_by(track_actor::name)
-        .load::<QueryableRecord>(db.as_ref())
+        .load::<QueryableRecord>(db.as_mut())
         .map_err(repo_error)?;
     let (mut track_actors, mut album_actors) = (
         Vec::with_capacity(queryables.len()),
@@ -170,17 +170,17 @@ fn load_track_and_album_actors(
 }
 
 fn delete_track_and_album_actors(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
 ) -> RepoResult<usize> {
     use crate::db::track_actor::schema::*;
     diesel::delete(track_actor::table.filter(track_actor::track_id.eq(RowId::from(track_id))))
-        .execute(db.as_ref())
+        .execute(db.as_mut())
         .map_err(repo_error)
 }
 
 fn insert_track_and_album_actors(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
     track_actors: Canonical<&[Actor]>,
     album_actors: Canonical<&[Actor]>,
@@ -190,21 +190,21 @@ fn insert_track_and_album_actors(
         let insertable = InsertableRecord::bind(track_id, Scope::Track, track_actor);
         diesel::insert_into(track_actor::table)
             .values(&insertable)
-            .execute(db.as_ref())
+            .execute(db.as_mut())
             .map_err(repo_error)?;
     }
     for album_actor in album_actors.iter() {
         let insertable = InsertableRecord::bind(track_id, Scope::Album, album_actor);
         diesel::insert_into(track_actor::table)
             .values(&insertable)
-            .execute(db.as_ref())
+            .execute(db.as_mut())
             .map_err(repo_error)?;
     }
     Ok(())
 }
 
 fn update_track_and_album_actors(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
     new_track_actors: Canonical<&[Actor]>,
     new_album_actors: Canonical<&[Actor]>,
@@ -222,7 +222,7 @@ fn update_track_and_album_actors(
 }
 
 fn load_track_cues(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
 ) -> RepoResult<Canonical<Vec<Cue>>> {
     use crate::db::track_cue::{models::*, schema::*, *};
@@ -231,7 +231,7 @@ fn load_track_cues(
         // Establish canonical ordering on load!
         .then_order_by(track_cue::bank_idx)
         .then_order_by(track_cue::slot_idx)
-        .load::<QueryableRecord>(db.as_ref())
+        .load::<QueryableRecord>(db.as_mut())
         .map_err(repo_error)
         .map(|queryables| {
             queryables
@@ -246,15 +246,15 @@ fn load_track_cues(
     Ok(Canonical::tie(cues))
 }
 
-fn delete_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult<usize> {
+fn delete_track_cues(db: &mut crate::Connection<'_>, track_id: RecordId) -> RepoResult<usize> {
     use crate::db::track_cue::schema::*;
     diesel::delete(track_cue::table.filter(track_cue::track_id.eq(RowId::from(track_id))))
-        .execute(db.as_ref())
+        .execute(db.as_mut())
         .map_err(repo_error)
 }
 
 fn insert_track_cues(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
     cues: Canonical<&[Cue]>,
 ) -> RepoResult<()> {
@@ -263,14 +263,14 @@ fn insert_track_cues(
         let insertable = InsertableRecord::bind(track_id, cue);
         diesel::insert_into(track_cue::table)
             .values(&insertable)
-            .execute(db.as_ref())
+            .execute(db.as_mut())
             .map_err(repo_error)?;
     }
     Ok(())
 }
 
 fn update_track_cues(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
     new_cues: Canonical<&[Cue]>,
 ) -> RepoResult<()> {
@@ -284,7 +284,10 @@ fn update_track_cues(
     Ok(())
 }
 
-fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult<Canonical<Tags>> {
+fn load_track_tags(
+    db: &mut crate::Connection<'_>,
+    track_id: RecordId,
+) -> RepoResult<Canonical<Tags>> {
     use crate::db::track_tag::{models::*, schema::*};
     track_tag::table
         .filter(track_tag::track_id.eq(RowId::from(track_id)))
@@ -292,7 +295,7 @@ fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
         .then_order_by(track_tag::facet)
         .then_order_by(track_tag::label)
         .then_order_by(track_tag::score.desc())
-        .load::<QueryableRecord>(db.as_ref())
+        .load::<QueryableRecord>(db.as_mut())
         .map_err(repo_error)
         .map(|queryables| {
             let mut plain_tags = vec![];
@@ -323,15 +326,15 @@ fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
         })
 }
 
-fn delete_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult<usize> {
+fn delete_track_tags(db: &mut crate::Connection<'_>, track_id: RecordId) -> RepoResult<usize> {
     use crate::db::track_tag::schema::*;
     diesel::delete(track_tag::table.filter(track_tag::track_id.eq(RowId::from(track_id))))
-        .execute(db.as_ref())
+        .execute(db.as_mut())
         .map_err(repo_error)
 }
 
 fn insert_track_tags(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
     tags: &Canonical<Tags>,
 ) -> RepoResult<()> {
@@ -344,7 +347,7 @@ fn insert_track_tags(
         let insertable = InsertableRecord::bind(track_id, None, plain_tag);
         diesel::insert_into(track_tag::table)
             .values(&insertable)
-            .execute(db.as_ref())
+            .execute(db.as_mut())
             .map_err(repo_error)?;
     }
     for faceted_tags in facets {
@@ -353,7 +356,7 @@ fn insert_track_tags(
             let insertable = InsertableRecord::bind(track_id, Some(facet_id), tag);
             diesel::insert_into(track_tag::table)
                 .values(&insertable)
-                .execute(db.as_ref())
+                .execute(db.as_mut())
                 .map_err(repo_error)?;
         }
     }
@@ -361,7 +364,7 @@ fn insert_track_tags(
 }
 
 fn update_track_tags(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     track_id: RecordId,
     new_tags: &Canonical<Tags>,
 ) -> RepoResult<()> {
@@ -376,7 +379,7 @@ fn update_track_tags(
 }
 
 fn preload_entity(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     id: RecordId,
     media_source: Source,
 ) -> RepoResult<EntityPreload> {
@@ -394,23 +397,23 @@ fn preload_entity(
 }
 
 impl<'db> EntityRepo for crate::Connection<'db> {
-    fn resolve_track_id(&self, uid: &EntityUid) -> RepoResult<RecordId> {
+    fn resolve_track_id(&mut self, uid: &EntityUid) -> RepoResult<RecordId> {
         track::table
             .select(track::row_id)
             .filter(track::entity_uid.eq(uid.as_ref()))
-            .first::<RowId>(self.as_ref())
+            .first::<RowId>(self.as_mut())
             .map_err(repo_error)
             .map(Into::into)
     }
 
     fn insert_track_entity(
-        &self,
+        &mut self,
         media_source_id: MediaSourceId,
         created_entity: &Entity,
     ) -> RepoResult<RecordId> {
         let record = InsertableRecord::bind(media_source_id, created_entity);
         let query = diesel::insert_into(track::table).values(&record);
-        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert_eq!(1, rows_affected);
         let id = self.resolve_track_id(&created_entity.hdr.uid)?;
         insert_track_and_album_titles(
@@ -431,7 +434,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     }
 
     fn update_track_entity(
-        &self,
+        &mut self,
         id: RecordId,
         media_source_id: MediaSourceId,
         updated_entity: &Entity,
@@ -443,7 +446,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         );
         let target = track::table.filter(track::row_id.eq(RowId::from(id)));
         let query = diesel::update(target).set(&record);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
             return Err(RepoError::NotFound);
@@ -465,30 +468,30 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn load_track_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
+    fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
         let queryable = track::table
             .filter(track::row_id.eq(RowId::from(id)))
-            .first::<QueryableRecord>(self.as_ref())
+            .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
         let preload = preload_entity(self, id, media_source)?;
         load_repo_entity(preload, queryable)
     }
 
-    fn load_track_entity_by_uid(&self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)> {
+    fn load_track_entity_by_uid(&mut self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)> {
         let queryable = track::table
             .filter(track::entity_uid.eq(uid.as_ref()))
-            .first::<QueryableRecord>(self.as_ref())
+            .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
         let preload = preload_entity(self, queryable.id.into(), media_source)?;
         load_repo_entity(preload, queryable)
     }
 
-    fn purge_track_entity(&self, id: RecordId) -> RepoResult<()> {
+    fn purge_track_entity(&mut self, id: RecordId) -> RepoResult<()> {
         let target = track::table.filter(track::row_id.eq(RowId::from(id)));
         let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
             return Err(RepoError::NotFound);
@@ -499,7 +502,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
 impl<'db> CollectionRepo for crate::Connection<'db> {
     fn load_track_entity_by_media_source_content_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)> {
@@ -509,7 +512,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         );
         let queryable = track::table
             .filter(track::media_source_id.eq_any(media_source_id_subselect))
-            .first::<QueryableRecord>(self.as_ref())
+            .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let media_source_id = queryable.media_source_id.into();
         let (_, media_source) = self.load_media_source(media_source_id)?;
@@ -519,7 +522,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
     }
 
     fn resolve_track_entity_header_by_media_source_content_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)> {
@@ -529,13 +532,13 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         );
         let queryable = track::table
             .filter(track::media_source_id.eq_any(media_source_id_subselect))
-            .first::<QueryableRecord>(self.as_ref())
+            .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         Ok(queryable.into())
     }
 
     fn replace_track_by_media_source_content_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         params: ReplaceParams,
         mut track: Track,
@@ -638,7 +641,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
     }
 
     fn search_tracks(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         pagination: &Pagination,
         filter: Option<Filter>,
@@ -672,7 +675,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             diesel::debug_query(&query)
         );
         let records = query
-            .load::<QueryableRecord>(self.as_ref())
+            .load::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let count = records.len();
         log::debug!(
@@ -697,13 +700,13 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         Ok(count)
     }
 
-    fn count_tracks(&self, collection_id: CollectionId) -> RepoResult<u64> {
+    fn count_tracks(&mut self, collection_id: CollectionId) -> RepoResult<u64> {
         track::table
             .select(count_star())
             .filter(track::media_source_id.eq_any(
                 select_media_source_id_filtered_by_collection_id(collection_id),
             ))
-            .first::<i64>(self.as_ref())
+            .first::<i64>(self.as_mut())
             .map_err(repo_error)
             .map(|count| {
                 debug_assert!(count >= 0);
@@ -712,7 +715,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
     }
 
     fn purge_tracks_by_media_source_content_path_predicate(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
@@ -722,12 +725,12 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         );
         let target = track::table.filter(track::media_source_id.eq_any(media_source_id_subselect));
         let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         Ok(rows_affected)
     }
 
     fn find_unsynchronized_tracks(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         pagination: &Pagination,
         content_path_predicate: Option<StringPredicateBorrowed<'_>>,
@@ -776,7 +779,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 Vec<u8>,
                 i64,
                 Option<i64>,
-            )>(self.as_ref())
+            )>(self.as_mut())
             .map_err(repo_error)
             .map(|v| {
                 v.into_iter()

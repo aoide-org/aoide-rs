@@ -48,7 +48,7 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub fn vacuum_database(connection: &SqliteConnection) -> Result<()> {
+pub fn vacuum_database(connection: &mut SqliteConnection) -> Result<()> {
     diesel::dsl::sql_query("VACUUM")
         .execute(connection)
         .map(|count| {
@@ -66,14 +66,14 @@ pub fn vacuum_database(connection: &SqliteConnection) -> Result<()> {
 /// database changes significantly, or if the database schema changes,
 /// then one should consider rerunning the ANALYZE command in order
 /// to update the statistics.
-pub fn analyze_and_optimize_database_stats(connection: &SqliteConnection) -> Result<()> {
+pub fn analyze_and_optimize_database_stats(connection: &mut SqliteConnection) -> Result<()> {
     diesel::dsl::sql_query("ANALYZE")
         .execute(connection)
         .map(|_| ())
         .map_err(Into::into)
 }
 
-pub fn cleanse_database(connection: &SqliteConnection, vacuum: bool) -> Result<()> {
+pub fn cleanse_database(connection: &mut SqliteConnection, vacuum: bool) -> Result<()> {
     // According to Richard Hipp himself executing VACUUM before ANALYZE is the
     // recommended order: https://sqlite.org/forum/forumpost/62fb63a29c5f7810?t=h
     if vacuum {

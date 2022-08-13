@@ -8,12 +8,12 @@ use aoide_usecases::track::resolve as uc;
 use super::*;
 
 pub fn resolve_by_media_source_content_paths(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     media_content_paths: Vec<String>,
 ) -> Result<Vec<(String, EntityHeader)>> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     let collection_id = repo.resolve_collection_id(collection_uid)?;
-    uc::resolve_by_media_source_content_paths(&repo, collection_id, media_content_paths)
+    uc::resolve_by_media_source_content_paths(&mut repo, collection_id, media_content_paths)
         .map_err(Into::into)
 }

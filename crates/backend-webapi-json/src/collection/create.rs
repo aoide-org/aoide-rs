@@ -10,13 +10,13 @@ pub type RequestBody = Collection;
 pub type ResponseBody = Entity;
 
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let created_collection = request_body.try_into()?;
-    connection
-        .transaction::<_, Error, _>(|| {
-            uc::create(connection, created_collection).map_err(Into::into)
-        })
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::create(connection, created_collection).map_err(Into::into)
+        //})
         .map(Into::into)
 }

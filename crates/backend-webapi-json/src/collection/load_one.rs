@@ -18,7 +18,7 @@ pub struct QueryParams {
 pub type ResponseBody = EntityWithSummary;
 
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     uid: &EntityUid,
     query_params: QueryParams,
 ) -> Result<EntityWithSummary> {
@@ -28,9 +28,9 @@ pub fn handle_request(
     } else {
         LoadScope::Entity
     };
-    connection
-        .transaction::<_, Error, _>(|| {
-            uc::load_one(connection, uid, load_scope).map_err(Into::into)
-        })
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::load_one(connection, uid, load_scope).map_err(Into::into)
+        //})
         .map(export_entity_with_summary)
 }

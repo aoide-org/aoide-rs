@@ -85,7 +85,7 @@ pub type RequestBody = Vec<Track>;
 pub type ResponseBody = Summary;
 
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     query_params: QueryParams,
     request_body: RequestBody,
@@ -123,15 +123,15 @@ pub fn handle_request(
         return Err(err);
     }
     let tracks = tracks.into_iter().map(Result::unwrap);
-    connection
-        .transaction::<_, Error, _>(|| {
-            uc::replace_many_by_media_source_content_path(
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::replace_many_by_media_source_content_path(
                 connection,
                 collection_uid,
                 &params,
                 tracks,
             )
             .map_err(Into::into)
-        })
+        //})
         .map(Into::into)
 }

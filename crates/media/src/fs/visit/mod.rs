@@ -146,8 +146,12 @@ pub fn url_from_walkdir_entry(dir_entry: &walkdir::DirEntry) -> anyhow::Result<U
     Ok(url)
 }
 
-pub trait AncestorVisitor<T, E> {
-    fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> std::result::Result<(), E>;
+pub trait AncestorVisitor<C, T, E> {
+    fn visit_dir_entry(
+        &mut self,
+        context: &mut C,
+        dir_entry: &walkdir::DirEntry,
+    ) -> std::result::Result<(), E>;
     fn finalize(self) -> T;
 }
 
@@ -158,14 +162,16 @@ pub trait AncestorVisitor<T, E> {
 /// update after invoking [`ProgressEvent::try_finish()`] and for obtaining
 /// execution statistics by invoking [`ProgressEvent::finalize()`].
 pub fn visit_directories<
+    C,
     T,
     E1: Into<Error>,
     E2: Into<Error>,
-    V: AncestorVisitor<T, E1>,
+    V: AncestorVisitor<C, T, E1>,
     NewAncestorVisitorFn: FnMut(&walkdir::DirEntry) -> V,
     AncestorFinishedFn: FnMut(&Path, T) -> StdResult<AfterAncestorFinished, E2>,
     ReportProgressFn: FnMut(&ProgressEvent),
 >(
+    context: &mut C,
     root_path: &Path,
     max_depth: Option<usize>,
     abort_flag: &AtomicBool,
@@ -262,7 +268,7 @@ pub fn visit_directories<
                     relative_path.display()
                 );
                 ancestor_visitor
-                    .visit_dir_entry(&dir_entry)
+                    .visit_dir_entry(context, &dir_entry)
                     .map_err(|err| {
                         progress_event.fail();
                         report_progress_fn(&progress_event);

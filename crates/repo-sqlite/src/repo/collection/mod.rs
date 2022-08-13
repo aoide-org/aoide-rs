@@ -26,7 +26,7 @@ use crate::{
 
 impl<'db> EntityRepo for crate::Connection<'db> {
     fn resolve_collection_entity_revision(
-        &self,
+        &mut self,
         uid: &EntityUid,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
         collection::table
@@ -37,7 +37,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 collection::entity_rev,
             ))
             .filter(collection::entity_uid.eq(uid.as_ref()))
-            .first::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_ref())
+            .first::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_mut())
             .map_err(repo_error)
             .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
                 let header = RecordHeader {
@@ -50,19 +50,19 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     }
 
     fn insert_collection_entity(
-        &self,
+        &mut self,
         created_at: DateTime,
         created_entity: &Entity,
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(created_at, created_entity);
         let query = diesel::insert_into(collection::table).values(&insertable);
-        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert_eq!(1, rows_affected);
         self.resolve_collection_id(&created_entity.hdr.uid)
     }
 
     fn touch_collection_entity_revision(
-        &self,
+        &mut self,
         entity_header: &EntityHeader,
         updated_at: DateTime,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
@@ -75,7 +75,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .filter(collection::entity_uid.eq(uid.as_ref()))
             .filter(collection::entity_rev.eq(entity_revision_to_sql(*rev)));
         let query = diesel::update(target).set(&touchable);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         let resolved = self.resolve_collection_entity_revision(uid)?;
         if rows_affected < 1 {
@@ -86,7 +86,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     }
 
     fn update_collection_entity(
-        &self,
+        &mut self,
         id: RecordId,
         updated_at: DateTime,
         updated_entity: &Entity,
@@ -95,7 +95,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             UpdatableRecord::bind(updated_at, updated_entity.hdr.rev, &updated_entity.body);
         let target = collection::table.filter(collection::row_id.eq(RowId::from(id)));
         let query = diesel::update(target).set(&updatable);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
             return Err(RepoError::NotFound);
@@ -103,16 +103,16 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn load_collection_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
+    fn load_collection_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
         collection::table
             .filter(collection::row_id.eq(RowId::from(id)))
-            .first::<QueryableRecord>(self.as_ref())
+            .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)
             .and_then(|record| record.try_into().map_err(Into::into))
     }
 
     fn load_collection_entities(
-        &self,
+        &mut self,
         kind: Option<&str>,
         media_source_root_url: Option<&MediaSourceRootUrlFilter>,
         with_summary: bool,
@@ -122,7 +122,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             Record = EntityWithSummary,
         >,
     ) -> RepoResult<()> {
-        let fetch = move |pagination: Option<&_>| {
+        let fetch = move |db: &mut Connection<'_>, pagination: Option<&_>| {
             let mut target = collection::table
                 .order_by(collection::row_updated_ms.desc())
                 .into_boxed();
@@ -165,12 +165,12 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             }
 
             target
-                .load::<QueryableRecord>(self.as_ref())
+                .load::<QueryableRecord>(db.as_mut())
                 .map_err(repo_error)
         };
 
         let filter_map =
-            move |record: QueryableRecord| {
+            move |db: &mut Connection<'_>, record: QueryableRecord| {
                 let (record_header, entity) = record.try_into()?;
                 if let Some(media_source_root_url) = media_source_root_url {
                     match media_source_root_url {
@@ -204,21 +204,21 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                     }
                 }
                 let summary = if with_summary {
-                    Some(self.load_collection_summary(record_header.id)?)
+                    Some(db.load_collection_summary(record_header.id)?)
                 } else {
                     None
                 };
                 Ok(Some((record_header, EntityWithSummary { entity, summary })))
             };
 
-        fetch_and_collect_filtered_records(pagination, fetch, filter_map, collector)
+        fetch_and_collect_filtered_records(self, pagination, fetch, filter_map, collector)
     }
 
-    fn load_collection_summary(&self, id: RecordId) -> RepoResult<Summary> {
+    fn load_collection_summary(&mut self, id: RecordId) -> RepoResult<Summary> {
         let media_source_count = media_source::table
             .select(count_star())
             .filter(media_source::collection_id.eq(RowId::from(id)))
-            .first::<i64>(self.as_ref())
+            .first::<i64>(self.as_mut())
             .map_err(repo_error)?;
         debug_assert!(media_source_count >= 0);
         let media_source_summary = MediaSourceSummary {
@@ -228,7 +228,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let track_count = track::table
             .select(count_star())
             .filter(track::media_source_id.eq_any(media_source_id_subselect))
-            .first::<i64>(self.as_ref())
+            .first::<i64>(self.as_mut())
             .map_err(repo_error)?;
         debug_assert!(track_count >= 0);
         let track_summary = TrackSummary {
@@ -237,7 +237,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let playlist_count = playlist::table
             .select(count_star())
             .filter(playlist::collection_id.eq(RowId::from(id)))
-            .first::<i64>(self.as_ref())
+            .first::<i64>(self.as_mut())
             .map_err(repo_error)?;
         debug_assert!(playlist_count >= 0);
         let playlist_summary = PlaylistSummary {
@@ -250,10 +250,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         })
     }
 
-    fn purge_collection_entity(&self, id: RecordId) -> RepoResult<()> {
+    fn purge_collection_entity(&mut self, id: RecordId) -> RepoResult<()> {
         let target = collection::table.filter(collection::row_id.eq(RowId::from(id)));
         let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
             return Err(RepoError::NotFound);
@@ -261,11 +261,11 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn load_all_kinds(&self) -> RepoResult<Vec<String>> {
+    fn load_all_kinds(&mut self) -> RepoResult<Vec<String>> {
         collection::table
             .select(collection::kind)
             .distinct()
-            .load::<Option<String>>(self.as_ref())
+            .load::<Option<String>>(self.as_mut())
             .map_err(repo_error)
             .map(|v| v.into_iter().flatten().collect())
     }

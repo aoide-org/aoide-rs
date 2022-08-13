@@ -35,24 +35,24 @@ macro_rules! record_id_newtype {
 macro_rules! entity_repo_trait_common_functions {
     ($record_id_type:ident, $entity_type:ident, $entity_uid_type:ident, $entity_header_type:ident, $entity_type_name:ident) => {
         paste::paste! {
-            fn [<resolve_ $entity_type_name:lower _id>](&self, uid: &$entity_uid_type) -> $crate::prelude::RepoResult<$record_id_type> {
+            fn [<resolve_ $entity_type_name:lower _id>](&mut self, uid: &$entity_uid_type) -> $crate::prelude::RepoResult<$record_id_type> {
                 self.[<resolve_ $entity_type_name:lower _entity_revision>](uid)
                     .map(|(hdr, _rev)| hdr.id)
             }
 
             fn [<resolve_ $entity_type_name:lower _entity_revision>](
-                &self,
+                &mut self,
                 uid: &$entity_uid_type,
             ) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, aoide_core::entity::EntityRevision)>;
 
             fn [<touch_ $entity_type_name:lower _entity_revision>](
-                &self,
+                &mut self,
                 entity_header: &$entity_header_type,
                 updated_at: aoide_core::util::clock::DateTime,
             ) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, aoide_core::entity::EntityRevision)>;
 
             fn [<update_ $entity_type_name:lower _entity_revision>](
-                &self,
+                &mut self,
                 updated_at: aoide_core::util::clock::DateTime,
                 updated_entity: &$entity_type,
             ) -> $crate::prelude::RepoResult<()> {
@@ -65,13 +65,13 @@ macro_rules! entity_repo_trait_common_functions {
             }
 
             fn [<update_ $entity_type_name:lower _entity>](
-                &self,
+                &mut self,
                 id: $record_id_type,
                 updated_at: aoide_core::util::clock::DateTime,
                 updated_entity: &$entity_type,
             ) -> $crate::prelude::RepoResult<()>;
 
-            fn [<load_ $entity_type_name:lower _entity>](&self, id: $record_id_type) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, $entity_type)>;
+            fn [<load_ $entity_type_name:lower _entity>](&mut self, id: $record_id_type) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, $entity_type)>;
 
             /// Purge the entity
             ///
@@ -80,7 +80,7 @@ macro_rules! entity_repo_trait_common_functions {
             /// could either be implemented implicitly using ON DELETE CASCADE
             /// constraints for foreign key (FK) relationships in an SQL database
             /// or programmatically.
-            fn [<purge_ $entity_type_name:lower _entity>](&self, id: $record_id_type) -> $crate::prelude::RepoResult<()>;
+            fn [<purge_ $entity_type_name:lower _entity>](&mut self, id: $record_id_type) -> $crate::prelude::RepoResult<()>;
         }
     }
 }

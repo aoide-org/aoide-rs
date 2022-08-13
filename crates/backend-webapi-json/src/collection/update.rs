@@ -12,7 +12,7 @@ pub type RequestBody = Collection;
 pub type ResponseBody = Entity;
 
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     uid: EntityUid,
     query_params: QueryParams,
     request_body: RequestBody,
@@ -20,9 +20,9 @@ pub fn handle_request(
     let EntityRevQueryParams { rev } = query_params;
     let entity_header = _inner::EntityHeader { uid, rev };
     let modified_collection = request_body.try_into()?;
-    connection
-        .transaction::<_, Error, _>(|| {
-            uc::update(connection, entity_header, modified_collection).map_err(Into::into)
-        })
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::update(connection, entity_header, modified_collection).map_err(Into::into)
+        //})
         .map(Into::into)
 }

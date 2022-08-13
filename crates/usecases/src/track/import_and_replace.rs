@@ -49,7 +49,7 @@ pub fn import_and_replace_from_file_path<Repo>(
     summary: &mut Summary,
     visited_media_source_ids: &mut Vec<MediaSourceId>,
     imported_media_sources_with_issues: &mut Vec<(MediaSourceId, ContentPath, Issues)>,
-    repo: &Repo,
+    repo: &mut Repo,
     collection_id: CollectionId,
     content_path_resolver: &VirtualFilePathResolver,
     content_path: ContentPath,
@@ -178,7 +178,7 @@ pub struct Params {
 }
 
 pub fn import_and_replace_many_by_local_file_path<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &Params,
     content_paths: impl IntoIterator<Item = ContentPath>,
@@ -240,7 +240,7 @@ where
 const EXPECTED_NUMBER_OF_DIR_ENTRIES: usize = 1024;
 
 pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &Params,
     source_dir_path: &str,
@@ -268,7 +268,7 @@ where
 }
 
 pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
-    repo: &impl TrackCollectionRepo,
+    repo: &mut impl TrackCollectionRepo,
     collection_id: CollectionId,
     content_path_resolver: &VirtualFilePathResolver,
     params: &Params,

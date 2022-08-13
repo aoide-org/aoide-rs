@@ -8,13 +8,13 @@ use uc::collection::update_entity;
 use super::*;
 
 pub fn update(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     entity_header: EntityHeader,
     modified_collection: Collection,
 ) -> Result<Entity> {
     let updated_entity = update_entity(entity_header, modified_collection)?;
     let updated_at = DateTime::now_utc();
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     repo.update_collection_entity_revision(updated_at, &updated_entity)?;
     Ok(updated_entity)
 }

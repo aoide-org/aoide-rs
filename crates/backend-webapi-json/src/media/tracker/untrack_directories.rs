@@ -21,7 +21,7 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::untrack_directories
     )
 )]
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
@@ -29,9 +29,9 @@ pub fn handle_request(
         .try_into()
         .map_err(Into::into)
         .map_err(Error::BadRequest)?;
-    connection
-        .transaction::<_, Error, _>(|| {
-            uc::untrack_directories(connection, collection_uid, &params).map_err(Into::into)
-        })
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::untrack_directories(connection, collection_uid, &params).map_err(Into::into)
+        //})
         .map(Into::into)
 }

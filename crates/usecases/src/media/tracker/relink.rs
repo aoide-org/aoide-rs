@@ -38,7 +38,7 @@ pub type FindCandidateParams = find_duplicates::Params;
 /// The media tracker is also updated, i.e. it will reference the updated
 /// old media source instead of the new media source that is removed.
 fn relink_moved_track_by_content_link_path<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_id: CollectionId,
     old_content_link_path: &str,
     new_content_link_path: &str,
@@ -152,7 +152,7 @@ impl Progress {
 }
 
 pub fn relink_tracks_with_untracked_media_sources<Repo, ReportProgressFn: FnMut(&Progress)>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     mut find_candidate_params: FindCandidateParams,
     report_progress_fn: &mut ReportProgressFn,

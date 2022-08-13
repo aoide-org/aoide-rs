@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::Connection as _;
+//FIXME: Add transactions after upgrading to diesel v2.0
+//use diesel::Connection as _;
 
 use aoide_core::{
     media::content::ContentPath,
@@ -61,11 +62,12 @@ impl ReservableRecordCollector for EntityCollector {
 
 pub async fn load_one(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                aoide_usecases_sqlite::track::load::load_one(&*pooled_connection, &entity_uid)
-            })
+        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            aoide_usecases_sqlite::track::load::load_one(connection, &entity_uid)
+            //})
         })
         .await
         .map_err(Into::into)
@@ -82,17 +84,14 @@ where
     C: ReservableRecordCollector<Header = RecordHeader, Record = Entity> + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                let mut collector = collector;
-                aoide_usecases_sqlite::track::load::load_many(
-                    &*pooled_connection,
-                    entity_uids,
-                    &mut collector,
-                )?;
-                Ok(collector)
-            })
+        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            let mut collector = collector;
+            aoide_usecases_sqlite::track::load::load_many(connection, entity_uids, &mut collector)?;
+            Ok(collector)
+            //})
         })
         .await
         .map_err(Into::into)
@@ -136,19 +135,20 @@ where
     C: ReservableRecordCollector<Header = RecordHeader, Record = Entity> + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                let mut collector = collector;
-                aoide_usecases_sqlite::track::search::search(
-                    &*pooled_connection,
-                    &collection_uid,
-                    params,
-                    &pagination,
-                    &mut collector,
-                )?;
-                Ok(collector)
-            })
+        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            let mut collector = collector;
+            aoide_usecases_sqlite::track::search::search(
+                connection,
+                &collection_uid,
+                params,
+                &pagination,
+                &mut collector,
+            )?;
+            Ok(collector)
+            //})
         })
         .await
         .map_err(Into::into)
@@ -162,16 +162,17 @@ pub async fn find_unsynchronized(
     pagination: Pagination,
 ) -> Result<Vec<UnsynchronizedTrackEntity>> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                aoide_usecases_sqlite::track::find_unsynchronized::find_unsynchronized(
-                    &*pooled_connection,
-                    &collection_uid,
-                    params,
-                    &pagination,
-                )
-            })
+        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            aoide_usecases_sqlite::track::find_unsynchronized::find_unsynchronized(
+                connection,
+                &collection_uid,
+                params,
+                &pagination,
+            )
+            //})
         })
         .await
         .map_err(Into::into)
@@ -188,16 +189,17 @@ where
     I: IntoIterator<Item = aoide_usecases::track::ValidatedInput> + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                aoide_usecases_sqlite::track::replace::replace_many_by_media_source_content_path(
-                    &*pooled_connection,
-                    &collection_uid,
-                    &params,
-                    validated_track_iter,
-                )
-            })
+        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            aoide_usecases_sqlite::track::replace::replace_many_by_media_source_content_path(
+                connection,
+                &collection_uid,
+                &params,
+                validated_track_iter,
+            )
+            //})
         })
         .await
         .map_err(Into::into)
@@ -215,18 +217,19 @@ where
     I: IntoIterator<Item = ContentPath> + Send + 'static,
 {
     db_gatekeeper
-    .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
-        let connection = &*pooled_connection;
-        connection.transaction::<_, Error, _>(|| {
-            aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path(
-                &*pooled_connection,
-                &collection_uid,
-                &params,
-                content_path_iter,
-                expected_content_path_count,
-                &abort_flag,
-            )
-        })
+    .spawn_blocking_write_task(move |mut pooled_connection, abort_flag| {
+        //FIXME: Add transactions after upgrading to diesel v2.0
+        let connection = &mut *pooled_connection;
+        //connection.transaction::<_, Error, _>(|connection| {
+        aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path(
+            connection,
+            &collection_uid,
+            &params,
+            content_path_iter,
+            expected_content_path_count,
+            &abort_flag,
+        )
+        //})
     })
     .await
     .map_err(Into::into)

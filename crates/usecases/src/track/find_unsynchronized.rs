@@ -15,7 +15,7 @@ use crate::collection::vfs::RepoContext;
 use super::*;
 
 pub fn find_unsynchronized<Repo, Resolver>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_id: CollectionId,
     pagination: &Pagination,
     content_path_predicate: Option<StringPredicateBorrowed<'_>>,
@@ -54,7 +54,7 @@ where
 }
 
 pub fn find_unsynchronized_with_params<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: Params,
     pagination: &Pagination,

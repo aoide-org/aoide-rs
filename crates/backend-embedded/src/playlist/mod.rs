@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::Connection as _;
+//FIXME: Add transactions after upgrading to diesel v2.0
+//use diesel::Connection as _;
 
 use aoide_core::playlist::{Entity, EntityHeader, EntityUid, EntityWithEntries, Playlist};
 
@@ -24,14 +25,12 @@ pub async fn load_one(
     entity_uid: EntityUid,
 ) -> Result<EntityWithEntries> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                aoide_usecases_sqlite::playlist::load::load_entity_with_entries(
-                    &*pooled_connection,
-                    &entity_uid,
-                )
-            })
+        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            aoide_usecases_sqlite::playlist::load::load_entity_with_entries(connection, &entity_uid)
+            //})
         })
         .await
         .map_err(Into::into)
@@ -70,19 +69,20 @@ where
         + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                let mut collector = collector;
-                aoide_usecases_sqlite::playlist::load::load_entities_with_entries_summary(
-                    &*pooled_connection,
-                    &collection_uid,
-                    kind.as_deref(),
-                    pagination.as_ref(),
-                    &mut collector,
-                )?;
-                Ok(collector)
-            })
+        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            let mut collector = collector;
+            aoide_usecases_sqlite::playlist::load::load_entities_with_entries_summary(
+                connection,
+                &collection_uid,
+                kind.as_deref(),
+                pagination.as_ref(),
+                &mut collector,
+            )?;
+            Ok(collector)
+            //})
         })
         .await
         .map_err(Into::into)
@@ -95,15 +95,16 @@ pub async fn create(
     new_playlist: Playlist,
 ) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                aoide_usecases_sqlite::playlist::create::create(
-                    &*pooled_connection,
-                    &collection_uid,
-                    new_playlist,
-                )
-            })
+        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            aoide_usecases_sqlite::playlist::create::create(
+                connection,
+                &collection_uid,
+                new_playlist,
+            )
+            //})
         })
         .await
         .map_err(Into::into)
@@ -116,15 +117,16 @@ pub async fn update(
     modified_playlist: Playlist,
 ) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                aoide_usecases_sqlite::playlist::update::update(
-                    &*pooled_connection,
-                    entity_header,
-                    modified_playlist,
-                )
-            })
+        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            aoide_usecases_sqlite::playlist::update::update(
+                connection,
+                entity_header,
+                modified_playlist,
+            )
+            //})
         })
         .await
         .map_err(Into::into)
@@ -133,11 +135,12 @@ pub async fn update(
 
 pub async fn purge(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<()> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                aoide_usecases_sqlite::playlist::purge::purge(&*pooled_connection, &entity_uid)
-            })
+        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            aoide_usecases_sqlite::playlist::purge::purge(connection, &entity_uid)
+            //})
         })
         .await
         .map_err(Into::into)

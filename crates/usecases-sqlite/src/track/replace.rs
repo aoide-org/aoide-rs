@@ -14,14 +14,14 @@ mod uc {
 }
 
 pub fn replace_many_by_media_source_content_path(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: &uc::Params,
     validated_track_iter: impl IntoIterator<Item = ValidatedInput>,
 ) -> Result<Summary> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     uc::replace_many_by_media_source_content_path(
-        &repo,
+        &mut repo,
         collection_uid,
         params,
         validated_track_iter,

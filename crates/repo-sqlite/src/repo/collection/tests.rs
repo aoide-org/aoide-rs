@@ -20,7 +20,7 @@ impl Fixture {
     }
 }
 
-fn create_collection(repo: &dyn EntityRepo, collection: Collection) -> RepoResult<Entity> {
+fn create_collection(repo: &mut dyn EntityRepo, collection: Collection) -> RepoResult<Entity> {
     let entity = Entity::new(EntityHeaderTyped::initial_random(), collection);
     repo.insert_collection_entity(DateTime::now_utc(), &entity)
         .and(Ok(entity))
@@ -28,11 +28,11 @@ fn create_collection(repo: &dyn EntityRepo, collection: Collection) -> RepoResul
 
 #[test]
 fn insert_collection() -> TestResult<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut fixture = Fixture::new()?;
+    let mut db = crate::Connection::new(&mut fixture.db);
 
     let entity = create_collection(
-        &db,
+        &mut db,
         Collection {
             title: "Test Collection".into(),
             notes: Some("Some personal notes".into()),
@@ -52,11 +52,11 @@ fn insert_collection() -> TestResult<()> {
 
 #[test]
 fn update_collection() -> TestResult<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut fixture = Fixture::new()?;
+    let mut db = crate::Connection::new(&mut fixture.db);
 
     let mut entity = create_collection(
-        &db,
+        &mut db,
         Collection {
             title: "Test Collection".into(),
             notes: Some("Description".into()),
@@ -120,11 +120,11 @@ fn update_collection() -> TestResult<()> {
 
 #[test]
 fn purge_collection() -> TestResult<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut fixture = Fixture::new()?;
+    let mut db = crate::Connection::new(&mut fixture.db);
 
     let entity = create_collection(
-        &db,
+        &mut db,
         Collection {
             title: "Test Collection".into(),
             notes: None,

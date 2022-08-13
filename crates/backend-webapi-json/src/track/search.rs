@@ -30,7 +30,7 @@ pub type ResponseBody = Vec<Entity>;
     )
 )]
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     query_params: QueryParams,
     request_body: RequestBody,
@@ -74,15 +74,16 @@ pub fn handle_request(
         ordering: ordering.into_iter().map(Into::into).collect(),
     };
     let mut collector = EntityCollector::default();
-    connection.transaction::<_, Error, _>(|| {
-        uc::search(
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::search(
             connection,
             collection_uid,
             params,
             &pagination,
             &mut collector,
         )
-        .map_err(Into::into)
-    })?;
+        //.map_err(Into::into)})
+    ?;
     Ok(collector.into())
 }

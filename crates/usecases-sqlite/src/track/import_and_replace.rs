@@ -17,16 +17,16 @@ mod uc {
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
 pub fn import_and_replace_many_by_local_file_path(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: &uc::Params,
     content_path_iter: impl IntoIterator<Item = ContentPath>,
     expected_content_path_count: impl Into<Option<usize>>,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     uc::import_and_replace_many_by_local_file_path(
-        &repo,
+        &mut repo,
         collection_uid,
         params,
         content_path_iter,
@@ -37,15 +37,15 @@ pub fn import_and_replace_many_by_local_file_path(
 }
 
 pub fn import_and_replace_by_local_file_path_from_directory(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: &uc::Params,
     source_dir_path: &str,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     uc::import_and_replace_by_local_file_path_from_directory(
-        &repo,
+        &mut repo,
         collection_uid,
         params,
         source_dir_path,

@@ -3,8 +3,8 @@
 
 use super::*;
 
-pub fn purge(connection: &SqliteConnection, entity_uid: &EntityUid) -> Result<()> {
-    let repo = RepoConnection::new(connection);
+pub fn purge(connection: &mut SqliteConnection, entity_uid: &EntityUid) -> Result<()> {
+    let mut repo = RepoConnection::new(connection);
     let id = repo.resolve_collection_id(entity_uid)?;
     repo.purge_collection_entity(id).map_err(Into::into)
 }

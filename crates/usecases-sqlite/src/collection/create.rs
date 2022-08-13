@@ -5,9 +5,9 @@ use uc::collection::{create_entity, store_created_entity};
 
 use super::*;
 
-pub fn create(connection: &SqliteConnection, new_collection: Collection) -> Result<Entity> {
+pub fn create(connection: &mut SqliteConnection, new_collection: Collection) -> Result<Entity> {
     let created_entity = create_entity(new_collection)?;
-    let repo = RepoConnection::new(connection);
-    store_created_entity(&repo, &created_entity)?;
+    let mut repo = RepoConnection::new(connection);
+    store_created_entity(&mut repo, &created_entity)?;
     Ok(created_entity)
 }

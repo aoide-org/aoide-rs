@@ -73,20 +73,21 @@ pub mod prelude {
         }
     }
 
-    pub fn fetch_and_collect_filtered_records<T, Header, Record, Fetch, FilterMap, Collector>(
+    pub fn fetch_and_collect_filtered_records<R, T, Header, Record, Fetch, FilterMap, Collector>(
+        repo: &mut R,
         pagination: Option<&Pagination>,
         mut fetch: Fetch,
         mut filter_map: FilterMap,
         collector: &mut Collector,
     ) -> RepoResult<()>
     where
-        Fetch: FnMut(Option<&Pagination>) -> RepoResult<Vec<T>>,
-        FilterMap: FnMut(T) -> RepoResult<Option<(Header, Record)>>,
+        Fetch: FnMut(&mut R, Option<&Pagination>) -> RepoResult<Vec<T>>,
+        FilterMap: FnMut(&mut R, T) -> RepoResult<Option<(Header, Record)>>,
         Collector: ReservableRecordCollector<Header = Header, Record = Record> + ?Sized,
     {
         let mut pagination = pagination.cloned();
         loop {
-            let fetched_records = fetch(pagination.as_ref())?;
+            let fetched_records = fetch(repo, pagination.as_ref())?;
             if fetched_records.is_empty() {
                 break;
             }
@@ -94,7 +95,7 @@ pub mod prelude {
             let num_fetched_records = fetched_records.len() as PaginationOffset;
             let mut num_discarded_records = 0usize;
             for record in fetched_records {
-                if let Some((header, record)) = filter_map(record)? {
+                if let Some((header, record)) = filter_map(repo, record)? {
                     collector.collect(header, record);
                 } else {
                     num_discarded_records += 1;

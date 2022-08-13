@@ -6,12 +6,12 @@ use uc::playlist::{create_entity, store_created_entity};
 use super::*;
 
 pub fn create(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     new_playlist: Playlist,
 ) -> Result<Entity> {
     let created_entity = create_entity(new_playlist)?;
-    let repo = RepoConnection::new(connection);
-    store_created_entity(&repo, collection_uid, &created_entity)?;
+    let mut repo = RepoConnection::new(connection);
+    store_created_entity(&mut repo, collection_uid, &created_entity)?;
     Ok(created_entity)
 }

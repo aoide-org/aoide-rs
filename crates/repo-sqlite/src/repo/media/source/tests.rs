@@ -26,12 +26,11 @@ use aoide_core::{
 use aoide_repo::collection::{EntityRepo as _, RecordId as CollectionId};
 
 struct Fixture {
-    db: SqliteConnection,
     collection_id: CollectionId,
 }
 
 impl Fixture {
-    fn new() -> TestResult<Self> {
+    fn new(db: &mut crate::Connection<'_>) -> TestResult<Self> {
         let collection = Collection {
             title: "Collection".into(),
             notes: None,
@@ -43,19 +42,18 @@ impl Fixture {
                 },
             },
         };
-        let db = establish_connection()?;
         let collection_entity =
             CollectionEntity::new(EntityHeaderTyped::initial_random(), collection);
-        let collection_id = crate::Connection::new(&db)
-            .insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
-        Ok(Self { db, collection_id })
+        let collection_id = db.insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
+        Ok(Self { collection_id })
     }
 
     fn resolve_record_ids_by_content_path_predicate(
         &self,
+        db: &mut crate::Connection<'_>,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<Vec<RecordId>> {
-        crate::Connection::new(&self.db).resolve_media_source_ids_by_content_path_predicate(
+        db.resolve_media_source_ids_by_content_path_predicate(
             self.collection_id,
             content_path_predicate,
         )
@@ -64,8 +62,9 @@ impl Fixture {
 
 #[test]
 fn insert_media_source() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let created_source = media::Source {
         collected_at: DateTime::now_local_or_utc(),
@@ -114,8 +113,9 @@ fn insert_media_source() -> anyhow::Result<()> {
 
 #[test]
 fn filter_by_content_path_predicate() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let collection_id = fixture.collection_id;
 
@@ -166,93 +166,112 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
     // Equals is case-sensitive
     assert_eq!(
         vec![header_lowercase.id],
-        fixture.resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Equals(
-            &file_lowercase.content.link.path
-        ))?
+        fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Equals(&file_lowercase.content.link.path)
+        )?
     );
     assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Equals(
-            &file_lowercase.content.link.path.to_uppercase()
-        ))?
+        .resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Equals(&file_lowercase.content.link.path.to_uppercase())
+        )?
         .is_empty());
 
     assert_eq!(
         vec![header_uppercase.id],
-        fixture.resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Equals(
-            &file_uppercase.content.link.path
-        ))?
+        fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Equals(&file_uppercase.content.link.path)
+        )?
     );
     assert_eq!(
         vec![header_lowercase.id],
-        fixture.resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Equals(
-            &file_uppercase.content.link.path.to_lowercase()
-        ))?
+        fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Equals(&file_uppercase.content.link.path.to_lowercase())
+        )?
     );
 
     // Prefix is case-sensitive
     assert_eq!(
         vec![header_lowercase.id],
-        fixture.resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Prefix(
-            "file:///ho"
-        ))?
+        fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Prefix("file:///ho")
+        )?
     );
     assert_eq!(
         vec![header_uppercase.id],
-        fixture.resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Prefix(
-            "file:///Ho"
-        ))?
+        fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Prefix("file:///Ho")
+        )?
     );
     assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Prefix(
-            "file:///hO"
-        ))?
+        .resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Prefix("file:///hO")
+        )?
         .is_empty());
     assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Prefix(
-            "file:///HO"
-        ))?
+        .resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Prefix("file:///HO")
+        )?
         .is_empty());
 
     // StartsWith is case-insensitive
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
             StringPredicateBorrowed::StartsWith(&file_lowercase.content.link.path)
         )?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
             StringPredicateBorrowed::StartsWith(&file_uppercase.content.link.path)
         )?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
             StringPredicateBorrowed::StartsWith("file:///home")
         )?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
             StringPredicateBorrowed::StartsWith("file:///Home")
         )?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
             StringPredicateBorrowed::StartsWith("file:///")
         )?
     );
     assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::StartsWith(
-            "file:///%home" // LIKE wildcard in predicate string
-        ))?
+        .resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::StartsWith(
+                "file:///%home" // LIKE wildcard in predicate string
+            )
+        )?
         .is_empty());
     assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::StartsWith(
+        .resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::StartsWith(
             "file:/\\/home" // backslash in predicate string
-        ))?
+        )
+        )?
         .is_empty());
 
     Ok(())
@@ -260,8 +279,9 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
 
 #[test]
 fn relocate_by_content_path() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let collection_id = fixture.collection_id;
 
@@ -324,15 +344,17 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
     );
 
     assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Prefix(
-            &old_path_prefix
-        ))?
+        .resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Prefix(&old_path_prefix)
+        )?
         .is_empty());
     assert_eq!(
         vec![header_lowercase.id],
-        fixture.resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Prefix(
-            &new_path_prefix
-        ))?
+        fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Prefix(&new_path_prefix)
+        )?
     );
     assert_eq!(
         updated_at,
@@ -340,9 +362,10 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
     );
     assert_eq!(
         vec![header_uppercase.id],
-        fixture.resolve_record_ids_by_content_path_predicate(StringPredicateBorrowed::Prefix(
-            "file:///Ho''"
-        ))?
+        fixture.resolve_record_ids_by_content_path_predicate(
+            &mut db,
+            StringPredicateBorrowed::Prefix("file:///Ho''")
+        )?
     );
 
     Ok(())

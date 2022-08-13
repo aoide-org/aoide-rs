@@ -33,7 +33,7 @@ struct RepoContextProps {
 }
 
 impl RepoContextProps {
-    fn load_from_repo<Repo>(repo: &Repo, uid: &EntityUid) -> Result<Self>
+    fn load_from_repo<Repo>(repo: &mut Repo, uid: &EntityUid) -> Result<Self>
     where
         Repo: EntityRepo,
     {
@@ -69,7 +69,7 @@ impl RepoContext {
     }
 
     pub fn resolve(
-        repo: &impl EntityRepo,
+        repo: &mut impl EntityRepo,
         uid: &EntityUid,
         root_url: Option<&BaseUrl>,
     ) -> Result<Self> {
@@ -77,7 +77,7 @@ impl RepoContext {
     }
 
     pub fn resolve_ext(
-        repo: &impl EntityRepo,
+        repo: &mut impl EntityRepo,
         uid: &EntityUid,
         root_url: Option<&BaseUrl>,
         override_root_url: Option<BaseUrl>,

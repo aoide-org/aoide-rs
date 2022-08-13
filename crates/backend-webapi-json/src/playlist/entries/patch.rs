@@ -85,22 +85,22 @@ pub type RequestBody = Vec<PatchOperation>;
 pub type ResponseBody = EntityWithEntriesSummary;
 
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     uid: EntityUid,
     query_params: EntityRevQueryParams,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let EntityRevQueryParams { rev } = query_params;
     let entity_header = _core::EntityHeader { uid, rev };
-    connection
-        .transaction::<_, Error, _>(|| {
-            uc::patch(
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::patch(
                 connection,
                 &entity_header,
                 request_body.into_iter().map(Into::into),
             )
             .map_err(Into::into)
-        })
+        //})
         .map(|(_, entity_with_entries_summary)| {
             export_entity_with_entries_summary(entity_with_entries_summary)
         })

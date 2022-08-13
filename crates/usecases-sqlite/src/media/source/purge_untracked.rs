@@ -10,10 +10,10 @@ mod uc {
 }
 
 pub fn purge_untracked(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Outcome> {
-    let repo = RepoConnection::new(connection);
-    uc::purge_untracked(&repo, collection_uid, params).map_err(Into::into)
+    let mut repo = RepoConnection::new(connection);
+    uc::purge_untracked(&mut repo, collection_uid, params).map_err(Into::into)
 }

@@ -33,7 +33,7 @@ pub fn create_entity(new_playlist: Playlist) -> Result<Entity> {
 }
 
 pub fn store_created_entity<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     entity: &Entity,
 ) -> RepoResult<()>

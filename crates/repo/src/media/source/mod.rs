@@ -14,45 +14,45 @@ use aoide_core::{
 
 pub trait Repo {
     fn update_media_source(
-        &self,
+        &mut self,
         id: RecordId,
         updated_at: DateTime,
         updated_source: &Source,
     ) -> RepoResult<()>;
 
-    fn purge_media_source(&self, id: RecordId) -> RepoResult<()>;
+    fn purge_media_source(&mut self, id: RecordId) -> RepoResult<()>;
 
-    fn load_media_source(&self, id: RecordId) -> RepoResult<(RecordHeader, Source)>;
+    fn load_media_source(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Source)>;
 }
 
 pub trait CollectionRepo {
     fn resolve_media_source_id_synchronized_at_by_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path: &str,
     ) -> RepoResult<(RecordId, Option<u64>)>;
 
     fn resolve_media_source_ids_by_content_path_predicate(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<Vec<RecordId>>;
 
     fn insert_media_source(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         created_at: DateTime,
         created_source: &Source,
     ) -> RepoResult<RecordHeader>;
 
     fn load_media_source_by_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path: &str,
     ) -> RepoResult<(RecordHeader, Source)>;
 
     fn relocate_media_sources_by_content_path_prefix(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         updated_at: DateTime,
         old_content_path_prefix: &ContentPath,
@@ -60,18 +60,18 @@ pub trait CollectionRepo {
     ) -> RepoResult<usize>;
 
     fn purge_media_sources_by_content_path_predicate(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
     fn purge_orphaned_media_sources_by_content_path_predicate(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
-    fn purge_orphaned_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize> {
+    fn purge_orphaned_media_sources(&mut self, collection_id: CollectionId) -> RepoResult<usize> {
         self.purge_orphaned_media_sources_by_content_path_predicate(
             collection_id,
             StringPredicateBorrowed::Prefix(""),
@@ -79,12 +79,12 @@ pub trait CollectionRepo {
     }
 
     fn purge_untracked_media_sources_by_content_path_predicate(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
-    fn purge_untracked_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize> {
+    fn purge_untracked_media_sources(&mut self, collection_id: CollectionId) -> RepoResult<usize> {
         self.purge_untracked_media_sources_by_content_path_predicate(
             collection_id,
             StringPredicateBorrowed::Prefix(""),

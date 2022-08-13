@@ -80,8 +80,8 @@ struct AncestorDigest<D> {
     digest: D,
 }
 
-impl<D: Digest> AncestorVisitor<digest::Output<D>, Error> for AncestorDigest<D> {
-    fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> Result<()> {
+impl<D: Digest> AncestorVisitor<(), digest::Output<D>, Error> for AncestorDigest<D> {
+    fn visit_dir_entry(&mut self, _: &mut (), dir_entry: &walkdir::DirEntry) -> Result<()> {
         digest_walkdir_entry_for_detecting_changes(&mut self.digest, dir_entry).map_err(Into::into)
     }
     fn finalize(self) -> digest::Output<D> {
@@ -108,6 +108,7 @@ pub fn hash_directories<
         digest: new_digest_fn(),
     };
     visit_directories(
+        &mut (),
         root_path,
         max_depth,
         abort_flag,

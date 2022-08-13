@@ -19,7 +19,7 @@ use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
 
 impl<'db> Repo for crate::prelude::Connection<'db> {
     fn update_media_source(
-        &self,
+        &mut self,
         id: RecordId,
         updated_at: DateTime,
         updated_source: &Source,
@@ -27,7 +27,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         let updatable = UpdatableRecord::bind(updated_at, updated_source);
         let target = media_source::table.filter(media_source::row_id.eq(RowId::from(id)));
         let query = diesel::update(target).set(&updatable);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
             return Err(RepoError::NotFound);
@@ -35,10 +35,10 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         Ok(())
     }
 
-    fn purge_media_source(&self, id: RecordId) -> RepoResult<()> {
+    fn purge_media_source(&mut self, id: RecordId) -> RepoResult<()> {
         let target = media_source::table.filter(media_source::row_id.eq(RowId::from(id)));
         let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
             return Err(RepoError::NotFound);
@@ -46,10 +46,10 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         Ok(())
     }
 
-    fn load_media_source(&self, id: RecordId) -> RepoResult<(RecordHeader, Source)> {
+    fn load_media_source(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Source)> {
         media_source::table
             .filter(media_source::row_id.eq(RowId::from(id)))
-            .first::<QueryableRecord>(self.as_ref())
+            .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)
             .and_then(|record| record.try_into().map_err(Into::into))
     }
@@ -57,7 +57,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
 
 impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     fn resolve_media_source_id_synchronized_at_by_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path: &str,
     ) -> RepoResult<(RecordId, Option<u64>)> {
@@ -66,7 +66,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
             .select((media_source::row_id, media_source::content_link_rev))
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
             .filter(media_source::content_link_path.eq(path))
-            .first::<(RowId, Option<i64>)>(self.as_ref())
+            .first::<(RowId, Option<i64>)>(self.as_mut())
             .map(|(row_id, content_link_rev)| {
                 (row_id.into(), content_link_rev.map(|rev| rev as u64))
             })
@@ -74,7 +74,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     }
 
     fn resolve_media_source_ids_by_content_path_predicate(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<Vec<RecordId>> {
@@ -89,13 +89,13 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
                     content_path_predicate,
                 )),
             )
-            .load::<RowId>(self.as_ref())
+            .load::<RowId>(self.as_mut())
             .map_err(repo_error)
             .map(|v| v.into_iter().map(RecordId::new).collect())
     }
 
     fn relocate_media_sources_by_content_path_prefix(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         updated_at: DateTime,
         old_content_path_prefix: &ContentPath,
@@ -116,12 +116,12 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
                     old_content_path_prefix.len() + 1
                 ))),
             ))
-            .execute(self.as_ref())
+            .execute(self.as_mut())
             .map_err(repo_error)
     }
 
     fn purge_media_sources_by_content_path_predicate(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
@@ -131,12 +131,12 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         diesel::delete(media_source::table.filter(media_source::row_id.eq_any(
             select_row_id_filtered_by_content_path_predicate(collection_id, content_path_predicate),
         )))
-        .execute(self.as_ref())
+        .execute(self.as_mut())
         .map_err(repo_error)
     }
 
     fn purge_orphaned_media_sources_by_content_path_predicate(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
@@ -154,12 +154,12 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
                 // Restrict to orphaned media sources without a track
                 .filter(media_source::row_id.ne_all(track::table.select(track::media_source_id))),
         )
-        .execute(self.as_ref())
+        .execute(self.as_mut())
         .map_err(repo_error)
     }
 
     fn purge_untracked_media_sources_by_content_path_predicate(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
@@ -181,19 +181,19 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
                     ),
                 ),
         )
-        .execute(self.as_ref())
+        .execute(self.as_mut())
         .map_err(repo_error)
     }
 
     fn insert_media_source(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         created_at: DateTime,
         created_source: &Source,
     ) -> RepoResult<RecordHeader> {
         let insertable = InsertableRecord::bind(created_at, collection_id, created_source);
         let query = diesel::insert_into(media_source::table).values(&insertable);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert_eq!(1, rows_affected);
         let (id, _) = self.resolve_media_source_id_synchronized_at_by_path(
             collection_id,
@@ -207,24 +207,24 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     }
 
     fn load_media_source_by_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path: &str,
     ) -> RepoResult<(RecordHeader, Source)> {
         media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
             .filter(media_source::content_link_path.eq(path))
-            .first::<QueryableRecord>(self.as_ref())
+            .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)
             .and_then(|record| record.try_into().map_err(Into::into))
     }
 
-    fn purge_orphaned_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize> {
+    fn purge_orphaned_media_sources(&mut self, collection_id: CollectionId) -> RepoResult<usize> {
         let target = media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
             .filter(media_source::row_id.ne_all(track::table.select(track::media_source_id)));
         let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         Ok(rows_affected)
     }
 }

@@ -20,7 +20,7 @@ pub mod purge_untracked;
 pub mod relocate;
 
 pub fn resolve_file_path(
-    repo: &RepoConnection<'_>,
+    repo: &mut RepoConnection<'_>,
     collection_uid: &CollectionUid,
     content_path: &ContentPath,
 ) -> Result<(CollectionId, PathBuf)> {
@@ -36,18 +36,20 @@ pub fn resolve_file_path(
 }
 
 pub fn load_embedded_artwork_image(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     content_path: &ContentPath,
 ) -> Result<(CollectionId, Option<LoadedArtworkImage>)> {
     let mut importer = Importer::new();
-    let repo = RepoConnection::new(connection);
-    resolve_file_path(&repo, collection_uid, content_path).and_then(|(collection_id, file_path)| {
-        let loaded_artwork_image =
-            load_embedded_artwork_image_from_file_path(&mut importer, &file_path)?;
-        for issue_message in importer.finish().into_messages() {
-            log::warn!("{issue_message}");
-        }
-        Ok((collection_id, loaded_artwork_image))
-    })
+    let mut repo = RepoConnection::new(connection);
+    resolve_file_path(&mut repo, collection_uid, content_path).and_then(
+        |(collection_id, file_path)| {
+            let loaded_artwork_image =
+                load_embedded_artwork_image_from_file_path(&mut importer, &file_path)?;
+            for issue_message in importer.finish().into_messages() {
+                log::warn!("{issue_message}");
+            }
+            Ok((collection_id, loaded_artwork_image))
+        },
+    )
 }

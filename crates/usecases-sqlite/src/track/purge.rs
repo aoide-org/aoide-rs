@@ -10,12 +10,12 @@ mod uc {
 }
 
 pub fn purge_by_media_source_content_path_predicates(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     path_predicates: Vec<StringPredicate>,
 ) -> Result<uc::PurgeByMediaContentPathPredicatesSummary> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     let collection_id = repo.resolve_collection_id(collection_uid)?;
-    uc::purge_by_media_source_content_path_predicates(&repo, collection_id, path_predicates)
+    uc::purge_by_media_source_content_path_predicates(&mut repo, collection_id, path_predicates)
         .map_err(Into::into)
 }

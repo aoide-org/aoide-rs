@@ -14,7 +14,7 @@ use super::*;
 
 /// Purge orphaned media sources that don't belong to any track
 pub fn purge_orphaned<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Outcome>

@@ -17,7 +17,7 @@ pub type ResponseBody = aoide_core_api_json::media::source::purge_untracked::Out
     )
 )]
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
@@ -25,14 +25,14 @@ pub fn handle_request(
         .try_into()
         .map_err(Into::into)
         .map_err(Error::BadRequest)?;
-    connection
-        .transaction::<_, Error, _>(|| {
-            aoide_usecases_sqlite::media::source::purge_untracked::purge_untracked(
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    aoide_usecases_sqlite::media::source::purge_untracked::purge_untracked(
                 connection,
                 collection_uid,
                 &params,
             )
             .map_err(Into::into)
-        })
+        //})
         .map(Into::into)
 }

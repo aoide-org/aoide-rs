@@ -24,7 +24,7 @@ use diesel::dsl::count_star;
 
 impl<'db> EntityRepo for crate::Connection<'db> {
     fn resolve_playlist_entity_revision(
-        &self,
+        &mut self,
         uid: &EntityUid,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
         playlist::table
@@ -35,7 +35,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 playlist::entity_rev,
             ))
             .filter(playlist::entity_uid.eq(uid.as_ref()))
-            .first::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_ref())
+            .first::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_mut())
             .map_err(repo_error)
             .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
                 let header = RecordHeader {
@@ -48,7 +48,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     }
 
     fn touch_playlist_entity_revision(
-        &self,
+        &mut self,
         entity_header: &EntityHeader,
         updated_at: DateTime,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
@@ -61,7 +61,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .filter(playlist::entity_uid.eq(uid.as_ref()))
             .filter(playlist::entity_rev.eq(entity_revision_to_sql(*rev)));
         let query = diesel::update(target).set(&touchable);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         let resolved = self.resolve_playlist_entity_revision(uid)?;
         if rows_affected < 1 {
@@ -72,7 +72,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     }
 
     fn update_playlist_entity(
-        &self,
+        &mut self,
         id: RecordId,
         updated_at: DateTime,
         updated_entity: &Entity,
@@ -81,7 +81,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             UpdatableRecord::bind(updated_at, updated_entity.hdr.rev, &updated_entity.body);
         let target = playlist::table.filter(playlist::row_id.eq(RowId::from(id)));
         let query = diesel::update(target).set(&updatable);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
             return Err(RepoError::NotFound);
@@ -89,25 +89,25 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn load_playlist_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
+    fn load_playlist_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
         let record = playlist::table
             .filter(playlist::row_id.eq(RowId::from(id)))
-            .first::<QueryableRecord>(self.as_ref())
+            .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (record_header, _, entity) = record.into();
         Ok((record_header, entity))
     }
 
-    fn load_playlist_entity_with_entries(&self, id: RecordId) -> RepoResult<EntityWithEntries> {
+    fn load_playlist_entity_with_entries(&mut self, id: RecordId) -> RepoResult<EntityWithEntries> {
         let (_, entity) = self.load_playlist_entity(id)?;
         let entries = self.load_all_playlist_entries(id)?;
         Ok((entity, entries).into())
     }
 
-    fn purge_playlist_entity(&self, id: RecordId) -> RepoResult<()> {
+    fn purge_playlist_entity(&mut self, id: RecordId) -> RepoResult<()> {
         let target = playlist::table.filter(playlist::row_id.eq(RowId::from(id)));
         let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
             return Err(RepoError::NotFound);
@@ -118,20 +118,20 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
 impl<'db> CollectionRepo for crate::Connection<'db> {
     fn insert_playlist_entity(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         created_at: DateTime,
         created_entity: &Entity,
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(collection_id, created_at, created_entity);
         let query = diesel::insert_into(playlist::table).values(&insertable);
-        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert_eq!(1, rows_affected);
         self.resolve_playlist_id(&created_entity.hdr.uid)
     }
 
     fn load_playlist_entities_with_entries_summary(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         kind: Option<&str>,
         pagination: Option<&Pagination>,
@@ -156,7 +156,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         }
 
         let records = target
-            .load::<QueryableRecord>(self.as_ref())
+            .load::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
 
         collector.reserve(records.len());
@@ -171,31 +171,31 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
 }
 
 fn min_playlist_entry_ordering(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     playlist_id: RecordId,
 ) -> RepoResult<Option<i64>> {
     use playlist_entry_db::schema::*;
     playlist_entry::table
         .select(diesel::dsl::min(playlist_entry::ordering))
         .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
-        .first::<Option<i64>>(db.as_ref())
+        .first::<Option<i64>>(db.as_mut())
         .map_err(repo_error)
 }
 
 fn max_playlist_entry_ordering(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     playlist_id: RecordId,
 ) -> RepoResult<Option<i64>> {
     use playlist_entry_db::schema::*;
     playlist_entry::table
         .select(diesel::dsl::max(playlist_entry::ordering))
         .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
-        .first::<Option<i64>>(db.as_ref())
+        .first::<Option<i64>>(db.as_mut())
         .map_err(repo_error)
 }
 
 fn shift_playlist_entries_forward(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     playlist_id: RecordId,
     old_min_ordering: i64,
     delta_ordering: i64,
@@ -211,7 +211,7 @@ fn shift_playlist_entries_forward(
         .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
         .filter(playlist_entry::ordering.ge(old_min_ordering))
         .order_by(playlist_entry::ordering.desc())
-        .load::<RowId>(db.as_ref())
+        .load::<RowId>(db.as_mut())
         .map_err(repo_error)?;
     let mut rows_updated = 0;
     for row_id in row_ids {
@@ -221,14 +221,14 @@ fn shift_playlist_entries_forward(
                     playlist_entry::ordering
                         .eq(diesel::dsl::sql(&format!("ordering+{delta_ordering}"))),
                 )
-                .execute(db.as_ref())
+                .execute(db.as_mut())
                 .map_err(repo_error)?;
     }
     Ok(rows_updated)
 }
 
 fn reverse_all_playlist_entries_tail(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     playlist_id: RecordId,
     old_min_ordering: i64,
     new_max_ordering: i64,
@@ -243,7 +243,7 @@ fn reverse_all_playlist_entries_tail(
         .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
         .filter(playlist_entry::ordering.ge(old_min_ordering))
         .order_by(playlist_entry::ordering)
-        .load::<RowId>(db.as_ref())
+        .load::<RowId>(db.as_mut())
         .map_err(repo_error)?;
     let mut rows_updated = 0;
     let mut ordering = new_max_ordering;
@@ -251,7 +251,7 @@ fn reverse_all_playlist_entries_tail(
         rows_updated +=
             diesel::update(playlist_entry::table.filter(playlist_entry::row_id.eq(row_id)))
                 .set(playlist_entry::ordering.eq(ordering))
-                .execute(db.as_ref())
+                .execute(db.as_mut())
                 .map_err(repo_error)?;
         ordering = ordering.saturating_sub(-1);
     }
@@ -259,7 +259,7 @@ fn reverse_all_playlist_entries_tail(
 }
 
 fn load_playlist_entry_records(
-    db: &crate::Connection<'_>,
+    db: &mut crate::Connection<'_>,
     playlist_id: RecordId,
 ) -> RepoResult<Vec<playlist_entry_db::models::QueryableRecord>> {
     use playlist_entry_db::{models::*, schema::*};
@@ -278,14 +278,14 @@ fn load_playlist_entry_records(
             playlist_entry::notes,
         ))
         .order_by(playlist_entry::ordering)
-        .load::<QueryableRecord>(db.as_ref())
+        .load::<QueryableRecord>(db.as_mut())
         .map_err(repo_error)
 }
 
 // TODO: Overwrite remaining default implementations of EntryRepo that are inefficient,
 // e.g. for moving and shuffling playlist entries.
 impl<'db> EntryRepo for crate::Connection<'db> {
-    fn load_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>> {
+    fn load_all_playlist_entries(&mut self, playlist_id: RecordId) -> RepoResult<Vec<Entry>> {
         let records = load_playlist_entry_records(self, playlist_id)?;
         let mut entries = Vec::with_capacity(records.len());
         for record in records {
@@ -296,24 +296,27 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         Ok(entries)
     }
 
-    fn count_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
+    fn count_playlist_entries(&mut self, playlist_id: RecordId) -> RepoResult<usize> {
         use playlist_entry_db::schema::*;
         playlist_entry::table
             .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
             .select(count_star())
-            .first::<i64>(self.as_ref())
+            .first::<i64>(self.as_mut())
             .map(|count| count as usize)
             .map_err(repo_error)
     }
 
-    fn load_playlist_entries_summary(&self, playlist_id: RecordId) -> RepoResult<EntriesSummary> {
+    fn load_playlist_entries_summary(
+        &mut self,
+        playlist_id: RecordId,
+    ) -> RepoResult<EntriesSummary> {
         use playlist_entry_db::schema::*;
         let entries_count = self.count_playlist_entries(playlist_id)?;
         let tracks_count = playlist_entry::table
             .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
             .select(count_star())
             .filter(playlist_entry::track_id.is_not_null())
-            .first::<i64>(self.as_ref())
+            .first::<i64>(self.as_mut())
             .map(|count| count as usize)
             .map_err(repo_error)?;
         debug_assert!(tracks_count <= entries_count);
@@ -322,7 +325,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
                 .select((playlist_entry::added_at, playlist_entry::added_ms))
                 .order_by(playlist_entry::added_ms.asc())
-                .first::<(String, TimestampMillis)>(self.as_ref())
+                .first::<(String, TimestampMillis)>(self.as_mut())
                 .optional()
                 .map(|opt| opt.map(|(at, ms)| parse_datetime(&at, ms)))
                 .map_err(repo_error)?;
@@ -330,7 +333,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
                 .select((playlist_entry::added_at, playlist_entry::added_ms))
                 .order_by(playlist_entry::added_ms.desc())
-                .first::<(String, TimestampMillis)>(self.as_ref())
+                .first::<(String, TimestampMillis)>(self.as_mut())
                 .optional()
                 .map(|opt| opt.map(|(at, ms)| parse_datetime(&at, ms)))
                 .map_err(repo_error)?;
@@ -353,7 +356,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
     }
 
     fn append_playlist_entries(
-        &self,
+        &mut self,
         playlist_id: RecordId,
         new_entries: &[Entry],
     ) -> RepoResult<()> {
@@ -374,7 +377,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 InsertableRecord::bind(playlist_id, track_id, ordering, created_at, entry);
             let rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
-                .execute(self.as_ref())
+                .execute(self.as_mut())
                 .map_err(repo_error)?;
             debug_assert_eq!(1, rows_affected);
         }
@@ -382,7 +385,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
     }
 
     fn prepend_playlist_entries(
-        &self,
+        &mut self,
         playlist_id: RecordId,
         new_entries: &[Entry],
     ) -> RepoResult<()> {
@@ -404,7 +407,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 InsertableRecord::bind(playlist_id, track_id, ordering, created_at, entry);
             let rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
-                .execute(self.as_ref())
+                .execute(self.as_mut())
                 .map_err(repo_error)?;
             debug_assert_eq!(1, rows_affected);
             ordering = ordering.saturating_add(1);
@@ -413,7 +416,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
     }
 
     fn remove_playlist_entries(
-        &self,
+        &mut self,
         playlist_id: RecordId,
         index_range: &Range<usize>,
     ) -> RepoResult<usize> {
@@ -438,28 +441,28 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         let delete_target = playlist_entry::table.filter(
             playlist_entry::row_id.eq_any(
                 delete_row_ids_subselect
-                    .load::<i64>(self.as_ref())
+                    .load::<i64>(self.as_mut())
                     .map_err(repo_error)?,
             ),
         );
         let rows_deleted: usize = diesel::delete(delete_target)
-            .execute(self.as_ref())
+            .execute(self.as_mut())
             .map_err(repo_error)?;
         debug_assert!(rows_deleted <= index_range.len());
         Ok(rows_deleted)
     }
 
-    fn remove_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
+    fn remove_all_playlist_entries(&mut self, playlist_id: RecordId) -> RepoResult<usize> {
         use playlist_entry_db::schema::*;
         let rows_deleted: usize = diesel::delete(
             playlist_entry::table.filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id))),
         )
-        .execute(self.as_ref())
+        .execute(self.as_mut())
         .map_err(repo_error)?;
         Ok(rows_deleted)
     }
 
-    fn reverse_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
+    fn reverse_all_playlist_entries(&mut self, playlist_id: RecordId) -> RepoResult<usize> {
         use playlist_entry_db::schema::*;
         let min_ordering = min_playlist_entry_ordering(self, playlist_id)?;
         let max_ordering = max_playlist_entry_ordering(self, playlist_id)?;
@@ -487,7 +490,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                         .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)));
                     rows_updated = diesel::update(target)
                         .set(playlist_entry::ordering.eq(diesel::dsl::sql("-ordering")))
-                        .execute(self.as_ref())
+                        .execute(self.as_mut())
                         .map_err(repo_error)?;
                 }
                 rows_updated
@@ -501,7 +504,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
     }
 
     fn insert_playlist_entries(
-        &self,
+        &mut self,
         playlist_id: RecordId,
         before_index: usize,
         new_entries: &[Entry],
@@ -520,7 +523,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 .select(playlist_entry::ordering)
                 .order_by(playlist_entry::ordering)
                 .offset(offset - 1)
-                .first::<i64>(self.as_ref())
+                .first::<i64>(self.as_mut())
                 .optional()
                 .map_err(repo_error)?
         } else {
@@ -532,7 +535,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             .select(playlist_entry::ordering)
             .order_by(playlist_entry::ordering)
             .offset(offset)
-            .first::<i64>(self.as_ref())
+            .first::<i64>(self.as_mut())
             .optional()
             .map_err(repo_error)?;
         debug_assert!(new_entries.len() as i64 >= 0);
@@ -578,7 +581,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 InsertableRecord::bind(playlist_id, track_id, ordering, created_at, entry);
             let rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
-                .execute(self.as_ref())
+                .execute(self.as_mut())
                 .map_err(repo_error)?;
             debug_assert_eq!(1, rows_affected);
             ordering = ordering.saturating_add(1);
@@ -587,7 +590,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
     }
 
     fn copy_all_playlist_entries(
-        &self,
+        &mut self,
         source_playlist_id: RecordId,
         target_playlist_id: RecordId,
     ) -> RepoResult<usize> {
@@ -601,7 +604,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 InsertableRecord::bind(target_playlist_id, track_id, ordering, created_at, &entry);
             let rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
-                .execute(self.as_ref())
+                .execute(self.as_mut())
                 .map_err(repo_error)?;
             debug_assert_eq!(1, rows_affected);
         }

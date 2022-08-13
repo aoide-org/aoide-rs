@@ -7,11 +7,11 @@ use aoide_repo::collection::MediaSourceRootUrlFilter;
 use super::*;
 
 pub fn load_one(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     entity_uid: &EntityUid,
     scope: LoadScope,
 ) -> Result<EntityWithSummary> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     let id = repo.resolve_collection_id(entity_uid)?;
     let (record_hdr, entity) = repo.load_collection_entity(id)?;
     let summary = match scope {
@@ -22,14 +22,14 @@ pub fn load_one(
 }
 
 pub fn load_all(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     kind: Option<&str>,
     media_source_root_url: Option<&MediaSourceRootUrlFilter>,
     scope: LoadScope,
     pagination: Option<&Pagination>,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = EntityWithSummary>,
 ) -> Result<()> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     let with_summary = match scope {
         LoadScope::Entity => false,
         LoadScope::EntityWithSummary => true,
@@ -44,7 +44,7 @@ pub fn load_all(
     .map_err(Into::into)
 }
 
-pub fn load_all_kinds(connection: &SqliteConnection) -> Result<Vec<String>> {
-    let repo = RepoConnection::new(connection);
+pub fn load_all_kinds(connection: &mut SqliteConnection) -> Result<Vec<String>> {
+    let mut repo = RepoConnection::new(connection);
     repo.load_all_kinds().map_err(Into::into)
 }

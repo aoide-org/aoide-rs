@@ -36,10 +36,10 @@ impl Fixture {
                 },
             },
         };
-        let db = establish_connection()?;
+        let mut db = establish_connection()?;
         let collection_entity =
             CollectionEntity::new(EntityHeaderTyped::initial_random(), collection);
-        let collection_id = crate::Connection::new(&db)
+        let collection_id = crate::Connection::new(&mut db)
             .insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
         Ok(Self { db, collection_id })
     }
@@ -47,8 +47,8 @@ impl Fixture {
 
 #[test]
 fn update_entry_digest() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut fixture = Fixture::new()?;
+    let mut db = crate::Connection::new(&mut fixture.db);
 
     let updated_at = DateTime::now_utc();
     let collection_id = fixture.collection_id;
@@ -219,8 +219,8 @@ fn update_entry_digest() -> anyhow::Result<()> {
 
 #[test]
 fn reset_entry_status_to_current() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut fixture = Fixture::new()?;
+    let mut db = crate::Connection::new(&mut fixture.db);
 
     let updated_at = DateTime::now_utc();
     let collection_id = fixture.collection_id;

@@ -26,12 +26,11 @@ use aoide_repo::{
 };
 
 struct Fixture {
-    db: SqliteConnection,
     collection_id: CollectionId,
 }
 
 impl Fixture {
-    fn new() -> TestResult<Self> {
+    fn new(db: &mut crate::Connection<'_>) -> TestResult<Self> {
         let collection = Collection {
             title: "Collection".into(),
             notes: None,
@@ -43,19 +42,18 @@ impl Fixture {
                 },
             },
         };
-        let db = establish_connection()?;
         let collection_entity =
             CollectionEntity::new(EntityHeaderTyped::initial_random(), collection);
-        let collection_id = crate::Connection::new(&db)
+        let collection_id = crate::Connection::new(db)
             .insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
-        Ok(Self { db, collection_id })
+        Ok(Self { collection_id })
     }
 
     fn create_media_sources_and_tracks(
         &self,
+        db: &mut crate::Connection<'_>,
         count: usize,
     ) -> RepoResult<Vec<(MediaSourceId, TrackId, TrackUid)>> {
-        let db = crate::Connection::new(&self.db);
         let mut created = Vec::with_capacity(count);
         for i in 0..count {
             let created_at = DateTime::now_local_or_utc();
@@ -97,9 +95,9 @@ impl Fixture {
 
     fn create_playlists_with_track_entries(
         &self,
+        db: &mut crate::Connection<'_>,
         track_count: usize,
     ) -> RepoResult<EntityWithEntries> {
-        let db = crate::Connection::new(&self.db);
         let created_at = DateTime::now_local_or_utc();
         let playlist = Playlist {
             collected_at: created_at,
@@ -112,7 +110,7 @@ impl Fixture {
         let playlist_entity = Entity::new(EntityHeaderTyped::initial_random(), playlist);
         let playlist_id =
             db.insert_playlist_entity(self.collection_id, DateTime::now_utc(), &playlist_entity)?;
-        let media_sources_and_tracks = self.create_media_sources_and_tracks(track_count)?;
+        let media_sources_and_tracks = self.create_media_sources_and_tracks(db, track_count)?;
         let mut playlist_entries = Vec::with_capacity(track_count);
         for (i, (_, _, track_uid)) in media_sources_and_tracks.into_iter().enumerate() {
             let entry = Entry {
@@ -148,11 +146,12 @@ fn new_separator_entry_with_title(title: String) -> Entry {
 
 #[test]
 fn prepend_append_entries() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let track_count = 100;
-    let entity_with_entries = fixture.create_playlists_with_track_entries(track_count)?;
+    let entity_with_entries = fixture.create_playlists_with_track_entries(&mut db, track_count)?;
     let (entity_header, playlist_with_entries) = entity_with_entries.into();
     let track_entries = playlist_with_entries.entries;
     assert_eq!(track_count, track_entries.len());
@@ -190,11 +189,12 @@ fn prepend_append_entries() -> anyhow::Result<()> {
 
 #[test]
 fn should_not_modify_entries_when_moving_empty_ranges() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let track_count = 10;
-    let entity_with_entries = fixture.create_playlists_with_track_entries(track_count)?;
+    let entity_with_entries = fixture.create_playlists_with_track_entries(&mut db, track_count)?;
     let (entity_header, playlist_with_entries) = entity_with_entries.into();
     let track_entries = playlist_with_entries.entries;
     assert_eq!(track_count, track_entries.len());
@@ -250,11 +250,12 @@ fn should_not_modify_entries_when_moving_empty_ranges() -> anyhow::Result<()> {
 
 #[test]
 fn should_not_modify_entries_when_removing_empty_ranges() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let track_count = 10;
-    let entity_with_entries = fixture.create_playlists_with_track_entries(track_count)?;
+    let entity_with_entries = fixture.create_playlists_with_track_entries(&mut db, track_count)?;
     let (entity_header, playlist_with_entries) = entity_with_entries.into();
     let track_entries = playlist_with_entries.entries;
     assert_eq!(track_count, track_entries.len());
@@ -275,11 +276,12 @@ fn should_not_modify_entries_when_removing_empty_ranges() -> anyhow::Result<()> 
 
 #[test]
 fn should_not_modify_entries_when_moving_by_zero_delta() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let track_count = 10;
-    let entity_with_entries = fixture.create_playlists_with_track_entries(track_count)?;
+    let entity_with_entries = fixture.create_playlists_with_track_entries(&mut db, track_count)?;
     let (entity_header, playlist_with_entries) = entity_with_entries.into();
     let track_entries = playlist_with_entries.entries;
     assert_eq!(track_count, track_entries.len());
@@ -303,11 +305,12 @@ fn should_not_modify_entries_when_moving_by_zero_delta() -> anyhow::Result<()> {
 
 #[test]
 fn move_entries_forward() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let track_count = 10;
-    let entity_with_entries = fixture.create_playlists_with_track_entries(track_count)?;
+    let entity_with_entries = fixture.create_playlists_with_track_entries(&mut db, track_count)?;
     let (entity_header, playlist_with_entries) = entity_with_entries.into();
     let track_entries = playlist_with_entries.entries;
     assert_eq!(track_count, track_entries.len());
@@ -348,11 +351,12 @@ fn move_entries_forward() -> anyhow::Result<()> {
 
 #[test]
 fn move_entries_forward_beyond_last_element() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let track_count = 10;
-    let entity_with_entries = fixture.create_playlists_with_track_entries(track_count)?;
+    let entity_with_entries = fixture.create_playlists_with_track_entries(&mut db, track_count)?;
     let (entity_header, playlist_with_entries) = entity_with_entries.into();
     let track_entries = playlist_with_entries.entries;
     assert_eq!(track_count, track_entries.len());
@@ -393,11 +397,12 @@ fn move_entries_forward_beyond_last_element() -> anyhow::Result<()> {
 
 #[test]
 fn move_entries_backward() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let track_count = 10;
-    let entity_with_entries = fixture.create_playlists_with_track_entries(track_count)?;
+    let entity_with_entries = fixture.create_playlists_with_track_entries(&mut db, track_count)?;
     let (entity_header, playlist_with_entries) = entity_with_entries.into();
     let track_entries = playlist_with_entries.entries;
     assert_eq!(track_count, track_entries.len());
@@ -439,17 +444,19 @@ fn move_entries_backward() -> anyhow::Result<()> {
 
 #[test]
 fn copy_all_entries() -> anyhow::Result<()> {
-    let fixture = Fixture::new()?;
-    let db = crate::Connection::new(&fixture.db);
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
 
     let track_count = 10;
-    let source_entity_with_entries = fixture.create_playlists_with_track_entries(track_count)?;
+    let source_entity_with_entries =
+        fixture.create_playlists_with_track_entries(&mut db, track_count)?;
     let (source_entity_header, source_playlist_with_entries) = source_entity_with_entries.into();
     let source_playlist_id = db.resolve_playlist_id(&source_entity_header.uid)?;
     let source_entries = source_playlist_with_entries.entries;
     assert_eq!(track_count, source_entries.len());
 
-    let target_entity_with_entries = fixture.create_playlists_with_track_entries(0)?;
+    let target_entity_with_entries = fixture.create_playlists_with_track_entries(&mut db, 0)?;
     let (target_entity_header, target_playlist_with_entries) = target_entity_with_entries.into();
     let target_playlist_id = db.resolve_playlist_id(&target_entity_header.uid)?;
     let target_entries = target_playlist_with_entries.entries;

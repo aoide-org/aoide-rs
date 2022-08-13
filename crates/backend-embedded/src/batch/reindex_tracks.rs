@@ -3,7 +3,8 @@
 
 use std::{num::NonZeroU64, sync::Arc};
 
-use diesel::Connection as _;
+//FIXME: Add transactions after upgrading to diesel v2.0
+//use diesel::Connection as _;
 use tantivy::{
     query::{AllQuery, Query as _},
     IndexWriter,
@@ -54,8 +55,8 @@ pub async fn reindex_tracks(
     // write although we only read. The connection is locked
     // for the whole operation!
     db_gatekeeper
-        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
+        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+            let connection = &mut *pooled_connection;
             let search_params = aoide_core_api::track::search::Params {
                 ordering: vec![SortOrder {
                     field: SortField::UpdatedAt,
@@ -79,70 +80,71 @@ pub async fn reindex_tracks(
             let mut collector = EntityCollector::new(Vec::with_capacity(batch_size.get() as usize));
             // Last timestamp to consider for updates
             let mut last_updated_at: Option<DateTime> = None;
-            connection.transaction::<_, anyhow::Error, _>(|| {
-                'batch_loop: loop {
-                    let pagination = Pagination {
-                        offset: Some(offset),
-                        limit: Some(batch_size.get()),
-                    };
-                    aoide_usecases_sqlite::track::search::search(
-                        &*pooled_connection,
-                        &collection_uid,
-                        search_params.clone(),
-                        &pagination,
-                        &mut collector,
-                    )?;
-                    let mut entities = collector.finish();
-                    if entities.is_empty() {
-                        break;
-                    }
-                    for entity in &entities {
-                        match mode {
-                            IndexingMode::All => (),
-                            IndexingMode::RecentlyUpdated => {
-                                if let Some(rev) = track_fields
-                                    .find_rev_by_uid(&index_searcher, &entity.hdr.uid)?
-                                {
-                                    if rev < entity.hdr.rev {
-                                        let term = track_fields.uid_term(&entity.hdr.uid);
-                                        index_writer.delete_term(term);
-                                    } else {
-                                        debug_assert_eq!(rev, entity.hdr.rev);
-                                        // After approaching the first unmodified entity all entities
-                                        // with an updated_at timestamp strictly less than the current
-                                        // one are guaranteed to be unmodified. But we still need to
-                                        // consider all entities with the same timestamp to be sure.
-                                        if let Some(last_updated_at) = last_updated_at {
-                                            if entity.body.updated_at < last_updated_at {
-                                                // No more updated entities expected to follow
-                                                break 'batch_loop;
-                                            }
-                                        } else {
-                                            // Initialize the high watermark that will eventually
-                                            // terminate the loop.
-                                            last_updated_at = Some(entity.body.updated_at);
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            //connection.transaction::<_, anyhow::Error, _>(|connection| {
+            'batch_loop: loop {
+                let pagination = Pagination {
+                    offset: Some(offset),
+                    limit: Some(batch_size.get()),
+                };
+                aoide_usecases_sqlite::track::search::search(
+                    connection,
+                    &collection_uid,
+                    search_params.clone(),
+                    &pagination,
+                    &mut collector,
+                )?;
+                let mut entities = collector.finish();
+                if entities.is_empty() {
+                    break;
+                }
+                for entity in &entities {
+                    match mode {
+                        IndexingMode::All => (),
+                        IndexingMode::RecentlyUpdated => {
+                            if let Some(rev) =
+                                track_fields.find_rev_by_uid(&index_searcher, &entity.hdr.uid)?
+                            {
+                                if rev < entity.hdr.rev {
+                                    let term = track_fields.uid_term(&entity.hdr.uid);
+                                    index_writer.delete_term(term);
+                                } else {
+                                    debug_assert_eq!(rev, entity.hdr.rev);
+                                    // After approaching the first unmodified entity all entities
+                                    // with an updated_at timestamp strictly less than the current
+                                    // one are guaranteed to be unmodified. But we still need to
+                                    // consider all entities with the same timestamp to be sure.
+                                    if let Some(last_updated_at) = last_updated_at {
+                                        if entity.body.updated_at < last_updated_at {
+                                            // No more updated entities expected to follow
+                                            break 'batch_loop;
                                         }
-                                        // Skip and continue with next entity
-                                        offset += 1;
-                                        continue;
+                                    } else {
+                                        // Initialize the high watermark that will eventually
+                                        // terminate the loop.
+                                        last_updated_at = Some(entity.body.updated_at);
                                     }
+                                    // Skip and continue with next entity
+                                    offset += 1;
+                                    continue;
                                 }
                             }
                         }
-                        // TODO: Load play counter
-                        let play_counter = None;
-                        let doc = track_fields.create_document(entity, play_counter);
-                        index_writer.add_document(doc)?;
-                        offset += 1;
                     }
-                    // Reuse the capacity of the allocated entities for the next round
-                    entities.clear();
-                    collector = EntityCollector::new(entities);
-                    progress_fn(offset);
+                    // TODO: Load play counter
+                    let play_counter = None;
+                    let doc = track_fields.create_document(entity, play_counter);
+                    index_writer.add_document(doc)?;
+                    offset += 1;
                 }
-                index_writer.commit()?;
-                Ok(offset)
-            })
+                // Reuse the capacity of the allocated entities for the next round
+                entities.clear();
+                collector = EntityCollector::new(entities);
+                progress_fn(offset);
+            }
+            index_writer.commit()?;
+            Ok(offset)
+            //})
         })
         .await
         .map_err(Into::into)

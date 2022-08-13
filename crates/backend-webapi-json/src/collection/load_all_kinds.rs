@@ -7,6 +7,9 @@ use super::*;
 
 pub type ResponseBody = Vec<String>;
 
-pub fn handle_request(connection: &SqliteConnection) -> Result<ResponseBody> {
-    connection.transaction::<_, Error, _>(|| uc::load_all_kinds(connection).map_err(Into::into))
+pub fn handle_request(connection: &mut SqliteConnection) -> Result<ResponseBody> {
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection|
+    uc::load_all_kinds(connection).map_err(Into::into)
+    //)
 }

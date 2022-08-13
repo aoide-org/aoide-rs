@@ -14,19 +14,19 @@ pub type RequestBody = Vec<String>;
 pub type ResponseBody = Vec<(String, EntityHeader)>;
 
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    connection
-        .transaction::<_, Error, _>(|| {
-            uc::resolve_by_media_source_content_paths(
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::resolve_by_media_source_content_paths(
                 connection,
                 collection_uid,
                 request_body.into_iter().map(Into::into).collect(),
             )
             .map_err(Into::into)
-        })
+        //})
         .map(|v| {
             v.into_iter()
                 .map(|(content_path, hdr)| (content_path, hdr.into()))

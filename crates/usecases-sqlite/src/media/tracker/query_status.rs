@@ -10,10 +10,10 @@ mod uc {
 }
 
 pub fn query_status(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Status> {
-    let repo = RepoConnection::new(connection);
-    uc::query_status(&repo, collection_uid, params).map_err(Into::into)
+    let mut repo = RepoConnection::new(connection);
+    uc::query_status(&mut repo, collection_uid, params).map_err(Into::into)
 }

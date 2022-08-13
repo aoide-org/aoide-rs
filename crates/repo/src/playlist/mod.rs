@@ -21,10 +21,10 @@ pub type RecordHeader = crate::RecordHeader<RecordId>;
 pub trait EntityRepo: EntryRepo {
     entity_repo_trait_common_functions!(RecordId, Entity, EntityUid, EntityHeader, Playlist);
 
-    fn load_playlist_entity_with_entries(&self, id: RecordId) -> RepoResult<EntityWithEntries>;
+    fn load_playlist_entity_with_entries(&mut self, id: RecordId) -> RepoResult<EntityWithEntries>;
 
     fn load_playlist_entity_with_entries_summary(
-        &self,
+        &mut self,
         playlist_id: RecordId,
     ) -> RepoResult<(RecordHeader, Entity, EntriesSummary)> {
         let (record_header, entity) = self.load_playlist_entity(playlist_id)?;
@@ -35,14 +35,14 @@ pub trait EntityRepo: EntryRepo {
 
 pub trait CollectionRepo {
     fn insert_playlist_entity(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         created_at: DateTime,
         created_entity: &Entity,
     ) -> RepoResult<RecordId>;
 
     fn load_playlist_entities_with_entries_summary(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         kind: Option<&str>,
         pagination: Option<&Pagination>,
@@ -57,7 +57,7 @@ pub trait CollectionRepo {
 ///
 /// This default implementation works but is probably inefficient.
 fn prepend_playlist_entries_default<R: EntryRepo + ?Sized>(
-    entry_repo: &R,
+    entry_repo: &mut R,
     playlist_id: RecordId,
     new_entries: &[Entry],
 ) -> RepoResult<()> {
@@ -68,7 +68,7 @@ fn prepend_playlist_entries_default<R: EntryRepo + ?Sized>(
 ///
 /// This default implementation works but is probably inefficient.
 fn append_playlist_entries_default<R: EntryRepo + ?Sized>(
-    entry_repo: &R,
+    entry_repo: &mut R,
     playlist_id: RecordId,
     new_entries: &[Entry],
 ) -> RepoResult<()> {
@@ -83,7 +83,7 @@ fn append_playlist_entries_default<R: EntryRepo + ?Sized>(
 ///
 /// This default implementation works but is probably inefficient.
 fn move_playlist_entries_default<R: EntryRepo + ?Sized>(
-    entry_repo: &R,
+    entry_repo: &mut R,
     playlist_id: RecordId,
     index_range: &Range<usize>,
     delta_index: isize,
@@ -111,7 +111,7 @@ fn move_playlist_entries_default<R: EntryRepo + ?Sized>(
 ///
 /// This default implementation works but is probably inefficient.
 fn remove_all_playlist_entries_default<R: EntryRepo + ?Sized>(
-    entry_repo: &R,
+    entry_repo: &mut R,
     playlist_id: RecordId,
 ) -> RepoResult<usize> {
     let entries_count = entry_repo.count_playlist_entries(playlist_id)?;
@@ -125,7 +125,7 @@ fn remove_all_playlist_entries_default<R: EntryRepo + ?Sized>(
 ///
 /// This default implementation works but is probably inefficient.
 fn shuffle_all_playlist_entries_default<R: EntryRepo + ?Sized>(
-    entry_repo: &R,
+    entry_repo: &mut R,
     playlist_id: RecordId,
 ) -> RepoResult<()> {
     let mut entries = entry_repo.load_all_playlist_entries(playlist_id)?;
@@ -137,20 +137,20 @@ fn shuffle_all_playlist_entries_default<R: EntryRepo + ?Sized>(
 
 pub trait EntryRepo {
     fn insert_playlist_entries(
-        &self,
+        &mut self,
         playlist_id: RecordId,
         before_index: usize,
         new_entries: &[Entry],
     ) -> RepoResult<()>;
 
     fn remove_playlist_entries(
-        &self,
+        &mut self,
         playlist_id: RecordId,
         index_range: &Range<usize>,
     ) -> RepoResult<usize>;
 
     fn prepend_playlist_entries(
-        &self,
+        &mut self,
         playlist_id: RecordId,
         new_entries: &[Entry],
     ) -> RepoResult<()> {
@@ -158,7 +158,7 @@ pub trait EntryRepo {
     }
 
     fn append_playlist_entries(
-        &self,
+        &mut self,
         playlist_id: RecordId,
         new_entries: &[Entry],
     ) -> RepoResult<()> {
@@ -166,7 +166,7 @@ pub trait EntryRepo {
     }
 
     fn move_playlist_entries(
-        &self,
+        &mut self,
         playlist_id: RecordId,
         index_range: &Range<usize>,
         delta_index: isize,
@@ -174,13 +174,13 @@ pub trait EntryRepo {
         move_playlist_entries_default(self, playlist_id, index_range, delta_index)
     }
 
-    fn remove_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
+    fn remove_all_playlist_entries(&mut self, playlist_id: RecordId) -> RepoResult<usize> {
         remove_all_playlist_entries_default(self, playlist_id)
     }
 
-    fn reverse_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize>;
+    fn reverse_all_playlist_entries(&mut self, playlist_id: RecordId) -> RepoResult<usize>;
 
-    fn shuffle_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<()> {
+    fn shuffle_all_playlist_entries(&mut self, playlist_id: RecordId) -> RepoResult<()> {
         shuffle_all_playlist_entries_default(self, playlist_id)
     }
 
@@ -190,16 +190,19 @@ pub trait EntryRepo {
     /// already contains entries copying may fail and the ordering of existing
     /// and copied entries is undefined.
     fn copy_all_playlist_entries(
-        &self,
+        &mut self,
         source_playlist_id: RecordId,
         target_playlist_id: RecordId,
     ) -> RepoResult<usize>;
 
-    fn count_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize>;
+    fn count_playlist_entries(&mut self, playlist_id: RecordId) -> RepoResult<usize>;
 
-    fn load_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>>;
+    fn load_all_playlist_entries(&mut self, playlist_id: RecordId) -> RepoResult<Vec<Entry>>;
 
-    fn load_playlist_entries_summary(&self, playlist_id: RecordId) -> RepoResult<EntriesSummary>;
+    fn load_playlist_entries_summary(
+        &mut self,
+        playlist_id: RecordId,
+    ) -> RepoResult<EntriesSummary>;
 }
 
 #[derive(Debug, Default)]

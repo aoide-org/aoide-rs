@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::Connection as _;
+//FIXME: Add transactions after upgrading to diesel v2.0
+//use diesel::Connection as _;
 
 use aoide_core::playlist::EntityHeader;
 use aoide_core_api::playlist::EntityWithEntriesSummary;
@@ -17,16 +18,13 @@ pub async fn patch(
         + 'static,
 ) -> Result<EntityWithEntriesSummary> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-            let connection = &*pooled_connection;
-            connection.transaction::<_, Error, _>(|| {
-                aoide_usecases_sqlite::playlist::entries::patch(
-                    &*pooled_connection,
-                    &entity_header,
-                    operations,
-                )
+        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+            //FIXME: Add transactions after upgrading to diesel v2.0
+            let connection = &mut *pooled_connection;
+            //connection.transaction::<_, Error, _>(|connection| {
+            aoide_usecases_sqlite::playlist::entries::patch(connection, &entity_header, operations)
                 .map(|(_, x)| x)
-            })
+            //})
         })
         .await
         .map_err(Into::into)

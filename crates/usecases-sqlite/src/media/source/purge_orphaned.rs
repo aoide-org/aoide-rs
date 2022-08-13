@@ -10,10 +10,10 @@ mod uc {
 }
 
 pub fn purge_orphaned(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Outcome> {
-    let repo = RepoConnection::new(connection);
-    uc::purge_orphaned(&repo, collection_uid, params).map_err(Into::into)
+    let mut repo = RepoConnection::new(connection);
+    uc::purge_orphaned(&mut repo, collection_uid, params).map_err(Into::into)
 }

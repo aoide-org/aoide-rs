@@ -22,12 +22,12 @@ pub enum PatchOperation {
 }
 
 pub fn patch(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     entity_header: &EntityHeader,
     operations: impl IntoIterator<Item = PatchOperation>,
 ) -> Result<(RecordHeader, EntityWithEntriesSummary)> {
     let updated_at = DateTime::now_utc();
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     let (record_header, next_rev) =
         repo.touch_playlist_entity_revision(entity_header, updated_at)?;
     for operation in operations {

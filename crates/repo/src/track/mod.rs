@@ -57,50 +57,50 @@ pub struct ReplaceParams {
 }
 
 pub trait EntityRepo {
-    fn resolve_track_id(&self, uid: &EntityUid) -> RepoResult<RecordId>;
+    fn resolve_track_id(&mut self, uid: &EntityUid) -> RepoResult<RecordId>;
 
-    fn load_track_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)>;
+    fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Entity)>;
 
-    fn load_track_entity_by_uid(&self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)>;
+    fn load_track_entity_by_uid(&mut self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)>;
 
     fn insert_track_entity(
-        &self,
+        &mut self,
         media_source_id: MediaSourceId,
         created_entity: &Entity,
     ) -> RepoResult<RecordId>;
 
     fn update_track_entity(
-        &self,
+        &mut self,
         id: RecordId,
         media_source_id: MediaSourceId,
         updated_entity: &Entity,
     ) -> RepoResult<()>;
 
-    fn purge_track_entity(&self, id: RecordId) -> RepoResult<()>;
+    fn purge_track_entity(&mut self, id: RecordId) -> RepoResult<()>;
 }
 
 pub trait CollectionRepo {
     fn load_track_entity_by_media_source_content_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)>;
 
     fn resolve_track_entity_header_by_media_source_content_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)>;
 
     fn replace_track_by_media_source_content_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         params: ReplaceParams,
         track: Track,
     ) -> RepoResult<ReplaceOutcome>;
 
     fn search_tracks(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         pagination: &Pagination,
         filter: Option<Filter>,
@@ -108,16 +108,16 @@ pub trait CollectionRepo {
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
     ) -> RepoResult<usize>;
 
-    fn count_tracks(&self, collection_id: CollectionId) -> RepoResult<u64>;
+    fn count_tracks(&mut self, collection_id: CollectionId) -> RepoResult<u64>;
 
     fn purge_tracks_by_media_source_content_path_predicate(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
     fn find_unsynchronized_tracks(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         pagination: &Pagination,
         content_path_predicate: Option<StringPredicateBorrowed<'_>>,

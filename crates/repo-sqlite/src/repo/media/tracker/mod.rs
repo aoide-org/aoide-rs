@@ -32,7 +32,7 @@ struct StatusCountRow {
 
 impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_update_directories_status(
-        &self,
+        &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
@@ -53,11 +53,11 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 media_tracker_directory::status.eq(old_status.to_i16().expect("old_status")),
             );
         }
-        query.execute(self.as_ref()).map_err(repo_error)
+        query.execute(self.as_mut()).map_err(repo_error)
     }
 
     fn media_tracker_untrack_directories(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
         status: Option<DirTrackingStatus>,
@@ -73,10 +73,10 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             diesel::delete(media_tracker_source::table.filter(
                 media_tracker_source::directory_id.eq_any(subselect.filter(status_filter)),
             ))
-            .execute(self.as_ref())
+            .execute(self.as_mut())
             .map_err(repo_error)?;
             diesel::delete(target.filter(status_filter))
-                .execute(self.as_ref())
+                .execute(self.as_mut())
                 .map_err(repo_error)
         } else {
             // Any status
@@ -84,16 +84,16 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 media_tracker_source::table
                     .filter(media_tracker_source::directory_id.eq_any(subselect)),
             )
-            .execute(self.as_ref())
+            .execute(self.as_mut())
             .map_err(repo_error)?;
             diesel::delete(target)
-                .execute(self.as_ref())
+                .execute(self.as_mut())
                 .map_err(repo_error)
         }
     }
 
     fn media_tracker_update_directory_digest(
-        &self,
+        &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
         content_path: &ContentPath,
@@ -120,7 +120,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             media_tracker_directory::status
                 .eq(DirTrackingStatus::Current.to_i16().expect("current")),
         ));
-        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected > 0 {
             return Ok(DirUpdateOutcome::Current);
@@ -136,7 +136,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 .eq(DirTrackingStatus::Modified.to_i16().expect("modified")),
             media_tracker_directory::digest.eq(&digest[..]),
         ));
-        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected > 0 {
             return Ok(DirUpdateOutcome::Updated);
@@ -151,7 +151,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         );
         let query =
             diesel::insert_or_ignore_into(media_tracker_directory::table).values(&insertable);
-        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected > 0 {
             return Ok(DirUpdateOutcome::Inserted);
@@ -162,7 +162,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     }
 
     fn media_tracker_replace_directory_sources(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         directory_path: &ContentPath,
         media_source_ids: &[MediaSourceId],
@@ -171,12 +171,12 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .select(media_tracker_directory::row_id)
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(media_tracker_directory::content_path.eq(directory_path.as_ref()))
-            .first::<RowId>(self.as_ref())
+            .first::<RowId>(self.as_mut())
             .map_err(repo_error)?;
         let target =
             media_tracker_source::table.filter(media_tracker_source::directory_id.eq(directory_id));
         let removed = diesel::delete(target)
-            .execute(self.as_ref())
+            .execute(self.as_mut())
             .map_err(repo_error)?;
         let mut added = 0;
         for media_source_id in media_source_ids {
@@ -185,7 +185,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                     media_tracker_source::directory_id.eq(directory_id),
                     media_tracker_source::source_id.eq(RowId::from(*media_source_id)),
                 ))
-                .execute(self.as_ref())
+                .execute(self.as_mut())
                 .map_err(repo_error)?;
         }
         debug_assert_eq!(media_source_ids.len(), added);
@@ -193,7 +193,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     }
 
     fn media_tracker_confirm_directory(
-        &self,
+        &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
         directory_path: &ContentPath,
@@ -209,13 +209,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             media_tracker_directory::status
                 .eq(DirTrackingStatus::Current.to_i16().expect("current")),
         ));
-        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         Ok(rows_affected > 0)
     }
 
     fn media_tracker_load_directory_tracking_status(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path: &ContentPath,
     ) -> RepoResult<DirTrackingStatus> {
@@ -224,13 +224,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .select(media_tracker_directory::status)
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(media_tracker_directory::content_path.eq(content_path.as_ref()))
-            .first::<i16>(self.as_ref())
+            .first::<i16>(self.as_mut())
             .map_err(repo_error)
             .map(|val| DirTrackingStatus::from_i16(val).expect("DirTrackingStatus"))
     }
 
     fn media_tracker_aggregate_directories_tracking_status(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_prefix: &ContentPath,
     ) -> RepoResult<DirectoriesStatus> {
@@ -242,7 +242,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .filter(sql_column_substr_prefix_eq("content_path", content_path_prefix))
             // TODO: Replace with group_by() when available
             .filter(diesel::dsl::sql("TRUE GROUP BY status ORDER BY status"))
-            .load::<(i16, usize)>(self.as_ref())
+            .load::<(i16, usize)>(self.as_mut())
         */
         let sql = format!(
             "SELECT status, COUNT(*) as count \
@@ -255,7 +255,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             escaped_path_prefix = escape_single_quotes(content_path_prefix),
         );
         diesel::dsl::sql_query(sql)
-            .load::<StatusCountRow>(self.as_ref())
+            .load::<StatusCountRow>(self.as_mut())
             .map_err(repo_error)
             .map(|v| {
                 v.into_iter()
@@ -292,7 +292,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     }
 
     fn media_tracker_load_directories_requiring_confirmation(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         content_path_prefix: &ContentPath,
         pagination: &Pagination,
@@ -319,7 +319,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         }
         let query = apply_pagination(query, pagination);
         let records = query
-            .load::<QueryableRecord>(self.as_ref())
+            .load::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (valid, errors): (Vec<_>, _) = records
             .into_iter()
@@ -333,7 +333,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     }
 
     fn media_tracker_relink_source(
-        &self,
+        &mut self,
         old_source_id: MediaSourceId,
         new_source_id: MediaSourceId,
     ) -> RepoResult<bool> {
@@ -343,7 +343,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             media_tracker_source::table
                 .filter(media_tracker_source::source_id.eq(RowId::from(old_source_id))),
         )
-        .execute(self.as_ref())
+        .execute(self.as_mut())
         .map_err(repo_error)?;
         debug_assert!(rows_deleted <= 1);
         // Replace all references of new_source_id with old_source_id
@@ -351,13 +351,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .filter(media_tracker_source::source_id.eq(RowId::from(new_source_id)));
         let query = diesel::update(target)
             .set(media_tracker_source::source_id.eq(RowId::from(old_source_id)));
-        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         Ok(rows_affected > 0)
     }
 
     fn media_tracker_find_untracked_sources(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
     ) -> RepoResult<Vec<MediaSourceId>> {
@@ -373,13 +373,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                     .ne_all(media_tracker_source::table.select(media_tracker_source::source_id)),
             );
         untracked_sources_query
-            .load::<RowId>(self.as_ref())
+            .load::<RowId>(self.as_mut())
             .map_err(repo_error)
             .map(|v| v.into_iter().map(MediaSourceId::new).collect())
     }
 
     fn media_tracker_resolve_source_id_synchronized_at_by_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path: &ContentPath,
     ) -> RepoResult<(MediaSourceId, Option<u64>)> {
@@ -393,7 +393,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                     .eq_any(media_tracker_source::table.select(media_tracker_source::source_id)),
             );
         tracked_source_query
-            .first::<(RowId, Option<i64>)>(self.as_ref())
+            .first::<(RowId, Option<i64>)>(self.as_mut())
             .map_err(repo_error)
             .map(|(row_id, content_link_rev)| {
                 (row_id.into(), content_link_rev.map(|rev| rev as u64))

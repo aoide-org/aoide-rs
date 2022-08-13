@@ -52,7 +52,7 @@ impl From<DirUpdateOutcome> for DirTrackingStatus {
 
 pub trait Repo {
     fn media_tracker_update_directories_status(
-        &self,
+        &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
@@ -61,7 +61,7 @@ pub trait Repo {
     ) -> RepoResult<usize>;
 
     fn media_tracker_update_directory_digest(
-        &self,
+        &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
         path: &ContentPath,
@@ -69,7 +69,7 @@ pub trait Repo {
     ) -> RepoResult<DirUpdateOutcome>;
 
     fn media_tracker_untrack_directories(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
         status: Option<DirTrackingStatus>,
@@ -79,13 +79,13 @@ pub trait Repo {
     /// them with new_source_id, i.e. new_source_id disappears and
     /// old_source_id takes over.
     fn media_tracker_relink_source(
-        &self,
+        &mut self,
         old_source_id: MediaSourceId,
         new_source_id: MediaSourceId,
     ) -> RepoResult<bool>;
 
     fn media_tracker_purge_orphaned_directories(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
     ) -> RepoResult<usize> {
@@ -99,7 +99,7 @@ pub trait Repo {
     /// Mark all current entries as outdated before starting
     /// a directory traversal with calculating new digests.
     fn media_tracker_mark_current_directories_outdated(
-        &self,
+        &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
@@ -116,7 +116,7 @@ pub trait Repo {
     /// Mark all outdated entries that have not been visited
     /// as orphaned.
     fn media_tracker_mark_outdated_directories_orphaned(
-        &self,
+        &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
@@ -135,14 +135,14 @@ pub trait Repo {
     /// Load pending entries, oldest first. Optionally entries can be
     /// filtered by URI prefix.
     fn media_tracker_load_directories_requiring_confirmation(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>>;
 
     fn media_tracker_replace_directory_sources(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path: &ContentPath,
         media_source_ids: &[MediaSourceId],
@@ -156,7 +156,7 @@ pub trait Repo {
     /// Returns true if the entry has been confirmed and is now considered
     /// current. Returns false if the operation has been rejected.
     fn media_tracker_confirm_directory(
-        &self,
+        &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
         directory_path: &ContentPath,
@@ -164,25 +164,25 @@ pub trait Repo {
     ) -> RepoResult<bool>;
 
     fn media_tracker_load_directory_tracking_status(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         directory_path: &ContentPath,
     ) -> RepoResult<DirTrackingStatus>;
 
     fn media_tracker_aggregate_directories_tracking_status(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
     ) -> RepoResult<DirectoriesStatus>;
 
     fn media_tracker_find_untracked_sources(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path_prefix: &ContentPath,
     ) -> RepoResult<Vec<MediaSourceId>>;
 
     fn media_tracker_resolve_source_id_synchronized_at_by_path(
-        &self,
+        &mut self,
         collection_id: CollectionId,
         path: &ContentPath,
     ) -> RepoResult<(MediaSourceId, Option<u64>)>;

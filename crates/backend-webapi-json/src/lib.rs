@@ -20,7 +20,9 @@
 
 use std::result::Result as StdResult;
 
-use diesel::{prelude::SqliteConnection, Connection as _};
+//FIXME: Add transactions after upgrading to diesel v2.0
+//use diesel::{prelude::SqliteConnection, Connection as _};
+use diesel::prelude::SqliteConnection;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;

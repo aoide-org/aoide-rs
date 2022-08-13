@@ -42,7 +42,7 @@ pub enum Completion {
 
 pub fn replace_collected_track_by_media_source_content_path<Repo>(
     summary: &mut Summary,
-    repo: &Repo,
+    repo: &mut Repo,
     collection_id: CollectionId,
     params: ReplaceParams,
     track: ValidatedInput,
@@ -104,7 +104,7 @@ where
 
 #[cfg(not(target_family = "wasm"))]
 pub fn replace_many_by_media_source_content_path<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &Params,
     validated_track_iter: impl IntoIterator<Item = ValidatedInput>,

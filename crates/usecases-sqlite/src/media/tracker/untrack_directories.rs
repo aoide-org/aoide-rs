@@ -10,10 +10,10 @@ mod uc {
 }
 
 pub fn untrack_directories(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: &Params,
 ) -> Result<Outcome> {
-    let repo = RepoConnection::new(connection);
-    uc::untrack_directories(&repo, collection_uid, params).map_err(Into::into)
+    let mut repo = RepoConnection::new(connection);
+    uc::untrack_directories(&mut repo, collection_uid, params).map_err(Into::into)
 }

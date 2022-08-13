@@ -131,7 +131,7 @@ pub type ResponseBody = Outcome;
     )
 )]
 pub fn handle_request(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     query_params: QueryParams,
     request_body: RequestBody,
@@ -157,9 +157,9 @@ pub fn handle_request(
         replace_mode: replace_mode.into(),
     };
     let expected_content_path_count = request_body.len();
-    connection
-        .transaction::<_, Error, _>(|| {
-            uc::import_and_replace_many_by_local_file_path(
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::import_and_replace_many_by_local_file_path(
                 connection,
                 collection_uid,
                 &params,
@@ -168,6 +168,6 @@ pub fn handle_request(
                 abort_flag,
             )
             .map_err(Into::into)
-        })
+        //})
         .map(Into::into)
 }

@@ -8,7 +8,7 @@ use aoide_core::track::EntityHeader;
 use aoide_repo::{collection::RecordId as CollectionId, track::CollectionRepo};
 
 pub fn resolve_by_media_source_content_paths<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_id: CollectionId,
     content_paths: Vec<String>,
 ) -> RepoResult<Vec<(String, EntityHeader)>>

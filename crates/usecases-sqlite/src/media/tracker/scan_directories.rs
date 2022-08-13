@@ -12,15 +12,15 @@ mod uc {
 }
 
 pub fn scan_directories<ReportProgressFn: FnMut(uc::ProgressEvent)>(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: &FsTraversalParams,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     uc::scan_directories(
-        &repo,
+        &mut repo,
         collection_uid,
         params,
         report_progress_fn,

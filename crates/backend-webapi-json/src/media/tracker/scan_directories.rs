@@ -26,7 +26,7 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::scan_directories::O
     )
 )]
 pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     request_body: RequestBody,
     report_progress_fn: &mut ReportProgressFn,
@@ -36,9 +36,9 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
         .try_into()
         .map_err(Into::into)
         .map_err(Error::BadRequest)?;
-    connection
-        .transaction::<_, Error, _>(|| {
-            uc::scan_directories(
+    //FIXME: Add transactions after upgrading to diesel v2.0
+    //connection.transaction::<_, Error, _>(|connection| {
+    uc::scan_directories(
                 connection,
                 collection_uid,
                 &params,
@@ -46,6 +46,6 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
                 abort_flag,
             )
             .map_err(Into::into)
-        })
+        //})
         .map(Into::into)
 }

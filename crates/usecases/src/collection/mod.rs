@@ -31,7 +31,7 @@ pub fn create_entity(new_collection: Collection) -> Result<Entity> {
     Ok(entity)
 }
 
-pub fn store_created_entity(repo: &impl EntityRepo, entity: &Entity) -> Result<()> {
+pub fn store_created_entity(repo: &mut impl EntityRepo, entity: &Entity) -> Result<()> {
     let created_at = DateTime::now_utc();
     repo.insert_collection_entity(created_at, entity)?;
     Ok(())

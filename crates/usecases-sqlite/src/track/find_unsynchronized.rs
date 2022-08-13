@@ -8,12 +8,12 @@ use aoide_usecases::track::find_unsynchronized as uc;
 use super::*;
 
 pub fn find_unsynchronized(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: Params,
     pagination: &Pagination,
 ) -> Result<Vec<UnsynchronizedTrackEntity>> {
-    let repo = RepoConnection::new(connection);
-    uc::find_unsynchronized_with_params(&repo, collection_uid, params, pagination)
+    let mut repo = RepoConnection::new(connection);
+    uc::find_unsynchronized_with_params(&mut repo, collection_uid, params, pagination)
         .map_err(Into::into)
 }

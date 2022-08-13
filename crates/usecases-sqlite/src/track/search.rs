@@ -9,12 +9,13 @@ mod uc {
 }
 
 pub fn search(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     params: uc::Params,
     pagination: &Pagination,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<usize> {
-    let repo = RepoConnection::new(connection);
-    uc::search_with_params(&repo, collection_uid, params, pagination, collector).map_err(Into::into)
+    let mut repo = RepoConnection::new(connection);
+    uc::search_with_params(&mut repo, collection_uid, params, pagination, collector)
+        .map_err(Into::into)
 }

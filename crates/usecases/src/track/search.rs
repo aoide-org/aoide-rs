@@ -17,7 +17,7 @@ use crate::collection::vfs::RepoContext;
 use super::*;
 
 pub fn search<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_id: CollectionId,
     pagination: &Pagination,
     filter: Option<Filter>,
@@ -37,7 +37,7 @@ where
 }
 
 pub fn search_with_params<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: Params,
     pagination: &Pagination,

@@ -8,12 +8,12 @@ use aoide_repo::{collection::EntityRepo as _, media::source::CollectionRepo as _
 use super::*;
 
 pub fn relocate(
-    connection: &SqliteConnection,
+    connection: &mut SqliteConnection,
     collection_uid: &CollectionUid,
     old_content_path_prefix: &ContentPath,
     new_content_path_prefix: &ContentPath,
 ) -> Result<usize> {
-    let repo = RepoConnection::new(connection);
+    let mut repo = RepoConnection::new(connection);
     let collection_id = repo.resolve_collection_id(collection_uid)?;
     let updated_at = DateTime::now_utc();
     repo.relocate_media_sources_by_content_path_prefix(

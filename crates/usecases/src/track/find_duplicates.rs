@@ -73,7 +73,7 @@ impl Default for Params {
 }
 
 pub fn find_duplicates<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_id: CollectionId,
     track_id: TrackId,
     track: Track,
@@ -217,7 +217,7 @@ where
 }
 
 pub fn find_duplicate_by_media_source_content_path<Repo>(
-    repo: &Repo,
+    repo: &mut Repo,
     collection_id: CollectionId,
     content_path: &str,
     params: &Params,
