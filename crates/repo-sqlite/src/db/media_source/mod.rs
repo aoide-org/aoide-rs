@@ -4,7 +4,7 @@
 pub(crate) mod models;
 pub(crate) mod schema;
 
-use diesel::{query_builder::BoxedSelectStatement, sql_types::BigInt};
+use diesel::sql_types::BigInt;
 
 use aoide_repo::{collection::RecordId as CollectionId, media::source::RecordHeader};
 
@@ -39,7 +39,7 @@ impl ArtworkSource {
 
 pub(crate) fn select_row_id_filtered_by_collection_id<'s, 'db, DB>(
     collection_id: CollectionId,
-) -> BoxedSelectStatement<'db, BigInt, media_source::table, DB>
+) -> media_source::BoxedQuery<'db, DB, BigInt>
 where
     DB: diesel::backend::Backend + 'db,
 {
@@ -56,7 +56,7 @@ where
 pub(crate) fn select_row_id_filtered_by_content_path_predicate<'db, DB>(
     collection_id: CollectionId,
     content_path_predicate: StringPredicateBorrowed<'db>,
-) -> BoxedSelectStatement<'db, BigInt, media_source::table, DB>
+) -> media_source::BoxedQuery<'db, DB, BigInt>
 where
     DB: diesel::backend::Backend + 'db,
 {

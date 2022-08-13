@@ -11,13 +11,13 @@ use crate::prelude::*;
 pub(crate) mod clock;
 pub(crate) mod entity;
 
-pub(crate) fn apply_pagination<'a, ST, QS, DB>(
-    source: diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>,
+pub(crate) fn apply_pagination<'db, ST, QS, DB>(
+    source: diesel::query_builder::BoxedSelectStatement<'db, ST, QS, DB>,
     pagination: &Pagination,
-) -> diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>
+) -> diesel::query_builder::BoxedSelectStatement<'db, ST, QS, DB>
 where
     QS: diesel::query_source::QuerySource,
-    DB: diesel::backend::Backend + diesel::sql_types::HasSqlType<ST> + 'a,
+    DB: diesel::backend::Backend + diesel::sql_types::HasSqlType<ST> + 'db,
 {
     if !pagination.is_paginated() {
         return source;
@@ -81,7 +81,11 @@ pub(crate) fn escape_like_contains(arg: &str) -> String {
     )
 }
 
-fn sql_column_substr_prefix<ST>(column: &str, prefix: &str, cmp: &str) -> SqlLiteral<ST> {
+fn sql_column_substr_prefix(
+    column: &str,
+    prefix: &str,
+    cmp: &str,
+) -> SqlLiteral<diesel::sql_types::Bool> {
     let prefix_len = prefix.len();
     if prefix.contains('\'') {
         let prefix_escaped = escape_single_quotes(prefix);
@@ -93,10 +97,16 @@ fn sql_column_substr_prefix<ST>(column: &str, prefix: &str, cmp: &str) -> SqlLit
     }
 }
 
-pub(crate) fn sql_column_substr_prefix_eq<ST>(column: &str, prefix: &str) -> SqlLiteral<ST> {
+pub(crate) fn sql_column_substr_prefix_eq(
+    column: &str,
+    prefix: &str,
+) -> SqlLiteral<diesel::sql_types::Bool> {
     sql_column_substr_prefix(column, prefix, "=")
 }
 
-pub(crate) fn sql_column_substr_prefix_ne<ST>(column: &str, prefix: &str) -> SqlLiteral<ST> {
+pub(crate) fn sql_column_substr_prefix_ne(
+    column: &str,
+    prefix: &str,
+) -> SqlLiteral<diesel::sql_types::Bool> {
     sql_column_substr_prefix(column, prefix, "<>")
 }

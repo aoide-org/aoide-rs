@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use diesel::{
-    query_source::joins as diesel_joins,
-    sql_types::{BigInt, Binary, Double, Integer, Nullable, SmallInt, Text},
-    BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods,
+    query_source::joins as diesel_joins, sql_types, BoolExpressionMethods, BoxableExpression,
+    ExpressionMethods, TextExpressionMethods,
 };
 
 use num_traits::ToPrimitive as _;
@@ -36,43 +35,43 @@ type TrackSearchQuery = diesel_joins::JoinOn<
 >;
 
 // The following type expression has been copied from a compiler error message ;)
-type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
-    'a,
+type TrackSearchBoxedQuery<'db, DB> = diesel::query_builder::BoxedSelectStatement<
+    'db,
     (
         // track
         //(
-        BigInt,
-        BigInt,
-        BigInt,
-        Binary,
-        BigInt,
-        BigInt,
-        Nullable<BigInt>,
-        Nullable<Text>,
-        Nullable<BigInt>,
-        Nullable<Integer>,
-        Nullable<Text>,
-        Nullable<BigInt>,
-        Nullable<Integer>,
-        Nullable<Text>,
-        Nullable<BigInt>,
-        Nullable<Integer>,
-        Nullable<Text>,
-        Nullable<Text>,
-        SmallInt,
-        Nullable<SmallInt>,
-        Nullable<SmallInt>,
-        Nullable<SmallInt>,
-        Nullable<SmallInt>,
-        Nullable<SmallInt>,
-        Nullable<SmallInt>,
-        Nullable<Double>,
-        SmallInt,
-        Nullable<SmallInt>,
-        Nullable<SmallInt>,
-        SmallInt,
-        Nullable<Integer>,
-        Nullable<SmallInt>,
+        sql_types::BigInt,
+        sql_types::BigInt,
+        sql_types::BigInt,
+        sql_types::Binary,
+        sql_types::BigInt,
+        sql_types::BigInt,
+        sql_types::Nullable<sql_types::BigInt>,
+        sql_types::Nullable<sql_types::Text>,
+        sql_types::Nullable<sql_types::BigInt>,
+        sql_types::Nullable<sql_types::Integer>,
+        sql_types::Nullable<sql_types::Text>,
+        sql_types::Nullable<sql_types::BigInt>,
+        sql_types::Nullable<sql_types::Integer>,
+        sql_types::Nullable<sql_types::Text>,
+        sql_types::Nullable<sql_types::BigInt>,
+        sql_types::Nullable<sql_types::Integer>,
+        sql_types::Nullable<sql_types::Text>,
+        sql_types::Nullable<sql_types::Text>,
+        sql_types::SmallInt,
+        sql_types::Nullable<sql_types::SmallInt>,
+        sql_types::Nullable<sql_types::SmallInt>,
+        sql_types::Nullable<sql_types::SmallInt>,
+        sql_types::Nullable<sql_types::SmallInt>,
+        sql_types::Nullable<sql_types::SmallInt>,
+        sql_types::Nullable<sql_types::SmallInt>,
+        sql_types::Nullable<sql_types::Double>,
+        sql_types::SmallInt,
+        sql_types::Nullable<sql_types::SmallInt>,
+        sql_types::Nullable<sql_types::SmallInt>,
+        sql_types::SmallInt,
+        sql_types::Nullable<sql_types::Integer>,
+        sql_types::Nullable<sql_types::SmallInt>,
         //),
         /*
         // media_source
@@ -82,37 +81,47 @@ type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
         */
     ),
     TrackSearchQuery,
-    diesel::sqlite::Sqlite,
+    DB,
 >;
 
-type TrackSearchBoxedExpression<'a> = Box<
-    dyn BoxableExpression<
-            TrackSearchQuery,
-            diesel::sqlite::Sqlite,
-            SqlType = diesel::sql_types::Bool,
-        > + 'a,
->;
+type TrackSearchBoxedExpression<'db, DB> =
+    Box<dyn BoxableExpression<TrackSearchQuery, DB, SqlType = diesel::sql_types::Bool> + 'db>;
 
 // TODO: replace with "True"
-fn dummy_true_expression() -> TrackSearchBoxedExpression<'static> {
+fn dummy_true_expression<'db, DB>() -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     Box::new(track::row_id.is_not_null()) // always true
 }
 
 // TODO: replace with "False"
-fn dummy_false_expression() -> TrackSearchBoxedExpression<'static> {
+fn dummy_false_expression<'db, DB>() -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     Box::new(track::row_id.is_null()) // always false
 }
 
-pub(crate) trait TrackSearchBoxedExpressionBuilder {
-    fn build_expression(&self) -> TrackSearchBoxedExpression<'_>;
+pub(crate) trait TrackSearchBoxedExpressionBuilder<'db, DB> {
+    fn build_expression(&'db self) -> TrackSearchBoxedExpression<'db, DB>;
 }
 
-pub(crate) trait TrackSearchQueryTransform {
-    fn apply_to_query<'a>(&'a self, query: TrackSearchBoxedQuery<'a>) -> TrackSearchBoxedQuery<'a>;
+pub(crate) trait TrackSearchQueryTransform<'db, DB> {
+    fn apply_to_query(
+        &'db self,
+        query: TrackSearchBoxedQuery<'db, DB>,
+    ) -> TrackSearchBoxedQuery<'db, DB>;
 }
 
-impl TrackSearchQueryTransform for SortOrder {
-    fn apply_to_query<'a>(&'a self, query: TrackSearchBoxedQuery<'a>) -> TrackSearchBoxedQuery<'a> {
+impl<'db, DB> TrackSearchQueryTransform<'db, DB> for SortOrder
+where
+    DB: diesel::backend::Backend + 'db,
+{
+    fn apply_to_query(
+        &self,
+        query: TrackSearchBoxedQuery<'db, DB>,
+    ) -> TrackSearchBoxedQuery<'db, DB> {
         let direction = self.direction;
         match self.field {
             SortField::AudioBitrateBps => match direction {
@@ -235,9 +244,12 @@ impl TrackSearchQueryTransform for SortOrder {
     }
 }
 
-fn build_any_track_uid_filter_expression(
+fn build_any_track_uid_filter_expression<'db, DB>(
     any_track_uid: &[TrackUid],
-) -> TrackSearchBoxedExpression<'_> {
+) -> TrackSearchBoxedExpression<'_, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     Box::new(track::entity_uid.eq_any(any_track_uid.iter().map(|uid| uid.as_ref())))
 }
 
@@ -263,9 +275,12 @@ fn build_phrase_like_expr_escaped<'term>(
     Some(like_expr)
 }
 
-fn build_phrase_field_filter_expression(
+fn build_phrase_field_filter_expression<'db, DB>(
     filter: &PhraseFieldFilter,
-) -> TrackSearchBoxedExpression<'_> {
+) -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     let like_expr = build_phrase_like_expr_escaped(filter.terms.iter().map(String::as_str));
 
     let mut or_expression = dummy_false_expression();
@@ -354,9 +369,12 @@ fn build_phrase_field_filter_expression(
     or_expression
 }
 
-fn build_numeric_field_filter_expression(
+fn build_numeric_field_filter_expression<'db, DB>(
     filter: &NumericFieldFilter,
-) -> TrackSearchBoxedExpression<'_> {
+) -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     use NumericField::*;
     use ScalarPredicate::*;
     match filter.field {
@@ -675,9 +693,12 @@ fn build_numeric_field_filter_expression(
     }
 }
 
-fn build_datetime_field_filter_expression(
+fn build_datetime_field_filter_expression<'db, DB>(
     filter: &DateTimeFieldFilter,
-) -> TrackSearchBoxedExpression<'_> {
+) -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     use DateTimeField::*;
     use ScalarPredicate::*;
     match filter.field {
@@ -766,9 +787,12 @@ fn build_datetime_field_filter_expression(
     }
 }
 
-fn build_condition_filter_expression(
+fn build_condition_filter_expression<'db, DB>(
     filter: ConditionFilter,
-) -> TrackSearchBoxedExpression<'static> {
+) -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     use ConditionFilter::*;
     match filter {
         SourceTracked => Box::new(
@@ -782,19 +806,14 @@ fn build_condition_filter_expression(
     }
 }
 
-fn select_track_ids_matching_tag_filter<'a, DB>(
-    filter: &'a TagFilter,
+fn select_track_ids_matching_tag_filter<'db, DB>(
+    filter: &'db TagFilter,
 ) -> (
-    diesel::query_builder::BoxedSelectStatement<
-        'a,
-        diesel::sql_types::BigInt,
-        track_tag::table,
-        DB,
-    >,
+    track_tag::BoxedQuery<'db, DB, diesel::sql_types::BigInt>,
     Option<FilterModifier>,
 )
 where
-    DB: diesel::backend::Backend + 'a,
+    DB: diesel::backend::Backend + 'db,
 {
     let mut select = track_tag::table.select(track_tag::track_id).into_boxed();
 
@@ -886,7 +905,12 @@ where
     (select, *modifier)
 }
 
-fn build_tag_filter_expression(filter: &TagFilter) -> TrackSearchBoxedExpression<'_> {
+fn build_tag_filter_expression<'db, DB>(
+    filter: &'db TagFilter,
+) -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(filter);
     match filter_modifier {
         None => Box::new(track::row_id.eq_any(subselect)),
@@ -894,9 +918,12 @@ fn build_tag_filter_expression(filter: &TagFilter) -> TrackSearchBoxedExpression
     }
 }
 
-fn build_cue_label_filter_expression(
+fn build_cue_label_filter_expression<'db, DB>(
     filter: StringFilterBorrowed<'_>,
-) -> TrackSearchBoxedExpression<'_> {
+) -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     let (subselect, filter_modifier) = select_track_ids_matching_cue_filter(filter);
     match filter_modifier {
         None => Box::new(track::row_id.eq_any(subselect)),
@@ -907,12 +934,7 @@ fn build_cue_label_filter_expression(
 fn select_track_ids_matching_cue_filter<'s, 'db, DB>(
     filter: StringFilterBorrowed<'s>,
 ) -> (
-    diesel::query_builder::BoxedSelectStatement<
-        'db,
-        diesel::sql_types::BigInt,
-        track_cue::table,
-        DB,
-    >,
+    track_cue::BoxedQuery<'db, DB, diesel::sql_types::BigInt>,
     Option<FilterModifier>,
 )
 where
@@ -966,16 +988,19 @@ where
     (select, filter.modifier)
 }
 
-fn build_any_playlist_uid_filter_expression(
-    any_playlist_uid: &[PlaylistUid],
-) -> TrackSearchBoxedExpression<'_> {
+fn build_any_playlist_uid_filter_expression<'db, DB>(
+    any_playlist_uid: &'db [PlaylistUid],
+) -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     let subselect = select_track_ids_matching_any_playlist_uid_filter(any_playlist_uid);
     Box::new(track::row_id.eq_any(subselect))
 }
 
 fn select_track_ids_matching_any_playlist_uid_filter<'db, DB>(
     any_playlist_uid: impl IntoIterator<Item = &'db PlaylistUid>,
-) -> diesel::query_builder::BoxedSelectStatement<'db, diesel::sql_types::BigInt, track::table, DB>
+) -> track::BoxedQuery<'db, DB, diesel::sql_types::BigInt>
 where
     DB: diesel::backend::Backend + 'db,
 {
@@ -990,19 +1015,14 @@ where
         .into_boxed()
 }
 
-fn select_track_ids_matching_actor_filter<'a, DB>(
-    filter: &'a ActorPhraseFilter,
+fn select_track_ids_matching_actor_filter<'db, DB>(
+    filter: &'db ActorPhraseFilter,
 ) -> (
-    diesel::query_builder::BoxedSelectStatement<
-        'a,
-        diesel::sql_types::BigInt,
-        track_actor::table,
-        DB,
-    >,
+    track_actor::BoxedQuery<'db, DB, diesel::sql_types::BigInt>,
     Option<FilterModifier>,
 )
 where
-    DB: diesel::backend::Backend + 'a,
+    DB: diesel::backend::Backend + 'db,
 {
     let mut select = track_actor::table
         .select(track_actor::track_id)
@@ -1048,7 +1068,12 @@ where
     (select, *modifier)
 }
 
-fn build_actor_filter_expression(filter: &ActorPhraseFilter) -> TrackSearchBoxedExpression<'_> {
+fn build_actor_filter_expression<'db, DB>(
+    filter: &'db ActorPhraseFilter,
+) -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     let (subselect, filter_modifier) = select_track_ids_matching_actor_filter(filter);
     match filter_modifier {
         None => Box::new(track::row_id.eq_any(subselect)),
@@ -1056,19 +1081,14 @@ fn build_actor_filter_expression(filter: &ActorPhraseFilter) -> TrackSearchBoxed
     }
 }
 
-fn select_track_ids_matching_title_filter<'a, DB>(
-    filter: &'a TitlePhraseFilter,
+fn select_track_ids_matching_title_filter<'db, DB>(
+    filter: &'db TitlePhraseFilter,
 ) -> (
-    diesel::query_builder::BoxedSelectStatement<
-        'a,
-        diesel::sql_types::BigInt,
-        track_title::table,
-        DB,
-    >,
+    track_title::BoxedQuery<'db, DB, diesel::sql_types::BigInt>,
     Option<FilterModifier>,
 )
 where
-    DB: diesel::backend::Backend + 'a,
+    DB: diesel::backend::Backend + 'db,
 {
     let mut select = track_title::table
         .select(track_title::track_id)
@@ -1106,7 +1126,12 @@ where
     (select, *modifier)
 }
 
-fn build_title_filter_expression(filter: &TitlePhraseFilter) -> TrackSearchBoxedExpression<'_> {
+fn build_title_filter_expression<'db, DB>(
+    filter: &'db TitlePhraseFilter,
+) -> TrackSearchBoxedExpression<'db, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
     let (subselect, filter_modifier) = select_track_ids_matching_title_filter(filter);
     match filter_modifier {
         None => Box::new(track::row_id.eq_any(subselect)),
@@ -1114,8 +1139,11 @@ fn build_title_filter_expression(filter: &TitlePhraseFilter) -> TrackSearchBoxed
     }
 }
 
-impl TrackSearchBoxedExpressionBuilder for Filter {
-    fn build_expression(&self) -> TrackSearchBoxedExpression<'_> {
+impl<'db, DB> TrackSearchBoxedExpressionBuilder<'db, DB> for Filter
+where
+    DB: diesel::backend::Backend + 'db,
+{
+    fn build_expression(&'db self) -> TrackSearchBoxedExpression<'db, DB> {
         use Filter::*;
         match self {
             Phrase(filter) => build_phrase_field_filter_expression(filter),
