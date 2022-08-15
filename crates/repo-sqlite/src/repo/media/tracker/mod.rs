@@ -21,15 +21,6 @@ use crate::{
     prelude::*,
 };
 
-#[derive(QueryableByName)]
-struct StatusCountRow {
-    #[diesel(sql_type = diesel::sql_types::SmallInt)]
-    status: i16,
-
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    count: i64,
-}
-
 impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_update_directories_status(
         &mut self,
@@ -234,33 +225,20 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         collection_id: CollectionId,
         content_path_prefix: &ContentPath,
     ) -> RepoResult<DirectoriesStatus> {
-        // TODO: Remove with type-safe query when group_by() is available
-        /*
         media_tracker_directory::table
-            .select((media_tracker_directory::status, diesel::dsl::count_star))
+            .group_by(media_tracker_directory::status)
+            .select((media_tracker_directory::status, diesel::dsl::count_star()))
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(sql_column_substr_prefix_eq("content_path", content_path_prefix))
-            // TODO: Replace with group_by() when available
-            .filter(diesel::dsl::sql("TRUE GROUP BY status ORDER BY status"))
-            .load::<(i16, usize)>(self.as_mut())
-        */
-        let sql = format!(
-            "SELECT status, COUNT(*) as count \
-        FROM media_tracker_directory \
-        WHERE collection_id={collection_id} AND \
-        substr(content_path,1,{path_prefix_len})='{escaped_path_prefix}' \
-        GROUP BY status",
-            collection_id = RowId::from(collection_id),
-            path_prefix_len = content_path_prefix.len(),
-            escaped_path_prefix = escape_single_quotes(content_path_prefix),
-        );
-        diesel::dsl::sql_query(sql)
-            .load::<StatusCountRow>(self.as_mut())
+            .filter(sql_column_substr_prefix_eq(
+                "content_path",
+                content_path_prefix,
+            ))
+            .load::<(i16, i64)>(self.as_mut())
             .map_err(repo_error)
             .map(|v| {
-                v.into_iter()
-                    .fold(DirectoriesStatus::default(), |mut aggregate_status, row| {
-                        let StatusCountRow { status, count } = row;
+                v.into_iter().fold(
+                    DirectoriesStatus::default(),
+                    |mut aggregate_status, (status, count)| {
                         let status =
                             DirTrackingStatus::from_i16(status).expect("DirTrackingStatus");
                         let count = (count as u64) as usize;
@@ -287,7 +265,8 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                             }
                         }
                         aggregate_status
-                    })
+                    },
+                )
             })
     }
 
