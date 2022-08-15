@@ -20,20 +20,11 @@ setup:
         cargo-hack \
         trunk
     pip install -U pre-commit
-    pre-commit autoupdate
-    #pre-commit install --hook-type commit-msg --hook-type pre-commit
-
-# Format source code
-fmt:
-    cargo fmt --all
-    cd webapp && cargo fmt
-
-# Run pre-commit hooks
-pre-commit:
-    pre-commit run --all-files
+    pre-commit install --hook-type commit-msg --hook-type pre-commit
 
 # Upgrade (and update) dependencies
-upgrade:
+upgrade: setup
+    pre-commit autoupdate
     cargo upgrade --workspace \
         --exclude libsqlite3-sys
     cargo update
@@ -43,6 +34,15 @@ upgrade:
         && cargo upgrade \
         && cargo update \
         && cargo upgrade --to-lockfile
+
+# Format source code
+fmt:
+    cargo fmt --all
+    cd webapp && cargo fmt
+
+# Run pre-commit hooks
+pre-commit:
+    pre-commit run --all-files
 
 # Check all lib/bin projects individually with selected features (takes a long time)
 check-crates:
