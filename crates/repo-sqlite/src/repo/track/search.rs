@@ -29,11 +29,7 @@ use crate::{
     prelude::*,
 };
 
-sql_function! { fn iff_text(x: sql_types::Nullable<sql_types::Text>, y: sql_types::Text) -> sql_types::Text; }
-sql_function! { fn iff_double(x: sql_types::Nullable<sql_types::Double>, y: sql_types::Double) -> sql_types::Double; }
-sql_function! { fn iff_integer(x: sql_types::Nullable<sql_types::Integer>, y: sql_types::Integer) -> sql_types::Integer; }
-sql_function! { fn iff_smallint(x: sql_types::Nullable<sql_types::SmallInt>, y: sql_types::SmallInt) -> sql_types::SmallInt; }
-sql_function! { fn iff_bigint(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt; }
+sql_function! { fn ifnull<ST: sql_types::SingleValue>(x: sql_types::Nullable<ST>, y: ST) -> ST; }
 
 type TrackSearchExpressionBoxed<'db> = Box<
     dyn BoxableExpression<view_track_search::table, DbBackend, SqlType = diesel::sql_types::Bool>
@@ -318,7 +314,7 @@ fn build_phrase_field_filter_expression(
             .iter()
             .any(|target| *target == StringField::Copyright)
     {
-        let copyright_not_null = iff_text(view_track_search::copyright, "");
+        let copyright_not_null = ifnull(view_track_search::copyright, "");
         or_expression = if let Some(like_expr) = &like_expr {
             Box::new(
                 or_expression.or(copyright_not_null
@@ -335,7 +331,7 @@ fn build_phrase_field_filter_expression(
             .iter()
             .any(|target| *target == StringField::Publisher)
     {
-        let publisher_not_null = iff_text(view_track_search::publisher, "");
+        let publisher_not_null = ifnull(view_track_search::publisher, "");
         or_expression = if let Some(like_expr) = &like_expr {
             Box::new(
                 or_expression.or(publisher_not_null
@@ -357,7 +353,7 @@ fn build_numeric_field_filter_expression(
     match filter.field {
         AudioDurationMs => {
             let expr = view_track_search::audio_duration_ms;
-            let expr_not_null = iff_double(expr, DurationMs::empty().to_inner());
+            let expr_not_null = ifnull(expr, DurationMs::empty().to_inner());
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value)),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value)),
@@ -381,7 +377,7 @@ fn build_numeric_field_filter_expression(
         }
         AudioSampleRateHz => {
             let expr = view_track_search::audio_samplerate_hz;
-            let expr_not_null = iff_double(expr, SampleRateHz::default().to_inner());
+            let expr_not_null = ifnull(expr, SampleRateHz::default().to_inner());
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value)),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value)),
@@ -405,7 +401,7 @@ fn build_numeric_field_filter_expression(
         }
         AudioBitrateBps => {
             let expr = view_track_search::audio_bitrate_bps;
-            let expr_not_null = iff_double(expr, BitrateBps::default().to_inner());
+            let expr_not_null = ifnull(expr, BitrateBps::default().to_inner());
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value)),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value)),
@@ -429,7 +425,7 @@ fn build_numeric_field_filter_expression(
         }
         AudioChannelCount => {
             let expr = view_track_search::audio_channel_count;
-            let expr_not_null = iff_smallint(expr, ChannelCount::zero().0 as i16);
+            let expr_not_null = ifnull(expr, ChannelCount::zero().0 as i16);
             // TODO: Check and limit/clamp value range when converting from f64 to i16
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
@@ -454,7 +450,7 @@ fn build_numeric_field_filter_expression(
         }
         AudioLoudnessLufs => {
             let expr = view_track_search::audio_loudness_lufs;
-            let expr_not_null = iff_double(expr, LoudnessLufs::default().0);
+            let expr_not_null = ifnull(expr, LoudnessLufs::default().0);
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value)),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value)),
@@ -478,7 +474,7 @@ fn build_numeric_field_filter_expression(
         }
         AdvisoryRating => {
             let expr = view_track_search::advisory_rating;
-            let expr_not_null = iff_smallint(
+            let expr_not_null = ifnull(
                 expr,
                 aoide_core::media::AdvisoryRating::default()
                     .to_i16()
@@ -508,7 +504,7 @@ fn build_numeric_field_filter_expression(
         }
         TrackNumber => {
             let expr = view_track_search::track_number;
-            let expr_not_null = iff_smallint(expr, 0);
+            let expr_not_null = ifnull(expr, 0);
             // TODO: Check and limit/clamp value range when converting from f64 to i16
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
@@ -533,7 +529,7 @@ fn build_numeric_field_filter_expression(
         }
         TrackTotal => {
             let expr = view_track_search::track_total;
-            let expr_not_null = iff_smallint(expr, 0);
+            let expr_not_null = ifnull(expr, 0);
             // TODO: Check and limit/clamp value range when converting from f64 to i16
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
@@ -558,7 +554,7 @@ fn build_numeric_field_filter_expression(
         }
         DiscNumber => {
             let expr = view_track_search::disc_number;
-            let expr_not_null = iff_smallint(expr, 0);
+            let expr_not_null = ifnull(expr, 0);
             // TODO: Check and limit/clamp value range when converting from f64 to i16
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
@@ -583,7 +579,7 @@ fn build_numeric_field_filter_expression(
         }
         DiscTotal => {
             let expr = view_track_search::disc_total;
-            let expr_not_null = iff_smallint(expr, 0);
+            let expr_not_null = ifnull(expr, 0);
             // TODO: Check and limit/clamp value range when converting from f64 to i16
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
@@ -608,7 +604,7 @@ fn build_numeric_field_filter_expression(
         }
         RecordedAtDate => {
             let expr = view_track_search::recorded_at_yyyymmdd;
-            let expr_not_null = iff_integer(expr, 0);
+            let expr_not_null = ifnull(expr, 0);
             // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as YYYYMMDD)),
@@ -633,7 +629,7 @@ fn build_numeric_field_filter_expression(
         }
         ReleasedAtDate => {
             let expr = view_track_search::released_at_yyyymmdd;
-            let expr_not_null = iff_integer(expr, 0);
+            let expr_not_null = ifnull(expr, 0);
             // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as YYYYMMDD)),
@@ -658,7 +654,7 @@ fn build_numeric_field_filter_expression(
         }
         ReleasedOrigAtDate => {
             let expr = view_track_search::released_orig_at_yyyymmdd;
-            let expr_not_null = iff_integer(expr, 0);
+            let expr_not_null = ifnull(expr, 0);
             // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as YYYYMMDD)),
@@ -683,7 +679,7 @@ fn build_numeric_field_filter_expression(
         }
         MusicTempoBpm => {
             let expr = view_track_search::music_tempo_bpm;
-            let expr_not_null = iff_double(expr, 0.0);
+            let expr_not_null = ifnull(expr, 0.0);
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value)),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value)),
@@ -766,7 +762,7 @@ fn build_datetime_field_filter_expression(
         }
         RecordedAt => {
             let expr = view_track_search::recorded_ms;
-            let expr_not_null = iff_bigint(expr, 0i64);
+            let expr_not_null = ifnull(expr, 0i64);
             // TODO: Check and limit/clamp value range when converting from f64 to i64
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
@@ -791,7 +787,7 @@ fn build_datetime_field_filter_expression(
         }
         ReleasedAt => {
             let expr = view_track_search::released_ms;
-            let expr_not_null = iff_bigint(expr, 0i64);
+            let expr_not_null = ifnull(expr, 0i64);
             // TODO: Check and limit/clamp value range when converting from f64 to i64
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
@@ -816,7 +812,7 @@ fn build_datetime_field_filter_expression(
         }
         ReleasedOrigAt => {
             let expr = view_track_search::released_orig_ms;
-            let expr_not_null = iff_bigint(expr, 0i64);
+            let expr_not_null = ifnull(expr, 0i64);
             // TODO: Check and limit/clamp value range when converting from f64 to i64
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
