@@ -1,7 +1,7 @@
 // aoide.org - Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{sync::Arc, thread::JoinHandle};
+use std::thread::JoinHandle;
 
 use tokio::sync::mpsc;
 
@@ -29,10 +29,8 @@ enum InternalState {
         current_state_rx: discro::Subscriber<State>,
         runtime_command_tx: mpsc::UnboundedSender<RuntimeCommand>,
 
-        // A reference to the Tokio runtime is kept to allow scheduling
-        // asynchronous worker tasks while running. Currently this ability
-        // is neither used nor needed.
-        _tokio_runtime: Arc<tokio::runtime::Runtime>,
+        // Keep the Tokio runtime alive while running.
+        _tokio_rt: Box<tokio::runtime::Runtime>,
     },
 }
 
@@ -77,14 +75,10 @@ impl Launcher {
             anyhow::bail!("Invalid state: {:?}", self.state());
         }
 
-        let tokio_runtime = Arc::new(
-            tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()?,
-        );
+        let tokio_rt = tokio::runtime::Runtime::new()?;
 
         let (current_state_tx, current_state_rx) = discro::new_pubsub(State::Idle);
-        tokio_runtime.spawn({
+        tokio_rt.spawn({
             let mut current_state_rx = current_state_rx.clone();
             async move {
                 while current_state_rx.changed().await.is_ok() {
@@ -98,16 +92,12 @@ impl Launcher {
         let (runtime_command_tx, runtime_command_rx) = mpsc::unbounded_channel();
         let (current_runtime_state_tx, current_runtime_state_rx) = discro::new_pubsub(None);
         let join_handle = std::thread::spawn({
+            let tokio_rt = tokio_rt.handle().clone();
             let config = config.clone();
-            // TODO: If the Tokio runtime is only accessed within this thread
-            // then wrapping into an Arc and cloning would not be needed.
-            let tokio_runtime = Arc::clone(&tokio_runtime);
-            move || {
-                tokio_runtime.block_on(run(config, runtime_command_rx, current_runtime_state_tx))
-            }
+            move || tokio_rt.block_on(run(config, runtime_command_rx, current_runtime_state_tx))
         });
 
-        tokio_runtime.spawn({
+        tokio_rt.spawn({
             debug_assert!(matches!(*current_state_rx.read(), State::Idle));
             let mut current_runtime_state_rx = current_runtime_state_rx;
             async move {
@@ -125,7 +115,7 @@ impl Launcher {
             config,
             current_state_rx,
             runtime_command_tx,
-            _tokio_runtime: tokio_runtime,
+            _tokio_rt: Box::new(tokio_rt),
         };
 
         Ok(join_handle)
