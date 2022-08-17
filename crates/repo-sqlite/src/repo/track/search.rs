@@ -32,8 +32,7 @@ use crate::{
 sql_function! { fn ifnull<ST: sql_types::SingleValue>(x: sql_types::Nullable<ST>, y: ST) -> ST; }
 
 type TrackSearchExpressionBoxed<'db> = Box<
-    dyn BoxableExpression<view_track_search::table, DbBackend, SqlType = diesel::sql_types::Bool>
-        + 'db,
+    dyn BoxableExpression<view_track_search::table, DbBackend, SqlType = sql_types::Bool> + 'db,
 >;
 
 // TODO: replace with "True"
@@ -857,7 +856,7 @@ fn build_condition_filter_expression(
 fn select_track_ids_matching_tag_filter(
     filter: &TagFilter,
 ) -> (
-    track_tag::BoxedQuery<'_, DbBackend, diesel::sql_types::BigInt>,
+    track_tag::BoxedQuery<'_, DbBackend, sql_types::BigInt>,
     Option<FilterModifier>,
 ) {
     let mut select = track_tag::table.select(track_tag::track_id).into_boxed();
@@ -971,7 +970,7 @@ fn build_cue_label_filter_expression(
 fn select_track_ids_matching_cue_filter<'s, 'db>(
     filter: StringFilterBorrowed<'s>,
 ) -> (
-    track_cue::BoxedQuery<'db, DbBackend, diesel::sql_types::BigInt>,
+    track_cue::BoxedQuery<'db, DbBackend, sql_types::BigInt>,
     Option<FilterModifier>,
 ) {
     let mut select = track_cue::table.select(track_cue::track_id).into_boxed();
@@ -1031,7 +1030,7 @@ fn build_any_playlist_uid_filter_expression(
 
 fn select_track_ids_matching_any_playlist_uid_filter<'db>(
     any_playlist_uid: impl IntoIterator<Item = &'db PlaylistUid>,
-) -> view_track_search::BoxedQuery<'db, DbBackend, diesel::sql_types::BigInt> {
+) -> view_track_search::BoxedQuery<'db, DbBackend, sql_types::BigInt> {
     let subselect = playlist::table
         .inner_join(playlist_entry::table)
         .select(playlist_entry::track_id)
@@ -1046,7 +1045,7 @@ fn select_track_ids_matching_any_playlist_uid_filter<'db>(
 fn select_track_ids_matching_actor_filter(
     filter: &ActorPhraseFilter,
 ) -> (
-    track_actor::BoxedQuery<'_, DbBackend, diesel::sql_types::BigInt>,
+    track_actor::BoxedQuery<'_, DbBackend, sql_types::BigInt>,
     Option<FilterModifier>,
 ) {
     let mut select = track_actor::table
@@ -1104,7 +1103,7 @@ fn build_actor_filter_expression(filter: &ActorPhraseFilter) -> TrackSearchExpre
 fn select_track_ids_matching_title_filter(
     filter: &TitlePhraseFilter,
 ) -> (
-    track_title::BoxedQuery<'_, DbBackend, diesel::sql_types::BigInt>,
+    track_title::BoxedQuery<'_, DbBackend, sql_types::BigInt>,
     Option<FilterModifier>,
 ) {
     let mut select = track_title::table
