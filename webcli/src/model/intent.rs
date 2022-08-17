@@ -58,7 +58,7 @@ impl Intent {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
         log::debug!("Applying intent {self:?} on {state:?}");
         match self {
-            Self::RenderState => StateUpdated::maybe_changed(None), // enfore re-rendering
+            Self::RenderState => StateUpdated::maybe_changed(None), // enforce re-rendering
             Self::Deferred { not_before, intent } => {
                 let next_action = if state.control_state == ControlState::Running {
                     Some(Action::dispatch_task(Task::DeferredIntent {

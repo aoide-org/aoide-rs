@@ -24,7 +24,7 @@ where
 {
     let mut summary = PurgeByMediaContentPathPredicatesSummary::default();
     for path_predicate in path_predicates {
-        // 1st step: Delete the tracks, leaving the correpsonding media sources orphaned
+        // 1st step: Delete the tracks, leaving the corresponding media sources orphaned
         let purged_tracks = repo.purge_tracks_by_media_source_content_path_predicate(
             collection_id,
             path_predicate.borrow(),
