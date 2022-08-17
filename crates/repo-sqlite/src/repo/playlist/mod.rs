@@ -493,8 +493,12 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                     // Optimization: Negate ordering
                     let target = playlist_entry::table
                         .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)));
+                    // FIXME: At the time of writing Diesel doesn't seem to support the
+                    // unary negation operator for numeric columns, which required to come
+                    // up with this workaround.
+                    let neg_ordering = playlist_entry::ordering * -1;
                     rows_updated = diesel::update(target)
-                        .set(playlist_entry::ordering.eq(diesel::dsl::sql("-ordering")))
+                        .set(playlist_entry::ordering.eq(neg_ordering))
                         .execute(self.as_mut())
                         .map_err(repo_error)?;
                 }
