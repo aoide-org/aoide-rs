@@ -225,10 +225,7 @@ fn shift_playlist_entries_forward(
     for row_id in row_ids {
         rows_updated +=
             diesel::update(playlist_entry::table.filter(playlist_entry::row_id.eq(row_id)))
-                .set(
-                    playlist_entry::ordering
-                        .eq(diesel::dsl::sql(&format!("ordering+{delta_ordering}"))),
-                )
+                .set(playlist_entry::ordering.eq(playlist_entry::ordering + delta_ordering))
                 .execute(db.as_mut())
                 .map_err(repo_error)?;
     }
