@@ -36,8 +36,8 @@ mpeg-audio-header = { version = "0.0.4", optional = true }
 mp4ameta = { version = "0.11", optional = true }
 opus_headers = { version = "0.1", optional = true }
 
-# Dependencies (optional): gigtags
-gigtags = { version = "0.0.13", optional = true }
+# Dependencies (optional): gigtag
+gigtag = { version = "0.0.13", optional = true }
 compact_str = { version = "0.5", optional = true }
 
 # Dependencies (optional): serato-markers
@@ -48,7 +48,7 @@ aoide-core = "=0.8.0"
 
 [features]
 default = ["all"]
-all = ["fmt-all", "gigtags", "serato-markers"]
+all = ["fmt-all", "gigtag", "serato-markers"]
 fmt-all = [
     "fmt-aiff",
     "fmt-flac",
@@ -68,5 +68,5 @@ fmt-opus = [
     "metaflac",
 ] # metaflac for decoding FLAC picture blocks
 fmt-wav = ["id3"]
-gigtags = ["dep:gigtags", "compact_str"]
+gigtag = ["dep:gigtag", "compact_str"]
 serato-markers = ["triseratops"]

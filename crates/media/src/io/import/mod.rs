@@ -79,7 +79,7 @@ bitflags! {
         /// Implies METADATA.
         const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0001;
 
-        #[cfg(feature = "gigtags")]
+        #[cfg(feature = "gigtag")]
         /// Import gigtags from Content Group/Grouping file tag
         ///
         /// Implies METADATA.

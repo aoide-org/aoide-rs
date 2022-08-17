@@ -6,15 +6,15 @@ use aoide_core::util::canonical::CanonicalizeInto;
 use super::*;
 
 fn label_from_str(label: &str) -> Label {
-    gigtags::label::Label::from_str(label)
+    gigtag::label::Label::from_str(label)
 }
 
 fn facet_from_str(facet: &str) -> Facet {
-    gigtags::facet::Facet::from_str(facet)
+    gigtag::facet::Facet::from_str(facet)
 }
 
 fn prop_name_from_str(name: &str) -> PropName {
-    gigtags::props::Name::from_str(name)
+    gigtag::props::Name::from_str(name)
 }
 
 fn score_prop_from_value(score_value: aoide_core::tag::ScoreValue) -> Property {

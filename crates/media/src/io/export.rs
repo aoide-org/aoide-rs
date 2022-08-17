@@ -18,7 +18,7 @@ bitflags! {
     pub struct ExportTrackFlags: u16 {
         const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = ImportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK.bits();
 
-        #[cfg(feature = "gigtags")]
+        #[cfg(feature = "gigtag")]
         const GIGTAGS = ImportTrackFlags::GIGTAGS.bits();
 
         #[cfg(feature = "serato-markers")]

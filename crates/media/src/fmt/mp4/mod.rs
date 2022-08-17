@@ -398,10 +398,10 @@ impl Metadata {
         );
 
         // Import gigtags from raw grouping tags before any other tags.
-        #[cfg(feature = "gigtags")]
+        #[cfg(feature = "gigtag")]
         if config.flags.contains(ImportTrackFlags::GIGTAGS) {
             if let Some(faceted_tags) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
-                tags_map = crate::util::gigtags::import_from_faceted_tags(faceted_tags);
+                tags_map = crate::util::gigtag::import_from_faceted_tags(faceted_tags);
             }
         }
 
@@ -930,9 +930,9 @@ pub fn export_track_to_path(
             .take_faceted_tags(facet_id)
             .map(|FacetedTags { facet_id: _, tags }| tags)
             .unwrap_or_default();
-        #[cfg(feature = "gigtags")]
+        #[cfg(feature = "gigtag")]
         if config.flags.contains(ExportTrackFlags::GIGTAGS) {
-            if let Err(err) = crate::util::gigtags::export_and_encode_remaining_tags_into(
+            if let Err(err) = crate::util::gigtag::export_and_encode_remaining_tags_into(
                 tags_map.into(),
                 &mut tags,
             ) {

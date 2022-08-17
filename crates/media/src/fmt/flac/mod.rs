@@ -323,10 +323,10 @@ impl Metadata {
         }
 
         // Import gigtags from raw grouping tags before any other tags.
-        #[cfg(feature = "gigtags")]
+        #[cfg(feature = "gigtag")]
         if config.flags.contains(ImportTrackFlags::GIGTAGS) {
             if let Some(faceted_tags) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
-                tags_map = crate::util::gigtags::import_from_faceted_tags(faceted_tags);
+                tags_map = crate::util::gigtag::import_from_faceted_tags(faceted_tags);
             }
         }
 

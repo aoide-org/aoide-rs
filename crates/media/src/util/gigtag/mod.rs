@@ -3,27 +3,27 @@
 
 use compact_str::{format_compact, CompactString};
 
-use gigtags::facet::Facet as _;
+use gigtag::facet::Facet as _;
 
 use aoide_core::tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, Tags, TagsMap};
 use semval::IsValid as _;
 
-pub type Facet = gigtags::facet::CompactFacet;
+pub type Facet = gigtag::facet::CompactFacet;
 
-pub type Label = gigtags::label::CompactLabel;
+pub type Label = gigtag::label::CompactLabel;
 
-pub type PropName = gigtags::props::CompactName;
+pub type PropName = gigtag::props::CompactName;
 pub type PropValue = CompactString;
-pub type Property = gigtags::props::Property<PropName, PropValue>;
+pub type Property = gigtag::props::Property<PropName, PropValue>;
 
-pub type Tag = gigtags::Tag<Facet, Label, PropName, PropValue>;
-pub type DecodedTags = gigtags::DecodedTags<Facet, Label, PropName, PropValue>;
+pub type Tag = gigtag::Tag<Facet, Label, PropName, PropValue>;
+pub type DecodedTags = gigtag::DecodedTags<Facet, Label, PropName, PropValue>;
 
 pub const SCORE_PROP_NAME: &str = "s";
 
 fn export_valid_label(label: &aoide_core::tag::Label) -> Option<Label> {
     let label = label.as_str();
-    (gigtags::label::is_valid(label)).then(|| gigtags::label::Label::from_str(label))
+    (gigtag::label::is_valid(label)).then(|| gigtag::label::Label::from_str(label))
 }
 
 fn export_facet(facet_id: &FacetId) -> Facet {
@@ -42,7 +42,7 @@ fn try_export_plain_tag(facet: Facet, plain_tag: &PlainTag) -> Option<Tag> {
     };
     // A default score could only be omitted if the tag has a label!
     let score = (plain_tag.score != Default::default() || label.is_empty()).then(|| Property {
-        name: gigtags::props::Name::from_str(SCORE_PROP_NAME),
+        name: gigtag::props::Name::from_str(SCORE_PROP_NAME),
         value: format_compact!("{score}", score = plain_tag.score.value()),
     });
     let tag = Tag {
@@ -105,7 +105,7 @@ pub fn export_and_encode_remaining_tags_into(
     if encoded_tags.len() == 1 {
         let PlainTag { label, score } = encoded_tags.drain(..).next().unwrap();
         let mut encoded = label.unwrap_or_default().into_value();
-        crate::util::gigtags::update_tags_in_encoded(&remaining_tags, &mut encoded)?;
+        crate::util::gigtag::update_tags_in_encoded(&remaining_tags, &mut encoded)?;
         let tag = PlainTag {
             label: aoide_core::tag::Label::clamp_from(encoded),
             score,
@@ -113,7 +113,7 @@ pub fn export_and_encode_remaining_tags_into(
         *encoded_tags = vec![tag];
     } else {
         let mut encoded = String::new();
-        crate::util::gigtags::update_tags_in_encoded(&remaining_tags, &mut encoded)?;
+        crate::util::gigtag::update_tags_in_encoded(&remaining_tags, &mut encoded)?;
         let tag = PlainTag {
             label: aoide_core::tag::Label::clamp_from(encoded),
             ..Default::default()

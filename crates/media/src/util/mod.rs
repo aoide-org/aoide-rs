@@ -54,8 +54,8 @@ use self::digest::MediaDigest;
 pub mod digest;
 pub mod tag;
 
-#[cfg(feature = "gigtags")]
-pub mod gigtags;
+#[cfg(feature = "gigtag")]
+pub mod gigtag;
 
 #[cfg(feature = "serato-markers")]
 pub mod serato;
