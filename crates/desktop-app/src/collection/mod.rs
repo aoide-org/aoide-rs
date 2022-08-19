@@ -3,7 +3,6 @@
 
 use std::{borrow::Cow, path::Path};
 
-use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
 use url::Url;
 
@@ -16,7 +15,10 @@ use aoide_core::{
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
 use aoide_repo::collection::MediaSourceRootUrlFilter;
 
-use crate::fs::{DirPath, OwnedDirPath};
+use crate::{
+    environment::Handle,
+    fs::{DirPath, OwnedDirPath},
+};
 
 pub mod tasklet;
 
@@ -57,25 +59,29 @@ pub enum NestedMusicDirectoriesStrategy {
 }
 
 pub async fn try_refresh_entity_from_db(
-    db_gatekeeper: &Gatekeeper,
+    handle: &Handle,
     entity_uid: EntityUid,
     load_scope: LoadScope,
 ) -> anyhow::Result<Option<EntityWithSummary>> {
-    aoide_backend_embedded::collection::try_load_one(db_gatekeeper, entity_uid.clone(), load_scope)
-        .await
-        .map(|entity_with_summary| {
-            if entity_with_summary.is_some() {
-                log::info!("Reloaded collection with UID {entity_uid}");
-            } else {
-                log::warn!("Collection with UID {entity_uid} not found");
-            }
-            entity_with_summary
-        })
-        .map_err(Into::into)
+    aoide_backend_embedded::collection::try_load_one(
+        handle.db_gatekeeper(),
+        entity_uid.clone(),
+        load_scope,
+    )
+    .await
+    .map(|entity_with_summary| {
+        if entity_with_summary.is_some() {
+            log::info!("Reloaded collection with UID {entity_uid}");
+        } else {
+            log::warn!("Collection with UID {entity_uid} not found");
+        }
+        entity_with_summary
+    })
+    .map_err(Into::into)
 }
 
 pub async fn restore_or_create_entity_from_db(
-    db_gatekeeper: &Gatekeeper,
+    handle: &Handle,
     kind: Option<String>,
     music_dir: &Path,
     nested_music_dirs: NestedMusicDirectoriesStrategy,
@@ -99,7 +105,7 @@ pub async fn restore_or_create_entity_from_db(
         }
     };
     let candidates = aoide_backend_embedded::collection::load_all(
-        db_gatekeeper,
+        handle.db_gatekeeper(),
         kind.clone(),
         Some(media_source_root_url_filter),
         load_scope,
@@ -141,7 +147,7 @@ pub async fn restore_or_create_entity_from_db(
         // Search for an existing collection with a root directory
         // that is a child of the music directory.
         let candidates = aoide_backend_embedded::collection::load_all(
-            db_gatekeeper,
+            handle.db_gatekeeper(),
             kind.clone(),
             Some(MediaSourceRootUrlFilter::Prefix(root_url.clone())),
             LoadScope::Entity,
@@ -164,13 +170,14 @@ pub async fn restore_or_create_entity_from_db(
         notes: None,
         color: None,
     };
-    let entity_uid = aoide_backend_embedded::collection::create(db_gatekeeper, new_collection)
-        .await?
-        .raw
-        .hdr
-        .uid;
+    let entity_uid =
+        aoide_backend_embedded::collection::create(handle.db_gatekeeper(), new_collection)
+            .await?
+            .raw
+            .hdr
+            .uid;
     // Reload the newly created entity with its summary
-    aoide_backend_embedded::collection::load_one(db_gatekeeper, entity_uid, load_scope)
+    aoide_backend_embedded::collection::load_one(handle.db_gatekeeper(), entity_uid, load_scope)
         .await
         .map(State::Ready)
         .map_err(Into::into)
@@ -406,7 +413,7 @@ impl ObservableState {
 
     pub async fn update_music_dir(
         &self,
-        db_gatekeeper: &Gatekeeper,
+        handle: &Handle,
         kind: Option<Cow<'static, str>>,
         new_music_dir: Option<DirPath<'_>>,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
@@ -414,8 +421,7 @@ impl ObservableState {
         let modified = if let Some(new_music_dir) = new_music_dir {
             log::debug!("Updating music directory: {}", new_music_dir.display());
             if self.modify(|state| state.update_music_dir(kind.clone(), new_music_dir)) {
-                self.refresh_from_db(db_gatekeeper, nested_music_dirs)
-                    .await?;
+                self.refresh_from_db(handle, nested_music_dirs).await?;
                 true
             } else {
                 false
@@ -429,7 +435,7 @@ impl ObservableState {
 
     pub async fn refresh_from_db(
         &self,
-        db_gatekeeper: &Gatekeeper,
+        handle: &Handle,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> anyhow::Result<()> {
         let (entity_uid, kind, music_dir) = match &*self.read() {
@@ -458,7 +464,7 @@ impl ObservableState {
             music_dir,
             nested_music_dirs,
         )?;
-        let refreshed = task.execute(db_gatekeeper).await?;
+        let refreshed = task.execute(handle).await?;
         log::debug!("Refreshed state: {refreshed:?}");
         self.modify(|state| state.replace(refreshed));
         Ok(())
@@ -499,7 +505,7 @@ impl RefreshingStateTask {
         })
     }
 
-    pub async fn execute(self, db_gatekeeper: &Gatekeeper) -> anyhow::Result<State> {
+    pub async fn execute(self, handle: &Handle) -> anyhow::Result<State> {
         let Self {
             music_dir,
             entity_uid,
@@ -508,7 +514,7 @@ impl RefreshingStateTask {
         } = self;
         let load_scope = LoadScope::EntityWithSummary;
         let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
-            try_refresh_entity_from_db(db_gatekeeper, entity_uid.clone(), load_scope).await?
+            try_refresh_entity_from_db(handle, entity_uid.clone(), load_scope).await?
         } else {
             None
         };
@@ -531,7 +537,7 @@ impl RefreshingStateTask {
         }
         let music_dir = music_dir.ok_or_else(|| anyhow::anyhow!("no music directory"))?;
         restore_or_create_entity_from_db(
-            db_gatekeeper,
+            handle,
             kind.map(Cow::into_owned),
             &music_dir,
             nested_music_dirs,
@@ -542,7 +548,7 @@ impl RefreshingStateTask {
 }
 
 pub async fn rescan_vfs<ReportProgressFn>(
-    db_gatekeeper: &Gatekeeper,
+    handle: &Handle,
     entity_uid: EntityUid,
     report_progress_fn: ReportProgressFn,
 ) -> anyhow::Result<batch::rescan_collection_vfs::Outcome>
@@ -560,7 +566,7 @@ where
         sync_mode: None,
     };
     batch::rescan_collection_vfs::rescan_collection_vfs(
-        db_gatekeeper,
+        handle.db_gatekeeper(),
         entity_uid,
         params,
         report_progress_fn,

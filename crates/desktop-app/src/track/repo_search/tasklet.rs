@@ -1,12 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{future::Future, sync::Arc};
+use std::{
+    future::Future,
+    sync::{Arc, Weak},
+};
 
-use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use discro::{tasklet::OnChanged, Subscriber};
 
-use crate::collection;
+use crate::{collection, environment::WeakHandle};
 
 use super::{FetchStateTag, ObservableState, State};
 
@@ -44,25 +46,33 @@ where
 }
 
 pub async fn on_should_prefetch(
-    db_gatekeeper: Arc<Gatekeeper>,
     observable_state: Arc<ObservableState>,
+    handle: WeakHandle,
     prefetch_limit: Option<usize>,
 ) {
     log::debug!("Starting on_should_prefetch_prefetch");
-    on_should_prefetch_trigger_async(observable_state.subscribe(), {
-        move || {
-            let db_gatekeeper = Arc::clone(&db_gatekeeper);
-            let observable_state = Arc::clone(&observable_state);
-            async move {
-                let should_prefetch = observable_state.read().should_prefetch();
-                if should_prefetch {
-                    log::debug!("Prefetching...");
-                    observable_state
-                        .fetch_more(&*db_gatekeeper, prefetch_limit)
-                        .await;
-                }
-                OnChanged::Continue
+    let observable_state_sub = observable_state.subscribe();
+    let observable_state = Arc::downgrade(&observable_state);
+    on_should_prefetch_trigger_async(observable_state_sub, move || {
+        let observable_state = observable_state.clone();
+        let handle = handle.clone();
+        async move {
+            let observable_state = if let Some(observable_state) = observable_state.upgrade() {
+                observable_state
+            } else {
+                return OnChanged::Abort;
+            };
+            let handle = if let Some(handle) = handle.upgrade() {
+                handle
+            } else {
+                return OnChanged::Abort;
+            };
+            let should_prefetch = observable_state.read().should_prefetch();
+            if should_prefetch {
+                log::debug!("Prefetching...");
+                observable_state.fetch_more(&handle, prefetch_limit).await;
             }
+            OnChanged::Continue
         }
     })
     .await;
@@ -98,12 +108,23 @@ where
 
 pub async fn on_collection_changed(
     collection_state: Arc<collection::ObservableState>,
-    observable_state: Arc<ObservableState>,
+    observable_state: Weak<ObservableState>,
 ) {
     log::debug!("Starting on_collection_changed");
-    collection::tasklet::on_state_tag_changed(collection_state.subscribe(), {
-        let observable_state = Arc::clone(&observable_state);
+    let collection_state_sub = collection_state.subscribe();
+    let collection_state = Arc::downgrade(&collection_state);
+    collection::tasklet::on_state_tag_changed(collection_state_sub, {
         move |_| {
+            let collection_state = if let Some(collection_state) = collection_state.upgrade() {
+                collection_state
+            } else {
+                return OnChanged::Abort;
+            };
+            let observable_state = if let Some(observable_state) = observable_state.upgrade() {
+                observable_state
+            } else {
+                return OnChanged::Abort;
+            };
             let mut collection_uid = collection_state.read().entity_uid().map(Clone::clone);
             // Argument is consumed when updating succeeds
             if !observable_state.update_collection_uid(&mut collection_uid) {

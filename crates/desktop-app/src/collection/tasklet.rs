@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{future::Future, sync::Arc};
+use std::{
+    future::Future,
+    sync::{Arc, Weak},
+};
 
 use discro::{tasklet::OnChanged, Subscriber};
 
-use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
-
-use crate::{fs::DirPath, settings};
+use crate::{environment::WeakHandle, fs::DirPath, settings};
 
 use super::{NestedMusicDirectoriesStrategy, ObservableState, State, StateTag};
 
@@ -39,39 +40,57 @@ where
 }
 
 pub async fn on_settings_changed(
-    db_gatekeeper: Arc<Gatekeeper>,
     settings_state: Arc<settings::ObservableState>,
-    observable_state: Arc<ObservableState>,
+    observable_state: Weak<ObservableState>,
+    handle: WeakHandle,
     nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) {
     log::debug!("Starting on_settings_changed_update_state");
     let mut settings_state_sub = settings_state.subscribe();
+    let settings_state = Arc::downgrade(&settings_state);
     loop {
-        let (music_dir, collection_kind) = {
-            let settings_state = settings_state_sub.read_ack();
-            let music_dir = settings_state.music_dir.clone();
-            let collection_kind = settings_state.collection_kind.clone();
-            (music_dir, collection_kind)
-        };
-        if let Err(err) = observable_state
-            .update_music_dir(
-                &db_gatekeeper,
-                collection_kind.map(Into::into),
-                music_dir,
-                nested_music_directories_strategy,
-            )
-            .await
         {
-            report_error(err);
-            // Reset the music directory in the settings state. This will
-            // reset the collection state subsequently.
-            settings_state.modify(|settings| settings.update_music_dir(None));
-        } else {
-            // Get the actual music directory from the collection state
-            // and feed it back into the settings state.
-            let music_dir = observable_state.read().music_dir().map(DirPath::into_owned);
-            settings_state.modify(|settings| settings.update_music_dir(music_dir.as_ref()));
+            let settings_state = if let Some(settings_state) = settings_state.upgrade() {
+                settings_state
+            } else {
+                break;
+            };
+            let observable_state = if let Some(observable_state) = observable_state.upgrade() {
+                observable_state
+            } else {
+                break;
+            };
+            let handle = if let Some(handle) = handle.upgrade() {
+                handle
+            } else {
+                break;
+            };
+            let (music_dir, collection_kind) = {
+                let settings_state = settings_state_sub.read_ack();
+                let music_dir = settings_state.music_dir.clone();
+                let collection_kind = settings_state.collection_kind.clone();
+                (music_dir, collection_kind)
+            };
+            if let Err(err) = observable_state
+                .update_music_dir(
+                    &handle,
+                    collection_kind.map(Into::into),
+                    music_dir,
+                    nested_music_directories_strategy,
+                )
+                .await
+            {
+                report_error(err);
+                // Reset the music directory in the settings state. This will
+                // reset the collection state subsequently.
+                settings_state.modify(|settings| settings.update_music_dir(None));
+            } else {
+                // Get the actual music directory from the collection state
+                // and feed it back into the settings state.
+                let music_dir = observable_state.read().music_dir().map(DirPath::into_owned);
+                settings_state.modify(|settings| settings.update_music_dir(music_dir.as_ref()));
+            }
         }
         if settings_state_sub.changed().await.is_err() {
             // Publisher disappeared

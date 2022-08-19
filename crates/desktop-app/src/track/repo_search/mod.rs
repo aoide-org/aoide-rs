@@ -10,7 +10,8 @@ use aoide_core::{
     track::{Entity, EntityHeader},
 };
 use aoide_core_api::{track::search::Params, Pagination};
-use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
+
+use crate::environment::Handle;
 
 pub mod tasklet;
 
@@ -366,7 +367,7 @@ pub struct FetchMoreSucceeded {
 }
 
 pub async fn fetch_more(
-    db_gatekeeper: &Gatekeeper,
+    handle: &Handle,
     context: Context,
     offset_hash: u64,
     pagination: Pagination,
@@ -383,7 +384,7 @@ pub async fn fetch_more(
     let params = params.clone();
     let offset = pagination.offset.unwrap_or(0) as usize;
     let limit = pagination.limit;
-    let fetched = search(db_gatekeeper, collection_uid, params, pagination).await?;
+    let fetched = search(handle.db_gatekeeper(), collection_uid, params, pagination).await?;
     let can_fetch_more = if let Some(limit) = limit {
         limit <= fetched.len() as u64
     } else {
@@ -439,7 +440,7 @@ impl ObservableState {
         self.modify(|state| state.update_params(params))
     }
 
-    pub async fn fetch_more(&self, db_gatekeeper: &Gatekeeper, fetch_limit: Option<usize>) -> bool {
+    pub async fn fetch_more(&self, handle: &Handle, fetch_limit: Option<usize>) -> bool {
         // TODO: How to fix this complex code?
         #[allow(clippy::blocks_in_if_conditions)]
         let (context, offset_hash, pagination) = {
@@ -461,7 +462,7 @@ impl ObservableState {
             }
             (context, offset_hash, pagination)
         };
-        let res = self::fetch_more(db_gatekeeper, context, offset_hash, pagination).await;
+        let res = self::fetch_more(handle, context, offset_hash, pagination).await;
         self.modify(|state| match res {
             Ok(succeeded) => state.fetch_more_succeeded(succeeded),
             Err(err) => state.fetch_more_failed(err),

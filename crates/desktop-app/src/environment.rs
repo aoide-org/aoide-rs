@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 use aoide_backend_embedded::storage::DatabaseConfig;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
@@ -9,7 +9,7 @@ use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 #[allow(missing_debug_implementations)]
 pub struct Environment {
     db_config: DatabaseConfig,
-    db_gatekeeper: Arc<Gatekeeper>,
+    handle: Handle,
 }
 
 impl Environment {
@@ -19,10 +19,8 @@ impl Environment {
     pub fn commission(db_config: DatabaseConfig) -> anyhow::Result<Self> {
         log::info!("Commissioning runtime environment");
         let db_gatekeeper = aoide_backend_embedded::storage::provision_database(&db_config)?;
-        Ok(Self {
-            db_config,
-            db_gatekeeper: Arc::new(db_gatekeeper),
-        })
+        let handle = Handle(Arc::new(db_gatekeeper));
+        Ok(Self { db_config, handle })
     }
 
     /// Prepare for tear down.
@@ -31,7 +29,7 @@ impl Environment {
     /// until finished.
     pub fn decommission(&self) {
         log::info!("Decommissioning runtime environment");
-        self.db_gatekeeper().decommission();
+        self.handle.db_gatekeeper().decommission();
     }
 
     /// The database configuration.
@@ -40,9 +38,37 @@ impl Environment {
         &self.db_config
     }
 
-    /// Access the database.
+    /// Handle for invoking operations.
     #[must_use]
-    pub fn db_gatekeeper(&self) -> &Arc<Gatekeeper> {
-        &self.db_gatekeeper
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+}
+
+/// A cheaply `Clone`able and `Send`able handle for invoking operations.
+#[derive(Clone)]
+#[allow(missing_debug_implementations)]
+pub struct Handle(Arc<Gatekeeper>);
+
+impl Handle {
+    #[must_use]
+    pub fn downgrade(&self) -> WeakHandle {
+        WeakHandle(Arc::downgrade(&self.0))
+    }
+
+    #[must_use]
+    pub fn db_gatekeeper(&self) -> &Gatekeeper {
+        &*self.0
+    }
+}
+
+#[derive(Clone)]
+#[allow(missing_debug_implementations)]
+pub struct WeakHandle(Weak<Gatekeeper>);
+
+impl WeakHandle {
+    #[must_use]
+    pub fn upgrade(&self) -> Option<Handle> {
+        self.0.upgrade().map(Handle)
     }
 }
