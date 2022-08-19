@@ -40,7 +40,7 @@ where
 }
 
 pub async fn on_settings_changed(
-    settings_state: Arc<settings::ObservableState>,
+    settings_state: &Arc<settings::ObservableState>,
     observable_state: Weak<ObservableState>,
     handle: WeakHandle,
     nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
@@ -48,7 +48,7 @@ pub async fn on_settings_changed(
 ) {
     log::debug!("Starting on_settings_changed_update_state");
     let mut settings_state_sub = settings_state.subscribe();
-    let settings_state = Arc::downgrade(&settings_state);
+    let settings_state = Arc::downgrade(settings_state);
     loop {
         {
             let settings_state = if let Some(settings_state) = settings_state.upgrade() {
