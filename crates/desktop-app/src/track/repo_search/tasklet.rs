@@ -1,10 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{
-    future::Future,
-    sync::{Arc, Weak},
-};
+use std::{future::Future, sync::Weak};
 
 use discro::{tasklet::OnChanged, Subscriber};
 
@@ -46,13 +43,16 @@ where
 }
 
 pub async fn on_should_prefetch(
-    observable_state: &Arc<ObservableState>,
+    observable_state: Weak<ObservableState>,
     handle: WeakHandle,
     prefetch_limit: Option<usize>,
 ) {
+    let observable_state_sub = if let Some(observable_state) = observable_state.upgrade() {
+        observable_state.subscribe()
+    } else {
+        return;
+    };
     log::debug!("Starting on_should_prefetch_prefetch");
-    let observable_state_sub = observable_state.subscribe();
-    let observable_state = Arc::downgrade(observable_state);
     on_should_prefetch_trigger_async(observable_state_sub, move || {
         let observable_state = observable_state.clone();
         let handle = handle.clone();
@@ -107,12 +107,15 @@ where
 }
 
 pub async fn on_collection_changed(
-    collection_state: &Arc<collection::ObservableState>,
+    collection_state: Weak<collection::ObservableState>,
     observable_state: Weak<ObservableState>,
 ) {
+    let collection_state_sub = if let Some(collection_state) = collection_state.upgrade() {
+        collection_state.subscribe()
+    } else {
+        return;
+    };
     log::debug!("Starting on_collection_changed");
-    let collection_state_sub = collection_state.subscribe();
-    let collection_state = Arc::downgrade(collection_state);
     collection::tasklet::on_state_tag_changed(collection_state_sub, {
         move |_| {
             let collection_state = if let Some(collection_state) = collection_state.upgrade() {
