@@ -3,7 +3,7 @@
 
 use std::{future::Future, sync::Weak};
 
-use discro::{tasklet::OnChanged, Subscriber};
+use discro::{tasklet::OnChanged, upgrade_or_return, upgrade_or_return_abort, Subscriber};
 
 use crate::{collection, environment::WeakHandle};
 
@@ -53,8 +53,8 @@ pub async fn on_should_prefetch(
         let observable_state = observable_state.clone();
         let handle = handle.clone();
         async move {
-            let observable_state = upgrade_or_abort!(observable_state);
-            let handle = upgrade_or_abort!(handle);
+            let observable_state = upgrade_or_return_abort!(observable_state);
+            let handle = upgrade_or_return_abort!(handle);
             let should_prefetch = observable_state.read().should_prefetch();
             if should_prefetch {
                 log::debug!("Prefetching...");
@@ -102,8 +102,8 @@ pub async fn on_collection_changed(
     log::debug!("Starting on_collection_changed");
     collection::tasklet::on_state_tag_changed(collection_state_sub, {
         move |_| {
-            let collection_state = upgrade_or_abort!(collection_state);
-            let observable_state = upgrade_or_abort!(observable_state);
+            let collection_state = upgrade_or_return_abort!(collection_state);
+            let observable_state = upgrade_or_return_abort!(observable_state);
             let mut collection_uid = collection_state.read().entity_uid().map(Clone::clone);
             // Argument is consumed when updating succeeds
             if !observable_state.update_collection_uid(&mut collection_uid) {

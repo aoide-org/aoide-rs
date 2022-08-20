@@ -3,7 +3,7 @@
 
 use std::{future::Future, sync::Weak};
 
-use discro::{tasklet::OnChanged, Subscriber};
+use discro::{tasklet::OnChanged, upgrade_or_break, upgrade_or_return, Subscriber};
 
 use crate::{environment::WeakHandle, fs::DirPath, settings};
 
