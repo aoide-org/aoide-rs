@@ -43,29 +43,13 @@ pub async fn on_settings_changed(
     nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) {
-    let mut settings_state_sub = if let Some(settings_state) = settings_state.upgrade() {
-        settings_state.subscribe()
-    } else {
-        return;
-    };
+    let mut settings_state_sub = upgrade_or_return!(settings_state).subscribe();
     log::debug!("Starting on_settings_changed_update_state");
     loop {
         {
-            let settings_state = if let Some(settings_state) = settings_state.upgrade() {
-                settings_state
-            } else {
-                break;
-            };
-            let observable_state = if let Some(observable_state) = observable_state.upgrade() {
-                observable_state
-            } else {
-                break;
-            };
-            let handle = if let Some(handle) = handle.upgrade() {
-                handle
-            } else {
-                break;
-            };
+            let settings_state = upgrade_or_break!(settings_state);
+            let observable_state = upgrade_or_break!(observable_state);
+            let handle = upgrade_or_break!(handle);
             let (music_dir, collection_kind) = {
                 let settings_state = settings_state_sub.read_ack();
                 let music_dir = settings_state.music_dir.clone();

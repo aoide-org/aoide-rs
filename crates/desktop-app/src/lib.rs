@@ -15,6 +15,9 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
+#[macro_use]
+pub mod macros;
+
 pub mod environment;
 pub use self::environment::Environment;
 
