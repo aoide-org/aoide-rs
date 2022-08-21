@@ -161,6 +161,7 @@ fn main() {
     #[cfg(feature = "launcher-ui")]
     if !env::parse_launch_headless().unwrap_or(false) {
         log::info!("Running launcher UI");
+        let config = config.clone();
         eframe::run_native(
             app_name(),
             eframe::NativeOptions::default(),

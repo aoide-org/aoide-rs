@@ -41,17 +41,18 @@ mime_guess = { version = "2.0", optional = true }
 rust-embed = { version = "6.4", optional = true }
 
 # launcher-ui
-eframe = { version = "0.18", optional = true, default-features = false, features = [
+eframe = { version = "0.19", optional = true, default-features = false, features = [
     "default_fonts",
+    "glow",
 ] }
-egui = { version = "0.18", optional = true, default-features = false }
+egui = { version = "0.19", optional = true, default-features = false }
 rfd = { version = "0.10", optional = true, default-features = false, features = [
     "xdg-portal",
 ] }
 
 # Workspace dependencies
 aoide-backend-webapi-json = "=0.8.0"
-aoide-core ={ version = "=0.8.0", features = ["serde"] }
+aoide-core = { version = "=0.8.0", features = ["serde"] }
 aoide-repo-sqlite = "=0.8.0"
 aoide-storage-sqlite = { version = "=0.8.0", features = ["serde", "tokio"] }
 aoide-usecases = "=0.8.0"
@@ -61,6 +62,10 @@ aoide-websrv-warp-sqlite = "=0.8.0"
 [features]
 # TODO: Re-enable webapp when trunk build is fixed
 default = ["json-schema", "launcher-ui"]
-json-schema = ["schemars", "aoide-core/json-schema", "aoide-backend-webapi-json/json-schema"]
+json-schema = [
+    "schemars",
+    "aoide-core/json-schema",
+    "aoide-backend-webapi-json/json-schema",
+]
 webapp = ["mime_guess", "rust-embed"]
 launcher-ui = ["eframe", "egui", "rfd"]

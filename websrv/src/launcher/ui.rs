@@ -183,7 +183,7 @@ impl App {
         ui.end_row();
 
         ui.label("SQLite database:");
-        ui.with_layout(egui::Layout::left_to_right(), |ui| {
+        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
             ui.add_enabled(
                 editing_enabled,
                 TextEdit::singleline(&mut self.config.database.sqlite_storage).hint_text(format!(
@@ -230,7 +230,7 @@ impl App {
     }
 
     fn show_launch_controls(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
-        ui.with_layout(egui::Layout::left_to_right(), |ui| {
+        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
             let launcher_state = self.launcher.lock().state();
             let stop_button_text = match launcher_state {
                 LauncherState::Running(RuntimeState::Stopping)
@@ -350,7 +350,7 @@ fn is_existing_file(path: &Path) -> bool {
 }
 
 impl eframe::App for App {
-    fn on_exit(&mut self, _: &eframe::glow::Context) {
+    fn on_exit(&mut self, _: Option<&eframe::glow::Context>) {
         let App {
             launcher,
             last_config,
@@ -396,7 +396,7 @@ impl eframe::App for App {
         }
         self.resync_state_on_update(ctx);
         if self.exit_flag.load(Ordering::Acquire) {
-            frame.quit();
+            frame.close();
         }
         TopBottomPanel::top("config_panel").show(ctx, |ui| {
             egui::Grid::new("config_grid")

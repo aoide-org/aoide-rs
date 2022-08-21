@@ -3,7 +3,8 @@
 
 use std::{future::Future, sync::Weak};
 
-use discro::{tasklet::OnChanged, upgrade_or_return, upgrade_or_return_abort, Subscriber};
+use discro::{tasklet::OnChanged, Subscriber};
+use if_none::{if_none_return, if_none_return_with};
 
 use crate::{collection, environment::WeakHandle};
 
@@ -47,14 +48,15 @@ pub async fn on_should_prefetch(
     handle: WeakHandle,
     prefetch_limit: Option<usize>,
 ) {
-    let observable_state_sub = upgrade_or_return!(observable_state).subscribe();
+    let observable_state_sub = if_none_return!(observable_state.upgrade()).subscribe();
     log::debug!("Starting on_should_prefetch_prefetch");
     on_should_prefetch_trigger_async(observable_state_sub, move || {
         let observable_state = observable_state.clone();
         let handle = handle.clone();
         async move {
-            let observable_state = upgrade_or_return_abort!(observable_state);
-            let handle = upgrade_or_return_abort!(handle);
+            let observable_state =
+                if_none_return_with!(observable_state.upgrade(), OnChanged::Abort);
+            let handle = if_none_return_with!(handle.upgrade(), OnChanged::Abort);
             let should_prefetch = observable_state.read().should_prefetch();
             if should_prefetch {
                 log::debug!("Prefetching...");
@@ -98,12 +100,14 @@ pub async fn on_collection_changed(
     collection_state: Weak<collection::ObservableState>,
     observable_state: Weak<ObservableState>,
 ) {
-    let collection_state_sub = upgrade_or_return!(collection_state).subscribe();
+    let collection_state_sub = if_none_return!(collection_state.upgrade()).subscribe();
     log::debug!("Starting on_collection_changed");
     collection::tasklet::on_state_tag_changed(collection_state_sub, {
         move |_| {
-            let collection_state = upgrade_or_return_abort!(collection_state);
-            let observable_state = upgrade_or_return_abort!(observable_state);
+            let collection_state =
+                if_none_return_with!(collection_state.upgrade(), OnChanged::Abort);
+            let observable_state =
+                if_none_return_with!(observable_state.upgrade(), OnChanged::Abort);
             let mut collection_uid = collection_state.read().entity_uid().map(Clone::clone);
             // Argument is consumed when updating succeeds
             if !observable_state.update_collection_uid(&mut collection_uid) {
