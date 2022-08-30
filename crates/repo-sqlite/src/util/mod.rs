@@ -15,8 +15,9 @@ pub(crate) fn pagination_to_limit_offset(pagination: &Pagination) -> (Option<i64
     if !pagination.is_paginated() {
         return (None, None);
     }
-    // TODO: Verify that this restriction still applies!
     // SQLite: OFFSET can only be used in conjunction with LIMIT
+    // according to the syntax diagram for the SELECT statement:
+    // <https://www.sqlite.org/lang_select.html>
     let limit = if pagination.has_offset() || pagination.is_limited() {
         Some(pagination.mandatory_limit().to_i64().unwrap_or(i64::MAX))
     } else {
