@@ -11,13 +11,13 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-discro = { version = "0.7", features = ["tokio"] }
+discro = { version = "0.8", features = ["tokio"] }
 if-none = "0.0.1"
 log = "0.4"
 rfd = { version = "0.10", default-features = false, features = ["xdg-portal"] }
 ron = "0.8"
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.20", default-features = false }
+tokio = { version = "1.21", default-features = false }
 url = { version = "2.2", features = ["serde"] }
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
 

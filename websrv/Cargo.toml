@@ -14,7 +14,7 @@ edition = "2021"
 anyhow = "1.0"
 ctrlc = { version = "3.2", features = ["termination"] }
 directories = "4.0"
-discro = { version = "0.7", features = ["tokio"] }
+discro = { version = "0.8", features = ["tokio"] }
 dotenv = "0.15"
 log = "0.4"
 parking_lot = "0.12"
@@ -23,7 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
 time = { version = "0.3", features = ["serde-well-known"] }
-tokio = { version = "1.20", default-features = false, features = [
+tokio = { version = "1.21", default-features = false, features = [
     "rt-multi-thread",
     "signal",
 ] }
