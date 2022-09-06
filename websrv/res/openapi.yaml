@@ -10,21 +10,21 @@ info:
     url: https://gitlab.com/uklotzde/aoide-rs
   license:
     name: AGPL-3.0-or-later
-    url: 'https://www.gnu.org/licenses/agpl-3.0.html'
+    url: "https://www.gnu.org/licenses/agpl-3.0.html"
 servers:
-  - url: 'http://[::1]:8080'
+  - url: "http://[::1]:8080"
     description: Local development server
 tags:
-  - name: 'Collections'
-  - name: 'Collections: Media Sources'
-  - name: 'Collections: Media Tracker'
-  - name: 'Collections: Playlists'
-  - name: 'Collections: Tracks'
-  - name: 'Media Tracker'
-  - name: 'Tracks'
-  - name: 'Playlists'
-  - name: 'Storage'
-  - name: 'Administration'
+  - name: "Collections"
+  - name: "Collections: Media Sources"
+  - name: "Collections: Media Tracker"
+  - name: "Collections: Playlists"
+  - name: "Collections: Tracks"
+  - name: "Media Tracker"
+  - name: "Tracks"
+  - name: "Playlists"
+  - name: "Storage"
+  - name: "Administration"
 paths:
   /api/c:
     get:
@@ -34,12 +34,12 @@ paths:
       tags:
         - Collections
       parameters:
-        - $ref: '#/components/parameters/collectionKindQuery'
-        - $ref: '#/components/parameters/collectionSummaryQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
+        - $ref: "#/components/parameters/collectionKindQuery"
+        - $ref: "#/components/parameters/collectionSummaryQuery"
+        - $ref: "#/components/parameters/paginationOffsetQuery"
+        - $ref: "#/components/parameters/paginationLimitQuery"
       responses:
-        '200':
+        "200":
           description: |
             An array of collection entities, optional with a summary.
           content:
@@ -47,11 +47,11 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/CollectionWithSummaryEntity'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                  $ref: "#/components/schemas/CollectionWithSummaryEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
     post:
       summary: Create a new collection
       description: |
@@ -65,19 +65,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Collection'
+              $ref: "#/components/schemas/Collection"
       responses:
-        '201':
+        "201":
           description: |
             The newly created collection entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CollectionEntity'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/CollectionEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/kinds:
     get:
       summary: List collection kinds
@@ -86,7 +86,7 @@ paths:
       tags:
         - Collections
       responses:
-        '200':
+        "200":
           description: |
             An of distinct collection kinds in no particular order.
           content:
@@ -94,11 +94,11 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/CollectionKind'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                  $ref: "#/components/schemas/CollectionKind"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /api/c/{collectionUid}:
     get:
@@ -108,20 +108,20 @@ paths:
       tags:
         - Collections
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/collectionSummaryQuery'
+        - $ref: "#/components/parameters/collectionUidPath"
+        - $ref: "#/components/parameters/collectionSummaryQuery"
       responses:
-        '200':
+        "200":
           description: |
             The loaded collection entity, optionally with a summary.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CollectionWithSummaryEntity'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/CollectionWithSummaryEntity"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
     put:
       summary: Update a collection
       description: |
@@ -130,8 +130,8 @@ paths:
       tags:
         - Collections
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/currentEntityRevisionQuery'
+        - $ref: "#/components/parameters/collectionUidPath"
+        - $ref: "#/components/parameters/currentEntityRevisionQuery"
       requestBody:
         description: |
           The updated collection entity.
@@ -139,23 +139,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CollectionEntity'
+              $ref: "#/components/schemas/CollectionEntity"
       responses:
-        '200':
+        "200":
           description: |
             The updated collection entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EntityHeader'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-        '409':
-          $ref: '#/components/responses/409Conflict'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/EntityHeader"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "409":
+          $ref: "#/components/responses/409Conflict"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
     delete:
       summary: Delete a collection
       description: |
@@ -163,14 +163,14 @@ paths:
       tags:
         - Collections
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       responses:
-        '204':
-          $ref: '#/components/responses/204NoContent'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+        "204":
+          $ref: "#/components/responses/204NoContent"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /api/c/{collectionUid}/t/resolve:
     post:
@@ -182,9 +182,9 @@ paths:
         The result list is unordered and contains only those tracks
         that have been found.
       tags:
-        - 'Collections: Tracks'
+        - "Collections: Tracks"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       requestBody:
         required: true
         content:
@@ -192,9 +192,9 @@ paths:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/PercentEncodedUri'
+                $ref: "#/components/schemas/PercentEncodedUri"
       responses:
-        '200':
+        "200":
           description: |
             An array of track [URI, [UID, Revision]] tuples.
           content:
@@ -207,10 +207,10 @@ paths:
                   maxItems: 2
                   items:
                     oneOf:
-                      - $ref: '#/components/schemas/PercentEncodedUri'
-                      - $ref: '#/components/schemas/EntityHeader'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                      - $ref: "#/components/schemas/PercentEncodedUri"
+                      - $ref: "#/components/schemas/EntityHeader"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/t/search:
     post:
       summary: Search collected tracks and their media sources
@@ -218,29 +218,29 @@ paths:
         Search collected tracks and their media sources by evaluating
         filter conditions and sorting the results.
       tags:
-        - 'Collections: Tracks'
+        - "Collections: Tracks"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/resolveMediaSourceUrlFromContentPathQuery'
-        - $ref: '#/components/parameters/overrideMediaSourceRootUrlQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
+        - $ref: "#/components/parameters/collectionUidPath"
+        - $ref: "#/components/parameters/resolveMediaSourceUrlFromContentPathQuery"
+        - $ref: "#/components/parameters/overrideMediaSourceRootUrlQuery"
+        - $ref: "#/components/parameters/paginationOffsetQuery"
+        - $ref: "#/components/parameters/paginationLimitQuery"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SearchCollectedTracksRequestBody'
+              $ref: "#/components/schemas/SearchCollectedTracksRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             An array of matching tracks in the requested order.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SearchCollectedTracksResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/SearchCollectedTracksResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/t/replace:
     post:
       summary: Replace collected tracks and media sources by URI
@@ -248,53 +248,53 @@ paths:
         Create or update multiple, collected tracks and their media sources by locating them
         through their (percent-encoded) URI.
       tags:
-        - 'Collections: Tracks'
+        - "Collections: Tracks"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/replaceCollectedTrackModeQuery'
-        - $ref: '#/components/parameters/resolveMediaContentPathFromUrlQuery'
+        - $ref: "#/components/parameters/collectionUidPath"
+        - $ref: "#/components/parameters/replaceCollectedTrackModeQuery"
+        - $ref: "#/components/parameters/resolveMediaContentPathFromUrlQuery"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReplaceCollectedTracksRequestBody'
+              $ref: "#/components/schemas/ReplaceCollectedTracksRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             Batch operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/ReplaceCollectedTracksResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/t/import-and-replace:
     post:
       summary: Import and replace collected tracks and media sources by URI
       description: |
         TODO
       tags:
-        - 'Collections: Tracks'
+        - "Collections: Tracks"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/replaceCollectedTrackModeQuery'
+        - $ref: "#/components/parameters/collectionUidPath"
+        - $ref: "#/components/parameters/replaceCollectedTrackModeQuery"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ImportAndReplaceCollectedTracksRequestBody'
+              $ref: "#/components/schemas/ImportAndReplaceCollectedTracksRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             Batch operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportAndReplaceCollectedTracksResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/ImportAndReplaceCollectedTracksResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/t/find-unsynchronized:
     post:
       summary: Find tracks with unsynchronized media sources
@@ -305,29 +305,29 @@ paths:
         modified after the last import. The metadata of the latter
         is supposed to be exported to keep the sources synchronized.
       tags:
-        - 'Collections: Tracks'
+        - "Collections: Tracks"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/resolveMediaSourceUrlFromContentPathQuery'
-        - $ref: '#/components/parameters/overrideMediaSourceRootUrlQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
+        - $ref: "#/components/parameters/collectionUidPath"
+        - $ref: "#/components/parameters/resolveMediaSourceUrlFromContentPathQuery"
+        - $ref: "#/components/parameters/overrideMediaSourceRootUrlQuery"
+        - $ref: "#/components/parameters/paginationOffsetQuery"
+        - $ref: "#/components/parameters/paginationLimitQuery"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FindUnsynchronizedTracksRequestBody'
+              $ref: "#/components/schemas/FindUnsynchronizedTracksRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             An array of matching tracks in the requested order.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FindUnsynchronizedTracksResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/FindUnsynchronizedTracksResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /api/c/{collectionUid}/ms/purge-orphaned:
     post:
@@ -335,25 +335,25 @@ paths:
       description: |
         Purge all media sources that are not associated with a track.
       tags:
-        - 'Collections: Media Sources'
+        - "Collections: Media Sources"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PurgeOrphanedMediaSourcesRequestBody'
+              $ref: "#/components/schemas/PurgeOrphanedMediaSourcesRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             Operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PurgeOrphanedMediaSourcesResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/PurgeOrphanedMediaSourcesResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/ms/purge-untracked:
     post:
       summary: Purge untracked media sources and the corresponding tracks
@@ -365,25 +365,25 @@ paths:
         Purging all orphaned directories from the media tracker before invoking
         this operation might generate additional candidates,
       tags:
-        - 'Collections: Media Sources'
+        - "Collections: Media Sources"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PurgeUntrackedMediaSourcesRequestBody'
+              $ref: "#/components/schemas/PurgeUntrackedMediaSourcesRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             Batch operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PurgeUntrackedMediaSourcesResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/PurgeUntrackedMediaSourcesResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/ms/relocate:
     post:
       summary: Relocate collected media sources by URI prefix
@@ -393,25 +393,25 @@ paths:
 
         The URI comparison is case-sensitive.
       tags:
-        - 'Collections: Media Sources'
+        - "Collections: Media Sources"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RelocateCollectedMediaSourcesRequestBody'
+              $ref: "#/components/schemas/RelocateCollectedMediaSourcesRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             Batch operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RelocateCollectedMediaSourcesResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/RelocateCollectedMediaSourcesResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /api/c/{collectionUid}/mt/query-status:
     post:
@@ -419,25 +419,25 @@ paths:
       description: |
         Fetches the aggregated status of tracked directories from the database.
       tags:
-        - 'Collections: Media Tracker'
+        - "Collections: Media Tracker"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MediaTrackerQueryStatusRequestBody'
+              $ref: "#/components/schemas/MediaTrackerQueryStatusRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             Operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaTrackerQueryStatusResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/MediaTrackerQueryStatusResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/mt/scan-directories:
     post:
       summary: Scan a directory tree for changes
@@ -454,25 +454,25 @@ paths:
 
         This operation is blocking and locks the database while running.
       tags:
-        - 'Collections: Media Tracker'
+        - "Collections: Media Tracker"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MediaTrackerScanRequestBody'
+              $ref: "#/components/schemas/MediaTrackerScanRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             Operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaTrackerScanResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/MediaTrackerScanResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/mt/untrack-directories:
     post:
       summary: Discard tracked directories and their contents
@@ -487,25 +487,25 @@ paths:
         This would also allow to recover from an inconsistent state
         i.e. if changes are expected but not detected by rescanning.
       tags:
-        - 'Collections: Media Tracker'
+        - "Collections: Media Tracker"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MediaTrackerUntrackDirectoriesRequestBody'
+              $ref: "#/components/schemas/MediaTrackerUntrackDirectoriesRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             Operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaTrackerUntrackDirectoriesResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/MediaTrackerUntrackDirectoriesResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/mt/import-files:
     post:
       summary: Import file contents from changed directories
@@ -515,25 +515,25 @@ paths:
 
         This operation is blocking and locks the database while running.
       tags:
-        - 'Collections: Media Tracker'
+        - "Collections: Media Tracker"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MediaTrackerImportRequestBody'
+              $ref: "#/components/schemas/MediaTrackerImportRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             Operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaTrackerImportResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/MediaTrackerImportResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/mt/find-untracked-files:
     post:
       summary: Find untracked entries in the directory tree
@@ -542,25 +542,25 @@ paths:
 
         This operation is blocking and locks the database while running.
       tags:
-        - 'Collections: Media Tracker'
+        - "Collections: Media Tracker"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MediaTrackerFindUntrackedRequestBody'
+              $ref: "#/components/schemas/MediaTrackerFindUntrackedRequestBody"
       responses:
-        '200':
+        "200":
           description: |
             Operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaTrackerFindUntrackedResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/MediaTrackerFindUntrackedResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /api/mt/progress:
     get:
@@ -573,7 +573,7 @@ paths:
       tags:
         - Media Tracker
       responses:
-        '200':
+        "200":
           description: |
             Operation succeeded.
           content:
@@ -586,17 +586,17 @@ paths:
                   - type: object
                     properties:
                       scanning:
-                        $ref: '#/components/schemas/MediaTrackerFsTraversalProgress'
+                        $ref: "#/components/schemas/MediaTrackerFsTraversalProgress"
                   - type: object
                     properties:
                       importing:
-                        $ref: '#/components/schemas/MediaTrackerImportingProgress'
+                        $ref: "#/components/schemas/MediaTrackerImportingProgress"
                   - type: object
                     properties:
                       findingUntracked:
-                        $ref: '#/components/schemas/MediaTrackerFsTraversalProgress'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                        $ref: "#/components/schemas/MediaTrackerFsTraversalProgress"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /api/t/{trackUid}:
     get:
@@ -606,19 +606,19 @@ paths:
       tags:
         - Tracks
       parameters:
-        - $ref: '#/components/parameters/trackUidPath'
+        - $ref: "#/components/parameters/trackUidPath"
       responses:
-        '200':
+        "200":
           description: |
             The loaded track entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TrackEntity'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/TrackEntity"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/t/load:
     post:
       summary: Load multiple tracks
@@ -637,9 +637,9 @@ paths:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/TrackUid'
+                $ref: "#/components/schemas/TrackUid"
       responses:
-        '200':
+        "200":
           description: |
             An unordered array of loaded tracks.
           content:
@@ -647,9 +647,9 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TrackEntity'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                  $ref: "#/components/schemas/TrackEntity"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/t/{trackUid}/export-metadata:
     post:
       summary: Export metadata of a single track
@@ -658,17 +658,17 @@ paths:
       tags:
         - Tracks
       parameters:
-        - $ref: '#/components/parameters/trackUidPath'
+        - $ref: "#/components/parameters/trackUidPath"
       responses:
-        '200':
+        "200":
           description: |
             Operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExportTrackMetadataResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/ExportTrackMetadataResponseBody"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /api/c/{collectionUid}/p:
     get:
@@ -676,14 +676,14 @@ paths:
       description: |
         Load collected playlists that have recently been modified (created/updated).
       tags:
-        - 'Collections: Playlists'
+        - "Collections: Playlists"
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/playlistKindQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
+        - $ref: "#/components/parameters/collectionUidPath"
+        - $ref: "#/components/parameters/playlistKindQuery"
+        - $ref: "#/components/parameters/paginationOffsetQuery"
+        - $ref: "#/components/parameters/paginationLimitQuery"
       responses:
-        '200':
+        "200":
           description: |
             An array of playlist entities with a summary of their
             entries.
@@ -692,11 +692,11 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PlaylistWithEntriesSummaryEntity'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                  $ref: "#/components/schemas/PlaylistWithEntriesSummaryEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
     post:
       summary: Create a new, collected playlist
       description: |
@@ -704,7 +704,7 @@ paths:
       tags:
         - Playlists
       parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: "#/components/parameters/collectionUidPath"
       requestBody:
         description: |
           Properties and entries of the new playlist.
@@ -712,19 +712,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Playlist'
+              $ref: "#/components/schemas/Playlist"
       responses:
-        '201':
+        "201":
           description: |
             The newly created playlist entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaylistEntity'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/PlaylistEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /api/p/{playlistUid}:
     get:
@@ -734,19 +734,19 @@ paths:
       tags:
         - Playlists
       parameters:
-        - $ref: '#/components/parameters/playlistUidPath'
+        - $ref: "#/components/parameters/playlistUidPath"
       responses:
-        '200':
+        "200":
           description: |
             The loaded playlist entity including all entries.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaylistWithEntriesEntity'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/PlaylistWithEntriesEntity"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
     put:
       summary: Update a playlist
       description: |
@@ -755,8 +755,8 @@ paths:
       tags:
         - Playlists
       parameters:
-        - $ref: '#/components/parameters/playlistUidPath'
-        - $ref: '#/components/parameters/currentEntityRevisionQuery'
+        - $ref: "#/components/parameters/playlistUidPath"
+        - $ref: "#/components/parameters/currentEntityRevisionQuery"
       requestBody:
         description: |
           A playlist entity with the current `header` and and updated `body`.
@@ -764,23 +764,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PlaylistEntity'
+              $ref: "#/components/schemas/PlaylistEntity"
       responses:
-        '200':
+        "200":
           description: |
             The updated playlist entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaylistWithEntriesSummaryEntity'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-        '409':
-          $ref: '#/components/responses/409Conflict'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/PlaylistWithEntriesSummaryEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "409":
+          $ref: "#/components/responses/409Conflict"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
     delete:
       summary: Delete a playlist
       description: |
@@ -788,14 +788,14 @@ paths:
       tags:
         - Playlists
       parameters:
-        - $ref: '#/components/parameters/playlistUidPath'
+        - $ref: "#/components/parameters/playlistUidPath"
       responses:
-        '204':
-          $ref: '#/components/responses/204NoContent'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+        "204":
+          $ref: "#/components/responses/204NoContent"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /api/p/{playlistUid}/entries:
     patch:
@@ -805,8 +805,8 @@ paths:
       tags:
         - Playlists
       parameters:
-        - $ref: '#/components/parameters/playlistUidPath'
-        - $ref: '#/components/parameters/currentEntityRevisionQuery'
+        - $ref: "#/components/parameters/playlistUidPath"
+        - $ref: "#/components/parameters/currentEntityRevisionQuery"
       requestBody:
         required: true
         content:
@@ -814,23 +814,23 @@ paths:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/PlaylistEntriesPatchOperation'
+                $ref: "#/components/schemas/PlaylistEntriesPatchOperation"
       responses:
-        '200':
+        "200":
           description: |
             The updated playlist entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaylistWithEntriesSummaryEntity'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-        '409':
-          $ref: '#/components/responses/409Conflict'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/PlaylistWithEntriesSummaryEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "409":
+          $ref: "#/components/responses/409Conflict"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /api/storage/pending-tasks:
     get:
@@ -840,15 +840,15 @@ paths:
       tags:
         - Storage
       responses:
-        '200':
+        "200":
           description: |
             The number of pending storage tasks.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StoragePendingTasksSummary'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+                $ref: "#/components/schemas/StoragePendingTasksSummary"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/storage/abort-current-task:
     post:
       summary: Abort the current task
@@ -864,11 +864,11 @@ paths:
       tags:
         - Storage
       responses:
-        '202':
+        "202":
           description: |
             The operation has been accepted.
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/storage/migrate-schema:
     post:
       summary: Migrate the database schema
@@ -877,10 +877,10 @@ paths:
       tags:
         - Storage
       responses:
-        '204':
-          $ref: '#/components/responses/204NoContent'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+        "204":
+          $ref: "#/components/responses/204NoContent"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/storage/cleanse:
     post:
       summary: Cleanse the database
@@ -900,10 +900,10 @@ paths:
           description: |
             Rebuild the database file from scratch.
       responses:
-        '204':
-          $ref: '#/components/responses/204NoContent'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+        "204":
+          $ref: "#/components/responses/204NoContent"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /about:
     get:
@@ -913,15 +913,15 @@ paths:
       tags:
         - Administration
       responses:
-        '200':
+        "200":
           description: |
             Command succeeded.
           content:
             application/json:
               schema:
                 type: object
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
 
   /shutdown:
     post:
@@ -931,12 +931,12 @@ paths:
       tags:
         - Administration
       responses:
-        '202':
-          $ref: '#/components/responses/202Accepted'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-        '502':
-          $ref: '#/components/responses/502InternalCommunicationError'
+        "202":
+          $ref: "#/components/responses/202Accepted"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
+        "502":
+          $ref: "#/components/responses/502InternalCommunicationError"
 
 components:
   responses:
@@ -955,28 +955,28 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     404NotFound:
       description: |
         The specified resource was not found.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     409Conflict:
       description: |
         The specified resource could not be updated or patched due to a conflict.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     500InternalServerError:
       description: |
         The server failed to process the request.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
     502InternalCommunicationError:
       description: |
         The server failed to forward the request.
@@ -1010,7 +1010,7 @@ components:
       in: query
       required: false
       schema:
-        $ref: '#/components/schemas/ReplaceCollectedTrackMode'
+        $ref: "#/components/schemas/ReplaceCollectedTrackMode"
       description: |
         Controls if track entities are created and/or updated.
     resolveMediaContentPathFromUrlQuery:
@@ -1049,13 +1049,13 @@ components:
       in: query
       required: false
       schema:
-        $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
     collectionUidPath:
       name: collectionUid
       in: path
       required: true
       schema:
-        $ref: '#/components/schemas/CollectionUid'
+        $ref: "#/components/schemas/CollectionUid"
       description: |
         The UID of the collection.
     currentEntityRevisionQuery:
@@ -1063,7 +1063,7 @@ components:
       in: query
       required: true
       schema:
-        $ref: '#/components/schemas/EntityRevision'
+        $ref: "#/components/schemas/EntityRevision"
       description: |
         The current entity revision for optimistic locking when
         modifying an entity.
@@ -1072,7 +1072,7 @@ components:
       in: query
       required: false
       schema:
-        $ref: '#/components/schemas/CollectionKind'
+        $ref: "#/components/schemas/CollectionKind"
       description: |
         The desired kind of the collection.
     collectionSummaryQuery:
@@ -1089,7 +1089,7 @@ components:
       in: query
       required: false
       schema:
-        $ref: '#/components/schemas/PlaylistKind'
+        $ref: "#/components/schemas/PlaylistKind"
       description: |
         The desired kind of the playlist.
     playlistUidPath:
@@ -1097,7 +1097,7 @@ components:
       in: path
       required: true
       schema:
-        $ref: '#/components/schemas/PlaylistUid'
+        $ref: "#/components/schemas/PlaylistUid"
       description: |
         The UID of the playlist.
     trackUidPath:
@@ -1105,7 +1105,7 @@ components:
       in: path
       required: true
       schema:
-        $ref: '#/components/schemas/TrackUid'
+        $ref: "#/components/schemas/TrackUid"
       description: |
         The UID of the track.
   schemas:
@@ -1113,11 +1113,11 @@ components:
       type: object
       properties:
         name:
-          $ref: '#/components/schemas/ActorName'
+          $ref: "#/components/schemas/ActorName"
         kind:
-          $ref: '#/components/schemas/ActorKind'
+          $ref: "#/components/schemas/ActorKind"
         role:
-          $ref: '#/components/schemas/ActorRole'
+          $ref: "#/components/schemas/ActorRole"
         roleNotes:
           type: string
       required:
@@ -1131,20 +1131,20 @@ components:
       type: object
       properties:
         modifier:
-          $ref: '#/components/schemas/FilterModifier'
+          $ref: "#/components/schemas/FilterModifier"
         scope:
-          $ref: '#/components/schemas/TrackScope'
+          $ref: "#/components/schemas/TrackScope"
         roles:
           type: array
           items:
-            $ref: '#/components/schemas/ActorRole'
+            $ref: "#/components/schemas/ActorRole"
           description: |
             A non-empty array will match any of the given roles.
             An empty or missing array will match any role.
         kinds:
           type: array
           items:
-            $ref: '#/components/schemas/ActorKind'
+            $ref: "#/components/schemas/ActorKind"
           description: |
             A non-empty array will match any of the given kinds.
             An empty or missing array will match any kind.
@@ -1207,15 +1207,15 @@ components:
           description: |
             An array of titles
           items:
-            $ref: '#/components/schemas/Title'
+            $ref: "#/components/schemas/Title"
         actors:
           type: array
           description: |
             An array of acting participants/people
           items:
-            $ref: '#/components/schemas/Actor'
+            $ref: "#/components/schemas/Actor"
         kind:
-          $ref: '#/components/schemas/AlbumKind'
+          $ref: "#/components/schemas/AlbumKind"
     ApicType:
       type: integer
       minimum: 0x00
@@ -1241,11 +1241,11 @@ components:
       type: object
       properties:
         source:
-          $ref: '#/components/schemas/ArtworkSource'
+          $ref: "#/components/schemas/ArtworkSource"
         image:
-          $ref: '#/components/schemas/ArtworkImage'
+          $ref: "#/components/schemas/ArtworkImage"
         uri:
-          $ref: '#/components/schemas/PercentEncodedUri'
+          $ref: "#/components/schemas/PercentEncodedUri"
       required:
         - source
     ArtworkImage:
@@ -1254,15 +1254,15 @@ components:
       type: object
       properties:
         apicType:
-          $ref: '#/components/schemas/ApicType'
+          $ref: "#/components/schemas/ApicType"
         mediaType:
-          $ref: '#/components/schemas/MediaType'
+          $ref: "#/components/schemas/MediaType"
         size:
-          $ref: '#/components/schemas/ImageSize'
+          $ref: "#/components/schemas/ImageSize"
         digest:
-          $ref: '#/components/schemas/ImageDigest'
+          $ref: "#/components/schemas/ImageDigest"
         thumbnail:
-          $ref: '#/components/schemas/ImageThumbnail4x4Rgb8'
+          $ref: "#/components/schemas/ImageThumbnail4x4Rgb8"
       required:
         - apicType
         - mediaType
@@ -1280,11 +1280,11 @@ components:
       type: object
       properties:
         durationMs:
-          $ref: '#/components/schemas/DurationMs'
+          $ref: "#/components/schemas/DurationMs"
         bitrateBps:
-          $ref: '#/components/schemas/BitrateBps'
+          $ref: "#/components/schemas/BitrateBps"
         channels:
-          $ref: '#/components/schemas/Channels'
+          $ref: "#/components/schemas/Channels"
         encodedBy:
           description: Encoder, either a person or an application
           type: string
@@ -1294,9 +1294,9 @@ components:
           type: string
           minLength: 1
         loudnessLufs:
-          $ref: '#/components/schemas/LoudnessLufs'
+          $ref: "#/components/schemas/LoudnessLufs"
         sampleRateHz:
-          $ref: '#/components/schemas/SampleRateHz'
+          $ref: "#/components/schemas/SampleRateHz"
     BeatNumber:
       type: integer
       minimum: 0
@@ -1306,7 +1306,7 @@ components:
         A number for counting beats in a measure.
     BeatsPerMeasure:
       allOf:
-        - $ref: '#/components/schemas/BeatNumber'
+        - $ref: "#/components/schemas/BeatNumber"
       example: 3
       description: |
         The number of beats in each measure.
@@ -1367,8 +1367,8 @@ components:
       description: |
         Either a channel count or a channel layout.
       oneOf:
-        - $ref: '#/components/schemas/ChannelCount'
-        - $ref: '#/components/schemas/ChannelLayout'
+        - $ref: "#/components/schemas/ChannelCount"
+        - $ref: "#/components/schemas/ChannelLayout"
     CollectionEntity:
       description: |
         Entity header and body
@@ -1377,21 +1377,21 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/Collection'
+          - $ref: "#/components/schemas/EntityHeader"
+          - $ref: "#/components/schemas/Collection"
     Collection:
       type: object
       properties:
         title:
-          $ref: '#/components/schemas/CollectionTitle'
+          $ref: "#/components/schemas/CollectionTitle"
         kind:
-          $ref: '#/components/schemas/CollectionKind'
+          $ref: "#/components/schemas/CollectionKind"
         notes:
-          $ref: '#/components/schemas/CollectionNotes'
+          $ref: "#/components/schemas/CollectionNotes"
         color:
-          $ref: '#/components/schemas/Color'
+          $ref: "#/components/schemas/Color"
         mediaSourceConfig:
-          $ref: '#/components/schemas/CollectionMediaSourceConfig'
+          $ref: "#/components/schemas/CollectionMediaSourceConfig"
       required:
         - title
         - mediaSourceConfig
@@ -1400,13 +1400,13 @@ components:
       minLength: 1
       description: |
         A custom identifier to distinguish different kinds of collections.
-      example: 'local'
+      example: "local"
     CollectionMediaSourceConfig:
       properties:
         pathKind:
-          $ref: '#/components/schemas/MediaContentPathKind'
+          $ref: "#/components/schemas/MediaContentPathKind"
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
       required:
         - pathKind
     CollectionTitle:
@@ -1414,14 +1414,14 @@ components:
       minLength: 1
       description: |
         A concise title.
-      example: 'Collection #1'
+      example: "Collection #1"
     CollectionWithSummary:
       allOf:
-        - $ref: '#/components/schemas/Collection'
+        - $ref: "#/components/schemas/Collection"
         - type: object
           properties:
             summary:
-              $ref: '#/components/schemas/CollectionSummary'
+              $ref: "#/components/schemas/CollectionSummary"
     CollectionWithSummaryEntity:
       description: |
         Entity header and body
@@ -1430,50 +1430,50 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/CollectionWithSummary'
+          - $ref: "#/components/schemas/EntityHeader"
+          - $ref: "#/components/schemas/CollectionWithSummary"
     CollectionSummary:
       type: object
       properties:
         mediaSources:
-          $ref: '#/components/schemas/CollectionMediaSourceSummary'
+          $ref: "#/components/schemas/CollectionMediaSourceSummary"
         tracks:
-          $ref: '#/components/schemas/CollectionTrackSummary'
+          $ref: "#/components/schemas/CollectionTrackSummary"
         playlists:
-          $ref: '#/components/schemas/CollectionPlaylistSummary'
+          $ref: "#/components/schemas/CollectionPlaylistSummary"
     CollectionMediaSourceSummary:
       type: object
       properties:
         totalCount:
-          $ref: '#/components/schemas/TotalMediaSourceCount'
+          $ref: "#/components/schemas/TotalMediaSourceCount"
       required:
         - totalCount
     CollectionPlaylistSummary:
       type: object
       properties:
         totalCount:
-          $ref: '#/components/schemas/TotalPlaylistCount'
+          $ref: "#/components/schemas/TotalPlaylistCount"
       required:
         - totalCount
     CollectionTrackSummary:
       type: object
       properties:
         totalCount:
-          $ref: '#/components/schemas/TotalTrackCount'
+          $ref: "#/components/schemas/TotalTrackCount"
       required:
         - totalCount
     CollectionUid:
       allOf:
-        - $ref: '#/components/schemas/EntityUid'
+        - $ref: "#/components/schemas/EntityUid"
     CollectionNotes:
       type: string
       description: |
         Lengthy, personal notes.
-      example: 'Lengthy, personal notes'
+      example: "Lengthy, personal notes"
     Color:
       oneOf:
-        - $ref: '#/components/schemas/RgbColorVariant'
-        - $ref: '#/components/schemas/ColorIndexVariant'
+        - $ref: "#/components/schemas/RgbColorVariant"
+        - $ref: "#/components/schemas/ColorIndexVariant"
       description: |
         Either an RGB color value or a color index.
     ColorIndex:
@@ -1487,7 +1487,7 @@ components:
       type: object
       properties:
         idx:
-          $ref: '#/components/schemas/ColorIndex'
+          $ref: "#/components/schemas/ColorIndex"
     AdvisoryRatingCode:
       type: integer
       enum: [0, 1, 2]
@@ -1563,7 +1563,7 @@ components:
         The slot index within a bank.
     DiscIndex:
       allOf:
-        - $ref: '#/components/schemas/Index'
+        - $ref: "#/components/schemas/Index"
     DurationMs:
       type: number
       format: double
@@ -1575,8 +1575,8 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/EntityUid'
-          - $ref: '#/components/schemas/EntityRevision'
+          - $ref: "#/components/schemas/EntityUid"
+          - $ref: "#/components/schemas/EntityRevision"
     EntityRevision:
       type: integer
       format: uint64
@@ -1619,7 +1619,7 @@ components:
         identifies the contents of an image for cache lookup and to decide about
         modifications, e.g. a SHA256 hash of the raw image data.
       allOf:
-        - $ref: '#/components/schemas/MediaDigest'
+        - $ref: "#/components/schemas/MediaDigest"
     ImageThumbnail4x4Rgb8:
       description: |
         A condensed 4x4 thumbnail picture.
@@ -1663,11 +1663,11 @@ components:
       type: object
       properties:
         track:
-          $ref: '#/components/schemas/TrackIndex'
+          $ref: "#/components/schemas/TrackIndex"
         disc:
-          $ref: '#/components/schemas/DiscIndex'
+          $ref: "#/components/schemas/DiscIndex"
         movement:
-          $ref: '#/components/schemas/MovementIndex'
+          $ref: "#/components/schemas/MovementIndex"
     KeySignatureCode:
       type: integer
       enum:
@@ -1737,16 +1737,16 @@ components:
       type: object
       properties:
         positionMs:
-          $ref: '#/components/schemas/PositionMs'
+          $ref: "#/components/schemas/PositionMs"
       required:
         - positionMs
     CueOutMarker:
       type: object
       properties:
         positionMs:
-          $ref: '#/components/schemas/PositionMs'
+          $ref: "#/components/schemas/PositionMs"
         mode:
-          $ref: '#/components/schemas/CueOutMode'
+          $ref: "#/components/schemas/CueOutMode"
       required:
         - positionMs
     CueOutMode:
@@ -1779,30 +1779,30 @@ components:
       type: object
       properties:
         modifier:
-          $ref: '#/components/schemas/FilterModifier'
+          $ref: "#/components/schemas/FilterModifier"
         value:
-          $ref: '#/components/schemas/StringPredicate'
+          $ref: "#/components/schemas/StringPredicate"
     MediaContentMetadata:
       allOf:
-        - $ref: '#/components/schemas/MediaSourceAudioContentMetadata'
+        - $ref: "#/components/schemas/MediaSourceAudioContentMetadata"
     MediaSourceAudioContentMetadata:
       type: object
       properties:
         audio:
-          $ref: '#/components/schemas/AudioContentMetadata'
+          $ref: "#/components/schemas/AudioContentMetadata"
     MediaContent:
       type: object
       properties:
         link:
-          $ref: '#/components/schemas/MediaContentLink'
+          $ref: "#/components/schemas/MediaContentLink"
         type:
-          $ref: '#/components/schemas/MediaType'
+          $ref: "#/components/schemas/MediaType"
         digest:
-          $ref: '#/components/schemas/MediaDigest'
+          $ref: "#/components/schemas/MediaDigest"
         metadataFlags:
-          $ref: '#/components/schemas/ContentMetadataFlags'
+          $ref: "#/components/schemas/ContentMetadataFlags"
       additionalProperties:
-        $ref: '#/components/schemas/MediaContentMetadata'
+        $ref: "#/components/schemas/MediaContentMetadata"
       required:
         - link
         - type
@@ -1810,13 +1810,13 @@ components:
       type: object
       properties:
         collectedAt:
-          $ref: '#/components/schemas/DateTime'
+          $ref: "#/components/schemas/DateTime"
         content:
-          $ref: '#/components/schemas/MediaContent'
+          $ref: "#/components/schemas/MediaContent"
         artwork:
-          $ref: '#/components/schemas/Artwork'
+          $ref: "#/components/schemas/Artwork"
         advisoryRating:
-          $ref: '#/components/schemas/AdvisoryRatingCode'
+          $ref: "#/components/schemas/AdvisoryRatingCode"
       required:
         - collectedAt
         - content
@@ -1828,7 +1828,7 @@ components:
         as synchronized with the underlying media source, or absent
         if unsynchronized.
       allOf:
-        - $ref: '#/components/schemas/EntityRevision'
+        - $ref: "#/components/schemas/EntityRevision"
     MediaType:
       type: string
       minLength: 1
@@ -1853,18 +1853,18 @@ components:
           * audio/opus
     MovementIndex:
       allOf:
-        - $ref: '#/components/schemas/Index'
+        - $ref: "#/components/schemas/Index"
     Metrics:
       type: object
       properties:
         tempoBpm:
-          $ref: '#/components/schemas/TempoBpm'
+          $ref: "#/components/schemas/TempoBpm"
         keyCode:
-          $ref: '#/components/schemas/KeySignatureCode'
+          $ref: "#/components/schemas/KeySignatureCode"
         timeSignature:
-          $ref: '#/components/schemas/TimeSignature'
+          $ref: "#/components/schemas/TimeSignature"
         flags:
-          $ref: '#/components/schemas/MetricsFlags'
+          $ref: "#/components/schemas/MetricsFlags"
       description: |
         Musical signature including tempo/speed, timining, and key.
     MetricsFlags:
@@ -1897,54 +1897,54 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/DateTimeField'
-          - $ref: '#/components/schemas/DateTimePredicate'
+          - $ref: "#/components/schemas/DateTimeField"
+          - $ref: "#/components/schemas/DateTimePredicate"
     DateTimePredicate:
       oneOf:
-        - $ref: '#/components/schemas/DateTimePredicateLessThan'
-        - $ref: '#/components/schemas/DateTimePredicateLessOrEqual'
-        - $ref: '#/components/schemas/DateTimePredicateGreaterThan'
-        - $ref: '#/components/schemas/DateTimePredicateGreaterOrEqual'
-        - $ref: '#/components/schemas/DateTimePredicateEqual'
-        - $ref: '#/components/schemas/DateTimePredicateNotEqual'
+        - $ref: "#/components/schemas/DateTimePredicateLessThan"
+        - $ref: "#/components/schemas/DateTimePredicateLessOrEqual"
+        - $ref: "#/components/schemas/DateTimePredicateGreaterThan"
+        - $ref: "#/components/schemas/DateTimePredicateGreaterOrEqual"
+        - $ref: "#/components/schemas/DateTimePredicateEqual"
+        - $ref: "#/components/schemas/DateTimePredicateNotEqual"
     DateTimePredicateLessThan:
       type: object
       properties:
         lt:
-          $ref: '#/components/schemas/DateTime'
+          $ref: "#/components/schemas/DateTime"
       required:
         - lt
     DateTimePredicateLessOrEqual:
       type: object
       properties:
         le:
-          $ref: '#/components/schemas/DateTime'
+          $ref: "#/components/schemas/DateTime"
       required:
         - le
     DateTimePredicateGreaterThan:
       type: object
       properties:
         gt:
-          $ref: '#/components/schemas/DateTime'
+          $ref: "#/components/schemas/DateTime"
       required:
         - gt
     DateTimePredicateGreaterOrEqual:
       type: object
       properties:
         ge:
-          $ref: '#/components/schemas/DateTime'
+          $ref: "#/components/schemas/DateTime"
       required:
         - ge
     DateTimePredicateEqual:
       type: object
       properties:
         eq:
-          $ref: '#/components/schemas/DateTime'
+          $ref: "#/components/schemas/DateTime"
     DateTimePredicateNotEqual:
       type: object
       properties:
         ne:
-          $ref: '#/components/schemas/DateTime'
+          $ref: "#/components/schemas/DateTime"
     NumericField:
       type: string
       enum:
@@ -1969,16 +1969,16 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/NumericField'
-          - $ref: '#/components/schemas/NumericPredicate'
+          - $ref: "#/components/schemas/NumericField"
+          - $ref: "#/components/schemas/NumericPredicate"
     NumericPredicate:
       oneOf:
-        - $ref: '#/components/schemas/NumericPredicateLessThan'
-        - $ref: '#/components/schemas/NumericPredicateLessOrEqual'
-        - $ref: '#/components/schemas/NumericPredicateGreaterThan'
-        - $ref: '#/components/schemas/NumericPredicateGreaterOrEqual'
-        - $ref: '#/components/schemas/NumericPredicateEqual'
-        - $ref: '#/components/schemas/NumericPredicateNotEqual'
+        - $ref: "#/components/schemas/NumericPredicateLessThan"
+        - $ref: "#/components/schemas/NumericPredicateLessOrEqual"
+        - $ref: "#/components/schemas/NumericPredicateGreaterThan"
+        - $ref: "#/components/schemas/NumericPredicateGreaterOrEqual"
+        - $ref: "#/components/schemas/NumericPredicateEqual"
+        - $ref: "#/components/schemas/NumericPredicateNotEqual"
     NumericPredicateLessThan:
       type: object
       properties:
@@ -2031,7 +2031,7 @@ components:
         oneOf:
           - type: array
             items:
-              $ref: '#/components/schemas/StringField'
+              $ref: "#/components/schemas/StringField"
             description: |
               The fields that are matched against the terms. If no fields
               are specified all available string fields are matched.
@@ -2054,34 +2054,34 @@ components:
       description: |
         Either a single label, a single score, or a 2-element array [label, score].
       oneOf:
-        - $ref: '#/components/schemas/TagLabel'
-        - $ref: '#/components/schemas/TagScore'
+        - $ref: "#/components/schemas/TagLabel"
+        - $ref: "#/components/schemas/TagScore"
         - type: array
           minItems: 2
           maxItems: 2
           items:
             oneOf:
-              - $ref: '#/components/schemas/TagLabel'
-              - $ref: '#/components/schemas/TagScore'
+              - $ref: "#/components/schemas/TagLabel"
+              - $ref: "#/components/schemas/TagScore"
     PlainTags:
       type: array
       items:
-        $ref: '#/components/schemas/PlainTag'
+        $ref: "#/components/schemas/PlainTag"
     Playlist:
       type: object
       properties:
         collectedAt:
-          $ref: '#/components/schemas/DateTime'
+          $ref: "#/components/schemas/DateTime"
         title:
-          $ref: '#/components/schemas/PlaylistTitle'
+          $ref: "#/components/schemas/PlaylistTitle"
         color:
-          $ref: '#/components/schemas/Color'
+          $ref: "#/components/schemas/Color"
         notes:
-          $ref: '#/components/schemas/PlaylistNotes'
+          $ref: "#/components/schemas/PlaylistNotes"
         kind:
-          $ref: '#/components/schemas/PlaylistKind'
+          $ref: "#/components/schemas/PlaylistKind"
         flags:
-          $ref: '#/components/schemas/PlaylistFlags'
+          $ref: "#/components/schemas/PlaylistFlags"
       required:
         - collectedAt
         - title
@@ -2092,14 +2092,14 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/Playlist'
+          - $ref: "#/components/schemas/EntityHeader"
+          - $ref: "#/components/schemas/Playlist"
     PlaylistEntries:
       description: |
         A sequence of playlist entries
       type: array
       items:
-        $ref: '#/components/schemas/PlaylistEntry'
+        $ref: "#/components/schemas/PlaylistEntry"
     PlaylistEntriesPatchOperation:
       oneOf:
         - type: object
@@ -2110,7 +2110,7 @@ components:
                 entries:
                   type: array
                   items:
-                    $ref: '#/components/schemas/PlaylistEntry'
+                    $ref: "#/components/schemas/PlaylistEntry"
               required:
                 - entries
           required:
@@ -2123,7 +2123,7 @@ components:
                 entries:
                   type: array
                   items:
-                    $ref: '#/components/schemas/PlaylistEntry'
+                    $ref: "#/components/schemas/PlaylistEntry"
               required:
                 - entries
           required:
@@ -2134,11 +2134,11 @@ components:
               type: object
               properties:
                 before:
-                  $ref: '#/components/schemas/PlaylistEntryPosition'
+                  $ref: "#/components/schemas/PlaylistEntryPosition"
                 entries:
                   type: array
                   items:
-                    $ref: '#/components/schemas/PlaylistEntry'
+                    $ref: "#/components/schemas/PlaylistEntry"
               required:
                 - before
                 - entries
@@ -2150,7 +2150,7 @@ components:
               type: object
               properties:
                 sourcePlaylist:
-                  $ref: '#/components/schemas/PlaylistRef'
+                  $ref: "#/components/schemas/PlaylistRef"
               required:
                 - sourcePlaylist
           required:
@@ -2161,11 +2161,11 @@ components:
               type: object
               properties:
                 start:
-                  $ref: '#/components/schemas/PlaylistEntryPosition'
+                  $ref: "#/components/schemas/PlaylistEntryPosition"
                 end:
-                  $ref: '#/components/schemas/PlaylistEntryPosition'
+                  $ref: "#/components/schemas/PlaylistEntryPosition"
                 delta:
-                  $ref: '#/components/schemas/PlaylistEntryPositionDelta'
+                  $ref: "#/components/schemas/PlaylistEntryPositionDelta"
               required:
                 - start
                 - end
@@ -2178,9 +2178,9 @@ components:
               type: object
               properties:
                 start:
-                  $ref: '#/components/schemas/PlaylistEntryPosition'
+                  $ref: "#/components/schemas/PlaylistEntryPosition"
                 end:
-                  $ref: '#/components/schemas/PlaylistEntryPosition'
+                  $ref: "#/components/schemas/PlaylistEntryPosition"
               required:
                 - start
                 - end
@@ -2202,13 +2202,13 @@ components:
           minItems: 2
           maxItems: 2
           items:
-            $ref: '#/components/schemas/PlaylistEntryAddedAt'
+            $ref: "#/components/schemas/PlaylistEntryAddedAt"
         totalCount:
           description: Number of entries in the playlist
           allOf:
-            - $ref: '#/components/schemas/PlaylistEntryCount'
+            - $ref: "#/components/schemas/PlaylistEntryCount"
         tracks:
-          $ref: '#/components/schemas/PlaylistTracksSummary'
+          $ref: "#/components/schemas/PlaylistTracksSummary"
       required:
         - totalCount
         - tracks
@@ -2216,13 +2216,13 @@ components:
       type: object
       properties:
         addedAt:
-          $ref: '#/components/schemas/PlaylistEntryAddedAt'
+          $ref: "#/components/schemas/PlaylistEntryAddedAt"
         title:
-          $ref: '#/components/schemas/PlaylistEntryTitle'
+          $ref: "#/components/schemas/PlaylistEntryTitle"
         notes:
-          $ref: '#/components/schemas/PlaylistEntryNotes'
+          $ref: "#/components/schemas/PlaylistEntryNotes"
         item:
-          $ref: '#/components/schemas/PlaylistItem'
+          $ref: "#/components/schemas/PlaylistItem"
       required:
         - item
     PlaylistEntryAddedAt:
@@ -2230,17 +2230,17 @@ components:
         Time stamp since when an entry is part of the playlist,
         i.e. when it has been added by the client.
       allOf:
-        - $ref: '#/components/schemas/DateTime'
+        - $ref: "#/components/schemas/DateTime"
     PlaylistEntryCount:
       description: |
         Total number of entries in a playlist.
       allOf:
-        - $ref: '#/components/schemas/TotalCount'
+        - $ref: "#/components/schemas/TotalCount"
     PlaylistEntryNotes:
       type: string
       description: |
         Lengthy, personal notes.
-      example: 'Lengthy, personal notes'
+      example: "Lengthy, personal notes"
     PlaylistEntryPosition:
       description: |
         0-based position number to locate a playlist entry
@@ -2269,8 +2269,8 @@ components:
           - 0x01: Locked
     PlaylistItem:
       oneOf:
-        - $ref: '#/components/schemas/PlaylistItemSeparator'
-        - $ref: '#/components/schemas/PlaylistTrackItem'
+        - $ref: "#/components/schemas/PlaylistItemSeparator"
+        - $ref: "#/components/schemas/PlaylistTrackItem"
     PlaylistItemSeparator:
       type: string
       enum:
@@ -2287,12 +2287,12 @@ components:
       type: string
       description: |
         Lengthy, personal notes.
-      example: 'Lengthy, personal notes'
+      example: "Lengthy, personal notes"
     PlaylistRef:
       type: object
       properties:
         uid:
-          $ref: '#/components/schemas/PlaylistUid'
+          $ref: "#/components/schemas/PlaylistUid"
       required:
         - uid
     PlaylistTitle:
@@ -2303,43 +2303,43 @@ components:
       description: |
         The UID of the referenced track
       allOf:
-        - $ref: '#/components/schemas/TrackUid'
+        - $ref: "#/components/schemas/TrackUid"
     PlaylistTrackCount:
       description: |
         Number of tracks in the playlist
       allOf:
-        - $ref: '#/components/schemas/PlaylistEntryCount'
+        - $ref: "#/components/schemas/PlaylistEntryCount"
     PlaylistTrackItem:
       type: object
       properties:
         track:
-          $ref: '#/components/schemas/PlaylistTrack'
+          $ref: "#/components/schemas/PlaylistTrack"
       required:
         - track
     PlaylistTracksSummary:
       type: object
       properties:
         totalCount:
-          $ref: '#/components/schemas/PlaylistTrackCount'
+          $ref: "#/components/schemas/PlaylistTrackCount"
       required:
         - totalCount
     PlaylistUid:
       allOf:
-        - $ref: '#/components/schemas/EntityUid'
+        - $ref: "#/components/schemas/EntityUid"
     PlaylistWithEntriesSummary:
       allOf:
-        - $ref: '#/components/schemas/Playlist'
+        - $ref: "#/components/schemas/Playlist"
         - type: object
           properties:
             entries:
-              $ref: '#/components/schemas/PlaylistEntriesSummary'
+              $ref: "#/components/schemas/PlaylistEntriesSummary"
     PlaylistWithEntries:
       allOf:
-        - $ref: '#/components/schemas/Playlist'
+        - $ref: "#/components/schemas/Playlist"
         - type: object
           properties:
             entries:
-              $ref: '#/components/schemas/PlaylistEntries'
+              $ref: "#/components/schemas/PlaylistEntries"
     PlaylistWithEntriesEntity:
       description: Entity header and body
       type: array
@@ -2347,8 +2347,8 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/PlaylistWithEntries'
+          - $ref: "#/components/schemas/EntityHeader"
+          - $ref: "#/components/schemas/PlaylistWithEntries"
     PlaylistWithEntriesSummaryEntity:
       description: Entity header and body
       type: array
@@ -2356,8 +2356,8 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/PlaylistWithEntriesSummary'
+          - $ref: "#/components/schemas/EntityHeader"
+          - $ref: "#/components/schemas/PlaylistWithEntriesSummary"
     PositionMs:
       type: number
       format: double
@@ -2368,16 +2368,16 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
     PurgeOrphanedMediaSourcesResponseBody:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         rootPath:
-          $ref: '#/components/schemas/MediaContentPath'
+          $ref: "#/components/schemas/MediaContentPath"
         summary:
-          $ref: '#/components/schemas/PurgeOrphanedMediaSourcessSummary'
+          $ref: "#/components/schemas/PurgeOrphanedMediaSourcessSummary"
       required:
         - summary
     PurgeOrphanedMediaSourcessSummary:
@@ -2392,16 +2392,16 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
     PurgeUntrackedMediaSourcesResponseBody:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         rootPath:
-          $ref: '#/components/schemas/MediaContentPath'
+          $ref: "#/components/schemas/MediaContentPath"
         summary:
-          $ref: '#/components/schemas/PurgeUntrackeMediaSourcessSummary'
+          $ref: "#/components/schemas/PurgeUntrackeMediaSourcessSummary"
       required:
         - rootUrl
         - rootPath
@@ -2428,15 +2428,15 @@ components:
           - MP4:     "©day"
           - Vorbis:  "DATE" ("YEAR")
       oneOf:
-        - $ref: '#/components/schemas/RecordedAtDate'
-        - $ref: '#/components/schemas/RecordedAtDateTime'
+        - $ref: "#/components/schemas/RecordedAtDate"
+        - $ref: "#/components/schemas/RecordedAtDateTime"
     RecordedAtDate:
       oneOf:
-        - $ref: '#/components/schemas/YYYY'
-        - $ref: '#/components/schemas/YYYYMMDD'
+        - $ref: "#/components/schemas/YYYY"
+        - $ref: "#/components/schemas/YYYYMMDD"
     RecordedAtDateTime:
       allOf:
-        - $ref: '#/components/schemas/DateTime'
+        - $ref: "#/components/schemas/DateTime"
     ReleasedAt:
       description: |
         The release date
@@ -2448,15 +2448,15 @@ components:
           - MP4:     n/a
           - Vorbis:  "RELEASEDATE" ("RELEASEYEAR")
       oneOf:
-        - $ref: '#/components/schemas/ReleasedAtDate'
-        - $ref: '#/components/schemas/ReleasedAtDateTime'
+        - $ref: "#/components/schemas/ReleasedAtDate"
+        - $ref: "#/components/schemas/ReleasedAtDateTime"
     ReleasedAtDate:
       oneOf:
-        - $ref: '#/components/schemas/YYYY'
-        - $ref: '#/components/schemas/YYYYMMDD'
+        - $ref: "#/components/schemas/YYYY"
+        - $ref: "#/components/schemas/YYYYMMDD"
     ReleasedAtDateTime:
       allOf:
-        - $ref: '#/components/schemas/DateTime'
+        - $ref: "#/components/schemas/DateTime"
     ReleasedOrigAt:
       description: |
         The original release date
@@ -2471,22 +2471,22 @@ components:
           - MP4:      n/a
           - Vorbis:  "ORIGINALDATE" ("ORIGINALYEAR")
       oneOf:
-        - $ref: '#/components/schemas/ReleasedOrigAtDate'
-        - $ref: '#/components/schemas/ReleasedOrigAtDateTime'
+        - $ref: "#/components/schemas/ReleasedOrigAtDate"
+        - $ref: "#/components/schemas/ReleasedOrigAtDateTime"
     ReleasedOrigAtDate:
       oneOf:
-        - $ref: '#/components/schemas/YYYY'
-        - $ref: '#/components/schemas/YYYYMMDD'
+        - $ref: "#/components/schemas/YYYY"
+        - $ref: "#/components/schemas/YYYYMMDD"
     ReleasedOrigAtDateTime:
       allOf:
-        - $ref: '#/components/schemas/DateTime'
+        - $ref: "#/components/schemas/DateTime"
     MediaTrackerUntrackDirectoriesRequestBody:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         status:
-          $ref: '#/components/schemas/MediaTrackerDirectoriesTrackingStatus'
+          $ref: "#/components/schemas/MediaTrackerDirectoriesTrackingStatus"
     MediaTrackerDirectoriesTrackingStatus:
       type: string
       enum:
@@ -2499,11 +2499,11 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         rootPath:
-          $ref: '#/components/schemas/MediaContentPath'
+          $ref: "#/components/schemas/MediaContentPath"
         summary:
-          $ref: '#/components/schemas/MediaTrackerUntrackDirectoriesSummary'
+          $ref: "#/components/schemas/MediaTrackerUntrackDirectoriesSummary"
       required:
         - rootUrl
         - rootPath
@@ -2520,10 +2520,10 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
     MediaTrackerQueryStatusResponseBody:
       allOf:
-        - $ref: '#/components/schemas/MediaTrackerStatus'
+        - $ref: "#/components/schemas/MediaTrackerStatus"
     MediaTrackerCompletion:
       type: string
       enum:
@@ -2562,9 +2562,9 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         syncMode:
-          $ref: '#/components/schemas/MediaSyncMode'
+          $ref: "#/components/schemas/MediaSyncMode"
     MediaSyncMode:
       description: |
         - once: Only import metadata once, never re-import.
@@ -2588,17 +2588,17 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         rootPath:
-          $ref: '#/components/schemas/MediaContentPath'
+          $ref: "#/components/schemas/MediaContentPath"
         completion:
-          $ref: '#/components/schemas/MediaTrackerCompletion'
+          $ref: "#/components/schemas/MediaTrackerCompletion"
         summary:
-          $ref: '#/components/schemas/MediaTrackerImportSummary'
+          $ref: "#/components/schemas/MediaTrackerImportSummary"
         importedSourcesWithIssues:
           type: array
           items:
-            $ref: '#/components/schemas/ImportedMediaSourceWithIssues'
+            $ref: "#/components/schemas/ImportedMediaSourceWithIssues"
       required:
         - rootUrl
         - rootPath
@@ -2608,7 +2608,7 @@ components:
       type: object
       properties:
         path:
-          $ref: '#/components/schemas/MediaContentPath'
+          $ref: "#/components/schemas/MediaContentPath"
         messages:
           type: array
           items:
@@ -2689,7 +2689,7 @@ components:
             - notUpdated
     MediaTrackerImportingProgress:
       allOf:
-        - $ref: '#/components/schemas/MediaTrackerImportSummary'
+        - $ref: "#/components/schemas/MediaTrackerImportSummary"
     MediaTrackerFsTraversalProgress:
       type: object
       properties:
@@ -2715,17 +2715,17 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         maxDepth:
           type: number
           format: int
           minimum: 1
     MediaTrackerScanRequestBody:
       allOf:
-        - $ref: '#/components/schemas/MediaTrackerDirTraversalRequestBody'
+        - $ref: "#/components/schemas/MediaTrackerDirTraversalRequestBody"
     MediaTrackerFindUntrackedRequestBody:
       allOf:
-        - $ref: '#/components/schemas/MediaTrackerDirTraversalRequestBody'
+        - $ref: "#/components/schemas/MediaTrackerDirTraversalRequestBody"
     MediaTrackerScanSummary:
       type: object
       properties:
@@ -2758,7 +2758,7 @@ components:
     MediaSourceVirtualFilePath:
       type: string
       minLength: 1
-      example: 'album artist/album title/01 the first track.mp3'
+      example: "album artist/album title/01 the first track.mp3"
     MediaContentPathKind:
       type: integer
       enum: [0, 1, 2, 3]
@@ -2775,20 +2775,20 @@ components:
         configuration in the collection.
     MediaContentPath:
       oneOf:
-        - $ref: '#/components/schemas/PercentEncodedUri'
-        - $ref: '#/components/schemas/PercentEncodedUrl'
-        - $ref: '#/components/schemas/MediaSourceVirtualFilePath'
+        - $ref: "#/components/schemas/PercentEncodedUri"
+        - $ref: "#/components/schemas/PercentEncodedUrl"
+        - $ref: "#/components/schemas/MediaSourceVirtualFilePath"
     MediaTrackerScanResponseBody:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         rootPath:
-          $ref: '#/components/schemas/MediaContentPath'
+          $ref: "#/components/schemas/MediaContentPath"
         completion:
-          $ref: '#/components/schemas/MediaTrackerCompletion'
+          $ref: "#/components/schemas/MediaTrackerCompletion"
         summary:
-          $ref: '#/components/schemas/MediaTrackerScanSummary'
+          $ref: "#/components/schemas/MediaTrackerScanSummary"
       required:
         - rootUrl
         - rootPath
@@ -2798,15 +2798,15 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+          $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         rootPath:
-          $ref: '#/components/schemas/MediaContentPath'
+          $ref: "#/components/schemas/MediaContentPath"
         completion:
-          $ref: '#/components/schemas/MediaTrackerCompletion'
+          $ref: "#/components/schemas/MediaTrackerCompletion"
         contentPaths:
           type: array
           items:
-            $ref: '#/components/schemas/MediaContentPath'
+            $ref: "#/components/schemas/MediaContentPath"
       required:
         - rootUrl
         - rootPath
@@ -2823,18 +2823,18 @@ components:
         A percent-encoded URL with scheme `file` that represents a directory path
         on the local file system.
       allOf:
-        - $ref: '#/components/schemas/PercentEncodedUrl'
+        - $ref: "#/components/schemas/PercentEncodedUrl"
       example: file:///home/user/Music/
     PercentEncodedUrl:
       allOf:
-        - $ref: '#/components/schemas/PercentEncodedUri'
+        - $ref: "#/components/schemas/PercentEncodedUri"
     RelocateCollectedMediaSourcesRequestBody:
       type: object
       properties:
         oldPathPrefix:
-          $ref: '#/components/schemas/MediaSourceVirtualFilePath'
+          $ref: "#/components/schemas/MediaSourceVirtualFilePath"
         newPathPrefix:
-          $ref: '#/components/schemas/MediaSourceVirtualFilePath'
+          $ref: "#/components/schemas/MediaSourceVirtualFilePath"
       required:
         - oldPathPrefix
         - newPathPrefix
@@ -2857,56 +2857,56 @@ components:
     ReplaceCollectedTracksRequestBody:
       type: array
       items:
-        $ref: '#/components/schemas/Track'
+        $ref: "#/components/schemas/Track"
     ImportAndReplaceCollectedTracksRequestBody:
       type: array
       items:
-        $ref: '#/components/schemas/PercentEncodedUri'
+        $ref: "#/components/schemas/PercentEncodedUri"
     ReplaceCollectedTracksResponseBody:
       type: object
       properties:
         created:
           type: array
           items:
-            $ref: '#/components/schemas/TrackEntity'
+            $ref: "#/components/schemas/TrackEntity"
         updated:
           type: array
           items:
-            $ref: '#/components/schemas/TrackEntity'
+            $ref: "#/components/schemas/TrackEntity"
         unchanged:
           type: array
           items:
-            $ref: '#/components/schemas/PercentEncodedUri'
+            $ref: "#/components/schemas/PercentEncodedUri"
         notCreated:
           type: array
           items:
-            $ref: '#/components/schemas/Track'
+            $ref: "#/components/schemas/Track"
         notUpdated:
           type: array
           items:
-            $ref: '#/components/schemas/Track'
+            $ref: "#/components/schemas/Track"
     ImportAndReplaceCollectedTracksResponseBody:
       type: object
       properties:
         completion:
-          $ref: '#/components/schemas/MediaTrackerCompletion'
+          $ref: "#/components/schemas/MediaTrackerCompletion"
         summary:
           allOf:
-            - $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
+            - $ref: "#/components/schemas/ReplaceCollectedTracksResponseBody"
             - type: object
               properties:
                 skipped:
                   type: array
                   items:
-                    $ref: '#/components/schemas/PercentEncodedUri'
+                    $ref: "#/components/schemas/PercentEncodedUri"
                 failed:
                   type: array
                   items:
-                    $ref: '#/components/schemas/MediaContentPath'
+                    $ref: "#/components/schemas/MediaContentPath"
         importedMediaSourcesWithIssues:
           type: array
           items:
-            $ref: '#/components/schemas/ImportedMediaSourceWithIssues'
+            $ref: "#/components/schemas/ImportedMediaSourceWithIssues"
       required:
         - completion
         - summary
@@ -2918,11 +2918,11 @@ components:
       type: object
       properties:
         mediaContentPathPredicate:
-          $ref: '#/components/schemas/StringPredicate'
+          $ref: "#/components/schemas/StringPredicate"
     FindUnsynchronizedTracksResponseBody:
       type: array
       items:
-        $ref: '#/components/schemas/UnsynchronizedTrackEntity'
+        $ref: "#/components/schemas/UnsynchronizedTrackEntity"
     UnsynchronizedTrackEntity:
       description: |
         Entity header followed by entity body
@@ -2931,15 +2931,15 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/UnsynchronizedTrack'
+          - $ref: "#/components/schemas/EntityHeader"
+          - $ref: "#/components/schemas/UnsynchronizedTrack"
     UnsynchronizedTrack:
       type: object
       properties:
         contentLink:
-          $ref: '#/components/schemas/MediaContentLink'
+          $ref: "#/components/schemas/MediaContentLink"
         lastSynchronizedRev:
-          $ref: '#/components/schemas/EntityRevision'
+          $ref: "#/components/schemas/EntityRevision"
       required:
         - contentLink
         - lastSynchronizedRev
@@ -2947,23 +2947,23 @@ components:
       type: object
       properties:
         path:
-          $ref: '#/components/schemas/MediaContentPath'
+          $ref: "#/components/schemas/MediaContentPath"
         rev:
-          $ref: '#/components/schemas/MediaContentRevision'
+          $ref: "#/components/schemas/MediaContentRevision"
       required:
         - path
     RgbColor:
       type: string
       minLength: 7
       maxLength: 7
-      example: '#808080'
+      example: "#808080"
       description: |
         A hexadecimal RGB color code `#RRGGBB` with 8 bits per channel.
     RgbColorVariant:
       type: object
       properties:
         rgb:
-          $ref: '#/components/schemas/RgbColor'
+          $ref: "#/components/schemas/RgbColor"
     SampleRateHz:
       type: integer
       format: int32
@@ -2975,15 +2975,15 @@ components:
       type: object
       properties:
         filter:
-          $ref: '#/components/schemas/TrackSearchFilterNode'
+          $ref: "#/components/schemas/TrackSearchFilterNode"
         ordering:
           type: array
           items:
-            $ref: '#/components/schemas/TrackSortOrder'
+            $ref: "#/components/schemas/TrackSortOrder"
     SearchCollectedTracksResponseBody:
       type: array
       items:
-        $ref: '#/components/schemas/TrackEntity'
+        $ref: "#/components/schemas/TrackEntity"
     SortDirection:
       type: string
       enum:
@@ -3021,17 +3021,17 @@ components:
           * ...
     StringPredicate:
       oneOf:
-        - $ref: '#/components/schemas/StringPredicateStartsWith'
-        - $ref: '#/components/schemas/StringPredicateStartsNotWith'
-        - $ref: '#/components/schemas/StringPredicateEndsWith'
-        - $ref: '#/components/schemas/StringPredicateEndsNotWith'
-        - $ref: '#/components/schemas/StringPredicateContains'
-        - $ref: '#/components/schemas/StringPredicateContainsNot'
-        - $ref: '#/components/schemas/StringPredicateMatches'
-        - $ref: '#/components/schemas/StringPredicateMatchesNot'
-        - $ref: '#/components/schemas/StringPredicatePrefix'
-        - $ref: '#/components/schemas/StringPredicateEquals'
-        - $ref: '#/components/schemas/StringPredicateEqualsNot'
+        - $ref: "#/components/schemas/StringPredicateStartsWith"
+        - $ref: "#/components/schemas/StringPredicateStartsNotWith"
+        - $ref: "#/components/schemas/StringPredicateEndsWith"
+        - $ref: "#/components/schemas/StringPredicateEndsNotWith"
+        - $ref: "#/components/schemas/StringPredicateContains"
+        - $ref: "#/components/schemas/StringPredicateContainsNot"
+        - $ref: "#/components/schemas/StringPredicateMatches"
+        - $ref: "#/components/schemas/StringPredicateMatchesNot"
+        - $ref: "#/components/schemas/StringPredicatePrefix"
+        - $ref: "#/components/schemas/StringPredicateEquals"
+        - $ref: "#/components/schemas/StringPredicateEqualsNot"
     StringPredicateStartsWith:
       type: object
       properties:
@@ -3113,20 +3113,20 @@ components:
       type: object
       properties:
         modifier:
-          $ref: '#/components/schemas/FilterModifier'
+          $ref: "#/components/schemas/FilterModifier"
         facets:
           type: array
           items:
-            $ref: '#/components/schemas/TagFacetId'
+            $ref: "#/components/schemas/TagFacetId"
           description: |
             A non-empty array will match any of the given facets.
             An empty array will only match unfaceted tags, i.e. tags
             without a facet. A missing/null array will match any tags,
             both with or without a facet.
         label:
-          $ref: '#/components/schemas/StringPredicate'
+          $ref: "#/components/schemas/StringPredicate"
         score:
-          $ref: '#/components/schemas/NumericPredicate'
+          $ref: "#/components/schemas/NumericPredicate"
     TagLabel:
       type: string
       minLength: 1
@@ -3142,7 +3142,7 @@ components:
         i.e. tags without a facet.
       type: object
       additionalProperties:
-        $ref: '#/components/schemas/PlainTags'
+        $ref: "#/components/schemas/PlainTags"
     TagScore:
       type: number
       format: double
@@ -3161,8 +3161,8 @@ components:
         The tempo measured in `beats per minute` (bpm).
     TimeSignature:
       oneOf:
-        - $ref: '#/components/schemas/TimeSignatureTop'
-        - $ref: '#/components/schemas/TimeSignatureTopBottom'
+        - $ref: "#/components/schemas/TimeSignatureTop"
+        - $ref: "#/components/schemas/TimeSignatureTopBottom"
       description: |
         The time signature of a track.
 
@@ -3171,7 +3171,7 @@ components:
         unit / note value.
     TimeSignatureTop:
       allOf:
-        - $ref: '#/components/schemas/BeatsPerMeasure'
+        - $ref: "#/components/schemas/BeatsPerMeasure"
       example: 4
       description: |
         Simplified time signature with only the beats per measure and
@@ -3182,8 +3182,8 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/BeatsPerMeasure'
-          - $ref: '#/components/schemas/BeatUnit'
+          - $ref: "#/components/schemas/BeatsPerMeasure"
+          - $ref: "#/components/schemas/BeatUnit"
       description: |
         An array with exactly 2 elements: The number of beats per measure
         followed by the beat unit.
@@ -3195,28 +3195,28 @@ components:
         A time stamp.
 
         Values are truncated to millisecond precision.
-      example: '2019-10-12T07:20:50.52Z'
+      example: "2019-10-12T07:20:50.52Z"
     Title:
       oneOf:
-        - $ref: '#/components/schemas/TitleName'
+        - $ref: "#/components/schemas/TitleName"
         - type: array
           items:
             oneOf:
-              - $ref: '#/components/schemas/TitleName'
-              - $ref: '#/components/schemas/TitleKind'
+              - $ref: "#/components/schemas/TitleName"
+              - $ref: "#/components/schemas/TitleKind"
       description: |
         Mandatory name, followed by optional level
     TitlePhraseFilter:
       type: object
       properties:
         modifier:
-          $ref: '#/components/schemas/FilterModifier'
+          $ref: "#/components/schemas/FilterModifier"
         scope:
-          $ref: '#/components/schemas/TrackScope'
+          $ref: "#/components/schemas/TrackScope"
         kinds:
           type: array
           items:
-            $ref: '#/components/schemas/TitleKind'
+            $ref: "#/components/schemas/TitleKind"
           description: |
             A non-empty array will match any of the given kinds.
             An empty or missing array will match any kind.
@@ -3254,17 +3254,17 @@ components:
       description: |
         Total number of media sources.
       allOf:
-        - $ref: '#/components/schemas/TotalCount'
+        - $ref: "#/components/schemas/TotalCount"
     TotalPlaylistCount:
       description: |
         Total number of playlists.
       allOf:
-        - $ref: '#/components/schemas/TotalCount'
+        - $ref: "#/components/schemas/TotalCount"
     TotalTrackCount:
       description: |
         Total number of tracks.
       allOf:
-        - $ref: '#/components/schemas/TotalCount'
+        - $ref: "#/components/schemas/TotalCount"
     TrackEntity:
       description: |
         Entity header followed by entity body
@@ -3273,19 +3273,19 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/TrackEntityBody'
+          - $ref: "#/components/schemas/EntityHeader"
+          - $ref: "#/components/schemas/TrackEntityBody"
     Track:
       type: object
       properties:
         mediaSource:
-          $ref: '#/components/schemas/MediaSource'
+          $ref: "#/components/schemas/MediaSource"
         recordedAt:
-          $ref: '#/components/schemas/RecordedAt'
+          $ref: "#/components/schemas/RecordedAt"
         releasedAt:
-          $ref: '#/components/schemas/ReleasedAt'
+          $ref: "#/components/schemas/ReleasedAt"
         releasedOrigAt:
-          $ref: '#/components/schemas/ReleasedOrigAt'
+          $ref: "#/components/schemas/ReleasedOrigAt"
         publisher:
           type: string
           description: |
@@ -3294,69 +3294,69 @@ components:
           description: Copyright
           type: string
         album:
-          $ref: '#/components/schemas/Album'
+          $ref: "#/components/schemas/Album"
         titles:
           description: |
             An array of titles
           type: array
           items:
-            $ref: '#/components/schemas/Title'
+            $ref: "#/components/schemas/Title"
         actors:
           description: |
             An array of actors
           type: array
           items:
-            $ref: '#/components/schemas/Actor'
+            $ref: "#/components/schemas/Actor"
         indexes:
-          $ref: '#/components/schemas/Indexes'
+          $ref: "#/components/schemas/Indexes"
         metrics:
-          $ref: '#/components/schemas/Metrics'
+          $ref: "#/components/schemas/Metrics"
         cues:
           description: |
             An array of cues
           type: array
           items:
-            $ref: '#/components/schemas/TrackCue'
+            $ref: "#/components/schemas/TrackCue"
         color:
-          $ref: '#/components/schemas/Color'
+          $ref: "#/components/schemas/Color"
         tags:
-          $ref: '#/components/schemas/Tags'
+          $ref: "#/components/schemas/Tags"
     TrackCue:
       type: object
       properties:
         bankIndex:
-          $ref: '#/components/schemas/CueBankIndex'
+          $ref: "#/components/schemas/CueBankIndex"
         slotIndex:
-          $ref: '#/components/schemas/CueSlotIndex'
+          $ref: "#/components/schemas/CueSlotIndex"
         inMarker:
-          $ref: '#/components/schemas/CueInMarker'
+          $ref: "#/components/schemas/CueInMarker"
         outMarker:
-          $ref: '#/components/schemas/CueOutMarker'
+          $ref: "#/components/schemas/CueOutMarker"
         kind:
-          $ref: '#/components/schemas/CueKind'
+          $ref: "#/components/schemas/CueKind"
         label:
-          $ref: '#/components/schemas/CueLabel'
+          $ref: "#/components/schemas/CueLabel"
         color:
-          $ref: '#/components/schemas/Color'
+          $ref: "#/components/schemas/Color"
         flags:
-          $ref: '#/components/schemas/CueFlags'
+          $ref: "#/components/schemas/CueFlags"
     TrackEntityBody:
       type: object
       properties:
         track:
-          $ref: '#/components/schemas/Track'
+          $ref: "#/components/schemas/Track"
         updatedAt:
-          $ref: '#/components/schemas/DateTime'
+          $ref: "#/components/schemas/DateTime"
         lastSynchronizedRev:
-          $ref: '#/components/schemas/LastSynchronizedEntityRevision'
+          $ref: "#/components/schemas/LastSynchronizedEntityRevision"
         contentUrl:
-          $ref: '#/components/schemas/PercentEncodedUrl'
+          $ref: "#/components/schemas/PercentEncodedUrl"
       required:
         - track
         - updatedAt
     TrackIndex:
       allOf:
-        - $ref: '#/components/schemas/Index'
+        - $ref: "#/components/schemas/Index"
     TrackScope:
       type: integer
       enum: [0, 1]
@@ -3369,7 +3369,7 @@ components:
         all:
           type: array
           items:
-            $ref: '#/components/schemas/TrackSearchFilterNode'
+            $ref: "#/components/schemas/TrackSearchFilterNode"
       required:
         - all
     TrackSearchAnyFilterNode:
@@ -3378,29 +3378,29 @@ components:
         any:
           type: array
           items:
-            $ref: '#/components/schemas/TrackSearchFilterNode'
+            $ref: "#/components/schemas/TrackSearchFilterNode"
       required:
         - any
     TrackSearchFilterNode:
       oneOf:
-        - $ref: '#/components/schemas/TrackSearchPhraseFieldFilterNode'
-        - $ref: '#/components/schemas/TrackSearchNumericFieldFilterNode'
-        - $ref: '#/components/schemas/TrackSearchDateTimeFieldFilterNode'
-        - $ref: '#/components/schemas/TrackSearchConditionFilterNode'
-        - $ref: '#/components/schemas/TrackSearchTagFilterNode'
-        - $ref: '#/components/schemas/TrackSearchCueLabelFilterNode'
-        - $ref: '#/components/schemas/TrackSearchAnyTrackUidFilterNode'
-        - $ref: '#/components/schemas/TrackSearchAnyPlaylistUidFilterNode'
-        - $ref: '#/components/schemas/TrackSearchActorPhraseFilterNode'
-        - $ref: '#/components/schemas/TrackSearchTitlePhraseFilterNode'
-        - $ref: '#/components/schemas/TrackSearchAllFilterNode'
-        - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
-        - $ref: '#/components/schemas/TrackSearchNotFilterNode'
+        - $ref: "#/components/schemas/TrackSearchPhraseFieldFilterNode"
+        - $ref: "#/components/schemas/TrackSearchNumericFieldFilterNode"
+        - $ref: "#/components/schemas/TrackSearchDateTimeFieldFilterNode"
+        - $ref: "#/components/schemas/TrackSearchConditionFilterNode"
+        - $ref: "#/components/schemas/TrackSearchTagFilterNode"
+        - $ref: "#/components/schemas/TrackSearchCueLabelFilterNode"
+        - $ref: "#/components/schemas/TrackSearchAnyTrackUidFilterNode"
+        - $ref: "#/components/schemas/TrackSearchAnyPlaylistUidFilterNode"
+        - $ref: "#/components/schemas/TrackSearchActorPhraseFilterNode"
+        - $ref: "#/components/schemas/TrackSearchTitlePhraseFilterNode"
+        - $ref: "#/components/schemas/TrackSearchAllFilterNode"
+        - $ref: "#/components/schemas/TrackSearchAnyFilterNode"
+        - $ref: "#/components/schemas/TrackSearchNotFilterNode"
     TrackSearchCueLabelFilterNode:
       type: object
       properties:
         cueLabel:
-          $ref: '#/components/schemas/CueLabelFilter'
+          $ref: "#/components/schemas/CueLabelFilter"
       required:
         - cueLabel
     TrackSearchAnyTrackUidFilterNode:
@@ -3409,7 +3409,7 @@ components:
         anyTrackUid:
           type: array
           items:
-            $ref: '#/components/schemas/EntityUid'
+            $ref: "#/components/schemas/EntityUid"
       required:
         - anyTrackUid
     TrackSearchAnyPlaylistUidFilterNode:
@@ -3418,42 +3418,42 @@ components:
         anyPlaylistUid:
           type: array
           items:
-            $ref: '#/components/schemas/EntityUid'
+            $ref: "#/components/schemas/EntityUid"
       required:
         - anyPlaylistUid
     TrackSearchActorPhraseFilterNode:
       type: object
       properties:
         trackActor:
-          $ref: '#/components/schemas/ActorPhraseFilter'
+          $ref: "#/components/schemas/ActorPhraseFilter"
       required:
         - actorPhrase
     TrackSearchTitlePhraseFilterNode:
       type: object
       properties:
         trackTitle:
-          $ref: '#/components/schemas/TitlePhraseFilter'
+          $ref: "#/components/schemas/TitlePhraseFilter"
       required:
         - titlePhrase
     TrackSearchNotFilterNode:
       type: object
       properties:
         not:
-          $ref: '#/components/schemas/TrackSearchFilterNode'
+          $ref: "#/components/schemas/TrackSearchFilterNode"
       required:
         - not
     TrackSearchNumericFieldFilterNode:
       type: object
       properties:
         numeric:
-          $ref: '#/components/schemas/NumericFieldFilter'
+          $ref: "#/components/schemas/NumericFieldFilter"
       required:
         - numeric
     TrackSearchDateTimeFieldFilterNode:
       type: object
       properties:
         dateTime:
-          $ref: '#/components/schemas/DateTimeFieldFilter'
+          $ref: "#/components/schemas/DateTimeFieldFilter"
       required:
         - dateTime
     TrackSearchConditionFilterNode:
@@ -3465,14 +3465,14 @@ components:
       type: object
       properties:
         phrase:
-          $ref: '#/components/schemas/PhraseFieldFilter'
+          $ref: "#/components/schemas/PhraseFieldFilter"
       required:
         - phrase
     TrackSearchTagFilterNode:
       type: object
       properties:
         tag:
-          $ref: '#/components/schemas/TagFilter'
+          $ref: "#/components/schemas/TagFilter"
       required:
         - tag
     TrackSortField:
@@ -3504,11 +3504,11 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/TrackSortField'
-          - $ref: '#/components/schemas/SortDirection'
+          - $ref: "#/components/schemas/TrackSortField"
+          - $ref: "#/components/schemas/SortDirection"
     TrackUid:
       allOf:
-        - $ref: '#/components/schemas/EntityUid'
+        - $ref: "#/components/schemas/EntityUid"
     YYYY:
       type: integer
       format: int32

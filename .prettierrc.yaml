@@ -1,0 +1,3 @@
+tabWidth: 2
+# in double quotes you can use escapes
+singleQuote: false
