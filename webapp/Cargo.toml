@@ -16,7 +16,7 @@ seed = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 serde_urlencoded = "0.7"
 thiserror = "1.0"
-url = "2.2"
+url = "2.3"
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", features = ["js"] }

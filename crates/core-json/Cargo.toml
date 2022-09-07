@@ -18,7 +18,7 @@ semval = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_repr = "0.1"
 time = { version = "0.3", features = ["serde-well-known"] }
-url = { version = "2.2", features = ["serde"] }
+url = { version = "2.3", features = ["serde"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8", optional = true, features = ["chrono", "url"] }

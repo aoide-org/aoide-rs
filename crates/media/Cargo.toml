@@ -25,7 +25,7 @@ num-traits = "0.2"
 semval = "0.4"
 thiserror = "1.0"
 time = { version = "0.3", features = ["parsing"] }
-url = "2.2"
+url = "2.3"
 walkdir = "2.3"
 
 # Dependencies (optional)

@@ -30,7 +30,7 @@ tokio = { version = "1.21", default-features = false, features = [
 tracing = "0.1"
 tracing-log = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-url = { version = "2.2", features = ["serde"] }
+url = { version = "2.3", features = ["serde"] }
 warp = { version = "0.3", default-features = false }
 
 # schemars

@@ -12,7 +12,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-url = { version = "2.2", features = ["serde"] }
+url = { version = "2.3", features = ["serde"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8", optional = true, features = ["url"] }

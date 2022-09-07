@@ -23,7 +23,7 @@ mime = "0.3"
 num-derive = "0.3"
 num-traits = "0.2"
 semval = "0.4"
-url = "2.2"
+url = "2.3"
 
 # Workspace dependencies
 aoide-core = "=0.8.0"
