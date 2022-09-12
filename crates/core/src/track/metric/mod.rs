@@ -59,7 +59,7 @@ pub struct Metrics {
     ///
     /// For tracks with varying keys often only the initial key
     /// is mentioned and stored in file tags.
-    pub key_signature: KeySignature,
+    pub key_signature: Option<KeySignature>,
 
     /// The nominal or main musical time signature of the track
     pub time_signature: Option<TimeSignature>,

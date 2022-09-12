@@ -18,7 +18,6 @@ use aoide_core::{
         artwork::{ApicType, Artwork},
         content::ContentMetadata,
     },
-    music::key::KeySignature,
     tag::{FacetId, FacetedTags, PlainTag, TagsMap},
     track::{
         actor::Role as ActorRole,
@@ -45,7 +44,7 @@ use crate::{
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
-        push_next_actor_role_name_from,
+        key_signature_as_str, push_next_actor_role_name_from,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         trim_readable, try_ingest_embedded_artwork_image,
     },
@@ -256,15 +255,15 @@ pub fn import_album_kind(importer: &mut Importer, tag: &id3::Tag) -> Option<Albu
     let value = first_text_frame(tag, "TCMP");
     value
         .and_then(|compilation| trim_readable(compilation).parse::<u8>().ok())
-        .map(|compilation| match compilation {
-            0 => AlbumKind::Unknown, // either Album or Single
-            1 => AlbumKind::Compilation,
+        .and_then(|compilation| match compilation {
+            0 => Some(AlbumKind::NoCompilation),
+            1 => Some(AlbumKind::Compilation),
             _ => {
                 importer.add_issue(format!(
                     "Unexpected tag value: TCMP = '{}'",
                     value.expect("unreachable")
                 ));
-                AlbumKind::Unknown
+                None
             }
         })
 }
@@ -298,13 +297,8 @@ pub fn import_metadata_into_track(
         track.metrics.tempo_bpm = None;
     }
 
-    if let Some(key_signature) =
-        first_text_frame(tag, "TKEY").and_then(|text| importer.import_key_signature(text))
-    {
-        track.metrics.key_signature = key_signature;
-    } else {
-        track.metrics.key_signature = KeySignature::unknown();
-    }
+    track.metrics.key_signature =
+        first_text_frame(tag, "TKEY").and_then(|text| importer.import_key_signature(text));
 
     // Track titles
     let mut track_titles = Vec::with_capacity(4);
@@ -406,11 +400,7 @@ pub fn import_metadata_into_track(
     album.actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
 
     // Album properties
-    if let Some(album_kind) = import_album_kind(importer, tag) {
-        album.kind = album_kind;
-    } else {
-        album.kind = AlbumKind::Unknown;
-    }
+    album.kind = import_album_kind(importer, tag);
 
     track.album = Canonical::tie(album);
 
@@ -543,12 +533,14 @@ pub fn import_metadata_into_track(
         track.indexes.track.number = tag.track().map(|i| (i & 0xFFFF) as u16);
         track.indexes.track.total = tag.total_tracks().map(|i| (i & 0xFFFF) as u16);
     } else {
+        // Reset
         track.indexes.track = Default::default();
     }
     if tag.disc().is_some() || tag.total_discs().is_some() {
         track.indexes.disc.number = tag.disc().map(|i| (i & 0xFFFF) as u16);
         track.indexes.disc.total = tag.total_discs().map(|i| (i & 0xFFFF) as u16);
     } else {
+        // Reset
         track.indexes.disc = Default::default();
     }
     if let Some(movement) = first_text_frame(tag, "MVIN")
@@ -673,12 +665,11 @@ pub fn export_track(
         tag.remove("TBPM");
     }
 
-    // Music: Key
-    if track.metrics.key_signature.is_unknown() {
-        tag.remove("TKEY");
+    // Musical key
+    if let Some(key_signature) = track.metrics.key_signature {
+        tag.set_text("TKEY", key_signature_as_str(key_signature));
     } else {
-        // TODO: Write a custom key code string according to config
-        tag.set_text("TKEY", track.metrics.key_signature.to_string());
+        tag.remove("TKEY");
     }
 
     // Track titles
@@ -765,16 +756,17 @@ pub fn export_track(
         "TPE2",
         FilteredActorNames::new(track.album.actors.iter(), ActorRole::Artist),
     );
-    match track.album.kind {
-        AlbumKind::Unknown => {
-            tag.remove("TCMP");
+    if let Some(kind) = track.album.kind {
+        match kind {
+            AlbumKind::NoCompilation | AlbumKind::Album | AlbumKind::Single => {
+                tag.set_text("TCMP", "0");
+            }
+            AlbumKind::Compilation => {
+                tag.set_text("TCMP", "1");
+            }
         }
-        AlbumKind::Compilation => {
-            tag.set_text("TCMP", "1");
-        }
-        AlbumKind::Album | AlbumKind::Single => {
-            tag.set_text("TCMP", "0");
-        }
+    } else {
+        tag.remove("TCMP");
     }
 
     if let Some(recorded_at) = &track.recorded_at {

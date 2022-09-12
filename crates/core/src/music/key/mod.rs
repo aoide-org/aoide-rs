@@ -6,12 +6,10 @@ use std::fmt;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
-#[derive(
-    Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive,
-)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
 pub enum KeyCode {
-    #[default]
-    Unknown = 0,
+    /// Off key
+    Off = 0,
 
     /// C major
     Cmaj = 1,
@@ -97,7 +95,7 @@ impl KeyCode {
     pub fn as_canonical_str(self) -> &'static str {
         use KeyCode::*;
         match self {
-            Unknown => "",
+            Off => "Off",
             Cmaj => "Cmaj",
             Amin => "Amin",
             Gmaj => "Gmaj",
@@ -126,9 +124,10 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn from_canonical_str(s: &str) -> Self {
+    pub fn try_from_canonical_str(s: &str) -> Option<Self> {
         use KeyCode::*;
-        match s {
+        let code = match s {
+            "Off" => Off,
             "Cmaj" => Cmaj,
             "Amin" => Amin,
             "Gmaj" => Gmaj,
@@ -153,15 +152,18 @@ impl KeyCode {
             "Gmin" => Gmin,
             "Fmaj" => Fmaj,
             "Dmin" => Dmin,
-            _ => Unknown,
-        }
+            _ => {
+                return None;
+            }
+        };
+        Some(code)
     }
 
     #[must_use]
     pub fn as_traditional_str(self) -> &'static str {
         use KeyCode::*;
         match self {
-            Unknown => "",
+            Off => "",
             Cmaj => "C",
             Amin => "Am",
             Gmaj => "G",
@@ -190,9 +192,10 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn from_traditional_str(s: &str) -> Self {
+    pub fn try_from_traditional_str(s: &str) -> Option<Self> {
         use KeyCode::*;
-        match s {
+        let code = match s {
+            "" => Off,
             "C" => Cmaj,
             "a" | "Am" => Amin,
             "G" => Gmaj,
@@ -245,15 +248,18 @@ impl KeyCode {
             "Gm" | "g" => Gmin,
             "F" => Fmaj,
             "Dm" | "d" => Dmin,
-            _ => Unknown,
-        }
+            _ => {
+                return None;
+            }
+        };
+        Some(code)
     }
 
     #[must_use]
     pub fn as_traditional_ascii_str(self) -> &'static str {
         use KeyCode::*;
         match self {
-            Unknown => "",
+            Off => "",
             Cmaj => "C",
             Amin => "Am",
             Gmaj => "G",
@@ -282,9 +288,10 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn from_traditional_ascii_str(s: &str) -> Self {
+    pub fn try_from_traditional_ascii_str(s: &str) -> Option<Self> {
         use KeyCode::*;
-        match s {
+        let code = match s {
+            "" => Off,
             "C" => Cmaj,
             "Am" | "a" => Amin,
             "G" => Gmaj,
@@ -309,15 +316,18 @@ impl KeyCode {
             "Gm" | "g" => Gmin,
             "F" => Fmaj,
             "Dm" | "d" => Dmin,
-            _ => Unknown,
-        }
+            _ => {
+                return None;
+            }
+        };
+        Some(code)
     }
 
     #[must_use]
     pub fn as_openkey_str(self) -> &'static str {
         use KeyCode::*;
         match self {
-            Unknown => "",
+            Off => "",
             Cmaj => "1d",
             Amin => "1m",
             Gmaj => "2d",
@@ -346,9 +356,10 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn from_openkey_str(s: &str) -> Self {
+    pub fn try_from_openkey_str(s: &str) -> Option<Self> {
         use KeyCode::*;
-        match s {
+        let code = match s {
+            "" => Off,
             "1d" => Cmaj,
             "1m" => Amin,
             "2d" => Gmaj,
@@ -373,15 +384,18 @@ impl KeyCode {
             "11m" => Gmin,
             "12d" => Fmaj,
             "12m" => Dmin,
-            _ => Unknown,
-        }
+            _ => {
+                return None;
+            }
+        };
+        Some(code)
     }
 
     #[must_use]
-    pub fn as_lancelot_str(self) -> &'static str {
+    pub fn as_camelot_str(self) -> &'static str {
         use KeyCode::*;
         match self {
-            Unknown => "",
+            Off => "",
             Cmaj => "8B",
             Amin => "8A",
             Gmaj => "9B",
@@ -410,9 +424,10 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn from_lancelot_str(s: &str) -> Self {
+    pub fn try_from_camelot_str(s: &str) -> Option<Self> {
         use KeyCode::*;
-        match s {
+        let code = match s {
+            "" => Off,
             "8A" => Cmaj,
             "8B" => Amin,
             "9A" => Gmaj,
@@ -437,15 +452,18 @@ impl KeyCode {
             "6B" => Gmin,
             "7A" => Fmaj,
             "7B" => Dmin,
-            _ => Unknown,
-        }
+            _ => {
+                return None;
+            }
+        };
+        Some(code)
     }
 
     #[must_use]
     pub fn as_traxsource_str(self) -> &'static str {
         use KeyCode::*;
         match self {
-            Unknown => "",
+            Off => "",
             Cmaj => "Cmaj",
             Amin => "Amin",
             Gmaj => "Gmaj",
@@ -474,9 +492,10 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn from_traxsource_str(s: &str) -> Self {
+    pub fn try_from_traxsource_str(s: &str) -> Option<Self> {
         use KeyCode::*;
-        match s {
+        let code = match s {
+            "" => Off,
             "Cmaj" => Cmaj,
             "Amin" => Amin,
             "Gmaj" => Gmaj,
@@ -501,15 +520,18 @@ impl KeyCode {
             "Gmin" => Gmin,
             "Fmaj" => Fmaj,
             "Dmin" => Dmin,
-            _ => Unknown,
-        }
+            _ => {
+                return None;
+            }
+        };
+        Some(code)
     }
 
     #[must_use]
     pub fn as_beatport_str(self) -> &'static str {
         use KeyCode::*;
         match self {
-            Unknown => "",
+            Off => "",
             Cmaj => "C maj",
             Amin => "A min",
             Gmaj => "G maj",
@@ -538,9 +560,10 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn from_beatport_str(s: &str) -> Self {
+    pub fn try_from_beatport_str(s: &str) -> Option<Self> {
         use KeyCode::*;
-        match s {
+        let code = match s {
+            "" => Off,
             "C maj" => Cmaj,
             "A min" => Amin,
             "G maj" => Gmaj,
@@ -565,15 +588,20 @@ impl KeyCode {
             "G min" => Gmin,
             "F maj" => Fmaj,
             "D min" => Dmin,
-            _ => Unknown,
-        }
+            _ => {
+                return None;
+            }
+        };
+        Some(code)
     }
 
+    #[allow(clippy::doc_markdown)]
+    /// See also `TKEY` in _ID3v2_: <https://id3.org/id3v2.4.0-frames>
     #[must_use]
     pub fn as_serato_str(self) -> &'static str {
         use KeyCode::*;
         match self {
-            Unknown => "",
+            Off => "o",
             Cmaj => "C",
             Amin => "Am",
             Gmaj => "G",
@@ -601,10 +629,13 @@ impl KeyCode {
         }
     }
 
+    #[allow(clippy::doc_markdown)]
+    /// See also `TKEY` in _ID3v2_: <https://id3.org/id3v2.4.0-frames>
     #[must_use]
-    pub fn from_serato_str(s: &str) -> Self {
+    pub fn try_from_serato_str(s: &str) -> Option<Self> {
         use KeyCode::*;
-        match s {
+        let code = match s {
+            "o" => Off,
             "C" => Cmaj,
             "Am" => Amin,
             "G" => Gmaj,
@@ -629,8 +660,11 @@ impl KeyCode {
             "Gm" => Gmin,
             "F" => Fmaj,
             "Dm" => Dmin,
-            _ => Unknown,
-        }
+            _ => {
+                return None;
+            }
+        };
+        Some(code)
     }
 }
 
@@ -643,14 +677,16 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn from_value(val: KeyCodeValue) -> Self {
-        Self::from_u8(val).unwrap_or(Self::Unknown)
+    pub fn try_from_value(val: KeyCodeValue) -> Option<Self> {
+        Self::from_u8(val)
     }
 }
 
-impl From<KeyCodeValue> for KeyCode {
-    fn from(from: KeyCodeValue) -> Self {
-        Self::from_value(from)
+impl TryFrom<KeyCodeValue> for KeyCode {
+    type Error = ();
+
+    fn try_from(from: KeyCodeValue) -> Result<Self, Self::Error> {
+        Self::try_from_value(from).ok_or(())
     }
 }
 
@@ -669,20 +705,10 @@ pub enum KeyMode {
 /// The ordering numbering of the key code follows the
 /// Circle of fifth / Open Key notation in clock-wise orientation,
 /// alternating between major and minor keys.
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct KeySignature(KeyCode);
 
 impl KeySignature {
-    #[must_use]
-    pub const fn unknown() -> Self {
-        Self(KeyCode::Unknown)
-    }
-
-    #[must_use]
-    pub fn is_unknown(self) -> bool {
-        self == Self::unknown()
-    }
-
     #[must_use]
     pub const fn new(code: KeyCode) -> Self {
         Self(code)
@@ -697,7 +723,7 @@ impl KeySignature {
     #[must_use]
     pub fn mode(self) -> Option<KeyMode> {
         match self.code() {
-            KeyCode::Unknown => None,
+            KeyCode::Off => None,
             code => match code.to_value() % 2 {
                 0 => Some(KeyMode::Minor),
                 1 => Some(KeyMode::Major),
@@ -745,13 +771,14 @@ impl OpenKeySignature {
     #[must_use]
     #[allow(clippy::similar_names)]
     pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
-        let code = KeyCode::from_value(
+        let code = KeyCode::try_from_value(
             2 * code
                 - match mode {
                     KeyMode::Major => 1,
                     KeyMode::Minor => 0,
                 },
-        );
+        )
+        .expect("valid key code");
         Self(KeySignature::new(code))
     }
 
@@ -804,13 +831,14 @@ impl LancelotKeySignature {
     #[must_use]
     #[allow(clippy::similar_names)]
     pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
-        let code = KeyCode::from_value(
+        let code = KeyCode::try_from_value(
             ((code * 2 + 9) % 24)
                 + match mode {
                     KeyMode::Major => 0,
                     KeyMode::Minor => 1,
                 },
-        );
+        )
+        .expect("valid key code");
         Self(KeySignature::new(code))
     }
 
@@ -839,7 +867,7 @@ impl From<LancelotKeySignature> for KeySignature {
 
 impl fmt::Display for LancelotKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.0.code().as_lancelot_str())
+        f.write_str(self.0.code().as_camelot_str())
     }
 }
 
@@ -862,7 +890,7 @@ impl EngineKeySignature {
 
     #[must_use]
     pub fn from_code(code: KeyCodeValue) -> Self {
-        let code = KeyCode::from_value(code % 24 + 1);
+        let code = KeyCode::try_from_value(code % 24 + 1).expect("valid key code");
         Self(KeySignature::new(code))
     }
 

@@ -1193,10 +1193,10 @@ components:
       type: integer
       enum: [0, 1, 2, 3]
       description: |
-        * 0 = undefined (default if missing)
-        * 1 = Album
-        * 2 = Single
-        * 3 = Compilation
+        * 0 = No compilation, unknown if either album or single
+        * 1 = Compilation
+        * 2 = Album
+        * 3 = Single
     Album:
       description: |
         Album properties

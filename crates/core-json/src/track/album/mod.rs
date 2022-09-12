@@ -20,23 +20,17 @@ mod _core {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[repr(u8)]
 pub enum Kind {
-    Unknown = 0,
-    Album = 1,
-    Single = 2,
-    Compilation = 3,
-}
-
-impl Kind {
-    fn is_default(&self) -> bool {
-        matches!(self, Self::Unknown)
-    }
+    NoCompilation = 0,
+    Compilation = 1,
+    Album = 2,
+    Single = 3,
 }
 
 impl From<_core::Kind> for Kind {
     fn from(from: _core::Kind) -> Self {
         use _core::Kind::*;
         match from {
-            Unknown => Self::Unknown,
+            NoCompilation => Self::NoCompilation,
             Album => Self::Album,
             Single => Self::Single,
             Compilation => Self::Compilation,
@@ -48,7 +42,7 @@ impl From<Kind> for _core::Kind {
     fn from(from: Kind) -> Self {
         use Kind::*;
         match from {
-            Unknown => Self::Unknown,
+            NoCompilation => Self::NoCompilation,
             Album => Self::Album,
             Single => Self::Single,
             Compilation => Self::Compilation,
@@ -67,8 +61,8 @@ impl Default for Kind {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Album {
-    #[serde(skip_serializing_if = "Kind::is_default", default)]
-    pub kind: Kind,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<Kind>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
@@ -84,7 +78,7 @@ impl Album {
             titles,
             actors,
         } = self;
-        kind.is_default() && titles.is_empty() && actors.is_empty()
+        kind.is_none() && titles.is_empty() && actors.is_empty()
     }
 }
 
@@ -96,7 +90,7 @@ impl From<_core::Album> for Album {
             actors,
         } = from;
         Self {
-            kind: kind.into(),
+            kind: kind.map(Into::into),
             titles: titles.untie().into_iter().map(Into::into).collect(),
             actors: actors.untie().into_iter().map(Into::into).collect(),
         }
@@ -111,7 +105,7 @@ impl From<Album> for Canonical<_core::Album> {
             actors,
         } = from;
         Self::tie(_core::Album {
-            kind: kind.into(),
+            kind: kind.map(Into::into),
             titles: Canonical::tie(
                 titles
                     .into_iter()

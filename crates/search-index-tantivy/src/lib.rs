@@ -175,18 +175,8 @@ impl TrackFields {
         if let Some(tempo_bpm) = entity.body.track.metrics.tempo_bpm {
             doc.add_f64(self.tempo_bpm, tempo_bpm.to_inner());
         }
-        if !entity.body.track.metrics.key_signature.is_unknown() {
-            doc.add_u64(
-                self.key_code,
-                entity
-                    .body
-                    .track
-                    .metrics
-                    .key_signature
-                    .code()
-                    .to_u64()
-                    .expect("valid code"),
-            );
+        if let Some(key_signature) = entity.body.track.metrics.key_signature {
+            doc.add_u64(self.key_code, key_signature.code().to_u64().unwrap());
         }
         if let Some(play_counter) = play_counter {
             let PlayCounter {

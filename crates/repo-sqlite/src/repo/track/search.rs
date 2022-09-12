@@ -702,23 +702,24 @@ fn build_numeric_field_filter_expression(
         }
         MusicKeyCode => {
             let expr = view_track_search::music_key_code;
-            let expr_not_null = expr;
+            let expr_not_null_less_or_equal = ifnull(expr, i16::MAX);
+            let expr_not_null_greater = ifnull(expr, -1);
             // TODO: Check and limit/clamp value range when converting from f64 to i16
             match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
+                LessThan(value) => Box::new(expr_not_null_less_or_equal.lt(value as i16)),
+                LessOrEqual(value) => Box::new(expr_not_null_less_or_equal.le(value as i16)),
+                GreaterThan(value) => Box::new(expr_not_null_greater.gt(value as i16)),
+                GreaterOrEqual(value) => Box::new(expr_not_null_greater.ge(value as i16)),
                 Equal(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i16))
+                        Box::new(expr_not_null_less_or_equal.eq(value as i16))
                     } else {
                         Box::new(expr.is_null())
                     }
                 }
                 NotEqual(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i16))
+                        Box::new(expr_not_null_less_or_equal.ne(value as i16))
                     } else {
                         Box::new(expr.is_not_null())
                     }

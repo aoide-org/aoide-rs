@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS track (
     released_orig_at_yyyymmdd INTEGER, -- naive, gregorian release date as YYYYMMDD (parsed from released_at)
     publisher                TEXT,    -- publisher or record label
     copyright                TEXT,
-    album_kind               INTEGER NOT NULL,
+    album_kind               INTEGER,
     -- properties: indexing
     track_number             INTEGER, -- > 0
     track_total              INTEGER, -- > 0
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS track (
     movement_total           INTEGER, -- > 0
     -- properties: musical signature
     music_tempo_bpm          REAL,    -- beats per minute
-    music_key_code           INTEGER NOT NULL, -- musical key signature code {(0), 1, ..., 24}
+    music_key_code           INTEGER, -- musical key signature code {(0), 1, ..., 24}
     music_beats_per_measure  INTEGER, -- musical time signature, top value
     music_beat_unit          INTEGER, -- musical time signature, bottom value
     music_flags              INTEGER NOT NULL, -- bitmask of flags, e.g. for locking individual properties to prevent unintended modifications

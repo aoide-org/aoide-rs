@@ -132,6 +132,9 @@ impl TryFrom<Track> for _core::Track {
             cues,
         } = from;
         let media_source = media_source.try_into()?;
+        let metrics = metrics
+            .try_into()
+            .map_err(|()| anyhow::anyhow!("invalid metrics"))?;
         let into = Self {
             media_source,
             recorded_at: recorded_at.map(Into::into),
@@ -157,7 +160,7 @@ impl TryFrom<Track> for _core::Track {
             indexes: indexes.into(),
             tags: Canonical::tie(_core::Tags::from(tags).canonicalize_into()),
             color: color.map(Into::into),
-            metrics: metrics.into(),
+            metrics,
             cues: Canonical::tie(
                 cues.into_iter()
                     .map(Into::into)

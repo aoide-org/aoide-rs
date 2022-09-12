@@ -19,7 +19,7 @@ use aoide_core::{
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
         AdvisoryRating,
     },
-    music::{key::KeySignature, tempo::TempoBpm},
+    music::tempo::TempoBpm,
     tag::{FacetedTags, PlainTag, Score as TagScore, TagsMap},
     track::{
         actor::Role as ActorRole,
@@ -42,7 +42,8 @@ use crate::{
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from_owned,
-        push_next_actor_role_name, tag::TagMappingConfig, try_ingest_embedded_artwork_image,
+        key_signature_as_str, push_next_actor_role_name, tag::TagMappingConfig,
+        try_ingest_embedded_artwork_image,
     },
     Error, Result,
 };
@@ -90,6 +91,8 @@ const IDENT_ALBUM_ARTIST: Fourcc = Fourcc(*b"aART");
 const IDENT_ARTIST: Fourcc = Fourcc(*b"\xA9ART");
 
 const IDENT_COMMENT: Fourcc = Fourcc(*b"\xA9cmt");
+
+const IDENT_COMPILATION: Fourcc = Fourcc(*b"cpil");
 
 const IDENT_COMPOSER: Fourcc = Fourcc(*b"\xA9wrt");
 
@@ -265,17 +268,12 @@ impl Metadata {
             track.metrics.tempo_bpm = None;
         }
 
-        let key_signature = mp4_tag
+        track.metrics.key_signature = mp4_tag
             .strings_of(&IDENT_INITIAL_KEY)
             // alternative name (conforms to Rapid Evolution)
             .chain(mp4_tag.strings_of(&KEY_IDENT))
             .flat_map(|input| importer.import_key_signature(input))
             .next();
-        if let Some(key_signature) = key_signature {
-            track.metrics.key_signature = key_signature;
-        } else {
-            track.metrics.key_signature = KeySignature::unknown();
-        }
 
         // Track titles
         let mut track_titles = Vec::with_capacity(4);
@@ -304,8 +302,7 @@ impl Metadata {
         {
             track_titles.push(title);
         }
-        let track_titles = importer.finish_import_of_titles(TrackScope::Track, track_titles);
-        track.titles = track_titles;
+        track.titles = importer.finish_import_of_titles(TrackScope::Track, track_titles);
 
         // Track actors
         let mut track_actors = Vec::with_capacity(8);
@@ -336,8 +333,7 @@ impl Metadata {
         for name in mp4_tag.take_strings_of(&IDENT_DIRECTOR) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Director, name);
         }
-        let track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
-        track.actors = track_actors;
+        track.actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
 
         let mut album = track.album.untie_replace(Default::default());
 
@@ -349,22 +345,24 @@ impl Metadata {
         {
             album_titles.push(title);
         }
-        let album_titles = importer.finish_import_of_titles(TrackScope::Album, album_titles);
-        album.titles = album_titles;
+        album.titles = importer.finish_import_of_titles(TrackScope::Album, album_titles);
 
         // Album actors
         let mut album_actors = Vec::with_capacity(4);
         for name in mp4_tag.take_album_artists() {
             push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name);
         }
-        let album_actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
-        album.actors = album_actors;
+        album.actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
 
         // Album properties
-        if mp4_tag.compilation() {
-            album.kind = AlbumKind::Compilation;
+        if mp4_tag.data_of(&IDENT_COMPILATION).next().is_some() {
+            if mp4_tag.compilation() {
+                album.kind = Some(AlbumKind::Compilation);
+            } else {
+                album.kind = Some(AlbumKind::NoCompilation);
+            }
         } else {
-            album.kind = AlbumKind::Unknown;
+            album.kind = None;
         }
 
         track.album = Canonical::tie(album);
@@ -674,22 +672,16 @@ pub fn export_track_to_path(
     }
 
     // Music: Key
-    if track.metrics.key_signature.is_unknown() {
-        mp4_tag.remove_data_of(&IDENT_INITIAL_KEY);
-        mp4_tag.remove_data_of(&KEY_IDENT);
-    } else {
-        // TODO: Write a custom key code string according to config
-        mp4_tag.set_all_data(
-            IDENT_INITIAL_KEY,
-            once(Data::Utf8(track.metrics.key_signature.to_string())),
-        );
+    if let Some(key_signature) = track.metrics.key_signature {
+        let key_data = Data::Utf8(key_signature_as_str(key_signature).into());
         if mp4_tag.data_of(&KEY_IDENT).next().is_some() {
             // Write non-standard key atom only if already present
-            mp4_tag.set_all_data(
-                KEY_IDENT,
-                once(Data::Utf8(track.metrics.key_signature.to_string())),
-            );
+            mp4_tag.set_all_data(KEY_IDENT, once(key_data.clone()));
         }
+        mp4_tag.set_all_data(IDENT_INITIAL_KEY, once(key_data));
+    } else {
+        mp4_tag.remove_data_of(&IDENT_INITIAL_KEY);
+        mp4_tag.remove_data_of(&KEY_IDENT);
     }
 
     // Track titles
@@ -781,17 +773,17 @@ pub fn export_track_to_path(
         IDENT_ALBUM_ARTIST,
         FilteredActorNames::new(track.album.actors.iter(), ActorRole::Artist),
     );
-    match track.album.kind {
-        AlbumKind::Unknown => {
-            mp4_tag.remove_compilation();
+    if let Some(kind) = track.album.kind {
+        match kind {
+            AlbumKind::NoCompilation | AlbumKind::Album | AlbumKind::Single => {
+                mp4_tag.set_data(IDENT_COMPILATION, Data::BeSigned(vec![0u8]));
+            }
+            AlbumKind::Compilation => {
+                mp4_tag.set_data(IDENT_COMPILATION, Data::BeSigned(vec![1u8]));
+            }
         }
-        AlbumKind::Compilation => {
-            mp4_tag.set_compilation();
-        }
-        AlbumKind::Album | AlbumKind::Single => {
-            // TODO: Set compilation flag to false!?
-            mp4_tag.remove_compilation();
-        }
+    } else {
+        mp4_tag.remove_data_of(&IDENT_COMPILATION)
     }
 
     // No distinction between recording and release date, i.e.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{path::Path, time::Duration};
+use std::{borrow::Cow, path::Path, time::Duration};
 
 use metaflac::block::PictureType;
 use num_traits::FromPrimitive as _;
@@ -12,11 +12,9 @@ use aoide_core::{
         artwork::{ApicType, Artwork},
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
     },
-    music::key::KeySignature,
     tag::TagsMap,
     track::{
         actor::Role as ActorRole,
-        album::Kind as AlbumKind,
         tag::{FACET_ID_COMMENT, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC, FACET_ID_MOOD},
         Track,
     },
@@ -51,7 +49,12 @@ impl vorbis::CommentReader for metaflac::Tag {
 }
 
 impl vorbis::CommentWriter for metaflac::Tag {
-    fn write_multiple_values(&mut self, key: String, values: Vec<String>) {
+    fn overwrite_single_value(&mut self, key: Cow<'_, str>, value: &'_ str) {
+        if self.get_vorbis(&key).is_some() {
+            self.write_single_value(key, value.into());
+        }
+    }
+    fn write_multiple_values(&mut self, key: Cow<'_, str>, values: Vec<String>) {
         if values.is_empty() {
             self.remove_vorbis(&key);
         } else {
@@ -183,11 +186,7 @@ impl Metadata {
 
         track.metrics.tempo_bpm = vorbis::import_tempo_bpm(importer, metaflac_tag);
 
-        if let Some(key_signature) = vorbis::import_key_signature(importer, metaflac_tag) {
-            track.metrics.key_signature = key_signature;
-        } else {
-            track.metrics.key_signature = KeySignature::unknown();
-        }
+        track.metrics.key_signature = vorbis::import_key_signature(importer, metaflac_tag);
 
         track.titles = vorbis::import_track_titles(importer, metaflac_tag);
 
@@ -294,11 +293,7 @@ impl Metadata {
         album.actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
 
         // Album properties
-        if let Some(album_kind) = vorbis::import_album_kind(importer, metaflac_tag) {
-            album.kind = album_kind;
-        } else {
-            album.kind = AlbumKind::Unknown;
-        }
+        album.kind = vorbis::import_album_kind(importer, metaflac_tag);
 
         track.album = Canonical::tie(album);
 
@@ -312,15 +307,13 @@ impl Metadata {
         let mut tags_map = TagsMap::default();
 
         // Grouping tags
-        if let Some(groupings) = metaflac_tag.get_vorbis(GROUPING_KEY) {
-            vorbis::import_faceted_text_tags(
-                importer,
-                &mut tags_map,
-                &config.faceted_tag_mapping,
-                &FACET_ID_GROUPING,
-                groupings,
-            );
-        }
+        vorbis::import_faceted_text_tags(
+            importer,
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_ID_GROUPING,
+            metaflac_tag.get_vorbis(GROUPING_KEY).into_iter().flatten(),
+        );
 
         // Import gigtags from raw grouping tags before any other tags.
         #[cfg(feature = "gigtag")]
@@ -348,56 +341,37 @@ impl Metadata {
         );
 
         // Genre tags
-        if let Some(genres) = metaflac_tag.get_vorbis(GENRE_KEY) {
-            vorbis::import_faceted_text_tags(
-                importer,
-                &mut tags_map,
-                &config.faceted_tag_mapping,
-                &FACET_ID_GENRE,
-                genres,
-            );
-        }
+        vorbis::import_faceted_text_tags(
+            importer,
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_ID_GENRE,
+            metaflac_tag.get_vorbis(GENRE_KEY).into_iter().flatten(),
+        );
 
         // Mood tags
-        if let Some(moods) = metaflac_tag.get_vorbis(MOOD_KEY) {
-            vorbis::import_faceted_text_tags(
-                importer,
-                &mut tags_map,
-                &config.faceted_tag_mapping,
-                &FACET_ID_MOOD,
-                moods,
-            );
-        }
+        vorbis::import_faceted_text_tags(
+            importer,
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_ID_MOOD,
+            metaflac_tag.get_vorbis(MOOD_KEY).into_iter().flatten(),
+        );
 
         // ISRC tag
-        if let Some(isrc) = metaflac_tag.get_vorbis(ISRC_KEY) {
-            vorbis::import_faceted_text_tags(
-                importer,
-                &mut tags_map,
-                &config.faceted_tag_mapping,
-                &FACET_ID_ISRC,
-                isrc,
-            );
-        }
+        vorbis::import_faceted_text_tags(
+            importer,
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_ID_ISRC,
+            metaflac_tag.get_vorbis(ISRC_KEY).into_iter().flatten(),
+        );
 
-        if let Some(index) = vorbis::import_track_index(importer, metaflac_tag) {
-            track.indexes.track = index;
-        } else {
-            // Reset
-            track.indexes.track = Default::default();
-        }
-        if let Some(index) = vorbis::import_disc_index(importer, metaflac_tag) {
-            track.indexes.disc = index;
-        } else {
-            // Reset
-            track.indexes.disc = Default::default();
-        }
-        if let Some(index) = vorbis::import_movement_index(importer, metaflac_tag) {
-            track.indexes.movement = index;
-        } else {
-            // Reset
-            track.indexes.movement = Default::default();
-        }
+        track.indexes.track =
+            vorbis::import_track_index(importer, metaflac_tag).unwrap_or_default();
+        track.indexes.disc = vorbis::import_disc_index(importer, metaflac_tag).unwrap_or_default();
+        track.indexes.movement =
+            vorbis::import_movement_index(importer, metaflac_tag).unwrap_or_default();
 
         if config
             .flags

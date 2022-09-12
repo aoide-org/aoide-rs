@@ -12,6 +12,9 @@ fn is_default() {
 
 #[test]
 fn into_default() {
-    assert_eq!(_core::Metrics::default(), Metrics::default().into());
+    assert_eq!(
+        _core::Metrics::default(),
+        Metrics::default().try_into().unwrap()
+    );
     assert_eq!(Metrics::default(), _core::Metrics::default().into());
 }

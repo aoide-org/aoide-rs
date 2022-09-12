@@ -7,7 +7,6 @@ use super::*;
 
 #[test]
 fn is_default() {
-    assert!(Kind::default().is_default());
     assert!(Album::default().is_default());
 }
 

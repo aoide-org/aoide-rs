@@ -62,34 +62,30 @@ impl From<_core::Metrics> for Metrics {
         } = from;
         Self {
             tempo_bpm: tempo_bpm.map(Into::into),
-            key_code: if key_signature.is_unknown() {
-                None
-            } else {
-                Some(key_signature.code().into())
-            },
+            key_code: key_signature.map(|s| s.code().into()),
             time_signature: time_signature.map(Into::into),
             flags: flags.bits(),
         }
     }
 }
 
-impl From<Metrics> for _core::Metrics {
-    fn from(from: Metrics) -> Self {
+impl TryFrom<Metrics> for _core::Metrics {
+    type Error = ();
+
+    fn try_from(from: Metrics) -> Result<Self, Self::Error> {
         let Metrics {
             tempo_bpm,
             key_code,
             time_signature,
             flags,
         } = from;
-        Self {
+        let key_code = key_code.map(TryInto::try_into).transpose()?;
+        Ok(Self {
             tempo_bpm: tempo_bpm.map(Into::into),
-            key_signature: key_code
-                .map(Into::into)
-                .map(KeySignature::new)
-                .unwrap_or_else(KeySignature::unknown),
+            key_signature: key_code.map(KeySignature::new),
             time_signature: time_signature.map(Into::into),
             flags: MetricsFlags::from_bits_truncate(flags),
-        }
+        })
     }
 }
 

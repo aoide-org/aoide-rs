@@ -21,9 +21,11 @@ impl From<_core::KeyCode> for KeyCode {
     }
 }
 
-impl From<KeyCode> for _core::KeyCode {
-    fn from(from: KeyCode) -> Self {
+impl TryFrom<KeyCode> for _core::KeyCode {
+    type Error = ();
+
+    fn try_from(from: KeyCode) -> Result<Self, Self::Error> {
         let KeyCode(val) = from;
-        Self::from_value(val)
+        Self::try_from(val)
     }
 }

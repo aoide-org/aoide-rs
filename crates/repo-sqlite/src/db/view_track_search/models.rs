@@ -46,7 +46,7 @@ pub struct QueryableRecord {
     pub released_orig_at_yyyymmdd: Option<YYYYMMDD>,
     pub publisher: Option<String>,
     pub copyright: Option<String>,
-    pub album_kind: i16,
+    pub album_kind: Option<i16>,
     pub track_number: Option<i16>,
     pub track_total: Option<i16>,
     pub disc_number: Option<i16>,
@@ -54,7 +54,7 @@ pub struct QueryableRecord {
     pub movement_number: Option<i16>,
     pub movement_total: Option<i16>,
     pub music_tempo_bpm: Option<Bpm>,
-    pub music_key_code: i16,
+    pub music_key_code: Option<i16>,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
     pub music_flags: i16,
@@ -185,8 +185,12 @@ pub(crate) fn load_repo_entity(
             .map(DateYYYYMMDD::new)
             .map(Into::into)
     };
-    let album_kind = AlbumKind::from_i16(album_kind)
-        .ok_or_else(|| anyhow::anyhow!("Invalid album kind value: {album_kind}"))?;
+    let album_kind = album_kind
+        .map(|val| {
+            AlbumKind::from_i16(val)
+                .ok_or_else(|| anyhow::anyhow!("Invalid album kind value: {val}"))
+        })
+        .transpose()?;
     let album = Canonical::tie(Album {
         kind: album_kind,
         actors: album_actors,
@@ -220,9 +224,15 @@ pub(crate) fn load_repo_entity(
             None
         }
     };
+    let music_key_code = music_key_code
+        .map(|val| {
+            KeyCode::try_from_value(val as KeyCodeValue)
+                .ok_or_else(|| anyhow::anyhow!("Invalid musical key code value: {val}"))
+        })
+        .transpose()?;
     let metrics = Metrics {
         tempo_bpm: music_tempo_bpm.map(TempoBpm::from_inner),
-        key_signature: KeySignature::new(KeyCode::from_value(music_key_code as KeyCodeValue)),
+        key_signature: music_key_code.map(KeySignature::new),
         time_signature,
         flags: MetricsFlags::from_bits_truncate(music_flags as u8),
     };

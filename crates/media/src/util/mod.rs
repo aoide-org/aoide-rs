@@ -267,42 +267,51 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
     }
     if input.starts_with(|c: char| c.is_ascii_alphanumeric()) {
         if input.starts_with(|c: char| c.is_ascii_digit()) {
-            let key_code = KeyCode::from_lancelot_str(input);
-            if key_code != KeyCode::Unknown {
+            let key_code = KeyCode::try_from_camelot_str(input);
+            if let Some(key_code) = key_code {
                 return Some(key_code.into());
             }
-            let key_code = KeyCode::from_openkey_str(input);
-            if key_code != KeyCode::Unknown {
+            let key_code = KeyCode::try_from_openkey_str(input);
+            if let Some(key_code) = key_code {
                 return Some(key_code.into());
             }
         } else {
-            let key_code = KeyCode::from_canonical_str(input);
-            if key_code != KeyCode::Unknown {
+            // Try the ID3v2 recommendation for TKEY first
+            let key_code = KeyCode::try_from_serato_str(input);
+            if let Some(key_code) = key_code {
                 return Some(key_code.into());
             }
-            let key_code = KeyCode::from_traditional_str(input);
-            if key_code != KeyCode::Unknown {
+            let key_code = KeyCode::try_from_canonical_str(input);
+            if let Some(key_code) = key_code {
                 return Some(key_code.into());
             }
-            let key_code = KeyCode::from_traditional_ascii_str(input);
-            if key_code != KeyCode::Unknown {
+            let key_code = KeyCode::try_from_traditional_str(input);
+            if let Some(key_code) = key_code {
                 return Some(key_code.into());
             }
-            let key_code = KeyCode::from_serato_str(input);
-            if key_code != KeyCode::Unknown {
+            let key_code = KeyCode::try_from_traditional_ascii_str(input);
+            if let Some(key_code) = key_code {
                 return Some(key_code.into());
             }
-            let key_code = KeyCode::from_beatport_str(input);
-            if key_code != KeyCode::Unknown {
+            let key_code = KeyCode::try_from_beatport_str(input);
+            if let Some(key_code) = key_code {
                 return Some(key_code.into());
             }
-            let key_code = KeyCode::from_traxsource_str(input);
-            if key_code != KeyCode::Unknown {
+            let key_code = KeyCode::try_from_traxsource_str(input);
+            if let Some(key_code) = key_code {
                 return Some(key_code.into());
             }
         }
     }
     None
+}
+
+#[must_use]
+pub fn key_signature_as_str(key_signature: KeySignature) -> &'static str {
+    // Follow the ID3v2 recommendation, independent of the actual format.
+    // See also: <https://id3.org/id3v2.4.0-frames>
+    // TODO: Should this be configurable depending on the format?
+    key_signature.code().as_serato_str()
 }
 
 const RFC3339_WITHOUT_TZ_FORMAT: &[FormatItem<'static>] =

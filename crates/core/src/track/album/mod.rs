@@ -16,15 +16,15 @@ use super::{
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum Kind {
     #[default]
-    Unknown = 0,
-    Album = 1,
-    Single = 2,
-    Compilation = 3,
+    NoCompilation = 0, // either Album or Single
+    Compilation = 1,
+    Album = 2,
+    Single = 3,
 }
 
 #[derive(Clone, Debug, Default, Eq)]
 pub struct Album {
-    pub kind: Kind,
+    pub kind: Option<Kind>,
 
     pub titles: Canonical<Vec<Title>>,
 

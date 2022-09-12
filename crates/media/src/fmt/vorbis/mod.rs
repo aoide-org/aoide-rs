@@ -39,7 +39,7 @@ use crate::{
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
-        push_next_actor_role_name_from,
+        key_signature_as_str, push_next_actor_role_name_from,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         trim_readable, try_ingest_embedded_artwork_image,
     },
@@ -152,37 +152,52 @@ impl CommentReader for HashMap<String, String> {
 }
 
 pub trait CommentWriter {
-    fn write_single_value(&mut self, key: String, value: String) {
+    fn write_single_value(&mut self, key: Cow<'_, str>, value: String) {
         self.write_multiple_values(key, vec![value]);
     }
-    fn write_single_value_opt(&mut self, key: String, value: Option<String>) {
+    fn overwrite_single_value(&mut self, key: Cow<'_, str>, value: &'_ str);
+    fn write_single_value_opt(&mut self, key: Cow<'_, str>, value: Option<String>) {
         if let Some(value) = value {
             self.write_single_value(key, value);
         } else {
             self.remove_all_values(&key);
         }
     }
-    fn write_multiple_values(&mut self, key: String, values: Vec<String>);
-    fn write_multiple_values_opt(&mut self, key: String, values: Option<Vec<String>>) {
+    fn overwrite_single_value_opt(&mut self, key: Cow<'_, str>, value: Option<&'_ str>) {
+        if let Some(value) = value {
+            self.overwrite_single_value(key, value);
+        } else {
+            self.remove_all_values(&key);
+        }
+    }
+    fn write_multiple_values(&mut self, key: Cow<'_, str>, values: Vec<String>);
+    fn write_multiple_values_opt(&mut self, key: Cow<'_, str>, values: Option<Vec<String>>) {
         if let Some(values) = values {
             self.write_multiple_values(key, values);
         } else {
             self.remove_all_values(&key);
         }
     }
-    fn remove_all_values(&mut self, key: &str);
+    fn remove_all_values(&mut self, key: &'_ str);
 }
 
 impl CommentWriter for Vec<(String, String)> {
-    fn write_multiple_values(&mut self, key: String, values: Vec<String>) {
+    fn overwrite_single_value(&mut self, key: Cow<'_, str>, value: &'_ str) {
+        // Not optimized, but good enough and safe
+        if self.iter().any(|(any_key, _)| any_key == &key) {
+            self.write_single_value(key, value.into());
+        }
+    }
+    fn write_multiple_values(&mut self, key: Cow<'_, str>, values: Vec<String>) {
         // TODO: Optimize or use a different data structure for writing
         self.remove_all_values(&key);
         self.reserve(self.len() + values.len());
+        let key = key.into_owned();
         for value in values {
             self.push((key.clone(), value));
         }
     }
-    fn remove_all_values(&mut self, key: &str) {
+    fn remove_all_values(&mut self, key: &'_ str) {
         self.retain(|(cmp_key, _)| cmp_key != key)
     }
 }
@@ -278,7 +293,7 @@ pub fn import_loudness(
 
 fn export_loudness(writer: &mut impl CommentWriter, loudness: Option<LoudnessLufs>) {
     if let Some(formatted_track_gain) = loudness.and_then(format_valid_replay_gain) {
-        writer.write_single_value("REPLAYGAIN_TRACK_GAIN".to_owned(), formatted_track_gain);
+        writer.write_single_value("REPLAYGAIN_TRACK_GAIN".into(), formatted_track_gain);
     } else {
         writer.remove_all_values("REPLAYGAIN_TRACK_GAIN");
     }
@@ -290,7 +305,7 @@ pub fn import_encoder(reader: &'_ impl CommentReader) -> Option<Cow<'_, str>> {
 
 fn export_encoder(writer: &mut impl CommentWriter, encoder: Option<impl Into<String>>) {
     if let Some(encoder) = encoder.map(Into::into) {
-        writer.write_single_value("ENCODEDBY".to_owned(), encoder);
+        writer.write_single_value("ENCODEDBY".into(), encoder);
     } else {
         writer.remove_all_values("ENCODEDBY");
     }
@@ -310,7 +325,7 @@ pub fn import_tempo_bpm(importer: &mut Importer, reader: &impl CommentReader) ->
 
 fn export_tempo_bpm(writer: &mut impl CommentWriter, tempo_bpm: &mut Option<TempoBpm>) {
     if let Some(formatted_bpm) = format_validated_tempo_bpm(tempo_bpm) {
-        writer.write_single_value("BPM".to_owned(), formatted_bpm);
+        writer.write_single_value("BPM".into(), formatted_bpm);
     } else {
         writer.remove_all_values("BPM");
     }
@@ -333,12 +348,14 @@ pub fn import_key_signature(
         })
 }
 
-fn export_key_signature(writer: &mut impl CommentWriter, key_signature: KeySignature) {
-    if key_signature.is_unknown() {
-        writer.remove_all_values("KEY");
+fn export_key_signature(writer: &mut impl CommentWriter, key_signature: Option<KeySignature>) {
+    if let Some(key_signature) = key_signature {
+        let value = key_signature_as_str(key_signature);
+        writer.write_single_value("KEY".into(), value.into());
+        writer.overwrite_single_value("INITIALKEY".into(), value);
     } else {
-        // TODO: Write a custom key code string according to config
-        writer.write_single_value("KEY".to_owned(), key_signature.to_string());
+        writer.remove_all_values("KEY");
+        writer.remove_all_values("INITIALKEY");
     }
 }
 
@@ -349,15 +366,15 @@ pub fn import_album_kind(
     let value = reader.read_first_value("COMPILATION");
     value
         .and_then(|compilation| trim_readable(compilation).parse::<u8>().ok())
-        .map(|compilation| match compilation {
-            0 => AlbumKind::Unknown, // either Album or Single
-            1 => AlbumKind::Compilation,
+        .and_then(|compilation| match compilation {
+            0 => Some(AlbumKind::NoCompilation),
+            1 => Some(AlbumKind::Compilation),
             _ => {
                 importer.add_issue(format!(
                     "Unexpected tag value: COMPILATION = '{}'",
                     value.expect("unreachable")
                 ));
-                AlbumKind::Unknown
+                None
             }
         })
 }
@@ -598,36 +615,19 @@ pub fn import_into_track(
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<()> {
-    if let Some(tempo_bpm) = import_tempo_bpm(importer, reader) {
-        track.metrics.tempo_bpm = Some(tempo_bpm);
-    }
+    track.metrics.tempo_bpm = import_tempo_bpm(importer, reader);
 
-    if let Some(key_signature) = import_key_signature(importer, reader) {
-        track.metrics.key_signature = key_signature;
-    }
+    track.metrics.key_signature = import_key_signature(importer, reader);
 
-    if let Some(recorded_at) = import_recorded_at(importer, reader) {
-        track.recorded_at = Some(recorded_at);
-    }
-    if let Some(released_at) = import_released_at(importer, reader) {
-        track.released_at = Some(released_at);
-    }
-    if let Some(released_orig_at) = import_released_orig_at(importer, reader) {
-        track.released_orig_at = Some(released_orig_at);
-    }
+    track.recorded_at = import_recorded_at(importer, reader);
+    track.released_at = import_released_at(importer, reader);
+    track.released_orig_at = import_released_orig_at(importer, reader);
 
-    if let Some(publisher) = import_publisher(reader) {
-        track.publisher = Some(publisher);
-    }
-    if let Some(copyright) = import_copyright(reader) {
-        track.copyright = Some(copyright);
-    }
+    track.publisher = import_publisher(reader);
+    track.copyright = import_copyright(reader);
 
     // Track titles
-    let track_titles = import_track_titles(importer, reader);
-    if !track_titles.is_empty() {
-        track.titles = track_titles;
-    }
+    track.titles = import_track_titles(importer, reader);
 
     // Track actors
     let mut track_actors = Vec::with_capacity(8);
@@ -673,18 +673,12 @@ pub fn import_into_track(
     for name in reader.filter_values(WRITER_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
     }
-    let track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
-    if !track_actors.is_empty() {
-        track.actors = track_actors;
-    }
+    track.actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
 
     let mut album = track.album.untie_replace(Default::default());
 
     // Album titles
-    let album_titles = import_album_titles(importer, reader);
-    if !album_titles.is_empty() {
-        album.titles = album_titles;
-    }
+    album.titles = import_album_titles(importer, reader);
 
     // Album actors
     let mut album_actors = Vec::with_capacity(4);
@@ -713,15 +707,10 @@ pub fn import_into_track(
     {
         push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
     }
-    let album_actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
-    if !album_actors.is_empty() {
-        album.actors = album_actors;
-    }
+    album.actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
 
     // Album properties
-    if let Some(album_kind) = import_album_kind(importer, reader) {
-        album.kind = album_kind;
-    }
+    album.kind = import_album_kind(importer, reader);
 
     track.album = Canonical::tie(album);
 
@@ -807,15 +796,9 @@ pub fn import_into_track(
             .into_iter(),
     );
 
-    if let Some(index) = import_track_index(importer, reader) {
-        track.indexes.track = index;
-    }
-    if let Some(index) = import_disc_index(importer, reader) {
-        track.indexes.disc = index;
-    }
-    if let Some(index) = import_movement_index(importer, reader) {
-        track.indexes.movement = index;
-    }
+    track.indexes.track = import_track_index(importer, reader).unwrap_or_default();
+    track.indexes.disc = import_disc_index(importer, reader).unwrap_or_default();
+    track.indexes.movement = import_movement_index(importer, reader).unwrap_or_default();
 
     if config
         .flags
@@ -876,116 +859,119 @@ pub fn export_track(
 
     // Track titles
     writer.write_single_value_opt(
-        "TITLE".to_owned(),
+        "TITLE".into(),
         Titles::main_title(track.titles.iter()).map(|title| title.name.to_owned()),
     );
     writer.write_multiple_values(
-        "SUBTITLE".to_owned(),
+        "SUBTITLE".into(),
         Titles::filter_kind(track.titles.iter(), TitleKind::Sub)
-            .map(|title| title.name.to_owned())
+            .map(|title| title.name.clone())
             .collect(),
     );
     writer.write_multiple_values(
-        "WORK".to_owned(),
+        "WORK".into(),
         Titles::filter_kind(track.titles.iter(), TitleKind::Work)
-            .map(|title| title.name.to_owned())
+            .map(|title| title.name.clone())
             .collect(),
     );
     writer.write_multiple_values(
-        "MOVEMENTNAME".to_owned(),
+        "MOVEMENTNAME".into(),
         Titles::filter_kind(track.titles.iter(), TitleKind::Movement)
-            .map(|title| title.name.to_owned())
+            .map(|title| title.name.clone())
             .collect(),
     );
 
     // Track actors
     export_filtered_actor_names(
         writer,
-        ARTIST_KEY.to_owned(),
+        ARTIST_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Artist),
     );
     export_filtered_actor_names(
         writer,
-        ARRANGER_KEY.to_owned(),
+        ARRANGER_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Arranger),
     );
     export_filtered_actor_names(
         writer,
-        COMPOSER_KEY.to_owned(),
+        COMPOSER_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Composer),
     );
     export_filtered_actor_names(
         writer,
-        CONDUCTOR_KEY.to_owned(),
+        CONDUCTOR_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Conductor),
     );
     export_filtered_actor_names(
         writer,
-        CONDUCTOR_KEY.to_owned(),
+        CONDUCTOR_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Producer),
     );
     export_filtered_actor_names(
         writer,
-        REMIXER_KEY.to_owned(),
+        REMIXER_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Remixer),
     );
     export_filtered_actor_names(
         writer,
-        MIXER_KEY.to_owned(),
+        MIXER_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Mixer),
     );
     export_filtered_actor_names(
         writer,
-        DJMIXER_KEY.to_owned(),
+        DJMIXER_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::DjMixer),
     );
     export_filtered_actor_names(
         writer,
-        ENGINEER_KEY.to_owned(),
+        ENGINEER_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Engineer),
     );
     export_filtered_actor_names(
         writer,
-        DIRECTOR_KEY.to_owned(),
+        DIRECTOR_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Director),
     );
     export_filtered_actor_names(
         writer,
-        LYRICIST_KEY.to_owned(),
+        LYRICIST_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Lyricist),
     );
     export_filtered_actor_names(
         writer,
-        WRITER_KEY.to_owned(),
+        WRITER_KEY.into(),
         FilteredActorNames::new(track.actors.iter(), ActorRole::Writer),
     );
 
     // Album
     writer.write_single_value_opt(
-        "ALBUM".to_owned(),
+        "ALBUM".into(),
         Titles::main_title(track.album.titles.iter()).map(|title| title.name.to_owned()),
     );
     export_filtered_actor_names(
         writer,
-        "ALBUMARTIST".to_owned(),
+        "ALBUMARTIST".into(),
         FilteredActorNames::new(track.album.actors.iter(), ActorRole::Artist),
     );
-    match track.album.kind {
-        AlbumKind::Unknown => {
-            writer.remove_all_values("COMPILATION");
+    if let Some(kind) = track.album.kind {
+        match kind {
+            AlbumKind::NoCompilation | AlbumKind::Album | AlbumKind::Single => {
+                writer.write_single_value("COMPILATION".into(), "0".to_owned());
+            }
+            AlbumKind::Compilation => {
+                writer.write_single_value("COMPILATION".into(), "1".to_owned());
+            }
         }
-        AlbumKind::Compilation => {
-            writer.write_single_value("COMPILATION".to_owned(), "1".to_owned());
-        }
-        AlbumKind::Album | AlbumKind::Single => {
-            writer.write_single_value("COMPILATION".to_owned(), "0".to_owned());
-        }
+    } else {
+        writer.remove_all_values("COMPILATION");
     }
 
-    writer.write_single_value_opt("COPYRIGHT".to_owned(), track.copyright.to_owned());
-    writer.write_single_value_opt("LABEL".to_owned(), track.publisher.to_owned());
+    writer.write_single_value_opt("COPYRIGHT".into(), track.copyright.clone());
+    writer.write_single_value_opt("LABEL".into(), track.publisher.clone());
+    writer.overwrite_single_value_opt("PUBLISHER".into(), track.publisher.as_deref()); // alternative
+    writer.overwrite_single_value_opt("ORGANIZATION".into(), track.publisher.as_deref()); // alternative
     writer.write_single_value_opt(
-        "DATE".to_owned(),
+        "DATE".into(),
         track.recorded_at.as_ref().map(ToString::to_string),
     );
     let recorded_year = track
@@ -993,11 +979,11 @@ pub fn export_track(
         .map(DateYYYYMMDD::from)
         .map(DateYYYYMMDD::year);
     writer.write_single_value_opt(
-        "YEAR".to_owned(),
+        "YEAR".into(),
         recorded_year.as_ref().map(ToString::to_string),
     );
     writer.write_single_value_opt(
-        "RELEASEDATE".to_owned(),
+        "RELEASEDATE".into(),
         track.released_at.as_ref().map(ToString::to_string),
     );
     let released_year = track
@@ -1005,11 +991,11 @@ pub fn export_track(
         .map(DateYYYYMMDD::from)
         .map(DateYYYYMMDD::year);
     writer.write_single_value_opt(
-        "RELEASEYEAR".to_owned(),
+        "RELEASEYEAR".into(),
         released_year.as_ref().map(ToString::to_string),
     );
     writer.write_single_value_opt(
-        "ORIGINALDATE".to_owned(),
+        "ORIGINALDATE".into(),
         track.released_orig_at.as_ref().map(ToString::to_string),
     );
     let released_orig_year = track
@@ -1017,35 +1003,35 @@ pub fn export_track(
         .map(DateYYYYMMDD::from)
         .map(DateYYYYMMDD::year);
     writer.write_single_value_opt(
-        "ORIGINALYEAR".to_owned(),
+        "ORIGINALYEAR".into(),
         released_orig_year.as_ref().map(ToString::to_string),
     );
 
     // Numbers
     writer.write_single_value_opt(
-        "TRACKNUMBER".to_owned(),
+        "TRACKNUMBER".into(),
         track.indexes.track.number.as_ref().map(ToString::to_string),
     );
     writer.write_single_value_opt(
-        "TRACKTOTAL".to_owned(),
+        "TRACKTOTAL".into(),
         track.indexes.track.total.as_ref().map(ToString::to_string),
     );
     // According to https://wiki.xiph.org/Field_names "TRACKTOTAL" is
     // the proposed field name, but some applications use(d) "TOTALTRACKS".
     writer.remove_all_values("TOTALTRACKS");
     writer.write_single_value_opt(
-        "DISCNUMBER".to_owned(),
+        "DISCNUMBER".into(),
         track.indexes.disc.number.as_ref().map(ToString::to_string),
     );
     writer.write_single_value_opt(
-        "DISCTOTAL".to_owned(),
+        "DISCTOTAL".into(),
         track.indexes.disc.total.as_ref().map(ToString::to_string),
     );
     // According to https://wiki.xiph.org/Field_names "DISCTOTAL" is
     // the proposed field name, but some applications use(d) "TOTALDISCS".
     writer.remove_all_values("TOTALDISCS");
     writer.write_single_value_opt(
-        "MOVEMENT".to_owned(),
+        "MOVEMENT".into(),
         track
             .indexes
             .movement
@@ -1054,7 +1040,7 @@ pub fn export_track(
             .map(ToString::to_string),
     );
     writer.write_single_value_opt(
-        "MOVEMENTTOTAL".to_owned(),
+        "MOVEMENTTOTAL".into(),
         track
             .indexes
             .movement
@@ -1070,7 +1056,7 @@ pub fn export_track(
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_COMMENT) {
         export_faceted_tags(
             writer,
-            COMMENT_KEY.to_owned(),
+            COMMENT_KEY.into(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
@@ -1083,7 +1069,7 @@ pub fn export_track(
     {
         export_faceted_tags(
             writer,
-            COMMENT_KEY2.to_owned(),
+            COMMENT_KEY2.into(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
@@ -1095,7 +1081,7 @@ pub fn export_track(
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GENRE) {
         export_faceted_tags(
             writer,
-            GENRE_KEY.to_owned(),
+            GENRE_KEY.into(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
@@ -1107,7 +1093,7 @@ pub fn export_track(
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_MOOD) {
         export_faceted_tags(
             writer,
-            MOOD_KEY.to_owned(),
+            MOOD_KEY.into(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
@@ -1119,7 +1105,7 @@ pub fn export_track(
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_ISRC) {
         export_faceted_tags(
             writer,
-            ISRC_KEY.to_owned(),
+            ISRC_KEY.into(),
             config.faceted_tag_mapping.get(facet_id.value()),
             tags,
         );
@@ -1151,7 +1137,7 @@ pub fn export_track(
         } else {
             export_faceted_tags(
                 writer,
-                GROUPING_KEY.to_owned(),
+                GROUPING_KEY.into(),
                 config.faceted_tag_mapping.get(facet_id.value()),
                 tags,
             );
@@ -1159,9 +1145,9 @@ pub fn export_track(
     }
 }
 
-fn export_filtered_actor_names(
+fn export_filtered_actor_names<'a>(
     writer: &mut impl CommentWriter,
-    key: String,
+    key: Cow<'a, str>,
     actor_names: FilteredActorNames<'_>,
 ) {
     match actor_names {
@@ -1174,9 +1160,9 @@ fn export_filtered_actor_names(
     }
 }
 
-fn export_faceted_tags(
+fn export_faceted_tags<'a>(
     writer: &mut impl CommentWriter,
-    key: String,
+    key: Cow<'a, str>,
     config: Option<&TagMappingConfig>,
     tags: Vec<PlainTag>,
 ) {
