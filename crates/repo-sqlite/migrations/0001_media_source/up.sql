@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS media_source (
     collection_id          INTEGER NOT NULL,
     -- properties: collection
     collected_at           TEXT NOT NULL,
-    collected_ms           INTEGER,
+    collected_ms           INTEGER NOT NULL,
     -- properties: link
     content_link_path      TEXT NOT NULL,
     content_link_rev       INTEGER,
