@@ -25,15 +25,12 @@ setup:
 # Upgrade (and update) dependencies
 upgrade: setup
     pre-commit autoupdate
-    cargo upgrade --workspace \
+    cargo upgrade \
         --exclude libsqlite3-sys
     cargo update
-    cargo upgrade --workspace --to-lockfile \
-        --exclude libsqlite3-sys
     cd webapp \
         && cargo upgrade \
-        && cargo update \
-        && cargo upgrade --to-lockfile
+        && cargo update
 
 # Format source code
 fmt:
