@@ -1700,7 +1700,7 @@ components:
         ]
       description: |
         The key signature is denoted by a code with one of the following values:
-          * 0 = unknown (default if missing)
+          * 0 = Off key
           * 1 = C maj
           * 2 = A min
           * 3 = G maj
@@ -1866,7 +1866,7 @@ components:
         flags:
           $ref: "#/components/schemas/MetricsFlags"
       description: |
-        Musical signature including tempo/speed, timining, and key.
+        Musical signature including tempo/speed, timing, and key.
     MetricsFlags:
       type: integer
       format: i32
