@@ -42,12 +42,12 @@ pub enum IndexingMode {
 /// The `mode` defaults to `RecentlyUpdated` if unspecified. It is
 /// irrelevant and ignored if the index is empty.
 pub async fn reindex_tracks(
-    track_fields: aoide_search_index_tantivy::TrackFields,
-    mut index_writer: IndexWriter,
-    db_gatekeeper: Arc<Gatekeeper>,
+    db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,
+    track_fields: aoide_search_index_tantivy::TrackFields,
     batch_size: NonZeroU64,
     mode: Option<IndexingMode>,
+    mut index_writer: IndexWriter,
     mut progress_fn: impl FnMut(u64) + Send + 'static,
 ) -> anyhow::Result<u64> {
     // Obtain an exclusive database connection by pretending to
