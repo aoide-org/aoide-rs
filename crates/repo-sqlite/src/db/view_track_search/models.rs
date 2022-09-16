@@ -31,7 +31,7 @@ pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
-    pub entity_uid: Vec<u8>,
+    pub entity_uid: String,
     pub entity_rev: i64,
     pub media_source_id: RowId,
     pub last_synchronized_rev: Option<i64>,

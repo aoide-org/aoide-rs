@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::entity::EntityUidTyped;
 use aoide_core_json::{entity::EntityUid, track::Entity};
 
 use super::*;
@@ -21,7 +22,7 @@ pub fn handle_request(
     connection.transaction::<_, Error, _>(|connection| {
         uc::load_many(
             connection,
-            request_body.into_iter().map(Into::into),
+            request_body.into_iter().map(EntityUidTyped::from_untyped),
             &mut collector,
         )
         .map_err(Into::into)

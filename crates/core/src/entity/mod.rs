@@ -2,16 +2,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::{
+    borrow::Borrow,
     fmt,
     hash::{Hash, Hasher},
     marker::PhantomData,
-    mem,
     ops::{Deref, DerefMut},
     str,
 };
 
 use rand::RngCore;
-use thiserror::Error;
+use ulid::{Ulid, ULID_LEN};
 
 use crate::{
     prelude::*,
@@ -23,85 +23,71 @@ use crate::{
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EntityUid([u8; 24]);
-
-#[derive(Debug, Error)]
-pub enum DecodeError {
-    #[error(transparent)]
-    InvalidInput(#[from] bs58::decode::Error),
-
-    #[error("invalid length")]
-    InvalidLength,
+#[repr(transparent)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+pub struct EntityUid {
+    #[cfg_attr(feature = "json-schema", schemars(with = "String"))]
+    ulid: Ulid,
 }
 
 impl EntityUid {
-    pub const SLICE_LEN: usize = mem::size_of::<Self>();
-    pub const MIN_STR_LEN: usize = 32;
-    pub const MAX_STR_LEN: usize = 33;
-    pub const BASE58_ALPHABET: &'static bs58::alphabet::Alphabet = bs58::Alphabet::BITCOIN;
+    pub const STR_LEN: usize = ULID_LEN;
 
-    #[cfg(target_family = "wasm")]
     #[must_use]
-    pub fn random() -> Self {
-        let mut new = Self::default();
-        // Generate 24 random bytes
-        getrandom::getrandom(&mut new.0).expect("random bytes");
-        new
-    }
-
-    #[cfg(not(target_family = "wasm"))]
-    #[must_use]
-    pub fn random() -> Self {
-        Self::random_with(&mut crate::util::random::adhoc_rng())
+    pub const fn nil() -> Self {
+        let ulid = Ulid::nil();
+        Self { ulid }
     }
 
     #[must_use]
-    pub fn random_with<T: RngCore>(rng: &mut T) -> Self {
-        let mut new = Self::default();
-        // Generate 24 random bytes
-        rand::RngCore::fill_bytes(rng, &mut new.0);
-        new
-    }
-
-    pub fn copy_from_slice(&mut self, slice: &[u8]) {
-        assert!(self.0.len() == Self::SLICE_LEN);
-        assert!(slice.len() == Self::SLICE_LEN);
-        self.as_mut().copy_from_slice(&slice[0..Self::SLICE_LEN]);
+    pub const fn is_nil(&self) -> bool {
+        let Self { ulid } = self;
+        ulid.is_nil()
     }
 
     #[must_use]
-    pub fn from_slice(slice: &[u8]) -> Self {
-        let mut result = Self::default();
-        result.copy_from_slice(slice);
-        result
-    }
-
-    pub fn decode_str(mut self, encoded: &str) -> Result<Self, DecodeError> {
-        let decoded_len = bs58::decode(encoded.as_bytes())
-            .with_alphabet(Self::BASE58_ALPHABET)
-            .into(&mut self.0)
-            .map_err(DecodeError::InvalidInput)?;
-        if decoded_len != self.0.len() {
-            return Err(DecodeError::InvalidLength);
-        }
-        Ok(self)
-    }
-
-    pub fn decode_from_str(encoded: &str) -> Result<Self, DecodeError> {
-        Self::default().decode_str(encoded)
+    pub fn new() -> Self {
+        Self::with_rng(&mut crate::util::random::adhoc_rng())
     }
 
     #[must_use]
-    pub fn encode_to_string(&self) -> String {
-        bs58::encode(self.0)
-            .with_alphabet(Self::BASE58_ALPHABET)
-            .into_string()
+    pub fn with_rng<R: rand::Rng>(rng: &mut R) -> Self {
+        let ulid = Ulid::with_source(rng);
+        Self { ulid }
+    }
+
+    pub fn decode_from(encoded: &str) -> anyhow::Result<Self> {
+        Ulid::from_string(encoded)
+            .map(|ulid| Self { ulid })
+            .map_err(anyhow::Error::from)
+    }
+
+    pub fn encode_into<'buf>(&self, buf: &'buf mut [u8]) -> anyhow::Result<&'buf mut str> {
+        let Self { ulid } = self;
+        ulid.to_str(buf).map_err(anyhow::Error::from)
+    }
+}
+
+impl fmt::Display for EntityUid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self { ulid } = self;
+        ulid.fmt(f)
+    }
+}
+
+impl std::str::FromStr for EntityUid {
+    type Err = anyhow::Error;
+
+    fn from_str(encoded: &str) -> Result<Self, Self::Err> {
+        EntityUid::decode_from(encoded)
     }
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum EntityUidInvalidity {
-    Invalid,
+    Nil,
 }
 
 impl Validate for EntityUid {
@@ -109,37 +95,12 @@ impl Validate for EntityUid {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self == &Self::default(), Self::Invalidity::Invalid)
+            .invalidate_if(self.is_nil(), Self::Invalidity::Nil)
             .into()
     }
 }
 
-impl AsRef<[u8]> for EntityUid {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl AsMut<[u8]> for EntityUid {
-    fn as_mut(&mut self) -> &mut [u8] {
-        &mut self.0
-    }
-}
-
-impl fmt::Display for EntityUid {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.encode_to_string().fmt(f)
-    }
-}
-
-impl std::str::FromStr for EntityUid {
-    type Err = DecodeError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        EntityUid::decode_from_str(s)
-    }
-}
-
+#[repr(transparent)]
 pub struct EntityUidTyped<T: 'static> {
     untyped: EntityUid,
     typed_marker: PhantomData<&'static T>,
@@ -170,11 +131,17 @@ impl<T> From<EntityUidTyped<T>> for EntityUid {
     }
 }
 
+impl<T> AsRef<EntityUid> for EntityUidTyped<T> {
+    fn as_ref(&self) -> &EntityUid {
+        &self.untyped
+    }
+}
+
 impl<T> Deref for EntityUidTyped<T> {
     type Target = EntityUid;
 
     fn deref(&self) -> &Self::Target {
-        &self.untyped
+        self.as_ref()
     }
 }
 
@@ -191,10 +158,10 @@ impl<T> fmt::Display for EntityUidTyped<T> {
 }
 
 impl<T> std::str::FromStr for EntityUidTyped<T> {
-    type Err = DecodeError;
+    type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        EntityUid::from_str(s).map(Self::from_untyped)
+    fn from_str(encoded: &str) -> Result<Self, Self::Err> {
+        EntityUid::from_str(encoded).map(Self::from_untyped)
     }
 }
 
@@ -253,6 +220,70 @@ impl<T> Validate for EntityUidTyped<T> {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         self.deref().validate()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
+pub struct EncodedEntityUid([u8; EntityUid::STR_LEN]);
+
+impl EncodedEntityUid {
+    #[must_use]
+    #[allow(unsafe_code)]
+    pub const fn as_str(&self) -> &str {
+        unsafe { std::str::from_utf8_unchecked(&self.0) }
+    }
+}
+
+impl Default for EncodedEntityUid {
+    fn default() -> Self {
+        Self::from(&EntityUid::nil())
+    }
+}
+
+impl From<&EntityUid> for EncodedEntityUid {
+    fn from(from: &EntityUid) -> Self {
+        let mut encoded = [0; EntityUid::STR_LEN];
+        from.encode_into(&mut encoded).unwrap();
+        Self(encoded)
+    }
+}
+
+impl<T: 'static> From<&EntityUidTyped<T>> for EncodedEntityUid {
+    fn from(from: &EntityUidTyped<T>) -> Self {
+        Self::from(from.as_ref())
+    }
+}
+
+impl From<&EncodedEntityUid> for EntityUid {
+    fn from(from: &EncodedEntityUid) -> Self {
+        EntityUid::decode_from(from.as_str()).unwrap()
+    }
+}
+
+impl<T: 'static> From<&EncodedEntityUid> for EntityUidTyped<T> {
+    fn from(from: &EncodedEntityUid) -> Self {
+        Self::from_untyped(EntityUid::from(from))
+    }
+}
+
+impl AsRef<str> for EncodedEntityUid {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl Deref for EncodedEntityUid {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl Borrow<str> for EncodedEntityUid {
+    fn borrow(&self) -> &str {
+        self.as_ref()
     }
 }
 
@@ -343,7 +374,7 @@ impl fmt::Display for EntityRevision {
 // EntityHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct EntityHeader {
     pub uid: EntityUid,
     pub rev: EntityRevision,
@@ -352,12 +383,12 @@ pub struct EntityHeader {
 impl EntityHeader {
     #[must_use]
     pub fn initial_random() -> Self {
-        Self::initial_with_uid(EntityUid::random())
+        Self::initial_with_uid(EntityUid::new())
     }
 
     #[must_use]
     pub fn initial_random_with<T: RngCore>(rng: &mut T) -> Self {
-        Self::initial_with_uid(EntityUid::random_with(rng))
+        Self::initial_with_uid(EntityUid::with_rng(rng))
     }
 
     #[must_use]
@@ -399,7 +430,7 @@ impl Validate for EntityHeader {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct EntityHeaderTyped<T: 'static> {
     pub uid: EntityUidTyped<T>,
     pub rev: EntityRevision,

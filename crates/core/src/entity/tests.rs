@@ -8,10 +8,7 @@ struct EntityType;
 #[test]
 fn default_uid() {
     assert!(EntityUid::default().validate().is_err());
-    assert_eq!(
-        EntityUid::default().as_ref().len(),
-        mem::size_of::<EntityUid>()
-    );
+    assert_eq!(EntityUid::default(), EntityUid::nil(),);
 }
 
 #[test]
@@ -26,7 +23,7 @@ fn default_uid_typed() {
 fn clone_uid_typed() {
     let default_uid = EntityUidTyped::<EntityType>::default();
     assert_eq!(default_uid, default_uid.clone(),);
-    let random_uid = EntityUid::random();
+    let random_uid = EntityUid::new();
     println!("random_uid = {random_uid:?}");
     let random_uid_typed = EntityUidTyped::<EntityType>::from_untyped(random_uid);
     // Verify that the typed UID implements std::fmt::Debug
@@ -36,39 +33,36 @@ fn clone_uid_typed() {
 
 #[test]
 fn generate_uid() {
-    assert!(EntityUid::random().validate().is_ok());
+    assert!(EntityUid::new().validate().is_ok());
 }
 
 #[test]
 fn should_encode_decode_uid() {
-    let uid = EntityUid::random();
-    let encoded = uid.encode_to_string();
-    let decoded = EntityUid::decode_from_str(&encoded).unwrap();
+    let uid = EntityUid::new();
+    let encoded = uid.to_string();
+    let decoded = EntityUid::decode_from(&encoded).unwrap();
     assert_eq!(uid, decoded);
 }
 
 #[test]
 fn should_fail_to_decode_too_long_string() {
-    let uid = EntityUid::random();
+    let uid = EntityUid::new();
 
     // Test encode -> decode roundtrip
-    let mut encoded = uid.encode_to_string();
-    assert!(EntityUid::decode_from_str(&encoded).is_ok());
+    let mut encoded = uid.to_string();
+    assert!(EntityUid::decode_from(&encoded).is_ok());
 
     // Append more characters from the alphabet to the encoded string.
-    // Note: Appending only a single character might result in a valid UID!
-    while encoded.len() <= EntityUid::MAX_STR_LEN {
-        encoded.push('a');
-    }
-    assert!(EntityUid::decode_from_str(&encoded).is_err());
+    encoded.push('1');
+    assert!(EntityUid::decode_from(&encoded).is_err());
 }
 
 #[test]
 fn should_fail_to_decode_too_short_string() {
-    let uid = EntityUid::random();
-    let mut encoded = uid.encode_to_string();
-    encoded.truncate(EntityUid::MIN_STR_LEN - 1);
-    assert!(EntityUid::decode_from_str(&encoded).is_err());
+    let uid = EntityUid::new();
+    let mut encoded = uid.to_string();
+    encoded.truncate(EntityUid::STR_LEN - 1);
+    assert!(EntityUid::decode_from(&encoded).is_err());
 }
 
 #[test]

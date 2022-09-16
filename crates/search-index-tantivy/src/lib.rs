@@ -30,7 +30,7 @@ use tantivy::{
 };
 
 use aoide_core::{
-    entity::{EntityRevision, EntityUid},
+    entity::{EncodedEntityUid, EntityRevision, EntityUid},
     media::content::ContentMetadata,
     tag::{FacetedTags, PlainTag},
     track::{
@@ -126,7 +126,7 @@ impl TrackFields {
     ) -> Document {
         // TODO (optimization): Consuming the entity would avoid string allocations for text fields
         let mut doc = Document::new();
-        doc.add_bytes(self.uid, entity.hdr.uid.as_ref());
+        doc.add_text(self.uid, &entity.hdr.uid);
         doc.add_u64(self.rev, entity.hdr.rev.to_inner());
         doc.add_text(
             self.content_path,
@@ -240,7 +240,7 @@ impl TrackFields {
 
     #[must_use]
     pub fn uid_term(&self, uid: &EntityUid) -> Term {
-        Term::from_field_bytes(self.uid, uid.as_ref())
+        Term::from_field_text(self.uid, EncodedEntityUid::from(uid).as_str())
     }
 
     #[must_use]
@@ -251,8 +251,11 @@ impl TrackFields {
     #[must_use]
     pub fn read_uid(&self, doc: &Document) -> Option<TrackUid> {
         doc.get_first(self.uid)
-            .and_then(|val| val.as_bytes())
-            .map(EntityUid::from_slice)
+            .and_then(|val| val.as_text())
+            .map(EntityUid::decode_from)
+            .transpose()
+            .ok()
+            .flatten()
             .map(TrackUid::from_untyped)
     }
 

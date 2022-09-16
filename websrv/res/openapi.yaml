@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   version: 0.8.0
   title: aoide
@@ -1584,10 +1584,13 @@ components:
       example: 3
     EntityUid:
       type: string
-      minLength: 32
-      maxLength: 33
-      example: 4L9v84JeigpHxEdtVHUkL6JASD92sDwdW
-      description: A unique identifier (UID) for entities in base-58 encoding.
+      minLength: 26
+      maxLength: 26
+      example: 01AN4Z07BY79KA1307SR9X4MV3
+      description: |
+        A unique identifier (UID) for entities in base-32 encoding.
+
+        Follows the [ULID](https://github.com/ulid/spec) spec.
     ErrorResponse:
       type: object
       properties:

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::entity::EntityUidTyped;
 use aoide_core_json::{
     entity::EntityUid,
     track::{
@@ -571,9 +572,11 @@ impl From<Filter> for _inner::Filter {
             Condition(from) => Self::Condition(from.into()),
             Tag(from) => Self::Tag(from.into()),
             CueLabel(from) => Self::CueLabel(from.into()),
-            AnyTrackUid(from) => Self::AnyTrackUid(from.into_iter().map(Into::into).collect()),
+            AnyTrackUid(from) => {
+                Self::AnyTrackUid(from.into_iter().map(EntityUidTyped::from_untyped).collect())
+            }
             AnyPlaylistUid(from) => {
-                Self::AnyPlaylistUid(from.into_iter().map(Into::into).collect())
+                Self::AnyPlaylistUid(from.into_iter().map(EntityUidTyped::from_untyped).collect())
             }
             ActorPhrase(from) => Self::ActorPhrase(from.into()),
             TitlePhrase(from) => Self::TitlePhrase(from.into()),

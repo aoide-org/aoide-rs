@@ -234,7 +234,7 @@ impl<'db> TrackSearchQueryTransform<'db> for SortOrder {
 fn build_any_track_uid_filter_expression(
     any_track_uid: &[TrackUid],
 ) -> TrackSearchExpressionBoxed<'_> {
-    Box::new(view_track_search::entity_uid.eq_any(any_track_uid.iter().map(|uid| uid.as_ref())))
+    Box::new(view_track_search::entity_uid.eq_any(any_track_uid.iter().map(entity_uid_to_sql)))
 }
 
 fn build_phrase_like_expr_escaped<'term>(
@@ -1035,7 +1035,7 @@ fn select_track_ids_matching_any_playlist_uid_filter<'db>(
     let subselect = playlist::table
         .inner_join(playlist_entry::table)
         .select(playlist_entry::track_id)
-        .filter(playlist::entity_uid.eq_any(any_playlist_uid.into_iter().map(|uid| uid.as_ref())))
+        .filter(playlist::entity_uid.eq_any(any_playlist_uid.into_iter().map(entity_uid_to_sql)))
         .filter(playlist_entry::track_id.is_not_null());
     view_track_search::table
         .select(view_track_search::row_id)

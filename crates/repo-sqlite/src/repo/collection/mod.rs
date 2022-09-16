@@ -3,7 +3,11 @@
 
 use diesel::dsl::count_star;
 
-use aoide_core::{collection::*, entity::EntityRevision, util::clock::*};
+use aoide_core::{
+    collection::*,
+    entity::{EncodedEntityUid, EntityRevision},
+    util::clock::*,
+};
 
 use aoide_core_api::collection::{
     EntityWithSummary, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
@@ -36,7 +40,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 collection::row_updated_ms,
                 collection::entity_rev,
             ))
-            .filter(collection::entity_uid.eq(uid.as_ref()))
+            .filter(collection::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
             .first::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_mut())
             .map_err(repo_error)
             .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
@@ -71,8 +75,9 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .next()
             .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
         let touchable = TouchableRecord::bind(updated_at, next_rev);
+        let encoded_uid = EncodedEntityUid::from(uid);
         let target = collection::table
-            .filter(collection::entity_uid.eq(uid.as_ref()))
+            .filter(collection::entity_uid.eq(encoded_uid.as_str()))
             .filter(collection::entity_rev.eq(entity_revision_to_sql(*rev)));
         let query = diesel::update(target).set(&touchable);
         let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;

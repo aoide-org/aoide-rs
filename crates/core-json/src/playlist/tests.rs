@@ -10,7 +10,7 @@ fn serialize_item_separator_dummy() {
 
 #[test]
 fn deserialize_playlist() {
-    let uid: aoide_core::entity::EntityUid = "MAdeyPtrDVSMnwpriPA5anaD66xw5iP1s".parse().unwrap();
+    let uid: aoide_core::entity::EntityUid = "01AN4Z07BY79KA1307SR9X4MV3".parse().unwrap();
     let added_at1: aoide_core::util::clock::DateTime = "2020-12-18T21:27:15Z".parse().unwrap();
     let added_at2 = aoide_core::util::clock::DateTime::now_utc();
     let playlist = PlaylistWithEntries {
@@ -25,9 +25,7 @@ fn deserialize_playlist() {
         entries: vec![
             Entry {
                 added_at: added_at1.into(),
-                item: Item::Track(track::Item {
-                    uid: uid.clone().into(),
-                }),
+                item: Item::Track(track::Item { uid: uid.clone() }),
                 title: None,
                 notes: None,
             },

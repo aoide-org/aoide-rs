@@ -6,7 +6,6 @@ use super::schema::*;
 use crate::prelude::*;
 
 use aoide_core::{
-    entity::{EntityUid, EntityUidTyped},
     playlist::{track::Item as TrackItem, Entry, Item},
     util::clock::{DateTime, TimestampMillis},
 };
@@ -20,7 +19,7 @@ pub struct QueryableRecord {
     pub playlist_id: RowId,
     pub ordering: i64,
     pub track_id: Option<RowId>,
-    pub track_uid: Option<Vec<u8>>,
+    pub track_uid: Option<String>,
     pub added_at: String,
     pub added_ms: TimestampMillis,
     pub title: Option<String>,
@@ -39,9 +38,9 @@ impl From<QueryableRecord> for (PlaylistId, i64, Option<TrackId>, Entry) {
             title,
             notes,
         } = from;
-        let item = if let Some(track_uid) = track_uid {
+        let item = if let Some(track_uid) = &track_uid {
             Item::Track(TrackItem {
-                uid: EntityUidTyped::from_untyped(EntityUid::from_slice(&track_uid)),
+                uid: entity_uid_typed_from_sql(track_uid),
             })
         } else {
             Item::Separator

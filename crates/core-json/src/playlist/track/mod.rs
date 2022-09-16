@@ -3,6 +3,8 @@
 
 use super::*;
 
+use aoide_core::track::EntityUid as TrackUid;
+
 use crate::entity::EntityUid;
 
 mod _core {
@@ -24,7 +26,9 @@ pub struct Item {
 impl From<Item> for _core::Item {
     fn from(from: Item) -> Self {
         let Item { uid } = from;
-        Self { uid: uid.into() }
+        Self {
+            uid: TrackUid::from_untyped(uid),
+        }
     }
 }
 

@@ -21,7 +21,7 @@ pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
-    pub entity_uid: Vec<u8>,
+    pub entity_uid: String,
     pub entity_rev: i64,
     pub collection_id: RowId,
     pub collected_at: String,
@@ -87,7 +87,7 @@ impl From<QueryableRecord> for (RecordHeader, CollectionId, Entity) {
 pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
-    pub entity_uid: &'a [u8],
+    pub entity_uid: String,
     pub entity_rev: i64,
     pub collection_id: RowId,
     pub collected_at: String,
@@ -116,7 +116,7 @@ impl<'a> InsertableRecord<'a> {
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
-            entity_uid: uid.as_ref(),
+            entity_uid: entity_uid_to_sql(uid),
             entity_rev: entity_revision_to_sql(*rev),
             collection_id: collection_id.into(),
             collected_at: collected_at.to_string(),

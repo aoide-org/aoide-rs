@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::hash::Hash as _;
+
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
 use xxhash_rust::xxh3::Xxh3;
 
@@ -480,9 +482,8 @@ const INITIAL_OFFSET_HASH_SEED: u64 = 0;
 fn hash_entity_header_at_offset(seed: u64, offset: usize, entity_header: &EntityHeader) -> u64 {
     debug_assert_eq!(seed == INITIAL_OFFSET_HASH_SEED, offset == 0);
     let mut hasher = Xxh3::with_seed(seed);
-    hasher.update(&offset.to_le_bytes());
-    let EntityHeader { uid, rev } = entity_header;
-    hasher.update(uid.as_ref());
-    hasher.update(&rev.to_inner().to_le_bytes());
+    offset.hash(&mut hasher);
+    // Ugly workaround, because the tag type does not implement `Hash`. No allocations.
+    entity_header.clone().into_untyped().hash(&mut hasher);
     hasher.digest()
 }

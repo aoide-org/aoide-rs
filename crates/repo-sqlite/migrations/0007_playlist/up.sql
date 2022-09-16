@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS playlist (
     -- row header (mutable)
     row_updated_ms           INTEGER NOT NULL,
     -- entity header (immutable)
-    entity_uid               BLOB NOT NULL, -- BINARY(24)
+    entity_uid               TEXT NOT NULL, -- ULID
     -- entity header (mutable)
     entity_rev               INTEGER NOT NULL, -- RevisionNumber
     -- relations (immutable)

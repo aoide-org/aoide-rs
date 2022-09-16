@@ -10,7 +10,7 @@ diesel::table! {
         row_id -> BigInt,
         row_created_ms -> BigInt,
         row_updated_ms -> BigInt,
-        entity_uid -> Binary,
+        entity_uid -> Text,
         entity_rev -> BigInt,
         collection_id -> BigInt,
         collected_at -> Text,

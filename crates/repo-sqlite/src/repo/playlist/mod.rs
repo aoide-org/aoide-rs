@@ -13,7 +13,7 @@ use crate::{
 };
 
 use aoide_core::{
-    entity::EntityRevision,
+    entity::{EncodedEntityUid, EntityRevision},
     playlist::{track::Item as TrackItem, *},
     util::clock::*,
 };
@@ -34,7 +34,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 playlist::row_updated_ms,
                 playlist::entity_rev,
             ))
-            .filter(playlist::entity_uid.eq(uid.as_ref()))
+            .filter(playlist::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
             .first::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_mut())
             .map_err(repo_error)
             .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
@@ -57,8 +57,9 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .next()
             .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
         let touchable = TouchableRecord::bind(updated_at, next_rev);
+        let encoded_uid = EncodedEntityUid::from(uid);
         let target = playlist::table
-            .filter(playlist::entity_uid.eq(uid.as_ref()))
+            .filter(playlist::entity_uid.eq(encoded_uid.as_str()))
             .filter(playlist::entity_rev.eq(entity_revision_to_sql(*rev)));
         let query = diesel::update(target).set(&touchable);
         let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;

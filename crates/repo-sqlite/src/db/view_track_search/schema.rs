@@ -8,7 +8,7 @@ diesel::table! {
         row_id -> BigInt,
         row_created_ms -> BigInt,
         row_updated_ms -> BigInt,
-        entity_uid -> Binary,
+        entity_uid -> Text,
         entity_rev -> BigInt,
         media_source_id -> BigInt,
         last_synchronized_rev -> Nullable<BigInt>,

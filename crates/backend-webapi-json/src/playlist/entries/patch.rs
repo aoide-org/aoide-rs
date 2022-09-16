@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::entity::EntityUidTyped;
 use aoide_core_api_json::playlist::{export_entity_with_entries_summary, EntityWithEntriesSummary};
 use aoide_usecases_sqlite::playlist::entries as uc;
 
@@ -65,7 +66,7 @@ impl From<PatchOperation> for uc::PatchOperation {
             CopyAll { source_playlist } => {
                 let PlaylistRef { uid } = source_playlist;
                 Self::CopyAll {
-                    source_playlist_uid: uid.into(),
+                    source_playlist_uid: EntityUidTyped::from_untyped(uid),
                 }
             }
             Move { start, end, delta } => Self::Move {

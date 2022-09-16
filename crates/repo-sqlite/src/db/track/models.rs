@@ -19,7 +19,7 @@ use super::schema::*;
 pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
-    pub entity_uid: &'a [u8],
+    pub entity_uid: String,
     pub entity_rev: i64,
     pub media_source_id: RowId,
     pub last_synchronized_rev: Option<i64>,
@@ -110,7 +110,7 @@ impl<'a> InsertableRecord<'a> {
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
-            entity_uid: uid.as_ref(),
+            entity_uid: entity_uid_to_sql(uid),
             entity_rev: entity_revision_to_sql(*rev),
             media_source_id: media_source_id.into(),
             last_synchronized_rev: last_synchronized_rev.map(entity_revision_to_sql),

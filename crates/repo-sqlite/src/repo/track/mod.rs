@@ -6,7 +6,7 @@ use std::time::Instant;
 use diesel::dsl::count_star;
 
 use aoide_core::{
-    entity::EntityHeaderTyped,
+    entity::{EncodedEntityUid, EntityHeaderTyped},
     media::{
         content::{ContentLink, ContentRevision},
         Source,
@@ -404,7 +404,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn resolve_track_id(&mut self, uid: &EntityUid) -> RepoResult<RecordId> {
         track::table
             .select(track::row_id)
-            .filter(track::entity_uid.eq(uid.as_ref()))
+            .filter(track::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
             .first::<RowId>(self.as_mut())
             .map_err(repo_error)
             .map(Into::into)
@@ -484,7 +484,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn load_track_entity_by_uid(&mut self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)> {
         let queryable = view_track_search::table
-            .filter(view_track_search::entity_uid.eq(uid.as_ref()))
+            .filter(view_track_search::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
             .first::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
@@ -796,7 +796,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 RowId,
                 i64,
                 i64,
-                Vec<u8>,
+                String,
                 i64,
                 Option<i64>,
             )>(self.as_mut())
