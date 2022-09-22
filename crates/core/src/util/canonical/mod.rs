@@ -72,7 +72,7 @@ where
     T: IsCanonical + CanonicalOrd,
 {
     fn is_canonical(&self) -> bool {
-        (&**self).is_canonical()
+        (**self).is_canonical()
     }
 }
 

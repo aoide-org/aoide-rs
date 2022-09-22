@@ -254,7 +254,7 @@ impl Metadata {
                 mp4_tag.bpm().and_then(|bpm| {
                     tempo_bpm_non_fractional = true;
                     let bpm = TempoBpm::from_inner(bpm.into());
-                    bpm.is_valid().then(|| bpm)
+                    bpm.is_valid().then_some(bpm)
                 })
             });
         if let Some(tempo_bpm) = tempo_bpm {

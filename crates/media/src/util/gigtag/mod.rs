@@ -56,7 +56,7 @@ fn try_export_plain_tag(facet: Facet, plain_tag: &PlainTag) -> Option<Tag> {
         "Exported {encoded_tag} from {plain_tag:?}",
         encoded_tag = tag.encode()
     );
-    tag.is_valid().then(|| tag)
+    tag.is_valid().then_some(tag)
 }
 
 fn export_plain_tags<'item>(

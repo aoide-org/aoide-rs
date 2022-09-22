@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Cow, collections::HashMap};
+use std::{borrow::Cow, collections::HashMap, ops::Not as _};
 
 use metaflac::block::{Picture, PictureType};
 use num_traits::FromPrimitive as _;
@@ -92,7 +92,7 @@ where
 {
     comments
         .into_iter()
-        .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then(|| v))
+        .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then_some(v))
 }
 
 pub fn read_first_comment_value<'s, 'k>(
@@ -121,16 +121,16 @@ impl CommentReader for Vec<(String, String)> {
     fn read_first_value(&self, key: &str) -> Option<&str> {
         // TODO: Use read_first_comment_value()
         self.iter()
-            .find_map(|(k, v)| cmp_eq_comment_key(k, key).then(|| v.as_str()))
+            .find_map(|(k, v)| cmp_eq_comment_key(k, key).then_some(v.as_str()))
     }
 
     fn filter_values(&self, key: &str) -> Option<Vec<&str>> {
         // TODO: Use filter_comment_values()
         let values: Vec<_> = self
             .iter()
-            .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then(|| v.as_str()))
+            .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then_some(v.as_str()))
             .collect();
-        (!values.is_empty()).then(|| values)
+        values.is_empty().not().then_some(values)
     }
 }
 
@@ -138,16 +138,16 @@ impl CommentReader for HashMap<String, String> {
     fn read_first_value(&self, key: &str) -> Option<&str> {
         // TODO: Use read_first_comment_value()
         self.iter()
-            .find_map(|(k, v)| cmp_eq_comment_key(k, key).then(|| v.as_str()))
+            .find_map(|(k, v)| cmp_eq_comment_key(k, key).then_some(v.as_str()))
     }
 
     fn filter_values(&self, key: &str) -> Option<Vec<&str>> {
         // TODO: Use filter_comment_values()
         let values: Vec<_> = self
             .iter()
-            .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then(|| v.as_str()))
+            .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then_some(v.as_str()))
             .collect();
-        values.is_empty().then(|| values)
+        values.is_empty().not().then_some(values)
     }
 }
 

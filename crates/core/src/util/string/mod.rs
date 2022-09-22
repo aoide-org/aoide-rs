@@ -36,7 +36,7 @@ pub fn trim_from<'a>(from: impl Into<Cow<'a, str>>) -> Cow<'a, str> {
 
 pub fn non_empty_from<'a>(from: impl Into<Cow<'a, str>>) -> Option<Cow<'a, str>> {
     let from = from.into();
-    (!from.is_empty()).then(|| from)
+    (!from.is_empty()).then_some(from)
 }
 
 pub fn trimmed_non_empty_from<'a>(from: impl Into<Cow<'a, str>>) -> Option<Cow<'a, str>> {

@@ -80,7 +80,7 @@ impl Watermark {
     pub fn finish_pending(&mut self, token: PendingToken) -> bool {
         let PendingToken(pending) = token;
         debug_assert!(pending.is_pending());
-        match (&*self).partial_cmp(&pending) {
+        match (*self).partial_cmp(&pending) {
             None | Some(Ordering::Greater) => false,
             Some(Ordering::Equal | Ordering::Less) => {
                 let mut finished = pending;
