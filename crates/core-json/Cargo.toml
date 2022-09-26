@@ -10,19 +10,19 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-anyhow = "1.0"
-base64 = "0.13"
-mime = "0.3"
-num-traits = "0.2"
-semval = "0.4"
-serde = { version = "1.0", features = ["derive"] }
-serde_repr = "0.1"
-time = { version = "0.3", features = ["serde-well-known"] }
-url = { version = "2.3", features = ["serde"] }
+anyhow = "1.0.65"
+base64 = "0.13.0"
+mime = "0.3.16"
+num-traits = "0.2.15"
+semval = "0.4.0"
+serde = { version = "1.0.145", features = ["derive"] }
+serde_repr = "0.1.9"
+time = { version = "0.3.14", features = ["serde-well-known"] }
+url = { version = "2.3.1", features = ["serde"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8", optional = true, features = ["chrono", "url"] }
-chrono = { version = "0.4", optional = true, default-features = false }
+schemars = { version = "0.8.10", optional = true, features = ["chrono", "url"] }
+chrono = { version = "0.4.22", optional = true, default-features = false }
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", features = ["serde"] }
@@ -34,4 +34,4 @@ json-schema = ["schemars", "chrono", "aoide-core/json-schema"]
 js = ["aoide-core/js"]
 
 [dev-dependencies]
-serde_json = "1.0"
+serde_json = "1.0.85"

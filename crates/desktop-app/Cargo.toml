@@ -4,26 +4,26 @@
 [package]
 name = "aoide-desktop-app"
 description = "aoide - Desktop app support"
-version = "0.8.0"
-license = "AGPL-3.0-or-later"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
 publish = false
-edition = "2021"
 
 [dependencies]
-anyhow = "1.0"
-discro = { version = "0.8", features = ["tokio"] }
-unnest = "0.0.6"
-log = "0.4"
-rfd = { version = "0.10", default-features = false, features = ["xdg-portal"] }
-ron = "0.8"
-serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.21", default-features = false }
-url = { version = "2.3", features = ["serde"] }
+anyhow = "1.0.65"
+discro = { version = "0.8.0", features = ["tokio"] }
+unnest = "0.1.0"
+log = "0.4.17"
+rfd = { version = "0.10.0", default-features = false, features = ["xdg-portal"] }
+ron = "0.8.0"
+serde = { version = "1.0.145", features = ["derive"] }
+tokio = { version = "1.21.1", default-features = false }
+url = { version = "2.3.1", features = ["serde"] }
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
 
 # Workspace dependencies
-aoide-backend-embedded = "0.8.0"
-aoide-core = "0.8.0"
-aoide-core-api = "0.8.0"
-aoide-repo = "0.8.0"
-aoide-storage-sqlite = { version = "0.8.0", features = ["serde", "tokio"] }
+aoide-backend-embedded = "=0.8.0"
+aoide-core = "=0.8.0"
+aoide-core-api = "=0.8.0"
+aoide-repo = "=0.8.0"
+aoide-storage-sqlite = { version = "=0.8.0", features = ["serde", "tokio"] }

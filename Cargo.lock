@@ -3630,9 +3630,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.100"
+version = "1.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52205623b1b0f064a4e71182c3b18ae902267282930c6d5462c91b859668426e"
+checksum = "e90cde112c4b9690b8cbe810cba9ddd8bc1d7472e2cae317b69e9438c1cba7d2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4116,9 +4116,9 @@ dependencies = [
 
 [[package]]
 name = "unnest"
-version = "0.0.6"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acaef0d8664512b551dbc342ce97f1e2e5ffa681be01396b74cf0b8ae4ab9b5d"
+checksum = "a32f945ceda05745345fdd05324d2fa849b3e970f60ef079810ca9962eceb6cc"
 
 [[package]]
 name = "untrusted"
