@@ -5,10 +5,10 @@
 name = "aoide-websrv"
 description = "aoide - Standalone web server with embedded SQLite database"
 keywords = ["music", "collection"]
-version = "0.8.0"
-license = "AGPL-3.0-or-later"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
 publish = false
-edition = "2021"
 
 [dependencies]
 anyhow = "1.0"

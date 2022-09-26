@@ -26,6 +26,11 @@ members = [
 # for a different target and with a different build profile!
 exclude = [ "webapp" ]
 
+[workspace.package]
+version = "0.8.0"
+license = "AGPL-3.0-or-later"
+edition = "2021"
+
 [patch.crates-io]
 # Workspace crates
 aoide-backend-embedded = { path = "crates/backend-embedded" }
