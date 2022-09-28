@@ -108,7 +108,7 @@ async fn main() -> anyhow::Result<()> {
 
     let active_collection_title_arg = Arg::new(ACTIVE_COLLECTION_TITLE_PARAM)
         .long(ACTIVE_COLLECTION_TITLE_PARAM)
-        .takes_value(true)
+        .num_args(1)
         .help("The `title` of the collection")
         .required(true);
 
@@ -118,7 +118,7 @@ async fn main() -> anyhow::Result<()> {
         .arg(
             Arg::new(WEBSRV_URL_PARAM)
                 .long(WEBSRV_URL_PARAM)
-                .takes_value(true)
+                .num_args(1)
                 .required(false)
                 .default_value(DEFAULT_WEBSRV_URL)
         )
@@ -129,27 +129,27 @@ async fn main() -> anyhow::Result<()> {
                     Arg::new(CREATE_COLLECTION_TITLE_PARAM)
                     .long(CREATE_COLLECTION_TITLE_PARAM)
                     .help("The `title` of the new collection")
-                    .takes_value(true)
+                    .num_args(1)
                     .required(true)                )
                 .arg(
                     Arg::new(CREATE_COLLECTION_KIND_PARAM)
                         .long(CREATE_COLLECTION_KIND_PARAM)
                         .help("The `kind` of the new collection")
-                        .takes_value(true)
+                        .num_args(1)
                         .required(false)
                 )
                 .arg(
                     Arg::new(CREATE_COLLECTION_VFS_ROOT_URL_PARAM)
                         .long(CREATE_COLLECTION_VFS_ROOT_URL_PARAM)
                         .help("The file URL of the common root directory that contains all media sources")
-                        .takes_value(true)
+                        .num_args(1)
                         .required(true)
                 ),
         )
         .subcommand({
             let media_root_url_arg = Arg::new(MEDIA_ROOT_URL_PARAM)
                 .help("The URL of the root directory with media source files")
-                .takes_value(true)
+                .num_args(1)
                 .required(true);
             Command::new("media-sources")
                 .about("Tasks for media sources")
@@ -170,7 +170,7 @@ async fn main() -> anyhow::Result<()> {
                             active_collection_title_arg.clone()
                         )
                         .arg(
-                            media_root_url_arg.clone()
+                            media_root_url_arg
                         ),
                 )
         })
@@ -195,7 +195,7 @@ async fn main() -> anyhow::Result<()> {
                         .arg(
                             Arg::new(OUTPUT_FILE_PARAM)
                                 .help("The output file path for writing JSON data")
-                                .takes_value(true)
+                                .num_args(1)
                                 .required(true)
                         ),
                 )
@@ -203,7 +203,7 @@ async fn main() -> anyhow::Result<()> {
         .subcommand({
             let media_root_url_arg = Arg::new(MEDIA_ROOT_URL_PARAM)
                 .help("The URL of the root directory containing tracked media files")
-                .takes_value(true)
+                .num_args(1)
                 .required(false);
             Command::new("media-tracker")
                 .about("Tasks for the media tracker")
@@ -268,7 +268,7 @@ async fn main() -> anyhow::Result<()> {
                             active_collection_title_arg.clone()
                         )
                         .arg(
-                            media_root_url_arg.clone()
+                            media_root_url_arg
                         ),
                 )
         });

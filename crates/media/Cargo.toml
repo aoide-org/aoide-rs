@@ -23,7 +23,7 @@ mime_guess = "2.0.4"
 nom = "7.1.1"
 num-traits = "0.2.15"
 semval = "0.4.0"
-thiserror = "1.0.36"
+thiserror = "1.0.37"
 time = { version = "0.3.14", features = ["parsing"] }
 url = "2.3.1"
 walkdir = "2.3.2"

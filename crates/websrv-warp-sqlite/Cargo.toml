@@ -13,9 +13,9 @@ publish = false
 anyhow = "1.0.65"
 log = "0.4.17"
 serde = "1.0.145"
-thiserror = "1.0.36"
-tokio = { version = "1.21.1", default-features = false }
-warp = { version = "0.3.2", default-features = false }
+thiserror = "1.0.37"
+tokio = { version = "1.21.2", default-features = false }
+warp = { version = "0.3.3", default-features = false }
 
 # Workspace dependencies
 aoide-backend-webapi-json = "=0.8.0"
