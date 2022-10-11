@@ -21,6 +21,7 @@ pub type RequestBody = aoide_core_api_json::media::tracker::import_files::Params
 
 pub type ResponseBody = aoide_core_api_json::media::tracker::import_files::Outcome;
 
+#[allow(clippy::panic_in_result_fn)] // tracing::instrument
 #[tracing::instrument(
     name = "Importing media sources",
     skip(

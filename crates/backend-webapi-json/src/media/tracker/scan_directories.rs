@@ -14,6 +14,7 @@ pub type RequestBody = aoide_core_api_json::media::tracker::FsTraversalParams;
 
 pub type ResponseBody = aoide_core_api_json::media::tracker::scan_directories::Outcome;
 
+#[allow(clippy::panic_in_result_fn)] // tracing::instrument
 #[tracing::instrument(
     name = "Scanning media sources",
     skip(

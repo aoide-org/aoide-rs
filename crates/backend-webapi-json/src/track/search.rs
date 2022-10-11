@@ -20,6 +20,7 @@ pub type RequestBody = SearchParams;
 
 pub type ResponseBody = Vec<Entity>;
 
+#[allow(clippy::panic_in_result_fn)] // tracing::instrument
 #[tracing::instrument(
     name = "Searching tracks",
     skip(

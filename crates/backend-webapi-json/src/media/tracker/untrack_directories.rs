@@ -11,6 +11,7 @@ pub type RequestBody = aoide_core_api_json::media::tracker::untrack_directories:
 
 pub type ResponseBody = aoide_core_api_json::media::tracker::untrack_directories::Outcome;
 
+#[allow(clippy::panic_in_result_fn)] // tracing::instrument
 #[tracing::instrument(
     name = "Untracking media sources",
     skip(

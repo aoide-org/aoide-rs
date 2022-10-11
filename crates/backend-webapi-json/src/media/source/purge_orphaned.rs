@@ -9,6 +9,7 @@ pub type RequestBody = aoide_core_api_json::media::source::purge_orphaned::Param
 
 pub type ResponseBody = aoide_core_api_json::media::source::purge_orphaned::Outcome;
 
+#[allow(clippy::panic_in_result_fn)] // tracing::instrument
 #[tracing::instrument(
     name = "Purging orphaned media source",
     skip(
