@@ -28,17 +28,17 @@ thiserror = "1.0.37"
 ulid = "1.0.0"
 url = "2.3.1"
 
-[target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = "0.2.7"
-
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-path-slash = "0.2.1"
-
 # Serialization of selected, primitive types
 serde = { version = "1.0.145", optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.11", optional = true, features = ["url"] }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+getrandom = "0.2.7"
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+path-slash = "0.2.1"
 
 [features]
 default = []
