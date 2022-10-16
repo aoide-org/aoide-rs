@@ -170,20 +170,17 @@ jobs:
           command: check
           args: --locked --all-targets --all-features --manifest-path crates/websrv-warp-sqlite/Cargo.toml
 
-      # TODO: Re-enable webapp when trunk build is fixed
-      #- name: Build aoide-webapp artifacts
-      #  run: |
-      #    cd webapp
-      #    trunk build
-      #    cd -
+      - name: Build aoide-webapp artifacts
+        run: |
+          cd webapp
+          trunk build
+          cd -
 
       - name: Check aoide-websrv
         uses: actions-rs/cargo@v1
         with:
           command: check
-          #args: --locked --all-targets --all-features --manifest-path websrv/Cargo.toml
-          # TODO: Re-enable webapp when trunk build is fixed
-          args: --locked --all-targets --manifest-path websrv/Cargo.toml
+          args: --locked --all-targets --all-features --manifest-path websrv/Cargo.toml
 
       - name: Check aoide-client
         uses: actions-rs/cargo@v1

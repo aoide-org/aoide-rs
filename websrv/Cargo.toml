@@ -60,12 +60,11 @@ aoide-usecases-sqlite = "=0.8.0"
 aoide-websrv-warp-sqlite = "=0.8.0"
 
 [features]
-# TODO: Re-enable webapp when trunk build is fixed
-default = ["json-schema", "launcher-ui"]
+default = ["json-schema", "launcher-ui", "webapp"]
 json-schema = [
     "schemars",
     "aoide-core/json-schema",
     "aoide-backend-webapi-json/json-schema",
 ]
-webapp = ["mime_guess", "rust-embed"]
 launcher-ui = ["eframe", "egui", "rfd"]
+webapp = ["mime_guess", "rust-embed"]
