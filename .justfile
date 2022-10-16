@@ -66,12 +66,12 @@ check-crates:
 
 check-crates-wasm:
     cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core
-    #FIXME: cargo check --locked --all-targets --features js,serde --target wasm32-unknown-unknown -p aoide-core
-    #FIXME: cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core-json
+    cargo check --locked --all-targets --features js,serde --target wasm32-unknown-unknown -p aoide-core
+    cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core-json
     cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core-api
-    #FIXME: cargo check --locked --all-targets --features js,frontend --target wasm32-unknown-unknown -p aoide-core-api-json
-    #FIXME: cargo check --locked --all-targets --features js,backend --target wasm32-unknown-unknown -p aoide-core-api-json
-    #FIXME: cargo check --locked --all-targets --features js,backend,frontend --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets --features js,frontend --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets --features js,backend --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets --features js,backend,frontend --target wasm32-unknown-unknown -p aoide-core-api-json
     cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-repo
     cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-usecases
 
