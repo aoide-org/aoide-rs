@@ -38,24 +38,35 @@ ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace --locked --all-targets --profile 
 
 # Prepare for musl libc build target
 #
-# Dependencies for pre-commit
+# Dependencies for pre-commit:
 #  - git
 #  - python3-pip
-# Dependencies for building freetype-sys (egui)
+# Dependencies for egui according to <https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml>:
+#  - libgtk-3-dev
+#  - libspeechd-dev
+#  - libssl-dev
+#  - libxcb-render0-dev
+#  - libxcb-shape0-dev
+#  - libxcb-xfixes0-dev
+#  - libxkbcommon-dev
+# Dependencies for building freetype-sys (egui):
 #  - cmake
 #  - g++
+#  - libfontconfig-dev
 #  - make
 RUN apt update \
     && apt install --no-install-recommends -y \
         cmake \
         g++ \
         git \
+        libfontconfig-dev \
+        libgtk-3-dev \
+        libspeechd-dev \
+        libssl-dev \
         libxcb-render0-dev \
         libxcb-shape0-dev \
         libxcb-xfixes0-dev \
-        libspeechd-dev \
         libxkbcommon-dev \
-        libssl-dev \
         make \
         musl-tools \
         python3-pip \

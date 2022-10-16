@@ -44,10 +44,11 @@ jobs:
         run: |
           sudo apt -y install musl-tools
 
+      # See also: https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml
       - name: Install dependencies for `egui` on Linux
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev
+          sudo apt-get install libgtk-3-dev libspeechd-dev libssl-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev
 
       # Copied from rusqlite
       - name: Add LLVM path on Windows
