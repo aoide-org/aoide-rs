@@ -37,22 +37,29 @@ ARG BUILD_BIN
 ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace --locked --all-targets --profile ${BUILD_PROFILE}"
 
 # Prepare for musl libc build target
-# git and python3-pip are required for pre-commit
-# cmake and make are required for building freetype-sys
+#
+# Dependencies for pre-commit
+#  - git
+#  - python3-pip
+# Dependencies for building freetype-sys (egui)
+#  - cmake
+#  - g++
+#  - make
 RUN apt update \
     && apt install --no-install-recommends -y \
         cmake \
+        g++ \
         git \
-        make \
-        musl-tools \
-        python3-pip \
-        tree \
         libxcb-render0-dev \
         libxcb-shape0-dev \
         libxcb-xfixes0-dev \
         libspeechd-dev \
         libxkbcommon-dev \
         libssl-dev \
+        make \
+        musl-tools \
+        python3-pip \
+        tree \
     && rm -rf /var/lib/apt/lists/* \
     && rustup target add \
         ${BUILD_TARGET} \
