@@ -38,11 +38,12 @@ ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace --locked --all-targets --profile 
 
 # Prepare for musl libc build target
 # git and python3-pip are required for pre-commit
-# cmake is required for building freetype-sys
+# cmake and make are required for building freetype-sys
 RUN apt update \
     && apt install --no-install-recommends -y \
         cmake \
         git \
+        make \
         musl-tools \
         python3-pip \
         tree \
