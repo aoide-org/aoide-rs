@@ -60,11 +60,13 @@ aoide-usecases-sqlite = "=0.8.0"
 aoide-websrv-warp-sqlite = "=0.8.0"
 
 [features]
-default = ["json-schema", "launcher-ui", "webapp"]
+default = ["json-schema", "launcher-ui"]
 json-schema = [
     "schemars",
     "aoide-core/json-schema",
     "aoide-backend-webapi-json/json-schema",
 ]
 launcher-ui = ["eframe", "egui", "rfd"]
+# Experimental: The webapp has to be built separately and its
+# build artifacts are expected in ../webapp/dist to be embedded.
 webapp = ["mime_guess", "rust-embed"]
