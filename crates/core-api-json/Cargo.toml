@@ -10,8 +10,8 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-anyhow = "1.0.65"
-serde = { version = "1.0.145", features = ["derive"] }
+anyhow = "1.0.66"
+serde = { version = "1.0.147", features = ["derive"] }
 url = { version = "2.3.1", features = ["serde"] }
 
 # JSON Schema (optional)
