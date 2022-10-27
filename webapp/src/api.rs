@@ -78,15 +78,14 @@ pub(crate) async fn fetch_all_collections() -> Result<CollectionItems> {
     let url = format!("{BASE_URL}c");
     let response = fetch(url).await?;
     let content: Vec<SerdeCollectionEntity> = response.check_status()?.json().await?;
-    let capacity = content.len();
     content
         .into_iter()
-        .try_fold(Vec::with_capacity(capacity), |mut collected, item| {
-            collected.push(CollectionItem::without_summary(
-                item.try_into().map_err(Error::DataShape)?,
-            ));
-            Ok(collected)
+        .map(|item| {
+            item.try_into()
+                .map(CollectionItem::without_summary)
+                .map_err(Error::DataShape)
         })
+        .collect()
 }
 
 pub(crate) async fn fetch_collection_with_summary(
@@ -273,13 +272,10 @@ pub(crate) async fn search_tracks(
         .json(&search_params)?;
     let response = request.fetch().await?;
     let content: Vec<SerdeTrack> = response.check_status()?.json().await?;
-    let capacity = content.len();
     content
         .into_iter()
-        .try_fold(Vec::with_capacity(capacity), |mut collected, item| {
-            collected.push(item.try_into().map_err(Error::DataShape)?);
-            Ok(collected)
-        })
+        .map(|item| item.try_into().map_err(Error::DataShape))
+        .collect()
 }
 
 // ------ ------
