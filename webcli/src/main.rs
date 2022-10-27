@@ -51,19 +51,19 @@ const DEFAULT_LOG_FILTER: &str = "info";
 
 const DEFAULT_WEBSRV_URL: &str = "http://[::1]:8080";
 
-const WEBSRV_URL_PARAM: &str = "websrv-url";
+const WEBSRV_URL_ARG: &str = "websrv-url";
 
-const CREATE_COLLECTION_TITLE_PARAM: &str = "title";
+const CREATE_COLLECTION_TITLE_ARG: &str = "title";
 
-const CREATE_COLLECTION_KIND_PARAM: &str = "kind";
+const CREATE_COLLECTION_KIND_ARG: &str = "kind";
 
-const CREATE_COLLECTION_VFS_ROOT_URL_PARAM: &str = "vfs-root-url";
+const CREATE_COLLECTION_VFS_ROOT_URL_ARG: &str = "vfs-root-url";
 
-const ACTIVE_COLLECTION_TITLE_PARAM: &str = "collection-title";
+const ACTIVE_COLLECTION_TITLE_ARG: &str = "collection-title";
 
-const MEDIA_ROOT_URL_PARAM: &str = "media-root-url";
+const MEDIA_ROOT_URL_ARG: &str = "media-root-url";
 
-const OUTPUT_FILE_PARAM: &str = "output-file";
+const OUTPUT_FILE_ARG: &str = "output-file";
 
 const PROGRESS_POLLING_PERIOD: Duration = Duration::from_millis(1_000);
 
@@ -106,8 +106,8 @@ async fn main() -> anyhow::Result<()> {
     let default_websrv_url =
         env::var("WEBSRV_URL").unwrap_or_else(|_| DEFAULT_WEBSRV_URL.to_owned());
 
-    let active_collection_title_arg = Arg::new(ACTIVE_COLLECTION_TITLE_PARAM)
-        .long(ACTIVE_COLLECTION_TITLE_PARAM)
+    let active_collection_title_arg = Arg::new(ACTIVE_COLLECTION_TITLE_ARG)
+        .long(ACTIVE_COLLECTION_TITLE_ARG)
         .num_args(1)
         .help("The `title` of the collection")
         .required(true);
@@ -116,8 +116,8 @@ async fn main() -> anyhow::Result<()> {
         .about("An experimental CLI for performing tasks on aoide")
         .version("0.0")
         .arg(
-            Arg::new(WEBSRV_URL_PARAM)
-                .long(WEBSRV_URL_PARAM)
+            Arg::new(WEBSRV_URL_ARG)
+                .long(WEBSRV_URL_ARG)
                 .num_args(1)
                 .required(false)
                 .default_value(DEFAULT_WEBSRV_URL)
@@ -126,28 +126,28 @@ async fn main() -> anyhow::Result<()> {
             Command::new("create-collection")
                 .about("Creates a new collection")
                 .arg(
-                    Arg::new(CREATE_COLLECTION_TITLE_PARAM)
-                    .long(CREATE_COLLECTION_TITLE_PARAM)
+                    Arg::new(CREATE_COLLECTION_TITLE_ARG)
+                    .long(CREATE_COLLECTION_TITLE_ARG)
                     .help("The `title` of the new collection")
                     .num_args(1)
                     .required(true)                )
                 .arg(
-                    Arg::new(CREATE_COLLECTION_KIND_PARAM)
-                        .long(CREATE_COLLECTION_KIND_PARAM)
+                    Arg::new(CREATE_COLLECTION_KIND_ARG)
+                        .long(CREATE_COLLECTION_KIND_ARG)
                         .help("The `kind` of the new collection")
                         .num_args(1)
                         .required(false)
                 )
                 .arg(
-                    Arg::new(CREATE_COLLECTION_VFS_ROOT_URL_PARAM)
-                        .long(CREATE_COLLECTION_VFS_ROOT_URL_PARAM)
+                    Arg::new(CREATE_COLLECTION_VFS_ROOT_URL_ARG)
+                        .long(CREATE_COLLECTION_VFS_ROOT_URL_ARG)
                         .help("The file URL of the common root directory that contains all media sources")
                         .num_args(1)
                         .required(true)
                 ),
         )
         .subcommand({
-            let media_root_url_arg = Arg::new(MEDIA_ROOT_URL_PARAM)
+            let media_root_url_arg = Arg::new(MEDIA_ROOT_URL_ARG)
                 .help("The URL of the root directory with media source files")
                 .num_args(1)
                 .required(true);
@@ -193,7 +193,7 @@ async fn main() -> anyhow::Result<()> {
                                 .clone()
                         )
                         .arg(
-                            Arg::new(OUTPUT_FILE_PARAM)
+                            Arg::new(OUTPUT_FILE_ARG)
                                 .help("The output file path for writing JSON data")
                                 .num_args(1)
                                 .required(true)
@@ -201,7 +201,7 @@ async fn main() -> anyhow::Result<()> {
                 )
         )
         .subcommand({
-            let media_root_url_arg = Arg::new(MEDIA_ROOT_URL_PARAM)
+            let media_root_url_arg = Arg::new(MEDIA_ROOT_URL_ARG)
                 .help("The URL of the root directory containing tracked media files")
                 .num_args(1)
                 .required(false);
@@ -276,10 +276,10 @@ async fn main() -> anyhow::Result<()> {
     let matches = app.get_matches();
 
     let websrv_url = matches
-        .get_one(WEBSRV_URL_PARAM)
+        .get_one(WEBSRV_URL_ARG)
         .unwrap_or(&default_websrv_url)
         .parse()
-        .expect(WEBSRV_URL_PARAM);
+        .expect(WEBSRV_URL_ARG);
 
     let shared_env = Arc::new(Environment::new(websrv_url));
     let (message_tx, message_rx) = message_channel();
@@ -521,15 +521,15 @@ async fn main() -> anyhow::Result<()> {
             match matches.subcommand() {
                 Some(("create-collection", matches)) => {
                     let title = matches
-                        .get_one::<String>(CREATE_COLLECTION_TITLE_PARAM)
-                        .expect(CREATE_COLLECTION_TITLE_PARAM);
+                        .get_one::<String>(CREATE_COLLECTION_TITLE_ARG)
+                        .expect(CREATE_COLLECTION_TITLE_ARG);
                     let kind = matches
-                        .get_one::<String>(CREATE_COLLECTION_KIND_PARAM)
+                        .get_one::<String>(CREATE_COLLECTION_KIND_ARG)
                         .filter(|kind| kind.trim().is_empty().not());
                     let vfs_root_url = matches
-                        .get_one::<String>(CREATE_COLLECTION_VFS_ROOT_URL_PARAM)
-                        .map(|s| s.parse().expect(CREATE_COLLECTION_VFS_ROOT_URL_PARAM))
-                        .expect(CREATE_COLLECTION_VFS_ROOT_URL_PARAM);
+                        .get_one::<String>(CREATE_COLLECTION_VFS_ROOT_URL_ARG)
+                        .map(|s| s.parse().expect(CREATE_COLLECTION_VFS_ROOT_URL_ARG))
+                        .expect(CREATE_COLLECTION_VFS_ROOT_URL_ARG);
                     let new_collection = Collection {
                         title: title.to_owned(),
                         kind: kind.map(ToOwned::to_owned),
@@ -552,7 +552,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_ARG)
                                     .map(|s| s.parse().expect("URL"));
                                 let params =
                                     aoide_core_api::media::source::purge_orphaned::Params {
@@ -572,7 +572,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_ARG)
                                     .map(|s| s.parse().expect("URL"));
                                 let params =
                                     aoide_core_api::media::source::purge_untracked::Params {
@@ -598,7 +598,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_ARG)
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {
                                         entity
@@ -627,7 +627,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_ARG)
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {
                                         entity
@@ -657,7 +657,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_ARG)
                                     .map(|s| s.parse().expect("URL"))
                                     .expect("required");
                                 let params =
@@ -679,7 +679,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_ARG)
                                     .map(|s| s.parse().expect("URL"));
                                 let params =
                                     aoide_core_api::media::tracker::untrack_directories::Params {
@@ -700,7 +700,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_ARG)
                                     .map(|s| s.parse().expect("URL"));
                                 let params = aoide_core_api::media::tracker::import_files::Params {
                                     root_url: media_root_url,
@@ -720,7 +720,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let media_root_url = matches
-                                    .get_one::<String>(MEDIA_ROOT_URL_PARAM)
+                                    .get_one::<String>(MEDIA_ROOT_URL_ARG)
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {
                                         entity
@@ -776,8 +776,8 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let output_file_path = matches
-                                    .get_one::<String>(OUTPUT_FILE_PARAM)
-                                    .expect(OUTPUT_FILE_PARAM)
+                                    .get_one::<String>(OUTPUT_FILE_ARG)
+                                    .expect(OUTPUT_FILE_ARG)
                                     .to_owned();
                                 let params = ExportTracksParams {
                                     output_file_path: output_file_path.into(),
@@ -856,7 +856,7 @@ fn require_active_collection<'s>(
         return Ok(entity);
     }
     let collection_title =
-        if let Some(collection_title) = matches.get_one::<String>(ACTIVE_COLLECTION_TITLE_PARAM) {
+        if let Some(collection_title) = matches.get_one::<String>(ACTIVE_COLLECTION_TITLE_ARG) {
             collection_title
         } else {
             return Err(None);
