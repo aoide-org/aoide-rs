@@ -134,7 +134,7 @@ impl State {
                     },
                 },
             },
-            migrate_schema: true,
+            migrate_schema: None,
         };
         Ok(config)
     }

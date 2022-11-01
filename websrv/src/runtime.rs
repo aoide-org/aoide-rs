@@ -20,7 +20,7 @@ use aoide_storage_sqlite::connection::pool::{
     get_pooled_connection,
 };
 
-use aoide_repo_sqlite::initialize_database;
+use aoide_repo_sqlite::{initialize_database, MigrationMode};
 
 use aoide_usecases_sqlite as uc;
 
@@ -36,6 +36,12 @@ static OPENAPI_YAML: &str = include_str!("../res/openapi.yaml");
 
 #[cfg(not(feature = "webapp"))]
 static INDEX_HTML: &str = include_str!("../res/index.html");
+
+#[cfg(not(debug_assertions))]
+const DATABASE_SCHEMA_MIGRATION_MODE: MigrationMode = MigrationMode::ApplyPending;
+
+#[cfg(debug_assertions)]
+const DATABASE_SCHEMA_MIGRATION_MODE: MigrationMode = MigrationMode::ReapplyAll;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum State {
@@ -68,7 +74,10 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
 
     if config.migrate_schema_on_startup {
         log::info!("Migrating database schema");
-        uc::database::migrate_schema(&mut *get_pooled_connection(&connection_pool)?)?;
+        uc::database::migrate_schema(
+            &mut *get_pooled_connection(&connection_pool)?,
+            DATABASE_SCHEMA_MIGRATION_MODE,
+        )?;
     }
 
     Ok(DatabaseConnectionGatekeeper::new(

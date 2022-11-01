@@ -4,18 +4,19 @@
 DROP VIEW IF EXISTS view_album;
 CREATE VIEW view_album AS
 SELECT
-track.album_kind AS kind,
-track.publisher AS publisher,
+MIN(track.id) AS phantom_id,
 album_artist.name AS artist,
 album_title.name AS title,
+COUNT(track.row_id) AS track_count,
+GROUP_CONCAT(track.row_id) AS track_id_concat,
+track.album_kind AS kind,
+track.publisher AS publisher,
 MIN(recorded_at_yyyymmdd) AS min_recorded_at_yyyymmdd,
 MAX(recorded_at_yyyymmdd) AS max_recorded_at_yyyymmdd,
 MIN(released_at_yyyymmdd) AS min_released_at_yyyymmdd,
 MAX(released_at_yyyymmdd) AS max_released_at_yyyymmdd,
-MIN(disc_number) AS min_disc_number,
-MAX(disc_number) AS max_disc_number,
-COUNT(track.row_id) AS track_count,
-GROUP_CONCAT(track.row_id) AS track_id_concat
+MIN(released_orig_at_yyyymmdd) AS min_released_orig_at_yyyymmdd,
+MAX(released_orig_at_yyyymmdd) AS max_released_orig_at_yyyymmdd
 FROM track
 JOIN track_actor AS album_artist ON track.row_id=album_artist.track_id AND album_artist.scope=1 AND album_artist.kind=0 AND album_artist.role=0
 JOIN track_title AS album_title ON track.row_id=album_title.track_id AND album_title.scope=1 AND album_title.kind=0

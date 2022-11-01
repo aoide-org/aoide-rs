@@ -34,6 +34,7 @@
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 // TODO: Move into `domain` submodule
+pub mod album;
 pub mod audio;
 pub mod collection;
 pub mod entity;

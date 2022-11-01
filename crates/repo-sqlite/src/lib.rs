@@ -124,6 +124,8 @@ pub mod prelude {
 
     #[cfg(test)]
     pub mod tests {
+        use crate::MigrationMode;
+
         use super::DbConnection;
         use diesel::Connection as _;
 
@@ -132,7 +134,7 @@ pub mod prelude {
         pub fn establish_connection() -> TestResult<DbConnection> {
             let mut connection =
                 DbConnection::establish(":memory:").expect("in-memory database connection");
-            crate::run_pending_migrations(&mut connection)
+            crate::run_migrations(&mut connection, MigrationMode::ApplyPending)
                 .map_err(|err| anyhow::anyhow!(err.to_string()))?;
             Ok(connection)
         }
@@ -170,14 +172,26 @@ PRAGMA encoding = 'UTF-8';
     Ok(())
 }
 
-const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+const EMBEDDED_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
-pub fn has_pending_migration(connection: &mut DbConnection) -> MigrationResult<bool> {
-    connection.has_pending_migration(MIGRATIONS)
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+pub enum MigrationMode {
+    #[default]
+    ApplyPending,
+    ReapplyAll,
 }
 
-pub fn run_pending_migrations(
+pub fn run_migrations(
     connection: &mut DbConnection,
+    mode: MigrationMode,
 ) -> MigrationResult<Vec<MigrationVersion<'_>>> {
-    connection.run_pending_migrations(MIGRATIONS)
+    match mode {
+        MigrationMode::ApplyPending => (),
+        MigrationMode::ReapplyAll => {
+            // Drop the table with the applied schema migrations manually.
+            // Reapplying all migrations is supposed to be safe.
+            diesel::sql_query("DROP TABLE __diesel_schema_migrations").execute(connection)?;
+        }
+    }
+    connection.run_pending_migrations(EMBEDDED_MIGRATIONS)
 }
