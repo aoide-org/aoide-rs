@@ -34,7 +34,7 @@ impl TagMappingConfig {
                 if next_label.is_empty() {
                     return Some(joined_labels);
                 }
-                let mut joined_labels: String = joined_labels.to_owned().into();
+                let mut joined_labels: String = joined_labels.into_owned();
                 joined_labels.push_str(separator);
                 joined_labels.push_str(next_label);
                 Some(joined_labels.into())

@@ -81,7 +81,7 @@ impl State {
         let mut bytes = vec![];
         ron::ser::to_writer_pretty(&mut bytes, self, Default::default())?;
         if let Some(parent_path) = file_path.parent() {
-            fs::create_dir_all(&parent_path)?;
+            fs::create_dir_all(parent_path)?;
         }
         fs::write(&file_path, &bytes)?;
         Ok(())

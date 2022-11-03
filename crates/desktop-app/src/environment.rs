@@ -58,7 +58,7 @@ impl Handle {
 
     #[must_use]
     pub fn db_gatekeeper(&self) -> &Gatekeeper {
-        &*self.0
+        &self.0
     }
 }
 

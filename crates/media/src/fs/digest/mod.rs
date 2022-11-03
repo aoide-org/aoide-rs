@@ -46,7 +46,7 @@ pub fn digest_fs_metadata_for_detecting_changes<D: Digest>(
     if file_type.is_symlink() {
         flags |= 0b0100;
     }
-    digest.update(&[flags]);
+    digest.update([flags]);
     // File size
     digest_u64(digest, fs_metadata.len());
     // Time stamps

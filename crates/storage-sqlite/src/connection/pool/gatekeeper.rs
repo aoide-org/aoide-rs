@@ -164,7 +164,7 @@ impl Gatekeeper {
             _ = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
             guard = self.connection_pool.read() => {
                 self.check_not_decommissioned()?;
-                let connection = get_pooled_connection(&*guard)?;
+                let connection = get_pooled_connection(&guard)?;
                 self.check_not_decommissioned()?;
                 // Every tasks gets the chance to run when ready
                 abort_current_task_flag.store(false, Ordering::Release);
@@ -205,7 +205,7 @@ impl Gatekeeper {
             _ = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
             guard = self.connection_pool.write() => {
                 self.check_not_decommissioned()?;
-                let connection = get_pooled_connection(&*guard)?;
+                let connection = get_pooled_connection(&guard)?;
                 self.check_not_decommissioned()?;
                 // Every tasks gets the chance to run when ready
                 abort_current_task_flag.store(false, Ordering::Release);

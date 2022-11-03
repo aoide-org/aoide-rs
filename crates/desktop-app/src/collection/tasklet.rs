@@ -4,7 +4,6 @@
 use std::{future::Future, sync::Weak};
 
 use discro::{tasklet::OnChanged, Subscriber};
-use unnest::{some_or_break, some_or_return};
 
 use crate::{environment::WeakHandle, fs::DirPath, settings};
 
@@ -44,13 +43,21 @@ pub async fn on_settings_changed(
     nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) {
-    let mut settings_state_sub = some_or_return!(settings_state.upgrade()).subscribe();
+    let Some(mut settings_state_sub) = settings_state.upgrade().map(|state| state.subscribe()) else {
+        return;
+    };
     log::debug!("Starting on_settings_changed_update_state");
     loop {
         {
-            let settings_state = some_or_break!(settings_state.upgrade());
-            let observable_state = some_or_break!(observable_state.upgrade());
-            let handle = some_or_break!(handle.upgrade());
+            let Some(settings_state) = settings_state.upgrade() else {
+                break;
+            };
+            let Some(observable_state) = observable_state.upgrade() else {
+                break;
+            };
+            let Some(handle) = handle.upgrade() else {
+                break;
+            };
             let (music_dir, collection_kind) = {
                 let settings_state = settings_state_sub.read_ack();
                 let music_dir = settings_state.music_dir.clone();

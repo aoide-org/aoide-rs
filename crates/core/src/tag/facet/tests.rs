@@ -48,7 +48,7 @@ fn default_is_invalid() {
 
 #[test]
 fn empty_is_invalid() {
-    assert!(FacetId::new("".into()).validate().is_err());
+    assert!(FacetId::new(String::new()).validate().is_err());
 }
 
 #[test]

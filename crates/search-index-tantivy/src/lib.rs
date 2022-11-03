@@ -385,7 +385,7 @@ impl TrackIndex {
                 Index::create_from_tempdir(schema)?
             }
             IndexStorage::FileDir { dir_path } => {
-                fs::create_dir_all(&dir_path)?;
+                fs::create_dir_all(dir_path)?;
                 let index_dir = MmapDirectory::open(dir_path)?;
                 match Index::open_or_create(index_dir, schema) {
                     Ok(index) => index,

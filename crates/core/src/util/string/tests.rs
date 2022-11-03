@@ -8,7 +8,7 @@ fn trim_owned_in_place_empty() {
     let mut s = String::new();
     trim_owned_in_place(&mut s);
     assert_eq!(String::new(), s);
-    let mut s = "".into();
+    let mut s = String::new();
     trim_owned_in_place(&mut s);
     assert_eq!(String::new(), s);
 }

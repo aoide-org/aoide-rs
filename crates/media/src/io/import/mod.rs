@@ -71,7 +71,7 @@ bitflags! {
 
         /// Use iTunes grouping/movement/work mapping
         ///
-        /// Use the mapping for grouping and movement/WORK fields as introduced
+        /// Use the mapping for grouping and movement/work fields as introduced
         /// by iTunes v12.5.4. This is the preferred mapping and existing files
         /// that still use TIT1 instead of GRP1 for storing the grouping property
         /// should be updated accordingly.
@@ -263,7 +263,7 @@ pub fn load_embedded_artwork_image_from_file_path(
 ) -> Result<Option<LoadedArtworkImage>> {
     let file = File::open(file_path)?;
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
-    let mime = guess_mime_from_path(&file_path)?;
+    let mime = guess_mime_from_path(file_path)?;
     match mime.as_ref() {
         #[cfg(feature = "fmt-flac")]
         "audio/flac" => crate::fmt::flac::Metadata::read_from(&mut reader).and_then(|metadata| {
