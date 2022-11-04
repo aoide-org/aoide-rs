@@ -4130,9 +4130,9 @@ dependencies = [
 
 [[package]]
 name = "unnest"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d43dcf24127b85cdff35e4337283607c79c779b58f8f2d8d3879e3dd223894c"
+checksum = "b918359791fe4bfebf497a1407ec861db92ecfc3f7d000fd122862cea4f05cb8"
 
 [[package]]
 name = "untrusted"
