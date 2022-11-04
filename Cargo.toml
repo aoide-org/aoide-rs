@@ -33,6 +33,7 @@ exclude = [ "webapp" ]
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 edition = "2021"
+rust-version = "1.65"
 
 [patch.crates-io]
 # Workspace crates

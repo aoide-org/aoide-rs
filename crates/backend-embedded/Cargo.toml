@@ -7,6 +7,7 @@ description = "aoide - Asynchronous API for an embedded, serverless backend (no 
 version.workspace = true
 license.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 publish = false
 
 [dependencies]
