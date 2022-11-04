@@ -15,13 +15,15 @@ CREATE TABLE IF NOT EXISTS track_tag (
 ) STRICT;
 
 -- Canonical ordering on load
-CREATE INDEX IF NOT EXISTS idx_track_tag_facet_label_score_desc ON track_tag (
+DROP INDEX IF EXISTS idx_track_tag_facet_label_score_desc;
+CREATE INDEX idx_track_tag_facet_label_score_desc ON track_tag (
     facet,
     label,
     score DESC
 ) WHERE facet IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_track_tag_label_score_desc ON track_tag (
+DROP INDEX IF EXISTS idx_track_tag_label_score_desc;
+CREATE INDEX idx_track_tag_label_score_desc ON track_tag (
     label,
     score DESC
 );

@@ -49,42 +49,52 @@ CREATE TABLE IF NOT EXISTS track (
     UNIQUE (entity_uid) -- only the last revision is stored
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS idx_track_row_created_ms_desc ON track (
+DROP INDEX IF EXISTS idx_track_row_created_ms_desc;
+CREATE INDEX idx_track_row_created_ms_desc ON track (
     row_created_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_row_updated_ms_desc ON track (
+DROP INDEX IF EXISTS idx_track_row_updated_ms_desc;
+CREATE INDEX idx_track_row_updated_ms_desc ON track (
     row_updated_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_media_source_id ON track (
+DROP INDEX IF EXISTS idx_track_media_source_id;
+CREATE INDEX idx_track_media_source_id ON track (
     media_source_id
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_recorded_at_yyyymmdd ON track (
+DROP INDEX IF EXISTS idx_track_recorded_at_yyyymmdd;
+CREATE INDEX idx_track_recorded_at_yyyymmdd ON track (
     recorded_at_yyyymmdd
 ) WHERE recorded_at_yyyymmdd IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_track_recorded_at_yyyymmdd_desc ON track (
+DROP INDEX IF EXISTS idx_track_recorded_at_yyyymmdd_desc;
+CREATE INDEX idx_track_recorded_at_yyyymmdd_desc ON track (
     recorded_at_yyyymmdd DESC
 ) WHERE recorded_at_yyyymmdd IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_track_released_at_yyyymmdd ON track (
+DROP INDEX IF EXISTS idx_track_released_at_yyyymmdd;
+CREATE INDEX idx_track_released_at_yyyymmdd ON track (
     released_at_yyyymmdd
 ) WHERE released_at_yyyymmdd IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_track_released_at_yyyymmdd_desc ON track (
+DROP INDEX IF EXISTS idx_track_released_at_yyyymmdd_desc;
+CREATE INDEX idx_track_released_at_yyyymmdd_desc ON track (
     released_at_yyyymmdd DESC
 ) WHERE released_at_yyyymmdd IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_track_music_tempo_bpm ON track (
+DROP INDEX IF EXISTS idx_track_music_tempo_bpm;
+CREATE INDEX idx_track_music_tempo_bpm ON track (
     music_tempo_bpm
 ) WHERE music_tempo_bpm IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_track_music_tempo_bpm_desc ON track (
+DROP INDEX IF EXISTS idx_track_music_tempo_bpm_desc;
+CREATE INDEX idx_track_music_tempo_bpm_desc ON track (
     music_tempo_bpm DESC
 ) WHERE music_tempo_bpm IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_track_music_key_code ON track (
+DROP INDEX IF EXISTS idx_track_music_key_code;
+CREATE INDEX idx_track_music_key_code ON track (
     music_key_code
 ) WHERE music_key_code IS NOT NULL;

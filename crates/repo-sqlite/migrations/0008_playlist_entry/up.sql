@@ -23,23 +23,28 @@ CREATE TABLE IF NOT EXISTS playlist_entry (
     FOREIGN KEY(track_id) REFERENCES track(row_id) ON DELETE CASCADE
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS idx_playlist_entry_row_created_ms_desc ON playlist (
+DROP INDEX IF EXISTS idx_playlist_entry_row_created_ms_desc;
+CREATE INDEX idx_playlist_entry_row_created_ms_desc ON playlist (
     row_created_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_entry_row_updated_ms_desc ON playlist (
+DROP INDEX IF EXISTS idx_playlist_entry_row_updated_ms_desc;
+CREATE INDEX idx_playlist_entry_row_updated_ms_desc ON playlist (
     row_updated_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_entry_added_ms_desc ON playlist_entry (
+DROP INDEX IF EXISTS idx_playlist_entry_added_ms_desc;
+CREATE INDEX idx_playlist_entry_added_ms_desc ON playlist_entry (
     added_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_entry_playlist_id_track_id ON playlist_entry (
+DROP INDEX IF EXISTS idx_playlist_entry_playlist_id_track_id;
+CREATE INDEX idx_playlist_entry_playlist_id_track_id ON playlist_entry (
     playlist_id,
     track_id
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_entry_track_id ON playlist_entry (
+DROP INDEX IF EXISTS idx_playlist_entry_track_id;
+CREATE INDEX idx_playlist_entry_track_id ON playlist_entry (
     track_id
 );

@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS media_tracker_source (
     UNIQUE (source_id)
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS idx_media_tracker_source_directory_id ON media_tracker_source (
+DROP INDEX IF EXISTS idx_media_tracker_source_directory_id;
+CREATE INDEX idx_media_tracker_source_directory_id ON media_tracker_source (
     directory_id
 );

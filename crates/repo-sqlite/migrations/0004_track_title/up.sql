@@ -13,19 +13,22 @@ CREATE TABLE IF NOT EXISTS track_title (
     FOREIGN KEY(track_id) REFERENCES track(row_id) ON DELETE CASCADE
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS idx_track_title_track_id ON track_title (
+DROP INDEX IF EXISTS idx_track_title_track_id;
+CREATE INDEX idx_track_title_track_id ON track_title (
     track_id
 );
 
 -- Covering index (= contains all columns) for loading
 -- Ordering of columns matches the canonical ordering on load
-CREATE INDEX IF NOT EXISTS idx_track_title_scope_kind_name ON track_title (
+DROP INDEX IF EXISTS idx_track_title_scope_kind_name;
+CREATE INDEX idx_track_title_scope_kind_name ON track_title (
     scope,
     kind,
     name
 );
 
 -- Searching
-CREATE INDEX IF NOT EXISTS idx_track_title_name ON track_title (
+DROP INDEX IF EXISTS idx_track_title_name;
+CREATE INDEX idx_track_title_name ON track_title (
     name
 );

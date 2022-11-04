@@ -24,14 +24,17 @@ CREATE TABLE IF NOT EXISTS collection (
     UNIQUE (kind, title)
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS idx_collection_row_created_ms_desc ON collection (
+DROP INDEX IF EXISTS idx_collection_row_created_ms_desc;
+CREATE INDEX idx_collection_row_created_ms_desc ON collection (
     row_created_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_collection_row_updated_ms_desc ON collection (
+DROP INDEX IF EXISTS idx_collection_row_updated_ms_desc;
+CREATE INDEX idx_collection_row_updated_ms_desc ON collection (
     row_updated_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_collection_title ON collection (
+DROP INDEX IF EXISTS idx_collection_title;
+CREATE INDEX idx_collection_title ON collection (
     title
 );

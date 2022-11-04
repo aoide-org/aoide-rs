@@ -42,26 +42,32 @@ CREATE TABLE IF NOT EXISTS media_source (
     UNIQUE (collection_id, content_link_path)
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS idx_media_source_row_created_ms_desc ON media_source (
+DROP INDEX IF EXISTS idx_media_source_row_created_ms_desc;
+CREATE INDEX idx_media_source_row_created_ms_desc ON media_source (
     row_created_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_media_source_row_updated_ms_desc ON media_source (
+DROP INDEX IF EXISTS idx_media_source_row_updated_ms_desc;
+CREATE INDEX idx_media_source_row_updated_ms_desc ON media_source (
     row_updated_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_media_source_collected_ms_desc ON media_source (
+DROP INDEX IF EXISTS idx_media_source_collected_ms_desc;
+CREATE INDEX idx_media_source_collected_ms_desc ON media_source (
     collected_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_media_source_content_type ON media_source (
+DROP INDEX IF EXISTS idx_media_source_content_type;
+CREATE INDEX idx_media_source_content_type ON media_source (
     content_type
 );
 
-CREATE INDEX IF NOT EXISTS idx_media_source_content_digest ON media_source (
+DROP INDEX IF EXISTS idx_media_source_content_digest;
+CREATE INDEX idx_media_source_content_digest ON media_source (
     content_digest
 ) WHERE content_digest IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_media_source_audio_duration_ms ON media_source (
+DROP INDEX IF EXISTS idx_media_source_audio_duration_ms;
+CREATE INDEX idx_media_source_audio_duration_ms ON media_source (
     audio_duration_ms
 );

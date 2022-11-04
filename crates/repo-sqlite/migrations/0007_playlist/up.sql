@@ -27,24 +27,29 @@ CREATE TABLE IF NOT EXISTS playlist (
     FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE
 ) STRICT;
 
-CREATE INDEX IF NOT EXISTS idx_playlist_row_created_ms_desc ON playlist (
+DROP INDEX IF EXISTS idx_playlist_row_created_ms_desc;
+CREATE INDEX idx_playlist_row_created_ms_desc ON playlist (
     row_created_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_row_updated_ms_desc ON playlist (
+DROP INDEX IF EXISTS idx_playlist_row_updated_ms_desc;
+CREATE INDEX idx_playlist_row_updated_ms_desc ON playlist (
     row_updated_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_collection_id_collected_ms_desc ON playlist (
+DROP INDEX IF EXISTS idx_playlist_collection_id_collected_ms_desc;
+CREATE INDEX idx_playlist_collection_id_collected_ms_desc ON playlist (
     collection_id,
     collected_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_kind_title ON playlist (
+DROP INDEX IF EXISTS idx_playlist_kind_title;
+CREATE INDEX idx_playlist_kind_title ON playlist (
     kind,
     title
 ) WHERE kind IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_playlist_title ON playlist (
+DROP INDEX IF EXISTS idx_playlist_title;
+CREATE INDEX idx_playlist_title ON playlist (
     title
 );
