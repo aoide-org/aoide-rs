@@ -138,6 +138,20 @@ pub mod prelude {
                 .map_err(|err| anyhow::anyhow!(err.to_string()))?;
             Ok(connection)
         }
+
+        #[test]
+        fn reapply_all_schema_migrations() -> TestResult<()> {
+            let mut connection = establish_connection()?;
+            // Verify that all schema migrations have been applied
+            assert!(
+                crate::run_migrations(&mut connection, MigrationMode::ApplyPending)
+                    .unwrap()
+                    .is_empty()
+            );
+            crate::run_migrations(&mut connection, MigrationMode::ReapplyAll)
+                .map_err(|err| anyhow::anyhow!(err.to_string()))?;
+            Ok(())
+        }
     }
 }
 
