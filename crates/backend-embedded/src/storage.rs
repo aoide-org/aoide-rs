@@ -9,9 +9,10 @@ use aoide_storage_sqlite::connection::{
     Config as ConnectionConfig,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DatabaseSchemaMigrationMode {
     DontTouch,
+    #[default]
     ApplyPending,
     ReapplyAll,
 }
@@ -53,7 +54,7 @@ pub fn provision_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper>
     log::info!("Initializing database");
     aoide_repo_sqlite::initialize_database(&mut *get_pooled_connection(&connection_pool)?)?;
 
-    let migrate_schema = (*migrate_schema).unwrap_or(DatabaseSchemaMigrationMode::ApplyPending);
+    let migrate_schema = (*migrate_schema).unwrap_or_default();
     let migration_mode: Option<MigrationMode> = migrate_schema.into();
     if let Some(migration_mode) = migration_mode {
         log::info!("Migrating database schema");
