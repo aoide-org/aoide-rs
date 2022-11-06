@@ -23,7 +23,7 @@ r2d2 = "0.8.10"
 thiserror = "1.0.37"
 
 serde = { version = "1.0.147", optional = true, features = ["derive"] }
-tokio = { version = "1.21.2", optional = true, default-features = false, features = ["macros", "rt", "sync", "time"] }
+tokio = { version = "1.22.0", optional = true, default-features = false, features = ["macros", "rt", "sync", "time"] }
 
 [features]
 default = ["tokio"]

@@ -12,13 +12,13 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.66"
-clap = "4.0.19"
-env_logger = "0.9.1"
+clap = "4.0.26"
+env_logger = "0.9.3"
 log = { version = "0.4.17", features = ["release_max_level_debug"] }
-reqwest = { version = "0.11.12", default-features = false, features = ["rustls-tls"] }
-serde_json = "1.0.87"
+reqwest = { version = "0.11.13", default-features = false, features = ["rustls-tls"] }
+serde_json = "1.0.88"
 serde_urlencoded = "0.7.1"
-tokio = { version = "1.21.2", default-features = false, features = ["macros", "fs", "rt-multi-thread", "signal"] }
+tokio = { version = "1.22.0", default-features = false, features = ["macros", "fs", "rt-multi-thread", "signal"] }
 
 # Workspace dependencies
 aoide-client = { version = "=0.8.0", features = ["webapi-backend", "tokio"] }

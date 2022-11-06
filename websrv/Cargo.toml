@@ -21,10 +21,10 @@ log = { version = "0.4.17", features = ["release_max_level_debug"] }
 parking_lot = "0.12.1"
 ron = "0.8.0"
 serde = { version = "1.0.147", features = ["derive"] }
-serde_json = "1.0.87"
+serde_json = "1.0.88"
 thiserror = "1.0.37"
-time = { version = "0.3.16", features = ["serde-well-known"] }
-tokio = { version = "1.21.2", default-features = false, features = [
+time = { version = "0.3.17", features = ["serde-human-readable"] }
+tokio = { version = "1.22.0", default-features = false, features = [
     "rt-multi-thread",
     "signal",
 ] }

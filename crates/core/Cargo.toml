@@ -19,7 +19,7 @@ num-traits = "0.2.15"
 once_cell = "1.16.0"
 rand = "0.8.5"
 semval = "0.4.1"
-time = { version = "0.3.16", features = [
+time = { version = "0.3.17", features = [
     "macros",
     "local-offset",
     "parsing",

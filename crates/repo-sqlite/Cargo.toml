@@ -32,5 +32,5 @@ aoide-core-api = "=0.8.0"
 aoide-repo = "=0.8.0"
 
 [dev-dependencies]
-env_logger = "0.9.1"
+env_logger = "0.9.3"
 test-log = "0.2.11"

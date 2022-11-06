@@ -18,12 +18,12 @@ num-traits = "0.2.15"
 semval = "0.4.1"
 serde = { version = "1.0.147", features = ["derive"] }
 serde_repr = "0.1.9"
-time = { version = "0.3.16", features = ["serde-well-known"] }
+time = { version = "0.3.17", features = ["serde-human-readable"] }
 url = { version = "2.3.1", features = ["serde"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.11", optional = true, features = ["chrono", "url"] }
-chrono = { version = "0.4.22", optional = true, default-features = false }
+chrono = { version = "0.4.23", optional = true, default-features = false }
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", features = ["serde"] }
@@ -35,4 +35,4 @@ json-schema = ["schemars", "chrono", "aoide-core/json-schema"]
 js = ["aoide-core/js"]
 
 [dev-dependencies]
-serde_json = "1.0.87"
+serde_json = "1.0.88"
