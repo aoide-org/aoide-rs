@@ -75,6 +75,7 @@ repos:
       - id: prettier
         types:
           - yaml
+          - markdown
   # https://reuse.software
   # TODO: Enable after fixing license headers to files in webapp/assets
   #- repo: https://github.com/fsfe/reuse-tool
