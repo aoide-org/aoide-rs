@@ -15,7 +15,7 @@ anyhow = "1.0.66"
 base64 = "0.13.1"
 mime = "0.3.16"
 num-traits = "0.2.15"
-semval = "0.4.1"
+semval = "0.5.0"
 serde = { version = "1.0.147", features = ["derive"] }
 serde_repr = "0.1.9"
 time = { version = "0.3.17", features = ["serde-human-readable"] }
@@ -35,4 +35,4 @@ json-schema = ["schemars", "chrono", "aoide-core/json-schema"]
 js = ["aoide-core/js"]
 
 [dev-dependencies]
-serde_json = "1.0.88"
+serde_json = "1.0.89"
