@@ -28,6 +28,7 @@ members = [
 # The webapp needs to be excluded from the workspace, because it is built
 # for a different target and with a different build profile!
 exclude = [ "webapp" ]
+resolver = "2"
 
 [workspace.package]
 version = "0.8.0"
