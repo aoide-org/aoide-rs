@@ -826,9 +826,9 @@ async fn main() -> anyhow::Result<()> {
         let message_tx = message_tx.clone();
         async move {
             if let Err(err) = signal::ctrl_c().await {
-                log::error!("Failed to receive Ctrl+C/SIGINT signal: {err}");
+                log::error!("Failed to receive Ctrl-C/SIGINT signal: {err}");
             }
-            log::info!("Terminating after receiving Ctrl+C/SIGINT...");
+            log::info!("Terminating after receiving Ctrl-C/SIGINT...");
             send_message(&message_tx, Intent::Terminate);
         }
     });

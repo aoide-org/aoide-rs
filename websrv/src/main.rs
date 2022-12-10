@@ -180,6 +180,7 @@ fn main() {
 fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exit: bool) {
     log::info!("Running headless");
 
+    log::info!("Registering signal handler for Ctrl-C");
     if let Err(err) = ctrlc::set_handler({
         let launcher = Arc::clone(&launcher);
         move || {
@@ -191,6 +192,7 @@ fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exi
         log::error!("Failed to register signal handler: {err}");
     }
 
+    log::info!("Launching runtime");
     let runtime_thread = match launcher.lock().launch_runtime(config, |state| {
         if let State::Running(RuntimeState::Listening { socket_addr }) = state {
             // Publish socket address on stdout
