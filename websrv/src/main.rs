@@ -170,11 +170,12 @@ fn main() {
                 move |_creation_context| Box::new(launcher::ui::App::new(launcher, config))
             }),
         );
-        // Never returns
+        log::info!("Exiting");
+        return;
     }
 
-    // This code only runs when the launcher UI is disabled
     run_headless(launcher, config, save_config_on_exit);
+    log::info!("Exiting");
 }
 
 fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exit: bool) {

@@ -382,7 +382,7 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
         if matches!(self.state, State::Setup) {
             log::info!("Registering signal handler for Ctrl-C");
-            match ctrlc::set_handler({
+            if let Err(err) = ctrlc::set_handler({
                 let ctx = ctx.to_owned();
                 let exit_flag = Arc::clone(&self.exit_flag);
                 move || {
@@ -390,20 +390,12 @@ impl eframe::App for App {
                     ctx.request_repaint();
                 }
             }) {
-                Ok(()) => (),
-                Err(ctrlc::Error::MultipleHandlers) => {
-                    // TODO: Investigate who registers this handler and how we
-                    // could set the `exit_flag` when the signal is triggered.
-                    log::warn!("Another signal handler for Ctrl-C has already been registered");
-                }
-                Err(err) => {
-                    log::error!("Failed to register signal handler for Ctrl-C: {err}");
-                    self.exit_flag.store(true, Ordering::Release);
-                    ctx.request_repaint();
-                }
+                log::error!("Failed to register signal handler for Ctrl-C: {err}");
+                self.exit_flag.store(true, Ordering::Release);
             }
             // The transition from Setup to Idle must only occur once!
             self.state = State::Idle;
+            ctx.request_repaint();
         }
         self.resync_state_on_update(ctx);
         if self.exit_flag.load(Ordering::Acquire) {
