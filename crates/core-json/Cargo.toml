@@ -12,7 +12,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.66"
-base64 = "0.13.1"
+base64 = "0.20.0"
 mime = "0.3.16"
 num-traits = "0.2.15"
 semval = "0.5.0"

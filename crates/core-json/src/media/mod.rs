@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::media::content::ContentMetadataFlags;
+use base64::engine::{
+    fast_portable::{FastPortable, FastPortableConfig},
+    DecodePaddingMode,
+};
 
 use crate::{
     audio::{
@@ -30,9 +34,16 @@ mod _core {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct Base64(String);
 
+const BASE64_ENGINE: FastPortable = FastPortable::from(
+    &base64::alphabet::URL_SAFE,
+    FastPortableConfig::new()
+        .with_decode_padding_mode(DecodePaddingMode::Indifferent)
+        .with_encode_padding(false),
+);
+
 impl Base64 {
     pub fn encode(bytes: impl AsRef<[u8]>) -> Self {
-        let encoded = base64::encode_config(bytes.as_ref(), base64::URL_SAFE_NO_PAD);
+        let encoded = base64::encode_engine(bytes.as_ref(), &BASE64_ENGINE);
         Self(encoded)
     }
 
@@ -42,7 +53,7 @@ impl Base64 {
     }
 
     fn try_decode_impl(encoded: impl AsRef<str>) -> Result<Vec<u8>, base64::DecodeError> {
-        base64::decode_config(encoded.as_ref(), base64::URL_SAFE_NO_PAD)
+        base64::decode_engine(encoded.as_ref(), &BASE64_ENGINE)
     }
 
     pub fn from_encoded(encoded: impl Into<String>) -> Self {
