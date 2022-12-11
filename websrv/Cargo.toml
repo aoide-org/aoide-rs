@@ -13,7 +13,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.66"
-ctrlc = { version = "3.2.3", features = ["termination"] }
+ctrlc = { version = "3.2.4", features = ["termination"] }
 directories = "4.0.1"
 discro = { version = "0.8.0", features = ["tokio"] }
 dotenv = "0.15.0"
@@ -42,11 +42,11 @@ mime_guess = { version = "2.0.4", optional = true }
 rust-embed = { version = "6.4.2", optional = true }
 
 # launcher-ui
-eframe = { version = "0.20.0", optional = true, default-features = false, features = [
+eframe = { version = "0.20.1", optional = true, default-features = false, features = [
     "default_fonts",
     "glow",
 ] }
-egui = { version = "0.20.0", optional = true, default-features = false }
+egui = { version = "0.20.1", optional = true, default-features = false }
 rfd = { version = "0.10.0", optional = true, default-features = false, features = [
     "xdg-portal",
 ] }
