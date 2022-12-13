@@ -12,7 +12,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.66"
-serde = { version = "1.0.149", features = ["derive"] }
+serde = { version = "1.0.150", features = ["derive"] }
 url = { version = "2.3.1", features = ["serde"] }
 
 # JSON Schema (optional)
