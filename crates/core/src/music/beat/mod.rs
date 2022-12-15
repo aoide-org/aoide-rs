@@ -117,7 +117,11 @@ impl Validate for TimeSignature {
 impl fmt::Display for TimeSignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(beat_unit) = self.beat_unit {
-            write!(f, "{}/{}", self.beats_per_measure, beat_unit)
+            write!(
+                f,
+                "{beats_per_measure}/{beat_unit}",
+                beats_per_measure = self.beats_per_measure
+            )
         } else {
             self.beats_per_measure.fmt(f)
         }

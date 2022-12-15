@@ -291,7 +291,7 @@ impl fmt::Display for DateYYYYMMDD {
         }
         // Fallback
         let Self(inner) = self;
-        write!(f, "{:08}", inner)
+        write!(f, "{inner:08}")
     }
 }
 

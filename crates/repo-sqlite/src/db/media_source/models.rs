@@ -318,7 +318,7 @@ impl<'a> InsertableRecord<'a> {
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
             audio_encoder: audio_metadata.and_then(|audio| audio.encoder.as_deref()),
-            artwork_source: artwork_source.map(|v| v.write() as i16),
+            artwork_source: artwork_source.map(|v| v.write()),
             artwork_uri,
             artwork_apic_type,
             artwork_media_type,
@@ -450,7 +450,7 @@ impl<'a> UpdatableRecord<'a> {
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
             audio_encoder: audio_metadata.and_then(|audio| audio.encoder.as_deref()),
-            artwork_source: artwork_source.map(|v| v.write() as i16),
+            artwork_source: artwork_source.map(|v| v.write()),
             artwork_uri,
             artwork_apic_type,
             artwork_media_type,

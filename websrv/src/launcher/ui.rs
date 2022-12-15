@@ -210,7 +210,7 @@ impl App {
                             file_dialog = file_dialog.set_directory(parent_path);
                         }
                     } else if is_existing_directory(&file_path) {
-                        file_dialog = file_dialog.set_directory(&file_path.display().to_string());
+                        file_dialog = file_dialog.set_directory(file_path.display().to_string());
                     }
                 }
                 if let Some(file_name) = file_dialog.pick_file() {
