@@ -3,11 +3,15 @@
 
 use aoide_core::entity::EntityUidTyped;
 use aoide_core_api_json::playlist::{export_entity_with_entries_summary, EntityWithEntriesSummary};
-use aoide_usecases_sqlite::playlist::entries as uc;
 
 use aoide_core_json::entity::EntityUid as SerdeEntityUid;
 
 use super::*;
+
+mod uc {
+    pub(super) use aoide_usecases::playlist::entries::PatchOperation;
+    pub(super) use aoide_usecases_sqlite::playlist::entries::patch;
+}
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(serde::Serialize))]

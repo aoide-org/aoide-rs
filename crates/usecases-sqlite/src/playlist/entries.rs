@@ -6,20 +6,7 @@ use super::*;
 use aoide_core::util::clock::DateTime;
 use aoide_core_api::playlist::EntityWithEntriesSummary;
 
-use std::ops::Range;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PatchOperation {
-    Append { entries: Vec<Entry> },
-    Prepend { entries: Vec<Entry> },
-    Insert { before: usize, entries: Vec<Entry> },
-    CopyAll { source_playlist_uid: EntityUid },
-    Move { range: Range<usize>, delta: isize },
-    Remove { range: Range<usize> },
-    RemoveAll,
-    ReverseAll,
-    ShuffleAll,
-}
+use uc::playlist::entries::PatchOperation;
 
 pub fn patch(
     connection: &mut DbConnection,

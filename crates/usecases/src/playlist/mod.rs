@@ -15,6 +15,8 @@ use aoide_repo::{
 
 use super::*;
 
+pub mod entries;
+
 #[derive(Debug)]
 pub struct ValidatedInput(Playlist);
 

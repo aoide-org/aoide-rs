@@ -12,7 +12,7 @@ use crate::prelude::*;
 pub async fn patch(
     db_gatekeeper: &Gatekeeper,
     entity_header: EntityHeader,
-    operations: impl IntoIterator<Item = aoide_usecases_sqlite::playlist::entries::PatchOperation>
+    operations: impl IntoIterator<Item = aoide_usecases::playlist::entries::PatchOperation>
         + Send
         + 'static,
 ) -> Result<EntityWithEntriesSummary> {
