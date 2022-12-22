@@ -48,33 +48,27 @@ jobs:
         run: |
           sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev
 
-      - name: Install Rust toolchain for target
+      - name: Install Rust toolchains for both native target and WASM
         uses: dtolnay/rust-toolchain@master
         with:
-          target: ${{ matrix.target }}
           toolchain: stable
-
-      - name: Install Rust toolchain for WASM
-        uses: dtolnay/rust-toolchain@master
-        with:
-          target: wasm32-unknown-unknown
-          toolchain: stable
+          targets: ${{ matrix.target }}, wasm32-unknown-unknown
 
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          # Distinguished by the action name to avoid sharing across different actions!
+          shared-key: "pre-release"
 
       - name: Install Trunk for building the webapp
         run: |
           cargo install --locked trunk
 
       - name: Build artifact
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --locked --target ${{ matrix.target }} --profile ${{ matrix.build_profile }}
+        run: cargo build --locked --target ${{ matrix.target }} --profile ${{ matrix.build_profile }}
 
       - name: Prepare artifact on Linux/macOS
         if: runner.os == 'Linux' || runner.os == 'macOS'

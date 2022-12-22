@@ -55,117 +55,69 @@ jobs:
         if: runner.os == 'Windows'
         run: echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Install Rust toolchain for target
+      - name: Install Rust toolchains for both native target and WASM
         uses: dtolnay/rust-toolchain@master
         with:
-          target: ${{ matrix.target }}
           toolchain: stable
-
-      - name: Install Rust toolchain for WASM
-        uses: dtolnay/rust-toolchain@master
-        with:
-          target: wasm32-unknown-unknown
-          toolchain: stable
+          targets: ${{ matrix.target }}, wasm32-unknown-unknown
 
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          # Distinguished by the action name to avoid sharing across different actions!
+          shared-key: "continuous-integration"
 
       - name: Install Trunk for building the webapp
         run: |
           cargo install --locked trunk
 
       - name: Check aoide-core
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/core/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/core/Cargo.toml
 
       - name: Check aoide-core-json
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/core-json/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/core-json/Cargo.toml
 
       - name: Check aoide-core-api
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/core-api/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/core-api/Cargo.toml
 
       - name: Check aoide-core-api-json
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/core-api-json/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/core-api-json/Cargo.toml
 
       - name: Check aoide-desktop-app
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/desktop-app/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/desktop-app/Cargo.toml
 
       - name: Check aoide-media
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/media/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/media/Cargo.toml
 
       - name: Check aoide-repo
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/repo/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/repo/Cargo.toml
 
       - name: Check aoide-repo-sqlite
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/repo-sqlite/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/repo-sqlite/Cargo.toml
 
       - name: Check aoide-storage-sqlite
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/storage-sqlite/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/storage-sqlite/Cargo.toml
 
       - name: Check aoide-search-index-tantivy
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/search-index-tantivy/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/search-index-tantivy/Cargo.toml
 
       - name: Check aoide-usecases
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/usecases/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/usecases/Cargo.toml
 
       - name: Check aoide-usecases-sqlite
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/usecases-sqlite/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/usecases-sqlite/Cargo.toml
 
       - name: Check aoide-backend-embedded
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/backend-embedded/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/backend-embedded/Cargo.toml
 
       - name: Check aoide-backend-webapi-json
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/backend-webapi-json/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/backend-webapi-json/Cargo.toml
 
       - name: Check aoide-websrv-warp-sqlite
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/websrv-warp-sqlite/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/websrv-warp-sqlite/Cargo.toml
 
       - name: Build aoide-webapp artifacts
         run: |
@@ -174,37 +126,19 @@ jobs:
           cd -
 
       - name: Check aoide-websrv
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path websrv/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path websrv/Cargo.toml
 
       - name: Check aoide-client
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path crates/client/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path crates/client/Cargo.toml
 
       - name: Check aoide-webcli
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-targets --all-features --manifest-path webcli/Cargo.toml
+        run: cargo check --locked --all-targets --all-features --manifest-path webcli/Cargo.toml
 
       - name: Build tests with default features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --locked --workspace --all-targets --no-run
+        run: cargo test --locked --workspace --all-targets --no-run
 
       - name: Run tests with default features
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --locked --workspace --all-targets -- --nocapture --quiet
+        run: cargo test --locked --workspace --all-targets -- --nocapture --quiet
 
       - name: Build workspace with profile `production` and default features
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --locked --workspace --all-targets --profile production
+        run: cargo build --locked --workspace --all-targets --profile production

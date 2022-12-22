@@ -32,12 +32,16 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
+          components: clippy, rustfmt
 
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          # Distinguished by the action name to avoid sharing across different actions!
+          shared-key: "pre-commit"
 
       - name: Detect code style issues (push)
         uses: pre-commit/action@v3.0.0
