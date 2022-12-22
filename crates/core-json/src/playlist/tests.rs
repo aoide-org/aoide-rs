@@ -4,8 +4,11 @@
 use super::*;
 
 #[test]
-fn serialize_item_separator_dummy() {
-    assert_eq!("{}", serde_json::to_string(&SeparatorDummy {}).unwrap());
+fn serialize_item_default_separator() {
+    assert_eq!(
+        "{}",
+        serde_json::to_string(&SeparatorItem::default()).unwrap()
+    );
 }
 
 #[test]
@@ -25,13 +28,21 @@ fn deserialize_playlist() {
         entries: vec![
             Entry {
                 added_at: added_at1.into(),
-                item: Item::Track(track::Item { uid: uid.clone() }),
+                item: Item::Track(TrackItem { uid: uid.clone() }),
                 title: None,
                 notes: None,
             },
             Entry {
                 added_at: added_at2.into(),
-                item: Item::Separator(SeparatorDummy {}),
+                item: Item::Separator(Default::default()),
+                title: None,
+                notes: None,
+            },
+            Entry {
+                added_at: added_at2.into(),
+                item: Item::Separator(SeparatorItem {
+                    kind: Some("Kind".into()),
+                }),
                 title: None,
                 notes: None,
             },
@@ -50,6 +61,12 @@ fn deserialize_playlist() {
             },
             {
                 "separator": {},
+                "addedAt": added_at2.to_string()
+            },
+            {
+                "separator": {
+                    "kind": "Kind"
+                },
                 "addedAt": added_at2.to_string()
             }
         ]

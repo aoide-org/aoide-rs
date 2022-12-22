@@ -33,6 +33,10 @@ impl Validate for MediaSourceConfig {
 pub struct Collection {
     pub title: String,
 
+    /// Semantic type of the collection
+    ///
+    /// A custom identifier that allows third-party applications
+    /// to distinguish different kinds of collections.
     pub kind: Option<String>,
 
     pub notes: Option<String>,

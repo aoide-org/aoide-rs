@@ -124,8 +124,6 @@ pub mod prelude {
 
     #[cfg(test)]
     pub mod tests {
-        use crate::MigrationMode;
-
         use super::DbConnection;
         use diesel::Connection as _;
 
@@ -134,23 +132,9 @@ pub mod prelude {
         pub fn establish_connection() -> TestResult<DbConnection> {
             let mut connection =
                 DbConnection::establish(":memory:").expect("in-memory database connection");
-            crate::run_migrations(&mut connection, MigrationMode::ApplyPending)
+            crate::run_migrations(&mut connection)
                 .map_err(|err| anyhow::anyhow!(err.to_string()))?;
             Ok(connection)
-        }
-
-        #[test]
-        fn reapply_all_schema_migrations() -> TestResult<()> {
-            let mut connection = establish_connection()?;
-            // Verify that all schema migrations have been applied
-            assert!(
-                crate::run_migrations(&mut connection, MigrationMode::ApplyPending)
-                    .unwrap()
-                    .is_empty()
-            );
-            crate::run_migrations(&mut connection, MigrationMode::ReapplyAll)
-                .map_err(|err| anyhow::anyhow!(err.to_string()))?;
-            Ok(())
         }
     }
 }
@@ -188,24 +172,6 @@ PRAGMA encoding = 'UTF-8';
 
 const EMBEDDED_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
-pub enum MigrationMode {
-    #[default]
-    ApplyPending,
-    ReapplyAll,
-}
-
-pub fn run_migrations(
-    connection: &mut DbConnection,
-    mode: MigrationMode,
-) -> MigrationResult<Vec<MigrationVersion<'_>>> {
-    match mode {
-        MigrationMode::ApplyPending => (),
-        MigrationMode::ReapplyAll => {
-            // Drop the table with the applied schema migrations manually.
-            // Reapplying all migrations is supposed to be safe.
-            diesel::sql_query("DROP TABLE __diesel_schema_migrations").execute(connection)?;
-        }
-    }
+pub fn run_migrations(connection: &mut DbConnection) -> MigrationResult<Vec<MigrationVersion<'_>>> {
     connection.run_pending_migrations(EMBEDDED_MIGRATIONS)
 }

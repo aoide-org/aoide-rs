@@ -117,7 +117,7 @@ impl Fixture {
                 added_at: DateTime::now_local_or_utc(),
                 title: Some(format!("Entry {i}")),
                 notes: None,
-                item: Item::Track(track::Item { uid: track_uid }),
+                item: Item::Track(TrackItem { uid: track_uid }),
             };
             playlist_entries.push(entry);
         }
@@ -131,7 +131,7 @@ fn new_separator_entry() -> Entry {
         added_at: DateTime::now_local_or_utc(),
         title: None,
         notes: None,
-        item: Item::Separator,
+        item: Item::Separator(Default::default()),
     }
 }
 
@@ -140,7 +140,7 @@ fn new_separator_entry_with_title(title: String) -> Entry {
         added_at: DateTime::now_local_or_utc(),
         title: Some(title),
         notes: None,
-        item: Item::Separator,
+        item: Item::Separator(Default::default()),
     }
 }
 

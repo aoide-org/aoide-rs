@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_repo_sqlite::MigrationMode;
 use serde::{Deserialize, Serialize};
 
 use aoide_storage_sqlite::connection::{
@@ -14,17 +13,6 @@ pub enum DatabaseSchemaMigrationMode {
     DontTouch,
     #[default]
     ApplyPending,
-    ReapplyAll,
-}
-
-impl From<DatabaseSchemaMigrationMode> for Option<MigrationMode> {
-    fn from(from: DatabaseSchemaMigrationMode) -> Self {
-        match from {
-            DatabaseSchemaMigrationMode::DontTouch => None,
-            DatabaseSchemaMigrationMode::ApplyPending => Some(MigrationMode::ApplyPending),
-            DatabaseSchemaMigrationMode::ReapplyAll => Some(MigrationMode::ReapplyAll),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -55,13 +43,14 @@ pub fn provision_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper>
     aoide_repo_sqlite::initialize_database(&mut *get_pooled_connection(&connection_pool)?)?;
 
     let migrate_schema = (*migrate_schema).unwrap_or_default();
-    let migration_mode: Option<MigrationMode> = migrate_schema.into();
-    if let Some(migration_mode) = migration_mode {
-        log::info!("Migrating database schema");
-        aoide_usecases_sqlite::database::migrate_schema(
-            &mut *get_pooled_connection(&connection_pool)?,
-            migration_mode,
-        )?;
+    match migrate_schema {
+        DatabaseSchemaMigrationMode::DontTouch => (),
+        DatabaseSchemaMigrationMode::ApplyPending => {
+            log::info!("Migrating database schema");
+            aoide_usecases_sqlite::database::migrate_schema(&mut *get_pooled_connection(
+                &connection_pool,
+            )?)?;
+        }
     }
 
     let gatekeeper = Gatekeeper::new(connection_pool, config.connection.pool.gatekeeper);

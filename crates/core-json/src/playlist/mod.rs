@@ -1,11 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::playlist::Flags;
+use aoide_core::{playlist::Flags, track::EntityUid as TrackUid};
 
-use crate::{prelude::*, util::clock::DateTime};
-
-pub mod track;
+use crate::{entity::EntityUid, prelude::*, util::clock::DateTime};
 
 mod _core {
     pub(super) use aoide_core::playlist::*;
@@ -15,24 +13,66 @@ mod _core {
 // Item
 ///////////////////////////////////////////////////////////////////////
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SeparatorItem {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) kind: Option<String>,
+}
+
+impl From<SeparatorItem> for _core::SeparatorItem {
+    fn from(from: SeparatorItem) -> Self {
+        let SeparatorItem { kind } = from;
+        Self { kind }
+    }
+}
+
+impl From<_core::SeparatorItem> for SeparatorItem {
+    fn from(from: _core::SeparatorItem) -> Self {
+        let _core::SeparatorItem { kind } = from;
+        Self { kind }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
-pub struct SeparatorDummy {}
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TrackItem {
+    pub(crate) uid: EntityUid,
+}
+
+impl From<TrackItem> for _core::TrackItem {
+    fn from(from: TrackItem) -> Self {
+        let TrackItem { uid } = from;
+        Self {
+            uid: TrackUid::from_untyped(uid),
+        }
+    }
+}
+
+impl From<_core::TrackItem> for TrackItem {
+    fn from(from: _core::TrackItem) -> Self {
+        let _core::TrackItem { uid } = from;
+        Self { uid: uid.into() }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub enum Item {
-    Separator(SeparatorDummy),
-    Track(track::Item),
+    Separator(SeparatorItem),
+    Track(TrackItem),
 }
 
 impl From<Item> for _core::Item {
     fn from(from: Item) -> Self {
         match from {
-            Item::Separator(SeparatorDummy {}) => Self::Separator,
+            Item::Separator(item) => Self::Separator(item.into()),
             Item::Track(item) => Self::Track(item.into()),
         }
     }
@@ -42,7 +82,7 @@ impl From<_core::Item> for Item {
     fn from(from: _core::Item) -> Self {
         use _core::Item::*;
         match from {
-            Separator => Self::Separator(SeparatorDummy {}),
+            Separator(item) => Self::Separator(item.into()),
             Track(item) => Self::Track(item.into()),
         }
     }

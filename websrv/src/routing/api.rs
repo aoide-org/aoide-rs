@@ -997,7 +997,7 @@ pub(crate) fn create_filters(
                 websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |mut pooled_connection, _abort_flag| {
-                        uc::database::migrate_schema(&mut pooled_connection, Default::default())
+                        uc::database::migrate_schema(&mut pooled_connection)
                     },
                 )
                 .await

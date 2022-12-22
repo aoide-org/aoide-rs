@@ -1399,7 +1399,10 @@ components:
       type: string
       minLength: 1
       description: |
-        A custom identifier to distinguish different kinds of collections.
+        Semantic type of the collection.
+
+        A custom identifier that allows third-party applications
+        to distinguish different kinds of collections.
       example: "local"
     CollectionMediaSourceConfig:
       properties:
@@ -2273,18 +2276,29 @@ components:
     PlaylistItem:
       oneOf:
         - $ref: "#/components/schemas/PlaylistItemSeparator"
-        - $ref: "#/components/schemas/PlaylistTrackItem"
+        - $ref: "#/components/schemas/PlaylistItemTrack"
     PlaylistItemSeparator:
-      type: string
-      enum:
+      type: object
+      properties:
+        separator:
+          $ref: "#/components/schemas/PlaylistSeparatorItem"
+      required:
         - separator
+    PlaylistItemTrack:
+      type: object
+      properties:
+        track:
+          $ref: "#/components/schemas/PlaylistTrackItem"
+      required:
+        - track
     PlaylistKind:
       description: |
-        Custom type of to the playlist. This allows 3rd party applications
-        to distinguish different kinds of playlists for different purposes
-        and depending on their use case, e.g. generated session or history
-        playlists for logging all tracks that have been played during this
-        session.
+        Semantic type of the playlist.
+
+        A custom identifier that allows third-party applications to distinguish
+        different kinds of playlists for different purposes and depending on
+        their use case, e.g. generated session or history playlists for logging
+        all tracks that have been played during this session.
       type: string
     PlaylistNotes:
       type: string
@@ -2298,27 +2312,36 @@ components:
           $ref: "#/components/schemas/PlaylistUid"
       required:
         - uid
+    PlaylistSeparatorItem:
+      description: |
+        Partitions the entries of a playlist.
+      type: object
+      properties:
+        kind:
+          $ref: "#/components/schemas/PlaylistSeparatorKind"
+    PlaylistSeparatorKind:
+      description: |
+        Semantic type of the playlist separator.
+
+        A custom identifier that allows third-party applications to distinguish
+        different kinds of playlist separators.
+      type: string
     PlaylistTitle:
       description: Mandatory playlist title
       type: string
       minLength: 1
-    PlaylistTrack:
+    PlaylistTrackItem:
       description: |
         The UID of the referenced track
-      allOf:
-        - $ref: "#/components/schemas/TrackUid"
+      type: object
+      properties:
+        uid:
+          $ref: "#/components/schemas/TrackUid"
     PlaylistTrackCount:
       description: |
         Number of tracks in the playlist
       allOf:
         - $ref: "#/components/schemas/PlaylistEntryCount"
-    PlaylistTrackItem:
-      type: object
-      properties:
-        track:
-          $ref: "#/components/schemas/PlaylistTrack"
-      required:
-        - track
     PlaylistTracksSummary:
       type: object
       properties:

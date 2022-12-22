@@ -17,6 +17,7 @@ diesel::table! {
         added_ms -> BigInt,
         title -> Nullable<Text>,
         notes -> Nullable<Text>,
+        item_data -> Nullable<Text>,
     }
 }
 

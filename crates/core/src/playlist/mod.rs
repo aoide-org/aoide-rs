@@ -6,14 +6,45 @@ use std::ops::RangeBounds;
 use bitflags::bitflags;
 use rand::{seq::SliceRandom as _, RngCore};
 
-use crate::prelude::{random::adhoc_rng, *};
+use crate::{
+    prelude::{random::adhoc_rng, *},
+    track::EntityUid as TrackUid,
+};
 
-pub mod track;
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SeparatorItem {
+    /// Semantic type of the playlist separator
+    ///
+    /// A custom identifier that allows third-party applications
+    /// to distinguish different kinds of playlist separators.
+    pub kind: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TrackItem {
+    /// A reference to the track.
+    pub uid: TrackUid,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum TrackItemInvalidity {
+    Uid(EntityUidInvalidity),
+}
+
+impl Validate for TrackItem {
+    type Invalidity = TrackItemInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_with(&self.uid, Self::Invalidity::Uid)
+            .into()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Item {
-    Separator,
-    Track(track::Item),
+    Separator(SeparatorItem),
+    Track(TrackItem),
     // TODO: Add more items like an optional transition between
     // two subsequent track items?
     //Transition(transition::Item),
@@ -22,7 +53,7 @@ pub enum Item {
 impl Item {
     #[must_use]
     pub fn is_separator(&self) -> bool {
-        matches!(self, Self::Separator)
+        matches!(self, Self::Separator(_))
     }
 
     #[must_use]
@@ -33,7 +64,7 @@ impl Item {
 
 #[derive(Copy, Clone, Debug)]
 pub enum ItemInvalidity {
-    Track(track::ItemInvalidity),
+    Track(TrackItemInvalidity),
 }
 
 impl Validate for Item {
@@ -42,7 +73,7 @@ impl Validate for Item {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new();
         match self {
-            Item::Separator => context,
+            Item::Separator(_) => context,
             Item::Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
         }
         .into()
@@ -128,12 +159,13 @@ pub struct Playlist {
     /// Mandatory name.
     pub title: String,
 
-    /// Custom type of the playlist.
+    /// Semantic type of the playlist
     ///
-    /// This property allows 3rd party applications to distinguish
-    /// different kinds of playlists for different purposes and depending
-    /// on their use case, e.g. generated session or history playlists for
-    /// logging all tracks that have been played during this session.
+    /// A custom identifier that allows third-party applications
+    /// to distinguish different kinds of playlists for different
+    /// purposes and depending on their use case, e.g. generated
+    /// session or history playlists for logging all tracks that
+    /// have been played during this session.
     pub kind: Option<String>,
 
     /// Optional notes.

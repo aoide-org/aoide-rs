@@ -14,7 +14,7 @@ use crate::{
 
 use aoide_core::{
     entity::{EncodedEntityUid, EntityRevision},
-    playlist::{track::Item as TrackItem, *},
+    playlist::*,
     util::clock::*,
 };
 
@@ -282,6 +282,7 @@ fn load_playlist_entry_records(
             playlist_entry::added_ms,
             playlist_entry::title,
             playlist_entry::notes,
+            playlist_entry::item_data,
         ))
         .order_by(playlist_entry::ordering)
         .load::<QueryableRecord>(db.as_mut())
@@ -376,7 +377,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         for entry in new_entries {
             ordering = ordering.saturating_add(1);
             let track_id = match &entry.item {
-                Item::Separator => None,
+                Item::Separator(_) => None,
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
             let insertable =
@@ -406,7 +407,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         let created_at = DateTime::now_utc();
         for entry in new_entries {
             let track_id = match &entry.item {
-                Item::Separator => None,
+                Item::Separator(_) => None,
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
             let insertable =
@@ -584,7 +585,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         let created_at = DateTime::now_utc();
         for entry in new_entries {
             let track_id = match &entry.item {
-                Item::Separator => None,
+                Item::Separator(_) => None,
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
             let insertable =

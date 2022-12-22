@@ -10,4 +10,3 @@ rules:
   openapi-tags-alphabetical: false
   operation-operationId: false
   operation-singular-tag: true
-  operation-default-response: false

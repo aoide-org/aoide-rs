@@ -68,10 +68,7 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
 
     if config.migrate_schema_on_startup {
         log::info!("Migrating database schema");
-        uc::database::migrate_schema(
-            &mut *get_pooled_connection(&connection_pool)?,
-            Default::default(),
-        )?;
+        uc::database::migrate_schema(&mut *get_pooled_connection(&connection_pool)?)?;
     }
 
     Ok(DatabaseConnectionGatekeeper::new(

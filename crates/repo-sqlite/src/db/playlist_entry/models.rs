@@ -6,7 +6,7 @@ use super::schema::*;
 use crate::prelude::*;
 
 use aoide_core::{
-    playlist::{track::Item as TrackItem, Entry, Item},
+    playlist::{Entry, Item, SeparatorItem, TrackItem},
     util::clock::{DateTime, TimestampMillis},
 };
 
@@ -24,6 +24,7 @@ pub struct QueryableRecord {
     pub added_ms: TimestampMillis,
     pub title: Option<String>,
     pub notes: Option<String>,
+    pub item_data: Option<String>,
 }
 
 impl From<QueryableRecord> for (PlaylistId, i64, Option<TrackId>, Entry) {
@@ -37,13 +38,15 @@ impl From<QueryableRecord> for (PlaylistId, i64, Option<TrackId>, Entry) {
             added_ms,
             title,
             notes,
+            item_data,
         } = from;
         let item = if let Some(track_uid) = &track_uid {
+            debug_assert!(item_data.is_none());
             Item::Track(TrackItem {
                 uid: entity_uid_typed_from_sql(track_uid),
             })
         } else {
-            Item::Separator
+            Item::Separator(SeparatorItem { kind: item_data })
         };
         let entry = Entry {
             added_at: parse_datetime(&added_at, added_ms),
@@ -72,6 +75,7 @@ pub struct InsertableRecord<'a> {
     pub added_ms: TimestampMillis,
     pub title: Option<&'a str>,
     pub notes: Option<&'a str>,
+    pub item_data: Option<&'a str>,
 }
 
 impl<'a> InsertableRecord<'a> {
@@ -87,8 +91,18 @@ impl<'a> InsertableRecord<'a> {
             added_at,
             title,
             notes,
-            item: _,
+            item,
         } = created_entry;
+        let item_data = match item {
+            Item::Separator(SeparatorItem { kind }) => {
+                debug_assert!(track_id.is_none());
+                kind.as_deref()
+            }
+            Item::Track(TrackItem { uid: _ }) => {
+                debug_assert!(track_id.is_some());
+                None
+            }
+        };
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
@@ -99,16 +113,7 @@ impl<'a> InsertableRecord<'a> {
             ordering,
             title: title.as_deref(),
             notes: notes.as_deref(),
+            item_data,
         }
     }
-}
-
-#[derive(Debug, AsChangeset)]
-#[diesel(table_name = playlist_entry, treat_none_as_null = true)]
-pub struct UpdatableRecord<'a> {
-    pub row_updated_ms: TimestampMillis,
-    pub added_at: &'a str,
-    pub added_ms: TimestampMillis,
-    pub title: Option<&'a str>,
-    pub notes: Option<&'a str>,
 }
