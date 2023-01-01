@@ -45,3 +45,9 @@ pub fn update_entity(hdr: CollectionHeader, modified_collection: Collection) -> 
     let updated_entity = Entity::new(next_hdr, collection);
     Ok(updated_entity)
 }
+
+pub fn store_updated_entity(repo: &mut impl EntityRepo, entity: &Entity) -> Result<()> {
+    let updated_at = DateTime::now_utc();
+    repo.update_collection_entity_revision(updated_at, entity)?;
+    Ok(())
+}

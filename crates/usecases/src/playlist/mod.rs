@@ -10,7 +10,8 @@ use aoide_core::{
 };
 
 use aoide_repo::{
-    collection::EntityRepo as CollectionRepo, playlist::CollectionRepo as PlaylistCollectionRepo,
+    collection::EntityRepo as CollectionRepo,
+    playlist::{CollectionRepo as PlaylistCollectionRepo, EntityRepo},
 };
 
 use super::*;
@@ -55,4 +56,13 @@ pub fn update_entity(hdr: PlaylistHeader, modified_playlist: Playlist) -> Result
         .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
     let updated_entity = Entity::new(next_hdr, playlist);
     Ok(updated_entity)
+}
+
+pub fn store_updated_entity<Repo>(repo: &mut Repo, updated_entity: &Entity) -> RepoResult<()>
+where
+    Repo: EntityRepo,
+{
+    let updated_at = DateTime::now_utc();
+    repo.update_playlist_entity_revision(updated_at, updated_entity)?;
+    Ok(())
 }
