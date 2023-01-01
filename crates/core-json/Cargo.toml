@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (C) 2018-2022 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 [package]
@@ -16,7 +16,7 @@ base64 = "0.20.0"
 mime = "0.3.16"
 num-traits = "0.2.15"
 semval = "0.5.0"
-serde = { version = "1.0.151", features = ["derive"] }
+serde = { version = "1.0.152", features = ["derive"] }
 serde_repr = "0.1.10"
 time = { version = "0.3.17", features = ["serde-human-readable"] }
 url = { version = "2.3.1", features = ["serde"] }
