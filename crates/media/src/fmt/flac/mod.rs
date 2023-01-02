@@ -377,14 +377,14 @@ impl Metadata {
             .flags
             .contains(ImportTrackFlags::METADATA_EMBEDDED_ARTWORK)
         {
-            let artwork = if let Some((apic_type, media_type, image_data)) =
+            let artwork = if let Some((apic_type, mime_type, image_data)) =
                 find_embedded_artwork_image(metaflac_tag)
             {
                 let (artwork, _, issues) = try_ingest_embedded_artwork_image(
                     apic_type,
                     image_data,
                     None,
-                    Some(media_type.to_owned()),
+                    Some(mime_type),
                     &mut config.flags.new_artwork_digest(),
                 );
                 issues
