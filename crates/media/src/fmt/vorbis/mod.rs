@@ -656,10 +656,10 @@ pub fn import_into_track(
         }
     }
     for name in reader.filter_values(MIXER_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Mixer, name);
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::MixEngineer, name);
     }
     for name in reader.filter_values(DJMIXER_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::DjMixer, name);
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::MixDj, name);
     }
     for name in reader.filter_values(ENGINEER_KEY).unwrap_or_default() {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Engineer, name);
@@ -915,12 +915,12 @@ pub fn export_track(
     export_filtered_actor_names(
         writer,
         MIXER_KEY.into(),
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Mixer),
+        FilteredActorNames::new(track.actors.iter(), ActorRole::MixEngineer),
     );
     export_filtered_actor_names(
         writer,
         DJMIXER_KEY.into(),
-        FilteredActorNames::new(track.actors.iter(), ActorRole::DjMixer),
+        FilteredActorNames::new(track.actors.iter(), ActorRole::MixDj),
     );
     export_filtered_actor_names(
         writer,

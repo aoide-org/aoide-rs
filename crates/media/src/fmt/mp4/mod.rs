@@ -319,7 +319,7 @@ impl Metadata {
             push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
         }
         for name in mp4_tag.take_strings_of(&IDENT_MIXER) {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name);
+            push_next_actor_role_name(&mut track_actors, ActorRole::MixEngineer, name);
         }
         for name in mp4_tag.take_strings_of(&IDENT_ENGINEER) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name);
@@ -749,7 +749,7 @@ pub fn export_track_to_path(
     export_filtered_actor_names(
         &mut mp4_tag,
         IDENT_MIXER,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Mixer),
+        FilteredActorNames::new(track.actors.iter(), ActorRole::MixEngineer),
     );
     export_filtered_actor_names(
         &mut mp4_tag,

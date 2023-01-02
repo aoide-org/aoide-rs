@@ -228,12 +228,12 @@ impl Metadata {
         }
         if let Some(mixers) = metaflac_tag.get_vorbis(MIXER_KEY) {
             for name in mixers {
-                push_next_actor_role_name_from(&mut track_actors, ActorRole::Mixer, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::MixEngineer, name);
             }
         }
         if let Some(mixers) = metaflac_tag.get_vorbis(DJMIXER_KEY) {
             for name in mixers {
-                push_next_actor_role_name_from(&mut track_actors, ActorRole::DjMixer, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::MixDj, name);
             }
         }
         if let Some(engineers) = metaflac_tag.get_vorbis(ENGINEER_KEY) {
