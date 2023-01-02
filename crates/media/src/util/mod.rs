@@ -224,7 +224,7 @@ pub fn format_valid_replay_gain(loudness: LoudnessLufs) -> Option<String> {
         let mut importer = Importer::new();
         debug_assert_eq!(
             Some(db2lufs(replay_gain_db)),
-            importer.import_replay_gain(&formatted)
+            importer.import_loudness_from_replay_gain(&formatted)
         );
         debug_assert!(importer.finish().into_messages().is_empty());
         formatted

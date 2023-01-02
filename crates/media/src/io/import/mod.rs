@@ -480,7 +480,7 @@ impl Importer {
     }
 
     #[must_use]
-    pub fn import_replay_gain(&mut self, input: &str) -> Option<LoudnessLufs> {
+    pub fn import_loudness_from_replay_gain(&mut self, input: &str) -> Option<LoudnessLufs> {
         let input = trim_readable(input);
         if input.is_empty() {
             return None;

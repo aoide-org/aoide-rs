@@ -167,7 +167,7 @@ fn first_extended_text<'a>(tag: &'a id3::Tag, description: &'a str) -> Option<&'
 
 pub fn import_loudness(importer: &mut Importer, tag: &id3::Tag) -> Option<LoudnessLufs> {
     first_extended_text(tag, "REPLAYGAIN_TRACK_GAIN")
-        .and_then(|text| importer.import_replay_gain(text))
+        .and_then(|text| importer.import_loudness_from_replay_gain(text))
 }
 
 #[must_use]

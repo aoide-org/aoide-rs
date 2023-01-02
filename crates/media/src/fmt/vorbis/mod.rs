@@ -288,7 +288,7 @@ pub fn import_loudness(
 ) -> Option<LoudnessLufs> {
     reader
         .read_first_value("REPLAYGAIN_TRACK_GAIN")
-        .and_then(|value| importer.import_replay_gain(value))
+        .and_then(|value| importer.import_loudness_from_replay_gain(value))
 }
 
 fn export_loudness(writer: &mut impl CommentWriter, loudness: Option<LoudnessLufs>) {

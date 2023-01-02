@@ -203,7 +203,7 @@ impl Metadata {
         let loudness = mp4_tag
             .strings_of(&IDENT_REPLAYGAIN_TRACK_GAIN)
             .next()
-            .and_then(|input| importer.import_replay_gain(input));
+            .and_then(|input| importer.import_loudness_from_replay_gain(input));
         let encoder = mp4_tag
             .take_encoder()
             .and_then(trimmed_non_empty_from_owned)
