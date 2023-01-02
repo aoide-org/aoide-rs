@@ -64,6 +64,7 @@ aoide-websrv-warp-sqlite = { path = "crates/websrv-warp-sqlite" }
 #semval = { git = "https://github.com/slowtec/semval", branch = "main" }
 #mpeg-audio-header = { git = "https://github.com/uklotzde/mpeg-audio-header", branch = "main" }
 #discro = { git = "https://github.com/uklotzde/discro", branch = "main" }
+lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
 
 [profile.dev]
 opt-level = 2

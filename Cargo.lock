@@ -227,6 +227,7 @@ dependencies = [
  "id3",
  "image",
  "lewton",
+ "lofty",
  "log",
  "metaflac",
  "mime",
@@ -2225,6 +2226,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "lofty"
+version = "0.10.0"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#366d6eb716569f0a98ef350d52f3e281e6f04e07"
+dependencies = [
+ "base64 0.20.0",
+ "byteorder",
+ "cfg-if",
+ "flate2",
+ "lofty_attr",
+ "log",
+ "ogg_pager",
+ "once_cell",
+ "paste",
+]
+
+[[package]]
+name = "lofty_attr"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02f2d46cb443ab8285492be02e5dda3e3a3f39f07cd50e5655069567e67a7de2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "log"
 version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2701,6 +2729,15 @@ name = "ogg"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6951b4e8bf21c8193da321bcce9c9dd2e13c858fe078bf9054a288b419ae5d6e"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
+name = "ogg_pager"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a05065bb6e0b933aef28cae4c5469b85011aa0d0285bd5fe3f568bed1f1a1bc"
 dependencies = [
  "byteorder",
 ]

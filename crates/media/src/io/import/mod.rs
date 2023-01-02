@@ -3,6 +3,7 @@
 
 use std::{borrow::Cow, result::Result as StdResult};
 
+use lofty::FileType;
 use semval::IsValid as _;
 
 use aoide_core::{
@@ -28,8 +29,7 @@ use crate::{
     util::{
         db2lufs,
         digest::MediaDigest,
-        guess_mime_from_path, parse_index_numbers, parse_key_signature, parse_replay_gain_db,
-        parse_year_tag,
+        parse_index_numbers, parse_key_signature, parse_replay_gain_db, parse_year_tag,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         trim_readable,
     },
@@ -39,8 +39,7 @@ use crate::{
 use bitflags::bitflags;
 use mime::Mime;
 use std::{
-    fs::File,
-    io::{BufReader, Read, Seek},
+    io::{Read, Seek},
     path::Path,
 };
 
@@ -166,7 +165,7 @@ pub struct Issues {
 
 impl Issues {
     #[must_use]
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             messages: Vec::new(),
         }
@@ -191,47 +190,96 @@ impl Issues {
     }
 }
 
-#[allow(unused_mut)]
 pub fn import_into_track(
-    #[allow(unused)] reader: &mut Box<dyn Reader>,
+    reader: &mut Box<dyn Reader>,
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<Issues> {
+    let probe = lofty::Probe::new(reader).guess_file_type()?;
+    let Some(file_type) = probe.file_type() else {
+        log::debug!(
+            "Skipping import of track {media_source_content_link:?}: {config:?}",
+            media_source_content_link = track.media_source.content.link
+        );
+        return Err(Error::UnsupportedContentType(
+            track.media_source.content.r#type.to_owned(),
+        ));
+    };
     let mut importer = Importer::new();
-    match track.media_source.content.r#type.essence_str() {
-        #[cfg(feature = "fmt-flac")]
-        "audio/flac" => crate::fmt::flac::Metadata::read_from(reader)
-            .and_then(|metadata| metadata.import_into_track(&mut importer, config, track)),
-        #[cfg(feature = "fmt-mp3")]
-        "audio/mpeg" => crate::fmt::mp3::MetadataExt::read_from(reader)
-            .and_then(|metadata_ext| metadata_ext.import_into_track(&mut importer, config, track)),
-        #[cfg(feature = "fmt-mp4")]
-        "audio/m4a" | "video/mp4" => crate::fmt::mp4::Metadata::read_from(reader)
-            .and_then(|metadata| metadata.import_into_track(&mut importer, config, track)),
-        #[cfg(feature = "fmt-ogg")]
-        "audio/ogg" | "audio/vorbis" => crate::fmt::ogg::Metadata::read_from(reader)
-            .and_then(|metadata| metadata.import_into_track(&mut importer, config, track)),
-        #[cfg(feature = "fmt-opus")]
-        "audio/opus" => crate::fmt::opus::Metadata::read_from(reader)
-            .and_then(|metadata| metadata.import_into_track(&mut importer, config, track)),
+    match file_type {
+        FileType::AIFF => {
+            let reader = probe.into_inner();
+            let aiff_file = lofty::AudioFile::read_from(reader, Default::default())
+                .map_err(anyhow::Error::from)?;
+            crate::fmt::lofty::aiff::import_file_into_track(
+                &mut importer,
+                config,
+                aiff_file,
+                track,
+            )?;
+        }
+        FileType::FLAC => {
+            let reader = probe.into_inner();
+            let flac_file = lofty::AudioFile::read_from(reader, Default::default())
+                .map_err(anyhow::Error::from)?;
+            crate::fmt::lofty::flac::import_file_into_track(
+                &mut importer,
+                config,
+                flac_file,
+                track,
+            )?;
+        }
+        FileType::MP4 => {
+            let reader = probe.into_inner();
+            let mp4_file = lofty::AudioFile::read_from(reader, Default::default())
+                .map_err(anyhow::Error::from)?;
+            crate::fmt::lofty::mp4::import_file_into_track(&mut importer, config, mp4_file, track)?;
+        }
+        FileType::MPEG => {
+            let reader = probe.into_inner();
+            let mpeg_file = lofty::AudioFile::read_from(reader, Default::default())
+                .map_err(anyhow::Error::from)?;
+            crate::fmt::lofty::mpeg::import_file_into_track(
+                &mut importer,
+                config,
+                mpeg_file,
+                track,
+            )?;
+        }
+        FileType::Opus => {
+            let reader = probe.into_inner();
+            let opus_file = lofty::AudioFile::read_from(reader, Default::default())
+                .map_err(anyhow::Error::from)?;
+            crate::fmt::lofty::opus::import_file_into_track(
+                &mut importer,
+                config,
+                opus_file,
+                track,
+            )?;
+        }
+        FileType::Vorbis => {
+            let reader = probe.into_inner();
+            let vorbis_file = lofty::AudioFile::read_from(reader, Default::default())
+                .map_err(anyhow::Error::from)?;
+            crate::fmt::lofty::ogg::import_file_into_track(
+                &mut importer,
+                config,
+                vorbis_file,
+                track,
+            )?;
+        }
         _ => {
-            log::debug!(
-                "Skipping import of track {media_source_content_link:?}: {config:?}",
-                media_source_content_link = track.media_source.content.link
-            );
-            Err(Error::UnsupportedContentType(
-                track.media_source.content.r#type.to_owned(),
-            ))
+            // Generic fallback
+            let tagged_file = probe.read().map_err(anyhow::Error::from)?;
+            crate::fmt::lofty::import_tagged_file_into_track(
+                &mut importer,
+                config,
+                tagged_file,
+                track,
+            )?;
         }
     }
-    .map(move |()| importer.finish())
-    .map_err(|err| {
-        log::warn!(
-            "Failed to parse metadata from media source '{}': {err}",
-            track.media_source.content.link.path,
-        );
-        err
-    })
+    Ok(importer.finish())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -256,92 +304,26 @@ fn parse_media_type(media_type: &str) -> Result<Mime> {
         .map_err(Into::into)
 }
 
-#[allow(unused_mut)]
 pub fn load_embedded_artwork_image_from_file_path(
-    #[allow(unused)] importer: &mut Importer,
     file_path: &Path,
 ) -> Result<Option<LoadedArtworkImage>> {
-    let file = File::open(file_path)?;
-    let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
-    let mime = guess_mime_from_path(file_path)?;
-    match mime.as_ref() {
-        #[cfg(feature = "fmt-flac")]
-        "audio/flac" => crate::fmt::flac::Metadata::read_from(&mut reader).and_then(|metadata| {
-            metadata
-                .find_embedded_artwork_image()
-                .map(|(apic_type, media_type, image_data)| {
-                    Ok(LoadedArtworkImage {
-                        apic_type: Some(apic_type),
-                        media_type: parse_media_type(media_type)?,
-                        image_data: image_data.to_owned(),
-                    })
-                })
-                .transpose()
-        }),
-        #[cfg(feature = "fmt-mp3")]
-        "audio/mpeg" => crate::fmt::mp3::Metadata::read_from(&mut reader).and_then(|metadata| {
-            metadata
-                .as_ref()
-                .and_then(crate::fmt::mp3::Metadata::find_embedded_artwork_image)
-                .map(|(apic_type, media_type, image_data)| {
-                    Ok(LoadedArtworkImage {
-                        apic_type: Some(apic_type),
-                        media_type: parse_media_type(media_type)?,
-                        image_data: image_data.to_owned(),
-                    })
-                })
-                .transpose()
-        }),
-        #[cfg(feature = "fmt-mp4")]
-        "audio/m4a" | "video/mp4" => {
-            crate::fmt::mp4::Metadata::read_from(&mut reader).and_then(|metadata| {
-                metadata
-                    .find_embedded_artwork_image()
-                    .map(|(apic_type, image_format, image_data)| {
-                        let media_type = crate::util::media_type_from_image_format(image_format)?;
-                        Ok(LoadedArtworkImage {
-                            apic_type: Some(apic_type),
-                            media_type,
-                            image_data: image_data.to_owned(),
-                        })
-                    })
-                    .transpose()
-            })
-        }
-        #[cfg(feature = "fmt-ogg")]
-        "audio/ogg" | "audio/vorbis" => {
-            crate::fmt::ogg::Metadata::read_from(&mut reader).and_then(|metadata| {
-                metadata
-                    .find_embedded_artwork_image(importer)
-                    .map(|(apic_type, media_type, image_data)| {
-                        let media_type = parse_media_type(&media_type)?;
-                        Ok(LoadedArtworkImage {
-                            apic_type: Some(apic_type),
-                            media_type,
-                            image_data,
-                        })
-                    })
-                    .transpose()
-            })
-        }
-        #[cfg(feature = "fmt-opus")]
-        "audio/opus" => crate::fmt::opus::Metadata::read_from(&mut reader).and_then(|metadata| {
-            metadata
-                .find_embedded_artwork_image(importer)
-                .map(|(apic_type, media_type, image_data)| {
-                    let media_type = parse_media_type(&media_type)?;
-                    Ok(LoadedArtworkImage {
-                        apic_type: Some(apic_type),
-                        media_type,
-                        image_data,
-                    })
-                })
-                .transpose()
-        }),
-        _ => {
-            drop(reader); // Suppress unused warning
-            Err(Error::UnsupportedContentType(mime))
-        }
+    let tag = {
+        let mut tagged_file = lofty::read_from_path(file_path).map_err(anyhow::Error::from)?;
+        crate::fmt::lofty::take_primary_or_first_tag(&mut tagged_file)
+    };
+    if let Some((apic_type, media_type, image_data)) = tag
+        .as_ref()
+        .and_then(crate::fmt::lofty::find_embedded_artwork_image)
+    {
+        let media_type = parse_media_type(media_type)?;
+        let loaded_artwork_image = LoadedArtworkImage {
+            apic_type: Some(apic_type),
+            media_type,
+            image_data: image_data.to_owned(),
+        };
+        Ok(Some(loaded_artwork_image))
+    } else {
+        Ok(None)
     }
 }
 
