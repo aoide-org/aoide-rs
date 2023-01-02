@@ -45,7 +45,7 @@ pub struct Outcome {
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_from_file_path<Repo>(
+pub fn import_and_replace_from_file_path<Repo, InterceptImportedTrackFn>(
     summary: &mut Summary,
     visited_media_source_ids: &mut Vec<MediaSourceId>,
     imported_media_sources_with_issues: &mut Vec<(MediaSourceId, ContentPath, Issues)>,
@@ -54,9 +54,11 @@ pub fn import_and_replace_from_file_path<Repo>(
     content_path_resolver: &VirtualFilePathResolver,
     content_path: ContentPath,
     params: &Params,
+    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
 ) -> Result<Vec<TrackInvalidity>>
 where
     Repo: TrackCollectionRepo,
+    InterceptImportedTrackFn: FnMut(Track) -> Track,
 {
     let (media_source_id, external_rev, synchronized_rev, entity_body) = repo
         .load_track_entity_by_media_source_content_path(collection_id, &content_path)
@@ -105,6 +107,7 @@ where
             } else {
                 imported_track
             };
+            let track = intercept_imported_track_fn(track);
             let (track, invalidities_from_input_validation) = validate_input(track)?;
             invalidities = invalidities_from_input_validation;
             if !invalidities.is_empty() {
@@ -177,16 +180,18 @@ pub struct Params {
     pub replace_mode: ReplaceMode,
 }
 
-pub fn import_and_replace_many_by_local_file_path<Repo>(
+pub fn import_and_replace_many_by_local_file_path<Repo, InterceptImportedTrackFn>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &Params,
     content_paths: impl IntoIterator<Item = ContentPath>,
     expected_content_path_count: Option<usize>,
+    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: CollectionRepo + TrackCollectionRepo,
+    InterceptImportedTrackFn: FnMut(Track) -> Track,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
@@ -220,6 +225,7 @@ where
             &vfs_ctx.path_resolver,
             content_path,
             params,
+            intercept_imported_track_fn,
         )?;
         if !invalidities.is_empty() {
             imported_media_sources_with_issues
@@ -239,15 +245,17 @@ where
 
 const EXPECTED_NUMBER_OF_DIR_ENTRIES: usize = 1024;
 
-pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
+pub fn import_and_replace_by_local_file_path_from_directory<Repo, InterceptImportedTrackFn>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,
-    params: &Params,
     source_dir_path: &str,
+    params: &Params,
+    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: CollectionRepo + TrackCollectionRepo,
+    InterceptImportedTrackFn: FnMut(Track) -> Track,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
@@ -261,20 +269,27 @@ where
         repo,
         collection_id,
         &vfs_ctx.path_resolver,
-        params,
         source_dir_path,
+        params,
+        intercept_imported_track_fn,
         abort_flag,
     )
 }
 
-pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
+pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_resolver<
+    InterceptImportedTrackFn,
+>(
     repo: &mut impl TrackCollectionRepo,
     collection_id: CollectionId,
     content_path_resolver: &VirtualFilePathResolver,
-    params: &Params,
     source_dir_path: &str,
+    params: &Params,
+    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
-) -> Result<Outcome> {
+) -> Result<Outcome>
+where
+    InterceptImportedTrackFn: FnMut(Track) -> Track,
+{
     let dir_path = content_path_resolver.build_file_path(source_dir_path);
     log::debug!("Importing files from directory: {}", dir_path.display());
     let dir_entries = read_dir(dir_path)?;
@@ -325,6 +340,7 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_re
             content_path_resolver,
             content_path,
             params,
+            intercept_imported_track_fn,
         )?;
     }
     Ok(Outcome {

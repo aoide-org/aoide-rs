@@ -72,6 +72,7 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
                 collection_uid,
                 &params,
                 import_config,
+                &mut std::convert::identity,
                 report_progress_fn,
                 abort_flag,
             )

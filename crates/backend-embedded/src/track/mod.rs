@@ -5,7 +5,7 @@ use diesel::Connection as _;
 
 use aoide_core::{
     media::content::ContentPath,
-    track::{Entity, EntityUid},
+    track::{Entity, EntityUid, Track},
 };
 
 use aoide_core_api::{track::find_unsynchronized::UnsynchronizedTrackEntity, Pagination};
@@ -204,26 +204,30 @@ where
         .unwrap_or_else(Err)
 }
 
-pub async fn import_and_replace_many_by_local_file_path<I>(
+pub async fn import_and_replace_many_by_local_file_path<ContentPathIter, InterceptImportedTrackFn>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,
     params: aoide_usecases::track::import_and_replace::Params,
-    content_path_iter: I,
+    content_path_iter: ContentPathIter,
     expected_content_path_count: Option<usize>,
+    intercept_imported_track_fn: InterceptImportedTrackFn,
 ) -> Result<aoide_usecases::track::import_and_replace::Outcome>
 where
-    I: IntoIterator<Item = ContentPath> + Send + 'static,
+    ContentPathIter: IntoIterator<Item = ContentPath> + Send + 'static,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + 'static,
 {
     db_gatekeeper
     .spawn_blocking_write_task(move |mut pooled_connection, abort_flag| {
         let connection = &mut *pooled_connection;
         connection.transaction::<_, Error, _>(|connection| {
+            let mut intercept_imported_track_fn = intercept_imported_track_fn;
         aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path(
             connection,
             &collection_uid,
-            &params,
             content_path_iter,
             expected_content_path_count,
+            &params,
+            &mut intercept_imported_track_fn,
             &abort_flag,
         )
         })

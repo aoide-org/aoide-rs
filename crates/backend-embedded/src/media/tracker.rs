@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::track::Track;
 use diesel::Connection as _;
 
 use aoide_media::io::import::ImportTrackConfig;
@@ -79,18 +80,22 @@ pub async fn untrack_directories(
         .unwrap_or_else(Err)
 }
 
-pub async fn import_files<P>(
+pub async fn import_files<InterceptImportedTrackFn, ReportProgressFn>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,
     params: aoide_core_api::media::tracker::import_files::Params,
     import_config: ImportTrackConfig,
-    report_progress_fn: P,
+    intercept_imported_track_fn: InterceptImportedTrackFn,
+    report_progress_fn: ReportProgressFn,
 ) -> Result<aoide_core_api::media::tracker::import_files::Outcome>
 where
-    P: FnMut(aoide_usecases::media::tracker::import_files::ProgressEvent) + Send + 'static,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + 'static,
+    ReportProgressFn:
+        FnMut(aoide_usecases::media::tracker::import_files::ProgressEvent) + Send + 'static,
 {
     db_gatekeeper
         .spawn_blocking_write_task(move |mut pooled_connection, abort_flag| {
+            let mut intercept_imported_track_fn = intercept_imported_track_fn;
             let mut report_progress_fn = report_progress_fn;
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
@@ -99,6 +104,7 @@ where
                     &collection_uid,
                     &params,
                     import_config,
+                    &mut intercept_imported_track_fn,
                     &mut report_progress_fn,
                     &abort_flag,
                 )

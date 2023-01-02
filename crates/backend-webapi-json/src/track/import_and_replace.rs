@@ -163,9 +163,10 @@ pub fn handle_request(
             uc::import_and_replace_many_by_local_file_path(
                 connection,
                 collection_uid,
-                &params,
                 request_body.into_iter().map(Into::into),
                 Some(expected_content_path_count),
+                &params,
+                &mut std::convert::identity,
                 abort_flag,
             )
             .map_err(Into::into)

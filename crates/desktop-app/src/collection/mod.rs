@@ -569,6 +569,7 @@ where
         handle.db_gatekeeper(),
         entity_uid,
         params,
+        std::convert::identity,
         report_progress_fn,
     )
     .await

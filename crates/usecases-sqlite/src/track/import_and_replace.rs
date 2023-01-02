@@ -16,14 +16,18 @@ mod uc {
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_many_by_local_file_path(
+pub fn import_and_replace_many_by_local_file_path<InterceptImportedTrackFn>(
     connection: &mut DbConnection,
     collection_uid: &CollectionUid,
-    params: &uc::Params,
     content_path_iter: impl IntoIterator<Item = ContentPath>,
     expected_content_path_count: impl Into<Option<usize>>,
+    params: &uc::Params,
+    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
-) -> Result<uc::Outcome> {
+) -> Result<uc::Outcome>
+where
+    InterceptImportedTrackFn: FnMut(Track) -> Track,
+{
     let mut repo = RepoConnection::new(connection);
     uc::import_and_replace_many_by_local_file_path(
         &mut repo,
@@ -31,24 +35,30 @@ pub fn import_and_replace_many_by_local_file_path(
         params,
         content_path_iter,
         expected_content_path_count.into(),
+        intercept_imported_track_fn,
         abort_flag,
     )
     .map_err(Into::into)
 }
 
-pub fn import_and_replace_by_local_file_path_from_directory(
+pub fn import_and_replace_by_local_file_path_from_directory<InterceptImportedTrackFn>(
     connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     params: &uc::Params,
     source_dir_path: &str,
+    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
-) -> Result<uc::Outcome> {
+) -> Result<uc::Outcome>
+where
+    InterceptImportedTrackFn: FnMut(Track) -> Track,
+{
     let mut repo = RepoConnection::new(connection);
     uc::import_and_replace_by_local_file_path_from_directory(
         &mut repo,
         collection_uid,
-        params,
         source_dir_path,
+        params,
+        intercept_imported_track_fn,
         abort_flag,
     )
     .map_err(Into::into)

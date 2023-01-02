@@ -3,7 +3,7 @@
 
 use aoide_media::io::import::ImportTrackConfig;
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core::{track::Track, util::url::BaseUrl};
 
 use aoide_core_api::{
     filtering::StringPredicate,
@@ -80,14 +80,16 @@ pub enum Progress {
     Step7FindUnsynchronizedTracks,
 }
 
-pub async fn rescan_collection_vfs<P>(
+pub async fn rescan_collection_vfs<InterceptImportedTrackFn, ReportProgressFn>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,
     params: Params,
-    mut report_progress_fn: P,
+    intercept_imported_track_fn: InterceptImportedTrackFn,
+    mut report_progress_fn: ReportProgressFn,
 ) -> Result
 where
-    P: FnMut(Progress) + Clone + Send + 'static,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Clone + Send + 'static,
+    ReportProgressFn: FnMut(Progress) + Clone + Send + 'static,
 {
     let Params {
         root_url,
@@ -155,6 +157,7 @@ where
             collection_uid.clone(),
             import_files_params,
             import_track_config,
+            intercept_imported_track_fn,
             move |event| report_progress_fn(Progress::Step3ImportFiles(event)),
         )
         .await?;

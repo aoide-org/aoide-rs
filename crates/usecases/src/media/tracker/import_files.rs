@@ -40,17 +40,20 @@ pub struct ProgressEvent {
     pub summary: Summary,
 }
 
-pub fn import_files<
-    Repo: CollectionRepo + MediaTrackerRepo + TrackCollectionRepo,
-    ReportProgressFn: FnMut(ProgressEvent),
->(
+pub fn import_files<Repo, InterceptImportedTrackFn, ReportProgressFn>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &Params,
     import_config: ImportTrackConfig,
+    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
-) -> Result<Outcome> {
+) -> Result<Outcome>
+where
+    Repo: CollectionRepo + MediaTrackerRepo + TrackCollectionRepo,
+    InterceptImportedTrackFn: FnMut(Track) -> Track,
+    ReportProgressFn: FnMut(ProgressEvent),
+{
     let Params {
         root_url,
         sync_mode,
@@ -128,8 +131,9 @@ pub fn import_files<
                     repo,
                     collection_id,
                     &vfs_ctx.path_resolver,
-                    &import_and_replace_params,
                     &dir_path,
+                    &import_and_replace_params,
+                    intercept_imported_track_fn,
                     abort_flag,
                 ) {
                     Ok(outcome) => outcome,
