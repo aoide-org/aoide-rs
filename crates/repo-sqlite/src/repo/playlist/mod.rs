@@ -142,9 +142,17 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         >,
     ) -> RepoResult<()> {
         let mut target = playlist::table
-            .filter(playlist::collection_id.eq(collection_id.map(RowId::from)))
             .order_by(playlist::row_updated_ms.desc())
             .into_boxed();
+
+        // Collection
+        // Note: playlist::collection_id.eq(None) does not match NULL!
+        // <https://github.com/diesel-rs/diesel/issues/1306>
+        if let Some(collection_id) = collection_id {
+            target = target.filter(playlist::collection_id.eq(Some(RowId::from(collection_id))));
+        } else {
+            target = target.filter(playlist::collection_id.is_null());
+        }
 
         // Kind
         if let Some(kind) = kind {
