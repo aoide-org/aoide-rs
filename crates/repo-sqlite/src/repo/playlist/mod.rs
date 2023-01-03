@@ -120,7 +120,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 impl<'db> CollectionRepo for crate::Connection<'db> {
     fn insert_playlist_entity(
         &mut self,
-        collection_id: CollectionId,
+        collection_id: Option<CollectionId>,
         created_at: DateTime,
         created_entity: &Entity,
     ) -> RepoResult<RecordId> {
@@ -133,7 +133,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
 
     fn load_playlist_entities_with_entries_summary(
         &mut self,
-        collection_id: CollectionId,
+        collection_id: Option<CollectionId>,
         kind: Option<&str>,
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<
@@ -142,7 +142,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         >,
     ) -> RepoResult<()> {
         let mut target = playlist::table
-            .filter(playlist::collection_id.eq(RowId::from(collection_id)))
+            .filter(playlist::collection_id.eq(collection_id.map(RowId::from)))
             .order_by(playlist::row_updated_ms.desc())
             .into_boxed();
 

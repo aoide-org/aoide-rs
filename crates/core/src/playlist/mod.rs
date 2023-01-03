@@ -153,9 +153,6 @@ impl Validate for Flags {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Playlist {
-    /// Playlists always belong to a collection.
-    pub collected_at: DateTime,
-
     /// Mandatory name.
     pub title: String,
 

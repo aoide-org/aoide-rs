@@ -831,23 +831,20 @@ pub(crate) fn create_filters(
         .or(tracks_load_one)
         .or(tracks_export_metadata);
 
-    let collected_playlists_create = warp::post()
-        .and(collections_path)
-        .and(path_param_collection_uid)
+    let playlists_create = warp::post()
         .and(playlists_path)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |collection_uid,
-                  request_body,
+            move |request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
                 websrv::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |mut pooled_connection, _abort_flag| {
                         api::playlist::create::handle_request(
                             &mut pooled_connection,
-                            &collection_uid,
+                            None,
                             request_body,
                         )
                     },
@@ -858,23 +855,20 @@ pub(crate) fn create_filters(
                 })
             },
         );
-    let collected_playlists_list = warp::get()
-        .and(collections_path)
-        .and(path_param_collection_uid)
+    let playlists_list = warp::get()
         .and(playlists_path)
         .and(warp::path::end())
         .and(warp::query())
         .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |collection_uid,
-                  query_params,
+            move |query_params,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
                 websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |mut pooled_connection, _abort_flag| {
                         api::playlist::load::handle_request(
                             &mut pooled_connection,
-                            &collection_uid,
+                            None,
                             query_params,
                         )
                     },
@@ -883,8 +877,6 @@ pub(crate) fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let collected_playlists_filters = collected_playlists_list.or(collected_playlists_create);
-
     let playlists_update = warp::put()
         .and(playlists_path)
         .and(path_param_playlist_uid)
@@ -957,9 +949,65 @@ pub(crate) fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let playlists_filters = playlists_update
+    let playlists_filters = playlists_create
+        .or(playlists_update)
         .or(playlists_delete)
+        .or(playlists_list)
         .or(playlists_entries_patch);
+
+    let collected_playlists_create = warp::post()
+        .and(collections_path)
+        .and(path_param_collection_uid)
+        .and(playlists_path)
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(shared_connection_gatekeeper.clone())
+        .and_then(
+            move |collection_uid,
+                  request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                websrv::spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |mut pooled_connection, _abort_flag| {
+                        api::playlist::create::handle_request(
+                            &mut pooled_connection,
+                            Some(&collection_uid),
+                            request_body,
+                        )
+                    },
+                )
+                .await
+                .map(|response_body| {
+                    warp::reply::with_status(warp::reply::json(&response_body), StatusCode::CREATED)
+                })
+            },
+        );
+    let collected_playlists_list = warp::get()
+        .and(collections_path)
+        .and(path_param_collection_uid)
+        .and(playlists_path)
+        .and(warp::path::end())
+        .and(warp::query())
+        .and(shared_connection_gatekeeper.clone())
+        .and_then(
+            move |collection_uid,
+                  query_params,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                websrv::spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |mut pooled_connection, _abort_flag| {
+                        api::playlist::load::handle_request(
+                            &mut pooled_connection,
+                            Some(&collection_uid),
+                            query_params,
+                        )
+                    },
+                )
+                .await
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
+    let collected_playlists_filters = collected_playlists_create.or(collected_playlists_list);
 
     // Storage
     let storage_get_pending_tasks = warp::get()

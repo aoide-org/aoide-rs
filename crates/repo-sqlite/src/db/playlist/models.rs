@@ -23,9 +23,7 @@ pub struct QueryableRecord {
     pub row_updated_ms: TimestampMillis,
     pub entity_uid: String,
     pub entity_rev: i64,
-    pub collection_id: RowId,
-    pub collected_at: String,
-    pub collected_ms: TimestampMillis,
+    pub collection_id: Option<RowId>,
     pub title: String,
     pub kind: Option<String>,
     pub notes: Option<String>,
@@ -34,7 +32,7 @@ pub struct QueryableRecord {
     pub flags: i16,
 }
 
-impl From<QueryableRecord> for (RecordHeader, CollectionId, Entity) {
+impl From<QueryableRecord> for (RecordHeader, Option<CollectionId>, Entity) {
     fn from(from: QueryableRecord) -> Self {
         let QueryableRecord {
             id,
@@ -43,8 +41,6 @@ impl From<QueryableRecord> for (RecordHeader, CollectionId, Entity) {
             entity_uid,
             entity_rev,
             collection_id,
-            collected_at,
-            collected_ms,
             title,
             kind,
             notes,
@@ -57,10 +53,9 @@ impl From<QueryableRecord> for (RecordHeader, CollectionId, Entity) {
             created_at: DateTime::new_timestamp_millis(row_created_ms),
             updated_at: DateTime::new_timestamp_millis(row_updated_ms),
         };
-        let collection_id = collection_id.into();
+        let collection_id = collection_id.map(Into::into);
         let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
         let entity_body = Playlist {
-            collected_at: parse_datetime(&collected_at, collected_ms),
             title,
             kind,
             notes,
@@ -89,9 +84,7 @@ pub struct InsertableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub entity_uid: String,
     pub entity_rev: i64,
-    pub collection_id: RowId,
-    pub collected_at: String,
-    pub collected_ms: TimestampMillis,
+    pub collection_id: Option<RowId>,
     pub title: &'a str,
     pub kind: Option<&'a str>,
     pub notes: Option<&'a str>,
@@ -101,12 +94,15 @@ pub struct InsertableRecord<'a> {
 }
 
 impl<'a> InsertableRecord<'a> {
-    pub fn bind(collection_id: CollectionId, created_at: DateTime, entity: &'a Entity) -> Self {
+    pub fn bind(
+        collection_id: Option<CollectionId>,
+        created_at: DateTime,
+        entity: &'a Entity,
+    ) -> Self {
         let row_created_updated_ms = created_at.timestamp_millis();
         let (hdr, body) = entity.into();
         let EntityHeaderTyped { uid, rev } = hdr;
         let Playlist {
-            collected_at,
             title,
             kind,
             notes,
@@ -118,9 +114,7 @@ impl<'a> InsertableRecord<'a> {
             row_updated_ms: row_created_updated_ms,
             entity_uid: entity_uid_to_sql(uid),
             entity_rev: entity_revision_to_sql(*rev),
-            collection_id: collection_id.into(),
-            collected_at: collected_at.to_string(),
-            collected_ms: collected_at.timestamp_millis(),
+            collection_id: collection_id.map(Into::into),
             title,
             kind: kind.as_deref(),
             notes: notes.as_deref(),
@@ -161,8 +155,6 @@ impl TouchableRecord {
 pub struct UpdatableRecord<'a> {
     pub row_updated_ms: TimestampMillis,
     pub entity_rev: i64,
-    pub collected_at: String,
-    pub collected_ms: TimestampMillis,
     pub title: &'a str,
     pub kind: Option<&'a str>,
     pub notes: Option<&'a str>,
@@ -175,7 +167,6 @@ impl<'a> UpdatableRecord<'a> {
     pub fn bind(updated_at: DateTime, next_rev: EntityRevision, playlist: &'a Playlist) -> Self {
         let entity_rev = entity_revision_to_sql(next_rev);
         let Playlist {
-            collected_at,
             title,
             kind,
             notes,
@@ -185,8 +176,6 @@ impl<'a> UpdatableRecord<'a> {
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             entity_rev,
-            collected_at: collected_at.to_string(),
-            collected_ms: collected_at.timestamp_millis(),
             title,
             kind: kind.as_deref(),
             notes: notes.as_deref(),

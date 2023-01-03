@@ -18,7 +18,7 @@ pub fn load_entity_with_entries(
 
 pub fn load_entities_with_entries_summary(
     connection: &mut DbConnection,
-    collection_uid: &CollectionUid,
+    collection_uid: Option<&CollectionUid>,
     kind: Option<&str>,
     pagination: Option<&Pagination>,
     collector: &mut impl ReservableRecordCollector<
@@ -27,7 +27,9 @@ pub fn load_entities_with_entries_summary(
     >,
 ) -> Result<()> {
     let mut repo = RepoConnection::new(connection);
-    let collection_id = repo.resolve_collection_id(collection_uid)?;
+    let collection_id = collection_uid
+        .map(|uid| repo.resolve_collection_id(uid))
+        .transpose()?;
     repo.load_playlist_entities_with_entries_summary(collection_id, kind, pagination, collector)
         .map_err(Into::into)
 }

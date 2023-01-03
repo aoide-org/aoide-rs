@@ -37,13 +37,15 @@ pub fn create_entity(new_playlist: Playlist) -> Result<Entity> {
 
 pub fn store_created_entity<Repo>(
     repo: &mut Repo,
-    collection_uid: &CollectionUid,
+    collection_uid: Option<&CollectionUid>,
     entity: &Entity,
 ) -> RepoResult<()>
 where
     Repo: CollectionRepo + PlaylistCollectionRepo,
 {
-    let collection_id = repo.resolve_collection_id(collection_uid)?;
+    let collection_id = collection_uid
+        .map(|uid| repo.resolve_collection_id(uid))
+        .transpose()?;
     let created_at = DateTime::now_utc();
     repo.insert_playlist_entity(collection_id, created_at, entity)?;
     Ok(())

@@ -41,7 +41,7 @@ pub async fn load_one(
 /// Load a multiple entities, each with a summary of their entries
 pub async fn load_all(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: CollectionUid,
+    collection_uid: Option<CollectionUid>,
     kind: Option<String>,
     pagination: Option<Pagination>,
 ) -> Result<Vec<EntityWithEntriesSummary>> {
@@ -59,7 +59,7 @@ pub async fn load_all(
 /// Load a multiple entities, each with a summary of their entries
 pub async fn load_all_collecting<C>(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: CollectionUid,
+    collection_uid: Option<CollectionUid>,
     kind: Option<String>,
     pagination: Option<Pagination>,
     collector: C,
@@ -76,7 +76,7 @@ where
                 let mut collector = collector;
                 aoide_usecases_sqlite::playlist::load::load_entities_with_entries_summary(
                     connection,
-                    &collection_uid,
+                    collection_uid.as_ref(),
                     kind.as_deref(),
                     pagination.as_ref(),
                     &mut collector,
@@ -91,7 +91,7 @@ where
 
 pub async fn create(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: CollectionUid,
+    collection_uid: Option<CollectionUid>,
     new_playlist: Playlist,
 ) -> Result<Entity> {
     db_gatekeeper
@@ -100,7 +100,7 @@ pub async fn create(
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::playlist::create::create(
                     connection,
-                    &collection_uid,
+                    collection_uid.as_ref(),
                     new_playlist,
                 )
             })

@@ -11,7 +11,7 @@ pub type ResponseBody = Entity;
 
 pub fn handle_request(
     connection: &mut DbConnection,
-    collection_uid: &CollectionUid,
+    collection_uid: Option<&CollectionUid>,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     connection

@@ -12,10 +12,8 @@ CREATE TABLE IF NOT EXISTS playlist (
     -- entity header (mutable)
     entity_rev               INTEGER NOT NULL, -- RevisionNumber
     -- relations (immutable)
-    collection_id            INTEGER NOT NULL,
+    collection_id            INTEGER,
     -- properties (mutable)
-    collected_at             TEXT NOT NULL,
-    collected_ms             INTEGER NOT NULL,
     title                    TEXT NOT NULL,
     kind                     TEXT,
     notes                    TEXT,
@@ -24,6 +22,7 @@ CREATE TABLE IF NOT EXISTS playlist (
     flags                    INTEGER NOT NULL, -- bitmask of flags, e.g. locking to prevent unintended modifications
     --
     UNIQUE (entity_uid), -- only the last revision is stored
+    UNIQUE (collection_id, kind, title),
     FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE
 ) STRICT;
 
@@ -35,12 +34,6 @@ CREATE INDEX idx_playlist_row_created_ms_desc ON playlist (
 DROP INDEX IF EXISTS idx_playlist_row_updated_ms_desc;
 CREATE INDEX idx_playlist_row_updated_ms_desc ON playlist (
     row_updated_ms DESC
-);
-
-DROP INDEX IF EXISTS idx_playlist_collection_id_collected_ms_desc;
-CREATE INDEX idx_playlist_collection_id_collected_ms_desc ON playlist (
-    collection_id,
-    collected_ms DESC
 );
 
 DROP INDEX IF EXISTS idx_playlist_kind_title;

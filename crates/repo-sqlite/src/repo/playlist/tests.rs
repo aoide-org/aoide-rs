@@ -98,9 +98,7 @@ impl Fixture {
         db: &mut crate::Connection<'_>,
         track_count: usize,
     ) -> RepoResult<EntityWithEntries> {
-        let created_at = DateTime::now_local_or_utc();
         let playlist = Playlist {
-            collected_at: created_at,
             title: "Playlist".into(),
             notes: None,
             kind: None,
@@ -108,8 +106,11 @@ impl Fixture {
             flags: Default::default(),
         };
         let playlist_entity = Entity::new(EntityHeaderTyped::initial_random(), playlist);
-        let playlist_id =
-            db.insert_playlist_entity(self.collection_id, DateTime::now_utc(), &playlist_entity)?;
+        let playlist_id = db.insert_playlist_entity(
+            Some(self.collection_id),
+            DateTime::now_utc(),
+            &playlist_entity,
+        )?;
         let media_sources_and_tracks = self.create_media_sources_and_tracks(db, track_count)?;
         let mut playlist_entries = Vec::with_capacity(track_count);
         for (i, (_, _, track_uid)) in media_sources_and_tracks.into_iter().enumerate() {

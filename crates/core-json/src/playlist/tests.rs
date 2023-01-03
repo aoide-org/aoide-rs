@@ -18,7 +18,6 @@ fn deserialize_playlist() {
     let added_at2 = aoide_core::util::clock::DateTime::now_utc();
     let playlist = PlaylistWithEntries {
         playlist: Playlist {
-            collected_at: added_at1.into(),
             title: "Title".to_string(),
             kind: Some("Kind".to_string()),
             notes: None,
@@ -49,7 +48,6 @@ fn deserialize_playlist() {
         ],
     };
     let playlist_json = serde_json::json!({
-        "collectedAt": added_at1.to_string(),
         "title": playlist.playlist.title,
         "kind": playlist.playlist.kind,
         "entries": [

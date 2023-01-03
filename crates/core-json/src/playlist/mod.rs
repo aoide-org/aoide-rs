@@ -156,8 +156,6 @@ fn is_default_flags(flags: &u8) -> bool {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Playlist {
-    collected_at: DateTime,
-
     title: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -176,7 +174,6 @@ pub struct Playlist {
 impl From<Playlist> for _core::Playlist {
     fn from(from: Playlist) -> Self {
         let Playlist {
-            collected_at,
             title,
             kind,
             notes,
@@ -184,7 +181,6 @@ impl From<Playlist> for _core::Playlist {
             flags,
         } = from;
         Self {
-            collected_at: collected_at.into(),
             title,
             kind,
             notes,
@@ -197,7 +193,6 @@ impl From<Playlist> for _core::Playlist {
 impl From<_core::Playlist> for Playlist {
     fn from(from: _core::Playlist) -> Self {
         let _core::Playlist {
-            collected_at,
             title,
             kind,
             notes,
@@ -205,7 +200,6 @@ impl From<_core::Playlist> for Playlist {
             flags,
         } = from;
         Self {
-            collected_at: collected_at.into(),
             title,
             kind,
             notes,

@@ -28,7 +28,7 @@ pub type ResponseBody = Vec<EntityWithEntriesSummary>;
 
 pub fn handle_request(
     connection: &mut DbConnection,
-    collection_uid: &CollectionUid,
+    collection_uid: Option<&CollectionUid>,
     query_params: QueryParams,
 ) -> Result<ResponseBody> {
     let QueryParams {

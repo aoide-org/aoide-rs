@@ -702,9 +702,62 @@ paths:
       description: |
         Create a new playlist in a collection.
       tags:
-        - Playlists
+        - "Collections: Playlists"
       parameters:
         - $ref: "#/components/parameters/collectionUidPath"
+      requestBody:
+        description: |
+          Properties and entries of the new playlist.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Playlist"
+      responses:
+        "201":
+          description: |
+            The newly created playlist entity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
+
+  /api/p:
+    get:
+      summary: List global playlists that do not belong to a particular collection
+      description: |
+        Load global playlists that have recently been modified (created/updated).
+      tags:
+        - Playlists
+      parameters:
+        - $ref: "#/components/parameters/playlistKindQuery"
+        - $ref: "#/components/parameters/paginationOffsetQuery"
+        - $ref: "#/components/parameters/paginationLimitQuery"
+      responses:
+        "200":
+          description: |
+            An array of playlist entities with a summary of their
+            entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlaylistWithEntriesSummaryEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
+    post:
+      summary: Create a new, global playlist
+      description: |
+        Create a new global playlist that does not belong to a particular collection.
+      tags:
+        - Playlists
       requestBody:
         description: |
           Properties and entries of the new playlist.
@@ -2076,8 +2129,6 @@ components:
     Playlist:
       type: object
       properties:
-        collectedAt:
-          $ref: "#/components/schemas/DateTime"
         title:
           $ref: "#/components/schemas/PlaylistTitle"
         color:
@@ -2089,7 +2140,6 @@ components:
         flags:
           $ref: "#/components/schemas/PlaylistFlags"
       required:
-        - collectedAt
         - title
     PlaylistEntity:
       description: Entity header and body

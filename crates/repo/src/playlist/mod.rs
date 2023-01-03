@@ -36,14 +36,14 @@ pub trait EntityRepo: EntryRepo {
 pub trait CollectionRepo {
     fn insert_playlist_entity(
         &mut self,
-        collection_id: CollectionId,
+        collection_id: Option<CollectionId>,
         created_at: DateTime,
         created_entity: &Entity,
     ) -> RepoResult<RecordId>;
 
     fn load_playlist_entities_with_entries_summary(
         &mut self,
-        collection_id: CollectionId,
+        collection_id: Option<CollectionId>,
         kind: Option<&str>,
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<

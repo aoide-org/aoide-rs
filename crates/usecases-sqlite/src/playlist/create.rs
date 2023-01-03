@@ -5,7 +5,7 @@ use super::*;
 
 pub fn create(
     connection: &mut DbConnection,
-    collection_uid: &CollectionUid,
+    collection_uid: Option<&CollectionUid>,
     new_playlist: Playlist,
 ) -> Result<Entity> {
     let created_entity = uc::playlist::create_entity(new_playlist)?;

@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS playlist_entry (
     added_ms                 INTEGER NOT NULL,
     title                    TEXT,
     notes                    TEXT,
+    item_data                TEXT,
     --
     UNIQUE(playlist_id, ordering),
     FOREIGN KEY(playlist_id) REFERENCES playlist(row_id) ON DELETE CASCADE,
