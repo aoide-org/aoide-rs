@@ -62,7 +62,7 @@ pub struct FacetedTagMappingConfig(FacetedTagMappingConfigInner);
 
 impl FacetedTagMappingConfig {
     #[must_use]
-    pub const fn new(inner: FacetedTagMappingConfigInner) -> Self {
+    pub(crate) const fn new(inner: FacetedTagMappingConfigInner) -> Self {
         Self(inner)
     }
 }

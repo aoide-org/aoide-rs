@@ -41,7 +41,9 @@ use aoide_core::{
 use crate::{
     io::{
         export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
-        import::{ImportTrackConfig, ImportTrackFlags, Importer, Reader, TrackScope},
+        import::{
+            ImportTrackConfig, ImportTrackFlags, ImportedTempoBpm, Importer, Reader, TrackScope,
+        },
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from_owned,
@@ -267,25 +269,23 @@ impl Metadata {
                     Mp4AdvisoryRating::Explicit => AdvisoryRating::Explicit,
                 });
 
-        let mut tempo_bpm_non_fractional = false;
-        let tempo_bpm = mp4_tag
+        let imported_tempo_bpm = mp4_tag
             .strings_of(&IDENT_BPM)
             .flat_map(|input| importer.import_tempo_bpm(input))
             .next()
             .or_else(|| {
                 mp4_tag.bpm().and_then(|bpm| {
-                    tempo_bpm_non_fractional = true;
                     let bpm = TempoBpm::from_inner(bpm.into());
-                    bpm.is_valid().then_some(bpm)
+                    bpm.is_valid()
+                        .then_some(ImportedTempoBpm::NonFractional(bpm))
                 })
             });
-        if let Some(tempo_bpm) = tempo_bpm {
-            debug_assert!(tempo_bpm.is_valid());
-            track.metrics.tempo_bpm = Some(tempo_bpm);
+        if let Some(imported_tempo_bpm) = imported_tempo_bpm {
             track.metrics.flags.set(
                 MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
-                tempo_bpm_non_fractional,
+                imported_tempo_bpm.is_non_fractional(),
             );
+            track.metrics.tempo_bpm = Some(imported_tempo_bpm.into());
         } else {
             track.metrics.tempo_bpm = None;
         }

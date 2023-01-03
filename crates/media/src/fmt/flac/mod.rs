@@ -15,6 +15,7 @@ use aoide_core::{
     tag::TagsMap,
     track::{
         actor::Role as ActorRole,
+        metric::MetricsFlags,
         tag::{FACET_ID_COMMENT, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC, FACET_ID_MOOD},
         Track,
     },
@@ -184,7 +185,15 @@ impl Metadata {
 
         let Self(metaflac_tag) = &self;
 
-        track.metrics.tempo_bpm = vorbis::import_tempo_bpm(importer, metaflac_tag);
+        if let Some(imported_tempo_bpm) = vorbis::import_tempo_bpm(importer, metaflac_tag) {
+            track.metrics.flags.set(
+                MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
+                imported_tempo_bpm.is_non_fractional(),
+            );
+            track.metrics.tempo_bpm = Some(imported_tempo_bpm.into());
+        } else {
+            track.metrics.tempo_bpm = None;
+        }
 
         track.metrics.key_signature = vorbis::import_key_signature(importer, metaflac_tag);
 

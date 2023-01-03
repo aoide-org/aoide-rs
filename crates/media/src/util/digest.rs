@@ -55,12 +55,12 @@ pub struct MediaDigest {
 
 impl MediaDigest {
     #[must_use]
-    pub const fn digest_size() -> usize {
+    pub(crate) const fn digest_size() -> usize {
         32
     }
 
     #[must_use]
-    pub const fn dummy() -> Self {
+    pub(crate) const fn dummy() -> Self {
         Self { hasher: None }
     }
 

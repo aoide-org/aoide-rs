@@ -281,8 +281,7 @@ pub fn import_metadata_into_track(
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<()> {
-    let mut tempo_bpm_non_fractional = false;
-    if let Some(tempo_bpm) = first_extended_text(tag, "BPM")
+    if let Some(imported_tempo_bpm) = first_extended_text(tag, "BPM")
         .and_then(|input| importer.import_tempo_bpm(input))
         // Alternative: Try "TEMPO" if "BPM" is missing or invalid
         .or_else(|| {
@@ -290,15 +289,14 @@ pub fn import_metadata_into_track(
         })
         // Fallback: Parse integer BPM
         .or_else(|| {
-            tempo_bpm_non_fractional = true;
             first_text_frame(tag, "TBPM").and_then(|input| importer.import_tempo_bpm(input))
         })
     {
-        track.metrics.tempo_bpm = Some(tempo_bpm);
         track.metrics.flags.set(
             MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
-            tempo_bpm_non_fractional,
+            imported_tempo_bpm.is_non_fractional(),
         );
+        track.metrics.tempo_bpm = Some(imported_tempo_bpm.into());
     } else {
         // Reset
         track.metrics.tempo_bpm = None;

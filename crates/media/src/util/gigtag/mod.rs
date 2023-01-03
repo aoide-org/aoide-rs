@@ -19,7 +19,7 @@ pub type Property = gigtag::props::Property<PropName, PropValue>;
 pub type Tag = gigtag::Tag<Facet, Label, PropName, PropValue>;
 pub type DecodedTags = gigtag::DecodedTags<Facet, Label, PropName, PropValue>;
 
-pub const SCORE_PROP_NAME: &str = "s";
+pub(crate) const SCORE_PROP_NAME: &str = "s";
 
 fn export_valid_label(label: &aoide_core::tag::Label) -> Option<Label> {
     let label = label.as_str();

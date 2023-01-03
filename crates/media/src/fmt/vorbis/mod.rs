@@ -18,6 +18,7 @@ use aoide_core::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
         index::Index,
+        metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
             FACET_ID_ISRC, FACET_ID_MOOD,
@@ -35,7 +36,7 @@ use aoide_core::{
 use crate::{
     io::{
         export::{ExportTrackConfig, FilteredActorNames},
-        import::{ImportTrackConfig, ImportTrackFlags, Importer, TrackScope},
+        import::{ImportTrackConfig, ImportTrackFlags, ImportedTempoBpm, Importer, TrackScope},
     },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
@@ -317,7 +318,10 @@ pub fn import_encoder(reader: &'_ impl CommentReader) -> Option<String> {
     Some(encoder_info.join(ENCODER_JOIN_SEPARATOR))
 }
 
-pub fn import_tempo_bpm(importer: &mut Importer, reader: &impl CommentReader) -> Option<TempoBpm> {
+pub fn import_tempo_bpm(
+    importer: &mut Importer,
+    reader: &impl CommentReader,
+) -> Option<ImportedTempoBpm> {
     reader
         .read_first_value("BPM")
         .and_then(|input| importer.import_tempo_bpm(input))
@@ -621,7 +625,15 @@ pub fn import_into_track(
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<()> {
-    track.metrics.tempo_bpm = import_tempo_bpm(importer, reader);
+    if let Some(imported_tempo_bpm) = import_tempo_bpm(importer, reader) {
+        track.metrics.flags.set(
+            MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
+            imported_tempo_bpm.is_non_fractional(),
+        );
+        track.metrics.tempo_bpm = Some(imported_tempo_bpm.into());
+    } else {
+        track.metrics.tempo_bpm = None;
+    }
 
     track.metrics.key_signature = import_key_signature(importer, reader);
 

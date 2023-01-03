@@ -379,6 +379,30 @@ impl TrackScope {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ImportedTempoBpm {
+    /// Field contained a decimal point
+    Fractional(TempoBpm),
+    /// Field didn't contain a decimal point and is an integer value
+    NonFractional(TempoBpm),
+}
+
+impl ImportedTempoBpm {
+    #[must_use]
+    pub const fn is_non_fractional(&self) -> bool {
+        matches!(self, Self::NonFractional(_))
+    }
+}
+
+impl From<ImportedTempoBpm> for TempoBpm {
+    fn from(from: ImportedTempoBpm) -> Self {
+        match from {
+            ImportedTempoBpm::Fractional(into) => into,
+            ImportedTempoBpm::NonFractional(into) => into,
+        }
+    }
+}
+
 impl Importer {
     #[must_use]
     pub const fn new() -> Self {
@@ -449,7 +473,7 @@ impl Importer {
     }
 
     #[must_use]
-    pub fn import_tempo_bpm(&mut self, input: &str) -> Option<TempoBpm> {
+    pub fn import_tempo_bpm(&mut self, input: &str) -> Option<ImportedTempoBpm> {
         let input = trim_readable(input);
         if input.is_empty() {
             return None;
@@ -468,7 +492,12 @@ impl Importer {
                     return None;
                 }
                 log::debug!("Parsed tempo from input '{input}': {tempo_bpm}");
-                Some(tempo_bpm)
+                let imported = if input.contains('.') {
+                    ImportedTempoBpm::Fractional(tempo_bpm)
+                } else {
+                    ImportedTempoBpm::NonFractional(tempo_bpm)
+                };
+                Some(imported)
             }
             Err(err) => {
                 self.add_issue(format!(
