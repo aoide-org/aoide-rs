@@ -47,7 +47,7 @@ use crate::{
     Result,
 };
 
-use super::ENCODER_JOIN_SEPARATOR;
+use super::ENCODER_FIELD_SEPARATOR;
 
 pub const ARTIST_KEY: &str = "ARTIST";
 pub const ARRANGER_KEY: &str = "ARRANGER";
@@ -315,7 +315,7 @@ pub fn import_encoder(reader: &'_ impl CommentReader) -> Option<String> {
     if encoder_info.is_empty() {
         return None;
     }
-    Some(encoder_info.join(ENCODER_JOIN_SEPARATOR))
+    Some(encoder_info.join(ENCODER_FIELD_SEPARATOR))
 }
 
 pub fn import_tempo_bpm(

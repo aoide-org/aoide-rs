@@ -49,7 +49,7 @@ use crate::{
     Error, Result,
 };
 
-use super::ENCODER_JOIN_SEPARATOR;
+use super::ENCODER_FIELD_SEPARATOR;
 
 pub(crate) fn map_id3_err(err: id3::Error) -> Error {
     let id3::Error {
@@ -179,7 +179,7 @@ pub fn import_encoder(tag: &id3::Tag) -> Option<String> {
     if encoder_info.is_empty() {
         return None;
     }
-    Some(encoder_info.join(ENCODER_JOIN_SEPARATOR))
+    Some(encoder_info.join(ENCODER_FIELD_SEPARATOR))
 }
 
 fn import_faceted_tags_from_text_frames(

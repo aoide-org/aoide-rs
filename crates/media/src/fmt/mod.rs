@@ -28,4 +28,4 @@ pub mod id3;
 #[cfg(any(feature = "fmt-flac", feature = "fmt-ogg", feature = "fmt-opus"))]
 pub mod vorbis;
 
-const ENCODER_JOIN_SEPARATOR: &str = "|";
+const ENCODER_FIELD_SEPARATOR: &str = "|";

@@ -53,7 +53,7 @@ use crate::{
     Error, Result,
 };
 
-use super::ENCODER_JOIN_SEPARATOR;
+use super::ENCODER_FIELD_SEPARATOR;
 
 fn map_mp4ameta_err(err: mp4ameta::Error) -> Error {
     let mp4ameta::Error { kind, description } = err;
@@ -198,7 +198,7 @@ fn import_encoder(tag: &Mp4Tag) -> Option<String> {
     if encoder_info.is_empty() {
         return None;
     }
-    Some(encoder_info.join(ENCODER_JOIN_SEPARATOR))
+    Some(encoder_info.join(ENCODER_FIELD_SEPARATOR))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
