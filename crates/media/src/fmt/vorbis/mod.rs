@@ -46,6 +46,8 @@ use crate::{
     Result,
 };
 
+use super::ENCODER_JOIN_SEPARATOR;
+
 pub const ARTIST_KEY: &str = "ARTIST";
 pub const ARRANGER_KEY: &str = "ARRANGER";
 pub const COMPOSER_KEY: &str = "COMPOSER";
@@ -299,16 +301,20 @@ fn export_loudness(writer: &mut impl CommentWriter, loudness: Option<LoudnessLuf
     }
 }
 
-pub fn import_encoder(reader: &'_ impl CommentReader) -> Option<Cow<'_, str>> {
-    reader.read_first_value("ENCODEDBY").map(Into::into)
-}
-
-fn export_encoder(writer: &mut impl CommentWriter, encoder: Option<impl Into<String>>) {
-    if let Some(encoder) = encoder.map(Into::into) {
-        writer.write_single_value("ENCODEDBY".into(), encoder);
-    } else {
-        writer.remove_all_values("ENCODEDBY");
+pub fn import_encoder(reader: &'_ impl CommentReader) -> Option<String> {
+    let encoder_info: Vec<_> = reader
+        .read_first_value("ENCODEDBY")
+        .into_iter()
+        .chain(reader.read_first_value("ENCODED-BY").into_iter())
+        .chain(reader.read_first_value("ENCODER").into_iter())
+        .chain(reader.read_first_value("ENCODING").into_iter())
+        .chain(reader.read_first_value("ENCODERSETTINGS").into_iter())
+        .filter_map(trimmed_non_empty_from)
+        .collect();
+    if encoder_info.is_empty() {
+        return None;
     }
+    Some(encoder_info.join(ENCODER_JOIN_SEPARATOR))
 }
 
 pub fn import_tempo_bpm(importer: &mut Importer, reader: &impl CommentReader) -> Option<TempoBpm> {
@@ -850,7 +856,7 @@ pub fn export_track(
     match &track.media_source.content.metadata {
         ContentMetadata::Audio(audio) => {
             export_loudness(writer, audio.loudness);
-            export_encoder(writer, audio.encoder.to_owned());
+            // The encoder is a read-only property.
         }
     }
 

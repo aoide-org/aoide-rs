@@ -32,7 +32,10 @@ use aoide_core::{
         title::{Kind as TitleKind, Titles},
         Track,
     },
-    util::{canonical::Canonical, string::trimmed_non_empty_from_owned},
+    util::{
+        canonical::Canonical,
+        string::{trimmed_non_empty_from, trimmed_non_empty_from_owned},
+    },
 };
 
 use crate::{
@@ -47,6 +50,8 @@ use crate::{
     },
     Error, Result,
 };
+
+use super::ENCODER_JOIN_SEPARATOR;
 
 fn map_mp4ameta_err(err: mp4ameta::Error) -> Error {
     let mp4ameta::Error { kind, description } = err;
@@ -99,6 +104,10 @@ const IDENT_COMPOSER: Fourcc = Fourcc(*b"\xA9wrt");
 const IDENT_DESCRIPTION: Fourcc = Fourcc(*b"desc");
 
 const IDENT_DIRECTOR: Fourcc = Fourcc(*b"\xA9dir");
+
+const IDENT_ENCODED_BY: Fourcc = Fourcc(*b"\xA9enc");
+
+const IDENT_ENCODER_TOOL: Fourcc = Fourcc(*b"\xA9too");
 
 const IDENT_GENRE: Fourcc = Fourcc(*b"\xA9gen");
 
@@ -174,6 +183,22 @@ fn find_embedded_artwork_image(tag: &Mp4Tag) -> Option<(ApicType, ImageFormat, &
         .next()
 }
 
+#[must_use]
+fn import_encoder(tag: &Mp4Tag) -> Option<String> {
+    let encoder_info: Vec<_> = tag
+        .data_of(&IDENT_ENCODED_BY)
+        .chain(tag.data_of(&IDENT_ENCODER_TOOL))
+        .filter_map(|data| match data {
+            Data::Utf8(text) => trimmed_non_empty_from(text),
+            _ => None,
+        })
+        .collect();
+    if encoder_info.is_empty() {
+        return None;
+    }
+    Some(encoder_info.join(ENCODER_JOIN_SEPARATOR))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Metadata(Mp4Tag);
 
@@ -204,10 +229,7 @@ impl Metadata {
             .strings_of(&IDENT_REPLAYGAIN_TRACK_GAIN)
             .next()
             .and_then(|input| importer.import_loudness_from_replay_gain(input));
-        let encoder = mp4_tag
-            .take_encoder()
-            .and_then(trimmed_non_empty_from_owned)
-            .map(Into::into);
+        let encoder = import_encoder(mp4_tag);
         AudioContentMetadata {
             duration,
             channels,
@@ -648,9 +670,7 @@ pub fn export_track_to_path(
             } else {
                 mp4_tag.remove_data_of(&IDENT_REPLAYGAIN_TRACK_GAIN);
             }
-            if let Some(encoder) = &audio.encoder {
-                mp4_tag.set_encoder(encoder);
-            }
+            // The encoder is a read-only property.
         }
     }
 

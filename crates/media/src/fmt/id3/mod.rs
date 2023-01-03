@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::borrow::Cow;
-
 use id3::{
     self,
     frame::{Comment, ExtendedText, PictureType},
@@ -50,6 +48,8 @@ use crate::{
     },
     Error, Result,
 };
+
+use super::ENCODER_JOIN_SEPARATOR;
 
 pub(crate) fn map_id3_err(err: id3::Error) -> Error {
     let id3::Error {
@@ -171,8 +171,15 @@ pub fn import_loudness(importer: &mut Importer, tag: &id3::Tag) -> Option<Loudne
 }
 
 #[must_use]
-pub fn import_encoder(tag: &id3::Tag) -> Option<Cow<'_, str>> {
-    first_text_frame(tag, "TENC").map(Into::into)
+pub fn import_encoder(tag: &id3::Tag) -> Option<String> {
+    let encoder_info: Vec<_> = text_frames(tag, "TENC")
+        .chain(text_frames(tag, "TSSE"))
+        .filter_map(trimmed_non_empty_from)
+        .collect();
+    if encoder_info.is_empty() {
+        return None;
+    }
+    Some(encoder_info.join(ENCODER_JOIN_SEPARATOR))
 }
 
 fn import_faceted_tags_from_text_frames(
@@ -635,11 +642,7 @@ pub fn export_track(
             } else {
                 tag.remove_extended_text(Some("REPLAYGAIN_TRACK_GAIN"), None);
             }
-            if let Some(encoder) = &audio.encoder {
-                tag.set_text("TENC", encoder)
-            } else {
-                tag.remove("TENC");
-            }
+            // The encoder is a read-only property.
         }
     }
 

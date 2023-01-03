@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Cow, io::SeekFrom, path::Path, time::Duration};
+use std::{io::SeekFrom, path::Path, time::Duration};
 
 use id3::TagLike as _;
 use mpeg_audio_header::{Header, ParseMode};
@@ -84,7 +84,7 @@ impl MetadataExt {
         let encoder;
         if let Some(Metadata(id3_tag)) = metadata {
             loudness = import_loudness(importer, id3_tag);
-            encoder = import_encoder(id3_tag).map(Cow::into_owned);
+            encoder = import_encoder(id3_tag);
         } else {
             loudness = None;
             encoder = None;
