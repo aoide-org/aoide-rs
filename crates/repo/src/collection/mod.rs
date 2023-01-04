@@ -8,7 +8,7 @@ use aoide_core::{
     util::{clock::DateTime, url::BaseUrl},
 };
 
-use aoide_core_api::collection::{EntityWithSummary, Summary};
+use aoide_core_api::collection::{EntityWithSummary, LoadScope, Summary};
 
 use crate::prelude::*;
 
@@ -41,7 +41,7 @@ pub trait EntityRepo {
         &mut self,
         kind_filter: Option<KindFilter<'_>>,
         media_source_root_url: Option<&MediaSourceRootUrlFilter>,
-        with_summary: bool,
+        load_scope: LoadScope,
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<
             Header = RecordHeader,

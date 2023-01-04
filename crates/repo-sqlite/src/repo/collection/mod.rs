@@ -10,7 +10,7 @@ use aoide_core::{
 };
 
 use aoide_core_api::collection::{
-    EntityWithSummary, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
+    EntityWithSummary, LoadScope, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
 };
 
 use aoide_repo::collection::*;
@@ -120,7 +120,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         &mut self,
         kind_filter: Option<KindFilter<'_>>,
         media_source_root_url: Option<&MediaSourceRootUrlFilter>,
-        with_summary: bool,
+        load_scope: LoadScope,
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<
             Header = RecordHeader,
@@ -188,47 +188,48 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 .map_err(repo_error)
         };
 
-        let filter_map =
-            move |db: &mut Connection<'_>, record: QueryableRecord| {
-                let (record_header, entity) = record.try_into()?;
-                if let Some(media_source_root_url) = media_source_root_url {
-                    match media_source_root_url {
-                        MediaSourceRootUrlFilter::Equal(root_url) => {
-                            debug_assert_eq!(
-                                root_url.as_ref(),
-                                entity.body.media_source_config.content_path.root_url()
-                            );
-                        }
-                        MediaSourceRootUrlFilter::Prefix(prefix_url) => {
-                            debug_assert_eq!(
-                                Some(true),
-                                entity.body.media_source_config.content_path.root_url().map(
-                                    |root_url| root_url.as_str().starts_with(prefix_url.as_str())
-                                )
-                            );
-                        }
-                        MediaSourceRootUrlFilter::PrefixOf(prefix_of_url) => {
-                            if let Some(root_url) =
-                                entity.body.media_source_config.content_path.root_url()
-                            {
-                                if !prefix_of_url.as_str().starts_with(root_url.as_str()) {
-                                    // Discard
-                                    return Ok(None);
-                                }
-                            } else {
+        let filter_map = move |db: &mut Connection<'_>, record: QueryableRecord| {
+            let (record_header, entity) = record.try_into()?;
+            if let Some(media_source_root_url) = media_source_root_url {
+                match media_source_root_url {
+                    MediaSourceRootUrlFilter::Equal(root_url) => {
+                        debug_assert_eq!(
+                            root_url.as_ref(),
+                            entity.body.media_source_config.content_path.root_url()
+                        );
+                    }
+                    MediaSourceRootUrlFilter::Prefix(prefix_url) => {
+                        debug_assert_eq!(
+                            Some(true),
+                            entity
+                                .body
+                                .media_source_config
+                                .content_path
+                                .root_url()
+                                .map(|root_url| root_url.as_str().starts_with(prefix_url.as_str()))
+                        );
+                    }
+                    MediaSourceRootUrlFilter::PrefixOf(prefix_of_url) => {
+                        if let Some(root_url) =
+                            entity.body.media_source_config.content_path.root_url()
+                        {
+                            if !prefix_of_url.as_str().starts_with(root_url.as_str()) {
                                 // Discard
                                 return Ok(None);
                             }
+                        } else {
+                            // Discard
+                            return Ok(None);
                         }
                     }
                 }
-                let summary = if with_summary {
-                    Some(db.load_collection_summary(record_header.id)?)
-                } else {
-                    None
-                };
-                Ok(Some((record_header, EntityWithSummary { entity, summary })))
+            }
+            let summary = match load_scope {
+                LoadScope::Entity => None,
+                LoadScope::EntityWithSummary => Some(db.load_collection_summary(record_header.id)?),
             };
+            Ok(Some((record_header, EntityWithSummary { entity, summary })))
+        };
 
         fetch_and_collect_filtered_records(self, pagination, fetch, filter_map, collector)
     }

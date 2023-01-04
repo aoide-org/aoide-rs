@@ -4,7 +4,6 @@
 use std::{borrow::Cow, convert::Infallible, sync::Arc};
 
 use tokio::sync::{watch, Mutex};
-use uc::playlist::load::CollectionFilter;
 use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
 
 #[cfg(feature = "json-schema")]
@@ -20,10 +19,13 @@ use aoide_storage_sqlite::{
     connection::pool::gatekeeper::{Gatekeeper as DatabaseConnectionGatekeeper, PendingTasks},
 };
 
-use aoide_usecases::media::tracker::{
-    find_untracked_files::ProgressEvent as FindUntrackedProgressEvent,
-    import_files::ProgressEvent as ImportProgressEvent,
-    scan_directories::ProgressEvent as ScanProgressEvent, Progress as MediaTrackerProgress,
+use aoide_usecases::{
+    media::tracker::{
+        find_untracked_files::ProgressEvent as FindUntrackedProgressEvent,
+        import_files::ProgressEvent as ImportProgressEvent,
+        scan_directories::ProgressEvent as ScanProgressEvent, Progress as MediaTrackerProgress,
+    },
+    playlist::CollectionFilter,
 };
 
 use aoide_websrv_warp_sqlite as websrv;

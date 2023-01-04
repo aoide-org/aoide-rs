@@ -1,13 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::borrow::Cow;
-
 use aoide_core_api::playlist::EntityWithEntriesSummary;
-use aoide_repo::{
-    collection::EntityRepo as _,
-    playlist::{CollectionFilter as RepoCollectionFilter, KindFilter},
-};
+use aoide_repo::playlist::KindFilter;
+use uc::playlist::CollectionFilter;
 
 use super::*;
 
@@ -16,14 +12,7 @@ pub fn load_one_with_entries(
     entity_uid: &EntityUid,
 ) -> Result<EntityWithEntries> {
     let mut repo = RepoConnection::new(connection);
-    let id = repo.resolve_playlist_id(entity_uid)?;
-    repo.load_playlist_entity_with_entries(id)
-        .map_err(Into::into)
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CollectionFilter<'a> {
-    pub uid: Option<Cow<'a, CollectionUid>>,
+    uc::playlist::load_one_with_entries(&mut repo, entity_uid).map_err(Into::into)
 }
 
 pub fn load_all_with_entries_summary(
@@ -37,15 +26,8 @@ pub fn load_all_with_entries_summary(
     >,
 ) -> Result<()> {
     let mut repo = RepoConnection::new(connection);
-    let collection_filter = collection_filter
-        .map(|CollectionFilter { uid }| {
-            uid.as_ref()
-                .map(|uid| repo.resolve_collection_id(uid))
-                .transpose()
-        })
-        .transpose()?
-        .map(|id| RepoCollectionFilter { id });
-    repo.load_playlist_entities_with_entries_summary(
+    uc::playlist::load_all_with_entries_summary(
+        &mut repo,
         collection_filter,
         kind_filter,
         pagination,

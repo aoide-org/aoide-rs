@@ -30,14 +30,10 @@ pub fn load_all(
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = EntityWithSummary>,
 ) -> Result<()> {
     let mut repo = RepoConnection::new(connection);
-    let with_summary = match scope {
-        LoadScope::Entity => false,
-        LoadScope::EntityWithSummary => true,
-    };
     repo.load_collection_entities(
         kind_filter,
         media_source_root_url,
-        with_summary,
+        scope,
         pagination,
         collector,
     )

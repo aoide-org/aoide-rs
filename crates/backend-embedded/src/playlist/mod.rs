@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_usecases_sqlite::playlist::load::CollectionFilter;
 use diesel::Connection as _;
 
 use aoide_core::playlist::{Entity, EntityHeader, EntityUid, EntityWithEntries, Playlist};
@@ -14,6 +13,8 @@ use aoide_repo::{
 };
 
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
+
+use aoide_usecases::playlist::CollectionFilter;
 
 use crate::prelude::*;
 
