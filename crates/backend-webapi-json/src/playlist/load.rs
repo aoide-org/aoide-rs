@@ -4,7 +4,7 @@
 use aoide_core_api_json::playlist::EntityWithEntriesSummary;
 use aoide_repo::playlist::KindFilter;
 use aoide_usecases::playlist::CollectionFilter;
-use aoide_usecases_sqlite::playlist::load as uc;
+use aoide_usecases_sqlite::playlist as uc;
 
 use super::*;
 

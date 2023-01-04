@@ -10,7 +10,7 @@ use super::*;
 
 mod uc {
     pub(super) use aoide_usecases::playlist::entries::PatchOperation;
-    pub(super) use aoide_usecases_sqlite::playlist::entries::patch;
+    pub(super) use aoide_usecases_sqlite::playlist::patch_entries;
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,7 +99,7 @@ pub fn handle_request(
     let entity_header = _core::EntityHeader { uid, rev };
     connection
         .transaction::<_, Error, _>(|connection| {
-            uc::patch(
+            uc::patch_entries(
                 connection,
                 &entity_header,
                 request_body.into_iter().map(Into::into),

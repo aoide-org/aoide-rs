@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_usecases_sqlite::collection::create as uc;
+use aoide_usecases_sqlite::collection as uc;
 
 use super::*;
 

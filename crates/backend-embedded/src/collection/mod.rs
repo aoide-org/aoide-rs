@@ -24,7 +24,7 @@ pub async fn load_all_kinds(db_gatekeeper: &Gatekeeper) -> Result<Vec<String>> {
         .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::load::load_all_kinds(connection)
+                aoide_usecases_sqlite::collection::load_all_kinds(connection)
             })
         })
         .await
@@ -69,7 +69,7 @@ where
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 let mut collector = collector;
-                aoide_usecases_sqlite::collection::load::load_all(
+                aoide_usecases_sqlite::collection::load_all(
                     connection,
                     kind_filter,
                     media_source_root_url.as_ref(),
@@ -94,11 +94,7 @@ pub async fn load_one(
         .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::load::load_one(
-                    connection,
-                    &entity_uid,
-                    load_scope,
-                )
+                aoide_usecases_sqlite::collection::load_one(connection, &entity_uid, load_scope)
             })
         })
         .await
@@ -123,7 +119,7 @@ pub async fn create(db_gatekeeper: &Gatekeeper, new_collection: Collection) -> R
         .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::create::create(connection, new_collection)
+                aoide_usecases_sqlite::collection::create(connection, new_collection)
             })
         })
         .await
@@ -140,7 +136,7 @@ pub async fn update(
         .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::update::update(
+                aoide_usecases_sqlite::collection::update(
                     connection,
                     entity_header,
                     modified_collection,
@@ -157,7 +153,7 @@ pub async fn purge(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<
         .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::purge::purge(connection, &entity_uid)
+                aoide_usecases_sqlite::collection::purge(connection, &entity_uid)
             })
         })
         .await

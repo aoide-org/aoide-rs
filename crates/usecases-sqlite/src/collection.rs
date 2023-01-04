@@ -1,10 +1,39 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::collection::*;
+
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
-use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
+
+use aoide_repo::{
+    collection::{EntityRepo as _, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
+    prelude::*,
+};
 
 use super::*;
+
+pub fn create(connection: &mut DbConnection, new_collection: Collection) -> Result<Entity> {
+    let created_entity = uc::collection::create_entity(new_collection)?;
+    let mut repo = RepoConnection::new(connection);
+    uc::collection::store_created_entity(&mut repo, &created_entity)?;
+    Ok(created_entity)
+}
+
+pub fn update(
+    connection: &mut DbConnection,
+    entity_header: EntityHeader,
+    modified_collection: Collection,
+) -> Result<Entity> {
+    let updated_entity = uc::collection::update_entity(entity_header, modified_collection)?;
+    let mut repo = RepoConnection::new(connection);
+    uc::collection::store_updated_entity(&mut repo, &updated_entity)?;
+    Ok(updated_entity)
+}
+
+pub fn purge(connection: &mut DbConnection, entity_uid: &EntityUid) -> Result<()> {
+    let mut repo = RepoConnection::new(connection);
+    uc::collection::purge(&mut repo, entity_uid).map_err(Into::into)
+}
 
 pub fn load_one(
     connection: &mut DbConnection,
@@ -12,13 +41,7 @@ pub fn load_one(
     scope: LoadScope,
 ) -> Result<EntityWithSummary> {
     let mut repo = RepoConnection::new(connection);
-    let id = repo.resolve_collection_id(entity_uid)?;
-    let (record_hdr, entity) = repo.load_collection_entity(id)?;
-    let summary = match scope {
-        LoadScope::Entity => None,
-        LoadScope::EntityWithSummary => Some(repo.load_collection_summary(record_hdr.id)?),
-    };
-    Ok(EntityWithSummary { entity, summary })
+    uc::collection::load_one(&mut repo, entity_uid, scope).map_err(Into::into)
 }
 
 pub fn load_all(

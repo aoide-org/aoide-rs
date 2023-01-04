@@ -20,6 +20,61 @@ use crate::prelude::*;
 
 pub mod entries;
 
+pub async fn create(
+    db_gatekeeper: &Gatekeeper,
+    collection_uid: Option<CollectionUid>,
+    new_playlist: Playlist,
+) -> Result<Entity> {
+    db_gatekeeper
+        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+            let connection = &mut *pooled_connection;
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::playlist::create(
+                    connection,
+                    collection_uid.as_ref(),
+                    new_playlist,
+                )
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
+pub async fn update(
+    db_gatekeeper: &Gatekeeper,
+    entity_header: EntityHeader,
+    modified_playlist: Playlist,
+) -> Result<Entity> {
+    db_gatekeeper
+        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+            let connection = &mut *pooled_connection;
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::playlist::update(
+                    connection,
+                    entity_header,
+                    modified_playlist,
+                )
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
+pub async fn purge(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<()> {
+    db_gatekeeper
+        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+            let connection = &mut *pooled_connection;
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::playlist::purge(connection, &entity_uid)
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
 /// Load a single entity including all entries
 pub async fn load_one(
     db_gatekeeper: &Gatekeeper,
@@ -29,10 +84,7 @@ pub async fn load_one(
         .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::playlist::load::load_one_with_entries(
-                    connection,
-                    &entity_uid,
-                )
+                aoide_usecases_sqlite::playlist::load_one_with_entries(connection, &entity_uid)
             })
         })
         .await
@@ -76,7 +128,7 @@ where
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 let mut collector = collector;
-                aoide_usecases_sqlite::playlist::load::load_all_with_entries_summary(
+                aoide_usecases_sqlite::playlist::load_all_with_entries_summary(
                     connection,
                     collection_filter,
                     kind_filter,
@@ -84,61 +136,6 @@ where
                     &mut collector,
                 )?;
                 Ok(collector)
-            })
-        })
-        .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
-}
-
-pub async fn create(
-    db_gatekeeper: &Gatekeeper,
-    collection_uid: Option<CollectionUid>,
-    new_playlist: Playlist,
-) -> Result<Entity> {
-    db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::playlist::create::create(
-                    connection,
-                    collection_uid.as_ref(),
-                    new_playlist,
-                )
-            })
-        })
-        .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
-}
-
-pub async fn update(
-    db_gatekeeper: &Gatekeeper,
-    entity_header: EntityHeader,
-    modified_playlist: Playlist,
-) -> Result<Entity> {
-    db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::playlist::update::update(
-                    connection,
-                    entity_header,
-                    modified_playlist,
-                )
-            })
-        })
-        .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
-}
-
-pub async fn purge(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<()> {
-    db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::playlist::purge::purge(connection, &entity_uid)
             })
         })
         .await

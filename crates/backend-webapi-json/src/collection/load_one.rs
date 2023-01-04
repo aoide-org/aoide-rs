@@ -3,7 +3,7 @@
 
 use aoide_core_api::collection::LoadScope;
 use aoide_core_api_json::collection::export_entity_with_summary;
-use aoide_usecases_sqlite::collection::load::{self as uc};
+use aoide_usecases_sqlite::collection as uc;
 
 use super::*;
 

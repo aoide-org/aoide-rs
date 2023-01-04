@@ -5,7 +5,7 @@ use aoide_core_api::collection::LoadScope;
 use aoide_core_api_json::collection::EntityWithSummary;
 
 use aoide_repo::collection::KindFilter;
-use aoide_usecases_sqlite::collection::load::{self as uc};
+use aoide_usecases_sqlite::collection as uc;
 
 use super::*;
 
