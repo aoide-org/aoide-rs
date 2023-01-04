@@ -2285,6 +2285,10 @@ components:
       description: |
         Time stamp since when an entry is part of the playlist,
         i.e. when it has been added by the client.
+
+        This time stamp allows clients to impose a secondary, chronological
+        ordering on the entries. The backend will always return entries
+        sorted by their primary, canonical ordering.
       allOf:
         - $ref: "#/components/schemas/DateTime"
     PlaylistEntryCount:
