@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{convert::Infallible, sync::Arc};
+use std::{borrow::Cow, convert::Infallible, sync::Arc};
 
 use tokio::sync::{watch, Mutex};
+use uc::playlist::load::CollectionFilter;
 use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
 
 #[cfg(feature = "json-schema")]
@@ -993,12 +994,15 @@ pub(crate) fn create_filters(
             move |collection_uid,
                   query_params,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                let collection_filter = CollectionFilter {
+                    uid: Some(Cow::Owned(collection_uid)),
+                };
                 websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |mut pooled_connection, _abort_flag| {
                         api::playlist::load::handle_request(
                             &mut pooled_connection,
-                            Some(&collection_uid),
+                            Some(collection_filter),
                             query_params,
                         )
                     },

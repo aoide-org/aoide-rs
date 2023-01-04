@@ -131,8 +131,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn load_playlist_entities_with_entries_summary(
         &mut self,
-        collection_id: Option<CollectionId>,
-        kind: Option<&str>,
+        collection_filter: Option<CollectionFilter>,
+        kind_filter: Option<KindFilter<'_>>,
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<
             Header = RecordHeader,
@@ -143,23 +143,30 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .order_by(playlist::row_updated_ms.desc())
             .into_boxed();
 
-        // Collection
-        // Note: playlist::collection_id.eq(None) does not match NULL!
-        // <https://github.com/diesel-rs/diesel/issues/1306>
-        if let Some(collection_id) = collection_id {
-            target = target.filter(playlist::collection_id.eq(Some(RowId::from(collection_id))));
-        } else {
-            target = target.filter(playlist::collection_id.is_null());
+        if let Some(collection_filter) = collection_filter {
+            let CollectionFilter { id: collection_id } = collection_filter;
+            if let Some(collection_id) = collection_id {
+                target =
+                    target.filter(playlist::collection_id.eq(Some(RowId::from(collection_id))));
+            } else {
+                // Note: playlist::collection_id.eq(None) does not match NULL!
+                // <https://github.com/diesel-rs/diesel/issues/1306>
+                target = target.filter(playlist::collection_id.is_null());
+            }
         }
 
-        // Kind
-        if let Some(kind) = kind {
-            target = target.filter(playlist::kind.eq(kind));
+        if let Some(kind_filter) = kind_filter {
+            let KindFilter { kind } = kind_filter;
+            if let Some(kind) = kind {
+                target = target.filter(playlist::kind.eq(kind));
+            } else {
+                // Note: playlist::kind.eq(None) does not match NULL!
+                // <https://github.com/diesel-rs/diesel/issues/1306>
+                target = target.filter(playlist::kind.is_null());
+            }
         }
 
-        // Pagination
         if let Some(pagination) = pagination {
-            // Pagination
             //FIXME: Extract into generic function crate::util::apply_pagination()
             let (limit, offset) = pagination_to_limit_offset(pagination);
             if let Some(limit) = limit {
@@ -176,8 +183,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
         collector.reserve(records.len());
         for record in records {
-            let (record_header, record_collection_id, entity) = record.into();
-            debug_assert_eq!(collection_id, record_collection_id);
+            let (record_header, _collection_id, entity) = record.into();
             let entries = self.load_playlist_entries_summary(record_header.id)?;
             collector.collect(record_header, EntityWithEntriesSummary { entity, entries });
         }

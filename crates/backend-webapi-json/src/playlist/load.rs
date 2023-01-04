@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core_api_json::playlist::EntityWithEntriesSummary;
-use aoide_usecases_sqlite::playlist::load as uc;
+use aoide_repo::playlist::KindFilter;
+use aoide_usecases_sqlite::playlist::load::{self as uc, CollectionFilter};
 
 use super::*;
 
@@ -28,7 +29,7 @@ pub type ResponseBody = Vec<EntityWithEntriesSummary>;
 
 pub fn handle_request(
     connection: &mut DbConnection,
-    collection_uid: Option<&CollectionUid>,
+    collection_filter: Option<CollectionFilter<'_>>,
     query_params: QueryParams,
 ) -> Result<ResponseBody> {
     let QueryParams {
@@ -36,14 +37,17 @@ pub fn handle_request(
         limit,
         offset,
     } = query_params;
+    let kind_filter = kind.map(|kind| KindFilter {
+        kind: Some(kind.into()),
+    });
     let pagination = Pagination { limit, offset };
     let pagination: Option<_> = pagination.into();
     let mut collector = EntityWithEntriesSummaryCollector::default();
     connection.transaction::<_, Error, _>(|connection| {
-        uc::load_entities_with_entries_summary(
+        uc::load_all_with_entries_summary(
             connection,
-            collection_uid,
-            kind.as_deref(),
+            collection_filter,
+            kind_filter,
             pagination.as_ref(),
             &mut collector,
         )

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::ops::Range;
+use std::{borrow::Cow, ops::Range};
 
 use rand::seq::SliceRandom as _;
 
@@ -17,6 +17,16 @@ use crate::{collection::RecordId as CollectionId, prelude::*};
 record_id_newtype!(RecordId);
 
 pub type RecordHeader = crate::RecordHeader<RecordId>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CollectionFilter {
+    pub id: Option<CollectionId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KindFilter<'a> {
+    pub kind: Option<Cow<'a, str>>,
+}
 
 pub trait EntityRepo: EntryRepo {
     entity_repo_trait_common_functions!(RecordId, Entity, EntityUid, EntityHeader, Playlist);
@@ -41,8 +51,8 @@ pub trait EntityRepo: EntryRepo {
 
     fn load_playlist_entities_with_entries_summary(
         &mut self,
-        collection_id: Option<CollectionId>,
-        kind: Option<&str>,
+        collection_filter: Option<CollectionFilter>,
+        kind_filter: Option<KindFilter<'_>>,
         pagination: Option<&Pagination>,
         collector: &mut dyn ReservableRecordCollector<
             Header = RecordHeader,

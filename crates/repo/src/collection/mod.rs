@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::borrow::Cow;
+
 use aoide_core::{
     collection::{Entity, EntityHeader, EntityUid},
     util::{clock::DateTime, url::BaseUrl},
@@ -21,6 +23,11 @@ pub enum MediaSourceRootUrlFilter {
     PrefixOf(BaseUrl),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KindFilter<'a> {
+    pub kind: Option<Cow<'a, str>>,
+}
+
 pub trait EntityRepo {
     entity_repo_trait_common_functions!(RecordId, Entity, EntityUid, EntityHeader, Collection);
 
@@ -32,7 +39,7 @@ pub trait EntityRepo {
 
     fn load_collection_entities(
         &mut self,
-        kind: Option<&str>,
+        kind_filter: Option<KindFilter<'_>>,
         media_source_root_url: Option<&MediaSourceRootUrlFilter>,
         with_summary: bool,
         pagination: Option<&Pagination>,

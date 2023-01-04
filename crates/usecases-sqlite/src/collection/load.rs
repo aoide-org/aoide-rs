@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
-use aoide_repo::collection::MediaSourceRootUrlFilter;
+use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 
 use super::*;
 
@@ -23,7 +23,7 @@ pub fn load_one(
 
 pub fn load_all(
     connection: &mut DbConnection,
-    kind: Option<&str>,
+    kind_filter: Option<KindFilter<'_>>,
     media_source_root_url: Option<&MediaSourceRootUrlFilter>,
     scope: LoadScope,
     pagination: Option<&Pagination>,
@@ -35,7 +35,7 @@ pub fn load_all(
         LoadScope::EntityWithSummary => true,
     };
     repo.load_collection_entities(
-        kind,
+        kind_filter,
         media_source_root_url,
         with_summary,
         pagination,

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_usecases_sqlite::playlist::load::CollectionFilter;
 use diesel::Connection as _;
 
 use aoide_core::playlist::{Entity, EntityHeader, EntityUid, EntityWithEntries, Playlist};
@@ -8,7 +9,7 @@ use aoide_core::playlist::{Entity, EntityHeader, EntityUid, EntityWithEntries, P
 use aoide_core_api::{playlist::EntityWithEntriesSummary, Pagination};
 
 use aoide_repo::{
-    playlist::{EntityWithEntriesSummaryCollector, RecordHeader},
+    playlist::{EntityWithEntriesSummaryCollector, KindFilter, RecordHeader},
     prelude::ReservableRecordCollector,
 };
 
@@ -27,7 +28,7 @@ pub async fn load_one(
         .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::playlist::load::load_entity_with_entries(
+                aoide_usecases_sqlite::playlist::load::load_one_with_entries(
                     connection,
                     &entity_uid,
                 )
@@ -41,14 +42,14 @@ pub async fn load_one(
 /// Load a multiple entities, each with a summary of their entries
 pub async fn load_all(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: Option<CollectionUid>,
-    kind: Option<String>,
+    collection_filter: Option<CollectionFilter<'static>>,
+    kind_filter: Option<KindFilter<'static>>,
     pagination: Option<Pagination>,
 ) -> Result<Vec<EntityWithEntriesSummary>> {
     load_all_collecting(
         db_gatekeeper,
-        collection_uid,
-        kind,
+        collection_filter,
+        kind_filter,
         pagination,
         EntityWithEntriesSummaryCollector::new(Vec::new()),
     )
@@ -59,8 +60,8 @@ pub async fn load_all(
 /// Load a multiple entities, each with a summary of their entries
 pub async fn load_all_collecting<C>(
     db_gatekeeper: &Gatekeeper,
-    collection_uid: Option<CollectionUid>,
-    kind: Option<String>,
+    collection_filter: Option<CollectionFilter<'static>>,
+    kind_filter: Option<KindFilter<'static>>,
     pagination: Option<Pagination>,
     collector: C,
 ) -> Result<C>
@@ -74,10 +75,10 @@ where
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 let mut collector = collector;
-                aoide_usecases_sqlite::playlist::load::load_entities_with_entries_summary(
+                aoide_usecases_sqlite::playlist::load::load_all_with_entries_summary(
                     connection,
-                    collection_uid.as_ref(),
-                    kind.as_deref(),
+                    collection_filter,
+                    kind_filter,
                     pagination.as_ref(),
                     &mut collector,
                 )?;

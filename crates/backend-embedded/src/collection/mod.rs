@@ -11,7 +11,7 @@ use aoide_core_api::{
 };
 
 use aoide_repo::{
-    collection::{EntityWithSummaryCollector, MediaSourceRootUrlFilter, RecordHeader},
+    collection::{EntityWithSummaryCollector, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
     prelude::{RepoError, ReservableRecordCollector},
 };
 
@@ -34,14 +34,14 @@ pub async fn load_all_kinds(db_gatekeeper: &Gatekeeper) -> Result<Vec<String>> {
 
 pub async fn load_all(
     db_gatekeeper: &Gatekeeper,
-    kind: Option<String>,
+    kind_filter: Option<KindFilter<'static>>,
     media_source_root_url: Option<MediaSourceRootUrlFilter>,
     scope: LoadScope,
     pagination: Option<Pagination>,
 ) -> Result<Vec<EntityWithSummary>> {
     load_all_collecting(
         db_gatekeeper,
-        kind,
+        kind_filter,
         media_source_root_url,
         scope,
         pagination,
@@ -53,7 +53,7 @@ pub async fn load_all(
 
 pub async fn load_all_collecting<C>(
     db_gatekeeper: &Gatekeeper,
-    kind: Option<String>,
+    kind_filter: Option<KindFilter<'static>>,
     media_source_root_url: Option<MediaSourceRootUrlFilter>,
     scope: LoadScope,
     pagination: Option<Pagination>,
@@ -71,7 +71,7 @@ where
                 let mut collector = collector;
                 aoide_usecases_sqlite::collection::load::load_all(
                     connection,
-                    kind.as_deref(),
+                    kind_filter,
                     media_source_root_url.as_ref(),
                     scope,
                     pagination.as_ref(),

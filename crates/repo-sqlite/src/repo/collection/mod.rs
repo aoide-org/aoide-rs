@@ -118,7 +118,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn load_collection_entities(
         &mut self,
-        kind: Option<&str>,
+        kind_filter: Option<KindFilter<'_>>,
         media_source_root_url: Option<&MediaSourceRootUrlFilter>,
         with_summary: bool,
         pagination: Option<&Pagination>,
@@ -127,14 +127,21 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             Record = EntityWithSummary,
         >,
     ) -> RepoResult<()> {
+        let kind_filter = kind_filter.as_ref();
         let fetch = move |db: &mut Connection<'_>, pagination: Option<&_>| {
             let mut target = collection::table
                 .order_by(collection::row_updated_ms.desc())
                 .into_boxed();
 
-            // Kind
-            if let Some(kind) = kind {
-                target = target.filter(collection::kind.eq(kind));
+            if let Some(kind_filter) = kind_filter {
+                let KindFilter { kind } = kind_filter;
+                if let Some(kind) = kind {
+                    target = target.filter(collection::kind.eq(kind));
+                } else {
+                    // Note: collection::kind.eq(None) does not match NULL!
+                    // <https://github.com/diesel-rs/diesel/issues/1306>
+                    target = target.filter(collection::kind.is_null());
+                }
             }
 
             // Media source root URL

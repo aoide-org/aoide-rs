@@ -4,6 +4,7 @@
 use aoide_core_api::collection::LoadScope;
 use aoide_core_api_json::collection::EntityWithSummary;
 
+use aoide_repo::collection::KindFilter;
 use aoide_usecases_sqlite::collection::load::{self as uc};
 
 use super::*;
@@ -43,6 +44,9 @@ pub fn handle_request(
     } = query_params;
     // TODO: Optionally filter by media source root URL
     let media_source_root_url = None;
+    let kind_filter = kind.map(|kind| KindFilter {
+        kind: Some(kind.into()),
+    });
     let load_scope = if summary.unwrap_or(false) {
         LoadScope::EntityWithSummary
     } else {
@@ -54,7 +58,7 @@ pub fn handle_request(
     connection.transaction::<_, Error, _>(|connection| {
         uc::load_all(
             connection,
-            kind.as_deref(),
+            kind_filter,
             media_source_root_url,
             load_scope,
             pagination.as_ref(),

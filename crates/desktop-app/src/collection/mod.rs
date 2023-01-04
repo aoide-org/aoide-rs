@@ -13,7 +13,7 @@ use aoide_core::{
     util::url::BaseUrl,
 };
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
-use aoide_repo::collection::MediaSourceRootUrlFilter;
+use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 
 use crate::{
     environment::Handle,
@@ -104,9 +104,12 @@ pub async fn restore_or_create_entity_from_db(
             MediaSourceRootUrlFilter::PrefixOf(root_url.clone())
         }
     };
+    let kind_filter = kind.as_ref().map(|kind| KindFilter {
+        kind: Some(kind.to_owned().into()),
+    });
     let candidates = aoide_backend_embedded::collection::load_all(
         handle.db_gatekeeper(),
-        kind.clone(),
+        kind_filter.clone(),
         Some(media_source_root_url_filter),
         load_scope,
         None,
@@ -148,7 +151,7 @@ pub async fn restore_or_create_entity_from_db(
         // that is a child of the music directory.
         let candidates = aoide_backend_embedded::collection::load_all(
             handle.db_gatekeeper(),
-            kind.clone(),
+            kind_filter,
             Some(MediaSourceRootUrlFilter::Prefix(root_url.clone())),
             LoadScope::Entity,
             None,
