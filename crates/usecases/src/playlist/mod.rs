@@ -9,10 +9,7 @@ use aoide_core::{
     util::clock::DateTime,
 };
 
-use aoide_repo::{
-    collection::EntityRepo as CollectionRepo,
-    playlist::{CollectionRepo as PlaylistCollectionRepo, EntityRepo},
-};
+use aoide_repo::{collection::EntityRepo as CollectionRepo, playlist::EntityRepo};
 
 use super::*;
 
@@ -41,7 +38,7 @@ pub fn store_created_entity<Repo>(
     entity: &Entity,
 ) -> RepoResult<()>
 where
-    Repo: CollectionRepo + PlaylistCollectionRepo,
+    Repo: CollectionRepo + EntityRepo,
 {
     let collection_id = collection_uid
         .map(|uid| repo.resolve_collection_id(uid))

@@ -115,9 +115,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         }
         Ok(())
     }
-}
 
-impl<'db> CollectionRepo for crate::Connection<'db> {
     fn insert_playlist_entity(
         &mut self,
         collection_id: Option<CollectionId>,

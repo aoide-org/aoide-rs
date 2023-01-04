@@ -4,7 +4,7 @@
 use aoide_core::playlist::*;
 
 use aoide_repo::{
-    playlist::{CollectionRepo as _, EntityRepo as _, RecordHeader},
+    playlist::{EntityRepo as _, RecordHeader},
     prelude::*,
 };
 

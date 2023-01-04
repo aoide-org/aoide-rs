@@ -31,9 +31,7 @@ pub trait EntityRepo: EntryRepo {
         let entries_summary = self.load_playlist_entries_summary(playlist_id)?;
         Ok((record_header, entity, entries_summary))
     }
-}
 
-pub trait CollectionRepo {
     fn insert_playlist_entity(
         &mut self,
         collection_id: Option<CollectionId>,
