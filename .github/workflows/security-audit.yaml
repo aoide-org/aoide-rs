@@ -21,7 +21,8 @@ jobs:
   security-audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: dtolnay/rust-toolchain@master
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
 

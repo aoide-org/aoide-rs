@@ -104,17 +104,22 @@ pub fn scan_directories<
         abort_flag,
         &mut blake3::Hasher::new,
         &mut |dir_path, digest| {
+            log::debug!(
+                "Finishing directory: {dir_path}",
+                dir_path = dir_path.display()
+            );
             debug_assert!(dir_path.is_relative());
             let full_path = root_file_path.join(dir_path);
             debug_assert!(full_path.is_absolute());
             let url = Url::from_directory_path(&full_path).expect("URL");
             debug_assert!(url.as_str().starts_with(vfs_ctx.root_url.as_str()));
-            let path = vfs_ctx.path_resolver.resolve_path_from_url(&url)?;
+            let content_path = vfs_ctx.path_resolver.resolve_path_from_url(&url)?;
+            log::debug!("Updating digest of content path: {content_path}");
             match repo
                 .media_tracker_update_directory_digest(
                     DateTime::now_utc(),
                     collection_id,
-                    &path,
+                    &content_path,
                     &digest.into(),
                 )
                 .map_err(anyhow::Error::from)?
