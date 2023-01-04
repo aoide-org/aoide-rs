@@ -42,9 +42,10 @@ Aimed at DJs who need to organize and search their music collections.
 
 ### Globally unique identifiers
 
-All entities in _aoide_, namely _collections_, _tracks_, and _playlists_ are identified by a globally unique `UID` that is independent of any database backend.
-
-Each `UID` is made up of 24 arbitrary bytes that are encoded as 32 or 33 _Base58_ characters for a textual representation.
+All entities in _aoide_, namely _collections_, _tracks_, and _playlists_ are identified
+by a globally unique `UID` that is independent of any database backend. We use
+[`ULID`s](https://github.com/ulid/spec) with the default base32 string encoding
+for this purpose.
 
 ### Source-centric
 
