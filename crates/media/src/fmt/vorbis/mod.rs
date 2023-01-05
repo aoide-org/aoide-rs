@@ -1,160 +1,56 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Cow, collections::HashMap, ops::Not as _};
-
-use metaflac::block::{Picture, PictureType};
-use num_traits::FromPrimitive as _;
+use std::borrow::Cow;
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{
-        artwork::{ApicType, Artwork},
-        content::ContentMetadata,
-    },
+    media::content::ContentMetadata,
     music::{key::KeySignature, tempo::TempoBpm},
-    tag::{FacetId, FacetedTags, PlainTag, TagsMap},
+    tag::{FacetedTags, PlainTag, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
-        index::Index,
-        metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
             FACET_ID_ISRC, FACET_ID_MOOD,
         },
-        title::{Kind as TitleKind, Title, Titles},
+        title::{Kind as TitleKind, Titles},
         Track,
     },
-    util::{
-        canonical::Canonical,
-        clock::{DateOrDateTime, DateYYYYMMDD},
-        string::trimmed_non_empty_from,
-    },
+    util::clock::DateYYYYMMDD,
 };
 
 use crate::{
-    io::{
-        export::{ExportTrackConfig, FilteredActorNames},
-        import::{ImportTrackConfig, ImportTrackFlags, ImportedTempoBpm, Importer, TrackScope},
-    },
+    io::export::{ExportTrackConfig, FilteredActorNames},
     util::{
-        format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
-        key_signature_as_str, push_next_actor_role_name_from,
-        tag::{FacetedTagMappingConfig, TagMappingConfig},
-        trim_readable, try_ingest_embedded_artwork_image,
+        format_valid_replay_gain, format_validated_tempo_bpm, key_signature_as_str,
+        tag::TagMappingConfig,
     },
-    Result,
 };
 
-use super::ENCODER_FIELD_SEPARATOR;
+pub(super) const ARTIST_KEY: &str = "ARTIST";
+pub(super) const ARRANGER_KEY: &str = "ARRANGER";
+pub(super) const COMPOSER_KEY: &str = "COMPOSER";
+pub(super) const CONDUCTOR_KEY: &str = "CONDUCTOR";
+pub(super) const REMIXER_KEY: &str = "REMIXER";
+pub(super) const MIXER_KEY: &str = "MIXER";
+pub(super) const DJMIXER_KEY: &str = "DJMIXER";
+pub(super) const ENGINEER_KEY: &str = "ENGINEER";
+pub(super) const DIRECTOR_KEY: &str = "DIRECTOR";
+pub(super) const LYRICIST_KEY: &str = "LYRICIST";
+pub(super) const WRITER_KEY: &str = "WRITER";
 
-pub const ARTIST_KEY: &str = "ARTIST";
-pub const ARRANGER_KEY: &str = "ARRANGER";
-pub const COMPOSER_KEY: &str = "COMPOSER";
-pub const CONDUCTOR_KEY: &str = "CONDUCTOR";
-pub const PRODUCER_KEY: &str = "PRODUCER";
-pub const REMIXER_KEY: &str = "REMIXER";
-// MIXARTIST: Fallback for compatibility with Rekordbox, Engine DJ, and Traktor
-pub const REMIXER_KEY2: &str = "MIXARTIST";
-pub const MIXER_KEY: &str = "MIXER";
-pub const DJMIXER_KEY: &str = "DJMIXER";
-pub const ENGINEER_KEY: &str = "ENGINEER";
-pub const DIRECTOR_KEY: &str = "DIRECTOR";
-pub const LYRICIST_KEY: &str = "LYRICIST";
-pub const WRITER_KEY: &str = "WRITER";
+pub(super) const COMMENT_KEY: &str = "COMMENT";
+pub(super) const COMMENT_KEY2: &str = "DESCRIPTION";
 
-pub const ALBUM_ARTIST_KEY: &str = "ALBUMARTIST";
-pub const ALBUM_ARTIST_KEY2: &str = "ALBUM_ARTIST";
-pub const ALBUM_ARTIST_KEY3: &str = "ALBUM ARTIST";
-pub const ALBUM_ARTIST_KEY4: &str = "ENSEMBLE";
+pub(super) const GENRE_KEY: &str = "GENRE";
+pub(super) const GROUPING_KEY: &str = "GROUPING";
+pub(super) const MOOD_KEY: &str = "MOOD";
 
-pub const COMMENT_KEY: &str = "COMMENT";
-pub const COMMENT_KEY2: &str = "DESCRIPTION";
+pub(super) const ISRC_KEY: &str = "ISRC";
 
-pub const GENRE_KEY: &str = "GENRE";
-pub const GROUPING_KEY: &str = "GROUPING";
-pub const MOOD_KEY: &str = "MOOD";
-
-pub const ISRC_KEY: &str = "ISRC";
-
-pub const MUSICBRAINZ_RECORDING_ID_KEY: &str = "MUSICBRAINZ_TRACKID";
-pub const MUSICBRAINZ_RELEASE_ID_KEY: &str = "MUSICBRAINZ_ALBUMID";
-pub const MUSICBRAINZ_RELEASEGROUP_ID_KEY: &str = "MUSICBRAINZ_RELEASEGROUPID";
-
-fn cmp_eq_comment_key(key1: &str, key2: &str) -> bool {
-    key1.eq_ignore_ascii_case(key2)
-}
-
-pub fn filter_comment_values<'s, 'k>(
-    comments: impl IntoIterator<Item = (&'s str, &'s str)>,
-    key: &'k str,
-) -> impl Iterator<Item = &'s str>
-where
-    'k: 's,
-{
-    comments
-        .into_iter()
-        .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then_some(v))
-}
-
-pub fn read_first_comment_value<'s, 'k>(
-    comments: impl IntoIterator<Item = (&'s str, &'s str)>,
-    key: &'k str,
-) -> Option<&'s str>
-where
-    'k: 's,
-{
-    filter_comment_values(comments, key).next()
-}
-
-pub trait CommentReader {
-    fn read_first_value(&self, key: &str) -> Option<&str> {
-        self.filter_values(key)
-            .unwrap_or_default()
-            .into_iter()
-            .next()
-    }
-
-    // TODO: Prevent allocation of temporary vector
-    fn filter_values(&self, key: &str) -> Option<Vec<&str>>;
-}
-
-impl CommentReader for Vec<(String, String)> {
-    fn read_first_value(&self, key: &str) -> Option<&str> {
-        // TODO: Use read_first_comment_value()
-        self.iter()
-            .find_map(|(k, v)| cmp_eq_comment_key(k, key).then_some(v.as_str()))
-    }
-
-    fn filter_values(&self, key: &str) -> Option<Vec<&str>> {
-        // TODO: Use filter_comment_values()
-        let values: Vec<_> = self
-            .iter()
-            .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then_some(v.as_str()))
-            .collect();
-        values.is_empty().not().then_some(values)
-    }
-}
-
-impl CommentReader for HashMap<String, String> {
-    fn read_first_value(&self, key: &str) -> Option<&str> {
-        // TODO: Use read_first_comment_value()
-        self.iter()
-            .find_map(|(k, v)| cmp_eq_comment_key(k, key).then_some(v.as_str()))
-    }
-
-    fn filter_values(&self, key: &str) -> Option<Vec<&str>> {
-        // TODO: Use filter_comment_values()
-        let values: Vec<_> = self
-            .iter()
-            .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then_some(v.as_str()))
-            .collect();
-        values.is_empty().not().then_some(values)
-    }
-}
-
-pub trait CommentWriter {
+pub(crate) trait CommentWriter {
     fn write_single_value(&mut self, key: Cow<'_, str>, value: String) {
         self.write_multiple_values(key, vec![value]);
     }
@@ -205,132 +101,12 @@ impl CommentWriter for Vec<(String, String)> {
     }
 }
 
-pub fn find_embedded_artwork_image(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Option<(ApicType, String, Vec<u8>)> {
-    // https://wiki.xiph.org/index.php/VorbisComment#Cover_art
-    // The unofficial COVERART field in a VorbisComment tag is deprecated:
-    // https://wiki.xiph.org/VorbisComment#Unofficial_COVERART_field_.28deprecated.29
-    let picture_iter_by_type = |picture_type: Option<PictureType>| {
-        reader
-            .filter_values("METADATA_BLOCK_PICTURE")
-            .unwrap_or_default()
-            .into_iter()
-            .chain(reader.filter_values("COVERART").unwrap_or_default())
-            .map(|elem| (elem, Vec::new()))
-            .filter_map(|(base64_data, mut issues)| {
-                base64::decode(base64_data)
-                    .map_err(|err| {
-                        issues.push(format!(
-                            "Failed to decode base64 encoded picture block: {err}"
-                        ));
-                    })
-                    .map(|decoded| (decoded, issues))
-                    .ok()
-            })
-            .filter_map(|(decoded, mut issues)| {
-                metaflac::block::Picture::from_bytes(&decoded[..])
-                    .map_err(|err| {
-                        issues.push(format!("Failed to decode FLAC picture block: {err}"));
-                    })
-                    .map(|picture| (picture, issues))
-                    .ok()
-            })
-            .filter(move |(picture, _)| {
-                if let Some(picture_type) = picture_type {
-                    picture.picture_type == picture_type
-                } else {
-                    true
-                }
-            })
-    };
-    // Decoding and discarding the blocks multiple times is inefficient
-    // but expected to occur only infrequently. Most files will include
-    // just a front cover and nothing else.
-    picture_iter_by_type(Some(PictureType::CoverFront))
-        .chain(picture_iter_by_type(Some(PictureType::Media)))
-        .chain(picture_iter_by_type(Some(PictureType::Leaflet)))
-        .chain(picture_iter_by_type(Some(PictureType::Other)))
-        // otherwise take the first picture that could be parsed
-        .chain(picture_iter_by_type(None))
-        .map(|(picture, issues)| {
-            let Picture {
-                picture_type,
-                mime_type,
-                data,
-                ..
-            } = picture;
-            let apic_type = ApicType::from_u8(picture_type as u8).unwrap_or(ApicType::Other);
-            issues
-                .into_iter()
-                .for_each(|message| importer.add_issue(message));
-            (apic_type, mime_type, data)
-        })
-        .next()
-}
-
-pub fn import_faceted_text_tags<'a>(
-    importer: &mut Importer,
-    tags_map: &mut TagsMap,
-    faceted_tag_mapping_config: &FacetedTagMappingConfig,
-    facet_id: &FacetId,
-    label_values: impl IntoIterator<Item = &'a str>,
-) {
-    importer.import_faceted_tags_from_label_values(
-        tags_map,
-        faceted_tag_mapping_config,
-        facet_id,
-        label_values.into_iter().map(Into::into),
-    );
-}
-
-pub fn import_loudness(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Option<LoudnessLufs> {
-    reader
-        .read_first_value("REPLAYGAIN_TRACK_GAIN")
-        .and_then(|value| importer.import_loudness_from_replay_gain(value))
-}
-
 fn export_loudness(writer: &mut impl CommentWriter, loudness: Option<LoudnessLufs>) {
     if let Some(formatted_track_gain) = loudness.and_then(format_valid_replay_gain) {
         writer.write_single_value("REPLAYGAIN_TRACK_GAIN".into(), formatted_track_gain);
     } else {
         writer.remove_all_values("REPLAYGAIN_TRACK_GAIN");
     }
-}
-
-pub fn import_encoder(reader: &'_ impl CommentReader) -> Option<String> {
-    let encoder_info: Vec<_> = reader
-        .read_first_value("ENCODEDBY")
-        .into_iter()
-        .chain(reader.read_first_value("ENCODED-BY").into_iter())
-        .chain(reader.read_first_value("ENCODER").into_iter())
-        .chain(reader.read_first_value("ENCODING").into_iter())
-        .chain(reader.read_first_value("ENCODERSETTINGS").into_iter())
-        .filter_map(trimmed_non_empty_from)
-        .collect();
-    if encoder_info.is_empty() {
-        return None;
-    }
-    Some(encoder_info.join(ENCODER_FIELD_SEPARATOR))
-}
-
-pub fn import_tempo_bpm(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Option<ImportedTempoBpm> {
-    reader
-        .read_first_value("BPM")
-        .and_then(|input| importer.import_tempo_bpm(input))
-        // Alternative: Try "TEMPO" if "BPM" is missing or invalid
-        .or_else(|| {
-            reader
-                .read_first_value("TEMPO")
-                .and_then(|input| importer.import_tempo_bpm(input))
-        })
 }
 
 fn export_tempo_bpm(writer: &mut impl CommentWriter, tempo_bpm: &mut Option<TempoBpm>) {
@@ -340,22 +116,6 @@ fn export_tempo_bpm(writer: &mut impl CommentWriter, tempo_bpm: &mut Option<Temp
         writer.remove_all_values("BPM");
     }
     writer.remove_all_values("TEMPO");
-}
-
-pub fn import_key_signature(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Option<KeySignature> {
-    reader
-        .read_first_value("KEY")
-        .and_then(|value| importer.import_key_signature(value))
-        .or_else(|| {
-            // Fallback for Rekordbox/Serato/Traktor
-            // https://docs.google.com/spreadsheets/d/1zhIJPOtYIueV72Gd81aVnbSa6dIA-azq9fnGC2rHUzo
-            reader
-                .read_first_value("INITIALKEY")
-                .and_then(|value| importer.import_key_signature(value))
-        })
 }
 
 fn export_key_signature(writer: &mut impl CommentWriter, key_signature: Option<KeySignature>) {
@@ -369,497 +129,7 @@ fn export_key_signature(writer: &mut impl CommentWriter, key_signature: Option<K
     }
 }
 
-pub fn import_album_kind(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Option<AlbumKind> {
-    let value = reader.read_first_value("COMPILATION");
-    value
-        .and_then(|compilation| trim_readable(compilation).parse::<u8>().ok())
-        .and_then(|compilation| match compilation {
-            0 => Some(AlbumKind::NoCompilation),
-            1 => Some(AlbumKind::Compilation),
-            _ => {
-                importer.add_issue(format!(
-                    "Unexpected tag value: COMPILATION = '{}'",
-                    value.expect("unreachable")
-                ));
-                None
-            }
-        })
-}
-
-pub fn import_recorded_at(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Option<DateOrDateTime> {
-    reader
-        .read_first_value("DATE")
-        .and_then(|value| importer.import_year_tag_from_field("DATE", value))
-        .or_else(|| {
-            reader
-                .read_first_value("YEAR")
-                .and_then(|value| importer.import_year_tag_from_field("YEAR", value))
-        })
-}
-
-pub fn import_released_at(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Option<DateOrDateTime> {
-    reader
-        .read_first_value("RELEASEDATE")
-        .and_then(|value| importer.import_year_tag_from_field("RELEASEDATE", value))
-        .or_else(|| {
-            reader
-                .read_first_value("RELEASEYEAR")
-                .and_then(|value| importer.import_year_tag_from_field("RELEASEYEAR", value))
-        })
-}
-
-pub fn import_released_orig_at(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Option<DateOrDateTime> {
-    reader
-        .read_first_value("ORIGINALDATE")
-        .and_then(|value| importer.import_year_tag_from_field("ORIGINALDATE", value))
-        .or_else(|| {
-            reader
-                .read_first_value("ORIGINALYEAR")
-                .and_then(|value| importer.import_year_tag_from_field("ORIGINALYEAR", value))
-        })
-}
-
-pub fn import_publisher(reader: &impl CommentReader) -> Option<String> {
-    reader
-        .read_first_value("LABEL")
-        .and_then(trimmed_non_empty_from)
-        .or_else(|| {
-            // Primary fallback
-            reader
-                .read_first_value("PUBLISHER")
-                .and_then(trimmed_non_empty_from)
-        })
-        .or_else(|| {
-            // Secondary fallback
-            reader
-                .read_first_value("ORGANIZATION")
-                .and_then(trimmed_non_empty_from)
-        })
-        .map(Into::into)
-}
-
-pub fn import_copyright(reader: &impl CommentReader) -> Option<String> {
-    reader
-        .read_first_value("COPYRIGHT")
-        .and_then(trimmed_non_empty_from)
-        .map(Into::into)
-}
-
-pub fn import_track_index(importer: &mut Importer, reader: &impl CommentReader) -> Option<Index> {
-    if let Some(mut index) = reader
-        .read_first_value("TRACKNUMBER")
-        .and_then(|value| importer.import_index_numbers_from_field("TRACKNUMBER", value))
-    {
-        if let Some(total) =
-            // According to https://wiki.xiph.org/Field_names "TRACKTOTAL" is
-            // the proposed field name, but some applications use "TOTALTRACKS".
-            reader
-                .read_first_value("TRACKTOTAL")
-                .and_then(|value| value.parse().ok())
-                .or_else(|| {
-                    reader
-                        .read_first_value("TOTALTRACKS")
-                        .and_then(|value| value.parse().ok())
-                })
-        {
-            if let Some(index_total) = index.total {
-                importer.add_issue(format!(
-                    "Overwriting total number of tracks {index_total} parsed from field 'TRACKNUMBER' with {total}"
-                ));
-            }
-            index.total = Some(total);
-        }
-        Some(index)
-    } else {
-        None
-    }
-}
-
-pub fn import_disc_index(importer: &mut Importer, reader: &impl CommentReader) -> Option<Index> {
-    if let Some(mut index) = reader
-        .read_first_value("DISCNUMBER")
-        .and_then(|value| importer.import_index_numbers_from_field("DISCNUMBER", value))
-    {
-        if let Some(total) = reader
-            .read_first_value("DISCTOTAL")
-            .and_then(|value| value.parse().ok())
-            .or_else(|| {
-                reader
-                    .read_first_value("TOTALDISCS")
-                    .and_then(|value| value.parse().ok())
-            })
-        {
-            if let Some(index_total) = index.total {
-                importer.add_issue(format!(
-                    "Overwriting total number of discs {index_total} parsed from field 'DISCNUMBER' with {total}"
-                ));
-            }
-            index.total = Some(total);
-        }
-        Some(index)
-    } else {
-        None
-    }
-}
-
-pub fn import_movement_index(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Option<Index> {
-    if let Some(mut index) = reader
-        .read_first_value("MOVEMENT")
-        .and_then(|value| importer.import_index_numbers_from_field("MOVEMENT", value))
-    {
-        if let Some(total) = reader
-            .read_first_value("MOVEMENTTOTAL")
-            .and_then(|value| value.parse().ok())
-        {
-            if let Some(index_total) = index.total {
-                importer.add_issue(format!(
-                    "Overwriting total number of movements {index_total} parsed from field 'MOVEMENT' with {total}"
-                ));
-            }
-            index.total = Some(total);
-        }
-        Some(index)
-    } else {
-        None
-    }
-}
-
-pub fn import_track_titles(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Canonical<Vec<Title>> {
-    let mut track_titles = Vec::with_capacity(4);
-    if let Some(title) = reader
-        .read_first_value("TITLE")
-        .and_then(|name| ingest_title_from(name, TitleKind::Main))
-    {
-        track_titles.push(title);
-    }
-
-    if let Some(title) = reader
-        .read_first_value("SUBTITLE")
-        .and_then(|name| ingest_title_from(name, TitleKind::Sub))
-    {
-        track_titles.push(title);
-    }
-    if let Some(title) = reader
-        .read_first_value("WORK")
-        .and_then(|name| ingest_title_from(name, TitleKind::Work))
-    {
-        track_titles.push(title);
-    }
-    if let Some(title) = reader
-        .read_first_value("MOVEMENTNAME")
-        .and_then(|name| ingest_title_from(name, TitleKind::Movement))
-    {
-        track_titles.push(title);
-    }
-    importer.finish_import_of_titles(TrackScope::Track, track_titles)
-}
-
-pub fn import_album_titles(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-) -> Canonical<Vec<Title>> {
-    let mut album_titles = Vec::with_capacity(1);
-    if let Some(title) = reader
-        .read_first_value("ALBUM")
-        .and_then(|name| ingest_title_from(name, TitleKind::Main))
-    {
-        album_titles.push(title);
-    }
-    importer.finish_import_of_titles(TrackScope::Album, album_titles)
-}
-
-#[cfg(feature = "serato-markers")]
-#[must_use]
-pub fn import_serato_markers2(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-    serato_tags: &mut triseratops::tag::TagContainer,
-    format: triseratops::tag::TagFormat,
-) -> bool {
-    let vorbis_comment = match format {
-        triseratops::tag::TagFormat::FLAC => {
-            <triseratops::tag::Markers2 as triseratops::tag::format::flac::FLACTag>::FLAC_COMMENT
-        }
-        triseratops::tag::TagFormat::Ogg => {
-            <triseratops::tag::Markers2 as triseratops::tag::format::ogg::OggTag>::OGG_COMMENT
-        }
-        _ => {
-            return false;
-        }
-    };
-
-    reader
-        .read_first_value(vorbis_comment)
-        .and_then(|data| {
-            serato_tags
-                .parse_markers2(data.as_bytes(), format)
-                .map_err(|err| {
-                    importer.add_issue(format!("Failed to import Serato Markers2: {err}"));
-                })
-                .ok()
-        })
-        .is_some()
-}
-
-pub fn import_into_track(
-    importer: &mut Importer,
-    reader: &impl CommentReader,
-    config: &ImportTrackConfig,
-    track: &mut Track,
-) -> Result<()> {
-    if let Some(imported_tempo_bpm) = import_tempo_bpm(importer, reader) {
-        track.metrics.flags.set(
-            MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
-            imported_tempo_bpm.is_non_fractional(),
-        );
-        track.metrics.tempo_bpm = Some(imported_tempo_bpm.into());
-    } else {
-        track.metrics.tempo_bpm = None;
-    }
-
-    track.metrics.key_signature = import_key_signature(importer, reader);
-
-    track.recorded_at = import_recorded_at(importer, reader);
-    track.released_at = import_released_at(importer, reader);
-    track.released_orig_at = import_released_orig_at(importer, reader);
-
-    track.publisher = import_publisher(reader);
-    track.copyright = import_copyright(reader);
-
-    // Track titles
-    track.titles = import_track_titles(importer, reader);
-
-    // Track actors
-    let mut track_actors = Vec::with_capacity(8);
-    for name in reader.filter_values(ARTIST_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Artist, name);
-    }
-    for name in reader.filter_values(ARRANGER_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Arranger, name);
-    }
-    for name in reader.filter_values(COMPOSER_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Composer, name);
-    }
-    for name in reader.filter_values(CONDUCTOR_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Conductor, name);
-    }
-    for name in reader.filter_values(CONDUCTOR_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Producer, name);
-    }
-    if reader.read_first_value(REMIXER_KEY).is_some() {
-        for name in reader.filter_values(REMIXER_KEY).unwrap_or_default() {
-            push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
-        }
-    } else {
-        for name in reader.filter_values(REMIXER_KEY2).unwrap_or_default() {
-            push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
-        }
-    }
-    for name in reader.filter_values(MIXER_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::MixEngineer, name);
-    }
-    for name in reader.filter_values(DJMIXER_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::MixDj, name);
-    }
-    for name in reader.filter_values(ENGINEER_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Engineer, name);
-    }
-    for name in reader.filter_values(DIRECTOR_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Director, name);
-    }
-    for name in reader.filter_values(LYRICIST_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Lyricist, name);
-    }
-    for name in reader.filter_values(WRITER_KEY).unwrap_or_default() {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
-    }
-    track.actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
-
-    let mut album = track.album.untie_replace(Default::default());
-
-    // Album titles
-    album.titles = import_album_titles(importer, reader);
-
-    // Album actors
-    let mut album_actors = Vec::with_capacity(4);
-    for name in reader
-        .filter_values(ALBUM_ARTIST_KEY)
-        .unwrap_or_default()
-        .into_iter()
-        .chain(
-            reader
-                .filter_values(ALBUM_ARTIST_KEY2)
-                .unwrap_or_default()
-                .into_iter(),
-        )
-        .chain(
-            reader
-                .filter_values(ALBUM_ARTIST_KEY3)
-                .unwrap_or_default()
-                .into_iter(),
-        )
-        .chain(
-            reader
-                .filter_values(ALBUM_ARTIST_KEY4)
-                .unwrap_or_default()
-                .into_iter(),
-        )
-    {
-        push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
-    }
-    album.actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
-
-    // Album properties
-    album.kind = import_album_kind(importer, reader);
-
-    track.album = Canonical::tie(album);
-
-    let mut tags_map = TagsMap::default();
-
-    // Grouping tags
-    import_faceted_text_tags(
-        importer,
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_ID_GROUPING,
-        reader
-            .filter_values(GROUPING_KEY)
-            .unwrap_or_default()
-            .into_iter(),
-    );
-
-    // Import gigtags from raw grouping tags before any other tags.
-    #[cfg(feature = "gigtag")]
-    if config.flags.contains(ImportTrackFlags::GIGTAGS) {
-        if let Some(faceted_tags) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
-            tags_map = crate::util::gigtag::import_from_faceted_tags(faceted_tags);
-        }
-    }
-
-    // Comment tags
-    import_faceted_text_tags(
-        importer,
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_ID_COMMENT,
-        reader
-            .filter_values(COMMENT_KEY)
-            .unwrap_or_default()
-            .into_iter(),
-    );
-
-    // Description tags
-    import_faceted_text_tags(
-        importer,
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_ID_DESCRIPTION,
-        reader
-            .filter_values(COMMENT_KEY2)
-            .unwrap_or_default()
-            .into_iter(),
-    );
-
-    // Genre tags
-    import_faceted_text_tags(
-        importer,
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_ID_GENRE,
-        reader
-            .filter_values(GENRE_KEY)
-            .unwrap_or_default()
-            .into_iter(),
-    );
-
-    // Mood tags
-    import_faceted_text_tags(
-        importer,
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_ID_MOOD,
-        reader
-            .filter_values(MOOD_KEY)
-            .unwrap_or_default()
-            .into_iter(),
-    );
-
-    // ISRC tags
-    import_faceted_text_tags(
-        importer,
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_ID_ISRC,
-        reader
-            .filter_values(ISRC_KEY)
-            .unwrap_or_default()
-            .into_iter(),
-    );
-
-    track.indexes.track = import_track_index(importer, reader).unwrap_or_default();
-    track.indexes.disc = import_disc_index(importer, reader).unwrap_or_default();
-    track.indexes.movement = import_movement_index(importer, reader).unwrap_or_default();
-
-    if config
-        .flags
-        .contains(ImportTrackFlags::METADATA_EMBEDDED_ARTWORK)
-    {
-        let artwork = if let Some((apic_type, mime_type, image_data)) =
-            find_embedded_artwork_image(importer, reader)
-        {
-            let (artwork, _, issues) = try_ingest_embedded_artwork_image(
-                apic_type,
-                &image_data,
-                None,
-                Some(&mime_type),
-                &mut config.flags.new_artwork_digest(),
-            );
-            issues
-                .into_iter()
-                .for_each(|message| importer.add_issue(message));
-            artwork
-        } else {
-            Artwork::Missing
-        };
-        track.media_source.artwork = Some(artwork);
-    }
-
-    #[cfg(feature = "serato-markers")]
-    if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
-        let mut serato_tags = triseratops::tag::TagContainer::new();
-        if import_serato_markers2(
-            importer,
-            reader,
-            &mut serato_tags,
-            triseratops::tag::TagFormat::Ogg,
-        ) {
-            track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
-            track.color = crate::util::serato::import_track_color(&serato_tags);
-        }
-    }
-
-    Ok(())
-}
-
-pub fn export_track(
+pub(crate) fn export_track(
     config: &ExportTrackConfig,
     track: &mut Track,
     writer: &mut impl CommentWriter,

@@ -35,7 +35,7 @@ fn map_metaflac_err(err: metaflac::Error) -> Error {
     }
 }
 
-pub fn export_track_to_path(
+pub(crate) fn export_track_to_path(
     path: &Path,
     config: &ExportTrackConfig,
     track: &mut Track,

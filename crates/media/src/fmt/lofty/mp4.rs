@@ -46,7 +46,7 @@ fn import_advisory_rating(advisory_rating: lofty::mp4::AdvisoryRating) -> Adviso
     }
 }
 
-pub fn import_file_into_track(
+pub(crate) fn import_file_into_track(
     importer: &mut Importer,
     config: &ImportTrackConfig,
     mp4_file: Mp4File,

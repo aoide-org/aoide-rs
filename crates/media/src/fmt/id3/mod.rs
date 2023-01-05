@@ -49,11 +49,11 @@ pub(crate) fn map_id3_err(err: id3::Error) -> Error {
 }
 
 #[derive(Debug)]
-pub enum ExportError {
+pub(crate) enum ExportError {
     UnsupportedLegacyVersion(id3::Version),
 }
 
-pub fn export_track(
+pub(crate) fn export_track(
     config: &ExportTrackConfig,
     track: &mut Track,
     tag: &mut id3::Tag,

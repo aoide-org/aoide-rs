@@ -9,7 +9,7 @@ use crate::{io::export::ExportTrackConfig, Error, Result};
 
 use super::id3::{export_track as export_track_into_id3_tag, map_id3_err};
 
-pub fn export_track_to_path(
+pub(crate) fn export_track_to_path(
     path: &Path,
     config: &ExportTrackConfig,
     track: &mut Track,

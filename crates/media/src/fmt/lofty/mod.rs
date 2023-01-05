@@ -41,21 +41,23 @@ use crate::{
     Result,
 };
 
-pub mod aiff;
+pub(crate) mod aiff;
 
-pub mod flac;
+pub(crate) mod flac;
 
-pub mod id3v2;
+pub(crate) mod id3v2;
 
-pub mod mp4;
+pub(crate) mod mp4;
 
-pub mod mpeg;
+pub(crate) mod mpeg;
 
-pub mod ogg;
+pub(crate) mod ogg;
 
-pub mod opus;
+pub(crate) mod opus;
 
-pub mod vorbis;
+pub(crate) mod vorbis;
+
+const ENCODER_FIELD_SEPARATOR: &str = "|";
 
 fn import_audio_content_from_file_properties(properties: &FileProperties) -> AudioContentMetadata {
     let bitrate = properties
@@ -82,7 +84,7 @@ fn import_audio_content_from_file_properties(properties: &FileProperties) -> Aud
     }
 }
 
-pub fn take_primary_or_first_tag(tagged_file: &mut TaggedFile) -> Option<Tag> {
+pub(crate) fn take_primary_or_first_tag(tagged_file: &mut TaggedFile) -> Option<Tag> {
     if let Some(tag) = tagged_file.remove(tagged_file.primary_tag_type()) {
         return Some(tag);
     }
@@ -128,7 +130,7 @@ fn apic_type_from_picture_type(picture_type: PictureType) -> Option<ApicType> {
 }
 
 #[must_use]
-pub fn find_embedded_artwork_image(tag: &Tag) -> Option<(ApicType, &str, &[u8])> {
+pub(crate) fn find_embedded_artwork_image(tag: &Tag) -> Option<(ApicType, &str, &[u8])> {
     tag.pictures()
         .iter()
         .filter_map(|p| {
@@ -170,7 +172,7 @@ pub fn find_embedded_artwork_image(tag: &Tag) -> Option<(ApicType, &str, &[u8])>
         .next()
 }
 
-pub fn import_embedded_artwork(
+pub(crate) fn import_embedded_artwork(
     importer: &mut Importer,
     tag: &Tag,
     mut media_digest: MediaDigest,
@@ -194,7 +196,7 @@ pub fn import_embedded_artwork(
     Ok(artwork)
 }
 
-pub fn import_tagged_file_into_track(
+pub(crate) fn import_tagged_file_into_track(
     importer: &mut Importer,
     config: &ImportTrackConfig,
     mut tagged_file: TaggedFile,
@@ -216,7 +218,7 @@ pub fn import_tagged_file_into_track(
     Ok(())
 }
 
-pub fn import_file_tag_into_track(
+pub(crate) fn import_file_tag_into_track(
     importer: &mut Importer,
     config: &ImportTrackConfig,
     file_properties: &FileProperties,
@@ -247,7 +249,7 @@ pub fn import_file_tag_into_track(
         audio_content.encoder = encoder_info
             .is_empty()
             .not()
-            .then(|| encoder_info.join("|"));
+            .then(|| encoder_info.join(ENCODER_FIELD_SEPARATOR));
         debug_assert!(audio_content.loudness.is_none());
         audio_content.loudness = tag
             .get_string(&ItemKey::ReplayGainTrackGain)

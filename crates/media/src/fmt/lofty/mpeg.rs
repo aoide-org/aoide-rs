@@ -10,7 +10,7 @@ use crate::{
     Result,
 };
 
-pub fn import_file_into_track(
+pub(crate) fn import_file_into_track(
     importer: &mut Importer,
     config: &ImportTrackConfig,
     mpeg_file: MPEGFile,

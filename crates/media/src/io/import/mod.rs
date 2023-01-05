@@ -1,9 +1,16 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Cow, result::Result as StdResult};
+use std::{
+    borrow::Cow,
+    io::{Read, Seek},
+    path::Path,
+    result::Result as StdResult,
+};
 
+use bitflags::bitflags;
 use lofty::FileType;
+use mime::Mime;
 use semval::IsValid as _;
 
 use aoide_core::{
@@ -18,7 +25,7 @@ use aoide_core::{
         CowLabel, FacetId as TagFacetId, Label as TagLabel, PlainTag, Score as TagScore,
         ScoreValue, TagsMap,
     },
-    track::{actor::Actor, index::Index, title::Title, Track},
+    track::{actor::Actor, title::Title, Track},
     util::{
         canonical::{Canonical, CanonicalizeInto as _},
         clock::{DateOrDateTime, DateTime},
@@ -29,18 +36,11 @@ use crate::{
     util::{
         db2lufs,
         digest::MediaDigest,
-        parse_index_numbers, parse_key_signature, parse_replay_gain_db, parse_year_tag,
+        parse_key_signature, parse_replay_gain_db, parse_year_tag,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         trim_readable,
     },
     Error, Result,
-};
-
-use bitflags::bitflags;
-use mime::Mime;
-use std::{
-    io::{Read, Seek},
-    path::Path,
 };
 
 #[rustfmt::skip]
@@ -341,13 +341,8 @@ pub fn try_import_plain_tag<'a>(
     }
 }
 
-#[derive(Debug, Default)]
-pub struct Importer {
-    issues: Issues,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TrackScope {
+pub(crate) enum TrackScope {
     Track,
     Album,
 }
@@ -362,7 +357,7 @@ impl TrackScope {
 }
 
 #[derive(Debug, Clone)]
-pub enum ImportedTempoBpm {
+pub(crate) enum ImportedTempoBpm {
     /// Field contained a decimal point
     Fractional(TempoBpm),
     /// Field didn't contain a decimal point and is an integer value
@@ -371,7 +366,7 @@ pub enum ImportedTempoBpm {
 
 impl ImportedTempoBpm {
     #[must_use]
-    pub const fn is_non_fractional(&self) -> bool {
+    pub(crate) const fn is_non_fractional(&self) -> bool {
         matches!(self, Self::NonFractional(_))
     }
 }
@@ -385,26 +380,31 @@ impl From<ImportedTempoBpm> for TempoBpm {
     }
 }
 
+#[derive(Debug, Default)]
+pub(crate) struct Importer {
+    issues: Issues,
+}
+
 impl Importer {
     #[must_use]
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             issues: Issues::new(),
         }
     }
 
-    pub fn add_issue(&mut self, message: impl Into<String>) {
+    pub(crate) fn add_issue(&mut self, message: impl Into<String>) {
         self.issues.add_message(message)
     }
 
     #[must_use]
-    pub fn finish(self) -> Issues {
+    pub(crate) fn finish(self) -> Issues {
         let Self { issues } = self;
         issues
     }
 
     #[must_use]
-    pub fn import_year_tag_from_field(
+    pub(crate) fn import_year_tag_from_field(
         &mut self,
         field: &str,
         input: &str,
@@ -419,7 +419,7 @@ impl Importer {
     }
 
     #[must_use]
-    pub fn finish_import_of_titles(
+    pub(crate) fn finish_import_of_titles(
         &mut self,
         scope: TrackScope,
         titles: Vec<Title>,
@@ -437,7 +437,7 @@ impl Importer {
     }
 
     #[must_use]
-    pub fn finish_import_of_actors(
+    pub(crate) fn finish_import_of_actors(
         &mut self,
         scope: TrackScope,
         actors: Vec<Actor>,
@@ -455,7 +455,7 @@ impl Importer {
     }
 
     #[must_use]
-    pub fn import_tempo_bpm(&mut self, input: &str) -> Option<ImportedTempoBpm> {
+    pub(crate) fn import_tempo_bpm(&mut self, input: &str) -> Option<ImportedTempoBpm> {
         let input = trim_readable(input);
         if input.is_empty() {
             return None;
@@ -491,7 +491,7 @@ impl Importer {
     }
 
     #[must_use]
-    pub fn import_loudness_from_replay_gain(&mut self, input: &str) -> Option<LoudnessLufs> {
+    pub(crate) fn import_loudness_from_replay_gain(&mut self, input: &str) -> Option<LoudnessLufs> {
         let input = trim_readable(input);
         if input.is_empty() {
             return None;
@@ -527,7 +527,7 @@ impl Importer {
         }
     }
 
-    pub fn import_key_signature(&mut self, input: &str) -> Option<KeySignature> {
+    pub(crate) fn import_key_signature(&mut self, input: &str) -> Option<KeySignature> {
         let key_signature = parse_key_signature(input);
         if key_signature.is_none() {
             let input_bytes = input.as_bytes();
@@ -538,18 +538,7 @@ impl Importer {
         key_signature
     }
 
-    #[must_use]
-    pub fn import_index_numbers_from_field(&mut self, field: &str, input: &str) -> Option<Index> {
-        let index = parse_index_numbers(input);
-        if index.is_none() {
-            self.add_issue(format!(
-                "Failed to parse index numbers from input '{input}' in field '{field}'"
-            ));
-        }
-        index
-    }
-
-    pub fn import_faceted_tags_from_label_values<'a>(
+    pub(crate) fn import_faceted_tags_from_label_values<'a>(
         &mut self,
         tags_map: &mut TagsMap,
         faceted_tag_mapping_config: &FacetedTagMappingConfig,
@@ -579,7 +568,7 @@ impl Importer {
         count
     }
 
-    pub fn import_plain_tags_from_joined_label_value<'a>(
+    pub(crate) fn import_plain_tags_from_joined_label_value<'a>(
         &mut self,
         tag_mapping_config: Option<&TagMappingConfig>,
         next_score_value: &mut ScoreValue,

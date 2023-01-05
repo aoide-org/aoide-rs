@@ -141,7 +141,7 @@ fn export_faceted_tags(
     }
 }
 
-pub fn export_track_to_path(
+pub(crate) fn export_track_to_path(
     path: &Path,
     config: &ExportTrackConfig,
     track: &mut Track,
