@@ -476,7 +476,7 @@ pub fn media_type_from_image_format(
 pub fn load_artwork_picture(
     image_data: &[u8],
     image_format_hint: Option<ImageFormat>,
-    mime_type_hint: Option<&str>,
+    media_type_hint: Option<&str>,
 ) -> LoadArtworkPictureResult {
     let image_format = image_format_hint.or_else(|| guess_format(image_data).ok());
     let mut recoverable_errors = Vec::new();
@@ -488,13 +488,13 @@ pub fn load_artwork_picture(
     .map_err(Into::into)
     .map_err(ArtworkImageError::Other)
     .and_then(|picture| {
-        let media_type = mime_type_hint
-            .and_then(|mime_type_hint| {
-                mime_type_hint
+        let media_type = media_type_hint
+            .and_then(|media_type_hint| {
+                media_type_hint
                     .parse::<Mime>()
                     .map_err(|err| {
                         recoverable_errors.push(anyhow::anyhow!(
-                            "Invalid MIME type hint '{mime_type_hint}': {err}"
+                            "Failed to parse MIME type from '{media_type_hint}': {err}"
                         ));
                         err
                     })
@@ -526,14 +526,14 @@ pub fn ingest_artwork_image(
     apic_type: ApicType,
     image_data: &[u8],
     image_format_hint: Option<ImageFormat>,
-    mime_type_hint: Option<&str>,
+    media_type_hint: Option<&str>,
     image_digest: &mut MediaDigest,
 ) -> IngestArtworkImageResult {
     let LoadedArtworkPicture {
         media_type,
         picture,
         recoverable_errors,
-    } = load_artwork_picture(image_data, image_format_hint, mime_type_hint)?;
+    } = load_artwork_picture(image_data, image_format_hint, media_type_hint)?;
     let (width, height) = picture.dimensions();
     let clamped_with = width as ImageDimension;
     let clamped_height = height as ImageDimension;
@@ -578,7 +578,7 @@ pub fn ingest_embedded_artwork_image(
     apic_type: ApicType,
     image_data: &[u8],
     image_format_hint: Option<ImageFormat>,
-    mime_type_hint: Option<&str>,
+    media_type_hint: Option<&str>,
     image_digest: &mut MediaDigest,
 ) -> IngestEmbeddedArtworkImageResult {
     let IngestedArtworkImage {
@@ -589,7 +589,7 @@ pub fn ingest_embedded_artwork_image(
         apic_type,
         image_data,
         image_format_hint,
-        mime_type_hint,
+        media_type_hint,
         image_digest,
     )?;
     let embedded_artwork = EmbeddedArtwork {
@@ -606,14 +606,14 @@ pub fn try_ingest_embedded_artwork_image(
     apic_type: ApicType,
     image_data: &[u8],
     image_format_hint: Option<ImageFormat>,
-    mime_type_hint: Option<&str>,
+    media_type_hint: Option<&str>,
     image_digest: &mut MediaDigest,
 ) -> (Artwork, Option<DynamicImage>, Vec<String>) {
     ingest_embedded_artwork_image(
         apic_type,
         image_data,
         image_format_hint,
-        mime_type_hint,
+        media_type_hint,
         image_digest,
     )
     .map(
