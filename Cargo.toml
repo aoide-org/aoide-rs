@@ -55,17 +55,6 @@ aoide-usecases = { path = "crates/usecases" }
 aoide-usecases-sqlite = { path = "crates/usecases-sqlite" }
 aoide-websrv-warp-sqlite = { path = "crates/websrv-warp-sqlite" }
 
-# Unreleased crates
-#triseratops = { git = "https://github.com/Holzhaus/triseratops", branch = "main" }
-
-# Temporary patches
-#mp4ameta = { git = "https://github.com/Saecki/rust-mp4ameta", branch = "master" }
-#id3 = { git = "https://github.com/polyfloyd/rust-id3", branch = "master" }
-#semval = { git = "https://github.com/slowtec/semval", branch = "main" }
-#mpeg-audio-header = { git = "https://github.com/uklotzde/mpeg-audio-header", branch = "main" }
-#discro = { git = "https://github.com/uklotzde/discro", branch = "main" }
-lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
-
 [profile.dev]
 opt-level = 2
 # TODO: Uncomment after
