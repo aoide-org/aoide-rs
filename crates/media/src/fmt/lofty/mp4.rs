@@ -5,25 +5,12 @@ use std::borrow::Cow;
 
 use lofty::mp4::{AtomData, AtomIdent, Mp4File};
 
-use aoide_core::{
-    media::AdvisoryRating,
-    track::{actor::Role as ActorRole, album::Kind as AlbumKind, tag::FACET_ID_XID, Track},
-    util::canonical::Canonical,
-};
+use aoide_core::{media::AdvisoryRating, track::Track, util::canonical::Canonical};
 
 use crate::{
     io::import::{ImportTrackConfig, ImportTrackFlags, Importer},
-    util::push_next_actor_role_name,
     Result,
 };
-
-const COMPILATION_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"cpil");
-
-// FIXME: Remove after <https://github.com/Serial-ATA/lofty-rs/pull/100>
-const DIRECTOR_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"\xA9dir");
-
-// FIXME: Remove after <https://github.com/Serial-ATA/lofty-rs/pull/98> has been merged.
-const XID_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"xid ");
 
 #[cfg(feature = "serato-markers")]
 const SERATO_MARKERS_IDENT: AtomIdent<'_> = AtomIdent::Freeform {
@@ -60,45 +47,6 @@ pub(crate) fn import_file_into_track(
         .ilst()
         .and_then(|ilst| ilst.advisory_rating().map(import_advisory_rating));
 
-    // TODO: How to use ItemKey::FlagCompilation for reading this boolean?
-    // See also: <https://github.com/Serial-ATA/lofty-rs/issues/99>
-    let album_kind = mp4_file.ilst().and_then(|ilst| {
-        ilst.atom(&COMPILATION_IDENT).and_then(|atom| {
-            atom.data()
-                .filter_map(|data| match data {
-                    AtomData::Bool(value) => Some(if *value {
-                        AlbumKind::Compilation
-                    } else {
-                        AlbumKind::NoCompilation
-                    }),
-                    _ => None,
-                })
-                .next()
-        })
-    });
-
-    let director_names = mp4_file.ilst().and_then(|ilst| {
-        ilst.atom(&DIRECTOR_IDENT).map(|atom| {
-            atom.data()
-                .filter_map(|data| match data {
-                    AtomData::UTF8(value) => Some(value.to_owned()),
-                    _ => None,
-                })
-                .collect::<Vec<_>>()
-        })
-    });
-
-    let xid_tags = mp4_file.ilst().and_then(|ilst| {
-        ilst.atom(&XID_IDENT).map(|atom| {
-            atom.data()
-                .filter_map(|data| match data {
-                    AtomData::UTF8(value) => Some(value.to_owned()),
-                    _ => None,
-                })
-                .collect::<Vec<_>>()
-        })
-    });
-
     #[cfg(feature = "serato-markers")]
     let serato_tags = if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
         mp4_file
@@ -116,32 +64,6 @@ pub(crate) fn import_file_into_track(
 
     debug_assert!(track.media_source.advisory_rating.is_none());
     track.media_source.advisory_rating = advisory_rating;
-
-    if let Some(album_kind) = album_kind {
-        let mut album = track.album.untie_replace(Default::default());
-        debug_assert!(album.kind.is_none());
-        album.kind = Some(album_kind);
-        track.album = Canonical::tie(album);
-    }
-
-    if let Some(director_names) = director_names {
-        let mut track_actors = track.actors.untie_replace(Default::default());
-        for name in director_names {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Director, name);
-        }
-        track.actors = Canonical::tie(track_actors);
-    }
-
-    if let Some(xid_tags) = xid_tags {
-        let mut tags_map = track.tags.untie_replace(Default::default()).into();
-        importer.import_faceted_tags_from_label_values(
-            &mut tags_map,
-            &config.faceted_tag_mapping,
-            &FACET_ID_XID,
-            xid_tags.into_iter().map(Into::into),
-        );
-        track.tags = Canonical::tie(tags_map.into());
-    }
 
     #[cfg(feature = "serato-markers")]
     if let Some(serato_tags) = serato_tags {

@@ -18,10 +18,6 @@ pub(crate) fn import_file_into_track(
 ) -> Result<()> {
     // Pre-processing
 
-    let album_kind = mpeg_file
-        .id3v2()
-        .and_then(|tag| super::id3v2::import_album_kind(importer, tag));
-
     #[cfg(feature = "serato-markers")]
     let serato_tags = config
         .flags
@@ -38,13 +34,6 @@ pub(crate) fn import_file_into_track(
     super::import_tagged_file_into_track(importer, config, tagged_file, track)?;
 
     // Post-processing
-
-    if let Some(album_kind) = album_kind {
-        let mut album = track.album.untie_replace(Default::default());
-        debug_assert!(album.kind.is_none());
-        album.kind = Some(album_kind);
-        track.album = Canonical::tie(album);
-    }
 
     #[cfg(feature = "serato-markers")]
     if let Some(serato_tags) = serato_tags {

@@ -5,28 +5,6 @@
 
 use lofty::id3::v2::ID3v2Tag;
 
-use aoide_core::track::album::Kind as AlbumKind;
-
-use crate::{io::import::Importer, util::trim_readable};
-
-pub(super) fn import_album_kind(importer: &mut Importer, tag: &ID3v2Tag) -> Option<AlbumKind> {
-    let value = tag.get_text("TCMP");
-    value
-        .as_ref()
-        .and_then(|compilation| trim_readable(compilation).parse::<u8>().ok())
-        .and_then(|compilation| match compilation {
-            0 => Some(AlbumKind::NoCompilation),
-            1 => Some(AlbumKind::Compilation),
-            _ => {
-                importer.add_issue(format!(
-                    "Unexpected tag value: TCMP = '{}'",
-                    value.expect("unreachable")
-                ));
-                None
-            }
-        })
-}
-
 #[cfg(feature = "serato-markers")]
 #[must_use]
 pub(super) fn import_serato_markers(

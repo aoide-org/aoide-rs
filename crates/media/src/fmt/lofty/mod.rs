@@ -21,6 +21,7 @@ use aoide_core::{
     tag::{Score as TagScore, TagsMap},
     track::{
         actor::Role as ActorRole,
+        album::Kind as AlbumKind,
         metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
@@ -363,7 +364,21 @@ pub(crate) fn import_file_tag_into_track(
     album.actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
 
     if let Some(item) = tag.take(&ItemKey::FlagCompilation).next() {
-        log::warn!("TODO: Handle item with compilation flag: {item:?}");
+        if let Some(kind) = item
+            .value()
+            .text()
+            .and_then(|input| input.parse::<u8>().ok())
+            .and_then(|value| match value {
+                0 => Some(AlbumKind::NoCompilation),
+                1 => Some(AlbumKind::Compilation),
+                _ => None,
+            })
+        {
+            debug_assert!(album.kind.is_none());
+            album.kind = Some(kind);
+        } else {
+            importer.add_issue(format!("Unexpected compilation flag item: {item:?}"));
+        }
     }
 
     track.album = Canonical::tie(album);
