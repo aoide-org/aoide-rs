@@ -76,7 +76,7 @@ pub struct Track {
 
     pub actors: Canonical<Vec<Actor>>,
 
-    pub tags: Canonical<Tags>,
+    pub tags: Canonical<Tags<'static>>,
 
     pub color: Option<Color>,
 

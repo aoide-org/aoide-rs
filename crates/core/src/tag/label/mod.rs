@@ -78,15 +78,15 @@ impl Label {
     }
 
     #[must_use]
-    pub const fn value(&self) -> &LabelValue {
+    pub fn into_inner(self) -> LabelValue {
         let Self(value) = self;
         value
     }
 
     #[must_use]
-    pub fn into_value(self) -> LabelValue {
-        let Self(value) = self;
-        value
+    pub fn as_str(&self) -> &str {
+        let Self(inner) = self;
+        inner
     }
 }
 
@@ -101,24 +101,12 @@ impl Validate for Label {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.value().is_empty(), Self::Invalidity::Empty)
+            .invalidate_if(self.is_empty(), Self::Invalidity::Empty)
             .invalidate_if(
-                Self::clamp_value(self.value().as_str()) != Some(self.into()),
+                Self::clamp_value(self.as_str()) != Some(self.into()),
                 Self::Invalidity::Format,
             )
             .into()
-    }
-}
-
-impl From<LabelValue> for Label {
-    fn from(value: LabelValue) -> Self {
-        Self::new(value)
-    }
-}
-
-impl From<Label> for LabelValue {
-    fn from(from: Label) -> Self {
-        from.into_value()
     }
 }
 

@@ -21,7 +21,7 @@ use crate::{
 };
 
 pub mod facet;
-pub use facet::{CowFacetId, FacetId, FacetIdInvalidity, FacetIdValue, Faceted};
+pub use facet::{FacetId, FacetIdInvalidity, Faceted};
 
 pub mod label;
 pub use label::{CowLabel, Label, LabelInvalidity, LabelValue, Labeled};
@@ -131,12 +131,12 @@ impl Canonicalize for PlainTag {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct FacetedTags {
-    pub facet_id: FacetId,
+pub struct FacetedTags<'a> {
+    pub facet_id: FacetId<'a>,
     pub tags: Vec<PlainTag>,
 }
 
-impl CanonicalOrd for FacetedTags {
+impl CanonicalOrd for FacetedTags<'_> {
     fn canonical_dedup_cmp(&self, other: &Self) -> Ordering {
         debug_assert_eq!(Ordering::Equal, self.canonical_cmp(other));
         // Conflicting tags should be resolved before, e.g. by concatenating
@@ -157,7 +157,7 @@ pub enum FacetedTagInvalidity {
     Tag(PlainTagInvalidity),
 }
 
-impl Validate for FacetedTags {
+impl Validate for FacetedTags<'_> {
     type Invalidity = FacetedTagInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
@@ -175,19 +175,19 @@ impl Validate for FacetedTags {
     }
 }
 
-impl Faceted for FacetedTags {
-    fn facet(&self) -> Option<&FacetId> {
+impl Faceted for FacetedTags<'_> {
+    fn facet(&self) -> Option<&FacetId<'_>> {
         Some(&self.facet_id)
     }
 }
 
-impl IsCanonical for FacetedTags {
+impl IsCanonical for FacetedTags<'_> {
     fn is_canonical(&self) -> bool {
         !self.tags.is_empty() && self.tags.is_canonical()
     }
 }
 
-impl Canonicalize for FacetedTags {
+impl Canonicalize for FacetedTags<'_> {
     fn canonicalize(&mut self) {
         self.tags.canonicalize();
     }
@@ -198,12 +198,12 @@ impl Canonicalize for FacetedTags {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct Tags {
+pub struct Tags<'a> {
     pub plain: Vec<PlainTag>,
-    pub facets: Vec<FacetedTags>,
+    pub facets: Vec<FacetedTags<'a>>,
 }
 
-impl Tags {
+impl<'a> Tags<'a> {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.total_count() == 0
@@ -218,7 +218,7 @@ impl Tags {
     }
 }
 
-impl IsCanonical for Tags {
+impl IsCanonical for Tags<'_> {
     fn is_canonical(&self) -> bool {
         let Self {
             plain: plain_tags,
@@ -228,7 +228,7 @@ impl IsCanonical for Tags {
     }
 }
 
-impl Canonicalize for Tags {
+impl Canonicalize for Tags<'_> {
     fn canonicalize(&mut self) {
         let Self {
             plain: plain_tags,
@@ -284,7 +284,7 @@ fn check_for_duplicates_in_sorted_plain_tags_slice(
 }
 
 fn check_for_duplicates_in_sorted_faceted_tags_slice(
-    faceted_tags: &[FacetedTags],
+    faceted_tags: &[FacetedTags<'_>],
 ) -> Option<TagsInvalidity> {
     debug_assert!(is_sorted_by(faceted_tags, |lhs, rhs| lhs
         .facet_id
@@ -309,7 +309,7 @@ fn check_for_duplicates_in_sorted_faceted_tags_slice(
     None
 }
 
-impl Validate for Tags {
+impl Validate for Tags<'_> {
     type Invalidity = TagsInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
@@ -345,47 +345,53 @@ impl Validate for Tags {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Default, Debug)]
-pub struct FacetKey(Option<FacetId>);
+pub struct FacetKey<'a>(Option<FacetId<'a>>);
 
-impl FacetKey {
+impl<'a> FacetKey<'a> {
     #[must_use]
-    pub const fn new(inner: Option<FacetId>) -> Self {
+    pub const fn new(inner: Option<FacetId<'a>>) -> Self {
         Self(inner)
     }
 
     #[must_use]
-    pub fn into_inner(self) -> Option<FacetId> {
+    pub fn into_inner(self) -> Option<FacetId<'a>> {
         let Self(inner) = self;
         inner
     }
-}
 
-impl From<Option<FacetId>> for FacetKey {
-    fn from(inner: Option<FacetId>) -> Self {
-        FacetKey::new(inner)
+    #[must_use]
+    pub fn into_owned(self) -> FacetKey<'static> {
+        let Self(inner) = self;
+        FacetKey(inner.map(FacetId::into_owned))
     }
 }
 
-impl From<FacetKey> for Option<FacetId> {
-    fn from(from: FacetKey) -> Self {
+impl<'a> From<&'a FacetId<'a>> for FacetKey<'a> {
+    fn from(from: &'a FacetId<'a>) -> Self {
+        FacetKey::new(Some(from.as_borrowed()))
+    }
+}
+
+impl<'a> From<FacetKey<'a>> for Option<FacetId<'a>> {
+    fn from(from: FacetKey<'a>) -> Self {
         from.into_inner()
     }
 }
 
-impl From<FacetId> for FacetKey {
-    fn from(from: FacetId) -> Self {
+impl<'a> From<FacetId<'a>> for FacetKey<'a> {
+    fn from(from: FacetId<'a>) -> Self {
         FacetKey(Some(from))
     }
 }
 
-impl AsRef<Option<FacetId>> for FacetKey {
-    fn as_ref(&self) -> &Option<FacetId> {
+impl<'a> AsRef<Option<FacetId<'a>>> for FacetKey<'a> {
+    fn as_ref(&self) -> &Option<FacetId<'a>> {
         let Self(inner) = self;
         inner
     }
 }
 
-impl AsRef<str> for FacetKey {
+impl AsRef<str> for FacetKey<'_> {
     fn as_ref(&self) -> &str {
         let Self(inner) = self;
         match inner {
@@ -395,19 +401,19 @@ impl AsRef<str> for FacetKey {
     }
 }
 
-impl Borrow<str> for FacetKey {
+impl Borrow<str> for FacetKey<'_> {
     fn borrow(&self) -> &str {
         self.as_ref()
     }
 }
 
-impl fmt::Display for FacetKey {
+impl fmt::Display for FacetKey<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_ref())
     }
 }
 
-impl PartialEq for FacetKey {
+impl PartialEq for FacetKey<'_> {
     fn eq(&self, other: &Self) -> bool {
         let self_str: &str = self.as_ref();
         let other_str: &str = other.as_ref();
@@ -415,9 +421,9 @@ impl PartialEq for FacetKey {
     }
 }
 
-impl Eq for FacetKey {}
+impl Eq for FacetKey<'_> {}
 
-impl Ord for FacetKey {
+impl Ord for FacetKey<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
         let self_str: &str = self.as_ref();
         let other_str: &str = other.as_ref();
@@ -425,13 +431,13 @@ impl Ord for FacetKey {
     }
 }
 
-impl PartialOrd for FacetKey {
+impl PartialOrd for FacetKey<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Hash for FacetKey {
+impl Hash for FacetKey<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let self_str: &str = self.as_ref();
         self_str.hash(state);
@@ -439,24 +445,24 @@ impl Hash for FacetKey {
 }
 
 /// Unified map of both plain and faceted tags
-pub type TagsMapInner = HashMap<FacetKey, Vec<PlainTag>>;
+pub type TagsMapInner<'a> = HashMap<FacetKey<'a>, Vec<PlainTag>>;
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct TagsMap(TagsMapInner);
+pub struct TagsMap<'a>(TagsMapInner<'a>);
 
-impl TagsMap {
+impl<'a> TagsMap<'a> {
     #[must_use]
-    pub const fn new(inner: TagsMapInner) -> Self {
+    pub const fn new(inner: TagsMapInner<'a>) -> Self {
         Self(inner)
     }
 
     #[must_use]
-    pub fn into_inner(self) -> TagsMapInner {
+    pub fn into_inner(self) -> TagsMapInner<'a> {
         let Self(inner) = self;
         inner
     }
 
-    pub fn insert(&mut self, key: FacetKey, tag: PlainTag) {
+    pub fn insert(&mut self, key: FacetKey<'a>, tag: PlainTag) {
         use std::collections::hash_map::*;
         let Self(inner) = self;
         match inner.entry(key) {
@@ -469,9 +475,9 @@ impl TagsMap {
         }
     }
 
-    pub fn count(&mut self, facet_id: &FacetId) -> usize {
+    pub fn count(&mut self, facet_id: &FacetId<'a>) -> usize {
         let Self(inner) = self;
-        inner.get(facet_id.value().as_str()).map_or(0, Vec::len)
+        inner.get(&FacetKey::from(facet_id)).map_or(0, Vec::len)
     }
 
     #[must_use]
@@ -481,26 +487,26 @@ impl TagsMap {
     }
 }
 
-impl From<TagsMapInner> for TagsMap {
-    fn from(from: TagsMapInner) -> Self {
+impl<'a> From<TagsMapInner<'a>> for TagsMap<'a> {
+    fn from(from: TagsMapInner<'a>) -> Self {
         Self::new(from)
     }
 }
 
-impl From<TagsMap> for TagsMapInner {
-    fn from(from: TagsMap) -> Self {
+impl<'a> From<TagsMap<'a>> for TagsMapInner<'a> {
+    fn from(from: TagsMap<'a>) -> Self {
         from.into_inner()
     }
 }
 
-impl AsRef<TagsMapInner> for TagsMap {
-    fn as_ref(&self) -> &TagsMapInner {
+impl<'a> AsRef<TagsMapInner<'a>> for TagsMap<'a> {
+    fn as_ref(&self) -> &TagsMapInner<'a> {
         let Self(inner) = self;
         inner
     }
 }
 
-impl TagsMap {
+impl<'a> TagsMap<'a> {
     pub fn get_plain_tags(&self) -> Option<&[PlainTag]> {
         let Self(all_tags) = self;
         all_tags.get(&FacetKey::new(None)).map(Vec::as_slice)
@@ -511,18 +517,18 @@ impl TagsMap {
         all_tags.remove(&FacetKey::new(None)).unwrap_or_default()
     }
 
-    pub fn get_faceted_plain_tags(&self, facet_id: &FacetId) -> Option<&[PlainTag]> {
+    pub fn get_faceted_plain_tags(&'a self, facet_id: &'a FacetId<'_>) -> Option<&'a [PlainTag]> {
         let Self(all_tags) = self;
-        all_tags.get(facet_id.value().as_str()).map(Vec::as_slice)
+        all_tags.get(&FacetKey::from(facet_id)).map(Vec::as_slice)
     }
 
     pub fn replace_faceted_plain_tags(
         &mut self,
-        facet_id: FacetId,
+        facet_id: FacetId<'a>,
         plain_tags: impl Into<Vec<PlainTag>>,
     ) -> Option<Vec<PlainTag>> {
         let Self(all_tags) = self;
-        match all_tags.entry(Some(facet_id).into()) {
+        match all_tags.entry(FacetKey::new(Some(facet_id))) {
             Occupied(mut entry) => Some(entry.insert(plain_tags.into())),
             Vacant(entry) => {
                 entry.insert(plain_tags.into());
@@ -541,9 +547,9 @@ impl TagsMap {
     /// the original scores should be preserved.
     ///
     /// Returns `true` if the tags have been replaced and `false` if unmodified.
-    pub fn update_faceted_plain_tags_by_label_ordering(
+    pub fn update_faceted_plain_tags_by_label_ordering<'b>(
         &mut self,
-        facet_id: &FacetId,
+        facet_id: &'b FacetId<'b>,
         plain_tags: impl Into<Vec<PlainTag>>,
     ) -> bool {
         let plain_tags = plain_tags.into();
@@ -565,15 +571,18 @@ impl TagsMap {
         if plain_tags.is_empty() {
             self.remove_faceted_tags(facet_id);
         } else {
-            self.replace_faceted_plain_tags(facet_id.clone(), plain_tags);
+            let facet_id = facet_id.clone().into_owned();
+            self.replace_faceted_plain_tags(facet_id, plain_tags);
         }
         true
     }
 
-    pub fn take_faceted_tags(&mut self, facet_id: &FacetId) -> Option<FacetedTags> {
+    pub fn take_faceted_tags<'b>(&mut self, facet_id: &'b FacetId<'b>) -> Option<FacetedTags<'a>> {
+        // TODO: How to avoid this needless allocation?
+        let facet_id = facet_id.clone().into_owned();
         let Self(all_tags) = self;
         all_tags
-            .remove_entry(facet_id.value().as_str())
+            .remove_entry(&FacetKey::from(facet_id))
             .map(|(key, tags)| {
                 let FacetKey(facet_id) = key;
                 debug_assert!(facet_id.is_some());
@@ -582,21 +591,23 @@ impl TagsMap {
             })
     }
 
-    pub fn remove_faceted_tags(&mut self, facet_id: &FacetId) -> Option<usize> {
+    pub fn remove_faceted_tags<'b>(&mut self, facet_id: &'b FacetId<'b>) -> Option<usize> {
+        // TODO: How to avoid this needless allocation?
+        let facet_id = facet_id.clone().into_owned();
         let Self(all_tags) = self;
         all_tags
-            .remove(facet_id.value().as_str())
+            .remove(&FacetKey::from(facet_id))
             .map(|tags| tags.len())
     }
 }
 
-impl From<Tags> for TagsMap {
-    fn from(from: Tags) -> Self {
+impl<'a> From<Tags<'a>> for TagsMap<'a> {
+    fn from(from: Tags<'a>) -> Self {
         let Tags {
             plain: plain_tags,
             facets,
         } = from;
-        let plain_iter = once((None.into(), plain_tags));
+        let plain_iter = once((FacetKey::new(None), plain_tags));
         let faceted_iter = facets.into_iter().map(|faceted_tags| {
             let FacetedTags { facet_id, tags } = faceted_tags;
             (facet_id.into(), tags)
@@ -605,8 +616,8 @@ impl From<Tags> for TagsMap {
     }
 }
 
-impl From<TagsMap> for Tags {
-    fn from(mut from: TagsMap) -> Self {
+impl<'a> From<TagsMap<'a>> for Tags<'a> {
+    fn from(mut from: TagsMap<'a>) -> Self {
         let plain_tags = from.take_plain_tags();
         let TagsMap(faceted_tags) = from;
         let facets = faceted_tags

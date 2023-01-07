@@ -291,7 +291,7 @@ fn update_track_cues(
 fn load_track_tags(
     db: &mut crate::Connection<'_>,
     track_id: RecordId,
-) -> RepoResult<Canonical<Tags>> {
+) -> RepoResult<Canonical<Tags<'static>>> {
     use crate::db::track_tag::{models::*, schema::*};
     track_tag::table
         .filter(track_tag::track_id.eq(RowId::from(track_id)))
@@ -303,7 +303,7 @@ fn load_track_tags(
         .map_err(repo_error)
         .map(|queryables| {
             let mut plain_tags = vec![];
-            let mut facets: Vec<FacetedTags> = vec![];
+            let mut facets: Vec<FacetedTags<'_>> = vec![];
             for queryable in queryables {
                 let (_, record) = queryable.into();
                 let (facet_id, tag) = record.into();
@@ -340,7 +340,7 @@ fn delete_track_tags(db: &mut crate::Connection<'_>, track_id: RecordId) -> Repo
 fn insert_track_tags(
     db: &mut crate::Connection<'_>,
     track_id: RecordId,
-    tags: &Canonical<Tags>,
+    tags: &Canonical<Tags<'_>>,
 ) -> RepoResult<()> {
     use crate::db::track_tag::{models::*, schema::*};
     let Tags {
@@ -370,7 +370,7 @@ fn insert_track_tags(
 fn update_track_tags(
     db: &mut crate::Connection<'_>,
     track_id: RecordId,
-    new_tags: &Canonical<Tags>,
+    new_tags: &Canonical<Tags<'_>>,
 ) -> RepoResult<()> {
     let old_tags = load_track_tags(db, track_id)?;
     if &old_tags == new_tags {

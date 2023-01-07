@@ -9,7 +9,7 @@ use id3::{
 
 use aoide_core::{
     media::content::ContentMetadata,
-    tag::{FacetedTags, PlainTag, TagsMap},
+    tag::{FacetKey, FacetedTags, PlainTag, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
@@ -276,7 +276,7 @@ pub(crate) fn export_track(
         export_faceted_tags_comment(
             tag,
             String::new(),
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(facet_id.as_str()),
             &tags,
         );
     } else {
@@ -289,7 +289,7 @@ pub(crate) fn export_track(
         export_faceted_tags_comment(
             tag,
             "description",
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             &tags,
         );
     } else {
@@ -301,7 +301,7 @@ pub(crate) fn export_track(
         export_faceted_tags(
             tag,
             "TCON",
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             &tags,
         );
     } else {
@@ -313,7 +313,7 @@ pub(crate) fn export_track(
         export_faceted_tags(
             tag,
             "TMOO",
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             &tags,
         );
     } else {
@@ -325,7 +325,7 @@ pub(crate) fn export_track(
         export_faceted_tags(
             tag,
             "TSRC",
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             &tags,
         );
     } else {
@@ -337,7 +337,7 @@ pub(crate) fn export_track(
         export_faceted_tags(
             tag,
             "TLAN",
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             &tags,
         );
     } else {
@@ -375,7 +375,7 @@ pub(crate) fn export_track(
             export_faceted_tags(
                 tag,
                 grouping_frame_id,
-                config.faceted_tag_mapping.get(facet_id.value()),
+                config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
                 &tags,
             );
         }

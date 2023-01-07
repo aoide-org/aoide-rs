@@ -444,7 +444,7 @@ pub(crate) fn import_file_tag_into_track(
         .take_strings(&ItemKey::OriginalReleaseDate)
         .find_map(|input| importer.import_year_tag_from_field("OriginalReleaseDate", &input));
 
-    let mut tags_map = TagsMap::default();
+    let mut tags_map: TagsMap<'static> = Default::default();
 
     // Grouping tags
     importer.import_faceted_tags_from_label_values(
@@ -464,7 +464,7 @@ pub(crate) fn import_file_tag_into_track(
 
     // Genre tags
     {
-        let tag_mapping_config = config.faceted_tag_mapping.get(FACET_ID_GENRE.value());
+        let tag_mapping_config = config.faceted_tag_mapping.get(FACET_ID_GENRE.as_str());
         let mut next_score_value = TagScore::default_value();
         let mut plain_tags = Vec::with_capacity(8);
         for genre in tag.take_strings(&ItemKey::Genre) {

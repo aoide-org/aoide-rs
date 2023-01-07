@@ -11,48 +11,6 @@ use std::{
 
 use crate::{prelude::*, util::canonical::CanonicalOrd};
 
-pub type FacetIdValue = String;
-
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
-#[cfg_attr(feature = "json-schema", schemars(transparent))]
-#[repr(transparent)]
-pub struct CowFacetId<'a>(Cow<'a, str>);
-
-impl<'a> From<CowFacetId<'a>> for FacetId {
-    fn from(from: CowFacetId<'a>) -> Self {
-        Self(from.0.into())
-    }
-}
-
-impl<'a> From<&'a FacetId> for CowFacetId<'a> {
-    fn from(from: &'a FacetId) -> Self {
-        Self(from.0.as_str().into())
-    }
-}
-
-impl<'a> AsRef<Cow<'a, str>> for CowFacetId<'a> {
-    fn as_ref(&self) -> &Cow<'a, str> {
-        &self.0
-    }
-}
-
-impl<'a> Deref for CowFacetId<'a> {
-    type Target = Cow<'a, str>;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl Borrow<str> for CowFacetId<'_> {
-    fn borrow(&self) -> &str {
-        self.as_ref()
-    }
-}
-
 /// An identifier for referencing tag categories.
 ///
 /// Facets are used for grouping/categorizing and providing context or meaning.
@@ -81,46 +39,49 @@ impl Borrow<str> for CowFacetId<'_> {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
 #[repr(transparent)]
-pub struct FacetId(FacetIdValue);
+pub struct FacetId<'a>(Cow<'a, str>);
 
 /// The alphabet of facet identifiers
 ///
 /// All valid characters, ordered by their ASCII codes.
 pub const FACET_ID_ALPHABET: &str = "+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz~";
 
-impl FacetId {
-    pub fn clamp_value<'a>(value: impl Into<Cow<'a, str>>) -> Option<CowFacetId<'a>> {
-        let mut value: String = value.into().into();
-        value.retain(Self::is_valid_char);
-        if value.is_empty() {
-            None
-        } else {
-            Some(CowFacetId(Cow::Owned(value)))
+impl<'a> FacetId<'a> {
+    pub fn clamp_from(from: impl Into<Cow<'a, str>>) -> Option<FacetId<'a>> {
+        Self::clamp(from.into())
+    }
+
+    fn clamp(inner: Cow<'a, str>) -> Option<FacetId<'a>> {
+        if !inner.contains(Self::is_valid_char) {
+            return None;
         }
-    }
-
-    pub fn clamp_from<'a>(value: impl Into<Cow<'a, str>>) -> Option<Self> {
-        Self::clamp_value(value).map(Into::into)
-    }
-
-    #[must_use]
-    pub const fn new(value: FacetIdValue) -> Self {
-        Self(value)
+        if !inner.contains(Self::is_invalid_char) {
+            return Some(Self(inner));
+        }
+        let mut owned = inner.into_owned();
+        owned.retain(Self::is_valid_char);
+        Some(Self(Cow::Owned(owned)))
     }
 
     #[must_use]
-    pub fn into_value(self) -> FacetIdValue {
-        let Self(value) = self;
-        value
+    pub const fn new(inner: Cow<'a, str>) -> Self {
+        Self(inner)
     }
 
     #[must_use]
-    pub const fn value(&self) -> &FacetIdValue {
-        let Self(value) = self;
-        value
+    pub fn into_inner(self) -> Cow<'a, str> {
+        let Self(inner) = self;
+        inner
     }
 
-    fn is_valid_char(c: char) -> bool {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        let Self(inner) = self;
+        inner
+    }
+
+    #[must_use]
+    pub fn is_valid_char(c: char) -> bool {
         // TODO: Use regex?
         if !c.is_ascii() || c.is_ascii_whitespace() || c.is_ascii_uppercase() {
             return false;
@@ -131,12 +92,51 @@ impl FacetId {
         "+-./@[]_~".contains(c)
     }
 
-    fn is_invalid_char(c: char) -> bool {
+    #[must_use]
+    pub fn is_invalid_char(c: char) -> bool {
         !Self::is_valid_char(c)
+    }
+
+    #[must_use]
+    pub fn as_borrowed(&'a self) -> Self {
+        let Self(inner) = self;
+        FacetId(Cow::Borrowed(inner))
+    }
+
+    #[must_use]
+    pub fn into_owned(self) -> FacetId<'static> {
+        let Self(inner) = self;
+        FacetId(Cow::Owned(inner.into_owned()))
     }
 }
 
-impl CanonicalOrd for FacetId {
+impl<'a> AsRef<Cow<'a, str>> for FacetId<'a> {
+    fn as_ref(&self) -> &Cow<'a, str> {
+        &self.0
+    }
+}
+
+impl<'a> Deref for FacetId<'a> {
+    type Target = Cow<'a, str>;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl Borrow<str> for FacetId<'_> {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
+}
+
+impl fmt::Display for FacetId<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self)
+    }
+}
+
+impl CanonicalOrd for FacetId<'_> {
     fn canonical_cmp(&self, other: &Self) -> Ordering {
         self.cmp(other)
     }
@@ -148,71 +148,31 @@ pub enum FacetIdInvalidity {
     Format,
 }
 
-impl Validate for FacetId {
+impl Validate for FacetId<'_> {
     type Invalidity = FacetIdInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.value().is_empty(), Self::Invalidity::Empty)
+            .invalidate_if(self.is_empty(), Self::Invalidity::Empty)
             .invalidate_if(
-                self.value()
-                    .chars()
+                self.chars()
                     .next()
                     .map_or(false, |c| (c.is_ascii_lowercase() || c == '~').not()),
                 Self::Invalidity::Format,
             )
             .invalidate_if(
-                self.value().chars().any(FacetId::is_invalid_char),
+                self.chars().any(FacetId::is_invalid_char),
                 Self::Invalidity::Format,
             )
             .into()
     }
 }
 
-impl From<FacetIdValue> for FacetId {
-    fn from(from: FacetIdValue) -> Self {
-        Self::new(from)
-    }
-}
-
-impl From<FacetId> for FacetIdValue {
-    fn from(from: FacetId) -> Self {
-        from.into_value()
-    }
-}
-
-impl AsRef<FacetIdValue> for FacetId {
-    fn as_ref(&self) -> &FacetIdValue {
-        let Self(value) = self;
-        value
-    }
-}
-
-impl Deref for FacetId {
-    type Target = FacetIdValue;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl AsRef<str> for FacetId {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
-impl fmt::Display for FacetId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.value())
-    }
-}
-
 pub trait Faceted {
-    fn facet(&self) -> Option<&FacetId>;
+    fn facet(&self) -> Option<&FacetId<'_>>;
 }
 
-impl Faceted for FacetId {
+impl Faceted for FacetId<'_> {
     fn facet(&self) -> Option<&Self> {
         Some(self)
     }

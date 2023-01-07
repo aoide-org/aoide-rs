@@ -7,7 +7,7 @@ use aoide_core::{
     audio::signal::LoudnessLufs,
     media::content::ContentMetadata,
     music::{key::KeySignature, tempo::TempoBpm},
-    tag::{FacetedTags, PlainTag, TagsMap},
+    tag::{FacetKey, FacetedTags, PlainTag, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
@@ -346,7 +346,7 @@ pub(crate) fn export_track(
         export_faceted_tags(
             writer,
             COMMENT_KEY.into(),
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -359,7 +359,7 @@ pub(crate) fn export_track(
         export_faceted_tags(
             writer,
             COMMENT_KEY2.into(),
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -371,7 +371,7 @@ pub(crate) fn export_track(
         export_faceted_tags(
             writer,
             GENRE_KEY.into(),
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -383,7 +383,7 @@ pub(crate) fn export_track(
         export_faceted_tags(
             writer,
             MOOD_KEY.into(),
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -395,7 +395,7 @@ pub(crate) fn export_track(
         export_faceted_tags(
             writer,
             ISRC_KEY.into(),
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -427,7 +427,7 @@ pub(crate) fn export_track(
             export_faceted_tags(
                 writer,
                 GROUPING_KEY.into(),
-                config.faceted_tag_mapping.get(facet_id.value()),
+                config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
                 tags,
             );
         }
@@ -464,7 +464,7 @@ fn export_faceted_tags<'a>(
     } else {
         let tag_labels = tags
             .into_iter()
-            .map(|tag| tag.label.unwrap_or_default().into_value())
+            .map(|tag| tag.label.unwrap_or_default().into_inner())
             .collect();
         writer.write_multiple_values(key, tag_labels);
     }

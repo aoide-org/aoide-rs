@@ -13,12 +13,12 @@ use aoide_repo::track::RecordId;
 #[derive(Debug)]
 pub struct Record {
     pub track_id: RecordId,
-    pub facet_id: Option<FacetId>,
+    pub facet_id: Option<FacetId<'static>>,
     pub label: Option<Label>,
     pub score: Score,
 }
 
-impl From<Record> for (Option<FacetId>, PlainTag) {
+impl From<Record> for (Option<FacetId<'static>>, PlainTag) {
     fn from(from: Record) -> Self {
         let Record {
             track_id: _,

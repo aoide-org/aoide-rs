@@ -24,15 +24,36 @@ fn score_prop_from_value(score_value: aoide_core::tag::ScoreValue) -> Property {
     }
 }
 
-fn plain_tag_with_label(label: impl Into<aoide_core::tag::Label>) -> PlainTag {
+enum LabelOrLabelValue {
+    Label(aoide_core::tag::Label),
+    LabelValue(aoide_core::tag::LabelValue),
+}
+
+impl From<aoide_core::tag::Label> for LabelOrLabelValue {
+    fn from(label: aoide_core::tag::Label) -> Self {
+        Self::Label(label)
+    }
+}
+
+impl From<aoide_core::tag::LabelValue> for LabelOrLabelValue {
+    fn from(value: aoide_core::tag::LabelValue) -> Self {
+        Self::LabelValue(value)
+    }
+}
+
+fn plain_tag_with_label(label: impl Into<LabelOrLabelValue>) -> PlainTag {
+    let label = match label.into() {
+        LabelOrLabelValue::Label(label) => label,
+        LabelOrLabelValue::LabelValue(value) => aoide_core::tag::Label::new(value),
+    };
     PlainTag {
-        label: Some(label.into()),
+        label: Some(label),
         ..Default::default()
     }
 }
 
 fn plain_tag_with_label_and_score(
-    label: impl Into<aoide_core::tag::Label>,
+    label: impl Into<LabelOrLabelValue>,
     score: impl Into<aoide_core::tag::Score>,
 ) -> PlainTag {
     PlainTag {
@@ -276,7 +297,7 @@ fn encode_decode_roundtrip_with_valid_tags() {
     );
     let expected_count = tags_map.total_count();
 
-    let tags: Tags = tags_map.into();
+    let tags: Tags<'_> = tags_map.into();
     let tags = tags.canonicalize_into();
     assert!(tags.is_valid());
     assert_eq!(expected_count, tags.total_count());
@@ -291,7 +312,7 @@ fn encode_decode_roundtrip_with_valid_tags() {
     assert_eq!(expected_count, decoded_count);
     assert!(decoded.undecoded_prefix.is_empty());
 
-    let decoded_tags: Tags = tags_map.into();
+    let decoded_tags: Tags<'_> = tags_map.into();
     let decoded_tags = decoded_tags.canonicalize_into();
     assert_eq!(tags, decoded_tags);
 }

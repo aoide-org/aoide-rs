@@ -20,23 +20,25 @@ mod _core {
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
 pub struct FacetKey {
     #[cfg_attr(feature = "json-schema", schemars(with = "String"))]
-    inner: _core::FacetKey,
+    inner: _core::FacetKey<'static>,
 }
 
-impl From<_core::FacetKey> for FacetKey {
-    fn from(inner: _core::FacetKey) -> Self {
-        Self { inner }
+impl From<_core::FacetKey<'_>> for FacetKey {
+    fn from(inner: _core::FacetKey<'_>) -> Self {
+        Self {
+            inner: inner.into_owned(),
+        }
     }
 }
 
-impl From<FacetKey> for _core::FacetKey {
+impl From<FacetKey> for _core::FacetKey<'_> {
     fn from(from: FacetKey) -> Self {
         from.inner
     }
 }
 
-impl AsRef<_core::FacetKey> for FacetKey {
-    fn as_ref(&self) -> &_core::FacetKey {
+impl AsRef<_core::FacetKey<'static>> for FacetKey {
+    fn as_ref(&self) -> &_core::FacetKey<'static> {
         &self.inner
     }
 }
@@ -63,7 +65,8 @@ impl<'de> Visitor<'de> for FacetKeyVisitor {
     where
         E: serde::de::Error,
     {
-        let inner = _core::FacetId::clamp_from(s).into();
+        let inner =
+            _core::FacetKey::new(_core::FacetId::clamp_from(s).map(_core::FacetId::into_owned));
         Ok(FacetKey { inner })
     }
 }
@@ -279,8 +282,8 @@ impl Tags {
     }
 }
 
-impl From<_core::Tags> for Tags {
-    fn from(from: _core::Tags) -> Self {
+impl From<_core::Tags<'_>> for Tags {
+    fn from(from: _core::Tags<'_>) -> Self {
         let mut into = HashMap::with_capacity(from.total_count());
         let _core::Tags {
             plain: plain_tags,
@@ -288,7 +291,7 @@ impl From<_core::Tags> for Tags {
         } = from;
         if !plain_tags.is_empty() {
             into.insert(
-                _core::FacetKey::from(None).into(),
+                _core::FacetKey::new(None).into(),
                 plain_tags.into_iter().map(Into::into).collect(),
             );
         }
@@ -305,7 +308,7 @@ impl From<_core::Tags> for Tags {
     }
 }
 
-impl From<Tags> for _core::Tags {
+impl From<Tags> for _core::Tags<'static> {
     fn from(from: Tags) -> Self {
         let Tags(from) = from;
         let mut plain_tags = vec![];

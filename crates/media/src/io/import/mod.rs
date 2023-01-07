@@ -539,12 +539,12 @@ impl Importer {
 
     pub(crate) fn import_faceted_tags_from_label_values<'a>(
         &mut self,
-        tags_map: &mut TagsMap,
+        tags_map: &mut TagsMap<'_>,
         faceted_tag_mapping_config: &FacetedTagMappingConfig,
-        facet_id: &TagFacetId,
+        facet_id: &TagFacetId<'_>,
         label_values: impl IntoIterator<Item = Cow<'a, str>>,
     ) -> usize {
-        let tag_mapping_config = faceted_tag_mapping_config.get(facet_id.value());
+        let tag_mapping_config = faceted_tag_mapping_config.get(facet_id.as_str());
         let mut total_import_count = 0;
         let mut plain_tags = Vec::with_capacity(8);
         let mut next_score_value = TagScore::default_value();
@@ -563,7 +563,9 @@ impl Importer {
                 total_import_count - count,
             ));
         }
-        tags_map.update_faceted_plain_tags_by_label_ordering(facet_id, plain_tags);
+        // TODO: Avoid cloning `facet_id`.
+        let facet_id: TagFacetId<'static> = facet_id.clone().into_owned();
+        tags_map.update_faceted_plain_tags_by_label_ordering(&facet_id, plain_tags);
         count
     }
 

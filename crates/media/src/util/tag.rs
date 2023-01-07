@@ -7,7 +7,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use aoide_core::tag::{FacetIdValue, LabelValue, Score as TagScore, ScoreValue};
+use aoide_core::tag::{FacetKey, LabelValue, Score as TagScore, ScoreValue};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TagMappingConfig {
@@ -55,7 +55,7 @@ impl TagMappingConfig {
     }
 }
 
-pub type FacetedTagMappingConfigInner = HashMap<FacetIdValue, TagMappingConfig>;
+pub type FacetedTagMappingConfigInner = HashMap<FacetKey<'static>, TagMappingConfig>;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct FacetedTagMappingConfig(FacetedTagMappingConfigInner);

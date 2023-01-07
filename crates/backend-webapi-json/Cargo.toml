@@ -26,6 +26,7 @@ uuid = { version = "1.2.2", features = ["v4"] }
 schemars = { version = "0.8.11", optional = true }
 
 # Workspace dependencies
+aoide-backend-embedded = "=0.8.0"
 aoide-core = { version = "=0.8.0", features = ["serde"] }
 aoide-core-api = "=0.8.0"
 aoide-core-json = "=0.8.0"

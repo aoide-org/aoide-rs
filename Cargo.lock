@@ -87,6 +87,7 @@ name = "aoide-backend-webapi-json"
 version = "0.8.0"
 dependencies = [
  "anyhow",
+ "aoide-backend-embedded",
  "aoide-core",
  "aoide-core-api",
  "aoide-core-api-json",
@@ -135,7 +136,6 @@ dependencies = [
  "mime",
  "num-derive",
  "num-traits",
- "once_cell",
  "path-slash",
  "rand",
  "schemars",
@@ -2214,7 +2214,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.10.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#a5b1ccaff072a64847492f036ebce9ab04af9533"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#53eb2184b82a2b4d137633147e9c391da9504865"
 dependencies = [
  "base64 0.20.0",
  "byteorder",
@@ -2230,7 +2230,7 @@ dependencies = [
 [[package]]
 name = "lofty_attr"
 version = "0.5.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#a5b1ccaff072a64847492f036ebce9ab04af9533"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#53eb2184b82a2b4d137633147e9c391da9504865"
 dependencies = [
  "proc-macro2",
  "quote",

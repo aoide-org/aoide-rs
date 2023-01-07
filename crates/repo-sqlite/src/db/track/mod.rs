@@ -18,6 +18,6 @@ pub(crate) struct EntityPreload {
     pub(crate) track_actors: Canonical<Vec<Actor>>,
     pub(crate) album_titles: Canonical<Vec<Title>>,
     pub(crate) album_actors: Canonical<Vec<Actor>>,
-    pub(crate) tags: Canonical<Tags>,
+    pub(crate) tags: Canonical<Tags<'static>>,
     pub(crate) cues: Canonical<Vec<Cue>>,
 }

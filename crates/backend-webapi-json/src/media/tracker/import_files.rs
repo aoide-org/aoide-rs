@@ -3,12 +3,8 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
-
-use aoide_media::{
-    io::import::{ImportTrackConfig, ImportTrackFlags},
-    util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
-};
+use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
+use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
 use super::*;
 
@@ -44,25 +40,12 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
         .try_into()
         .map_err(Into::into)
         .map_err(Error::BadRequest)?;
-    let mut faceted_tag_mapping_config = FacetedTagMappingConfigInner::default();
-    faceted_tag_mapping_config.insert(
-        FACET_GENRE.to_owned(),
-        TagMappingConfig {
-            label_separator: ";".into(),
-            split_score_attenuation: 0.75,
-        },
-    );
-    faceted_tag_mapping_config.insert(
-        FACET_MOOD.to_owned(),
-        TagMappingConfig {
-            label_separator: ";".into(),
-            split_score_attenuation: 0.75,
-        },
-    );
+    // FIXME: Replace hard-coded tag mapping config
+    let faceted_tag_mapping_config = predefined_faceted_tag_mapping_config();
     // FIXME: Replace hard-coded import flags
     let import_flags = ImportTrackFlags::all();
     let import_config = ImportTrackConfig {
-        faceted_tag_mapping: faceted_tag_mapping_config.into(),
+        faceted_tag_mapping: faceted_tag_mapping_config,
         flags: import_flags,
     };
     connection

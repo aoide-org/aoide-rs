@@ -1,11 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
 use aoide_core::media::content::resolver::VirtualFilePathResolver;
 
 use aoide_media::io::export::{ExportTrackConfig, ExportTrackFlags};
-
-use crate::media::predefined_faceted_tag_mapping_config;
 
 use super::*;
 

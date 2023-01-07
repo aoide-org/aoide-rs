@@ -4,10 +4,10 @@
 use super::*;
 
 #[test]
-fn clamp_value() {
+fn clamp_from() {
     assert_eq!(
         Some(FACET_ID_ALPHABET),
-        FacetId::clamp_value(FACET_ID_ALPHABET)
+        FacetId::clamp_from(FACET_ID_ALPHABET)
             .as_ref()
             .map(Borrow::borrow)
     );
@@ -18,7 +18,7 @@ fn clamp_value() {
             "@[]_",
             "abcdefghijklmnopqrstuvwxyz~",
         )),
-        FacetId::clamp_value(concat!(
+        FacetId::clamp_from(concat!(
             "\t !\"#$%&'()*+,-./0123456789:;<=>?",
             " @ ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_",
             " `abcdefghijklmn opqrstuvwxyz{|}~\n"
@@ -33,10 +33,8 @@ fn validate() {
     // FACET_ID_ALPHABET Does not start with a lowercase ASCII letter
     // but ends with '~' which is a valid first character.
     let reverse_alphabet: String = FACET_ID_ALPHABET.chars().rev().collect();
-    assert!(FacetId::new(reverse_alphabet).validate().is_ok());
-    assert!(FacetId::new(FACET_ID_ALPHABET.to_owned())
-        .validate()
-        .is_err());
+    assert!(FacetId::new(reverse_alphabet.into()).validate().is_ok());
+    assert!(FacetId::new(FACET_ID_ALPHABET.into()).validate().is_err());
     assert!(FacetId::new("Facet".into()).validate().is_err());
     assert!(FacetId::new("a facet".into()).validate().is_err());
 }
@@ -48,7 +46,7 @@ fn default_is_invalid() {
 
 #[test]
 fn empty_is_invalid() {
-    assert!(FacetId::new(String::new()).validate().is_err());
+    assert!(FacetId::new("".into()).validate().is_err());
 }
 
 #[test]

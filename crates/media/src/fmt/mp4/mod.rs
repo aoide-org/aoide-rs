@@ -8,7 +8,7 @@ use mp4ameta::{Data, DataIdent, Fourcc, FreeformIdent, Ident, Tag as Mp4Tag};
 use aoide_core::{
     media::content::ContentMetadata,
     music::tempo::TempoBpm,
-    tag::{FacetedTags, PlainTag, TagsMap},
+    tag::{FacetKey, FacetedTags, PlainTag, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
@@ -135,7 +135,7 @@ fn export_faceted_tags(
         mp4_tag.set_all_data(
             ident,
             tags.into_iter().filter_map(|PlainTag { label, score: _ }| {
-                label.map(|label| Data::Utf8(label.into()))
+                label.map(|label| Data::Utf8(label.into_inner()))
             }),
         );
     }
@@ -359,7 +359,7 @@ pub(crate) fn export_track_to_path(
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_GENRE,
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -372,7 +372,7 @@ pub(crate) fn export_track_to_path(
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_COMMENT,
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -385,7 +385,7 @@ pub(crate) fn export_track_to_path(
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_DESCRIPTION,
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -397,7 +397,7 @@ pub(crate) fn export_track_to_path(
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_MOOD,
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -409,7 +409,7 @@ pub(crate) fn export_track_to_path(
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_ISRC,
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -421,7 +421,7 @@ pub(crate) fn export_track_to_path(
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_XID,
-            config.faceted_tag_mapping.get(facet_id.value()),
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
@@ -450,7 +450,7 @@ pub(crate) fn export_track_to_path(
             export_faceted_tags(
                 &mut mp4_tag,
                 IDENT_GROUPING,
-                config.faceted_tag_mapping.get(facet_id.value()),
+                config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
                 tags,
             );
         }
