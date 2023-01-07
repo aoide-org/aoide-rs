@@ -5,7 +5,7 @@ use aoide_core::util::clock::*;
 
 use std::str::FromStr;
 
-/// Try to parse a DateTime value and fallback to the timestamp
+/// Try to parse a `DateTime` value and fallback to the timestamp
 /// milliseconds on error (should never happen).
 pub(crate) fn parse_datetime(s: &str, timestamp_millis: TimestampMillis) -> DateTime {
     let res = s.parse();

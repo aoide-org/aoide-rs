@@ -15,6 +15,7 @@ use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::prelude::*;
 
+#[allow(clippy::struct_excessive_bools)] // FIXME
 #[derive(Debug, Clone)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
@@ -80,6 +81,7 @@ pub enum Progress {
     Step7FindUnsynchronizedTracks,
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 pub async fn rescan_collection_vfs<InterceptImportedTrackFn, ReportProgressFn>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,

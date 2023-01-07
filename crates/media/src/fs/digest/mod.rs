@@ -51,10 +51,10 @@ pub fn digest_fs_metadata_for_detecting_changes<D: Digest>(
     digest_u64(digest, fs_metadata.len());
     // Time stamps
     if let Ok(created) = fs_metadata.created() {
-        digest_system_time(digest, created)
+        digest_system_time(digest, created);
     }
     if let Ok(modified) = fs_metadata.modified() {
-        digest_system_time(digest, modified)
+        digest_system_time(digest, modified);
     }
 }
 
@@ -125,7 +125,7 @@ pub fn hash_directories<
             "Digesting {} directories in '{}' took {} s",
             outcome.progress.directories.finished,
             root_path.display(),
-            elapsed.as_millis() as f64 / 1000.0,
+            elapsed.as_secs_f64(),
         );
         outcome
     })

@@ -1,22 +1,26 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// rustflags
 #![warn(rust_2018_idioms)]
 #![warn(rust_2021_compatibility)]
 #![warn(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
-// rustflags (clippy)
-#![warn(clippy::all)]
-#![warn(clippy::explicit_deref_methods)]
-#![warn(clippy::explicit_into_iter_loop)]
-#![warn(clippy::explicit_iter_loop)]
-#![warn(clippy::must_use_candidate)]
-// rustdocflags
 #![warn(rustdoc::broken_intra_doc_links)]
-#![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
-#![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
+#![warn(clippy::pedantic)]
+// Repetitions of module/type names occur frequently when using many
+// modules for keeping the size of the source files handy. Often
+// types have the same name as their parent module.
+#![allow(clippy::module_name_repetitions)]
+// Repeating the type name in `..Default::default()` expressions
+// is not needed since the context is obvious.
+#![allow(clippy::default_trait_access)]
+// Importing all enum variants into a narrow, local scope is acceptable.
+#![allow(clippy::enum_glob_use)]
+// Both `collection_uid` and `collection_id` often appear within the same context.
+#![allow(clippy::similar_names)]
+// TODO: Add missing docs
+#![allow(clippy::missing_errors_doc)]
 
 use std::{
     env::current_exe,
@@ -148,12 +152,12 @@ fn main() {
     log::info!("Patching configuration from .env file and environment variables");
     let mut config = initial_config.clone();
     env::parse_config_into(&mut config);
-    let save_config_on_exit = if config != initial_config {
+    let save_config_on_exit = if config == initial_config {
+        true
+    } else {
         log::debug!("Patched configuration: {config:?}");
         // Don't save on exit if using a temporary configuration
         false
-    } else {
-        true
     };
 
     let launcher = Arc::new(LauncherMutex::new(Launcher::new()));
@@ -178,6 +182,7 @@ fn main() {
     log::info!("Exiting");
 }
 
+#[allow(clippy::needless_pass_by_value)] // consume arguments
 fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exit: bool) {
     log::info!("Running headless");
 

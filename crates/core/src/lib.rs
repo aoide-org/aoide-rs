@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// rustflags
 #![warn(rust_2018_idioms)]
 #![warn(rust_2021_compatibility)]
 #![warn(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
+#![warn(rustdoc::broken_intra_doc_links)]
 #![warn(clippy::pedantic)]
 // Repetitions of module/type names occur frequently when using many
 // modules for keeping the size of the source files handy. Often
@@ -21,17 +21,10 @@
 #![allow(clippy::enum_glob_use)]
 // TODO: Review type casts
 #![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::cast_precision_loss)]
 #![allow(clippy::cast_sign_loss)]
-// TODO: Either globally allow exceptions from `clippy::pedantic`
-// and comment why or fix the root causes in the code.
+// TODO: Add missing docs
 #![allow(clippy::missing_errors_doc)]
-#![allow(clippy::missing_panics_doc)]
-// rustdocflags
-#![warn(rustdoc::broken_intra_doc_links)]
-#![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
-#![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 // TODO: Move into `domain` submodule
 pub mod album;

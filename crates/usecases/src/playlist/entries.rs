@@ -38,9 +38,9 @@ where
     let (record_header, next_rev) =
         repo.touch_playlist_entity_revision(entity_header, updated_at)?;
     for operation in operations {
+        use PatchOperation::*;
         // TODO: Accept a streaming iterator that only borrows the items that it yields
         let operation = &operation;
-        use PatchOperation::*;
         match operation {
             Append { entries } => {
                 if entries.is_empty() {

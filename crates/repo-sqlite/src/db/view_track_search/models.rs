@@ -97,6 +97,7 @@ impl From<QueryableRecord> for (MediaSourceId, RecordHeader, EntityHeader) {
     }
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 pub(crate) fn load_repo_entity(
     preload: EntityPreload,
     queryable: QueryableRecord,

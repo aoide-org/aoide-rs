@@ -53,6 +53,7 @@ pub(crate) enum ExportError {
     UnsupportedLegacyVersion(id3::Version),
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 pub(crate) fn export_track(
     config: &ExportTrackConfig,
     track: &mut Track,
@@ -108,7 +109,7 @@ pub(crate) fn export_track(
 
     // Track titles
     if let Some(title) = Titles::main_title(track.titles.iter()) {
-        tag.set_title(title.name.to_owned());
+        tag.set_title(title.name.clone());
     } else {
         tag.remove_title();
     }
@@ -181,7 +182,7 @@ pub(crate) fn export_track(
 
     // Album
     if let Some(title) = Titles::main_title(track.album.titles.iter()) {
-        tag.set_album(title.name.to_owned());
+        tag.set_album(title.name.clone());
     } else {
         tag.remove_album();
     }
@@ -388,7 +389,7 @@ fn export_date_or_date_time(dt: DateOrDateTime) -> id3::Timestamp {
         DateOrDateTime::Date(date) => {
             if date.is_year() {
                 id3::Timestamp {
-                    year: date.year() as _,
+                    year: i32::from(date.year()),
                     month: None,
                     day: None,
                     hour: None,
@@ -397,7 +398,7 @@ fn export_date_or_date_time(dt: DateOrDateTime) -> id3::Timestamp {
                 }
             } else {
                 id3::Timestamp {
-                    year: date.year() as _,
+                    year: i32::from(date.year()),
                     month: Some(date.month() as _),
                     day: Some(date.day_of_month() as _),
                     hour: None,

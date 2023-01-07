@@ -34,6 +34,22 @@ use aoide_backend_webapi_json as api;
 
 use aoide_usecases_sqlite as uc;
 
+async fn reply_media_tracker_progress(
+    media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
+) -> Result<impl warp::Reply, Infallible> {
+    let progress = media_tracker_progress.lock().await.clone();
+    Ok(warp::reply::json(&api::media::tracker::Progress::from(
+        progress,
+    )))
+}
+
+// TODO: Move into separate request handler
+#[derive(serde::Deserialize)]
+struct CleanseDatabaseQueryParams {
+    vacuum: bool,
+}
+
+#[allow(clippy::too_many_lines)] // TODO
 pub(crate) fn create_filters(
     shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
 ) -> BoxedFilter<(impl Reply,)> {
@@ -278,15 +294,6 @@ pub(crate) fn create_filters(
         .or(collections_create_schema)
         .or(collections_update_schema);
 
-    async fn reply_media_tracker_progress(
-        media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
-    ) -> Result<impl warp::Reply, Infallible> {
-        let progress = media_tracker_progress.lock().await.clone();
-        Ok(warp::reply::json(&api::media::tracker::Progress::from(
-            progress,
-        )))
-    }
-
     let media_tracker_get_progress = warp::get()
         .and(media_tracker_path)
         .and(warp::path("progress"))
@@ -346,7 +353,7 @@ pub(crate) fn create_filters(
                         let progress = progress_event_rx
                             .borrow()
                             .as_ref()
-                            .map(|event: &ScanProgressEvent| event.progress.to_owned());
+                            .map(|event: &ScanProgressEvent| event.progress.clone());
                         // Borrow has already been released at this point
                         if let Some(progress) = progress {
                             *media_tracker_progress.lock().await =
@@ -407,7 +414,7 @@ pub(crate) fn create_filters(
                         let progress = progress_event_rx
                             .borrow()
                             .as_ref()
-                            .map(|event: &ImportProgressEvent| event.summary.to_owned());
+                            .map(|event: &ImportProgressEvent| event.summary.clone());
                         // Borrow has already been released at this point
                         if let Some(progress) = progress {
                             *media_tracker_progress.lock().await =
@@ -494,7 +501,7 @@ pub(crate) fn create_filters(
                         let progress = progress_event_rx
                             .borrow()
                             .as_ref()
-                            .map(|event: &FindUntrackedProgressEvent| event.progress.to_owned());
+                            .map(|event: &FindUntrackedProgressEvent| event.progress.clone());
                         // Borrow has already been released at this point
                         if let Some(progress) = progress {
                             *media_tracker_progress.lock().await =
@@ -1058,11 +1065,6 @@ pub(crate) fn create_filters(
                 .map(|()| StatusCode::NO_CONTENT)
             },
         );
-    // TODO: Move into separate request handler
-    #[derive(serde::Deserialize)]
-    struct CleanseDatabaseQueryParams {
-        vacuum: bool,
-    }
     let storage_cleanse = warp::post()
         .and(storage_path)
         .and(warp::path("cleanse"))

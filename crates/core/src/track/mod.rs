@@ -149,7 +149,7 @@ impl Track {
             .map(|actor| actor.name.as_str())
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines)] // TODO
     pub fn merge_newer_from_synchronized_media_source(&mut self, newer: Track) {
         let Self {
             actors,

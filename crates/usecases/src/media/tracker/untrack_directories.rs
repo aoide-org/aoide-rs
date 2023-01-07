@@ -34,7 +34,7 @@ where
         .content_path
         .vfs
         .map(|vfs_context| (vfs_context.root_url, vfs_context.root_path))
-        .unwrap();
+        .expect("collection with path kind VFS");
     let summary = Summary { untracked };
     Ok(Outcome {
         root_url,

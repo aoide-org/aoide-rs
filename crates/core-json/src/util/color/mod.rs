@@ -72,7 +72,7 @@ impl schemars::JsonSchema for RgbColor {
             schema_object.metadata().title = Some("RGB color code".into());
             schema_object.metadata().description = Some("A hexadecimal RGB color code \"#RRGGBB\" encoded as a string with 8 bits per channel.".into());
             schema_object.metadata().examples = vec!["#808080".into()];
-            schema = Schema::Object(schema_object)
+            schema = Schema::Object(schema_object);
         }
         schema
     }

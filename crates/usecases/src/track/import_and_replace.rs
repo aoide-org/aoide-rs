@@ -43,8 +43,8 @@ pub struct Outcome {
     pub imported_media_sources_with_issues: Vec<(MediaSourceId, ContentPath, Issues)>,
 }
 
-// TODO: Reduce number of arguments
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments)] // TODO
+#[allow(clippy::too_many_lines)] // TODO
 pub fn import_and_replace_from_file_path<Repo, InterceptImportedTrackFn>(
     summary: &mut Summary,
     visited_media_source_ids: &mut Vec<MediaSourceId>,
@@ -88,7 +88,7 @@ where
     match import_track_from_file_path(
         content_path_resolver,
         content_path.clone(),
-        SyncModeParams::new(*sync_mode, external_rev, synchronized_rev),
+        &SyncModeParams::new(*sync_mode, external_rev, synchronized_rev),
         import_config,
         DateTime::now_local_or_utc(),
     ) {
@@ -135,20 +135,21 @@ where
         Ok(ImportTrackFromFileOutcome::SkippedSynchronized { content_rev: _ }) => {
             debug_assert!(media_source_id.is_some());
             summary.unchanged.push(content_path);
-            visited_media_source_ids.push(media_source_id.unwrap());
+            visited_media_source_ids.push(media_source_id.expect("skipped media source"));
         }
         Ok(ImportTrackFromFileOutcome::SkippedUnsynchronized { content_rev: _ }) => {
             debug_assert!(media_source_id.is_some());
             debug_assert_eq!(Some(false), synchronized_rev);
             summary.not_imported.push(content_path);
-            visited_media_source_ids.push(media_source_id.unwrap());
+            visited_media_source_ids.push(media_source_id.expect("unsynchronized media source"));
         }
         Ok(ImportTrackFromFileOutcome::SkippedDirectory) => {
             // Nothing to do
         }
         Err(err) => match err {
-            Error::Media(MediaError::UnknownContentType)
-            | Error::Media(MediaError::UnsupportedContentType(_)) => {
+            Error::Media(
+                MediaError::UnknownContentType | MediaError::UnsupportedContentType(_),
+            ) => {
                 log::info!(
                     "Skipped import of track from local file path {}: {err}",
                     content_path_resolver
@@ -230,7 +231,7 @@ where
         if !invalidities.is_empty() {
             imported_media_sources_with_issues
                 .last_mut()
-                .unwrap()
+                .expect("last imported media source")
                 .2
                 .add_message(format!("Track invalidities: {invalidities:?}"));
         }
@@ -322,7 +323,7 @@ where
             .ok()
             .and_then(|url| content_path_resolver.resolve_path_from_url(&url).ok())
         {
-            content_path.to_owned()
+            content_path.clone()
         } else {
             log::warn!(
                 "Skipping invalid/unsupported directory entry: {}",

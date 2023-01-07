@@ -154,7 +154,7 @@ fn adjust_summary_actor_kind(actors: &mut [Actor], role: ActorRole, next_name: &
                 .filter(|actor| actor.role == role && actor.kind == ActorKind::Individual)
                 .all(|actor| next_name.contains(&actor.name)));
         }
-        _ => unreachable!(),
+        ActorKind::Sorting => unreachable!(),
     }
     proposed_kind
 }
@@ -432,7 +432,7 @@ pub enum ArtworkImageError {
     UnsupportedFormat(ImageFormat),
 
     #[error(transparent)]
-    Other(anyhow::Error),
+    Other(#[from] anyhow::Error),
 }
 
 impl From<ArtworkImageError> for Error {
@@ -463,9 +463,9 @@ pub fn media_type_from_image_format(
         ImageFormat::Png => IMAGE_PNG,
         ImageFormat::Gif => IMAGE_GIF,
         ImageFormat::Bmp => IMAGE_BMP,
-        ImageFormat::WebP => "image/webp".parse().unwrap(),
-        ImageFormat::Tiff => "image/tiff".parse().unwrap(),
-        ImageFormat::Tga => "image/tga".parse().unwrap(),
+        ImageFormat::WebP => "image/webp".parse().expect("valid MIME type"),
+        ImageFormat::Tiff => "image/tiff".parse().expect("valid MIME type"),
+        ImageFormat::Tga => "image/tga".parse().expect("valid MIME type"),
         unsupported_format => {
             return Err(ArtworkImageError::UnsupportedFormat(unsupported_format));
         }
@@ -480,36 +480,33 @@ pub fn load_artwork_picture(
 ) -> LoadArtworkPictureResult {
     let image_format = image_format_hint.or_else(|| guess_format(image_data).ok());
     let mut recoverable_errors = Vec::new();
-    if let Some(image_format) = image_format {
+    let picture = if let Some(image_format) = image_format {
         load_from_memory_with_format(image_data, image_format)
     } else {
         load_from_memory(image_data)
     }
-    .map_err(Into::into)
-    .map_err(ArtworkImageError::Other)
-    .and_then(|picture| {
-        let media_type = media_type_hint
-            .and_then(|media_type_hint| {
-                media_type_hint
-                    .parse::<Mime>()
-                    .map_err(|err| {
-                        recoverable_errors.push(anyhow::anyhow!(
-                            "Failed to parse MIME type from '{media_type_hint}': {err}"
-                        ));
-                        err
-                    })
-                    // Ignore and continue
-                    .ok()
-            })
-            .map(Ok)
-            .or_else(|| image_format.map(media_type_from_image_format))
-            .transpose()?
-            .unwrap_or(IMAGE_STAR);
-        Ok(LoadedArtworkPicture {
-            media_type,
-            picture,
-            recoverable_errors,
+    .map_err(anyhow::Error::from)?;
+    let media_type = media_type_hint
+        .and_then(|media_type_hint| {
+            media_type_hint
+                .parse::<Mime>()
+                .map_err(|err| {
+                    recoverable_errors.push(anyhow::anyhow!(
+                        "Failed to parse MIME type from '{media_type_hint}': {err}"
+                    ));
+                    err
+                })
+                // Ignore and continue
+                .ok()
         })
+        .map(Ok)
+        .or_else(|| image_format.map(media_type_from_image_format))
+        .transpose()?
+        .unwrap_or(IMAGE_STAR);
+    Ok(LoadedArtworkPicture {
+        media_type,
+        picture,
+        recoverable_errors,
     })
 }
 
@@ -535,17 +532,11 @@ pub fn ingest_artwork_image(
         recoverable_errors,
     } = load_artwork_picture(image_data, image_format_hint, media_type_hint)?;
     let (width, height) = picture.dimensions();
-    let clamped_with = width as ImageDimension;
-    let clamped_height = height as ImageDimension;
-    if width != clamped_with as u32 && height != clamped_height as u32 {
-        return Err(ArtworkImageError::Other(anyhow::anyhow!(
-            "Unsupported image size: {width}x{height}"
-        )));
-    }
-    let size = ImageSize {
-        width: clamped_with,
-        height: clamped_height,
-    };
+    let width = ImageDimension::try_from(width)
+        .map_err(|_| anyhow::anyhow!("Unsupported image size: {width}x{height}"))?;
+    let height = ImageDimension::try_from(height)
+        .map_err(|_| anyhow::anyhow!("Unsupported image size: {width}x{height}"))?;
+    let size = ImageSize { width, height };
     let digest = image_digest.digest_content(image_data).finalize_reset();
     let picture_4x4 = picture.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
     let thumbnail = Thumbnail4x4Rgb8::try_from(picture_4x4.to_rgb8().into_raw()).ok();
@@ -616,7 +607,17 @@ pub fn try_ingest_embedded_artwork_image(
         media_type_hint,
         image_digest,
     )
-    .map(
+    .map_or_else(
+        |err| match err {
+            ArtworkImageError::UnsupportedFormat(unsupported_format) => {
+                let issue = format!("Unsupported image format: {unsupported_format:?}");
+                (Artwork::Unsupported, None, vec![issue])
+            }
+            ArtworkImageError::Other(err) => {
+                let issue = format!("Failed to load embedded artwork image: {err}");
+                (Artwork::Irregular, None, vec![issue])
+            }
+        },
         |IngestedEmbeddedArtworkImage {
              embedded_artwork,
              picture,
@@ -633,16 +634,6 @@ pub fn try_ingest_embedded_artwork_image(
             (Artwork::Embedded(embedded_artwork), Some(picture), issues)
         },
     )
-    .unwrap_or_else(|err| match err {
-        ArtworkImageError::UnsupportedFormat(unsupported_format) => {
-            let issue = format!("Unsupported image format: {unsupported_format:?}");
-            (Artwork::Unsupported, None, vec![issue])
-        }
-        ArtworkImageError::Other(err) => {
-            let issue = format!("Failed to load embedded artwork image: {err}");
-            (Artwork::Irregular, None, vec![issue])
-        }
-    })
 }
 
 pub fn ingest_title_from<'a>(name: impl Into<Cow<'a, str>>, kind: TitleKind) -> Option<Title> {

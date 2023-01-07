@@ -97,7 +97,7 @@ impl CommentWriter for Vec<(String, String)> {
         }
     }
     fn remove_all_values(&mut self, key: &'_ str) {
-        self.retain(|(cmp_key, _)| cmp_key != key)
+        self.retain(|(cmp_key, _)| cmp_key != key);
     }
 }
 
@@ -129,6 +129,7 @@ fn export_key_signature(writer: &mut impl CommentWriter, key_signature: Option<K
     }
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 pub(crate) fn export_track(
     config: &ExportTrackConfig,
     track: &mut Track,
@@ -148,7 +149,7 @@ pub(crate) fn export_track(
     // Track titles
     writer.write_single_value_opt(
         "TITLE".into(),
-        Titles::main_title(track.titles.iter()).map(|title| title.name.to_owned()),
+        Titles::main_title(track.titles.iter()).map(|title| title.name.clone()),
     );
     writer.write_multiple_values(
         "SUBTITLE".into(),
@@ -234,7 +235,7 @@ pub(crate) fn export_track(
     // Album
     writer.write_single_value_opt(
         "ALBUM".into(),
-        Titles::main_title(track.album.titles.iter()).map(|title| title.name.to_owned()),
+        Titles::main_title(track.album.titles.iter()).map(|title| title.name.clone()),
     );
     export_filtered_actor_names(
         writer,

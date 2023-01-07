@@ -379,10 +379,10 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         playlist_id: RecordId,
         new_entries: &[Entry],
     ) -> RepoResult<()> {
+        use playlist_entry_db::{models::*, schema::*};
         if new_entries.is_empty() {
             return Ok(());
         }
-        use playlist_entry_db::{models::*, schema::*};
         let max_ordering = max_playlist_entry_ordering(self, playlist_id)?.unwrap_or(-1);
         let mut ordering = max_ordering;
         let created_at = DateTime::now_utc();
@@ -408,10 +408,10 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         playlist_id: RecordId,
         new_entries: &[Entry],
     ) -> RepoResult<()> {
+        use playlist_entry_db::{models::*, schema::*};
         if new_entries.is_empty() {
             return Ok(());
         }
-        use playlist_entry_db::{models::*, schema::*};
         let min_ordering = min_playlist_entry_ordering(self, playlist_id)?.unwrap_or(0);
         // TODO: Ordering range checks and adjustments when needed!
         debug_assert!(new_entries.len() as i64 >= 0);
@@ -439,10 +439,10 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         playlist_id: RecordId,
         index_range: &Range<usize>,
     ) -> RepoResult<usize> {
+        use playlist_entry_db::schema::*;
         if index_range.is_empty() {
             return Ok(0);
         }
-        use playlist_entry_db::schema::*;
         let offset = index_range.start as i64;
         debug_assert!(offset >= 0);
         let limit = index_range.len() as i64;
@@ -532,10 +532,10 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         before_index: usize,
         new_entries: &[Entry],
     ) -> RepoResult<()> {
+        use playlist_entry_db::{models::*, schema::*};
         if new_entries.is_empty() {
             return Ok(());
         }
-        use playlist_entry_db::{models::*, schema::*};
         let offset = before_index as i64;
         debug_assert!(offset >= 0);
         // The newly inserted entries will be assigned ordering numbers

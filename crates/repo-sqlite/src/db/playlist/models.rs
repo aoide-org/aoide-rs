@@ -128,7 +128,7 @@ impl<'a> InsertableRecord<'a> {
             } else {
                 None
             },
-            flags: flags.bits() as i16,
+            flags: i16::from(flags.bits()),
         }
     }
 }
@@ -189,7 +189,7 @@ impl<'a> UpdatableRecord<'a> {
             } else {
                 None
             },
-            flags: flags.bits() as i16,
+            flags: i16::from(flags.bits()),
         }
     }
 }

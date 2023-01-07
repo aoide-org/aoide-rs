@@ -82,7 +82,7 @@ pub enum ImportTrackFromFileOutcome {
 pub fn import_track_from_file_path(
     content_path_resolver: &VirtualFilePathResolver,
     source_path: ContentPath,
-    sync_mode_params: SyncModeParams,
+    sync_mode_params: &SyncModeParams,
     config: &ImportTrackConfig,
     collected_at: DateTime,
 ) -> Result<ImportTrackFromFileOutcome> {
@@ -99,7 +99,7 @@ pub fn import_track_from_file_path(
         SyncModeParams::Once {
             synchronized_before,
         } => {
-            if synchronized_before {
+            if *synchronized_before {
                 log::debug!(
                     "Skipping reimport of file {} that as already been imported once",
                     canonical_path.display(),
@@ -115,7 +115,7 @@ pub fn import_track_from_file_path(
         } => match (old_content_rev, new_content_rev) {
             (old_content_rev, Some(new_content_rev)) => {
                 if let Some(old_content_rev) = old_content_rev {
-                    if new_content_rev <= old_content_rev {
+                    if new_content_rev <= *old_content_rev {
                         log::debug!(
                             "Skipping reimport of synchronized file {}",
                             canonical_path.display(),

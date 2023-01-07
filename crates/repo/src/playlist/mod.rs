@@ -105,6 +105,7 @@ fn move_playlist_entries_default<R: EntryRepo + ?Sized>(
     debug_assert_eq!(moved_entries.len(), index_range.len());
     let removed_count = entry_repo.remove_playlist_entries(playlist_id, index_range)?;
     debug_assert_eq!(removed_count, index_range.len());
+    #[allow(clippy::cast_sign_loss)]
     let insert_index = if delta_index > 0 {
         (index_range.start + delta_index as usize)
             .min(entry_repo.count_playlist_entries(playlist_id)?)

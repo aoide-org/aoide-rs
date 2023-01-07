@@ -63,7 +63,7 @@ async fn fetch_filtered_entities<E: ClientEnvironment>(
     let query_params = filter_by_kind
         .into()
         .and_then(|kind| serde_urlencoded::to_string(kind).ok())
-        .map(|kind| format!("kind={}", kind));
+        .map(|kind| format!("kind={kind}"));
     request_url.set_query(query_params.as_deref());
     let request = env.client().get(request_url);
     let response = request.send().await?;

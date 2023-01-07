@@ -27,7 +27,7 @@ pub fn create_connection_pool(storage: &Storage, max_size: NonZeroU32) -> Result
     // If the given file is inaccessible r2d2 (Diesel 1.4.8) seems to do multiple retries
     // and logs errors instead of simply failing and returning and error immediately.
     // Example file name: connection = ":/tmp/aoide.sqlite"
-    let _ = diesel::SqliteConnection::establish(storage)?;
+    std::mem::drop(diesel::SqliteConnection::establish(storage)?);
     // The test connection is dropped immediately without using it
     // and missing files should have been created after reaching
     // this point.

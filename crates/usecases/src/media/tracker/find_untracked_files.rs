@@ -117,6 +117,7 @@ where
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn ancestor_finished(
     all_content_paths: &mut Vec<ContentPath>,
     mut content_paths: Vec<ContentPath>,
@@ -160,7 +161,7 @@ pub fn visit_directories<
         },
         &mut |progress_event| {
             log::trace!("{progress_event:?}");
-            report_progress_fn(progress_event.to_owned().into());
+            report_progress_fn(progress_event.clone().into());
         },
     )
     .map_err(anyhow::Error::from)
@@ -170,10 +171,10 @@ pub fn visit_directories<
         let elapsed = progress_event.elapsed_since_started();
         let outcome = progress_event.finalize();
         log::info!(
-            "Finding {} untracked directory entries in '{}' took {} s",
-            content_paths.len(),
-            root_file_path.display(),
-            elapsed.as_millis() as f64 / 1000.0,
+            "Finding {num_untracked_dir_entries} untracked directory entries in '{root_file_path}' took {elapsed_secs} s",
+            num_untracked_dir_entries = content_paths.len(),
+            root_file_path = root_file_path.display(),
+            elapsed_secs = elapsed.as_secs_f64(),
         );
         outcome
     })
@@ -191,7 +192,7 @@ pub fn visit_directories<
         .content_path
         .vfs
         .map(|vfs_context| (vfs_context.root_url, vfs_context.root_path))
-        .unwrap();
+        .expect("collection with path kind VFS");
     Ok(Outcome {
         root_url,
         root_path,

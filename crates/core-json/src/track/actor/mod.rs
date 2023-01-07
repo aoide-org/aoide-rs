@@ -208,17 +208,18 @@ impl From<_core::Actor> for Actor {
         } = from;
         if kind == _core::Kind::Summary && role_notes.is_none() {
             if role == _core::Role::Artist {
-                return Self::Name(name);
+                Self::Name(name)
             } else {
-                return Self::NameAndRole(name, role.into());
+                Self::NameAndRole(name, role.into())
             }
+        } else {
+            Self::FullActor(FullActor {
+                kind: kind.into(),
+                name,
+                role: role.into(),
+                role_notes: role_notes.map(Into::into),
+            })
         }
-        Self::FullActor(FullActor {
-            kind: kind.into(),
-            name,
-            role: role.into(),
-            role_notes: role_notes.map(Into::into),
-        })
     }
 }
 

@@ -35,6 +35,7 @@ pub enum Effect {
 }
 
 impl Effect {
+    #[allow(clippy::too_many_lines)] // TODO
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
         log::trace!("Applying effect {self:?} on {state:?}");
         match self {

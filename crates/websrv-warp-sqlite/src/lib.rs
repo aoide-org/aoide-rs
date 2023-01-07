@@ -1,22 +1,26 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// rustflags
 #![warn(rust_2018_idioms)]
 #![warn(rust_2021_compatibility)]
 #![warn(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
-// rustflags (clippy)
-#![warn(clippy::all)]
-#![warn(clippy::explicit_deref_methods)]
-#![warn(clippy::explicit_into_iter_loop)]
-#![warn(clippy::explicit_iter_loop)]
-#![warn(clippy::must_use_candidate)]
-// rustdocflags
 #![warn(rustdoc::broken_intra_doc_links)]
-#![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
-#![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
+#![warn(clippy::pedantic)]
+// Repetitions of module/type names occur frequently when using many
+// modules for keeping the size of the source files handy. Often
+// types have the same name as their parent module.
+#![allow(clippy::module_name_repetitions)]
+// Repeating the type name in `..Default::default()` expressions
+// is not needed since the context is obvious.
+#![allow(clippy::default_trait_access)]
+// Using wildcard imports consciously is acceptable.
+#![allow(clippy::wildcard_imports)]
+// Importing all enum variants into a narrow, local scope is acceptable.
+#![allow(clippy::enum_glob_use)]
+// TODO: Add missing docs
+#![allow(clippy::missing_errors_doc)]
 
 use std::{
     convert::Infallible,
@@ -87,14 +91,13 @@ impl From<uc::Error> for Error {
             Io(err) => Self::Other(err.into()),
             Media(err) => Self::Other(err.into()),
             Storage(err) => err.into(),
-            DatabaseMigration(err) => Self::Other(err),
             Repository(err) => match err {
                 RepoError::NotFound => Self::NotFound,
                 RepoError::Conflict => Self::Conflict,
                 RepoError::Aborted => Self::ServiceUnavailable,
                 RepoError::Other(err) => Self::Other(err),
             },
-            Other(err) => Self::Other(err),
+            DatabaseMigration(err) | Other(err) => Self::Other(err),
         }
     }
 }
@@ -184,6 +187,7 @@ fn status_code_to_string(code: StatusCode) -> String {
         .to_string()
 }
 
+#[allow(clippy::unused_async)] // async needed for warp filter
 pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infallible> {
     let code;
     let message;
@@ -196,26 +200,23 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
         message: custom_message,
     }) = reject.find()
     {
-        code = custom_code.to_owned();
-        message = custom_message.to_owned();
+        code = *custom_code;
+        message = custom_message.clone();
     } else if let Some(err) = reject.find::<InvalidHeader>() {
         code = StatusCode::BAD_REQUEST;
         message = err
             .source()
-            .map(ToString::to_string)
-            .unwrap_or_else(|| err.to_string());
+            .map_or_else(|| err.to_string(), ToString::to_string);
     } else if let Some(err) = reject.find::<InvalidQuery>() {
         code = StatusCode::BAD_REQUEST;
         message = err
             .source()
-            .map(ToString::to_string)
-            .unwrap_or_else(|| err.to_string());
+            .map_or_else(|| err.to_string(), ToString::to_string);
     } else if let Some(err) = reject.find::<BodyDeserializeError>() {
         code = StatusCode::BAD_REQUEST;
         message = err
             .source()
-            .map(ToString::to_string)
-            .unwrap_or_else(|| err.to_string());
+            .map_or_else(|| err.to_string(), ToString::to_string);
     } else if let Some(err) = reject.find::<Error>() {
         match err {
             Error::BadRequest(err) => {
@@ -236,16 +237,13 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
             }
             Error::Timeout { reason } => {
                 code = StatusCode::REQUEST_TIMEOUT;
-                message = reason.to_owned();
+                message = reason.clone();
             }
             Error::Other(err) => {
                 code = StatusCode::INTERNAL_SERVER_ERROR;
                 message = err.to_string();
             }
         }
-    } else if let Some(err) = reject.find::<Error>() {
-        code = StatusCode::INTERNAL_SERVER_ERROR;
-        message = err.to_string();
     } else if let Some(err) = reject.find::<MethodNotAllowed>() {
         // This must have the least priority, because most rejections
         // contain a MethodNotAllowed element!

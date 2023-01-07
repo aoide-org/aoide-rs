@@ -98,12 +98,13 @@ pub fn update_tags_in_encoded(tags: &Tags, encoded: &mut String) -> std::fmt::Re
     decoded_tags.encode_into(encoded)
 }
 
+#[allow(clippy::needless_pass_by_value)] // consume remaining_tags
 pub fn export_and_encode_remaining_tags_into(
     remaining_tags: Tags,
     encoded_tags: &mut Vec<PlainTag>,
 ) -> std::fmt::Result {
     if encoded_tags.len() == 1 {
-        let PlainTag { label, score } = encoded_tags.drain(..).next().unwrap();
+        let PlainTag { label, score } = encoded_tags.drain(..).next().expect("exactly one item");
         let mut encoded = label.unwrap_or_default().into_value();
         crate::util::gigtag::update_tags_in_encoded(&remaining_tags, &mut encoded)?;
         let tag = PlainTag {
@@ -135,6 +136,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag)> {
             let score_value = prop.value().parse::<f64>().ok()?;
             let score = Score::clamp_from(score_value);
             // Skip non-aoide tag if property value fails is not a valid score value
+            #[allow(clippy::float_cmp)]
             if score_value != score.value() {
                 return None;
             }
@@ -150,7 +152,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag)> {
     }
     let facet_key = if tag.has_facet() {
         let facet_id = FacetId::clamp_from(tag.facet().as_ref());
-        if facet_id.as_deref().map(String::as_str).unwrap_or("") != tag.facet().as_ref() {
+        if facet_id.as_deref().map_or("", String::as_str) != tag.facet().as_ref() {
             // Skip non-aoide tag
             return None;
         }
@@ -160,7 +162,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag)> {
     };
     let label = if tag.has_label() {
         let label = aoide_core::tag::Label::clamp_from(tag.label().as_ref());
-        if label.as_deref().map(String::as_str).unwrap_or("") != tag.label().as_ref() {
+        if label.as_deref().map_or("", String::as_str) != tag.label().as_ref() {
             // Skip non-aoide tag
             return None;
         }

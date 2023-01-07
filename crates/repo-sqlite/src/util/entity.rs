@@ -6,7 +6,7 @@ use aoide_core::entity::{
 };
 
 pub(crate) fn entity_uid_from_sql(uid: &str) -> EntityUid {
-    EntityUid::decode_from(uid).unwrap()
+    EntityUid::decode_from(uid).expect("valid entity UID")
 }
 
 pub(crate) fn entity_uid_typed_from_sql<T: 'static>(uid: &str) -> EntityUidTyped<T> {

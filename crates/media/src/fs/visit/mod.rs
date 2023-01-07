@@ -161,6 +161,7 @@ pub trait AncestorVisitor<C, T, E> {
 /// finalized by the caller for reporting, i.e. for sending a final
 /// update after invoking [`ProgressEvent::try_finish()`] and for obtaining
 /// execution statistics by invoking [`ProgressEvent::finalize()`].
+#[allow(clippy::too_many_lines)] // TODO
 pub fn visit_directories<
     C,
     T,
@@ -241,21 +242,16 @@ pub fn visit_directories<
             // Root directory has an empty relative path and no ancestors
             Path::new("")
         } else {
-            let relative_path = match dir_entry.path().strip_prefix(root_path) {
-                Ok(relative_path) => {
-                    debug_assert!(relative_path.is_relative());
-                    relative_path
-                }
-                Err(_) => {
-                    log::warn!(
-                        "Skipping entry with out-of-tree path: {}",
-                        dir_entry.path().display()
-                    );
-                    // Keep going
-                    progress_event.progress.entries.skipped += 1;
-                    continue;
-                }
+            let Ok(relative_path) = dir_entry.path().strip_prefix(root_path) else {
+                log::warn!(
+                    "Skipping entry with out-of-tree path: {}",
+                    dir_entry.path().display()
+                );
+                // Keep going
+                progress_event.progress.entries.skipped += 1;
+                continue;
             };
+            debug_assert!(relative_path.is_relative());
 
             while let Some((ancestor_path, ancestor_visitor)) = ancestor_visitors.last_mut() {
                 if relative_path.starts_with(&ancestor_path) {

@@ -65,6 +65,7 @@ impl From<visit::ProgressEvent> for ProgressEvent {
     }
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 pub fn scan_directories<
     Repo: CollectionRepo + MediaTrackerRepo,
     ReportProgressFn: FnMut(ProgressEvent),
@@ -144,7 +145,7 @@ pub fn scan_directories<
         },
         &mut |progress_event| {
             log::trace!("{progress_event:?}");
-            report_progress_fn(progress_event.to_owned().into());
+            report_progress_fn(progress_event.clone().into());
         },
     )
     .map_err(anyhow::Error::from)
@@ -176,7 +177,7 @@ pub fn scan_directories<
         .content_path
         .vfs
         .map(|vfs_context| (vfs_context.root_url, vfs_context.root_path))
-        .unwrap();
+        .expect("collection with path kind VFS");
     Ok(Outcome {
         root_url,
         root_path,

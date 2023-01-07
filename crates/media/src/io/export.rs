@@ -51,7 +51,7 @@ pub fn export_track_to_path(
                 media_source_content_link = track.media_source.content.link
             );
             Err(Error::UnsupportedContentType(
-                track.media_source.content.r#type.to_owned(),
+                track.media_source.content.r#type.clone(),
             ))
         }
     }

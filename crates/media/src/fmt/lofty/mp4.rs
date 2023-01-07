@@ -7,10 +7,7 @@ use lofty::mp4::{AtomData, AtomIdent, Mp4File};
 
 use aoide_core::{media::AdvisoryRating, track::Track, util::canonical::Canonical};
 
-use crate::{
-    io::import::{ImportTrackConfig, ImportTrackFlags, Importer},
-    Result,
-};
+use crate::io::import::{ImportTrackConfig, ImportTrackFlags, Importer};
 
 #[cfg(feature = "serato-markers")]
 const SERATO_MARKERS_IDENT: AtomIdent<'_> = AtomIdent::Freeform {
@@ -38,7 +35,7 @@ pub(crate) fn import_file_into_track(
     config: &ImportTrackConfig,
     mp4_file: Mp4File,
     track: &mut Track,
-) -> Result<()> {
+) {
     // Pre-processing
 
     // TODO: Handle in generic import
@@ -58,7 +55,7 @@ pub(crate) fn import_file_into_track(
 
     // Generic import
     let tagged_file = mp4_file.into();
-    super::import_tagged_file_into_track(importer, config, tagged_file, track)?;
+    super::import_tagged_file_into_track(importer, config, tagged_file, track);
 
     // Post-processing
 
@@ -70,8 +67,6 @@ pub(crate) fn import_file_into_track(
         track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
         track.color = crate::util::serato::import_track_color(&serato_tags);
     }
-
-    Ok(())
 }
 
 #[cfg(feature = "serato-markers")]

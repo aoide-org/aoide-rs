@@ -40,6 +40,7 @@ pub struct ProgressEvent {
     pub summary: Summary,
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 pub fn import_files<Repo, InterceptImportedTrackFn, ReportProgressFn>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,
@@ -93,7 +94,7 @@ where
                 .content_path
                 .vfs
                 .map(|vfs| (vfs.root_url, vfs.root_path))
-                .unwrap();
+                .expect("collection with path kind VFS");
             let outcome = Outcome {
                 root_url,
                 root_path,
@@ -110,7 +111,7 @@ where
                     .content_path
                     .vfs
                     .map(|vfs| (vfs.root_url, vfs.root_path))
-                    .unwrap();
+                    .expect("collection with path kind VFS");
                 let outcome = Outcome {
                     root_url,
                     root_path,
@@ -183,7 +184,7 @@ where
                         .content_path
                         .vfs
                         .map(|vfs| (vfs.root_url, vfs.root_path))
-                        .unwrap();
+                        .expect("collection with path kind VFS");
                     let outcome = Outcome {
                         root_url,
                         root_path,

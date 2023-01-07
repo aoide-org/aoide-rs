@@ -31,6 +31,7 @@ pub enum Intent {
 }
 
 impl Intent {
+    #[allow(clippy::too_many_lines)] // TODO
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
         log::trace!("Applying intent {self:?} on {state:?}");
         match self {

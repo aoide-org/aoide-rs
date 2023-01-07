@@ -158,7 +158,7 @@ fn try_import_tag_should_skip_tags_with_unknown_props() {
     assert!(try_import_tag(&tag).is_some());
     // Verify that the tag is not imported with an unknown property name
     tag.props.first_mut().unwrap().name =
-        prop_name_from_str(&format!("{}{}", SCORE_PROP_NAME, SCORE_PROP_NAME));
+        prop_name_from_str(&format!("{SCORE_PROP_NAME}{SCORE_PROP_NAME}"));
     assert!(try_import_tag(&tag).is_none());
 }
 

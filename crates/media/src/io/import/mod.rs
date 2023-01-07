@@ -202,7 +202,7 @@ pub fn import_into_track(
             media_source_content_link = track.media_source.content.link
         );
         return Err(Error::UnsupportedContentType(
-            track.media_source.content.r#type.to_owned(),
+            track.media_source.content.r#type.clone(),
         ));
     };
     let mut importer = Importer::new();
@@ -216,7 +216,7 @@ pub fn import_into_track(
                 config,
                 aiff_file,
                 track,
-            )?;
+            );
         }
         FileType::FLAC => {
             let reader = probe.into_inner();
@@ -227,13 +227,13 @@ pub fn import_into_track(
                 config,
                 flac_file,
                 track,
-            )?;
+            );
         }
         FileType::MP4 => {
             let reader = probe.into_inner();
             let mp4_file = lofty::AudioFile::read_from(reader, Default::default())
                 .map_err(anyhow::Error::from)?;
-            crate::fmt::lofty::mp4::import_file_into_track(&mut importer, config, mp4_file, track)?;
+            crate::fmt::lofty::mp4::import_file_into_track(&mut importer, config, mp4_file, track);
         }
         FileType::MPEG => {
             let reader = probe.into_inner();
@@ -244,7 +244,7 @@ pub fn import_into_track(
                 config,
                 mpeg_file,
                 track,
-            )?;
+            );
         }
         FileType::Opus => {
             let reader = probe.into_inner();
@@ -255,7 +255,7 @@ pub fn import_into_track(
                 config,
                 opus_file,
                 track,
-            )?;
+            );
         }
         FileType::Vorbis => {
             let reader = probe.into_inner();
@@ -266,7 +266,7 @@ pub fn import_into_track(
                 config,
                 vorbis_file,
                 track,
-            )?;
+            );
         }
         _ => {
             // Generic fallback
@@ -276,7 +276,7 @@ pub fn import_into_track(
                 config,
                 tagged_file,
                 track,
-            )?;
+            );
         }
     }
     Ok(importer.finish())
@@ -374,8 +374,7 @@ impl ImportedTempoBpm {
 impl From<ImportedTempoBpm> for TempoBpm {
     fn from(from: ImportedTempoBpm) -> Self {
         match from {
-            ImportedTempoBpm::Fractional(into) => into,
-            ImportedTempoBpm::NonFractional(into) => into,
+            ImportedTempoBpm::Fractional(into) | ImportedTempoBpm::NonFractional(into) => into,
         }
     }
 }
@@ -394,7 +393,7 @@ impl Importer {
     }
 
     pub(crate) fn add_issue(&mut self, message: impl Into<String>) {
-        self.issues.add_message(message)
+        self.issues.add_message(message);
     }
 
     #[must_use]

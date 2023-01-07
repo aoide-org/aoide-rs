@@ -689,8 +689,8 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             .map_err(repo_error)?;
         let count = records.len();
         log::debug!(
-            "Executing search query returned {count} record(s) and took {} ms",
-            (timed.elapsed().as_micros() / 1000) as f64,
+            "Executing search query returned {count} record(s) and took {elapsed_millis} ms",
+            elapsed_millis = timed.elapsed().as_secs_f64() * 1000.0,
         );
 
         let timed = Instant::now();
@@ -703,8 +703,8 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             collector.collect(record_header, entity);
         }
         log::debug!(
-            "Loading and collecting {count} track(s) from database took {} ms",
-            (timed.elapsed().as_micros() / 1000) as f64,
+            "Loading and collecting {count} track(s) from database took {elapsed_millis} ms",
+            elapsed_millis = timed.elapsed().as_secs_f64() * 1000.0,
         );
 
         Ok(count)

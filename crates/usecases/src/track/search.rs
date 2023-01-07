@@ -30,8 +30,8 @@ where
     let timed = Instant::now();
     let num_tracks = repo.search_tracks(collection_id, pagination, filter, ordering, collector)?;
     log::debug!(
-        "Search returned {num_tracks} track(s) and took {} ms",
-        (timed.elapsed().as_micros() / 1000) as f64,
+        "Search returned {num_tracks} track(s) and took {elapsed_millis} ms",
+        elapsed_millis = timed.elapsed().as_secs_f64() * 1000.0,
     );
     Ok(num_tracks)
 }

@@ -43,7 +43,7 @@ impl Watermark {
     }
 
     pub fn reset(&mut self) {
-        self.bump_epoch()
+        self.bump_epoch();
     }
 
     pub fn finalize(&mut self) {

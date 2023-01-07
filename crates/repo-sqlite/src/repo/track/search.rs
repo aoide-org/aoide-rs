@@ -57,6 +57,7 @@ pub(crate) trait TrackSearchQueryTransform<'db> {
 }
 
 impl<'db> TrackSearchQueryTransform<'db> for SortOrder {
+    #[allow(clippy::too_many_lines)] // TODO
     fn apply_to_query(
         &self,
         query: view_track_search::BoxedQuery<'db, DbBackend>,
@@ -344,6 +345,7 @@ fn build_phrase_field_filter_expression(
     or_expression
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 fn build_numeric_field_filter_expression(
     filter: &NumericFieldFilter,
 ) -> TrackSearchExpressionBoxed<'_> {

@@ -221,6 +221,7 @@ pub enum PlainTag {
 }
 
 impl From<PlainTag> for _core::PlainTag {
+    #[allow(clippy::cast_precision_loss)]
     fn from(from: PlainTag) -> Self {
         use PlainTag::*;
         match from {
@@ -313,7 +314,7 @@ impl From<Tags> for _core::Tags {
             let tags = tags.into_iter().map(Into::into).collect();
             let FacetKey { inner } = key;
             if let Some(facet_id) = inner.into() {
-                facets.push(FacetedTags { facet_id, tags })
+                facets.push(FacetedTags { facet_id, tags });
             } else {
                 debug_assert!(plain_tags.is_empty());
                 plain_tags = tags;

@@ -143,6 +143,7 @@ impl From<AdvisoryRating> for _core::AdvisoryRating {
     }
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)] // Required for serde
 fn is_default_content_metadata_flags(flags: &u8) -> bool {
     *flags == u8::default()
 }

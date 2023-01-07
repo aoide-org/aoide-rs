@@ -69,6 +69,7 @@ impl State {
         self.control_state = ControlState::FetchingResults;
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     pub(super) fn append_fetched_result_page(&mut self, response: FetchResultPageResponse) {
         debug_assert!(self.search_params.is_some());
         debug_assert_eq!(self.control_state, ControlState::FetchingResults);

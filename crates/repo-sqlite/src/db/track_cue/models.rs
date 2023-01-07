@@ -108,7 +108,7 @@ impl<'a> InsertableRecord<'a> {
         } = cue;
         let in_position = in_marker.as_ref().map(|InMarker { position }| position);
         let (out_position, out_mode) = out_marker
-            .to_owned()
+            .clone()
             .map_or((None, None), |OutMarker { position, mode }| {
                 (Some(position), mode)
             });
@@ -131,7 +131,7 @@ impl<'a> InsertableRecord<'a> {
             } else {
                 None
             },
-            flags: flags.bits() as i16,
+            flags: i16::from(flags.bits()),
         }
     }
 }

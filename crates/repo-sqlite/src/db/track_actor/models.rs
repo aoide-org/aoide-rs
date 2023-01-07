@@ -40,9 +40,9 @@ impl TryFrom<QueryableRecord> for (RecordId, Record) {
             track_id: track_id.into(),
             scope,
             actor: Actor {
+                role,
                 kind,
                 name,
-                role,
                 role_notes,
             },
         };

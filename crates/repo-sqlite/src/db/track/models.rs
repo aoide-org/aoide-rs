@@ -133,13 +133,13 @@ impl<'a> InsertableRecord<'a> {
             movement_number: movement_index.number.map(|idx| idx as i16),
             movement_total: movement_index.total.map(|idx| idx as i16),
             music_tempo_bpm: tempo_bpm.map(TempoBpm::to_inner),
-            music_key_code: key_signature.map(|s| s.code().to_value() as i16),
+            music_key_code: key_signature.map(|s| i16::from(s.code().to_value())),
             music_beats_per_measure: time_signature
                 .map(|time_sig| time_sig.beats_per_measure as i16),
             music_beat_unit: time_signature
                 .and_then(|time_sig| time_sig.beat_unit)
                 .map(|beat_unit| beat_unit as i16),
-            music_flags: music_flags.bits() as i16,
+            music_flags: i16::from(music_flags.bits()),
             color_rgb: if let Some(Color::Rgb(color)) = color {
                 Some(color.code() as i32)
             } else {
@@ -275,13 +275,13 @@ impl<'a> UpdatableRecord<'a> {
             movement_number: movement_index.number.map(|number| number as i16),
             movement_total: movement_index.total.map(|total| total as i16),
             music_tempo_bpm: tempo_bpm.map(TempoBpm::to_inner),
-            music_key_code: key_signature.map(|s| s.code().to_value() as i16),
+            music_key_code: key_signature.map(|s| i16::from(s.code().to_value())),
             music_beats_per_measure: time_signature
                 .map(|time_sig| time_sig.beats_per_measure as i16),
             music_beat_unit: time_signature
                 .and_then(|time_sig| time_sig.beat_unit)
                 .map(|beat_unit| beat_unit as i16),
-            music_flags: music_flags.bits() as i16,
+            music_flags: i16::from(music_flags.bits()),
             color_rgb: if let Some(Color::Rgb(color)) = color {
                 Some(color.code() as i32)
             } else {

@@ -233,16 +233,19 @@ impl App {
         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
             let launcher_state = self.launcher.lock().state();
             let stop_button_text = match launcher_state {
-                LauncherState::Running(RuntimeState::Stopping)
-                | LauncherState::Running(RuntimeState::Terminating) => "Stopping...",
+                LauncherState::Running(RuntimeState::Stopping | RuntimeState::Terminating) => {
+                    "Stopping..."
+                }
                 _ => "Stop",
             };
             let stop_button_enabled = matches!(self.state, State::Running { .. })
                 && matches!(
                     launcher_state,
-                    LauncherState::Running(RuntimeState::Launching)
-                        | LauncherState::Running(RuntimeState::Starting)
-                        | LauncherState::Running(RuntimeState::Listening { .. })
+                    LauncherState::Running(
+                        RuntimeState::Launching
+                            | RuntimeState::Starting
+                            | RuntimeState::Listening { .. }
+                    )
                 );
             if ui
                 .add_enabled(stop_button_enabled, Button::new(stop_button_text))
@@ -252,8 +255,9 @@ impl App {
             }
 
             let start_button_text = match launcher_state {
-                LauncherState::Running(RuntimeState::Launching)
-                | LauncherState::Running(RuntimeState::Starting) => "Starting...",
+                LauncherState::Running(RuntimeState::Launching | RuntimeState::Starting) => {
+                    "Starting..."
+                }
                 _ => "Start",
             };
             let start_button_enabled = matches!(self.state, State::Idle);
@@ -272,7 +276,7 @@ impl App {
             network: network_config,
             database: database_config,
         } = self.config.clone();
-        let mut next_config = self.last_config.to_owned();
+        let mut next_config = self.last_config.clone();
         if let Ok(network_config) = network_config.try_into() {
             next_config.network = network_config;
         }
@@ -282,7 +286,7 @@ impl App {
         let mut launcher = self.launcher.lock();
         *self.last_error.lock() = None;
         match launcher.launch_runtime(next_config.clone(), {
-            let ctx = ctx.to_owned();
+            let ctx = ctx.clone();
             move |state| {
                 log::debug!("Launcher state changed: {state:?}");
                 ctx.request_repaint();
@@ -319,7 +323,7 @@ impl App {
             std::thread::spawn({
                 let launcher = Arc::clone(&self.launcher);
                 let last_error = Arc::clone(&self.last_error);
-                let ctx = ctx.to_owned();
+                let ctx = ctx.clone();
                 move || {
                     *last_error.lock() = join_runtime_thread(runtime_thread)
                         .err()
@@ -383,7 +387,7 @@ impl eframe::App for App {
         if matches!(self.state, State::Setup) {
             log::info!("Registering signal handler for Ctrl-C");
             if let Err(err) = ctrlc::set_handler({
-                let ctx = ctx.to_owned();
+                let ctx = ctx.clone();
                 let exit_flag = Arc::clone(&self.exit_flag);
                 move || {
                     exit_flag.store(true, Ordering::Release);

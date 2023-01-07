@@ -37,7 +37,7 @@ async fn purge_orphaned<E: ClientEnvironment>(
     collection_uid: &CollectionUid,
     params: impl Into<aoide_core_api_json::media::source::purge_orphaned::Params>,
 ) -> anyhow::Result<aoide_core_api::media::source::purge_orphaned::Outcome> {
-    let request_url = env.join_api_url(&format!("c/{}/ms/purge-orphaned", collection_uid))?;
+    let request_url = env.join_api_url(&format!("c/{collection_uid}/ms/purge-orphaned"))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
@@ -55,7 +55,7 @@ async fn purge_untracked<E: ClientEnvironment>(
     collection_uid: &CollectionUid,
     params: impl Into<aoide_core_api_json::media::source::purge_untracked::Params>,
 ) -> anyhow::Result<aoide_core_api::media::source::purge_untracked::Outcome> {
-    let request_url = env.join_api_url(&format!("c/{}/ms/purge-untracked", collection_uid))?;
+    let request_url = env.join_api_url(&format!("c/{collection_uid}/ms/purge-untracked"))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;

@@ -19,11 +19,11 @@ fn import_replay_gain_valid() {
         importer.import_loudness_from_replay_gain(" -9.50572db ")
     );
     assert_eq!(
-        Some(LoudnessLufs(-18.178062)),
+        Some(LoudnessLufs(-18.178_062)),
         importer.import_loudness_from_replay_gain("0.178062 DB")
     );
     assert_eq!(
-        Some(LoudnessLufs(-18.178062)),
+        Some(LoudnessLufs(-18.178_062)),
         importer.import_loudness_from_replay_gain("  +0.178062   dB ")
     );
     assert!(importer.finish().into_messages().is_empty());

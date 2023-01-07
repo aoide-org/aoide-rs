@@ -11,27 +11,27 @@ use super::*;
 fn parse_year_tag_valid() {
     // All test inputs surrounded by whitespaces!
     assert_eq!(
-        Some(DateYYYYMMDD::new(19780000).into()),
+        Some(DateYYYYMMDD::new(19_780_000).into()),
         parse_year_tag(" 1978 ")
     );
     assert_eq!(
-        Some(DateYYYYMMDD::new(20041200).into()),
+        Some(DateYYYYMMDD::new(20_041_200).into()),
         parse_year_tag(" 200412 ")
     );
     assert_eq!(
-        Some(DateYYYYMMDD::new(20010900).into()),
+        Some(DateYYYYMMDD::new(20_010_900).into()),
         parse_year_tag(" 2001 \t - 9 ")
     );
     assert_eq!(
-        Some(DateYYYYMMDD::new(19990702).into()),
+        Some(DateYYYYMMDD::new(19_990_702).into()),
         parse_year_tag(" 1999 - 7 - 2 ")
     );
     assert_eq!(
-        Some(DateYYYYMMDD::new(19991231).into()),
+        Some(DateYYYYMMDD::new(19_991_231).into()),
         parse_year_tag(" 1999 - 12 - \t 31 ")
     );
     assert_eq!(
-        Some(DateYYYYMMDD::new(20200229).into()),
+        Some(DateYYYYMMDD::new(20_200_229).into()),
         parse_year_tag(" \t20200229 ")
     );
     assert_eq!(
@@ -103,6 +103,7 @@ fn format_validated_tempo_bpm_min_max() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)] // TODO
 fn push_next_actor_role_names() {
     let mut actors = vec![];
 

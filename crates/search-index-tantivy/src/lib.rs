@@ -1,22 +1,26 @@
 // aoide.org - Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// rustflags
 #![warn(rust_2018_idioms)]
 #![warn(rust_2021_compatibility)]
 #![warn(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
-// rustflags (clippy)
-#![warn(clippy::all)]
-#![warn(clippy::explicit_deref_methods)]
-#![warn(clippy::explicit_into_iter_loop)]
-#![warn(clippy::explicit_iter_loop)]
-#![warn(clippy::must_use_candidate)]
-// rustdocflags
 #![warn(rustdoc::broken_intra_doc_links)]
-#![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
-#![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
+#![warn(clippy::pedantic)]
+// Repetitions of module/type names occur frequently when using many
+// modules for keeping the size of the source files handy. Often
+// types have the same name as their parent module.
+#![allow(clippy::module_name_repetitions)]
+// Repeating the type name in `..Default::default()` expressions
+// is not needed since the context is obvious.
+#![allow(clippy::default_trait_access)]
+// Using wildcard imports consciously is acceptable.
+#![allow(clippy::wildcard_imports)]
+// Importing all enum variants into a narrow, local scope is acceptable.
+#![allow(clippy::enum_glob_use)]
+// TODO: Add missing docs
+#![allow(clippy::missing_errors_doc)]
 
 use std::{fs, path::Path};
 
@@ -25,7 +29,7 @@ use tantivy::{
     collector::TopDocs,
     directory::MmapDirectory,
     query::{AllQuery, Query as _, TermQuery},
-    schema::{Field, IndexRecordOption, Schema, INDEXED, STORED, STRING, TEXT},
+    schema::{Field, IndexRecordOption, Schema, Value, INDEXED, STORED, STRING, TEXT},
     Document, Index, Searcher, TantivyError, Term,
 };
 
@@ -118,6 +122,7 @@ fn add_date_field(doc: &mut Document, field: Field, date_time: DateTime) {
 }
 
 impl TrackFields {
+    #[allow(clippy::too_many_lines)] // TODO
     #[must_use]
     pub fn create_document(
         &self,
@@ -176,7 +181,13 @@ impl TrackFields {
             doc.add_f64(self.tempo_bpm, tempo_bpm.to_inner());
         }
         if let Some(key_signature) = entity.body.track.metrics.key_signature {
-            doc.add_u64(self.key_code, key_signature.code().to_u64().unwrap());
+            doc.add_u64(
+                self.key_code,
+                key_signature
+                    .code()
+                    .to_u64()
+                    .expect("valid key signature code"),
+            );
         }
         if let Some(play_counter) = play_counter {
             let PlayCounter {
@@ -251,7 +262,7 @@ impl TrackFields {
     #[must_use]
     pub fn read_uid(&self, doc: &Document) -> Option<TrackUid> {
         doc.get_first(self.uid)
-            .and_then(|val| val.as_text())
+            .and_then(Value::as_text)
             .map(EntityUid::decode_from)
             .transpose()
             .ok()
@@ -262,7 +273,7 @@ impl TrackFields {
     #[must_use]
     pub fn read_rev(&self, doc: &Document) -> Option<EntityRevision> {
         doc.get_first(self.rev)
-            .and_then(|val| val.as_u64())
+            .and_then(Value::as_u64)
             .map(EntityRevision::from_inner)
     }
 
@@ -330,10 +341,10 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
         content_type,
         collected_at,
         duration_ms,
-        track_artist,
         track_title,
-        album_artist,
+        track_artist,
         album_title,
+        album_artist,
         recorded_at_yyyymmdd,
         released_at_yyyymmdd,
         released_orig_at_yyyymmdd,

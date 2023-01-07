@@ -5,17 +5,14 @@ use lofty::mpeg::MPEGFile;
 
 use aoide_core::{track::Track, util::canonical::Canonical};
 
-use crate::{
-    io::import::{ImportTrackConfig, ImportTrackFlags, Importer},
-    Result,
-};
+use crate::io::import::{ImportTrackConfig, ImportTrackFlags, Importer};
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,
     config: &ImportTrackConfig,
     mpeg_file: MPEGFile,
     track: &mut Track,
-) -> Result<()> {
+) {
     // Pre-processing
 
     #[cfg(feature = "serato-markers")]
@@ -31,7 +28,7 @@ pub(crate) fn import_file_into_track(
 
     // Generic import
     let tagged_file = mpeg_file.into();
-    super::import_tagged_file_into_track(importer, config, tagged_file, track)?;
+    super::import_tagged_file_into_track(importer, config, tagged_file, track);
 
     // Post-processing
 
@@ -40,6 +37,4 @@ pub(crate) fn import_file_into_track(
         track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
         track.color = crate::util::serato::import_track_color(&serato_tags);
     }
-
-    Ok(())
 }

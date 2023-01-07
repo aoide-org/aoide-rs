@@ -77,6 +77,7 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
     ))
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 pub(crate) async fn run(
     config: Config,
     command_rx: mpsc::UnboundedReceiver<Command>,

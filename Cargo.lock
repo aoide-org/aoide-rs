@@ -554,9 +554,9 @@ checksum = "7a40729d2133846d9ed0ea60a8b9541bccddab49cd30f0715a1da672fe9a2524"
 
 [[package]]
 name = "async-trait"
-version = "0.1.60"
+version = "0.1.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "677d1d8ab452a3936018a687b20e6f7cf5363d713b732b8884001317b0e48aa3"
+checksum = "705339e0e4a9690e2908d2b3d049d85682cf19fbd5782494498fbf7003a6a282"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2214,7 +2214,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.10.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#366d6eb716569f0a98ef350d52f3e281e6f04e07"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#a5b1ccaff072a64847492f036ebce9ab04af9533"
 dependencies = [
  "base64 0.20.0",
  "byteorder",
@@ -2230,8 +2230,7 @@ dependencies = [
 [[package]]
 name = "lofty_attr"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02f2d46cb443ab8285492be02e5dda3e3a3f39f07cd50e5655069567e67a7de2"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#a5b1ccaff072a64847492f036ebce9ab04af9533"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4033,9 +4032,9 @@ dependencies = [
 
 [[package]]
 name = "try-lock"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
+checksum = "3528ecfd12c466c6f163363caf2d02a71161dd5e1cc6ae7b34207ea2d42d81ed"
 
 [[package]]
 name = "ttf-parser"

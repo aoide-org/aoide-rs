@@ -50,20 +50,19 @@ fn create_env_filter() -> EnvFilter {
     })
 }
 
-fn create_tracing_subscriber() -> anyhow::Result<impl Subscriber> {
+fn create_tracing_subscriber() -> impl Subscriber {
     let env_filter = create_env_filter();
-    let subscriber = tracing_subscriber::fmt()
+    tracing_subscriber::fmt()
         .with_env_filter(env_filter)
         .with_writer(std::io::stderr)
-        .finish();
-    Ok(subscriber)
+        .finish()
 }
 
 pub(crate) fn init_tracing_and_logging() -> anyhow::Result<()> {
     // Capture and redirect all log messages as tracing events
     LogTracer::init()?;
 
-    let subscriber = create_tracing_subscriber()?;
+    let subscriber = create_tracing_subscriber();
     set_global_default(subscriber)?;
 
     Ok(())

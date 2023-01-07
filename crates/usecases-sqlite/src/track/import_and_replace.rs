@@ -14,8 +14,7 @@ mod uc {
     };
 }
 
-// TODO: Reduce number of arguments
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments)] // TODO
 pub fn import_and_replace_many_by_local_file_path<InterceptImportedTrackFn>(
     connection: &mut DbConnection,
     collection_uid: &CollectionUid,

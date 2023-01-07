@@ -144,6 +144,7 @@ impl State {
         finished
     }
 
+    #[allow(clippy::needless_pass_by_value)] // consume entity
     pub(super) fn after_entity_created_or_updated(
         &mut self,
         entity: CollectionEntity,
@@ -165,6 +166,7 @@ impl State {
         Some(next_action)
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     pub(super) fn after_entity_purged(&mut self, _entity_uid: &EntityUid) -> Option<Action> {
         // Refetch all kinds
         let token = self.remote_view.all_kinds.start_pending_now();

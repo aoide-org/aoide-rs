@@ -226,6 +226,7 @@ impl ContentRevision {
     }
 
     #[must_use]
+    #[allow(clippy::cast_possible_wrap)]
     pub fn to_signed_value(self) -> ContentRevisionSignedValue {
         debug_assert!(self <= Self::from_signed_value(ContentRevisionSignedValue::MAX));
         self.to_value() as ContentRevisionSignedValue

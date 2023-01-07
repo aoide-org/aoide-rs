@@ -15,6 +15,7 @@ use aoide_core::{music::key::KeySignature, track::metric::MetricsFlags};
 // Metrics
 ///////////////////////////////////////////////////////////////////////
 
+#[allow(clippy::trivially_copy_pass_by_ref)] // Required for serde
 fn is_default_flags(flags: &u8) -> bool {
     *flags == u8::default()
 }

@@ -68,6 +68,7 @@ pub struct QueryableRecord {
 impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
     type Error = anyhow::Error;
 
+    #[allow(clippy::too_many_lines)] // TODO
     fn try_from(from: self::QueryableRecord) -> anyhow::Result<Self> {
         let self::QueryableRecord {
             id,
@@ -133,8 +134,8 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                     let digest = artwork_digest.and_then(|bytes| bytes.try_into().ok());
                     let thumbnail = artwork_thumbnail.and_then(|bytes| bytes.try_into().ok());
                     let image = ArtworkImage {
-                        apic_type,
                         media_type,
+                        apic_type,
                         size,
                         digest,
                         thumbnail,
@@ -220,6 +221,7 @@ pub struct InsertableRecord<'a> {
 }
 
 impl<'a> InsertableRecord<'a> {
+    #[allow(clippy::too_many_lines)] // TODO
     pub fn bind(
         created_at: DateTime,
         collection_id: CollectionId,
@@ -301,7 +303,7 @@ impl<'a> InsertableRecord<'a> {
             content_type: content_type.to_string(),
             advisory_rating: advisory_rating.as_ref().and_then(ToPrimitive::to_i16),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
-            content_metadata_flags: content_metadata_flags.bits() as i16,
+            content_metadata_flags: i16::from(content_metadata_flags.bits()),
             audio_duration_ms: audio_metadata
                 .and_then(|audio| audio.duration)
                 .map(DurationMs::to_inner),
@@ -318,7 +320,7 @@ impl<'a> InsertableRecord<'a> {
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
             audio_encoder: audio_metadata.and_then(|audio| audio.encoder.as_deref()),
-            artwork_source: artwork_source.map(|v| v.write()),
+            artwork_source: artwork_source.map(ArtworkSource::write),
             artwork_uri,
             artwork_apic_type,
             artwork_media_type,
@@ -382,20 +384,20 @@ impl<'a> UpdatableRecord<'a> {
                 ContentMetadata::Audio(ref audio_metadata) => Some(audio_metadata),
             }
         };
-        let (artwork_source, artwork_uri, artwork_image) = artwork
-            .as_ref()
-            .map(|artwork| match artwork {
-                Artwork::Missing => (Some(ArtworkSource::Missing), None, None),
-                Artwork::Unsupported => (Some(ArtworkSource::Unsupported), None, None),
-                Artwork::Irregular => (Some(ArtworkSource::Irregular), None, None),
-                Artwork::Embedded(EmbeddedArtwork { image }) => {
-                    (Some(ArtworkSource::Embedded), None, Some(image))
-                }
-                Artwork::Linked(LinkedArtwork { uri, image }) => {
-                    (Some(ArtworkSource::Linked), Some(uri.as_str()), Some(image))
-                }
-            })
-            .unwrap_or((None, None, None));
+        let (artwork_source, artwork_uri, artwork_image) =
+            artwork
+                .as_ref()
+                .map_or((None, None, None), |artwork| match artwork {
+                    Artwork::Missing => (Some(ArtworkSource::Missing), None, None),
+                    Artwork::Unsupported => (Some(ArtworkSource::Unsupported), None, None),
+                    Artwork::Irregular => (Some(ArtworkSource::Irregular), None, None),
+                    Artwork::Embedded(EmbeddedArtwork { image }) => {
+                        (Some(ArtworkSource::Embedded), None, Some(image))
+                    }
+                    Artwork::Linked(LinkedArtwork { uri, image }) => {
+                        (Some(ArtworkSource::Linked), Some(uri.as_str()), Some(image))
+                    }
+                });
         let artwork_apic_type;
         let artwork_media_type;
         let artwork_size_width;
@@ -433,7 +435,7 @@ impl<'a> UpdatableRecord<'a> {
             content_type: content_type.to_string(),
             advisory_rating: advisory_rating.as_ref().and_then(ToPrimitive::to_i16),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
-            content_metadata_flags: content_metadata_flags.bits() as i16,
+            content_metadata_flags: i16::from(content_metadata_flags.bits()),
             audio_duration_ms: audio_metadata
                 .and_then(|audio| audio.duration)
                 .map(DurationMs::to_inner),
@@ -450,7 +452,7 @@ impl<'a> UpdatableRecord<'a> {
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
             audio_encoder: audio_metadata.and_then(|audio| audio.encoder.as_deref()),
-            artwork_source: artwork_source.map(|v| v.write()),
+            artwork_source: artwork_source.map(ArtworkSource::write),
             artwork_uri,
             artwork_apic_type,
             artwork_media_type,

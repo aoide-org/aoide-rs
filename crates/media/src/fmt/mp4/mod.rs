@@ -129,7 +129,7 @@ fn export_faceted_tags(
                 tags.iter()
                     .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
             )
-            .to_owned();
+            .clone();
         mp4_tag.set_all_data(ident, joined_labels.map(|s| Data::Utf8(s.into())));
     } else {
         mp4_tag.set_all_data(
@@ -141,6 +141,7 @@ fn export_faceted_tags(
     }
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 pub(crate) fn export_track_to_path(
     path: &Path,
     config: &ExportTrackConfig,
@@ -168,6 +169,7 @@ pub(crate) fn export_track_to_path(
     // Music: Tempo/BPM
     if let Some(formatted_bpm) = format_validated_tempo_bpm(&mut track.metrics.tempo_bpm) {
         mp4_tag.set_all_data(IDENT_BPM, once(Data::Utf8(formatted_bpm)));
+        #[allow(clippy::cast_possible_truncation)]
         mp4_tag.set_bpm(
             track
                 .metrics
@@ -197,14 +199,14 @@ pub(crate) fn export_track_to_path(
 
     // Track titles
     if let Some(title) = Titles::main_title(track.titles.iter()) {
-        mp4_tag.set_title(title.name.to_owned());
+        mp4_tag.set_title(title.name.clone());
     } else {
         mp4_tag.remove_title();
     }
     let track_subtitles = Titles::filter_kind(track.titles.iter(), TitleKind::Sub).peekable();
     mp4_tag.set_all_data(
         IDENT_SUBTITLE,
-        track_subtitles.map(|subtitle| Data::Utf8(subtitle.name.to_owned())),
+        track_subtitles.map(|subtitle| Data::Utf8(subtitle.name.clone())),
     );
     let mut track_movements =
         Titles::filter_kind(track.titles.iter(), TitleKind::Movement).peekable();
@@ -212,7 +214,7 @@ pub(crate) fn export_track_to_path(
         let movement = track_movements.next().unwrap();
         // Only a single movement is supported
         debug_assert!(track_movements.peek().is_none());
-        mp4_tag.set_movement(movement.name.to_owned());
+        mp4_tag.set_movement(movement.name.clone());
     } else {
         mp4_tag.remove_movement();
     }
@@ -221,7 +223,7 @@ pub(crate) fn export_track_to_path(
         let work = track_works.next().unwrap();
         // Only a single work is supported
         debug_assert!(track_works.peek().is_none());
-        mp4_tag.set_work(work.name.to_owned());
+        mp4_tag.set_work(work.name.clone());
     } else {
         mp4_tag.remove_work();
     }
@@ -275,7 +277,7 @@ pub(crate) fn export_track_to_path(
 
     // Album
     if let Some(title) = Titles::main_title(track.album.titles.iter()) {
-        mp4_tag.set_album(title.name.to_owned());
+        mp4_tag.set_album(title.name.clone());
     } else {
         mp4_tag.remove_album();
     }
@@ -294,7 +296,7 @@ pub(crate) fn export_track_to_path(
             }
         }
     } else {
-        mp4_tag.remove_data_of(&IDENT_COMPILATION)
+        mp4_tag.remove_data_of(&IDENT_COMPILATION);
     }
 
     // No distinction between recording and release date, i.e.
@@ -305,7 +307,7 @@ pub(crate) fn export_track_to_path(
         mp4_tag.remove_year();
     }
     if let Some(publisher) = &track.publisher {
-        mp4_tag.set_all_data(IDENT_LABEL, once(Data::Utf8(publisher.to_owned())));
+        mp4_tag.set_all_data(IDENT_LABEL, once(Data::Utf8(publisher.clone())));
     } else {
         mp4_tag.remove_data_of(&IDENT_LABEL);
     }

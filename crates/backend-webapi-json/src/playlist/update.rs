@@ -9,6 +9,7 @@ pub type RequestBody = Playlist;
 
 pub type ResponseBody = Entity;
 
+#[allow(clippy::needless_pass_by_value)] // consume arguments
 pub fn handle_request(
     connection: &mut DbConnection,
     uid: EntityUid,

@@ -40,7 +40,7 @@ where
                         // FIXME: Handle errors
                         let url = content_path_resolver
                             .resolve_url_from_content_path(&content_link.path)
-                            .unwrap();
+                            .expect("valid content path");
                         content_link.path = ContentPath::new(url.to_string());
                     }
                     let track = UnsynchronizedTrack {

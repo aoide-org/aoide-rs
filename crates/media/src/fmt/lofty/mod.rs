@@ -39,7 +39,6 @@ use crate::{
         digest::MediaDigest, ingest_title_from, push_next_actor_role_name_from,
         try_ingest_embedded_artwork_image,
     },
-    Result,
 };
 
 pub(crate) mod aiff;
@@ -89,7 +88,7 @@ pub(crate) fn take_primary_or_first_tag(tagged_file: &mut TaggedFile) -> Option<
     if let Some(tag) = tagged_file.remove(tagged_file.primary_tag_type()) {
         return Some(tag);
     }
-    let Some(first_tag_type) = tagged_file.first_tag().map(|tag| tag.tag_type()) else {
+    let Some(first_tag_type) = tagged_file.first_tag().map(Tag::tag_type) else {
         return None;
     };
     tagged_file.remove(first_tag_type)
@@ -177,7 +176,7 @@ pub(crate) fn import_embedded_artwork(
     importer: &mut Importer,
     tag: &Tag,
     mut media_digest: MediaDigest,
-) -> Result<Artwork> {
+) -> Artwork {
     let artwork = if let Some((apic_type, mime_type, image_data)) = find_embedded_artwork_image(tag)
     {
         let (artwork, _, issues) = try_ingest_embedded_artwork_image(
@@ -194,7 +193,7 @@ pub(crate) fn import_embedded_artwork(
     } else {
         Artwork::Missing
     };
-    Ok(artwork)
+    artwork
 }
 
 pub(crate) fn import_tagged_file_into_track(
@@ -202,7 +201,7 @@ pub(crate) fn import_tagged_file_into_track(
     config: &ImportTrackConfig,
     mut tagged_file: TaggedFile,
     track: &mut Track,
-) -> Result<()> {
+) {
     debug_assert!(config.flags.contains(ImportTrackFlags::METADATA));
 
     let tag = take_primary_or_first_tag(&mut tagged_file);
@@ -213,19 +212,18 @@ pub(crate) fn import_tagged_file_into_track(
             file_type = tagged_file.file_type(),
         );
         let file_properties = tagged_file.properties();
-        import_file_tag_into_track(importer, config, file_properties, tag, track)?;
+        import_file_tag_into_track(importer, config, file_properties, tag, track);
     }
-
-    Ok(())
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 pub(crate) fn import_file_tag_into_track(
     importer: &mut Importer,
     config: &ImportTrackConfig,
     file_properties: &FileProperties,
     mut tag: Tag,
     track: &mut Track,
-) -> Result<()> {
+) {
     debug_assert_eq!(
         track.media_source.content.metadata,
         ContentMetadata::Audio(Default::default())
@@ -261,8 +259,7 @@ pub(crate) fn import_file_tag_into_track(
     // Musical metrics
     let imported_tempo_bpm = tag
         .take_strings(&ItemKey::BPM)
-        .flat_map(|input| importer.import_tempo_bpm(&input))
-        .next();
+        .find_map(|input| importer.import_tempo_bpm(&input));
     if let Some(imported_tempo_bpm) = &imported_tempo_bpm {
         // Assume that the tag is only capable of storing BPM values with
         // integer precision if the number has no fractional decimal digits.
@@ -274,29 +271,25 @@ pub(crate) fn import_file_tag_into_track(
     track.metrics.tempo_bpm = imported_tempo_bpm.map(Into::into);
     track.metrics.key_signature = tag
         .take_strings(&ItemKey::InitialKey)
-        .flat_map(|input| importer.import_key_signature(&input))
-        .next();
+        .find_map(|input| importer.import_key_signature(&input));
 
     // Track titles
     let mut track_titles = Vec::with_capacity(4);
     if let Some(title) = tag
         .take_strings(&ItemKey::TrackTitle)
-        .filter_map(|name| ingest_title_from(name, TitleKind::Main))
-        .next()
+        .find_map(|name| ingest_title_from(name, TitleKind::Main))
     {
         track_titles.push(title);
     }
     if let Some(title) = tag
         .take_strings(&ItemKey::TrackTitle)
-        .filter_map(|name| ingest_title_from(name, TitleKind::Sub))
-        .next()
+        .find_map(|name| ingest_title_from(name, TitleKind::Sub))
     {
         track_titles.push(title);
     }
     if let Some(title) = tag
         .take_strings(&ItemKey::Movement)
-        .filter_map(|name| ingest_title_from(name, TitleKind::Movement))
-        .next()
+        .find_map(|name| ingest_title_from(name, TitleKind::Movement))
     {
         track_titles.push(title);
     }
@@ -349,8 +342,7 @@ pub(crate) fn import_file_tag_into_track(
     let mut album_titles = Vec::with_capacity(1);
     if let Some(title) = tag
         .take_strings(&ItemKey::AlbumTitle)
-        .filter_map(|name| ingest_title_from(name, TitleKind::Main))
-        .next()
+        .find_map(|name| ingest_title_from(name, TitleKind::Main))
     {
         album_titles.push(title);
     }
@@ -386,15 +378,34 @@ pub(crate) fn import_file_tag_into_track(
     // Indexes (in pairs)
     // Import both values consistently if any of them is available!
     // TODO: Verify u32 -> u16 conversions
-    if tag.track().is_some() || tag.track_total().is_some() {
-        track.indexes.track.number = tag.track().map(|val| val as _);
-        track.indexes.track.total = tag.track_total().map(|val| val as _);
+    let track_number = tag
+        .track()
+        .map(TryFrom::try_from)
+        .transpose()
+        .ok()
+        .flatten();
+    let track_total = tag
+        .track_total()
+        .map(TryFrom::try_from)
+        .transpose()
+        .ok()
+        .flatten();
+    if track_number.is_some() || track_total.is_some() {
+        track.indexes.track.number = track_number;
+        track.indexes.track.total = track_total;
     } else {
         debug_assert_eq!(track.indexes.track, Default::default());
     }
-    if tag.disk().is_some() || tag.disk_total().is_some() {
-        track.indexes.disc.number = tag.disk().map(|val| val as _);
-        track.indexes.disc.total = tag.disk_total().map(|val| val as _);
+    let disc_number = tag.disk().map(TryFrom::try_from).transpose().ok().flatten();
+    let disc_total = tag
+        .disk_total()
+        .map(TryFrom::try_from)
+        .transpose()
+        .ok()
+        .flatten();
+    if disc_number.is_some() || tag.disk_total().is_some() {
+        track.indexes.disc.number = disc_number;
+        track.indexes.disc.total = disc_total;
     } else {
         debug_assert_eq!(track.indexes.track, Default::default());
     }
@@ -402,18 +413,15 @@ pub(crate) fn import_file_tag_into_track(
 
     track.copyright = tag
         .take_strings(&ItemKey::CopyrightMessage)
-        .filter_map(trimmed_non_empty_from)
-        .next()
+        .find_map(trimmed_non_empty_from)
         .map(Cow::into_owned);
     track.publisher = tag
         .take_strings(&ItemKey::Label)
-        .filter_map(trimmed_non_empty_from)
-        .next()
+        .find_map(trimmed_non_empty_from)
         .map(Cow::into_owned);
     if track.publisher.is_none() {
         tag.take_strings(&ItemKey::Publisher)
-            .filter_map(trimmed_non_empty_from)
-            .next()
+            .find_map(trimmed_non_empty_from)
             .map(Cow::into_owned);
     }
 
@@ -423,22 +431,18 @@ pub(crate) fn import_file_tag_into_track(
 
     track.recorded_at = tag
         .take_strings(&ItemKey::RecordingDate)
-        .filter_map(|input| importer.import_year_tag_from_field("RecordingDate", &input))
-        .next();
+        .find_map(|input| importer.import_year_tag_from_field("RecordingDate", &input));
     if track.recorded_at.is_none() {
         track.recorded_at = tag
             .take_strings(&ItemKey::Year)
-            .filter_map(|input| importer.import_year_tag_from_field("Year", &input))
-            .next();
+            .find_map(|input| importer.import_year_tag_from_field("Year", &input));
     }
     track.released_at = tag
         .take_strings(&ItemKey::PodcastReleaseDate)
-        .filter_map(|input| importer.import_year_tag_from_field("PodcastReleaseDate", &input))
-        .next();
+        .find_map(|input| importer.import_year_tag_from_field("PodcastReleaseDate", &input));
     track.released_orig_at = tag
         .take_strings(&ItemKey::OriginalReleaseDate)
-        .filter_map(|input| importer.import_year_tag_from_field("OriginalReleaseDate", &input))
-        .next();
+        .find_map(|input| importer.import_year_tag_from_field("OriginalReleaseDate", &input));
 
     let mut tags_map = TagsMap::default();
 
@@ -523,9 +527,7 @@ pub(crate) fn import_file_tag_into_track(
         .flags
         .contains(ImportTrackFlags::METADATA_EMBEDDED_ARTWORK)
     {
-        let artwork = import_embedded_artwork(importer, &tag, config.flags.new_artwork_digest())?;
+        let artwork = import_embedded_artwork(importer, &tag, config.flags.new_artwork_digest());
         track.media_source.artwork = Some(artwork);
     }
-
-    Ok(())
 }
