@@ -154,14 +154,12 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag)> {
     }
     let facet_key = if tag.has_facet() {
         let facet_id_clamped = FacetId::clamp_from(tag.facet().as_ref());
-        let facet_key_clamped = FacetKey::new(facet_id_clamped);
-        let facet_id_unclamped = FacetId::new(Cow::Borrowed(tag.facet()));
-        let facet_key_unclamped = FacetKey::from(facet_id_unclamped);
-        if facet_key_clamped != facet_key_unclamped {
+        let facet_id_unclamped = Some(FacetId::new(Cow::Borrowed(tag.facet())));
+        if facet_id_clamped != facet_id_unclamped {
             // Skip non-aoide tag
             return None;
         }
-        facet_key_clamped
+        facet_id_clamped.into()
     } else {
         Default::default()
     };

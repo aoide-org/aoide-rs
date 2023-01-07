@@ -366,21 +366,33 @@ impl<'a> FacetKey<'a> {
     }
 }
 
-impl<'a> From<&'a FacetId<'a>> for FacetKey<'a> {
-    fn from(from: &'a FacetId<'a>) -> Self {
-        FacetKey::new(Some(from.as_borrowed()))
-    }
-}
-
 impl<'a> From<FacetKey<'a>> for Option<FacetId<'a>> {
     fn from(from: FacetKey<'a>) -> Self {
         from.into_inner()
     }
 }
 
+impl<'a> From<Option<FacetId<'a>>> for FacetKey<'a> {
+    fn from(from: Option<FacetId<'a>>) -> Self {
+        FacetKey::new(from)
+    }
+}
+
 impl<'a> From<FacetId<'a>> for FacetKey<'a> {
     fn from(from: FacetId<'a>) -> Self {
-        FacetKey(Some(from))
+        Some(from).into()
+    }
+}
+
+impl<'a> From<&'a FacetId<'a>> for FacetKey<'a> {
+    fn from(from: &'a FacetId<'a>) -> Self {
+        Some(from).into()
+    }
+}
+
+impl<'a> From<Option<&'a FacetId<'a>>> for FacetKey<'a> {
+    fn from(from: Option<&'a FacetId<'a>>) -> Self {
+        FacetKey::new(from.map(FacetId::as_borrowed))
     }
 }
 
