@@ -31,7 +31,7 @@ use aoide_core::collection::{
 };
 
 use aoide_core_api::{
-    media::tracker::DirTrackingStatus,
+    media::{tracker::DirTrackingStatus, SyncMode},
     track::search::{SortField, SortOrder},
 };
 
@@ -704,7 +704,7 @@ async fn main() -> anyhow::Result<()> {
                                     .map(|s| s.parse().expect("URL"));
                                 let params = aoide_core_api::media::tracker::import_files::Params {
                                     root_url: media_root_url,
-                                    ..Default::default()
+                                    sync_mode: SyncMode::Modified,
                                 };
                                 subcommand_submitted = true;
                                 let intent = media_tracker::Intent::StartImportFiles {

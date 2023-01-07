@@ -15,17 +15,44 @@ use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::prelude::*;
 
-#[allow(clippy::struct_excessive_bools)] // FIXME
+/// Media source without a corresponding file.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum UntrackedMediaSources {
+    Keep,
+    Purge,
+}
+
+/// Media source without a corresponding track entity.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum OrphanedMediaSources {
+    Keep,
+    Purge,
+}
+
+/// Files without a corresponding media source.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum UntrackedFiles {
+    Skip,
+    Find,
+}
+
+/// Current metadata revision of track differs from last synchronized revision.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum UnsynchronizedTracks {
+    Skip,
+    Find,
+}
+
 #[derive(Debug, Clone)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
     pub max_depth: Option<usize>,
-    pub sync_mode: Option<SyncMode>,
+    pub sync_mode: SyncMode,
     pub import_track_config: ImportTrackConfig,
-    pub purge_untracked_media_sources: bool,
-    pub purge_orphaned_media_sources: bool,
-    pub find_untracked_files: bool,
-    pub find_unsynchronized_tracks: bool,
+    pub untracked_media_sources: UntrackedMediaSources,
+    pub orphaned_media_sources: OrphanedMediaSources,
+    pub untracked_files: UntrackedFiles,
+    pub unsynchronized_tracks: UnsynchronizedTracks,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -82,7 +109,7 @@ pub enum Progress {
 }
 
 #[allow(clippy::too_many_lines)] // TODO
-pub async fn rescan_collection_vfs<InterceptImportedTrackFn, ReportProgressFn>(
+pub async fn synchronize_collection_vfs<InterceptImportedTrackFn, ReportProgressFn>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,
     params: Params,
@@ -98,10 +125,10 @@ where
         max_depth,
         sync_mode,
         import_track_config,
-        purge_untracked_media_sources,
-        purge_orphaned_media_sources,
-        find_untracked_files,
-        find_unsynchronized_tracks,
+        untracked_media_sources,
+        orphaned_media_sources,
+        untracked_files,
+        unsynchronized_tracks,
     } = params;
     let mut outcome = Outcome::default();
     // 1st step: Scan directories
@@ -176,77 +203,93 @@ where
     }
     // 4th step: Purge untracked media sources (optional)
     report_progress_fn(Progress::Step4PurgeUntrackedMediaSources);
-    if purge_untracked_media_sources {
-        let params = aoide_core_api::media::source::purge_untracked::Params {
-            root_url: root_url.clone(),
-        };
-        outcome.purge_untracked_media_sources = Some(
-            crate::media::source::purge_untracked(db_gatekeeper, collection_uid.clone(), params)
+    match untracked_media_sources {
+        UntrackedMediaSources::Keep => (),
+        UntrackedMediaSources::Purge => {
+            let params = aoide_core_api::media::source::purge_untracked::Params {
+                root_url: root_url.clone(),
+            };
+            outcome.purge_untracked_media_sources = Some(
+                crate::media::source::purge_untracked(
+                    db_gatekeeper,
+                    collection_uid.clone(),
+                    params,
+                )
                 .await?,
-        );
+            );
+        }
     }
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
     // 5th step: Purge orphaned media sources (optional)
     report_progress_fn(Progress::Step5PurgeOrphanedMediaSources);
-    if purge_orphaned_media_sources {
-        let params = aoide_core_api::media::source::purge_orphaned::Params {
-            root_url: root_url.clone(),
-        };
-        outcome.purge_orphaned_media_sources = Some(
-            crate::media::source::purge_orphaned(db_gatekeeper, collection_uid.clone(), params)
-                .await?,
-        );
+    match orphaned_media_sources {
+        OrphanedMediaSources::Keep => (),
+        OrphanedMediaSources::Purge => {
+            let params = aoide_core_api::media::source::purge_orphaned::Params {
+                root_url: root_url.clone(),
+            };
+            outcome.purge_orphaned_media_sources = Some(
+                crate::media::source::purge_orphaned(db_gatekeeper, collection_uid.clone(), params)
+                    .await?,
+            );
+        }
     }
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
     // 6th step: Find untracked files (optional/informational)
-    if find_untracked_files {
-        let params = aoide_core_api::media::tracker::find_untracked_files::Params {
-            root_url: root_url.clone(),
-            max_depth,
-        };
-        outcome.find_untracked_files = Some({
-            let mut report_progress_fn = report_progress_fn.clone();
-            let step_outcome = crate::media::tracker::find_untracked_files(
-                db_gatekeeper,
-                collection_uid.clone(),
-                params,
-                move |event| report_progress_fn(Progress::Step6FindUntrackedFiles(event)),
-            )
-            .await?;
-            if matches!(
-                step_outcome.completion,
-                aoide_core_api::media::tracker::Completion::Aborted
-            ) {
-                outcome.completion = Completion::Aborted;
-            }
-            step_outcome
-        });
+    match untracked_files {
+        UntrackedFiles::Skip => (),
+        UntrackedFiles::Find => {
+            let params = aoide_core_api::media::tracker::find_untracked_files::Params {
+                root_url: root_url.clone(),
+                max_depth,
+            };
+            outcome.find_untracked_files = Some({
+                let mut report_progress_fn = report_progress_fn.clone();
+                let step_outcome = crate::media::tracker::find_untracked_files(
+                    db_gatekeeper,
+                    collection_uid.clone(),
+                    params,
+                    move |event| report_progress_fn(Progress::Step6FindUntrackedFiles(event)),
+                )
+                .await?;
+                if matches!(
+                    step_outcome.completion,
+                    aoide_core_api::media::tracker::Completion::Aborted
+                ) {
+                    outcome.completion = Completion::Aborted;
+                }
+                step_outcome
+            });
+        }
     }
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
     // 7th step: Find unsynchronized tracks (optional/informational)
     report_progress_fn(Progress::Step7FindUnsynchronizedTracks);
-    if find_unsynchronized_tracks {
-        let content_path_predicate =
-            root_url.map(|root_url| StringPredicate::StartsWith(root_url.to_string()));
-        let params = aoide_core_api::track::find_unsynchronized::Params {
-            content_path_predicate,
-            resolve_url_from_content_path: None,
-        };
-        outcome.find_unsynchronized_tracks = Some(
-            crate::track::find_unsynchronized(
-                db_gatekeeper,
-                collection_uid.clone(),
-                params,
-                Default::default(),
-            )
-            .await?,
-        );
+    match unsynchronized_tracks {
+        UnsynchronizedTracks::Skip => (),
+        UnsynchronizedTracks::Find => {
+            let content_path_predicate =
+                root_url.map(|root_url| StringPredicate::StartsWith(root_url.to_string()));
+            let params = aoide_core_api::track::find_unsynchronized::Params {
+                content_path_predicate,
+                resolve_url_from_content_path: None,
+            };
+            outcome.find_unsynchronized_tracks = Some(
+                crate::track::find_unsynchronized(
+                    db_gatekeeper,
+                    collection_uid.clone(),
+                    params,
+                    Default::default(),
+                )
+                .await?,
+            );
+        }
     }
     Ok(outcome)
 }

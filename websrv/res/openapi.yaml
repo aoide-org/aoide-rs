@@ -2645,6 +2645,8 @@ components:
           $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         syncMode:
           $ref: "#/components/schemas/MediaSyncMode"
+      required:
+        - syncMode
     MediaSyncMode:
       description: |
         - once: Only import metadata once, never re-import.
@@ -2654,7 +2656,9 @@ components:
         - modified-resync: Only (re-)import metadata from media source if
           modified but regardless of the synchronized revision, i.e. allow to
           overwrite changed metadata with metadata imported from the media source
-          for resynchronization.
+          to enforce resynchronization. Use this variant if the metadata stored
+          in file tags is complete and the primary metadata source for tracks,
+          i.e. if the file system is considered as the actual "book of records".
         - always: Always (re-)import metadata from media source, regardless
           of modification time and synchronization status.
       type: string

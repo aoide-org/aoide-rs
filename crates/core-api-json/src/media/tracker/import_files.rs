@@ -23,8 +23,7 @@ pub struct Params {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub root_url: Option<Url>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sync_mode: Option<SyncMode>,
+    pub sync_mode: SyncMode,
 }
 
 #[cfg(feature = "frontend")]
@@ -36,7 +35,7 @@ impl From<_inner::Params> for Params {
         } = from;
         Self {
             root_url: root_url.map(Into::into),
-            sync_mode: sync_mode.map(Into::into),
+            sync_mode: sync_mode.into(),
         }
     }
 }
@@ -53,7 +52,7 @@ impl TryFrom<Params> for _inner::Params {
         let root_url = root_url.map(BaseUrl::try_autocomplete_from).transpose()?;
         Ok(Self {
             root_url,
-            sync_mode: sync_mode.map(Into::into),
+            sync_mode: sync_mode.into(),
         })
     }
 }

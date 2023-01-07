@@ -15,7 +15,7 @@ _aoide_ is built to import metadata from audio files and store it in an internal
 
 ## Configuration
 
-Both the initial import and subsequent re-import of updated metadata can be accomplished by running the bundled shell script [`rescan_collection_vfs.sh`](../scripts/rescan_collection_vfs.sh). It is recommended to copy the contents and customize the settings according to your needs.
+Both the initial import and subsequent re-import of updated metadata can be accomplished by running the bundled shell script [`synchronize_collection_vfs.sh`](../scripts/synchronize_collection_vfs.sh). It is recommended to copy the contents and customize the settings according to your needs.
 
 This sections only lists the most important configuration options that you might need to adjust. Refer to the comments in the script for advanced options.
 
@@ -44,7 +44,7 @@ The VFS root directory of the collection is specified by `COLLECTION_VFS_ROOT_UR
 Run the script whenever metadata in audio files has been modified:
 
 ```shell
-scripts/rescan_collection_vfs.sh
+scripts/synchronize_collection_vfs.sh
 ```
 
 You can safely interrupt the script at any point or stop the web server manually at your will. The database will catch up and resynchronize its contents on the next run. Easy and fool-proof.

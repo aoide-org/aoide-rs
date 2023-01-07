@@ -6,13 +6,21 @@ use std::{borrow::Cow, path::Path};
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
 use url::Url;
 
-use aoide_backend_embedded::batch;
+use aoide_backend_embedded::batch::{
+    self,
+    synchronize_collection_vfs::{
+        OrphanedMediaSources, UnsynchronizedTracks, UntrackedFiles, UntrackedMediaSources,
+    },
+};
 use aoide_core::{
     collection::{Collection, Entity, EntityUid, MediaSourceConfig},
     media::content::ContentPathConfig,
     util::url::BaseUrl,
 };
-use aoide_core_api::collection::{EntityWithSummary, LoadScope};
+use aoide_core_api::{
+    collection::{EntityWithSummary, LoadScope},
+    media::SyncMode,
+};
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 
 use crate::{
@@ -550,25 +558,25 @@ impl RefreshingStateTask {
     }
 }
 
-pub async fn rescan_vfs<ReportProgressFn>(
+pub async fn synchronize_vfs<ReportProgressFn>(
     handle: &Handle,
     entity_uid: EntityUid,
     report_progress_fn: ReportProgressFn,
-) -> anyhow::Result<batch::rescan_collection_vfs::Outcome>
+) -> anyhow::Result<batch::synchronize_collection_vfs::Outcome>
 where
-    ReportProgressFn: FnMut(batch::rescan_collection_vfs::Progress) + Clone + Send + 'static,
+    ReportProgressFn: FnMut(batch::synchronize_collection_vfs::Progress) + Clone + Send + 'static,
 {
-    let params = batch::rescan_collection_vfs::Params {
-        find_unsynchronized_tracks: true,
-        find_untracked_files: true,
-        import_track_config: Default::default(),
-        max_depth: None,
-        purge_orphaned_media_sources: true,
-        purge_untracked_media_sources: true,
+    let params = batch::synchronize_collection_vfs::Params {
         root_url: None,
-        sync_mode: None,
+        max_depth: None,
+        sync_mode: SyncMode::Modified,
+        import_track_config: Default::default(),
+        untracked_media_sources: UntrackedMediaSources::Purge,
+        orphaned_media_sources: OrphanedMediaSources::Purge,
+        untracked_files: UntrackedFiles::Find,
+        unsynchronized_tracks: UnsynchronizedTracks::Find,
     };
-    batch::rescan_collection_vfs::rescan_collection_vfs(
+    batch::synchronize_collection_vfs::synchronize_collection_vfs(
         handle.db_gatekeeper(),
         entity_uid,
         params,

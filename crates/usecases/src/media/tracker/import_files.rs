@@ -67,7 +67,7 @@ where
         return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
     let import_and_replace_params = import_and_replace::Params {
-        sync_mode: sync_mode.unwrap_or(SyncMode::Modified),
+        sync_mode: *sync_mode,
         import_config,
         replace_mode: ReplaceMode::UpdateOrCreate,
     };
