@@ -511,13 +511,12 @@ pub(crate) fn import_file_tag_into_track(
     );
 
     // XID tag
-    // FIXME: <https://github.com/Serial-ATA/lofty-rs/pull/98>
-    // importer.import_faceted_tags_from_label_values(
-    //     &mut tags_map,
-    //     &config.faceted_tag_mapping,
-    //     &FACET_ID_XID,
-    //     tag.take_strings(&ItemKey::AppleItunesXID).map(Into::into),
-    // );
+    importer.import_faceted_tags_from_label_values(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        FACET_ID_XID,
+        tag.take_strings(&ItemKey::AppleXID).map(Into::into),
+    );
 
     debug_assert!(track.tags.is_empty());
     track.tags = Canonical::tie(tags_map.into());
