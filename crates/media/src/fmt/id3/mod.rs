@@ -272,7 +272,7 @@ pub(crate) fn export_track(
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
     // Comment(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_COMMENT) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_COMMENT) {
         export_faceted_tags_comment(
             tag,
             String::new(),
@@ -284,8 +284,7 @@ pub(crate) fn export_track(
     }
 
     // Description(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_DESCRIPTION)
-    {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_DESCRIPTION) {
         export_faceted_tags_comment(
             tag,
             "description",
@@ -297,7 +296,7 @@ pub(crate) fn export_track(
     }
 
     // Genre(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GENRE) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_GENRE) {
         export_faceted_tags(
             tag,
             "TCON",
@@ -309,7 +308,7 @@ pub(crate) fn export_track(
     }
 
     // Mood(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_MOOD) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MOOD) {
         export_faceted_tags(
             tag,
             "TMOO",
@@ -321,7 +320,7 @@ pub(crate) fn export_track(
     }
 
     // ISRC(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_ISRC) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_ISRC) {
         export_faceted_tags(
             tag,
             "TSRC",
@@ -333,7 +332,7 @@ pub(crate) fn export_track(
     }
 
     // Language(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_LANGUAGE) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_LANGUAGE) {
         export_faceted_tags(
             tag,
             "TLAN",
@@ -346,7 +345,7 @@ pub(crate) fn export_track(
 
     // Grouping(s)
     {
-        let facet_id = &FACET_ID_GROUPING;
+        let facet_id = FACET_ID_GROUPING;
         let mut tags = tags_map
             .take_faceted_tags(facet_id)
             .map(|FacetedTags { facet_id: _, tags }| tags)

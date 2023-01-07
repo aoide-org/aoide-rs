@@ -25,7 +25,7 @@ use aoide_core::{
         metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
-            FACET_ID_ISRC, FACET_ID_MOOD,
+            FACET_ID_ISRC, FACET_ID_MOOD, FACET_ID_XID,
         },
         title::Kind as TitleKind,
         Track,
@@ -450,14 +450,14 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_ID_GROUPING,
+        FACET_ID_GROUPING,
         tag.take_strings(&ItemKey::ContentGroup).map(Into::into),
     );
 
     // Import gig tags from raw grouping tags before any other tags.
     #[cfg(feature = "gigtag")]
     if config.flags.contains(ImportTrackFlags::GIGTAGS) {
-        if let Some(faceted_tags) = tags_map.take_faceted_tags(&FACET_ID_GROUPING) {
+        if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_ID_GROUPING) {
             tags_map = crate::util::gigtag::import_from_faceted_tags(faceted_tags);
         }
     }
@@ -475,14 +475,14 @@ pub(crate) fn import_file_tag_into_track(
                 genre,
             );
         }
-        tags_map.update_faceted_plain_tags_by_label_ordering(&FACET_ID_GENRE, plain_tags);
+        tags_map.update_faceted_plain_tags_by_label_ordering(FACET_ID_GENRE, plain_tags);
     }
 
     // Mood tags
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_ID_MOOD,
+        FACET_ID_MOOD,
         tag.take_strings(&ItemKey::Mood).map(Into::into),
     );
 
@@ -490,7 +490,7 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_ID_COMMENT,
+        FACET_ID_COMMENT,
         tag.take_strings(&ItemKey::Comment).map(Into::into),
     );
 
@@ -498,7 +498,7 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_ID_DESCRIPTION,
+        FACET_ID_DESCRIPTION,
         tag.take_strings(&ItemKey::Description).map(Into::into),
     );
 
@@ -506,7 +506,7 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        &FACET_ID_ISRC,
+        FACET_ID_ISRC,
         tag.take_strings(&ItemKey::ISRC).map(Into::into),
     );
 

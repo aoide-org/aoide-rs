@@ -353,7 +353,7 @@ pub(crate) fn export_track_to_path(
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
     // Genre(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_GENRE) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_GENRE) {
         // Overwrite standard genres with custom genres
         mp4_tag.remove_standard_genres();
         export_faceted_tags(
@@ -368,7 +368,7 @@ pub(crate) fn export_track_to_path(
     }
 
     // Comment(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_COMMENT) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_COMMENT) {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_COMMENT,
@@ -380,8 +380,7 @@ pub(crate) fn export_track_to_path(
     }
 
     // Description(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_DESCRIPTION)
-    {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_DESCRIPTION) {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_DESCRIPTION,
@@ -393,7 +392,7 @@ pub(crate) fn export_track_to_path(
     }
 
     // Mood(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_MOOD) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MOOD) {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_MOOD,
@@ -405,7 +404,7 @@ pub(crate) fn export_track_to_path(
     }
 
     // ISRC(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_ISRC) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_ISRC) {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_ISRC,
@@ -417,7 +416,7 @@ pub(crate) fn export_track_to_path(
     }
 
     // XID(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ID_XID) {
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_XID) {
         export_faceted_tags(
             &mut mp4_tag,
             IDENT_XID,
@@ -430,7 +429,7 @@ pub(crate) fn export_track_to_path(
 
     // Grouping(s)
     {
-        let facet_id = &FACET_ID_GROUPING;
+        let facet_id = FACET_ID_GROUPING;
         let mut tags = tags_map
             .take_faceted_tags(facet_id)
             .map(|FacetedTags { facet_id: _, tags }| tags)
