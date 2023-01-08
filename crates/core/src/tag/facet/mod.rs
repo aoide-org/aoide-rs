@@ -47,14 +47,7 @@ pub const FACET_ID_ALPHABET: &str = "+-./0123456789@[]_abcdefghijklmnopqrstuvwxy
 impl<'a> FacetId<'a> {
     #[must_use]
     fn is_valid_char(c: char) -> bool {
-        // TODO: Use regex?
-        if !c.is_ascii() || c.is_ascii_whitespace() || c.is_ascii_uppercase() {
-            return false;
-        }
-        if c.is_ascii_alphanumeric() {
-            return true;
-        }
-        "+-./@[]_~".contains(c)
+        FACET_ID_ALPHABET.contains(c)
     }
 
     #[must_use]
