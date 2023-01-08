@@ -5,12 +5,12 @@ use std::{collections::HashMap, fmt};
 
 use serde::{de::Visitor, Deserializer, Serializer};
 
-use aoide_core::tag::FacetedTags;
-
 use crate::prelude::*;
 
 mod _core {
-    pub(super) use aoide_core::tag::{FacetId, FacetKey, Label, PlainTag, Score, Tags};
+    pub(super) use aoide_core::tag::{
+        FacetId, FacetKey, FacetedTags, Label, PlainTag, Score, Tags,
+    };
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -48,7 +48,7 @@ impl Serialize for FacetKey {
     where
         S: Serializer,
     {
-        serializer.serialize_str(self.inner.as_ref())
+        serializer.serialize_str(self.inner.as_str())
     }
 }
 
@@ -65,10 +65,19 @@ impl<'de> Visitor<'de> for FacetKeyVisitor {
     where
         E: serde::de::Error,
     {
-        let inner = _core::FacetKey::new(_core::FacetId::clamp_from(s));
-        Ok(FacetKey {
-            inner: inner.into_owned(),
-        })
+        let inner = if _core::FacetKey::default().as_str() == s {
+            // Special case: Tags without a facet are referred to by an empty string,
+            // i.e. by the string representation of the default facet identifier.
+            _core::FacetKey::default()
+        } else if let Some(facet_id) = _core::FacetId::clamp_from(s) {
+            Some(facet_id.into_owned()).into()
+        } else {
+            return Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(s),
+                &self,
+            ));
+        };
+        Ok(FacetKey { inner })
     }
 }
 
@@ -299,7 +308,7 @@ impl From<_core::Tags<'static>> for Tags {
             );
         }
         for faceted_tags in facets {
-            let FacetedTags { facet_id, tags } = faceted_tags;
+            let _core::FacetedTags { facet_id, tags } = faceted_tags;
             if !tags.is_empty() {
                 into.insert(
                     _core::FacetKey::from(facet_id).into(),
@@ -320,7 +329,7 @@ impl From<Tags> for _core::Tags<'static> {
             let tags = tags.into_iter().map(Into::into).collect();
             let FacetKey { inner } = key;
             if let Some(facet_id) = inner.into() {
-                facets.push(FacetedTags { facet_id, tags });
+                facets.push(_core::FacetedTags { facet_id, tags });
             } else {
                 debug_assert!(plain_tags.is_empty());
                 plain_tags = tags;

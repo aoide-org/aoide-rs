@@ -16,6 +16,11 @@ fn default_plain_tag_is_valid() {
 }
 
 #[test]
+fn default_facet_key_str_equals_default_facet_id_str() {
+    assert_eq!(FacetKey::default().as_str(), FacetId::default().as_str());
+}
+
+#[test]
 fn canonical_unique_labels_and_score() {
     let tags = Tags {
         plain: vec![

@@ -3204,9 +3204,11 @@ components:
             $ref: "#/components/schemas/TagFacetId"
           description: |
             A non-empty array will match any of the given facets.
-            An empty array will only match unfaceted tags, i.e. tags
-            without a facet. A missing/null array will match any tags,
-            both with or without a facet.
+            An empty array or an empty string in the array matches
+            all unfaceted tags, i.e. tags without a facet.
+
+            A missing/null array will match any tags, both with or
+            without a facet.
         label:
           $ref: "#/components/schemas/StringPredicate"
         score:

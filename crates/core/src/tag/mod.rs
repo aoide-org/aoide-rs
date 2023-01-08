@@ -381,6 +381,15 @@ impl<'a> FacetKey<'a> {
         let Self(inner) = self;
         FacetKey(inner.map(FacetId::into_owned))
     }
+
+    #[must_use]
+    pub fn as_str(&'a self) -> &'a str {
+        let Self(inner) = self;
+        match inner {
+            Some(facet_id) => facet_id.as_str(),
+            None => "",
+        }
+    }
 }
 
 impl<'a> From<FacetKey<'a>> for Option<FacetId<'a>> {
@@ -420,32 +429,22 @@ impl<'a> AsRef<Option<FacetId<'a>>> for FacetKey<'a> {
     }
 }
 
-impl AsRef<str> for FacetKey<'_> {
-    fn as_ref(&self) -> &str {
-        let Self(inner) = self;
-        match inner {
-            Some(facet_id) => facet_id.as_ref(),
-            None => "",
-        }
-    }
-}
-
 impl Borrow<str> for FacetKey<'_> {
     fn borrow(&self) -> &str {
-        self.as_ref()
+        self.as_str()
     }
 }
 
 impl fmt::Display for FacetKey<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
+        f.write_str(self.as_str())
     }
 }
 
 impl PartialEq for FacetKey<'_> {
     fn eq(&self, other: &Self) -> bool {
-        let self_str: &str = self.as_ref();
-        let other_str: &str = other.as_ref();
+        let self_str: &str = self.as_str();
+        let other_str: &str = other.as_str();
         self_str == other_str
     }
 }
@@ -454,8 +453,8 @@ impl Eq for FacetKey<'_> {}
 
 impl Ord for FacetKey<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
-        let self_str: &str = self.as_ref();
-        let other_str: &str = other.as_ref();
+        let self_str: &str = self.as_str();
+        let other_str: &str = other.as_str();
         self_str.cmp(other_str)
     }
 }
@@ -468,7 +467,7 @@ impl PartialOrd for FacetKey<'_> {
 
 impl Hash for FacetKey<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let self_str: &str = self.as_ref();
+        let self_str: &str = self.as_str();
         self_str.hash(state);
     }
 }

@@ -14,6 +14,7 @@ use aoide_core::{
         DurationMs,
     },
     playlist::EntityUid as PlaylistUid,
+    tag::FacetKey,
     track::EntityUid as TrackUid,
     util::clock::YYYYMMDD,
 };
@@ -873,12 +874,13 @@ fn select_track_ids_matching_tag_filter(
 
     // Filter facet(s)
     if let Some(ref facets) = facets {
-        if facets.is_empty() {
-            // unfaceted tags without a facet
-            select = select.filter(track_tag::facet.is_null());
-        } else {
+        if !facets.is_empty() {
             // tags with any of the given facets
-            select = select.filter(track_tag::facet.eq_any(facets));
+            select = select.filter(track_tag::facet.eq_any(facets.iter().map(FacetKey::as_str)));
+        }
+        if facets.is_empty() || facets.contains(&FacetKey::default()) {
+            // unfaceted tags without a facet
+            select = select.or_filter(track_tag::facet.is_null());
         }
     }
 
