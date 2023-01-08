@@ -19,12 +19,9 @@ pub(crate) fn import_file_into_track(
     let serato_tags = config
         .flags
         .contains(ImportTrackFlags::SERATO_MARKERS)
-        .then(|| {
-            aiff_file
-                .id3v2()
-                .and_then(|tag| super::id3v2::import_serato_markers(importer, tag))
-        })
-        .flatten();
+        .then(|| aiff_file.id3v2())
+        .flatten()
+        .and_then(|tag| super::id3v2::import_serato_markers(importer, tag));
 
     // Generic import
     let tagged_file = aiff_file.into();

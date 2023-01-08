@@ -3,30 +3,7 @@
 
 use lofty::ogg::VorbisComments;
 
-use aoide_core::track::album::Kind as AlbumKind;
-
-use crate::{io::import::Importer, util::trim_readable};
-
-#[must_use]
-pub(super) fn import_album_kind(
-    importer: &mut Importer,
-    vorbis_comments: &VorbisComments,
-) -> Option<AlbumKind> {
-    let value = vorbis_comments.get("COMPILATION");
-    value
-        .and_then(|compilation| trim_readable(compilation).parse::<u8>().ok())
-        .and_then(|compilation| match compilation {
-            0 => Some(AlbumKind::NoCompilation),
-            1 => Some(AlbumKind::Compilation),
-            _ => {
-                importer.add_issue(format!(
-                    "Unexpected tag value: COMPILATION = '{}'",
-                    value.expect("unreachable")
-                ));
-                None
-            }
-        })
-}
+use crate::io::import::Importer;
 
 #[cfg(feature = "serato-markers")]
 #[must_use]

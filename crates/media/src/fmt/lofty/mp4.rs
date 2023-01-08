@@ -37,21 +37,22 @@ pub(crate) fn import_file_into_track(
     track: &mut Track,
 ) {
     // Pre-processing
-
     // TODO: Handle in generic import
     // See also: <https://github.com/Serial-ATA/lofty-rs/issues/99>
-    let advisory_rating = mp4_file
-        .ilst()
+    let advisory_rating = config
+        .flags
+        .contains(ImportTrackFlags::METADATA)
+        .then(|| mp4_file.ilst())
+        .flatten()
         .and_then(|ilst| ilst.advisory_rating().map(import_advisory_rating));
 
     #[cfg(feature = "serato-markers")]
-    let serato_tags = if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
-        mp4_file
-            .ilst()
-            .and_then(|ilst| import_serato_markers(importer, ilst))
-    } else {
-        None
-    };
+    let serato_tags = config
+        .flags
+        .contains(ImportTrackFlags::SERATO_MARKERS)
+        .then(|| mp4_file.ilst())
+        .flatten()
+        .and_then(|ilst| import_serato_markers(importer, ilst));
 
     // Generic import
     let tagged_file = mp4_file.into();

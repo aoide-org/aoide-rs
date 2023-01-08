@@ -202,8 +202,6 @@ pub(crate) fn import_tagged_file_into_track(
     mut tagged_file: TaggedFile,
     track: &mut Track,
 ) {
-    debug_assert!(config.flags.contains(ImportTrackFlags::METADATA));
-
     let tag = take_primary_or_first_tag(&mut tagged_file);
     if let Some(tag) = tag {
         log::debug!(
@@ -254,6 +252,10 @@ pub(crate) fn import_file_tag_into_track(
             .get_string(&ItemKey::ReplayGainTrackGain)
             .and_then(|input| importer.import_loudness_from_replay_gain(input));
         track.media_source.content.metadata = ContentMetadata::Audio(audio_content);
+    }
+
+    if !config.flags.contains(ImportTrackFlags::METADATA) {
+        return;
     }
 
     // Musical metrics
