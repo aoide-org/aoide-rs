@@ -5,26 +5,18 @@ use super::*;
 
 #[test]
 fn clamp_from() {
-    assert_eq!(
-        Some(FACET_ID_ALPHABET),
-        FacetId::clamp_from(FACET_ID_ALPHABET)
-            .as_ref()
-            .map(FacetId::as_str),
+    // Ensure that the first valid character is ASCII lowercase 'a'
+    let (left_alphabet, right_alphabet) = FACET_ID_ALPHABET.split_at(18);
+    let mut reordered_alphabet = right_alphabet.to_owned();
+    reordered_alphabet.push_str(left_alphabet);
+    let input = concat!(
+        " `abcdefghijklmn opqrstuvwxyz{|}~",
+        "\t !\"#$%&'()*+,-./0123456789:;<=>?",
+        " @ ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_\n",
     );
     assert_eq!(
-        Some(concat!(
-            "+-./",
-            "0123456789",
-            "@[]_",
-            "abcdefghijklmnopqrstuvwxyz~",
-        )),
-        FacetId::clamp_from(concat!(
-            "\t !\"#$%&'()*+,-./0123456789:;<=>?",
-            " @ ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_",
-            " `abcdefghijklmn opqrstuvwxyz{|}~\n"
-        ))
-        .as_ref()
-        .map(Borrow::borrow)
+        Some(reordered_alphabet.as_str()),
+        FacetId::clamp_from(input).as_ref().map(FacetId::as_str),
     );
 }
 
