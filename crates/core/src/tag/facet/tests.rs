@@ -30,11 +30,9 @@ fn clamp_from() {
 
 #[test]
 fn validate() {
-    // FACET_ID_ALPHABET Does not start with a lowercase ASCII letter
-    // but ends with '~' which is a valid first character.
     let reverse_alphabet: String = FACET_ID_ALPHABET.chars().rev().collect();
     assert!(FacetId::new(reverse_alphabet.into()).validate().is_ok());
-    assert!(FacetId::new(FACET_ID_ALPHABET.into()).validate().is_err());
+    assert!(FacetId::new(FACET_ID_ALPHABET.into()).validate().is_ok());
     assert!(FacetId::new("Facet".into()).validate().is_err());
     assert!(FacetId::new("a facet".into()).validate().is_err());
 }

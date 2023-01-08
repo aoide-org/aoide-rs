@@ -63,13 +63,21 @@ impl<'a> FacetId<'a> {
     }
 
     #[must_use]
-    fn is_valid_inner(inner: &str) -> bool {
-        !inner.contains(Self::is_invalid_char)
+    fn is_invalid_format(inner: &str) -> bool {
+        inner.contains(Self::is_invalid_char)
+    }
+
+    #[must_use]
+    fn is_valid_format(inner: &str) -> bool {
+        !Self::is_invalid_format(inner)
     }
 
     #[must_use]
     fn clamp_inner(inner: Cow<'a, str>) -> Option<Cow<'a, str>> {
-        if Self::is_valid_inner(&inner) {
+        if inner.is_empty() {
+            return None;
+        }
+        if Self::is_valid_format(&inner) {
             return Some(inner);
         }
         if !inner.contains(Self::is_valid_char) {
@@ -77,7 +85,8 @@ impl<'a> FacetId<'a> {
         }
         let mut owned = inner.into_owned();
         owned.retain(Self::is_valid_char);
-        Self::is_valid_inner(&owned).then_some(Cow::Owned(owned))
+        debug_assert!(!owned.is_empty());
+        Some(Cow::Owned(owned))
     }
 
     pub fn clamp_from(from: impl Into<Cow<'a, str>>) -> Option<FacetId<'a>> {
@@ -156,7 +165,7 @@ impl Validate for FacetId<'_> {
         ValidationContext::new()
             .invalidate_if(self.is_empty(), Self::Invalidity::Empty)
             .invalidate_if(
-                !Self::is_valid_inner(self.as_ref()),
+                Self::is_invalid_format(self.as_ref()),
                 Self::Invalidity::Format,
             )
             .into()
