@@ -337,6 +337,7 @@ pub(crate) fn import_file_tag_into_track(
     for name in tag.take_strings(&ItemKey::Writer) {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
     }
+    track.actors = Canonical::tie(track_actors);
 
     let mut album = track.album.untie_replace(Default::default());
 
