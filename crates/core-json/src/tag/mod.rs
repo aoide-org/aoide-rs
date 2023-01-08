@@ -3,6 +3,7 @@
 
 use std::{collections::HashMap, fmt};
 
+use semval::IsValid as _;
 use serde::{de::Visitor, Deserializer, Serializer};
 
 use crate::prelude::*;
@@ -69,13 +70,15 @@ impl<'de> Visitor<'de> for FacetKeyVisitor {
             // Special case: Tags without a facet are referred to by an empty string,
             // i.e. by the string representation of the default facet identifier.
             _core::FacetKey::default()
-        } else if let Some(facet_id) = _core::FacetId::clamp_from(s) {
-            Some(facet_id.into_owned()).into()
         } else {
-            return Err(serde::de::Error::invalid_value(
-                serde::de::Unexpected::Str(s),
-                &self,
-            ));
+            let facet_id = _core::FacetId::new(s.into());
+            if !facet_id.is_valid() {
+                return Err(serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Str(s),
+                    &self,
+                ));
+            }
+            Some(facet_id.into_owned()).into()
         };
         Ok(FacetKey { inner })
     }
@@ -142,14 +145,14 @@ impl<'de> Visitor<'de> for LabelVisitor {
     where
         E: serde::de::Error,
     {
-        if let Some(label) = _core::Label::clamp_from(s) {
-            Ok(label.into_owned().into())
-        } else {
-            Err(serde::de::Error::invalid_value(
+        let label = _core::Label::new(s.into());
+        if !label.is_valid() {
+            return Err(serde::de::Error::invalid_value(
                 serde::de::Unexpected::Str(s),
                 &self,
-            ))
+            ));
         }
+        Ok(label.into_owned().into())
     }
 }
 
@@ -209,7 +212,14 @@ impl<'de> Visitor<'de> for ScoreVisitor {
     where
         E: serde::de::Error,
     {
-        Ok(_core::Score::from(v).into())
+        let score = _core::Score::from(v);
+        if !score.is_valid() {
+            return Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Float(v),
+                &self,
+            ));
+        }
+        Ok(score.into())
     }
 }
 

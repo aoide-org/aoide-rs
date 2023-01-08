@@ -788,9 +788,9 @@ dependencies = [
 
 [[package]]
 name = "clipboard-win"
-version = "4.4.2"
+version = "4.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4ab1b92798304eedc095b53942963240037c0516452cb11aeba709d420b2219"
+checksum = "7191c27c2357d9b7ef96baac1773290d4ca63b24205b82a3fd8a0637afcf0362"
 dependencies = [
  "error-code",
  "str-buf",
@@ -2221,7 +2221,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.10.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#f63afb2046f6e826d095e36eba16c944cbc5f026"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#a6b114b2e4787d2f363aa8c75881954d69adc2c6"
 dependencies = [
  "base64 0.20.0",
  "byteorder",
@@ -2237,7 +2237,7 @@ dependencies = [
 [[package]]
 name = "lofty_attr"
 version = "0.5.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#f63afb2046f6e826d095e36eba16c944cbc5f026"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#a6b114b2e4787d2f363aa8c75881954d69adc2c6"
 dependencies = [
  "proc-macro2",
  "quote",
