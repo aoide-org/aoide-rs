@@ -115,5 +115,5 @@ pub const FACET_ID_VALENCE: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_VAL
 // Supported schemes: upc, isrc, isan, grid, uuid, vendor_id
 // Example: "SonyBMG:isrc:USRC10900295"
 // See also: https://www.apple.com/au/itunes/lp-and-extras/docs/Development_Guide.pdf
-pub const FACET_XID: &str = "valence";
+pub const FACET_XID: &str = "xid";
 pub const FACET_ID_XID: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_XID));
