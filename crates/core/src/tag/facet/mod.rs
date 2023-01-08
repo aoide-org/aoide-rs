@@ -22,7 +22,6 @@ use crate::{prelude::*, util::canonical::CanonicalOrd};
 ///
 /// Value constraints:
 ///   - charset/alphabet: `+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz~`
-///   - starts with an ASCII lowercase character or '~'
 ///   - no leading/trailing/inner whitespace
 ///
 /// Rationale for the value constraints:
@@ -66,7 +65,6 @@ impl<'a> FacetId<'a> {
     #[must_use]
     fn is_valid_inner(inner: &str) -> bool {
         !inner.contains(Self::is_invalid_char)
-            && inner.find(|c: char| c.is_ascii_lowercase() || c == '~') == Some(0)
     }
 
     #[must_use]
