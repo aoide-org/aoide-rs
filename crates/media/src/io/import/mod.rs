@@ -67,16 +67,6 @@ bitflags! {
         /// Implies METADATA_EMBEDDED_ARTWORK.
         const METADATA_EMBEDDED_ARTWORK_DIGEST                  = 0b0000_0000_0000_0111;
 
-        /// Use iTunes grouping/movement/work mapping
-        ///
-        /// Use the mapping for grouping and movement/work fields as introduced
-        /// by iTunes v12.5.4. This is the preferred mapping and existing files
-        /// that still use TIT1 instead of GRP1 for storing the grouping property
-        /// should be updated accordingly.
-        ///
-        /// Implies METADATA.
-        const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0001;
-
         #[cfg(feature = "gigtag")]
         /// Import gigtags from Content Group/Grouping file tag
         ///
@@ -113,10 +103,19 @@ impl Default for ImportTrackFlags {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ImportTrackConfig {
     pub faceted_tag_mapping: FacetedTagMappingConfig,
     pub flags: ImportTrackFlags,
+}
+
+impl Default for ImportTrackConfig {
+    fn default() -> Self {
+        Self {
+            faceted_tag_mapping: Default::default(),
+            flags: ImportTrackFlags::all(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
