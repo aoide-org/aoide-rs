@@ -9,7 +9,7 @@ use id3::{
 
 use aoide_core::{
     media::content::ContentMetadata,
-    tag::{FacetKey, FacetedTags, PlainTag, TagsMap},
+    tag::{FacetKey, FacetedTags, Label, PlainTag, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
@@ -473,12 +473,12 @@ fn export_faceted_tags(
     let joined_labels = if let Some(config) = config {
         config.join_labels(
             tags.iter()
-                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
+                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
         )
     } else {
         TagMappingConfig::join_labels_with_separator(
             tags.iter()
-                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
+                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
             ID3V24_MULTI_FIELD_SEPARATOR,
         )
     };
@@ -498,12 +498,12 @@ fn export_faceted_tags_comment(
     let joined_labels = if let Some(config) = config {
         config.join_labels(
             tags.iter()
-                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
+                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
         )
     } else {
         TagMappingConfig::join_labels_with_separator(
             tags.iter()
-                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
+                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
             ID3V24_MULTI_FIELD_SEPARATOR,
         )
     };

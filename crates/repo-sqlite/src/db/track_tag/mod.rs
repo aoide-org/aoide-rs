@@ -14,7 +14,7 @@ use aoide_repo::track::RecordId;
 pub struct Record {
     pub track_id: RecordId,
     pub facet_id: Option<FacetId<'static>>,
-    pub label: Option<Label>,
+    pub label: Option<Label<'static>>,
     pub score: Score,
 }
 

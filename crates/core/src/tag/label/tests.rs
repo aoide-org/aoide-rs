@@ -12,12 +12,10 @@ fn parse() {
 }
 
 #[test]
-fn clamp_value() {
+fn clamp_from() {
     assert_eq!(
-        Some("A Label"),
-        Label::clamp_value("\tA Label  ")
-            .as_ref()
-            .map(Borrow::borrow)
+        Some(Label::new("A Label".into())),
+        Label::clamp_from("\tA Label  "),
     );
 }
 

@@ -24,7 +24,7 @@ pub mod facet;
 pub use facet::{FacetId, FacetIdInvalidity, Faceted};
 
 pub mod label;
-pub use label::{CowLabel, Label, LabelInvalidity, LabelValue, Labeled};
+pub use label::{Label, LabelInvalidity, Labeled};
 
 pub mod score;
 pub use score::{Score, ScoreInvalidity, ScoreValue, Scored};
@@ -35,7 +35,7 @@ pub use score::{Score, ScoreInvalidity, ScoreValue, Scored};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlainTag {
-    pub label: Option<Label>,
+    pub label: Option<Label<'static>>,
     pub score: Score,
 }
 
@@ -103,7 +103,7 @@ impl Default for PlainTag {
 }
 
 impl Labeled for PlainTag {
-    fn label(&self) -> Option<&Label> {
+    fn label(&self) -> Option<&Label<'static>> {
         self.label.as_ref()
     }
 }

@@ -53,7 +53,7 @@ pub struct FacetCount<'a> {
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct AvgScoreCount<'a> {
     pub facet_id: Option<FacetId<'a>>,
-    pub label: Option<Label>,
+    pub label: Option<Label<'a>>,
     pub avg_score: Score,
     pub total_count: usize,
 }

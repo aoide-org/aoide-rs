@@ -27,7 +27,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
         let record = Record {
             track_id: track_id.into(),
             facet_id: facet.map(Cow::Owned).map(FacetId::new),
-            label: label.map(Label::new),
+            label: label.map(Cow::Owned).map(Label::new),
             score: score.into(),
         };
         (id.into(), record)

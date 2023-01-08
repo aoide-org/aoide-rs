@@ -87,23 +87,23 @@ impl<'de> Deserialize<'de> for FacetKey {
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
 pub struct Label {
     #[cfg_attr(feature = "json-schema", schemars(with = "String"))]
-    inner: _core::Label,
+    inner: _core::Label<'static>,
 }
 
-impl From<_core::Label> for Label {
-    fn from(inner: _core::Label) -> Self {
+impl From<_core::Label<'static>> for Label {
+    fn from(inner: _core::Label<'static>) -> Self {
         Self { inner }
     }
 }
 
-impl From<Label> for _core::Label {
+impl From<Label> for _core::Label<'static> {
     fn from(from: Label) -> Self {
         from.inner
     }
 }
 
-impl AsRef<_core::Label> for Label {
-    fn as_ref(&self) -> &_core::Label {
+impl AsRef<_core::Label<'static>> for Label {
+    fn as_ref(&self) -> &_core::Label<'static> {
         &self.inner
     }
 }
@@ -131,7 +131,7 @@ impl<'de> Visitor<'de> for LabelVisitor {
         E: serde::de::Error,
     {
         if let Some(label) = _core::Label::clamp_from(s) {
-            Ok(label.into())
+            Ok(label.into_owned().into())
         } else {
             Err(serde::de::Error::invalid_value(
                 serde::de::Unexpected::Str(s),

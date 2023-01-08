@@ -22,8 +22,7 @@ use aoide_core::{
     },
     music::{key::KeySignature, tempo::TempoBpm},
     tag::{
-        CowLabel, FacetId as TagFacetId, Label as TagLabel, PlainTag, Score as TagScore,
-        ScoreValue, TagsMap,
+        FacetId as TagFacetId, Label as TagLabel, PlainTag, Score as TagScore, ScoreValue, TagsMap,
     },
     track::{actor::Actor, title::Title, Track},
     util::{
@@ -328,10 +327,10 @@ pub fn load_embedded_artwork_image_from_file_path(
 }
 
 pub fn try_import_plain_tag<'a>(
-    label: impl Into<Option<CowLabel<'a>>>,
+    label: impl Into<Option<TagLabel<'a>>>,
     score_value: impl Into<ScoreValue>,
 ) -> StdResult<PlainTag, PlainTag> {
-    let label = label.into().map(Into::into);
+    let label = label.into().map(TagLabel::into_owned);
     let score = TagScore::clamp_from(score_value);
     let plain_tag = PlainTag { label, score };
     if plain_tag.is_valid() {
@@ -576,14 +575,16 @@ impl Importer {
         plain_tags: &mut Vec<PlainTag>,
         joined_label_value: impl Into<Cow<'a, str>>,
     ) -> usize {
-        if let Some(joined_label_value) = TagLabel::clamp_value(joined_label_value) {
-            debug_assert!(!joined_label_value.is_empty());
+        if let Some(joined_label) = TagLabel::clamp_from(joined_label_value) {
+            debug_assert!(!joined_label.is_empty());
             let mut import_count = 0;
             if let Some(tag_mapping_config) = tag_mapping_config {
                 if !tag_mapping_config.label_separator.is_empty() {
-                    for label_value in joined_label_value.split(&tag_mapping_config.label_separator)
+                    for split in joined_label
+                        .as_str()
+                        .split(&tag_mapping_config.label_separator)
                     {
-                        let label = TagLabel::clamp_value(label_value);
+                        let label = TagLabel::clamp_from(split);
                         match try_import_plain_tag(label, *next_score_value) {
                             Ok(plain_tag) => {
                                 plain_tags.push(plain_tag);
@@ -602,7 +603,7 @@ impl Importer {
             }
             if import_count == 0 {
                 // Try to import the whole string as a single tag label
-                match try_import_plain_tag(joined_label_value, *next_score_value) {
+                match try_import_plain_tag(joined_label, *next_score_value) {
                     Ok(plain_tag) => {
                         plain_tags.push(plain_tag);
                         import_count += 1;

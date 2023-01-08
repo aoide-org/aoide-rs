@@ -24,36 +24,48 @@ fn score_prop_from_value(score_value: aoide_core::tag::ScoreValue) -> Property {
     }
 }
 
-enum LabelOrLabelValue {
-    Label(aoide_core::tag::Label),
-    LabelValue(aoide_core::tag::LabelValue),
+enum LabelOrValue<'a> {
+    Label(aoide_core::tag::Label<'a>),
+    Value(Cow<'a, str>),
 }
 
-impl From<aoide_core::tag::Label> for LabelOrLabelValue {
-    fn from(label: aoide_core::tag::Label) -> Self {
+impl<'a> From<aoide_core::tag::Label<'a>> for LabelOrValue<'a> {
+    fn from(label: aoide_core::tag::Label<'a>) -> Self {
         Self::Label(label)
     }
 }
 
-impl From<aoide_core::tag::LabelValue> for LabelOrLabelValue {
-    fn from(value: aoide_core::tag::LabelValue) -> Self {
-        Self::LabelValue(value)
+impl<'a> From<Cow<'a, str>> for LabelOrValue<'a> {
+    fn from(value: Cow<'a, str>) -> Self {
+        Self::Value(value)
     }
 }
 
-fn plain_tag_with_label(label: impl Into<LabelOrLabelValue>) -> PlainTag {
+impl From<String> for LabelOrValue<'_> {
+    fn from(value: String) -> Self {
+        Self::Value(value.into())
+    }
+}
+
+impl<'a> From<&'a str> for LabelOrValue<'a> {
+    fn from(value: &'a str) -> Self {
+        Self::Value(value.into())
+    }
+}
+
+fn plain_tag_with_label<'a>(label: impl Into<LabelOrValue<'a>>) -> PlainTag {
     let label = match label.into() {
-        LabelOrLabelValue::Label(label) => label,
-        LabelOrLabelValue::LabelValue(value) => aoide_core::tag::Label::new(value),
+        LabelOrValue::Label(label) => label,
+        LabelOrValue::Value(value) => aoide_core::tag::Label::new(value),
     };
     PlainTag {
-        label: Some(label),
+        label: Some(label.into_owned()),
         ..Default::default()
     }
 }
 
-fn plain_tag_with_label_and_score(
-    label: impl Into<LabelOrLabelValue>,
+fn plain_tag_with_label_and_score<'a>(
+    label: impl Into<LabelOrValue<'a>>,
     score: impl Into<aoide_core::tag::Score>,
 ) -> PlainTag {
     PlainTag {
@@ -211,7 +223,7 @@ fn reencode_roundtrip() {
         vec![plain_tag_with_label("Tag2".to_string())],
     );
 
-    let mut reencoded = encoded.to_string();
+    let mut reencoded = Cow::Borrowed(encoded);
     assert!(update_tags_in_encoded(&tags_map.into(), &mut reencoded).is_ok());
     // Encoding implicitly reorders the tags
     assert_eq!(
@@ -302,7 +314,7 @@ fn encode_decode_roundtrip_with_valid_tags() {
     assert!(tags.is_valid());
     assert_eq!(expected_count, tags.total_count());
 
-    let mut encoded = String::new();
+    let mut encoded = Cow::Owned(String::new());
     assert!(update_tags_in_encoded(&tags, &mut encoded).is_ok());
     println!("encoded = {encoded}");
 

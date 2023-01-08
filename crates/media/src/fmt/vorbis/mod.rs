@@ -7,7 +7,7 @@ use aoide_core::{
     audio::signal::LoudnessLufs,
     media::content::ContentMetadata,
     music::{key::KeySignature, tempo::TempoBpm},
-    tag::{FacetKey, FacetedTags, PlainTag, TagsMap},
+    tag::{FacetKey, FacetedTags, Label, PlainTag, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
@@ -457,13 +457,13 @@ fn export_faceted_tags<'a>(
     if let Some(config) = config {
         let joined_labels = config.join_labels(
             tags.iter()
-                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
+                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
         );
         writer.write_single_value_opt(key, joined_labels.map(Into::into));
     } else {
         let tag_labels = tags
             .into_iter()
-            .map(|tag| tag.label.unwrap_or_default().into_inner())
+            .map(|tag| tag.label.unwrap_or_default().into_inner().into_owned())
             .collect();
         writer.write_multiple_values(key, tag_labels);
     }

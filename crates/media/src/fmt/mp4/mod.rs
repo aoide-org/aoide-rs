@@ -8,7 +8,7 @@ use mp4ameta::{Data, DataIdent, Fourcc, FreeformIdent, Ident, Tag as Mp4Tag};
 use aoide_core::{
     media::content::ContentMetadata,
     music::tempo::TempoBpm,
-    tag::{FacetKey, FacetedTags, PlainTag, TagsMap},
+    tag::{FacetKey, FacetedTags, Label, PlainTag, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
@@ -127,7 +127,7 @@ fn export_faceted_tags(
         let joined_labels = config
             .join_labels(
                 tags.iter()
-                    .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
+                    .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
             )
             .clone();
         mp4_tag.set_all_data(ident, joined_labels.map(|s| Data::Utf8(s.into())));
@@ -135,7 +135,7 @@ fn export_faceted_tags(
         mp4_tag.set_all_data(
             ident,
             tags.into_iter().filter_map(|PlainTag { label, score: _ }| {
-                label.map(|label| Data::Utf8(label.into_inner()))
+                label.map(|label| Data::Utf8(label.into_inner().into_owned()))
             }),
         );
     }

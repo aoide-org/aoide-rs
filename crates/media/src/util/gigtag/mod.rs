@@ -23,7 +23,7 @@ pub type DecodedTags = gigtag::DecodedTags<Facet, Label, PropName, PropValue>;
 
 pub(crate) const SCORE_PROP_NAME: &str = "s";
 
-fn export_valid_label(label: &aoide_core::tag::Label) -> Option<Label> {
+fn export_valid_label(label: &aoide_core::tag::Label<'_>) -> Option<Label> {
     let label = label.as_str();
     (gigtag::label::is_valid(label)).then(|| gigtag::label::Label::from_str(label))
 }
@@ -85,7 +85,7 @@ fn export_tags(tags: &Tags<'_>) -> Vec<Tag> {
         })
 }
 
-pub fn update_tags_in_encoded(tags: &Tags<'_>, encoded: &mut String) -> std::fmt::Result {
+pub fn update_tags_in_encoded(tags: &Tags<'_>, encoded: &mut Cow<'_, str>) -> std::fmt::Result {
     let mut exported_tags = export_tags(tags);
     if exported_tags.is_empty() {
         return Ok(());
@@ -96,6 +96,7 @@ pub fn update_tags_in_encoded(tags: &Tags<'_>, encoded: &mut String) -> std::fmt
     let (mut decoded_tags, _num_imported) = decode_tags_eagerly_into(encoded, None);
     decoded_tags.tags.append(&mut exported_tags);
     decoded_tags.reorder_and_dedup();
+    let encoded = encoded.to_mut();
     encoded.clear();
     decoded_tags.encode_into(encoded)
 }
@@ -115,7 +116,7 @@ pub fn export_and_encode_remaining_tags_into(
         };
         *encoded_tags = vec![tag];
     } else {
-        let mut encoded = String::new();
+        let mut encoded = Cow::Owned(String::new());
         crate::util::gigtag::update_tags_in_encoded(&remaining_tags, &mut encoded)?;
         let tag = PlainTag {
             label: aoide_core::tag::Label::clamp_from(encoded),
@@ -164,8 +165,9 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag)> {
         Default::default()
     };
     let label = if tag.has_label() {
-        let label = aoide_core::tag::Label::clamp_from(tag.label().as_ref());
-        if label.as_deref().map_or("", String::as_str) != tag.label().as_ref() {
+        let label_str = tag.label().as_ref();
+        let label = aoide_core::tag::Label::clamp_from(label_str);
+        if label.as_ref().map_or("", aoide_core::tag::Label::as_str) != label_str {
             // Skip non-aoide tag
             return None;
         }
@@ -173,7 +175,10 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag)> {
     } else {
         None
     };
-    let plain_tag = PlainTag { label, score };
+    let plain_tag = PlainTag {
+        label: label.map(aoide_core::tag::Label::into_owned),
+        score,
+    };
     if !plain_tag.is_valid() {
         return None;
     }
@@ -205,7 +210,7 @@ fn decode_tags_eagerly_into(
 }
 
 fn import_and_extract_tags_from_label_eagerly_into(
-    label: &mut aoide_core::tag::Label,
+    label: &mut aoide_core::tag::Label<'_>,
     tags_map: Option<&mut TagsMap<'_>>,
 ) -> (bool, usize) {
     let (decoded_tags, num_imported) = decode_tags_eagerly_into(label.as_str(), tags_map);

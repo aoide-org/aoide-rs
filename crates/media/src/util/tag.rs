@@ -7,11 +7,11 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use aoide_core::tag::{FacetKey, LabelValue, Score as TagScore, ScoreValue};
+use aoide_core::tag::{FacetKey, Score as TagScore, ScoreValue};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TagMappingConfig {
-    pub label_separator: LabelValue,
+    pub label_separator: String,
     pub split_score_attenuation: ScoreValue,
 }
 
