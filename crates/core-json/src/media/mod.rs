@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use base64::Engine as _;
+
 use aoide_core::media::content::ContentMetadataFlags;
 
 use crate::{
@@ -30,15 +32,12 @@ mod _core {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct Base64(String);
 
-const BASE64_ENGINE: base64::engine::fast_portable::FastPortable =
-    base64::engine::fast_portable::FastPortable::from(
-        &base64::alphabet::URL_SAFE,
-        base64::engine::fast_portable::NO_PAD,
-    );
+const BASE64_ENGINE: base64::engine::GeneralPurpose =
+    base64::engine::general_purpose::URL_SAFE_NO_PAD;
 
 impl Base64 {
     pub fn encode(bytes: impl AsRef<[u8]>) -> Self {
-        let encoded = base64::encode_engine(bytes.as_ref(), &BASE64_ENGINE);
+        let encoded = BASE64_ENGINE.encode(bytes.as_ref());
         Self(encoded)
     }
 
@@ -48,7 +47,7 @@ impl Base64 {
     }
 
     fn try_decode_impl(encoded: impl AsRef<str>) -> Result<Vec<u8>, base64::DecodeError> {
-        base64::decode_engine(encoded.as_ref(), &BASE64_ENGINE)
+        BASE64_ENGINE.decode(encoded.as_ref())
     }
 
     pub fn from_encoded(encoded: impl Into<String>) -> Self {

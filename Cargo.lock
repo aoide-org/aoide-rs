@@ -177,7 +177,7 @@ version = "0.8.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "base64 0.20.0",
+ "base64 0.21.0",
  "chrono",
  "mime",
  "num-traits",
@@ -217,7 +217,7 @@ version = "0.8.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "base64 0.20.0",
+ "base64 0.21.0",
  "bitflags",
  "blake3",
  "bytes",
@@ -586,6 +586,12 @@ name = "base64"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ea22880d78093b0cbe17c89f64a7d457941e65759157ec6cb31a31d652b05e5"
+
+[[package]]
+name = "base64"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4a4ddaa51a5bc52a6948f74c06d20aaaddb71924eab79b8c97a8c556e942d6a"
 
 [[package]]
 name = "bigdecimal"
@@ -2075,9 +2081,9 @@ dependencies = [
 
 [[package]]
 name = "ipnet"
-version = "2.7.0"
+version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11b0d96e660696543b251e58030cf9787df56da39dab19ad60eae7353040917e"
+checksum = "30e22bd8629359895450b59ea7a776c850561b96a3b1d31321c1949d9e6c9146"
 
 [[package]]
 name = "is-terminal"
