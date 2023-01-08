@@ -198,6 +198,7 @@ dependencies = [
  "aoide-backend-embedded",
  "aoide-core",
  "aoide-core-api",
+ "aoide-media",
  "aoide-repo",
  "aoide-storage-sqlite",
  "discro",

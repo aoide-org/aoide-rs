@@ -26,5 +26,6 @@ xxhash-rust = { version = "0.8.6", features = ["xxh3"] }
 aoide-backend-embedded = "=0.8.0"
 aoide-core = "=0.8.0"
 aoide-core-api = "=0.8.0"
+aoide-media = "=0.8.0"
 aoide-repo = "=0.8.0"
 aoide-storage-sqlite = { version = "=0.8.0", features = ["serde", "tokio"] }

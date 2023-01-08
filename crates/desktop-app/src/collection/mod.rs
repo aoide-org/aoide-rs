@@ -21,6 +21,7 @@ use aoide_core_api::{
     collection::{EntityWithSummary, LoadScope},
     media::SyncMode,
 };
+use aoide_media::io::import::ImportTrackConfig;
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 
 use crate::{
@@ -561,6 +562,7 @@ impl RefreshingStateTask {
 pub async fn synchronize_vfs<ReportProgressFn>(
     handle: &Handle,
     entity_uid: EntityUid,
+    import_track_config: ImportTrackConfig,
     report_progress_fn: ReportProgressFn,
 ) -> anyhow::Result<batch::synchronize_collection_vfs::Outcome>
 where
@@ -570,7 +572,7 @@ where
         root_url: None,
         max_depth: None,
         sync_mode: SyncMode::Modified,
-        import_track_config: Default::default(),
+        import_track_config,
         untracked_media_sources: UntrackedMediaSources::Purge,
         orphaned_media_sources: OrphanedMediaSources::Purge,
         untracked_files: UntrackedFiles::Find,
