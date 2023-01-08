@@ -18,7 +18,6 @@ dependencies = [
  "mime",
  "num-derive",
  "num-traits",
- "once_cell",
  "path-slash",
  "rand",
  "semval",

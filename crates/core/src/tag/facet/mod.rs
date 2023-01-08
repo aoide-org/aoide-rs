@@ -6,7 +6,7 @@ use std::{
     cmp::Ordering,
     fmt,
     hash::Hash,
-    ops::{Deref, Not as _},
+    ops::Deref,
 };
 
 use crate::{prelude::*, util::canonical::CanonicalOrd};
@@ -47,20 +47,44 @@ pub struct FacetId<'a>(Cow<'a, str>);
 pub const FACET_ID_ALPHABET: &str = "+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz~";
 
 impl<'a> FacetId<'a> {
-    pub fn clamp_from(from: impl Into<Cow<'a, str>>) -> Option<FacetId<'a>> {
-        Self::clamp(from.into())
+    #[must_use]
+    fn is_valid_char(c: char) -> bool {
+        // TODO: Use regex?
+        if !c.is_ascii() || c.is_ascii_whitespace() || c.is_ascii_uppercase() {
+            return false;
+        }
+        if c.is_ascii_alphanumeric() {
+            return true;
+        }
+        "+-./@[]_~".contains(c)
     }
 
-    fn clamp(inner: Cow<'a, str>) -> Option<FacetId<'a>> {
+    #[must_use]
+    fn is_invalid_char(c: char) -> bool {
+        !Self::is_valid_char(c)
+    }
+
+    #[must_use]
+    fn is_valid_inner(inner: &str) -> bool {
+        !inner.contains(Self::is_invalid_char)
+            && inner.find(|c: char| c.is_ascii_lowercase() || c == '~') == Some(0)
+    }
+
+    #[must_use]
+    fn clamp_inner(inner: Cow<'a, str>) -> Option<Cow<'a, str>> {
+        if Self::is_valid_inner(&inner) {
+            return Some(inner);
+        }
         if !inner.contains(Self::is_valid_char) {
             return None;
         }
-        if !inner.contains(Self::is_invalid_char) {
-            return Some(Self(inner));
-        }
         let mut owned = inner.into_owned();
         owned.retain(Self::is_valid_char);
-        Some(Self(Cow::Owned(owned)))
+        Self::is_valid_inner(&owned).then_some(Cow::Owned(owned))
+    }
+
+    pub fn clamp_from(from: impl Into<Cow<'a, str>>) -> Option<FacetId<'a>> {
+        Self::clamp_inner(from.into()).map(Self::new)
     }
 
     #[must_use]
@@ -78,23 +102,6 @@ impl<'a> FacetId<'a> {
     pub fn as_str(&self) -> &str {
         let Self(inner) = self;
         inner
-    }
-
-    #[must_use]
-    pub fn is_valid_char(c: char) -> bool {
-        // TODO: Use regex?
-        if !c.is_ascii() || c.is_ascii_whitespace() || c.is_ascii_uppercase() {
-            return false;
-        }
-        if c.is_ascii_alphanumeric() {
-            return true;
-        }
-        "+-./@[]_~".contains(c)
-    }
-
-    #[must_use]
-    pub fn is_invalid_char(c: char) -> bool {
-        !Self::is_valid_char(c)
     }
 
     #[must_use]
@@ -154,16 +161,7 @@ impl Validate for FacetId<'_> {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(self.is_empty(), Self::Invalidity::Empty)
-            .invalidate_if(
-                self.chars()
-                    .next()
-                    .map_or(false, |c| (c.is_ascii_lowercase() || c == '~').not()),
-                Self::Invalidity::Format,
-            )
-            .invalidate_if(
-                self.chars().any(FacetId::is_invalid_char),
-                Self::Invalidity::Format,
-            )
+            .invalidate_if(!Self::is_valid_inner(self), Self::Invalidity::Format)
             .into()
     }
 }
