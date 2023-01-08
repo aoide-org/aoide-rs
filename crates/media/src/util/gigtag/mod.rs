@@ -35,7 +35,7 @@ fn export_facet(facet_id: &FacetId<'_>) -> Facet {
 }
 
 #[must_use]
-fn try_export_plain_tag(facet: Facet, plain_tag: &PlainTag) -> Option<Tag> {
+fn try_export_plain_tag(facet: Facet, plain_tag: &PlainTag<'_>) -> Option<Tag> {
     debug_assert!((facet.is_valid()));
     let label = if let Some(label) = plain_tag.label.as_ref() {
         export_valid_label(label)?
@@ -63,7 +63,7 @@ fn try_export_plain_tag(facet: Facet, plain_tag: &PlainTag) -> Option<Tag> {
 
 fn export_plain_tags<'item>(
     facet: Facet,
-    iter: impl Iterator<Item = &'item PlainTag> + 'item,
+    iter: impl Iterator<Item = &'item PlainTag<'item>> + 'item,
 ) -> impl Iterator<Item = Tag> + 'item {
     iter.filter_map(move |plain_tag| {
         try_export_plain_tag(facet.clone(), plain_tag).or_else(|| {
@@ -104,7 +104,7 @@ pub fn update_tags_in_encoded(tags: &Tags<'_>, encoded: &mut Cow<'_, str>) -> st
 #[allow(clippy::needless_pass_by_value)] // consume remaining_tags
 pub fn export_and_encode_remaining_tags_into(
     remaining_tags: Tags<'_>,
-    encoded_tags: &mut Vec<PlainTag>,
+    encoded_tags: &mut Vec<PlainTag<'_>>,
 ) -> std::fmt::Result {
     if encoded_tags.len() == 1 {
         let PlainTag { label, score } = encoded_tags.drain(..).next().expect("exactly one item");
@@ -127,7 +127,7 @@ pub fn export_and_encode_remaining_tags_into(
     Ok(())
 }
 
-fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag)> {
+fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag<'_>)> {
     let score = match &tag.props() {
         [] => Default::default(),
         [prop] => {
@@ -175,10 +175,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag)> {
     } else {
         None
     };
-    let plain_tag = PlainTag {
-        label: label.map(aoide_core::tag::Label::into_owned),
-        score,
-    };
+    let plain_tag = PlainTag { label, score };
     if !plain_tag.is_valid() {
         return None;
     }
@@ -187,7 +184,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag)> {
 
 fn decode_tags_eagerly_into(
     encoded: &str,
-    mut tags_map: Option<&mut TagsMap<'_>>,
+    mut tags_map: Option<&mut TagsMap<'static>>,
 ) -> (DecodedTags, usize) {
     let mut num_imported = 0;
     let mut decoded_tags = DecodedTags::decode_str(encoded);
@@ -195,7 +192,7 @@ fn decode_tags_eagerly_into(
         if let Some((facet_key, plain_tag)) = try_import_tag(tag) {
             log::debug!("Imported {facet_key:?} {plain_tag:?} from {tag:?}");
             if let Some(tags_map) = tags_map.as_mut() {
-                tags_map.insert(facet_key.into_owned(), plain_tag);
+                tags_map.insert(facet_key.into_owned(), plain_tag.into_owned());
             }
             num_imported += 1;
             // Discard the imported tag
@@ -211,7 +208,7 @@ fn decode_tags_eagerly_into(
 
 fn import_and_extract_tags_from_label_eagerly_into(
     label: &mut aoide_core::tag::Label<'_>,
-    tags_map: Option<&mut TagsMap<'_>>,
+    tags_map: Option<&mut TagsMap<'static>>,
 ) -> (bool, usize) {
     let (decoded_tags, num_imported) = decode_tags_eagerly_into(label.as_str(), tags_map);
     if num_imported == 0 {
@@ -238,7 +235,7 @@ fn import_and_extract_tags_from_label_eagerly_into(
 }
 
 #[must_use]
-pub fn import_from_faceted_tags(mut faceted_tags: FacetedTags<'_>) -> TagsMap<'_> {
+pub fn import_from_faceted_tags(mut faceted_tags: FacetedTags<'static>) -> TagsMap<'static> {
     let mut tags_map = TagsMap::default();
     faceted_tags.tags.retain_mut(|plain_tag| {
         if let Some(label) = plain_tag.label.as_mut() {

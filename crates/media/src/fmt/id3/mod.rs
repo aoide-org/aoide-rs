@@ -468,7 +468,7 @@ fn export_faceted_tags(
     tag: &mut id3::Tag,
     text_frame_id: impl AsRef<str>,
     config: Option<&TagMappingConfig>,
-    tags: &[PlainTag],
+    tags: &[PlainTag<'_>],
 ) {
     let joined_labels = if let Some(config) = config {
         config.join_labels(
@@ -493,7 +493,7 @@ fn export_faceted_tags_comment(
     tag: &mut id3::Tag,
     description: impl Into<String>,
     config: Option<&TagMappingConfig>,
-    tags: &[PlainTag],
+    tags: &[PlainTag<'_>],
 ) {
     let joined_labels = if let Some(config) = config {
         config.join_labels(

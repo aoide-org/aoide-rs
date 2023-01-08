@@ -34,12 +34,45 @@ pub use score::{Score, ScoreInvalidity, ScoreValue, Scored};
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct PlainTag {
-    pub label: Option<Label<'static>>,
+pub struct PlainTag<'a> {
+    pub label: Option<Label<'a>>,
     pub score: Score,
 }
 
-impl CanonicalOrd for PlainTag {
+impl<'a> PlainTag<'a> {
+    #[must_use]
+    pub const fn default_score() -> Score {
+        Score::max()
+    }
+
+    #[must_use]
+    pub fn as_borrowed(&'a self) -> Self {
+        let Self { label, score } = self;
+        PlainTag {
+            label: label.as_ref().map(Label::as_borrowed),
+            score: *score,
+        }
+    }
+
+    pub fn into_owned(self) -> PlainTag<'static> {
+        let Self { label, score } = self;
+        PlainTag {
+            label: label.map(Label::into_owned),
+            score,
+        }
+    }
+}
+
+impl Default for PlainTag<'_> {
+    fn default() -> Self {
+        Self {
+            label: None,
+            score: Self::default_score(),
+        }
+    }
+}
+
+impl CanonicalOrd for PlainTag<'_> {
     fn canonical_cmp(&self, other: &Self) -> Ordering {
         let Self {
             label: lhs_label,
@@ -74,7 +107,7 @@ pub enum PlainTagInvalidity {
     Score(ScoreInvalidity),
 }
 
-impl Validate for PlainTag {
+impl Validate for PlainTag<'_> {
     type Invalidity = PlainTagInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
@@ -86,41 +119,25 @@ impl Validate for PlainTag {
     }
 }
 
-impl PlainTag {
-    #[must_use]
-    pub const fn default_score() -> Score {
-        Score::max()
-    }
-}
-
-impl Default for PlainTag {
-    fn default() -> Self {
-        Self {
-            label: None,
-            score: Self::default_score(),
-        }
-    }
-}
-
-impl Labeled for PlainTag {
-    fn label(&self) -> Option<&Label<'static>> {
+impl Labeled for PlainTag<'_> {
+    fn label(&self) -> Option<&Label<'_>> {
         self.label.as_ref()
     }
 }
 
-impl Scored for PlainTag {
+impl Scored for PlainTag<'_> {
     fn score(&self) -> Score {
         self.score
     }
 }
 
-impl IsCanonical for PlainTag {
+impl IsCanonical for PlainTag<'_> {
     fn is_canonical(&self) -> bool {
         true
     }
 }
 
-impl Canonicalize for PlainTag {
+impl Canonicalize for PlainTag<'_> {
     fn canonicalize(&mut self) {
         debug_assert!(self.is_canonical());
     }
@@ -133,7 +150,7 @@ impl Canonicalize for PlainTag {
 #[derive(Clone, Debug, PartialEq)]
 pub struct FacetedTags<'a> {
     pub facet_id: FacetId<'a>,
-    pub tags: Vec<PlainTag>,
+    pub tags: Vec<PlainTag<'a>>,
 }
 
 impl CanonicalOrd for FacetedTags<'_> {
@@ -199,7 +216,7 @@ impl Canonicalize for FacetedTags<'_> {
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Tags<'a> {
-    pub plain: Vec<PlainTag>,
+    pub plain: Vec<PlainTag<'a>>,
     pub facets: Vec<FacetedTags<'a>>,
 }
 
@@ -266,7 +283,7 @@ pub enum TagsInvalidity {
 }
 
 fn check_for_duplicates_in_sorted_plain_tags_slice(
-    plain_tags: &[PlainTag],
+    plain_tags: &[PlainTag<'_>],
 ) -> Option<TagsInvalidity> {
     debug_assert!(is_sorted_by(plain_tags, |lhs, rhs| lhs
         .label
@@ -457,7 +474,7 @@ impl Hash for FacetKey<'_> {
 }
 
 /// Unified map of both plain and faceted tags
-pub type TagsMapInner<'a> = HashMap<FacetKey<'a>, Vec<PlainTag>>;
+pub type TagsMapInner<'a> = HashMap<FacetKey<'a>, Vec<PlainTag<'a>>>;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct TagsMap<'a>(TagsMapInner<'a>);
@@ -474,10 +491,10 @@ impl<'a> TagsMap<'a> {
         inner
     }
 
-    pub fn insert(&mut self, key: FacetKey<'a>, tag: PlainTag) {
+    pub fn insert(&mut self, key: impl Into<FacetKey<'a>>, tag: PlainTag<'a>) {
         use std::collections::hash_map::*;
         let Self(inner) = self;
-        match inner.entry(key) {
+        match inner.entry(key.into()) {
             Entry::Occupied(mut entry) => {
                 entry.get_mut().push(tag);
             }
@@ -519,17 +536,21 @@ impl<'a> AsRef<TagsMapInner<'a>> for TagsMap<'a> {
 }
 
 impl<'a> TagsMap<'a> {
-    pub fn get_plain_tags(&self) -> Option<&[PlainTag]> {
+    pub fn get_plain_tags(&'a self) -> Option<&'a [PlainTag<'a>]> {
         let Self(all_tags) = self;
         all_tags.get(&FacetKey::new(None)).map(Vec::as_slice)
     }
 
-    fn take_plain_tags(&mut self) -> Vec<PlainTag> {
-        let Self(all_tags) = self;
-        all_tags.remove(&FacetKey::new(None)).unwrap_or_default()
+    fn split_into_plain_and_faceted_tags(self) -> (Vec<PlainTag<'a>>, Self) {
+        let Self(mut all_tags) = self;
+        let plain_tags = all_tags.remove(&FacetKey::new(None)).unwrap_or_default();
+        (plain_tags, Self(all_tags))
     }
 
-    pub fn get_faceted_plain_tags(&'a self, facet_id: &'a FacetId<'_>) -> Option<&'a [PlainTag]> {
+    pub fn get_faceted_plain_tags(
+        &'a self,
+        facet_id: &'a FacetId<'_>,
+    ) -> Option<&'a [PlainTag<'a>]> {
         let Self(all_tags) = self;
         all_tags.get(&FacetKey::from(facet_id)).map(Vec::as_slice)
     }
@@ -537,8 +558,8 @@ impl<'a> TagsMap<'a> {
     pub fn replace_faceted_plain_tags(
         &mut self,
         facet_id: FacetId<'a>,
-        plain_tags: impl Into<Vec<PlainTag>>,
-    ) -> Option<Vec<PlainTag>> {
+        plain_tags: impl Into<Vec<PlainTag<'a>>>,
+    ) -> Option<Vec<PlainTag<'a>>> {
         let Self(all_tags) = self;
         match all_tags.entry(FacetKey::new(Some(facet_id))) {
             Occupied(mut entry) => Some(entry.insert(plain_tags.into())),
@@ -562,7 +583,7 @@ impl<'a> TagsMap<'a> {
     pub fn update_faceted_plain_tags_by_label_ordering<'b>(
         &mut self,
         facet_id: &'b FacetId<'b>,
-        plain_tags: impl Into<Vec<PlainTag>>,
+        plain_tags: impl Into<Vec<PlainTag<'a>>>,
     ) -> bool {
         let plain_tags = plain_tags.into();
         if let Some(faceted_plain_tags) = self.get_faceted_plain_tags(facet_id) {
@@ -629,9 +650,9 @@ impl<'a> From<Tags<'a>> for TagsMap<'a> {
 }
 
 impl<'a> From<TagsMap<'a>> for Tags<'a> {
-    fn from(mut from: TagsMap<'a>) -> Self {
-        let plain_tags = from.take_plain_tags();
-        let TagsMap(faceted_tags) = from;
+    fn from(from: TagsMap<'a>) -> Self {
+        let (plain_tags, faceted_tags) = from.split_into_plain_and_faceted_tags();
+        let TagsMap(faceted_tags) = faceted_tags;
         let facets = faceted_tags
             .into_iter()
             .map(|(key, tags)| {

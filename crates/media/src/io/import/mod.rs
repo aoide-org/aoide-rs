@@ -329,8 +329,8 @@ pub fn load_embedded_artwork_image_from_file_path(
 pub fn try_import_plain_tag<'a>(
     label: impl Into<Option<TagLabel<'a>>>,
     score_value: impl Into<ScoreValue>,
-) -> StdResult<PlainTag, PlainTag> {
-    let label = label.into().map(TagLabel::into_owned);
+) -> StdResult<PlainTag<'a>, PlainTag<'a>> {
+    let label = label.into();
     let score = TagScore::clamp_from(score_value);
     let plain_tag = PlainTag { label, score };
     if plain_tag.is_valid() {
@@ -538,7 +538,7 @@ impl Importer {
 
     pub(crate) fn import_faceted_tags_from_label_values<'a>(
         &mut self,
-        tags_map: &mut TagsMap<'_>,
+        tags_map: &mut TagsMap<'a>,
         faceted_tag_mapping_config: &FacetedTagMappingConfig,
         facet_id: &TagFacetId<'_>,
         label_values: impl IntoIterator<Item = Cow<'a, str>>,
@@ -562,9 +562,7 @@ impl Importer {
                 total_import_count - count,
             ));
         }
-        // TODO: Avoid cloning `facet_id`.
-        let facet_id: TagFacetId<'static> = facet_id.clone().into_owned();
-        tags_map.update_faceted_plain_tags_by_label_ordering(&facet_id, plain_tags);
+        tags_map.update_faceted_plain_tags_by_label_ordering(facet_id, plain_tags);
         count
     }
 
@@ -572,7 +570,7 @@ impl Importer {
         &mut self,
         tag_mapping_config: Option<&TagMappingConfig>,
         next_score_value: &mut ScoreValue,
-        plain_tags: &mut Vec<PlainTag>,
+        plain_tags: &mut Vec<PlainTag<'a>>,
         joined_label_value: impl Into<Cow<'a, str>>,
     ) -> usize {
         if let Some(joined_label) = TagLabel::clamp_from(joined_label_value) {
@@ -584,7 +582,7 @@ impl Importer {
                         .as_str()
                         .split(&tag_mapping_config.label_separator)
                     {
-                        let label = TagLabel::clamp_from(split);
+                        let label = TagLabel::clamp_from(split).map(TagLabel::into_owned);
                         match try_import_plain_tag(label, *next_score_value) {
                             Ok(plain_tag) => {
                                 plain_tags.push(plain_tag);

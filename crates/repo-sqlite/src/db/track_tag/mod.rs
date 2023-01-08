@@ -18,7 +18,7 @@ pub struct Record {
     pub score: Score,
 }
 
-impl From<Record> for (Option<FacetId<'static>>, PlainTag) {
+impl From<Record> for (Option<FacetId<'static>>, PlainTag<'static>) {
     fn from(from: Record) -> Self {
         let Record {
             track_id: _,

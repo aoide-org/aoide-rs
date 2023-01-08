@@ -53,13 +53,13 @@ impl<'a> From<&'a str> for LabelOrValue<'a> {
     }
 }
 
-fn plain_tag_with_label<'a>(label: impl Into<LabelOrValue<'a>>) -> PlainTag {
+fn plain_tag_with_label<'a>(label: impl Into<LabelOrValue<'a>>) -> PlainTag<'a> {
     let label = match label.into() {
         LabelOrValue::Label(label) => label,
         LabelOrValue::Value(value) => aoide_core::tag::Label::new(value),
     };
     PlainTag {
-        label: Some(label.into_owned()),
+        label: Some(label),
         ..Default::default()
     }
 }
@@ -67,7 +67,7 @@ fn plain_tag_with_label<'a>(label: impl Into<LabelOrValue<'a>>) -> PlainTag {
 fn plain_tag_with_label_and_score<'a>(
     label: impl Into<LabelOrValue<'a>>,
     score: impl Into<aoide_core::tag::Score>,
-) -> PlainTag {
+) -> PlainTag<'a> {
     PlainTag {
         score: score.into(),
         ..plain_tag_with_label(label)

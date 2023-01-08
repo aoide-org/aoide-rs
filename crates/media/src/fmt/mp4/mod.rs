@@ -121,7 +121,7 @@ fn export_faceted_tags(
     mp4_tag: &mut Mp4Tag,
     ident: impl Ident + Into<DataIdent>,
     config: Option<&TagMappingConfig>,
-    tags: Vec<PlainTag>,
+    tags: Vec<PlainTag<'_>>,
 ) {
     if let Some(config) = config {
         let joined_labels = config

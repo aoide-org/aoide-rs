@@ -47,7 +47,7 @@ impl<'a> InsertableRecord<'a> {
     pub fn bind(
         track_id: RecordId,
         facet_id: Option<&'a FacetId<'a>>,
-        plain_tag: &'a PlainTag,
+        plain_tag: &'a PlainTag<'a>,
     ) -> Self {
         let PlainTag { label, score } = plain_tag;
         Self {

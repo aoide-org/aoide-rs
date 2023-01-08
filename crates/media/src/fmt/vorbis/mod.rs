@@ -452,7 +452,7 @@ fn export_faceted_tags<'a>(
     writer: &mut impl CommentWriter,
     key: Cow<'a, str>,
     config: Option<&TagMappingConfig>,
-    tags: Vec<PlainTag>,
+    tags: Vec<PlainTag<'_>>,
 ) {
     if let Some(config) = config {
         let joined_labels = config.join_labels(

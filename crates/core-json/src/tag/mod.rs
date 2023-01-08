@@ -65,9 +65,10 @@ impl<'de> Visitor<'de> for FacetKeyVisitor {
     where
         E: serde::de::Error,
     {
-        let inner =
-            _core::FacetKey::new(_core::FacetId::clamp_from(s).map(_core::FacetId::into_owned));
-        Ok(FacetKey { inner })
+        let inner = _core::FacetKey::new(_core::FacetId::clamp_from(s));
+        Ok(FacetKey {
+            inner: inner.into_owned(),
+        })
     }
 }
 
@@ -90,9 +91,11 @@ pub struct Label {
     inner: _core::Label<'static>,
 }
 
-impl From<_core::Label<'static>> for Label {
-    fn from(inner: _core::Label<'static>) -> Self {
-        Self { inner }
+impl From<_core::Label<'_>> for Label {
+    fn from(inner: _core::Label<'_>) -> Self {
+        Self {
+            inner: inner.into_owned(),
+        }
     }
 }
 
@@ -223,7 +226,7 @@ pub enum PlainTag {
     LabelIntScoreFallback(Label, i64),
 }
 
-impl From<PlainTag> for _core::PlainTag {
+impl From<PlainTag> for _core::PlainTag<'static> {
     #[allow(clippy::cast_precision_loss)]
     fn from(from: PlainTag) -> Self {
         use PlainTag::*;
@@ -252,8 +255,8 @@ impl From<PlainTag> for _core::PlainTag {
     }
 }
 
-impl From<_core::PlainTag> for PlainTag {
-    fn from(from: _core::PlainTag) -> Self {
+impl From<_core::PlainTag<'_>> for PlainTag {
+    fn from(from: _core::PlainTag<'_>) -> Self {
         let _core::PlainTag { label, score } = from;
         match (label, score) {
             (None, score) => Self::Score(score.into()),
@@ -282,8 +285,8 @@ impl Tags {
     }
 }
 
-impl From<_core::Tags<'_>> for Tags {
-    fn from(from: _core::Tags<'_>) -> Self {
+impl From<_core::Tags<'static>> for Tags {
+    fn from(from: _core::Tags<'static>) -> Self {
         let mut into = HashMap::with_capacity(from.total_count());
         let _core::Tags {
             plain: plain_tags,
