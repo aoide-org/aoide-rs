@@ -11,13 +11,6 @@ use crate::tag::FacetId;
 // <https://picard-docs.musicbrainz.org/en/variables/variables.html>
 // <https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html>
 
-// International Standard Recording Code (ISRC, ISO 3901)
-// ID3v2.4: TSRC
-// Vorbis:  ISRC
-// MP4:     isrc
-pub const FACET_ISRC: &str = "isrc";
-pub const FACET_ID_ISRC: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_ISRC));
-
 // The Grouping aka Content Group field
 // ID3v2.4: GRP1 (iTunes/newer) / TIT1 (traditional/older)
 // Vorbis:  GROUPING
@@ -60,17 +53,20 @@ pub const FACET_ID_GENRE: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_GENRE
 pub const FACET_MOOD: &str = "mood";
 pub const FACET_ID_MOOD: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_MOOD));
 
-// Custom: Decades like "1980s", "2000s", ..., or other time-based properties
-pub const FACET_DECADE: &str = "decade";
-pub const FACET_ID_DECADE: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_DECADE));
+// International Standard Recording Code (ISRC, ISO 3901)
+// ID3v2.4: TSRC
+// Vorbis:  ISRC
+// MP4:     isrc
+pub const FACET_ISRC: &str = "isrc";
+pub const FACET_ID_ISRC: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_ISRC));
 
-// Custom: Sub-genres or details like "East Coast", "West Coast", ...
-pub const FACET_STYLE: &str = "style";
-pub const FACET_ID_STYLE: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_STYLE));
-
-// Custom: Atmosphere of the situation, e.g. "bouncy", "driving", "dreamy", "poppy", "punchy", "spiritual", "tropical", "uplifting" ...
-pub const FACET_VIBE: &str = "vibe";
-pub const FACET_ID_VIBE: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_VIBE));
+// Vendor-supplied, globally unique identifier(s) used by iTunes
+// Format: prefix:scheme:identifier
+// Supported schemes: upc, isrc, isan, grid, uuid, vendor_id
+// Example: "SonyBMG:isrc:USRC10900295"
+// See also: https://www.apple.com/au/itunes/lp-and-extras/docs/Development_Guide.pdf
+pub const FACET_XID: &str = "xid";
+pub const FACET_ID_XID: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_XID));
 
 // Predefined musical or audio feature scores (as of Spotify/EchoNest).
 // A label is optional and could be used for identifying the source of
@@ -110,10 +106,14 @@ pub const FACET_ID_SPEECHINESS: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET
 pub const FACET_VALENCE: &str = "valence";
 pub const FACET_ID_VALENCE: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_VALENCE));
 
-// Vendor-supplied, globally unique identifier(s) used by iTunes
-// Format: prefix:scheme:identifier
-// Supported schemes: upc, isrc, isan, grid, uuid, vendor_id
-// Example: "SonyBMG:isrc:USRC10900295"
-// See also: https://www.apple.com/au/itunes/lp-and-extras/docs/Development_Guide.pdf
-pub const FACET_XID: &str = "xid";
-pub const FACET_ID_XID: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_XID));
+// Custom: Decades like "1980s", "2000s", ..., or other time-based properties
+pub const FACET_DECADE: &str = "decade";
+pub const FACET_ID_DECADE: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_DECADE));
+
+// Custom: Sub-genres or details like "East Coast", "West Coast", ...
+pub const FACET_STYLE: &str = "style";
+pub const FACET_ID_STYLE: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_STYLE));
+
+// Custom: Atmosphere of the situation, e.g. "bouncy", "driving", "dreamy", "poppy", "punchy", "spiritual", "tropical", "uplifting" ...
+pub const FACET_VIBE: &str = "vibe";
+pub const FACET_ID_VIBE: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_VIBE));
