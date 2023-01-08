@@ -9,7 +9,7 @@ fn clamp_from() {
         Some(FACET_ID_ALPHABET),
         FacetId::clamp_from(FACET_ID_ALPHABET)
             .as_ref()
-            .map(Borrow::borrow)
+            .map(FacetId::as_str),
     );
     assert_eq!(
         Some(concat!(

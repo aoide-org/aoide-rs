@@ -6,7 +6,6 @@ use std::{
     cmp::Ordering,
     fmt,
     hash::Hash,
-    ops::Deref,
 };
 
 use crate::{prelude::*, util::canonical::CanonicalOrd};
@@ -105,6 +104,11 @@ impl<'a> FacetId<'a> {
     }
 
     #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.as_str().is_empty()
+    }
+
+    #[must_use]
     pub fn as_borrowed(&'a self) -> Self {
         let Self(inner) = self;
         FacetId(Cow::Borrowed(inner))
@@ -123,14 +127,6 @@ impl<'a> AsRef<Cow<'a, str>> for FacetId<'a> {
     }
 }
 
-impl<'a> Deref for FacetId<'a> {
-    type Target = Cow<'a, str>;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
 impl Borrow<str> for FacetId<'_> {
     fn borrow(&self) -> &str {
         self.as_ref()
@@ -139,7 +135,7 @@ impl Borrow<str> for FacetId<'_> {
 
 impl fmt::Display for FacetId<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self)
+        f.write_str(self.as_str())
     }
 }
 
@@ -161,7 +157,10 @@ impl Validate for FacetId<'_> {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(self.is_empty(), Self::Invalidity::Empty)
-            .invalidate_if(!Self::is_valid_inner(self), Self::Invalidity::Format)
+            .invalidate_if(
+                !Self::is_valid_inner(self.as_ref()),
+                Self::Invalidity::Format,
+            )
             .into()
     }
 }
