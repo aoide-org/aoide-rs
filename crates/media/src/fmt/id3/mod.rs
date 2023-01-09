@@ -429,7 +429,7 @@ fn export_filtered_actor_names(
         FilteredActorNames::Summary(name) => {
             tag.set_text(text_frame_id, name);
         }
-        FilteredActorNames::Primary(names) => {
+        FilteredActorNames::Individual(names) => {
             tag.set_text_values(text_frame_id, names);
         }
     }
@@ -448,7 +448,7 @@ fn export_filtered_actor_names_txxx(
                 value: name.to_owned(),
             });
         }
-        FilteredActorNames::Primary(names) => {
+        FilteredActorNames::Individual(names) => {
             if let Some(joined_names) = TagMappingConfig::join_labels_with_separator(
                 names.iter().copied(),
                 ID3V24_MULTI_FIELD_SEPARATOR,

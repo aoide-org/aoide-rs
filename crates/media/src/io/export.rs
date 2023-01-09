@@ -68,7 +68,7 @@ pub fn export_track_to_path(
 #[derive(Debug, Clone)]
 pub enum FilteredActorNames<'a> {
     Summary(&'a str),
-    Primary(Vec<&'a str>), // TODO: Replace with impl Iterator<Item = &'a str>! How?
+    Individual(Vec<&'a str>), // TODO: Replace with impl Iterator<Item = &'a str>! How?
 }
 
 impl<'a> FilteredActorNames<'a> {
@@ -93,7 +93,7 @@ impl<'a> FilteredActorNames<'a> {
             Self::Summary(summary_actor.name.as_str())
         } else {
             let individual_actors = Actors::filter_kind_role(actors, ActorKind::Individual, role);
-            Self::Primary(individual_actors.map(|actor| actor.name.as_str()).collect())
+            Self::Individual(individual_actors.map(|actor| actor.name.as_str()).collect())
         }
     }
 }

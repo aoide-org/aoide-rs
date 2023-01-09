@@ -108,7 +108,7 @@ fn export_filtered_actor_names(
         FilteredActorNames::Summary(name) => {
             mp4_tag.set_all_data(ident, once(Data::Utf8(name.to_owned())));
         }
-        FilteredActorNames::Primary(names) => {
+        FilteredActorNames::Individual(names) => {
             mp4_tag.set_all_data(
                 ident,
                 names.into_iter().map(|name| Data::Utf8(name.to_owned())),

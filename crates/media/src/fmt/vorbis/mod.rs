@@ -442,7 +442,7 @@ fn export_filtered_actor_names<'a>(
         FilteredActorNames::Summary(name) => {
             writer.write_single_value(key, name.to_owned());
         }
-        FilteredActorNames::Primary(names) => {
+        FilteredActorNames::Individual(names) => {
             writer.write_multiple_values(key, names.into_iter().map(ToOwned::to_owned).collect());
         }
     }
