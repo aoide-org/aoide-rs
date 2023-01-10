@@ -148,7 +148,7 @@ where
         }
         Err(err) => match err {
             Error::Media(
-                MediaError::UnknownContentType | MediaError::UnsupportedContentType(_),
+                MediaError::UnknownContentType(_) | MediaError::UnsupportedContentType(_),
             ) => {
                 log::info!(
                     "Skipped import of track from local file path {}: {err}",

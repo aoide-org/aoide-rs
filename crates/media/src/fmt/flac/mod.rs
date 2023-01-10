@@ -31,7 +31,7 @@ fn map_metaflac_err(err: metaflac::Error) -> Error {
     let metaflac::Error { kind, description } = err;
     match kind {
         metaflac::ErrorKind::Io(err) => Error::Io(err),
-        kind => Error::Other(anyhow::Error::from(metaflac::Error { kind, description })),
+        kind => Error::Metadata(anyhow::Error::from(metaflac::Error { kind, description })),
     }
 }
 

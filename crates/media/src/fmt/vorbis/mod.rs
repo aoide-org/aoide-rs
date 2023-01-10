@@ -25,7 +25,7 @@ use crate::{
     io::export::{ExportTrackConfig, FilteredActorNames},
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, key_signature_as_str,
-        tag::TagMappingConfig,
+        tag::TagMappingConfig, TempoBpmFormat,
     },
 };
 
@@ -110,7 +110,7 @@ fn export_loudness(writer: &mut impl CommentWriter, loudness: Option<LoudnessLuf
 }
 
 fn export_tempo_bpm(writer: &mut impl CommentWriter, tempo_bpm: &mut Option<TempoBpm>) {
-    if let Some(formatted_bpm) = format_validated_tempo_bpm(tempo_bpm) {
+    if let Some(formatted_bpm) = format_validated_tempo_bpm(tempo_bpm, TempoBpmFormat::Float) {
         writer.write_single_value("BPM".into(), formatted_bpm);
     } else {
         writer.remove_all_values("BPM");
@@ -456,8 +456,8 @@ fn export_faceted_tags<'a>(
 ) {
     if let Some(config) = config {
         let joined_labels = config.join_labels(
-            tags.iter()
-                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
+            tags.into_iter()
+                .filter_map(|PlainTag { label, score: _ }| label.map(Label::into_inner)),
         );
         writer.write_single_value_opt(key, joined_labels.map(Into::into));
     } else {

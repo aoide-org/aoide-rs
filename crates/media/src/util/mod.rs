@@ -5,7 +5,7 @@ use std::{borrow::Cow, convert::TryFrom as _, fmt, path::Path, str::FromStr};
 
 use image::{
     guess_format, load_from_memory, load_from_memory_with_format, DynamicImage, GenericImageView,
-    ImageFormat,
+    ImageError, ImageFormat,
 };
 use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use nom::{
@@ -31,7 +31,6 @@ use aoide_core::{
         actor::{
             is_valid_summary_individual_actor_name, Actor, Kind as ActorKind, Role as ActorRole,
         },
-        index::Index,
         title::{Kind as TitleKind, Title},
     },
     util::{
@@ -66,16 +65,22 @@ pub fn trim_readable(input: &str) -> &str {
 }
 
 pub fn guess_mime_from_path(path: impl AsRef<Path>) -> Result<Mime> {
-    let mime_guess = mime_guess::from_path(path);
+    let mime_guess = mime_guess::from_path(path.as_ref());
     if mime_guess.first().is_none() {
-        return Err(Error::UnknownContentType);
+        return Err(Error::UnknownContentType(format!(
+            "{path}",
+            path = path.as_ref().display()
+        )));
     }
     mime_guess
         .iter()
         .filter(|mime| mime.type_() == mime::AUDIO)
         .chain(mime_guess.iter().filter(|mime| mime.type_() == mime::VIDEO))
         .next()
-        .ok_or(Error::UnknownContentType)
+        .ok_or(Error::UnknownContentType(format!(
+            "{path}",
+            path = path.as_ref().display()
+        )))
 }
 
 /// Determines the next kind and adjusts the previous kind.
@@ -241,29 +246,53 @@ pub fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
     Ok((input, replay_gain_db))
 }
 
-pub fn format_validated_tempo_bpm(tempo_bpm: &mut Option<TempoBpm>) -> Option<String> {
+pub(crate) fn format_validated_tempo_bpm(
+    tempo_bpm: &mut Option<TempoBpm>,
+    format: TempoBpmFormat,
+) -> Option<String> {
     let validated_tempo_bpm = tempo_bpm
         .map(TempoBpm::validated_from)
         .transpose()
         .ok()
         .flatten();
     *tempo_bpm = validated_tempo_bpm.map(|validated| *validated);
-    tempo_bpm.as_mut().map(format_tempo_bpm)
+    tempo_bpm
+        .as_mut()
+        .map(|tempo_bpm| format_tempo_bpm(tempo_bpm, format))
 }
 
-pub fn format_tempo_bpm(tempo_bpm: &mut TempoBpm) -> String {
-    let formatted_bpm = format_parseable_value(&mut tempo_bpm.to_inner());
-    let mut importer = Importer::new();
-    debug_assert_eq!(
-        Some(*tempo_bpm),
-        importer.import_tempo_bpm(&formatted_bpm).map(Into::into)
-    );
-    debug_assert!(importer.finish().into_messages().is_empty());
-    formatted_bpm
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum TempoBpmFormat {
+    Integer,
+    Float,
+}
+
+pub(crate) fn format_tempo_bpm(tempo_bpm: &mut TempoBpm, format: TempoBpmFormat) -> String {
+    match format {
+        TempoBpmFormat::Integer => {
+            // Do not touch the original value when rounding to integer!
+            let tempo_bpm = TempoBpm::from_inner(tempo_bpm.to_inner().round());
+            format_parseable_value(&mut tempo_bpm.to_inner())
+        }
+        TempoBpmFormat::Float => {
+            let formatted_bpm = format_parseable_value(&mut tempo_bpm.to_inner());
+            debug_assert!({
+                // Verify the formatted float value by re-parsing it.
+                let mut importer = Importer::new();
+                debug_assert_eq!(
+                    Some(*tempo_bpm),
+                    importer.import_tempo_bpm(&formatted_bpm).map(Into::into)
+                );
+                debug_assert!(importer.finish().into_messages().is_empty());
+                true
+            });
+            formatted_bpm
+        }
+    }
 }
 
 #[must_use]
-pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
+pub(crate) fn parse_key_signature(input: &str) -> Option<KeySignature> {
     let input = trim_readable(input);
     if input.is_empty() {
         return None;
@@ -310,9 +339,9 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
 }
 
 #[must_use]
-pub fn key_signature_as_str(key_signature: KeySignature) -> &'static str {
+pub(crate) fn key_signature_as_str(key_signature: KeySignature) -> &'static str {
     // Follow the ID3v2 recommendation, independent of the actual format.
-    // See also: <https://id3.org/id3v2.4.0-frames>
+    // See also: https://mutagen-specs.readthedocs.io/en/latest/id3/id3v2.4.0-frames.html#tkey
     // TODO: Should this be configurable depending on the format?
     key_signature.code().as_serato_str()
 }
@@ -323,7 +352,7 @@ const RFC3339_WITHOUT_TZ_FORMAT: &[FormatItem<'static>] =
 const RFC3339_WITHOUT_T_TZ_FORMAT: &[FormatItem<'static>] =
     time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
 
-pub fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
+pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
     let input = value.trim();
     let mut digits_parser = delimited(space0, digit1, space0);
     let digits_parsed: IResult<_, _> = digits_parser(input);
@@ -405,31 +434,13 @@ pub fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
     None
 }
 
-#[must_use]
-pub fn parse_index_numbers(input: &str) -> Option<Index> {
-    let mut split = if input.contains('/') {
-        input.split('/')
-    } else if input.contains('-') {
-        input.split('-')
-    } else {
-        return input.parse().ok().map(|number| Index {
-            number: Some(number),
-            total: None,
-        });
-    };
-    let number = split.next().and_then(|input| input.parse().ok());
-    let total = split.next().and_then(|input| input.parse().ok());
-    if number.is_none() && total.is_none() {
-        None
-    } else {
-        Some(Index { number, total })
-    }
-}
-
 #[derive(Debug, Error)]
 pub enum ArtworkImageError {
     #[error("unsupported format {0:?}")]
     UnsupportedFormat(ImageFormat),
+
+    #[error(transparent)]
+    Image(#[from] ImageError),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -438,10 +449,11 @@ pub enum ArtworkImageError {
 impl From<ArtworkImageError> for Error {
     fn from(err: ArtworkImageError) -> Error {
         match err {
-            ArtworkImageError::UnsupportedFormat(image_format) => Self::Other(anyhow::anyhow!(
+            ArtworkImageError::UnsupportedFormat(image_format) => Self::Metadata(anyhow::anyhow!(
                 "Unsupported artwork image format: {image_format:?}"
             )),
-            ArtworkImageError::Other(err) => Self::Other(err),
+            ArtworkImageError::Image(err) => Self::Metadata(err.into()),
+            ArtworkImageError::Other(err) => Self::Metadata(err),
         }
     }
 }
@@ -484,8 +496,7 @@ pub fn load_artwork_picture(
         load_from_memory_with_format(image_data, image_format)
     } else {
         load_from_memory(image_data)
-    }
-    .map_err(anyhow::Error::from)?;
+    }?;
     let media_type = media_type_hint
         .and_then(|media_type_hint| {
             media_type_hint
@@ -511,15 +522,15 @@ pub fn load_artwork_picture(
 }
 
 #[derive(Debug)]
-pub struct IngestedArtworkImage {
-    pub artwork_image: ArtworkImage,
-    pub picture: DynamicImage,
-    pub recoverable_errors: Vec<anyhow::Error>,
+struct IngestedArtworkImage {
+    artwork_image: ArtworkImage,
+    picture: DynamicImage,
+    recoverable_errors: Vec<anyhow::Error>,
 }
 
-pub type IngestArtworkImageResult = std::result::Result<IngestedArtworkImage, ArtworkImageError>;
+type IngestArtworkImageResult = std::result::Result<IngestedArtworkImage, ArtworkImageError>;
 
-pub fn ingest_artwork_image(
+fn ingest_artwork_image(
     apic_type: ApicType,
     image_data: &[u8],
     image_format_hint: Option<ImageFormat>,
@@ -612,6 +623,10 @@ pub fn try_ingest_embedded_artwork_image(
             ArtworkImageError::UnsupportedFormat(unsupported_format) => {
                 let issue = format!("Unsupported image format: {unsupported_format:?}");
                 (Artwork::Unsupported, None, vec![issue])
+            }
+            ArtworkImageError::Image(err) => {
+                let issue = format!("Failed to load embedded artwork image: {err}");
+                (Artwork::Irregular, None, vec![issue])
             }
             ArtworkImageError::Other(err) => {
                 let issue = format!("Failed to load embedded artwork image: {err}");

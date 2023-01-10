@@ -611,7 +611,7 @@ impl<'a> TagsMap<'a> {
 
     pub fn take_faceted_tags<'b>(&mut self, facet_id: &'b FacetId<'b>) -> Option<FacetedTags<'a>> {
         // TODO: How to avoid this needless allocation?
-        let facet_id = facet_id.clone().into_owned();
+        let facet_id = facet_id.as_borrowed().into_owned();
         let Self(all_tags) = self;
         all_tags
             .remove_entry(&FacetKey::from(facet_id))

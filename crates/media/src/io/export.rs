@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::path::Path;
+use std::{fs::OpenOptions, path::Path};
 
 use bitflags::bitflags;
 
@@ -51,7 +51,10 @@ pub fn export_track_to_path(
         #[cfg(feature = "fmt-mp3")]
         "audio/mpeg" => crate::fmt::mp3::export_track_to_path(path, config, track),
         #[cfg(feature = "fmt-mp4")]
-        "audio/m4a" | "video/mp4" => crate::fmt::mp4::export_track_to_path(path, config, track),
+        "audio/m4a" | "video/mp4" => {
+            let mut file = OpenOptions::new().write(true).open(path)?;
+            crate::fmt::lofty::mp4::export_track_to_file(&mut file, config, track)
+        }
         // TODO: Add support for audio/ogg
         _ => {
             log::debug!(

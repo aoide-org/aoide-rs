@@ -164,7 +164,6 @@ pub fn visit_directories<
             report_progress_fn(progress_event.clone().into());
         },
     )
-    .map_err(anyhow::Error::from)
     .map(|mut progress_event| {
         progress_event.try_finish();
         report_progress_fn(progress_event.clone().into());

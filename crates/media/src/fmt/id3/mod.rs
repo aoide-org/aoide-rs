@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::borrow::Cow;
+
 use id3::{
     self,
     frame::{Comment, ExtendedText},
@@ -27,7 +29,7 @@ use crate::{
     io::export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, key_signature_as_str,
-        tag::TagMappingConfig,
+        tag::TagMappingConfig, TempoBpmFormat,
     },
     Error,
 };
@@ -40,7 +42,7 @@ pub(crate) fn map_id3_err(err: id3::Error) -> Error {
     } = err;
     match kind {
         id3::ErrorKind::Io(err) => Error::Io(err),
-        kind => Error::Other(anyhow::Error::from(id3::Error {
+        kind => Error::Metadata(anyhow::Error::from(id3::Error {
             kind,
             description,
             partial_tag,
@@ -48,9 +50,16 @@ pub(crate) fn map_id3_err(err: id3::Error) -> Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub(crate) enum ExportError {
+    #[error("unsupported legacy ID3v2 version {0}")]
     UnsupportedLegacyVersion(id3::Version),
+}
+
+impl From<ExportError> for Error {
+    fn from(err: ExportError) -> Self {
+        Self::Metadata(anyhow::Error::from(err))
+    }
 }
 
 #[allow(clippy::too_many_lines)] // TODO
@@ -80,24 +89,22 @@ pub(crate) fn export_track(
 
     // Music: Tempo/BPM
     tag.remove_extended_text(Some("TEMPO"), None);
-    if let Some(formatted_bpm) = format_validated_tempo_bpm(&mut track.metrics.tempo_bpm) {
+    if let Some(formatted_bpm) =
+        format_validated_tempo_bpm(&mut track.metrics.tempo_bpm, TempoBpmFormat::Integer)
+    {
+        tag.set_text("TBPM", formatted_bpm);
+    } else {
+        tag.remove("TBPM");
+    }
+    if let Some(formatted_bpm) =
+        format_validated_tempo_bpm(&mut track.metrics.tempo_bpm, TempoBpmFormat::Float)
+    {
         tag.add_frame(ExtendedText {
             description: "BPM".to_owned(),
             value: formatted_bpm,
         });
-        tag.set_text(
-            "TBPM",
-            track
-                .metrics
-                .tempo_bpm
-                .expect("valid bpm")
-                .to_inner()
-                .round()
-                .to_string(),
-        );
     } else {
         tag.remove_extended_text(Some("BPM"), None);
-        tag.remove("TBPM");
     }
 
     // Musical key
@@ -131,7 +138,8 @@ pub(crate) fn export_track(
             Titles::filter_kind(track.titles.iter(), TitleKind::Work).map(|title| &title.name),
         );
     } else if let Some(joined_titles) = TagMappingConfig::join_labels_with_separator(
-        Titles::filter_kind(track.titles.iter(), TitleKind::Work).map(|title| title.name.as_str()),
+        Titles::filter_kind(track.titles.iter(), TitleKind::Work)
+            .map(|title| Cow::Borrowed(title.name.as_str())),
         ID3V24_MULTI_FIELD_SEPARATOR,
     ) {
         tag.add_frame(ExtendedText {
@@ -277,10 +285,10 @@ pub(crate) fn export_track(
             tag,
             String::new(),
             config.faceted_tag_mapping.get(facet_id.as_str()),
-            &tags,
+            tags,
         );
     } else {
-        export_faceted_tags_comment(tag, String::new(), None, &[]);
+        export_faceted_tags_comment(tag, String::new(), None, vec![]);
     }
 
     // Description(s)
@@ -289,10 +297,10 @@ pub(crate) fn export_track(
             tag,
             "description",
             config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            &tags,
+            tags,
         );
     } else {
-        export_faceted_tags_comment(tag, "description", None, &[]);
+        export_faceted_tags_comment(tag, "description", None, vec![]);
     }
 
     // Genre(s)
@@ -301,10 +309,10 @@ pub(crate) fn export_track(
             tag,
             "TCON",
             config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            &tags,
+            tags,
         );
     } else {
-        export_faceted_tags(tag, "TCON", None, &[]);
+        export_faceted_tags(tag, "TCON", None, vec![]);
     }
 
     // Mood(s)
@@ -313,10 +321,10 @@ pub(crate) fn export_track(
             tag,
             "TMOO",
             config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            &tags,
+            tags,
         );
     } else {
-        export_faceted_tags(tag, "TMOO", None, &[]);
+        export_faceted_tags(tag, "TMOO", None, vec![]);
     }
 
     // ISRC(s)
@@ -325,10 +333,10 @@ pub(crate) fn export_track(
             tag,
             "TSRC",
             config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            &tags,
+            tags,
         );
     } else {
-        export_faceted_tags(tag, "TSRC", None, &[]);
+        export_faceted_tags(tag, "TSRC", None, vec![]);
     }
 
     // Language(s)
@@ -337,10 +345,10 @@ pub(crate) fn export_track(
             tag,
             "TLAN",
             config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            &tags,
+            tags,
         );
     } else {
-        export_faceted_tags(tag, "TLAN", None, &[]);
+        export_faceted_tags(tag, "TLAN", None, vec![]);
     }
 
     // Grouping(s)
@@ -369,13 +377,13 @@ pub(crate) fn export_track(
             "TIT1"
         };
         if tags.is_empty() {
-            export_faceted_tags(tag, grouping_frame_id, None, &[]);
+            export_faceted_tags(tag, grouping_frame_id, None, vec![]);
         } else {
             export_faceted_tags(
                 tag,
                 grouping_frame_id,
                 config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-                &tags,
+                tags,
             );
         }
     }
@@ -450,7 +458,7 @@ fn export_filtered_actor_names_txxx(
         }
         FilteredActorNames::Individual(names) => {
             if let Some(joined_names) = TagMappingConfig::join_labels_with_separator(
-                names.iter().copied(),
+                names.into_iter().map(Cow::Borrowed),
                 ID3V24_MULTI_FIELD_SEPARATOR,
             ) {
                 tag.add_frame(ExtendedText {
@@ -468,17 +476,17 @@ fn export_faceted_tags(
     tag: &mut id3::Tag,
     text_frame_id: impl AsRef<str>,
     config: Option<&TagMappingConfig>,
-    tags: &[PlainTag<'_>],
+    tags: Vec<PlainTag<'_>>,
 ) {
     let joined_labels = if let Some(config) = config {
         config.join_labels(
-            tags.iter()
-                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
+            tags.into_iter()
+                .filter_map(|PlainTag { label, score: _ }| label.map(Label::into_inner)),
         )
     } else {
         TagMappingConfig::join_labels_with_separator(
-            tags.iter()
-                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
+            tags.into_iter()
+                .filter_map(|PlainTag { label, score: _ }| label.map(Label::into_inner)),
             ID3V24_MULTI_FIELD_SEPARATOR,
         )
     };
@@ -493,17 +501,17 @@ fn export_faceted_tags_comment(
     tag: &mut id3::Tag,
     description: impl Into<String>,
     config: Option<&TagMappingConfig>,
-    tags: &[PlainTag<'_>],
+    tags: Vec<PlainTag<'_>>,
 ) {
     let joined_labels = if let Some(config) = config {
         config.join_labels(
-            tags.iter()
-                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
+            tags.into_iter()
+                .filter_map(|PlainTag { label, score: _ }| label.map(Label::into_inner)),
         )
     } else {
         TagMappingConfig::join_labels_with_separator(
-            tags.iter()
-                .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(Label::as_str)),
+            tags.into_iter()
+                .filter_map(|PlainTag { label, score: _ }| label.map(Label::into_inner)),
             ID3V24_MULTI_FIELD_SEPARATOR,
         )
     };

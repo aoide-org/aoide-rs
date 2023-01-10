@@ -66,6 +66,11 @@ impl DateTime {
     pub fn timestamp_millis(self) -> TimestampMillis {
         (self.to_inner().unix_timestamp_nanos() / NANOS_PER_MILLISECOND) as TimestampMillis
     }
+
+    #[must_use]
+    pub fn year(&self) -> YearType {
+        self.0.year() as _
+    }
 }
 
 impl AsRef<DateTimeInner> for DateTime {
@@ -299,6 +304,16 @@ impl fmt::Display for DateYYYYMMDD {
 pub enum DateOrDateTime {
     Date(DateYYYYMMDD),
     DateTime(DateTime),
+}
+
+impl DateOrDateTime {
+    #[must_use]
+    pub fn year(self) -> YearType {
+        match self {
+            Self::Date(inner) => inner.year(),
+            Self::DateTime(inner) => inner.year(),
+        }
+    }
 }
 
 impl From<DateTime> for DateOrDateTime {

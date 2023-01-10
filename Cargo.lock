@@ -2221,7 +2221,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.10.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#fd1f9f62a00c94029848fef6e4ce318bcd8c42ac"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#f73783aa8af5297d792227078500404f3f297510"
 dependencies = [
  "base64 0.20.0",
  "byteorder",
@@ -2237,7 +2237,7 @@ dependencies = [
 [[package]]
 name = "lofty_attr"
 version = "0.5.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#fd1f9f62a00c94029848fef6e4ce318bcd8c42ac"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#f73783aa8af5297d792227078500404f3f297510"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3107,7 +3107,7 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "rustls",
- "rustls-pemfile 1.0.1",
+ "rustls-pemfile 1.0.2",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -3258,11 +3258,11 @@ dependencies = [
 
 [[package]]
 name = "rustls-pemfile"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0864aeff53f8c05aa08d86e5ef839d3dfcf07aeba2db32f12db0ef716e87bd55"
+checksum = "d194b56d58803a43635bdc398cd17e383d6f71f9182b9a192c127ca42494a59b"
 dependencies = [
- "base64 0.13.1",
+ "base64 0.21.0",
 ]
 
 [[package]]

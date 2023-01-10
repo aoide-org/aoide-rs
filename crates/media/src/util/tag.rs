@@ -24,7 +24,7 @@ impl TagMappingConfig {
     }
 
     pub fn join_labels_with_separator<'label>(
-        labels: impl IntoIterator<Item = &'label str>,
+        labels: impl IntoIterator<Item = Cow<'label, str>>,
         separator: impl AsRef<str>,
     ) -> Option<Cow<'label, str>> {
         let separator = separator.as_ref();
@@ -36,20 +36,20 @@ impl TagMappingConfig {
                 }
                 let mut joined_labels: String = joined_labels.into_owned();
                 joined_labels.push_str(separator);
-                joined_labels.push_str(next_label);
+                joined_labels.push_str(&next_label);
                 Some(joined_labels.into())
             } else {
                 if next_label.is_empty() {
                     return None;
                 }
-                Some(next_label.into())
+                Some(next_label)
             }
         })
     }
 
     pub fn join_labels<'label>(
         &self,
-        labels: impl IntoIterator<Item = &'label str>,
+        labels: impl IntoIterator<Item = Cow<'label, str>>,
     ) -> Option<Cow<'label, str>> {
         Self::join_labels_with_separator(labels, &self.label_separator)
     }

@@ -4,7 +4,8 @@
 use std::{borrow::Cow, ops::Not as _};
 
 use lofty::{
-    Accessor, AudioFile, FileProperties, ItemKey, PictureType, Tag, TaggedFile, TaggedFileExt as _,
+    Accessor, AudioFile, FileProperties, ItemKey, ItemValue, ParseOptions, PictureType, Tag,
+    TagItem, TaggedFile, TaggedFileExt as _,
 };
 use semval::IsValid;
 
@@ -18,7 +19,7 @@ use aoide_core::{
         artwork::{ApicType, Artwork},
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
     },
-    tag::{Score as TagScore, TagsMap},
+    tag::{FacetKey, FacetedTags, Label, PlainTag, Score as TagScore, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
@@ -27,17 +28,21 @@ use aoide_core::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
             FACET_ID_ISRC, FACET_ID_MOOD, FACET_ID_XID,
         },
-        title::Kind as TitleKind,
+        title::{Kind as TitleKind, Titles},
         Track,
     },
     util::{canonical::Canonical, string::trimmed_non_empty_from},
 };
 
 use crate::{
-    io::import::{ImportTrackConfig, ImportTrackFlags, Importer, TrackScope},
+    io::{
+        export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
+        import::{ImportTrackConfig, ImportTrackFlags, Importer, TrackScope},
+    },
     util::{
-        digest::MediaDigest, ingest_title_from, push_next_actor_role_name_from,
-        try_ingest_embedded_artwork_image,
+        digest::MediaDigest, format_valid_replay_gain, format_validated_tempo_bpm,
+        ingest_title_from, key_signature_as_str, push_next_actor_role_name_from,
+        tag::TagMappingConfig, try_ingest_embedded_artwork_image, TempoBpmFormat,
     },
 };
 
@@ -58,6 +63,12 @@ pub(crate) mod opus;
 pub(crate) mod vorbis;
 
 const ENCODER_FIELD_SEPARATOR: &str = "|";
+
+pub(crate) fn parse_options() -> ParseOptions {
+    ParseOptions::new()
+        .parsing_mode(lofty::ParsingMode::Relaxed)
+        .read_properties(true)
+}
 
 fn import_audio_content_from_file_properties(properties: &FileProperties) -> AudioContentMetadata {
     let bitrate = properties
@@ -307,7 +318,6 @@ pub(crate) fn import_file_tag_into_track(
     {
         track_titles.push(title);
     }
-    // TODO: Work?
     track.titles = importer.finish_import_of_titles(TrackScope::Track, track_titles);
 
     // Track actors
@@ -324,10 +334,9 @@ pub(crate) fn import_file_tag_into_track(
     for name in tag.take_strings(&ItemKey::Conductor) {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Conductor, name);
     }
-    // FIXME: <https://github.com/Serial-ATA/lofty-rs/pull/100>
-    // for name in tag.take_strings(&ItemKey::Directory) {
-    //     push_next_actor_role_name_from(&mut track_actors, ActorRole::Directory, name);
-    // }
+    for name in tag.take_strings(&ItemKey::Director) {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Director, name);
+    }
     for name in tag.take_strings(&ItemKey::Engineer) {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Engineer, name);
     }
@@ -543,5 +552,345 @@ pub(crate) fn import_file_tag_into_track(
     {
         let artwork = import_embedded_artwork(importer, &tag, config.flags.new_artwork_digest());
         track.media_source.artwork = Some(artwork);
+    }
+}
+
+fn export_filtered_actor_names(
+    tag: &mut Tag,
+    item_key: ItemKey,
+    actor_names: FilteredActorNames<'_>,
+) {
+    match actor_names {
+        FilteredActorNames::Summary(name) => {
+            tag.insert_text(item_key, name.to_owned());
+        }
+        FilteredActorNames::Individual(names) => {
+            for name in names {
+                let item_key = item_key.clone();
+                let item_val = ItemValue::Text(name.to_owned());
+                let pushed = tag.push_item(TagItem::new(item_key, item_val));
+                if !pushed {
+                    // Unsupported key
+                    break;
+                }
+            }
+        }
+    }
+}
+
+fn export_faceted_tags(
+    tag: &mut Tag,
+    item_key: ItemKey,
+    config: Option<&TagMappingConfig>,
+    tags: impl IntoIterator<Item = PlainTag<'static>>,
+) {
+    if let Some(config) = config {
+        let joined_labels = config.join_labels(
+            tags.into_iter()
+                .filter_map(|PlainTag { label, score: _ }| label.map(Label::into_inner)),
+        );
+        if let Some(joined_labels) = joined_labels {
+            let inserted = tag.insert_text(item_key, joined_labels.into_owned());
+            debug_assert!(inserted);
+        } else {
+            tag.remove_key(&item_key);
+        }
+    } else {
+        tag.remove_key(&item_key);
+        for label in tags
+            .into_iter()
+            .filter_map(|PlainTag { label, score: _ }| label)
+        {
+            let item_key = item_key.clone();
+            let item_val = ItemValue::Text(label.into_inner().into_owned());
+            let pushed = tag.push_item(TagItem::new(item_key, item_val));
+            if !pushed {
+                // Unsupported key
+                break;
+            }
+        }
+    }
+}
+
+#[allow(clippy::too_many_lines)] // TODO
+pub(crate) fn export_track_to_tag(tag: &mut Tag, config: &ExportTrackConfig, track: &mut Track) {
+    // Audio properties
+    match &track.media_source.content.metadata {
+        ContentMetadata::Audio(audio) => {
+            if let Some(track_gain_text) = audio.loudness.and_then(format_valid_replay_gain) {
+                tag.insert_text(ItemKey::ReplayGainTrackGain, track_gain_text);
+            } else {
+                tag.remove_key(&ItemKey::ReplayGainTrackGain);
+            }
+            // The encoder is a read-only property.
+        }
+    }
+
+    // Music: Tempo/BPM
+    // Write the BPM rounded to an integer value as the least common denominator.
+    // The precise BPM could be written into custom tag fields during post-processing.
+    if let Some(bpm_text) =
+        format_validated_tempo_bpm(&mut track.metrics.tempo_bpm, TempoBpmFormat::Integer)
+    {
+        tag.insert_text(ItemKey::BPM, bpm_text);
+    } else {
+        tag.remove_key(&ItemKey::BPM);
+    }
+
+    // Music: Key
+    if let Some(key_signature) = track.metrics.key_signature {
+        let key_text = key_signature_as_str(key_signature).to_owned();
+        tag.insert_text(ItemKey::InitialKey, key_text);
+    } else {
+        tag.remove_key(&ItemKey::InitialKey);
+    }
+
+    // Track titles
+    if let Some(title) = Titles::main_title(track.titles.iter()) {
+        tag.set_title(title.name.clone());
+    } else {
+        tag.remove_title();
+    }
+    tag.remove_key(&ItemKey::TrackSubtitle);
+    let track_subtitles = Titles::filter_kind(track.titles.iter(), TitleKind::Sub).peekable();
+    for track_subtitle in track_subtitles {
+        let item_val = ItemValue::Text(track_subtitle.name.clone());
+        let pushed = tag.push_item(TagItem::new(ItemKey::TrackSubtitle, item_val));
+        debug_assert!(pushed);
+    }
+    // TODO: Work and movement
+
+    // Track actors
+    export_filtered_actor_names(
+        tag,
+        ItemKey::TrackArtist,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Artist),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::Arranger,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Arranger),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::Composer,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Composer),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::Conductor,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Conductor),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::Director,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Director),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::Engineer,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Engineer),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::MixDj,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::MixDj),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::MixEngineer,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::MixEngineer),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::Lyricist,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Lyricist),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::Performer,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Performer),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::Producer,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Producer),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::Remixer,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Remixer),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::Writer,
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Writer),
+    );
+
+    // Album
+    if let Some(title) = Titles::main_title(track.album.titles.iter()) {
+        tag.set_album(title.name.clone());
+    } else {
+        tag.remove_album();
+    }
+    export_filtered_actor_names(
+        tag,
+        ItemKey::AlbumArtist,
+        FilteredActorNames::new(track.album.actors.iter(), ActorRole::Artist),
+    );
+    if let Some(kind) = track.album.kind {
+        match kind {
+            AlbumKind::NoCompilation | AlbumKind::Album | AlbumKind::Single => {
+                tag.insert_text(ItemKey::FlagCompilation, "0".to_owned());
+            }
+            AlbumKind::Compilation => {
+                tag.insert_text(ItemKey::FlagCompilation, "1".to_owned());
+            }
+        }
+    } else {
+        tag.remove_key(&ItemKey::FlagCompilation);
+    }
+
+    if let Some(publisher) = &track.publisher {
+        tag.insert_text(ItemKey::Label, publisher.clone());
+    } else {
+        tag.remove_key(&ItemKey::Label);
+    }
+    if let Some(copyright) = &track.copyright {
+        tag.insert_text(ItemKey::CopyrightMessage, copyright.clone());
+    } else {
+        tag.remove_key(&ItemKey::CopyrightMessage);
+    }
+
+    if let Some(recorded_at) = track.recorded_at {
+        // Modify ItemKey::Year before ItemKey::RecordingDate
+        // because they may end up in the same tag field. The
+        // year number should not overwrite the more specific
+        // time stamp if available.
+        let year = recorded_at.year();
+        if year >= 0 {
+            tag.set_year(year as _);
+        } else {
+            tag.remove_year();
+        }
+        let recorded_at_text = recorded_at.to_string();
+        tag.insert_text(ItemKey::RecordingDate, recorded_at_text);
+    } else {
+        tag.remove_year();
+        tag.remove_key(&ItemKey::RecordingDate);
+    }
+    if let Some(released_at) = track.released_at {
+        let released_at_text = released_at.to_string();
+        tag.insert_text(ItemKey::PodcastReleaseDate, released_at_text);
+    } else {
+        tag.remove_key(&ItemKey::PodcastReleaseDate);
+    }
+    if let Some(released_orig_at) = track.released_orig_at {
+        let released_orig_at_text = released_orig_at.to_string();
+        tag.insert_text(ItemKey::OriginalReleaseDate, released_orig_at_text);
+    } else {
+        tag.remove_key(&ItemKey::OriginalReleaseDate);
+    }
+
+    let mut tags_map = TagsMap::from(track.tags.clone().untie());
+
+    // Genre(s)
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_GENRE) {
+        export_faceted_tags(
+            tag,
+            ItemKey::Genre,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags.into_iter(),
+        );
+    } else {
+        tag.remove_key(&ItemKey::Genre);
+    }
+
+    // Comment(s)
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_COMMENT) {
+        export_faceted_tags(
+            tag,
+            ItemKey::Comment,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::Comment);
+    }
+
+    // Description(s)
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_DESCRIPTION) {
+        export_faceted_tags(
+            tag,
+            ItemKey::Description,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::Description);
+    }
+
+    // Mood(s)
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MOOD) {
+        export_faceted_tags(
+            tag,
+            ItemKey::Mood,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::Mood);
+    }
+
+    // ISRC(s)
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_ISRC) {
+        export_faceted_tags(
+            tag,
+            ItemKey::ISRC,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::ISRC);
+    }
+
+    // XID(s)
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_XID) {
+        export_faceted_tags(
+            tag,
+            ItemKey::AppleXID,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::AppleXID);
+    }
+
+    // Grouping(s)
+    {
+        let facet_id = FACET_ID_GROUPING;
+        let mut tags = tags_map
+            .take_faceted_tags(facet_id)
+            .map(|FacetedTags { facet_id: _, tags }| tags)
+            .unwrap_or_default();
+        #[cfg(feature = "gigtag")]
+        if config.flags.contains(ExportTrackFlags::GIGTAGS) {
+            if let Err(err) = crate::util::gigtag::export_and_encode_remaining_tags_into(
+                tags_map.into(),
+                &mut tags,
+            ) {
+                log::error!("Failed to export gig tags: {err}");
+            }
+        }
+        if tags.is_empty() {
+            tag.remove_key(&ItemKey::ContentGroup);
+        } else {
+            export_faceted_tags(
+                tag,
+                ItemKey::ContentGroup,
+                config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+                tags,
+            );
+        }
     }
 }

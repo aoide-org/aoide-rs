@@ -32,6 +32,7 @@ use aoide_core::{
 };
 
 use crate::{
+    fmt::lofty::parse_options,
     util::{
         db2lufs,
         digest::MediaDigest,
@@ -207,8 +208,7 @@ pub fn import_into_track(
     match file_type {
         FileType::AIFF => {
             let reader = probe.into_inner();
-            let aiff_file = lofty::AudioFile::read_from(reader, Default::default())
-                .map_err(anyhow::Error::from)?;
+            let aiff_file = lofty::AudioFile::read_from(reader, parse_options())?;
             crate::fmt::lofty::aiff::import_file_into_track(
                 &mut importer,
                 config,
@@ -218,8 +218,7 @@ pub fn import_into_track(
         }
         FileType::FLAC => {
             let reader = probe.into_inner();
-            let flac_file = lofty::AudioFile::read_from(reader, Default::default())
-                .map_err(anyhow::Error::from)?;
+            let flac_file = lofty::AudioFile::read_from(reader, parse_options())?;
             crate::fmt::lofty::flac::import_file_into_track(
                 &mut importer,
                 config,
@@ -229,14 +228,12 @@ pub fn import_into_track(
         }
         FileType::MP4 => {
             let reader = probe.into_inner();
-            let mp4_file = lofty::AudioFile::read_from(reader, Default::default())
-                .map_err(anyhow::Error::from)?;
+            let mp4_file = lofty::AudioFile::read_from(reader, parse_options())?;
             crate::fmt::lofty::mp4::import_file_into_track(&mut importer, config, mp4_file, track);
         }
         FileType::MPEG => {
             let reader = probe.into_inner();
-            let mpeg_file = lofty::AudioFile::read_from(reader, Default::default())
-                .map_err(anyhow::Error::from)?;
+            let mpeg_file = lofty::AudioFile::read_from(reader, parse_options())?;
             crate::fmt::lofty::mpeg::import_file_into_track(
                 &mut importer,
                 config,
@@ -246,8 +243,7 @@ pub fn import_into_track(
         }
         FileType::Opus => {
             let reader = probe.into_inner();
-            let opus_file = lofty::AudioFile::read_from(reader, Default::default())
-                .map_err(anyhow::Error::from)?;
+            let opus_file = lofty::AudioFile::read_from(reader, parse_options())?;
             crate::fmt::lofty::opus::import_file_into_track(
                 &mut importer,
                 config,
@@ -257,8 +253,7 @@ pub fn import_into_track(
         }
         FileType::Vorbis => {
             let reader = probe.into_inner();
-            let vorbis_file = lofty::AudioFile::read_from(reader, Default::default())
-                .map_err(anyhow::Error::from)?;
+            let vorbis_file = lofty::AudioFile::read_from(reader, parse_options())?;
             crate::fmt::lofty::ogg::import_file_into_track(
                 &mut importer,
                 config,
@@ -268,7 +263,7 @@ pub fn import_into_track(
         }
         _ => {
             // Generic fallback
-            let tagged_file = probe.read().map_err(anyhow::Error::from)?;
+            let tagged_file = probe.read()?;
             crate::fmt::lofty::import_tagged_file_into_track(
                 &mut importer,
                 config,
@@ -294,26 +289,18 @@ pub struct LoadedArtworkImage {
     pub image_data: Vec<u8>,
 }
 
-#[allow(unused)]
-fn parse_media_type(media_type: &str) -> Result<Mime> {
-    media_type
-        .parse()
-        .map_err(anyhow::Error::from)
-        .map_err(Into::into)
-}
-
 pub fn load_embedded_artwork_image_from_file_path(
     file_path: &Path,
 ) -> Result<Option<LoadedArtworkImage>> {
     let tag = {
-        let mut tagged_file = lofty::read_from_path(file_path).map_err(anyhow::Error::from)?;
+        let mut tagged_file = lofty::read_from_path(file_path)?;
         crate::fmt::lofty::take_primary_or_first_tag(&mut tagged_file)
     };
     if let Some((apic_type, media_type, image_data)) = tag
         .as_ref()
         .and_then(crate::fmt::lofty::find_embedded_artwork_image)
     {
-        let media_type = parse_media_type(media_type)?;
+        let media_type = media_type.parse::<Mime>()?;
         let loaded_artwork_image = LoadedArtworkImage {
             apic_type: Some(apic_type),
             media_type,

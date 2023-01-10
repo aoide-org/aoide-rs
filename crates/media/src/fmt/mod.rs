@@ -12,8 +12,5 @@ pub(crate) mod id3;
 #[cfg(feature = "fmt-mp3")]
 pub(crate) mod mp3;
 
-#[cfg(feature = "fmt-mp4")]
-pub(crate) mod mp4;
-
 #[cfg(any(feature = "fmt-flac"))]
 pub(crate) mod vorbis;

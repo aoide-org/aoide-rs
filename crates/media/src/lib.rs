@@ -29,14 +29,15 @@ pub mod fs;
 pub mod io;
 pub mod util;
 
-use mime::Mime;
 use std::{io::Error as IoError, result::Result as StdResult};
+
+use mime::Mime;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("unknown content type")]
-    UnknownContentType,
+    UnknownContentType(String),
 
     #[error("unsupported content type")]
     UnsupportedContentType(Mime),
@@ -48,10 +49,25 @@ pub enum Error {
     Io(#[from] IoError),
 
     #[error(transparent)]
+    Metadata(anyhow::Error),
+
+    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
 pub type Result<T> = StdResult<T, Error>;
+
+impl From<mime::FromStrError> for Error {
+    fn from(err: mime::FromStrError) -> Self {
+        Self::UnknownContentType(err.to_string())
+    }
+}
+
+impl From<lofty::LoftyError> for Error {
+    fn from(err: lofty::LoftyError) -> Self {
+        Self::Metadata(err.into())
+    }
+}
 
 pub mod prelude {
     pub use super::{Error, Result};
