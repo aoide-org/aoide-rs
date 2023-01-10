@@ -259,18 +259,30 @@ pub(crate) fn import_file_tag_into_track(
     }
 
     // Musical metrics
-    let imported_tempo_bpm = tag
+    track.metrics.tempo_bpm = None;
+    for imported_tempo_bpm in tag
         .take_strings(&ItemKey::BPM)
-        .find_map(|input| importer.import_tempo_bpm(&input));
-    if let Some(imported_tempo_bpm) = &imported_tempo_bpm {
-        // Assume that the tag is only capable of storing BPM values with
-        // integer precision if the number has no fractional decimal digits.
-        track.metrics.flags.set(
-            MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
-            imported_tempo_bpm.is_non_fractional(),
-        );
+        .filter_map(|input| importer.import_tempo_bpm(&input))
+    {
+        let is_non_fractional = imported_tempo_bpm.is_non_fractional();
+        track.metrics.tempo_bpm = Some(imported_tempo_bpm.into());
+        if is_non_fractional {
+            // Assume that the tag is only capable of storing BPM values with
+            // integer precision if the number has no fractional decimal digits.
+            track
+                .metrics
+                .flags
+                .set(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL, true);
+            // Continue and try to find a more precise, fractional bpm
+        } else {
+            track
+                .metrics
+                .flags
+                .set(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL, false);
+            // Abort after finding the first fractional bpm
+            break;
+        }
     }
-    track.metrics.tempo_bpm = imported_tempo_bpm.map(Into::into);
     track.metrics.key_signature = tag
         .take_strings(&ItemKey::InitialKey)
         .find_map(|input| importer.import_key_signature(&input));
