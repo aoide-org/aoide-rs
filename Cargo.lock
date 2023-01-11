@@ -584,12 +584,6 @@ checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
 name = "base64"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ea22880d78093b0cbe17c89f64a7d457941e65759157ec6cb31a31d652b05e5"
-
-[[package]]
-name = "base64"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a4ddaa51a5bc52a6948f74c06d20aaaddb71924eab79b8c97a8c556e942d6a"
@@ -2221,9 +2215,9 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.10.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#f73783aa8af5297d792227078500404f3f297510"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#1c41dfa861b41b48202680d72f82dd6222d83fe7"
 dependencies = [
- "base64 0.20.0",
+ "base64 0.21.0",
  "byteorder",
  "cfg-if",
  "flate2",
@@ -2237,7 +2231,7 @@ dependencies = [
 [[package]]
 name = "lofty_attr"
 version = "0.5.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#f73783aa8af5297d792227078500404f3f297510"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#1c41dfa861b41b48202680d72f82dd6222d83fe7"
 dependencies = [
  "proc-macro2",
  "quote",
