@@ -204,9 +204,8 @@ pub(crate) fn export_track_to_file(
         mp4_file.set_ilst(Default::default());
         mp4_file.ilst_mut().expect("ilst")
     };
-    // FIXME: <https://github.com/Serial-ATA/lofty-rs/pull/115>
-    for atom in tag_ilst.atoms() {
-        ilst.replace_atom(atom.clone());
+    for atom in tag_ilst {
+        ilst.replace_atom(atom);
     }
 
     // Preserve numeric legacy genres until overwritten by textual genres
@@ -248,8 +247,6 @@ pub(crate) fn export_track_to_file(
         log::warn!("TODO: Export Serato markers");
     }
 
-    // TODO: Is this comparison effective if the ordering of atoms changes
-    // on an import/export roundtrip (file --import-> track -export-> file)?
     let modified = {
         let mp4_file = <Mp4File as AudioFile>::read_from(file, parse_options())?;
         let old_ilst = mp4_file.ilst();

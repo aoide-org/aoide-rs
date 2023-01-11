@@ -539,7 +539,7 @@ pub(crate) fn import_file_tag_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_XID,
-        tag.take_strings(&ItemKey::AppleXID).map(Into::into),
+        tag.take_strings(&ItemKey::AppleXid).map(Into::into),
     );
 
     debug_assert!(track.tags.is_empty());
@@ -858,12 +858,12 @@ pub(crate) fn export_track_to_tag(tag: &mut Tag, config: &ExportTrackConfig, tra
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_XID) {
         export_faceted_tags(
             tag,
-            ItemKey::AppleXID,
+            ItemKey::AppleXid,
             config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
-        tag.remove_key(&ItemKey::AppleXID);
+        tag.remove_key(&ItemKey::AppleXid);
     }
 
     // Grouping(s)
