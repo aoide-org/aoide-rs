@@ -62,6 +62,9 @@ pub(crate) fn export_track_to_file(
 
     let modified = *id3v2 != id3v2_orig;
     if modified {
+        // Prevent inconsistencies by stripping all other, secondary tags
+        mpeg_file.remove_ape();
+        mpeg_file.remove_id3v1();
         mpeg_file.save_to(file)?;
     }
     Ok(modified)
