@@ -478,7 +478,7 @@ fn build_numeric_field_filter_expression(
             let expr = view_track_search::advisory_rating;
             let expr_not_null = ifnull(
                 expr,
-                aoide_core::media::AdvisoryRating::default()
+                aoide_core::track::AdvisoryRating::default()
                     .to_i16()
                     .expect("i16"),
             );

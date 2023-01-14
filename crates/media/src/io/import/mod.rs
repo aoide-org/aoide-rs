@@ -156,7 +156,6 @@ impl NewTrackInput {
             collected_at,
             content,
             artwork: Default::default(),
-            advisory_rating: None,
         };
         Track::new_from_media_source(media_source)
     }

@@ -38,7 +38,6 @@ fn deserialize_audio_source() {
             "digest": "aGVsbG8gaW50ZXJuZXR-Cg",
             "audio": {},
         },
-        "advisoryRating": 0,
     })
     .to_string();
     let source: _core::Source = serde_json::from_str::<Source>(&json)
@@ -60,7 +59,6 @@ fn deserialize_audio_source() {
                     .try_decode()
                     .ok(),
             },
-            advisory_rating: Some(_core::AdvisoryRating::Unrated),
             artwork: None,
         },
         source

@@ -23,6 +23,38 @@ mod _core {
     pub(super) use aoide_core::{tag::Tags, track::*};
 }
 
+#[derive(Debug, Serialize_repr, Deserialize_repr)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[repr(u8)]
+pub enum AdvisoryRating {
+    Unrated = _core::AdvisoryRating::Unrated as u8,
+    Explicit = _core::AdvisoryRating::Explicit as u8,
+    Clean = _core::AdvisoryRating::Clean as u8,
+}
+
+impl From<_core::AdvisoryRating> for AdvisoryRating {
+    fn from(from: _core::AdvisoryRating) -> Self {
+        use _core::AdvisoryRating::*;
+        match from {
+            Unrated => Self::Unrated,
+            Explicit => Self::Explicit,
+            Clean => Self::Clean,
+        }
+    }
+}
+
+impl From<AdvisoryRating> for _core::AdvisoryRating {
+    fn from(from: AdvisoryRating) -> Self {
+        use AdvisoryRating::*;
+        match from {
+            Unrated => Self::Unrated,
+            Explicit => Self::Explicit,
+            Clean => Self::Clean,
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Track
 ///////////////////////////////////////////////////////////////////////
@@ -48,6 +80,9 @@ pub struct Track {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     copyright: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    advisory_rating: Option<AdvisoryRating>,
 
     #[serde(skip_serializing_if = "Album::is_default", default)]
     album: Album,
@@ -83,6 +118,7 @@ impl From<_core::Track> for Track {
             released_orig_at,
             publisher,
             copyright,
+            advisory_rating,
             album,
             titles,
             actors,
@@ -99,6 +135,7 @@ impl From<_core::Track> for Track {
             released_orig_at: released_orig_at.map(Into::into),
             publisher,
             copyright,
+            advisory_rating: advisory_rating.map(Into::into),
             album: album.untie().into(),
             titles: titles.untie().into_iter().map(Into::into).collect(),
             actors: actors.untie().into_iter().map(Into::into).collect(),
@@ -122,6 +159,7 @@ impl TryFrom<Track> for _core::Track {
             released_orig_at,
             publisher,
             copyright,
+            advisory_rating,
             album,
             titles,
             actors,
@@ -142,6 +180,7 @@ impl TryFrom<Track> for _core::Track {
             released_orig_at: released_orig_at.map(Into::into),
             publisher,
             copyright,
+            advisory_rating: advisory_rating.map(Into::into),
             album: album.into(),
             titles: Canonical::tie(
                 titles

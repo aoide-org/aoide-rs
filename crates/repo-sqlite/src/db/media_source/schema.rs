@@ -32,7 +32,6 @@ diesel::table! {
         artwork_size_width -> Nullable<SmallInt>,
         artwork_size_height -> Nullable<SmallInt>,
         artwork_thumbnail -> Nullable<Binary>,
-        advisory_rating -> Nullable<SmallInt>,
     }
 }
 

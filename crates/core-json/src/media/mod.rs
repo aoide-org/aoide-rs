@@ -110,38 +110,6 @@ impl<'a> TryFrom<DigestRef<'a>> for Vec<u8> {
 // Source
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Serialize_repr, Deserialize_repr)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
-#[repr(u8)]
-pub enum AdvisoryRating {
-    Unrated = _core::AdvisoryRating::Unrated as u8,
-    Explicit = _core::AdvisoryRating::Explicit as u8,
-    Clean = _core::AdvisoryRating::Clean as u8,
-}
-
-impl From<_core::AdvisoryRating> for AdvisoryRating {
-    fn from(from: _core::AdvisoryRating) -> Self {
-        use _core::AdvisoryRating::*;
-        match from {
-            Unrated => Self::Unrated,
-            Explicit => Self::Explicit,
-            Clean => Self::Clean,
-        }
-    }
-}
-
-impl From<AdvisoryRating> for _core::AdvisoryRating {
-    fn from(from: AdvisoryRating) -> Self {
-        use AdvisoryRating::*;
-        match from {
-            Unrated => Self::Unrated,
-            Explicit => Self::Explicit,
-            Clean => Self::Clean,
-        }
-    }
-}
-
 #[allow(clippy::trivially_copy_pass_by_ref)] // Required for serde
 fn is_default_content_metadata_flags(flags: &u8) -> bool {
     *flags == u8::default()
@@ -221,9 +189,6 @@ pub struct Source {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     artwork: Option<Artwork>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    advisory_rating: Option<AdvisoryRating>,
 }
 
 impl From<_core::Source> for Source {
@@ -232,13 +197,11 @@ impl From<_core::Source> for Source {
             collected_at,
             content,
             artwork,
-            advisory_rating,
         } = from;
         Self {
             collected_at: collected_at.into(),
             content: content.into(),
             artwork: artwork.map(Into::into),
-            advisory_rating: advisory_rating.map(Into::into),
         }
     }
 }
@@ -251,7 +214,6 @@ impl TryFrom<Source> for _core::Source {
             collected_at,
             content,
             artwork,
-            advisory_rating,
         } = from;
         let content = content.try_into()?;
         let artwork = artwork.map(TryFrom::try_from).transpose()?;
@@ -259,7 +221,6 @@ impl TryFrom<Source> for _core::Source {
             collected_at: collected_at.into(),
             content,
             artwork,
-            advisory_rating: advisory_rating.map(Into::into),
         };
         Ok(into)
     }

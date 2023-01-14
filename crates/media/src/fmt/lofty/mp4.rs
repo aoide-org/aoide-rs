@@ -8,7 +8,10 @@ use lofty::{
     AudioFile, ItemKey, Tag, TagType, TaggedFile, TaggedFileExt as _,
 };
 
-use aoide_core::{media::AdvisoryRating, track::Track, util::canonical::Canonical};
+use aoide_core::{
+    track::{AdvisoryRating, Track},
+    util::canonical::Canonical,
+};
 
 use crate::{
     io::{
@@ -104,8 +107,8 @@ impl Import {
             serato_tags,
         } = self;
 
-        debug_assert!(track.media_source.advisory_rating.is_none());
-        track.media_source.advisory_rating = advisory_rating;
+        debug_assert!(track.advisory_rating.is_none());
+        track.advisory_rating = advisory_rating;
 
         #[cfg(feature = "serato-markers")]
         if let Some(serato_tags) = serato_tags {
@@ -173,11 +176,7 @@ pub(crate) fn export_track_to_file(
         ilst.remove_atom(&LEGACY_GENRE_IDENT);
     }
 
-    if let Some(advisory_rating) = track
-        .media_source
-        .advisory_rating
-        .map(export_advisory_rating)
-    {
+    if let Some(advisory_rating) = track.advisory_rating.map(export_advisory_rating) {
         ilst.set_advisory_rating(advisory_rating);
     } else {
         ilst.remove_atom(&ADVISORY_RATING_IDENT);

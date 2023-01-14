@@ -80,7 +80,6 @@ impl Fixture {
                     digest: None,
                 },
                 artwork: Default::default(),
-                advisory_rating: None,
             };
             let media_source_id = db
                 .insert_media_source(self.collection_id, DateTime::now_utc(), &media_source)?

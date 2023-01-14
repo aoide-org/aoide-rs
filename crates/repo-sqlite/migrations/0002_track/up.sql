@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS track (
     released_orig_at_yyyymmdd INTEGER, -- naive, gregorian release date as YYYYMMDD (parsed from released_at)
     publisher                TEXT,    -- publisher or record label
     copyright                TEXT,
+    advisory_rating          INTEGER, -- 0 = unrated, 1 = explicit, 2 = clean
     album_kind               INTEGER,
     -- properties: indexing
     track_number             INTEGER, -- > 0

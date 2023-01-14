@@ -21,7 +21,7 @@ use aoide_core::{
             AudioContentMetadata, ContentLink, ContentMetadata, ContentMetadataFlags,
             ContentRevision, ContentRevisionSignedValue,
         },
-        AdvisoryRating, Content, Source,
+        Content, Source,
     },
     util::clock::*,
 };
@@ -62,7 +62,6 @@ pub struct QueryableRecord {
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
     pub artwork_thumbnail: Option<Vec<u8>>,
-    pub advisory_rating: Option<i16>,
 }
 
 impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
@@ -96,7 +95,6 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             artwork_size_width,
             artwork_size_height,
             artwork_thumbnail,
-            advisory_rating,
         } = from;
         let audio_metadata = AudioContentMetadata {
             duration: audio_duration_ms.map(DurationMs::from_inner),
@@ -172,7 +170,6 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
         let content_metadata_flags =
             ContentMetadataFlags::from_bits_truncate(content_metadata_flags as u8);
         let content_metadata = ContentMetadata::Audio(audio_metadata);
-        let advisory_rating = advisory_rating.and_then(AdvisoryRating::from_i16);
         let source = Source {
             collected_at,
             content: Content {
@@ -183,7 +180,6 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                 metadata_flags: content_metadata_flags,
             },
             artwork,
-            advisory_rating,
         };
 
         Ok((header, source))
@@ -201,7 +197,6 @@ pub struct InsertableRecord<'a> {
     pub content_link_rev: Option<ContentRevisionSignedValue>,
     pub content_link_path: &'a str,
     pub content_type: String,
-    pub advisory_rating: Option<i16>,
     pub content_digest: Option<&'a [u8]>,
     pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
@@ -242,7 +237,6 @@ impl<'a> InsertableRecord<'a> {
                     metadata_flags: content_metadata_flags,
                 },
             artwork,
-            advisory_rating,
         } = created_source;
         let audio_metadata = {
             match content_metadata {
@@ -301,7 +295,6 @@ impl<'a> InsertableRecord<'a> {
             content_link_path: content_link_path.as_str(),
             content_link_rev: content_link_rev.map(ContentRevision::to_signed_value),
             content_type: content_type.to_string(),
-            advisory_rating: advisory_rating.as_ref().and_then(ToPrimitive::to_i16),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
             content_metadata_flags: i16::from(content_metadata_flags.bits()),
             audio_duration_ms: audio_metadata
@@ -341,7 +334,6 @@ pub struct UpdatableRecord<'a> {
     pub content_link_rev: Option<ContentRevisionSignedValue>,
     pub content_link_path: &'a str,
     pub content_type: String,
-    pub advisory_rating: Option<i16>,
     pub content_digest: Option<&'a [u8]>,
     pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
@@ -377,7 +369,6 @@ impl<'a> UpdatableRecord<'a> {
                     metadata_flags: content_metadata_flags,
                 },
             artwork,
-            advisory_rating,
         } = updated_source;
         let audio_metadata = {
             match content_metadata {
@@ -433,7 +424,6 @@ impl<'a> UpdatableRecord<'a> {
             content_link_path: content_link_path.as_str(),
             content_link_rev: content_link_rev.map(ContentRevision::to_signed_value),
             content_type: content_type.to_string(),
-            advisory_rating: advisory_rating.as_ref().and_then(ToPrimitive::to_i16),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
             content_metadata_flags: i16::from(content_metadata_flags.bits()),
             audio_duration_ms: audio_metadata

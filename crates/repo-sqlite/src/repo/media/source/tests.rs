@@ -95,7 +95,6 @@ fn insert_media_source() -> anyhow::Result<()> {
                 thumbnail: Some([127; 4 * 4 * 3]),
             },
         })),
-        advisory_rating: None,
     };
     let created_at = DateTime::now_local_or_utc();
 
@@ -135,7 +134,6 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
             }
             .into(),
         },
-        advisory_rating: None,
         artwork: Default::default(),
     };
     let header_lowercase =
@@ -157,7 +155,6 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
             }
             .into(),
         },
-        advisory_rating: None,
         artwork: Default::default(),
     };
     let header_uppercase =
@@ -301,7 +298,6 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
             }
             .into(),
         },
-        advisory_rating: None,
         artwork: Default::default(),
     };
     let header_lowercase =
@@ -324,7 +320,6 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
             .into(),
         },
         artwork: Default::default(),
-        advisory_rating: None,
     };
     let header_uppercase =
         db.insert_media_source(collection_id, DateTime::now_utc(), &file_uppercase)?;

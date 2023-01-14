@@ -35,8 +35,6 @@ CREATE TABLE IF NOT EXISTS media_source (
     artwork_size_width     INTEGER,
     artwork_size_height    INTEGER,
     artwork_thumbnail      BLOB,
-    -- misc properties
-    advisory_rating        INTEGER,          -- 0 = unrated, 1 = explicit, 2 = clean
     --
     FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE,
     UNIQUE (collection_id, content_link_path)

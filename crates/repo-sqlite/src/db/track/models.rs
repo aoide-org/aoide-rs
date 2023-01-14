@@ -34,6 +34,7 @@ pub struct InsertableRecord<'a> {
     pub released_orig_at_yyyymmdd: Option<YYYYMMDD>,
     pub publisher: Option<&'a str>,
     pub copyright: Option<&'a str>,
+    pub advisory_rating: Option<i16>,
     pub album_kind: Option<i16>,
     pub track_number: Option<i16>,
     pub track_total: Option<i16>,
@@ -51,6 +52,7 @@ pub struct InsertableRecord<'a> {
 }
 
 impl<'a> InsertableRecord<'a> {
+    #[allow(clippy::too_many_lines)] // TODO
     pub fn bind(media_source_id: MediaSourceId, entity: &'a Entity) -> Self {
         let EntityHeaderTyped { uid, rev } = &entity.hdr;
         let EntityBody {
@@ -67,6 +69,7 @@ impl<'a> InsertableRecord<'a> {
             released_orig_at,
             publisher,
             copyright,
+            advisory_rating,
             album,
             actors: _,
             titles: _,
@@ -125,6 +128,7 @@ impl<'a> InsertableRecord<'a> {
             released_orig_at_yyyymmdd: released_orig_at_yyyymmdd.map(Into::into),
             publisher: publisher.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),
+            advisory_rating: advisory_rating.map(|advisory_rating| advisory_rating as i16),
             album_kind: album_kind.map(|kind| kind as i16),
             track_number: track_index.number.map(|idx| idx as i16),
             track_total: track_index.total.map(|idx| idx as i16),
@@ -172,6 +176,7 @@ pub struct UpdatableRecord<'a> {
     pub released_orig_at_yyyymmdd: Option<YYYYMMDD>,
     pub publisher: Option<&'a str>,
     pub copyright: Option<&'a str>,
+    pub advisory_rating: Option<i16>,
     pub album_kind: Option<i16>,
     pub track_number: Option<i16>,
     pub track_total: Option<i16>,
@@ -189,6 +194,7 @@ pub struct UpdatableRecord<'a> {
 }
 
 impl<'a> UpdatableRecord<'a> {
+    #[allow(clippy::too_many_lines)] // TODO
     pub fn bind(
         next_rev: EntityRevision,
         media_source_id: MediaSourceId,
@@ -208,6 +214,7 @@ impl<'a> UpdatableRecord<'a> {
             released_orig_at,
             publisher,
             copyright,
+            advisory_rating,
             album,
             actors: _,
             titles: _,
@@ -267,6 +274,7 @@ impl<'a> UpdatableRecord<'a> {
             released_orig_at_yyyymmdd: released_orig_at_yyyymmdd.map(Into::into),
             publisher: publisher.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),
+            advisory_rating: advisory_rating.map(|advisory_rating| advisory_rating as i16),
             album_kind: album_kind.map(|kind| kind as i16),
             track_number: track_index.number.map(|number| number as i16),
             track_total: track_index.total.map(|total| total as i16),

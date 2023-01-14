@@ -23,6 +23,7 @@ diesel::table! {
         released_orig_at_yyyymmdd -> Nullable<Integer>,
         publisher -> Nullable<Text>,
         copyright -> Nullable<Text>,
+        advisory_rating -> Nullable<SmallInt>,
         album_kind -> Nullable<SmallInt>,
         track_number -> Nullable<SmallInt>,
         track_total -> Nullable<SmallInt>,
@@ -46,6 +47,5 @@ diesel::table! {
         audio_samplerate_hz -> Nullable<Double>,
         audio_bitrate_bps -> Nullable<Double>,
         audio_loudness_lufs -> Nullable<Double>,
-        advisory_rating -> Nullable<SmallInt>,
     }
 }

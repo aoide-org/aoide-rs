@@ -14,7 +14,7 @@ use aoide_core::{
         album::{Album, Kind as AlbumKind},
         index::*,
         metric::*,
-        Entity, EntityBody, EntityHeader, Track,
+        AdvisoryRating, Entity, EntityBody, EntityHeader, Track,
     },
     util::{canonical::Canonical, clock::*, color::*},
 };
@@ -46,6 +46,7 @@ pub struct QueryableRecord {
     pub released_orig_at_yyyymmdd: Option<YYYYMMDD>,
     pub publisher: Option<String>,
     pub copyright: Option<String>,
+    pub advisory_rating: Option<i16>,
     pub album_kind: Option<i16>,
     pub track_number: Option<i16>,
     pub track_total: Option<i16>,
@@ -69,7 +70,6 @@ pub struct QueryableRecord {
     pub audio_samplerate_hz: Option<f64>,
     pub audio_bitrate_bps: Option<f64>,
     pub audio_loudness_lufs: Option<f64>,
-    pub advisory_rating: Option<i16>,
 }
 
 impl From<QueryableRecord> for (MediaSourceId, RecordHeader, EntityHeader) {
@@ -130,6 +130,7 @@ pub(crate) fn load_repo_entity(
         released_orig_at_yyyymmdd,
         publisher,
         copyright,
+        advisory_rating,
         album_kind,
         track_number,
         track_total,
@@ -186,6 +187,12 @@ pub(crate) fn load_repo_entity(
             .map(DateYYYYMMDD::new)
             .map(Into::into)
     };
+    let advisory_rating = advisory_rating
+        .map(|val| {
+            AdvisoryRating::from_i16(val)
+                .ok_or_else(|| anyhow::anyhow!("Invalid advisory rating value: {val}"))
+        })
+        .transpose()?;
     let album_kind = album_kind
         .map(|val| {
             AlbumKind::from_i16(val)
@@ -252,6 +259,7 @@ pub(crate) fn load_repo_entity(
         released_orig_at,
         publisher,
         copyright,
+        advisory_rating,
         album,
         actors: track_actors,
         titles: track_titles,

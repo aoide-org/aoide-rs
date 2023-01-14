@@ -1550,7 +1550,7 @@ components:
       description: |
         Advisory rating for content(s):
 
-          * 0 = Inoffensive
+          * 0 = Inoffensive/Unrated
           * 1 = Explicit (offensive)
           * 2 = Clean (inoffensive after edited)
     MediaDigest:
@@ -1874,8 +1874,6 @@ components:
           $ref: "#/components/schemas/MediaContent"
         artwork:
           $ref: "#/components/schemas/Artwork"
-        advisoryRating:
-          $ref: "#/components/schemas/AdvisoryRatingCode"
       required:
         - collectedAt
         - content
@@ -3379,6 +3377,8 @@ components:
         copyright:
           description: Copyright
           type: string
+        advisoryRating:
+          $ref: "#/components/schemas/AdvisoryRatingCode"
         album:
           $ref: "#/components/schemas/Album"
         titles:

@@ -10,6 +10,7 @@ pub mod tag;
 pub mod title;
 
 use ::url::Url;
+use num_derive::{FromPrimitive, ToPrimitive};
 
 use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
 
@@ -19,6 +20,36 @@ use crate::{
     tag::*,
     util::canonical::{Canonical, IsCanonical},
 };
+
+/// Advisory rating code for content(s)
+///
+/// Values match the "rtng" MP4 atom containing the advisory rating
+/// as written by iTunes.
+///
+/// Note: Previously Apple used the value 4 for explicit content that
+/// has now been replaced by 1.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+pub enum AdvisoryRating {
+    /// Inoffensive
+    #[default]
+    Unrated = 0,
+
+    /// Offensive
+    Explicit = 1,
+
+    /// Inoffensive (Edited)
+    Clean = 2,
+}
+
+impl AdvisoryRating {
+    #[must_use]
+    pub fn is_offensive(self) -> bool {
+        match self {
+            Self::Unrated | Self::Clean => false,
+            Self::Explicit => true,
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Track {
@@ -68,6 +99,8 @@ pub struct Track {
 
     pub copyright: Option<String>,
 
+    pub advisory_rating: Option<AdvisoryRating>,
+
     pub album: Canonical<Album>,
 
     pub indexes: Indexes,
@@ -95,6 +128,7 @@ impl Track {
             released_orig_at: None,
             publisher: None,
             copyright: None,
+            advisory_rating: None,
             album: Default::default(),
             indexes: Default::default(),
             titles: Default::default(),
@@ -153,6 +187,7 @@ impl Track {
     pub fn merge_newer_from_synchronized_media_source(&mut self, newer: Track) {
         let Self {
             actors,
+            advisory_rating,
             album,
             color,
             copyright,
@@ -169,6 +204,7 @@ impl Track {
         } = self;
         let Self {
             actors: newer_actors,
+            advisory_rating: newer_advisory_rating,
             album: newer_album,
             color: newer_color,
             copyright: newer_copyright,
@@ -191,6 +227,9 @@ impl Track {
         // Do not replace existing data with empty data
         if !newer_actors.is_empty() {
             *actors = newer_actors;
+        }
+        if newer_advisory_rating.is_some() {
+            *advisory_rating = newer_advisory_rating;
         }
         if newer_album != Default::default() {
             *album = newer_album;

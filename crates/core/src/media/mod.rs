@@ -4,7 +4,6 @@
 use std::borrow::Cow;
 
 use mime::Mime;
-use num_derive::{FromPrimitive, ToPrimitive};
 
 use crate::prelude::*;
 
@@ -44,36 +43,6 @@ where
     }
 }
 
-/// Advisory rating code for content(s)
-///
-/// Values match the "rtng" MP4 atom containing the advisory rating
-/// as written by iTunes.
-///
-/// Note: Previously Apple used the value 4 for explicit content that
-/// has now been replaced by 1.
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromPrimitive, ToPrimitive)]
-pub enum AdvisoryRating {
-    /// Inoffensive
-    #[default]
-    Unrated = 0,
-
-    /// Offensive
-    Explicit = 1,
-
-    /// Inoffensive (Edited)
-    Clean = 2,
-}
-
-impl AdvisoryRating {
-    #[must_use]
-    pub fn is_offensive(self) -> bool {
-        match self {
-            Self::Unrated | Self::Clean => false,
-            Self::Explicit => true,
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Content {
     /// Revisioned link to an external source with the actual contents
@@ -105,8 +74,6 @@ pub struct Source {
     pub content: Content,
 
     pub artwork: Option<Artwork>,
-
-    pub advisory_rating: Option<AdvisoryRating>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -136,7 +103,6 @@ impl Validate for Source {
                     metadata_flags: content_metadata_flags,
                     digest: _,
                 },
-            advisory_rating: _,
             artwork,
         } = self;
         let context = ValidationContext::new()
