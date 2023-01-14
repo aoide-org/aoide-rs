@@ -32,7 +32,6 @@ url = "2.3.1"
 walkdir = "2.3.2"
 
 # Dependencies (optional)
-id3 = { version = "1.6.0", optional = true }
 metaflac = { version = "0.2.5", optional = true }
 
 # Dependencies (optional): gigtag
@@ -48,8 +47,7 @@ aoide-core = "=0.8.0"
 [features]
 default = ["all"]
 all = ["fmt-all", "gigtag", "serato-markers"]
-fmt-all = ["fmt-flac", "fmt-mp3"]
+fmt-all = ["fmt-flac"]
 fmt-flac = ["metaflac"]
-fmt-mp3 = ["id3"]
 gigtag = ["dep:gigtag", "compact_str"]
 serato-markers = ["triseratops"]

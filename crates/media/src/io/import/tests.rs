@@ -47,7 +47,6 @@ fn import_replay_gain_invalid() {
 }
 
 #[test]
-#[cfg(feature = "fmt-mp3")]
 #[ignore] // a hack for debugging purposes
 fn import_tmp_test_mp3() {
     let path = Path::new("/tmp/test.mp3");

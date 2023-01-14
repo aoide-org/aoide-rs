@@ -5,7 +5,7 @@ use std::{borrow::Cow, fs::File};
 
 use lofty::{
     mp4::{Atom, AtomData, AtomIdent, Ilst, Mp4File},
-    AudioFile, ItemKey, Tag, TagType, TaggedFile, TaggedFileExt as _,
+    AudioFile, ItemKey, Tag, TagType,
 };
 
 use aoide_core::{
@@ -63,6 +63,63 @@ fn export_advisory_rating(advisory_rating: AdvisoryRating) -> lofty::mp4::Adviso
         Clean => lofty::mp4::AdvisoryRating::Clean,
         Explicit => lofty::mp4::AdvisoryRating::Explicit,
     }
+}
+
+#[cfg(feature = "serato-markers")]
+#[must_use]
+fn import_serato_markers(
+    importer: &mut Importer,
+    ilst: &lofty::mp4::Ilst,
+) -> Option<triseratops::tag::TagContainer> {
+    let mut parsed = false;
+
+    let mut serato_tags = triseratops::tag::TagContainer::new();
+
+    if let Some(data) = ilst
+        .atom(&SERATO_MARKERS_IDENT)
+        .and_then(|atom| atom.data().next())
+    {
+        match data {
+            AtomData::UTF8(input) => {
+                match serato_tags.parse_markers(input.as_bytes(), triseratops::tag::TagFormat::MP4)
+                {
+                    Ok(()) => {
+                        parsed = true;
+                    }
+                    Err(err) => {
+                        importer.add_issue(format!("Failed to parse Serato Markers: {err}"));
+                    }
+                }
+            }
+            data => {
+                importer.add_issue(format!("Unexpected data for Serato Markers: {data:?}"));
+            }
+        }
+    }
+
+    if let Some(data) = ilst
+        .atom(&SERATO_MARKERS2_IDENT)
+        .and_then(|atom| atom.data().next())
+    {
+        match data {
+            AtomData::UTF8(input) => {
+                match serato_tags.parse_markers2(input.as_bytes(), triseratops::tag::TagFormat::MP4)
+                {
+                    Ok(()) => {
+                        parsed = true;
+                    }
+                    Err(err) => {
+                        importer.add_issue(format!("Failed to parse Serato Markers2: {err}"));
+                    }
+                }
+            }
+            data => {
+                importer.add_issue(format!("Unexpected data for Serato Markers2: {data:?}"));
+            }
+        }
+    }
+
+    parsed.then_some(serato_tags)
 }
 
 #[derive(Debug, Default)]
@@ -147,19 +204,6 @@ pub(crate) fn export_track_to_file(
     config: &ExportTrackConfig,
     track: &mut Track,
 ) -> Result<bool> {
-    // Export generic metadata
-    let has_genre_text;
-    let tag_ilst = {
-        let mut tagged_file = TaggedFile::read_from(file, parse_options())?;
-        let mut tag = tagged_file
-            .remove(TagType::MP4ilst)
-            .unwrap_or_else(|| Tag::new(TagType::MP4ilst));
-        super::export_track_to_tag(&mut tag, config, track);
-        has_genre_text = tag.get_string(&ItemKey::Genre).is_some();
-        Ilst::from(tag)
-    };
-
-    // Post-processing: Export custom metadata
     let mut mp4_file = <Mp4File as AudioFile>::read_from(file, parse_options())?;
     let ilst = if let Some(ilst) = mp4_file.ilst_mut() {
         ilst
@@ -167,9 +211,31 @@ pub(crate) fn export_track_to_file(
         mp4_file.set_ilst(Default::default());
         mp4_file.ilst_mut().expect("ilst")
     };
-    for atom in tag_ilst {
+    let ilst_orig = ilst.clone();
+
+    export_track_to_tag(ilst, config, track);
+
+    let modified = *ilst != ilst_orig;
+    if modified {
+        mp4_file.save_to(file)?;
+    }
+    Ok(modified)
+}
+
+pub(crate) fn export_track_to_tag(ilst: &mut Ilst, config: &ExportTrackConfig, track: &mut Track) {
+    // Export generic metadata
+    let has_genre_text;
+    let new_ilst = {
+        let mut tag = Tag::new(TagType::MP4ilst);
+        super::export_track_to_tag(&mut tag, config, track);
+        has_genre_text = tag.get_string(&ItemKey::Genre).is_some();
+        Ilst::from(tag)
+    };
+    for atom in new_ilst {
         ilst.replace_atom(atom);
     }
+
+    // Post-processing: Export custom metadata
 
     // Preserve numeric legacy genres until overwritten by textual genres
     if has_genre_text {
@@ -197,71 +263,4 @@ pub(crate) fn export_track_to_file(
     if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {
         log::warn!("TODO: Export Serato markers");
     }
-
-    let modified = {
-        let mp4_file = <Mp4File as AudioFile>::read_from(file, parse_options())?;
-        let old_ilst = mp4_file.ilst();
-        Some(&*ilst) != old_ilst
-    };
-    if modified {
-        mp4_file.save_to(file)?;
-    }
-    Ok(modified)
-}
-
-#[cfg(feature = "serato-markers")]
-#[must_use]
-fn import_serato_markers(
-    importer: &mut Importer,
-    ilst: &lofty::mp4::Ilst,
-) -> Option<triseratops::tag::TagContainer> {
-    let mut parsed = false;
-
-    let mut serato_tags = triseratops::tag::TagContainer::new();
-
-    if let Some(data) = ilst
-        .atom(&SERATO_MARKERS_IDENT)
-        .and_then(|atom| atom.data().next())
-    {
-        match data {
-            AtomData::UTF8(input) => {
-                match serato_tags.parse_markers(input.as_bytes(), triseratops::tag::TagFormat::MP4)
-                {
-                    Ok(()) => {
-                        parsed = true;
-                    }
-                    Err(err) => {
-                        importer.add_issue(format!("Failed to parse Serato Markers: {err}"));
-                    }
-                }
-            }
-            data => {
-                importer.add_issue(format!("Unexpected data for Serato Markers: {data:?}"));
-            }
-        }
-    }
-
-    if let Some(data) = ilst
-        .atom(&SERATO_MARKERS2_IDENT)
-        .and_then(|atom| atom.data().next())
-    {
-        match data {
-            AtomData::UTF8(input) => {
-                match serato_tags.parse_markers2(input.as_bytes(), triseratops::tag::TagFormat::MP4)
-                {
-                    Ok(()) => {
-                        parsed = true;
-                    }
-                    Err(err) => {
-                        importer.add_issue(format!("Failed to parse Serato Markers2: {err}"));
-                    }
-                }
-            }
-            data => {
-                importer.add_issue(format!("Unexpected data for Serato Markers2: {data:?}"));
-            }
-        }
-    }
-
-    parsed.then_some(serato_tags)
 }

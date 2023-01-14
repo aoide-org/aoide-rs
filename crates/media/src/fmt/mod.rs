@@ -6,11 +6,5 @@ pub(crate) mod lofty;
 #[cfg(feature = "fmt-flac")]
 pub(crate) mod flac;
 
-#[cfg(any(feature = "fmt-mp3"))]
-pub(crate) mod id3;
-
-#[cfg(feature = "fmt-mp3")]
-pub(crate) mod mp3;
-
 #[cfg(any(feature = "fmt-flac"))]
 pub(crate) mod vorbis;

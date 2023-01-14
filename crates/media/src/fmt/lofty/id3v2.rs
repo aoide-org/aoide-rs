@@ -1,14 +1,23 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use lofty::id3::v2::ID3v2Tag;
+use lofty::{
+    id3::v2::{EncodedTextFrame, Frame, FrameValue, ID3v2Tag},
+    Tag, TagType,
+};
 
 use aoide_core::{
     track::{metric::MetricsFlags, Track},
     util::canonical::Canonical,
 };
 
-use crate::io::import::{ImportTrackConfig, ImportTrackFlags, ImportedTempoBpm, Importer};
+use crate::{
+    io::{
+        export::{ExportTrackConfig, ExportTrackFlags},
+        import::{ImportTrackConfig, ImportTrackFlags, ImportedTempoBpm, Importer},
+    },
+    util::format_validated_tempo_bpm,
+};
 
 const FLOAT_BPM_FRAME_ID: &str = "TXXX:BPM";
 
@@ -112,4 +121,41 @@ pub(super) fn import_serato_markers(
     }
 
     parsed.then_some(serato_tags)
+}
+
+pub(crate) fn export_track_to_tag(
+    id3v2_tag: &mut ID3v2Tag,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+) {
+    // Export generic metadata
+    let new_tag = {
+        let mut tag = Tag::new(TagType::ID3v2);
+        super::export_track_to_tag(&mut tag, config, track);
+        ID3v2Tag::from(tag)
+    };
+    for frame in new_tag {
+        id3v2_tag.insert(frame);
+    }
+
+    // Post-processing: Export custom metadata
+
+    // Music: Precise tempo BPM as a float value
+    debug_assert!(id3v2_tag.get(FLOAT_BPM_FRAME_ID).is_none());
+    if let Some(formatted_bpm) = format_validated_tempo_bpm(
+        &mut track.metrics.tempo_bpm,
+        crate::util::TempoBpmFormat::Float,
+    ) {
+        let frame = FrameValue::UserText(EncodedTextFrame {
+            description: FLOAT_BPM_FRAME_ID.to_owned(),
+            content: formatted_bpm,
+            encoding: lofty::TextEncoding::UTF8,
+        });
+        id3v2_tag.insert(Frame::new("TXXX", frame, Default::default()).expect("valid frame"));
+    }
+
+    #[cfg(feature = "serato-markers")]
+    if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {
+        log::warn!("TODO: Export Serato markers");
+    }
 }
