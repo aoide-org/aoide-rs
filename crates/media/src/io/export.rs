@@ -16,15 +16,8 @@ use super::import::ImportTrackFlags;
 
 bitflags! {
     pub struct ExportTrackFlags: u16 {
-        /// Use iTunes grouping/movement/work mapping
-        ///
-        /// Use the mapping for grouping and movement/work fields as introduced
-        /// by iTunes v12.5.4. This is the preferred mapping and existing files
-        /// that still use TIT1 instead of GRP1 for storing the grouping property
-        /// should be updated accordingly.
-        ///
-        /// Implies METADATA.
-        const COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0001;
+        /// See also: [`super::import::ImportTrackFlags`]
+        const COMPATIBILITY_ID3V2_APPLE_GRP1 = ImportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1.bits();
 
         #[cfg(feature = "gigtag")]
         const GIGTAGS = ImportTrackFlags::GIGTAGS.bits();

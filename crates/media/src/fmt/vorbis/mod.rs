@@ -417,7 +417,7 @@ pub(crate) fn export_track(
                 tags_map.into(),
                 &mut tags,
             ) {
-                log::error!("Failed to export gigitags: {err}");
+                log::error!("Failed to export gig tags: {err}");
             }
         }
         if tags.is_empty() {

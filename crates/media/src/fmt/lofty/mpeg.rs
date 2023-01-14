@@ -3,9 +3,11 @@
 
 use lofty::mpeg::MPEGFile;
 
-use aoide_core::{track::Track, util::canonical::Canonical};
+use aoide_core::track::Track;
 
 use crate::io::import::{ImportTrackConfig, ImportTrackFlags, Importer};
+
+use super::id3v2::Import;
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,
@@ -14,24 +16,19 @@ pub(crate) fn import_file_into_track(
     track: &mut Track,
 ) {
     // Pre-processing
-
-    #[cfg(feature = "serato-markers")]
-    let serato_tags = config
+    let import = config
         .flags
-        .contains(ImportTrackFlags::SERATO_MARKERS)
+        .contains(ImportTrackFlags::METADATA)
         .then(|| mpeg_file.id3v2())
         .flatten()
-        .and_then(|tag| super::id3v2::import_serato_markers(importer, tag));
+        .map(|tag| Import::build(importer, config, tag));
 
-    // Generic import
+    // Import generic metadata
     let tagged_file = mpeg_file.into();
     super::import_tagged_file_into_track(importer, config, tagged_file, track);
 
     // Post-processing
-
-    #[cfg(feature = "serato-markers")]
-    if let Some(serato_tags) = serato_tags {
-        track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
-        track.color = crate::util::serato::import_track_color(&serato_tags);
+    if let Some(import) = import {
+        import.finish(track);
     }
 }

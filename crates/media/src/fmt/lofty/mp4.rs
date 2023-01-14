@@ -8,21 +8,14 @@ use lofty::{
     AudioFile, ItemKey, Tag, TagType, TaggedFile, TaggedFileExt as _,
 };
 
-use aoide_core::{
-    media::AdvisoryRating,
-    track::{
-        title::{Kind as TitleKind, Title, Titles},
-        Track,
-    },
-    util::canonical::Canonical,
-};
+use aoide_core::{media::AdvisoryRating, track::Track, util::canonical::Canonical};
 
 use crate::{
     io::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
-    util::{format_validated_tempo_bpm, ingest_title_from},
+    util::format_validated_tempo_bpm,
     Result,
 };
 
@@ -31,8 +24,6 @@ use super::parse_options;
 const ADVISORY_RATING_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"rtng");
 
 const LEGACY_GENRE_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"gnre"); // numeric identifier
-
-const WORK_NAME_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"\xa9wrk");
 
 const COM_APPLE_ITUNES_FREEFORM_MEAN: &str = "----:com.apple.iTunes";
 
@@ -75,8 +66,6 @@ fn export_advisory_rating(advisory_rating: AdvisoryRating) -> lofty::mp4::Adviso
 struct Import {
     advisory_rating: Option<AdvisoryRating>,
 
-    work_title: Option<Title>,
-
     #[cfg(feature = "serato-markers")]
     serato_tags: Option<triseratops::tag::TagContainer>,
 }
@@ -88,29 +77,11 @@ impl Import {
         config: &ImportTrackConfig,
         ilst: &Ilst,
     ) -> Self {
+        debug_assert!(config.flags.contains(ImportTrackFlags::METADATA));
+
         // TODO: Handle in generic import
         // See also: <https://github.com/Serial-ATA/lofty-rs/issues/99>
-        let advisory_rating = config
-            .flags
-            .contains(ImportTrackFlags::METADATA)
-            .then(|| ilst.advisory_rating().map(import_advisory_rating))
-            .flatten();
-
-        // Additional titles not (yet) supported by lofty-rs
-        let work_title = config
-            .flags
-            .contains(ImportTrackFlags::METADATA)
-            .then(|| ilst.atom(&WORK_NAME_IDENT))
-            .flatten()
-            .into_iter()
-            .flat_map(Atom::data)
-            .find_map(|data| {
-                if let AtomData::UTF8(name) = data {
-                    ingest_title_from(name, TitleKind::Work)
-                } else {
-                    None
-                }
-            });
+        let advisory_rating = ilst.advisory_rating().map(import_advisory_rating);
 
         #[cfg(feature = "serato-markers")]
         let serato_tags = config
@@ -121,7 +92,6 @@ impl Import {
 
         Self {
             advisory_rating,
-            work_title,
             #[cfg(feature = "serato-markers")]
             serato_tags,
         }
@@ -130,22 +100,12 @@ impl Import {
     fn finish(self, track: &mut Track) {
         let Self {
             advisory_rating,
-            work_title,
             #[cfg(feature = "serato-markers")]
             serato_tags,
         } = self;
 
         debug_assert!(track.media_source.advisory_rating.is_none());
         track.media_source.advisory_rating = advisory_rating;
-
-        if let Some(work_title) = work_title {
-            let mut track_titles = track.titles.untie_replace(Default::default());
-            debug_assert!(Titles::filter_kind(&track_titles, TitleKind::Work)
-                .next()
-                .is_none());
-            track_titles.push(work_title);
-            track.titles = Canonical::tie(track_titles);
-        }
 
         #[cfg(feature = "serato-markers")]
         if let Some(serato_tags) = serato_tags {
@@ -232,14 +192,6 @@ pub(crate) fn export_track_to_file(
         ilst.replace_atom(atom);
     } else {
         ilst.remove_atom(&FLOAT_BPM_IDENT);
-    }
-
-    // Additional titles not yet supported by lofty-rs
-    if let Some(work) = Titles::filter_kind(track.titles.iter(), TitleKind::Work).next() {
-        let atom = Atom::new(WORK_NAME_IDENT, AtomData::UTF8(work.name.clone()));
-        ilst.insert_atom(atom);
-    } else {
-        ilst.remove_atom(&WORK_NAME_IDENT);
     }
 
     #[cfg(feature = "serato-markers")]

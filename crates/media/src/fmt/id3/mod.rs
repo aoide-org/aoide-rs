@@ -131,7 +131,7 @@ pub(crate) fn export_track(
     tag.remove_extended_text(Some("WORK"), None);
     if config
         .flags
-        .contains(ExportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
+        .contains(ExportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1)
     {
         tag.set_text_values(
             "TIT1",
@@ -364,12 +364,12 @@ pub(crate) fn export_track(
                 tags_map.into(),
                 &mut tags,
             ) {
-                log::error!("Failed to export gigitags: {err}");
+                log::error!("Failed to export gig tags: {err}");
             }
         }
-        let grouping_frame_id = if config
+        let frame_id = if config
             .flags
-            .contains(ExportTrackFlags::COMPATIBILITY_ID3V2_ITUNES_GROUPING_MOVEMENT_WORK)
+            .contains(ExportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1)
         {
             "GRP1"
         } else {
@@ -377,11 +377,11 @@ pub(crate) fn export_track(
             "TIT1"
         };
         if tags.is_empty() {
-            export_faceted_tags(tag, grouping_frame_id, None, vec![]);
+            export_faceted_tags(tag, frame_id, None, vec![]);
         } else {
             export_faceted_tags(
                 tag,
-                grouping_frame_id,
+                frame_id,
                 config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
                 tags,
             );

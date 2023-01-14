@@ -68,6 +68,16 @@ bitflags! {
         /// Implies METADATA_EMBEDDED_ARTWORK.
         const METADATA_EMBEDDED_ARTWORK_DIGEST                  = 0b0000_0000_0000_0111;
 
+        /// Use Apple GRP1/TIT1 instead of TIT1/TXXX:WORK ID3v2 frames for Content Group
+        /// and Work Title respectively.
+        ///
+        /// Use the mapping for grouping and work fields as introduced by iTunes v12.5.4.
+        /// This is the preferred mapping and existing files that still use TIT1 instead
+        /// of GRP1 for storing the grouping property should be updated accordingly.
+        ///
+        /// Implies METADATA.
+        const COMPATIBILITY_ID3V2_APPLE_GRP1                          = 0b0000_0001_0000_0001;
+
         #[cfg(feature = "gigtag")]
         /// Import gigtags from Content Group/Grouping file tag
         ///

@@ -299,6 +299,8 @@ pub(crate) fn parse_key_signature(input: &str) -> Option<KeySignature> {
     }
     if input.starts_with(|c: char| c.is_ascii_alphanumeric()) {
         if input.starts_with(|c: char| c.is_ascii_digit()) {
+            // Camelot is the most common encoding and also recommended
+            // as an alternative for the TKEY frame in ID3v2.
             let key_code = KeyCode::try_from_camelot_str(input);
             if let Some(key_code) = key_code {
                 return Some(key_code.into());
@@ -308,7 +310,7 @@ pub(crate) fn parse_key_signature(input: &str) -> Option<KeySignature> {
                 return Some(key_code.into());
             }
         } else {
-            // Try the ID3v2 recommendation for TKEY first
+            // Try the ID3v2 recommendation for TKEY first.
             let key_code = KeyCode::try_from_serato_str(input);
             if let Some(key_code) = key_code {
                 return Some(key_code.into());

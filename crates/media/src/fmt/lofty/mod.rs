@@ -5,7 +5,7 @@ use std::{borrow::Cow, ops::Not as _};
 
 use lofty::{
     Accessor, AudioFile, FileProperties, ItemKey, ItemValue, ParseOptions, PictureType, Tag,
-    TagItem, TaggedFile, TaggedFileExt as _,
+    TagItem, TagType, TaggedFile, TaggedFileExt as _,
 };
 use semval::IsValid;
 
@@ -225,6 +225,60 @@ pub(crate) fn import_tagged_file_into_track(
     }
 }
 
+// Compatibility hacks for mapping ItemKey::ContentGroup and ItemKey::Work
+#[derive(Debug)]
+struct Compatibility {
+    primary_content_group_item_key: ItemKey,
+    secondary_content_group_item_key: Option<ItemKey>,
+    primary_work_item_key: ItemKey,
+    secondary_work_item_key: Option<ItemKey>,
+}
+
+impl Compatibility {
+    fn import(tage_type: TagType, flags: ImportTrackFlags) -> Self {
+        Self::new(
+            tage_type,
+            flags.contains(ImportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1),
+        )
+    }
+
+    fn export(tage_type: TagType, flags: ExportTrackFlags) -> Self {
+        Self::new(
+            tage_type,
+            flags.contains(ExportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1),
+        )
+    }
+
+    fn new(tage_type: TagType, apple_grp1: bool) -> Self {
+        let primary_content_group_item_key;
+        let secondary_content_group_item_key;
+        let primary_work_item_key;
+        let secondary_work_item_key;
+        if matches!(tage_type, TagType::ID3v2) {
+            primary_content_group_item_key = ItemKey::AppleId3v2ContentGroup; // GRP1
+            primary_work_item_key = ItemKey::Work; // TXXX:WORK
+            if apple_grp1 {
+                secondary_content_group_item_key = None;
+                secondary_work_item_key = Some(ItemKey::ContentGroup); // TIT1
+            } else {
+                secondary_content_group_item_key = Some(ItemKey::ContentGroup); // TIT1
+                secondary_work_item_key = None;
+            }
+        } else {
+            primary_content_group_item_key = ItemKey::ContentGroup;
+            secondary_content_group_item_key = None;
+            primary_work_item_key = ItemKey::Work;
+            secondary_work_item_key = None;
+        }
+        Self {
+            primary_content_group_item_key,
+            secondary_content_group_item_key,
+            primary_work_item_key,
+            secondary_work_item_key,
+        }
+    }
+}
+
 #[allow(clippy::too_many_lines)] // TODO
 pub(crate) fn import_file_tag_into_track(
     importer: &mut Importer,
@@ -268,6 +322,8 @@ pub(crate) fn import_file_tag_into_track(
     if !config.flags.contains(ImportTrackFlags::METADATA) {
         return;
     }
+
+    let compatibility = Compatibility::import(tag.tag_type(), config.flags);
 
     // Musical metrics
     track.metrics.tempo_bpm = None;
@@ -317,6 +373,19 @@ pub(crate) fn import_file_tag_into_track(
         .find_map(|name| ingest_title_from(name, TitleKind::Movement))
     {
         track_titles.push(title);
+    }
+    let primary_work_title = tag
+        .take_strings(&compatibility.primary_work_item_key)
+        .find_map(|name| ingest_title_from(name, TitleKind::Work));
+    if let Some(work_title) = primary_work_title.or_else(|| {
+        compatibility
+            .secondary_work_item_key
+            .and_then(|secondary_work_item_key| {
+                tag.take_strings(&secondary_work_item_key)
+                    .find_map(|name| ingest_title_from(name, TitleKind::Work))
+            })
+    }) {
+        track_titles.push(work_title);
     }
     track.titles = importer.finish_import_of_titles(TrackScope::Track, track_titles);
 
@@ -399,7 +468,21 @@ pub(crate) fn import_file_tag_into_track(
 
     track.album = Canonical::tie(album);
 
-    // Indexes (in pairs)
+    track.copyright = tag
+        .take_strings(&ItemKey::CopyrightMessage)
+        .find_map(trimmed_non_empty_from)
+        .map(Cow::into_owned);
+    track.publisher = tag
+        .take_strings(&ItemKey::Label)
+        .find_map(trimmed_non_empty_from)
+        .map(Cow::into_owned);
+    if track.publisher.is_none() {
+        tag.take_strings(&ItemKey::Publisher)
+            .find_map(trimmed_non_empty_from)
+            .map(Cow::into_owned);
+    }
+
+    // Index pairs
     // Import both values consistently if any of them is available!
     // TODO: Verify u32 -> u16 conversions
     let track_number = tag
@@ -427,30 +510,29 @@ pub(crate) fn import_file_tag_into_track(
         .transpose()
         .ok()
         .flatten();
-    if disc_number.is_some() || tag.disk_total().is_some() {
+    if disc_number.is_some() || disc_total.is_some() {
         track.indexes.disc.number = disc_number;
         track.indexes.disc.total = disc_total;
     } else {
-        debug_assert_eq!(track.indexes.track, Default::default());
+        debug_assert_eq!(track.indexes.disc, Default::default());
     }
-    // TODO: Movement and work?
-
-    track.copyright = tag
-        .take_strings(&ItemKey::CopyrightMessage)
-        .find_map(trimmed_non_empty_from)
-        .map(Cow::into_owned);
-    track.publisher = tag
-        .take_strings(&ItemKey::Label)
-        .find_map(trimmed_non_empty_from)
-        .map(Cow::into_owned);
-    if track.publisher.is_none() {
-        tag.take_strings(&ItemKey::Publisher)
-            .find_map(trimmed_non_empty_from)
-            .map(Cow::into_owned);
-    }
-
-    if let Some(item) = tag.take(&ItemKey::ParentalAdvisory).next() {
-        log::warn!("TODO: Handle item with parental advisory: {item:?}");
+    let movement_number =
+        tag.get_items(&ItemKey::MovementNumber)
+            .find_map(|item| match item.value() {
+                ItemValue::Text(number) => number.parse::<u16>().ok(),
+                _ => None,
+            });
+    let movement_total =
+        tag.get_items(&ItemKey::MovementNumber)
+            .find_map(|item| match item.value() {
+                ItemValue::Text(number) => number.parse::<u16>().ok(),
+                _ => None,
+            });
+    if movement_number.is_some() || movement_total.is_some() {
+        track.indexes.movement.number = movement_number;
+        track.indexes.movement.total = movement_total;
+    } else {
+        debug_assert_eq!(track.indexes.movement, Default::default());
     }
 
     track.recorded_at = tag
@@ -471,12 +553,25 @@ pub(crate) fn import_file_tag_into_track(
     let mut tags_map: TagsMap<'static> = Default::default();
 
     // Grouping tags
+    debug_assert!(tags_map.get_faceted_plain_tags(FACET_ID_GROUPING).is_none());
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_GROUPING,
-        tag.take_strings(&ItemKey::ContentGroup).map(Into::into),
+        tag.take_strings(&compatibility.primary_content_group_item_key)
+            .map(Into::into),
     );
+    if let Some(secondary_content_group_item_key) = compatibility.secondary_content_group_item_key {
+        if tags_map.get_faceted_plain_tags(FACET_ID_GROUPING).is_none() {
+            importer.import_faceted_tags_from_label_values(
+                &mut tags_map,
+                &config.faceted_tag_mapping,
+                FACET_ID_GROUPING,
+                tag.take_strings(&secondary_content_group_item_key)
+                    .map(Into::into),
+            );
+        }
+    }
 
     // Import gig tags from raw grouping tags before any other tags.
     #[cfg(feature = "gigtag")]
@@ -626,6 +721,15 @@ pub(crate) fn export_track_to_tag(tag: &mut Tag, config: &ExportTrackConfig, tra
         }
     }
 
+    let compatibility = Compatibility::export(tag.tag_type(), config.flags);
+    // Prevent inconsistencies by removing ambiguous keys.
+    if let Some(secondary_content_group_item_key) = compatibility.secondary_content_group_item_key {
+        tag.remove_key(&secondary_content_group_item_key);
+    }
+    if let Some(secondary_work_item_key) = compatibility.secondary_work_item_key {
+        tag.remove_key(&secondary_work_item_key);
+    }
+
     // Music: Tempo/BPM
     // Write the BPM rounded to an integer value as the least common denominator.
     // The precise BPM could be written into custom tag fields during post-processing.
@@ -652,13 +756,24 @@ pub(crate) fn export_track_to_tag(tag: &mut Tag, config: &ExportTrackConfig, tra
         tag.remove_title();
     }
     tag.remove_key(&ItemKey::TrackSubtitle);
-    let track_subtitles = Titles::filter_kind(track.titles.iter(), TitleKind::Sub).peekable();
-    for track_subtitle in track_subtitles {
+    for track_subtitle in Titles::filter_kind(track.titles.iter(), TitleKind::Sub).peekable() {
         let item_val = ItemValue::Text(track_subtitle.name.clone());
         let pushed = tag.push_item(TagItem::new(ItemKey::TrackSubtitle, item_val));
         debug_assert!(pushed);
     }
-    // TODO: Work and movement
+    for movement_title in Titles::filter_kind(track.titles.iter(), TitleKind::Movement).peekable() {
+        let item_val = ItemValue::Text(movement_title.name.clone());
+        let pushed = tag.push_item(TagItem::new(ItemKey::Movement, item_val));
+        debug_assert!(pushed);
+    }
+    for work_title in Titles::filter_kind(track.titles.iter(), TitleKind::Work).peekable() {
+        let item_val = ItemValue::Text(work_title.name.clone());
+        let pushed = tag.push_item(TagItem::new(
+            compatibility.primary_work_item_key.clone(),
+            item_val,
+        ));
+        debug_assert!(pushed);
+    }
 
     // Track actors
     export_filtered_actor_names(
@@ -760,6 +875,38 @@ pub(crate) fn export_track_to_tag(tag: &mut Tag, config: &ExportTrackConfig, tra
         tag.insert_text(ItemKey::CopyrightMessage, copyright.clone());
     } else {
         tag.remove_key(&ItemKey::CopyrightMessage);
+    }
+
+    // Index pairs
+    if let Some(track_number) = track.indexes.track.number {
+        tag.set_track(track_number.into());
+    } else {
+        tag.remove_track();
+    }
+    if let Some(track_total) = track.indexes.track.total {
+        tag.set_track_total(track_total.into());
+    } else {
+        tag.remove_track_total();
+    }
+    if let Some(disc_number) = track.indexes.disc.number {
+        tag.set_disk(disc_number.into());
+    } else {
+        tag.remove_disk();
+    }
+    if let Some(disc_total) = track.indexes.disc.total {
+        tag.set_disk_total(disc_total.into());
+    } else {
+        tag.remove_disk_total();
+    }
+    if let Some(movement_number) = track.indexes.movement.number {
+        tag.insert_text(ItemKey::MovementNumber, movement_number.to_string());
+    } else {
+        tag.remove_key(&ItemKey::MovementNumber);
+    }
+    if let Some(movement_total) = track.indexes.movement.total {
+        tag.insert_text(ItemKey::MovementTotal, movement_total.to_string());
+    } else {
+        tag.remove_key(&ItemKey::MovementTotal);
     }
 
     if let Some(recorded_at) = track.recorded_at {
@@ -883,11 +1030,11 @@ pub(crate) fn export_track_to_tag(tag: &mut Tag, config: &ExportTrackConfig, tra
             }
         }
         if tags.is_empty() {
-            tag.remove_key(&ItemKey::ContentGroup);
+            tag.remove_key(&compatibility.primary_content_group_item_key);
         } else {
             export_faceted_tags(
                 tag,
-                ItemKey::ContentGroup,
+                compatibility.primary_content_group_item_key,
                 config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
                 tags,
             );
