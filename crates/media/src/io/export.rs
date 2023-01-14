@@ -43,7 +43,6 @@ pub fn export_track_to_path(
         "audio/flac" => crate::fmt::flac::export_track_to_path(path, config, track),
         #[cfg(feature = "fmt-mp3")]
         "audio/mpeg" => crate::fmt::mp3::export_track_to_path(path, config, track),
-        #[cfg(feature = "fmt-mp4")]
         "audio/m4a" | "video/mp4" => {
             let mut file = OpenOptions::new().write(true).open(path)?;
             crate::fmt::lofty::mp4::export_track_to_file(&mut file, config, track)
