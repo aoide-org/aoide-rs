@@ -150,6 +150,8 @@ pub struct SortOrder {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Filter {
     Phrase(PhraseFieldFilter),
+    ActorPhrase(ActorPhraseFilter),
+    TitlePhrase(TitlePhraseFilter),
     Numeric(NumericFieldFilter),
     DateTime(DateTimeFieldFilter),
     Condition(ConditionFilter),
@@ -157,8 +159,6 @@ pub enum Filter {
     CueLabel(StringFilter),
     AnyTrackUid(Vec<TrackUid>),
     AnyPlaylistUid(Vec<PlaylistUid>),
-    ActorPhrase(ActorPhraseFilter),
-    TitlePhrase(TitlePhraseFilter),
     All(Vec<Filter>),
     Any(Vec<Filter>),
     Not(Box<Filter>),

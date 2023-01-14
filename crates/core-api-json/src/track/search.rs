@@ -546,6 +546,8 @@ impl From<_inner::TitlePhraseFilter> for TitlePhraseFilter {
 #[serde(rename_all = "camelCase")]
 pub enum Filter {
     Phrase(PhraseFieldFilter),
+    ActorPhrase(ActorPhraseFilter),
+    TitlePhrase(TitlePhraseFilter),
     Numeric(NumericFieldFilter),
     DateTime(DateTimeFieldFilter),
     Condition(ConditionFilter),
@@ -553,8 +555,6 @@ pub enum Filter {
     CueLabel(StringFilter),
     AnyTrackUid(Vec<EntityUid>),
     AnyPlaylistUid(Vec<EntityUid>),
-    ActorPhrase(ActorPhraseFilter),
-    TitlePhrase(TitlePhraseFilter),
     All(Vec<Filter>),
     Any(Vec<Filter>),
     Not(Box<Filter>),
@@ -567,6 +567,8 @@ impl From<Filter> for _inner::Filter {
         use Filter::*;
         match from {
             Phrase(from) => Self::Phrase(from.into()),
+            ActorPhrase(from) => Self::ActorPhrase(from.into()),
+            TitlePhrase(from) => Self::TitlePhrase(from.into()),
             Numeric(from) => Self::Numeric(from.into()),
             DateTime(from) => Self::DateTime(from.into()),
             Condition(from) => Self::Condition(from.into()),
@@ -578,8 +580,6 @@ impl From<Filter> for _inner::Filter {
             AnyPlaylistUid(from) => {
                 Self::AnyPlaylistUid(from.into_iter().map(EntityUidTyped::from_untyped).collect())
             }
-            ActorPhrase(from) => Self::ActorPhrase(from.into()),
-            TitlePhrase(from) => Self::TitlePhrase(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),
             Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
             Not(from) => Self::Not(Box::new((*from).into())),
@@ -593,6 +593,8 @@ impl From<_inner::Filter> for Filter {
         use _inner::Filter::*;
         match from {
             Phrase(from) => Self::Phrase(from.into()),
+            ActorPhrase(from) => Self::ActorPhrase(from.into()),
+            TitlePhrase(from) => Self::TitlePhrase(from.into()),
             Numeric(from) => Self::Numeric(from.into()),
             DateTime(from) => Self::DateTime(from.into()),
             Condition(from) => Self::Condition(from.into()),
@@ -602,8 +604,6 @@ impl From<_inner::Filter> for Filter {
             AnyPlaylistUid(from) => {
                 Self::AnyPlaylistUid(from.into_iter().map(Into::into).collect())
             }
-            ActorPhrase(from) => Self::ActorPhrase(from.into()),
-            TitlePhrase(from) => Self::TitlePhrase(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),
             Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
             Not(from) => Self::Not(Box::new((*from).into())),
