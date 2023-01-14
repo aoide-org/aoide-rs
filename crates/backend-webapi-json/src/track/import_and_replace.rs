@@ -4,7 +4,7 @@
 use std::sync::atomic::AtomicBool;
 
 use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
-use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
+use aoide_media::io::import::ImportTrackConfig;
 
 use aoide_core_api_json::media::{tracker::import_files::ImportedSourceWithIssues, SyncMode};
 
@@ -145,11 +145,9 @@ pub fn handle_request(
     let replace_mode = replace_mode.unwrap_or(ReplaceMode::UpdateOrCreate);
     // FIXME: Replace hard-coded tag mapping config
     let faceted_tag_mapping_config = predefined_faceted_tag_mapping_config();
-    // FIXME: Replace hard-coded import flags
-    let import_flags = ImportTrackFlags::all();
     let import_config = ImportTrackConfig {
         faceted_tag_mapping: faceted_tag_mapping_config,
-        flags: import_flags,
+        ..Default::default()
     };
     let params = uc::Params {
         sync_mode: sync_mode.into(),

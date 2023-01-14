@@ -20,10 +20,10 @@ bitflags! {
         const COMPATIBILITY_ID3V2_APPLE_GRP1 = ImportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1.bits();
 
         #[cfg(feature = "gigtag")]
-        const GIGTAGS = ImportTrackFlags::GIGTAGS.bits();
+        const GIGTAGS                        = ImportTrackFlags::GIGTAGS.bits();
 
         #[cfg(feature = "serato-markers")]
-        const SERATO_MARKERS = ImportTrackFlags::SERATO_MARKERS.bits();
+        const SERATO_MARKERS                 = ImportTrackFlags::SERATO_MARKERS.bits();
     }
 }
 
@@ -31,6 +31,16 @@ bitflags! {
 pub struct ExportTrackConfig {
     pub faceted_tag_mapping: FacetedTagMappingConfig,
     pub flags: ExportTrackFlags,
+}
+
+impl Default for ExportTrackConfig {
+    fn default() -> Self {
+        Self {
+            faceted_tag_mapping: Default::default(),
+            flags: ExportTrackFlags::all()
+                .difference(ExportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1),
+        }
+    }
 }
 
 pub fn export_track_to_path(

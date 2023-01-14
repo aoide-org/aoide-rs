@@ -76,7 +76,7 @@ bitflags! {
         /// of GRP1 for storing the grouping property should be updated accordingly.
         ///
         /// Implies METADATA.
-        const COMPATIBILITY_ID3V2_APPLE_GRP1                          = 0b0000_0001_0000_0001;
+        const COMPATIBILITY_ID3V2_APPLE_GRP1                    = 0b0000_0001_0000_0001;
 
         #[cfg(feature = "gigtag")]
         /// Import gigtags from Content Group/Grouping file tag
@@ -124,7 +124,8 @@ impl Default for ImportTrackConfig {
     fn default() -> Self {
         Self {
             faceted_tag_mapping: Default::default(),
-            flags: ImportTrackFlags::all(),
+            flags: ImportTrackFlags::all()
+                .difference(ImportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1),
         }
     }
 }

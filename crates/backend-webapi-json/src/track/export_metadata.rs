@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
+
 use aoide_core::media::content::resolver::VirtualFilePathResolver;
 
-use aoide_media::io::export::{ExportTrackConfig, ExportTrackFlags};
+use aoide_media::io::export::ExportTrackConfig;
 
 use super::*;
 
@@ -29,11 +30,9 @@ pub fn handle_request(
 ) -> Result<ResponseBody> {
     // FIXME: Replace hard-coded tag mapping
     let faceted_tag_mapping = predefined_faceted_tag_mapping_config();
-    // FIXME: Replace hard-coded export flags
-    let flags = ExportTrackFlags::all();
     let config = ExportTrackConfig {
         faceted_tag_mapping,
-        flags,
+        ..Default::default()
     };
     let path_resolver = VirtualFilePathResolver::new();
     connection.transaction::<_, Error, _>(|connection| {
