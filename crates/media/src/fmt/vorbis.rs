@@ -38,24 +38,35 @@ pub(super) fn import_serato_markers(
     Some(serato_tags)
 }
 
+fn export_track_to_tag_generic(
+    tag: &mut VorbisComments,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+) {
+    // Collect keys that would survive a roundtrip
+    let old_keys = VorbisComments::from(Tag::from(tag.clone()))
+        .take_items()
+        .map(|(key, _)| key)
+        .collect::<Vec<_>>();
+    // Export generic metadata
+    let mut new_tag = Tag::new(TagType::VorbisComments);
+    super::export_track_to_tag(&mut new_tag, config, track);
+    let mut new_tag = VorbisComments::from(new_tag);
+    // Merge generic metadata
+    for key in old_keys {
+        std::mem::forget(tag.remove(&key));
+    }
+    for (key, value) in new_tag.take_items() {
+        tag.insert(key, value, false);
+    }
+}
+
 pub(crate) fn export_track_to_tag(
     tag: &mut VorbisComments,
     config: &ExportTrackConfig,
     track: &mut Track,
 ) {
-    // Export generic metadata
-    let new_tag = {
-        let mut tag = Tag::new(TagType::VorbisComments);
-        super::export_track_to_tag(&mut tag, config, track);
-        VorbisComments::from(tag)
-    };
-    for (key, _) in new_tag.items() {
-        std::mem::forget(tag.remove(key));
-    }
-    // FIXME: Avoid allocations by consuming all items from `new_tag`
-    for (key, value) in new_tag.items() {
-        tag.insert(key.to_owned(), value.to_owned(), false);
-    }
+    export_track_to_tag_generic(tag, config, track);
 
     #[cfg(feature = "serato-markers")]
     if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {

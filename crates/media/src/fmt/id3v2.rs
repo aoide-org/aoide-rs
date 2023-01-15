@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::{collections::HashSet, ops::Not as _};
+
 use lofty::{
     id3::v2::{EncodedTextFrame, Frame, FrameValue, ID3v2Tag},
     Tag, TagType,
@@ -123,25 +125,37 @@ pub(super) fn import_serato_markers(
     parsed.then_some(serato_tags)
 }
 
-pub(crate) fn export_track_to_tag(
-    id3v2_tag: &mut ID3v2Tag,
-    config: &ExportTrackConfig,
-    track: &mut Track,
-) {
+fn export_track_to_tag_generic(tag: &mut ID3v2Tag, config: &ExportTrackConfig, track: &mut Track) {
+    // Collect all frames that survive a roundtrip
+    let old_frames = ID3v2Tag::from(Tag::from(tag.clone()))
+        .into_iter()
+        // TODO: Clear frame content to reduce temporary memory usage?
+        .collect::<HashSet<_>>();
     // Export generic metadata
     let new_tag = {
         let mut tag = Tag::new(TagType::ID3v2);
         super::export_track_to_tag(&mut tag, config, track);
         ID3v2Tag::from(tag)
     };
+    // Merge generic metadata
+    tag.retain(|frame| old_frames.contains(frame).not());
+    std::mem::forget(old_frames);
     for frame in new_tag {
-        id3v2_tag.insert(frame);
+        tag.insert(frame);
     }
+}
+
+pub(crate) fn export_track_to_tag(
+    tag: &mut ID3v2Tag,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+) {
+    export_track_to_tag_generic(tag, config, track);
 
     // Post-processing: Export custom metadata
 
     // Music: Precise tempo BPM as a float value
-    debug_assert!(id3v2_tag.get(FLOAT_BPM_FRAME_ID).is_none());
+    debug_assert!(tag.get(FLOAT_BPM_FRAME_ID).is_none());
     if let Some(formatted_bpm) = format_validated_tempo_bpm(
         &mut track.metrics.tempo_bpm,
         crate::util::TempoBpmFormat::Float,
@@ -151,7 +165,7 @@ pub(crate) fn export_track_to_tag(
             content: formatted_bpm,
             encoding: lofty::TextEncoding::UTF8,
         });
-        id3v2_tag.insert(Frame::new("TXXX", frame, Default::default()).expect("valid frame"));
+        tag.insert(Frame::new("TXXX", frame, Default::default()).expect("valid frame"));
     }
 
     #[cfg(feature = "serato-markers")]

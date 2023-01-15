@@ -5,7 +5,7 @@ use std::{borrow::Cow, fs::File};
 
 use lofty::{
     mp4::{Atom, AtomData, AtomIdent, Ilst, Mp4File},
-    AudioFile, ItemKey, Tag, TagType,
+    AudioFile, Tag, TagType,
 };
 
 use aoide_core::{
@@ -223,26 +223,34 @@ pub(crate) fn export_track_to_file(
     Ok(modified)
 }
 
-pub(crate) fn export_track_to_tag(ilst: &mut Ilst, config: &ExportTrackConfig, track: &mut Track) {
+fn export_track_to_tag_generic(ilst: &mut Ilst, config: &ExportTrackConfig, track: &mut Track) {
+    // Collect all atom idents that survive a roundtrip
+    let old_idents = Ilst::from(Tag::from(ilst.clone()))
+        .into_iter()
+        .map(|atom| atom.ident().as_borrowed().into_owned())
+        .collect::<Vec<_>>();
     // Export generic metadata
-    let has_genre_text;
     let new_ilst = {
         let mut tag = Tag::new(TagType::MP4ilst);
         super::export_track_to_tag(&mut tag, config, track);
-        has_genre_text = tag.get_string(&ItemKey::Genre).is_some();
         Ilst::from(tag)
     };
+    // Merge generic metadata
+    for ident in old_idents {
+        ilst.remove_atom(&ident);
+    }
     for atom in new_ilst {
         ilst.replace_atom(atom);
     }
+}
 
-    // Post-processing: Export custom metadata
+pub(crate) fn export_track_to_tag(ilst: &mut Ilst, config: &ExportTrackConfig, track: &mut Track) {
+    export_track_to_tag_generic(ilst, config, track);
 
-    // Preserve numeric legacy genres until overwritten by textual genres
-    if has_genre_text {
-        ilst.remove_atom(&LEGACY_GENRE_IDENT);
-    }
+    // Get rid of unsupported numeric genre identifiers to prevent inconsistencies
+    ilst.remove_atom(&LEGACY_GENRE_IDENT);
 
+    // Parental advisory
     if let Some(advisory_rating) = track.advisory_rating.map(export_advisory_rating) {
         ilst.set_advisory_rating(advisory_rating);
     } else {

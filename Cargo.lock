@@ -2201,7 +2201,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.10.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#100b7e21b137bad31abc924687b0021c1c72e4f1"
+source = "git+https://github.com/uklotzde/lofty-rs?branch=dev#3725c6dc1f3ff7c0dd1a950953a7770f47aa90d1"
 dependencies = [
  "base64 0.21.0",
  "byteorder",
@@ -2217,7 +2217,7 @@ dependencies = [
 [[package]]
 name = "lofty_attr"
 version = "0.5.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#100b7e21b137bad31abc924687b0021c1c72e4f1"
+source = "git+https://github.com/uklotzde/lofty-rs?branch=dev#3725c6dc1f3ff7c0dd1a950953a7770f47aa90d1"
 dependencies = [
  "proc-macro2",
  "quote",
