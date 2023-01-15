@@ -225,7 +225,14 @@ pub(crate) fn export_track_to_file(
 
 fn export_track_to_tag_generic(ilst: &mut Ilst, config: &ExportTrackConfig, track: &mut Track) {
     // Collect all atom idents that survive a roundtrip
-    let old_idents = Ilst::from(Tag::from(ilst.clone()))
+    let mut ilst_without_pictures = Ilst::default();
+    for atom in (&*ilst)
+        .into_iter()
+        .filter(|atom| !atom.data().any(|data| matches!(data, AtomData::Picture(_))))
+    {
+        ilst_without_pictures.insert_atom(atom.clone());
+    }
+    let old_idents = Ilst::from(Tag::from(ilst_without_pictures))
         .into_iter()
         .map(|atom| atom.ident().as_borrowed().into_owned())
         .collect::<Vec<_>>();

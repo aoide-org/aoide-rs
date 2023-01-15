@@ -127,7 +127,15 @@ pub(super) fn import_serato_markers(
 
 fn export_track_to_tag_generic(tag: &mut ID3v2Tag, config: &ExportTrackConfig, track: &mut Track) {
     // Collect all frames that survive a roundtrip
-    let old_frames = ID3v2Tag::from(Tag::from(tag.clone()))
+    let mut tag_without_pictures = ID3v2Tag::default();
+    tag_without_pictures.set_flags(*tag.flags());
+    for frame in (&*tag)
+        .into_iter()
+        .filter(|frame| !matches!(frame.content(), FrameValue::Picture { .. }))
+    {
+        tag_without_pictures.insert(frame.clone());
+    }
+    let old_frames = ID3v2Tag::from(Tag::from(tag_without_pictures))
         .into_iter()
         // TODO: Clear frame content to reduce temporary memory usage?
         .collect::<HashSet<_>>();

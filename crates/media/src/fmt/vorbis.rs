@@ -44,7 +44,12 @@ fn export_track_to_tag_generic(
     track: &mut Track,
 ) {
     // Collect keys that would survive a roundtrip
-    let old_keys = VorbisComments::from(Tag::from(tag.clone()))
+    let mut tag_without_pictures = VorbisComments::default();
+    tag_without_pictures.set_vendor(tag.vendor().to_owned());
+    for (key, value) in tag.items() {
+        tag_without_pictures.insert(key.to_owned(), value.to_owned(), false);
+    }
+    let old_keys = VorbisComments::from(Tag::from(tag_without_pictures))
         .take_items()
         .map(|(key, _)| key)
         .collect::<Vec<_>>();
