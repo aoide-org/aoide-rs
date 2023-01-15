@@ -49,6 +49,10 @@ pub fn export_track_to_path(
     track: &mut Track,
 ) -> Result<bool> {
     match track.media_source.content.r#type.essence_str() {
+        "audio/aiff" => {
+            let mut file = OpenOptions::new().write(true).open(path)?;
+            crate::fmt::aiff::export_track_to_file(&mut file, config, track)
+        }
         "audio/flac" => {
             let mut file = OpenOptions::new().write(true).open(path)?;
             crate::fmt::flac::export_track_to_file(&mut file, config, track)
