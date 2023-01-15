@@ -50,6 +50,7 @@ pub(crate) fn export_track_to_file(
     track: &mut Track,
 ) -> Result<bool> {
     let mut mpeg_file = <MPEGFile as AudioFile>::read_from(file, parse_options())?;
+
     let id3v2 = if let Some(id3v2) = mpeg_file.id3v2_mut() {
         id3v2
     } else {

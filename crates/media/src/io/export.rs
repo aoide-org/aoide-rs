@@ -49,17 +49,26 @@ pub fn export_track_to_path(
     track: &mut Track,
 ) -> Result<bool> {
     match track.media_source.content.r#type.essence_str() {
-        #[cfg(feature = "fmt-flac")]
-        "audio/flac" => crate::fmt::flac::export_track_to_path(path, config, track),
+        "audio/flac" => {
+            let mut file = OpenOptions::new().write(true).open(path)?;
+            crate::fmt::flac::export_track_to_file(&mut file, config, track)
+        }
         "audio/mpeg" => {
             let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::lofty::mpeg::export_track_to_file(&mut file, config, track)
+            crate::fmt::mpeg::export_track_to_file(&mut file, config, track)
         }
         "audio/m4a" | "video/mp4" => {
             let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::lofty::mp4::export_track_to_file(&mut file, config, track)
+            crate::fmt::mp4::export_track_to_file(&mut file, config, track)
         }
-        // TODO: Add support for audio/ogg
+        "audio/ogg" => {
+            let mut file = OpenOptions::new().write(true).open(path)?;
+            crate::fmt::ogg::export_track_to_file(&mut file, config, track)
+        }
+        "audio/opus" => {
+            let mut file = OpenOptions::new().write(true).open(path)?;
+            crate::fmt::opus::export_track_to_file(&mut file, config, track)
+        }
         _ => {
             log::debug!(
                 "Skipping export of track {media_source_content_link:?}: {path:?} {config:?}",

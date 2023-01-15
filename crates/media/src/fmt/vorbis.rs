@@ -1,9 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use lofty::ogg::VorbisComments;
+use aoide_core::track::Track;
+use lofty::{ogg::VorbisComments, Tag, TagType};
 
-use crate::io::import::Importer;
+use crate::io::{
+    export::{ExportTrackConfig, ExportTrackFlags},
+    import::Importer,
+};
 
 #[cfg(feature = "serato-markers")]
 #[must_use]
@@ -32,4 +36,29 @@ pub(super) fn import_serato_markers(
         })
         .ok()?;
     Some(serato_tags)
+}
+
+pub(crate) fn export_track_to_tag(
+    tag: &mut VorbisComments,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+) {
+    // Export generic metadata
+    let new_tag = {
+        let mut tag = Tag::new(TagType::VorbisComments);
+        super::export_track_to_tag(&mut tag, config, track);
+        VorbisComments::from(tag)
+    };
+    for (key, _) in new_tag.items() {
+        std::mem::forget(tag.remove(key));
+    }
+    // FIXME: Avoid allocations by consuming all items from `new_tag`
+    for (key, value) in new_tag.items() {
+        tag.insert(key.to_owned(), value.to_owned(), false);
+    }
+
+    #[cfg(feature = "serato-markers")]
+    if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {
+        log::warn!("TODO: Export Serato markers");
+    }
 }

@@ -31,9 +31,6 @@ time = { version = "0.3.17", features = ["parsing"] }
 url = "2.3.1"
 walkdir = "2.3.2"
 
-# Dependencies (optional)
-metaflac = { version = "0.2.5", optional = true }
-
 # Dependencies (optional): gigtag
 gigtag = { version = "0.1.4", optional = true }
 compact_str = { version = "0.6.1", optional = true }
@@ -46,8 +43,6 @@ aoide-core = "=0.8.0"
 
 [features]
 default = ["all"]
-all = ["fmt-all", "gigtag", "serato-markers"]
-fmt-all = ["fmt-flac"]
-fmt-flac = ["metaflac"]
+all = ["gigtag", "serato-markers"]
 gigtag = ["dep:gigtag", "compact_str"]
 serato-markers = ["triseratops"]

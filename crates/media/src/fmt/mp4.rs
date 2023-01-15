@@ -205,6 +205,7 @@ pub(crate) fn export_track_to_file(
     track: &mut Track,
 ) -> Result<bool> {
     let mut mp4_file = <Mp4File as AudioFile>::read_from(file, parse_options())?;
+
     let ilst = if let Some(ilst) = mp4_file.ilst_mut() {
         ilst
     } else {

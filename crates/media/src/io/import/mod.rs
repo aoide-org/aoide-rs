@@ -32,7 +32,7 @@ use aoide_core::{
 };
 
 use crate::{
-    fmt::lofty::parse_options,
+    fmt::parse_options,
     util::{
         db2lufs,
         digest::MediaDigest,
@@ -219,67 +219,37 @@ pub fn import_into_track(
         FileType::AIFF => {
             let reader = probe.into_inner();
             let aiff_file = lofty::AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::lofty::aiff::import_file_into_track(
-                &mut importer,
-                config,
-                aiff_file,
-                track,
-            );
+            crate::fmt::aiff::import_file_into_track(&mut importer, config, aiff_file, track);
         }
         FileType::FLAC => {
             let reader = probe.into_inner();
             let flac_file = lofty::AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::lofty::flac::import_file_into_track(
-                &mut importer,
-                config,
-                flac_file,
-                track,
-            );
+            crate::fmt::flac::import_file_into_track(&mut importer, config, flac_file, track);
         }
         FileType::MP4 => {
             let reader = probe.into_inner();
             let mp4_file = lofty::AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::lofty::mp4::import_file_into_track(&mut importer, config, mp4_file, track);
+            crate::fmt::mp4::import_file_into_track(&mut importer, config, mp4_file, track);
         }
         FileType::MPEG => {
             let reader = probe.into_inner();
             let mpeg_file = lofty::AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::lofty::mpeg::import_file_into_track(
-                &mut importer,
-                config,
-                mpeg_file,
-                track,
-            );
+            crate::fmt::mpeg::import_file_into_track(&mut importer, config, mpeg_file, track);
         }
         FileType::Opus => {
             let reader = probe.into_inner();
             let opus_file = lofty::AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::lofty::opus::import_file_into_track(
-                &mut importer,
-                config,
-                opus_file,
-                track,
-            );
+            crate::fmt::opus::import_file_into_track(&mut importer, config, opus_file, track);
         }
         FileType::Vorbis => {
             let reader = probe.into_inner();
             let vorbis_file = lofty::AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::lofty::ogg::import_file_into_track(
-                &mut importer,
-                config,
-                vorbis_file,
-                track,
-            );
+            crate::fmt::ogg::import_file_into_track(&mut importer, config, vorbis_file, track);
         }
         _ => {
             // Generic fallback
             let tagged_file = probe.read()?;
-            crate::fmt::lofty::import_tagged_file_into_track(
-                &mut importer,
-                config,
-                tagged_file,
-                track,
-            );
+            crate::fmt::import_tagged_file_into_track(&mut importer, config, tagged_file, track);
         }
     }
     Ok(importer.finish())
@@ -304,11 +274,11 @@ pub fn load_embedded_artwork_image_from_file_path(
 ) -> Result<Option<LoadedArtworkImage>> {
     let tag = {
         let mut tagged_file = lofty::read_from_path(file_path)?;
-        crate::fmt::lofty::take_primary_or_first_tag(&mut tagged_file)
+        crate::fmt::take_primary_or_first_tag(&mut tagged_file)
     };
     if let Some((apic_type, media_type, image_data)) = tag
         .as_ref()
-        .and_then(crate::fmt::lofty::find_embedded_artwork_image)
+        .and_then(crate::fmt::find_embedded_artwork_image)
     {
         let media_type = media_type.parse::<Mime>()?;
         let loaded_artwork_image = LoadedArtworkImage {

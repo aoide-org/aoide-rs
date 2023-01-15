@@ -228,7 +228,6 @@ dependencies = [
  "image",
  "lofty",
  "log",
- "metaflac",
  "mime",
  "mime_guess",
  "nom",
@@ -2322,17 +2321,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5de893c32cde5f383baa4c04c5d6dbdd735cfd4a794b0debdb2bb1b421da5ff4"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "metaflac"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1470d3cc1bb0d692af5eb3afb594330b8ba09fd91c32c4e1c6322172a5ba750"
-dependencies = [
- "byteorder",
- "hex",
- "log",
 ]
 
 [[package]]
