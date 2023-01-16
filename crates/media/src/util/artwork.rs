@@ -200,8 +200,15 @@ pub fn try_ingest_embedded_artwork_image(
     )
 }
 
+#[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
+pub enum EditEmbeddedArtworkImage {
+    Replace(ReplaceEmbeddedArtworkImage),
+    Remove(RemoveEmbeddedArtworkImage),
+}
+
 #[derive(Debug, Clone, Copy)]
-pub enum ReplaceOtherEmbeddedArtworkImages {
+pub enum EditOtherEmbeddedArtworkImages {
     Keep,
     Remove,
 }
@@ -210,14 +217,14 @@ pub enum ReplaceOtherEmbeddedArtworkImages {
 pub struct ReplaceEmbeddedArtworkImage {
     pub artwork_image: ArtworkImage,
     pub image_data: Vec<u8>,
-    pub others: ReplaceOtherEmbeddedArtworkImages,
+    pub others: EditOtherEmbeddedArtworkImages,
 }
 
 impl ReplaceEmbeddedArtworkImage {
     #[must_use]
     pub fn from_ingested_artwork_image(
         ingested_artwork_image: IngestedArtworkImage,
-        others: ReplaceOtherEmbeddedArtworkImages,
+        others: EditOtherEmbeddedArtworkImages,
     ) -> Self {
         let IngestedArtworkImage {
             artwork_image,
@@ -255,4 +262,10 @@ impl ReplaceEmbeddedArtworkImage {
         } = ingested_artwork_image;
         Ok(artwork_image)
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct RemoveEmbeddedArtworkImage {
+    pub apic_type: ApicType,
+    pub others: EditOtherEmbeddedArtworkImages,
 }

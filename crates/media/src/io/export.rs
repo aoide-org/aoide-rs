@@ -15,7 +15,7 @@ use aoide_core::track::{
 };
 
 use crate::{
-    util::{artwork::ReplaceEmbeddedArtworkImage, tag::FacetedTagMappingConfig},
+    util::{artwork::EditEmbeddedArtworkImage, tag::FacetedTagMappingConfig},
     Error, Result,
 };
 
@@ -55,7 +55,7 @@ pub fn export_track_to_path(
     path: &Path,
     config: &ExportTrackConfig,
     track: &mut Track,
-    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<bool> {
     let file = File::open(path)?;
     let probe = lofty::Probe::new(file).guess_file_type()?;
@@ -80,7 +80,7 @@ pub fn export_track_to_path(
                 &mut file,
                 config,
                 track,
-                replace_embedded_artwork_image,
+                edit_embedded_artwork_image,
             )
         }
         FileType::FLAC => {
@@ -94,7 +94,7 @@ pub fn export_track_to_path(
                 &mut file,
                 config,
                 track,
-                replace_embedded_artwork_image,
+                edit_embedded_artwork_image,
             )
         }
         FileType::MP4 => {
@@ -111,7 +111,7 @@ pub fn export_track_to_path(
                 &mut file,
                 config,
                 track,
-                replace_embedded_artwork_image,
+                edit_embedded_artwork_image,
             )
         }
         FileType::MPEG => {
@@ -125,7 +125,7 @@ pub fn export_track_to_path(
                 &mut file,
                 config,
                 track,
-                replace_embedded_artwork_image,
+                edit_embedded_artwork_image,
             )
         }
         FileType::Opus => {
@@ -139,7 +139,7 @@ pub fn export_track_to_path(
                 &mut file,
                 config,
                 track,
-                replace_embedded_artwork_image,
+                edit_embedded_artwork_image,
             )
         }
         FileType::Vorbis => {
@@ -153,7 +153,7 @@ pub fn export_track_to_path(
                 &mut file,
                 config,
                 track,
-                replace_embedded_artwork_image,
+                edit_embedded_artwork_image,
             )
         }
         _ => {

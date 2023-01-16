@@ -12,7 +12,7 @@ use crate::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
-    util::artwork::ReplaceEmbeddedArtworkImage,
+    util::artwork::EditEmbeddedArtworkImage,
     Result,
 };
 
@@ -49,7 +49,7 @@ pub(crate) fn export_track_to_file(
     file: &mut File,
     config: &ExportTrackConfig,
     track: &mut Track,
-    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<bool> {
     let mut mpeg_file = <MPEGFile as AudioFile>::read_from(file, parse_options())?;
 
@@ -61,7 +61,7 @@ pub(crate) fn export_track_to_file(
     };
     let id3v2_orig = id3v2.clone();
 
-    export_track_to_tag(id3v2, config, track, replace_embedded_artwork_image);
+    export_track_to_tag(id3v2, config, track, edit_embedded_artwork_image);
 
     let modified = *id3v2 != id3v2_orig;
     if modified {

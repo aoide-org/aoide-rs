@@ -18,7 +18,7 @@ use crate::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
-    util::{artwork::ReplaceEmbeddedArtworkImage, format_validated_tempo_bpm},
+    util::{artwork::EditEmbeddedArtworkImage, format_validated_tempo_bpm},
     Result,
 };
 
@@ -203,7 +203,7 @@ pub(crate) fn export_track_to_file(
     file: &mut File,
     config: &ExportTrackConfig,
     track: &mut Track,
-    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<bool> {
     let mut mp4_file = <Mp4File as AudioFile>::read_from(file, parse_options())?;
 
@@ -215,7 +215,7 @@ pub(crate) fn export_track_to_file(
     };
     let ilst_orig = ilst.clone();
 
-    export_track_to_tag(ilst, config, track, replace_embedded_artwork_image);
+    export_track_to_tag(ilst, config, track, edit_embedded_artwork_image);
 
     let modified = *ilst != ilst_orig;
     if modified {
@@ -228,7 +228,7 @@ fn export_track_to_tag_generic(
     ilst: &mut Ilst,
     config: &ExportTrackConfig,
     track: &mut Track,
-    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
     // Collect all atom idents that survive a roundtrip
     let mut ilst_without_pictures = Ilst::default();
@@ -245,7 +245,7 @@ fn export_track_to_tag_generic(
     // Export generic metadata
     let new_ilst = {
         let mut tag = Tag::new(TagType::MP4ilst);
-        super::export_track_to_tag(&mut tag, config, track, replace_embedded_artwork_image);
+        super::export_track_to_tag(&mut tag, config, track, edit_embedded_artwork_image);
         Ilst::from(tag)
     };
     // Merge generic metadata
@@ -261,9 +261,9 @@ pub(crate) fn export_track_to_tag(
     ilst: &mut Ilst,
     config: &ExportTrackConfig,
     track: &mut Track,
-    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
-    export_track_to_tag_generic(ilst, config, track, replace_embedded_artwork_image);
+    export_track_to_tag_generic(ilst, config, track, edit_embedded_artwork_image);
 
     // Get rid of unsupported numeric genre identifiers to prevent inconsistencies
     ilst.remove_atom(&LEGACY_GENRE_IDENT);

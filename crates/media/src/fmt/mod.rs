@@ -41,8 +41,9 @@ use crate::{
     },
     util::{
         artwork::{
-            try_ingest_embedded_artwork_image, ReplaceEmbeddedArtworkImage,
-            ReplaceOtherEmbeddedArtworkImages,
+            try_ingest_embedded_artwork_image, EditEmbeddedArtworkImage,
+            EditOtherEmbeddedArtworkImages, RemoveEmbeddedArtworkImage,
+            ReplaceEmbeddedArtworkImage,
         },
         digest::MediaDigest,
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
@@ -744,7 +745,7 @@ pub(crate) fn export_track_to_tag(
     tag: &mut Tag,
     config: &ExportTrackConfig,
     track: &mut Track,
-    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
     // Audio properties
     match &track.media_source.content.metadata {
@@ -1078,40 +1079,66 @@ pub(crate) fn export_track_to_tag(
         }
     }
 
-    if let Some(replace_embedded_artwork_image) = replace_embedded_artwork_image {
-        let ReplaceEmbeddedArtworkImage {
-            artwork_image,
-            image_data,
-            others,
-        } = replace_embedded_artwork_image;
-        let ArtworkImage {
-            apic_type,
-            media_type,
-            ..
-        } = &artwork_image;
-        let pic_type = picture_type_from_apic_type(*apic_type);
-        let mime_type = match media_type.essence_str() {
-            "image/bmp" => MimeType::Bmp,
-            "image/gif" => MimeType::Gif,
-            "image/jpeg" => MimeType::Jpeg,
-            "image/png" => MimeType::Png,
-            "image/tiff" => MimeType::Tiff,
-            _ => MimeType::Unknown(media_type.to_string()),
-        };
-        track.media_source.artwork = Some(Artwork::Embedded(EmbeddedArtwork {
-            image: artwork_image,
-        }));
-        let picture = Picture::new_unchecked(pic_type, mime_type, None, image_data);
-        match others {
-            ReplaceOtherEmbeddedArtworkImages::Keep => {
-                tag.remove_picture_type(pic_type);
+    if let Some(edit_embedded_artwork_image) = edit_embedded_artwork_image {
+        match edit_embedded_artwork_image {
+            EditEmbeddedArtworkImage::Replace(replace_embedded_artwork_image) => {
+                let ReplaceEmbeddedArtworkImage {
+                    artwork_image,
+                    image_data,
+                    others,
+                } = replace_embedded_artwork_image;
+                let ArtworkImage {
+                    apic_type,
+                    media_type,
+                    ..
+                } = &artwork_image;
+                let pic_type = picture_type_from_apic_type(*apic_type);
+                let mime_type = match media_type.essence_str() {
+                    "image/bmp" => MimeType::Bmp,
+                    "image/gif" => MimeType::Gif,
+                    "image/jpeg" => MimeType::Jpeg,
+                    "image/png" => MimeType::Png,
+                    "image/tiff" => MimeType::Tiff,
+                    _ => MimeType::Unknown(media_type.to_string()),
+                };
+                track.media_source.artwork = Some(Artwork::Embedded(EmbeddedArtwork {
+                    image: artwork_image,
+                }));
+                let picture = Picture::new_unchecked(pic_type, mime_type, None, image_data);
+                match others {
+                    EditOtherEmbeddedArtworkImages::Keep => {
+                        tag.remove_picture_type(pic_type);
+                    }
+                    EditOtherEmbeddedArtworkImages::Remove => {
+                        while !tag.pictures().is_empty() {
+                            tag.remove_picture(tag.pictures().len() - 1);
+                        }
+                    }
+                }
+                tag.push_picture(picture);
             }
-            ReplaceOtherEmbeddedArtworkImages::Remove => {
-                while !tag.pictures().is_empty() {
-                    tag.remove_picture(tag.pictures().len() - 1);
+            EditEmbeddedArtworkImage::Remove(remove_embedded_artwork_image) => {
+                let RemoveEmbeddedArtworkImage { apic_type, others } =
+                    remove_embedded_artwork_image;
+                let pic_type = picture_type_from_apic_type(apic_type);
+                match others {
+                    EditOtherEmbeddedArtworkImages::Keep => {
+                        tag.remove_picture_type(pic_type);
+                        if matches!(track.media_source.artwork, Some(Artwork::Embedded(EmbeddedArtwork { image: ArtworkImage { apic_type: old_apic_type, .. } })) if old_apic_type == apic_type)
+                        {
+                            track.media_source.artwork = None;
+                        }
+                    }
+                    EditOtherEmbeddedArtworkImages::Remove => {
+                        while !tag.pictures().is_empty() {
+                            tag.remove_picture(tag.pictures().len() - 1);
+                        }
+                        if matches!(track.media_source.artwork, Some(Artwork::Embedded(_))) {
+                            track.media_source.artwork = None;
+                        }
+                    }
                 }
             }
         }
-        tag.push_picture(picture);
     }
 }

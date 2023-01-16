@@ -9,7 +9,7 @@ use crate::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::Importer,
     },
-    util::artwork::ReplaceEmbeddedArtworkImage,
+    util::artwork::EditEmbeddedArtworkImage,
 };
 
 #[cfg(feature = "serato-markers")]
@@ -45,7 +45,7 @@ fn export_track_to_tag_generic(
     tag: &mut VorbisComments,
     config: &ExportTrackConfig,
     track: &mut Track,
-    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
     // Collect keys that would survive a roundtrip
     let mut tag_without_pictures = VorbisComments::default();
@@ -59,7 +59,7 @@ fn export_track_to_tag_generic(
         .collect::<Vec<_>>();
     // Export generic metadata
     let mut new_tag = Tag::new(TagType::VorbisComments);
-    super::export_track_to_tag(&mut new_tag, config, track, replace_embedded_artwork_image);
+    super::export_track_to_tag(&mut new_tag, config, track, edit_embedded_artwork_image);
     let mut new_tag = VorbisComments::from(new_tag);
     // Merge generic metadata
     for key in old_keys {
@@ -74,9 +74,9 @@ pub(crate) fn export_track_to_tag(
     tag: &mut VorbisComments,
     config: &ExportTrackConfig,
     track: &mut Track,
-    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
-    export_track_to_tag_generic(tag, config, track, replace_embedded_artwork_image);
+    export_track_to_tag_generic(tag, config, track, edit_embedded_artwork_image);
 
     #[cfg(feature = "serato-markers")]
     if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {
