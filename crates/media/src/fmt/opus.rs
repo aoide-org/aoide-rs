@@ -11,6 +11,7 @@ use crate::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
+    util::artwork::ReplaceEmbeddedArtworkImage,
     Result,
 };
 
@@ -52,13 +53,19 @@ pub(crate) fn export_track_to_file(
     file: &mut File,
     config: &ExportTrackConfig,
     track: &mut Track,
+    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
 ) -> Result<bool> {
     let mut opus_file = <OpusFile as AudioFile>::read_from(file, parse_options())?;
 
     let vorbis_comments = opus_file.vorbis_comments_mut();
     let vorbis_comments_orig = vorbis_comments.clone();
 
-    export_track_to_tag(vorbis_comments, config, track);
+    export_track_to_tag(
+        vorbis_comments,
+        config,
+        track,
+        replace_embedded_artwork_image,
+    );
 
     let modified = *vorbis_comments != vorbis_comments_orig;
     if modified {

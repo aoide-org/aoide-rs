@@ -18,7 +18,7 @@ use crate::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, ImportedTempoBpm, Importer},
     },
-    util::format_validated_tempo_bpm,
+    util::{artwork::ReplaceEmbeddedArtworkImage, format_validated_tempo_bpm},
 };
 
 const FLOAT_BPM_FRAME_ID: &str = "TXXX:BPM";
@@ -125,7 +125,12 @@ pub(super) fn import_serato_markers(
     parsed.then_some(serato_tags)
 }
 
-fn export_track_to_tag_generic(tag: &mut ID3v2Tag, config: &ExportTrackConfig, track: &mut Track) {
+fn export_track_to_tag_generic(
+    tag: &mut ID3v2Tag,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
+) {
     // Collect all frames that survive a roundtrip
     let mut tag_without_pictures = ID3v2Tag::default();
     tag_without_pictures.set_flags(*tag.flags());
@@ -142,7 +147,7 @@ fn export_track_to_tag_generic(tag: &mut ID3v2Tag, config: &ExportTrackConfig, t
     // Export generic metadata
     let new_tag = {
         let mut tag = Tag::new(TagType::ID3v2);
-        super::export_track_to_tag(&mut tag, config, track);
+        super::export_track_to_tag(&mut tag, config, track, replace_embedded_artwork_image);
         ID3v2Tag::from(tag)
     };
     // Merge generic metadata
@@ -157,8 +162,9 @@ pub(crate) fn export_track_to_tag(
     tag: &mut ID3v2Tag,
     config: &ExportTrackConfig,
     track: &mut Track,
+    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
 ) {
-    export_track_to_tag_generic(tag, config, track);
+    export_track_to_tag_generic(tag, config, track, replace_embedded_artwork_image);
 
     // Post-processing: Export custom metadata
 

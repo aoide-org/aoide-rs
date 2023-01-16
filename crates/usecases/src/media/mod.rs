@@ -17,7 +17,7 @@ use aoide_media::{
         export::{export_track_to_path, ExportTrackConfig},
         import::*,
     },
-    util::guess_mime_from_path,
+    util::{artwork::ReplaceEmbeddedArtworkImage, guess_mime_from_path},
 };
 
 use super::*;
@@ -171,7 +171,9 @@ pub fn export_track_metadata_into_file(
     content_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,
     track: &mut Track,
+    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
 ) -> Result<bool> {
     let file_path = content_path_resolver.build_file_path(&track.media_source.content.link.path);
-    export_track_to_path(&file_path, config, track).map_err(Into::into)
+    export_track_to_path(&file_path, config, track, replace_embedded_artwork_image)
+        .map_err(Into::into)
 }

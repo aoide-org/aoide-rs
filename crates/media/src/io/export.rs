@@ -14,7 +14,10 @@ use aoide_core::track::{
     Track,
 };
 
-use crate::{util::tag::FacetedTagMappingConfig, Error, Result};
+use crate::{
+    util::{artwork::ReplaceEmbeddedArtworkImage, tag::FacetedTagMappingConfig},
+    Error, Result,
+};
 
 use super::import::ImportTrackFlags;
 
@@ -47,10 +50,12 @@ impl Default for ExportTrackConfig {
     }
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 pub fn export_track_to_path(
     path: &Path,
     config: &ExportTrackConfig,
     track: &mut Track,
+    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
 ) -> Result<bool> {
     let file = File::open(path)?;
     let probe = lofty::Probe::new(file).guess_file_type()?;
@@ -71,7 +76,12 @@ pub fn export_track_to_path(
                 ));
             }
             let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::aiff::export_track_to_file(&mut file, config, track)
+            crate::fmt::aiff::export_track_to_file(
+                &mut file,
+                config,
+                track,
+                replace_embedded_artwork_image,
+            )
         }
         FileType::FLAC => {
             if track.media_source.content.r#type.essence_str() != "audio/flac" {
@@ -80,7 +90,12 @@ pub fn export_track_to_path(
                 ));
             }
             let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::flac::export_track_to_file(&mut file, config, track)
+            crate::fmt::flac::export_track_to_file(
+                &mut file,
+                config,
+                track,
+                replace_embedded_artwork_image,
+            )
         }
         FileType::MP4 => {
             if !matches!(
@@ -92,7 +107,12 @@ pub fn export_track_to_path(
                 ));
             }
             let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::mp4::export_track_to_file(&mut file, config, track)
+            crate::fmt::mp4::export_track_to_file(
+                &mut file,
+                config,
+                track,
+                replace_embedded_artwork_image,
+            )
         }
         FileType::MPEG => {
             if track.media_source.content.r#type.essence_str() != "audio/mpeg" {
@@ -101,7 +121,12 @@ pub fn export_track_to_path(
                 ));
             }
             let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::mpeg::export_track_to_file(&mut file, config, track)
+            crate::fmt::mpeg::export_track_to_file(
+                &mut file,
+                config,
+                track,
+                replace_embedded_artwork_image,
+            )
         }
         FileType::Opus => {
             if track.media_source.content.r#type.essence_str() != "audio/ogg" {
@@ -110,7 +135,12 @@ pub fn export_track_to_path(
                 ));
             }
             let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::ogg::export_track_to_file(&mut file, config, track)
+            crate::fmt::ogg::export_track_to_file(
+                &mut file,
+                config,
+                track,
+                replace_embedded_artwork_image,
+            )
         }
         FileType::Vorbis => {
             if track.media_source.content.r#type.essence_str() != "audio/opus" {
@@ -119,7 +149,12 @@ pub fn export_track_to_path(
                 ));
             }
             let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::opus::export_track_to_file(&mut file, config, track)
+            crate::fmt::opus::export_track_to_file(
+                &mut file,
+                config,
+                track,
+                replace_embedded_artwork_image,
+            )
         }
         _ => {
             log::debug!(

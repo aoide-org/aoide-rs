@@ -35,8 +35,16 @@ pub fn handle_request(
         ..Default::default()
     };
     let path_resolver = VirtualFilePathResolver::new();
+    // TODO: Support replacing the embedded artwork image (optional)
+    let replace_embedded_artwork_image = None;
     connection.transaction::<_, Error, _>(|connection| {
-        uc::export_metadata_into_file(connection, track_uid, &path_resolver, &config)
-            .map_err(Into::into)
+        uc::export_metadata_into_file(
+            connection,
+            track_uid,
+            &path_resolver,
+            &config,
+            replace_embedded_artwork_image,
+        )
+        .map_err(Into::into)
     })
 }

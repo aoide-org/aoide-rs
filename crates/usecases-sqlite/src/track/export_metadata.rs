@@ -3,7 +3,7 @@
 
 use aoide_core::media::content::resolver::VirtualFilePathResolver;
 
-use aoide_media::io::export::ExportTrackConfig;
+use aoide_media::{io::export::ExportTrackConfig, util::artwork::ReplaceEmbeddedArtworkImage};
 
 use aoide_repo::track::EntityRepo as _;
 
@@ -14,6 +14,7 @@ pub fn export_metadata_into_file(
     track_uid: &EntityUid,
     content_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,
+    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
 ) -> Result<bool> {
     let mut repo = RepoConnection::new(connection);
     let (_, mut track_entity) = repo.load_track_entity_by_uid(track_uid)?;
@@ -21,6 +22,7 @@ pub fn export_metadata_into_file(
         content_path_resolver,
         config,
         &mut track_entity.body.track,
+        replace_embedded_artwork_image,
     )
     .map_err(Into::into)
 }

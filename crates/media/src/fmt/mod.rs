@@ -4,8 +4,8 @@
 use std::{borrow::Cow, ops::Not as _};
 
 use lofty::{
-    Accessor, AudioFile, FileProperties, ItemKey, ItemValue, ParseOptions, PictureType, Tag,
-    TagItem, TagType, TaggedFile, TaggedFileExt as _,
+    Accessor, AudioFile, FileProperties, ItemKey, ItemValue, MimeType, ParseOptions, Picture,
+    PictureType, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
 };
 use semval::IsValid;
 
@@ -16,7 +16,7 @@ use aoide_core::{
         DurationMs,
     },
     media::{
-        artwork::{ApicType, Artwork},
+        artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork},
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
     },
     tag::{FacetKey, FacetedTags, Label, PlainTag, Score as TagScore, TagsMap},
@@ -40,9 +40,15 @@ use crate::{
         import::{ImportTrackConfig, ImportTrackFlags, Importer, TrackScope},
     },
     util::{
-        digest::MediaDigest, format_valid_replay_gain, format_validated_tempo_bpm,
-        ingest_title_from, key_signature_as_str, push_next_actor_role_name_from,
-        tag::TagMappingConfig, try_ingest_embedded_artwork_image, TempoBpmFormat,
+        artwork::{
+            try_ingest_embedded_artwork_image, ReplaceEmbeddedArtworkImage,
+            ReplaceOtherEmbeddedArtworkImages,
+        },
+        digest::MediaDigest,
+        format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
+        key_signature_as_str, push_next_actor_role_name_from,
+        tag::TagMappingConfig,
+        TempoBpmFormat,
     },
 };
 
@@ -140,6 +146,32 @@ fn apic_type_from_picture_type(picture_type: PictureType) -> Option<ApicType> {
     Some(apic_type)
 }
 
+fn picture_type_from_apic_type(apic_type: ApicType) -> PictureType {
+    match apic_type {
+        ApicType::Artist => PictureType::Artist,
+        ApicType::Band => PictureType::Band,
+        ApicType::BandLogo => PictureType::BandLogo,
+        ApicType::BrightFish => PictureType::BrightFish,
+        ApicType::Composer => PictureType::Composer,
+        ApicType::Conductor => PictureType::Conductor,
+        ApicType::CoverBack => PictureType::CoverBack,
+        ApicType::CoverFront => PictureType::CoverFront,
+        ApicType::DuringPerformance => PictureType::DuringPerformance,
+        ApicType::DuringRecording => PictureType::DuringRecording,
+        ApicType::Icon => PictureType::Icon,
+        ApicType::Illustration => PictureType::Illustration,
+        ApicType::LeadArtist => PictureType::LeadArtist,
+        ApicType::Leaflet => PictureType::Leaflet,
+        ApicType::Lyricist => PictureType::Lyricist,
+        ApicType::Media => PictureType::Media,
+        ApicType::Other => PictureType::Other,
+        ApicType::OtherIcon => PictureType::OtherIcon,
+        ApicType::PublisherLogo => PictureType::PublisherLogo,
+        ApicType::RecordingLocation => PictureType::RecordingLocation,
+        ApicType::ScreenCapture => PictureType::ScreenCapture,
+    }
+}
+
 #[must_use]
 pub(crate) fn find_embedded_artwork_image(tag: &Tag) -> Option<(ApicType, &str, &[u8])> {
     tag.pictures()
@@ -197,9 +229,9 @@ pub(crate) fn import_embedded_artwork(
             Some(mime_type),
             &mut media_digest,
         );
-        issues
-            .into_iter()
-            .for_each(|message| importer.add_issue(message));
+        for issue in issues {
+            importer.add_issue(issue);
+        }
         artwork
     } else {
         Artwork::Missing
@@ -708,7 +740,12 @@ fn export_faceted_tags(
 }
 
 #[allow(clippy::too_many_lines)] // TODO
-pub(crate) fn export_track_to_tag(tag: &mut Tag, config: &ExportTrackConfig, track: &mut Track) {
+pub(crate) fn export_track_to_tag(
+    tag: &mut Tag,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+    replace_embedded_artwork_image: Option<ReplaceEmbeddedArtworkImage>,
+) {
     // Audio properties
     match &track.media_source.content.metadata {
         ContentMetadata::Audio(audio) => {
@@ -1039,5 +1076,42 @@ pub(crate) fn export_track_to_tag(tag: &mut Tag, config: &ExportTrackConfig, tra
                 tags,
             );
         }
+    }
+
+    if let Some(replace_embedded_artwork_image) = replace_embedded_artwork_image {
+        let ReplaceEmbeddedArtworkImage {
+            artwork_image,
+            image_data,
+            others,
+        } = replace_embedded_artwork_image;
+        let ArtworkImage {
+            apic_type,
+            media_type,
+            ..
+        } = &artwork_image;
+        let pic_type = picture_type_from_apic_type(*apic_type);
+        let mime_type = match media_type.essence_str() {
+            "image/bmp" => MimeType::Bmp,
+            "image/gif" => MimeType::Gif,
+            "image/jpeg" => MimeType::Jpeg,
+            "image/png" => MimeType::Png,
+            "image/tiff" => MimeType::Tiff,
+            _ => MimeType::Unknown(media_type.to_string()),
+        };
+        track.media_source.artwork = Some(Artwork::Embedded(EmbeddedArtwork {
+            image: artwork_image,
+        }));
+        let picture = Picture::new_unchecked(pic_type, mime_type, None, image_data);
+        match others {
+            ReplaceOtherEmbeddedArtworkImages::Keep => {
+                tag.remove_picture_type(pic_type);
+            }
+            ReplaceOtherEmbeddedArtworkImages::Remove => {
+                while !tag.pictures().is_empty() {
+                    tag.remove_picture(tag.pictures().len() - 1);
+                }
+            }
+        }
+        tag.push_picture(picture);
     }
 }
