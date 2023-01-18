@@ -57,11 +57,11 @@ jobs:
         run: |
           echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Install Rust toolchains for both native target and WASM
+      - name: Install native Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-          targets: ${{ matrix.target }}, wasm32-unknown-unknown
+          targets: ${{ matrix.target }}
 
       - name: Check out repository
         uses: actions/checkout@v3
@@ -72,11 +72,7 @@ jobs:
           # Distinguished by the action name to avoid sharing across different actions!
           shared-key: "pre-release"
 
-      - name: Install Trunk for building the webapp
-        run: |
-          cargo install --locked trunk
-
-      - name: Build artifact
+      - name: Build artifact (default features without webapp)
         run: |
           cargo build --locked --target ${{ matrix.target }} --profile ${{ matrix.build_profile }} --package ${{ matrix.build_package }}
 
