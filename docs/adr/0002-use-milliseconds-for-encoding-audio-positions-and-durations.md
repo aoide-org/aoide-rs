@@ -14,8 +14,8 @@ Proposed
 Positions and durations in digital audio could be represented using different
 measurements:
 
-* time-based, e.g. in seconds or sub-seconds
-* sample-based, i.e. in *sample frames* (1 frame = samples from all channels)
+- time-based, e.g. in seconds or sub-seconds
+- sample-based, i.e. in _sample frames_ (1 frame = samples from all channels)
 
 The sample-based measurement must always consider complete sample frames with
 one sample from each channel (interleaved) to avoid any dependencies on the

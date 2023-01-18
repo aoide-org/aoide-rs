@@ -26,7 +26,7 @@ that code, even when written by the most experienced contributor long ago,
 might not comply with the current version of the guide. When in doubt
 don't hesitate to ask for help or advice.
 
-[Rust API Guidelines]: https://rust-lang-nursery.github.io/api-guidelines/
+[rust api guidelines]: https://rust-lang-nursery.github.io/api-guidelines/
 
 ### Use the `stable` Toolchain
 
@@ -97,20 +97,20 @@ To check the coding style, use this command:
 cargo +nightly clippy
 ```
 
-[Clippy]: https://github.com/rust-lang-nursery/rust-clippy/
+[clippy]: https://github.com/rust-lang-nursery/rust-clippy/
 
 ### Committing Changes
 
 Keep your change sets small per commit:
 
-* Revert any unnecessary changes or changes to unrelated files
-* Use separate commits when moving or renaming files and when fixing formatting issues with `rustfmt`
-* Don't accidentally check in any temporary files
+- Revert any unnecessary changes or changes to unrelated files
+- Use separate commits when moving or renaming files and when fixing formatting issues with `rustfmt`
+- Don't accidentally check in any temporary files
 
 Make sure that the code compiles without errors. The only exception is allowed for tests that might neither compile
 nor succeed for an intermediate commit.
 
-Try *really* hard to follow [The seven rules of a great Git commit message]:
+Try _really_ hard to follow [The seven rules of a great Git commit message]:
 
 1. Separate subject from body with a blank line
 2. Limit the subject line to 50 characters
@@ -124,9 +124,9 @@ The [Atom editor] has built-in syntax highlighting for git commit messages. You
 may use it to help your commit messages comply with the rules above. Check out
 [how to configure Atom to be your Git commit editor].
 
-[The seven rules of a great Git commit message]: https://chris.beams.io/posts/git-commit/
-[Atom editor]: https://www.atom.io
-[how to configure Atom to be your Git commit editor]: http://blog.atom.io/2014/03/13/git-integration.html#commit-editor
+[the seven rules of a great git commit message]: https://chris.beams.io/posts/git-commit/
+[atom editor]: https://www.atom.io
+[how to configure atom to be your git commit editor]: http://blog.atom.io/2014/03/13/git-integration.html#commit-editor
 
 ## Submitting a Merge Request (MR)
 
@@ -136,7 +136,7 @@ Filing an issue first helps to ensure that the work you put into your merge
 request is acceptable for all participants of the project and will get merged. :)
 
 Before you submit your merge request, check that you have completed all of the
-steps and followed the rules mentioned above in *Writing Code*. Finally link
+steps and followed the rules mentioned above in _Writing Code_. Finally link
 the issue that your merge request is responding to in the descriptive text of
 the MR.
 
@@ -144,4 +144,4 @@ the MR.
 
 We follow the Rust [Code of Conduct].
 
-[Code of Conduct]: https://www.rust-lang.org/conduct.html
+[code of conduct]: https://www.rust-lang.org/conduct.html

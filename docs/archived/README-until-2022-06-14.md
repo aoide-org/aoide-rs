@@ -54,7 +54,7 @@ The database is stored in a single SQLite database files specified by `DATABASE_
 
 #### Music Collection
 
-Currently the only supported type of storage is a *virtual file system (VFS) with a common root directory. Media sources are then referenced by a relative path within this root directory.
+Currently the only supported type of storage is a \*virtual file system (VFS) with a common root directory. Media sources are then referenced by a relative path within this root directory.
 
 The informational properties of a collection are defined by `COLLECTION_TITLE` and `COLLECTION_KIND` (optional). If this collection does not exist it will be created on first run. All subsequent runs will display an error message that the collection could not be created, ignore them.
 
@@ -234,7 +234,7 @@ The _webapp_ itself is **not** part of the workspace and needs to be built separ
 before building the server.
 
 > Use `cargo build --profile production ...` for a fully optimized release build instead
-of a debug build.
+> of a debug build.
 
 During development it is handy to build and run the server in a single step:
 
@@ -247,15 +247,15 @@ The configuration is controlled by environment variables. Please refer to the
 
 #### Configuration examples
 
-| Configuration                    | Description                                               |
-| -------------------------------- | --------------------------------------------------------- |
-| `RUST_LOG=debug`                 | Log/tracing level `debug` (trace/debug/info/warn/error)   |
-| `ENDPOINT_IP=::`                 | Listen on IPv6 loopback device                            |
-| `ENDPOINT_PORT=0`                | Bind to an ephemeral port for incoming HTTP requests      |
-| `ENDPOINT_PORT=8080`             | Bind to port 8080 for incoming HTTP requests              |
-| `DATABASE_URL=:memory:`          | Use an in-memory database for testing purposes            |
-| `DATABASE_URL=/tmp/aoide.sqlite` | Open or create the corresponding SQLite database file     |
-| `LAUNCH_HEADLESS=true`           | Start the web server immediately and hide the launcher UI |
+| Configuration                    | Description                                                                  |
+| -------------------------------- | ---------------------------------------------------------------------------- |
+| `RUST_LOG=debug`                 | Log/tracing level `debug` (trace/debug/info/warn/error)                      |
+| `ENDPOINT_IP=::`                 | Listen on IPv6 loopback device                                               |
+| `ENDPOINT_PORT=0`                | Bind to an ephemeral port for incoming HTTP requests                         |
+| `ENDPOINT_PORT=8080`             | Bind to port 8080 for incoming HTTP requests                                 |
+| `DATABASE_URL=:memory:`          | Use an in-memory database for testing purposes                               |
+| `DATABASE_URL=/tmp/aoide.sqlite` | Open or create the corresponding SQLite database file                        |
+| `LAUNCH_HEADLESS=true`           | Start the web server immediately and hide the launcher UI                    |
 | `DEFAULT_CONFIG=true`            | Start with a fresh default config instead of loading a previously stored one |
 
 The actual socket address with the bound (ephemeral) port will be printed on the first line to _stdout_

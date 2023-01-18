@@ -37,10 +37,12 @@ repos:
       - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
+        exclude: ^webapp/assets/.*$
       - id: fix-byte-order-marker
       - id: forbid-new-submodules
       - id: mixed-line-ending
       - id: trailing-whitespace
+        exclude: ^webapp/assets/.*$
       - id: no-commit-to-branch
         args: [--branch, main]
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
@@ -73,13 +75,14 @@ repos:
     rev: v3.0.0-alpha.4
     hooks:
       - id: prettier
-        types:
+        types_or:
           - yaml
           - markdown
+        exclude: ^webapp/assets/.*$
   # https://reuse.software
   # TODO: Enable after fixing license headers to files in webapp/assets
   #- repo: https://github.com/fsfe/reuse-tool
-  #  rev: v1.0.0
+  #  rev: v1.1.0
   #  hooks:
   #    - id: reuse
   - repo: https://github.com/doublify/pre-commit-rust

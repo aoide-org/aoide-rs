@@ -33,7 +33,7 @@ The database is stored in a single SQLite database files specified by `DATABASE_
 
 ### Music Collection
 
-Currently the only supported type of storage is a *virtual file system (VFS) with a common root directory. Media sources are then referenced by a relative path within this root directory.
+Currently the only supported type of storage is a \*virtual file system (VFS) with a common root directory. Media sources are then referenced by a relative path within this root directory.
 
 The informational properties of a collection are defined by `COLLECTION_TITLE` and `COLLECTION_KIND` (optional). If this collection does not exist it will be created on first run. All subsequent runs will display an error message that the collection could not be created, ignore them.
 
