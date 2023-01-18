@@ -20,6 +20,8 @@ jobs:
     runs-on: ${{ matrix.runner_os }}
     strategy:
       matrix:
+        build_package:
+          - aoide-websrv
         build_profile:
           - production
         target:
@@ -38,15 +40,22 @@ jobs:
             artifact_suffix: .7z
 
     steps:
-      - name: Install dependencies for `musl libc`
+      - name: Install dependencies for `musl libc` on Linux
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           sudo apt -y install musl-tools
 
-      - name: "Install dependencies for `egui`"
+      # See also: <https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml>
+      - name: Install dependencies for `egui` on Linux
         if: runner.os == 'Linux'
         run: |
           sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev
+
+      # See also: <https://github.com/rusqlite/rusqlite/blob/master/.github/workflows/main.yml>
+      - name: Add LLVM path on Windows
+        if: runner.os == 'Windows'
+        run: |
+          echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install Rust toolchains for both native target and WASM
         uses: dtolnay/rust-toolchain@master
@@ -68,26 +77,27 @@ jobs:
           cargo install --locked trunk
 
       - name: Build artifact
-        run: cargo build --locked --target ${{ matrix.target }} --profile ${{ matrix.build_profile }}
+        run: |
+          cargo build --locked --target ${{ matrix.target }} --profile ${{ matrix.build_profile }} --package ${{ matrix.build_package }}
 
       - name: Prepare artifact on Linux/macOS
         if: runner.os == 'Linux' || runner.os == 'macOS'
         run: |
           cd target/${{ matrix.target }}/${{ matrix.build_profile }}
-          tar cJvf ../../../aoide-${{ matrix.target }}${{ matrix.artifact_suffix }} aoide
+          tar cJvf ../../../${{ matrix.build_package }}-${{ matrix.target }}${{ matrix.artifact_suffix }} ${{ matrix.build_package }}
           cd -
       - name: Prepare artifact on Windows
         if: runner.os == 'Windows'
         run: |
           cd target/${{ matrix.target }}/${{ matrix.build_profile }}
-          7z a ../../../aoide-${{ matrix.target }}${{ matrix.artifact_suffix }} aoide.exe
+          7z a ../../../${{ matrix.build_package }}-${{ matrix.target }}${{ matrix.artifact_suffix }} ${{ matrix.build_package }}.exe
           cd -
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: aoide-${{ matrix.target }}${{ matrix.artifact_suffix }}
-          path: aoide-${{ matrix.target }}${{ matrix.artifact_suffix }}
+          name: ${{ matrix.build_package }}-${{ matrix.target }}${{ matrix.artifact_suffix }}
+          path: ${{ matrix.build_package }}-${{ matrix.target }}${{ matrix.artifact_suffix }}
 
   create-release-draft:
     name: Creating release draft
@@ -104,7 +114,7 @@ jobs:
         uses: actions/download-artifact@v3
 
       - name: Generate artifact checksums
-        run: for file in aoide-*/aoide-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+        run: for file in ${{ matrix.build_package }}-*/${{ matrix.build_package }}-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
 
       - name: Extract release notes from changelog
         run: cat CHANGELOG.md | tail -n +7 | head -n 25 > RELEASE_NOTES.md
@@ -112,7 +122,7 @@ jobs:
       - name: Create release draft
         uses: softprops/action-gh-release@v1
         with:
-          files: aoide-*/aoide-*
+          files: ${{ matrix.build_package }}-*/${{ matrix.build_package }}-*
           body_path: RELEASE_NOTES.md
           draft: true
         env:
