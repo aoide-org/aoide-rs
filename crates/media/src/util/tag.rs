@@ -1,11 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{
-    borrow::Cow,
-    collections::HashMap,
-    ops::{Deref, DerefMut},
-};
+use std::{borrow::Cow, collections::HashMap, ops::Deref};
 
 use aoide_core::tag::{FacetKey, Score as TagScore, ScoreValue};
 
@@ -84,13 +80,6 @@ impl Deref for FacetedTagMappingConfig {
     type Target = FacetedTagMappingConfigInner;
 
     fn deref(&self) -> &Self::Target {
-        let Self(inner) = self;
-        inner
-    }
-}
-
-impl DerefMut for FacetedTagMappingConfig {
-    fn deref_mut(&mut self) -> &mut Self::Target {
         let Self(inner) = self;
         inner
     }

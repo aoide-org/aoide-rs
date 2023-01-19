@@ -1,11 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{
-    fmt,
-    ops::{Deref, DerefMut},
-    str::FromStr,
-};
+use std::{fmt, ops::Deref, str::FromStr};
 
 use ::url::Url;
 use thiserror::Error;
@@ -142,12 +138,6 @@ impl Deref for BaseUrl {
 
     fn deref(&self) -> &Url {
         &self.0
-    }
-}
-
-impl DerefMut for BaseUrl {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
 

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::{
-    borrow::Borrow,
     fmt,
     hash::{Hash, Hasher},
     marker::PhantomData,
@@ -270,20 +269,6 @@ impl<T: 'static> From<&EncodedEntityUid> for EntityUidTyped<T> {
 impl AsRef<str> for EncodedEntityUid {
     fn as_ref(&self) -> &str {
         self.as_str()
-    }
-}
-
-impl Deref for EncodedEntityUid {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl Borrow<str> for EncodedEntityUid {
-    fn borrow(&self) -> &str {
-        self.as_ref()
     }
 }
 

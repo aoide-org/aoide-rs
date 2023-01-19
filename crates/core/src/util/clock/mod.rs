@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{fmt, ops::Deref, str::FromStr, time::SystemTime};
+use std::{fmt, str::FromStr, time::SystemTime};
 
 use time::{
     error::{IndeterminateOffset, Parse as ParseError},
@@ -76,14 +76,6 @@ impl DateTime {
 impl AsRef<DateTimeInner> for DateTime {
     fn as_ref(&self) -> &DateTimeInner {
         &self.0
-    }
-}
-
-impl Deref for DateTime {
-    type Target = DateTimeInner;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
     }
 }
 
@@ -261,7 +253,7 @@ impl From<DateYYYYMMDD> for YYYYMMDD {
 
 impl From<DateTime> for DateYYYYMMDD {
     fn from(from: DateTime) -> Self {
-        from.date().into()
+        from.0.date().into()
     }
 }
 
