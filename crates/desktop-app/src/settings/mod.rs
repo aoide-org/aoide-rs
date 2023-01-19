@@ -12,7 +12,7 @@ use url::Url;
 
 use aoide_backend_embedded::storage::DatabaseConfig;
 
-use crate::fs::{DirPath, OwnedDirPath};
+use crate::fs::DirPath;
 
 pub const FILE_NAME: &str = "aoide_desktop_settings";
 
@@ -34,7 +34,7 @@ pub struct State {
     ///
     /// Used as to select the corresponding collection.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub music_dir: Option<OwnedDirPath>,
+    pub music_dir: Option<DirPath<'static>>,
 
     /// Filter for a collection kind.
     ///
@@ -103,7 +103,7 @@ impl State {
     }
 
     #[must_use]
-    pub fn storage_dir(&self) -> Option<OwnedDirPath> {
+    pub fn storage_dir(&self) -> Option<DirPath<'static>> {
         self.database_url
             .as_ref()
             .and_then(|url| {

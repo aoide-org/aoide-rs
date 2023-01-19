@@ -54,6 +54,7 @@ impl<'a> PlainTag<'a> {
         }
     }
 
+    #[must_use]
     pub fn into_owned(self) -> PlainTag<'static> {
         let Self { label, score } = self;
         PlainTag {
@@ -374,6 +375,12 @@ impl<'a> FacetKey<'a> {
     pub fn into_inner(self) -> Option<FacetId<'a>> {
         let Self(inner) = self;
         inner
+    }
+
+    #[must_use]
+    pub fn as_borrowed(&'a self) -> Self {
+        let Self(inner) = self;
+        FacetKey(inner.as_ref().map(FacetId::as_borrowed))
     }
 
     #[must_use]

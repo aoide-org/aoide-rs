@@ -24,10 +24,7 @@ use aoide_core_api::{
 use aoide_media::io::import::ImportTrackConfig;
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 
-use crate::{
-    environment::Handle,
-    fs::{DirPath, OwnedDirPath},
-};
+use crate::{environment::Handle, fs::DirPath};
 
 pub mod tasklet;
 
@@ -43,7 +40,7 @@ pub fn vfs_root_url(collection: &Collection) -> Option<&BaseUrl> {
 }
 
 #[must_use]
-pub fn vfs_music_dir(collection: &Collection) -> Option<OwnedDirPath> {
+pub fn vfs_music_dir(collection: &Collection) -> Option<DirPath<'static>> {
     vfs_root_url(collection).and_then(|base_url| {
         base_url.to_file_path().map_or_else(
             |()| {
@@ -227,7 +224,7 @@ pub enum State {
     Initial,
     PendingMusicDir {
         kind: Option<String>,
-        music_dir: OwnedDirPath,
+        music_dir: DirPath<'static>,
     },
     PendingEntityUid {
         kind: Option<String>,
@@ -236,7 +233,7 @@ pub enum State {
     Ready(EntityWithSummary),
     NestedMusicDirectories {
         kind: Option<String>,
-        music_dir: OwnedDirPath,
+        music_dir: DirPath<'static>,
         candidates: Vec<EntityWithSummary>,
     },
 }
@@ -493,7 +490,7 @@ impl Default for ObservableState {
 pub struct RefreshingStateTask {
     entity_uid: Option<EntityUid>,
     kind: Option<Cow<'static, str>>,
-    music_dir: Option<OwnedDirPath>,
+    music_dir: Option<DirPath<'static>>,
     nested_music_dirs: NestedMusicDirectoriesStrategy,
 }
 
@@ -501,7 +498,7 @@ impl RefreshingStateTask {
     pub fn new(
         entity_uid: Option<EntityUid>,
         kind: Option<Cow<'static, str>>,
-        music_dir: Option<OwnedDirPath>,
+        music_dir: Option<DirPath<'static>>,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> anyhow::Result<Self> {
         if entity_uid.is_none() && music_dir.is_none() {

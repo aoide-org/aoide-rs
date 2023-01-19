@@ -5,7 +5,7 @@ use std::{future::Future, path::PathBuf};
 
 use discro::{tasklet::OnChanged, Subscriber};
 
-use crate::fs::OwnedDirPath;
+use crate::fs::DirPath;
 
 use super::State;
 
@@ -56,7 +56,7 @@ pub fn on_state_changed_save_to_file(
 /// listening and `false` to abort listening.
 pub fn on_music_dir_changed(
     mut subscriber: Subscriber<State>,
-    mut on_changed: impl FnMut(Option<&OwnedDirPath>) -> OnChanged + Send + 'static,
+    mut on_changed: impl FnMut(Option<&DirPath<'_>>) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     // Read the initial value immediately before spawning the async task
     let mut value = subscriber.read().music_dir.clone();

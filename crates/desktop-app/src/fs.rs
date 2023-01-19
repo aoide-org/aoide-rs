@@ -9,7 +9,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-pub async fn choose_directory(dir_path: impl Into<Option<&Path>>) -> Option<OwnedDirPath> {
+pub async fn choose_directory(dir_path: impl Into<Option<&Path>>) -> Option<DirPath<'static>> {
     log::debug!("Open rfd::AsyncFileDialog");
     let mut file_dialog = rfd::AsyncFileDialog::new();
     if let Some(dir_path) = dir_path.into() {
@@ -28,8 +28,6 @@ pub async fn choose_directory(dir_path: impl Into<Option<&Path>>) -> Option<Owne
 #[serde(transparent)]
 pub struct DirPath<'p>(Cow<'p, Path>);
 
-pub type OwnedDirPath = DirPath<'static>;
-
 impl<'p> DirPath<'p> {
     #[must_use]
     pub const fn new(inner: Cow<'p, Path>) -> Self {
@@ -42,7 +40,7 @@ impl<'p> DirPath<'p> {
     }
 
     #[must_use]
-    pub const fn from_owned(path_buf: PathBuf) -> OwnedDirPath {
+    pub const fn from_owned(path_buf: PathBuf) -> DirPath<'static> {
         DirPath(Cow::Owned(path_buf))
     }
 
@@ -53,20 +51,20 @@ impl<'p> DirPath<'p> {
     }
 
     #[must_use]
-    pub fn into_owned(self) -> OwnedDirPath {
+    pub fn into_owned(self) -> DirPath<'static> {
         let Self(inner) = self;
         DirPath(Cow::Owned(inner.into_owned()))
     }
 }
 
-impl From<PathBuf> for OwnedDirPath {
+impl From<PathBuf> for DirPath<'static> {
     fn from(from: PathBuf) -> Self {
         Self::from_owned(from)
     }
 }
 
-impl From<OwnedDirPath> for PathBuf {
-    fn from(from: OwnedDirPath) -> Self {
+impl From<DirPath<'static>> for PathBuf {
+    fn from(from: DirPath<'static>) -> Self {
         let DirPath(inner) = from;
         inner.into_owned()
     }
