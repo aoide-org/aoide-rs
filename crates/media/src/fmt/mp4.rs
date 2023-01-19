@@ -5,7 +5,7 @@ use std::{borrow::Cow, fs::File};
 
 use lofty::{
     mp4::{Atom, AtomData, AtomIdent, Ilst, Mp4File},
-    AudioFile, Tag, TagType,
+    AudioFile,
 };
 
 use aoide_core::{
@@ -224,46 +224,13 @@ pub(crate) fn export_track_to_file(
     Ok(modified)
 }
 
-fn export_track_to_tag_generic(
-    ilst: &mut Ilst,
-    config: &ExportTrackConfig,
-    track: &mut Track,
-    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) {
-    // Collect all atom idents that survive a roundtrip
-    let mut ilst_without_pictures = Ilst::default();
-    for atom in (&*ilst)
-        .into_iter()
-        .filter(|atom| !atom.data().any(|data| matches!(data, AtomData::Picture(_))))
-    {
-        ilst_without_pictures.insert_atom(atom.clone());
-    }
-    let old_idents = Ilst::from(Tag::from(ilst_without_pictures))
-        .into_iter()
-        .map(|atom| atom.ident().as_borrowed().into_owned())
-        .collect::<Vec<_>>();
-    // Export generic metadata
-    let new_ilst = {
-        let mut tag = Tag::new(TagType::MP4ilst);
-        super::export_track_to_tag(&mut tag, config, track, edit_embedded_artwork_image);
-        Ilst::from(tag)
-    };
-    // Merge generic metadata
-    for ident in old_idents {
-        ilst.remove_atom(&ident);
-    }
-    for atom in new_ilst {
-        ilst.replace_atom(atom);
-    }
-}
-
 pub(crate) fn export_track_to_tag(
     ilst: &mut Ilst,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
-    export_track_to_tag_generic(ilst, config, track, edit_embedded_artwork_image);
+    super::split_export_rejoin_track_to_tag(ilst, config, track, edit_embedded_artwork_image);
 
     // Get rid of unsupported numeric genre identifiers to prevent inconsistencies
     ilst.remove_atom(&LEGACY_GENRE_IDENT);

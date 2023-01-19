@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::track::Track;
-use lofty::{ogg::VorbisComments, Tag, TagType};
+use lofty::ogg::VorbisComments;
 
 use crate::{
     io::{
@@ -41,42 +41,13 @@ pub(super) fn import_serato_markers(
     Some(serato_tags)
 }
 
-fn export_track_to_tag_generic(
-    tag: &mut VorbisComments,
-    config: &ExportTrackConfig,
-    track: &mut Track,
-    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) {
-    // Collect keys that would survive a roundtrip
-    let mut tag_without_pictures = VorbisComments::default();
-    tag_without_pictures.set_vendor(tag.vendor().to_owned());
-    for (key, value) in tag.items() {
-        tag_without_pictures.insert(key.to_owned(), value.to_owned(), false);
-    }
-    let old_keys = VorbisComments::from(Tag::from(tag_without_pictures))
-        .take_items()
-        .map(|(key, _)| key)
-        .collect::<Vec<_>>();
-    // Export generic metadata
-    let mut new_tag = Tag::new(TagType::VorbisComments);
-    super::export_track_to_tag(&mut new_tag, config, track, edit_embedded_artwork_image);
-    let mut new_tag = VorbisComments::from(new_tag);
-    // Merge generic metadata
-    for key in old_keys {
-        std::mem::forget(tag.remove(&key));
-    }
-    for (key, value) in new_tag.take_items() {
-        tag.insert(key, value, false);
-    }
-}
-
 pub(crate) fn export_track_to_tag(
     tag: &mut VorbisComments,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
-    export_track_to_tag_generic(tag, config, track, edit_embedded_artwork_image);
+    super::split_export_rejoin_track_to_tag(tag, config, track, edit_embedded_artwork_image);
 
     #[cfg(feature = "serato-markers")]
     if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {

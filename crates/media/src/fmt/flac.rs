@@ -16,7 +16,7 @@ use crate::{
     Result,
 };
 
-use super::{parse_options, vorbis::export_track_to_tag};
+use super::parse_options;
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,
@@ -67,7 +67,7 @@ pub(crate) fn export_track_to_file(
     };
     let vorbis_comments_orig = vorbis_comments.clone();
 
-    export_track_to_tag(vorbis_comments, config, track, edit_embedded_artwork_image);
+    super::vorbis::export_track_to_tag(vorbis_comments, config, track, edit_embedded_artwork_image);
 
     let modified = *vorbis_comments != vorbis_comments_orig;
     if modified {

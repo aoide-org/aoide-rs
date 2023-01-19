@@ -1,12 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{collections::HashSet, ops::Not as _};
-
-use lofty::{
-    id3::v2::{EncodedTextFrame, Frame, FrameValue, ID3v2Tag},
-    Tag, TagType,
-};
+use lofty::id3::v2::{EncodedTextFrame, Frame, FrameValue, ID3v2Tag};
 
 use aoide_core::{
     track::{metric::MetricsFlags, Track},
@@ -125,46 +120,13 @@ pub(super) fn import_serato_markers(
     parsed.then_some(serato_tags)
 }
 
-fn export_track_to_tag_generic(
-    tag: &mut ID3v2Tag,
-    config: &ExportTrackConfig,
-    track: &mut Track,
-    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) {
-    // Collect all frames that survive a roundtrip
-    let mut tag_without_pictures = ID3v2Tag::default();
-    tag_without_pictures.set_flags(*tag.flags());
-    for frame in (&*tag)
-        .into_iter()
-        .filter(|frame| !matches!(frame.content(), FrameValue::Picture { .. }))
-    {
-        tag_without_pictures.insert(frame.clone());
-    }
-    let old_frames = ID3v2Tag::from(Tag::from(tag_without_pictures))
-        .into_iter()
-        // TODO: Clear frame content to reduce temporary memory usage?
-        .collect::<HashSet<_>>();
-    // Export generic metadata
-    let new_tag = {
-        let mut tag = Tag::new(TagType::ID3v2);
-        super::export_track_to_tag(&mut tag, config, track, edit_embedded_artwork_image);
-        ID3v2Tag::from(tag)
-    };
-    // Merge generic metadata
-    tag.retain(|frame| old_frames.contains(frame).not());
-    std::mem::forget(old_frames);
-    for frame in new_tag {
-        tag.insert(frame);
-    }
-}
-
 pub(crate) fn export_track_to_tag(
     tag: &mut ID3v2Tag,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
-    export_track_to_tag_generic(tag, config, track, edit_embedded_artwork_image);
+    super::split_export_rejoin_track_to_tag(tag, config, track, edit_embedded_artwork_image);
 
     // Post-processing: Export custom metadata
 

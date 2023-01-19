@@ -2201,7 +2201,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.10.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#19fe23cbeb178b275d6522873265e2eaf6dd7899"
+source = "git+https://github.com/uklotzde/lofty-rs?branch=split-and-rejoin-tag#328c4371829ef1005945d797a4a073aaecee2adc"
 dependencies = [
  "base64 0.21.0",
  "byteorder",
@@ -2217,7 +2217,7 @@ dependencies = [
 [[package]]
 name = "lofty_attr"
 version = "0.5.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#19fe23cbeb178b275d6522873265e2eaf6dd7899"
+source = "git+https://github.com/uklotzde/lofty-rs?branch=split-and-rejoin-tag#328c4371829ef1005945d797a4a073aaecee2adc"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3176,9 +3176,9 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustix"
-version = "0.36.6"
+version = "0.36.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4feacf7db682c6c329c4ede12649cd36ecab0f3be5b7d74e6a20304725db4549"
+checksum = "d4fdebc4b395b7fbb9ab11e462e20ed9051e7b16e42d24042c776eca0ac81b03"
 dependencies = [
  "bitflags",
  "errno",
@@ -4697,12 +4697,12 @@ dependencies = [
 
 [[package]]
 name = "x11-dl"
-version = "2.20.1"
+version = "2.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1536d6965a5d4e573c7ef73a2c15ebcd0b2de3347bdf526c34c297c00ac40f0"
+checksum = "38735924fedd5314a6e548792904ed8c6de6636285cb9fec04d5b1db85c1516f"
 dependencies = [
- "lazy_static",
  "libc",
+ "once_cell",
  "pkg-config",
 ]
 
