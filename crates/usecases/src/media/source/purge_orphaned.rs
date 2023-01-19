@@ -26,10 +26,9 @@ where
     let collection_id = collection_ctx.record_id;
     let root_path_prefix = collection_ctx.root_path_prefix_str(root_url.as_ref());
     let purged = if let Some(root_path_prefix) = root_path_prefix {
-        let root_path_predicate = StringPredicateBorrowed::Prefix(root_path_prefix);
         repo.purge_orphaned_media_sources_by_content_path_predicate(
             collection_id,
-            root_path_predicate,
+            StringPredicate::Prefix(root_path_prefix.into()),
         )
     } else {
         repo.purge_orphaned_media_sources(collection_id)

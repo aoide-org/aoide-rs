@@ -32,7 +32,8 @@ where
     let purged = if vfs_ctx.root_path.is_empty() {
         repo.purge_untracked_media_sources(collection_id)
     } else {
-        let root_path_predicate = StringPredicateBorrowed::Prefix(vfs_ctx.root_path.as_str());
+        let root_path_predicate =
+            StringPredicate::Prefix(vfs_ctx.root_path.as_borrowed().into_inner());
         repo.purge_untracked_media_sources_by_content_path_predicate(
             collection_id,
             root_path_predicate,

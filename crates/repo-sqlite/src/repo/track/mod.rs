@@ -512,7 +512,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
     ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)> {
         let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
-            StringPredicateBorrowed::Equals(content_path.as_str()),
+            StringPredicate::Equals(content_path.as_borrowed().into_inner()),
         );
         let queryable = view_track_search::table
             .filter(view_track_search::media_source_id.eq_any(media_source_id_subselect))
@@ -532,7 +532,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)> {
         let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
-            StringPredicateBorrowed::Equals(content_path.as_str()),
+            StringPredicate::Equals(content_path.as_borrowed().into_inner()),
         );
         let queryable = view_track_search::table
             .filter(view_track_search::media_source_id.eq_any(media_source_id_subselect))
@@ -727,7 +727,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
     fn purge_tracks_by_media_source_content_path_predicate(
         &mut self,
         collection_id: CollectionId,
-        content_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<usize> {
         let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
@@ -743,7 +743,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         &mut self,
         collection_id: CollectionId,
         pagination: &Pagination,
-        content_path_predicate: Option<StringPredicateBorrowed<'_>>,
+        content_path_predicate: Option<StringPredicate<'_>>,
     ) -> RepoResult<Vec<(EntityHeader, RecordHeader, RecordTrail)>> {
         let mut query = collection::table
             .inner_join(media_source::table.inner_join(track::table))

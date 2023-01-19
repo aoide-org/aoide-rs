@@ -35,7 +35,7 @@ pub trait CollectionRepo {
     fn resolve_media_source_ids_by_content_path_predicate(
         &mut self,
         collection_id: CollectionId,
-        content_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<Vec<RecordId>>;
 
     fn insert_media_source(
@@ -62,32 +62,32 @@ pub trait CollectionRepo {
     fn purge_media_sources_by_content_path_predicate(
         &mut self,
         collection_id: CollectionId,
-        content_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<usize>;
 
     fn purge_orphaned_media_sources_by_content_path_predicate(
         &mut self,
         collection_id: CollectionId,
-        content_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<usize>;
 
     fn purge_orphaned_media_sources(&mut self, collection_id: CollectionId) -> RepoResult<usize> {
         self.purge_orphaned_media_sources_by_content_path_predicate(
             collection_id,
-            StringPredicateBorrowed::Prefix(""),
+            StringPredicate::Prefix("".into()),
         )
     }
 
     fn purge_untracked_media_sources_by_content_path_predicate(
         &mut self,
         collection_id: CollectionId,
-        content_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<usize>;
 
     fn purge_untracked_media_sources(&mut self, collection_id: CollectionId) -> RepoResult<usize> {
         self.purge_untracked_media_sources_by_content_path_predicate(
             collection_id,
-            StringPredicateBorrowed::Prefix(""),
+            StringPredicate::Prefix("".into()),
         )
     }
 }

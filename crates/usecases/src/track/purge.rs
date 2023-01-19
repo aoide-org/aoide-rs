@@ -14,10 +14,10 @@ pub struct PurgeByMediaContentPathPredicatesSummary {
     pub purged_tracks: usize,
 }
 
-pub fn purge_by_media_source_content_path_predicates<Repo>(
+pub fn purge_by_media_source_content_path_predicates<'a, Repo>(
     repo: &mut Repo,
     collection_id: CollectionId,
-    path_predicates: impl IntoIterator<Item = StringPredicate>,
+    path_predicates: impl IntoIterator<Item = StringPredicate<'a>>,
 ) -> RepoResult<PurgeByMediaContentPathPredicatesSummary>
 where
     Repo: CollectionRepo + MediaSourceCollectionRepo,
@@ -27,12 +27,12 @@ where
         // 1st step: Delete the tracks, leaving the corresponding media sources orphaned
         let purged_tracks = repo.purge_tracks_by_media_source_content_path_predicate(
             collection_id,
-            path_predicate.borrow(),
+            path_predicate.as_borrowed(),
         )?;
         // 2nd step: Delete all orphaned media sources
         let purged_media_sources = repo.purge_orphaned_media_sources_by_content_path_predicate(
             collection_id,
-            path_predicate.borrow(),
+            path_predicate,
         )?;
         debug_assert!(purged_tracks <= purged_media_sources);
         summary.purged_tracks += purged_tracks;

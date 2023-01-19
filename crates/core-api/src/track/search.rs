@@ -78,7 +78,7 @@ pub struct PhraseFieldFilter {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceFilterBorrowed<'s> {
-    pub path: StringPredicateBorrowed<'s>,
+    pub path: StringPredicate<'s>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, ToPrimitive)]
@@ -156,7 +156,7 @@ pub enum Filter {
     DateTime(DateTimeFieldFilter),
     Condition(ConditionFilter),
     Tag(tag::search::Filter),
-    CueLabel(StringFilter),
+    CueLabel(StringFilter<'static>),
     AnyTrackUid(Vec<TrackUid>),
     AnyPlaylistUid(Vec<PlaylistUid>),
     All(Vec<Filter>),

@@ -113,13 +113,13 @@ pub trait CollectionRepo {
     fn purge_tracks_by_media_source_content_path_predicate(
         &mut self,
         collection_id: CollectionId,
-        content_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<usize>;
 
     fn find_unsynchronized_tracks(
         &mut self,
         collection_id: CollectionId,
         pagination: &Pagination,
-        content_path_predicate: Option<StringPredicateBorrowed<'_>>,
+        content_path_predicate: Option<StringPredicate<'_>>,
     ) -> RepoResult<Vec<(EntityHeader, RecordHeader, RecordTrail)>>;
 }

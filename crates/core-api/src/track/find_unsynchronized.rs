@@ -12,7 +12,7 @@ use crate::{filtering::StringPredicate, media::source::ResolveUrlFromContentPath
 #[derive(Debug, Clone, Default)]
 pub struct Params {
     pub resolve_url_from_content_path: Option<ResolveUrlFromContentPath>,
-    pub content_path_predicate: Option<StringPredicate>,
+    pub content_path_predicate: Option<StringPredicate<'static>>,
 }
 
 #[derive(Debug, Clone)]

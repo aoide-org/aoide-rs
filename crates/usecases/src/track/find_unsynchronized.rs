@@ -18,7 +18,7 @@ pub fn find_unsynchronized<Repo, Resolver>(
     repo: &mut Repo,
     collection_id: CollectionId,
     pagination: &Pagination,
-    content_path_predicate: Option<StringPredicateBorrowed<'_>>,
+    content_path_predicate: Option<StringPredicate<'_>>,
     content_path_resolver: Option<&Resolver>,
 ) -> RepoResult<Vec<UnsynchronizedTrackEntity>>
 where
@@ -90,7 +90,7 @@ where
         repo,
         collection_id,
         pagination,
-        content_path_predicate.as_ref().map(StringPredicate::borrow),
+        content_path_predicate,
         content_path_resolver.as_ref(),
     )
     .map_err(Into::into)

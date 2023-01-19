@@ -59,41 +59,41 @@ pub enum StringPredicate {
 }
 
 #[cfg(feature = "backend")]
-impl From<StringPredicate> for _inner::StringPredicate {
+impl From<StringPredicate> for _inner::StringPredicate<'static> {
     fn from(from: StringPredicate) -> Self {
         use StringPredicate::*;
         match from {
-            StartsWith(s) => Self::StartsWith(s),
-            StartsNotWith(s) => Self::StartsNotWith(s),
-            EndsWith(s) => Self::EndsWith(s),
-            EndsNotWith(s) => Self::EndsNotWith(s),
-            Contains(s) => Self::Contains(s),
-            ContainsNot(s) => Self::ContainsNot(s),
-            Matches(s) => Self::Matches(s),
-            MatchesNot(s) => Self::MatchesNot(s),
-            Prefix(s) => Self::Prefix(s),
-            Equals(s) => Self::Equals(s),
-            EqualsNot(s) => Self::EqualsNot(s),
+            StartsWith(s) => Self::StartsWith(s.into()),
+            StartsNotWith(s) => Self::StartsNotWith(s.into()),
+            EndsWith(s) => Self::EndsWith(s.into()),
+            EndsNotWith(s) => Self::EndsNotWith(s.into()),
+            Contains(s) => Self::Contains(s.into()),
+            ContainsNot(s) => Self::ContainsNot(s.into()),
+            Matches(s) => Self::Matches(s.into()),
+            MatchesNot(s) => Self::MatchesNot(s.into()),
+            Prefix(s) => Self::Prefix(s.into()),
+            Equals(s) => Self::Equals(s.into()),
+            EqualsNot(s) => Self::EqualsNot(s.into()),
         }
     }
 }
 
 #[cfg(feature = "frontend")]
-impl From<_inner::StringPredicate> for StringPredicate {
-    fn from(from: _inner::StringPredicate) -> Self {
+impl From<_inner::StringPredicate<'static>> for StringPredicate {
+    fn from(from: _inner::StringPredicate<'static>) -> Self {
         use _inner::StringPredicate::*;
         match from {
-            StartsWith(s) => Self::StartsWith(s),
-            StartsNotWith(s) => Self::StartsNotWith(s),
-            EndsWith(s) => Self::EndsWith(s),
-            EndsNotWith(s) => Self::EndsNotWith(s),
-            Contains(s) => Self::Contains(s),
-            ContainsNot(s) => Self::ContainsNot(s),
-            Matches(s) => Self::Matches(s),
-            MatchesNot(s) => Self::MatchesNot(s),
-            Prefix(s) => Self::Prefix(s),
-            Equals(s) => Self::Equals(s),
-            EqualsNot(s) => Self::EqualsNot(s),
+            StartsWith(s) => Self::StartsWith(s.into_owned()),
+            StartsNotWith(s) => Self::StartsNotWith(s.into_owned()),
+            EndsWith(s) => Self::EndsWith(s.into_owned()),
+            EndsNotWith(s) => Self::EndsNotWith(s.into_owned()),
+            Contains(s) => Self::Contains(s.into_owned()),
+            ContainsNot(s) => Self::ContainsNot(s.into_owned()),
+            Matches(s) => Self::Matches(s.into_owned()),
+            MatchesNot(s) => Self::MatchesNot(s.into_owned()),
+            Prefix(s) => Self::Prefix(s.into_owned()),
+            Equals(s) => Self::Equals(s.into_owned()),
+            EqualsNot(s) => Self::EqualsNot(s.into_owned()),
         }
     }
 }
@@ -132,7 +132,7 @@ pub struct StringFilter {
 }
 
 #[cfg(feature = "backend")]
-impl From<StringFilter> for _inner::StringFilter {
+impl From<StringFilter> for _inner::StringFilter<'static> {
     fn from(from: StringFilter) -> Self {
         Self {
             modifier: from.modifier.map(Into::into),
@@ -142,8 +142,8 @@ impl From<StringFilter> for _inner::StringFilter {
 }
 
 #[cfg(feature = "frontend")]
-impl From<_inner::StringFilter> for StringFilter {
-    fn from(from: _inner::StringFilter) -> Self {
+impl From<_inner::StringFilter<'static>> for StringFilter {
+    fn from(from: _inner::StringFilter<'static>) -> Self {
         Self {
             modifier: from.modifier.map(Into::into),
             value: from.value.map(Into::into),

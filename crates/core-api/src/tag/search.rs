@@ -17,7 +17,7 @@ pub struct Filter {
     /// vector match all unfaceted tags, i.e. tags without a facet.
     pub facets: Option<Vec<FacetKey<'static>>>,
 
-    pub label: Option<StringPredicate>,
+    pub label: Option<StringPredicate<'static>>,
 
     pub score: Option<NumericPredicate>,
 }
@@ -34,7 +34,7 @@ impl Filter {
     }
 
     #[must_use]
-    pub fn any_term() -> Option<StringPredicate> {
+    pub fn any_term() -> Option<StringPredicate<'static>> {
         None
     }
 

@@ -886,7 +886,7 @@ fn select_track_ids_matching_tag_filter(
 
     // Filter labels
     if let Some(ref label) = label {
-        let (val, cmp, dir) = decompose_string_predicate(label.borrow());
+        let (val, cmp, dir) = decompose_string_predicate(label);
         let string_cmp_op = match cmp {
             // Equal comparison without escape characters
             StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
@@ -962,9 +962,9 @@ fn build_tag_filter_expression(filter: &TagFilter) -> TrackSearchExpressionBoxed
     }
 }
 
-fn build_cue_label_filter_expression(
-    filter: StringFilterBorrowed<'_>,
-) -> TrackSearchExpressionBoxed<'_> {
+fn build_cue_label_filter_expression<'a>(
+    filter: &StringFilter<'_>,
+) -> TrackSearchExpressionBoxed<'a> {
     let (subselect, filter_modifier) = select_track_ids_matching_cue_filter(filter);
     match filter_modifier {
         None => Box::new(view_track_search::row_id.eq_any(subselect)),
@@ -972,8 +972,8 @@ fn build_cue_label_filter_expression(
     }
 }
 
-fn select_track_ids_matching_cue_filter<'s, 'db>(
-    filter: StringFilterBorrowed<'s>,
+fn select_track_ids_matching_cue_filter<'db>(
+    filter: &StringFilter<'_>,
 ) -> (
     track_cue::BoxedQuery<'db, DbBackend, sql_types::BigInt>,
     Option<FilterModifier>,
@@ -981,7 +981,7 @@ fn select_track_ids_matching_cue_filter<'s, 'db>(
     let mut select = track_cue::table.select(track_cue::track_id).into_boxed();
 
     // Filter labels
-    if let Some(label) = filter.value {
+    if let Some(label) = &filter.value {
         let (val, cmp, dir) = decompose_string_predicate(label);
         let string_cmp_op = match cmp {
             // Equal comparison without escape characters
@@ -1164,7 +1164,7 @@ impl TrackSearchExpressionBoxedBuilder for Filter {
             DateTime(filter) => build_datetime_field_filter_expression(filter),
             Condition(filter) => build_condition_filter_expression(*filter),
             Tag(filter) => build_tag_filter_expression(filter),
-            CueLabel(filter) => build_cue_label_filter_expression(filter.borrow()),
+            CueLabel(filter) => build_cue_label_filter_expression(filter),
             AnyTrackUid(any_track_uid) => build_any_track_uid_filter_expression(any_track_uid),
             AnyPlaylistUid(any_playlist_uid) => {
                 build_any_playlist_uid_filter_expression(any_playlist_uid)
@@ -1187,8 +1187,8 @@ impl TrackSearchExpressionBoxedBuilder for Filter {
 }
 
 /// (Value, Comparison, Include(true)/Exclude(false))
-fn decompose_string_predicate(p: StringPredicateBorrowed<'_>) -> (&str, StringCompare, bool) {
-    use StringPredicateBorrowed::*;
+fn decompose_string_predicate<'a>(p: &'a StringPredicate<'a>) -> (&'a str, StringCompare, bool) {
+    use StringPredicate::*;
     match p {
         StartsWith(s) => (s, StringCompare::StartsWith, true),
         StartsNotWith(s) => (s, StringCompare::StartsWith, false),

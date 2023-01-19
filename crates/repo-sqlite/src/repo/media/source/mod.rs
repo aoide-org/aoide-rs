@@ -76,7 +76,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     fn resolve_media_source_ids_by_content_path_predicate(
         &mut self,
         collection_id: CollectionId,
-        content_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<Vec<RecordId>> {
         media_source::table
             .select(media_source::row_id)
@@ -123,7 +123,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     fn purge_media_sources_by_content_path_predicate(
         &mut self,
         collection_id: CollectionId,
-        content_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<usize> {
         // Reuse the tested subselect with reliable predicate filtering
         // even if it might be slightly less efficient! The query optimizer
@@ -138,7 +138,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     fn purge_orphaned_media_sources_by_content_path_predicate(
         &mut self,
         collection_id: CollectionId,
-        content_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<usize> {
         // Reuse the tested subselect with reliable predicate filtering
         // even if it might be slightly less efficient! The query optimizer
@@ -161,7 +161,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     fn purge_untracked_media_sources_by_content_path_predicate(
         &mut self,
         collection_id: CollectionId,
-        content_path_predicate: StringPredicateBorrowed<'_>,
+        content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<usize> {
         // Reuse the tested subselect with reliable predicate filtering
         // even if it might be slightly less efficient! The query optimizer

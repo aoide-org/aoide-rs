@@ -12,7 +12,7 @@ mod uc {
 pub fn purge_by_media_source_content_path_predicates(
     connection: &mut DbConnection,
     collection_uid: &CollectionUid,
-    path_predicates: Vec<StringPredicate>,
+    path_predicates: Vec<StringPredicate<'_>>,
 ) -> Result<uc::PurgeByMediaContentPathPredicatesSummary> {
     let mut repo = RepoConnection::new(connection);
     let collection_id = repo.resolve_collection_id(collection_uid)?;
