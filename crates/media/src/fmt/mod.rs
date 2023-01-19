@@ -80,17 +80,17 @@ pub(crate) fn parse_options() -> ParseOptions {
 fn import_audio_content_from_file_properties(properties: &FileProperties) -> AudioContentMetadata {
     let bitrate = properties
         .audio_bitrate()
-        .map(|kbps| BitrateBps::from_inner(f64::from(kbps) * 1000.0))
+        .map(|kbps| BitrateBps::new(f64::from(kbps) * 1000.0))
         .filter(IsValid::is_valid);
     let channels = properties
         .channels()
         .map(|num_channels| ChannelCount(num_channels.into()).into())
         .filter(IsValid::is_valid);
     let duration_ms = properties.duration().as_secs_f64() * 1000.0;
-    let duration = Some(DurationMs::from_inner(duration_ms)).filter(IsValid::is_valid);
+    let duration = Some(DurationMs::new(duration_ms)).filter(IsValid::is_valid);
     let sample_rate = properties
         .sample_rate()
-        .map(|hz| SampleRateHz::from_inner(hz.into()))
+        .map(|hz| SampleRateHz::new(hz.into()))
         .filter(IsValid::is_valid);
     AudioContentMetadata {
         bitrate,

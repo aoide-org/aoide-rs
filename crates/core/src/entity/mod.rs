@@ -300,17 +300,17 @@ impl EntityRevision {
     pub fn prev(self) -> Option<Self> {
         debug_assert!(self.validate().is_ok());
         let Self(next) = self;
-        next.checked_sub(1).map(Self::from_inner)
+        next.checked_sub(1).map(Self::new)
     }
 
     pub fn next(self) -> Option<Self> {
         debug_assert!(self.validate().is_ok());
         let Self(prev) = self;
-        prev.checked_add(1).map(Self::from_inner)
+        prev.checked_add(1).map(Self::new)
     }
 
     #[must_use]
-    pub const fn from_inner(inner: EntityRevisionNumber) -> Self {
+    pub const fn new(inner: EntityRevisionNumber) -> Self {
         Self(inner)
     }
 
@@ -323,7 +323,7 @@ impl EntityRevision {
 
 impl From<EntityRevisionNumber> for EntityRevision {
     fn from(from: EntityRevisionNumber) -> Self {
-        Self::from_inner(from)
+        Self::new(from)
     }
 }
 

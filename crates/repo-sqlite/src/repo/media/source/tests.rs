@@ -77,7 +77,7 @@ fn insert_media_source() -> anyhow::Result<()> {
             digest: None,
             metadata_flags: Default::default(),
             metadata: AudioContentMetadata {
-                duration: Some(DurationMs::from_inner(543.0)),
+                duration: Some(DurationMs::new(543.0)),
                 ..Default::default()
             }
             .into(),
@@ -129,7 +129,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
             digest: None,
             metadata_flags: Default::default(),
             metadata: AudioContentMetadata {
-                duration: Some(DurationMs::from_inner(1.0)),
+                duration: Some(DurationMs::new(1.0)),
                 ..Default::default()
             }
             .into(),
@@ -150,7 +150,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
             digest: None,
             metadata_flags: ContentMetadataFlags::RELIABLE,
             metadata: AudioContentMetadata {
-                duration: Some(DurationMs::from_inner(1.0)),
+                duration: Some(DurationMs::new(1.0)),
                 ..Default::default()
             }
             .into(),
@@ -313,7 +313,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
             digest: None,
             metadata_flags: Default::default(),
             metadata: AudioContentMetadata {
-                duration: Some(DurationMs::from_inner(1.0)),
+                duration: Some(DurationMs::new(1.0)),
                 ..Default::default()
             }
             .into(),
@@ -334,7 +334,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
             digest: None,
             metadata_flags: ContentMetadataFlags::RELIABLE,
             metadata: AudioContentMetadata {
-                duration: Some(DurationMs::from_inner(1.0)),
+                duration: Some(DurationMs::new(1.0)),
                 ..Default::default()
             }
             .into(),

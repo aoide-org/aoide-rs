@@ -24,7 +24,7 @@ pub(crate) fn entity_uid_to_sql(uid: &impl AsRef<EntityUid>) -> String {
 }
 
 pub(crate) fn entity_revision_from_sql(rev: i64) -> EntityRevision {
-    EntityRevision::from_inner(rev as EntityRevisionNumber)
+    EntityRevision::new(rev as EntityRevisionNumber)
 }
 
 pub(crate) fn entity_revision_to_sql(rev: EntityRevision) -> i64 {

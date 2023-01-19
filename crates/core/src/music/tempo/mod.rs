@@ -32,7 +32,7 @@ impl TempoBpm {
     }
 
     #[must_use]
-    pub const fn from_inner(inner: Bpm) -> Self {
+    pub const fn new(inner: Bpm) -> Self {
         Self(inner)
     }
 

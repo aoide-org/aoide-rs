@@ -239,7 +239,7 @@ pub(crate) fn load_repo_entity(
         })
         .transpose()?;
     let metrics = Metrics {
-        tempo_bpm: music_tempo_bpm.map(TempoBpm::from_inner),
+        tempo_bpm: music_tempo_bpm.map(TempoBpm::new),
         key_signature: music_key_code.map(KeySignature::new),
         time_signature,
         flags: MetricsFlags::from_bits_truncate(music_flags as u8),

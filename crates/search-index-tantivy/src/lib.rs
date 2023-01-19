@@ -274,7 +274,7 @@ impl TrackFields {
     pub fn read_rev(&self, doc: &Document) -> Option<EntityRevision> {
         doc.get_first(self.rev)
             .and_then(Value::as_u64)
-            .map(EntityRevision::from_inner)
+            .map(EntityRevision::new)
     }
 
     pub fn find_rev_by_uid(

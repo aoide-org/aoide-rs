@@ -262,7 +262,7 @@ pub(crate) fn format_tempo_bpm(tempo_bpm: &mut TempoBpm, format: TempoBpmFormat)
     match format {
         TempoBpmFormat::Integer => {
             // Do not touch the original value when rounding to integer!
-            let tempo_bpm = TempoBpm::from_inner(tempo_bpm.to_inner().round());
+            let tempo_bpm = TempoBpm::new(tempo_bpm.to_inner().round());
             format_parseable_value(&mut tempo_bpm.to_inner())
         }
         TempoBpmFormat::Float => {

@@ -51,7 +51,7 @@ impl Params {
         // More than one result is necessary to decide if it is unambiguous
         let max_results = unsafe { NonZeroUsize::new_unchecked(2) };
         Self {
-            audio_duration_tolerance: DurationMs::from_inner(500.0), // +/- 500 ms
+            audio_duration_tolerance: DurationMs::new(500.0), // +/- 500 ms
             max_results,
             search_flags: SearchFlags::ALL,
         }

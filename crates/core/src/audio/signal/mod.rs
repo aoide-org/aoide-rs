@@ -43,7 +43,7 @@ impl BitrateBps {
     }
 
     #[must_use]
-    pub const fn from_inner(inner: SamplesPerSecond) -> Self {
+    pub const fn new(inner: SamplesPerSecond) -> Self {
         Self(inner)
     }
 
@@ -133,7 +133,7 @@ impl SampleRateHz {
     }
 
     #[must_use]
-    pub const fn from_inner(inner: SamplesPerSecond) -> Self {
+    pub const fn new(inner: SamplesPerSecond) -> Self {
         Self(inner)
     }
 

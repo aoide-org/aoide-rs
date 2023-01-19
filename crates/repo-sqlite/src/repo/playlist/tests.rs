@@ -73,7 +73,7 @@ impl Fixture {
                     r#type: "audio/mpeg".parse().unwrap(),
                     metadata_flags: Default::default(),
                     metadata: AudioContentMetadata {
-                        duration: Some(DurationMs::from_inner(i as f64)),
+                        duration: Some(DurationMs::new(i as f64)),
                         ..Default::default()
                     }
                     .into(),

@@ -426,7 +426,7 @@ impl Importer {
         }
         match input.parse() {
             Ok(bpm) => {
-                let tempo_bpm = TempoBpm::from_inner(bpm);
+                let tempo_bpm = TempoBpm::new(bpm);
                 if !tempo_bpm.is_valid() {
                     // The value 0 is often used for an unknown bpm.
                     // Silently ignore this special value to prevent log spam.

@@ -97,10 +97,10 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             artwork_thumbnail,
         } = from;
         let audio_metadata = AudioContentMetadata {
-            duration: audio_duration_ms.map(DurationMs::from_inner),
+            duration: audio_duration_ms.map(DurationMs::new),
             channels: audio_channel_count.map(|val| ChannelCount(val as NumberOfChannels).into()),
-            sample_rate: audio_samplerate_hz.map(SampleRateHz::from_inner),
-            bitrate: audio_bitrate_bps.map(|val| BitrateBps::from_inner(val as BitsPerSecond)),
+            sample_rate: audio_samplerate_hz.map(SampleRateHz::new),
+            bitrate: audio_bitrate_bps.map(|val| BitrateBps::new(val as BitsPerSecond)),
             loudness: audio_loudness_lufs.map(LoudnessLufs),
             encoder: audio_encoder,
         };

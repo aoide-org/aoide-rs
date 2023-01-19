@@ -72,7 +72,7 @@ impl DurationMs {
     }
 
     #[must_use]
-    pub const fn from_inner(inner: DurationInMilliseconds) -> Self {
+    pub const fn new(inner: DurationInMilliseconds) -> Self {
         Self(inner)
     }
 
