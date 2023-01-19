@@ -106,7 +106,10 @@ impl Validate for Source {
             artwork,
         } = self;
         let context = ValidationContext::new()
-            .invalidate_if(link_path.trim().is_empty(), Self::Invalidity::LinkPathEmpty)
+            .invalidate_if(
+                link_path.as_str().trim().is_empty(),
+                Self::Invalidity::LinkPathEmpty,
+            )
             .invalidate_if(
                 content_type.essence_str().is_empty(),
                 Self::Invalidity::ContentTypeEmpty,

@@ -49,7 +49,7 @@ fn deserialize_audio_source() {
             collected_at: now,
             content: _core::Content {
                 link: _core::content::ContentLink {
-                    path: _core::content::ContentPath::new("/home/test file.mp3".to_owned()),
+                    path: "/home/test file.mp3".to_owned().into(),
                     rev: Some(content_rev),
                 },
                 r#type: "audio/mpeg".parse().unwrap(),

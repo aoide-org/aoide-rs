@@ -138,7 +138,7 @@ pub struct NewTrackInput {
 
 impl NewTrackInput {
     #[must_use]
-    pub fn into_new_track(self, path: ContentPath, content_type: Mime) -> Track {
+    pub fn into_new_track(self, path: ContentPath<'static>, content_type: Mime) -> Track {
         let Self {
             collected_at,
             content_rev,

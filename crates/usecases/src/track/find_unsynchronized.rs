@@ -3,7 +3,7 @@
 
 use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::find_unsynchronized::*};
 
-use aoide_core::media::content::{resolver::ContentPathResolver, ContentPath};
+use aoide_core::media::content::resolver::ContentPathResolver;
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
@@ -41,7 +41,7 @@ where
                         let url = content_path_resolver
                             .resolve_url_from_content_path(&content_link.path)
                             .expect("valid content path");
-                        content_link.path = ContentPath::new(url.to_string());
+                        content_link.path = url.to_string().into();
                     }
                     let track = UnsynchronizedTrack {
                         content_link,

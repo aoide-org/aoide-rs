@@ -19,7 +19,7 @@ pub type DirCacheRecordHeader = crate::RecordHeader<DirCacheRecordId>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TrackedDirectory {
-    pub path: ContentPath,
+    pub content_path: ContentPath<'static>,
     pub status: DirTrackingStatus,
     pub digest: DigestBytes,
 }
@@ -55,7 +55,7 @@ pub trait Repo {
         &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path_prefix: &ContentPath,
+        path_prefix: &ContentPath<'_>,
         old_status: Option<DirTrackingStatus>,
         new_status: DirTrackingStatus,
     ) -> RepoResult<usize>;
@@ -64,14 +64,14 @@ pub trait Repo {
         &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path: &ContentPath,
+        content_path: &ContentPath<'_>,
         digest: &DigestBytes,
     ) -> RepoResult<DirUpdateOutcome>;
 
     fn media_tracker_untrack_directories(
         &mut self,
         collection_id: CollectionId,
-        path_prefix: &ContentPath,
+        path_prefix: &ContentPath<'_>,
         status: Option<DirTrackingStatus>,
     ) -> RepoResult<usize>;
 
@@ -87,7 +87,7 @@ pub trait Repo {
     fn media_tracker_purge_orphaned_directories(
         &mut self,
         collection_id: CollectionId,
-        path_prefix: &ContentPath,
+        path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize> {
         self.media_tracker_untrack_directories(
             collection_id,
@@ -102,7 +102,7 @@ pub trait Repo {
         &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path_prefix: &ContentPath,
+        path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize> {
         self.media_tracker_update_directories_status(
             updated_at,
@@ -119,7 +119,7 @@ pub trait Repo {
         &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path_prefix: &ContentPath,
+        path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize> {
         self.media_tracker_update_directories_status(
             updated_at,
@@ -137,14 +137,14 @@ pub trait Repo {
     fn media_tracker_load_directories_requiring_confirmation(
         &mut self,
         collection_id: CollectionId,
-        path_prefix: &ContentPath,
+        path_prefix: &ContentPath<'_>,
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>>;
 
     fn media_tracker_replace_directory_sources(
         &mut self,
         collection_id: CollectionId,
-        path: &ContentPath,
+        content_path: &ContentPath<'_>,
         media_source_ids: &[MediaSourceId],
     ) -> RepoResult<(usize, usize)>;
 
@@ -159,31 +159,31 @@ pub trait Repo {
         &mut self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        directory_path: &ContentPath,
+        directory_path: &ContentPath<'_>,
         digest: &DigestBytes,
     ) -> RepoResult<bool>;
 
     fn media_tracker_load_directory_tracking_status(
         &mut self,
         collection_id: CollectionId,
-        directory_path: &ContentPath,
+        directory_path: &ContentPath<'_>,
     ) -> RepoResult<DirTrackingStatus>;
 
     fn media_tracker_aggregate_directories_tracking_status(
         &mut self,
         collection_id: CollectionId,
-        path_prefix: &ContentPath,
+        path_prefix: &ContentPath<'_>,
     ) -> RepoResult<DirectoriesStatus>;
 
     fn media_tracker_find_untracked_sources(
         &mut self,
         collection_id: CollectionId,
-        path_prefix: &ContentPath,
+        path_prefix: &ContentPath<'_>,
     ) -> RepoResult<Vec<MediaSourceId>>;
 
-    fn media_tracker_resolve_source_id_synchronized_at_by_path(
+    fn media_tracker_resolve_source_id_synchronized_at_by_content_path(
         &mut self,
         collection_id: CollectionId,
-        path: &ContentPath,
+        path: &ContentPath<'_>,
     ) -> RepoResult<(MediaSourceId, Option<u64>)>;
 }

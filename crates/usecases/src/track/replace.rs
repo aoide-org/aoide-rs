@@ -137,6 +137,7 @@ where
                 .content
                 .link
                 .path
+                .as_str()
                 .parse()
                 .map_err(|err| {
                     anyhow::anyhow!(

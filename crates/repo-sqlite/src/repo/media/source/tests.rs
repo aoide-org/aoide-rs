@@ -70,7 +70,7 @@ fn insert_media_source() -> anyhow::Result<()> {
         collected_at: DateTime::now_local_or_utc(),
         content: media::Content {
             link: ContentLink {
-                path: ContentPath::new("file:///home/test/file.mp3".to_owned()),
+                path: ContentPath::from("file:///home/test/file.mp3"),
                 rev: Some(ContentRevision::new(6)),
             },
             r#type: "audio/mpeg".parse().unwrap(),
@@ -122,7 +122,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         collected_at: DateTime::now_local_or_utc(),
         content: media::Content {
             link: ContentLink {
-                path: ContentPath::new("file:///home/file.mp3".to_owned()),
+                path: ContentPath::from("file:///home/file.mp3"),
                 rev: None,
             },
             r#type: "audio/mpeg".parse().unwrap(),
@@ -143,7 +143,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         collected_at: DateTime::now_local_or_utc(),
         content: media::Content {
             link: ContentLink {
-                path: ContentPath::new("file:///Home/File.mp3".to_owned()),
+                path: ContentPath::from("file:///Home/File.mp3"),
                 rev: None,
             },
             r#type: "audio/mpeg".parse().unwrap(),
@@ -165,13 +165,15 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         vec![header_lowercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicateBorrowed::Equals(&file_lowercase.content.link.path)
+            StringPredicateBorrowed::Equals(file_lowercase.content.link.path.as_str())
         )?
     );
     assert!(fixture
         .resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicateBorrowed::Equals(&file_lowercase.content.link.path.to_uppercase())
+            StringPredicateBorrowed::Equals(
+                &file_lowercase.content.link.path.as_str().to_uppercase()
+            )
         )?
         .is_empty());
 
@@ -179,14 +181,16 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         vec![header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicateBorrowed::Equals(&file_uppercase.content.link.path)
+            StringPredicateBorrowed::Equals(file_uppercase.content.link.path.as_str())
         )?
     );
     assert_eq!(
         vec![header_lowercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicateBorrowed::Equals(&file_uppercase.content.link.path.to_lowercase())
+            StringPredicateBorrowed::Equals(
+                &file_uppercase.content.link.path.as_str().to_lowercase()
+            )
         )?
     );
 
@@ -223,14 +227,14 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicateBorrowed::StartsWith(&file_lowercase.content.link.path)
+            StringPredicateBorrowed::StartsWith(file_lowercase.content.link.path.as_str())
         )?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicateBorrowed::StartsWith(&file_uppercase.content.link.path)
+            StringPredicateBorrowed::StartsWith(file_uppercase.content.link.path.as_str())
         )?
     );
     assert_eq!(
@@ -286,7 +290,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         collected_at: DateTime::now_local_or_utc(),
         content: media::Content {
             link: ContentLink {
-                path: ContentPath::new("file:///ho''me/file.mp3".to_owned()),
+                path: ContentPath::from("file:///ho''me/file.mp3"),
                 rev: None,
             },
             r#type: "audio/mpeg".parse().unwrap(),
@@ -307,7 +311,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         collected_at: DateTime::now_local_or_utc(),
         content: media::Content {
             link: ContentLink {
-                path: ContentPath::new("file:///Ho''me/File.mp3".to_owned()),
+                path: ContentPath::from("file:///Ho''me/File.mp3"),
                 rev: None,
             },
             r#type: "audio/mpeg".parse().unwrap(),
@@ -325,8 +329,8 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         db.insert_media_source(collection_id, DateTime::now_utc(), &file_uppercase)?;
 
     let updated_at = DateTime::now_utc();
-    let old_path_prefix = ContentPath::new("file:///ho''".to_owned());
-    let new_path_prefix = ContentPath::new("file:///h'o''".to_owned());
+    let old_path_prefix = ContentPath::from("file:///ho''");
+    let new_path_prefix = ContentPath::from("file:///h'o''");
 
     assert_eq!(
         1,
@@ -341,14 +345,14 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
     assert!(fixture
         .resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicateBorrowed::Prefix(&old_path_prefix)
+            StringPredicateBorrowed::Prefix(old_path_prefix.as_str())
         )?
         .is_empty());
     assert_eq!(
         vec![header_lowercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicateBorrowed::Prefix(&new_path_prefix)
+            StringPredicateBorrowed::Prefix(new_path_prefix.as_str())
         )?
     );
     assert_eq!(

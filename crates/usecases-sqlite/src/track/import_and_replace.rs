@@ -18,7 +18,7 @@ mod uc {
 pub fn import_and_replace_many_by_local_file_path<InterceptImportedTrackFn>(
     connection: &mut DbConnection,
     collection_uid: &CollectionUid,
-    content_path_iter: impl IntoIterator<Item = ContentPath>,
+    content_path_iter: impl IntoIterator<Item = ContentPath<'static>>,
     expected_content_path_count: impl Into<Option<usize>>,
     params: &uc::Params,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,
@@ -44,7 +44,7 @@ pub fn import_and_replace_by_local_file_path_from_directory<InterceptImportedTra
     connection: &mut DbConnection,
     collection_uid: &CollectionUid,
     params: &uc::Params,
-    source_dir_path: &str,
+    source_dir_path: &ContentPath<'_>,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome>

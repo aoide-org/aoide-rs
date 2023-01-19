@@ -20,7 +20,7 @@ use super::*;
 fn resolve_path_prefix_from_base_url(
     content_path_resolver: &impl ContentPathResolver,
     url_path_prefix: &BaseUrl,
-) -> Result<ContentPath> {
+) -> Result<ContentPath<'static>> {
     content_path_resolver
         .resolve_path_from_url(url_path_prefix)
         .map_err(|err| anyhow::format_err!("Invalid URL path prefix: {err}").into())
@@ -159,7 +159,7 @@ impl ContentPathContext {
 
 #[derive(Debug)]
 pub struct ContentPathVfsContext {
-    pub root_path: ContentPath,
+    pub root_path: ContentPath<'static>,
     pub root_url: BaseUrl,
     #[cfg(not(target_family = "wasm"))]
     pub path_resolver: VirtualFilePathResolver,

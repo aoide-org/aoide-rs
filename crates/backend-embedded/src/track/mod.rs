@@ -213,7 +213,7 @@ pub async fn import_and_replace_many_by_local_file_path<ContentPathIter, Interce
     intercept_imported_track_fn: InterceptImportedTrackFn,
 ) -> Result<aoide_usecases::track::import_and_replace::Outcome>
 where
-    ContentPathIter: IntoIterator<Item = ContentPath> + Send + 'static,
+    ContentPathIter: IntoIterator<Item = ContentPath<'static>> + Send + 'static,
     InterceptImportedTrackFn: FnMut(Track) -> Track + Send + 'static,
 {
     db_gatekeeper

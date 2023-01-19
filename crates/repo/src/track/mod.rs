@@ -3,7 +3,7 @@
 
 use aoide_core::{
     entity::EntityRevision,
-    media::content::ContentLink,
+    media::content::{ContentLink, ContentPath},
     track::{Entity, EntityHeader, EntityUid, Track},
 };
 use aoide_core_api::track::search::{Filter, SortOrder, StringField};
@@ -83,13 +83,13 @@ pub trait CollectionRepo {
     fn load_track_entity_by_media_source_content_path(
         &mut self,
         collection_id: CollectionId,
-        content_path: &str,
+        content_path: &ContentPath<'_>,
     ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)>;
 
     fn resolve_track_entity_header_by_media_source_content_path(
         &mut self,
         collection_id: CollectionId,
-        content_path: &str,
+        content_path: &ContentPath<'_>,
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)>;
 
     fn replace_track_by_media_source_content_path(

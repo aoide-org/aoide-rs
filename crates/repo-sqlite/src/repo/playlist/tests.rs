@@ -13,7 +13,7 @@ use aoide_core::{
     entity::EntityHeaderTyped,
     media::{
         self,
-        content::{AudioContentMetadata, ContentLink, ContentPath, ContentPathConfig},
+        content::{AudioContentMetadata, ContentLink, ContentPathConfig},
     },
     track::{Entity as TrackEntity, EntityBody as TrackEntityBody, EntityUid as TrackUid, Track},
     util::{clock::DateTime, url::BaseUrl},
@@ -67,7 +67,7 @@ impl Fixture {
                 collected_at: created_at,
                 content: media::Content {
                     link: ContentLink {
-                        path: ContentPath::new(format!("/home/test/file{i}.mp3")),
+                        path: format!("/home/test/file{i}.mp3").into(),
                         rev: None,
                     },
                     r#type: "audio/mpeg".parse().unwrap(),

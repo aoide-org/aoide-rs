@@ -65,7 +65,7 @@ impl From<visit::ProgressEvent> for ProgressEvent {
 struct AncestorVisitor<'r, Repo> {
     collection_id: CollectionId,
     content_path_resolver: &'r VirtualFilePathResolver,
-    content_paths: Vec<ContentPath>,
+    content_paths: Vec<ContentPath<'static>>,
     _repo_marker: PhantomData<Repo>,
 }
 
@@ -84,7 +84,7 @@ impl<'r, Repo> AncestorVisitor<'r, Repo> {
     }
 }
 
-impl<'r, Repo> visit::AncestorVisitor<Repo, Vec<ContentPath>, anyhow::Error>
+impl<'r, Repo> visit::AncestorVisitor<Repo, Vec<ContentPath<'static>>, anyhow::Error>
     for AncestorVisitor<'r, Repo>
 where
     Repo: MediaTrackerRepo,
@@ -100,7 +100,7 @@ where
             // Skip non-terminal paths, i.e. directories
             return Ok(());
         }
-        match repo.media_tracker_resolve_source_id_synchronized_at_by_path(
+        match repo.media_tracker_resolve_source_id_synchronized_at_by_content_path(
             self.collection_id,
             &content_path,
         ) {
@@ -112,15 +112,16 @@ where
             Err(err) => Err(err.into()),
         }
     }
-    fn finalize(self) -> Vec<ContentPath> {
+
+    fn finalize(self) -> Vec<ContentPath<'static>> {
         self.content_paths
     }
 }
 
 #[allow(clippy::unnecessary_wraps)]
 fn ancestor_finished(
-    all_content_paths: &mut Vec<ContentPath>,
-    mut content_paths: Vec<ContentPath>,
+    all_content_paths: &mut Vec<ContentPath<'static>>,
+    mut content_paths: Vec<ContentPath<'static>>,
 ) -> anyhow::Result<visit::AfterAncestorFinished> {
     all_content_paths.append(&mut content_paths);
     Ok(visit::AfterAncestorFinished::Continue)

@@ -17,14 +17,14 @@ pub struct Params {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportedSourceWithIssues {
-    pub path: ContentPath,
+    pub path: ContentPath<'static>,
     pub messages: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
-    pub root_path: ContentPath,
+    pub root_path: ContentPath<'static>,
     pub completion: Completion,
     pub summary: Summary,
     pub imported_sources_with_issues: Vec<ImportedSourceWithIssues>,

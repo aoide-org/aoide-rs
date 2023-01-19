@@ -7,7 +7,7 @@ use bitflags::bitflags;
 
 use aoide_core::{
     audio::DurationMs,
-    media::content::ContentMetadata,
+    media::content::{ContentMetadata, ContentPath},
     track::{actor::Role as ActorRole, Entity as TrackEntity, Track},
 };
 
@@ -220,7 +220,7 @@ where
 pub fn find_duplicate_by_media_source_content_path<Repo>(
     repo: &mut Repo,
     collection_id: CollectionId,
-    content_path: &str,
+    content_path: &ContentPath<'_>,
     params: &Params,
 ) -> RepoResult<Vec<(TrackId, TrackEntity)>>
 where

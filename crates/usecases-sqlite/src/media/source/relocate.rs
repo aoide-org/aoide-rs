@@ -10,8 +10,8 @@ use super::*;
 pub fn relocate(
     connection: &mut DbConnection,
     collection_uid: &CollectionUid,
-    old_content_path_prefix: &ContentPath,
-    new_content_path_prefix: &ContentPath,
+    old_content_path_prefix: &ContentPath<'_>,
+    new_content_path_prefix: &ContentPath<'_>,
 ) -> Result<usize> {
     let mut repo = RepoConnection::new(connection);
     let collection_id = repo.resolve_collection_id(collection_uid)?;

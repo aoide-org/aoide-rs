@@ -5,11 +5,10 @@ use super::*;
 
 #[test]
 fn resolve_url_from_url_encoded_roundtrip() -> Result<(), ResolveFromPathError> {
-    let url_encoded_path = ContentPath::from(
-        "https://www.example.com/Test&20path/file.mp3?param1=true&param2=test".to_owned(),
-    );
+    let url_encoded_path =
+        ContentPath::from("https://www.example.com/Test&20path/file.mp3?param1=true&param2=test");
     let url = UrlResolver.resolve_url_from_content_path(&url_encoded_path)?;
-    assert_eq!(Url::parse(&url_encoded_path).unwrap(), url);
+    assert_eq!(Url::parse(url_encoded_path.as_str()).unwrap(), url);
     assert_eq!(
         url_encoded_path,
         UrlResolver.resolve_path_from_url(&url).unwrap()
@@ -40,9 +39,9 @@ fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathErr
     let file_url = Url::parse("file:///C:/Test%20path/next%23path/file.mp3").unwrap();
 
     #[cfg(target_family = "unix")]
-    let slash_path = ContentPath::from("/Test path/next#*?path/file.mp3".to_owned());
+    let slash_path = ContentPath::from("/Test path/next#*?path/file.mp3");
     #[cfg(target_family = "windows")]
-    let slash_path = ContentPath::from("C:/Test path/next#path/file.mp3".to_owned());
+    let slash_path = ContentPath::from("C:/Test path/next#path/file.mp3");
 
     let url = VirtualFilePathResolver::default().resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
@@ -61,18 +60,18 @@ fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathErr
     let resolver = VirtualFilePathResolver::with_root_url(root_url);
 
     #[cfg(target_family = "unix")]
-    let slash_path = ContentPath::from("next#*?path/file.mp3".to_owned());
+    let slash_path = ContentPath::from("next#*?path/file.mp3");
     #[cfg(target_family = "windows")]
-    let slash_path = ContentPath::from("next#path/file.mp3".to_owned());
+    let slash_path = ContentPath::from("next#path/file.mp3");
 
     let url = resolver.resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
     assert_eq!(slash_path, resolver.resolve_path_from_url(&url).unwrap());
 
     #[cfg(target_family = "unix")]
-    let slash_path = ContentPath::from("next#*?path/file.mp3".to_owned());
+    let slash_path = ContentPath::from("next#*?path/file.mp3");
     #[cfg(target_family = "windows")]
-    let slash_path = ContentPath::from("next#path/file.mp3".to_owned());
+    let slash_path = ContentPath::from("next#path/file.mp3");
 
     let url = resolver.resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
@@ -91,9 +90,9 @@ fn resolve_url_from_local_directory_path_roundtrip() -> Result<(), ResolveFromPa
     let file_url = Url::parse("file:///C:/Test%20path/next%23path/").unwrap();
 
     #[cfg(target_family = "unix")]
-    let slash_path = ContentPath::from("/Test path/next#*?path/".to_owned());
+    let slash_path = ContentPath::from("/Test path/next#*?path/");
     #[cfg(target_family = "windows")]
-    let slash_path = ContentPath::from("C:/Test path/next#path/".to_owned());
+    let slash_path = ContentPath::from("C:/Test path/next#path/");
 
     let url = VirtualFilePathResolver::default().resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
@@ -112,18 +111,18 @@ fn resolve_url_from_local_directory_path_roundtrip() -> Result<(), ResolveFromPa
     let resolver = VirtualFilePathResolver::with_root_url(root_url);
 
     #[cfg(target_family = "unix")]
-    let slash_path = ContentPath::from("next#*?path/".to_owned());
+    let slash_path = ContentPath::from("next#*?path/");
     #[cfg(target_family = "windows")]
-    let slash_path = ContentPath::from("next#path/".to_owned());
+    let slash_path = ContentPath::from("next#path/");
 
     let url = resolver.resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
     assert_eq!(slash_path, resolver.resolve_path_from_url(&url).unwrap());
 
     #[cfg(target_family = "unix")]
-    let slash_path = ContentPath::from("next#*?path/".to_owned());
+    let slash_path = ContentPath::from("next#*?path/");
     #[cfg(target_family = "windows")]
-    let slash_path = ContentPath::from("next#path/".to_owned());
+    let slash_path = ContentPath::from("next#path/");
 
     let url = resolver.resolve_url_from_content_path(&slash_path)?;
     assert_eq!(file_url, url);
@@ -142,9 +141,18 @@ fn resolve_url_from_empty_path_with_root_url() -> Result<(), ResolveFromPathErro
 
     let resolver = VirtualFilePathResolver::with_root_url(root_url.clone().try_into().unwrap());
 
-    assert_eq!(root_url, resolver.resolve_url_from_content_path("")?);
-    assert_eq!(root_url, resolver.resolve_url_from_content_path("/")?);
-    assert_eq!(root_url, resolver.resolve_url_from_content_path("//")?);
+    assert_eq!(
+        root_url,
+        resolver.resolve_url_from_content_path(&ContentPath::from(""))?
+    );
+    assert_eq!(
+        root_url,
+        resolver.resolve_url_from_content_path(&ContentPath::from("/"))?
+    );
+    assert_eq!(
+        root_url,
+        resolver.resolve_url_from_content_path(&ContentPath::from("//"))?
+    );
 
     Ok(())
 }
@@ -152,7 +160,7 @@ fn resolve_url_from_empty_path_with_root_url() -> Result<(), ResolveFromPathErro
 #[cfg(not(target_family = "wasm"))]
 #[test]
 fn resolve_url_from_relative_path_without_root_url_fails() {
-    let slash_path = ContentPath::from("Test path/file.mp3".to_owned());
+    let slash_path = ContentPath::from("Test path/file.mp3");
     assert!(VirtualFilePathResolver::default()
         .resolve_url_from_content_path(&slash_path)
         .is_err());

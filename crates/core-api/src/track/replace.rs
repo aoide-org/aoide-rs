@@ -10,10 +10,10 @@ use aoide_core::{
 pub struct Summary {
     pub created: Vec<Entity>,
     pub updated: Vec<Entity>,
-    pub unchanged: Vec<ContentPath>,
-    pub skipped: Vec<ContentPath>,
-    pub failed: Vec<ContentPath>,
-    pub not_imported: Vec<ContentPath>,
+    pub unchanged: Vec<ContentPath<'static>>,
+    pub skipped: Vec<ContentPath<'static>>,
+    pub failed: Vec<ContentPath<'static>>,
+    pub not_imported: Vec<ContentPath<'static>>,
     pub not_created: Vec<Track>,
     pub not_updated: Vec<Track>,
 }

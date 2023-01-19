@@ -122,7 +122,7 @@ where
                 break 'outcome outcome;
             }
             let TrackedDirectory {
-                path: dir_path,
+                content_path: content_dir_path,
                 status,
                 digest,
             } = pending_directory;
@@ -132,7 +132,7 @@ where
                     repo,
                     collection_id,
                     &vfs_ctx.path_resolver,
-                    &dir_path,
+                    &content_dir_path,
                     &import_and_replace_params,
                     intercept_imported_track_fn,
                     abort_flag,
@@ -141,11 +141,11 @@ where
                     Err(err) => {
                         let err = if let Error::Io(io_err) = err {
                             if io_err.kind() == io::ErrorKind::NotFound {
-                                log::info!("Untracking missing directory '{dir_path}'");
+                                log::info!("Untracking missing directory '{content_dir_path}'");
                                 summary.directories.untracked += repo
                                     .media_tracker_untrack_directories(
                                         collection_id,
-                                        &dir_path,
+                                        &content_dir_path,
                                         None,
                                     )?;
                                 continue;
@@ -156,7 +156,7 @@ where
                             // Pass-through error
                             err
                         };
-                        log::warn!("Failed to import pending directory '{dir_path}': {err}");
+                        log::warn!("Failed to import pending directory '{content_dir_path}': {err}");
                         // Skip this directory and keep going
                         summary.directories.skipped += 1;
                         continue;
@@ -200,21 +200,25 @@ where
                 match repo.media_tracker_confirm_directory(
                     updated_at,
                     collection_id,
-                    &dir_path,
+                    &content_dir_path,
                     &digest,
                 ) {
                     Ok(true) => {
-                        log::debug!("Confirmed pending directory '{dir_path}'");
+                        log::debug!("Confirmed pending directory '{content_dir_path}'");
                         summary.directories.confirmed += 1;
                     }
                     Ok(false) => {
                         // Might be rejected if the digest has been updated meanwhile
-                        log::info!("Confirmation of imported directory '{dir_path}' was rejected",);
+                        log::info!(
+                            "Confirmation of imported directory '{content_dir_path}' was rejected",
+                        );
                         // Keep going and retry to import this directory later
                         continue;
                     }
                     Err(err) => {
-                        log::warn!("Failed to confirm pending directory '{dir_path}': {err}");
+                        log::warn!(
+                            "Failed to confirm pending directory '{content_dir_path}': {err}"
+                        );
                         // Skip this directory, but remember the sources imported from
                         // this directory (see below)
                         summary.directories.skipped += 1;
@@ -222,7 +226,7 @@ where
                 }
             } else {
                 log::warn!(
-                    "Postponing confirmation of pending directory '{dir_path}' after {num_failures} import failure(s)",
+                    "Postponing confirmation of pending directory '{content_dir_path}' after {num_failures} import failure(s)",
                     num_failures = tracks_summary.failed.len(),
                 );
                 // Skip this directory, but remember the sources imported from
@@ -231,10 +235,12 @@ where
             }
             if let Err(err) = repo.media_tracker_replace_directory_sources(
                 collection_id,
-                &dir_path,
+                &content_dir_path,
                 &visited_media_source_ids,
             ) {
-                log::warn!("Failed replace imported sources in directory '{dir_path}': {err}");
+                log::warn!(
+                    "Failed replace imported sources in directory '{content_dir_path}': {err}"
+                );
             }
         }
     };

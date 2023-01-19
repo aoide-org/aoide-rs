@@ -24,13 +24,13 @@ where
     type Record = Entity;
 
     fn collect(&mut self, header: Self::Header, mut record: Self::Record) {
-        let path = &record.body.track.media_source.content.link.path;
+        let content_path = &record.body.track.media_source.content.link.path;
         debug_assert!(record.body.content_url.is_none());
         record.body.content_url = self
             .content_path_resolver
-            .resolve_url_from_content_path(path)
+            .resolve_url_from_content_path(content_path)
             .map_err(|err| {
-                log::error!("Failed to convert media source path '{path}' to URL: {err}");
+                log::error!("Failed to convert media source path '{content_path}' to URL: {err}");
             })
             .ok();
         self.collector.collect(header, record);

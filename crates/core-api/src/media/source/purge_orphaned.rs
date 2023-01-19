@@ -11,7 +11,7 @@ pub struct Params {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub root_url: Option<BaseUrl>,
-    pub root_path: Option<ContentPath>,
+    pub root_path: Option<ContentPath<'static>>,
     pub summary: Summary,
 }
 

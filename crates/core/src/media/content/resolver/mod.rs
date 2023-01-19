@@ -36,8 +36,12 @@ pub enum ResolveFromUrlError {
 
 pub trait ContentPathResolver {
     fn path_kind(&self) -> ContentPathKind;
-    fn resolve_path_from_url(&self, url: &Url) -> Result<ContentPath, ResolveFromUrlError>;
-    fn resolve_url_from_content_path(&self, path: &str) -> Result<Url, ResolveFromPathError>;
+    fn resolve_path_from_url(&self, url: &Url)
+        -> Result<ContentPath<'static>, ResolveFromUrlError>;
+    fn resolve_url_from_content_path(
+        &self,
+        content_path: &ContentPath<'_>,
+    ) -> Result<Url, ResolveFromPathError>;
 }
 
 #[derive(Debug, Clone)]
@@ -48,12 +52,20 @@ impl ContentPathResolver for UrlResolver {
         ContentPathKind::Url
     }
 
-    fn resolve_path_from_url(&self, url: &Url) -> Result<ContentPath, ResolveFromUrlError> {
+    fn resolve_path_from_url(
+        &self,
+        url: &Url,
+    ) -> Result<ContentPath<'static>, ResolveFromUrlError> {
         Ok(url.to_string().into())
     }
 
-    fn resolve_url_from_content_path(&self, path: &str) -> Result<Url, ResolveFromPathError> {
-        Url::parse(path).map_err(|_| ResolveFromPathError::InvalidPath(path.to_owned()))
+    fn resolve_url_from_content_path(
+        &self,
+        content_path: &ContentPath<'_>,
+    ) -> Result<Url, ResolveFromPathError> {
+        Url::parse(content_path.as_str()).map_err(|_| {
+            ResolveFromPathError::InvalidPath(content_path.as_borrowed().into_owned().into())
+        })
     }
 }
 
@@ -67,17 +79,25 @@ impl ContentPathResolver for FileUrlResolver {
         ContentPathKind::FileUrl
     }
 
-    fn resolve_path_from_url(&self, url: &Url) -> Result<ContentPath, ResolveFromUrlError> {
+    fn resolve_path_from_url(
+        &self,
+        url: &Url,
+    ) -> Result<ContentPath<'static>, ResolveFromUrlError> {
         if url.scheme() != FILE_URL_SCHEME {
             return Err(ResolveFromUrlError::InvalidUrl);
         }
         UrlResolver.resolve_path_from_url(url)
     }
 
-    fn resolve_url_from_content_path(&self, path: &str) -> Result<Url, ResolveFromPathError> {
-        let url = UrlResolver.resolve_url_from_content_path(path)?;
+    fn resolve_url_from_content_path(
+        &self,
+        content_path: &ContentPath<'_>,
+    ) -> Result<Url, ResolveFromPathError> {
+        let url = UrlResolver.resolve_url_from_content_path(content_path)?;
         if url.scheme() != FILE_URL_SCHEME {
-            return Err(ResolveFromPathError::InvalidPath(path.to_owned()));
+            return Err(ResolveFromPathError::InvalidPath(
+                content_path.as_borrowed().into_owned().into(),
+            ));
         }
         Ok(url)
     }
@@ -163,11 +183,12 @@ impl VirtualFilePathResolver {
     }
 
     #[must_use]
-    pub fn build_file_path(&self, slash_path: &str) -> PathBuf {
-        let path_suffix = path_slash::PathBufExt::from_slash(slash_path);
+    pub fn build_file_path(&self, content_path: &ContentPath<'_>) -> PathBuf {
+        let path_suffix = path_slash::PathBufExt::from_slash(content_path.as_str());
         if let Some(root_file_path) = &self.root_file_path {
-            let mut path_buf =
-                PathBuf::with_capacity(root_file_path.as_os_str().len() + slash_path.len());
+            let mut path_buf = PathBuf::with_capacity(
+                root_file_path.as_os_str().len() + content_path.as_str().len(),
+            );
             path_buf.push(root_file_path);
             path_buf.push(path_suffix);
             path_buf
@@ -183,7 +204,10 @@ impl ContentPathResolver for VirtualFilePathResolver {
         ContentPathKind::VirtualFilePath
     }
 
-    fn resolve_path_from_url(&self, url: &Url) -> Result<ContentPath, ResolveFromUrlError> {
+    fn resolve_path_from_url(
+        &self,
+        url: &Url,
+    ) -> Result<ContentPath<'static>, ResolveFromUrlError> {
         if let Some(root_url) = &self.root_url {
             if !url.as_str().starts_with(root_url.as_str()) {
                 return Err(ResolveFromUrlError::InvalidUrl);
@@ -211,19 +235,20 @@ impl ContentPathResolver for VirtualFilePathResolver {
         }
     }
 
-    fn resolve_url_from_content_path(&self, slash_path: &str) -> Result<Url, ResolveFromPathError> {
-        let file_path = self.build_file_path(slash_path);
-        let url = if slash_path.is_empty() || slash_path.ends_with('/') {
+    fn resolve_url_from_content_path(
+        &self,
+        content_path: &ContentPath<'_>,
+    ) -> Result<Url, ResolveFromPathError> {
+        let file_path = self.build_file_path(content_path);
+        let url = if content_path.is_terminal() {
+            Url::from_file_path(&file_path)
+        } else {
             // Preserve the trailing slash
             Url::from_directory_path(&file_path)
-        } else {
-            Url::from_file_path(&file_path)
         }
         .map_err(|()| ResolveFromPathError::InvalidFilePath(file_path))?;
-        debug_assert!(
-            slash_path.is_empty() || slash_path.ends_with('/') == url.as_str().ends_with('/')
-        );
-        debug_assert!(!slash_path.is_empty() || is_valid_base_url(&url));
+        debug_assert!(content_path.is_terminal() != url.as_str().ends_with('/'));
+        debug_assert!(!content_path.is_empty() || is_valid_base_url(&url));
         Ok(url)
     }
 }

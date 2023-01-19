@@ -19,7 +19,7 @@ pub struct Summary {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
-    pub root_path: ContentPath,
+    pub root_path: ContentPath<'static>,
     pub completion: Completion,
     pub summary: Summary,
 }

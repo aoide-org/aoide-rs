@@ -2201,7 +2201,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.10.0"
-source = "git+https://github.com/uklotzde/lofty-rs?branch=split-and-rejoin-tag#328c4371829ef1005945d797a4a073aaecee2adc"
+source = "git+https://github.com/uklotzde/lofty-rs?branch=split-and-rejoin-tag#33877bc855a661d243e2f07cd7ad30fc572a263b"
 dependencies = [
  "base64 0.21.0",
  "byteorder",
@@ -2217,7 +2217,7 @@ dependencies = [
 [[package]]
 name = "lofty_attr"
 version = "0.5.0"
-source = "git+https://github.com/uklotzde/lofty-rs?branch=split-and-rejoin-tag#328c4371829ef1005945d797a4a073aaecee2adc"
+source = "git+https://github.com/uklotzde/lofty-rs?branch=split-and-rejoin-tag#33877bc855a661d243e2f07cd7ad30fc572a263b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4039,9 +4039,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-bidi"
-version = "0.3.8"
+version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "099b7128301d285f79ddd55b9a83d5e6b9e97c92e0ea0daebee7263e932de992"
+checksum = "0046be40136ef78dc325e0edefccf84ccddacd0afcc1ca54103fa3c61bbdab1d"
 
 [[package]]
 name = "unicode-ident"

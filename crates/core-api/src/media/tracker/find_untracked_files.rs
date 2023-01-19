@@ -10,7 +10,7 @@ pub type Params = super::FsTraversalParams;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
-    pub root_path: ContentPath,
+    pub root_path: ContentPath<'static>,
     pub completion: Completion,
-    pub content_paths: Vec<ContentPath>,
+    pub content_paths: Vec<ContentPath<'static>>,
 }

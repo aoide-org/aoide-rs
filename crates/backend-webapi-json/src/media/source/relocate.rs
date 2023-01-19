@@ -34,8 +34,8 @@ pub fn handle_request(
             aoide_usecases_sqlite::media::source::relocate::relocate(
                 connection,
                 collection_uid,
-                &ContentPath::new(old_path_prefix),
-                &ContentPath::new(new_path_prefix),
+                &ContentPath::from(old_path_prefix),
+                &ContentPath::from(new_path_prefix),
             )
             .map_err(Into::into)
         })

@@ -29,7 +29,7 @@ pub fn handle_request(
         })
         .map(|v| {
             v.into_iter()
-                .map(|(content_path, hdr)| (content_path, hdr.into()))
+                .map(|(content_path, hdr)| (content_path.into(), hdr.into()))
                 .collect()
         })
 }

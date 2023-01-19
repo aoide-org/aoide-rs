@@ -52,7 +52,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
 
     let updated_at = DateTime::now_utc();
     let collection_id = fixture.collection_id;
-    let path = ContentPath::new("file:///test/".to_owned());
+    let path = ContentPath::from("file:///test/");
     let mut digest = DigestBytes::default();
 
     // -> Added
@@ -224,7 +224,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
 
     let updated_at = DateTime::now_utc();
     let collection_id = fixture.collection_id;
-    let path = ContentPath::new("file:///test/".to_owned());
+    let path = ContentPath::from("file:///test/");
     let digest = DigestBytes::default();
 
     let mut other_digest = digest;

@@ -40,7 +40,7 @@ pub struct Outcome {
     pub completion: Completion,
     pub summary: Summary,
     pub visited_media_source_ids: Vec<MediaSourceId>,
-    pub imported_media_sources_with_issues: Vec<(MediaSourceId, ContentPath, Issues)>,
+    pub imported_media_sources_with_issues: Vec<(MediaSourceId, ContentPath<'static>, Issues)>,
 }
 
 #[allow(clippy::too_many_arguments)] // TODO
@@ -48,11 +48,11 @@ pub struct Outcome {
 pub fn import_and_replace_from_file_path<Repo, InterceptImportedTrackFn>(
     summary: &mut Summary,
     visited_media_source_ids: &mut Vec<MediaSourceId>,
-    imported_media_sources_with_issues: &mut Vec<(MediaSourceId, ContentPath, Issues)>,
+    imported_media_sources_with_issues: &mut Vec<(MediaSourceId, ContentPath<'static>, Issues)>,
     repo: &mut Repo,
     collection_id: CollectionId,
     content_path_resolver: &VirtualFilePathResolver,
-    content_path: ContentPath,
+    content_path: ContentPath<'static>,
     params: &Params,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,
 ) -> Result<Vec<TrackInvalidity>>
@@ -87,7 +87,7 @@ where
     let mut invalidities = Default::default();
     match import_track_from_file_path(
         content_path_resolver,
-        content_path.clone(),
+        &content_path,
         &SyncModeParams::new(*sync_mode, external_rev, synchronized_rev),
         import_config,
         DateTime::now_local_or_utc(),
@@ -185,7 +185,7 @@ pub fn import_and_replace_many_by_local_file_path<Repo, InterceptImportedTrackFn
     repo: &mut Repo,
     collection_uid: &CollectionUid,
     params: &Params,
-    content_paths: impl IntoIterator<Item = ContentPath>,
+    content_paths: impl IntoIterator<Item = ContentPath<'static>>,
     expected_content_path_count: Option<usize>,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
@@ -249,7 +249,7 @@ const EXPECTED_NUMBER_OF_DIR_ENTRIES: usize = 1024;
 pub fn import_and_replace_by_local_file_path_from_directory<Repo, InterceptImportedTrackFn>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,
-    source_dir_path: &str,
+    source_dir_path: &ContentPath<'_>,
     params: &Params,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
@@ -283,7 +283,7 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_re
     repo: &mut impl TrackCollectionRepo,
     collection_id: CollectionId,
     content_path_resolver: &VirtualFilePathResolver,
-    source_dir_path: &str,
+    source_dir_path: &ContentPath<'_>,
     params: &Params,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,
     abort_flag: &AtomicBool,

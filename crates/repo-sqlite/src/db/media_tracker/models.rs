@@ -21,7 +21,7 @@ pub struct QueryableRecord {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
     pub collection_id: RowId,
-    pub path: String,
+    pub content_path: String,
     pub status: i16,
     pub digest: Vec<u8>,
 }
@@ -35,7 +35,7 @@ impl TryFrom<QueryableRecord> for TrackedDirectory {
             row_created_ms: _,
             row_updated_ms: _,
             collection_id: _,
-            path,
+            content_path,
             status,
             digest,
         } = from;
@@ -44,7 +44,7 @@ impl TryFrom<QueryableRecord> for TrackedDirectory {
         let digest = read_digest_from_slice(digest.as_slice())
             .ok_or_else(|| anyhow::anyhow!("Invalid digest: {:?}", digest.as_slice()))?;
         let into = Self {
-            path: path.into(),
+            content_path: content_path.into(),
             status,
             digest,
         };

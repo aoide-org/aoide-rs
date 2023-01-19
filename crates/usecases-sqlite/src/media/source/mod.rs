@@ -20,7 +20,7 @@ pub mod relocate;
 pub fn resolve_file_path(
     repo: &mut RepoConnection<'_>,
     collection_uid: &CollectionUid,
-    content_path: &ContentPath,
+    content_path: &ContentPath<'_>,
 ) -> Result<(CollectionId, PathBuf)> {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
@@ -36,7 +36,7 @@ pub fn resolve_file_path(
 pub fn load_embedded_artwork_image(
     connection: &mut DbConnection,
     collection_uid: &CollectionUid,
-    content_path: &ContentPath,
+    content_path: &ContentPath<'_>,
 ) -> Result<(CollectionId, Option<LoadedArtworkImage>)> {
     let mut repo = RepoConnection::new(connection);
     resolve_file_path(&mut repo, collection_uid, content_path).and_then(

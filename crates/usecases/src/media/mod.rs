@@ -81,12 +81,12 @@ pub enum ImportTrackFromFileOutcome {
 
 pub fn import_track_from_file_path(
     content_path_resolver: &VirtualFilePathResolver,
-    source_path: ContentPath,
+    source_path: &ContentPath<'_>,
     sync_mode_params: &SyncModeParams,
     config: &ImportTrackConfig,
     collected_at: DateTime,
 ) -> Result<ImportTrackFromFileOutcome> {
-    let file_path = content_path_resolver.build_file_path(&source_path);
+    let file_path = content_path_resolver.build_file_path(source_path);
     let (canonical_path, file) =
         if let Some((canonical_path, file)) = open_file_for_reading(&file_path)? {
             (canonical_path, file)
@@ -161,7 +161,7 @@ pub fn import_track_from_file_path(
     };
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let mime = guess_mime_from_path(&canonical_path)?;
-    let mut track = input.into_new_track(source_path, mime);
+    let mut track = input.into_new_track(source_path.as_borrowed().into_owned(), mime);
     let issues = import_into_track(&mut reader, config, &mut track)?;
     Ok(ImportTrackFromFileOutcome::Imported { track, issues })
 }

@@ -56,16 +56,16 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
 }
 
 impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
-    fn resolve_media_source_id_synchronized_at_by_path(
+    fn resolve_media_source_id_synchronized_at_by_content_path(
         &mut self,
         collection_id: CollectionId,
-        path: &str,
+        content_path: &ContentPath<'_>,
     ) -> RepoResult<(RecordId, Option<u64>)> {
-        debug_assert!(!path.ends_with('/'));
+        debug_assert!(!content_path.as_str().ends_with('/'));
         media_source::table
             .select((media_source::row_id, media_source::content_link_rev))
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_source::content_link_path.eq(path))
+            .filter(media_source::content_link_path.eq(content_path.as_str()))
             .first::<(RowId, Option<i64>)>(self.as_mut())
             .map(|(row_id, content_link_rev)| {
                 (row_id.into(), content_link_rev.map(|rev| rev as u64))
@@ -98,21 +98,21 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         &mut self,
         collection_id: CollectionId,
         updated_at: DateTime,
-        old_content_path_prefix: &ContentPath,
-        new_content_path_prefix: &ContentPath,
+        old_content_path_prefix: &ContentPath<'_>,
+        new_content_path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize> {
         let target = media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
             .filter(sql_column_substr_prefix_eq(
                 "content_link_path",
-                old_content_path_prefix,
+                old_content_path_prefix.as_ref(),
             ));
         diesel::update(target)
             .set((
                 media_source::row_updated_ms.eq(updated_at.timestamp_millis()),
                 media_source::content_link_path.eq(diesel::dsl::sql(&format!(
                     "'{}' || substr(content_link_path,{})",
-                    escape_single_quotes(new_content_path_prefix),
+                    escape_single_quotes(new_content_path_prefix.as_ref()),
                     old_content_path_prefix.len() + 1
                 ))),
             ))
@@ -195,7 +195,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         let query = diesel::insert_into(media_source::table).values(&insertable);
         let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert_eq!(1, rows_affected);
-        let (id, _) = self.resolve_media_source_id_synchronized_at_by_path(
+        let (id, _) = self.resolve_media_source_id_synchronized_at_by_content_path(
             collection_id,
             &created_source.content.link.path,
         )?;
@@ -206,14 +206,14 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         })
     }
 
-    fn load_media_source_by_path(
+    fn load_media_source_by_content_path(
         &mut self,
         collection_id: CollectionId,
-        path: &str,
+        content_path: &ContentPath<'_>,
     ) -> RepoResult<(RecordHeader, Source)> {
         media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_source::content_link_path.eq(path))
+            .filter(media_source::content_link_path.eq(content_path.as_str()))
             .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)
             .and_then(|record| record.try_into().map_err(Into::into))

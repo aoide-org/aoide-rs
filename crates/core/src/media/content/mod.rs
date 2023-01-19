@@ -1,10 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{
-    fmt,
-    ops::{Deref, DerefMut},
-};
+use std::{borrow::Cow, fmt};
 
 use bitflags::bitflags;
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -24,61 +21,84 @@ use crate::{
 pub mod resolver;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ContentPath(String);
+pub struct ContentPath<'a>(Cow<'a, str>);
 
-impl ContentPath {
+impl<'a> ContentPath<'a> {
     #[must_use]
-    pub const fn new(inner: String) -> Self {
+    pub const fn new(inner: Cow<'a, str>) -> Self {
         Self(inner)
     }
 
     #[must_use]
-    pub fn into_inner(self) -> String {
+    pub fn into_inner(self) -> Cow<'a, str> {
         let Self(inner) = self;
         inner
     }
 
     #[must_use]
+    pub fn as_borrowed(&'a self) -> Self {
+        Self::new(Cow::Borrowed(&self.0))
+    }
+
+    #[must_use]
+    pub fn into_owned(self) -> ContentPath<'static> {
+        ContentPath::new(Cow::Owned(self.0.into_owned()))
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    #[must_use]
+    pub fn len(&'a self) -> usize {
+        self.0.len()
+    }
+
+    #[must_use]
+    pub fn as_str(&'a self) -> &'a str {
+        self.0.as_ref()
+    }
+
+    #[must_use]
     pub fn is_terminal(&self) -> bool {
-        !(self.is_empty() || self.ends_with('/'))
+        !(self.is_empty() || self.0.ends_with('/'))
     }
 }
 
-impl From<String> for ContentPath {
-    fn from(from: String) -> Self {
+impl<'a> From<Cow<'a, str>> for ContentPath<'a> {
+    fn from(from: Cow<'a, str>) -> Self {
         Self::new(from)
     }
 }
 
-impl From<ContentPath> for String {
-    fn from(from: ContentPath) -> Self {
-        from.into_inner()
+impl<'a> From<&'a str> for ContentPath<'a> {
+    fn from(from: &'a str) -> Self {
+        Self::new(Cow::Borrowed(from))
     }
 }
 
-impl AsRef<str> for &ContentPath {
-    fn as_ref(&self) -> &str {
+impl From<String> for ContentPath<'static> {
+    fn from(from: String) -> Self {
+        Self::new(Cow::Owned(from))
+    }
+}
+
+impl From<ContentPath<'static>> for String {
+    fn from(from: ContentPath<'static>) -> Self {
+        from.into_inner().into_owned()
+    }
+}
+
+impl<'a> AsRef<Cow<'a, str>> for ContentPath<'a> {
+    fn as_ref(&self) -> &Cow<'a, str> {
         &self.0
     }
 }
 
-impl Deref for ContentPath {
-    type Target = String;
-
-    fn deref(&self) -> &String {
-        &self.0
-    }
-}
-
-impl DerefMut for ContentPath {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl fmt::Display for ContentPath {
+impl fmt::Display for ContentPath<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self)
+        f.write_str(self.as_ref())
     }
 }
 
@@ -279,7 +299,7 @@ impl fmt::Display for ContentRevision {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContentLink {
-    pub path: ContentPath,
+    pub path: ContentPath<'static>,
     pub rev: Option<ContentRevision>,
 }
 

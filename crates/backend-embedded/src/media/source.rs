@@ -54,8 +54,8 @@ pub async fn purge_untracked(
 pub async fn relocate(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,
-    old_path_prefix: ContentPath,
-    new_path_prefix: ContentPath,
+    old_path_prefix: ContentPath<'static>,
+    new_path_prefix: ContentPath<'static>,
 ) -> Result<usize> {
     db_gatekeeper
         .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {

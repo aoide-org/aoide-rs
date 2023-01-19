@@ -3,15 +3,15 @@
 
 use super::*;
 
-use aoide_core::track::EntityHeader;
+use aoide_core::{media::content::ContentPath, track::EntityHeader};
 
 use aoide_repo::{collection::RecordId as CollectionId, track::CollectionRepo};
 
 pub fn resolve_by_media_source_content_paths<Repo>(
     repo: &mut Repo,
     collection_id: CollectionId,
-    content_paths: Vec<String>,
-) -> RepoResult<Vec<(String, EntityHeader)>>
+    content_paths: Vec<ContentPath<'static>>,
+) -> RepoResult<Vec<(ContentPath<'static>, EntityHeader)>>
 where
     Repo: CollectionRepo,
 {

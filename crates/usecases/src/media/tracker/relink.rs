@@ -40,8 +40,8 @@ pub type FindCandidateParams = find_duplicates::Params;
 fn relink_moved_track_by_content_link_path<Repo>(
     repo: &mut Repo,
     collection_id: CollectionId,
-    old_content_link_path: &str,
-    new_content_link_path: &str,
+    old_content_link_path: &ContentPath<'_>,
+    new_content_link_path: &ContentPath<'_>,
 ) -> RepoResult<()>
 where
     Repo: TrackRepo + TrackCollectionRepo + MediaSourceRepo + MediaSourceCollectionRepo,
@@ -83,7 +83,7 @@ where
             )?;
             debug_assert_eq!(
                 updated_entity_body.track.media_source,
-                repo.load_media_source_by_path(collection_id, new_content_link_path)?
+                repo.load_media_source_by_content_path(collection_id, new_content_link_path)?
                     .1
             );
         }
@@ -104,8 +104,8 @@ where
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelocatedMediaSource {
-    pub old_path: String,
-    pub new_path: String,
+    pub old_path: ContentPath<'static>,
+    pub new_path: ContentPath<'static>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -227,8 +227,8 @@ where
             &new_content_link_path,
         )?;
         relinked_media_sources.push(RelocatedMediaSource {
-            old_path: old_content_link_path.into(),
-            new_path: new_content_link_path.into(),
+            old_path: old_content_link_path,
+            new_path: new_content_link_path,
         });
         progress.relinked += 1;
     }

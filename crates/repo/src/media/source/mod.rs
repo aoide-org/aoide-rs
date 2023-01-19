@@ -26,10 +26,10 @@ pub trait Repo {
 }
 
 pub trait CollectionRepo {
-    fn resolve_media_source_id_synchronized_at_by_path(
+    fn resolve_media_source_id_synchronized_at_by_content_path(
         &mut self,
         collection_id: CollectionId,
-        path: &str,
+        content_path: &ContentPath<'_>,
     ) -> RepoResult<(RecordId, Option<u64>)>;
 
     fn resolve_media_source_ids_by_content_path_predicate(
@@ -45,18 +45,18 @@ pub trait CollectionRepo {
         created_source: &Source,
     ) -> RepoResult<RecordHeader>;
 
-    fn load_media_source_by_path(
+    fn load_media_source_by_content_path(
         &mut self,
         collection_id: CollectionId,
-        path: &str,
+        content_path: &ContentPath<'_>,
     ) -> RepoResult<(RecordHeader, Source)>;
 
     fn relocate_media_sources_by_content_path_prefix(
         &mut self,
         collection_id: CollectionId,
         updated_at: DateTime,
-        old_content_path_prefix: &ContentPath,
-        new_content_path_prefix: &ContentPath,
+        old_content_path_prefix: &ContentPath<'_>,
+        new_content_path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize>;
 
     fn purge_media_sources_by_content_path_predicate(
