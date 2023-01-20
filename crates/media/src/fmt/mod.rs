@@ -5,7 +5,7 @@ use std::{borrow::Cow, ops::Not as _};
 
 use lofty::{
     Accessor, AudioFile, FileProperties, ItemKey, ItemValue, MimeType, ParseOptions, Picture,
-    PictureType, SplitAndRejoinTag, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
+    PictureType, SplitAndMergeTag, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
 };
 use semval::IsValid;
 
@@ -740,13 +740,13 @@ fn export_faceted_tags(
     }
 }
 
-fn split_export_rejoin_track_to_tag<T>(
+fn split_export_merge_track_to_tag<T>(
     tag_repr: &mut T,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) where
-    T: SplitAndRejoinTag,
+    T: SplitAndMergeTag,
 {
     // Split the generic tag contents from the underlying representation.
     // The remainder will remain untouched while modifying the generic tag.
@@ -754,9 +754,9 @@ fn split_export_rejoin_track_to_tag<T>(
     // Export the metadata of the given track into the generic tag, i.e.
     // add, modify, or delete items and pictures accordingly.
     export_track_to_tag(&mut tag, config, track, edit_embedded_artwork_image);
-    // Rejoin the generic tag contents back into the remainder of the underlying
+    // Merge the generic tag contents back into the remainder of the underlying
     // representation.
-    tag_repr.rejoin_tag(tag);
+    tag_repr.merge_tag(tag);
     // Depending on `T` some post-processing might be required in the outer context
     // to update contents in `tag_repr` that are not (yet) supported by the generic
     // `lofty::Tag` representation.

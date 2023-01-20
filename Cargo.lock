@@ -552,9 +552,9 @@ checksum = "7a40729d2133846d9ed0ea60a8b9541bccddab49cd30f0715a1da672fe9a2524"
 
 [[package]]
 name = "async-trait"
-version = "0.1.61"
+version = "0.1.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "705339e0e4a9690e2908d2b3d049d85682cf19fbd5782494498fbf7003a6a282"
+checksum = "689894c2db1ea643a50834b999abf1c110887402542955ff5451dab8f861f9ed"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -654,18 +654,18 @@ checksum = "0d261e256854913907f67ed06efbc3338dfe6179796deefc1ff763fc1aee5535"
 
 [[package]]
 name = "bytemuck"
-version = "1.12.3"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aaa3a8d9a1ca92e282c96a32d6511b695d7d994d1d102ba85d279f9b2756947f"
+checksum = "c041d3eab048880cb0b86b256447da3f18859a163c3b8d8893f4e6368abe6393"
 dependencies = [
  "bytemuck_derive",
 ]
 
 [[package]]
 name = "bytemuck_derive"
-version = "1.3.0"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fe233b960f12f8007e3db2d136e3cb1c291bfd7396e384ee76025fc1a3932b4"
+checksum = "1aca418a974d83d40a0c1f0c5cba6ff4bc28d8df099109ca459a2118d40b6322"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2201,7 +2201,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.10.0"
-source = "git+https://github.com/uklotzde/lofty-rs?branch=split-and-rejoin-tag#33877bc855a661d243e2f07cd7ad30fc572a263b"
+source = "git+https://github.com/uklotzde/lofty-rs?branch=split-and-rejoin-tag#382532eef1b345dfe6fa763710f600748eba1356"
 dependencies = [
  "base64 0.21.0",
  "byteorder",
@@ -2217,7 +2217,7 @@ dependencies = [
 [[package]]
 name = "lofty_attr"
 version = "0.5.0"
-source = "git+https://github.com/uklotzde/lofty-rs?branch=split-and-rejoin-tag#33877bc855a661d243e2f07cd7ad30fc572a263b"
+source = "git+https://github.com/uklotzde/lofty-rs?branch=split-and-rejoin-tag#382532eef1b345dfe6fa763710f600748eba1356"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3903,9 +3903,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.5.10"
+version = "0.5.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1333c76748e868a4d9d1017b5ab53171dfd095f70c712fdb4653a406547f598f"
+checksum = "f4f7f0dd8d50a853a531c426359045b1998f04219d88799810762cd4ad314234"
 dependencies = [
  "serde",
 ]

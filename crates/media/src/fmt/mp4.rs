@@ -230,7 +230,7 @@ pub(crate) fn export_track_to_tag(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
-    super::split_export_rejoin_track_to_tag(ilst, config, track, edit_embedded_artwork_image);
+    super::split_export_merge_track_to_tag(ilst, config, track, edit_embedded_artwork_image);
 
     // Get rid of unsupported numeric genre identifiers to prevent inconsistencies
     ilst.remove_atom(&LEGACY_GENRE_IDENT);

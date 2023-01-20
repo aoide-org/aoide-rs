@@ -47,7 +47,7 @@ pub(crate) fn export_track_to_tag(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
-    super::split_export_rejoin_track_to_tag(tag, config, track, edit_embedded_artwork_image);
+    super::split_export_merge_track_to_tag(tag, config, track, edit_embedded_artwork_image);
 
     #[cfg(feature = "serato-markers")]
     if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {
