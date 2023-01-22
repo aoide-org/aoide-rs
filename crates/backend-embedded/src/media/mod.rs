@@ -9,27 +9,51 @@ use aoide_media::util::tag::{
 pub mod source;
 pub mod tracker;
 
-const DEFAULT_LABEL_SEPARATOR: &str = ";";
+/// Default separator for genre/mood tags on import/export.
+///
+/// Multiple genre/mood tags are concatenated with this
+/// separator and exported into a single tag field.
+///
+/// On import the tag field contents are split by this
+/// separator and ordered by applying
+/// [`DEFAULT_GENRE_MOOD_SCORE_ATTENUATION`] for deriving
+/// the score.
+pub const DEFAULT_GENRE_MOOD_LABEL_SEPARATOR: &str = ";";
 
-const DEFAULT_SCORE_ATTENUATION: f64 = 0.75;
+/// Exponential attenuation for ordering multiple genre/mood
+/// tags by score on import.
+///
+/// Used when importing tags from composite tag field, see
+/// also [`DEFAULT_GENRE_MOOD_LABEL_SEPARATOR`]. The score
+/// value of the first tag is [`aoide_core::tag::Score::max()`].
+pub const DEFAULT_GENRE_MOOD_SCORE_ATTENUATION: f64 = 0.75;
 
-// FIXME: Replace hard-coded tag mapping config
+/// An opinionated [`FacetedTagMappingConfig`] that supports
+/// multi-valued genre/mood file tags split by a commonly used
+/// separator.
+///
+/// See also:
+/// - [`DEFAULT_GENRE_MOOD_LABEL_SEPARATOR`]
+/// - [`DEFAULT_GENRE_MOOD_SCORE_ATTENUATION`]
 #[must_use]
 pub fn predefined_faceted_tag_mapping_config() -> FacetedTagMappingConfig {
-    let mut config = FacetedTagMappingConfigInner::default();
-    config.insert(
-        FACET_ID_GENRE.as_borrowed().into(),
-        TagMappingConfig {
-            label_separator: DEFAULT_LABEL_SEPARATOR.to_owned(),
-            split_score_attenuation: DEFAULT_SCORE_ATTENUATION,
-        },
-    );
-    config.insert(
-        FACET_ID_MOOD.as_borrowed().into(),
-        TagMappingConfig {
-            label_separator: DEFAULT_LABEL_SEPARATOR.to_owned(),
-            split_score_attenuation: DEFAULT_SCORE_ATTENUATION,
-        },
-    );
-    config.into()
+    [
+        (
+            FACET_ID_GENRE.as_borrowed().into(),
+            TagMappingConfig {
+                label_separator: DEFAULT_GENRE_MOOD_LABEL_SEPARATOR.to_owned(),
+                split_score_attenuation: DEFAULT_GENRE_MOOD_SCORE_ATTENUATION,
+            },
+        ),
+        (
+            FACET_ID_MOOD.as_borrowed().into(),
+            TagMappingConfig {
+                label_separator: DEFAULT_GENRE_MOOD_LABEL_SEPARATOR.to_owned(),
+                split_score_attenuation: DEFAULT_GENRE_MOOD_SCORE_ATTENUATION,
+            },
+        ),
+    ]
+    .into_iter()
+    .collect::<FacetedTagMappingConfigInner>()
+    .into()
 }

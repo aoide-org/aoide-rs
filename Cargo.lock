@@ -2201,7 +2201,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.10.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#533cd7dcff997b5cd951dd07a93ec25639ce701d"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#3f9d1b6229c2d7aa6366badd5cc62f295361dd29"
 dependencies = [
  "base64 0.21.0",
  "byteorder",
@@ -2217,7 +2217,7 @@ dependencies = [
 [[package]]
 name = "lofty_attr"
 version = "0.5.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#533cd7dcff997b5cd951dd07a93ec25639ce701d"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#3f9d1b6229c2d7aa6366badd5cc62f295361dd29"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2663,8 +2663,7 @@ dependencies = [
 [[package]]
 name = "ogg_pager"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a05065bb6e0b933aef28cae4c5469b85011aa0d0285bd5fe3f568bed1f1a1bc"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#3f9d1b6229c2d7aa6366badd5cc62f295361dd29"
 dependencies = [
  "byteorder",
 ]
@@ -4039,9 +4038,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-bidi"
-version = "0.3.9"
+version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0046be40136ef78dc325e0edefccf84ccddacd0afcc1ca54103fa3c61bbdab1d"
+checksum = "d54675592c1dbefd78cbd98db9bacd89886e1ca50692a0692baefffdeb92dd58"
 
 [[package]]
 name = "unicode-ident"
