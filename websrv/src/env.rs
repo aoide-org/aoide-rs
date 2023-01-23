@@ -8,7 +8,7 @@ use std::{
     str::ParseBoolError,
 };
 
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_log::LogTracer;
 use tracing_subscriber::EnvFilter;
