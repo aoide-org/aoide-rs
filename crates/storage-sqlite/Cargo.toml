@@ -12,7 +12,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.68"
-diesel = { version = "2.0.2", default-features = false, features = ["r2d2", "sqlite"] }
+diesel = { version = "2.0.3", default-features = false, features = ["r2d2", "sqlite"] }
 # Bundle SQLite code to prevent dynamic linking.
 # The pinned version must be compatible with diesel!
 # Could be avoided by adding aoide-storage-sqlite as a dependency

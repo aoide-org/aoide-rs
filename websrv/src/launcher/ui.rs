@@ -170,7 +170,7 @@ impl App {
         ui.add_enabled(
             editing_enabled,
             TextEdit::singleline(&mut self.config.network.endpoint.ip_addr)
-                .hint_text("IPv6/IPv4 address, e.g \"::\" (IPv6) or \"127.0.0.1\" (IPv4))"),
+                .hint_text("IPv6/IPv4 address, e.g a wildcard address like \"::\" (IPv6) or \"0.0.0.0\" (IPv4))"),
         );
         ui.end_row();
 

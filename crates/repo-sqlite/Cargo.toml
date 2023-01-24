@@ -12,7 +12,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.68"
-diesel = { version = "2.0.2", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
+diesel = { version = "2.0.3", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
 diesel_migrations =  { version = "2.0.0", default-features = false, features = ["sqlite"] }
 # Bundle SQLite code to prevent dynamic linking.
 # The pinned version must be compatible with diesel!
