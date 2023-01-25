@@ -59,14 +59,10 @@ bitflags! {
         /// Import embedded artwork
         ///
         /// Imports a single cover image embedded in the metadata.
-        ///
-        /// Implies METADATA.
-        const METADATA_EMBEDDED_ARTWORK                         = 0b0000_0000_0000_0011;
+        const METADATA_EMBEDDED_ARTWORK                         = 0b0000_0000_0000_0010;
 
         /// Hash cover image
-        ///
-        /// Implies METADATA_EMBEDDED_ARTWORK.
-        const METADATA_EMBEDDED_ARTWORK_DIGEST                  = 0b0000_0000_0000_0111;
+        const METADATA_EMBEDDED_ARTWORK_DIGEST                  = 0b0000_0000_0000_0100;
 
         /// Use Apple GRP1/TIT1 instead of TIT1/TXXX:WORK ID3v2 frames for Content Group
         /// and Work Title respectively.
@@ -74,21 +70,15 @@ bitflags! {
         /// Use the mapping for grouping and work fields as introduced by iTunes v12.5.4.
         /// This is the preferred mapping and existing files that still use TIT1 instead
         /// of GRP1 for storing the grouping property should be updated accordingly.
-        ///
-        /// Implies METADATA.
-        const COMPATIBILITY_ID3V2_APPLE_GRP1                    = 0b0000_0001_0000_0001;
+        const COMPATIBILITY_ID3V2_APPLE_GRP1                    = 0b0000_0001_0000_0000;
 
         #[cfg(feature = "gigtag")]
         /// Import gigtags from Content Group/Grouping file tag
-        ///
-        /// Implies METADATA.
-        const GIGTAGS                                           = 0b0001_0000_0000_0001;
+        const GIGTAGS                                           = 0b0001_0000_0000_0000;
 
         #[cfg(feature = "serato-markers")]
         /// Import metadata (cue points, loops, track color) from Serato file tags
-        ///
-        /// Implies METADATA.
-        const SERATO_MARKERS                                    = 0b0010_0000_0000_0001;
+        const SERATO_MARKERS                                    = 0b0010_0000_0000_0000;
     }
 }
 
