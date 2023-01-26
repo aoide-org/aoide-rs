@@ -13,7 +13,8 @@
 # ekidd/rust-musl-builder: /home/rust/src
 ARG WORKDIR_ROOT=/usr/src
 
-ARG PROJECT_NAME=aoide
+ARG WORKSPACE_NAME=aoide
+ARG PACKAGE_NAME=aoide-websrv
 
 ARG BUILD_TARGET=x86_64-unknown-linux-musl
 
@@ -21,56 +22,39 @@ ARG BUILD_TARGET=x86_64-unknown-linux-musl
 # Counterexample: For the `dev` profile the directory is named `debug`.
 ARG BUILD_PROFILE=production
 
-ARG BUILD_BIN=aoide-websrv
-
 ###############################################################################
 # 1st Build Stage
 FROM rust:slim AS build
 
 # Import global ARGs
 ARG WORKDIR_ROOT
-ARG PROJECT_NAME
+ARG WORKSPACE_NAME
+ARG PACKAGE_NAME
 ARG BUILD_TARGET
 ARG BUILD_PROFILE
-ARG BUILD_BIN
 
-ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace --locked --all-targets --profile ${BUILD_PROFILE}"
+ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace --locked --all-targets --target ${BUILD_TARGET} --profile ${BUILD_PROFILE}"
 
 # Prepare for musl libc build target
 #
 # Dependencies for pre-commit:
 #  - git
 #  - python3-pip
-# Dependencies for egui according to <https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml>:
-#  - libgtk-3-dev
-#  - libspeechd-dev
-#  - libssl-dev
-#  - libxcb-render0-dev
-#  - libxcb-shape0-dev
-#  - libxcb-xfixes0-dev
-#  - libxkbcommon-dev
-# Dependencies for building freetype-sys (egui):
-#  - cmake
-#  - g++
-#  - libfontconfig-dev
+# Dependencies for egui:
+#  - <https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml>:
+# Dependencies for building freetype-sys (needed by egui):
 #  - make
+#  - cmake
+#  - (musl-)g++
+#  - libfontconfig-dev
 RUN apt update \
     && apt install --no-install-recommends -y \
-        cmake \
-        g++ \
-        git \
-        libfontconfig-dev \
-        libgtk-3-dev \
-        libspeechd-dev \
-        libssl-dev \
-        libxcb-render0-dev \
-        libxcb-shape0-dev \
-        libxcb-xfixes0-dev \
-        libxkbcommon-dev \
-        make \
-        musl-tools \
-        python3-pip \
         tree \
+        musl-tools \
+        git python3-pip \
+        libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev \
+        make cmake libfontconfig-dev \
+    && ln -s /usr/bin/g++ /usr/bin/musl-g++ \
     && rm -rf /var/lib/apt/lists/* \
     && rustup target add \
         ${BUILD_TARGET} \
@@ -88,48 +72,48 @@ RUN apt update \
 # if unchanged.
 
 # Create workspace directory
-RUN mkdir -p ${WORKDIR_ROOT}/${PROJECT_NAME}
-WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
+RUN mkdir -p ${WORKDIR_ROOT}/${WORKSPACE_NAME}
+WORKDIR ${WORKDIR_ROOT}/${WORKSPACE_NAME}
 
 # Create all projects and crates in workspace
 RUN USER=root \
     mkdir -p crates && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-backend-embedded && \
-    mv ${PROJECT_NAME}-backend-embedded crates/backend-embedded && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-backend-webapi-json && \
-    mv ${PROJECT_NAME}-backend-webapi-json crates/backend-webapi-json && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-client && \
-    mv ${PROJECT_NAME}-client crates/client && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-core && \
-    mv ${PROJECT_NAME}-core crates/core && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-core-json && \
-    mv ${PROJECT_NAME}-core-json crates/core-json && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-core-api && \
-    mv ${PROJECT_NAME}-core-api crates/core-api && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-core-api-json && \
-    mv ${PROJECT_NAME}-core-api-json crates/core-api-json && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-desktop-app && \
-    mv ${PROJECT_NAME}-desktop-app crates/desktop-app && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-media && \
-    mv ${PROJECT_NAME}-media crates/media && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-repo && \
-    mv ${PROJECT_NAME}-repo crates/repo && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-repo-sqlite && \
-    mv ${PROJECT_NAME}-repo-sqlite crates/repo-sqlite && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-search-index-tantivy && \
-    mv ${PROJECT_NAME}-search-index-tantivy crates/search-index-tantivy && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-storage-sqlite && \
-    mv ${PROJECT_NAME}-storage-sqlite crates/storage-sqlite && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-usecases && \
-    mv ${PROJECT_NAME}-usecases crates/usecases && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite && \
-    mv ${PROJECT_NAME}-usecases-sqlite crates/usecases-sqlite && \
-    cargo new --vcs none --lib ${PROJECT_NAME}-websrv-warp-sqlite && \
-    mv ${PROJECT_NAME}-websrv-warp-sqlite crates/websrv-warp-sqlite && \
-    cargo new --vcs none --bin ${PROJECT_NAME}-webcli && \
-    mv ${PROJECT_NAME}-webcli webcli && \
-    cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
-    mv ${PROJECT_NAME}-websrv websrv && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-backend-embedded && \
+    mv ${WORKSPACE_NAME}-backend-embedded crates/backend-embedded && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-backend-webapi-json && \
+    mv ${WORKSPACE_NAME}-backend-webapi-json crates/backend-webapi-json && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-client && \
+    mv ${WORKSPACE_NAME}-client crates/client && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-core && \
+    mv ${WORKSPACE_NAME}-core crates/core && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-core-json && \
+    mv ${WORKSPACE_NAME}-core-json crates/core-json && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-core-api && \
+    mv ${WORKSPACE_NAME}-core-api crates/core-api && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-core-api-json && \
+    mv ${WORKSPACE_NAME}-core-api-json crates/core-api-json && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-desktop-app && \
+    mv ${WORKSPACE_NAME}-desktop-app crates/desktop-app && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-media && \
+    mv ${WORKSPACE_NAME}-media crates/media && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-repo && \
+    mv ${WORKSPACE_NAME}-repo crates/repo && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-repo-sqlite && \
+    mv ${WORKSPACE_NAME}-repo-sqlite crates/repo-sqlite && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-search-index-tantivy && \
+    mv ${WORKSPACE_NAME}-search-index-tantivy crates/search-index-tantivy && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-storage-sqlite && \
+    mv ${WORKSPACE_NAME}-storage-sqlite crates/storage-sqlite && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-usecases && \
+    mv ${WORKSPACE_NAME}-usecases crates/usecases && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-usecases-sqlite && \
+    mv ${WORKSPACE_NAME}-usecases-sqlite crates/usecases-sqlite && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-websrv-warp-sqlite && \
+    mv ${WORKSPACE_NAME}-websrv-warp-sqlite crates/websrv-warp-sqlite && \
+    cargo new --vcs none --bin ${WORKSPACE_NAME}-webcli && \
+    mv ${WORKSPACE_NAME}-webcli webcli && \
+    cargo new --vcs none --bin ${WORKSPACE_NAME}-websrv && \
+    mv ${WORKSPACE_NAME}-websrv websrv && \
     tree -a
 
 COPY [ \
@@ -201,19 +185,22 @@ COPY [ \
 #   directories!
 RUN tree -a && \
     CARGO_INCREMENTAL=0 cargo build ${WORKSPACE_BUILD_AND_TEST_ARGS} && \
-    rm -f ./target/${BUILD_PROFILE}/${PROJECT_NAME}* && \
-    rm -f ./target/${BUILD_PROFILE}/deps/${PROJECT_NAME}-* && \
-    rm -f ./target/${BUILD_PROFILE}/deps/${PROJECT_NAME}_* && \
-    rm -rf ./target/${BUILD_PROFILE}/.fingerprint/${PROJECT_NAME}-* && \
+    rm -f ./target/${BUILD_PROFILE}/${WORKSPACE_NAME}* && \
+    rm -f ./target/${BUILD_PROFILE}/deps/${WORKSPACE_NAME}-* && \
+    rm -f ./target/${BUILD_PROFILE}/deps/${WORKSPACE_NAME}_* && \
+    rm -rf ./target/${BUILD_PROFILE}/.fingerprint/${WORKSPACE_NAME}-* && \
     tree -a
 
 # Copy all project (re-)sources that are required for pre-commit and building
 COPY [ \
+    "Cargo.lock.license", \
     ".codespellignore", \
     ".commitlintrc.json", \
+    ".commitlintrc.json.license", \
     ".gitignore", \
     ".markdownlint-cli2.yaml", \
     ".pre-commit-config.yaml", \
+    ".prettierrc.yaml", \
     ".rustfmt.toml", \
     "./" ]
 COPY [ \
@@ -268,9 +255,6 @@ COPY [ \
     "crates/websrv-warp-sqlite/src", \
     "./crates/websrv-warp-sqlite/src/" ]
 COPY [ \
-    "webapp", \
-    "./webapp/" ]
-COPY [ \
     "webcli/src", \
     "./webcli/src/" ]
 COPY [ \
@@ -279,10 +263,24 @@ COPY [ \
 COPY [ \
     "websrv/src", \
     "./websrv/src/" ]
+COPY [ \
+    "webapp/Cargo.lock", \
+    "webapp/Cargo.lock.license", \
+    "webapp/Cargo.toml", \
+    "webapp/index.html", \
+    "webapp/main.sass", \
+    "webapp/Trunk.toml", \
+    "./webapp/" ]
+COPY [ \
+    "webapp/assets", \
+    "./webapp/assets/" ]
+COPY [ \
+    "webapp/src", \
+    "./webapp/src/" ]
 
 # 1. Run pre-commit
 # 2. Build workspace and run all unit tests
-# 3. Build the target binary
+# 3. Build the target binary with default features
 # 4. Strip debug infos from the executable
 RUN tree -a && \
     export CARGO_INCREMENTAL=0 && \
@@ -295,8 +293,8 @@ RUN tree -a && \
     rm -rf .git && \
     cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
     cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
-    cargo build -p ${BUILD_BIN} --manifest-path websrv/Cargo.toml --locked --all-features --profile ${BUILD_PROFILE} && \
-    strip ./target/${BUILD_PROFILE}/${BUILD_BIN}
+    cargo build --locked --target ${BUILD_TARGET} --profile ${BUILD_PROFILE} --package ${PACKAGE_NAME} --manifest-path websrv/Cargo.toml && \
+    strip ./target/${BUILD_TARGET}/${BUILD_PROFILE}/${PACKAGE_NAME}
 
 
 ###############################################################################
@@ -305,24 +303,21 @@ FROM scratch
 
 # Import global ARGs
 ARG WORKDIR_ROOT
-ARG PROJECT_NAME
+ARG WORKSPACE_NAME
+ARG PACKAGE_NAME
+ARG BUILD_TARGET
 ARG BUILD_PROFILE
-ARG BUILD_BIN
 
 ARG DATA_VOLUME="/data"
+VOLUME [ ${DATA_VOLUME} ]
 
 ARG EXPOSE_PORT=8080
+EXPOSE ${EXPOSE_PORT}
+ENV ENDPOINT_PORT ${EXPOSE_PORT}
 
 # Copy the statically-linked executable into the minimal scratch image
 COPY --from=build [ \
-    "${WORKDIR_ROOT}/${PROJECT_NAME}/target/${BUILD_PROFILE}/${BUILD_BIN}", \
+    "${WORKDIR_ROOT}/${WORKSPACE_NAME}/target/${BUILD_TARGET}/${BUILD_PROFILE}/${PACKAGE_NAME}", \
     "./entrypoint" ]
-
-VOLUME [ ${DATA_VOLUME} ]
-
-EXPOSE ${EXPOSE_PORT}
-
-# Wire the exposed port
-ENV ENDPOINT_PORT ${EXPOSE_PORT}
 
 ENTRYPOINT [ "./entrypoint" ]
