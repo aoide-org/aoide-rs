@@ -125,9 +125,7 @@ impl ContentPathContext {
             ContentPathKind::Url | ContentPathKind::Uri | ContentPathKind::FileUrl => None,
             #[cfg(not(target_family = "wasm"))]
             ContentPathKind::VirtualFilePath => {
-                let repo_root_url = if let Some(repo_root_url) = repo_root_url {
-                    repo_root_url
-                } else {
+                let Some(repo_root_url) = repo_root_url else {
                     return Err(
                         anyhow::anyhow!("Missing root URL for collection {record_id:?} with content path kind {kind:?}").into(),
                     );

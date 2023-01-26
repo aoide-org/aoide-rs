@@ -87,13 +87,10 @@ pub fn import_track_from_file_path(
     collected_at: DateTime,
 ) -> Result<ImportTrackFromFileOutcome> {
     let file_path = content_path_resolver.build_file_path(source_path);
-    let (canonical_path, file) =
-        if let Some((canonical_path, file)) = open_file_for_reading(&file_path)? {
-            (canonical_path, file)
-        } else {
-            log::debug!("{} is a directory", file_path.display());
-            return Ok(ImportTrackFromFileOutcome::SkippedDirectory);
-        };
+    let Some((canonical_path, file)) = open_file_for_reading(&file_path)? else {
+        log::debug!("{} is a directory", file_path.display());
+        return Ok(ImportTrackFromFileOutcome::SkippedDirectory);
+    };
     let new_content_rev = ContentRevision::try_from_file(&file)?;
     match sync_mode_params {
         SyncModeParams::Once {

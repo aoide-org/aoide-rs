@@ -142,9 +142,7 @@ pub fn visit_directories<
         max_depth,
     } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.content_path.vfs {
-        vfs_ctx
-    } else {
+    let Some(vfs_ctx) = &collection_ctx.content_path.vfs else {
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
