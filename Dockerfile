@@ -45,16 +45,17 @@ ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace --locked --all-targets --target $
 # Dependencies for building freetype-sys (needed by egui):
 #  - make
 #  - cmake
-#  - (musl-)g++
+#  - g++
 #  - libfontconfig-dev
+# FIXME: Build of freetype-sys fails due to missing musl-g++ wrapper
+# <https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=988837>
 RUN apt update \
     && apt install --no-install-recommends -y \
         tree \
         musl-tools \
         git python3-pip \
         libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev \
-        make cmake libfontconfig-dev \
-    && ln -s /usr/bin/g++ /usr/bin/musl-g++ \
+        make cmake g++ libfontconfig-dev \
     && rm -rf /var/lib/apt/lists/* \
     && rustup target add \
         ${BUILD_TARGET} \
