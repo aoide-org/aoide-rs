@@ -49,6 +49,7 @@ ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace --locked --all-targets --target $
 #  - libfontconfig-dev
 # FIXME: Build of freetype-sys fails due to missing musl-g++ wrapper
 # <https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=988837>
+# FIXME: Remove the symbolic link hack for usl-g++
 RUN apt update \
     && apt install --no-install-recommends -y \
         tree \
@@ -57,6 +58,7 @@ RUN apt update \
         libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev \
         make cmake g++ libfontconfig-dev \
     && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/g++ /usr/bin/musl-g++ \
     && rustup target add \
         ${BUILD_TARGET} \
         wasm32-unknown-unknown \
