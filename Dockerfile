@@ -314,10 +314,6 @@ ARG BUILD_PROFILE
 ARG DATA_VOLUME="/data"
 VOLUME [ ${DATA_VOLUME} ]
 
-ARG EXPOSE_PORT=8080
-EXPOSE ${EXPOSE_PORT}
-ENV ENDPOINT_PORT ${EXPOSE_PORT}
-
 # Copy the statically-linked executable into the minimal scratch image
 COPY --from=build [ \
     "${WORKDIR_ROOT}/${WORKSPACE_NAME}/target/${BUILD_TARGET}/${BUILD_PROFILE}/${PACKAGE_NAME}", \
