@@ -4,8 +4,8 @@
 use lofty::id3::v2::{EncodedTextFrame, Frame, FrameValue, ID3v2Tag};
 
 use aoide_core::{
+    music::tempo::TempoBpm,
     track::{metric::MetricsFlags, Track},
-    util::canonical::Canonical,
 };
 
 use crate::{
@@ -60,17 +60,24 @@ impl Import {
         } = self;
 
         if let Some(float_bpm) = float_bpm {
-            track.metrics.flags.set(
-                MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
-                float_bpm.is_non_fractional(),
-            );
-            track.metrics.tempo_bpm = Some(float_bpm.into());
+            // Unconditionally assume that the value is fractional.
+            track
+                .metrics
+                .flags
+                .set(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL, false);
+            let old_tempo_bpm = &mut track.metrics.tempo_bpm;
+            let new_tempo_bpm = TempoBpm::from(float_bpm);
+            if let Some(old_tempo_bpm) = old_tempo_bpm {
+                if *old_tempo_bpm != new_tempo_bpm {
+                    log::debug!("Replacing tempo: {old_tempo_bpm} -> {new_tempo_bpm}");
+                }
+            }
+            *old_tempo_bpm = Some(new_tempo_bpm);
         }
 
         #[cfg(feature = "serato-markers")]
-        if let Some(serato_tags) = serato_tags {
-            track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
-            track.color = crate::util::serato::import_track_color(&serato_tags);
+        if let Some(serato_tags) = &serato_tags {
+            super::import_serato_tags(track, serato_tags);
         }
     }
 }

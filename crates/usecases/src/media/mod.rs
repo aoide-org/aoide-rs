@@ -4,7 +4,9 @@
 use std::io::BufReader;
 
 use aoide_core::{
-    media::content::{resolver::VirtualFilePathResolver, ContentPath, ContentRevision},
+    media::content::{
+        resolver::VirtualFilePathResolver, ContentLink, ContentPath, ContentRevision,
+    },
     track::Track,
     util::clock::DateTime,
 };
@@ -80,11 +82,11 @@ pub enum ImportTrackFromFileOutcome {
 }
 
 pub fn import_track_from_file_path(
+    import_track: ImportTrack,
     content_path_resolver: &VirtualFilePathResolver,
     source_path: &ContentPath<'_>,
     sync_mode_params: &SyncModeParams,
     config: &ImportTrackConfig,
-    collected_at: DateTime,
 ) -> Result<ImportTrackFromFileOutcome> {
     let file_path = content_path_resolver.build_file_path(source_path);
     let Some((canonical_path, file)) = open_file_for_reading(&file_path)? else {
@@ -152,22 +154,22 @@ pub fn import_track_from_file_path(
             // Continue regardless of last_modified_at and synchronized revision
         }
     }
-    let input = NewTrackInput {
-        collected_at,
-        content_rev: new_content_rev,
+    let content_type = guess_mime_from_path(&canonical_path)?;
+    let content_link = ContentLink {
+        path: source_path.as_borrowed().into_owned(),
+        rev: new_content_rev,
     };
+    let mut track = import_track.with_content(content_link, content_type);
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
-    let mime = guess_mime_from_path(&canonical_path)?;
-    let mut track = input.into_new_track(source_path.as_borrowed().into_owned(), mime);
     let issues = import_into_track(&mut reader, config, &mut track)?;
     Ok(ImportTrackFromFileOutcome::Imported { track, issues })
 }
 
 /// Export track metadata into file tags.
 pub fn export_track_metadata_into_file(
+    track: &mut Track,
     content_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,
-    track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<bool> {
     let file_path = content_path_resolver.build_file_path(&track.media_source.content.link.path);

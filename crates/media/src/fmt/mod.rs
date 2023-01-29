@@ -19,10 +19,12 @@ use aoide_core::{
         artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork},
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
     },
+    music::tempo::TempoBpm,
     tag::{FacetKey, FacetedTags, Label, PlainTag, Score as TagScore, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
+        index::Index,
         metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
@@ -320,10 +322,6 @@ pub(crate) fn import_file_tag_into_track(
     mut tag: Tag,
     track: &mut Track,
 ) {
-    debug_assert_eq!(
-        track.media_source.content.metadata,
-        ContentMetadata::Audio(Default::default())
-    );
     let audio_content = track
         .media_source
         .content
@@ -349,43 +347,71 @@ pub(crate) fn import_file_tag_into_track(
         audio_content.loudness = tag
             .get_string(&ItemKey::ReplayGainTrackGain)
             .and_then(|input| importer.import_loudness_from_replay_gain(input));
-        track.media_source.content.metadata = ContentMetadata::Audio(audio_content);
+        let new_metadata = ContentMetadata::Audio(audio_content);
+        let old_metadata = &mut track.media_source.content.metadata;
+        if *old_metadata != new_metadata {
+            log::debug!("Updating content metadata: {old_metadata:?} -> {new_metadata:?}");
+        }
+        *old_metadata = new_metadata;
     }
 
     if !config.flags.contains(ImportTrackFlags::METADATA) {
+        log::debug!("Skipping import of metadata");
         return;
     }
 
     let compatibility = Compatibility::import(tag.tag_type(), config.flags);
 
-    // Musical metrics
-    track.metrics.tempo_bpm = None;
+    // Musical metrics: tempo (bpm)
     for imported_tempo_bpm in tag
         .take_strings(&ItemKey::BPM)
         .filter_map(|input| importer.import_tempo_bpm(&input))
     {
         let is_non_fractional = imported_tempo_bpm.is_non_fractional();
-        track.metrics.tempo_bpm = Some(imported_tempo_bpm.into());
-        if is_non_fractional {
-            // Assume that the tag is only capable of storing BPM values with
-            // integer precision if the number has no fractional decimal digits.
-            track
+        if is_non_fractional
+            && track.metrics.tempo_bpm.is_some()
+            && !track
                 .metrics
                 .flags
-                .set(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL, true);
-            // Continue and try to find a more precise, fractional bpm
-        } else {
-            track
-                .metrics
-                .flags
-                .set(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL, false);
-            // Abort after finding the first fractional bpm
+                .contains(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL)
+        {
+            // Preserve the existing fractional bpm and continue, trying
+            // to import a more precise, fractional bpm.
+            continue;
+        }
+        let old_tempo_bpm = &mut track.metrics.tempo_bpm;
+        let new_tempo_bpm = TempoBpm::from(imported_tempo_bpm);
+        if let Some(old_tempo_bpm) = old_tempo_bpm {
+            if *old_tempo_bpm != new_tempo_bpm {
+                log::debug!("Replacing tempo: {old_tempo_bpm} -> {new_tempo_bpm}");
+            }
+        }
+        *old_tempo_bpm = Some(new_tempo_bpm);
+        track
+            .metrics
+            .flags
+            .set(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL, is_non_fractional);
+        if !is_non_fractional {
+            // Abort after importing the first fractional bpm
             break;
         }
+        // Continue and try to import a more precise, fractional bpm.
     }
-    track.metrics.key_signature = tag
+
+    // Musical metrics: key signature
+    let new_key_signature = tag
         .take_strings(&ItemKey::InitialKey)
         .find_map(|input| importer.import_key_signature(&input));
+    if let Some(old_key_signature) = track.metrics.key_signature {
+        if let Some(new_key_signature) = new_key_signature {
+            if old_key_signature != new_key_signature {
+                log::debug!("Replacing key signature: {old_key_signature} -> {new_key_signature}");
+            }
+        } else {
+            log::debug!("Removing key signature: {old_key_signature}");
+        }
+    }
+    track.metrics.key_signature = new_key_signature;
 
     // Track titles
     let mut track_titles = Vec::with_capacity(4);
@@ -420,7 +446,12 @@ pub(crate) fn import_file_tag_into_track(
     }) {
         track_titles.push(work_title);
     }
-    track.titles = importer.finish_import_of_titles(TrackScope::Track, track_titles);
+    let new_track_titles = importer.finish_import_of_titles(TrackScope::Track, track_titles);
+    let old_track_titles = &mut track.titles;
+    if !old_track_titles.is_empty() && *old_track_titles != new_track_titles {
+        log::debug!("Replacing track titles: {old_track_titles:?} -> {new_track_titles:?}");
+    }
+    *old_track_titles = new_track_titles;
 
     // Track actors
     let mut track_actors = Vec::with_capacity(8);
@@ -460,7 +491,12 @@ pub(crate) fn import_file_tag_into_track(
     for name in tag.take_strings(&ItemKey::Writer) {
         push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
     }
-    track.actors = Canonical::tie(track_actors);
+    let new_track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
+    let old_track_actors = &mut track.actors;
+    if !old_track_actors.is_empty() && *old_track_actors != new_track_actors {
+        log::debug!("Replacing track actors: {old_track_actors:?} -> {new_track_actors:?}");
+    }
+    *old_track_actors = new_track_actors;
 
     let mut album = track.album.untie_replace(Default::default());
 
@@ -472,14 +508,24 @@ pub(crate) fn import_file_tag_into_track(
     {
         album_titles.push(title);
     }
-    album.titles = importer.finish_import_of_titles(TrackScope::Album, album_titles);
+    let new_album_titles = importer.finish_import_of_titles(TrackScope::Album, album_titles);
+    let old_album_titles = &mut album.titles;
+    if !old_album_titles.is_empty() && *old_album_titles != new_album_titles {
+        log::debug!("Replacing album titles: {old_album_titles:?} -> {new_album_titles:?}");
+    }
+    *old_album_titles = new_album_titles;
 
     // Album actors
     let mut album_actors = Vec::with_capacity(4);
     for name in tag.take_strings(&ItemKey::AlbumArtist) {
         push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
     }
-    album.actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
+    let new_album_actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
+    let old_album_actors = &mut album.actors;
+    if !old_album_actors.is_empty() && *old_album_actors != new_album_actors {
+        log::debug!("Replacing album actors: {old_album_actors:?} -> {new_album_actors:?}");
+    }
+    *old_album_actors = new_album_actors;
 
     if let Some(item) = tag.take(&ItemKey::FlagCompilation).next() {
         if let Some(kind) = item
@@ -492,32 +538,49 @@ pub(crate) fn import_file_tag_into_track(
                 _ => None,
             })
         {
-            debug_assert!(album.kind.is_none());
             album.kind = Some(kind);
         } else {
             importer.add_issue(format!("Unexpected compilation flag item: {item:?}"));
         }
     }
 
-    track.album = Canonical::tie(album);
+    let new_album = Canonical::tie(album);
+    let old_album = &mut track.album;
+    if *old_album != Default::default() && *old_album != new_album {
+        log::debug!("Replacing album: {old_album:?} -> {new_album:?}");
+    }
+    *old_album = new_album;
 
-    track.copyright = tag
+    let new_copyright = tag
         .take_strings(&ItemKey::CopyrightMessage)
         .find_map(trimmed_non_empty_from)
         .map(Cow::into_owned);
-    track.publisher = tag
+    let old_copyright = &mut track.copyright;
+    if old_copyright.is_some() && *old_copyright != new_copyright {
+        log::debug!("Replacing copyright: {old_copyright:?} -> {new_copyright:?}");
+    }
+    *old_copyright = new_copyright;
+
+    let old_publisher = &mut track.publisher;
+    let mut new_publisher = tag
         .take_strings(&ItemKey::Label)
         .find_map(trimmed_non_empty_from)
         .map(Cow::into_owned);
-    if track.publisher.is_none() {
-        tag.take_strings(&ItemKey::Publisher)
+    if new_publisher.is_none() {
+        new_publisher = tag
+            .take_strings(&ItemKey::Publisher)
             .find_map(trimmed_non_empty_from)
             .map(Cow::into_owned);
     }
+    if old_publisher.is_some() && *old_publisher != new_publisher {
+        log::debug!("Replacing publisher: {old_publisher:?} -> {new_publisher:?}");
+    }
+    *old_publisher = new_publisher;
 
     // Index pairs
     // Import both values consistently if any of them is available!
     // TODO: Verify u32 -> u16 conversions
+    let old_track_index = &mut track.indexes.track;
     let track_number = tag
         .track()
         .map(TryFrom::try_from)
@@ -531,11 +594,21 @@ pub(crate) fn import_file_tag_into_track(
         .ok()
         .flatten();
     if track_number.is_some() || track_total.is_some() {
-        track.indexes.track.number = track_number;
-        track.indexes.track.total = track_total;
+        let new_track_index = Index {
+            number: track_number,
+            total: track_total,
+        };
+        if *old_track_index != Default::default() && *old_track_index != new_track_index {
+            log::debug!("Replacing track index: {old_track_index:?} -> {new_track_index:?}");
+        }
+        *old_track_index = new_track_index;
     } else {
-        debug_assert_eq!(track.indexes.track, Default::default());
+        if *old_track_index != Default::default() {
+            log::debug!("Resetting track index: {old_track_index:?}");
+        }
+        *old_track_index = Default::default();
     }
+    let old_disc_index = &mut track.indexes.track;
     let disc_number = tag.disk().map(TryFrom::try_from).transpose().ok().flatten();
     let disc_total = tag
         .disk_total()
@@ -544,11 +617,21 @@ pub(crate) fn import_file_tag_into_track(
         .ok()
         .flatten();
     if disc_number.is_some() || disc_total.is_some() {
-        track.indexes.disc.number = disc_number;
-        track.indexes.disc.total = disc_total;
+        let new_disc_index = Index {
+            number: disc_number,
+            total: disc_total,
+        };
+        if *old_disc_index != Default::default() && *old_disc_index != new_disc_index {
+            log::debug!("Replacing disc index: {old_disc_index:?} -> {new_disc_index:?}");
+        }
+        *old_disc_index = new_disc_index;
     } else {
-        debug_assert_eq!(track.indexes.disc, Default::default());
+        if *old_disc_index != Default::default() {
+            log::debug!("Resetting disc index: {old_disc_index:?}");
+        }
+        *old_disc_index = Default::default();
     }
+    let old_movement_index = &mut track.indexes.movement;
     let movement_number =
         tag.get_items(&ItemKey::MovementNumber)
             .find_map(|item| match item.value() {
@@ -562,26 +645,56 @@ pub(crate) fn import_file_tag_into_track(
                 _ => None,
             });
     if movement_number.is_some() || movement_total.is_some() {
-        track.indexes.movement.number = movement_number;
-        track.indexes.movement.total = movement_total;
+        let new_movement_index = Index {
+            number: movement_number,
+            total: movement_total,
+        };
+        if *old_movement_index != Default::default() && *old_movement_index != new_movement_index {
+            log::debug!(
+                "Replacing movement index: {old_movement_index:?} -> {new_movement_index:?}"
+            );
+        }
+        *old_movement_index = new_movement_index;
     } else {
-        debug_assert_eq!(track.indexes.movement, Default::default());
+        if *old_movement_index != Default::default() {
+            log::debug!("Resetting movement index: {old_movement_index:?}");
+        }
+        *old_movement_index = Default::default();
     }
 
-    track.recorded_at = tag
+    let old_recorded_at = &mut track.recorded_at;
+    let mut new_recorded_at = tag
         .take_strings(&ItemKey::RecordingDate)
         .find_map(|input| importer.import_year_tag_from_field("RecordingDate", &input));
-    if track.recorded_at.is_none() {
-        track.recorded_at = tag
+    if new_recorded_at.is_none() {
+        new_recorded_at = tag
             .take_strings(&ItemKey::Year)
             .find_map(|input| importer.import_year_tag_from_field("Year", &input));
     }
-    track.released_at = tag
+    if old_recorded_at.is_some() && *old_recorded_at != new_recorded_at {
+        log::debug!("Replacing recorded at: {old_recorded_at:?} -> {new_recorded_at:?}");
+    }
+    *old_recorded_at = new_recorded_at;
+
+    let old_released_at = &mut track.released_at;
+    let new_released_at = tag
         .take_strings(&ItemKey::PodcastReleaseDate)
         .find_map(|input| importer.import_year_tag_from_field("PodcastReleaseDate", &input));
-    track.released_orig_at = tag
+    if old_released_at.is_some() && *old_released_at != new_released_at {
+        log::debug!("Replacing released at: {old_released_at:?} -> {new_released_at:?}");
+    }
+    *old_released_at = new_released_at;
+
+    let old_released_orig_at = &mut track.released_orig_at;
+    let new_released_orig_at = tag
         .take_strings(&ItemKey::OriginalReleaseDate)
         .find_map(|input| importer.import_year_tag_from_field("OriginalReleaseDate", &input));
+    if old_released_orig_at.is_some() && *old_released_orig_at != new_released_orig_at {
+        log::debug!(
+            "Replacing original released at: {old_released_orig_at:?} -> {new_released_orig_at:?}"
+        );
+    }
+    *old_released_orig_at = new_released_orig_at;
 
     let mut tags_map: TagsMap<'static> = Default::default();
 
@@ -670,17 +783,46 @@ pub(crate) fn import_file_tag_into_track(
         tag.take_strings(&ItemKey::AppleXid).map(Into::into),
     );
 
-    debug_assert!(track.tags.is_empty());
-    track.tags = Canonical::tie(tags_map.into());
+    let old_tags = &mut track.tags;
+    let new_tags = Canonical::tie(tags_map.into());
+    if !old_tags.is_empty() && *old_tags != new_tags {
+        log::debug!("Replacing tags: {old_tags:?} -> {new_tags:?}");
+    }
+    *old_tags = new_tags;
 
     // Artwork
     if config
         .flags
         .contains(ImportTrackFlags::METADATA_EMBEDDED_ARTWORK)
     {
-        let artwork = import_embedded_artwork(importer, &tag, config.flags.new_artwork_digest());
-        track.media_source.artwork = Some(artwork);
+        let new_artwork =
+            import_embedded_artwork(importer, &tag, config.flags.new_artwork_digest());
+        if let Some(old_artwork) = &track.media_source.artwork {
+            if *old_artwork != new_artwork {
+                log::debug!("Replacing artwork: {old_artwork:?} -> {new_artwork:?}");
+            }
+        }
+        track.media_source.artwork = Some(new_artwork);
+    } else {
+        log::debug!("Skipping import of embedded artwork");
     }
+}
+
+#[cfg(feature = "serato-markers")]
+pub(crate) fn import_serato_tags(track: &mut Track, serato_tags: &triseratops::tag::TagContainer) {
+    let old_cues = &mut track.cues;
+    let new_cues = Canonical::tie(crate::util::serato::import_cues(serato_tags));
+    if !old_cues.is_empty() && *old_cues != new_cues {
+        log::debug!("Replacing cues from Serato tags: {old_cues:?} -> {new_cues:?}");
+    }
+    *old_cues = new_cues;
+
+    let old_color = &mut track.color;
+    let new_color = crate::util::serato::import_track_color(serato_tags);
+    if old_color.is_some() && *old_color != new_color {
+        log::debug!("Replacing color from Serato tags: {old_color:?} -> {new_color:?}");
+    }
+    *old_color = new_color;
 }
 
 fn export_filtered_actor_names(

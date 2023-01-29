@@ -8,10 +8,7 @@ use lofty::{
     AudioFile,
 };
 
-use aoide_core::{
-    track::{AdvisoryRating, Track},
-    util::canonical::Canonical,
-};
+use aoide_core::track::{AdvisoryRating, Track};
 
 use crate::{
     io::{
@@ -159,18 +156,22 @@ impl Import {
 
     fn finish(self, track: &mut Track) {
         let Self {
-            advisory_rating,
+            advisory_rating: new_advisory_rating,
             #[cfg(feature = "serato-markers")]
             serato_tags,
         } = self;
 
-        debug_assert!(track.advisory_rating.is_none());
-        track.advisory_rating = advisory_rating;
+        let old_advisory_rating = &mut track.advisory_rating;
+        if old_advisory_rating.is_some() && *old_advisory_rating != new_advisory_rating {
+            log::debug!(
+                "Replacing advisory rating: {old_advisory_rating:?} -> {new_advisory_rating:?}"
+            );
+        }
+        *old_advisory_rating = new_advisory_rating;
 
         #[cfg(feature = "serato-markers")]
-        if let Some(serato_tags) = serato_tags {
-            track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
-            track.color = crate::util::serato::import_track_color(&serato_tags);
+        if let Some(serato_tags) = &serato_tags {
+            super::import_serato_tags(track, serato_tags);
         }
     }
 }

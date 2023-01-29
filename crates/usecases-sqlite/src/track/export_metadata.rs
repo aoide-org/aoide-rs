@@ -19,9 +19,9 @@ pub fn export_metadata_into_file(
     let mut repo = RepoConnection::new(connection);
     let (_, mut track_entity) = repo.load_track_entity_by_uid(track_uid)?;
     uc::media::export_track_metadata_into_file(
+        &mut track_entity.body.track,
         content_path_resolver,
         config,
-        &mut track_entity.body.track,
         edit_embedded_artwork_image,
     )
     .map_err(Into::into)

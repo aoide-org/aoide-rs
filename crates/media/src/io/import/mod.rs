@@ -17,7 +17,7 @@ use aoide_core::{
     audio::signal::LoudnessLufs,
     media::{
         artwork::ApicType,
-        content::{ContentMetadata, ContentPath, ContentRevision},
+        content::{ContentLink, ContentMetadata},
         Content, Source,
     },
     music::{key::KeySignature, tempo::TempoBpm},
@@ -120,35 +120,41 @@ impl Default for ImportTrackConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewTrackInput {
-    pub collected_at: DateTime,
-    pub content_rev: Option<ContentRevision>,
+#[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
+pub enum ImportTrack {
+    NewTrack { collected_at: DateTime },
+    UpdateTrack(Track),
 }
 
-impl NewTrackInput {
+impl ImportTrack {
     #[must_use]
-    pub fn into_new_track(self, path: ContentPath<'static>, content_type: Mime) -> Track {
-        let Self {
-            collected_at,
-            content_rev,
-        } = self;
-        let content = Content {
-            link: aoide_core::media::content::ContentLink {
-                path,
-                rev: content_rev,
-            },
-            r#type: content_type,
-            metadata: ContentMetadata::Audio(Default::default()),
-            metadata_flags: Default::default(),
-            digest: None,
-        };
-        let media_source = Source {
-            collected_at,
-            content,
-            artwork: Default::default(),
-        };
-        Track::new_from_media_source(media_source)
+    pub fn with_content(self, content_link: ContentLink, content_type: Mime) -> Track {
+        match self {
+            ImportTrack::NewTrack { collected_at } => {
+                let content = Content {
+                    link: content_link,
+                    r#type: content_type,
+                    metadata: ContentMetadata::Audio(Default::default()),
+                    metadata_flags: Default::default(),
+                    digest: None,
+                };
+                let media_source = Source {
+                    collected_at,
+                    content,
+                    artwork: Default::default(),
+                };
+                Track::new_from_media_source(media_source)
+            }
+            ImportTrack::UpdateTrack(mut track) => {
+                // Neither the content path nor the content type are supposed to change here!?
+                debug_assert_eq!(track.media_source.content.link.path, content_link.path);
+                debug_assert_eq!(track.media_source.content.r#type, content_type);
+                track.media_source.content.link = content_link;
+                track.media_source.content.r#type = content_type;
+                track
+            }
+        }
     }
 }
 

@@ -6,7 +6,7 @@ use std::fs::File;
 use anyhow::anyhow;
 use lofty::{iff::aiff::AiffFile, AudioFile};
 
-use aoide_core::{track::Track, util::canonical::Canonical};
+use aoide_core::track::Track;
 
 use crate::{
     io::{
@@ -42,9 +42,8 @@ pub(crate) fn import_file_into_track(
     // Post-processing
 
     #[cfg(feature = "serato-markers")]
-    if let Some(serato_tags) = serato_tags {
-        track.cues = Canonical::tie(crate::util::serato::import_cues(&serato_tags));
-        track.color = crate::util::serato::import_track_color(&serato_tags);
+    if let Some(serato_tags) = &serato_tags {
+        super::import_serato_tags(track, serato_tags);
     }
 }
 

@@ -18,7 +18,7 @@ use aoide_core::{
 
 use aoide_core_api::{media::SyncMode, track::replace::Summary};
 
-use aoide_media::io::import::{ImportTrackConfig, Issues};
+use aoide_media::io::import::{ImportTrack, ImportTrackConfig, Issues};
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
@@ -74,6 +74,12 @@ where
                 Some(entity.raw.body),
             )
         });
+    let import_track = entity_body.map_or_else(
+        || ImportTrack::NewTrack {
+            collected_at: DateTime::now_local_or_utc(),
+        },
+        |entity_body| ImportTrack::UpdateTrack(entity_body.track),
+    );
     let Params {
         sync_mode,
         import_config,
@@ -86,27 +92,17 @@ where
     };
     let mut invalidities = Default::default();
     match import_track_from_file_path(
+        import_track,
         content_path_resolver,
         &content_path,
         &SyncModeParams::new(*sync_mode, external_rev, synchronized_rev),
         import_config,
-        DateTime::now_local_or_utc(),
     ) {
         Ok(ImportTrackFromFileOutcome::Imported {
-            track: imported_track,
+            track,
             issues: import_issues,
         }) => {
-            debug_assert_eq!(imported_track.media_source.content.link.path, content_path);
-            let track = if let Some(mut collected_track) =
-                entity_body.map(|entity_body| entity_body.track)
-            {
-                // Merge imported properties into existing properties, i.e.
-                // keep existing properties if no replacement is available.
-                collected_track.merge_newer_from_synchronized_media_source(imported_track);
-                collected_track
-            } else {
-                imported_track
-            };
+            debug_assert_eq!(track.media_source.content.link.path, content_path);
             let track = intercept_imported_track_fn(track);
             let (track, invalidities_from_input_validation) = validate_input(track)?;
             invalidities = invalidities_from_input_validation;
