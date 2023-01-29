@@ -72,7 +72,7 @@ jobs:
           # Distinguished by the action name to avoid sharing across different actions!
           shared-key: "pre-release"
 
-      - name: Build artifact (default features without webapp)
+      - name: Build artifact
         run: |
           cargo build --locked --target ${{ matrix.target }} --profile ${{ matrix.build_profile }} --package ${{ matrix.build_package }}
 

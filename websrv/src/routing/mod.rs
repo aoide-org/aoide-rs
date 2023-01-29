@@ -2,6 +2,3 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 pub(crate) mod api;
-
-#[cfg(feature = "webapp")]
-pub(crate) mod app;

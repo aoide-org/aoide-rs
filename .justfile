@@ -28,14 +28,10 @@ upgrade: setup
     cargo upgrade \
         --exclude libsqlite3-sys
     cargo update
-    cd webapp \
-        && cargo upgrade \
-        && cargo update
 
 # Format source code
 fmt:
     cargo fmt --all
-    cd webapp && cargo fmt
 
 # Run pre-commit hooks
 pre-commit:
@@ -79,27 +75,17 @@ check-crates-wasm:
 clippy:
     cargo clippy --locked --workspace --all-targets --no-deps --profile dev -- -D warnings --cap-lints warn
     cargo clippy --locked --workspace --all-targets --no-deps --profile release -- -D warnings --cap-lints warn
-    cd webapp && cargo clippy --locked --no-deps --target wasm32-unknown-unknown --all-targets --all-features --profile dev -- -D warnings --cap-lints warn
-    cd webapp && cargo clippy --locked --no-deps --target wasm32-unknown-unknown --all-targets --all-features --profile release -- -D warnings --cap-lints warn
 
 # Fix lint warnings
 fix:
     cargo fix --locked --workspace --all-targets --all-features
     cargo clippy --locked --workspace --no-deps --all-targets --all-features --fix
-    cd webapp && cargo fix --locked --target wasm32-unknown-unknown --all-targets --all-features
-    cd webapp && cargo clippy --locked --no-deps --target wasm32-unknown-unknown --all-targets --all-features --fix
 
 # Run tests
 test:
     RUST_BACKTRACE=1 cargo test --locked --workspace -- --nocapture
     RUST_BACKTRACE=1 cargo test --locked --workspace --no-default-features -- --nocapture
     RUST_BACKTRACE=1 cargo test --locked --workspace --all-features -- --nocapture
-    cd webapp && RUST_BACKTRACE=1 cargo test --locked --all-features -- --nocapture
-
-# Launch a debug build of the web service with the webapp enabled
-debug-webapp:
-    cd webapp && trunk build
-    RUST_LOG=debug cargo run --package aoide-websrv --all-features
 
 depgraph-svg:
     cargo depgraph --all-features --focus aoide-core | dot -T svg -o aoide-depgraph.svg

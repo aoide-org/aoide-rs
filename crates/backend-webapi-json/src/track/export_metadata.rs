@@ -28,7 +28,7 @@ pub fn handle_request(
     track_uid: &EntityUid,
     _query_params: QueryParams,
 ) -> Result<ResponseBody> {
-    // FIXME: Replace hard-coded tag mapping
+    // FIXME: Replace hard-coded tag mapping config
     let faceted_tag_mapping = predefined_faceted_tag_mapping_config();
     let config = ExportTrackConfig {
         faceted_tag_mapping,

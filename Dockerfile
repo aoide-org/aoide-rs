@@ -60,14 +60,12 @@ RUN apt update \
     && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/bin/g++ /usr/bin/musl-g++ \
     && rustup target add \
-        ${BUILD_TARGET} \
-        wasm32-unknown-unknown \
+        ${BUILD_TARGET}
     && rustup show \
     && rustup component add \
         rustfmt \
         clippy \
     && rustup component list --installed \
-    && cargo install --locked trunk \
     && pip install pre-commit
 
 # Docker build cache: Create and build an empty dummy workspace with all
@@ -266,20 +264,6 @@ COPY [ \
 COPY [ \
     "websrv/src", \
     "./websrv/src/" ]
-COPY [ \
-    "webapp/Cargo.lock", \
-    "webapp/Cargo.lock.license", \
-    "webapp/Cargo.toml", \
-    "webapp/index.html", \
-    "webapp/main.sass", \
-    "webapp/Trunk.toml", \
-    "./webapp/" ]
-COPY [ \
-    "webapp/assets", \
-    "./webapp/assets/" ]
-COPY [ \
-    "webapp/src", \
-    "./webapp/src/" ]
 
 # 1. Run pre-commit
 # 2. Build workspace and run all unit tests
@@ -287,7 +271,6 @@ COPY [ \
 # 4. Strip debug infos from the executable
 RUN tree -a && \
     export CARGO_INCREMENTAL=0 && \
-    cd webapp && trunk build && cd - && \
     git config --global user.email "pre-commit@example.com" && \
     git config --global user.name "pre-commit" && \
     git config --global init.defaultBranch main && \

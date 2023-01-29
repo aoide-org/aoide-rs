@@ -70,11 +70,6 @@ jobs:
           # Distinguished by the action name to avoid sharing across different actions!
           shared-key: "continuous-integration"
 
-      # TODO: Re-enable after build failures on Windows have been resolved
-      #- name: Install Trunk for building the webapp
-      #  run: |
-      #    cargo install --locked trunk
-
       - name: Check aoide-core
         run: |
           cargo check --locked --all-targets --all-features --manifest-path crates/core/Cargo.toml
@@ -135,17 +130,9 @@ jobs:
         run: |
           cargo check --locked --all-targets --all-features --manifest-path crates/websrv-warp-sqlite/Cargo.toml
 
-      # TODO: Re-enable after build failures on Windows have been resolved
-      #- name: Build aoide-webapp artifacts
-      #  run: |
-      #    cd webapp
-      #    trunk build
-      #    cd -
-
-      # TODO: Re-enable --all-features after build failures of webapp on Windows have been resolved
-      - name: Check aoide-websrv (default features without webapp)
+      - name: Check aoide-websrv
         run: |
-          cargo check --locked --all-targets --manifest-path websrv/Cargo.toml
+          cargo check --locked --all-targets --all-features --manifest-path websrv/Cargo.toml
 
       - name: Check aoide-client
         run: |

@@ -223,15 +223,11 @@ tasks. Prepared recipes can be found in [`.justfile`](./.justfile).
 
 ### Executable
 
-The server executable is built with the following commands:
+The server executable is built with the following command:
 
 ```bash
-cd webapp && trunk build && cd -
 cargo build --all-features --package aoide-websrv
 ```
-
-The _webapp_ itself is **not** part of the workspace and needs to be built separately
-before building the server.
 
 > Use `cargo build --profile production ...` for a fully optimized release build instead
 > of a debug build.
