@@ -17,7 +17,7 @@ use std::{
 use crate::{
     compat::is_sorted_by,
     prelude::*,
-    util::canonical::{CanonicalOrd, Canonicalize, IsCanonical},
+    util::canonical::{Canonical, CanonicalOrd, Canonicalize, CanonicalizeInto as _, IsCanonical},
 };
 
 pub mod facet;
@@ -655,7 +655,7 @@ impl<'a> From<Tags<'a>> for TagsMap<'a> {
     }
 }
 
-impl<'a> From<TagsMap<'a>> for Tags<'a> {
+impl<'a> From<TagsMap<'a>> for Canonical<Tags<'a>> {
     fn from(from: TagsMap<'a>) -> Self {
         let (plain_tags, faceted_tags) = from.split_into_plain_and_faceted_tags();
         let TagsMap(faceted_tags) = faceted_tags;
@@ -668,12 +668,11 @@ impl<'a> From<TagsMap<'a>> for Tags<'a> {
                 FacetedTags { facet_id, tags }
             })
             .collect();
-        let mut tags = Self {
+        let tags = Tags {
             plain: plain_tags,
             facets,
         };
-        tags.canonicalize();
-        tags
+        tags.canonicalize_into()
     }
 }
 

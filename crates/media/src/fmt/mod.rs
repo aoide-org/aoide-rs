@@ -784,7 +784,7 @@ pub(crate) fn import_file_tag_into_track(
     );
 
     let old_tags = &mut track.tags;
-    let new_tags = Canonical::tie(tags_map.into());
+    let new_tags = tags_map.into();
     if !old_tags.is_empty() && *old_tags != new_tags {
         log::debug!("Replacing tags: {old_tags:?} -> {new_tags:?}");
     }
@@ -1225,7 +1225,7 @@ pub(crate) fn export_track_to_tag(
         #[cfg(feature = "gigtag")]
         if config.flags.contains(ExportTrackFlags::GIGTAGS) {
             if let Err(err) = crate::util::gigtag::export_and_encode_remaining_tags_into(
-                tags_map.into(),
+                Canonical::from(tags_map).as_canonical_ref(),
                 &mut tags,
             ) {
                 log::error!("Failed to export gig tags: {err}");
