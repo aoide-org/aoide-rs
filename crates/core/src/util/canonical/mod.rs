@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Borrow, cmp::Ordering, ops::Deref};
+use std::{cmp::Ordering, ops::Deref};
 
 /// Check if an iterable is sorted and does not contain duplicates
 fn is_sorted_strictly_by<'a, T, F>(iterable: impl IntoIterator<Item = &'a T>, mut cmp: F) -> bool
@@ -89,20 +89,18 @@ pub trait Canonicalize: IsCanonical {
     fn canonicalize(&mut self);
 }
 
-pub trait CanonicalizeInto: Canonicalize {
-    // The return type Canonical<Self> would be more appropriate,
-    // but is not permitted.
+pub trait CanonicalizeInto: Canonicalize + Sized {
     #[must_use]
-    fn canonicalize_into(self) -> Self;
+    fn canonicalize_into(self) -> Canonical<Self>;
 }
 
 impl<T> CanonicalizeInto for T
 where
-    T: Canonicalize,
+    T: Canonicalize + std::fmt::Debug,
 {
-    fn canonicalize_into(mut self) -> Self {
+    fn canonicalize_into(mut self) -> Canonical<Self> {
         self.canonicalize();
-        self
+        Canonical::tie(self)
     }
 }
 
@@ -133,7 +131,7 @@ where
     }
 }
 
-/// Type-safe wrapper for immutable, canonical data.
+/// Type-safe envelope for immutable, canonical data.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Canonical<T>(T);
 
@@ -141,25 +139,33 @@ impl<T> Canonical<T>
 where
     T: IsCanonical + std::fmt::Debug,
 {
+    /// Enclose the argument into an immutable `Canonical` envelope.
+    ///
+    /// The caller is responsible to ensure that the argument is considered
+    /// as _canonical_, e.g. by invoking [`Canonicalize::canonicalize()`]
+    /// beforehand if needed. A debug assertion verifies at runtime that
+    /// the given argument is canonical.
+    #[must_use]
     pub fn tie(canonical: T) -> Self {
         debug_assert!(canonical.is_canonical());
         Self(canonical)
     }
 
+    /// Release the enclosed type from the `Canonical` envelope.
+    #[must_use]
     pub fn untie(self) -> T {
         let Canonical(canonical) = self;
         canonical
     }
+}
 
-    pub fn untie_ref(&self) -> &T {
-        let Canonical(canonical) = self;
-        canonical
-    }
-
-    pub fn untie_replace(&mut self, canonical_src: T) -> T {
-        debug_assert!(canonical_src.is_canonical());
-        let Self(canonical_dest) = self;
-        std::mem::replace(canonical_dest, canonical_src)
+impl<T> Canonical<T>
+where
+    T: IsCanonical,
+{
+    #[must_use]
+    pub fn as_canonical_ref(&self) -> Canonical<&T> {
+        Canonical(self.as_ref())
     }
 }
 
@@ -168,8 +174,15 @@ where
     T: IsCanonical,
 {
     #[must_use]
-    pub fn as_slice(&self) -> Canonical<&[T]> {
-        Canonical(self.as_ref().as_slice())
+    pub fn as_canonical_slice(&self) -> Canonical<&[T]> {
+        Canonical(self.as_slice())
+    }
+}
+
+impl Canonical<String> {
+    #[must_use]
+    pub fn as_canonical_str(&self) -> Canonical<&str> {
+        Canonical(self.as_str())
     }
 }
 
@@ -193,12 +206,6 @@ impl<T> Deref for Canonical<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        self.as_ref()
-    }
-}
-
-impl<T> Borrow<T> for Canonical<T> {
-    fn borrow(&self) -> &T {
         self.as_ref()
     }
 }

@@ -3,10 +3,7 @@
 
 use url::Url;
 
-use aoide_core::{
-    track::PlayCount,
-    util::canonical::{Canonical, CanonicalizeInto as _},
-};
+use aoide_core::{track::PlayCount, util::canonical::CanonicalizeInto as _};
 
 use crate::{entity::EntityRevision, media::Source, prelude::*, tag::*};
 
@@ -182,30 +179,25 @@ impl TryFrom<Track> for _core::Track {
             copyright,
             advisory_rating: advisory_rating.map(Into::into),
             album: album.into(),
-            titles: Canonical::tie(
-                titles
-                    .into_iter()
-                    .map(Into::into)
-                    .collect::<Vec<_>>()
-                    .canonicalize_into(),
-            ),
-            actors: Canonical::tie(
-                actors
-                    .into_iter()
-                    .map(Into::into)
-                    .collect::<Vec<_>>()
-                    .canonicalize_into(),
-            ),
+            titles: titles
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .canonicalize_into(),
+            actors: actors
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .canonicalize_into(),
             indexes: indexes.into(),
-            tags: Canonical::tie(_core::Tags::from(tags).canonicalize_into()),
+            tags: _core::Tags::from(tags).canonicalize_into(),
             color: color.map(Into::into),
             metrics,
-            cues: Canonical::tie(
-                cues.into_iter()
-                    .map(Into::into)
-                    .collect::<Vec<_>>()
-                    .canonicalize_into(),
-            ),
+            cues: cues
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .canonicalize_into(),
         };
         Ok(into)
     }

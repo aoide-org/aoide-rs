@@ -5,7 +5,7 @@ use aoide_core::{
     audio::PositionMs,
     track::cue::{Cue, CueFlags, InMarker, OutMarker, OutMode},
     util::{
-        canonical::CanonicalizeInto as _,
+        canonical::{Canonical, CanonicalizeInto as _},
         color::{Color, RgbColor},
         string::trimmed_non_empty_from_owned,
     },
@@ -62,7 +62,7 @@ fn import_loop(serato_loop: Loop) -> Cue {
 
 /// Return a canonical vector of cues found in the tag container.
 #[must_use]
-pub fn import_cues(serato_tags: &TagContainer) -> Vec<Cue> {
+pub fn import_cues(serato_tags: &TagContainer) -> Canonical<Vec<Cue>> {
     serato_tags
         .cues()
         .into_iter()

@@ -106,20 +106,16 @@ impl From<Album> for Canonical<_core::Album> {
         } = from;
         Self::tie(_core::Album {
             kind: kind.map(Into::into),
-            titles: Canonical::tie(
-                titles
-                    .into_iter()
-                    .map(Into::into)
-                    .collect::<Vec<_>>()
-                    .canonicalize_into(),
-            ),
-            actors: Canonical::tie(
-                actors
-                    .into_iter()
-                    .map(Into::into)
-                    .collect::<Vec<_>>()
-                    .canonicalize_into(),
-            ),
+            titles: titles
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .canonicalize_into(),
+            actors: actors
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>()
+                .canonicalize_into(),
         })
     }
 }

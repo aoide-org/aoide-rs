@@ -25,7 +25,7 @@ impl Canonicalize for String {
 #[test]
 fn canonicalize_vec() {
     assert_eq!(
-        vec!["a".to_string(), "b".to_string(), "c".to_string()],
+        Canonical::tie(vec!["a".to_string(), "b".to_string(), "c".to_string()]),
         vec![
             "B".to_string(),
             "A".to_string(),

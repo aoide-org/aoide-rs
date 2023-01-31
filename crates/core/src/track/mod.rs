@@ -149,7 +149,7 @@ impl Track {
         let mut titles = std::mem::take(&mut self.titles).untie();
         let res = Titles::set_main_title(&mut titles, track_title);
         if res {
-            self.titles = Canonical::tie(titles.canonicalize_into());
+            self.titles = titles.canonicalize_into();
         } else {
             self.titles = Canonical::tie(titles);
         }
@@ -177,7 +177,7 @@ impl Track {
         let mut titles = album.titles.untie();
         let res = Titles::set_main_title(&mut titles, album_title);
         if res {
-            album.titles = Canonical::tie(titles.canonicalize_into());
+            album.titles = titles.canonicalize_into();
         } else {
             album.titles = Canonical::tie(titles);
         }

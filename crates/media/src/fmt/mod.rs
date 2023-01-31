@@ -498,7 +498,7 @@ pub(crate) fn import_file_tag_into_track(
     }
     *old_track_actors = new_track_actors;
 
-    let mut album = track.album.untie_replace(Default::default());
+    let mut album = std::mem::take(&mut track.album).untie();
 
     // Album titles
     let mut album_titles = Vec::with_capacity(1);
@@ -810,11 +810,8 @@ pub(crate) fn import_file_tag_into_track(
 
 #[cfg(feature = "serato-markers")]
 pub(crate) fn import_serato_tags(track: &mut Track, serato_tags: &triseratops::tag::TagContainer) {
-    use aoide_core::util::canonical::CanonicalizeInto;
-
     let old_cues = &mut track.cues;
-    let new_cues =
-        Canonical::tie(crate::util::serato::import_cues(serato_tags).canonicalize_into());
+    let new_cues = crate::util::serato::import_cues(serato_tags);
     if !old_cues.is_empty() && *old_cues != new_cues {
         log::debug!("Replacing cues from Serato tags: {old_cues:?} -> {new_cues:?}");
     }

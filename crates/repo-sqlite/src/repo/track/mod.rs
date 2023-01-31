@@ -123,8 +123,10 @@ fn update_track_and_album_titles(
     new_album_titles: Canonical<&[Title]>,
 ) -> RepoResult<()> {
     let (old_track_titles, old_album_titles) = load_track_and_album_titles(db, track_id)?;
-    if (old_track_titles.as_slice(), old_album_titles.as_slice())
-        == (new_track_titles, new_album_titles)
+    if (
+        old_track_titles.as_canonical_slice(),
+        old_album_titles.as_canonical_slice(),
+    ) == (new_track_titles, new_album_titles)
     {
         log::debug!("Keeping unmodified track/album titles");
         return Ok(());
@@ -214,8 +216,10 @@ fn update_track_and_album_actors(
     new_album_actors: Canonical<&[Actor]>,
 ) -> RepoResult<()> {
     let (old_track_actors, old_album_actors) = load_track_and_album_actors(db, track_id)?;
-    if (old_track_actors.as_slice(), old_album_actors.as_slice())
-        == (new_track_actors, new_album_actors)
+    if (
+        old_track_actors.as_canonical_slice(),
+        old_album_actors.as_canonical_slice(),
+    ) == (new_track_actors, new_album_actors)
     {
         log::debug!("Keeping unmodified track/album actors");
         return Ok(());
@@ -279,7 +283,7 @@ fn update_track_cues(
     new_cues: Canonical<&[Cue]>,
 ) -> RepoResult<()> {
     let old_cues = load_track_cues(db, track_id)?;
-    if old_cues.as_slice() == new_cues {
+    if old_cues.as_canonical_slice() == new_cues {
         log::debug!("Keeping unmodified track cues");
         return Ok(());
     }
@@ -423,16 +427,20 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         insert_track_and_album_titles(
             self,
             id,
-            created_entity.body.track.titles.as_slice(),
-            created_entity.body.track.album.titles.as_slice(),
+            created_entity.body.track.titles.as_canonical_slice(),
+            created_entity.body.track.album.titles.as_canonical_slice(),
         )?;
         insert_track_and_album_actors(
             self,
             id,
-            created_entity.body.track.actors.as_slice(),
-            created_entity.body.track.album.actors.as_slice(),
+            created_entity.body.track.actors.as_canonical_slice(),
+            created_entity.body.track.album.actors.as_canonical_slice(),
         )?;
-        insert_track_cues(self, id, created_entity.body.track.cues.as_slice())?;
+        insert_track_cues(
+            self,
+            id,
+            created_entity.body.track.cues.as_canonical_slice(),
+        )?;
         insert_track_tags(self, id, &created_entity.body.track.tags)?;
         Ok(id)
     }
@@ -458,16 +466,20 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         update_track_and_album_titles(
             self,
             id,
-            updated_entity.body.track.titles.as_slice(),
-            updated_entity.body.track.album.titles.as_slice(),
+            updated_entity.body.track.titles.as_canonical_slice(),
+            updated_entity.body.track.album.titles.as_canonical_slice(),
         )?;
         update_track_and_album_actors(
             self,
             id,
-            updated_entity.body.track.actors.as_slice(),
-            updated_entity.body.track.album.actors.as_slice(),
+            updated_entity.body.track.actors.as_canonical_slice(),
+            updated_entity.body.track.album.actors.as_canonical_slice(),
         )?;
-        update_track_cues(self, id, updated_entity.body.track.cues.as_slice())?;
+        update_track_cues(
+            self,
+            id,
+            updated_entity.body.track.cues.as_canonical_slice(),
+        )?;
         update_track_tags(self, id, &updated_entity.body.track.tags)?;
         Ok(())
     }

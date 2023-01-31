@@ -393,7 +393,7 @@ impl Importer {
                 scope.message_str(),
             ));
         }
-        Canonical::tie(titles)
+        titles
     }
 
     #[must_use]
@@ -411,7 +411,7 @@ impl Importer {
                 scope.message_str(),
             ));
         }
-        Canonical::tie(actors)
+        actors
     }
 
     #[must_use]
