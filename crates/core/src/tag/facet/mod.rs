@@ -8,7 +8,9 @@ use std::{
     hash::Hash,
 };
 
-use crate::{prelude::*, util::canonical::CanonicalOrd};
+use nonicle::CanonicalOrd;
+
+use crate::prelude::*;
 
 /// An identifier for referencing tag categories.
 ///

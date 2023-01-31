@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use nonicle::{Canonical, CanonicalizeInto as _};
+
 use aoide_core::{
     audio::PositionMs,
     track::cue::{Cue, CueFlags, InMarker, OutMarker, OutMode},
     util::{
-        canonical::{Canonical, CanonicalizeInto as _},
         color::{Color, RgbColor},
         string::trimmed_non_empty_from_owned,
     },

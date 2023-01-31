@@ -10,16 +10,12 @@ pub mod tag;
 pub mod title;
 
 use ::url::Url;
+use nonicle::{Canonical, CanonicalizeInto as _, IsCanonical};
 use num_derive::{FromPrimitive, ToPrimitive};
 
 use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
 
-use crate::{
-    media::*,
-    prelude::{canonical::CanonicalizeInto, *},
-    tag::*,
-    util::canonical::{Canonical, IsCanonical},
-};
+use crate::{media::*, prelude::*, tag::*};
 
 /// Advisory rating code for content(s)
 ///

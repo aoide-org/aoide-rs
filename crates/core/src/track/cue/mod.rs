@@ -3,13 +3,10 @@
 
 use std::cmp::Ordering;
 
+use nonicle::{CanonicalOrd, Canonicalize, IsCanonical};
 use num_derive::{FromPrimitive, ToPrimitive};
 
-use crate::{
-    audio::PositionMs,
-    prelude::*,
-    util::canonical::{CanonicalOrd, Canonicalize, IsCanonical},
-};
+use crate::{audio::PositionMs, prelude::*};
 
 pub type BankIndex = i16;
 

@@ -14,11 +14,9 @@ use std::{
     ops::Not as _,
 };
 
-use crate::{
-    compat::is_sorted_by,
-    prelude::{canonical::CanonicalizeInto, *},
-    util::canonical::{Canonical, CanonicalOrd, Canonicalize, IsCanonical},
-};
+use nonicle::{Canonical, CanonicalOrd, Canonicalize, CanonicalizeInto, IsCanonical};
+
+use crate::{compat::is_sorted_by, prelude::*};
 
 pub mod facet;
 pub use facet::{FacetId, FacetIdInvalidity, Faceted};

@@ -3,7 +3,9 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use aoide_core::{track::actor::Actors, util::canonical::CanonicalizeInto};
+use nonicle::CanonicalizeInto as _;
+
+use aoide_core::track::actor::Actors;
 
 use super::*;
 

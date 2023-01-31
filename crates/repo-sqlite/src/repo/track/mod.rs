@@ -4,6 +4,7 @@
 use std::time::Instant;
 
 use diesel::dsl::count_star;
+use nonicle::Canonical;
 
 use aoide_core::{
     entity::{EncodedEntityUid, EntityHeaderTyped},
@@ -13,7 +14,7 @@ use aoide_core::{
     },
     tag::*,
     track::{actor::Actor, cue::Cue, title::Title, EntityHeader, EntityUid, *},
-    util::{canonical::Canonical, clock::*},
+    util::clock::*,
 };
 
 use aoide_core_api::track::search::{Filter, Scope, SortOrder};

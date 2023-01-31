@@ -3,12 +3,10 @@
 
 use std::cmp::Ordering;
 
+use nonicle::{CanonicalOrd, Canonicalize, IsCanonical};
 use num_derive::{FromPrimitive, ToPrimitive};
 
-use crate::{
-    prelude::*,
-    util::canonical::{CanonicalOrd, Canonicalize, IsCanonical},
-};
+use crate::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 // Role

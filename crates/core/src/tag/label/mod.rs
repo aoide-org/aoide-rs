@@ -8,10 +8,9 @@ use std::{
     hash::Hash,
 };
 
-use crate::{
-    prelude::*,
-    util::{canonical::CanonicalOrd, string::trimmed_non_empty_from},
-};
+use nonicle::CanonicalOrd;
+
+use crate::{prelude::*, util::string::trimmed_non_empty_from};
 
 /// The name of a tag.
 ///

@@ -11,6 +11,7 @@ use std::{
 use bitflags::bitflags;
 use lofty::FileType;
 use mime::Mime;
+use nonicle::{Canonical, CanonicalizeInto as _};
 use semval::IsValid as _;
 
 use aoide_core::{
@@ -25,10 +26,7 @@ use aoide_core::{
         FacetId as TagFacetId, Label as TagLabel, PlainTag, Score as TagScore, ScoreValue, TagsMap,
     },
     track::{actor::Actor, title::Title, Track},
-    util::{
-        canonical::{Canonical, CanonicalizeInto as _},
-        clock::{DateOrDateTime, DateTime},
-    },
+    util::clock::{DateOrDateTime, DateTime},
 };
 
 use crate::{

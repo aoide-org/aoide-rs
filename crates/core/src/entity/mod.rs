@@ -9,13 +9,11 @@ use std::{
     str,
 };
 
+use nonicle::{Canonicalize, IsCanonical};
 use rand::RngCore;
 use ulid::{Ulid, ULID_LEN};
 
-use crate::{
-    prelude::*,
-    util::canonical::{Canonicalize, IsCanonical},
-};
+use crate::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 // EntityUid

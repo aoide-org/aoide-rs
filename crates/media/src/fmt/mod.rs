@@ -7,6 +7,7 @@ use lofty::{
     Accessor, AudioFile, FileProperties, ItemKey, ItemValue, MimeType, ParseOptions, Picture,
     PictureType, SplitAndMergeTag, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
 };
+use nonicle::{Canonical, CanonicalizeInto as _};
 use semval::IsValid;
 
 use aoide_core::{
@@ -33,10 +34,7 @@ use aoide_core::{
         title::{Kind as TitleKind, Titles},
         Track,
     },
-    util::{
-        canonical::{Canonical, CanonicalizeInto as _},
-        string::trimmed_non_empty_from,
-    },
+    util::string::trimmed_non_empty_from,
 };
 
 use crate::{
