@@ -149,11 +149,14 @@ impl Titles {
     }
 
     pub fn set_main_title(titles: &mut Vec<Title>, name: impl Into<String>) -> bool {
+        debug_assert!(titles.is_canonical());
         let name = name.into();
         if let Some(main_title) = Self::main_title(titles.iter()) {
             // Replace
             if main_title.name == name {
-                return false; // unmodified
+                // Unmodified (and still canonical)
+                debug_assert!(titles.is_canonical());
+                return false;
             }
             let kind = main_title.kind;
             let old_titles = std::mem::take(titles);
@@ -169,7 +172,8 @@ impl Titles {
                 kind: Kind::Main,
             });
         }
-        true // modified
+        // Modified (and probably no longer canonical)
+        true
     }
 }
 

@@ -16,7 +16,7 @@ use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
 
 use crate::{
     media::*,
-    prelude::*,
+    prelude::{canonical::CanonicalizeInto, *},
     tag::*,
     util::canonical::{Canonical, IsCanonical},
 };
@@ -148,7 +148,11 @@ impl Track {
     pub fn set_track_title(&mut self, track_title: impl Into<String>) -> bool {
         let mut titles = std::mem::take(&mut self.titles).untie();
         let res = Titles::set_main_title(&mut titles, track_title);
-        drop(std::mem::replace(&mut self.titles, Canonical::tie(titles)));
+        if res {
+            self.titles = Canonical::tie(titles.canonicalize_into());
+        } else {
+            self.titles = Canonical::tie(titles);
+        }
         res
     }
 
@@ -172,8 +176,12 @@ impl Track {
         let mut album = std::mem::take(&mut self.album).untie();
         let mut titles = album.titles.untie();
         let res = Titles::set_main_title(&mut titles, album_title);
-        album.titles = Canonical::tie(titles);
-        drop(std::mem::replace(&mut self.album, Canonical::tie(album)));
+        if res {
+            album.titles = Canonical::tie(titles.canonicalize_into());
+        } else {
+            album.titles = Canonical::tie(titles);
+        }
+        self.album = Canonical::tie(album);
         res
     }
 
