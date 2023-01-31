@@ -89,12 +89,15 @@ pub trait Canonicalize: IsCanonical {
     fn canonicalize(&mut self);
 }
 
-pub trait CanonicalizeInto: Canonicalize + Sized {
+pub trait CanonicalizeInto<T>
+where
+    T: Sized,
+{
     #[must_use]
-    fn canonicalize_into(self) -> Canonical<Self>;
+    fn canonicalize_into(self) -> Canonical<T>;
 }
 
-impl<T> CanonicalizeInto for T
+impl<T> CanonicalizeInto<T> for T
 where
     T: Canonicalize + std::fmt::Debug,
 {

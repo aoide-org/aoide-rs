@@ -33,7 +33,10 @@ use aoide_core::{
         title::{Kind as TitleKind, Titles},
         Track,
     },
-    util::{canonical::Canonical, string::trimmed_non_empty_from},
+    util::{
+        canonical::{Canonical, CanonicalizeInto as _},
+        string::trimmed_non_empty_from,
+    },
 };
 
 use crate::{
@@ -784,7 +787,7 @@ pub(crate) fn import_file_tag_into_track(
     );
 
     let old_tags = &mut track.tags;
-    let new_tags = tags_map.into();
+    let new_tags = tags_map.canonicalize_into();
     if !old_tags.is_empty() && *old_tags != new_tags {
         log::debug!("Replacing tags: {old_tags:?} -> {new_tags:?}");
     }
@@ -1224,8 +1227,9 @@ pub(crate) fn export_track_to_tag(
             .unwrap_or_default();
         #[cfg(feature = "gigtag")]
         if config.flags.contains(ExportTrackFlags::GIGTAGS) {
+            let remaining_tags = tags_map.canonicalize_into();
             if let Err(err) = crate::util::gigtag::export_and_encode_remaining_tags_into(
-                Canonical::from(tags_map).as_canonical_ref(),
+                remaining_tags.as_canonical_ref(),
                 &mut tags,
             ) {
                 log::error!("Failed to export gig tags: {err}");

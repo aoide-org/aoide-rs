@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::util::canonical::CanonicalizeInto;
+
 use super::*;
 
 fn label_from_str(label: &str) -> Label {
@@ -222,7 +224,7 @@ fn reencode_roundtrip() {
     );
 
     let mut reencoded = Cow::Borrowed(encoded);
-    let tags = Canonical::from(tags_map);
+    let tags = tags_map.canonicalize_into();
     assert!(update_tags_in_encoded(tags.as_canonical_ref(), &mut reencoded).is_ok());
     // Encoding implicitly reorders the tags
     assert_eq!(
@@ -308,7 +310,7 @@ fn encode_decode_roundtrip_with_valid_tags() {
     );
     let expected_count = tags_map.total_count();
 
-    let tags = Canonical::from(tags_map);
+    let tags = tags_map.canonicalize_into();
     assert!(tags.is_valid());
     assert_eq!(expected_count, tags.total_count());
 
@@ -316,12 +318,12 @@ fn encode_decode_roundtrip_with_valid_tags() {
     assert!(update_tags_in_encoded(tags.as_canonical_ref(), &mut encoded).is_ok());
     println!("encoded = {encoded}");
 
-    let mut tags_map = TagsMap::default();
-    let (decoded, decoded_count) = decode_tags_eagerly_into(&encoded, Some(&mut tags_map));
-    assert_eq!(decoded_count, tags_map.total_count());
+    let mut decoded_tags = TagsMap::default();
+    let (decoded, decoded_count) = decode_tags_eagerly_into(&encoded, Some(&mut decoded_tags));
+    assert_eq!(decoded_count, decoded_tags.total_count());
     assert_eq!(expected_count, decoded_count);
     assert!(decoded.undecoded_prefix.is_empty());
 
-    let decoded_tags = tags_map.into();
+    let decoded_tags = decoded_tags.canonicalize_into();
     assert_eq!(tags, decoded_tags);
 }
