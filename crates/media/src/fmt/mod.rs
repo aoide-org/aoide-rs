@@ -7,7 +7,6 @@ use lofty::{
     Accessor, AudioFile, FileProperties, ItemKey, ItemValue, MimeType, ParseOptions, Picture,
     PictureType, SplitAndMergeTag, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
 };
-use semval::IsValid;
 
 use aoide_core::{
     audio::{

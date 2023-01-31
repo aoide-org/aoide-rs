@@ -42,9 +42,9 @@ pub type DbConnection = diesel::sqlite::SqliteConnection;
 
 pub mod prelude {
     pub(crate) use crate::util::{clock::*, entity::*, *};
+    pub(crate) use aoide_core::prelude::*;
     pub(crate) use aoide_repo::prelude::*;
     pub(crate) use diesel::{prelude::*, result::Error as DieselError};
-    pub(crate) use semval::prelude::*;
     pub(crate) use std::ops::Deref;
     use std::ops::DerefMut;
 

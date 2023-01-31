@@ -155,7 +155,6 @@ dependencies = [
  "aoide-core",
  "num-derive",
  "num-traits",
- "semval",
  "url",
 ]
 
@@ -183,7 +182,6 @@ dependencies = [
  "mime",
  "num-traits",
  "schemars",
- "semval",
  "serde",
  "serde_json",
  "serde_repr",
@@ -233,7 +231,6 @@ dependencies = [
  "mime_guess",
  "nom",
  "num-traits",
- "semval",
  "thiserror",
  "time",
  "triseratops",
@@ -252,7 +249,6 @@ dependencies = [
  "num-traits",
  "paste",
  "rand",
- "semval",
  "thiserror",
 ]
 
@@ -272,7 +268,6 @@ dependencies = [
  "mime",
  "num-derive",
  "num-traits",
- "semval",
  "test-log",
  "url",
 ]
@@ -315,7 +310,6 @@ dependencies = [
  "bitflags",
  "blake3",
  "log",
- "semval",
  "thiserror",
  "url",
  "walkdir",
@@ -335,7 +329,6 @@ dependencies = [
  "aoide-usecases",
  "diesel",
  "log",
- "semval",
  "thiserror",
  "tokio",
 ]

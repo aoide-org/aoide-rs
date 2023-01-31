@@ -50,7 +50,7 @@ pub mod prelude {
     pub use nonicle::{Canonical, Canonicalize as _, CanonicalizeInto as _, IsCanonical as _};
 
     // Re-export trait methods from semval
-    pub use semval::{IntoValidated as _, IsValid as _, Validate as _, ValidatedFrom as _};
+    pub use semval::{IntoValidated as _, IsValid, Validate as _, ValidatedFrom as _};
 }
 
 mod compat {
