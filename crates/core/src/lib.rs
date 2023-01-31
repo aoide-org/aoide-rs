@@ -39,13 +39,18 @@ pub mod track;
 pub mod util;
 
 pub mod prelude {
-
     pub(crate) use crate::{
         entity::*,
         util::{clock::*, color::*, *},
     };
 
     pub(crate) use semval::prelude::*;
+
+    // Re-export main type and trait methods from nonicle
+    pub use nonicle::{Canonical, Canonicalize as _, CanonicalizeInto as _, IsCanonical as _};
+
+    // Re-export trait methods from semval
+    pub use semval::{IntoValidated as _, IsValid as _, Validate as _, ValidatedFrom as _};
 }
 
 mod compat {

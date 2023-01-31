@@ -3,13 +3,15 @@
 
 use std::fmt;
 
-use semval::Validate as _;
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
     Deserializer, Serializer,
 };
 
-use aoide_core::util::clock::{YearType, YYYYMMDD};
+use aoide_core::{
+    prelude::*,
+    util::clock::{YearType, YYYYMMDD},
+};
 
 use crate::prelude::*;
 

@@ -3,8 +3,9 @@
 
 use std::{collections::HashMap, fmt};
 
-use semval::IsValid as _;
 use serde::{de::Visitor, Deserializer, Serializer};
+
+use aoide_core::prelude::*;
 
 use crate::prelude::*;
 

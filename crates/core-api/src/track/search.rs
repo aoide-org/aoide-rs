@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use num_derive::{FromPrimitive, ToPrimitive};
-use semval::prelude::IsValid as _;
 
 use aoide_core::{
     audio::DurationMs,
     playlist::EntityUid as PlaylistUid,
+    prelude::*,
     track::{
         actor::{Kind as ActorKind, Role as ActorRole},
         title::Kind as TitleKind,

@@ -4,7 +4,6 @@
 use std::time::Instant;
 
 use diesel::dsl::count_star;
-use nonicle::Canonical;
 
 use aoide_core::{
     entity::{EncodedEntityUid, EntityHeaderTyped},
@@ -12,6 +11,7 @@ use aoide_core::{
         content::{ContentLink, ContentPath, ContentRevision},
         Source,
     },
+    prelude::*,
     tag::*,
     track::{actor::Actor, cue::Cue, title::Title, EntityHeader, EntityUid, *},
     util::clock::*,

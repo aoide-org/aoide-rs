@@ -4,10 +4,8 @@
 use std::borrow::Cow;
 
 use aoide_core_api::playlist::EntityWithEntriesSummary;
-use semval::Validate as _;
 
 use aoide_core::{
-    collection::EntityUid as CollectionUid,
     playlist::{Entity, EntityHeader as PlaylistHeader, EntityUid, EntityWithEntries, Playlist},
     util::clock::DateTime,
 };

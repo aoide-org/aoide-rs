@@ -11,8 +11,6 @@ use std::{
 use bitflags::bitflags;
 use lofty::FileType;
 use mime::Mime;
-use nonicle::{Canonical, CanonicalizeInto as _};
-use semval::IsValid as _;
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
@@ -22,6 +20,7 @@ use aoide_core::{
         Content, Source,
     },
     music::{key::KeySignature, tempo::TempoBpm},
+    prelude::*,
     tag::{
         FacetId as TagFacetId, Label as TagLabel, PlainTag, Score as TagScore, ScoreValue, TagsMap,
     },

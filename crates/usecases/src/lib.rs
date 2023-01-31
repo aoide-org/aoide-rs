@@ -24,11 +24,12 @@
 // TODO: Add missing docs
 #![allow(clippy::missing_errors_doc)]
 
-use aoide_core::collection::EntityUid as CollectionUid;
-use aoide_repo::prelude::*;
-
 use std::result::Result as StdResult;
+
 use thiserror::Error;
+
+use aoide_core::{collection::EntityUid as CollectionUid, prelude::*};
+use aoide_repo::prelude::*;
 
 pub mod collection;
 pub mod playlist;

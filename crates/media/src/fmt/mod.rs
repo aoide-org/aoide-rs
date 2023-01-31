@@ -7,7 +7,6 @@ use lofty::{
     Accessor, AudioFile, FileProperties, ItemKey, ItemValue, MimeType, ParseOptions, Picture,
     PictureType, SplitAndMergeTag, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
 };
-use nonicle::{Canonical, CanonicalizeInto as _};
 use semval::IsValid;
 
 use aoide_core::{
@@ -21,6 +20,7 @@ use aoide_core::{
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
     },
     music::tempo::TempoBpm,
+    prelude::*,
     tag::{FacetKey, FacetedTags, Label, PlainTag, Score as TagScore, TagsMap},
     track::{
         actor::Role as ActorRole,

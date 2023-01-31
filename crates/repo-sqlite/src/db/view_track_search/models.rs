@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use nonicle::Canonical;
 use num_traits::FromPrimitive as _;
 
 use aoide_core::{
@@ -11,6 +10,7 @@ use aoide_core::{
         key::{KeyCode, KeyCodeValue, KeySignature},
         tempo::{Bpm, TempoBpm},
     },
+    prelude::*,
     track::{
         album::{Album, Kind as AlbumKind},
         index::*,

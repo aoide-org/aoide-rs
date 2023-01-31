@@ -5,10 +5,11 @@ use std::borrow::Cow;
 
 use compact_str::{format_compact, CompactString};
 use gigtag::facet::Facet as _;
-use nonicle::Canonical;
-use semval::IsValid as _;
 
-use aoide_core::tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, Tags, TagsMap};
+use aoide_core::{
+    prelude::*,
+    tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, Tags, TagsMap},
+};
 
 pub type Facet = gigtag::facet::CompactFacet;
 

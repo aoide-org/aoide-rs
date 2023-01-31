@@ -10,7 +10,7 @@ pub mod tag;
 pub mod title;
 
 use ::url::Url;
-use nonicle::{Canonical, CanonicalizeInto as _, IsCanonical};
+use nonicle::{Canonical, IsCanonical};
 use num_derive::{FromPrimitive, ToPrimitive};
 
 use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
