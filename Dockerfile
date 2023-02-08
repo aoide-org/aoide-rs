@@ -24,7 +24,9 @@ ARG BUILD_PROFILE=production
 
 ###############################################################################
 # 1st Build Stage
-FROM rust:slim AS build
+# The Alpine-based image already contains the musl-libc toolchain
+# that is needed for our BUILD_TARGET.
+FROM rust:alpine AS build
 
 # Import global ARGs
 ARG WORKDIR_ROOT
@@ -50,17 +52,14 @@ ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace --locked --all-targets --target $
 # FIXME: Build of freetype-sys fails due to missing musl-g++ wrapper
 # <https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=988837>
 # FIXME: Remove the symbolic link hack for usl-g++
-RUN apt update \
-    && apt install --no-install-recommends -y \
+RUN apk add --no-cache \
         tree \
-        musl-tools \
-        git python3-pip \
-        libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev \
-        make cmake g++ libfontconfig-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && ln -s /usr/bin/g++ /usr/bin/musl-g++ \
+        musl-dev \
+        git py3-pip python3-dev nodejs \
+        libxcb-dev libxkbcommon-dev \
+        make cmake g++ fontconfig-dev \
     && rustup target add \
-        ${BUILD_TARGET}
+        ${BUILD_TARGET} \
     && rustup show \
     && rustup component add \
         rustfmt \

@@ -11,7 +11,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
-anyhow = "1.0.68"
+anyhow = "1.0.69"
 diesel = { version = "2.0.3", default-features = false, features = ["r2d2", "sqlite"] }
 # Bundle SQLite code to prevent dynamic linking.
 # The pinned version must be compatible with diesel!

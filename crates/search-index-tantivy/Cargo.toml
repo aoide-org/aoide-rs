@@ -11,7 +11,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
-anyhow = "1.0.68"
+anyhow = "1.0.69"
 num-traits = "0.2.15"
 log = "0.4.17"
 tantivy = "0.19.1"
