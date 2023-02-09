@@ -15,7 +15,7 @@ anyhow = "1.0.69"
 bytes = "1.4.0"
 log = "0.4.17"
 serde = { version = "1.0.152", features = ["derive"], optional = true }
-serde_json = "1.0.92"
+serde_json = "1.0.93"
 serde_urlencoded = "0.7.1"
 static_assertions = "1.1.0"
 

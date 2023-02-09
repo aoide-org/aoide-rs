@@ -166,14 +166,16 @@ fn main() {
     if !env::parse_launch_headless().unwrap_or(false) {
         log::info!("Running launcher UI");
         let config = config.clone();
-        eframe::run_native(
+        if let Err(err) = eframe::run_native(
             app_name(),
             eframe::NativeOptions::default(),
             Box::new({
                 let launcher = Arc::clone(&launcher);
                 move |_creation_context| Box::new(launcher::ui::App::new(launcher, config))
             }),
-        );
+        ) {
+            log::error!("Failed to run launcher UI: {err}");
+        }
         log::info!("Exiting");
         return;
     }
