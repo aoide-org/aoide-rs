@@ -50,25 +50,18 @@ pub(crate) fn export_track_to_file(
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<bool> {
+) -> Result<()> {
     let mut mpeg_file = <MPEGFile as AudioFile>::read_from(file, parse_options())?;
 
-    let id3v2 = if let Some(id3v2) = mpeg_file.id3v2_mut() {
-        id3v2
-    } else {
-        mpeg_file.set_id3v2(Default::default());
-        mpeg_file.id3v2_mut().expect("ID3v2")
-    };
-    let id3v2_orig = id3v2.clone();
+    let mut id3v2 = mpeg_file
+        .id3v2_mut()
+        .map(std::mem::take)
+        .unwrap_or_default();
 
-    export_track_to_tag(id3v2, config, track, edit_embedded_artwork_image);
+    export_track_to_tag(&mut id3v2, config, track, edit_embedded_artwork_image);
 
-    let modified = *id3v2 != id3v2_orig;
-    if modified {
-        // Prevent inconsistencies by stripping all other, secondary tags
-        mpeg_file.remove_ape();
-        mpeg_file.remove_id3v1();
-        mpeg_file.save_to(file)?;
-    }
-    Ok(modified)
+    mpeg_file.set_id3v2(id3v2);
+    mpeg_file.save_to(file)?;
+
+    Ok(())
 }

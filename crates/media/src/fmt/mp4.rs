@@ -205,24 +205,16 @@ pub(crate) fn export_track_to_file(
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<bool> {
+) -> Result<()> {
     let mut mp4_file = <Mp4File as AudioFile>::read_from(file, parse_options())?;
+    let mut ilst = mp4_file.ilst_mut().map(std::mem::take).unwrap_or_default();
 
-    let ilst = if let Some(ilst) = mp4_file.ilst_mut() {
-        ilst
-    } else {
-        mp4_file.set_ilst(Default::default());
-        mp4_file.ilst_mut().expect("ilst")
-    };
-    let ilst_orig = ilst.clone();
+    export_track_to_tag(&mut ilst, config, track, edit_embedded_artwork_image);
 
-    export_track_to_tag(ilst, config, track, edit_embedded_artwork_image);
+    mp4_file.set_ilst(ilst);
+    mp4_file.save_to(file)?;
 
-    let modified = *ilst != ilst_orig;
-    if modified {
-        mp4_file.save_to(file)?;
-    }
-    Ok(modified)
+    Ok(())
 }
 
 pub(crate) fn export_track_to_tag(
@@ -231,7 +223,12 @@ pub(crate) fn export_track_to_tag(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) {
-    super::split_export_merge_track_to_tag(ilst, config, track, edit_embedded_artwork_image);
+    *ilst = super::split_export_merge_track_to_tag(
+        std::mem::take(ilst),
+        config,
+        track,
+        edit_embedded_artwork_image,
+    );
 
     // Get rid of unsupported numeric genre identifiers to prevent inconsistencies
     ilst.remove_atom(&LEGACY_GENRE_IDENT);

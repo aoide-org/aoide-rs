@@ -56,7 +56,7 @@ pub fn export_track_to_path(
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<bool> {
+) -> Result<()> {
     let file = File::open(path)?;
     let probe = lofty::Probe::new(file).guess_file_type()?;
     let Some(file_type) = probe.file_type() else {

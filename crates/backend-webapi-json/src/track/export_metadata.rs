@@ -20,7 +20,7 @@ pub struct QueryParams {
     // TODO: Add export options
 }
 
-pub type ResponseBody = bool;
+pub type ResponseBody = ();
 
 #[allow(clippy::needless_pass_by_value)] // consume arguments
 pub fn handle_request(

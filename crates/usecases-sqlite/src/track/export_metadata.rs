@@ -15,7 +15,7 @@ pub fn export_metadata_into_file(
     content_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<bool> {
+) -> Result<()> {
     let mut repo = RepoConnection::new(connection);
     let (_, mut track_entity) = repo.load_track_entity_by_uid(track_uid)?;
     uc::media::export_track_metadata_into_file(

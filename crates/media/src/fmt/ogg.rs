@@ -53,17 +53,19 @@ pub(crate) fn export_track_to_file(
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<bool> {
+) -> Result<()> {
     let mut ogg_file = <VorbisFile as AudioFile>::read_from(file, parse_options())?;
+    let mut vorbis_comments = std::mem::take(ogg_file.vorbis_comments_mut());
 
-    let vorbis_comments = ogg_file.vorbis_comments_mut();
-    let vorbis_comments_orig = vorbis_comments.clone();
+    export_track_to_tag(
+        &mut vorbis_comments,
+        config,
+        track,
+        edit_embedded_artwork_image,
+    );
 
-    export_track_to_tag(vorbis_comments, config, track, edit_embedded_artwork_image);
+    ogg_file.set_vorbis_comments(vorbis_comments);
+    ogg_file.save_to(file)?;
 
-    let modified = *vorbis_comments != vorbis_comments_orig;
-    if modified {
-        ogg_file.save_to(file)?;
-    }
-    Ok(modified)
+    Ok(())
 }

@@ -883,11 +883,12 @@ fn export_faceted_tags(
 }
 
 fn split_export_merge_track_to_tag<T>(
-    tag_repr: &mut T,
+    mut tag_repr: T,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) where
+) -> T
+where
     T: SplitAndMergeTag,
 {
     // Split the generic tag contents from the underlying representation.
@@ -902,6 +903,7 @@ fn split_export_merge_track_to_tag<T>(
     // Depending on `T` some post-processing might be required in the outer context
     // to update contents in `tag_repr` that are not (yet) supported by the generic
     // `lofty::Tag` representation.
+    tag_repr
 }
 
 #[allow(clippy::too_many_lines)] // TODO

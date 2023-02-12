@@ -171,7 +171,7 @@ pub fn export_track_metadata_into_file(
     content_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<bool> {
+) -> Result<()> {
     let file_path = content_path_resolver.build_file_path(&track.media_source.content.link.path);
     export_track_to_path(&file_path, config, track, edit_embedded_artwork_image).map_err(Into::into)
 }

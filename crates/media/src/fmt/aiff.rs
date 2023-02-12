@@ -52,27 +52,22 @@ pub(crate) fn export_track_to_file(
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<bool> {
+) -> Result<()> {
     let mut aiff_file = <AiffFile as AudioFile>::read_from(file, parse_options())?;
     if aiff_file.text_chunks().is_some() {
         return Err(Error::Metadata(anyhow!(
             "Exporting metadata into AIFF files with text chunks is not supported"
         )));
     }
+    let mut id3v2 = aiff_file
+        .id3v2_mut()
+        .map(std::mem::take)
+        .unwrap_or_default();
 
-    let id3v2 = if let Some(id3v2) = aiff_file.id3v2_mut() {
-        id3v2
-    } else {
-        aiff_file.set_id3v2(Default::default());
-        aiff_file.id3v2_mut().expect("ID3v2")
-    };
-    let id3v2_orig = id3v2.clone();
+    id3v2::export_track_to_tag(&mut id3v2, config, track, edit_embedded_artwork_image);
 
-    id3v2::export_track_to_tag(id3v2, config, track, edit_embedded_artwork_image);
+    aiff_file.set_id3v2(id3v2);
+    aiff_file.save_to(file)?;
 
-    let modified = *id3v2 != id3v2_orig;
-    if modified {
-        aiff_file.save_to(file)?;
-    }
-    Ok(modified)
+    Ok(())
 }

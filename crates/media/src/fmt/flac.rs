@@ -55,24 +55,22 @@ pub(crate) fn export_track_to_file(
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<bool> {
+) -> Result<()> {
     let mut flac_file = <FlacFile as AudioFile>::read_from(file, parse_options())?;
+    let mut vorbis_comments = flac_file
+        .vorbis_comments_mut()
+        .map(std::mem::take)
+        .unwrap_or_default();
 
-    let vorbis_comments = if let Some(vorbis_comments) = flac_file.vorbis_comments_mut() {
-        vorbis_comments
-    } else {
-        flac_file.set_vorbis_comments(Default::default());
-        flac_file.vorbis_comments_mut().expect("VorbisComments")
-    };
-    let vorbis_comments_orig = vorbis_comments.clone();
+    super::vorbis::export_track_to_tag(
+        &mut vorbis_comments,
+        config,
+        track,
+        edit_embedded_artwork_image,
+    );
 
-    super::vorbis::export_track_to_tag(vorbis_comments, config, track, edit_embedded_artwork_image);
+    flac_file.set_vorbis_comments(vorbis_comments);
+    flac_file.save_to(file)?;
 
-    let modified = *vorbis_comments != vorbis_comments_orig;
-    if modified {
-        // Prevent inconsistencies by stripping all other, secondary tags
-        flac_file.remove_id3v2();
-        flac_file.save_to(file)?;
-    }
-    Ok(modified)
+    Ok(())
 }
