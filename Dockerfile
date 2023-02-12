@@ -264,20 +264,27 @@ COPY [ \
     "websrv/src", \
     "./websrv/src/" ]
 
-# 1. Run pre-commit
-# 2. Build workspace and run all unit tests
-# 3. Build the target binary with default features
-# 4. Strip debug infos from the executable
-RUN tree -a && \
-    export CARGO_INCREMENTAL=0 && \
-    git config --global user.email "pre-commit@example.com" && \
+# Print theresulting file system structure
+RUN tree -a
+
+# Run pre-commit (requires a temporary Git repo)
+RUN git config --global user.email "pre-commit@example.com" && \
     git config --global user.name "pre-commit" && \
     git config --global init.defaultBranch main && \
     git init && git add . && git commit -m "pre-commit" && \
     SKIP=no-commit-to-branch pre-commit run --all-files && \
-    rm -rf .git && \
-    cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
-    cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
+    rm -rf .git
+
+# Build workspace and unit tests
+RUN export CARGO_INCREMENTAL=0 && \
+    cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run
+
+# Run unit tests
+RUN export CARGO_INCREMENTAL=0 && \
+    cargo test ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet
+
+# Build the target binary with default features and strip debug infos from the executable
+RUN export CARGO_INCREMENTAL=0 && \
     cargo build --locked --target ${BUILD_TARGET} --profile ${BUILD_PROFILE} --package ${PACKAGE_NAME} --manifest-path websrv/Cargo.toml && \
     strip ./target/${BUILD_TARGET}/${BUILD_PROFILE}/${PACKAGE_NAME}
 
