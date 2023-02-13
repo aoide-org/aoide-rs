@@ -272,7 +272,7 @@ RUN tree -a
 
 # Run pre-commit (requires a temporary Git repo)
 RUN sed -i 's|id: prettier|id: prettier\n        language_version: system|g' .pre-commit-config.yaml && \
-    sed -i 's|id: markdownlint-cli2|id: markdownlint-cli2   \n        language_version: system|g' .pre-commit-config.yaml && \
+    sed -i 's|id: markdownlint-cli2|id: markdownlint-cli2\n        language_version: system|g' .pre-commit-config.yaml && \
     git config --global user.email "pre-commit@example.com" && \
     git config --global user.name "pre-commit" && \
     git config --global init.defaultBranch main && \
