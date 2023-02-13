@@ -188,7 +188,7 @@ RUN tree -a && \
     rm -f ./target/${BUILD_PROFILE}/${WORKSPACE_NAME}* && \
     rm -f ./target/${BUILD_PROFILE}/deps/${WORKSPACE_NAME}-* && \
     rm -f ./target/${BUILD_PROFILE}/deps/${WORKSPACE_NAME}_* && \
-    rm -rf ./target/${BUILD_PROFILE}/.fingerprint/${WORKSPACE_NAME}-* && \
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_PROFILE}/.fingerprint/${WORKSPACE_NAME}-* && \
     tree -a
 
 # Copy all project (re-)sources that are required for pre-commit and building
