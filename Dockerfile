@@ -204,6 +204,9 @@ COPY [ \
     ".rustfmt.toml", \
     "./" ]
 COPY [ \
+    "LICENSES", \
+    "./LICENSES/" ]
+COPY [ \
     "crates/backend-embedded/src", \
     "./crates/backend-embedded/src/" ]
 COPY [ \
