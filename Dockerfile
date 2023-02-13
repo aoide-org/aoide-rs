@@ -55,7 +55,7 @@ ARG WORKSPACE_BUILD_AND_TEST_ARGS="--workspace --locked --all-targets --target $
 RUN apk add --no-cache \
         tree \
         musl-dev \
-        git py3-pip python3-dev nodejs \
+        git py3-pip python3-dev nodejs npm bash \
         libxcb-dev libxkbcommon-dev \
         make cmake g++ fontconfig-dev \
     && rustup target add \
@@ -268,7 +268,9 @@ COPY [ \
 RUN tree -a
 
 # Run pre-commit (requires a temporary Git repo)
-RUN git config --global user.email "pre-commit@example.com" && \
+RUN sed -i 's|id: prettier|id: prettier\n        language_version: system|g' .pre-commit-config.yaml && \
+    sed -i 's|id: markdownlint-cli2|id: markdownlint-cli2   \n        language_version: system|g' .pre-commit-config.yaml && \
+    git config --global user.email "pre-commit@example.com" && \
     git config --global user.name "pre-commit" && \
     git config --global init.defaultBranch main && \
     git init && git add . && git commit -m "pre-commit" && \
