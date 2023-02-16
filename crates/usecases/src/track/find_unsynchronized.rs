@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::find_unsynchronized::*};
+use aoide_core_api::track::find_unsynchronized::*;
 
 use aoide_core::media::content::resolver::ContentPathResolver;
 
@@ -63,20 +63,14 @@ where
     Repo: CollectionRepo + TrackCollectionRepo,
 {
     let Params {
-        resolve_url_from_content_path,
+        vfs_content_path_root_url,
         content_path_predicate,
     } = params;
-    let collection_ctx = RepoContext::resolve_ext(
-        repo,
-        collection_uid,
-        None,
-        resolve_url_from_content_path
-            .as_ref()
-            .and_then(ResolveUrlFromContentPath::override_root_url)
-            .map(ToOwned::to_owned),
-    )?;
+    let resolve_url_from_content_path = vfs_content_path_root_url.is_some();
+    let collection_ctx =
+        RepoContext::resolve_override(repo, collection_uid, None, vfs_content_path_root_url)?;
     let collection_id = collection_ctx.record_id;
-    let content_path_resolver = if resolve_url_from_content_path.is_some() {
+    let content_path_resolver = if resolve_url_from_content_path {
         if let Some(vfs_ctx) = collection_ctx.content_path.vfs {
             Some(vfs_ctx.path_resolver)
         } else {

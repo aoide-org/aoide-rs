@@ -278,7 +278,7 @@ where
                 root_url.map(|root_url| StringPredicate::StartsWith(root_url.to_string().into()));
             let params = aoide_core_api::track::find_unsynchronized::Params {
                 content_path_predicate,
-                resolve_url_from_content_path: None,
+                vfs_content_path_root_url: None,
             };
             outcome.find_unsynchronized_tracks = Some(
                 crate::track::find_unsynchronized(

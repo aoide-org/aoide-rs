@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::util::url::BaseUrl;
 use aoide_core_json::{
     entity::EntityUid,
     track::{
@@ -9,8 +10,6 @@ use aoide_core_json::{
     },
     util::clock::DateTime,
 };
-
-use url::Url;
 
 use crate::{
     _inner::filtering::NumericValue,
@@ -618,10 +617,7 @@ impl From<_inner::Filter> for Filter {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub resolve_url_from_content_path: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub override_root_url: Option<Url>,
+    pub vfs_content_path_root_url: Option<BaseUrl>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<PaginationLimit>,
@@ -650,25 +646,12 @@ pub struct SearchParams {
 
 #[cfg(feature = "frontend")]
 pub fn client_query_params(
-    resolve_url_from_content_path: Option<aoide_core_api::media::source::ResolveUrlFromContentPath>,
+    vfs_content_path_root_url: Option<aoide_core::util::url::BaseUrl>,
     pagination: impl Into<Pagination>,
 ) -> QueryParams {
-    use aoide_core_api::media::source::ResolveUrlFromContentPath;
-
     let Pagination { limit, offset } = pagination.into();
-    let (resolve_url_from_content_path, override_root_url) =
-        if let Some(resolve_url_from_content_path) = resolve_url_from_content_path {
-            let override_root_url = match resolve_url_from_content_path {
-                ResolveUrlFromContentPath::CanonicalRootUrl => None,
-                ResolveUrlFromContentPath::OverrideRootUrl { root_url } => Some(root_url),
-            };
-            (true, override_root_url)
-        } else {
-            (false, None)
-        };
     QueryParams {
-        resolve_url_from_content_path: Some(resolve_url_from_content_path),
-        override_root_url: override_root_url.map(Into::into),
+        vfs_content_path_root_url,
         limit,
         offset,
     }
@@ -680,11 +663,11 @@ pub fn client_request_params(
     pagination: impl Into<Pagination>,
 ) -> (QueryParams, SearchParams) {
     let _inner::Params {
-        resolve_url_from_content_path,
+        vfs_content_path_root_url,
         filter,
         ordering,
     } = params;
-    let query_params = client_query_params(resolve_url_from_content_path, pagination);
+    let query_params = client_query_params(vfs_content_path_root_url, pagination);
     let search_params = SearchParams {
         filter: filter.map(Into::into),
         ordering: ordering.into_iter().map(Into::into).collect(),

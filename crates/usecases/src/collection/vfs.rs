@@ -73,14 +73,14 @@ impl RepoContext {
         uid: &EntityUid,
         root_url: Option<&BaseUrl>,
     ) -> Result<Self> {
-        Self::resolve_ext(repo, uid, root_url, None)
+        Self::resolve_override(repo, uid, root_url, None)
     }
 
-    pub fn resolve_ext(
+    pub fn resolve_override(
         repo: &mut impl EntityRepo,
         uid: &EntityUid,
         root_url: Option<&BaseUrl>,
-        override_root_url: Option<BaseUrl>,
+        override_root_url: impl Into<Option<BaseUrl>>,
     ) -> Result<Self> {
         let props = RepoContextProps::load_from_repo(repo, uid)?;
         Self::new(props, root_url, override_root_url)

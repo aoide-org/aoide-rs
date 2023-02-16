@@ -5,13 +5,14 @@ use aoide_core::{
     entity::{Entity, EntityRevision},
     media::content::ContentLink,
     track,
+    util::url::BaseUrl,
 };
 
-use crate::{filtering::StringPredicate, media::source::ResolveUrlFromContentPath};
+use crate::filtering::StringPredicate;
 
 #[derive(Debug, Clone, Default)]
 pub struct Params {
-    pub resolve_url_from_content_path: Option<ResolveUrlFromContentPath>,
+    pub vfs_content_path_root_url: Option<BaseUrl>,
     pub content_path_predicate: Option<StringPredicate<'static>>,
 }
 
