@@ -19,7 +19,7 @@ num-derive = "0.3.3"
 num-traits = "0.2.15"
 rand = "0.8.5"
 semval = "0.5.0"
-time = { version = "0.3.17", features = [
+time = { version = "0.3.18", features = [
     "macros",
     "local-offset",
     "parsing",

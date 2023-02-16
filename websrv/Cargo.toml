@@ -23,7 +23,7 @@ ron = "0.8.0"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.93"
 thiserror = "1.0.38"
-time = { version = "0.3.17", features = ["serde-human-readable"] }
+time = { version = "0.3.18", features = ["serde-human-readable"] }
 tokio = { version = "1.25.0", default-features = false, features = [
     "rt-multi-thread",
     "signal",
@@ -38,7 +38,7 @@ warp = { version = "0.3.3", default-features = false }
 schemars = { version = "0.8.11", optional = true }
 
 # launcher-ui
-eframe = { version = "0.21.2", optional = true, default-features = false, features = [
+eframe = { version = "0.21.3", optional = true, default-features = false, features = [
     "default_fonts",
     "glow",
 ] }
