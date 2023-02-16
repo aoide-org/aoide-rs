@@ -221,7 +221,8 @@ paths:
         - "Collections: Tracks"
       parameters:
         - $ref: "#/components/parameters/collectionUidPath"
-        - $ref: "#/components/parameters/mediaSourceVfsContentPathRootUrlQuery"
+        - $ref: "#/components/parameters/resolveMediaSourceUrlFromContentPathQuery"
+        - $ref: "#/components/parameters/overrideMediaSourceRootUrlQuery"
         - $ref: "#/components/parameters/paginationOffsetQuery"
         - $ref: "#/components/parameters/paginationLimitQuery"
       requestBody:
@@ -307,7 +308,8 @@ paths:
         - "Collections: Tracks"
       parameters:
         - $ref: "#/components/parameters/collectionUidPath"
-        - $ref: "#/components/parameters/mediaSourceVfsContentPathRootUrlQuery"
+        - $ref: "#/components/parameters/resolveMediaSourceUrlFromContentPathQuery"
+        - $ref: "#/components/parameters/overrideMediaSourceRootUrlQuery"
         - $ref: "#/components/parameters/paginationOffsetQuery"
         - $ref: "#/components/parameters/paginationLimitQuery"
       requestBody:
@@ -1077,12 +1079,24 @@ components:
       schema:
         type: boolean
         default: false
-    mediaSourceVfsContentPathRootUrlQuery:
-      name: vfsContentPathRootUrl
+    resolveMediaSourceUrlFromContentPathQuery:
+      name: resolveUrlFromContentPath
       description: |
-        Resolve the actual URL of the media source from the stored content path
-        by combining it with the given root URL. The provided URL either equals
-        or overrides the root URL in the collection's media source configuration.
+        Resolve the actual URL of the media source from the stored path according
+        to the collection's media source configuration.
+
+        Only supported for local files with virtual paths.
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    overrideMediaSourceRootUrlQuery:
+      name: overrideRootUrl
+      description: |
+        Resolve the actual URL of the media source from the stored path according
+        to the given root URL. The provided URL overrides the root URL from the
+        collection's media source configuration for this particular request.
 
         Only supported for local files with virtual paths.
       in: query

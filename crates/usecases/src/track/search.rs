@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use aoide_core::track::Entity;
 
-use aoide_core_api::track::search::*;
+use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::search::*};
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
@@ -47,15 +47,21 @@ where
     Repo: CollectionRepo + TrackCollectionRepo,
 {
     let Params {
-        vfs_content_path_root_url,
+        resolve_url_from_content_path,
         filter,
         ordering,
     } = params;
-    let resolve_url_from_content_path = vfs_content_path_root_url.is_some();
-    let collection_ctx =
-        RepoContext::resolve_override(repo, collection_uid, None, vfs_content_path_root_url)?;
+    let collection_ctx = RepoContext::resolve_ext(
+        repo,
+        collection_uid,
+        None,
+        resolve_url_from_content_path
+            .as_ref()
+            .and_then(ResolveUrlFromContentPath::override_root_url)
+            .map(ToOwned::to_owned),
+    )?;
     let collection_id = collection_ctx.record_id;
-    if resolve_url_from_content_path {
+    if resolve_url_from_content_path.is_some() {
         #[cfg(not(target_family = "wasm"))]
         {
             let Some(vfs_ctx) = collection_ctx.content_path.vfs else {

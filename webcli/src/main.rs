@@ -759,12 +759,7 @@ async fn main() -> anyhow::Result<()> {
                             |entity| {
                                 let collection_uid = entity.hdr.uid.clone();
                                 let params = aoide_core_api::track::find_unsynchronized::Params {
-                                    vfs_content_path_root_url: entity
-                                        .body
-                                        .media_source_config
-                                        .content_path
-                                        .root_url()
-                                        .map(ToOwned::to_owned),
+                                    resolve_url_from_content_path: Some(Default::default()),
                                     content_path_predicate: None,
                                 };
                                 subcommand_submitted = true;
@@ -794,12 +789,7 @@ async fn main() -> anyhow::Result<()> {
                                                 aoide_core_api::sorting::SortDirection::Descending,
                                         }],
                                         // TODO: Configurable?
-                                        vfs_content_path_root_url: entity
-                                            .body
-                                            .media_source_config
-                                            .content_path
-                                            .root_url()
-                                            .map(ToOwned::to_owned),
+                                        resolve_url_from_content_path: Some(Default::default()),
                                     },
                                 };
                                 subcommand_submitted = true;

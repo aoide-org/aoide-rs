@@ -12,13 +12,10 @@ use aoide_core::{
         title::Kind as TitleKind,
         EntityUid as TrackUid,
     },
-    util::{
-        clock::{DateOrDateTime, DateTime},
-        url::BaseUrl,
-    },
+    util::clock::{DateOrDateTime, DateTime},
 };
 
-use crate::{filtering::*, sorting::*, tag};
+use crate::{filtering::*, media::source::ResolveUrlFromContentPath, sorting::*, tag};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum StringField {
@@ -240,7 +237,7 @@ impl Filter {
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Params {
-    pub vfs_content_path_root_url: Option<BaseUrl>,
+    pub resolve_url_from_content_path: Option<ResolveUrlFromContentPath>,
     pub filter: Option<Filter>,
     pub ordering: Vec<SortOrder>,
 }
