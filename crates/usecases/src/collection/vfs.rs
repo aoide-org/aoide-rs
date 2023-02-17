@@ -3,29 +3,16 @@
 
 use std::ops::Not as _;
 
-use aoide_core::{
-    collection::EntityUid,
-    media::content::{ContentPath, ContentPathKind},
-    util::url::BaseUrl,
-};
+use aoide_core::{collection::EntityUid, media::content::ContentPathKind, util::url::BaseUrl};
 
 #[cfg(not(target_family = "wasm"))]
-use aoide_core::media::content::resolver::{ContentPathResolver, VirtualFilePathResolver};
+use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
 
 use aoide_repo::collection::{EntityRepo, RecordId};
 
 use super::*;
 
-#[cfg(not(target_family = "wasm"))]
-fn resolve_path_prefix_from_base_url(
-    content_path_resolver: &impl ContentPathResolver,
-    url_path_prefix: &BaseUrl,
-) -> Result<ContentPath<'static>> {
-    content_path_resolver
-        .resolve_path_from_url(url_path_prefix)
-        .map_err(|err| anyhow::format_err!("Invalid URL path prefix: {err}").into())
-}
-
+#[derive(Debug, Clone)]
 struct RepoContextProps {
     record_id: RecordId,
     content_path_kind: ContentPathKind,
@@ -58,7 +45,7 @@ impl RepoContext {
     fn new(
         props: RepoContextProps,
         root_url: Option<&BaseUrl>,
-        override_root_url: impl Into<Option<BaseUrl>>,
+        override_root_url: Option<BaseUrl>,
     ) -> Result<Self> {
         let record_id = props.record_id;
         let content_path = ContentPathContext::new(props, root_url, override_root_url)?;
@@ -73,10 +60,10 @@ impl RepoContext {
         uid: &EntityUid,
         root_url: Option<&BaseUrl>,
     ) -> Result<Self> {
-        Self::resolve_ext(repo, uid, root_url, None)
+        Self::resolve_override(repo, uid, root_url, None)
     }
 
-    pub fn resolve_ext(
+    pub fn resolve_override(
         repo: &mut impl EntityRepo,
         uid: &EntityUid,
         root_url: Option<&BaseUrl>,
@@ -95,9 +82,9 @@ impl RepoContext {
         'b: 'a,
     {
         self.content_path
-            .vfs
+            .resolver
             .as_ref()
-            .map(|vfs| vfs.root_path.as_str())
+            .map(|vfs| vfs.root_path().as_str())
             .or_else(|| default_root_url.map(|root_url| root_url.as_str()))
             .filter(|root_path_prefix| root_path_prefix.is_empty().not())
     }
@@ -106,7 +93,7 @@ impl RepoContext {
 #[derive(Debug)]
 pub struct ContentPathContext {
     pub kind: ContentPathKind,
-    pub vfs: Option<ContentPathVfsContext>,
+    pub resolver: Option<RemappingVfsResolver>,
 }
 
 impl ContentPathContext {
@@ -114,59 +101,33 @@ impl ContentPathContext {
     fn new(
         repo_props: RepoContextProps,
         root_url: Option<&BaseUrl>,
-        override_root_url: impl Into<Option<BaseUrl>>,
+        override_root_url: Option<BaseUrl>,
     ) -> Result<Self> {
         let RepoContextProps {
             record_id,
             content_path_kind: kind,
-            root_url: repo_root_url,
+            root_url: canonical_root_url,
         } = repo_props;
-        let vfs = match kind {
+        let resolver = match kind {
             ContentPathKind::Url | ContentPathKind::Uri | ContentPathKind::FileUrl => None,
             #[cfg(not(target_family = "wasm"))]
             ContentPathKind::VirtualFilePath => {
-                let Some(repo_root_url) = repo_root_url else {
+                let Some(canonical_root_url) = canonical_root_url else {
                     return Err(
                         anyhow::anyhow!("Missing root URL for collection {record_id:?} with content path kind {kind:?}").into(),
                     );
                 };
-                let path_resolver = VirtualFilePathResolver::with_root_url(
-                    override_root_url.into().unwrap_or(repo_root_url),
-                );
-                let root_path = root_url
-                    .map(|url| resolve_path_prefix_from_base_url(&path_resolver, url))
-                    .transpose()?
-                    .unwrap_or_default();
-                let root_url = path_resolver
-                    .resolve_url_from_content_path(&root_path)
-                    .map_err(anyhow::Error::from)?;
-                Some(ContentPathVfsContext {
-                    root_url: BaseUrl::new(root_url),
-                    root_path,
-                    path_resolver,
-                })
+                Some(RemappingVfsResolver::new(
+                    canonical_root_url,
+                    root_url,
+                    override_root_url,
+                )?)
             }
             #[cfg(target_family = "wasm")]
             ContentPathKind::VirtualFilePath => {
                 return Err(anyhow::anyhow!("Unsupported content path kind: {kind:?}").into());
             }
         };
-        Ok(Self { kind, vfs })
-    }
-}
-
-#[derive(Debug)]
-pub struct ContentPathVfsContext {
-    pub root_path: ContentPath<'static>,
-    pub root_url: BaseUrl,
-    #[cfg(not(target_family = "wasm"))]
-    pub path_resolver: VirtualFilePathResolver,
-}
-
-#[cfg(not(target_family = "wasm"))]
-impl ContentPathVfsContext {
-    #[must_use]
-    pub fn build_root_file_path(&self) -> std::path::PathBuf {
-        self.path_resolver.build_file_path(&self.root_path)
+        Ok(Self { kind, resolver })
     }
 }

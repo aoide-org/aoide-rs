@@ -21,13 +21,13 @@ where
 {
     let Params { root_url } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let Some(vfs_ctx) = &collection_ctx.content_path.vfs else {
+    let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
     let collection_id = collection_ctx.record_id;
     let directories = repo
-        .media_tracker_aggregate_directories_tracking_status(collection_id, &vfs_ctx.root_path)?;
+        .media_tracker_aggregate_directories_tracking_status(collection_id, resolver.root_path())?;
     let status = Status { directories };
     Ok(status)
 }

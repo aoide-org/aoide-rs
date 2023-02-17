@@ -10,7 +10,7 @@ use url::Url;
 
 use aoide_core::{
     media::content::{
-        resolver::{ContentPathResolver as _, VirtualFilePathResolver},
+        resolver::{vfs::VfsResolver, ContentPathResolver as _},
         ContentPath,
     },
     util::clock::DateTime,
@@ -51,7 +51,7 @@ pub fn import_and_replace_from_file_path<Repo, InterceptImportedTrackFn>(
     imported_media_sources_with_issues: &mut Vec<(MediaSourceId, ContentPath<'static>, Issues)>,
     repo: &mut Repo,
     collection_id: CollectionId,
-    content_path_resolver: &VirtualFilePathResolver,
+    content_path_resolver: &VfsResolver,
     content_path: ContentPath<'static>,
     params: &Params,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,
@@ -191,7 +191,7 @@ where
     InterceptImportedTrackFn: FnMut(Track) -> Track,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
-    let Some(vfs_ctx) = &collection_ctx.content_path.vfs else {
+    let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
@@ -217,7 +217,7 @@ where
             &mut imported_media_sources_with_issues,
             repo,
             collection_id,
-            &vfs_ctx.path_resolver,
+            resolver.canonical_resolver(),
             content_path,
             params,
             intercept_imported_track_fn,
@@ -253,7 +253,7 @@ where
     InterceptImportedTrackFn: FnMut(Track) -> Track,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
-    let Some(vfs_ctx) = &collection_ctx.content_path.vfs else {
+    let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
@@ -261,7 +261,7 @@ where
     import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
         repo,
         collection_id,
-        &vfs_ctx.path_resolver,
+        resolver.canonical_resolver(),
         source_dir_path,
         params,
         intercept_imported_track_fn,
@@ -274,7 +274,7 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_re
 >(
     repo: &mut impl TrackCollectionRepo,
     collection_id: CollectionId,
-    content_path_resolver: &VirtualFilePathResolver,
+    content_path_resolver: &VfsResolver,
     source_dir_path: &ContentPath<'_>,
     params: &Params,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,

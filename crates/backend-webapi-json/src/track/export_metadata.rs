@@ -3,7 +3,7 @@
 
 use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
 
-use aoide_core::media::content::resolver::VirtualFilePathResolver;
+use aoide_core::media::content::resolver::vfs::VfsResolver;
 
 use aoide_media::io::export::ExportTrackConfig;
 
@@ -34,7 +34,7 @@ pub fn handle_request(
         faceted_tag_mapping,
         ..Default::default()
     };
-    let path_resolver = VirtualFilePathResolver::new();
+    let path_resolver = VfsResolver::new();
     // TODO: Support editing the embedded artwork image(s) (optional)
     let edit_embedded_artwork_image = None;
     connection.transaction::<_, Error, _>(|connection| {

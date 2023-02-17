@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
 use aoide_core_api::media::source::purge_untracked::{Outcome, Params, Summary};
 
 use aoide_repo::{
@@ -22,16 +23,16 @@ where
 {
     let Params { root_url } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let Some(vfs_ctx) = &collection_ctx.content_path.vfs else {
+    let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}",).into());
     };
     let collection_id = collection_ctx.record_id;
-    let purged = if vfs_ctx.root_path.is_empty() {
+    let purged = if resolver.root_path().is_empty() {
         repo.purge_untracked_media_sources(collection_id)
     } else {
         let root_path_predicate =
-            StringPredicate::Prefix(vfs_ctx.root_path.as_borrowed().into_inner());
+            StringPredicate::Prefix(resolver.root_path().as_borrowed().into_inner());
         repo.purge_untracked_media_sources_by_content_path_predicate(
             collection_id,
             root_path_predicate,
@@ -39,8 +40,8 @@ where
     }?;
     let (root_url, root_path) = collection_ctx
         .content_path
-        .vfs
-        .map(|vfs_context| (vfs_context.root_url, vfs_context.root_path))
+        .resolver
+        .map(RemappingVfsResolver::dismantle)
         .expect("collection with path kind VFS");
     let summary = Summary { purged };
     let outcome = Outcome {

@@ -51,7 +51,7 @@ where
         filter,
         ordering,
     } = params;
-    let collection_ctx = RepoContext::resolve_ext(
+    let collection_ctx = RepoContext::resolve_override(
         repo,
         collection_uid,
         None,
@@ -64,12 +64,12 @@ where
     if resolve_url_from_content_path.is_some() {
         #[cfg(not(target_family = "wasm"))]
         {
-            let Some(vfs_ctx) = collection_ctx.content_path.vfs else {
+            let Some(resolver) = collection_ctx.content_path.resolver else {
                 let path_kind = collection_ctx.content_path.kind;
                 return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
             };
             let mut collector = super::vfs::ResolveUrlFromVirtualFilePathCollector {
-                content_path_resolver: vfs_ctx.path_resolver,
+                resolver,
                 collector,
             };
             search(

@@ -33,9 +33,14 @@ where
     } else {
         repo.purge_orphaned_media_sources(collection_id)
     }?;
-    let (root_url, root_path) = collection_ctx.content_path.vfs.map_or((None, None), |vfs| {
-        (Some(vfs.root_url), Some(vfs.root_path))
-    });
+    let (root_url, root_path) =
+        collection_ctx
+            .content_path
+            .resolver
+            .map_or((None, None), |resolver| {
+                let (root_url, root_path) = resolver.dismantle();
+                (Some(root_url), Some(root_path))
+            });
     let summary = Summary { purged };
     let outcome = Outcome {
         root_url,

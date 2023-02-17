@@ -7,6 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
 use aoide_core_api::media::tracker::{
     import_files::{ImportedSourceWithIssues, Outcome, Params, Summary},
     Completion,
@@ -60,7 +61,7 @@ where
         sync_mode,
     } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let Some(vfs_ctx) = &collection_ctx.content_path.vfs else {
+    let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
@@ -80,7 +81,7 @@ where
         });
         let pending_directories = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
-            &vfs_ctx.root_path,
+            resolver.root_path(),
             &Pagination {
                 offset: Some(summary.directories.skipped as PaginationOffset),
                 limit: Some(1),
@@ -90,8 +91,8 @@ where
             log::debug!("Finished import of pending directories: {summary:?}");
             let (root_url, root_path) = collection_ctx
                 .content_path
-                .vfs
-                .map(|vfs| (vfs.root_url, vfs.root_path))
+                .resolver
+                .map(RemappingVfsResolver::dismantle)
                 .expect("collection with path kind VFS");
             let outcome = Outcome {
                 root_url,
@@ -107,8 +108,8 @@ where
                 log::debug!("Aborting import of pending directories: {summary:?}");
                 let (root_url, root_path) = collection_ctx
                     .content_path
-                    .vfs
-                    .map(|vfs| (vfs.root_url, vfs.root_path))
+                    .resolver
+                    .map(RemappingVfsResolver::dismantle)
                     .expect("collection with path kind VFS");
                 let outcome = Outcome {
                     root_url,
@@ -129,7 +130,7 @@ where
                 match import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
                     repo,
                     collection_id,
-                    &vfs_ctx.path_resolver,
+                    resolver.canonical_resolver(),
                     &content_dir_path,
                     &import_and_replace_params,
                     intercept_imported_track_fn,
@@ -180,8 +181,8 @@ where
                     log::debug!("Aborting import of pending directories: {summary:?}");
                     let (root_url, root_path) = collection_ctx
                         .content_path
-                        .vfs
-                        .map(|vfs| (vfs.root_url, vfs.root_path))
+                        .resolver
+                        .map(RemappingVfsResolver::dismantle)
                         .expect("collection with path kind VFS");
                     let outcome = Outcome {
                         root_url,

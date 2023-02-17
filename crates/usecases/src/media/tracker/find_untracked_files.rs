@@ -3,7 +3,7 @@
 
 use std::{marker::PhantomData, sync::atomic::AtomicBool, time::Duration};
 
-use aoide_core::media::content::resolver::ContentPathResolver as _;
+use aoide_core::media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _};
 
 use aoide_core_api::media::tracker::{
     find_untracked_files::Outcome, Completion, FsTraversalDirectoriesProgress,
@@ -64,17 +64,14 @@ impl From<visit::ProgressEvent> for ProgressEvent {
 
 struct AncestorVisitor<'r, Repo> {
     collection_id: CollectionId,
-    content_path_resolver: &'r VirtualFilePathResolver,
+    content_path_resolver: &'r VfsResolver,
     content_paths: Vec<ContentPath<'static>>,
     _repo_marker: PhantomData<Repo>,
 }
 
 impl<'r, Repo> AncestorVisitor<'r, Repo> {
     #[must_use]
-    fn new(
-        collection_id: CollectionId,
-        content_path_resolver: &'r VirtualFilePathResolver,
-    ) -> Self {
+    fn new(collection_id: CollectionId, content_path_resolver: &'r VfsResolver) -> Self {
         Self {
             collection_id,
             content_path_resolver,
@@ -142,19 +139,19 @@ pub fn visit_directories<
         max_depth,
     } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let Some(vfs_ctx) = &collection_ctx.content_path.vfs else {
+    let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
     let collection_id = collection_ctx.record_id;
-    let root_file_path = vfs_ctx.build_root_file_path();
+    let root_file_path = resolver.build_file_path(resolver.root_path());
     let mut content_paths = Vec::new();
     let completion = visit::visit_directories(
         repo,
         &root_file_path,
         *max_depth,
         abort_flag,
-        &mut move |_| AncestorVisitor::new(collection_id, &vfs_ctx.path_resolver),
+        &mut move |_| AncestorVisitor::new(collection_id, resolver.canonical_resolver()),
         &mut |_path, untracked_content_paths| {
             ancestor_finished(&mut content_paths, untracked_content_paths)
         },
@@ -188,8 +185,8 @@ pub fn visit_directories<
     })?;
     let (root_url, root_path) = collection_ctx
         .content_path
-        .vfs
-        .map(|vfs_context| (vfs_context.root_url, vfs_context.root_path))
+        .resolver
+        .map(RemappingVfsResolver::dismantle)
         .expect("collection with path kind VFS");
     Ok(Outcome {
         root_url,

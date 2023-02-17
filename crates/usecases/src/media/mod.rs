@@ -4,9 +4,7 @@
 use std::io::BufReader;
 
 use aoide_core::{
-    media::content::{
-        resolver::VirtualFilePathResolver, ContentLink, ContentPath, ContentRevision,
-    },
+    media::content::{resolver::vfs::VfsResolver, ContentLink, ContentPath, ContentRevision},
     track::Track,
     util::clock::DateTime,
 };
@@ -83,7 +81,7 @@ pub enum ImportTrackFromFileOutcome {
 
 pub fn import_track_from_file_path(
     import_track: ImportTrack,
-    content_path_resolver: &VirtualFilePathResolver,
+    content_path_resolver: &VfsResolver,
     source_path: &ContentPath<'_>,
     sync_mode_params: &SyncModeParams,
     config: &ImportTrackConfig,
@@ -168,7 +166,7 @@ pub fn import_track_from_file_path(
 /// Export track metadata into file tags.
 pub fn export_track_metadata_into_file(
     track: &mut Track,
-    content_path_resolver: &VirtualFilePathResolver,
+    content_path_resolver: &VfsResolver,
     config: &ExportTrackConfig,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {

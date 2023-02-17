@@ -23,11 +23,11 @@ pub fn resolve_file_path(
     content_path: &ContentPath<'_>,
 ) -> Result<(CollectionId, PathBuf)> {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
-    let Some(vfs_ctx) = &collection_ctx.content_path.vfs else {
+    let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
-    let file_path = vfs_ctx.path_resolver.build_file_path(content_path);
+    let file_path = resolver.build_file_path(content_path);
     Ok((collection_ctx.record_id, file_path))
 }
 

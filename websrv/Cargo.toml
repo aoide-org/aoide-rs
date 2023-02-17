@@ -23,7 +23,7 @@ ron = "0.8.0"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.93"
 thiserror = "1.0.38"
-time = { version = "0.3.18", features = ["serde-human-readable"] }
+time = { version = "0.3.19", features = ["serde-human-readable"] }
 tokio = { version = "1.25.0", default-features = false, features = [
     "rt-multi-thread",
     "signal",

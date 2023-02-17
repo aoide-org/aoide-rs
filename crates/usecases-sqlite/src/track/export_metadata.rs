@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::media::content::resolver::VirtualFilePathResolver;
+use aoide_core::media::content::resolver::vfs::VfsResolver;
 
 use aoide_media::{io::export::ExportTrackConfig, util::artwork::EditEmbeddedArtworkImage};
 
@@ -12,7 +12,7 @@ use super::*;
 pub fn export_metadata_into_file(
     connection: &mut DbConnection,
     track_uid: &EntityUid,
-    content_path_resolver: &VirtualFilePathResolver,
+    content_path_resolver: &VfsResolver,
     config: &ExportTrackConfig,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {

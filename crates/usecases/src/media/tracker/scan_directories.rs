@@ -5,7 +5,10 @@ use std::{sync::atomic::AtomicBool, time::Duration};
 
 use url::Url;
 
-use aoide_core::{media::content::resolver::ContentPathResolver as _, util::clock::DateTime};
+use aoide_core::{
+    media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _},
+    util::clock::DateTime,
+};
 
 use aoide_core_api::media::tracker::{
     scan_directories::{Outcome, Summary},
@@ -81,16 +84,16 @@ pub fn scan_directories<
         max_depth,
     } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let Some(vfs_ctx) = &collection_ctx.content_path.vfs else {
+    let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
     };
     let collection_id = collection_ctx.record_id;
-    let root_file_path = vfs_ctx.build_root_file_path();
+    let root_file_path = resolver.build_file_path(resolver.root_path());
     let outdated_count = repo.media_tracker_mark_current_directories_outdated(
         DateTime::now_utc(),
         collection_id,
-        &vfs_ctx.root_path,
+        resolver.root_path(),
     )?;
     log::debug!(
         "Marked {} current cache entries as outdated",
@@ -111,8 +114,10 @@ pub fn scan_directories<
             let full_path = root_file_path.join(dir_path);
             debug_assert!(full_path.is_absolute());
             let url = Url::from_directory_path(&full_path).expect("URL");
-            debug_assert!(url.as_str().starts_with(vfs_ctx.root_url.as_str()));
-            let content_path = vfs_ctx.path_resolver.resolve_path_from_url(&url)?;
+            debug_assert!(url
+                .as_str()
+                .starts_with(resolver.canonical_root_url().as_str()));
+            let content_path = resolver.resolve_path_from_url(&url)?;
             log::debug!("Updating digest of content path: {content_path}");
             match repo
                 .media_tracker_update_directory_digest(
@@ -160,7 +165,7 @@ pub fn scan_directories<
                 summary.orphaned = repo.media_tracker_mark_outdated_directories_orphaned(
                     DateTime::now_utc(),
                     collection_id,
-                    &vfs_ctx.root_path,
+                    resolver.root_path(),
                 )?;
                 debug_assert!(summary.orphaned <= outdated_count);
                 Ok(Completion::Finished)
@@ -173,8 +178,8 @@ pub fn scan_directories<
     })?;
     let (root_url, root_path) = collection_ctx
         .content_path
-        .vfs
-        .map(|vfs_context| (vfs_context.root_url, vfs_context.root_path))
+        .resolver
+        .map(RemappingVfsResolver::dismantle)
         .expect("collection with path kind VFS");
     Ok(Outcome {
         root_url,

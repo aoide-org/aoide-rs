@@ -7,10 +7,10 @@ use std::path::PathBuf;
 use thiserror::Error;
 use url::Url;
 
-#[cfg(not(target_family = "wasm"))]
-use crate::util::url::{is_valid_base_url, BaseUrl};
-
 use super::{ContentPath, ContentPathKind};
+
+#[cfg(not(target_family = "wasm"))]
+pub mod vfs;
 
 #[derive(Error, Debug)]
 pub enum ResolveFromPathError {
@@ -99,156 +99,6 @@ impl ContentPathResolver for FileUrlResolver {
                 content_path.as_borrowed().into_owned().into(),
             ));
         }
-        Ok(url)
-    }
-}
-
-#[cfg(not(target_family = "wasm"))]
-#[derive(Debug, Clone, Default)]
-pub struct VirtualFilePathResolver {
-    root_url: Option<BaseUrl>,
-    root_file_path: Option<PathBuf>,
-    root_slash_path: Option<String>,
-}
-
-#[cfg(not(target_family = "wasm"))]
-fn has_trailing_path_separator(path: &std::path::Path) -> Option<bool> {
-    // Path::ends_with() cannot be used for this purpose. This
-    // function is only used in a debug assertion and performance
-    // doesn't matter.
-    path.to_str()
-        .map(|s| s.ends_with(std::path::MAIN_SEPARATOR))
-}
-
-#[cfg(not(target_family = "wasm"))]
-fn path_to_slash(path: &std::path::Path) -> Option<std::borrow::Cow<'_, str>> {
-    let slash_path = path_slash::PathExt::to_slash(path);
-    debug_assert_eq!(
-        has_trailing_path_separator(path),
-        slash_path
-            .as_deref()
-            .map(|slash_path| slash_path.ends_with('/'))
-    );
-    slash_path
-}
-
-#[cfg(not(target_family = "wasm"))]
-impl VirtualFilePathResolver {
-    #[must_use]
-    pub const fn new() -> Self {
-        Self {
-            root_url: None,
-            root_file_path: None,
-            root_slash_path: None,
-        }
-    }
-
-    #[must_use]
-    pub fn is_valid_root_url(root_url: &Url) -> bool {
-        !root_url.cannot_be_a_base() && root_url.scheme() == FILE_URL_SCHEME
-    }
-
-    #[must_use]
-    pub fn with_root_url(root_url: BaseUrl) -> Self {
-        debug_assert!(Self::is_valid_root_url(&root_url));
-        let root_file_path = root_url.to_file_path();
-        debug_assert!(root_file_path
-            .as_deref()
-            .ok()
-            .and_then(has_trailing_path_separator)
-            .unwrap_or(true));
-        let root_url = Some(root_url);
-        debug_assert_eq!(
-            root_url,
-            root_file_path
-                .as_ref()
-                .ok()
-                .and_then(|path| Url::from_directory_path(path).ok())
-                .and_then(|url| BaseUrl::try_from(url).ok())
-        );
-        let root_slash_path = root_file_path
-            .as_deref()
-            .ok()
-            .and_then(path_to_slash)
-            .map(std::borrow::Cow::into_owned);
-        debug_assert!(root_slash_path
-            .as_ref()
-            .map_or(true, |path| path.ends_with('/')));
-        debug_assert_eq!(root_file_path.is_ok(), root_slash_path.is_some());
-        Self {
-            root_url,
-            root_file_path: root_file_path.ok(),
-            root_slash_path,
-        }
-    }
-
-    #[must_use]
-    pub fn build_file_path(&self, content_path: &ContentPath<'_>) -> PathBuf {
-        let path_suffix = path_slash::PathBufExt::from_slash(content_path.as_str());
-        if let Some(root_file_path) = &self.root_file_path {
-            let mut path_buf = PathBuf::with_capacity(
-                root_file_path.as_os_str().len() + content_path.as_str().len(),
-            );
-            path_buf.push(root_file_path);
-            path_buf.push(path_suffix);
-            path_buf
-        } else {
-            path_suffix
-        }
-    }
-}
-
-#[cfg(not(target_family = "wasm"))]
-impl ContentPathResolver for VirtualFilePathResolver {
-    fn path_kind(&self) -> ContentPathKind {
-        ContentPathKind::VirtualFilePath
-    }
-
-    fn resolve_path_from_url(
-        &self,
-        url: &Url,
-    ) -> Result<ContentPath<'static>, ResolveFromUrlError> {
-        if let Some(root_url) = &self.root_url {
-            if !url.as_str().starts_with(root_url.as_str()) {
-                return Err(ResolveFromUrlError::InvalidUrl);
-            }
-        } else if url.scheme() != FILE_URL_SCHEME {
-            return Err(ResolveFromUrlError::InvalidUrl);
-        }
-        match url.to_file_path() {
-            Ok(file_path) => {
-                if file_path.is_absolute() {
-                    if let Some(slash_path) = path_to_slash(&file_path) {
-                        if let Some(root_slash_path) = &self.root_slash_path {
-                            let stripped_path = slash_path.strip_prefix(root_slash_path);
-                            if let Some(stripped_path) = stripped_path {
-                                return Ok(stripped_path.to_owned().into());
-                            }
-                        } else {
-                            return Ok(slash_path.into_owned().into());
-                        }
-                    }
-                }
-                Err(ResolveFromUrlError::InvalidUrl)
-            }
-            Err(()) => Err(ResolveFromUrlError::InvalidUrl),
-        }
-    }
-
-    fn resolve_url_from_content_path(
-        &self,
-        content_path: &ContentPath<'_>,
-    ) -> Result<Url, ResolveFromPathError> {
-        let file_path = self.build_file_path(content_path);
-        let url = if content_path.is_terminal() {
-            Url::from_file_path(&file_path)
-        } else {
-            // Preserve the trailing slash
-            Url::from_directory_path(&file_path)
-        }
-        .map_err(|()| ResolveFromPathError::InvalidFilePath(file_path))?;
-        debug_assert!(content_path.is_terminal() != url.as_str().ends_with('/'));
-        debug_assert!(!content_path.is_empty() || is_valid_base_url(&url));
         Ok(url)
     }
 }

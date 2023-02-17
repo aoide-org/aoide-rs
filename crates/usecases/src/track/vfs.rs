@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{
-    media::content::resolver::{ContentPathResolver as _, VirtualFilePathResolver},
+    media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _},
     track::Entity,
 };
 
@@ -12,7 +12,7 @@ use super::*;
 
 #[derive(Debug)]
 pub struct ResolveUrlFromVirtualFilePathCollector<'c, C> {
-    pub content_path_resolver: VirtualFilePathResolver,
+    pub resolver: RemappingVfsResolver,
     pub collector: &'c mut C,
 }
 
@@ -27,7 +27,7 @@ where
         let content_path = &record.body.track.media_source.content.link.path;
         debug_assert!(record.body.content_url.is_none());
         record.body.content_url = self
-            .content_path_resolver
+            .resolver
             .resolve_url_from_content_path(content_path)
             .map_err(|err| {
                 log::error!("Failed to convert media source path '{content_path}' to URL: {err}");

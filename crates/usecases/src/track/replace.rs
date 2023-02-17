@@ -121,9 +121,9 @@ where
     let (collection_id, content_path_resolver) = if *resolve_path_from_url {
         let RepoContext {
             record_id,
-            content_path: ContentPathContext { kind: _, vfs },
+            content_path: ContentPathContext { kind: _, resolver },
         } = RepoContext::resolve(repo, collection_uid, None)?;
-        (record_id, vfs.map(|vfs| vfs.path_resolver))
+        (record_id, resolver)
     } else {
         let collection_id = repo.resolve_collection_id(collection_uid)?;
         (collection_id, None)

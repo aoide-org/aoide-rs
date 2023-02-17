@@ -66,7 +66,7 @@ where
         resolve_url_from_content_path,
         content_path_predicate,
     } = params;
-    let collection_ctx = RepoContext::resolve_ext(
+    let collection_ctx = RepoContext::resolve_override(
         repo,
         collection_uid,
         None,
@@ -77,8 +77,8 @@ where
     )?;
     let collection_id = collection_ctx.record_id;
     let content_path_resolver = if resolve_url_from_content_path.is_some() {
-        if let Some(vfs_ctx) = collection_ctx.content_path.vfs {
-            Some(vfs_ctx.path_resolver)
+        if let Some(resolver) = collection_ctx.content_path.resolver {
+            Some(resolver)
         } else {
             let path_kind = collection_ctx.content_path.kind;
             return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
