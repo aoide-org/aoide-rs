@@ -175,7 +175,7 @@ fn remap_content_path_to_file_path() {
         format!("file://{ROOT_PATH}{CONTENT_PATH}")
             .parse::<Url>()
             .unwrap(),
-        Url::from_file_path(&vfs.build_file_path(&CONTENT_PATH)).unwrap()
+        Url::from_file_path(vfs.build_file_path(&CONTENT_PATH)).unwrap()
     );
 
     let vfs_override = RemappingVfsResolver::new(
@@ -190,7 +190,7 @@ fn remap_content_path_to_file_path() {
         format!("file://{OVERRIDE_ROOT_PATH}{CONTENT_PATH}")
             .parse::<Url>()
             .unwrap(),
-        Url::from_file_path(&vfs_override.build_file_path(&CONTENT_PATH)).unwrap()
+        Url::from_file_path(vfs_override.build_file_path(&CONTENT_PATH)).unwrap()
     );
 
     let vfs_sub =
@@ -201,7 +201,7 @@ fn remap_content_path_to_file_path() {
         format!("file://{ROOT_PATH}{CONTENT_PATH}")
             .parse::<Url>()
             .unwrap(),
-        Url::from_file_path(&vfs_sub.build_file_path(&CONTENT_PATH)).unwrap()
+        Url::from_file_path(vfs_sub.build_file_path(&CONTENT_PATH)).unwrap()
     );
 
     let vfs_sub_override = RemappingVfsResolver::new(
@@ -219,6 +219,6 @@ fn remap_content_path_to_file_path() {
         format!("file://{OVERRIDE_ROOT_PATH}{SUB_OVERRIDE_CONTENT_PATH}")
             .parse::<Url>()
             .unwrap(),
-        Url::from_file_path(&vfs_sub_override.build_file_path(&CONTENT_PATH)).unwrap()
+        Url::from_file_path(vfs_sub_override.build_file_path(&CONTENT_PATH)).unwrap()
     );
 }
