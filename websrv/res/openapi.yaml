@@ -1314,6 +1314,8 @@ components:
           $ref: "#/components/schemas/ImageSize"
         digest:
           $ref: "#/components/schemas/ImageDigest"
+        color:
+          $ref: "#/components/schemas/RgbColor"
         thumbnail:
           $ref: "#/components/schemas/ImageThumbnail4x4Rgb8"
       required:

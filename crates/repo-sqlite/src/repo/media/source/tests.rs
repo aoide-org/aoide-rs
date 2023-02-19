@@ -20,7 +20,7 @@ use aoide_core::{
             AudioContentMetadata, ContentLink, ContentMetadataFlags, ContentPath, ContentPathConfig,
         },
     },
-    util::clock::DateTime,
+    util::{clock::DateTime, color::RgbColor},
 };
 
 use aoide_repo::collection::{EntityRepo as _, RecordId as CollectionId};
@@ -92,6 +92,7 @@ fn insert_media_source() -> anyhow::Result<()> {
                     height: 600,
                 }),
                 digest: Some([128; 32]),
+                color: Some(RgbColor::new(0xf0, 0xf0, 0xf0)),
                 thumbnail: Some([127; 4 * 4 * 3]),
             },
         })),

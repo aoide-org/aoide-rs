@@ -33,6 +33,9 @@ pub struct ArtworkImage {
     digest: Option<Digest>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    color: Option<RgbColor>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     thumbnail: Option<Base64>,
 }
 
@@ -43,6 +46,7 @@ impl From<_core::ArtworkImage> for ArtworkImage {
             apic_type,
             size,
             digest,
+            color,
             thumbnail,
         } = from;
         let size = size.map(|size| {
@@ -54,6 +58,7 @@ impl From<_core::ArtworkImage> for ArtworkImage {
             apic_type: apic_type.to_u8().expect("u8"),
             size,
             digest: digest.as_ref().map(Into::into),
+            color: color.map(Into::into),
             thumbnail: thumbnail.as_ref().map(Into::into),
         }
     }
@@ -68,6 +73,7 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
             apic_type,
             size,
             digest,
+            color,
             thumbnail,
         } = from;
         let media_type = media_type.parse()?;
@@ -83,6 +89,7 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
             .transpose()
             .map_err(|_| anyhow::anyhow!("Failed to deserialize artwork digest"))?;
         let thumbnail_data = thumbnail.as_ref().map(Vec::try_from).transpose()?;
+        let color = color.map(Into::into);
         let thumbnail = thumbnail_data
             .map(TryFrom::try_from)
             .transpose()
@@ -92,6 +99,7 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
             apic_type,
             size,
             digest,
+            color,
             thumbnail,
         };
         Ok(into)

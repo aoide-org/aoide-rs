@@ -31,6 +31,7 @@ diesel::table! {
         artwork_digest -> Nullable<Binary>,
         artwork_size_width -> Nullable<SmallInt>,
         artwork_size_height -> Nullable<SmallInt>,
+        artwork_color -> Nullable<Integer>,
         artwork_thumbnail -> Nullable<Binary>,
     }
 }

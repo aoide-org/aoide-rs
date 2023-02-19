@@ -66,6 +66,11 @@ impl RgbColor {
     pub const WHITE: Self = RgbColor(Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK);
 
     #[must_use]
+    pub const fn new(red: u8, green: u8, blue: u8) -> Self {
+        Self(((red as u32) << 16) | (green as u32) << 8 | blue as u32)
+    }
+
+    #[must_use]
     pub const fn code(self) -> RgbColorCode {
         self.0
     }

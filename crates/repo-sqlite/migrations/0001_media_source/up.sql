@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS media_source (
     artwork_digest         BLOB,             -- cryptographic artwork content hash
     artwork_size_width     INTEGER,
     artwork_size_height    INTEGER,
+    artwork_color          INTEGER,          -- 0xRRGGBB (hex)
     artwork_thumbnail      BLOB,
     --
     FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE,

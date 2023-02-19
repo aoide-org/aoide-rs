@@ -10,8 +10,12 @@ use image::{
 use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use thiserror::Error;
 
-use aoide_core::media::artwork::{
-    ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize, Thumbnail4x4Rgb8,
+use aoide_core::{
+    media::artwork::{
+        ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
+        Thumbnail4x4Rgb8,
+    },
+    util::color::RgbColor,
 };
 
 use crate::Result;
@@ -114,6 +118,10 @@ pub struct IngestedArtworkImage {
 
 type IngestArtworkImageResult = std::result::Result<IngestedArtworkImage, ArtworkImageError>;
 
+const COLOR_THIEF_QUALITY: u8 = 7; // [1..10], 1 = visit each pixel (maximum quality)
+
+const COLOR_THIEF_MAX_COLORS: u8 = 2; // [2..255], only the first palette entry is needed
+
 fn ingest_artwork_image(
     apic_type: ApicType,
     image_data: &[u8],
@@ -133,6 +141,29 @@ fn ingest_artwork_image(
         .map_err(|_| anyhow::anyhow!("Unsupported image size: {width}x{height}"))?;
     let size = ImageSize { width, height };
     let digest = image_digest.digest_content(image_data).finalize_reset();
+    let color_thief_format = match picture.color() {
+        image::ColorType::Rgb8 => Some(color_thief::ColorFormat::Rgb),
+        image::ColorType::Rgba8 => Some(color_thief::ColorFormat::Rgba),
+        _ => {
+            log::warn!("Unsupported color type {color_type:?} for extracting the predominant color from artwork image", color_type = picture.color());
+            None
+        }
+    };
+    let color = color_thief_format
+        .and_then(|color_format| {
+            color_thief::get_palette(
+                picture.as_bytes(),
+                color_format,
+                COLOR_THIEF_QUALITY,
+                COLOR_THIEF_MAX_COLORS,
+            )
+            .map_err(|err| {
+                log::warn!("Failed to extract the predominant color from artwork image: {err}");
+            })
+            .ok()
+        })
+        .and_then(|palette| palette.first().copied())
+        .map(|rgb| RgbColor::new(rgb.r, rgb.g, rgb.b));
     let picture_4x4 = picture.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
     let thumbnail = Thumbnail4x4Rgb8::try_from(picture_4x4.to_rgb8().into_raw()).ok();
     debug_assert!(thumbnail.is_some());
@@ -141,6 +172,7 @@ fn ingest_artwork_image(
         apic_type,
         size: Some(size),
         digest,
+        color,
         thumbnail,
     };
     Ok(IngestedArtworkImage {
@@ -245,6 +277,7 @@ impl ReplaceEmbeddedArtworkImage {
             digest: _,
             media_type,
             size: _,
+            color: _,
             thumbnail: _,
         } = &self.artwork_image;
         let image_format_hint = None;

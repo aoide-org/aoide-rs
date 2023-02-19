@@ -23,7 +23,10 @@ use aoide_core::{
         },
         Content, Source,
     },
-    util::clock::*,
+    util::{
+        clock::*,
+        color::{RgbColor, RgbColorCode},
+    },
 };
 
 use aoide_repo::collection::RecordId as CollectionId;
@@ -61,6 +64,7 @@ pub struct QueryableRecord {
     pub artwork_digest: Option<Vec<u8>>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
+    pub artwork_color: Option<i32>,
     pub artwork_thumbnail: Option<Vec<u8>>,
 }
 
@@ -94,6 +98,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             artwork_digest,
             artwork_size_width,
             artwork_size_height,
+            artwork_color,
             artwork_thumbnail,
         } = from;
         let audio_metadata = AudioContentMetadata {
@@ -130,12 +135,18 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                         None
                     };
                     let digest = artwork_digest.and_then(|bytes| bytes.try_into().ok());
+                    let color = artwork_color.map(|code| {
+                        let color = RgbColor(code as RgbColorCode);
+                        debug_assert!(color.is_valid());
+                        color
+                    });
                     let thumbnail = artwork_thumbnail.and_then(|bytes| bytes.try_into().ok());
                     let image = ArtworkImage {
                         media_type,
                         apic_type,
                         size,
                         digest,
+                        color,
                         thumbnail,
                     };
                     if source == ArtworkSource::Embedded {
@@ -212,6 +223,7 @@ pub struct InsertableRecord<'a> {
     pub artwork_digest: Option<&'a [u8]>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
+    pub artwork_color: Option<i32>,
     pub artwork_thumbnail: Option<&'a [u8]>,
 }
 
@@ -262,6 +274,7 @@ impl<'a> InsertableRecord<'a> {
         let artwork_size_width;
         let artwork_size_height;
         let artwork_digest;
+        let artwork_color;
         let artwork_thumbnail;
         if let Some(image) = artwork_image {
             let ArtworkImage {
@@ -269,13 +282,15 @@ impl<'a> InsertableRecord<'a> {
                 media_type,
                 size,
                 digest,
+                color,
                 thumbnail,
             } = image;
             artwork_apic_type = apic_type.to_i16();
             artwork_media_type = Some(media_type.to_string());
-            artwork_size_width = size.map(|size| size.width as i16);
-            artwork_size_height = size.map(|size| size.height as i16);
+            artwork_size_width = size.map(|size| size.width as _);
+            artwork_size_height = size.map(|size| size.height as _);
             artwork_digest = digest.as_ref().map(|x| &x[..]);
+            artwork_color = color.map(|color| color.code() as _);
             artwork_thumbnail = thumbnail.as_ref().map(|x| &x[..]);
         } else {
             artwork_apic_type = None;
@@ -283,6 +298,7 @@ impl<'a> InsertableRecord<'a> {
             artwork_size_width = None;
             artwork_size_height = None;
             artwork_digest = None;
+            artwork_color = None;
             artwork_thumbnail = None;
         }
         let row_created_updated_ms = created_at.timestamp_millis();
@@ -320,6 +336,7 @@ impl<'a> InsertableRecord<'a> {
             artwork_size_width,
             artwork_size_height,
             artwork_digest,
+            artwork_color,
             artwork_thumbnail,
         }
     }
@@ -349,9 +366,11 @@ pub struct UpdatableRecord<'a> {
     pub artwork_digest: Option<&'a [u8]>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
+    pub artwork_color: Option<i32>,
     pub artwork_thumbnail: Option<&'a [u8]>,
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 impl<'a> UpdatableRecord<'a> {
     pub fn bind(updated_at: DateTime, updated_source: &'a Source) -> Self {
         let Source {
@@ -394,6 +413,7 @@ impl<'a> UpdatableRecord<'a> {
         let artwork_size_width;
         let artwork_size_height;
         let artwork_digest;
+        let artwork_color;
         let artwork_thumbnail;
         if let Some(image) = artwork_image {
             let ArtworkImage {
@@ -401,13 +421,15 @@ impl<'a> UpdatableRecord<'a> {
                 media_type,
                 size,
                 digest,
+                color,
                 thumbnail,
             } = image;
             artwork_apic_type = apic_type.to_i16();
             artwork_media_type = Some(media_type.to_string());
-            artwork_size_width = size.map(|size| size.width as i16);
-            artwork_size_height = size.map(|size| size.height as i16);
+            artwork_size_width = size.map(|size| size.width as _);
+            artwork_size_height = size.map(|size| size.height as _);
             artwork_digest = digest.as_ref().map(|x| &x[..]);
+            artwork_color = color.map(|color| color.code() as _);
             artwork_thumbnail = thumbnail.as_ref().map(|x| &x[..]);
         } else {
             artwork_apic_type = None;
@@ -415,6 +437,7 @@ impl<'a> UpdatableRecord<'a> {
             artwork_size_width = None;
             artwork_size_height = None;
             artwork_digest = None;
+            artwork_color = None;
             artwork_thumbnail = None;
         }
         Self {
@@ -449,6 +472,7 @@ impl<'a> UpdatableRecord<'a> {
             artwork_size_width,
             artwork_size_height,
             artwork_digest,
+            artwork_color,
             artwork_thumbnail,
         }
     }

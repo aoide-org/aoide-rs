@@ -84,6 +84,9 @@ pub struct ArtworkImage {
     /// modifications.
     pub digest: Option<Digest>,
 
+    /// The predominant color in the image.
+    pub color: Option<RgbColor>,
+
     /// A 4x4 R8G8B8 thumbnail image.
     pub thumbnail: Option<Thumbnail4x4Rgb8>,
 }
