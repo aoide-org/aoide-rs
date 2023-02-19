@@ -118,9 +118,11 @@ pub struct IngestedArtworkImage {
 
 type IngestArtworkImageResult = std::result::Result<IngestedArtworkImage, ArtworkImageError>;
 
-const COLOR_THIEF_QUALITY: u8 = 7; // [1..10], 1 = visit each pixel (maximum quality)
+// [1..10], 1 = visit each pixel (maximum quality)
+const COLOR_THIEF_QUALITY: u8 = 7;
 
-const COLOR_THIEF_MAX_COLORS: u8 = 2; // [2..255], only the first palette entry is needed
+// [2..255], copied from getColor() in <https://github.com/lokesh/color-thief>
+const COLOR_THIEF_PALETTE_MAX_COLORS: u8 = 5;
 
 fn ingest_artwork_image(
     apic_type: ApicType,
@@ -155,7 +157,7 @@ fn ingest_artwork_image(
                 picture.as_bytes(),
                 color_format,
                 COLOR_THIEF_QUALITY,
-                COLOR_THIEF_MAX_COLORS,
+                COLOR_THIEF_PALETTE_MAX_COLORS,
             )
             .map_err(|err| {
                 log::warn!("Failed to extract the predominant color from artwork image: {err}");
