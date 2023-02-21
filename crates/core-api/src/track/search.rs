@@ -91,15 +91,16 @@ pub enum Scope {
 pub struct ActorPhraseFilter {
     pub modifier: Option<FilterModifier>,
 
-    /// Any or the given scope.
+    /// The given scope or any scope if `None`.
     pub scope: Option<Scope>,
 
-    /// Any or the given roles.
+    /// Any of the given roles or any role if empty.
     pub roles: Vec<ActorRole>,
 
-    /// Any or the given kinds.
+    /// Any of the given kinds or any kind if empty.
     pub kinds: Vec<ActorKind>,
 
+    /// Name that matches all of the given terms in order or any name if empty.
     pub name_terms: Vec<String>,
 }
 
@@ -107,12 +108,13 @@ pub struct ActorPhraseFilter {
 pub struct TitlePhraseFilter {
     pub modifier: Option<FilterModifier>,
 
-    /// Any or the given scope.
+    /// The given scope or any scope if `None`.
     pub scope: Option<Scope>,
 
-    /// Any or the given kinds.
+    /// Any of the given kinds or any kind if empty.
     pub kinds: Vec<TitleKind>,
 
+    /// Name that matches all of the given terms in order or any name if empty.
     pub name_terms: Vec<String>,
 }
 
