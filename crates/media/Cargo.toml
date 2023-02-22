@@ -31,8 +31,8 @@ url = "2.3.1"
 walkdir = "2.3.2"
 
 # Dependencies (optional): gigtag
-gigtag = { version = "0.1.4", optional = true }
-compact_str = { version = "0.6.1", optional = true }
+gigtag = { version = "0.1.5", optional = true }
+compact_str = { version = "0.7.0", optional = true }
 
 # Dependencies (optional): serato-markers
 triseratops = { version = "0.0.2", optional = true }
