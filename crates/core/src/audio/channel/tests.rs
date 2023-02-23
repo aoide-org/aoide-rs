@@ -9,50 +9,31 @@ fn channel_count_default() {
 }
 
 #[test]
-fn channel_count_minmax() {
+fn channel_count_validate() {
     assert!(ChannelCount::min().validate().is_ok());
     assert!(ChannelCount::max().validate().is_ok());
+    // Support more than 255 channels
+    assert!(ChannelCount(256).validate().is_ok());
 }
 
 #[test]
-fn channel_layout_channel_count() {
-    assert_eq!(ChannelCount(1), ChannelLayout::Mono.channel_count());
-    assert_eq!(ChannelCount(2), ChannelLayout::DualMono.channel_count());
-    assert_eq!(ChannelCount(2), ChannelLayout::Stereo.channel_count());
+fn channel_flags_default() {
+    assert!(ChannelFlags::default().validate().is_err());
 }
 
 #[test]
-fn channels_default() {
-    assert_eq!(ChannelCount::default(), Channels::default().count());
-}
-
-#[test]
-fn channels_validate() {
-    assert!(Channels::default().validate().is_err());
-    assert!(Channels::Layout(ChannelLayout::Mono).validate().is_ok());
-    assert!(Channels::Layout(ChannelLayout::DualMono).validate().is_ok());
-    assert!(Channels::Layout(ChannelLayout::Stereo).validate().is_ok());
-    assert!(Channels::Count(ChannelCount::min()).validate().is_ok());
-    assert!(Channels::Count(ChannelCount::max()).validate().is_ok());
-}
-
-#[test]
-fn validate_channels() {
-    assert!(Channels::default().validate().is_err());
-    assert!(Channels::Layout(ChannelLayout::Mono).validate().is_ok());
-    assert!(Channels::Layout(ChannelLayout::DualMono).validate().is_ok());
-    assert!(Channels::Layout(ChannelLayout::Stereo).validate().is_ok());
-    assert!(Channels::Count(ChannelCount::min()).validate().is_ok());
-    assert!(Channels::Count(ChannelCount::max()).validate().is_ok());
-}
-
-#[test]
-fn channel_count_default_layout() {
-    assert_eq!(None, ChannelCount::default().default_layout());
-    assert_eq!(Some(ChannelLayout::Mono), ChannelCount(1).default_layout());
-    assert_eq!(
-        Some(ChannelLayout::Stereo),
-        ChannelCount(2).default_layout()
+#[allow(unsafe_code)]
+fn channel_flags_validate() {
+    assert!(ChannelFlags::empty().validate().is_err());
+    assert!(ChannelFlags::all().validate().is_ok());
+    assert!(
+        unsafe { ChannelFlags::from_bits_unchecked(ChannelFlags::all().bits() >> 1) }
+            .validate()
+            .is_ok()
     );
-    assert_eq!(None, ChannelCount::default_layout(ChannelCount(3)));
+    assert!(
+        unsafe { ChannelFlags::from_bits_unchecked(ChannelFlags::all().bits() << 1) }
+            .validate()
+            .is_err()
+    );
 }

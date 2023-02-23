@@ -20,6 +20,7 @@ diesel::table! {
         content_metadata_flags -> SmallInt,
         audio_duration_ms -> Nullable<Double>,
         audio_channel_count -> Nullable<SmallInt>,
+        audio_channel_flags -> Nullable<Integer>,
         audio_samplerate_hz -> Nullable<Double>,
         audio_bitrate_bps -> Nullable<Double>,
         audio_loudness_lufs -> Nullable<Double>,

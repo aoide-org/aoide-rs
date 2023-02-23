@@ -11,6 +11,7 @@ media_source.content_type,
 media_source.content_link_path,
 media_source.audio_duration_ms,
 media_source.audio_channel_count,
+media_source.audio_channel_flags,
 media_source.audio_samplerate_hz,
 media_source.audio_bitrate_bps,
 media_source.audio_loudness_lufs

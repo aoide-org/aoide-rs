@@ -1338,8 +1338,10 @@ components:
           $ref: "#/components/schemas/DurationMs"
         bitrateBps:
           $ref: "#/components/schemas/BitrateBps"
-        channels:
-          $ref: "#/components/schemas/Channels"
+        channelCount:
+          $ref: "#/components/schemas/ChannelCount"
+        channelFlags:
+          $ref: "#/components/schemas/ChannelFlags"
         encodedBy:
           description: Encoder, either a person or an application
           type: string
@@ -1392,38 +1394,19 @@ components:
       minimum: 1
       maximum: 65535
       example: 2
-    ChannelLayout:
-      type: string
-      enum:
-        - mono
-        - dual-mono
-        - stereo
-        - three
-        - four
-        - five
-        - five-one
-        - seven-one
+    ChannelFlags:
+      type: integer
+      minimum: 0x00000001
+      maximum: 0x0003ffff
+      example: 0x00000003
       description: |
-        The layout of the channels.
+        Channel flags
 
-        Each predefined layout implies a number of channels that then
-        doesn't need to be specified explicitly.
+        Bitmask of 18 bits, one for each channel.
 
-        Predefined layouts:
-          * mono (1 channel)
-          * dual-mono (2 channels)
-          * stereo (2 channels)
-          * three (3 channels)
-          * four (4 channels)
-          * five (5 channels)
-          * five-one (6 channels)
-          * seven-one (8 channels)
-    Channels:
-      description: |
-        Either a channel count or a channel layout.
-      oneOf:
-        - $ref: "#/components/schemas/ChannelCount"
-        - $ref: "#/components/schemas/ChannelLayout"
+        Surround sound - Standard speaker channels: <https://www.wikipedia.org/wiki/Surround_sound>
+        CAF channel bitmap: <https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_spec/CAF_spec.html>
+        WAV default channel ordering: <https://learn.microsoft.com/en-us/previous-versions/windows/hardware/design/dn653308(v=vs.85)?redirectedfrom=MSDN#default-channel-ordering>
     CollectionEntity:
       description: |
         Entity header and body
@@ -2009,6 +1992,7 @@ components:
       enum:
         - audioBitrateBps
         - audioChannelCount
+        - audioChannelFlags
         - audioDurationMs
         - audioLoudnessLufs
         - audioSampleRateHz
@@ -3568,6 +3552,7 @@ components:
       enum:
         - audioBitrateBps
         - audioChannelCount
+        - audioChannelFlags
         - audioDurationMs
         - audioLoudnessLufs
         - audioSampleRateHz

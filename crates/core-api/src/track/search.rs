@@ -29,6 +29,7 @@ pub enum StringField {
 pub enum NumericField {
     AudioBitrateBps,
     AudioChannelCount,
+    AudioChannelFlags,
     AudioDurationMs,
     AudioLoudnessLufs,
     AudioSampleRateHz,
@@ -122,6 +123,7 @@ pub struct TitlePhraseFilter {
 pub enum SortField {
     AudioBitrateBps,
     AudioChannelCount,
+    AudioChannelFlags,
     AudioDurationMs,
     AudioLoudnessLufs,
     AudioSampleRateHz,

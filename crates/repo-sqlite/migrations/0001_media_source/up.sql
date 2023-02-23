@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS media_source (
     -- properties: audio content metadata
     audio_duration_ms      REAL,             -- milliseconds
     audio_channel_count    INTEGER,          -- number of channels
+    audio_channel_flags    INTEGER,          -- bitmask of channel flags
     audio_samplerate_hz    REAL,             -- Hz
     audio_bitrate_bps      REAL,             -- bits per second (bps)
     audio_loudness_lufs    REAL,             -- LUFS (dB)

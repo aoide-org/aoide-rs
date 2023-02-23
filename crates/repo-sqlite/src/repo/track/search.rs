@@ -11,7 +11,7 @@ use aoide_core::{
     audio::{
         channel::ChannelCount,
         signal::{BitrateBps, LoudnessLufs, SampleRateHz},
-        DurationMs,
+        ChannelFlags, DurationMs,
     },
     playlist::EntityUid as PlaylistUid,
     tag::FacetKey,
@@ -79,6 +79,14 @@ impl<'db> TrackSearchQueryTransform<'db> for SortOrder {
                 }
                 SortDirection::Descending => {
                     query.then_order_by(view_track_search::audio_channel_count.desc())
+                }
+            },
+            SortField::AudioChannelFlags => match direction {
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::audio_channel_flags.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::audio_channel_flags.desc())
                 }
             },
             SortField::AudioDurationMs => match direction {
@@ -427,7 +435,7 @@ fn build_numeric_field_filter_expression(
         }
         AudioChannelCount => {
             let expr = view_track_search::audio_channel_count;
-            let expr_not_null = ifnull(expr, ChannelCount::zero().0 as i16);
+            let expr_not_null = ifnull(expr, ChannelCount::default().0 as i16);
             // TODO: Check and limit/clamp value range when converting from f64 to i16
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
@@ -444,6 +452,31 @@ fn build_numeric_field_filter_expression(
                 NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(expr_not_null.ne(value as i16))
+                    } else {
+                        Box::new(expr.is_not_null())
+                    }
+                }
+            }
+        }
+        AudioChannelFlags => {
+            let expr = view_track_search::audio_channel_flags;
+            let expr_not_null = ifnull(expr, ChannelFlags::default().bits() as i32);
+            // TODO: Check and limit/clamp value range when converting from f64 to i32
+            match filter.predicate {
+                LessThan(value) => Box::new(expr_not_null.lt(value as i32)),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value as i32)),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value as i32)),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i32)),
+                Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(expr_not_null.eq(value as i32))
+                    } else {
+                        Box::new(expr.is_null())
+                    }
+                }
+                NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(expr_not_null.ne(value as i32))
                     } else {
                         Box::new(expr.is_not_null())
                     }

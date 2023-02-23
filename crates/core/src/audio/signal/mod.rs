@@ -5,7 +5,7 @@ use std::{f64, fmt};
 
 use crate::{
     audio::{
-        channel::{ChannelLayout, ChannelLayoutInvalidity},
+        channel::{ChannelFlags, ChannelFlagsInvalidity},
         sample::BitsPerSample,
         sample::{SampleLayout, SampleLayoutInvalidity, SampleLength},
     },
@@ -178,7 +178,7 @@ impl fmt::Display for SampleRateHz {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct PcmSignal {
-    pub channel_layout: ChannelLayout,
+    pub channel_layout: ChannelFlags,
 
     pub sample_layout: SampleLayout,
 
@@ -203,7 +203,7 @@ impl PcmSignal {
 
 #[derive(Copy, Clone, Debug)]
 pub enum PcmSignalInvalidity {
-    ChannelLayout(ChannelLayoutInvalidity),
+    ChannelFlags(ChannelFlagsInvalidity),
     SampleLayout(SampleLayoutInvalidity),
     SampleRate(SampleRateHzInvalidity),
 }
@@ -213,7 +213,7 @@ impl Validate for PcmSignal {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.channel_layout, Self::Invalidity::ChannelLayout)
+            .validate_with(&self.channel_layout, Self::Invalidity::ChannelFlags)
             .validate_with(&self.sample_layout, Self::Invalidity::SampleLayout)
             .validate_with(&self.sample_rate, Self::Invalidity::SampleRate)
             .into()

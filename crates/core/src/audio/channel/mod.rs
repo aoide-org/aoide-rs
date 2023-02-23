@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use bitflags::bitflags;
+
 use crate::prelude::*;
 
 use std::u16;
@@ -33,15 +35,6 @@ impl ChannelCount {
     #[must_use]
     pub const fn max() -> Self {
         Self(u16::MAX)
-    }
-
-    #[must_use]
-    pub fn default_layout(self) -> Option<ChannelLayout> {
-        match self {
-            ChannelCount(1) => Some(ChannelLayout::Mono),
-            ChannelCount(2) => Some(ChannelLayout::Stereo),
-            _ => None,
-        }
     }
 
     #[must_use]
@@ -80,49 +73,98 @@ impl From<ChannelCount> for NumberOfChannels {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// ChannelLayout
+// ChannelFlags
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ChannelLayout {
-    Mono,
-    DualMono,
-    Stereo,
-    Three,
-    Four,
-    Five,
-    FiveOne,
-    SevenOne,
-    // ...to be continued
+bitflags! {
+    /// Channel flags
+    ///
+    /// Bitmask of 18 bits, one for each channel.
+    ///
+    /// Surround sound - Standard speaker channels: <https://www.wikipedia.org/wiki/Surround_sound>
+    /// CAF channel bitmap: <https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_spec/CAF_spec.html>
+    /// WAV default channel ordering: <https://learn.microsoft.com/en-us/previous-versions/windows/hardware/design/dn653308(v=vs.85)?redirectedfrom=MSDN#default-channel-ordering>
+    #[repr(transparent)]
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+    #[cfg_attr(feature = "serde", serde(transparent))]
+    #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+    #[cfg_attr(feature = "json-schema", schemars(transparent))]
+    #[allow(clippy::unsafe_derive_deserialize)] // TODO: Revisit for bitflags 2.0
+    pub struct ChannelFlags: u32 {
+        /// FL
+        const FRONT_LEFT = 1u32 << 0;
+        /// FR
+        const FRONT_RIGHT = 1u32 << 1;
+        /// FC
+        const FRONT_CENTER = 1u32 << 2;
+        /// LF
+        const LOW_FREQUENCY = 1u32 << 3;
+        /// BL
+        const BACK_LEFT = 1u32 << 4;
+        /// BR
+        const BACK_RIGHT = 1u32 << 5;
+        /// FLC
+        const FRONT_LEFT_OF_CENTER = 1u32 << 6;
+        /// FLR
+        const FRONT_RIGHT_OF_CENTER = 1u32 << 7;
+        /// BC
+        const BACK_CENTER = 1u32 << 8;
+        /// SL
+        const SIDE_LEFT = 1u32 << 9;
+        /// SR
+        const SIDE_RIGHT = 1u32 << 10;
+        /// TC
+        const TOP_CENTER = 1u32 << 11;
+        /// TFL
+        const TOP_FRONT_LEFT = 1u32 << 12;
+        /// TFC
+        const TOP_FRONT_CENTER = 1u32 << 13;
+        /// TFR
+        const TOP_FRONT_RIGHT = 1u32 << 14;
+        /// TBL
+        const TOP_BACK_LEFT = 1u32 << 15;
+        /// TBC
+        const TOP_BACK_CENTER = 1u32 << 16;
+        /// TBR
+        const TOP_BACK_RIGHT = 1u32 << 17;
+    }
 }
 
-impl ChannelLayout {
+impl Default for ChannelFlags {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
+impl ChannelFlags {
     #[must_use]
     pub const fn channel_count(self) -> ChannelCount {
-        use ChannelLayout::*;
-        match self {
-            Mono => ChannelCount(1),
-            DualMono | Stereo => ChannelCount(2),
-            Three => ChannelCount(3),
-            Four => ChannelCount(4),
-            Five => ChannelCount(5),
-            FiveOne => ChannelCount(6),
-            SevenOne => ChannelCount(8),
-        }
+        ChannelCount(self.bits().count_ones() as NumberOfChannels)
+    }
+}
+
+impl From<ChannelFlags> for ChannelCount {
+    fn from(from: ChannelFlags) -> Self {
+        from.channel_count()
     }
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum ChannelLayoutInvalidity {
-    ChannelCount(ChannelCountInvalidity),
+pub enum ChannelFlagsInvalidity {
+    Empty,
+    Invalid,
 }
 
-impl Validate for ChannelLayout {
-    type Invalidity = ChannelLayoutInvalidity;
+impl Validate for ChannelFlags {
+    type Invalidity = ChannelFlagsInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&(*self).channel_count(), Self::Invalidity::ChannelCount)
+            .invalidate_if(self.is_empty(), Self::Invalidity::Empty)
+            .invalidate_if(
+                self.bits() & !Self::all().bits() != 0,
+                Self::Invalidity::Invalid,
+            )
             .into()
     }
 }
@@ -134,42 +176,57 @@ impl Validate for ChannelLayout {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Channels {
     Count(ChannelCount),
-    Layout(ChannelLayout),
+    Flags(ChannelFlags),
 }
 
 impl Channels {
     #[must_use]
     pub const fn count(self) -> ChannelCount {
-        use Channels::*;
         match self {
-            Count(count) => count,
-            Layout(layout) => layout.channel_count(),
+            Self::Count(count) => count,
+            Self::Flags(flags) => flags.channel_count(),
         }
     }
-}
 
-impl Default for Channels {
-    fn default() -> Self {
-        Channels::Count(ChannelCount::zero())
+    #[must_use]
+    pub const fn flags(self) -> Option<ChannelFlags> {
+        match self {
+            Self::Count(_) => None,
+            Self::Flags(flags) => Some(flags),
+        }
+    }
+
+    #[must_use]
+    pub fn try_from_flags_or_count(
+        flags: Option<ChannelFlags>,
+        count: Option<ChannelCount>,
+    ) -> Option<Self> {
+        if let Some(flags) = flags {
+            if flags.channel_count() > ChannelCount(0) {
+                // Valid flags are prioritized over count
+                return Some(Self::Flags(flags));
+            }
+        }
+        count.map(Self::Count)
     }
 }
 
 impl From<ChannelCount> for Channels {
     fn from(count: ChannelCount) -> Self {
-        Channels::Count(count)
+        Self::Count(count)
     }
 }
 
-impl From<ChannelLayout> for Channels {
-    fn from(layout: ChannelLayout) -> Self {
-        Channels::Layout(layout)
+impl From<ChannelFlags> for Channels {
+    fn from(flags: ChannelFlags) -> Self {
+        Self::Flags(flags)
     }
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum ChannelsInvalidity {
     Count(ChannelCountInvalidity),
-    Layout(ChannelLayoutInvalidity),
+    Flags(ChannelFlagsInvalidity),
 }
 
 impl Validate for Channels {
@@ -179,7 +236,7 @@ impl Validate for Channels {
         let context = ValidationContext::new();
         match self {
             Channels::Count(ref count) => context.validate_with(count, Self::Invalidity::Count),
-            Channels::Layout(ref layout) => context.validate_with(layout, Self::Invalidity::Layout),
+            Channels::Flags(ref flags) => context.validate_with(flags, Self::Invalidity::Flags),
         }
         .into()
     }

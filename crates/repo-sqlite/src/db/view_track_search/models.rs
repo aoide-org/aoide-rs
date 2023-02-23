@@ -68,6 +68,7 @@ pub struct QueryableRecord {
     pub content_type: String,
     pub audio_duration_ms: Option<f64>,
     pub audio_channel_count: Option<i16>,
+    pub audio_channel_flags: Option<i32>,
     pub audio_samplerate_hz: Option<f64>,
     pub audio_bitrate_bps: Option<f64>,
     pub audio_loudness_lufs: Option<f64>,

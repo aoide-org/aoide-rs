@@ -3,14 +3,10 @@
 
 use url::Url;
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core::{audio::Channels, util::url::BaseUrl};
 
 use crate::{
-    audio::{
-        channel::Channels,
-        signal::{BitrateBps, LoudnessLufs, SampleRateHz},
-        DurationMs,
-    },
+    audio::{BitrateBps, ChannelCount, ChannelFlags, DurationMs, LoudnessLufs, SampleRateHz},
     prelude::*,
 };
 
@@ -170,7 +166,10 @@ pub struct AudioContentMetadata {
     duration_ms: Option<DurationMs>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    channels: Option<Channels>,
+    channel_count: Option<ChannelCount>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    channel_flags: Option<ChannelFlags>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     sample_rate_hz: Option<SampleRateHz>,
@@ -189,15 +188,17 @@ impl From<AudioContentMetadata> for _core::AudioContentMetadata {
     fn from(from: AudioContentMetadata) -> Self {
         let AudioContentMetadata {
             duration_ms,
-            channels,
+            channel_count,
+            channel_flags,
             sample_rate_hz,
             bitrate_bps,
             loudness_lufs,
             encoder,
         } = from;
+        let channels = Channels::try_from_flags_or_count(channel_flags, channel_count);
         Self {
             duration: duration_ms.map(Into::into),
-            channels: channels.map(Into::into),
+            channels,
             sample_rate: sample_rate_hz.map(Into::into),
             bitrate: bitrate_bps.map(Into::into),
             loudness: loudness_lufs.map(Into::into),
@@ -218,7 +219,8 @@ impl From<_core::AudioContentMetadata> for AudioContentMetadata {
         } = from;
         Self {
             duration_ms: duration.map(Into::into),
-            channels: channels.map(Into::into),
+            channel_count: channels.map(Channels::count),
+            channel_flags: channels.and_then(Channels::flags),
             sample_rate_hz: sample_rate.map(Into::into),
             bitrate_bps: bitrate.map(Into::into),
             loudness_lufs: loudness.map(Into::into),
