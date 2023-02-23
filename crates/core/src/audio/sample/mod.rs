@@ -66,11 +66,11 @@ pub type SampleType = f32;
 pub type SamplePositionType = f64;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+#[repr(transparent)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-#[repr(transparent)]
 pub struct SamplePosition(pub SamplePositionType);
 
 #[derive(Copy, Clone, Debug)]
@@ -113,11 +113,11 @@ impl IsInteger for SamplePosition {
 pub type NumberOfSamples = f64;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+#[repr(transparent)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-#[repr(transparent)]
 pub struct SampleLength(pub NumberOfSamples);
 
 impl SampleLength {

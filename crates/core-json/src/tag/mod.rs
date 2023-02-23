@@ -16,8 +16,8 @@ mod _core {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(test, derive(Clone))]
 #[repr(transparent)]
+#[cfg_attr(test, derive(Clone))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
 pub struct FacetKey {
@@ -95,8 +95,8 @@ impl<'de> Deserialize<'de> for FacetKey {
 }
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(Clone, PartialEq, Eq))]
 #[repr(transparent)]
+#[cfg_attr(test, derive(Clone, PartialEq, Eq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
 pub struct Label {
@@ -167,8 +167,8 @@ impl<'de> Deserialize<'de> for Label {
 }
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(Clone, PartialEq))]
 #[repr(transparent)]
+#[cfg_attr(test, derive(Clone, PartialEq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(with = "f64"))]
 pub struct Score(_core::Score);
@@ -294,8 +294,9 @@ impl From<_core::PlainTag<'_>> for PlainTag {
 pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
 #[repr(transparent)]
+#[serde(transparent)]
+#[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct Tags(TagsMap);
 

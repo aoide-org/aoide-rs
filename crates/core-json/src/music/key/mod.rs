@@ -10,9 +10,11 @@ mod _core {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(transparent)]
+#[serde(transparent)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", schemars(transparent))]
 pub struct KeyCode(KeyCodeValue);
 
 impl From<_core::KeyCode> for KeyCode {
