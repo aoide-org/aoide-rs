@@ -6,8 +6,13 @@ use std::{fmt, time::Duration};
 use crate::prelude::*;
 
 pub mod channel;
+pub use self::channel::*;
+
 pub mod sample;
+pub use self::sample::*;
+
 pub mod signal;
+pub use self::signal::*;
 
 ///////////////////////////////////////////////////////////////////////
 // Position

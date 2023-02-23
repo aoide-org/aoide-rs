@@ -5,15 +5,7 @@ use base64::Engine as _;
 
 use aoide_core::media::content::ContentMetadataFlags;
 
-use crate::{
-    audio::{
-        channel::Channels,
-        signal::{BitrateBps, LoudnessLufs, SampleRateHz},
-        DurationMs,
-    },
-    prelude::*,
-    util::clock::DateTime,
-};
+use crate::{prelude::*, util::clock::DateTime};
 
 use self::{
     artwork::Artwork,
@@ -24,7 +16,7 @@ pub mod artwork;
 pub mod content;
 
 mod _core {
-    pub(super) use aoide_core::media::{content::AudioContentMetadata, *};
+    pub(super) use aoide_core::media::*;
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -223,72 +215,6 @@ impl TryFrom<Source> for _core::Source {
             artwork,
         };
         Ok(into)
-    }
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AudioContentMetadata {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    duration_ms: Option<DurationMs>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    channels: Option<Channels>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    sample_rate_hz: Option<SampleRateHz>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    bitrate_bps: Option<BitrateBps>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    loudness_lufs: Option<LoudnessLufs>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    encoder: Option<String>,
-}
-
-impl From<AudioContentMetadata> for _core::AudioContentMetadata {
-    fn from(from: AudioContentMetadata) -> Self {
-        let AudioContentMetadata {
-            duration_ms,
-            channels,
-            sample_rate_hz,
-            bitrate_bps,
-            loudness_lufs,
-            encoder,
-        } = from;
-        Self {
-            duration: duration_ms.map(Into::into),
-            channels: channels.map(Into::into),
-            sample_rate: sample_rate_hz.map(Into::into),
-            bitrate: bitrate_bps.map(Into::into),
-            loudness: loudness_lufs.map(Into::into),
-            encoder: encoder.map(Into::into),
-        }
-    }
-}
-
-impl From<_core::AudioContentMetadata> for AudioContentMetadata {
-    fn from(from: _core::AudioContentMetadata) -> Self {
-        let _core::AudioContentMetadata {
-            duration,
-            channels,
-            sample_rate,
-            bitrate,
-            loudness,
-            encoder,
-        } = from;
-        Self {
-            duration_ms: duration.map(Into::into),
-            channels: channels.map(Into::into),
-            sample_rate_hz: sample_rate.map(Into::into),
-            bitrate_bps: bitrate.map(Into::into),
-            loudness_lufs: loudness.map(Into::into),
-            encoder: encoder.map(Into::into),
-        }
     }
 }
 
