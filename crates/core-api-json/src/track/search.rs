@@ -38,7 +38,7 @@ mod _inner {
 pub enum SortField {
     AudioBitrateBps,
     AudioChannelCount,
-    AudioChannelFlags,
+    AudioChannelMask,
     AudioDurationMs,
     AudioLoudnessLufs,
     AudioSampleRateHz,
@@ -67,7 +67,7 @@ impl From<SortField> for _inner::SortField {
         match from {
             AudioBitrateBps => Self::AudioBitrateBps,
             AudioChannelCount => Self::AudioChannelCount,
-            AudioChannelFlags => Self::AudioChannelFlags,
+            AudioChannelMask => Self::AudioChannelMask,
             AudioDurationMs => Self::AudioDurationMs,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,
             AudioSampleRateHz => Self::AudioSampleRateHz,
@@ -98,7 +98,7 @@ impl From<_inner::SortField> for SortField {
         match from {
             AudioBitrateBps => Self::AudioBitrateBps,
             AudioChannelCount => Self::AudioChannelCount,
-            AudioChannelFlags => Self::AudioChannelFlags,
+            AudioChannelMask => Self::AudioChannelMask,
             AudioDurationMs => Self::AudioDurationMs,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,
             AudioSampleRateHz => Self::AudioSampleRateHz,
@@ -195,7 +195,7 @@ pub enum NumericField {
     AdvisoryRating,
     AudioBitrateBps,
     AudioChannelCount,
-    AudioChannelFlags,
+    AudioChannelMask,
     AudioDurationMs,
     AudioSampleRateHz,
     AudioLoudnessLufs,
@@ -217,7 +217,7 @@ impl From<NumericField> for _inner::NumericField {
         match from {
             AudioBitrateBps => Self::AudioBitrateBps,
             AudioChannelCount => Self::AudioChannelCount,
-            AudioChannelFlags => Self::AudioChannelFlags,
+            AudioChannelMask => Self::AudioChannelMask,
             AudioDurationMs => Self::AudioDurationMs,
             AudioSampleRateHz => Self::AudioSampleRateHz,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,
@@ -242,7 +242,7 @@ impl From<_inner::NumericField> for NumericField {
         match from {
             AudioBitrateBps => Self::AudioBitrateBps,
             AudioChannelCount => Self::AudioChannelCount,
-            AudioChannelFlags => Self::AudioChannelFlags,
+            AudioChannelMask => Self::AudioChannelMask,
             AudioDurationMs => Self::AudioDurationMs,
             AudioSampleRateHz => Self::AudioSampleRateHz,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,

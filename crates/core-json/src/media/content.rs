@@ -3,10 +3,13 @@
 
 use url::Url;
 
-use aoide_core::{audio::Channels, util::url::BaseUrl};
+use aoide_core::{
+    audio::{ChannelFlags, Channels},
+    util::url::BaseUrl,
+};
 
 use crate::{
-    audio::{BitrateBps, ChannelCount, ChannelFlags, DurationMs, LoudnessLufs, SampleRateHz},
+    audio::{BitrateBps, ChannelCount, ChannelMask, DurationMs, LoudnessLufs, SampleRateHz},
     prelude::*,
 };
 
@@ -169,7 +172,7 @@ pub struct AudioContentMetadata {
     channel_count: Option<ChannelCount>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    channel_flags: Option<ChannelFlags>,
+    channel_mask: Option<ChannelMask>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     sample_rate_hz: Option<SampleRateHz>,
@@ -189,12 +192,13 @@ impl From<AudioContentMetadata> for _core::AudioContentMetadata {
         let AudioContentMetadata {
             duration_ms,
             channel_count,
-            channel_flags,
+            channel_mask,
             sample_rate_hz,
             bitrate_bps,
             loudness_lufs,
             encoder,
         } = from;
+        let channel_flags = channel_mask.and_then(ChannelFlags::from_bits);
         let channels = Channels::try_from_flags_or_count(channel_flags, channel_count);
         Self {
             duration: duration_ms.map(Into::into),
@@ -220,7 +224,10 @@ impl From<_core::AudioContentMetadata> for AudioContentMetadata {
         Self {
             duration_ms: duration.map(Into::into),
             channel_count: channels.map(Channels::count),
-            channel_flags: channels.and_then(Channels::flags),
+            channel_mask: channels
+                .and_then(Channels::flags)
+                .as_ref()
+                .map(ChannelFlags::bits),
             sample_rate_hz: sample_rate.map(Into::into),
             bitrate_bps: bitrate.map(Into::into),
             loudness_lufs: loudness.map(Into::into),

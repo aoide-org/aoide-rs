@@ -1340,8 +1340,8 @@ components:
           $ref: "#/components/schemas/BitrateBps"
         channelCount:
           $ref: "#/components/schemas/ChannelCount"
-        channelFlags:
-          $ref: "#/components/schemas/ChannelFlags"
+        channelMask:
+          $ref: "#/components/schemas/ChannelMask"
         encodedBy:
           description: Encoder, either a person or an application
           type: string
@@ -1394,19 +1394,20 @@ components:
       minimum: 1
       maximum: 65535
       example: 2
-    ChannelFlags:
+    ChannelMask:
       type: integer
       minimum: 0x00000001
       maximum: 0x0003ffff
       example: 0x00000003
       description: |
-        Channel flags
+        Channel mask
 
-        Bitmask of 18 bits, one for each channel.
+        A mask of (at least) 18 bits, one for each channel.
 
-        Surround sound - Standard speaker channels: <https://www.wikipedia.org/wiki/Surround_sound>
-        CAF channel bitmap: <https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_spec/CAF_spec.html>
+        Standard speaker channels: <https://www.wikipedia.org/wiki/Surround_sound>
+        CAF channel bitmap: <https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_spec/CAF_spec.html#//apple_ref/doc/uid/TP40001862-CH210-BCGBHHHI>
         WAV default channel ordering: <https://learn.microsoft.com/en-us/previous-versions/windows/hardware/design/dn653308(v=vs.85)?redirectedfrom=MSDN#default-channel-ordering>
+        FFmpeg: <https://ffmpeg.org/doxygen/trunk/group__channel__masks.html>
     CollectionEntity:
       description: |
         Entity header and body
@@ -1992,7 +1993,7 @@ components:
       enum:
         - audioBitrateBps
         - audioChannelCount
-        - audioChannelFlags
+        - audioChannelMask
         - audioDurationMs
         - audioLoudnessLufs
         - audioSampleRateHz
@@ -3552,7 +3553,7 @@ components:
       enum:
         - audioBitrateBps
         - audioChannelCount
-        - audioChannelFlags
+        - audioChannelMask
         - audioDurationMs
         - audioLoudnessLufs
         - audioSampleRateHz

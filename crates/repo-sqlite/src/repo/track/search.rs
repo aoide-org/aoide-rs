@@ -81,12 +81,12 @@ impl<'db> TrackSearchQueryTransform<'db> for SortOrder {
                     query.then_order_by(view_track_search::audio_channel_count.desc())
                 }
             },
-            SortField::AudioChannelFlags => match direction {
+            SortField::AudioChannelMask => match direction {
                 SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::audio_channel_flags.asc())
+                    query.then_order_by(view_track_search::audio_channel_mask.asc())
                 }
                 SortDirection::Descending => {
-                    query.then_order_by(view_track_search::audio_channel_flags.desc())
+                    query.then_order_by(view_track_search::audio_channel_mask.desc())
                 }
             },
             SortField::AudioDurationMs => match direction {
@@ -458,8 +458,8 @@ fn build_numeric_field_filter_expression(
                 }
             }
         }
-        AudioChannelFlags => {
-            let expr = view_track_search::audio_channel_flags;
+        AudioChannelMask => {
+            let expr = view_track_search::audio_channel_mask;
             let expr_not_null = ifnull(expr, ChannelFlags::default().bits() as i32);
             // TODO: Check and limit/clamp value range when converting from f64 to i32
             match filter.predicate {

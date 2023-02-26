@@ -73,24 +73,22 @@ impl From<ChannelCount> for NumberOfChannels {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// ChannelFlags
+// ChannelMask/-Flags
 ///////////////////////////////////////////////////////////////////////
+
+pub type ChannelMask = u32;
 
 bitflags! {
     /// Channel flags
     ///
-    /// Bitmask of 18 bits, one for each channel.
+    /// A mask of (at least) 18 bits, one for each channel.
     ///
-    /// Surround sound - Standard speaker channels: <https://www.wikipedia.org/wiki/Surround_sound>
-    /// CAF channel bitmap: <https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_spec/CAF_spec.html>
+    /// Standard speaker channels: <https://www.wikipedia.org/wiki/Surround_sound>
+    /// CAF channel bitmap: <https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_spec/CAF_spec.html#//apple_ref/doc/uid/TP40001862-CH210-BCGBHHHI>
     /// WAV default channel ordering: <https://learn.microsoft.com/en-us/previous-versions/windows/hardware/design/dn653308(v=vs.85)?redirectedfrom=MSDN#default-channel-ordering>
+    /// FFmpeg: <https://ffmpeg.org/doxygen/trunk/group__channel__masks.html>
     #[repr(transparent)]
-    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-    #[cfg_attr(feature = "serde", serde(transparent))]
-    #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
-    #[cfg_attr(feature = "json-schema", schemars(transparent))]
-    #[allow(clippy::unsafe_derive_deserialize)] // TODO: Revisit for bitflags 2.0
-    pub struct ChannelFlags: u32 {
+    pub struct ChannelFlags: ChannelMask {
         /// FL
         const FRONT_LEFT = 1u32 << 0;
         /// FR
@@ -137,6 +135,16 @@ impl Default for ChannelFlags {
 }
 
 impl ChannelFlags {
+    #[must_use]
+    pub const fn mono() -> Self {
+        Self::FRONT_CENTER
+    }
+
+    #[must_use]
+    pub const fn stereo() -> Self {
+        Self::FRONT_LEFT.union(Self::FRONT_RIGHT)
+    }
+
     #[must_use]
     pub const fn channel_count(self) -> ChannelCount {
         ChannelCount(self.bits().count_ones() as NumberOfChannels)

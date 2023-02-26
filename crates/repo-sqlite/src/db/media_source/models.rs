@@ -52,7 +52,7 @@ pub struct QueryableRecord {
     pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
     pub audio_channel_count: Option<i16>,
-    pub audio_channel_flags: Option<i32>,
+    pub audio_channel_mask: Option<i32>,
     pub audio_samplerate_hz: Option<f64>,
     pub audio_bitrate_bps: Option<f64>,
     pub audio_loudness_lufs: Option<f64>,
@@ -87,7 +87,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             content_metadata_flags,
             audio_duration_ms,
             audio_channel_count,
-            audio_channel_flags,
+            audio_channel_mask,
             audio_samplerate_hz,
             audio_bitrate_bps,
             audio_loudness_lufs,
@@ -102,7 +102,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             artwork_color,
             artwork_thumbnail,
         } = from;
-        let channel_flags = audio_channel_flags.and_then(|val| ChannelFlags::from_bits(val as _));
+        let channel_flags = audio_channel_mask.and_then(|val| ChannelFlags::from_bits(val as _));
         let channel_count = audio_channel_count.map(|val| ChannelCount(val as _));
         let channels = Channels::try_from_flags_or_count(channel_flags, channel_count);
         let audio_metadata = AudioContentMetadata {
@@ -359,7 +359,7 @@ pub struct UpdatableRecord<'a> {
     pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
     pub audio_channel_count: Option<i16>,
-    pub audio_channel_flags: Option<i32>,
+    pub audio_channel_mask: Option<i32>,
     pub audio_samplerate_hz: Option<f64>,
     pub audio_bitrate_bps: Option<f64>,
     pub audio_loudness_lufs: Option<f64>,
@@ -460,7 +460,7 @@ impl<'a> UpdatableRecord<'a> {
             audio_channel_count: audio_metadata
                 .and_then(|audio| audio.channels)
                 .map(|channels| channels.count().0 as _),
-            audio_channel_flags: audio_metadata
+            audio_channel_mask: audio_metadata
                 .and_then(|audio| audio.channels)
                 .and_then(Channels::flags)
                 .map(|flags| flags.bits() as _),
