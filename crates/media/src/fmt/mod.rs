@@ -4,15 +4,15 @@
 use std::{borrow::Cow, ops::Not as _};
 
 use lofty::{
-    Accessor, AudioFile, FileProperties, ItemKey, ItemValue, MimeType, ParseOptions, Picture,
-    PictureType, SplitAndMergeTag, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
+    Accessor, AudioFile, FileProperties, ItemKey, ItemValue, MergeTag, MimeType, ParseOptions,
+    Picture, PictureType, SplitTag, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
 };
 
 use aoide_core::{
     audio::{
         channel::ChannelCount,
         signal::{BitrateBps, SampleRateHz},
-        DurationMs,
+        ChannelFlags, Channels, DurationMs,
     },
     media::{
         artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork},
@@ -84,10 +84,13 @@ fn import_audio_content_from_file_properties(properties: &FileProperties) -> Aud
         .audio_bitrate()
         .map(|kbps| BitrateBps::new(f64::from(kbps) * 1000.0))
         .filter(IsValid::is_valid);
-    let channels = properties
+    let channel_count = properties
         .channels()
-        .map(|num_channels| ChannelCount(num_channels.into()).into())
-        .filter(IsValid::is_valid);
+        .map(|count| ChannelCount(count.into()));
+    let channel_flags = properties
+        .channel_mask()
+        .and_then(|mask| ChannelFlags::from_bits(mask.bits()));
+    let channels = Channels::try_from_flags_or_count(channel_flags, channel_count);
     let duration_ms = properties.duration().as_secs_f64() * 1000.0;
     let duration = Some(DurationMs::new(duration_ms)).filter(IsValid::is_valid);
     let sample_rate = properties
@@ -883,27 +886,26 @@ fn export_faceted_tags(
 }
 
 fn split_export_merge_track_to_tag<T>(
-    mut tag_repr: T,
+    tag_repr: T,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> T
+) -> <T::Remainder as MergeTag>::Merged
 where
-    T: SplitAndMergeTag,
+    T: SplitTag,
 {
     // Split the generic tag contents from the underlying representation.
     // The remainder will remain untouched while modifying the generic tag.
-    let mut tag = tag_repr.split_tag();
+    let (tag_remainder, mut tag) = tag_repr.split_tag();
     // Export the metadata of the given track into the generic tag, i.e.
     // add, modify, or delete items and pictures accordingly.
     export_track_to_tag(&mut tag, config, track, edit_embedded_artwork_image);
     // Merge the generic tag contents back into the remainder of the underlying
     // representation.
-    tag_repr.merge_tag(tag);
     // Depending on `T` some post-processing might be required in the outer context
     // to update contents in `tag_repr` that are not (yet) supported by the generic
     // `lofty::Tag` representation.
-    tag_repr
+    tag_remainder.merge_tag(tag)
 }
 
 #[allow(clippy::too_many_lines)] // TODO
