@@ -301,7 +301,7 @@ impl TrackFields {
 #[must_use]
 pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
     let mut schema_builder = Schema::builder();
-    let uid = schema_builder.add_bytes_field(UID, INDEXED | STORED);
+    let uid = schema_builder.add_text_field(UID, STRING | STORED);
     let rev = schema_builder.add_u64_field(REV, INDEXED | STORED);
     let content_path = schema_builder.add_text_field(CONTENT_PATH, STRING);
     let content_type = schema_builder.add_text_field(CONTENT_TYPE, STRING);
