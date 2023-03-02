@@ -24,7 +24,7 @@ serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.93"
 thiserror = "1.0.38"
 time = { version = "0.3.20", features = ["serde-human-readable"] }
-tokio = { version = "1.25.0", default-features = false, features = [
+tokio = { version = "1.26.0", default-features = false, features = [
     "rt-multi-thread",
     "signal",
 ] }
