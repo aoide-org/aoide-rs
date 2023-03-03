@@ -422,3 +422,6 @@ impl TrackIndex {
         Ok(count_all)
     }
 }
+
+#[cfg(test)]
+mod tests;
