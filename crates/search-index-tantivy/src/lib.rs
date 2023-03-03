@@ -36,7 +36,7 @@ use tantivy::{
 use aoide_core::{
     entity::{EncodedEntityUid, EntityRevision, EntityUid},
     media::content::ContentMetadata,
-    tag::{FacetedTags, PlainTag},
+    tag::{FacetId as TagFacetId, FacetedTags, Label as TagLabel, PlainTag},
     track::{
         self,
         actor::Actors,
@@ -121,6 +121,20 @@ fn add_date_field(doc: &mut Document, field: Field, date_time: DateTime) {
     doc.add_date(field, tantivy::DateTime::from_utc(date_time.to_inner()));
 }
 
+const TAG_FACET_ID_LABEL_SEPARATOR: char = '#';
+
+fn format_faceted_tag_text(facet_id: &TagFacetId<'_>, label: &TagLabel<'_>) -> String {
+    debug_assert!(!facet_id.is_empty());
+    debug_assert!(!facet_id.as_str().contains(TAG_FACET_ID_LABEL_SEPARATOR));
+    debug_assert!(!label.is_empty());
+    if label.as_str().starts_with(TAG_FACET_ID_LABEL_SEPARATOR) {
+        // Omit the redundant separator
+        format!("{facet_id}{label}")
+    } else {
+        format!("{facet_id}{TAG_FACET_ID_LABEL_SEPARATOR}{label}")
+    }
+}
+
 impl TrackFields {
     #[allow(clippy::too_many_lines)] // TODO
     #[must_use]
@@ -203,47 +217,52 @@ impl TrackFields {
         }
         for faceted_tags in &entity.body.track.tags.facets {
             let FacetedTags { facet_id, tags } = faceted_tags;
-            let (label_field, score_field) = if facet_id.is_empty() {
-                // a plain tag
-                (Some(self.tag), None)
-            } else {
-                match facet_id.as_str() {
-                    FACET_GENRE => (Some(self.genre), None),
-                    FACET_MOOD => (Some(self.mood), None),
-                    FACET_COMMENT => (Some(self.comment), None),
-                    FACET_GROUPING => (Some(self.grouping), None),
-                    FACET_ACOUSTICNESS => (None, Some(self.acousticness)),
-                    FACET_AROUSAL => (None, Some(self.arousal)),
-                    FACET_DANCEABILITY => (None, Some(self.danceability)),
-                    FACET_ENERGY => (None, Some(self.energy)),
-                    FACET_INSTRUMENTALNESS => (None, Some(self.instrumentalness)),
-                    FACET_LIVENESS => (None, Some(self.liveness)),
-                    FACET_POPULARITY => (None, Some(self.popularity)),
-                    FACET_SPEECHINESS => (None, Some(self.speechiness)),
-                    FACET_VALENCE => (None, Some(self.valence)),
-                    _ => (None, None),
-                }
+            debug_assert!(!facet_id.is_empty());
+            let (label_field, score_field) = match facet_id.as_str() {
+                FACET_GENRE => (Some(self.genre), None),
+                FACET_MOOD => (Some(self.mood), None),
+                FACET_COMMENT => (Some(self.comment), None),
+                FACET_GROUPING => (Some(self.grouping), None),
+                FACET_ACOUSTICNESS => (None, Some(self.acousticness)),
+                FACET_AROUSAL => (None, Some(self.arousal)),
+                FACET_DANCEABILITY => (None, Some(self.danceability)),
+                FACET_ENERGY => (None, Some(self.energy)),
+                FACET_INSTRUMENTALNESS => (None, Some(self.instrumentalness)),
+                FACET_LIVENESS => (None, Some(self.liveness)),
+                FACET_POPULARITY => (None, Some(self.popularity)),
+                FACET_SPEECHINESS => (None, Some(self.speechiness)),
+                FACET_VALENCE => (None, Some(self.valence)),
+                _ => (Some(self.tag), None),
             };
             match (label_field, score_field) {
                 (Some(field), None) => {
                     for tag in tags {
-                        let PlainTag {
-                            label,
-                            score: _, // TODO: How to take the score into account?
-                        } = tag;
+                        let PlainTag { label, score } = tag;
                         if let Some(label) = &label {
-                            doc.add_text(field, label);
+                            debug_assert!(!label.is_empty());
+                            if *score != Default::default() {
+                                // TODO: How to take the score into account?
+                                log::trace!(
+                                    "Ignoring non-default score of \"{facet_id}\" tag: {tag:?}"
+                                );
+                            }
+                            let text = format_faceted_tag_text(facet_id, label);
+                            doc.add_text(field, text);
+                        } else {
+                            log::debug!("Ignoring \"{facet_id}\" tag without label: {tag:?}");
                         }
                     }
                 }
                 (None, Some(field)) => {
                     for tag in tags {
-                        let PlainTag { label: _, score } = tag;
+                        let PlainTag { label, score } = tag;
+                        if label.is_some() {
+                            log::debug!("Ignoring label of \"{facet_id}\" tag: {tag:?}");
+                        }
                         doc.add_f64(field, score.value());
                     }
                 }
-                (None, None) => continue,
-                (Some(..), Some(..)) => unreachable!(),
+                (None, None) | (Some(_), Some(_)) => unreachable!(),
             }
         }
         doc
