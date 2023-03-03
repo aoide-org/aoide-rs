@@ -16,7 +16,7 @@ use aoide_core::{
 use crate::{IndexStorage, TrackIndex};
 
 #[test]
-fn track_index_smoke_test() {
+fn track_index_smoke_test_to_verify_dynamic_schema_against_static_types() {
     let track_index = TrackIndex::open_or_recreate(IndexStorage::InMemory).unwrap();
     let audio_metadata = AudioContentMetadata {
         bitrate: Some(BitrateBps::new(320_000.0)),
@@ -35,7 +35,7 @@ fn track_index_smoke_test() {
                 rev: Some(ContentRevision::new(1)),
             },
             r#type: "audio/mpeg".parse().unwrap(),
-            digest: Some(b"jsdf09w8092r2oijwlfksdf".into_iter().copied().collect()),
+            digest: Some(b"jsdf09w8092r2oijwlfksdf".to_vec()),
             metadata: ContentMetadata::Audio(audio_metadata),
             metadata_flags: Default::default(),
         },
