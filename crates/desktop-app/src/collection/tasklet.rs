@@ -46,7 +46,7 @@ pub async fn on_settings_changed(
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) {
     let mut settings_state_sub = some_or_return!(settings_state.upgrade()).subscribe();
-    log::debug!("Starting on_settings_changed_update_state");
+    log::debug!("Starting on_settings_changed");
     loop {
         {
             let settings_state = some_or_break!(settings_state.upgrade());
@@ -69,12 +69,12 @@ pub async fn on_settings_changed(
                 .await
             {
                 report_error(err);
-                // Reset the music directory in the settings state. This will
-                // reset the collection state subsequently.
+                // Reset the music directory in the settings state. This will reset
+                // the collection state subsequently to recover from the error.
                 settings_state.modify(|settings| settings.update_music_dir(None));
             } else {
-                // Get the actual music directory from the collection state
-                // and feed it back into the settings state.
+                // Get the actual music directory from the collection state and feed it back
+                // into the settings state.
                 let music_dir = observable_state.read().music_dir().map(DirPath::into_owned);
                 settings_state.modify(|settings| settings.update_music_dir(music_dir.as_ref()));
             }
@@ -84,5 +84,5 @@ pub async fn on_settings_changed(
             break;
         }
     }
-    log::debug!("Stopping on_settings_changed_update_state");
+    log::debug!("Stopping on_settings_changed");
 }

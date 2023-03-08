@@ -136,7 +136,7 @@ impl Default for RestoreOrCreate {
     }
 }
 
-pub fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
+fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
     let root_url = BaseUrl::try_autocomplete_from(
         Url::from_directory_path(path)
             .map_err(|()| anyhow::anyhow!("unrecognized music directory: {}", path.display()))?,
@@ -321,7 +321,7 @@ impl State {
 
     pub fn update_music_dir(
         &mut self,
-        new_kind: Option<Cow<'static, str>>,
+        new_kind: Option<Cow<'_, str>>,
         new_music_dir: DirPath<'_>,
         create_new_entity_if_not_found: bool,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
@@ -370,7 +370,7 @@ impl State {
         }
         let pending = RestoreOrCreate {
             kind: new_kind.map(Into::into),
-            music_dir: new_music_dir.to_path_buf().into(),
+            music_dir: new_music_dir.into_owned(),
             create_new_entity_if_not_found,
             nested_music_dirs,
         };
@@ -464,7 +464,7 @@ impl ObservableState {
     pub async fn update_music_dir(
         &self,
         handle: &Handle,
-        kind: Option<Cow<'static, str>>,
+        kind: Option<Cow<'_, str>>,
         new_music_dir: Option<DirPath<'_>>,
         create_new_entity_if_not_found: bool,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
@@ -473,7 +473,7 @@ impl ObservableState {
             log::debug!("Updating music directory: {}", new_music_dir.display());
             if self.modify(|state| {
                 state.update_music_dir(
-                    kind.clone(),
+                    kind,
                     new_music_dir,
                     create_new_entity_if_not_found,
                     nested_music_dirs,
