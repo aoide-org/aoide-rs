@@ -37,52 +37,68 @@ where
     )
 }
 
-pub async fn on_settings_changed(
+pub fn on_settings_changed(
     settings_state: Weak<settings::ObservableState>,
     observable_state: Weak<ObservableState>,
     handle: WeakHandle,
     create_new_entity_if_not_found: bool,
     nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
-) {
-    let mut settings_state_sub = some_or_return!(settings_state.upgrade()).subscribe();
-    log::debug!("Starting on_settings_changed");
-    loop {
-        {
-            let settings_state = some_or_break!(settings_state.upgrade());
-            let observable_state = some_or_break!(observable_state.upgrade());
-            let handle = some_or_break!(handle.upgrade());
-            let (music_dir, collection_kind) = {
-                let settings_state = settings_state_sub.read_ack();
-                let music_dir = settings_state.music_dir.clone();
-                let collection_kind = settings_state.collection_kind.clone();
-                (music_dir, collection_kind)
-            };
-            let new_music_dir = if let Err(err) = observable_state
-                .update_music_dir(
-                    &handle,
-                    collection_kind.map(Into::into),
-                    music_dir,
-                    create_new_entity_if_not_found,
-                    nested_music_directories_strategy,
-                )
-                .await
+) -> impl Future<Output = ()> + Send + 'static {
+    let settings_state_sub = settings_state
+        .upgrade()
+        .map(|observable| observable.subscribe());
+    async move {
+        let mut settings_state_sub = some_or_return!(settings_state_sub);
+        log::debug!("Starting on_settings_changed");
+        loop {
             {
-                report_error(err);
-                // Reset the music directory in the settings state. This will reset
-                // the collection state subsequently to recover from the error.
-                None
-            } else {
-                // Get the actual music directory from the collection state and feed it back
-                // into the settings state.
-                observable_state.read().music_dir().map(DirPath::into_owned)
-            };
-            settings_state.modify(|settings| settings.update_music_dir(new_music_dir.as_ref()));
+                let settings_state = some_or_break!(settings_state.upgrade());
+                let observable_state = some_or_break!(observable_state.upgrade());
+                let handle = some_or_break!(handle.upgrade());
+                let (music_dir, collection_kind) = {
+                    let settings_state = settings_state_sub.read_ack();
+                    let music_dir = settings_state.music_dir.clone();
+                    let collection_kind = settings_state.collection_kind.clone();
+                    (music_dir, collection_kind)
+                };
+                let new_music_dir = if let Err(err) = observable_state
+                    .update_music_dir(
+                        &handle,
+                        collection_kind.map(Into::into),
+                        music_dir,
+                        create_new_entity_if_not_found,
+                        nested_music_directories_strategy,
+                    )
+                    .await
+                {
+                    log::debug!("Resetting music directory in settings after error: {err}");
+                    report_error(err);
+                    // Reset the music directory in the settings state. This will reset
+                    // the collection state subsequently to recover from the error.
+                    None
+                } else {
+                    // Get the actual music directory from the collection state and feed it back
+                    // into the settings state.
+                    let new_music_dir =
+                        observable_state.read().music_dir().map(DirPath::into_owned);
+                    if let Some(new_music_dir) = &new_music_dir {
+                        log::debug!(
+                            "Updating music directory in settings: {new_music_dir}",
+                            new_music_dir = new_music_dir.display()
+                        );
+                    } else {
+                        log::debug!("Resetting music directory in settings");
+                    }
+                    new_music_dir
+                };
+                settings_state.modify(|settings| settings.update_music_dir(new_music_dir.as_ref()));
+            }
+            if settings_state_sub.changed().await.is_err() {
+                // Publisher disappeared
+                break;
+            }
         }
-        if settings_state_sub.changed().await.is_err() {
-            // Publisher disappeared
-            break;
-        }
+        log::debug!("Stopping on_settings_changed");
     }
-    log::debug!("Stopping on_settings_changed");
 }

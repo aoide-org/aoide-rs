@@ -4,6 +4,7 @@
 use std::{
     borrow::Cow,
     path::{Path, PathBuf},
+    time::Instant,
 };
 
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
@@ -118,14 +119,14 @@ impl StateTag {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RestoreOrCreate {
+pub struct RestoreOrCreateState {
     kind: Option<String>,
     music_dir: DirPath<'static>,
     create_new_entity_if_not_found: bool,
     nested_music_dirs: NestedMusicDirectoriesStrategy,
 }
 
-impl Default for RestoreOrCreate {
+impl Default for RestoreOrCreateState {
     fn default() -> Self {
         Self {
             kind: None,
@@ -147,7 +148,7 @@ fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
     Ok((root_url, root_path))
 }
 
-impl RestoreOrCreate {
+impl RestoreOrCreateState {
     pub async fn restore_or_create(self, handle: &Handle) -> anyhow::Result<State> {
         let Self {
             kind,
@@ -219,16 +220,13 @@ impl RestoreOrCreate {
                 None,
             )
             .await?;
-            let pending = RestoreOrCreate {
+            let state = RestoreOrCreateState {
                 kind,
                 music_dir: music_dir.into(),
                 create_new_entity_if_not_found,
                 nested_music_dirs,
             };
-            return Ok(State::NestedMusicDirectoriesConflict {
-                pending,
-                candidates,
-            });
+            return Ok(State::NestedMusicDirectoriesConflict { state, candidates });
         }
         // Create a new collection
         let new_collection = Collection {
@@ -266,10 +264,16 @@ pub enum State {
     #[default]
     Initial,
     Ready(EntityWithSummary),
-    Loading(EntityUid),
-    RestoringOrCreating(RestoreOrCreate),
+    Loading {
+        entity_uid: EntityUid,
+        pending_since: Instant,
+    },
+    RestoringOrCreating {
+        state: RestoreOrCreateState,
+        pending_since: Instant,
+    },
     NestedMusicDirectoriesConflict {
-        pending: RestoreOrCreate,
+        state: RestoreOrCreateState,
         candidates: Vec<EntityWithSummary>,
     },
 }
@@ -281,14 +285,25 @@ impl State {
             Self::Initial => StateTag::Initial,
             Self::Ready(_) => StateTag::Ready,
             Self::Loading { .. } => StateTag::Loading,
-            Self::RestoringOrCreating(_) => StateTag::RestoringOrCreating,
+            Self::RestoringOrCreating { .. } => StateTag::RestoringOrCreating,
             Self::NestedMusicDirectoriesConflict { .. } => StateTag::NestedMusicDirectoriesConflict,
         }
     }
 
     #[must_use]
-    pub const fn is_pending(&self) -> bool {
-        self.state_tag().is_pending()
+    pub const fn pending_since(&self) -> Option<Instant> {
+        match self {
+            Self::Initial | Self::Ready(_) | Self::NestedMusicDirectoriesConflict { .. } => None,
+            Self::Loading { pending_since, .. }
+            | Self::RestoringOrCreating { pending_since, .. } => Some(*pending_since),
+        }
+    }
+
+    #[must_use]
+    pub fn is_pending(&self) -> bool {
+        let is_pending = self.state_tag().is_pending();
+        debug_assert_eq!(is_pending, self.pending_since().is_some());
+        is_pending
     }
 
     #[must_use]
@@ -311,9 +326,12 @@ impl State {
         match self {
             Self::Initial | Self::Loading { .. } => None,
             Self::Ready(entity_with_summary) => vfs_music_dir(&entity_with_summary.entity.body),
-            Self::RestoringOrCreating(RestoreOrCreate { music_dir, .. })
+            Self::RestoringOrCreating {
+                state: RestoreOrCreateState { music_dir, .. },
+                ..
+            }
             | Self::NestedMusicDirectoriesConflict {
-                pending: RestoreOrCreate { music_dir, .. },
+                state: RestoreOrCreateState { music_dir, .. },
                 ..
             } => Some(music_dir.borrowed()),
         }
@@ -350,9 +368,10 @@ impl State {
                 return false;
             }
             Self::NestedMusicDirectoriesConflict {
-                pending: RestoreOrCreate {
-                    kind, music_dir, ..
-                },
+                state:
+                    RestoreOrCreateState {
+                        kind, music_dir, ..
+                    },
                 ..
             } => {
                 // When set the `kind` controls the selection of collections by music directory.
@@ -368,34 +387,45 @@ impl State {
                 }
             }
         }
-        let pending = RestoreOrCreate {
+        let state = RestoreOrCreateState {
             kind: new_kind.map(Into::into),
             music_dir: new_music_dir.into_owned(),
             create_new_entity_if_not_found,
             nested_music_dirs,
         };
-        log::debug!("Updating state: {self:?} -> {pending:?}");
-        *self = Self::RestoringOrCreating(pending);
+        log::debug!("Updating state: {self:?} -> {state:?}");
+        *self = Self::RestoringOrCreating {
+            state,
+            pending_since: Instant::now(),
+        };
         true
     }
 
     pub fn reset_to_pending(&mut self) -> bool {
-        match self {
-            Self::Initial | Self::Loading { .. } | Self::RestoringOrCreating { .. } => false,
+        let pending_state = match self {
+            Self::Initial | Self::Loading { .. } | Self::RestoringOrCreating { .. } => {
+                debug_assert!(!self.is_pending());
+                return false;
+            }
             Self::Ready(EntityWithSummary { entity, .. }) => {
                 let entity_uid = entity.hdr.uid.clone();
-                let pending = Self::Loading(entity_uid);
-                log::debug!("Resetting state to pending: {self:?} -> {pending:?}");
-                *self = pending;
-                true
+                Self::Loading {
+                    entity_uid,
+                    pending_since: Instant::now(),
+                }
             }
-            Self::NestedMusicDirectoriesConflict { pending, .. } => {
-                let pending = std::mem::take(pending);
-                log::debug!("Resetting state to pending: {self:?} -> {pending:?}");
-                *self = Self::RestoringOrCreating(pending);
-                true
+            Self::NestedMusicDirectoriesConflict { state, .. } => {
+                let state = std::mem::take(state);
+                Self::RestoringOrCreating {
+                    state,
+                    pending_since: Instant::now(),
+                }
             }
-        }
+        };
+        log::debug!("Resetting state to pending: {self:?} -> {pending_state:?}");
+        *self = pending_state;
+        debug_assert!(self.is_pending());
+        true
     }
 
     #[must_use]
@@ -405,7 +435,7 @@ impl State {
             | Self::RestoringOrCreating { .. }
             | Self::NestedMusicDirectoriesConflict { .. } => None,
             Self::Ready(ready) => Some(&ready.entity.hdr.uid),
-            Self::Loading(entity_uid) => Some(entity_uid),
+            Self::Loading { entity_uid, .. } => Some(entity_uid),
         }
     }
 
@@ -430,6 +460,30 @@ impl State {
         log::debug!("Replacing state: {self:?} -> {replacement:?}");
         std::mem::swap(self, &mut replacement);
         true
+    }
+
+    fn prepare_refresh_from_db(&self) -> anyhow::Result<RefreshStateFromDbParams> {
+        match self {
+            State::Ready(entity_with_summary) => {
+                let entity_uid = entity_with_summary.entity.hdr.uid.clone();
+                Ok(RefreshStateFromDbParams {
+                    entity_uid: Some(entity_uid),
+                    restore_or_create: None,
+                })
+            }
+            State::Loading { entity_uid, .. } => Ok(RefreshStateFromDbParams {
+                entity_uid: Some(entity_uid.clone()),
+                restore_or_create: None,
+            }),
+            State::RestoringOrCreating { state, .. }
+            | State::NestedMusicDirectoriesConflict { state, .. } => Ok(RefreshStateFromDbParams {
+                entity_uid: None,
+                restore_or_create: Some(state.clone()),
+            }),
+            _ => {
+                anyhow::bail!("Illegal state when refreshing from database: {self:?}");
+            }
+        }
     }
 }
 
@@ -461,11 +515,11 @@ impl ObservableState {
         self.state_pub.modify(modify_state)
     }
 
-    pub async fn update_music_dir(
-        &self,
-        handle: &Handle,
-        kind: Option<Cow<'_, str>>,
-        new_music_dir: Option<DirPath<'_>>,
+    pub async fn update_music_dir<'a>(
+        &'a self,
+        handle: &'a Handle,
+        kind: Option<Cow<'static, str>>,
+        new_music_dir: Option<DirPath<'static>>,
         create_new_entity_if_not_found: bool,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> anyhow::Result<bool> {
@@ -492,28 +546,8 @@ impl ObservableState {
     }
 
     pub async fn refresh_from_db(&self, handle: &Handle) -> anyhow::Result<()> {
-        let refreshed_state = match &*self.read() {
-            State::Ready(entity_with_summary) => {
-                refresh_state_from_db(
-                    handle,
-                    Some(entity_with_summary.entity.hdr.uid.clone()),
-                    None,
-                )
-                .await?
-            }
-            State::Loading(entity_uid) => {
-                refresh_state_from_db(handle, Some(entity_uid.clone()), None).await?
-            }
-            State::RestoringOrCreating(restore_or_create) => {
-                refresh_state_from_db(handle, None, Some(restore_or_create.clone())).await?
-            }
-            State::NestedMusicDirectoriesConflict { pending, .. } => {
-                refresh_state_from_db(handle, None, Some(pending.clone())).await?
-            }
-            _ => {
-                anyhow::bail!("Illegal state when refreshing from database: {self:?}");
-            }
-        };
+        let refresh_params = self.read().prepare_refresh_from_db()?;
+        let refreshed_state = refresh_state_from_db(handle, refresh_params).await?;
         log::debug!("Refreshed state: {refreshed_state:?}");
         self.modify(|state| state.replace(refreshed_state));
         Ok(())
@@ -526,11 +560,20 @@ impl Default for ObservableState {
     }
 }
 
-async fn refresh_state_from_db(
-    handle: &Handle,
+#[derive(Debug, Clone)]
+struct RefreshStateFromDbParams {
     entity_uid: Option<EntityUid>,
-    restore_or_create: Option<RestoreOrCreate>,
+    restore_or_create: Option<RestoreOrCreateState>,
+}
+
+async fn refresh_state_from_db<'a>(
+    handle: &Handle,
+    params: RefreshStateFromDbParams,
 ) -> anyhow::Result<State> {
+    let RefreshStateFromDbParams {
+        entity_uid,
+        restore_or_create,
+    } = params;
     let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
         try_refresh_entity_from_db(handle, entity_uid.clone()).await?
     } else {
@@ -541,7 +584,7 @@ async fn refresh_state_from_db(
             return Ok(state);
         };
     if let Some(entity_with_summary) = entity_with_summary {
-        let RestoreOrCreate {
+        let RestoreOrCreateState {
             kind, music_dir, ..
         } = &restore_or_create;
         if kind.is_none() || kind == &entity_with_summary.entity.body.kind {
