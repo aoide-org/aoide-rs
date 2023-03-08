@@ -41,6 +41,7 @@ pub async fn on_settings_changed(
     settings_state: Weak<settings::ObservableState>,
     observable_state: Weak<ObservableState>,
     handle: WeakHandle,
+    create_new_entity_if_not_found: bool,
     nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) {
@@ -62,6 +63,7 @@ pub async fn on_settings_changed(
                     &handle,
                     collection_kind.map(Into::into),
                     music_dir,
+                    create_new_entity_if_not_found,
                     nested_music_directories_strategy,
                 )
                 .await

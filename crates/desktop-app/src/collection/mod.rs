@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Cow, path::Path};
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
 
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
 use url::Url;
@@ -47,12 +50,15 @@ pub fn vfs_music_dir(collection: &Collection) -> Option<DirPath<'static>> {
                 log::warn!("URL is not a file path: {base_url}");
                 None
             },
-            |path_buf| Some(DirPath::from_owned(path_buf)),
+            |path_buf| Some(path_buf.into()),
         )
     })
 }
 
-#[derive(Debug, Clone, Copy)]
+// Load collections with their summary
+const ENTITY_LOAD_SCOPE: LoadScope = LoadScope::EntityWithSummary;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NestedMusicDirectoriesStrategy {
     /// Allow one collection per music directory without restrictions
     /// on nesting.
@@ -64,150 +70,44 @@ pub enum NestedMusicDirectoriesStrategy {
     Deny,
 }
 
-pub async fn try_refresh_entity_from_db(
+async fn try_refresh_entity_from_db(
     handle: &Handle,
     entity_uid: EntityUid,
-    load_scope: LoadScope,
 ) -> anyhow::Result<Option<EntityWithSummary>> {
     aoide_backend_embedded::collection::try_load_one(
         handle.db_gatekeeper(),
         entity_uid.clone(),
-        load_scope,
+        ENTITY_LOAD_SCOPE,
     )
     .await
     .map(|entity_with_summary| {
         if entity_with_summary.is_some() {
-            log::info!("Reloaded collection with UID {entity_uid}");
+            log::info!("Reloaded collection {entity_uid}");
         } else {
-            log::warn!("Collection with UID {entity_uid} not found");
+            log::warn!("Collection {entity_uid} not found");
         }
         entity_with_summary
     })
     .map_err(Into::into)
 }
 
-pub async fn restore_or_create_entity_from_db(
-    handle: &Handle,
-    kind: Option<String>,
-    music_dir: &Path,
-    nested_music_dirs: NestedMusicDirectoriesStrategy,
-    load_scope: LoadScope,
-) -> anyhow::Result<State> {
-    let root_url =
-        BaseUrl::try_autocomplete_from(Url::from_directory_path(music_dir).map_err(|()| {
-            anyhow::anyhow!("unrecognized music directory: {}", music_dir.display())
-        })?)?;
-    let music_dir = root_url
-        .to_file_path()
-        .map_err(|()| anyhow::anyhow!("invalid music directory"))?;
-    // Search for an existing collection with a root directory
-    // that contains the music directory.
-    let media_source_root_url_filter = match nested_music_dirs {
-        NestedMusicDirectoriesStrategy::Permit => {
-            MediaSourceRootUrlFilter::Equal(Some(root_url.clone()))
-        }
-        NestedMusicDirectoriesStrategy::Deny => {
-            MediaSourceRootUrlFilter::PrefixOf(root_url.clone())
-        }
-    };
-    let kind_filter = kind.as_ref().map(|kind| KindFilter {
-        kind: Some(kind.to_owned().into()),
-    });
-    let candidates = aoide_backend_embedded::collection::load_all(
-        handle.db_gatekeeper(),
-        kind_filter.clone(),
-        Some(media_source_root_url_filter),
-        load_scope,
-        None,
-    )
-    .await?;
-    log::info!(
-        "Found {num_candidates} existing collection candidate(s)",
-        num_candidates = candidates.len()
-    );
-    let mut selected_candidate: Option<EntityWithSummary> = None;
-    for candidate in candidates {
-        if let Some(candidate_vfs_music_dir) = vfs_music_dir(&candidate.entity.body) {
-            if music_dir.starts_with(&*candidate_vfs_music_dir) {
-                if let Some(selected_candidate) = &mut selected_candidate {
-                    if candidate_vfs_music_dir.starts_with(
-                        &*vfs_music_dir(&selected_candidate.entity.body).expect("some"),
-                    ) {
-                        // Prefer the closest/longest match
-                        *selected_candidate = candidate;
-                        continue;
-                    }
-                } else {
-                    selected_candidate = Some(candidate);
-                    continue;
-                }
-            }
-        }
-        log::info!(
-            "Skipping collection with UID {uid}: {collection:?}",
-            uid = candidate.entity.hdr.uid,
-            collection = candidate.entity.body
-        );
-    }
-    if let Some(selected_candidate) = selected_candidate {
-        return Ok(State::Ready(selected_candidate));
-    }
-    if !matches!(nested_music_dirs, NestedMusicDirectoriesStrategy::Permit) {
-        // Search for an existing collection with a root directory
-        // that is a child of the music directory.
-        let candidates = aoide_backend_embedded::collection::load_all(
-            handle.db_gatekeeper(),
-            kind_filter,
-            Some(MediaSourceRootUrlFilter::Prefix(root_url.clone())),
-            LoadScope::Entity,
-            None,
-        )
-        .await?;
-        return Ok(State::NestedMusicDirectories {
-            kind,
-            music_dir: DirPath::from_owned(music_dir),
-            candidates,
-        });
-    }
-    // Create a new collection
-    let new_collection = Collection {
-        title: music_dir.display().to_string(),
-        media_source_config: MediaSourceConfig {
-            content_path: ContentPathConfig::VirtualFilePath { root_url },
-        },
-        kind,
-        notes: None,
-        color: None,
-    };
-    let entity_uid =
-        aoide_backend_embedded::collection::create(handle.db_gatekeeper(), new_collection)
-            .await?
-            .raw
-            .hdr
-            .uid;
-    // Reload the newly created entity with its summary
-    aoide_backend_embedded::collection::load_one(handle.db_gatekeeper(), entity_uid, load_scope)
-        .await
-        .map(State::Ready)
-        .map_err(Into::into)
-}
-
 /// A light-weight tag that denotes the [`State`] variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StateTag {
     Initial,
-    PendingMusicDir,
-    PendingEntityUid,
     Ready,
-    NestedMusicDirectories,
+    Loading,
+    RestoringOrCreating,
+    NestedMusicDirectoriesConflict,
 }
 
 impl StateTag {
+    /// Indicates if this is a transitional state while an effect is running.
     #[must_use]
-    pub const fn is_idle(&self) -> bool {
+    pub const fn is_pending(&self) -> bool {
         match self {
-            Self::Initial | Self::Ready | Self::NestedMusicDirectories => true,
-            Self::PendingMusicDir | Self::PendingEntityUid => false,
+            Self::Initial | Self::Ready | Self::NestedMusicDirectoriesConflict => false,
+            Self::Loading | Self::RestoringOrCreating => true,
         }
     }
 
@@ -217,23 +117,159 @@ impl StateTag {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RestoreOrCreate {
+    kind: Option<String>,
+    music_dir: DirPath<'static>,
+    create_new_entity_if_not_found: bool,
+    nested_music_dirs: NestedMusicDirectoriesStrategy,
+}
+
+impl Default for RestoreOrCreate {
+    fn default() -> Self {
+        Self {
+            kind: None,
+            music_dir: Default::default(),
+            create_new_entity_if_not_found: false,
+            nested_music_dirs: NestedMusicDirectoriesStrategy::Deny,
+        }
+    }
+}
+
+pub fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
+    let root_url = BaseUrl::try_autocomplete_from(
+        Url::from_directory_path(path)
+            .map_err(|()| anyhow::anyhow!("unrecognized music directory: {}", path.display()))?,
+    )?;
+    let root_path = root_url
+        .to_file_path()
+        .map_err(|()| anyhow::anyhow!("invalid music directory"))?;
+    Ok((root_url, root_path))
+}
+
+impl RestoreOrCreate {
+    pub async fn restore_or_create(self, handle: &Handle) -> anyhow::Result<State> {
+        let Self {
+            kind,
+            music_dir,
+            create_new_entity_if_not_found,
+            nested_music_dirs,
+        } = self;
+        let (root_url, music_dir) = parse_music_dir_path(&music_dir)?;
+        // Search for an existing collection with a root directory
+        // that contains the music directory.
+        let media_source_root_url_filter = match nested_music_dirs {
+            NestedMusicDirectoriesStrategy::Permit => {
+                MediaSourceRootUrlFilter::Equal(Some(root_url.clone()))
+            }
+            NestedMusicDirectoriesStrategy::Deny => {
+                MediaSourceRootUrlFilter::PrefixOf(root_url.clone())
+            }
+        };
+        let kind_filter = kind.as_ref().map(|kind| KindFilter {
+            kind: Some(kind.to_owned().into()),
+        });
+        let candidates = aoide_backend_embedded::collection::load_all(
+            handle.db_gatekeeper(),
+            kind_filter.clone(),
+            Some(media_source_root_url_filter),
+            ENTITY_LOAD_SCOPE,
+            None,
+        )
+        .await?;
+        log::info!(
+            "Found {num_candidates} existing collection candidate(s)",
+            num_candidates = candidates.len()
+        );
+        let mut selected_candidate: Option<EntityWithSummary> = None;
+        for candidate in candidates {
+            if let Some(candidate_vfs_music_dir) = vfs_music_dir(&candidate.entity.body) {
+                if music_dir.starts_with(&*candidate_vfs_music_dir) {
+                    if let Some(selected_candidate) = &mut selected_candidate {
+                        if candidate_vfs_music_dir.starts_with(
+                            &*vfs_music_dir(&selected_candidate.entity.body).expect("some"),
+                        ) {
+                            // Prefer the closest/longest match
+                            *selected_candidate = candidate;
+                            continue;
+                        }
+                    } else {
+                        selected_candidate = Some(candidate);
+                        continue;
+                    }
+                }
+            }
+            log::info!(
+                "Skipping collection {uid}: {collection:?}",
+                uid = candidate.entity.hdr.uid,
+                collection = candidate.entity.body
+            );
+        }
+        if let Some(selected_candidate) = selected_candidate {
+            return Ok(State::Ready(selected_candidate));
+        }
+        if !matches!(nested_music_dirs, NestedMusicDirectoriesStrategy::Permit) {
+            // Search for an existing collection with a root directory
+            // that is a child of the music directory.
+            let candidates = aoide_backend_embedded::collection::load_all(
+                handle.db_gatekeeper(),
+                kind_filter,
+                Some(MediaSourceRootUrlFilter::Prefix(root_url.clone())),
+                ENTITY_LOAD_SCOPE,
+                None,
+            )
+            .await?;
+            let pending = RestoreOrCreate {
+                kind,
+                music_dir: music_dir.into(),
+                create_new_entity_if_not_found,
+                nested_music_dirs,
+            };
+            return Ok(State::NestedMusicDirectoriesConflict {
+                pending,
+                candidates,
+            });
+        }
+        // Create a new collection
+        let new_collection = Collection {
+            title: music_dir.display().to_string(),
+            media_source_config: MediaSourceConfig {
+                content_path: ContentPathConfig::VirtualFilePath { root_url },
+            },
+            kind,
+            notes: None,
+            color: None,
+        };
+        let entity_uid =
+            aoide_backend_embedded::collection::create(handle.db_gatekeeper(), new_collection)
+                .await?
+                .raw
+                .hdr
+                .uid;
+        // Reload the newly created entity with its summary
+        aoide_backend_embedded::collection::load_one(
+            handle.db_gatekeeper(),
+            entity_uid,
+            ENTITY_LOAD_SCOPE,
+        )
+        .await
+        .map(State::Ready)
+        .map_err(Into::into)
+    }
+}
+
+/// State of a single collection that is based on directory in the
+/// local directory using a virtual file system (VFS) for content paths.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum State {
     #[default]
     Initial,
-    PendingMusicDir {
-        kind: Option<String>,
-        music_dir: DirPath<'static>,
-    },
-    PendingEntityUid {
-        kind: Option<String>,
-        entity_uid: EntityUid,
-    },
     Ready(EntityWithSummary),
-    NestedMusicDirectories {
-        kind: Option<String>,
-        music_dir: DirPath<'static>,
+    Loading(EntityUid),
+    RestoringOrCreating(RestoreOrCreate),
+    NestedMusicDirectoriesConflict {
+        pending: RestoreOrCreate,
         candidates: Vec<EntityWithSummary>,
     },
 }
@@ -244,15 +280,15 @@ impl State {
         match self {
             Self::Initial => StateTag::Initial,
             Self::Ready(_) => StateTag::Ready,
-            Self::PendingMusicDir { .. } => StateTag::PendingMusicDir,
-            Self::PendingEntityUid { .. } => StateTag::PendingEntityUid,
-            Self::NestedMusicDirectories { .. } => StateTag::NestedMusicDirectories,
+            Self::Loading { .. } => StateTag::Loading,
+            Self::RestoringOrCreating(_) => StateTag::RestoringOrCreating,
+            Self::NestedMusicDirectoriesConflict { .. } => StateTag::NestedMusicDirectoriesConflict,
         }
     }
 
     #[must_use]
-    pub const fn is_idle(&self) -> bool {
-        self.state_tag().is_idle()
+    pub const fn is_pending(&self) -> bool {
+        self.state_tag().is_pending()
     }
 
     #[must_use]
@@ -273,10 +309,13 @@ impl State {
     #[must_use]
     pub fn music_dir(&self) -> Option<DirPath<'_>> {
         match self {
-            Self::Initial | Self::PendingEntityUid { .. } => None,
-            Self::PendingMusicDir { music_dir, .. } => Some(music_dir.borrowed()),
+            Self::Initial | Self::Loading { .. } => None,
             Self::Ready(entity_with_summary) => vfs_music_dir(&entity_with_summary.entity.body),
-            Self::NestedMusicDirectories { music_dir, .. } => Some(music_dir.borrowed()),
+            Self::RestoringOrCreating(RestoreOrCreate { music_dir, .. })
+            | Self::NestedMusicDirectoriesConflict {
+                pending: RestoreOrCreate { music_dir, .. },
+                ..
+            } => Some(music_dir.borrowed()),
         }
     }
 
@@ -284,14 +323,11 @@ impl State {
         &mut self,
         new_kind: Option<Cow<'static, str>>,
         new_music_dir: DirPath<'_>,
+        create_new_entity_if_not_found: bool,
+        nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> bool {
         match self {
             Self::Initial => (),
-            Self::PendingMusicDir { .. } | Self::PendingEntityUid { .. } => {
-                // Updating the music directory again while already pending is not allowed
-                log::error!("Illegal state when updating music directory: {self:?}");
-                return false;
-            }
             Self::Ready(entity_with_summary) => {
                 // When set the `kind` controls the selection of collections by music directory.
                 if new_kind.is_none()
@@ -308,8 +344,16 @@ impl State {
                     }
                 }
             }
-            Self::NestedMusicDirectories {
-                kind, music_dir, ..
+            Self::Loading { .. } | Self::RestoringOrCreating { .. } => {
+                // Updating the music directory again while already pending is not allowed
+                log::error!("Illegal state when updating music directory: {self:?}");
+                return false;
+            }
+            Self::NestedMusicDirectoriesConflict {
+                pending: RestoreOrCreate {
+                    kind, music_dir, ..
+                },
+                ..
             } => {
                 // When set the `kind` controls the selection of collections by music directory.
                 if (new_kind.is_none() || new_kind.as_deref() == kind.as_deref())
@@ -324,34 +368,31 @@ impl State {
                 }
             }
         }
-        let pending = Self::PendingMusicDir {
+        let pending = RestoreOrCreate {
             kind: new_kind.map(Into::into),
             music_dir: new_music_dir.to_path_buf().into(),
+            create_new_entity_if_not_found,
+            nested_music_dirs,
         };
         log::debug!("Updating state: {self:?} -> {pending:?}");
-        *self = pending;
+        *self = Self::RestoringOrCreating(pending);
         true
     }
 
     pub fn reset_to_pending(&mut self) -> bool {
         match self {
-            Self::Initial | Self::PendingMusicDir { .. } | Self::PendingEntityUid { .. } => false,
+            Self::Initial | Self::Loading { .. } | Self::RestoringOrCreating { .. } => false,
             Self::Ready(EntityWithSummary { entity, .. }) => {
-                let kind = entity.body.kind.take();
                 let entity_uid = entity.hdr.uid.clone();
-                let pending = Self::PendingEntityUid { kind, entity_uid };
+                let pending = Self::Loading(entity_uid);
                 log::debug!("Resetting state to pending: {self:?} -> {pending:?}");
                 *self = pending;
                 true
             }
-            Self::NestedMusicDirectories {
-                kind, music_dir, ..
-            } => {
-                let kind = std::mem::take(kind).map(Into::into);
-                let music_dir = std::mem::take(music_dir);
-                let pending = Self::PendingMusicDir { kind, music_dir };
+            Self::NestedMusicDirectoriesConflict { pending, .. } => {
+                let pending = std::mem::take(pending);
                 log::debug!("Resetting state to pending: {self:?} -> {pending:?}");
-                *self = pending;
+                *self = Self::RestoringOrCreating(pending);
                 true
             }
         }
@@ -360,11 +401,11 @@ impl State {
     #[must_use]
     pub fn entity_uid(&self) -> Option<&EntityUid> {
         match self {
-            Self::Initial | Self::PendingMusicDir { .. } | Self::NestedMusicDirectories { .. } => {
-                None
-            }
-            Self::PendingEntityUid { entity_uid, .. } => Some(entity_uid),
+            Self::Initial
+            | Self::RestoringOrCreating { .. }
+            | Self::NestedMusicDirectoriesConflict { .. } => None,
             Self::Ready(ready) => Some(&ready.entity.hdr.uid),
+            Self::Loading(entity_uid) => Some(entity_uid),
         }
     }
 
@@ -372,9 +413,9 @@ impl State {
     pub fn entity(&self) -> Option<&Entity> {
         match self {
             Self::Initial
-            | Self::PendingMusicDir { .. }
-            | Self::PendingEntityUid { .. }
-            | Self::NestedMusicDirectories { .. } => None,
+            | Self::Loading { .. }
+            | Self::RestoringOrCreating { .. }
+            | Self::NestedMusicDirectoriesConflict { .. } => None,
             Self::Ready(ready) => Some(&ready.entity),
         }
     }
@@ -382,7 +423,7 @@ impl State {
     #[must_use]
     fn replace(&mut self, mut replacement: State) -> bool {
         // Only invoked while pending
-        debug_assert!(!self.is_idle());
+        debug_assert!(self.is_pending());
         if self == &replacement {
             return false;
         }
@@ -425,12 +466,20 @@ impl ObservableState {
         handle: &Handle,
         kind: Option<Cow<'static, str>>,
         new_music_dir: Option<DirPath<'_>>,
+        create_new_entity_if_not_found: bool,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> anyhow::Result<bool> {
         let modified = if let Some(new_music_dir) = new_music_dir {
             log::debug!("Updating music directory: {}", new_music_dir.display());
-            if self.modify(|state| state.update_music_dir(kind.clone(), new_music_dir)) {
-                self.refresh_from_db(handle, nested_music_dirs).await?;
+            if self.modify(|state| {
+                state.update_music_dir(
+                    kind.clone(),
+                    new_music_dir,
+                    create_new_entity_if_not_found,
+                    nested_music_dirs,
+                )
+            }) {
+                self.refresh_from_db(handle).await?;
                 true
             } else {
                 false
@@ -442,40 +491,31 @@ impl ObservableState {
         Ok(modified)
     }
 
-    pub async fn refresh_from_db(
-        &self,
-        handle: &Handle,
-        nested_music_dirs: NestedMusicDirectoriesStrategy,
-    ) -> anyhow::Result<()> {
-        let (entity_uid, kind, music_dir) = match &*self.read() {
-            State::PendingMusicDir { kind, music_dir } => {
-                (None, kind.clone(), Some(music_dir.clone()))
-            }
-            State::PendingEntityUid { kind, entity_uid } => {
-                (Some(entity_uid.clone()), kind.clone(), None)
-            }
+    pub async fn refresh_from_db(&self, handle: &Handle) -> anyhow::Result<()> {
+        let refreshed_state = match &*self.read() {
             State::Ready(entity_with_summary) => {
-                let entity_uid = Some(entity_with_summary.entity.hdr.uid.clone());
-                let kind = entity_with_summary.entity.body.kind.clone();
-                let music_dir = vfs_music_dir(&entity_with_summary.entity.body);
-                (entity_uid, kind, music_dir)
+                refresh_state_from_db(
+                    handle,
+                    Some(entity_with_summary.entity.hdr.uid.clone()),
+                    None,
+                )
+                .await?
             }
-            State::NestedMusicDirectories {
-                kind, music_dir, ..
-            } => (None, kind.clone(), Some(music_dir.clone())),
+            State::Loading(entity_uid) => {
+                refresh_state_from_db(handle, Some(entity_uid.clone()), None).await?
+            }
+            State::RestoringOrCreating(restore_or_create) => {
+                refresh_state_from_db(handle, None, Some(restore_or_create.clone())).await?
+            }
+            State::NestedMusicDirectoriesConflict { pending, .. } => {
+                refresh_state_from_db(handle, None, Some(pending.clone())).await?
+            }
             _ => {
                 anyhow::bail!("Illegal state when refreshing from database: {self:?}");
             }
         };
-        let task = RefreshingStateTask::new(
-            entity_uid,
-            kind.map(Into::into),
-            music_dir,
-            nested_music_dirs,
-        )?;
-        let refreshed = task.execute(handle).await?;
-        log::debug!("Refreshed state: {refreshed:?}");
-        self.modify(|state| state.replace(refreshed));
+        log::debug!("Refreshed state: {refreshed_state:?}");
+        self.modify(|state| state.replace(refreshed_state));
         Ok(())
     }
 }
@@ -486,74 +526,36 @@ impl Default for ObservableState {
     }
 }
 
-#[derive(Debug)]
-pub struct RefreshingStateTask {
+async fn refresh_state_from_db(
+    handle: &Handle,
     entity_uid: Option<EntityUid>,
-    kind: Option<Cow<'static, str>>,
-    music_dir: Option<DirPath<'static>>,
-    nested_music_dirs: NestedMusicDirectoriesStrategy,
-}
-
-impl RefreshingStateTask {
-    pub fn new(
-        entity_uid: Option<EntityUid>,
-        kind: Option<Cow<'static, str>>,
-        music_dir: Option<DirPath<'static>>,
-        nested_music_dirs: NestedMusicDirectoriesStrategy,
-    ) -> anyhow::Result<Self> {
-        if entity_uid.is_none() && music_dir.is_none() {
-            anyhow::bail!(
-                "Neither entity UID nor music directory available for refreshing the state"
-            );
+    restore_or_create: Option<RestoreOrCreate>,
+) -> anyhow::Result<State> {
+    let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
+        try_refresh_entity_from_db(handle, entity_uid.clone()).await?
+    } else {
+        None
+    };
+    let Some(restore_or_create) = restore_or_create else {
+            let state = entity_with_summary.map(State::Ready).unwrap_or_default();
+            return Ok(state);
         };
-        Ok(Self {
-            entity_uid,
-            kind,
-            music_dir,
-            nested_music_dirs,
-        })
-    }
-
-    pub async fn execute(self, handle: &Handle) -> anyhow::Result<State> {
-        let Self {
-            music_dir,
-            entity_uid,
-            kind,
-            nested_music_dirs,
-        } = self;
-        let load_scope = LoadScope::EntityWithSummary;
-        let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
-            try_refresh_entity_from_db(handle, entity_uid.clone(), load_scope).await?
-        } else {
-            None
-        };
-        if let Some(entity_with_summary) = entity_with_summary {
-            if kind.is_none() || kind.as_deref() == entity_with_summary.entity.body.kind.as_deref()
-            {
-                if let Some(expected_music_dir) = &music_dir {
-                    let actual_music_dir = vfs_music_dir(&entity_with_summary.entity.body);
-                    if Some(expected_music_dir) == actual_music_dir.as_ref() {
-                        return Ok(State::Ready(entity_with_summary));
-                    }
-                } else {
-                    return Ok(State::Ready(entity_with_summary));
-                }
+    if let Some(entity_with_summary) = entity_with_summary {
+        let RestoreOrCreate {
+            kind, music_dir, ..
+        } = &restore_or_create;
+        if kind.is_none() || kind == &entity_with_summary.entity.body.kind {
+            let entity_music_dir = vfs_music_dir(&entity_with_summary.entity.body);
+            if entity_music_dir.as_ref() == Some(music_dir) {
+                return Ok(State::Ready(entity_with_summary));
             }
-            log::debug!(
-                "Discarding collection with UID {uid}",
-                uid = entity_with_summary.entity.hdr.uid
-            );
         }
-        let music_dir = music_dir.ok_or_else(|| anyhow::anyhow!("no music directory"))?;
-        restore_or_create_entity_from_db(
-            handle,
-            kind.map(Cow::into_owned),
-            &music_dir,
-            nested_music_dirs,
-            load_scope,
-        )
-        .await
+        log::debug!(
+            "Discarding collection {uid}",
+            uid = entity_with_summary.entity.hdr.uid
+        );
     }
+    restore_or_create.restore_or_create(handle).await
 }
 
 pub async fn synchronize_vfs<ReportProgressFn>(

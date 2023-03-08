@@ -14,9 +14,9 @@ publish = false
 anyhow = "1.0.69"
 num-derive = "0.3.3"
 num-traits = "0.2.15"
-paste = "1.0.11"
+paste = "1.0.12"
 rand = "0.8.5"
-thiserror = "1.0.38"
+thiserror = "1.0.39"
 
 # Workspace dependencies
 aoide-core = "=0.8.0"

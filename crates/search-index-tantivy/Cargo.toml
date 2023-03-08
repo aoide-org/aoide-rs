@@ -15,7 +15,7 @@ anyhow = "1.0.69"
 num-traits = "0.2.15"
 log = "0.4.17"
 tantivy = "0.19.2"
-thiserror = "1.0.38"
+thiserror = "1.0.39"
 
 # Workspace dependencies
 aoide-core = "=0.8.0"

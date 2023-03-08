@@ -25,7 +25,6 @@ pub fn on_state_changed_save_to_file(
         log::debug!("Starting on_state_changed_save_to_file");
         let mut settings_changed = false;
         loop {
-            #[allow(clippy::collapsible_if)] // suppress false positive warning
             if settings_changed {
                 log::debug!("Saving changed settings: {old_settings:?}");
                 let new_settings = old_settings.clone();
@@ -51,9 +50,6 @@ pub fn on_state_changed_save_to_file(
 }
 
 /// Listen for changes of the music directory.
-///
-/// The `on_changed` callback closure must return `true` to continue
-/// listening and `false` to abort listening.
 pub fn on_music_dir_changed(
     mut subscriber: Subscriber<State>,
     mut on_changed: impl FnMut(Option<&DirPath<'_>>) -> OnChanged + Send + 'static,
@@ -65,8 +61,8 @@ pub fn on_music_dir_changed(
         // Enforce initial update
         let mut value_changed = true;
         loop {
-            #[allow(clippy::collapsible_if)] // suppress false positive warning
             if value_changed {
+                log::debug!("on_music_dir_changed({value:?})");
                 match on_changed(value.as_ref()) {
                     OnChanged::Continue => (),
                     OnChanged::Abort => {
@@ -87,8 +83,6 @@ pub fn on_music_dir_changed(
             if value.as_ref() != new_value {
                 value = new_value.cloned();
                 value_changed = true;
-            } else {
-                log::debug!("Music directory unchanged: {value:?}");
             }
         }
         log::debug!("Stopping on_music_dir_changed");
