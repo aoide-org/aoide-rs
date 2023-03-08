@@ -58,7 +58,7 @@ pub async fn on_settings_changed(
                 let collection_kind = settings_state.collection_kind.clone();
                 (music_dir, collection_kind)
             };
-            if let Err(err) = observable_state
+            let new_music_dir = if let Err(err) = observable_state
                 .update_music_dir(
                     &handle,
                     collection_kind.map(Into::into),
@@ -71,13 +71,13 @@ pub async fn on_settings_changed(
                 report_error(err);
                 // Reset the music directory in the settings state. This will reset
                 // the collection state subsequently to recover from the error.
-                settings_state.modify(|settings| settings.update_music_dir(None));
+                None
             } else {
                 // Get the actual music directory from the collection state and feed it back
                 // into the settings state.
-                let music_dir = observable_state.read().music_dir().map(DirPath::into_owned);
-                settings_state.modify(|settings| settings.update_music_dir(music_dir.as_ref()));
-            }
+                observable_state.read().music_dir().map(DirPath::into_owned)
+            };
+            settings_state.modify(|settings| settings.update_music_dir(new_music_dir.as_ref()));
         }
         if settings_state_sub.changed().await.is_err() {
             // Publisher disappeared
