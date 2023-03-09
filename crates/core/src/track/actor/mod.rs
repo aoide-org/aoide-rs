@@ -36,17 +36,14 @@ pub enum Role {
 // Kind
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
+#[derive(
+    Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive,
+)]
 pub enum Kind {
+    #[default]
     Summary = 0, // unspecified for display, may mention multiple actors with differing kinds and roles
     Individual = 1, // single persons or group/band names
     Sorting = 2,
-}
-
-impl Default for Kind {
-    fn default() -> Kind {
-        Kind::Summary
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////
