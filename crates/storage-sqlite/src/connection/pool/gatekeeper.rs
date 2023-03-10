@@ -3,6 +3,7 @@
 
 use std::{
     num::NonZeroU64,
+    pin::pin,
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc,
@@ -157,9 +158,8 @@ impl Gatekeeper {
             Arc::clone(&self.request_counter_state),
             RequestCounterMode::Read,
         );
-        let timeout = sleep(acquire_read_timeout);
-        tokio::pin!(timeout);
         let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
+        let mut timeout = pin!(sleep(acquire_read_timeout));
         tokio::select! {
             _ = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
             guard = self.connection_pool.read() => {
@@ -198,9 +198,8 @@ impl Gatekeeper {
             Arc::clone(&self.request_counter_state),
             RequestCounterMode::Write,
         );
-        let timeout = sleep(acquire_write_timeout);
-        tokio::pin!(timeout);
         let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
+        let mut timeout = pin!(sleep(acquire_write_timeout));
         tokio::select! {
             _ = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
             guard = self.connection_pool.write() => {
