@@ -157,6 +157,7 @@ dependencies = [
  "anyhow",
  "bitflags",
  "getrandom",
+ "image",
  "mime",
  "nonicle",
  "num-derive",

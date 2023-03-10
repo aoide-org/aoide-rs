@@ -66,6 +66,13 @@ pub type Digest = [u8; 32];
 
 pub type Thumbnail4x4Rgb8 = [u8; 4 * 4 * 3];
 
+#[cfg(feature = "artwork-image")]
+/// Create an image from thumbnail data
+#[must_use]
+pub fn thumbnail_image(thumbnail: &Thumbnail4x4Rgb8) -> image::RgbImage {
+    image::RgbImage::from_raw(4, 4, thumbnail.to_vec()).expect("Some")
+}
+
 /// Artwork image properties
 ///
 /// All properties are optional for maximum flexibility.
