@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use base64::{prelude::BASE64_STANDARD_NO_PAD, Engine as _};
+use image::{codecs::png::PngEncoder, ImageEncoder as _};
 use mime::Mime;
 use num_derive::{FromPrimitive, ToPrimitive};
 
@@ -64,13 +66,43 @@ impl Validate for ImageSize {
 
 pub type Digest = [u8; 32];
 
-pub type Thumbnail4x4Rgb8 = [u8; 4 * 4 * 3];
+pub const THUMBNAIL_WIDTH: usize = 4;
 
-#[cfg(feature = "artwork-image")]
+pub const THUMBNAIL_HEIGHT: usize = 4;
+
+pub type Thumbnail4x4Rgb8 = [u8; THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3];
+
 /// Create an image from thumbnail data
 #[must_use]
 pub fn thumbnail_image(thumbnail: &Thumbnail4x4Rgb8) -> image::RgbImage {
-    image::RgbImage::from_raw(4, 4, thumbnail.to_vec()).expect("Some")
+    image::RgbImage::from_raw(
+        THUMBNAIL_WIDTH.try_into().expect("infallible"),
+        THUMBNAIL_HEIGHT.try_into().expect("infallible"),
+        thumbnail.to_vec(),
+    )
+    .expect("Some")
+}
+
+/// Create an ICO [data URI](<https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs>)
+/// from thumbnail data
+#[must_use]
+pub fn thumbnail_png_data_uri(thumbnail: &Thumbnail4x4Rgb8) -> String {
+    let mut png_data = Vec::with_capacity(192);
+    let png_encoder = PngEncoder::new(&mut png_data);
+    png_encoder
+        .write_image(
+            thumbnail,
+            THUMBNAIL_WIDTH.try_into().expect("infallible"),
+            THUMBNAIL_HEIGHT.try_into().expect("infallible"),
+            image::ColorType::Rgb8,
+        )
+        .expect("infallible");
+    debug_assert!(png_data.len() <= 192);
+    let mut data_uri = String::with_capacity(256);
+    data_uri.push_str("data:image/png;base64,");
+    BASE64_STANDARD_NO_PAD.encode_string(&png_data, &mut data_uri);
+    debug_assert!(data_uri.len() <= 256);
+    data_uri
 }
 
 /// Artwork image properties
@@ -170,5 +202,45 @@ impl Validate for Artwork {
             }
         }
         context.into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use data_url::DataUrl;
+    use image::{codecs::png::PngDecoder, ImageDecoder as _};
+
+    use super::{THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH};
+
+    #[test]
+    fn encode_and_decode_thumbnail_as_data_uri() {
+        for r in [0x00u8, 0xffu8] {
+            for g in [0x00u8, 0xffu8] {
+                for b in [0x00u8, 0xffu8] {
+                    let pixel = [r, g, b];
+                    let thumbnail_data = std::iter::repeat(pixel)
+                        .take(THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT)
+                        .flatten()
+                        .collect::<Vec<_>>();
+                    let thumbnail = thumbnail_data.clone().try_into().unwrap();
+                    let thumbnail_uri = super::thumbnail_png_data_uri(&thumbnail);
+                    let data_url = DataUrl::process(&thumbnail_uri).unwrap();
+                    let mime_type = data_url.mime_type();
+                    assert_eq!("image", mime_type.type_);
+                    assert_eq!("png", mime_type.subtype);
+                    assert!(mime_type.parameters.is_empty());
+                    let (png_data, fragment_identifier) = data_url.decode_to_vec().unwrap();
+                    assert!(!png_data.is_empty());
+                    assert!(fragment_identifier.is_none());
+                    let png_data_cursor = Cursor::new(png_data);
+                    let png_decoder = PngDecoder::new(png_data_cursor).unwrap();
+                    let mut decoded_data = [0; THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3];
+                    png_decoder.read_image(&mut decoded_data).unwrap();
+                    assert_eq!(thumbnail_data, decoded_data);
+                }
+            }
+        }
     }
 }

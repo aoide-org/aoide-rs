@@ -13,7 +13,7 @@ use thiserror::Error;
 use aoide_core::{
     media::artwork::{
         ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
-        Thumbnail4x4Rgb8,
+        Thumbnail4x4Rgb8, THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH,
     },
     util::color::RgbColor,
 };
@@ -166,8 +166,12 @@ fn ingest_artwork_image(
         })
         .and_then(|palette| palette.first().copied())
         .map(|rgb| RgbColor::new(rgb.r, rgb.g, rgb.b));
-    let picture_4x4 = picture.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
-    let thumbnail = Thumbnail4x4Rgb8::try_from(picture_4x4.to_rgb8().into_raw()).ok();
+    let thumbnail_picture = picture.resize_exact(
+        THUMBNAIL_WIDTH.try_into().expect("infallible"),
+        THUMBNAIL_HEIGHT.try_into().expect("infallible"),
+        image::imageops::FilterType::Lanczos3,
+    );
+    let thumbnail = Thumbnail4x4Rgb8::try_from(thumbnail_picture.to_rgb8().into_raw()).ok();
     debug_assert!(thumbnail.is_some());
     let artwork_image = ArtworkImage {
         media_type,

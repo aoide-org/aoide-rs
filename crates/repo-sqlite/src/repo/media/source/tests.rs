@@ -14,7 +14,10 @@ use aoide_core::{
     entity::EntityHeaderTyped,
     media::{
         self,
-        artwork::{ApicType, Artwork, ArtworkImage, ImageSize, LinkedArtwork},
+        artwork::{
+            ApicType, Artwork, ArtworkImage, ImageSize, LinkedArtwork, THUMBNAIL_HEIGHT,
+            THUMBNAIL_WIDTH,
+        },
         content::ContentRevision,
         content::{
             AudioContentMetadata, ContentLink, ContentMetadataFlags, ContentPath, ContentPathConfig,
@@ -93,7 +96,7 @@ fn insert_media_source() -> anyhow::Result<()> {
                 }),
                 digest: Some([128; 32]),
                 color: Some(RgbColor::new(0xf0, 0xf0, 0xf0)),
-                thumbnail: Some([127; 4 * 4 * 3]),
+                thumbnail: Some([127; THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3]),
             },
         })),
     };

@@ -40,7 +40,7 @@ compact_str = { version = "0.7.0", optional = true }
 triseratops = { version = "0.0.2", optional = true }
 
 # Workspace dependencies
-aoide-core = { version = "=0.8.0", features = ["artwork-image"] }
+aoide-core = "=0.8.0"
 
 [features]
 default = ["all"]
