@@ -68,6 +68,36 @@ pub const FACET_ID_ISRC: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_ISRC))
 pub const FACET_XID: &str = "xid";
 pub const FACET_ID_XID: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_XID));
 
+// [MusicBrainz Recording Identifier](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#id21)
+// ID3v2.4: UFID:http://musicbrainz.org
+// Vorbis:  MUSICBRAINZ_TRACKID
+// MP4:     ----:com.apple.iTunes:MusicBrainz Track Id
+pub const FACET_MBID_RECORDING: &str = "mbid-rec";
+pub const FACET_ID_MBID_RECORDING: &FacetId<'_> =
+    &FacetId::new(Cow::Borrowed(FACET_MBID_RECORDING));
+
+// [MusicBrainz Track Identifier](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#id24)
+// ID3v2.4: TXXX:MusicBrainz Release Track Id
+// Vorbis:  MUSICBRAINZ_TRACKID
+// MP4:     ----:com.apple.iTunes:MusicBrainz Release Track Id
+pub const FACET_MBID_TRACK: &str = "mbid-trk";
+pub const FACET_ID_MBID_TRACK: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_MBID_TRACK));
+
+// [MusicBrainz Release Identifier](https://musicbrainz.org/doc/Release)
+// ID3v2.4: TXXX:MusicBrainz Album Id
+// Vorbis:  MUSICBRAINZ_ALBUMID
+// MP4:     ----:com.apple.iTunes:MusicBrainz Album Id
+pub const FACET_MBID_RELEASE: &str = "mbid-rel";
+pub const FACET_ID_MBID_RELEASE: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_MBID_RELEASE));
+
+// [MusicBrainz Release Group Identifier](https://musicbrainz.org/doc/Release_Group)
+// ID3v2.4: TXXX:MusicBrainz Release Group Id
+// Vorbis:  MUSICBRAINZ_RELEASEGROUPID
+// MP4:     ----:com.apple.iTunes:MusicBrainz Release Group Id
+pub const FACET_MBID_RELEASE_GROUP: &str = "mbid-rel-grp";
+pub const FACET_ID_MBID_RELEASE_GROUP: &FacetId<'_> =
+    &FacetId::new(Cow::Borrowed(FACET_MBID_RELEASE_GROUP));
+
 // Predefined musical or audio feature scores (as of Spotify/EchoNest).
 // A label is optional and could be used for identifying the source of
 // the score.
