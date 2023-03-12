@@ -28,7 +28,8 @@ use aoide_core::{
         metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
-            FACET_ID_ISRC, FACET_ID_MOOD, FACET_ID_XID,
+            FACET_ID_ISRC, FACET_ID_MBID_RECORDING, FACET_ID_MBID_RELEASE,
+            FACET_ID_MBID_RELEASE_GROUP, FACET_ID_MBID_TRACK, FACET_ID_MOOD, FACET_ID_XID,
         },
         title::{Kind as TitleKind, Titles},
         Track,
@@ -786,6 +787,36 @@ pub(crate) fn import_file_tag_into_track(
         tag.take_strings(&ItemKey::AppleXid).map(Into::into),
     );
 
+    // MusicBrainz tags
+    importer.import_faceted_tags_from_label_values(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        FACET_ID_MBID_RECORDING,
+        tag.take_strings(&ItemKey::MusicBrainzRecordingId)
+            .map(Into::into),
+    );
+    importer.import_faceted_tags_from_label_values(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        FACET_ID_MBID_TRACK,
+        tag.take_strings(&ItemKey::MusicBrainzTrackId)
+            .map(Into::into),
+    );
+    importer.import_faceted_tags_from_label_values(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        FACET_ID_MBID_RELEASE,
+        tag.take_strings(&ItemKey::MusicBrainzReleaseId)
+            .map(Into::into),
+    );
+    importer.import_faceted_tags_from_label_values(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        FACET_ID_MBID_RELEASE_GROUP,
+        tag.take_strings(&ItemKey::MusicBrainzReleaseGroupId)
+            .map(Into::into),
+    );
+
     let old_tags = &mut track.tags;
     let new_tags = tags_map.canonicalize_into();
     if !old_tags.is_empty() && *old_tags != new_tags {
@@ -1217,6 +1248,53 @@ pub(crate) fn export_track_to_tag(
         );
     } else {
         tag.remove_key(&ItemKey::AppleXid);
+    }
+
+    // MusicBrainz tags
+    if let Some(FacetedTags { facet_id, tags }) =
+        tags_map.take_faceted_tags(FACET_ID_MBID_RECORDING)
+    {
+        export_faceted_tags(
+            tag,
+            ItemKey::MusicBrainzRecordingId,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::MusicBrainzRecordingId);
+    }
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MBID_TRACK) {
+        export_faceted_tags(
+            tag,
+            ItemKey::MusicBrainzTrackId,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::MusicBrainzTrackId);
+    }
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MBID_RELEASE)
+    {
+        export_faceted_tags(
+            tag,
+            ItemKey::MusicBrainzReleaseId,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::MusicBrainzReleaseId);
+    }
+    if let Some(FacetedTags { facet_id, tags }) =
+        tags_map.take_faceted_tags(FACET_ID_MBID_RELEASE_GROUP)
+    {
+        export_faceted_tags(
+            tag,
+            ItemKey::MusicBrainzReleaseGroupId,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::MusicBrainzReleaseGroupId);
     }
 
     // Grouping(s)
