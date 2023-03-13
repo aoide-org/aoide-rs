@@ -22,14 +22,14 @@ url = { version = "2.3.1", features = ["serde"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.12", optional = true, features = ["chrono", "url"] }
-chrono = { version = "0.4.23", optional = true, default-features = false }
+chrono = { version = "0.4.24", optional = true, default-features = false }
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", features = ["serde"] }
 
 [features]
 default = []
-json-schema = ["schemars", "chrono", "aoide-core/json-schema"]
+json-schema = ["dep:schemars", "dep:chrono", "aoide-core/json-schema"]
 # Feature to enable JavaScript bindings on wasm32-unknown-unknown
 js = ["aoide-core/js"]
 

@@ -120,6 +120,7 @@ impl Validate for Entry {
 }
 
 bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct Flags: u8 {
         const LOCKED = 0b0000_0001;
     }

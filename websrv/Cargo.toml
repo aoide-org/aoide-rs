@@ -59,8 +59,8 @@ aoide-websrv-warp-sqlite = "=0.8.0"
 [features]
 default = ["json-schema", "launcher-ui"]
 json-schema = [
-    "schemars",
+    "dep:schemars",
     "aoide-core/json-schema",
     "aoide-backend-webapi-json/json-schema",
 ]
-launcher-ui = ["eframe", "egui", "rfd"]
+launcher-ui = ["dep:eframe", "dep:egui", "dep:rfd"]

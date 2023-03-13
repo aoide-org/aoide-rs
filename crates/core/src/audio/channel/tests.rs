@@ -22,17 +22,16 @@ fn channel_flags_default() {
 }
 
 #[test]
-#[allow(unsafe_code)]
 fn channel_flags_validate() {
     assert!(ChannelFlags::empty().validate().is_err());
     assert!(ChannelFlags::all().validate().is_ok());
     assert!(
-        unsafe { ChannelFlags::from_bits_unchecked(ChannelFlags::all().bits() >> 1) }
+        ChannelFlags::from_bits_retain(ChannelFlags::all().bits() >> 1)
             .validate()
             .is_ok()
     );
     assert!(
-        unsafe { ChannelFlags::from_bits_unchecked(ChannelFlags::all().bits() << 1) }
+        ChannelFlags::from_bits_retain(ChannelFlags::all().bits() << 1)
             .validate()
             .is_err()
     );

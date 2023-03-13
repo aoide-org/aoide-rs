@@ -40,7 +40,7 @@ aoide-usecases-sqlite = "=0.8.0"
 [features]
 default = []
 json-schema = [
-    "schemars",
+    "dep:schemars",
     "aoide-core/json-schema",
     "aoide-core-api-json/json-schema",
     "aoide-core-json/json-schema",

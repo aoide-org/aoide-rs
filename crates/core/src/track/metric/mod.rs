@@ -13,6 +13,7 @@ use crate::{
 use bitflags::bitflags;
 
 bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct MetricsFlags: u8 {
         const TEMPO_BPM_LOCKED            = 0b0000_0001;
         const KEY_SIGNATURE_LOCKED        = 0b0000_0010;

@@ -27,6 +27,6 @@ aoide-core-json = "=0.8.0"
 default = []
 frontend = []
 backend = []
-json-schema = ["schemars", "aoide-core/json-schema", "aoide-core-json/json-schema"]
+json-schema = ["dep:schemars", "aoide-core/json-schema", "aoide-core-json/json-schema"]
 # Feature to enable JavaScript bindings on wasm32-unknown-unknown
 js = ["aoide-core/js", "aoide-core-api/js", "aoide-core-json/js"]

@@ -102,7 +102,8 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             artwork_color,
             artwork_thumbnail,
         } = from;
-        let channel_flags = audio_channel_mask.and_then(|val| ChannelFlags::from_bits(val as _));
+        let channel_flags =
+            audio_channel_mask.map(|val| ChannelFlags::from_bits_truncate(val as _));
         let channel_count = audio_channel_count.map(|val| ChannelCount(val as _));
         let channels = Channels::try_from_flags_or_count(channel_flags, channel_count);
         let audio_metadata = AudioContentMetadata {

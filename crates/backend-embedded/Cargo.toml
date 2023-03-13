@@ -33,4 +33,4 @@ tantivy = { version = "0.19.2", optional = true }
 
 [features]
 default = []
-tantivy = ["aoide-search-index-tantivy", "dep:tantivy"]
+tantivy = ["dep:aoide-search-index-tantivy", "dep:tantivy"]

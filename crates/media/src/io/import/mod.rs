@@ -46,6 +46,7 @@ bitflags! {
     ///
     /// It is recommended to enable all for maximum information and
     /// maximum compatibility.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct ImportTrackFlags: u16 {
         /// Import metadata
         ///

@@ -198,7 +198,7 @@ impl From<AudioContentMetadata> for _core::AudioContentMetadata {
             loudness_lufs,
             encoder,
         } = from;
-        let channel_flags = channel_mask.and_then(ChannelFlags::from_bits);
+        let channel_flags = channel_mask.map(ChannelFlags::from_bits_truncate);
         let channels = Channels::try_from_flags_or_count(channel_flags, channel_count);
         Self {
             duration: duration_ms.map(Into::into),

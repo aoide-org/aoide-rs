@@ -90,7 +90,7 @@ fn import_audio_content_from_file_properties(properties: &FileProperties) -> Aud
         .map(|count| ChannelCount(count.into()));
     let channel_flags = properties
         .channel_mask()
-        .and_then(|mask| ChannelFlags::from_bits(mask.bits()));
+        .map(|mask| ChannelFlags::from_bits_truncate(mask.bits()));
     let channels = Channels::try_from_flags_or_count(channel_flags, channel_count);
     let duration_ms = properties.duration().as_secs_f64() * 1000.0;
     let duration = Some(DurationMs::new(duration_ms)).filter(IsValid::is_valid);

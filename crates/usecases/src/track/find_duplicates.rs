@@ -23,6 +23,7 @@ use super::*;
 bitflags! {
     /// A bitmask for controlling how and if content metadata is
     /// re-imported from the source.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct SearchFlags: u8 {
         const NONE           = 0b0000_0000; // least restrictive
         const SOURCE_TRACKED   = 0b0000_0001;

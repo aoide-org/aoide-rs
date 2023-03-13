@@ -22,6 +22,7 @@ use crate::{
 use super::import::ImportTrackFlags;
 
 bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct ExportTrackFlags: u16 {
         /// See also: [`super::import::ImportTrackFlags`]
         const COMPATIBILITY_ID3V2_APPLE_GRP1 = ImportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1.bits();

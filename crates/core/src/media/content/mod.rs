@@ -306,6 +306,7 @@ pub struct ContentLink {
 bitflags! {
     /// A bitmask for controlling how and if content metadata is
     /// re-imported from the source.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct ContentMetadataFlags: u8 {
         /// Use case: Parsed from file tags which are considered inaccurate
         /// and are often imprecise.

@@ -35,5 +35,5 @@ aoide-core-api-json = { version = "=0.8.0", features = ["frontend"] }
 
 [features]
 default = []
-webapi-backend = ["reqwest"]
+webapi-backend = ["dep:reqwest"]
 tokio = ["dep:tokio"]
