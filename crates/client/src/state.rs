@@ -5,25 +5,32 @@ use std::ops::{Add, AddAssign};
 
 use crate::{action::Action, message::Message};
 
+/// Perceptible effect when updating the state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StateMutation {
+pub enum StateChanged {
+    /// The state has not changed
     Unchanged,
+
+    /// The state might have changed
+    ///
+    /// False positives are allowed, i.e. when unsure or when determining
+    /// if the state has actually changed is either costly or impossible
+    /// then default to this variant.
     MaybeChanged,
 }
 
-impl Add<StateMutation> for StateMutation {
+impl Add<StateChanged> for StateChanged {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        if self == Self::Unchanged && rhs == Self::Unchanged {
-            Self::Unchanged
-        } else {
-            Self::MaybeChanged
+        match (self, rhs) {
+            (Self::Unchanged, Self::Unchanged) => Self::Unchanged,
+            (_, _) => Self::MaybeChanged,
         }
     }
 }
 
-impl AddAssign for StateMutation {
+impl AddAssign for StateChanged {
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }
@@ -31,21 +38,29 @@ impl AddAssign for StateMutation {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StateUpdated<Effect, Task> {
-    pub state_mutation: StateMutation,
+    /// The outcome on the state itself
+    ///
+    /// The state might have been modified during by the update
+    /// operation.
+    pub changed: StateChanged,
+
+    /// The next action
+    ///
+    /// Updating the state results in 0 or 1 next action(s).
     pub next_action: Option<Action<Effect, Task>>,
 }
 
 impl<Effect, Task> StateUpdated<Effect, Task> {
     pub fn unchanged(next_action: impl Into<Option<Action<Effect, Task>>>) -> Self {
         Self {
-            state_mutation: StateMutation::Unchanged,
+            changed: StateChanged::Unchanged,
             next_action: next_action.into(),
         }
     }
 
     pub fn maybe_changed(next_action: impl Into<Option<Action<Effect, Task>>>) -> Self {
         Self {
-            state_mutation: StateMutation::MaybeChanged,
+            changed: StateChanged::MaybeChanged,
             next_action: next_action.into(),
         }
     }
@@ -57,7 +72,7 @@ where
     T1: Into<T2>,
 {
     let StateUpdated {
-        state_mutation,
+        changed,
         next_action,
     } = from;
     let next_action = next_action.map(|action| match action {
@@ -65,7 +80,7 @@ where
         Action::DispatchTask(task) => Action::dispatch_task(task),
     });
     StateUpdated {
-        state_mutation,
+        changed,
         next_action,
     }
 }

@@ -59,16 +59,16 @@ where
     S::Effect: fmt::Debug + Send + 'static,
     S::Task: fmt::Debug + 'static,
 {
-    let mut state_mutation = StateMutation::Unchanged;
+    let mut state_changed = StateChanged::Unchanged;
     let mut number_of_next_actions = 0;
     let mut number_of_messages_sent = 0;
     let mut number_of_tasks_dispatched = 0;
     'process_next_message: loop {
         let StateUpdated {
-            state_mutation: next_state_mutation,
+            changed: next_state_changed,
             next_action,
         } = state.update(next_message);
-        state_mutation += next_state_mutation;
+        state_changed += next_state_changed;
         if let Some(next_action) = next_action {
             number_of_next_actions += 1;
             match next_action {
@@ -84,7 +84,7 @@ where
                 }
             }
         }
-        if state_mutation == StateMutation::MaybeChanged || number_of_next_actions > 0 {
+        if state_changed == StateChanged::MaybeChanged || number_of_next_actions > 0 {
             log::debug!("Rendering current state: {state:?}");
             if let Some(observation_intent) = render_fn(state) {
                 log::debug!("Received intent after observing state: {observation_intent:?}");
