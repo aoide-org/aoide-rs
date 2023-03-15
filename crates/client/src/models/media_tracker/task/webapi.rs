@@ -1,61 +1,60 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use crate::{
-    prelude::*,
-    webapi::{receive_response_body, ClientEnvironment},
-};
+use aoide_core::collection::EntityUid as CollectionUid;
 
-use super::{super::Effect, Task};
+use crate::webapi::{receive_response_body, ClientEnvironment};
+
+use super::{
+    super::Effect, FetchStatus, PendingTask, StartFindUntrackedFiles, StartImportFiles,
+    StartScanDirectories, Task, UntrackDirectories,
+};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task {self:?}");
         match self {
-            Self::FetchProgress { token } => {
-                let result = fetch_progress(env).await;
-                Effect::FetchProgressFinished { token, result }
-            }
-            Self::FetchStatus {
-                token,
-                collection_uid,
-                params,
-            } => {
-                let result = fetch_status(env, &collection_uid, params).await;
-                Effect::FetchStatusFinished { token, result }
-            }
-            Self::StartScanDirectories {
-                token,
-                collection_uid,
-                params,
-            } => {
-                let result = start_scan_directories(env, &collection_uid, params).await;
-                Effect::ScanDirectoriesFinished { token, result }
-            }
-            Self::StartImportFiles {
-                token,
-                collection_uid,
-                params,
-            } => {
-                let result = start_import_files(env, &collection_uid, params).await;
-                Effect::ImportFilesFinished { token, result }
-            }
-            Self::StartFindUntrackedFiles {
-                token,
-                collection_uid,
-                params,
-            } => {
-                let result = start_find_untracked_files(env, &collection_uid, params).await;
-                Effect::FindUntrackedFilesFinished { token, result }
-            }
-            Self::UntrackDirectories {
-                token,
-                collection_uid,
-                params,
-            } => {
-                let result = untrack_directories(env, &collection_uid, params).await;
-                Effect::UntrackDirectoriesFinished { token, result }
-            }
+            Self::Pending { token, task } => match task {
+                PendingTask::FetchProgress => {
+                    let result = fetch_progress(env).await;
+                    Effect::FetchProgressFinished { token, result }
+                }
+                PendingTask::FetchStatus(FetchStatus {
+                    collection_uid,
+                    params,
+                }) => {
+                    let result = fetch_status(env, &collection_uid, params).await;
+                    Effect::FetchStatusFinished { token, result }
+                }
+                PendingTask::StartScanDirectories(StartScanDirectories {
+                    collection_uid,
+                    params,
+                }) => {
+                    let result = start_scan_directories(env, &collection_uid, params).await;
+                    Effect::ScanDirectoriesFinished { token, result }
+                }
+                PendingTask::StartImportFiles(StartImportFiles {
+                    collection_uid,
+                    params,
+                }) => {
+                    let result = start_import_files(env, &collection_uid, params).await;
+                    Effect::ImportFilesFinished { token, result }
+                }
+                PendingTask::StartFindUntrackedFiles(StartFindUntrackedFiles {
+                    collection_uid,
+                    params,
+                }) => {
+                    let result = start_find_untracked_files(env, &collection_uid, params).await;
+                    Effect::FindUntrackedFilesFinished { token, result }
+                }
+                PendingTask::UntrackDirectories(UntrackDirectories {
+                    collection_uid,
+                    params,
+                }) => {
+                    let result = untrack_directories(env, &collection_uid, params).await;
+                    Effect::UntrackDirectoriesFinished { token, result }
+                }
+            },
         }
     }
 }

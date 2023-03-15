@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use super::{Action, CollectionUid, State, StateUpdated, Task};
+use super::{Action, CollectionUid, Effect, IntentHandled, Model, PurgeOrphaned, PurgeUntracked};
 
 #[derive(Debug)]
 pub enum Intent {
@@ -16,59 +16,49 @@ pub enum Intent {
 }
 
 impl Intent {
-    pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying intent {self:?} on {state:?}");
-        match self {
+    #[must_use]
+    pub fn apply_on(self, model: &Model) -> IntentHandled {
+        log::trace!("Applying intent {self:?} on {model:?}");
+        let next_action = match self {
             Self::PurgeOrphaned {
                 collection_uid,
                 params,
             } => {
-                if let Some(token) = state
-                    .remote_view
-                    .last_purge_orphaned_outcome
-                    .try_start_pending_now()
-                {
-                    let task = Task::PurgeOrphaned {
-                        token,
-                        collection_uid,
-                        params,
-                    };
-                    log::debug!("Dispatching task {task:?}");
-                    StateUpdated::maybe_changed(Action::dispatch_task(task))
-                } else {
+                if model.remote_view.last_purge_orphaned_outcome.is_pending() {
                     let self_reconstructed = Self::PurgeOrphaned {
                         collection_uid,
                         params,
                     };
                     log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
-                    StateUpdated::unchanged(None)
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
+                let purge_orphaned = PurgeOrphaned {
+                    collection_uid,
+                    params,
+                };
+                let effect = Effect::PurgeOrphanedAccepted(purge_orphaned);
+                Action::apply_effect(effect)
             }
             Self::PurgeUntracked {
                 collection_uid,
                 params,
             } => {
-                if let Some(token) = state
-                    .remote_view
-                    .last_purge_untracked_outcome
-                    .try_start_pending_now()
-                {
-                    let task = Task::PurgeUntracked {
-                        token,
-                        collection_uid,
-                        params,
-                    };
-                    log::debug!("Dispatching task {task:?}");
-                    StateUpdated::maybe_changed(Action::dispatch_task(task))
-                } else {
+                if model.remote_view.last_purge_untracked_outcome.is_pending() {
                     let self_reconstructed = Self::PurgeUntracked {
                         collection_uid,
                         params,
                     };
                     log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
-                    StateUpdated::unchanged(None)
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
+                let purge_untracked = PurgeUntracked {
+                    collection_uid,
+                    params,
+                };
+                let effect = Effect::PurgeUntrackedAccepted(purge_untracked);
+                Action::apply_effect(effect)
             }
-        }
+        };
+        IntentHandled::Accepted(Some(next_action))
     }
 }

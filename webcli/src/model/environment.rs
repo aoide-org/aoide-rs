@@ -3,12 +3,12 @@
 
 use std::sync::{atomic::AtomicUsize, Arc};
 
-use infect::{send_message, TaskDispatcher};
+use infect::{send_message, TaskContext, TaskDispatcher};
 use reqwest::{Client, Url};
 
 use aoide_client::webapi::ClientEnvironment;
 
-use super::{Effect, Intent, Message, MessageSender, Task};
+use super::{Effect, Intent, Message, Task};
 
 /// Immutable environment
 #[derive(Debug)]
@@ -41,7 +41,7 @@ impl ClientEnvironment for Environment {
     }
 }
 
-impl TaskDispatcher for Environment {
+impl TaskDispatcher<Arc<Environment>> for Environment {
     type Intent = Intent;
     type Effect = Effect;
     type Task = Task;
@@ -50,18 +50,27 @@ impl TaskDispatcher for Environment {
         self.pending_tasks_counter.all_pending_tasks_finished()
     }
 
-    fn dispatch_task(&self, shared_self: Arc<Self>, mut message_tx: MessageSender, task: Task) {
-        let started_pending_task = shared_self.pending_tasks_counter.start_pending_task();
+    fn dispatch_task(
+        &self,
+        mut context: TaskContext<Arc<Environment>, Self::Intent, Self::Effect>,
+        task: Self::Task,
+    ) {
+        let started_pending_task = self.pending_tasks_counter.start_pending_task();
         debug_assert!(started_pending_task > 0);
         if started_pending_task == 1 {
             log::debug!("Started first pending task");
         }
         tokio::spawn(async move {
             log::debug!("Executing task {task:?}");
-            let effect = task.execute(&*shared_self).await;
+            let effect = task.execute(&*context.task_dispatcher).await;
             log::debug!("Task finished with effect: {effect:?}");
-            send_message(&mut message_tx, Message::Effect(effect));
-            if shared_self.pending_tasks_counter.finish_pending_task() == 0 {
+            send_message(&mut context.message_tx, Message::Effect(effect));
+            if context
+                .task_dispatcher
+                .pending_tasks_counter
+                .finish_pending_task()
+                == 0
+            {
                 log::debug!("Finished last pending task");
             }
         });

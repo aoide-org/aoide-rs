@@ -3,20 +3,20 @@
 
 use crate::util::roundtrip::PendingToken;
 
-use super::CollectionUid;
+use super::{PurgeOrphaned, PurgeUntracked};
 
 #[derive(Debug)]
 pub enum Task {
-    PurgeOrphaned {
+    Pending {
         token: PendingToken,
-        collection_uid: CollectionUid,
-        params: aoide_core_api::media::source::purge_orphaned::Params,
+        task: PendingTask,
     },
-    PurgeUntracked {
-        token: PendingToken,
-        collection_uid: CollectionUid,
-        params: aoide_core_api::media::source::purge_untracked::Params,
-    },
+}
+
+#[derive(Debug, Clone)]
+pub enum PendingTask {
+    PurgeOrphaned(PurgeOrphaned),
+    PurgeUntracked(PurgeUntracked),
 }
 
 #[cfg(feature = "webapi-backend")]

@@ -5,10 +5,16 @@ use aoide_core::collection::{Entity, EntityUid};
 
 use crate::util::roundtrip::PendingToken;
 
-use super::{Action, State, StateUpdated};
+use super::{Action, EffectApplied, Model, PendingTask, Task};
 
 #[derive(Debug)]
 pub enum Effect {
+    ActiveEntityUidUpdated {
+        entity_uid: Option<EntityUid>,
+    },
+    PendingTaskAccepted {
+        task: PendingTask,
+    },
     FetchAllKindsFinished {
         token: PendingToken,
         result: anyhow::Result<Vec<String>>,
@@ -25,24 +31,39 @@ pub enum Effect {
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying effect {self:?} on {state:?}");
+    pub fn apply_on(self, model: &mut Model) -> EffectApplied {
+        log::trace!("Applying effect {self:?} on {model:?}");
         match self {
+            Self::ActiveEntityUidUpdated { entity_uid } => {
+                debug_assert!(!model.remote_view().is_pending());
+                if model.active_entity_uid() == entity_uid.as_ref() {
+                    // Nothing to do
+                    return EffectApplied::unchanged_done();
+                }
+                model.set_active_entity_uid(entity_uid);
+                EffectApplied::maybe_changed_done()
+            }
+            Self::PendingTaskAccepted { task } => {
+                debug_assert!(!model.remote_view().is_pending());
+                let token = model.remote_view.all_kinds.start_pending_now();
+                let task = Task::Pending { token, task };
+                let next_action = Action::dispatch_task(task);
+                EffectApplied::maybe_changed(next_action)
+            }
             Self::FetchAllKindsFinished { token, result } => match result {
                 Ok(all_kinds) => {
-                    let next_action = None;
-                    if state.finish_pending_all_kinds(token, Some(all_kinds)) {
-                        StateUpdated::maybe_changed(next_action)
+                    if model.finish_pending_all_kinds(token, Some(all_kinds)) {
+                        EffectApplied::maybe_changed_done()
                     } else {
-                        StateUpdated::unchanged(next_action)
+                        EffectApplied::unchanged_done()
                     }
                 }
                 Err(err) => {
                     let next_action = Action::apply_effect(Self::ErrorOccurred(err));
-                    if state.finish_pending_all_kinds(token, None) {
-                        StateUpdated::maybe_changed(next_action)
+                    if model.finish_pending_all_kinds(token, None) {
+                        EffectApplied::maybe_changed(next_action)
                     } else {
-                        StateUpdated::unchanged(next_action)
+                        EffectApplied::unchanged(next_action)
                     }
                 }
             },
@@ -52,50 +73,53 @@ impl Effect {
                 result,
             } => match result {
                 Ok(filtered_entities) => {
-                    let next_action = None;
-                    if state.finish_pending_filtered_entities(
+                    if model.finish_pending_filtered_entities(
                         token,
                         filtered_by_kind,
                         Some(filtered_entities),
                     ) {
-                        StateUpdated::maybe_changed(next_action)
+                        EffectApplied::maybe_changed_done()
                     } else {
-                        StateUpdated::unchanged(next_action)
+                        EffectApplied::unchanged_done()
                     }
                 }
                 Err(err) => {
                     let next_action = Action::apply_effect(Self::ErrorOccurred(err));
-                    if state.finish_pending_filtered_entities(token, filtered_by_kind, None) {
-                        StateUpdated::maybe_changed(next_action)
+                    if model.finish_pending_filtered_entities(token, filtered_by_kind, None) {
+                        EffectApplied::maybe_changed(next_action)
                     } else {
-                        StateUpdated::unchanged(next_action)
+                        EffectApplied::unchanged(next_action)
                     }
                 }
             },
             Self::CreateEntityFinished(res) | Self::UpdateEntityFinished(res) => match res {
                 Ok(entity) => {
-                    let next_action = state.after_entity_created_or_updated(entity);
+                    let next_action = model.after_entity_created_or_updated(entity);
                     if next_action.is_some() {
-                        StateUpdated::maybe_changed(next_action)
+                        EffectApplied::maybe_changed(next_action)
                     } else {
-                        StateUpdated::unchanged(next_action)
+                        EffectApplied::unchanged(next_action)
                     }
                 }
-                Err(err) => StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
+                Err(err) => {
+                    EffectApplied::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                }
             },
             Self::PurgeEntityFinished(res) => match res {
                 Ok(entity_uid) => {
-                    let next_action = state.after_entity_purged(&entity_uid);
+                    let next_action = model.after_entity_purged(&entity_uid);
                     if next_action.is_some() {
-                        StateUpdated::maybe_changed(next_action)
+                        EffectApplied::maybe_changed(next_action)
                     } else {
-                        StateUpdated::unchanged(next_action)
+                        EffectApplied::unchanged(next_action)
                     }
                 }
-                Err(err) => StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
+                Err(err) => {
+                    EffectApplied::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                }
             },
             Self::ErrorOccurred(error) => {
-                StateUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(error)))
+                EffectApplied::unchanged(Action::apply_effect(Self::ErrorOccurred(error)))
             }
         }
     }

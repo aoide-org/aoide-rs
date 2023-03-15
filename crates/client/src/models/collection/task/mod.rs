@@ -5,14 +5,13 @@ use aoide_core::collection::{Collection, EntityHeader, EntityUid};
 
 use crate::util::roundtrip::PendingToken;
 
-#[derive(Debug)]
+use super::FetchFilteredEntities;
+
+#[derive(Debug, Clone)]
 pub enum Task {
-    FetchAllKinds {
+    Pending {
         token: PendingToken,
-    },
-    FetchFilteredEntities {
-        token: PendingToken,
-        filter_by_kind: Option<String>,
+        task: PendingTask,
     },
     CreateEntity {
         new_collection: Collection,
@@ -24,6 +23,12 @@ pub enum Task {
     PurgeEntity {
         entity_uid: EntityUid,
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum PendingTask {
+    FetchAllKinds,
+    FetchFilteredEntities(FetchFilteredEntities),
 }
 
 #[cfg(feature = "webapi-backend")]

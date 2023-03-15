@@ -3,26 +3,28 @@
 
 use std::num::NonZeroUsize;
 
-use infect::state_updated;
+use infect::IntentHandled;
 
 use aoide_client::models::{collection, media_source, media_tracker};
 use aoide_core_api::track::find_unsynchronized::UnsynchronizedTrackEntity;
 
-use crate::model::{state::ControlState, Action, Task};
+use crate::model::{Action, ControlState, Task};
 
-use super::{Intent, State, StateUpdated};
+use super::{EffectApplied, Intent, Model};
 
 #[derive(Debug)]
 pub enum Effect {
     ErrorOccurred(anyhow::Error),
     FirstErrorsDiscarded(NonZeroUsize),
-    ApplyIntent(Intent),
+    HandleIntent(Intent),
     AbortFinished(anyhow::Result<()>),
     ActiveCollection(collection::Effect),
     MediaSources(media_source::Effect),
     MediaTracker(media_tracker::Effect),
     FindUnsynchronizedTracksFinished(anyhow::Result<Vec<UnsynchronizedTrackEntity>>),
     ExportTracksFinished(anyhow::Result<()>),
+    RenderModel,
+    AbortPendingRequest(Option<ControlState>),
 }
 
 impl From<collection::Effect> for Effect {
@@ -44,25 +46,31 @@ impl From<media_tracker::Effect> for Effect {
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::debug!("Applying effect {self:?} on {state:?}");
+    pub fn apply_on(self, model: &mut Model) -> EffectApplied {
+        log::debug!("Applying {self:?} on {model:?}");
         match self {
             Self::ErrorOccurred(error)
             | Self::ActiveCollection(collection::Effect::ErrorOccurred(error))
             | Self::MediaTracker(media_tracker::Effect::ErrorOccurred(error)) => {
-                state.last_errors.push(error);
-                StateUpdated::maybe_changed(None)
+                model.last_errors.push(error);
+                EffectApplied::maybe_changed_done()
             }
             Self::FirstErrorsDiscarded(num_errors) => {
-                debug_assert!(num_errors.get() <= state.last_errors.len());
-                state.last_errors = state.last_errors.drain(num_errors.get()..).collect();
-                StateUpdated::maybe_changed(None)
+                debug_assert!(num_errors.get() <= model.last_errors.len());
+                model.last_errors = model.last_errors.drain(num_errors.get()..).collect();
+                EffectApplied::maybe_changed_done()
             }
-            Self::ApplyIntent(intent) => intent.apply_on(state),
+            Self::HandleIntent(intent) => {
+                let next_action = match intent.apply_on(model) {
+                    IntentHandled::Accepted(next_action) => next_action,
+                    IntentHandled::Rejected(_) => None,
+                };
+                EffectApplied::unchanged(next_action)
+            }
             Self::AbortFinished(res) => {
                 let next_action = match res {
                     Ok(()) => {
-                        if state.control_state == ControlState::Terminating && state.is_pending() {
+                        if model.control_state == ControlState::Terminating && model.is_pending() {
                             // Abort next pending request until idle
                             Some(Action::DispatchTask(Task::AbortPendingRequest))
                         } else {
@@ -71,35 +79,47 @@ impl Effect {
                     }
                     Err(err) => Some(Action::apply_effect(Self::ErrorOccurred(err))),
                 };
-                StateUpdated::unchanged(next_action)
+                EffectApplied::unchanged(next_action)
             }
             Self::ActiveCollection(effect) => {
-                state_updated(effect.apply_on(&mut state.active_collection))
+                effect.apply_on(&mut model.active_collection).map_into()
             }
-            Self::MediaSources(effect) => state_updated(effect.apply_on(&mut state.media_sources)),
-            Self::MediaTracker(effect) => state_updated(effect.apply_on(&mut state.media_tracker)),
+            Self::MediaSources(effect) => effect.apply_on(&mut model.media_sources).map_into(),
+            Self::MediaTracker(effect) => effect.apply_on(&mut model.media_tracker).map_into(),
             Self::FindUnsynchronizedTracksFinished(res) => {
                 match res {
                     Ok(entities) => {
-                        // TODO: Store received entities in state
+                        // TODO: Store received entities in model
                         for entity in entities {
                             log::info!("{entity:?}");
                         }
-                        StateUpdated::unchanged(None)
+                        EffectApplied::unchanged_done()
                     }
                     Err(err) => {
-                        state.last_errors.push(err);
-                        StateUpdated::maybe_changed(None)
+                        model.last_errors.push(err);
+                        EffectApplied::maybe_changed_done()
                     }
                 }
             }
             Self::ExportTracksFinished(res) => {
                 if let Err(err) = res {
-                    state.last_errors.push(err);
-                    StateUpdated::maybe_changed(None)
+                    model.last_errors.push(err);
+                    EffectApplied::maybe_changed_done()
                 } else {
-                    StateUpdated::unchanged(None)
+                    EffectApplied::unchanged_done()
                 }
+            }
+            Self::RenderModel => EffectApplied::maybe_changed_done(), // enforce re-rendering
+            Self::AbortPendingRequest(control_state) => {
+                let next_action = model.abort_pending_request_action();
+                let Some(control_state) = control_state else {
+                    return EffectApplied::unchanged(next_action);
+                };
+                if model.control_state == control_state {
+                    return EffectApplied::unchanged(next_action);
+                }
+                model.control_state = control_state;
+                EffectApplied::maybe_changed(next_action)
             }
         }
     }

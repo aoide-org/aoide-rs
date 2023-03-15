@@ -1,15 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::collection::EntityUid as CollectionUid;
+
 use aoide_core_api_json::track::search::client_request_params;
 
-use crate::{
-    prelude::*,
-    webapi::{receive_response_body, ClientEnvironment},
-};
+use crate::webapi::{receive_response_body, ClientEnvironment};
 
 use super::{
-    super::{Effect, FetchResultPageRequest, FetchResultPageResponse},
+    super::{Effect, FetchResultPage, FetchResultPageRequest, FetchResultPageResponse},
     Task,
 };
 
@@ -17,10 +16,10 @@ impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task {self:?}");
         match self {
-            Self::FetchResultPage {
+            Self::FetchResultPage(FetchResultPage {
                 collection_uid,
                 request,
-            } => {
+            }) => {
                 let response = fetch_result_page(env, &collection_uid, request).await;
                 Effect::FetchResultPageFinished(response)
             }
@@ -33,11 +32,8 @@ async fn fetch_result_page<E: ClientEnvironment>(
     collection_uid: &CollectionUid,
     request: FetchResultPageRequest,
 ) -> anyhow::Result<FetchResultPageResponse> {
-    let FetchResultPageRequest {
-        search_params,
-        pagination,
-    } = request;
-    let (query_params, search_params) = client_request_params(search_params, pagination.clone());
+    let FetchResultPageRequest { params, pagination } = request;
+    let (query_params, search_params) = client_request_params(params, pagination.clone());
     let query_params_urlencoded = serde_urlencoded::to_string(query_params)?;
     let request_url = env.join_api_url(&format!(
         "c/{collection_uid}/t/search?{query_params_urlencoded}",

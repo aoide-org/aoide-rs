@@ -8,6 +8,7 @@
 #![warn(unsafe_code)]
 #![warn(rustdoc::broken_intra_doc_links)]
 #![warn(clippy::pedantic)]
+#![warn(clippy::clone_on_ref_ptr)]
 // Repetitions of module/type names occur frequently when using many
 // modules for keeping the size of the source files handy. Often
 // types have the same name as their parent module.
@@ -27,7 +28,3 @@ pub mod util;
 
 #[cfg(feature = "webapi-backend")]
 pub mod webapi;
-
-pub mod prelude {
-    pub use aoide_core::collection::EntityUid as CollectionUid;
-}

@@ -5,27 +5,26 @@ use aoide_core::collection::Entity as CollectionEntity;
 
 use crate::webapi::{receive_response_body, ClientEnvironment};
 
-use super::{super::Effect, Task};
+use super::{super::Effect, FetchFilteredEntities, PendingTask, Task};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::trace!("Executing task {self:?}");
         match self {
-            Self::FetchAllKinds { token } => {
-                let result = fetch_all_kinds(env).await;
-                Effect::FetchAllKindsFinished { token, result }
-            }
-            Self::FetchFilteredEntities {
-                token,
-                filter_by_kind,
-            } => {
-                let result = fetch_filtered_entities(env, filter_by_kind.as_deref()).await;
-                Effect::FetchFilteredEntitiesFinished {
-                    token,
-                    filtered_by_kind: filter_by_kind,
-                    result,
+            Self::Pending { token, task } => match task {
+                PendingTask::FetchAllKinds => {
+                    let result = fetch_all_kinds(env).await;
+                    Effect::FetchAllKindsFinished { token, result }
                 }
-            }
+                PendingTask::FetchFilteredEntities(FetchFilteredEntities { filter_by_kind }) => {
+                    let result = fetch_filtered_entities(env, filter_by_kind.as_deref()).await;
+                    Effect::FetchFilteredEntitiesFinished {
+                        token,
+                        filtered_by_kind: filter_by_kind,
+                        result,
+                    }
+                }
+            },
             Self::CreateEntity { new_collection } => {
                 let result = create_entity(env, new_collection).await;
                 Effect::CreateEntityFinished(result)

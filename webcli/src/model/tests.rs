@@ -7,7 +7,7 @@ use std::{
 };
 
 use infect::{
-    handle_next_message, message_channel, message_loop, send_message, MessageHandled,
+    message_channel, message_loop, process_next_message, send_message, MessageHandled, TaskContext,
     TaskDispatcher as _,
 };
 use reqwest::Url;
@@ -26,171 +26,218 @@ fn test_env() -> Environment {
 
 const MESSAGE_CHANNEL_CAPACITY: usize = 10;
 
+#[derive(Default)]
+struct RenderModel;
+
+impl infect::RenderModel for RenderModel {
+    type Model = Model;
+
+    fn render_model(
+        &mut self,
+        _model: &Self::Model,
+    ) -> Option<<Self::Model as ClientModel>::Intent> {
+        None
+    }
+}
+
 #[test]
 fn should_handle_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
-    let mut state = State::default();
+    let (message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let mut task_context = TaskContext {
+        message_tx,
+        task_dispatcher: shared_env,
+    };
+    let mut model = Model::default();
+    let mut render_model = RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
         MessageHandled::NoProgress,
-        handle_next_message(
-            &shared_env,
-            &mut state,
-            &mut message_tx,
+        process_next_message(
+            &mut task_context,
+            &mut model,
+            &mut render_model,
             effect.into(),
-            &mut |_| { None },
         )
     );
-    assert_eq!(1, state.last_errors().len());
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[tokio::test]
 async fn should_catch_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let task_context = &mut TaskContext {
+        message_tx: message_tx.clone(),
+        task_dispatcher: shared_env,
+    };
+    let model = &mut Model::default();
+    let render_model = &mut RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    send_message(&mut message_tx, Intent::InjectEffect(Box::new(effect)));
-    let state = message_loop(
-        shared_env,
-        (message_tx, message_rx),
-        Default::default(),
-        Box::new(|_: &State| None),
-    )
-    .await;
-    assert_eq!(1, state.last_errors().len());
+    send_message(&mut message_tx, effect);
+    message_loop(&mut message_rx, task_context, model, render_model).await;
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[test]
 fn should_handle_collection_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
-    let mut state = State::default();
+    let (message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let mut task_context = TaskContext {
+        message_tx,
+        task_dispatcher: shared_env,
+    };
+    let mut model = Model::default();
+    let mut render_model = RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
         MessageHandled::NoProgress,
-        handle_next_message(
-            &shared_env,
-            &mut state,
-            &mut message_tx,
+        process_next_message(
+            &mut task_context,
+            &mut model,
+            &mut render_model,
             effect.into(),
-            &mut |_| { None },
         )
     );
-    assert_eq!(1, state.last_errors().len());
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[tokio::test]
 async fn should_catch_collection_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let task_context = &mut TaskContext {
+        message_tx: message_tx.clone(),
+        task_dispatcher: shared_env,
+    };
+    let model = &mut Model::default();
+    let render_model = &mut RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    send_message(&mut message_tx, Intent::InjectEffect(Box::new(effect)));
-    let state = message_loop(
-        shared_env,
-        (message_tx, message_rx),
-        Default::default(),
-        Box::new(|_: &State| None),
-    )
-    .await;
-    assert_eq!(1, state.last_errors().len());
+    send_message(&mut message_tx, effect);
+    message_loop(&mut message_rx, task_context, model, render_model).await;
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[test]
 fn should_handle_media_tracker_error() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
-    let mut state = State::default();
+    let (message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let task_context = &mut TaskContext {
+        message_tx,
+        task_dispatcher: shared_env,
+    };
+    let model = &mut Model::default();
+    let render_model = &mut RenderModel;
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
         MessageHandled::NoProgress,
-        handle_next_message(
-            &shared_env,
-            &mut state,
-            &mut message_tx,
+        process_next_message(
+            task_context,
+            model,
+            render_model,
             Effect::MediaTracker(effect).into(),
-            &mut |_| { None },
         )
     );
-    assert_eq!(1, state.last_errors().len());
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[tokio::test]
 async fn should_catch_media_tracker_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let task_context = &mut TaskContext {
+        message_tx: message_tx.clone(),
+        task_dispatcher: shared_env,
+    };
+    let model = &mut Model::default();
+    let render_model = &mut RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    send_message(&mut message_tx, Intent::InjectEffect(Box::new(effect)));
-    let state = message_loop(
-        shared_env,
-        (message_tx, message_rx),
-        Default::default(),
-        Box::new(|_: &State| None),
-    )
-    .await;
-    assert_eq!(1, state.last_errors().len());
+    send_message(&mut message_tx, effect);
+    message_loop(&mut message_rx, task_context, model, render_model).await;
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[tokio::test]
 async fn should_terminate_on_intent_when_no_tasks_pending() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let task_context = &mut TaskContext {
+        message_tx: message_tx.clone(),
+        task_dispatcher: shared_env,
+    };
+    let model = &mut Model::default();
+    let render_model = &mut RenderModel;
     send_message(&mut message_tx, Intent::Terminate);
-    let state = message_loop(
-        shared_env,
-        (message_tx, message_rx),
-        Default::default(),
-        Box::new(|_: &State| None),
-    )
-    .await;
-    assert!(state.last_errors().is_empty());
+    message_loop(&mut message_rx, task_context, model, render_model).await;
+    assert!(model.last_errors().is_empty());
+}
+
+struct TerminationRenderModel {
+    shared_env: Arc<Environment>,
+    invocation_count: Arc<AtomicUsize>,
+}
+
+impl TerminationRenderModel {
+    fn new(shared_env: Arc<Environment>) -> Self {
+        Self {
+            shared_env,
+            invocation_count: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+}
+
+impl infect::RenderModel for TerminationRenderModel {
+    type Model = Model;
+
+    fn render_model(
+        &mut self,
+        model: &Self::Model,
+    ) -> Option<<Self::Model as ClientModel>::Intent> {
+        let last_invocation_count = self
+            .invocation_count
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        // On the 1st (initial) and 2nd (Intent::Terminate) invocation the task
+        // that executes the timed intent is still pending
+        assert_eq!(
+            last_invocation_count == 0,
+            model.control_state == ControlState::Running
+        );
+        assert_eq!(
+            last_invocation_count > 0,
+            model.control_state == ControlState::Terminating
+        );
+        assert_eq!(
+            last_invocation_count > 1,
+            self.shared_env.all_tasks_finished()
+        );
+        None
+    }
 }
 
 #[tokio::test]
 async fn should_terminate_on_intent_after_pending_tasks_finished() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let task_context = &mut TaskContext {
+        message_tx: message_tx.clone(),
+        task_dispatcher: Arc::clone(&shared_env),
+    };
+    let model = &mut Model::default();
+    let render_model = &mut TerminationRenderModel::new(shared_env);
     send_message(
         &mut message_tx,
         Intent::Deferred {
             not_before: Instant::now() + Duration::from_millis(100),
-            intent: Box::new(Intent::RenderState),
+            intent: Box::new(Intent::RenderModel),
         },
     );
     send_message(&mut message_tx, Intent::Terminate);
-    let render_state_count = Arc::new(AtomicUsize::new(0));
-    let state = {
-        let render_state_fn = {
-            let shared_env = Arc::clone(&shared_env);
-            let render_state_count = Arc::clone(&render_state_count);
-            move |state: &State| {
-                let last_render_state_count =
-                    render_state_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                // On the 1st (initial) and 2nd (Intent::Terminate) invocation the task
-                // that executes the timed intent is still pending
-                assert_eq!(
-                    last_render_state_count == 0,
-                    state.control_state == state::ControlState::Running
-                );
-                assert_eq!(
-                    last_render_state_count > 0,
-                    state.control_state == state::ControlState::Terminating
-                );
-                assert_eq!(last_render_state_count > 1, shared_env.all_tasks_finished());
-                None
-            }
-        };
-        message_loop(
-            shared_env,
-            (message_tx, message_rx),
-            Default::default(),
-            Box::new(render_state_fn),
-        )
-        .await
-    };
+    message_loop(&mut message_rx, task_context, model, render_model).await;
     assert_eq!(
         3,
-        render_state_count.load(std::sync::atomic::Ordering::SeqCst)
+        render_model
+            .invocation_count
+            .load(std::sync::atomic::Ordering::SeqCst)
     );
-    assert!(state.last_errors().is_empty());
+    assert!(model.last_errors().is_empty());
 }

@@ -3,54 +3,57 @@
 
 use aoide_core::collection::{Collection, EntityUid};
 
-use super::{Action, State, StateUpdated, Task};
+use super::{Action, Effect, FetchFilteredEntities, IntentHandled, Model, PendingTask, Task};
 
 #[derive(Debug)]
 pub enum Intent {
     FetchAllKinds,
-    FetchFilteredEntities { filter_by_kind: Option<String> },
+    FetchFilteredEntities(FetchFilteredEntities),
     ActivateEntity { entity_uid: Option<EntityUid> },
     CreateEntity { new_collection: Collection },
 }
 
 impl Intent {
-    pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying intent {self:?} on {state:?}");
-        match self {
+    #[must_use]
+    pub fn apply_on(self, model: &Model) -> IntentHandled {
+        log::trace!("Applying intent {self:?} on {model:?}");
+        let next_action = match self {
             Self::FetchAllKinds => {
-                if let Some(token) = state.remote_view.all_kinds.try_start_pending_now() {
-                    let task = Task::FetchAllKinds { token };
-                    log::debug!("Dispatching task {task:?}");
-                    StateUpdated::maybe_changed(Action::dispatch_task(task))
-                } else {
+                if model.remote_view.all_kinds.is_pending() {
                     let self_reconstructed = Self::FetchAllKinds;
                     log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
-                    StateUpdated::unchanged(None)
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
+                let task = PendingTask::FetchAllKinds;
+                let effect = Effect::PendingTaskAccepted { task };
+                Action::apply_effect(effect)
             }
-            Self::FetchFilteredEntities { filter_by_kind } => {
-                if let Some(token) = state.remote_view.filtered_entities.try_start_pending_now() {
-                    let task = Task::FetchFilteredEntities {
-                        token,
-                        filter_by_kind,
-                    };
-                    log::debug!("Dispatching task {task:?}");
-                    StateUpdated::maybe_changed(Action::dispatch_task(task))
-                } else {
-                    let self_reconstructed = Self::FetchFilteredEntities { filter_by_kind };
+            Self::FetchFilteredEntities(FetchFilteredEntities { filter_by_kind }) => {
+                if model.remote_view.all_kinds.is_pending() {
+                    let self_reconstructed = Self::FetchAllKinds;
                     log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
-                    StateUpdated::unchanged(None)
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
+                let task =
+                    PendingTask::FetchFilteredEntities(FetchFilteredEntities { filter_by_kind });
+                let effect = Effect::PendingTaskAccepted { task };
+                Action::apply_effect(effect)
             }
             Self::ActivateEntity { entity_uid } => {
-                state.set_active_entity_uid(entity_uid);
-                StateUpdated::maybe_changed(None)
+                if model.remote_view.all_kinds.is_pending() {
+                    let self_reconstructed = Self::ActivateEntity { entity_uid };
+                    log::warn!("Discarding intent while still pending: {self_reconstructed:?}");
+                    return IntentHandled::Rejected(self_reconstructed);
+                }
+                let effect = Effect::ActiveEntityUidUpdated { entity_uid };
+                Action::apply_effect(effect)
             }
             Self::CreateEntity { new_collection } => {
                 let task = Task::CreateEntity { new_collection };
                 log::debug!("Dispatching task {task:?}");
-                StateUpdated::unchanged(Action::dispatch_task(task))
+                Action::dispatch_task(task)
             }
-        }
+        };
+        IntentHandled::Accepted(Some(next_action))
     }
 }

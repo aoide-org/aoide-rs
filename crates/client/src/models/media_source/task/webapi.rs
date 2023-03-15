@@ -1,33 +1,34 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use crate::{
-    prelude::*,
-    webapi::{receive_response_body, ClientEnvironment},
-};
+use aoide_core::collection::EntityUid as CollectionUid;
 
-use super::{super::Effect, Task};
+use crate::webapi::{receive_response_body, ClientEnvironment};
+
+use super::{super::Effect, PendingTask, PurgeOrphaned, PurgeUntracked, Task};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task {self:?}");
         match self {
-            Self::PurgeOrphaned {
-                token,
-                collection_uid,
-                params,
-            } => {
-                let result = purge_orphaned(env, &collection_uid, params).await;
-                Effect::PurgeOrphanedFinished { token, result }
-            }
-            Self::PurgeUntracked {
-                token,
-                collection_uid,
-                params,
-            } => {
-                let result = purge_untracked(env, &collection_uid, params).await;
-                Effect::PurgeUntrackedFinished { token, result }
-            }
+            Self::Pending { token, task } => match task {
+                PendingTask::PurgeOrphaned(task) => {
+                    let PurgeOrphaned {
+                        collection_uid,
+                        params,
+                    } = task;
+                    let result = purge_orphaned(env, &collection_uid, params).await;
+                    Effect::PurgeOrphanedFinished { token, result }
+                }
+                PendingTask::PurgeUntracked(task) => {
+                    let PurgeUntracked {
+                        collection_uid,
+                        params,
+                    } = task;
+                    let result = purge_untracked(env, &collection_uid, params).await;
+                    Effect::PurgeUntrackedFinished { token, result }
+                }
+            },
         }
     }
 }

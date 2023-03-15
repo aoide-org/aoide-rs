@@ -1,48 +1,37 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core_api::track::search::Params;
-
-use crate::prelude::*;
-
-use super::{Action, FetchResultPageRequest, State, StateUpdated, Task};
+use super::{Action, Effect, FetchResultPage, IntentHandled, Model, Reset};
 
 #[derive(Debug)]
 pub enum Intent {
-    Reset(Option<Params>),
-    FetchResultPage {
-        collection_uid: CollectionUid,
-        request: FetchResultPageRequest,
-    },
+    Reset(Reset),
+    FetchResultPage(FetchResultPage),
 }
 
 impl Intent {
-    pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying intent {self:?} on {state:?}");
-        match self {
-            Self::Reset(search_params) => {
-                if !state.can_reset() {
-                    log::warn!("Cannot fetch results: {search_params:?}");
-                    return StateUpdated::unchanged(None);
+    pub fn apply_on(self, model: &mut Model) -> IntentHandled {
+        log::trace!("Applying intent {self:?} on {model:?}");
+        let next_action = match self {
+            Self::Reset(reset) => {
+                if !model.can_reset() {
+                    let self_reconstructed = Self::Reset(reset);
+                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
-                state.reset(search_params);
-                StateUpdated::maybe_changed(None)
+                let effect = Effect::Reset(reset);
+                Action::apply_effect(effect)
             }
-            Self::FetchResultPage {
-                collection_uid,
-                request,
-            } => {
-                let task = Task::FetchResultPage {
-                    collection_uid,
-                    request,
-                };
-                if !state.can_fetch_results() {
-                    log::warn!("Cannot fetch results: {task:?}");
-                    return StateUpdated::unchanged(None);
+            Self::FetchResultPage(fetch_result_page) => {
+                if !model.can_fetch_results() {
+                    let self_reconstructed = Self::FetchResultPage(fetch_result_page);
+                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
-                state.set_fetching_results();
-                StateUpdated::maybe_changed(Action::dispatch_task(task))
+                let effect = Effect::FetchResultPageAccepted(fetch_result_page);
+                Action::apply_effect(effect)
             }
-        }
+        };
+        infect::IntentHandled::Accepted(Some(next_action))
     }
 }

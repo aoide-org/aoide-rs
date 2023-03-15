@@ -56,7 +56,7 @@ impl Task {
         match self {
             Self::DeferredIntent { not_before, intent } => {
                 tokio::time::sleep_until(not_before.into()).await;
-                Effect::ApplyIntent(*intent)
+                Effect::HandleIntent(*intent)
             }
             Self::ActiveCollection(task) => task.execute(env).await.into(),
             Self::MediaSources(task) => task.execute(env).await.into(),

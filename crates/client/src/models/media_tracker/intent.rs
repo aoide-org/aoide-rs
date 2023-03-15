@@ -1,159 +1,91 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use crate::prelude::*;
-
-use super::{Action, State, StateUpdated, Task};
+use super::{
+    Action, Effect, FetchStatus, IntentHandled, Model, StartFindUntrackedFiles, StartImportFiles,
+    StartScanDirectories, UntrackDirectories,
+};
 
 #[derive(Debug)]
 pub enum Intent {
     FetchProgress,
-    FetchStatus {
-        collection_uid: CollectionUid,
-        params: aoide_core_api::media::tracker::query_status::Params,
-    },
-    StartScanDirectories {
-        collection_uid: CollectionUid,
-        params: aoide_core_api::media::tracker::scan_directories::Params,
-    },
-    StartImportFiles {
-        collection_uid: CollectionUid,
-        params: aoide_core_api::media::tracker::import_files::Params,
-    },
-    StartFindUntrackedFiles {
-        collection_uid: CollectionUid,
-        params: aoide_core_api::media::tracker::find_untracked_files::Params,
-    },
-    UntrackDirectories {
-        collection_uid: CollectionUid,
-        params: aoide_core_api::media::tracker::untrack_directories::Params,
-    },
+    FetchStatus(FetchStatus),
+    StartScanDirectories(StartScanDirectories),
+    StartImportFiles(StartImportFiles),
+    StartFindUntrackedFiles(StartFindUntrackedFiles),
+    UntrackDirectories(UntrackDirectories),
 }
 
 impl Intent {
     #[allow(clippy::too_many_lines)] // TODO
-    pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::trace!("Applying intent {self:?} on {state:?}");
-        match self {
+    #[must_use]
+    pub fn apply_on(self, model: &Model) -> IntentHandled {
+        log::trace!("Applying intent {self:?} on {model:?}");
+        let next_action = match self {
             Self::FetchProgress => {
-                let token = state.remote_view.progress.start_pending_now();
-                let task = Task::FetchProgress { token };
-                log::debug!("Dispatching task {task:?}");
-                StateUpdated::maybe_changed(Action::dispatch_task(task))
-            }
-            Self::FetchStatus {
-                collection_uid,
-                params,
-            } => {
-                let token = state.remote_view.progress.start_pending_now();
-                let task = Task::FetchStatus {
-                    token,
-                    collection_uid,
-                    params,
-                };
-                log::debug!("Dispatching task {task:?}");
-                StateUpdated::maybe_changed(Action::dispatch_task(task))
-            }
-            Self::StartScanDirectories {
-                collection_uid,
-                params,
-            } => {
-                if let Some(token) = state
-                    .remote_view
-                    .last_scan_directories_outcome
-                    .try_start_pending_now()
-                {
-                    let task = Task::StartScanDirectories {
-                        token,
-                        collection_uid,
-                        params,
-                    };
-                    log::debug!("Dispatching task {task:?}");
-                    StateUpdated::maybe_changed(Action::dispatch_task(task))
-                } else {
-                    let self_reconstructed = Self::StartScanDirectories {
-                        collection_uid,
-                        params,
-                    };
+                if model.remote_view.progress.is_pending() {
+                    let self_reconstructed = Self::FetchProgress;
                     log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
-                    StateUpdated::unchanged(None)
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
+                let effect = Effect::FetchProgressAccepted;
+                Action::apply_effect(effect)
             }
-            Self::StartImportFiles {
-                collection_uid,
-                params,
-            } => {
-                if let Some(token) = state
-                    .remote_view
-                    .last_import_files_outcome
-                    .try_start_pending_now()
-                {
-                    let task = Task::StartImportFiles {
-                        token,
-                        collection_uid,
-                        params,
-                    };
-                    log::debug!("Dispatching task {task:?}");
-                    StateUpdated::maybe_changed(Action::dispatch_task(task))
-                } else {
-                    let self_reconstructed = Self::StartImportFiles {
-                        collection_uid,
-                        params,
-                    };
+            Self::FetchStatus(fetch_status) => {
+                if model.remote_view.status.is_pending() {
+                    let self_reconstructed = Self::FetchStatus(fetch_status);
                     log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
-                    StateUpdated::unchanged(None)
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
+                let effect = Effect::FetchStatusAccepted(fetch_status);
+                Action::apply_effect(effect)
             }
-            Self::StartFindUntrackedFiles {
-                collection_uid,
-                params,
-            } => {
-                if let Some(token) = state
+            Self::StartScanDirectories(start_scan_directories) => {
+                if model.remote_view.last_scan_directories_outcome.is_pending() {
+                    let self_reconstructed = Self::StartScanDirectories(start_scan_directories);
+                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
+                    return IntentHandled::Rejected(self_reconstructed);
+                }
+                let effect = Effect::StartScanDirectoriesAccepted(start_scan_directories);
+                Action::apply_effect(effect)
+            }
+            Self::StartImportFiles(start_import_files) => {
+                if model.remote_view.last_import_files_outcome.is_pending() {
+                    let self_reconstructed = Self::StartImportFiles(start_import_files);
+                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
+                    return IntentHandled::Rejected(self_reconstructed);
+                }
+                let effect = Effect::StartImportFilesAccepted(start_import_files);
+                Action::apply_effect(effect)
+            }
+            Self::StartFindUntrackedFiles(start_find_untracked_files) => {
+                if model
                     .remote_view
                     .last_find_untracked_files_outcome
-                    .try_start_pending_now()
+                    .is_pending()
                 {
-                    let task = Task::StartFindUntrackedFiles {
-                        token,
-                        collection_uid,
-                        params,
-                    };
-                    log::debug!("Dispatching task {task:?}");
-                    StateUpdated::maybe_changed(Action::dispatch_task(task))
-                } else {
-                    let self_reconstructed = Self::StartFindUntrackedFiles {
-                        collection_uid,
-                        params,
-                    };
+                    let self_reconstructed =
+                        Self::StartFindUntrackedFiles(start_find_untracked_files);
                     log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
-                    StateUpdated::unchanged(None)
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
+                let effect = Effect::StartFindUntrackedFilesAccepted(start_find_untracked_files);
+                Action::apply_effect(effect)
             }
-            Self::UntrackDirectories {
-                collection_uid,
-                params,
-            } => {
-                if let Some(token) = state
+            Self::UntrackDirectories(untrack_directories) => {
+                if model
                     .remote_view
                     .last_untrack_directories_outcome
-                    .try_start_pending_now()
+                    .is_pending()
                 {
-                    let task = Task::UntrackDirectories {
-                        token,
-                        collection_uid,
-                        params,
-                    };
-                    log::debug!("Dispatching task {task:?}");
-                    StateUpdated::maybe_changed(Action::dispatch_task(task))
-                } else {
-                    let self_reconstructed = Self::UntrackDirectories {
-                        collection_uid,
-                        params,
-                    };
+                    let self_reconstructed = Self::UntrackDirectories(untrack_directories);
                     log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
-                    StateUpdated::unchanged(None)
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
+                let effect = Effect::UntrackDirectoriesAccepted(untrack_directories);
+                Action::apply_effect(effect)
             }
-        }
+        };
+        IntentHandled::Accepted(Some(next_action))
     }
 }
