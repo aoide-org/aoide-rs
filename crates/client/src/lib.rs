@@ -29,7 +29,6 @@ pub mod util;
 
 pub mod models;
 
-#[cfg(feature = "tokio")]
 pub mod messaging;
 
 #[cfg(feature = "webapi-backend")]

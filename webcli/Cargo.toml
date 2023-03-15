@@ -21,7 +21,7 @@ serde_urlencoded = "0.7.1"
 tokio = { version = "1.26.0", default-features = false, features = ["macros", "fs", "rt-multi-thread", "signal"] }
 
 # Workspace dependencies
-aoide-client = { version = "=0.8.0", features = ["webapi-backend", "tokio"] }
+aoide-client = { version = "=0.8.0", features = ["webapi-backend"] }
 aoide-core = "=0.8.0"
 aoide-core-json = "=0.8.0"
 aoide-core-api = "=0.8.0"

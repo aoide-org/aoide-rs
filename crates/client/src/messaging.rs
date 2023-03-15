@@ -3,39 +3,41 @@
 
 use std::{fmt, sync::Arc};
 
-use tokio::sync::mpsc;
+use futures::{channel::mpsc, StreamExt as _};
 
 use crate::{
     action::Action,
     message::Message,
-    state::{RenderStateFn, State, StateMutation, StateUpdated},
+    state::{RenderStateFn, State, StateChanged, StateUpdated},
 };
 
-pub type MessageSender<Intent, Effect> = mpsc::UnboundedSender<Message<Intent, Effect>>;
-pub type MessageReceiver<Intent, Effect> = mpsc::UnboundedReceiver<Message<Intent, Effect>>;
+pub type MessageSender<Intent, Effect> = mpsc::Sender<Message<Intent, Effect>>;
+pub type MessageReceiver<Intent, Effect> = mpsc::Receiver<Message<Intent, Effect>>;
 pub type MessageChannel<Intent, Effect> = (
     MessageSender<Intent, Effect>,
     MessageReceiver<Intent, Effect>,
 );
 
-// TODO: Better use a bounded channel in production?
+/// Create a buffered message channel with limited capacity.
 #[must_use]
-pub fn message_channel<Intent, Effect>() -> (
+pub fn message_channel<Intent, Effect>(
+    capacity: usize,
+) -> (
     MessageSender<Intent, Effect>,
     MessageReceiver<Intent, Effect>,
 ) {
-    mpsc::unbounded_channel()
+    mpsc::channel(capacity)
 }
 
 pub fn send_message<Intent: fmt::Debug, Effect: fmt::Debug>(
-    message_tx: &MessageSender<Intent, Effect>,
+    message_tx: &mut MessageSender<Intent, Effect>,
     message: impl Into<Message<Intent, Effect>>,
 ) {
     let message = message.into();
     log::debug!("Sending message: {message:?}");
-    if let Err(message) = message_tx.send(message) {
+    if let Err(err) = message_tx.try_send(message) {
         // Channel is closed, i.e. receiver has been dropped
-        log::debug!("Failed to send message: {:?}", message.0);
+        log::debug!("Failed to send message: {err}");
     }
 }
 
@@ -48,7 +50,7 @@ pub enum MessageHandled {
 pub fn handle_next_message<E, S>(
     shared_env: &Arc<E>,
     state: &mut S,
-    message_tx: &MessageSender<S::Intent, S::Effect>,
+    message_tx: &mut MessageSender<S::Intent, S::Effect>,
     mut next_message: Message<S::Intent, S::Effect>,
     render_fn: &mut RenderStateFn<S, S::Intent>,
 ) -> MessageHandled
@@ -104,7 +106,7 @@ where
 
 pub async fn message_loop<E, S>(
     shared_env: Arc<E>,
-    (message_tx, mut message_rx): MessageChannel<S::Intent, S::Effect>,
+    (mut message_tx, mut message_rx): MessageChannel<S::Intent, S::Effect>,
     mut state: S,
     mut render_state_fn: Box<RenderStateFn<S, S::Intent>>,
 ) -> S
@@ -115,11 +117,11 @@ where
     S::Effect: fmt::Debug + Send + 'static,
     S::Task: fmt::Debug + 'static,
 {
-    while let Some(next_message) = message_rx.recv().await {
+    while let Some(next_message) = message_rx.next().await {
         match handle_next_message(
             &shared_env,
             &mut state,
-            &message_tx,
+            &mut message_tx,
             next_message,
             &mut *render_state_fn,
         ) {

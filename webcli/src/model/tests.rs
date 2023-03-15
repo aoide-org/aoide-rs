@@ -28,10 +28,12 @@ fn test_env() -> Environment {
     Environment::new(dummy_api_url())
 }
 
+const MESSAGE_CHANNEL_CAPACITY: usize = 10;
+
 #[test]
 fn should_handle_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (message_tx, _) = message_channel();
+    let (mut message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let mut state = State::default();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
@@ -39,7 +41,7 @@ fn should_handle_error_and_terminate() {
         handle_next_message(
             &shared_env,
             &mut state,
-            &message_tx,
+            &mut message_tx,
             effect.into(),
             &mut |_| { None },
         )
@@ -50,9 +52,9 @@ fn should_handle_error_and_terminate() {
 #[tokio::test]
 async fn should_catch_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (message_tx, message_rx) = message_channel();
+    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    send_message(&message_tx, Intent::InjectEffect(Box::new(effect)));
+    send_message(&mut message_tx, Intent::InjectEffect(Box::new(effect)));
     let state = message_loop(
         shared_env,
         (message_tx, message_rx),
@@ -66,7 +68,7 @@ async fn should_catch_error_and_terminate() {
 #[test]
 fn should_handle_collection_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (message_tx, _) = message_channel();
+    let (mut message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let mut state = State::default();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
@@ -74,7 +76,7 @@ fn should_handle_collection_error_and_terminate() {
         handle_next_message(
             &shared_env,
             &mut state,
-            &message_tx,
+            &mut message_tx,
             effect.into(),
             &mut |_| { None },
         )
@@ -85,9 +87,9 @@ fn should_handle_collection_error_and_terminate() {
 #[tokio::test]
 async fn should_catch_collection_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (message_tx, message_rx) = message_channel();
+    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    send_message(&message_tx, Intent::InjectEffect(Box::new(effect)));
+    send_message(&mut message_tx, Intent::InjectEffect(Box::new(effect)));
     let state = message_loop(
         shared_env,
         (message_tx, message_rx),
@@ -101,7 +103,7 @@ async fn should_catch_collection_error_and_terminate() {
 #[test]
 fn should_handle_media_tracker_error() {
     let shared_env = Arc::new(test_env());
-    let (message_tx, _) = message_channel();
+    let (mut message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let mut state = State::default();
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
@@ -109,7 +111,7 @@ fn should_handle_media_tracker_error() {
         handle_next_message(
             &shared_env,
             &mut state,
-            &message_tx,
+            &mut message_tx,
             Effect::MediaTracker(effect).into(),
             &mut |_| { None },
         )
@@ -120,9 +122,9 @@ fn should_handle_media_tracker_error() {
 #[tokio::test]
 async fn should_catch_media_tracker_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (message_tx, message_rx) = message_channel();
+    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    send_message(&message_tx, Intent::InjectEffect(Box::new(effect)));
+    send_message(&mut message_tx, Intent::InjectEffect(Box::new(effect)));
     let state = message_loop(
         shared_env,
         (message_tx, message_rx),
@@ -136,8 +138,8 @@ async fn should_catch_media_tracker_error_and_terminate() {
 #[tokio::test]
 async fn should_terminate_on_intent_when_no_tasks_pending() {
     let shared_env = Arc::new(test_env());
-    let (message_tx, message_rx) = message_channel();
-    send_message(&message_tx, Intent::Terminate);
+    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    send_message(&mut message_tx, Intent::Terminate);
     let state = message_loop(
         shared_env,
         (message_tx, message_rx),
@@ -151,15 +153,15 @@ async fn should_terminate_on_intent_when_no_tasks_pending() {
 #[tokio::test]
 async fn should_terminate_on_intent_after_pending_tasks_finished() {
     let shared_env = Arc::new(test_env());
-    let (message_tx, message_rx) = message_channel();
+    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     send_message(
-        &message_tx,
+        &mut message_tx,
         Intent::Deferred {
             not_before: Instant::now() + Duration::from_millis(100),
             intent: Box::new(Intent::RenderState),
         },
     );
-    send_message(&message_tx, Intent::Terminate);
+    send_message(&mut message_tx, Intent::Terminate);
     let render_state_count = Arc::new(AtomicUsize::new(0));
     let state = message_loop(
         shared_env.clone(),

@@ -67,6 +67,8 @@ const OUTPUT_FILE_ARG: &str = "output-file";
 
 const PROGRESS_POLLING_PERIOD: Duration = Duration::from_millis(1_000);
 
+const MESSAGE_CHANNEL_CAPACITY: usize = 1000;
+
 #[derive(Debug)]
 struct CliState {
     matches: ArgMatches,
@@ -282,7 +284,7 @@ async fn main() -> anyhow::Result<()> {
         .expect(WEBSRV_URL_ARG);
 
     let shared_env = Arc::new(Environment::new(websrv_url));
-    let (message_tx, message_rx) = message_channel();
+    let (mut message_tx, message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
 
     let mut collection_uid: Option<CollectionUid> = None;
     let mut subcommand_submitted = false;
@@ -823,19 +825,19 @@ async fn main() -> anyhow::Result<()> {
 
     // Handle Ctrl-C/SIGINT signals to abort processing
     tokio::spawn({
-        let message_tx = message_tx.clone();
+        let mut message_tx = message_tx.clone();
         async move {
             if let Err(err) = signal::ctrl_c().await {
                 log::error!("Failed to receive Ctrl-C/SIGINT signal: {err}");
             }
             log::info!("Terminating after receiving Ctrl-C/SIGINT...");
-            send_message(&message_tx, Intent::Terminate);
+            send_message(&mut message_tx, Intent::Terminate);
         }
     });
 
     // Kick off the loop by sending a first message
     // before awaiting its termination
-    send_message(&message_tx, Intent::RenderState);
+    send_message(&mut message_tx, Intent::RenderState);
     message_loop.await?;
 
     Ok(())

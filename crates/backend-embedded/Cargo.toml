@@ -14,7 +14,7 @@ publish = false
 anyhow = "1.0.69"
 diesel = { version = "2.0.3", default-features = false, features = ["sqlite"] }
 log = "0.4.17"
-serde = { version = "1.0.155", features = ["derive"] }
+serde = { version = "1.0.156", features = ["derive"] }
 thiserror = "1.0.39"
 
 # Workspace dependencies
