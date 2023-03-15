@@ -3,10 +3,9 @@
 
 use std::{num::NonZeroUsize, time::Instant};
 
-use aoide_client::{
-    models::{collection, media_source, media_tracker},
-    state::state_updated,
-};
+use infect::state_updated;
+
+use aoide_client::models::{collection, media_source, media_tracker};
 
 use crate::model::state::ControlState;
 

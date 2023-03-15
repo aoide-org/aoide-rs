@@ -23,7 +23,11 @@ use std::{
 };
 
 use clap::{Arg, ArgMatches, Command};
-use model::{Effect, Task};
+use infect::{
+    message::Message as ClientMessage,
+    messaging::{message_channel, message_loop, send_message},
+    state::{State as ClientState, StateUpdated as ClientStateUpdated},
+};
 use tokio::signal;
 
 use aoide_core::collection::{
@@ -35,17 +39,12 @@ use aoide_core_api::{
     track::search::{SortField, SortOrder},
 };
 
-use aoide_client::{
-    message::Message as ClientMessage,
-    messaging::{message_channel, message_loop, send_message},
-    models::{collection, media_source, media_tracker},
-    state::{State as ClientState, StateUpdated as ClientStateUpdated},
-};
+use aoide_client::models::{collection, media_source, media_tracker};
 
 mod model;
-use crate::model::ExportTracksParams;
+use self::model::{Effect, Environment, Intent, State, Task};
 
-use self::model::{Environment, Intent, State};
+use crate::model::ExportTracksParams;
 
 const DEFAULT_LOG_FILTER: &str = "info";
 

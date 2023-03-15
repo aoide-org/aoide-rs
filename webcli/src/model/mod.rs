@@ -18,12 +18,12 @@ pub(crate) use self::state::State;
 pub(crate) mod task;
 pub(crate) use self::task::Task;
 
-pub(crate) type Action = aoide_client::action::Action<Effect, Task>;
+pub(crate) type Action = infect::Action<Effect, Task>;
 
-pub(crate) type Message = aoide_client::message::Message<Intent, Effect>;
-pub(crate) type MessageSender = aoide_client::messaging::MessageSender<Intent, Effect>;
+pub(crate) type Message = infect::Message<Intent, Effect>;
+pub(crate) type MessageSender = infect::MessageSender<Intent, Effect>;
 
-pub(crate) type StateUpdated = aoide_client::state::StateUpdated<Effect, Task>;
+pub(crate) type StateUpdated = infect::StateUpdated<Effect, Task>;
 
 impl From<Intent> for Message {
     fn from(intent: Intent) -> Self {

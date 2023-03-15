@@ -22,14 +22,8 @@
 // TODO: Add missing docs
 #![allow(clippy::missing_errors_doc)]
 
-pub mod action;
-pub mod message;
-pub mod state;
-pub mod util;
-
 pub mod models;
-
-pub mod messaging;
+pub mod util;
 
 #[cfg(feature = "webapi-backend")]
 pub mod webapi;

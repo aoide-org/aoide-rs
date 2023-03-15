@@ -1,22 +1,18 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-///////////////////////////////////////////////////////////////////////
-
 use std::{
     sync::{atomic::AtomicUsize, Arc},
     time::{Duration, Instant},
 };
 
+use infect::{
+    handle_next_message, message_channel, message_loop, send_message, MessageHandled,
+    TaskDispatcher as _,
+};
 use reqwest::Url;
 
-use aoide_client::{
-    messaging::{
-        handle_next_message, message_channel, message_loop, send_message, MessageHandled,
-        TaskDispatcher as _,
-    },
-    models::media_tracker,
-};
+use aoide_client::models::media_tracker;
 
 use super::*;
 
@@ -163,11 +159,8 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
     );
     send_message(&mut message_tx, Intent::Terminate);
     let render_state_count = Arc::new(AtomicUsize::new(0));
-    let state = message_loop(
-        shared_env.clone(),
-        (message_tx, message_rx),
-        Default::default(),
-        Box::new({
+    let state = {
+        let render_state_fn = {
             let shared_env = Arc::clone(&shared_env);
             let render_state_count = Arc::clone(&render_state_count);
             move |state: &State| {
@@ -186,9 +179,15 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
                 assert_eq!(last_render_state_count > 1, shared_env.all_tasks_finished());
                 None
             }
-        }),
-    )
-    .await;
+        };
+        message_loop(
+            shared_env,
+            (message_tx, message_rx),
+            Default::default(),
+            Box::new(render_state_fn),
+        )
+        .await
+    };
     assert_eq!(
         3,
         render_state_count.load(std::sync::atomic::Ordering::SeqCst)

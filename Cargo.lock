@@ -141,7 +141,7 @@ dependencies = [
  "aoide-core-api-json",
  "aoide-core-json",
  "bytes",
- "futures",
+ "infect",
  "log",
  "reqwest",
  "serde",
@@ -373,6 +373,7 @@ dependencies = [
  "aoide-core-json",
  "clap",
  "env_logger",
+ "infect",
  "log",
  "reqwest",
  "serde_json",
@@ -1921,6 +1922,16 @@ checksum = "1885e79c1fc4b10f0e172c475f458b7f7b93061064d98c3293e98c5ba0c8b399"
 dependencies = [
  "autocfg",
  "hashbrown",
+]
+
+[[package]]
+name = "infect"
+version = "0.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2849881049e1d34d5948abf8364c949a7c68695e12805d7572315c0cd6da22b"
+dependencies = [
+ "futures",
+ "log",
 ]
 
 [[package]]

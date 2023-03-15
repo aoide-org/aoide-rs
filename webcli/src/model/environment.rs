@@ -3,12 +3,10 @@
 
 use std::sync::{atomic::AtomicUsize, Arc};
 
+use infect::{send_message, TaskDispatcher};
 use reqwest::{Client, Url};
 
-use aoide_client::{
-    messaging::{send_message, TaskDispatcher},
-    webapi::ClientEnvironment,
-};
+use aoide_client::webapi::ClientEnvironment;
 
 use super::{Effect, Intent, Message, MessageSender, Task};
 
@@ -43,7 +41,11 @@ impl ClientEnvironment for Environment {
     }
 }
 
-impl TaskDispatcher<Intent, Effect, Task> for Environment {
+impl TaskDispatcher for Environment {
+    type Intent = Intent;
+    type Effect = Effect;
+    type Task = Task;
+
     fn all_tasks_finished(&self) -> bool {
         self.pending_tasks_counter.all_pending_tasks_finished()
     }

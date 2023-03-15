@@ -13,5 +13,5 @@ pub use self::state::{RemoteView, State};
 pub mod task;
 pub use self::task::Task;
 
-pub type Action = crate::action::Action<Effect, Task>;
-pub type StateUpdated = crate::state::StateUpdated<Effect, Task>;
+pub type Action = infect::Action<Effect, Task>;
+pub type StateUpdated = infect::StateUpdated<Effect, Task>;

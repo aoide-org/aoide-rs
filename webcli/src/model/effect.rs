@@ -3,10 +3,9 @@
 
 use std::num::NonZeroUsize;
 
-use aoide_client::{
-    models::{collection, media_source, media_tracker},
-    state::state_updated,
-};
+use infect::state_updated;
+
+use aoide_client::models::{collection, media_source, media_tracker};
 use aoide_core_api::track::find_unsynchronized::UnsynchronizedTrackEntity;
 
 use crate::model::{state::ControlState, Action, Task};
