@@ -7,8 +7,8 @@ use std::{
 };
 
 use infect::{
-    message_channel, message_loop, process_next_message, send_message, MessageHandled, TaskContext,
-    TaskDispatcher as _,
+    message_channel, process_messages, process_next_message, send_message, NextMessageProcessed,
+    TaskContext, TaskDispatcher as _,
 };
 use reqwest::Url;
 
@@ -52,7 +52,7 @@ fn should_handle_error_and_terminate() {
     let mut render_model = RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
-        MessageHandled::NoProgress,
+        NextMessageProcessed::NoProgress,
         process_next_message(
             &mut task_context,
             &mut model,
@@ -75,7 +75,7 @@ async fn should_catch_error_and_terminate() {
     let render_model = &mut RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     send_message(&mut message_tx, effect);
-    message_loop(&mut message_rx, task_context, model, render_model).await;
+    process_messages(&mut message_rx, task_context, model, render_model).await;
     assert_eq!(1, model.last_errors().len());
 }
 
@@ -91,7 +91,7 @@ fn should_handle_collection_error_and_terminate() {
     let mut render_model = RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
-        MessageHandled::NoProgress,
+        NextMessageProcessed::NoProgress,
         process_next_message(
             &mut task_context,
             &mut model,
@@ -114,7 +114,7 @@ async fn should_catch_collection_error_and_terminate() {
     let render_model = &mut RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     send_message(&mut message_tx, effect);
-    message_loop(&mut message_rx, task_context, model, render_model).await;
+    process_messages(&mut message_rx, task_context, model, render_model).await;
     assert_eq!(1, model.last_errors().len());
 }
 
@@ -130,7 +130,7 @@ fn should_handle_media_tracker_error() {
     let render_model = &mut RenderModel;
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
-        MessageHandled::NoProgress,
+        NextMessageProcessed::NoProgress,
         process_next_message(
             task_context,
             model,
@@ -153,7 +153,7 @@ async fn should_catch_media_tracker_error_and_terminate() {
     let render_model = &mut RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     send_message(&mut message_tx, effect);
-    message_loop(&mut message_rx, task_context, model, render_model).await;
+    process_messages(&mut message_rx, task_context, model, render_model).await;
     assert_eq!(1, model.last_errors().len());
 }
 
@@ -168,7 +168,7 @@ async fn should_terminate_on_intent_when_no_tasks_pending() {
     let model = &mut Model::default();
     let render_model = &mut RenderModel;
     send_message(&mut message_tx, Intent::Terminate);
-    message_loop(&mut message_rx, task_context, model, render_model).await;
+    process_messages(&mut message_rx, task_context, model, render_model).await;
     assert!(model.last_errors().is_empty());
 }
 
@@ -232,7 +232,7 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
         },
     );
     send_message(&mut message_tx, Intent::Terminate);
-    message_loop(&mut message_rx, task_context, model, render_model).await;
+    process_messages(&mut message_rx, task_context, model, render_model).await;
     assert_eq!(
         3,
         render_model

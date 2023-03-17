@@ -23,10 +23,7 @@ use std::{
 };
 
 use clap::{builder::StyledStr, Arg, ArgMatches, Command};
-use infect::{
-    messaging::{message_channel, message_loop, send_message},
-    RenderModel, TaskContext,
-};
+use infect::{message_channel, process_messages, send_message, RenderModel, TaskContext};
 use model::{EffectApplied, IntentHandled};
 use tokio::signal;
 
@@ -853,7 +850,7 @@ async fn main() -> anyhow::Result<()> {
         subcommand_submitted: false,
     };
     let message_loop = async move {
-        message_loop(
+        process_messages(
             &mut message_rx,
             &mut task_context,
             &mut model,
