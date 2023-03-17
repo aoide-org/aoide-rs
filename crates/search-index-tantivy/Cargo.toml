@@ -4,10 +4,10 @@
 [package]
 name = "aoide-search-index-tantivy"
 description = "aoide - [experimental] Full-text search index based on Tantivy"
-version.workspace = true
-license.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 publish = false
 
 [dependencies]

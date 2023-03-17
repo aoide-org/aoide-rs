@@ -4,10 +4,10 @@
 [package]
 name = "aoide-media"
 description = "aoide - Import/export of metadata for media sources and tracks"
-version.workspace = true
-license.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 publish = false
 
 [dependencies]

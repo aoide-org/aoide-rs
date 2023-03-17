@@ -4,10 +4,10 @@
 [package]
 name = "aoide-repo"
 description = "aoide - Storage-agnostic repository types and traits for the backend"
-version.workspace = true
-license.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 publish = false
 
 [dependencies]

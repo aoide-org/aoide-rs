@@ -4,10 +4,10 @@
 [package]
 name = "aoide-usecases"
 description = "aoide - Storage-agnostic use case implementations for the backend"
-version.workspace = true
-license.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 publish = false
 
 [dependencies]

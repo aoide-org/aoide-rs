@@ -4,10 +4,10 @@
 [package]
 name = "aoide-core-api"
 description = "aoide - Shared boundary types for repositories and usecases"
-version.workspace = true
-license.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 publish = false
 
 [dependencies]

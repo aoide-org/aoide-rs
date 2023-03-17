@@ -4,10 +4,10 @@
 [package]
 name = "aoide-desktop-app"
 description = "aoide - Desktop app support"
-version.workspace = true
-license.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
 publish = false
 
 [dependencies]
