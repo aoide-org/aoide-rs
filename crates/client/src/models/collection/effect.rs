@@ -47,7 +47,7 @@ impl Effect {
                 debug_assert!(!model.remote_view().is_pending());
                 let token = model.remote_view.all_kinds.start_pending_now();
                 let task = Task::Pending { token, task };
-                let next_action = Action::dispatch_task(task);
+                let next_action = Action::spawn_task(task);
                 EffectApplied::maybe_changed(next_action)
             }
             Self::FetchAllKindsFinished { token, result } => match result {

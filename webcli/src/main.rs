@@ -831,7 +831,7 @@ async fn main() -> anyhow::Result<()> {
     let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let mut task_context = TaskContext {
         message_tx: message_tx.clone(),
-        task_dispatcher: shared_env,
+        task_executor: shared_env,
     };
 
     let mut model = CliModel::new(matches);

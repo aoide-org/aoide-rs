@@ -51,7 +51,7 @@ impl Intent {
             Self::CreateEntity { new_collection } => {
                 let task = Task::CreateEntity { new_collection };
                 log::debug!("Dispatching task {task:?}");
-                Action::dispatch_task(task)
+                Action::spawn_task(task)
             }
         };
         IntentHandled::Accepted(Some(next_action))

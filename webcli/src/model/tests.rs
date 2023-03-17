@@ -8,7 +8,7 @@ use std::{
 
 use infect::{
     message_channel, process_messages, process_next_message, send_message, NextMessageProcessed,
-    TaskContext, TaskDispatcher as _,
+    TaskContext, TaskExecutor as _,
 };
 use reqwest::Url;
 
@@ -46,7 +46,7 @@ fn should_handle_error_and_terminate() {
     let (message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let mut task_context = TaskContext {
         message_tx,
-        task_dispatcher: shared_env,
+        task_executor: shared_env,
     };
     let mut model = Model::default();
     let mut render_model = RenderModel;
@@ -69,7 +69,7 @@ async fn should_catch_error_and_terminate() {
     let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let task_context = &mut TaskContext {
         message_tx: message_tx.clone(),
-        task_dispatcher: shared_env,
+        task_executor: shared_env,
     };
     let model = &mut Model::default();
     let render_model = &mut RenderModel;
@@ -85,7 +85,7 @@ fn should_handle_collection_error_and_terminate() {
     let (message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let mut task_context = TaskContext {
         message_tx,
-        task_dispatcher: shared_env,
+        task_executor: shared_env,
     };
     let mut model = Model::default();
     let mut render_model = RenderModel;
@@ -108,7 +108,7 @@ async fn should_catch_collection_error_and_terminate() {
     let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let task_context = &mut TaskContext {
         message_tx: message_tx.clone(),
-        task_dispatcher: shared_env,
+        task_executor: shared_env,
     };
     let model = &mut Model::default();
     let render_model = &mut RenderModel;
@@ -124,7 +124,7 @@ fn should_handle_media_tracker_error() {
     let (message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let task_context = &mut TaskContext {
         message_tx,
-        task_dispatcher: shared_env,
+        task_executor: shared_env,
     };
     let model = &mut Model::default();
     let render_model = &mut RenderModel;
@@ -147,7 +147,7 @@ async fn should_catch_media_tracker_error_and_terminate() {
     let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let task_context = &mut TaskContext {
         message_tx: message_tx.clone(),
-        task_dispatcher: shared_env,
+        task_executor: shared_env,
     };
     let model = &mut Model::default();
     let render_model = &mut RenderModel;
@@ -163,7 +163,7 @@ async fn should_terminate_on_intent_when_no_tasks_pending() {
     let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let task_context = &mut TaskContext {
         message_tx: message_tx.clone(),
-        task_dispatcher: shared_env,
+        task_executor: shared_env,
     };
     let model = &mut Model::default();
     let render_model = &mut RenderModel;
@@ -220,7 +220,7 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
     let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let task_context = &mut TaskContext {
         message_tx: message_tx.clone(),
-        task_dispatcher: Arc::clone(&shared_env),
+        task_executor: Arc::clone(&shared_env),
     };
     let model = &mut Model::default();
     let render_model = &mut TerminationRenderModel::new(shared_env);

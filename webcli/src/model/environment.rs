@@ -3,7 +3,7 @@
 
 use std::sync::{atomic::AtomicUsize, Arc};
 
-use infect::{send_message, TaskContext, TaskDispatcher};
+use infect::{TaskContext, TaskExecutor};
 use reqwest::{Client, Url};
 
 use aoide_client::webapi::ClientEnvironment;
@@ -41,7 +41,7 @@ impl ClientEnvironment for Environment {
     }
 }
 
-impl TaskDispatcher<Arc<Environment>> for Environment {
+impl TaskExecutor<Arc<Environment>> for Environment {
     type Intent = Intent;
     type Effect = Effect;
     type Task = Task;
@@ -50,7 +50,7 @@ impl TaskDispatcher<Arc<Environment>> for Environment {
         self.pending_tasks_counter.all_pending_tasks_finished()
     }
 
-    fn dispatch_task(
+    fn spawn_task(
         &self,
         mut context: TaskContext<Arc<Environment>, Self::Intent, Self::Effect>,
         task: Self::Task,
@@ -62,11 +62,11 @@ impl TaskDispatcher<Arc<Environment>> for Environment {
         }
         tokio::spawn(async move {
             log::debug!("Executing task {task:?}");
-            let effect = task.execute(&*context.task_dispatcher).await;
+            let effect = task.execute(&*context.task_executor).await;
             log::debug!("Task finished with effect: {effect:?}");
-            send_message(&mut context.message_tx, Message::Effect(effect));
+            context.send_message(Message::Effect(effect));
             if context
-                .task_dispatcher
+                .task_executor
                 .pending_tasks_counter
                 .finish_pending_task()
                 == 0

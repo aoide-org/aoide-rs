@@ -61,7 +61,7 @@ impl Intent {
             Self::Deferred { not_before, intent } => {
                 if model.control_state == ControlState::Running {
                     let next_action =
-                        Action::dispatch_task(Task::DeferredIntent { not_before, intent });
+                        Action::spawn_task(Task::DeferredIntent { not_before, intent });
                     IntentHandled::accepted(next_action)
                 } else {
                     let self_reconstructed = Self::Deferred { not_before, intent };
@@ -130,7 +130,7 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                let next_action = Action::dispatch_task(Task::FindUnsynchronizedTracks {
+                let next_action = Action::spawn_task(Task::FindUnsynchronizedTracks {
                     collection_uid,
                     params,
                 });
@@ -140,7 +140,7 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                let next_action = Action::dispatch_task(Task::ExportTracks {
+                let next_action = Action::spawn_task(Task::ExportTracks {
                     collection_uid,
                     params,
                 });

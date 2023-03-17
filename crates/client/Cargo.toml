@@ -13,7 +13,7 @@ publish = false
 [dependencies]
 anyhow = "1.0.69"
 bytes = "1.4.0"
-infect = "0.0.12"
+infect = "0.0.14"
 #infect = { git = "https://github.com/uklotzde/infect.git" }
 log = "0.4.17"
 serde = { version = "1.0.156", features = ["derive"], optional = true }

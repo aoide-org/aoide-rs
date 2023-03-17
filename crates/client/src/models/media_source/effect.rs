@@ -32,7 +32,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::PurgeOrphaned(purge_orphaned);
                 let task = Task::Pending { token, task };
-                let next_action = Action::dispatch_task(task);
+                let next_action = Action::spawn_task(task);
                 EffectApplied::maybe_changed(next_action)
             }
             Self::PurgeOrphanedFinished { token, result } => {
@@ -70,7 +70,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::PurgeUntracked(purge_untracked);
                 let task = Task::Pending { token, task };
-                let next_action = Action::dispatch_task(task);
+                let next_action = Action::spawn_task(task);
                 EffectApplied::maybe_changed(next_action)
             }
             Self::PurgeUntrackedFinished { token, result } => {

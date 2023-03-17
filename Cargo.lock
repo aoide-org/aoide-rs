@@ -1926,9 +1926,9 @@ dependencies = [
 
 [[package]]
 name = "infect"
-version = "0.0.12"
+version = "0.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7eaae20bb7292b9398428996c16e88240f0669474de5e1228a0b010fbadd4025"
+checksum = "79b57e220bed1be3e7501ea3f9256359412c18a8cb4de1b4482739e582222528"
 dependencies = [
  "futures",
  "log",

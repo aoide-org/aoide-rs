@@ -53,7 +53,7 @@ impl Effect {
                 let token = model.remote_view.progress.start_pending_now();
                 let task = PendingTask::FetchProgress;
                 let task = Task::Pending { token, task };
-                let next_action = Action::dispatch_task(task);
+                let next_action = Action::spawn_task(task);
                 EffectApplied::maybe_changed(next_action)
             }
             Self::FetchProgressFinished { token, result } => match result {
@@ -88,7 +88,7 @@ impl Effect {
                 let token = model.remote_view.status.start_pending_now();
                 let task = PendingTask::FetchStatus(fetch_status);
                 let task = Task::Pending { token, task };
-                let next_action = Action::dispatch_task(task);
+                let next_action = Action::spawn_task(task);
                 EffectApplied::maybe_changed(next_action)
             }
             Self::FetchStatusFinished { token, result } => match result {
@@ -129,7 +129,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::StartScanDirectories(start_scan_directories);
                 let task = Task::Pending { token, task };
-                let next_action = Action::dispatch_task(task);
+                let next_action = Action::spawn_task(task);
                 EffectApplied::maybe_changed(next_action)
             }
             Self::ScanDirectoriesFinished { token, result } => {
@@ -167,7 +167,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::UntrackDirectories(untrack_directories);
                 let task = Task::Pending { token, task };
-                let next_action = Action::dispatch_task(task);
+                let next_action = Action::spawn_task(task);
                 EffectApplied::maybe_changed(next_action)
             }
             Self::UntrackDirectoriesFinished { token, result } => {
@@ -202,7 +202,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::StartImportFiles(start_import_files);
                 let task = Task::Pending { token, task };
-                let next_action = Action::dispatch_task(task);
+                let next_action = Action::spawn_task(task);
                 EffectApplied::maybe_changed(next_action)
             }
             Self::ImportFilesFinished { token, result } => {
@@ -240,7 +240,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::StartFindUntrackedFiles(start_find_untracked_files);
                 let task = Task::Pending { token, task };
-                let next_action = Action::dispatch_task(task);
+                let next_action = Action::spawn_task(task);
                 EffectApplied::maybe_changed(next_action)
             }
             Self::FindUntrackedFilesFinished { token, result } => {

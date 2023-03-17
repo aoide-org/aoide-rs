@@ -14,7 +14,7 @@ publish = false
 anyhow = "1.0.69"
 clap = "4.1.9"
 env_logger = "0.10.0"
-infect = "0.0.12"
+infect = "0.0.14"
 #infect = { git = "https://github.com/uklotzde/infect.git" }
 log = { version = "0.4.17", features = ["release_max_level_debug"] }
 reqwest = { version = "0.11.14", default-features = false, features = ["rustls-tls"] }

@@ -72,7 +72,7 @@ impl Effect {
                     Ok(()) => {
                         if model.control_state == ControlState::Terminating && model.is_pending() {
                             // Abort next pending request until idle
-                            Some(Action::DispatchTask(Task::AbortPendingRequest))
+                            Some(Action::SpawnTask(Task::AbortPendingRequest))
                         } else {
                             None
                         }

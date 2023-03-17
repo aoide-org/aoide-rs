@@ -24,7 +24,7 @@ impl Effect {
                 debug_assert!(model.can_fetch_results());
                 model.set_fetching_results();
                 let task = Task::FetchResultPage(fetch_result_page);
-                let next_action = Action::dispatch_task(task);
+                let next_action = Action::spawn_task(task);
                 EffectApplied::maybe_changed(Some(next_action))
             }
             Self::FetchResultPageFinished(res) => match res {
