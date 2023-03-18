@@ -88,7 +88,16 @@ repos:
         args: [--all, --]
       - id: clippy
         args:
-          [--locked, --workspace, --all-targets, --no-deps, --, -D, warnings]
+          [
+            --locked,
+            --workspace,
+            --all-features,
+            --all-targets,
+            --no-deps,
+            --,
+            -D,
+            warnings,
+          ]
   - repo: local
     hooks:
       - id: cargo-doc
@@ -96,4 +105,4 @@ repos:
         entry: env RUSTDOCFLAGS=-Dwarnings cargo
         language: system
         pass_filenames: false
-        args: [doc, --locked, --workspace, --no-deps]
+        args: [doc, --locked, --workspace, --no-deps, --all-features]
