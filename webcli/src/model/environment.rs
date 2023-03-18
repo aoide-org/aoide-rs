@@ -65,7 +65,7 @@ impl TaskExecutor<Arc<Environment>> for Environment {
             log::debug!("Executing task {task:?}");
             let effect = task.execute(&*context.task_executor).await;
             log::debug!("Task finished with effect: {effect:?}");
-            context.send_message(Message::Effect(effect));
+            context.submit_message(Message::Effect(effect));
             if context.task_executor.pending_tasks_counter.finish_task() == 0 {
                 log::debug!("Finished last pending task");
             }

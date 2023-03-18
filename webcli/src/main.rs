@@ -24,8 +24,7 @@ use std::{
 
 use clap::{builder::StyledStr, Arg, ArgMatches, Command};
 use infect::{
-    message_channel, process_messages, processing::ProcessingMessagesStopped, send_message,
-    RenderModel, TaskContext,
+    consume_messages, message_channel, submit_message, MessagesConsumed, ModelRender, TaskContext,
 };
 use model::{EffectApplied, IntentHandled};
 use tokio::signal;
@@ -123,7 +122,7 @@ struct RenderCliModel {
         Option<DataSnapshot<aoide_core_api::media::tracker::find_untracked_files::Outcome>>,
 }
 
-impl RenderModel for RenderCliModel {
+impl ModelRender for RenderCliModel {
     type Model = CliModel;
 
     fn render_model(
@@ -854,7 +853,7 @@ async fn main() -> anyhow::Result<()> {
     };
     let message_loop = async move {
         loop {
-            match process_messages(
+            match consume_messages(
                 &mut message_rx,
                 &mut task_context,
                 &mut model,
@@ -862,12 +861,12 @@ async fn main() -> anyhow::Result<()> {
             )
             .await
             {
-                ProcessingMessagesStopped::IntentRejected(intent) => {
+                MessagesConsumed::IntentRejected(intent) => {
                     log::warn!("Continuing message loop after intent rejected: {intent:?}");
                     continue;
                 }
-                ProcessingMessagesStopped::ChannelClosed => (),
-                ProcessingMessagesStopped::NoProgress => {
+                MessagesConsumed::ChannelClosed => (),
+                MessagesConsumed::NoProgress => {
                     if !shared_env.all_tasks_finished() {
                         log::info!("Continuing message loop until all tasks finished");
                         continue;
@@ -888,13 +887,13 @@ async fn main() -> anyhow::Result<()> {
                 log::error!("Failed to receive Ctrl-C/SIGINT signal: {err}");
             }
             log::info!("Terminating after receiving Ctrl-C/SIGINT...");
-            send_message(&mut message_tx, Intent::Terminate);
+            submit_message(&mut message_tx, Intent::Terminate);
         }
     });
 
     // Kick off the loop by sending a first message
     // before awaiting its termination
-    send_message(&mut message_tx, Intent::RenderModel);
+    submit_message(&mut message_tx, Intent::RenderModel);
     message_loop.await?;
 
     Ok(())

@@ -7,8 +7,8 @@ use std::{
 };
 
 use infect::{
-    message_channel, process_messages, process_next_message, send_message, NextMessageProcessed,
-    ProcessingMessagesStopped, TaskContext,
+    consume_messages, message_channel, process_message, submit_message, MessageProcessed,
+    MessagesConsumed, TaskContext,
 };
 use reqwest::Url;
 
@@ -27,9 +27,9 @@ fn test_env() -> Environment {
 const MESSAGE_CHANNEL_CAPACITY: usize = 10;
 
 #[derive(Default)]
-struct RenderModel;
+struct ModelRender;
 
-impl infect::RenderModel for RenderModel {
+impl infect::ModelRender for ModelRender {
     type Model = Model;
 
     fn render_model(
@@ -49,16 +49,16 @@ fn should_handle_error_and_terminate() {
         task_executor: shared_env,
     };
     let mut model = Model::default();
-    let mut render_model = RenderModel;
+    let mut model_render = ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert!(matches!(
-        process_next_message(
+        process_message(
             &mut task_context,
             &mut model,
-            &mut render_model,
+            &mut model_render,
             effect.into(),
         ),
-        NextMessageProcessed::NoProgress,
+        MessageProcessed::NoProgress,
     ));
     assert_eq!(1, model.last_errors().len());
 }
@@ -72,10 +72,10 @@ async fn should_catch_error_and_terminate() {
         task_executor: shared_env,
     };
     let model = &mut Model::default();
-    let render_model = &mut RenderModel;
+    let model_render = &mut ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    send_message(&mut message_tx, effect);
-    process_messages(&mut message_rx, task_context, model, render_model).await;
+    submit_message(&mut message_tx, effect);
+    consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert_eq!(1, model.last_errors().len());
 }
 
@@ -88,16 +88,16 @@ fn should_handle_collection_error_and_terminate() {
         task_executor: shared_env,
     };
     let mut model = Model::default();
-    let mut render_model = RenderModel;
+    let mut model_render = ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert!(matches!(
-        process_next_message(
+        process_message(
             &mut task_context,
             &mut model,
-            &mut render_model,
+            &mut model_render,
             effect.into(),
         ),
-        NextMessageProcessed::NoProgress,
+        MessageProcessed::NoProgress,
     ));
     assert_eq!(1, model.last_errors().len());
 }
@@ -111,10 +111,10 @@ async fn should_catch_collection_error_and_terminate() {
         task_executor: shared_env,
     };
     let model = &mut Model::default();
-    let render_model = &mut RenderModel;
+    let model_render = &mut ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    send_message(&mut message_tx, effect);
-    process_messages(&mut message_rx, task_context, model, render_model).await;
+    submit_message(&mut message_tx, effect);
+    consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert_eq!(1, model.last_errors().len());
 }
 
@@ -127,16 +127,16 @@ fn should_handle_media_tracker_error() {
         task_executor: shared_env,
     };
     let model = &mut Model::default();
-    let render_model = &mut RenderModel;
+    let model_render = &mut ModelRender;
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert!(matches!(
-        process_next_message(
+        process_message(
             task_context,
             model,
-            render_model,
+            model_render,
             Effect::MediaTracker(effect).into(),
         ),
-        NextMessageProcessed::NoProgress,
+        MessageProcessed::NoProgress,
     ));
     assert_eq!(1, model.last_errors().len());
 }
@@ -150,10 +150,10 @@ async fn should_catch_media_tracker_error_and_terminate() {
         task_executor: shared_env,
     };
     let model = &mut Model::default();
-    let render_model = &mut RenderModel;
+    let model_render = &mut ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    send_message(&mut message_tx, effect);
-    process_messages(&mut message_rx, task_context, model, render_model).await;
+    submit_message(&mut message_tx, effect);
+    consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert_eq!(1, model.last_errors().len());
 }
 
@@ -166,18 +166,18 @@ async fn should_terminate_on_intent_when_no_tasks_pending() {
         task_executor: shared_env,
     };
     let model = &mut Model::default();
-    let render_model = &mut RenderModel;
-    send_message(&mut message_tx, Intent::Terminate);
-    process_messages(&mut message_rx, task_context, model, render_model).await;
+    let model_render = &mut ModelRender;
+    submit_message(&mut message_tx, Intent::Terminate);
+    consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert!(model.last_errors().is_empty());
 }
 
-struct TerminationRenderModel {
+struct TerminationModelRender {
     shared_env: Arc<Environment>,
     invocation_count: Arc<AtomicUsize>,
 }
 
-impl TerminationRenderModel {
+impl TerminationModelRender {
     fn new(shared_env: Arc<Environment>) -> Self {
         Self {
             shared_env,
@@ -186,7 +186,7 @@ impl TerminationRenderModel {
     }
 }
 
-impl infect::RenderModel for TerminationRenderModel {
+impl infect::ModelRender for TerminationModelRender {
     type Model = Model;
 
     fn render_model(
@@ -219,27 +219,27 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
         task_executor: Arc::clone(&shared_env),
     };
     let model = &mut Model::default();
-    let render_model = &mut TerminationRenderModel::new(Arc::clone(&shared_env));
-    send_message(
+    let model_render = &mut TerminationModelRender::new(Arc::clone(&shared_env));
+    submit_message(
         &mut message_tx,
         Intent::Scheduled {
             not_before: Instant::now() + Duration::from_millis(100),
             intent: Box::new(Intent::RenderModel),
         },
     );
-    send_message(&mut message_tx, Intent::Terminate);
+    submit_message(&mut message_tx, Intent::Terminate);
     assert_eq!(model.state, State::Running);
     loop {
-        let stopped = process_messages(&mut message_rx, task_context, model, render_model).await;
+        let stopped = consume_messages(&mut message_rx, task_context, model, model_render).await;
         assert_eq!(model.state, State::Terminating);
-        assert!(matches!(stopped, ProcessingMessagesStopped::NoProgress));
+        assert!(matches!(stopped, MessagesConsumed::NoProgress));
         if shared_env.all_tasks_finished() {
             break;
         }
     }
     assert_eq!(
         2,
-        render_model
+        model_render
             .invocation_count
             .load(std::sync::atomic::Ordering::SeqCst)
     );

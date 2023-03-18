@@ -572,7 +572,7 @@ checksum = "86ea188f25f0255d8f92797797c97ebf5631fa88178beb1a46fdf5622c9a00e4"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.0",
+ "syn 2.0.1",
 ]
 
 [[package]]
@@ -1937,9 +1937,9 @@ dependencies = [
 
 [[package]]
 name = "infect"
-version = "0.0.15"
+version = "0.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "063040dd3004fb8ef95d68f4b998cd32ff26ac66201f274c8a1d68b69928ea5e"
+checksum = "a4a578f2f86bd5b50f3ef1daa388d8b734ccb277774fdaab0fad162e5a94893c"
 dependencies = [
  "futures",
  "log",
@@ -3239,7 +3239,7 @@ checksum = "78997f4555c22a7971214540c4a661291970619afd56de19f77e0de86296e1e5"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.0",
+ "syn 2.0.1",
 ]
 
 [[package]]
@@ -3272,7 +3272,7 @@ checksum = "bcec881020c684085e55a25f7fd888954d56609ef363479dc5a1305eb0d40cab"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.0",
+ "syn 2.0.1",
 ]
 
 [[package]]
@@ -3464,9 +3464,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cff13bb1732bccfe3b246f3fdb09edfd51c01d6f5299b7ccd9457c2e4e37774"
+checksum = "55ee2415bee46ba26eac9cd8e52966995c46bf0e842b6304eb8fcf99826548ed"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3613,7 +3613,7 @@ checksum = "f9456a42c5b0d803c8cd86e73dd7cc9edd429499f37a3550d286d5e86720569f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.0",
+ "syn 2.0.1",
 ]
 
 [[package]]
