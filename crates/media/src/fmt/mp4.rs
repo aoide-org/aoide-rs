@@ -73,7 +73,7 @@ fn import_serato_markers(
     let mut serato_tags = triseratops::tag::TagContainer::new();
 
     if let Some(data) = ilst
-        .atom(&SERATO_MARKERS_IDENT)
+        .get(&SERATO_MARKERS_IDENT)
         .and_then(|atom| atom.data().next())
     {
         match data {
@@ -95,7 +95,7 @@ fn import_serato_markers(
     }
 
     if let Some(data) = ilst
-        .atom(&SERATO_MARKERS2_IDENT)
+        .get(&SERATO_MARKERS2_IDENT)
         .and_then(|atom| atom.data().next())
     {
         match data {
@@ -231,13 +231,13 @@ pub(crate) fn export_track_to_tag(
     );
 
     // Get rid of unsupported numeric genre identifiers to prevent inconsistencies
-    ilst.remove_atom(&LEGACY_GENRE_IDENT);
+    ilst.remove(&LEGACY_GENRE_IDENT);
 
     // Parental advisory
     if let Some(advisory_rating) = track.advisory_rating.map(export_advisory_rating) {
         ilst.set_advisory_rating(advisory_rating);
     } else {
-        ilst.remove_atom(&ADVISORY_RATING_IDENT);
+        ilst.remove(&ADVISORY_RATING_IDENT);
     }
 
     // Music: Precise tempo BPM as a float value
@@ -248,7 +248,7 @@ pub(crate) fn export_track_to_tag(
         let atom = Atom::new(FLOAT_BPM_IDENT, AtomData::UTF8(formatted_bpm));
         ilst.replace_atom(atom);
     } else {
-        ilst.remove_atom(&FLOAT_BPM_IDENT);
+        ilst.remove(&FLOAT_BPM_IDENT);
     }
 
     #[cfg(feature = "serato-markers")]

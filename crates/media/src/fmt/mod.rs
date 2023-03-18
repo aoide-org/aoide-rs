@@ -872,7 +872,7 @@ fn export_filtered_actor_names(
             for name in names {
                 let item_key = item_key.clone();
                 let item_val = ItemValue::Text(name.to_owned());
-                let pushed = tag.push_item(TagItem::new(item_key, item_val));
+                let pushed = tag.push(TagItem::new(item_key, item_val));
                 if !pushed {
                     // Unsupported key
                     break;
@@ -907,7 +907,7 @@ fn export_faceted_tags(
         {
             let item_key = item_key.clone();
             let item_val = ItemValue::Text(label.into_inner().into_owned());
-            let pushed = tag.push_item(TagItem::new(item_key, item_val));
+            let pushed = tag.push(TagItem::new(item_key, item_val));
             if !pushed {
                 // Unsupported key
                 break;
@@ -995,17 +995,17 @@ pub(crate) fn export_track_to_tag(
     tag.remove_key(&ItemKey::TrackSubtitle);
     for track_subtitle in Titles::filter_kind(track.titles.iter(), TitleKind::Sub).peekable() {
         let item_val = ItemValue::Text(track_subtitle.name.clone());
-        let pushed = tag.push_item(TagItem::new(ItemKey::TrackSubtitle, item_val));
+        let pushed = tag.push(TagItem::new(ItemKey::TrackSubtitle, item_val));
         debug_assert!(pushed);
     }
     for movement_title in Titles::filter_kind(track.titles.iter(), TitleKind::Movement).peekable() {
         let item_val = ItemValue::Text(movement_title.name.clone());
-        let pushed = tag.push_item(TagItem::new(ItemKey::Movement, item_val));
+        let pushed = tag.push(TagItem::new(ItemKey::Movement, item_val));
         debug_assert!(pushed);
     }
     for work_title in Titles::filter_kind(track.titles.iter(), TitleKind::Work).peekable() {
         let item_val = ItemValue::Text(work_title.name.clone());
-        let pushed = tag.push_item(TagItem::new(
+        let pushed = tag.push(TagItem::new(
             compatibility.primary_work_item_key.clone(),
             item_val,
         ));
