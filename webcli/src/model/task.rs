@@ -14,7 +14,7 @@ use super::{CollectionUid, Effect, ExportTracksParams, Intent};
 
 #[derive(Debug)]
 pub enum Task {
-    DeferredIntent {
+    ScheduledIntent {
         not_before: Instant,
         intent: Box<Intent>,
     },
@@ -54,7 +54,7 @@ impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task {self:?}");
         match self {
-            Self::DeferredIntent { not_before, intent } => {
+            Self::ScheduledIntent { not_before, intent } => {
                 tokio::time::sleep_until(not_before.into()).await;
                 Effect::HandleIntent(*intent)
             }

@@ -22,13 +22,13 @@ pub type EffectApplied = infect::EffectApplied<Effect, Task>;
 
 #[derive(Debug, Clone)]
 pub struct Reset {
-    params: Option<Params>,
+    pub params: Option<Params>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FetchResultPage {
-    collection_uid: CollectionUid,
-    request: FetchResultPageRequest,
+    pub collection_uid: CollectionUid,
+    pub request: FetchResultPageRequest,
 }
 
 #[derive(Debug, Clone)]
@@ -44,7 +44,7 @@ pub struct FetchResultPageResponse {
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum ControlState {
+pub enum State {
     #[default]
     Idle,
     FetchingResults,
@@ -53,15 +53,15 @@ pub enum ControlState {
 
 #[derive(Debug, Default)]
 pub struct Model {
-    control_state: ControlState,
+    state: State,
     search_params: Option<Params>,
     results: Vec<Entity>,
 }
 
 impl Model {
     #[must_use]
-    pub fn control_state(&self) -> ControlState {
-        self.control_state
+    pub fn state(&self) -> State {
+        self.state
     }
 
     #[must_use]
@@ -76,12 +76,12 @@ impl Model {
 
     #[must_use]
     pub fn can_reset(&self) -> bool {
-        self.control_state != ControlState::FetchingResults
+        self.state != State::FetchingResults
     }
 
     #[must_use]
     pub fn can_fetch_results(&self) -> bool {
-        self.control_state == ControlState::Idle && self.search_params.is_some()
+        self.state == State::Idle && self.search_params.is_some()
     }
 
     #[must_use]
@@ -95,32 +95,32 @@ impl Model {
 
     pub(super) fn reset(&mut self, search_params: impl Into<Option<Params>>) {
         debug_assert!(self.can_reset());
-        self.control_state = ControlState::Idle;
+        self.state = State::Idle;
         self.search_params = search_params.into();
         self.results.clear();
     }
 
     pub(super) fn set_fetching_results(&mut self) {
         debug_assert!(self.can_fetch_results());
-        self.control_state = ControlState::FetchingResults;
+        self.state = State::FetchingResults;
     }
 
     #[allow(clippy::cast_possible_truncation)]
     pub(super) fn append_fetched_result_page(&mut self, response: FetchResultPageResponse) {
         debug_assert!(self.search_params.is_some());
-        debug_assert_eq!(self.control_state, ControlState::FetchingResults);
+        debug_assert_eq!(self.state, State::FetchingResults);
         let FetchResultPageResponse {
             entities,
             pagination,
         } = response;
         debug_assert_eq!(self.results.len(), pagination.mandatory_offset() as usize);
         debug_assert!(entities.len() <= pagination.mandatory_limit() as usize);
-        self.control_state = if entities.len() < pagination.mandatory_limit() as usize {
+        self.state = if entities.len() < pagination.mandatory_limit() as usize {
             // Final page
-            ControlState::Done
+            State::Done
         } else {
             // More results might be available
-            ControlState::Idle
+            State::Idle
         };
         if self.results.is_empty() {
             // First page

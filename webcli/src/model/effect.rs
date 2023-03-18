@@ -8,7 +8,7 @@ use infect::IntentHandled;
 use aoide_client::models::{collection, media_source, media_tracker};
 use aoide_core_api::track::find_unsynchronized::UnsynchronizedTrackEntity;
 
-use crate::model::{Action, ControlState, Task};
+use crate::model::{Action, State, Task};
 
 use super::{EffectApplied, Intent, Model};
 
@@ -24,7 +24,7 @@ pub enum Effect {
     FindUnsynchronizedTracksFinished(anyhow::Result<Vec<UnsynchronizedTrackEntity>>),
     ExportTracksFinished(anyhow::Result<()>),
     RenderModel,
-    AbortPendingRequest(Option<ControlState>),
+    AbortPendingRequest(Option<State>),
 }
 
 impl From<collection::Effect> for Effect {
@@ -70,7 +70,7 @@ impl Effect {
             Self::AbortFinished(res) => {
                 let next_action = match res {
                     Ok(()) => {
-                        if model.control_state == ControlState::Terminating && model.is_pending() {
+                        if model.state == State::Terminating && model.is_pending() {
                             // Abort next pending request until idle
                             Some(Action::SpawnTask(Task::AbortPendingRequest))
                         } else {
@@ -110,15 +110,15 @@ impl Effect {
                 }
             }
             Self::RenderModel => EffectApplied::maybe_changed_done(), // enforce re-rendering
-            Self::AbortPendingRequest(control_state) => {
+            Self::AbortPendingRequest(state) => {
                 let next_action = model.abort_pending_request_action();
-                let Some(control_state) = control_state else {
+                let Some(state) = state else {
                     return EffectApplied::unchanged(next_action);
                 };
-                if model.control_state == control_state {
+                if model.state == state {
                     return EffectApplied::unchanged(next_action);
                 }
-                model.control_state = control_state;
+                model.state = state;
                 EffectApplied::maybe_changed(next_action)
             }
         }

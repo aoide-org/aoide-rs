@@ -23,7 +23,10 @@ use std::{
 };
 
 use clap::{builder::StyledStr, Arg, ArgMatches, Command};
-use infect::{message_channel, process_messages, send_message, RenderModel, TaskContext};
+use infect::{
+    message_channel, process_messages, processing::ProcessingMessagesStopped, send_message,
+    RenderModel, TaskContext,
+};
 use model::{EffectApplied, IntentHandled};
 use tokio::signal;
 
@@ -319,7 +322,7 @@ impl RenderModel for RenderCliModel {
                         if now >= *last_fetched {
                             let not_before = now + PROGRESS_POLLING_PERIOD;
                             *last_media_tracker_progress_fetched = Some(not_before);
-                            let intent = Intent::Deferred {
+                            let intent = Intent::Scheduled {
                                 not_before,
                                 intent: Box::new(media_tracker::Intent::FetchProgress.into()),
                             };
@@ -831,7 +834,7 @@ async fn main() -> anyhow::Result<()> {
     let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
     let mut task_context = TaskContext {
         message_tx: message_tx.clone(),
-        task_executor: shared_env,
+        task_executor: Arc::clone(&shared_env),
     };
 
     let mut model = CliModel::new(matches);
@@ -850,13 +853,30 @@ async fn main() -> anyhow::Result<()> {
         subcommand_submitted: false,
     };
     let message_loop = async move {
-        process_messages(
-            &mut message_rx,
-            &mut task_context,
-            &mut model,
-            &mut render_model,
-        )
-        .await;
+        loop {
+            match process_messages(
+                &mut message_rx,
+                &mut task_context,
+                &mut model,
+                &mut render_model,
+            )
+            .await
+            {
+                ProcessingMessagesStopped::IntentRejected(intent) => {
+                    log::warn!("Continuing message loop after intent rejected: {intent:?}");
+                    continue;
+                }
+                ProcessingMessagesStopped::ChannelClosed => (),
+                ProcessingMessagesStopped::NoProgress => {
+                    if !shared_env.all_tasks_finished() {
+                        log::info!("Continuing message loop until all tasks finished");
+                        continue;
+                    }
+                }
+            }
+            log::info!("Exiting message loop");
+            break;
+        }
     };
     let message_loop = tokio::spawn(message_loop);
 

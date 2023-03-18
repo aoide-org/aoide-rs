@@ -27,6 +27,11 @@ impl Environment {
             pending_tasks_counter: PendingTasksCounter::new(),
         }
     }
+
+    #[must_use]
+    pub(crate) fn all_tasks_finished(&self) -> bool {
+        self.pending_tasks_counter.all_tasks_finished()
+    }
 }
 
 impl ClientEnvironment for Environment {
@@ -46,16 +51,12 @@ impl TaskExecutor<Arc<Environment>> for Environment {
     type Effect = Effect;
     type Task = Task;
 
-    fn all_tasks_finished(&self) -> bool {
-        self.pending_tasks_counter.all_pending_tasks_finished()
-    }
-
     fn spawn_task(
         &self,
         mut context: TaskContext<Arc<Environment>, Self::Intent, Self::Effect>,
         task: Self::Task,
     ) {
-        let started_pending_task = self.pending_tasks_counter.start_pending_task();
+        let started_pending_task = self.pending_tasks_counter.start_task();
         debug_assert!(started_pending_task > 0);
         if started_pending_task == 1 {
             log::debug!("Started first pending task");
@@ -65,12 +66,7 @@ impl TaskExecutor<Arc<Environment>> for Environment {
             let effect = task.execute(&*context.task_executor).await;
             log::debug!("Task finished with effect: {effect:?}");
             context.send_message(Message::Effect(effect));
-            if context
-                .task_executor
-                .pending_tasks_counter
-                .finish_pending_task()
-                == 0
-            {
+            if context.task_executor.pending_tasks_counter.finish_task() == 0 {
                 log::debug!("Finished last pending task");
             }
         });
@@ -91,23 +87,23 @@ impl PendingTasksCounter {
 }
 
 impl PendingTasksCounter {
-    fn start_pending_task(&self) -> usize {
+    fn start_task(&self) -> usize {
         let pending_tasks = self
             .number_of_pending_tasks
             .fetch_add(1, std::sync::atomic::Ordering::Acquire)
             + 1;
-        debug_assert!(!self.all_pending_tasks_finished());
+        debug_assert!(!self.all_tasks_finished());
         pending_tasks
     }
 
-    fn finish_pending_task(&self) -> usize {
-        debug_assert!(!self.all_pending_tasks_finished());
+    fn finish_task(&self) -> usize {
+        debug_assert!(!self.all_tasks_finished());
         self.number_of_pending_tasks
             .fetch_sub(1, std::sync::atomic::Ordering::Release)
             - 1
     }
 
-    fn all_pending_tasks_finished(&self) -> bool {
+    fn all_tasks_finished(&self) -> bool {
         self.number_of_pending_tasks
             .load(std::sync::atomic::Ordering::Acquire)
             == 0

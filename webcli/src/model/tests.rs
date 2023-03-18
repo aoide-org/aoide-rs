@@ -8,7 +8,7 @@ use std::{
 
 use infect::{
     message_channel, process_messages, process_next_message, send_message, NextMessageProcessed,
-    TaskContext, TaskExecutor as _,
+    ProcessingMessagesStopped, TaskContext,
 };
 use reqwest::Url;
 
@@ -51,15 +51,15 @@ fn should_handle_error_and_terminate() {
     let mut model = Model::default();
     let mut render_model = RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    assert_eq!(
-        NextMessageProcessed::NoProgress,
+    assert!(matches!(
         process_next_message(
             &mut task_context,
             &mut model,
             &mut render_model,
             effect.into(),
-        )
-    );
+        ),
+        NextMessageProcessed::NoProgress,
+    ));
     assert_eq!(1, model.last_errors().len());
 }
 
@@ -90,15 +90,15 @@ fn should_handle_collection_error_and_terminate() {
     let mut model = Model::default();
     let mut render_model = RenderModel;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    assert_eq!(
-        NextMessageProcessed::NoProgress,
+    assert!(matches!(
         process_next_message(
             &mut task_context,
             &mut model,
             &mut render_model,
             effect.into(),
-        )
-    );
+        ),
+        NextMessageProcessed::NoProgress,
+    ));
     assert_eq!(1, model.last_errors().len());
 }
 
@@ -129,15 +129,15 @@ fn should_handle_media_tracker_error() {
     let model = &mut Model::default();
     let render_model = &mut RenderModel;
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    assert_eq!(
-        NextMessageProcessed::NoProgress,
+    assert!(matches!(
         process_next_message(
             task_context,
             model,
             render_model,
             Effect::MediaTracker(effect).into(),
-        )
-    );
+        ),
+        NextMessageProcessed::NoProgress,
+    ));
     assert_eq!(1, model.last_errors().len());
 }
 
@@ -196,18 +196,14 @@ impl infect::RenderModel for TerminationRenderModel {
         let last_invocation_count = self
             .invocation_count
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        // On the 1st (initial) and 2nd (Intent::Terminate) invocation the task
-        // that executes the timed intent is still pending
+        assert_eq!(State::Terminating, model.state);
+        assert!(last_invocation_count < 2);
         assert_eq!(
             last_invocation_count == 0,
-            model.control_state == ControlState::Running
+            !self.shared_env.all_tasks_finished()
         );
         assert_eq!(
-            last_invocation_count > 0,
-            model.control_state == ControlState::Terminating
-        );
-        assert_eq!(
-            last_invocation_count > 1,
+            last_invocation_count == 1,
             self.shared_env.all_tasks_finished()
         );
         None
@@ -223,18 +219,26 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
         task_executor: Arc::clone(&shared_env),
     };
     let model = &mut Model::default();
-    let render_model = &mut TerminationRenderModel::new(shared_env);
+    let render_model = &mut TerminationRenderModel::new(Arc::clone(&shared_env));
     send_message(
         &mut message_tx,
-        Intent::Deferred {
+        Intent::Scheduled {
             not_before: Instant::now() + Duration::from_millis(100),
             intent: Box::new(Intent::RenderModel),
         },
     );
     send_message(&mut message_tx, Intent::Terminate);
-    process_messages(&mut message_rx, task_context, model, render_model).await;
+    assert_eq!(model.state, State::Running);
+    loop {
+        let stopped = process_messages(&mut message_rx, task_context, model, render_model).await;
+        assert_eq!(model.state, State::Terminating);
+        assert!(matches!(stopped, ProcessingMessagesStopped::NoProgress));
+        if shared_env.all_tasks_finished() {
+            break;
+        }
+    }
     assert_eq!(
-        3,
+        2,
         render_model
             .invocation_count
             .load(std::sync::atomic::Ordering::SeqCst)

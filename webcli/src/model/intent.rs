@@ -5,14 +5,14 @@ use std::{num::NonZeroUsize, time::Instant};
 
 use aoide_client::models::{collection, media_source, media_tracker};
 
-use crate::model::ControlState;
+use crate::model::State;
 
 use super::{Action, CollectionUid, Effect, ExportTracksParams, IntentHandled, Model, Task};
 
 #[derive(Debug)]
 pub enum Intent {
     RenderModel,
-    Deferred {
+    Scheduled {
         not_before: Instant,
         intent: Box<Intent>,
     },
@@ -58,13 +58,13 @@ impl Intent {
             Self::RenderModel => {
                 IntentHandled::Accepted(Action::apply_effect(Effect::RenderModel).into())
             }
-            Self::Deferred { not_before, intent } => {
-                if model.control_state == ControlState::Running {
+            Self::Scheduled { not_before, intent } => {
+                if model.state == State::Running {
                     let next_action =
-                        Action::spawn_task(Task::DeferredIntent { not_before, intent });
+                        Action::spawn_task(Task::ScheduledIntent { not_before, intent });
                     IntentHandled::accepted(next_action)
                 } else {
-                    let self_reconstructed = Self::Deferred { not_before, intent };
+                    let self_reconstructed = Self::Scheduled { not_before, intent };
                     log::debug!("Discarding intent while not running: {self_reconstructed:?}");
                     IntentHandled::Rejected(self_reconstructed)
                 }
@@ -93,17 +93,16 @@ impl Intent {
                 IntentHandled::Accepted(next_action)
             }
             Self::Terminate => {
-                if model.control_state == ControlState::Terminating {
+                if model.state == State::Terminating {
                     // Already terminating, nothing to do
                     return IntentHandled::Accepted(None);
                 }
-                let next_action = Action::apply_effect(Effect::AbortPendingRequest(Some(
-                    ControlState::Terminating,
-                )));
+                let next_action =
+                    Action::apply_effect(Effect::AbortPendingRequest(Some(State::Terminating)));
                 IntentHandled::accepted(next_action)
             }
             Self::ActiveCollection(intent) => {
-                if model.control_state != ControlState::Running {
+                if model.state != State::Running {
                     let self_reconstructed = Self::ActiveCollection(intent);
                     log::debug!("Discarding intent while not running: {self_reconstructed:?}");
                     return IntentHandled::Rejected(self_reconstructed);
@@ -111,7 +110,7 @@ impl Intent {
                 intent.apply_on(&model.active_collection).map_into()
             }
             Self::MediaSources(intent) => {
-                if model.control_state != ControlState::Running {
+                if model.state != State::Running {
                     let self_reconstructed = Self::MediaSources(intent);
                     log::debug!("Discarding intent while not running: {self_reconstructed:?}");
                     return IntentHandled::Rejected(self_reconstructed);
@@ -119,7 +118,7 @@ impl Intent {
                 intent.apply_on(&model.media_sources).map_into()
             }
             Self::MediaTracker(intent) => {
-                if model.control_state != ControlState::Running {
+                if model.state != State::Running {
                     let self_reconstructed = Self::MediaTracker(intent);
                     log::debug!("Discarding intent while not running: {self_reconstructed:?}");
                     return IntentHandled::Rejected(self_reconstructed);

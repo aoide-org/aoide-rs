@@ -11,11 +11,11 @@ rust-version = { workspace = true }
 publish = false
 
 [dependencies]
-anyhow = "1.0.69"
+anyhow = "1.0.70"
 num-traits = "0.2.15"
 log = "0.4.17"
 tantivy = "0.19.2"
-thiserror = "1.0.39"
+thiserror = "1.0.40"
 
 # Workspace dependencies
 aoide-core = "=0.8.0"

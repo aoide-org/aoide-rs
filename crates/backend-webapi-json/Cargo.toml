@@ -11,11 +11,11 @@ rust-version = { workspace = true }
 publish = false
 
 [dependencies]
-anyhow = "1.0.69"
+anyhow = "1.0.70"
 diesel = { version = "2.0.3", default-features = false, features = ["sqlite"] }
 log = "0.4.17"
-serde = { version = "1.0.156" }
-thiserror = "1.0.39"
+serde = { version = "1.0.157" }
+thiserror = "1.0.40"
 url = "2.3.1"
 
 # tracing

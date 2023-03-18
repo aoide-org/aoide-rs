@@ -48,7 +48,7 @@ pub struct ExportTracksParams {
 use aoide_core::collection::EntityUid as CollectionUid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum ControlState {
+pub enum State {
     #[default]
     Running,
     Terminating,
@@ -57,7 +57,7 @@ pub enum ControlState {
 #[derive(Debug, Default)]
 pub struct Model {
     pub(super) last_errors: Vec<anyhow::Error>,
-    pub(super) control_state: ControlState,
+    pub(super) state: State,
     pub active_collection: collection::Model,
     pub media_sources: media_source::Model,
     pub media_tracker: media_tracker::Model,
@@ -75,7 +75,7 @@ impl Model {
     }
 
     pub fn is_terminating(&self) -> bool {
-        self.control_state == ControlState::Terminating
+        self.state == State::Terminating
     }
 
     pub fn abort_pending_request_action(&self) -> Option<Action> {

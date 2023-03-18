@@ -11,7 +11,7 @@ rust-version = { workspace = true }
 publish = false
 
 [dependencies]
-anyhow = "1.0.69"
+anyhow = "1.0.70"
 base64 = "0.21.0"
 bitflags = "2.0.1"
 image = { version = "0.24.5", default-features = false, features = ["png"] }
@@ -27,12 +27,12 @@ time = { version = "0.3.20", features = [
     "parsing",
     "formatting",
 ] }
-thiserror = "1.0.39"
+thiserror = "1.0.40"
 ulid = "1.0.0"
 url = "2.3.1"
 
 # Serialization of selected, primitive types
-serde = { version = "1.0.156", optional = true, features = ["derive"] }
+serde = { version = "1.0.157", optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.12", optional = true, features = ["url"] }
