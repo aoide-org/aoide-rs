@@ -14,7 +14,7 @@ publish = false
 [dependencies]
 anyhow = "1.0.70"
 ctrlc = { version = "3.2.5", features = ["termination"] }
-directories = "4.0.1"
+directories = "5.0.0"
 discro = { version = "0.8.0", features = ["tokio"] }
 dotenvy = "0.15.6"
 log = { version = "0.4.17", features = ["release_max_level_debug"] }

@@ -3,6 +3,7 @@
 
 use aoide_core::{
     audio::{BitrateBps, ChannelCount, Channels, DurationMs, LoudnessLufs, SampleRateHz},
+    collection,
     media::{
         content::{
             AudioContentMetadata, ContentLink, ContentMetadata, ContentPath, ContentRevision,
@@ -64,8 +65,11 @@ fn track_index_smoke_test_to_verify_dynamic_schema_against_static_types() {
         content_url: Some("https://www.example.com/file.mp3".parse().unwrap()),
         last_synchronized_rev: None,
     };
+    let collection_uid = collection::EntityHeader::initial_random().uid;
     let entity = Entity::new(EntityHeader::initial_random(), entity_body);
-    let document = track_index.fields.create_document(&entity, None);
+    let document = track_index
+        .fields
+        .create_document(Some(&collection_uid), &entity, None);
     let writer = track_index.index.writer(3_000_000).unwrap();
     let _doc_id = writer.add_document(document).unwrap();
 }

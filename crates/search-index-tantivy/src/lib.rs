@@ -35,22 +35,23 @@ use tantivy::{
 };
 
 use aoide_core::{
+    collection::EntityUid as CollectionUid,
     entity::{EncodedEntityUid, EntityRevision, EntityUid},
     media::content::ContentMetadata,
     tag::{FacetId as TagFacetId, FacetedTags, Label as TagLabel, PlainTag},
     track::{
-        self,
         actor::Actors,
         tag::{
             FACET_ACOUSTICNESS, FACET_AROUSAL, FACET_COMMENT, FACET_DANCEABILITY, FACET_ENERGY,
             FACET_GENRE, FACET_GROUPING, FACET_INSTRUMENTALNESS, FACET_LIVENESS, FACET_MOOD,
             FACET_POPULARITY, FACET_SPEECHINESS, FACET_VALENCE,
         },
-        EntityUid as TrackUid, PlayCounter,
+        Entity as TrackEntity, EntityUid as TrackUid, PlayCounter,
     },
     util::clock::{DateTime, DateYYYYMMDD},
 };
 
+const COLLECTION_UID: &str = "collection_uid";
 const UID: &str = "uid";
 const REV: &str = "rev";
 const CONTENT_PATH: &str = "content_path";
@@ -85,6 +86,7 @@ const VALENCE: &str = "valence";
 
 #[derive(Debug, Clone)]
 pub struct TrackFields {
+    pub collection_uid: Field,
     pub uid: Field,
     pub rev: Field,
     pub content_path: Field,
@@ -137,15 +139,23 @@ fn format_faceted_tag_text(facet_id: &TagFacetId<'_>, label: &TagLabel<'_>) -> S
 }
 
 impl TrackFields {
+    /// Create a new document from a track entity
+    ///
+    /// When storing tracks from multiple collections in a single index
+    /// the `collection_uid` should be provided.
     #[allow(clippy::too_many_lines)] // TODO
     #[must_use]
     pub fn create_document(
         &self,
-        entity: &track::Entity,
+        collection_uid: Option<&CollectionUid>,
+        entity: &TrackEntity,
         play_counter: Option<&PlayCounter>,
     ) -> Document {
         // TODO (optimization): Consuming the entity would avoid string allocations for text fields
         let mut doc = Document::new();
+        if let Some(collection_uid) = collection_uid {
+            doc.add_text(self.collection_uid, collection_uid);
+        }
         doc.add_text(self.uid, &entity.hdr.uid);
         doc.add_u64(self.rev, entity.hdr.rev.to_inner());
         doc.add_text(
@@ -270,12 +280,39 @@ impl TrackFields {
     }
 
     #[must_use]
-    pub fn uid_term(&self, uid: &EntityUid) -> Term {
+    pub fn collection_uid_term(&self, collection_uid: &CollectionUid) -> Term {
+        Term::from_field_text(
+            self.collection_uid,
+            EncodedEntityUid::from(collection_uid).as_str(),
+        )
+    }
+
+    #[must_use]
+    pub fn collection_uid_query(&self, collection_uid: &CollectionUid) -> TermQuery {
+        TermQuery::new(
+            self.collection_uid_term(collection_uid),
+            IndexRecordOption::Basic,
+        )
+    }
+
+    #[must_use]
+    pub fn read_collection_uid(&self, doc: &Document) -> Option<CollectionUid> {
+        doc.get_first(self.collection_uid)
+            .and_then(Value::as_text)
+            .map(EntityUid::decode_from)
+            .transpose()
+            .ok()
+            .flatten()
+            .map(CollectionUid::from_untyped)
+    }
+
+    #[must_use]
+    pub fn uid_term(&self, uid: &TrackUid) -> Term {
         Term::from_field_text(self.uid, EncodedEntityUid::from(uid).as_str())
     }
 
     #[must_use]
-    pub fn uid_query(&self, uid: &EntityUid) -> TermQuery {
+    pub fn uid_query(&self, uid: &TrackUid) -> TermQuery {
         TermQuery::new(self.uid_term(uid), IndexRecordOption::Basic)
     }
 
@@ -318,9 +355,13 @@ impl TrackFields {
     }
 }
 
+/// Create the schema for indexing tracks
+///
+/// Supports to index tracks from different collections.
 #[must_use]
 pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
     let mut schema_builder = Schema::builder();
+    let collection_uid = schema_builder.add_text_field(COLLECTION_UID, STRING | STORED);
     let uid = schema_builder.add_text_field(UID, STRING | STORED);
     let rev = schema_builder.add_u64_field(REV, INDEXED | STORED);
     let content_path = schema_builder.add_text_field(CONTENT_PATH, STRING);
@@ -355,6 +396,7 @@ pub fn build_schema_for_tracks() -> (Schema, TrackFields) {
     let valence = schema_builder.add_f64_field(VALENCE, INDEXED);
     let schema = schema_builder.build();
     let fields = TrackFields {
+        collection_uid,
         uid,
         rev,
         content_path,
