@@ -5,12 +5,12 @@ record_id_newtype!(RecordId);
 
 pub type RecordHeader = crate::RecordHeader<RecordId>;
 
-use crate::{collection::RecordId as CollectionId, prelude::*};
-
 use aoide_core::{
     media::{content::ContentPath, Source},
     util::clock::DateTime,
 };
+
+use crate::{collection::RecordId as CollectionId, prelude::*};
 
 pub trait Repo {
     fn update_media_source(

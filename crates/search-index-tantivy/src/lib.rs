@@ -25,15 +25,6 @@
 
 use std::{borrow::Cow, fs, path::Path};
 
-use num_traits::cast::ToPrimitive as _;
-use tantivy::{
-    collector::TopDocs,
-    directory::MmapDirectory,
-    query::{AllQuery, Query as _, TermQuery},
-    schema::{Field, IndexRecordOption, Schema, Value, INDEXED, STORED, STRING, TEXT},
-    Document, Index, Searcher, TantivyError, Term,
-};
-
 use aoide_core::{
     media::content::ContentMetadata,
     tag::{FacetId as TagFacetId, FacetedTags, PlainTag},
@@ -48,6 +39,14 @@ use aoide_core::{
     },
     util::clock::{DateTime, DateYYYYMMDD},
     CollectionUid, EncodedEntityUid, EntityRevision, EntityUid, TrackEntity, TrackUid,
+};
+use num_traits::cast::ToPrimitive as _;
+use tantivy::{
+    collector::TopDocs,
+    directory::MmapDirectory,
+    query::{AllQuery, Query as _, TermQuery},
+    schema::{Field, IndexRecordOption, Schema, Value, INDEXED, STORED, STRING, TEXT},
+    Document, Index, Searcher, TantivyError, Term,
 };
 
 const COLLECTION_UID: &str = "collection_uid";

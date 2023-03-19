@@ -6,8 +6,7 @@ use std::{f64, fmt};
 use crate::{
     audio::{
         channel::{ChannelFlags, ChannelFlagsInvalidity},
-        sample::BitsPerSample,
-        sample::{SampleLayout, SampleLayoutInvalidity, SampleLength},
+        sample::{BitsPerSample, SampleLayout, SampleLayoutInvalidity, SampleLength},
     },
     prelude::*,
 };

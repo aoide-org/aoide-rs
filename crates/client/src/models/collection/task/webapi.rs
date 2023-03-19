@@ -3,9 +3,8 @@
 
 use aoide_core::{CollectionEntity, CollectionUid};
 
-use crate::webapi::{receive_response_body, ClientEnvironment};
-
 use super::{super::Effect, FetchFilteredEntities, PendingTask, Task};
+use crate::webapi::{receive_response_body, ClientEnvironment};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {

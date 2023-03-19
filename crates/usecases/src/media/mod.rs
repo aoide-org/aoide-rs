@@ -8,9 +8,7 @@ use aoide_core::{
     track::Track,
     util::clock::DateTime,
 };
-
 use aoide_core_api::media::SyncMode;
-
 use aoide_media::{
     fs::open_file_for_reading,
     io::{
@@ -142,7 +140,8 @@ pub fn import_track_from_file_path(
             }
             (_, None) => {
                 log::debug!(
-                    "Skipping reimport of file {} for which no content revision could be determined",
+                    "Skipping reimport of file {} for which no content revision could be \
+                     determined",
                     canonical_path.display(),
                 );
                 return Ok(ImportTrackFromFileOutcome::SkippedSynchronized { content_rev: None });

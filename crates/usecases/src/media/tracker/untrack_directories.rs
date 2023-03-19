@@ -3,14 +3,12 @@
 
 use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
 use aoide_core_api::media::tracker::untrack_directories::{Outcome, Params, Summary};
-
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo, media::tracker::Repo as MediaTrackerRepo,
 };
 
-use crate::collection::vfs::RepoContext;
-
 use super::*;
+use crate::collection::vfs::RepoContext;
 
 pub fn untrack_directories<Repo>(
     repo: &mut Repo,

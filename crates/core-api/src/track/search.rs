@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use num_derive::{FromPrimitive, ToPrimitive};
-
 use aoide_core::{
     audio::DurationMs,
     prelude::*,
@@ -13,6 +11,7 @@ use aoide_core::{
     util::clock::{DateOrDateTime, DateTime},
     PlaylistUid, TrackUid,
 };
+use num_derive::{FromPrimitive, ToPrimitive};
 
 use crate::{filtering::*, media::source::ResolveUrlFromContentPath, sorting::*, tag};
 

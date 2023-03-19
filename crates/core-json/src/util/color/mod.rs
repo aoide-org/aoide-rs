@@ -7,13 +7,13 @@ mod _core {
     pub(super) use aoide_core::util::color::{Color, RgbColor};
 }
 
-use aoide_core::util::color::ColorIndex;
+use std::{fmt, str::FromStr};
 
+use aoide_core::util::color::ColorIndex;
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
     Deserializer, Serializer,
 };
-use std::{fmt, str::FromStr};
 
 ///////////////////////////////////////////////////////////////////////
 // Color
@@ -70,7 +70,11 @@ impl schemars::JsonSchema for RgbColor {
         let mut schema = gen.subschema_for::<String>();
         if let Schema::Object(mut schema_object) = schema {
             schema_object.metadata().title = Some("RGB color code".into());
-            schema_object.metadata().description = Some("A hexadecimal RGB color code \"#RRGGBB\" encoded as a string with 8 bits per channel.".into());
+            schema_object.metadata().description = Some(
+                "A hexadecimal RGB color code \"#RRGGBB\" encoded as a string with 8 bits per \
+                 channel."
+                    .into(),
+            );
             schema_object.metadata().examples = vec!["#808080".into()];
             schema = Schema::Object(schema_object);
         }

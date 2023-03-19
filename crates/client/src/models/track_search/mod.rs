@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{track::Entity, CollectionUid};
-
 use aoide_core_api::{track::search::Params, Pagination};
 
 pub mod intent;

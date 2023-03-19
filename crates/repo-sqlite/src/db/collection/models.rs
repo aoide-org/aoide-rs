@@ -1,15 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use num_traits::FromPrimitive as _;
-use url::Url;
-
 use aoide_core::{
     collection::MediaSourceConfig,
     media::content::{ContentPathConfig, ContentPathKind},
     util::{clock::*, color::*, url::BaseUrl},
     Collection, CollectionEntity, CollectionHeader, EntityRevision,
 };
+use num_traits::FromPrimitive as _;
+use url::Url;
 
 use super::{schema::*, *};
 

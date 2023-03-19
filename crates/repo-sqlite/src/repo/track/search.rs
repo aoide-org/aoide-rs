@@ -1,12 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::{
-    sql_types, BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods,
-};
-
-use num_traits::ToPrimitive as _;
-
 use aoide_core::{
     audio::{
         channel::ChannelCount,
@@ -17,8 +11,11 @@ use aoide_core::{
     util::clock::YYYYMMDD,
     PlaylistUid, TrackUid,
 };
-
 use aoide_core_api::{tag::search::Filter as TagFilter, track::search::*};
+use diesel::{
+    sql_types, BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods,
+};
+use num_traits::ToPrimitive as _;
 
 use crate::{
     db::{

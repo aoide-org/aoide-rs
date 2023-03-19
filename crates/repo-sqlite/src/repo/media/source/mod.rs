@@ -1,6 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::{
+    media::{content::ContentPath, Source},
+    util::clock::DateTime,
+};
+use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
+
 use crate::{
     db::{
         media_source::{models::*, schema::*, select_row_id_filtered_by_content_path_predicate},
@@ -9,13 +15,6 @@ use crate::{
     },
     prelude::*,
 };
-
-use aoide_core::{
-    media::{content::ContentPath, Source},
-    util::clock::DateTime,
-};
-
-use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
 
 impl<'db> Repo for crate::prelude::Connection<'db> {
     fn update_media_source(

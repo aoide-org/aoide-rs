@@ -25,20 +25,15 @@
 
 use std::result::Result as StdResult;
 
+use aoide_core::CollectionUid;
+use aoide_core_json::entity::EntityRevision;
+use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset};
+use aoide_repo_sqlite::DbConnection;
+use aoide_usecases_sqlite as uc;
 use diesel::Connection as _;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
-
-use aoide_core::CollectionUid;
-
-use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset};
-
-use aoide_repo_sqlite::DbConnection;
-
-use aoide_core_json::entity::EntityRevision;
-
-use aoide_usecases_sqlite as uc;
 
 pub mod collection;
 pub mod media;

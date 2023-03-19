@@ -6,6 +6,7 @@ use std::fs::File;
 use aoide_core::track::Track;
 use lofty::{ogg::OpusFile, AudioFile};
 
+use super::{parse_options, vorbis::export_track_to_tag};
 use crate::{
     io::{
         export::ExportTrackConfig,
@@ -14,8 +15,6 @@ use crate::{
     util::artwork::EditEmbeddedArtworkImage,
     Result,
 };
-
-use super::{parse_options, vorbis::export_track_to_tag};
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,

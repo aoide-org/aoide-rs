@@ -4,6 +4,6 @@
 pub(crate) mod models;
 pub(crate) mod schema;
 
-use crate::prelude::*;
-
 use aoide_repo::collection::RecordHeader;
+
+use crate::prelude::*;

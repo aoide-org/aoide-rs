@@ -14,7 +14,6 @@ use nonicle::{Canonical, IsCanonical};
 use num_derive::{FromPrimitive, ToPrimitive};
 
 use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
-
 use crate::{media::*, prelude::*, tag::*};
 
 /// Advisory rating code for content(s)

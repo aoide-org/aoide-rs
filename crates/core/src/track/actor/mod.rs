@@ -41,7 +41,7 @@ pub enum Role {
 )]
 pub enum Kind {
     #[default]
-    Summary = 0, // unspecified for display, may mention multiple actors with differing kinds and roles
+    Summary = 0, /* unspecified for display, may mention multiple actors with differing kinds and roles */
     Individual = 1, // single persons or group/band names
     Sorting = 2,
 }

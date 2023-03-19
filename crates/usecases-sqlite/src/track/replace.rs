@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core_api::track::replace::Summary;
-
 use aoide_usecases::track::ValidatedInput;
 
 use super::*;

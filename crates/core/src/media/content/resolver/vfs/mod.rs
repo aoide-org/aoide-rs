@@ -6,13 +6,12 @@ use std::{borrow::Cow, path::PathBuf};
 use anyhow::anyhow;
 use url::Url;
 
+use super::{
+    ContentPath, ContentPathResolver, ResolveFromPathError, ResolveFromUrlError, FILE_URL_SCHEME,
+};
 use crate::{
     media::content::ContentPathKind,
     util::url::{is_valid_base_url, BaseUrl},
-};
-
-use super::{
-    ContentPath, ContentPathResolver, ResolveFromPathError, ResolveFromUrlError, FILE_URL_SCHEME,
 };
 
 #[derive(Debug, Clone, Default)]

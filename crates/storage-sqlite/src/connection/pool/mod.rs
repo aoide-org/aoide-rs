@@ -4,13 +4,11 @@
 use std::num::NonZeroU32;
 
 use diesel::{r2d2, Connection as _};
-
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::Result;
-
 use super::Storage;
+use crate::Result;
 
 pub type ConnectionManager = r2d2::ConnectionManager<diesel::SqliteConnection>;
 

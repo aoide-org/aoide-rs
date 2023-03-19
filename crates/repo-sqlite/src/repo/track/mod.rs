@@ -3,8 +3,6 @@
 
 use std::time::Instant;
 
-use diesel::dsl::count_star;
-
 use aoide_core::{
     media::{
         content::{ContentLink, ContentPath, ContentRevision},
@@ -16,14 +14,13 @@ use aoide_core::{
     util::clock::*,
     EncodedEntityUid, Track, TrackBody, TrackEntity, TrackHeader, TrackUid,
 };
-
 use aoide_core_api::track::search::{Filter, Scope, SortOrder};
-
 use aoide_repo::{
     collection::RecordId as CollectionId,
     media::source::{CollectionRepo as _, RecordId as MediaSourceId, Repo as _},
     track::*,
 };
+use diesel::dsl::count_star;
 
 use crate::{
     db::{

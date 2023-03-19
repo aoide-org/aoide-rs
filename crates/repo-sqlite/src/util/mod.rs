@@ -3,10 +3,9 @@
 
 use std::i64;
 
+use aoide_core_api::Pagination;
 use diesel::{expression::SqlLiteral, sql_types};
 use num_traits::ToPrimitive as _;
-
-use aoide_core_api::Pagination;
 
 pub(crate) mod clock;
 pub(crate) mod entity;

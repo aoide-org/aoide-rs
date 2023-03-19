@@ -7,8 +7,6 @@ use std::{
     time::Duration,
 };
 
-use serde::{Deserialize, Serialize};
-
 use aoide_storage_sqlite::connection::{
     pool::{
         gatekeeper::Config as DatabaseConnectionGatekeeperConfig,
@@ -16,6 +14,7 @@ use aoide_storage_sqlite::connection::{
     },
     Config as DatabaseConnectionConfig, Storage,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {

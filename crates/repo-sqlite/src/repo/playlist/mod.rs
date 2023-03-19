@@ -3,6 +3,17 @@
 
 use std::ops::Range;
 
+use aoide_core::{
+    playlist::{
+        EntityHeader, EntityWithEntries, EntriesSummary, Entry, Item, TrackItem, TracksSummary,
+    },
+    util::clock::*,
+    EncodedEntityUid, EntityRevision, PlaylistEntity, PlaylistUid,
+};
+use aoide_core_api::playlist::EntityWithEntriesSummary;
+use aoide_repo::{collection::RecordId as CollectionId, playlist::*, track::EntityRepo as _};
+use diesel::dsl::count_star;
+
 use crate::{
     db::{
         playlist::{models::*, schema::*},
@@ -11,18 +22,6 @@ use crate::{
     },
     prelude::*,
 };
-
-use aoide_core::{
-    playlist::{
-        EntityHeader, EntityWithEntries, EntriesSummary, Entry, Item, TrackItem, TracksSummary,
-    },
-    util::clock::*,
-    EncodedEntityUid, EntityRevision, PlaylistEntity, PlaylistUid,
-};
-
-use aoide_core_api::playlist::EntityWithEntriesSummary;
-use aoide_repo::{collection::RecordId as CollectionId, playlist::*, track::EntityRepo as _};
-use diesel::dsl::count_star;
 
 impl<'db> EntityRepo for crate::Connection<'db> {
     fn resolve_playlist_entity_revision(
@@ -581,7 +580,8 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                     delta_ordering,
                 )?;
                 log::debug!(
-                    "Reordered {rows_updated} entries of playlist {row_id} before inserting {num_new_entries} entries",
+                    "Reordered {rows_updated} entries of playlist {row_id} before inserting \
+                     {num_new_entries} entries",
                     row_id = RowId::from(playlist_id),
                     num_new_entries = new_entries.len(),
                 );

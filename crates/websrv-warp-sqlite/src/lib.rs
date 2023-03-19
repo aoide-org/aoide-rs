@@ -30,9 +30,13 @@ use std::{
     sync::{atomic::AtomicBool, Arc},
 };
 
-use db::connection::pool::{
-    gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper, PooledConnection,
+use aoide_backend_webapi_json as api;
+use aoide_repo::prelude::RepoError;
+use aoide_storage_sqlite::{
+    self as db,
+    connection::pool::{gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper, PooledConnection},
 };
+use aoide_usecases_sqlite as uc;
 use serde::Serialize;
 use thiserror::Error;
 use tokio::task::JoinError;
@@ -42,14 +46,6 @@ use warp::{
     reject::{self, InvalidHeader, InvalidQuery, MethodNotAllowed, Reject, Rejection},
     Reply,
 };
-
-use aoide_repo::prelude::RepoError;
-
-use aoide_storage_sqlite as db;
-
-use aoide_usecases_sqlite as uc;
-
-use aoide_backend_webapi_json as api;
 
 #[derive(Error, Debug)]
 pub enum Error {

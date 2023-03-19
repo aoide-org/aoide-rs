@@ -4,12 +4,11 @@
 use nonicle::{Canonical, IsCanonical};
 use num_derive::{FromPrimitive, ToPrimitive};
 
-use crate::prelude::*;
-
 use super::{
     actor::{self, Actor, Actors, ActorsInvalidity},
     title::{Title, Titles, TitlesInvalidity},
 };
+use crate::prelude::*;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum Kind {

@@ -5,8 +5,6 @@ use std::borrow::Cow;
 
 use mime::Mime;
 
-use crate::prelude::*;
-
 use self::{
     artwork::{Artwork, ArtworkInvalidity},
     content::{
@@ -14,6 +12,7 @@ use self::{
         ContentMetadataFlagsInvalidity,
     },
 };
+use crate::prelude::*;
 
 pub mod artwork;
 pub mod content;

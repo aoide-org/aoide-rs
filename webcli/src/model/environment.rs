@@ -3,10 +3,9 @@
 
 use std::sync::{atomic::AtomicUsize, Arc};
 
+use aoide_client::webapi::ClientEnvironment;
 use infect::{TaskContext, TaskExecutor};
 use reqwest::{Client, Url};
-
-use aoide_client::webapi::ClientEnvironment;
 
 use super::{Effect, Intent, Task};
 

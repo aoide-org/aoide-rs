@@ -6,13 +6,12 @@ use std::{
     time::{Duration, Instant},
 };
 
+use aoide_client::models::media_tracker;
 use infect::{
     consume_messages, message_channel, process_message, submit_effect, submit_intent,
     MessageProcessed, MessagesConsumed, TaskContext,
 };
 use reqwest::Url;
-
-use aoide_client::models::media_tracker;
 
 use super::*;
 

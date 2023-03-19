@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use crate::prelude::*;
-
 use aoide_core::music::key::KeyCodeValue;
+
+use crate::prelude::*;
 
 mod _core {
     pub(super) use aoide_core::music::key::KeyCode;

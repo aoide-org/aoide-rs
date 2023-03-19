@@ -1,15 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use super::*;
-
-use crate::prelude::tests::*;
-
-use test_log::test;
-
 use aoide_core::{
     collection::MediaSourceConfig, media, util::url::BaseUrl, Collection, CollectionHeader,
 };
+use test_log::test;
+
+use super::*;
+use crate::prelude::tests::*;
 
 struct Fixture {
     db: DbConnection,

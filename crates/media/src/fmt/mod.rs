@@ -3,11 +3,6 @@
 
 use std::{borrow::Cow, ops::Not as _};
 
-use lofty::{
-    Accessor, AudioFile, FileProperties, ItemKey, ItemValue, MergeTag, MimeType, ParseOptions,
-    Picture, PictureType, SplitTag, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
-};
-
 use aoide_core::{
     audio::{
         channel::ChannelCount,
@@ -35,6 +30,10 @@ use aoide_core::{
         Track,
     },
     util::string::trimmed_non_empty_from,
+};
+use lofty::{
+    Accessor, AudioFile, FileProperties, ItemKey, ItemValue, MergeTag, MimeType, ParseOptions,
+    Picture, PictureType, SplitTag, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
 };
 
 use crate::{

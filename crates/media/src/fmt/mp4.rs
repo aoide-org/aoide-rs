@@ -3,13 +3,13 @@
 
 use std::{borrow::Cow, fs::File};
 
+use aoide_core::track::{AdvisoryRating, Track};
 use lofty::{
     mp4::{Atom, AtomData, AtomIdent, Ilst, Mp4File},
     AudioFile,
 };
 
-use aoide_core::track::{AdvisoryRating, Track};
-
+use super::parse_options;
 use crate::{
     io::{
         export::{ExportTrackConfig, ExportTrackFlags},
@@ -18,8 +18,6 @@ use crate::{
     util::{artwork::EditEmbeddedArtworkImage, format_validated_tempo_bpm},
     Result,
 };
-
-use super::parse_options;
 
 const ADVISORY_RATING_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"rtng");
 

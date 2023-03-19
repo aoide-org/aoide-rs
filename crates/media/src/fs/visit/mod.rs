@@ -286,7 +286,8 @@ pub fn visit_directories<
                     AfterAncestorFinished::Abort => {
                         progress_event.progress.directories.finished += 1;
                         log::debug!(
-                            "Aborting directory tree traversal after finishing parent directory: {}",
+                            "Aborting directory tree traversal after finishing parent directory: \
+                             {}",
                             ancestor_path.display()
                         );
                         progress_event.abort();

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core_api::track::find_unsynchronized::{Params, UnsynchronizedTrackEntity};
-
 use aoide_usecases::track::find_unsynchronized as uc;
 
 use super::*;

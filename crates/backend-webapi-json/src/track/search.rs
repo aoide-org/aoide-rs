@@ -2,12 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::util::url::BaseUrl;
-
 use aoide_core_api::media::source::ResolveUrlFromContentPath;
-
-use aoide_core_json::track::Entity;
-
 use aoide_core_api_json::track::search::{QueryParams, SearchParams};
+use aoide_core_json::track::Entity;
 
 use super::*;
 

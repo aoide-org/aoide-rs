@@ -5,9 +5,8 @@ use std::{future::Future, path::PathBuf};
 
 use discro::{tasklet::OnChanged, Subscriber};
 
-use crate::fs::DirPath;
-
 use super::State;
+use crate::fs::DirPath;
 
 /// Save the settings after changed.
 pub fn on_state_changed_save_to_file(

@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use serde::{Deserialize, Serialize};
-
 use aoide_storage_sqlite::connection::{
     pool::{create_connection_pool, gatekeeper::Gatekeeper, get_pooled_connection},
     Config as ConnectionConfig,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DatabaseSchemaMigrationMode {

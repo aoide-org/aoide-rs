@@ -27,10 +27,9 @@
 
 use std::result::Result as StdResult;
 
-use thiserror::Error;
-
 use aoide_core::{prelude::*, CollectionUid};
 use aoide_repo::prelude::*;
+use thiserror::Error;
 
 pub mod collection;
 pub mod playlist;

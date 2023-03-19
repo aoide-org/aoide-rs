@@ -4,17 +4,14 @@
 use std::time::Instant;
 
 use aoide_core::track::Entity;
-
 use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::search::*};
-
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     track::{CollectionRepo as TrackCollectionRepo, RecordHeader},
 };
 
-use crate::collection::vfs::RepoContext;
-
 use super::*;
+use crate::collection::vfs::RepoContext;
 
 pub fn search<Repo>(
     repo: &mut Repo,

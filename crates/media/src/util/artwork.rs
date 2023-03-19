@@ -3,13 +3,6 @@
 
 use std::convert::TryFrom as _;
 
-use image::{
-    guess_format, load_from_memory, load_from_memory_with_format, DynamicImage, GenericImageView,
-    ImageError, ImageFormat,
-};
-use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
-use thiserror::Error;
-
 use aoide_core::{
     media::artwork::{
         ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
@@ -17,10 +10,15 @@ use aoide_core::{
     },
     util::color::RgbColor,
 };
-
-use crate::Result;
+use image::{
+    guess_format, load_from_memory, load_from_memory_with_format, DynamicImage, GenericImageView,
+    ImageError, ImageFormat,
+};
+use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
+use thiserror::Error;
 
 use super::digest::MediaDigest;
+use crate::Result;
 
 #[derive(Debug, Error)]
 pub enum ArtworkImageError {
@@ -147,7 +145,11 @@ fn ingest_artwork_image(
         image::ColorType::Rgb8 => Some(color_thief::ColorFormat::Rgb),
         image::ColorType::Rgba8 => Some(color_thief::ColorFormat::Rgba),
         _ => {
-            log::warn!("Unsupported color type {color_type:?} for extracting the predominant color from artwork image", color_type = picture.color());
+            log::warn!(
+                "Unsupported color type {color_type:?} for extracting the predominant color from \
+                 artwork image",
+                color_type = picture.color()
+            );
             None
         }
     };
@@ -226,7 +228,8 @@ pub fn try_ingest_embedded_artwork_image(
                 .into_iter()
                 .map(|err| {
                     format!(
-                        "Recoverable error while loading embedded {apic_type:?} artwork image: {err}"
+                        "Recoverable error while loading embedded {apic_type:?} artwork image: \
+                         {err}"
                     )
                 })
                 .collect();

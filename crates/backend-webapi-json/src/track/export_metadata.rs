@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
-
 use aoide_core::media::content::resolver::vfs::VfsResolver;
-
 use aoide_media::io::export::ExportTrackConfig;
 
 use super::*;

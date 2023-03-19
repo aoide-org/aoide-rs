@@ -22,6 +22,15 @@ use std::{
     time::{Duration, Instant},
 };
 
+use aoide_client::{
+    models::{collection, media_source, media_tracker},
+    util::remote::DataSnapshot,
+};
+use aoide_core::{collection::MediaSourceConfig, Collection, CollectionEntity, CollectionUid};
+use aoide_core_api::{
+    media::{tracker::DirTrackingStatus, SyncMode},
+    track::search::{SortField, SortOrder},
+};
 use clap::{builder::StyledStr, Arg, ArgMatches, Command};
 use infect::{
     consume_messages, message_channel, submit_effect, submit_intent, MessagesConsumed, ModelRender,
@@ -30,21 +39,8 @@ use infect::{
 use model::{EffectApplied, IntentHandled};
 use tokio::signal;
 
-use aoide_core::{collection::MediaSourceConfig, Collection, CollectionEntity, CollectionUid};
-
-use aoide_core_api::{
-    media::{tracker::DirTrackingStatus, SyncMode},
-    track::search::{SortField, SortOrder},
-};
-
-use aoide_client::{
-    models::{collection, media_source, media_tracker},
-    util::remote::DataSnapshot,
-};
-
 mod model;
 use self::model::{Effect, Environment, Intent, Model, Task};
-
 use crate::model::ExportTracksParams;
 
 const DEFAULT_LOG_FILTER: &str = "info";
@@ -293,7 +289,8 @@ impl ModelRender for RenderCliModel {
                 log::info!("Finding untracked media files succeeded: {outcome:?}");
                 if !outcome.value.content_paths.is_empty() {
                     log::info!(
-                        "Found {num_untracked_entities} untracked entries on file system:\n{content_paths}",
+                        "Found {num_untracked_entities} untracked entries on file \
+                         system:\n{content_paths}",
                         num_untracked_entities = outcome.value.content_paths.len(),
                         content_paths = outcome
                             .value
@@ -667,30 +664,34 @@ async fn main() -> anyhow::Result<()> {
                 .long(WEBSRV_URL_ARG)
                 .num_args(1)
                 .required(false)
-                .default_value(DEFAULT_WEBSRV_URL)
+                .default_value(DEFAULT_WEBSRV_URL),
         )
         .subcommand(
             Command::new("create-collection")
                 .about("Creates a new collection")
                 .arg(
                     Arg::new(CREATE_COLLECTION_TITLE_ARG)
-                    .long(CREATE_COLLECTION_TITLE_ARG)
-                    .help("The `title` of the new collection")
-                    .num_args(1)
-                    .required(true)                )
+                        .long(CREATE_COLLECTION_TITLE_ARG)
+                        .help("The `title` of the new collection")
+                        .num_args(1)
+                        .required(true),
+                )
                 .arg(
                     Arg::new(CREATE_COLLECTION_KIND_ARG)
                         .long(CREATE_COLLECTION_KIND_ARG)
                         .help("The `kind` of the new collection")
                         .num_args(1)
-                        .required(false)
+                        .required(false),
                 )
                 .arg(
                     Arg::new(CREATE_COLLECTION_VFS_ROOT_URL_ARG)
                         .long(CREATE_COLLECTION_VFS_ROOT_URL_ARG)
-                        .help("The file URL of the common root directory that contains all media sources")
+                        .help(
+                            "The file URL of the common root directory that contains all media \
+                             sources",
+                        )
                         .num_args(1)
-                        .required(true)
+                        .required(true),
                 ),
         )
         .subcommand({
@@ -703,22 +704,14 @@ async fn main() -> anyhow::Result<()> {
                 .subcommand(
                     Command::new("purge-orphaned")
                         .about("Purges orphaned media sources that are not referenced by any track")
-                        .arg(
-                            active_collection_title_arg.clone()
-                        )
-                        .arg(
-                            media_root_url_arg.clone()
-                        ),
+                        .arg(active_collection_title_arg.clone())
+                        .arg(media_root_url_arg.clone()),
                 )
                 .subcommand(
                     Command::new("purge-untracked")
                         .about("Purges untracked media sources including their tracks")
-                        .arg(
-                            active_collection_title_arg.clone()
-                        )
-                        .arg(
-                            media_root_url_arg
-                        ),
+                        .arg(active_collection_title_arg.clone())
+                        .arg(media_root_url_arg),
                 )
         })
         .subcommand(
@@ -727,25 +720,19 @@ async fn main() -> anyhow::Result<()> {
                 .subcommand(
                     Command::new("find-unsynchronized")
                         .about("Find all tracks with unsynchronized media sources")
-                        .arg(
-                            active_collection_title_arg
-                                .clone()
-                        )
+                        .arg(active_collection_title_arg.clone()),
                 )
                 .subcommand(
                     Command::new("export-all-into-file")
                         .about("Exports all tracks of the collection into a JSON file")
-                        .arg(
-                            active_collection_title_arg
-                                .clone()
-                        )
+                        .arg(active_collection_title_arg.clone())
                         .arg(
                             Arg::new(OUTPUT_FILE_ARG)
                                 .help("The output file path for writing JSON data")
                                 .num_args(1)
-                                .required(true)
+                                .required(true),
                         ),
-                )
+                ),
         )
         .subcommand({
             let media_root_url_arg = Arg::new(MEDIA_ROOT_URL_ARG)
@@ -754,69 +741,49 @@ async fn main() -> anyhow::Result<()> {
                 .required(false);
             Command::new("media-tracker")
                 .about("Tasks for the media tracker")
-                .subcommand(
-                    Command::new("progress").about("Query progress of a pending task"),
-                )
+                .subcommand(Command::new("progress").about("Query progress of a pending task"))
                 .subcommand(Command::new("abort").about("Abort the current task"))
                 .subcommand(
                     Command::new("status")
                         .about("Queries the status of the media tracker")
-                        .arg(
-                            active_collection_title_arg.clone()
-                        )
-                        .arg(
-                            media_root_url_arg.clone()
-                        ),
+                        .arg(active_collection_title_arg.clone())
+                        .arg(media_root_url_arg.clone()),
                 )
                 .subcommand(
                     Command::new("scan-directories")
-                        .about("Scans directories on the file system for added/modified/removed media sources")
-                        .arg(
-                            active_collection_title_arg.clone()
+                        .about(
+                            "Scans directories on the file system for added/modified/removed \
+                             media sources",
                         )
-                        .arg(
-                            media_root_url_arg.clone()
-                        ),
+                        .arg(active_collection_title_arg.clone())
+                        .arg(media_root_url_arg.clone()),
                 )
                 .subcommand(
                     Command::new("untrack-directories")
                         .about("Untracks directories on the file system")
-                        .arg(
-                            active_collection_title_arg.clone()
-                        )
-                        .arg(
-                            media_root_url_arg.clone()
-                        ),
+                        .arg(active_collection_title_arg.clone())
+                        .arg(media_root_url_arg.clone()),
                 )
                 .subcommand(
                     Command::new("untrack-orphaned-directories")
-                        .about("Untracks orphaned directories that have disappeared from the file system (deleted)")
-                        .arg(
-                            active_collection_title_arg.clone()
+                        .about(
+                            "Untracks orphaned directories that have disappeared from the file \
+                             system (deleted)",
                         )
-                        .arg(
-                            media_root_url_arg.clone()
-                        ),
+                        .arg(active_collection_title_arg.clone())
+                        .arg(media_root_url_arg.clone()),
                 )
                 .subcommand(
                     Command::new("import-files")
                         .about("Imports media sources on the file system from scanned directories")
-                        .arg(
-                            active_collection_title_arg.clone()
-                        )
-                        .arg(
-                            media_root_url_arg.clone()
-                        ),
+                        .arg(active_collection_title_arg.clone())
+                        .arg(media_root_url_arg.clone()),
                 )
                 .subcommand(
                     Command::new("find-untracked-files")
                         .about("Scans directories on the file system for untracked entries")
-                        .arg(
-                            active_collection_title_arg.clone()
-                        )
-                        .arg(
-                            media_root_url_arg
-                        ),
+                        .arg(active_collection_title_arg.clone())
+                        .arg(media_root_url_arg),
                 )
         });
     let app_usage = app.render_usage();

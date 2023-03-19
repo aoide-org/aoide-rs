@@ -1,12 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use test_log::test;
-
-use crate::prelude::tests::*;
-
-use super::*;
-
 use aoide_core::{
     audio::DurationMs,
     collection::MediaSourceConfig,
@@ -18,12 +12,15 @@ use aoide_core::{
     Collection, CollectionEntity, CollectionHeader, Playlist, PlaylistHeader, Track, TrackBody,
     TrackEntity, TrackHeader, TrackUid,
 };
-
 use aoide_repo::{
     collection::{EntityRepo as _, RecordId as CollectionId},
     media::source::{CollectionRepo as _, RecordId as MediaSourceId},
     track::RecordId as TrackId,
 };
+use test_log::test;
+
+use super::*;
+use crate::prelude::tests::*;
 
 struct Fixture {
     collection_id: CollectionId,

@@ -3,22 +3,6 @@
 
 use std::{borrow::Cow, fmt, path::Path, str::FromStr};
 
-use mime::Mime;
-use nom::{
-    bytes::complete::{tag, tag_no_case},
-    character::complete::{digit1, space0},
-    number::complete::double,
-    sequence::{delimited, pair, preceded, separated_pair, terminated},
-    IResult,
-};
-use time::{
-    format_description::{
-        well_known::{Rfc2822, Rfc3339},
-        FormatItem,
-    },
-    OffsetDateTime, PrimitiveDateTime,
-};
-
 use aoide_core::{
     audio::signal::LoudnessLufs,
     music::{
@@ -36,6 +20,21 @@ use aoide_core::{
         clock::{DateOrDateTime, DateTime, DateYYYYMMDD, YYYYMMDD},
         string::{trimmed_non_empty_from, trimmed_non_empty_from_owned},
     },
+};
+use mime::Mime;
+use nom::{
+    bytes::complete::{tag, tag_no_case},
+    character::complete::{digit1, space0},
+    number::complete::double,
+    sequence::{delimited, pair, preceded, separated_pair, terminated},
+    IResult,
+};
+use time::{
+    format_description::{
+        well_known::{Rfc2822, Rfc3339},
+        FormatItem,
+    },
+    OffsetDateTime, PrimitiveDateTime,
 };
 
 use crate::{io::import::Importer, prelude::*};
@@ -351,7 +350,7 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
     let digits_parsed: IResult<_, _> = digits_parser(input);
     if let Ok((remainder, digits_input)) = digits_parsed {
         if remainder.is_empty()
-            && (/*YYYY*/digits_input.len() == 4 ||
+            && (/* YYYY */digits_input.len() == 4 ||
             /*YYYYMM*/ digits_input.len() == 6 ||
             /*YYYYMMDD*/ digits_input.len() == 8)
         {

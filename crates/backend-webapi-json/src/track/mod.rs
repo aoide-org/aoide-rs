@@ -2,13 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::track::EntityUid;
-
+use aoide_core_json::track::Entity;
 use aoide_repo::{
     prelude::{RecordCollector, ReservableRecordCollector},
     track::RecordHeader,
 };
-
-use aoide_core_json::track::Entity;
 
 use super::*;
 

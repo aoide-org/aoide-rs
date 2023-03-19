@@ -3,19 +3,12 @@
 
 use std::{borrow::Cow, convert::Infallible, sync::Arc};
 
-use tokio::sync::{watch, Mutex};
-use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
-
-#[cfg(feature = "json-schema")]
-use schemars::schema_for;
-
+use aoide_backend_webapi_json as api;
 use aoide_core::{CollectionUid, PlaylistUid, TrackUid};
-
 use aoide_storage_sqlite::{
     cleanse_database,
     connection::pool::gatekeeper::{Gatekeeper as DatabaseConnectionGatekeeper, PendingTasks},
 };
-
 use aoide_usecases::{
     media::tracker::{
         find_untracked_files::ProgressEvent as FindUntrackedProgressEvent,
@@ -24,12 +17,12 @@ use aoide_usecases::{
     },
     playlist::CollectionFilter,
 };
-
-use aoide_websrv_warp_sqlite as websrv;
-
-use aoide_backend_webapi_json as api;
-
 use aoide_usecases_sqlite as uc;
+use aoide_websrv_warp_sqlite as websrv;
+#[cfg(feature = "json-schema")]
+use schemars::schema_for;
+use tokio::sync::{watch, Mutex};
+use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
 
 async fn reply_media_tracker_progress(
     media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
@@ -370,7 +363,8 @@ pub(crate) fn create_filters(
                             &mut |progress_event: ScanProgressEvent| {
                                 if let Err(err) = progress_event_tx.send(Some(progress_event)) {
                                     log::error!(
-                                        "Failed to send media tracker scanning progress event: {:?}",
+                                        "Failed to send media tracker scanning progress event: \
+                                         {:?}",
                                         err.0
                                     );
                                 }
@@ -431,7 +425,8 @@ pub(crate) fn create_filters(
                             &mut |progress_event| {
                                 if let Err(err) = progress_event_tx.send(Some(progress_event)) {
                                     log::error!(
-                                        "Failed to send media tracker importing progress event: {:?}",
+                                        "Failed to send media tracker importing progress event: \
+                                         {:?}",
                                         err.0
                                     );
                                 }
@@ -518,7 +513,8 @@ pub(crate) fn create_filters(
                             &mut |progress_event: FindUntrackedProgressEvent| {
                                 if let Err(err) = progress_event_tx.send(Some(progress_event)) {
                                     log::error!(
-                                        "Failed to send media tracker finding untracked progress event: {:?}",
+                                        "Failed to send media tracker finding untracked progress \
+                                         event: {:?}",
                                         err.0
                                     );
                                 }
@@ -530,7 +526,8 @@ pub(crate) fn create_filters(
                 .await;
                 if let Err(err) = watcher.await {
                     log::error!(
-                        "Failed to terminate media tracker finding untracked progress watcher: {err}"
+                        "Failed to terminate media tracker finding untracked progress watcher: \
+                         {err}"
                     );
                 }
                 response.map(|response_body| warp::reply::json(&response_body))

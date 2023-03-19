@@ -1,21 +1,18 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+#[cfg(not(target_family = "wasm"))]
+use aoide_core::media::content::resolver::ContentPathResolver as _;
 use aoide_core_api::track::replace::Summary;
-
 use aoide_repo::{
     collection::RecordId as CollectionId,
     media::source::RecordId as MediaSourceId,
     track::{CollectionRepo as TrackCollectionRepo, ReplaceMode, ReplaceOutcome, ReplaceParams},
 };
 
-#[cfg(not(target_family = "wasm"))]
-use aoide_core::media::content::resolver::ContentPathResolver as _;
-
+use super::*;
 #[cfg(not(target_family = "wasm"))]
 use crate::collection::vfs::{ContentPathContext, RepoContext};
-
-use super::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Params {

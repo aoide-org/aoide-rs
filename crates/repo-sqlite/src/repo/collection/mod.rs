@@ -1,18 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::dsl::count_star;
-
 use aoide_core::{
     collection::EntityHeader, util::clock::*, CollectionEntity, CollectionUid, EncodedEntityUid,
     EntityRevision,
 };
-
 use aoide_core_api::collection::{
     EntityWithSummary, LoadScope, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
 };
-
 use aoide_repo::collection::*;
+use diesel::dsl::count_star;
 
 use crate::{
     db::{

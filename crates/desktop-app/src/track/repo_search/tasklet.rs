@@ -6,9 +6,8 @@ use std::{future::Future, sync::Weak};
 use discro::{tasklet::OnChanged, Subscriber};
 use unnest::{some_or_return, some_or_return_with};
 
-use crate::{collection, environment::WeakHandle};
-
 use super::{FetchStateTag, ObservableState, State};
+use crate::{collection, environment::WeakHandle};
 
 pub fn on_should_prefetch_trigger(
     subscriber: Subscriber<State>,

@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use lofty::id3::v2::{EncodedTextFrame, Frame, FrameValue, ID3v2Tag};
-
 use aoide_core::{
     music::tempo::TempoBpm,
     track::{metric::MetricsFlags, Track},
 };
+use lofty::id3::v2::{EncodedTextFrame, Frame, FrameValue, ID3v2Tag};
 
 use crate::{
     io::{

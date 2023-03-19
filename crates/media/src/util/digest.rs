@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use bytes::BufMut as _;
-use digest::Digest;
 use std::{
     ffi::OsStr,
     path::Path,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
+
+use bytes::BufMut as _;
+use digest::Digest;
 
 pub fn digest_u64<D: Digest>(digest: &mut D, val: u64) {
     let mut bytes = [0u8; 8];

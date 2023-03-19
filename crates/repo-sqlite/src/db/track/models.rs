@@ -7,12 +7,10 @@ use aoide_core::{
     util::{clock::*, color::*},
     EntityRevision, Track, TrackBody, TrackEntity, TrackHeader,
 };
-
 use aoide_repo::media::source::RecordId as MediaSourceId;
 
-use crate::prelude::*;
-
 use super::schema::*;
+use crate::prelude::*;
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = track)]

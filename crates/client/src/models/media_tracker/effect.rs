@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use crate::util::roundtrip::PendingToken;
-
 use super::{
     Action, EffectApplied, FetchStatus, Model, PendingTask, StartFindUntrackedFiles,
     StartImportFiles, StartScanDirectories, Task, UntrackDirectories,
 };
+use crate::util::roundtrip::PendingToken;
 
 #[derive(Debug)]
 pub enum Effect {

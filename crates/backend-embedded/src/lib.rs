@@ -34,7 +34,7 @@ pub type Error = aoide_usecases_sqlite::Error;
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub mod prelude {
-    pub use super::{Error, Result};
-
     pub use aoide_core::CollectionUid;
+
+    pub use super::{Error, Result};
 }

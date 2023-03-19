@@ -8,13 +8,12 @@ use std::{
     str::ParseBoolError,
 };
 
+use aoide_storage_sqlite::connection::{Storage as SqliteDatabaseStorage, IN_MEMORY_STORAGE};
 use dotenvy::dotenv;
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_log::LogTracer;
 use tracing_subscriber::EnvFilter;
 use url::Url;
-
-use aoide_storage_sqlite::connection::{Storage as SqliteDatabaseStorage, IN_MEMORY_STORAGE};
 
 use crate::config::Config;
 
@@ -164,7 +163,8 @@ fn parse_database_connection_pool_size() -> Option<NonZeroU32> {
                 } else {
                     var.parse().map(Some).map_err(|err| {
                         format!(
-                            "Failed to parse '{DATABASE_CONNECTION_POOL_SIZE_ENV}' = '{var}': {err}"
+                            "Failed to parse '{DATABASE_CONNECTION_POOL_SIZE_ENV}' = '{var}': \
+                             {err}"
                         )
                     })
                 }

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::tag::*;
-
 use aoide_core_api::tag::search::*;
 
 fn dedup_facets(facets: &mut Vec<FacetId<'_>>) {

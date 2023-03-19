@@ -7,7 +7,6 @@ use aoide_core::{
     collection::{Entity, EntityHeader, EntityUid},
     util::{clock::DateTime, url::BaseUrl},
 };
-
 use aoide_core_api::collection::{EntityWithSummary, LoadScope, Summary};
 
 use crate::prelude::*;

@@ -10,7 +10,6 @@ use aoide_core::{
         string::trimmed_non_empty_from_owned,
     },
 };
-
 use triseratops::tag::{
     color::Color as SeratoColor,
     generic::{Cue as SeratoCue, Loop},

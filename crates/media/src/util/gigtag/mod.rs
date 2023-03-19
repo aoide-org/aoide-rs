@@ -3,13 +3,12 @@
 
 use std::borrow::Cow;
 
-use compact_str::{format_compact, CompactString};
-use gigtag::facet::Facet as _;
-
 use aoide_core::{
     prelude::*,
     tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, Tags, TagsMap},
 };
+use compact_str::{format_compact, CompactString};
+use gigtag::facet::Facet as _;
 
 pub type Facet = gigtag::facet::CompactFacet;
 
@@ -260,9 +259,12 @@ pub fn import_from_faceted_tags(mut faceted_tags: FacetedTags<'static>) -> TagsM
         let ingested_tags = tags_map.take_faceted_tags(&facet_id);
         if let Some(mut ingested_tags) = ingested_tags {
             if !ingested_tags.tags.is_empty() {
-                log::warn!("Joining {num_undecoded} undecoded with {num_ingested} ingested tag(s) for facet '{facet_id}'",
-                        num_undecoded = tags.len(),
-                        num_ingested = ingested_tags.tags.len());
+                log::warn!(
+                    "Joining {num_undecoded} undecoded with {num_ingested} ingested tag(s) for \
+                     facet '{facet_id}'",
+                    num_undecoded = tags.len(),
+                    num_ingested = ingested_tags.tags.len()
+                );
                 tags.append(&mut ingested_tags.tags);
             }
         }

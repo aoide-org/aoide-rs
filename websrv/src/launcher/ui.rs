@@ -12,12 +12,11 @@ use std::{
     time::Duration,
 };
 
+use aoide_storage_sqlite::connection::Storage as SqliteDatabaseStorage;
 use eframe::{egui::Context, Frame};
 use egui::{Button, CentralPanel, TextEdit, TopBottomPanel};
 use parking_lot::Mutex;
 use rfd::FileDialog;
-
-use aoide_storage_sqlite::connection::Storage as SqliteDatabaseStorage;
 
 use crate::{
     app_dirs, join_runtime_thread, launcher::State as LauncherState,
@@ -169,8 +168,10 @@ impl App {
         ui.label("Network IP:");
         ui.add_enabled(
             editing_enabled,
-            TextEdit::singleline(&mut self.config.network.endpoint.ip_addr)
-                .hint_text("IPv6/IPv4 address, e.g a wildcard address like \"::\" (IPv6) or \"0.0.0.0\" (IPv4))"),
+            TextEdit::singleline(&mut self.config.network.endpoint.ip_addr).hint_text(
+                "IPv6/IPv4 address, e.g a wildcard address like \"::\" (IPv6) or \"0.0.0.0\" \
+                 (IPv4))",
+            ),
         );
         ui.end_row();
 

@@ -6,20 +6,18 @@ use std::{
     path::Path,
 };
 
-use bitflags::bitflags;
-use lofty::FileType;
-
 use aoide_core::track::{
     actor::{Actor, Actors, Kind as ActorKind, Role as ActorRole},
     Track,
 };
+use bitflags::bitflags;
+use lofty::FileType;
 
+use super::import::ImportTrackFlags;
 use crate::{
     util::{artwork::EditEmbeddedArtworkImage, tag::FacetedTagMappingConfig},
     Error, Result,
 };
-
-use super::import::ImportTrackFlags;
 
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

@@ -4,10 +4,10 @@
 use std::fs::File;
 
 use anyhow::anyhow;
+use aoide_core::track::Track;
 use lofty::{iff::aiff::AiffFile, AudioFile};
 
-use aoide_core::track::Track;
-
+use super::{id3v2, parse_options};
 use crate::{
     io::{
         export::ExportTrackConfig,
@@ -16,8 +16,6 @@ use crate::{
     util::artwork::EditEmbeddedArtworkImage,
     Error, Result,
 };
-
-use super::{id3v2, parse_options};
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,

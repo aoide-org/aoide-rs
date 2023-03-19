@@ -6,8 +6,6 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use url::Url;
-
 use aoide_core::{
     media::content::{
         resolver::{vfs::VfsResolver, ContentPathResolver as _},
@@ -15,25 +13,21 @@ use aoide_core::{
     },
     util::clock::DateTime,
 };
-
 use aoide_core_api::{media::SyncMode, track::replace::Summary};
-
 use aoide_media::io::import::{ImportTrack, ImportTrackConfig, Issues};
-
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::source::RecordId as MediaSourceId,
     track::{CollectionRepo as TrackCollectionRepo, ReplaceMode, ReplaceParams},
 };
+use url::Url;
 
+pub use super::replace::Completion;
+use super::*;
 use crate::{
     collection::vfs::RepoContext,
     media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncModeParams},
 };
-
-use super::*;
-
-pub use super::replace::Completion;
 
 #[derive(Debug, Clone)]
 pub struct Outcome {

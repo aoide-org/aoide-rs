@@ -6,11 +6,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use aoide_backend_embedded::storage::DatabaseConfig;
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
 use serde::{Deserialize, Serialize};
 use url::Url;
-
-use aoide_backend_embedded::storage::DatabaseConfig;
 
 use crate::fs::DirPath;
 

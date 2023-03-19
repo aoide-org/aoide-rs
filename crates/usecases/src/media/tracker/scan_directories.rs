@@ -3,29 +3,24 @@
 
 use std::{sync::atomic::AtomicBool, time::Duration};
 
-use url::Url;
-
 use aoide_core::{
     media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _},
     util::clock::DateTime,
 };
-
 use aoide_core_api::media::tracker::{
     scan_directories::{Outcome, Summary},
     Completion, FsTraversalDirectoriesProgress, FsTraversalEntriesProgress, FsTraversalParams,
     FsTraversalProgress,
 };
-
 use aoide_media::fs::{digest, visit};
-
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     media::tracker::{DirUpdateOutcome, Repo as MediaTrackerRepo},
 };
-
-use crate::collection::vfs::RepoContext;
+use url::Url;
 
 use super::*;
+use crate::collection::vfs::RepoContext;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgressEvent {

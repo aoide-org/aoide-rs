@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use bitflags::bitflags;
+
 use crate::{
     music::{
         beat::{TimeSignature, TimeSignatureInvalidity},
@@ -9,8 +11,6 @@ use crate::{
     },
     prelude::*,
 };
-
-use bitflags::bitflags;
 
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

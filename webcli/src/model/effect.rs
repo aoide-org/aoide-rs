@@ -3,14 +3,12 @@
 
 use std::num::NonZeroUsize;
 
-use infect::IntentHandled;
-
 use aoide_client::models::{collection, media_source, media_tracker};
 use aoide_core_api::track::find_unsynchronized::UnsynchronizedTrackEntity;
-
-use crate::model::{Action, State, Task};
+use infect::IntentHandled;
 
 use super::{EffectApplied, Intent, Model};
+use crate::model::{Action, State, Task};
 
 #[derive(Debug)]
 pub enum Effect {

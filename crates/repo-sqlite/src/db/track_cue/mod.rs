@@ -4,11 +4,10 @@
 pub(crate) mod models;
 pub(crate) mod schema;
 
-use crate::prelude::*;
-
 use aoide_core::track::cue::Cue;
-
 use aoide_repo::track::RecordId;
+
+use crate::prelude::*;
 
 #[derive(Debug)]
 pub struct Record {

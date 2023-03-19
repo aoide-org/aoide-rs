@@ -3,12 +3,11 @@
 
 use aoide_core::CollectionUid;
 
-use crate::webapi::{receive_response_body, ClientEnvironment};
-
 use super::{
     super::Effect, FetchStatus, PendingTask, StartFindUntrackedFiles, StartImportFiles,
     StartScanDirectories, Task, UntrackDirectories,
 };
+use crate::webapi::{receive_response_body, ClientEnvironment};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {

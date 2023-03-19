@@ -3,14 +3,12 @@
 
 use std::borrow::Cow;
 
-use aoide_core_api::playlist::EntityWithEntriesSummary;
-
 use aoide_core::{
     playlist::{EntityHeader as PlaylistEntityHeader, EntityWithEntries},
     util::clock::DateTime,
     Playlist, PlaylistEntity, PlaylistUid,
 };
-
+use aoide_core_api::playlist::EntityWithEntriesSummary;
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     playlist::{CollectionFilter as RepoCollectionFilter, EntityRepo, KindFilter, RecordHeader},

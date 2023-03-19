@@ -3,12 +3,9 @@
 
 use std::path::PathBuf;
 
-use aoide_media::io::import::{load_embedded_artwork_image_from_file_path, LoadedArtworkImage};
-
-use aoide_repo::collection::RecordId as CollectionId;
-
 use aoide_core::media::content::ContentPath;
-
+use aoide_media::io::import::{load_embedded_artwork_image_from_file_path, LoadedArtworkImage};
+use aoide_repo::collection::RecordId as CollectionId;
 use uc::collection::vfs::RepoContext;
 
 use super::*;

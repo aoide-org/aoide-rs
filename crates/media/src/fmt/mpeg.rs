@@ -3,10 +3,13 @@
 
 use std::fs::File;
 
+use aoide_core::track::Track;
 use lofty::{mpeg::MPEGFile, AudioFile};
 
-use aoide_core::track::Track;
-
+use super::{
+    id3v2::{export_track_to_tag, Import},
+    parse_options,
+};
 use crate::{
     io::{
         export::ExportTrackConfig,
@@ -14,11 +17,6 @@ use crate::{
     },
     util::artwork::EditEmbeddedArtworkImage,
     Result,
-};
-
-use super::{
-    id3v2::{export_track_to_tag, Import},
-    parse_options,
 };
 
 pub(crate) fn import_file_into_track(

@@ -1,21 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::Connection as _;
-
 use aoide_core::{
     media::content::ContentPath,
     track::{Entity, EntityUid, Track},
 };
-
 use aoide_core_api::{track::find_unsynchronized::UnsynchronizedTrackEntity, Pagination};
-
 use aoide_repo::{
     prelude::{RecordCollector, ReservableRecordCollector},
     track::RecordHeader,
 };
-
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
+use diesel::Connection as _;
 
 use crate::prelude::*;
 

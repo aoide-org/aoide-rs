@@ -3,10 +3,10 @@
 
 use std::fs::File;
 
+use aoide_core::track::Track;
 use lofty::{flac::FlacFile, AudioFile};
 
-use aoide_core::track::Track;
-
+use super::parse_options;
 use crate::{
     io::{
         export::ExportTrackConfig,
@@ -15,8 +15,6 @@ use crate::{
     util::artwork::EditEmbeddedArtworkImage,
     Result,
 };
-
-use super::parse_options;
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,

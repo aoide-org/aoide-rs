@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::ops::Range;
+
 use aoide_core::{
     playlist::{EntityHeader, EntityUid, Entry},
     util::clock::DateTime,
@@ -10,8 +12,6 @@ use aoide_repo::{
     playlist::{EntityRepo, EntryRepo, RecordHeader},
     prelude::RepoResult,
 };
-
-use std::ops::Range;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PatchOperation {

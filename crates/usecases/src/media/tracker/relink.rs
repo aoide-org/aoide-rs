@@ -7,9 +7,7 @@ use aoide_core::{
     media::Source as MediaSource,
     track::{Entity, EntityBody, Track},
 };
-
 use aoide_core_api::track::search::{ConditionFilter, Filter, SortField, SortOrder};
-
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::{
@@ -19,9 +17,8 @@ use aoide_repo::{
     track::{CollectionRepo as TrackCollectionRepo, EntityRepo as TrackRepo},
 };
 
-use crate::track::find_duplicates::{self, find_duplicates};
-
 use super::*;
+use crate::track::find_duplicates::{self, find_duplicates};
 
 pub type FindCandidateParams = find_duplicates::Params;
 
@@ -211,7 +208,8 @@ where
                 .expect("single URI"),
             _ => {
                 log::warn!(
-                    "Found {num_candidates} potential successor(s) for {old_content_link_path}: {candidates:?}",
+                    "Found {num_candidates} potential successor(s) for {old_content_link_path}: \
+                     {candidates:?}",
                     num_candidates = candidates.len(),
                 );
                 progress.skipped += 1;

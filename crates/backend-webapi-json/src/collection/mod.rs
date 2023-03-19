@@ -2,15 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::collection::EntityUid;
-
+use aoide_core_api_json::collection::{export_entity_with_summary, EntityWithSummary};
+use aoide_core_json::collection::{Collection, Entity};
 use aoide_repo::{
     collection::RecordHeader,
     prelude::{RecordCollector, ReservableRecordCollector},
 };
-
-use aoide_core_json::collection::{Collection, Entity};
-
-use aoide_core_api_json::collection::{export_entity_with_summary, EntityWithSummary};
 
 use super::*;
 

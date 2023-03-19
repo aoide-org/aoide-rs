@@ -3,9 +3,6 @@
 
 use std::str::FromStr;
 
-use mime::Mime;
-use num_traits::{FromPrimitive as _, ToPrimitive};
-
 use aoide_core::{
     audio::{
         BitrateBps, BitsPerSecond, ChannelCount, ChannelFlags, Channels, DurationMs, LoudnessLufs,
@@ -27,12 +24,12 @@ use aoide_core::{
         color::{RgbColor, RgbColorCode},
     },
 };
-
 use aoide_repo::collection::RecordId as CollectionId;
-
-use crate::prelude::*;
+use mime::Mime;
+use num_traits::{FromPrimitive as _, ToPrimitive};
 
 use super::{schema::*, *};
+use crate::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 

@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use url::Url;
-
 use aoide_core::{prelude::*, track::PlayCount};
+use url::Url;
 
 use crate::{entity::EntityRevision, media::Source, prelude::*, tag::*};
 

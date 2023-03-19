@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use num_traits::FromPrimitive as _;
-
 use aoide_core::{
     music::{
         beat::{BeatUnit, BeatsPerMeasure, TimeSignature},
@@ -19,12 +17,11 @@ use aoide_core::{
     util::{clock::*, color::*},
     Track, TrackBody, TrackEntity, TrackHeader,
 };
-
 use aoide_repo::{media::source::RecordId as MediaSourceId, track::RecordHeader};
-
-use crate::{db::track::EntityPreload, prelude::*};
+use num_traits::FromPrimitive as _;
 
 use super::schema::*;
+use crate::{db::track::EntityPreload, prelude::*};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = view_track_search)]

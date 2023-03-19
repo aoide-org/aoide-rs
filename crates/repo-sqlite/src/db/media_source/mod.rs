@@ -4,13 +4,11 @@
 pub(crate) mod models;
 pub(crate) mod schema;
 
+use aoide_repo::{collection::RecordId as CollectionId, media::source::RecordHeader};
 use diesel::sql_types::BigInt;
 
-use aoide_repo::{collection::RecordId as CollectionId, media::source::RecordHeader};
-
-use crate::prelude::*;
-
 use self::schema::*;
+use crate::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ArtworkSource {

@@ -5,14 +5,10 @@ use std::{fs, io, path::Path, result::Result as StdResult, sync::atomic::AtomicB
 
 use digest::Digest;
 
-use crate::{
-    util::digest::*,
-    {Error, Result},
-};
-
 use super::visit::{
     visit_directories, AfterAncestorFinished, AncestorVisitor, Outcome, ProgressEvent,
 };
+use crate::{util::digest::*, Error, Result};
 
 /// Fingerprint file metadata for detecting changes on the file.
 /// system.

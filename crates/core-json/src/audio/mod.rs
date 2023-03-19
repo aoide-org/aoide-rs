@@ -8,6 +8,6 @@ pub mod sample;
 pub use self::sample::*;
 
 pub mod signal;
-pub use self::signal::*;
-
 pub use aoide_core::audio::{DurationMs, PositionMs};
+
+pub use self::signal::*;

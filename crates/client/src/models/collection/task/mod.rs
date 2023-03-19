@@ -3,9 +3,8 @@
 
 use aoide_core::collection::{Collection, EntityHeader, EntityUid};
 
-use crate::util::roundtrip::PendingToken;
-
 use super::FetchFilteredEntities;
+use crate::util::roundtrip::PendingToken;
 
 #[derive(Debug, Clone)]
 pub enum Task {

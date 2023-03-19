@@ -3,11 +3,9 @@
 
 use std::ops::Not as _;
 
-use aoide_core::{collection::EntityUid, media::content::ContentPathKind, util::url::BaseUrl};
-
 #[cfg(not(target_family = "wasm"))]
 use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
-
+use aoide_core::{collection::EntityUid, media::content::ContentPathKind, util::url::BaseUrl};
 use aoide_repo::collection::{EntityRepo, RecordId};
 
 use super::*;

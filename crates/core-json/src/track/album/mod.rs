@@ -3,9 +3,8 @@
 
 use aoide_core::prelude::*;
 
-use crate::prelude::*;
-
 use super::{actor::Actor, title::Title};
+use crate::prelude::*;
 
 mod _core {
     pub(super) use aoide_core::track::album::*;

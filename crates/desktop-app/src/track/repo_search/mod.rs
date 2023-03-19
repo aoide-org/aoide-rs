@@ -3,15 +3,14 @@
 
 use std::hash::Hash as _;
 
-use discro::{new_pubsub, Publisher, Ref, Subscriber};
-use xxhash_rust::xxh3::Xxh3;
-
 use aoide_backend_embedded::track::search;
 use aoide_core::{
     track::{Entity, EntityHeader},
     CollectionUid,
 };
 use aoide_core_api::{track::search::Params, Pagination};
+use discro::{new_pubsub, Publisher, Ref, Subscriber};
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::environment::Handle;
 
@@ -197,7 +196,10 @@ impl FetchState {
                 log::debug!("Caching {num_fetched_entities} fetched entities");
                 return true;
             }
-            log::warn!("Mismatching offset/hash after fetching succeeded: expected = {expected_offset}/{expected_offset_hash}, actual = {offset}/{offset_hash}");
+            log::warn!(
+                "Mismatching offset/hash after fetching succeeded: expected = \
+                 {expected_offset}/{expected_offset_hash}, actual = {offset}/{offset_hash}"
+            );
         } else {
             log::error!("Not pending when fetching succeeded");
         }
@@ -339,8 +341,11 @@ impl State {
             can_fetch_more,
         } = succeeded;
         if context != self.context {
-            log::warn!("Mismatching context after fetching succeeded: expected = {expected_context:?}, actual = {context:?}",
-            expected_context = self.context);
+            log::warn!(
+                "Mismatching context after fetching succeeded: expected = {expected_context:?}, \
+                 actual = {context:?}",
+                expected_context = self.context
+            );
             return false;
         }
         self.fetch

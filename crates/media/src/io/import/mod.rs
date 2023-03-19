@@ -8,10 +8,6 @@ use std::{
     result::Result as StdResult,
 };
 
-use bitflags::bitflags;
-use lofty::FileType;
-use mime::Mime;
-
 use aoide_core::{
     audio::signal::LoudnessLufs,
     media::{
@@ -27,6 +23,9 @@ use aoide_core::{
     track::{actor::Actor, title::Title, Track},
     util::clock::{DateOrDateTime, DateTime},
 };
+use bitflags::bitflags;
+use lofty::FileType;
+use mime::Mime;
 
 use crate::{
     fmt::parse_options,
@@ -458,7 +457,8 @@ impl Importer {
             Ok((remainder, relative_gain_db)) => {
                 if !remainder.is_empty() {
                     self.add_issue(format!(
-                        "Unexpected remainder '{remainder}' after parsing replay gain input '{input}'"
+                        "Unexpected remainder '{remainder}' after parsing replay gain input \
+                         '{input}'"
                     ));
                 }
                 let loudness_lufs = db2lufs(relative_gain_db);
@@ -490,7 +490,8 @@ impl Importer {
         if key_signature.is_none() {
             let input_bytes = input.as_bytes();
             self.add_issue(format!(
-                "Failed to parse musical key signature from input '{input}' (UTF-8 bytes: {input_bytes:X?})",
+                "Failed to parse musical key signature from input '{input}' (UTF-8 bytes: \
+                 {input_bytes:X?})",
             ));
         }
         key_signature

@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{media::content::ContentPath, util::clock::DateTime};
-
 use aoide_core_api::media::tracker::{DirTrackingStatus, DirectoriesStatus};
 
+use super::*;
 use crate::{
     collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
 };
-
-use super::*;
 
 record_id_newtype!(RecordId);
 pub type RecordHeader = crate::RecordHeader<RecordId>;

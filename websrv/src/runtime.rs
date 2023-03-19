@@ -11,24 +11,19 @@ use std::{
     time::Duration,
 };
 
-use time::OffsetDateTime;
-use tokio::{sync::mpsc, time::sleep};
-use warp::{http::StatusCode, Filter};
-
+use aoide_repo_sqlite::initialize_database;
 use aoide_storage_sqlite::connection::pool::{
     create_connection_pool, gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper,
     get_pooled_connection,
 };
-
-use aoide_repo_sqlite::initialize_database;
-
 use aoide_usecases_sqlite as uc;
-
 use aoide_websrv_warp_sqlite::handle_rejection;
-
-use crate::config::DatabaseConfig;
+use time::OffsetDateTime;
+use tokio::{sync::mpsc, time::sleep};
+use warp::{http::StatusCode, Filter};
 
 use super::{config::Config, routing};
+use crate::config::DatabaseConfig;
 
 const WEB_SERVER_LISTENING_DELAY: Duration = Duration::from_millis(250);
 

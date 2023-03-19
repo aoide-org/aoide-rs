@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use super::*;
-
 use crate::music::{beat::TimeSignature, key::KeyCode, tempo::TempoBpm};
 
 mod _core {

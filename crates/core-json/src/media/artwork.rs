@@ -3,9 +3,8 @@
 
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
-use crate::prelude::*;
-
 use super::{Base64, Digest};
+use crate::prelude::*;
 
 mod _core {
     pub(super) use aoide_core::media::artwork::*;

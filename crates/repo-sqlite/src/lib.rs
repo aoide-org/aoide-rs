@@ -42,16 +42,16 @@ pub type DbBackend = diesel::sqlite::Sqlite;
 pub type DbConnection = diesel::sqlite::SqliteConnection;
 
 pub mod prelude {
-    pub(crate) use crate::util::{clock::*, entity::*, *};
-    pub(crate) use aoide_core::prelude::*;
-    pub(crate) use aoide_repo::prelude::*;
-    pub(crate) use diesel::{prelude::*, result::Error as DieselError};
     pub(crate) use std::ops::Deref;
     use std::ops::DerefMut;
 
-    pub use crate::{DbBackend, DbConnection};
-
+    pub(crate) use aoide_core::prelude::*;
+    pub(crate) use aoide_repo::prelude::*;
     pub use diesel::Connection as _;
+    pub(crate) use diesel::{prelude::*, result::Error as DieselError};
+
+    pub(crate) use crate::util::{clock::*, entity::*, *};
+    pub use crate::{DbBackend, DbConnection};
     #[allow(missing_debug_implementations)]
     pub struct Connection<'db>(&'db mut DbConnection);
 
@@ -139,8 +139,9 @@ pub mod prelude {
 
     #[cfg(test)]
     pub mod tests {
-        use super::DbConnection;
         use diesel::Connection as _;
+
+        use super::DbConnection;
 
         pub type TestResult<T> = anyhow::Result<T>;
 

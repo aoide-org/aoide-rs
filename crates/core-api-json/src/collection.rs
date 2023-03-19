@@ -11,12 +11,11 @@ mod _core {
 }
 
 mod _inner {
+    #[cfg(feature = "backend")]
+    pub(super) use crate::_inner::collection::EntityWithSummary;
     pub(super) use crate::_inner::collection::{
         MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
     };
-
-    #[cfg(feature = "backend")]
-    pub(super) use crate::_inner::collection::EntityWithSummary;
 }
 
 #[derive(Debug)]

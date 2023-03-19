@@ -5,7 +5,6 @@ use aoide_core::{
     media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _},
     track::Entity,
 };
-
 use aoide_repo::track::RecordHeader;
 
 use super::*;

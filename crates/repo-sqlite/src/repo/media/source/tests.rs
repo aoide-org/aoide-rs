@@ -1,13 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use mime::IMAGE_JPEG;
-use test_log::test;
-
-use super::*;
-
-use crate::prelude::tests::*;
-
 use aoide_core::{
     audio::DurationMs,
     collection::MediaSourceConfig,
@@ -17,16 +10,20 @@ use aoide_core::{
             ApicType, Artwork, ArtworkImage, ImageSize, LinkedArtwork, THUMBNAIL_HEIGHT,
             THUMBNAIL_WIDTH,
         },
-        content::ContentRevision,
         content::{
-            AudioContentMetadata, ContentLink, ContentMetadataFlags, ContentPath, ContentPathConfig,
+            AudioContentMetadata, ContentLink, ContentMetadataFlags, ContentPath,
+            ContentPathConfig, ContentRevision,
         },
     },
     util::{clock::DateTime, color::RgbColor},
     Collection, CollectionEntity, CollectionHeader,
 };
-
 use aoide_repo::collection::{EntityRepo as _, RecordId as CollectionId};
+use mime::IMAGE_JPEG;
+use test_log::test;
+
+use super::*;
+use crate::prelude::tests::*;
 
 struct Fixture {
     collection_id: CollectionId,

@@ -3,21 +3,18 @@
 
 use std::num::NonZeroU64;
 
-use diesel::Connection as _;
-use tantivy::{
-    query::{AllQuery, Query as _},
-    IndexWriter,
-};
-
 use aoide_core::util::clock::DateTime;
-
 use aoide_core_api::{
     sorting::SortDirection,
     track::search::{SortField, SortOrder},
     Pagination,
 };
-
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
+use diesel::Connection as _;
+use tantivy::{
+    query::{AllQuery, Query as _},
+    IndexWriter,
+};
 
 use crate::{prelude::*, track::EntityCollector};
 

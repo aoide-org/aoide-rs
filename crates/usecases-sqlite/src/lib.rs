@@ -25,19 +25,13 @@
 // TODO: Add missing docs
 #![allow(clippy::missing_errors_doc)]
 
-use thiserror::Error;
-
 use aoide_core::CollectionUid;
-
 use aoide_media::Error as MediaError;
-
 use aoide_repo::prelude::RepoError;
-
-use aoide_usecases as uc;
-
 use aoide_repo_sqlite::{prelude::Connection as RepoConnection, DbConnection};
-
 use aoide_storage_sqlite::Error as StorageError;
+use aoide_usecases as uc;
+use thiserror::Error;
 
 pub mod collection;
 pub mod database;

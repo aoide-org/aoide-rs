@@ -1,21 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::Connection as _;
-
 use aoide_core::collection::{Collection, Entity, EntityHeader, EntityUid};
-
 use aoide_core_api::{
     collection::{EntityWithSummary, LoadScope},
     Pagination,
 };
-
 use aoide_repo::{
     collection::{EntityWithSummaryCollector, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
     prelude::{RepoError, ReservableRecordCollector},
 };
-
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
+use diesel::Connection as _;
 
 use crate::prelude::*;
 

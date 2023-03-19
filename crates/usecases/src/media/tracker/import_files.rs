@@ -12,9 +12,7 @@ use aoide_core_api::media::tracker::{
     import_files::{ImportedSourceWithIssues, Outcome, Params, Summary},
     Completion,
 };
-
 use aoide_media::io::import::ImportTrackConfig;
-
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     media::tracker::{Repo as MediaTrackerRepo, TrackedDirectory},
@@ -22,6 +20,7 @@ use aoide_repo::{
     track::{CollectionRepo as TrackCollectionRepo, ReplaceMode},
 };
 
+use super::*;
 use crate::{
     collection::vfs::RepoContext,
     track::{
@@ -32,8 +31,6 @@ use crate::{
         replace::Completion as ReplaceCompletion,
     },
 };
-
-use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgressEvent {
@@ -225,7 +222,8 @@ where
                 }
             } else {
                 log::warn!(
-                    "Postponing confirmation of pending directory '{content_dir_path}' after {num_failures} import failure(s)",
+                    "Postponing confirmation of pending directory '{content_dir_path}' after \
+                     {num_failures} import failure(s)",
                     num_failures = tracks_summary.failed.len(),
                 );
                 // Skip this directory, but remember the sources imported from

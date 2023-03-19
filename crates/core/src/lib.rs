@@ -57,18 +57,16 @@ pub use self::playlist::{
 };
 
 pub mod prelude {
+    // Re-export main type and trait methods from nonicle
+    pub use nonicle::{Canonical, Canonicalize as _, CanonicalizeInto as _, IsCanonical as _};
+    pub(crate) use semval::prelude::*;
+    // Re-export trait methods from semval
+    pub use semval::{IntoValidated as _, IsValid, Validate as _, ValidatedFrom as _};
+
     pub(crate) use crate::{
         entity::*,
         util::{clock::*, color::*, *},
     };
-
-    pub(crate) use semval::prelude::*;
-
-    // Re-export main type and trait methods from nonicle
-    pub use nonicle::{Canonical, Canonicalize as _, CanonicalizeInto as _, IsCanonical as _};
-
-    // Re-export trait methods from semval
-    pub use semval::{IntoValidated as _, IsValid, Validate as _, ValidatedFrom as _};
 }
 
 mod compat {

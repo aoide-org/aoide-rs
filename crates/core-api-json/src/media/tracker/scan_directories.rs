@@ -3,9 +3,8 @@
 
 use url::Url;
 
-use crate::prelude::*;
-
 use super::Completion;
+use crate::prelude::*;
 
 pub type Params = super::FsTraversalParams;
 

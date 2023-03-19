@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core_api::media::tracker::{query_status::Params, Status};
-
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo, media::tracker::Repo as MediaTrackerRepo,
 };
 
-use crate::collection::vfs::RepoContext;
-
 use super::*;
+use crate::collection::vfs::RepoContext;
 
 pub fn query_status<Repo>(
     repo: &mut Repo,

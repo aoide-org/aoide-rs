@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use infect::Model as ClientModel;
-
 use aoide_client::models::{collection, media_source, media_tracker};
+use infect::Model as ClientModel;
 
 pub(crate) mod effect;
 use std::path::PathBuf;

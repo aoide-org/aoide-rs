@@ -7,9 +7,6 @@ use std::{
     time::Instant,
 };
 
-use discro::{new_pubsub, Publisher, Ref, Subscriber};
-use url::Url;
-
 use aoide_backend_embedded::batch::{
     self,
     synchronize_collection_vfs::{
@@ -27,6 +24,8 @@ use aoide_core_api::{
 };
 use aoide_media::io::import::ImportTrackConfig;
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
+use discro::{new_pubsub, Publisher, Ref, Subscriber};
+use url::Url;
 
 use crate::{environment::Handle, fs::DirPath};
 

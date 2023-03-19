@@ -3,9 +3,8 @@
 
 use std::io::BufReader;
 
-use crate::util::guess_mime_from_path;
-
 use super::*;
+use crate::util::guess_mime_from_path;
 
 #[test]
 fn import_replay_gain_valid() {

@@ -1,18 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::find_unsynchronized::*};
-
 use aoide_core::media::content::resolver::ContentPathResolver;
-
+use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::find_unsynchronized::*};
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     track::{CollectionRepo as TrackCollectionRepo, RecordTrail},
 };
 
-use crate::collection::vfs::RepoContext;
-
 use super::*;
+use crate::collection::vfs::RepoContext;
 
 pub fn find_unsynchronized<Repo, Resolver>(
     repo: &mut Repo,

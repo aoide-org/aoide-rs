@@ -4,22 +4,18 @@
 use std::{marker::PhantomData, sync::atomic::AtomicBool, time::Duration};
 
 use aoide_core::media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _};
-
 use aoide_core_api::media::tracker::{
     find_untracked_files::Outcome, Completion, FsTraversalDirectoriesProgress,
     FsTraversalEntriesProgress, FsTraversalParams, FsTraversalProgress,
 };
-
 use aoide_media::fs::visit::{self, url_from_walkdir_entry};
-
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::tracker::Repo as MediaTrackerRepo,
 };
 
-use crate::collection::vfs::RepoContext;
-
 use super::*;
+use crate::collection::vfs::RepoContext;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgressEvent {
@@ -166,7 +162,8 @@ pub fn visit_directories<
         let elapsed = progress_event.elapsed_since_started();
         let outcome = progress_event.finalize();
         log::info!(
-            "Finding {num_untracked_dir_entries} untracked directory entries in '{root_file_path}' took {elapsed_secs} s",
+            "Finding {num_untracked_dir_entries} untracked directory entries in \
+             '{root_file_path}' took {elapsed_secs} s",
             num_untracked_dir_entries = content_paths.len(),
             root_file_path = root_file_path.display(),
             elapsed_secs = elapsed.as_secs_f64(),

@@ -9,9 +9,10 @@ use aoide_core_json::{
     },
     util::clock::DateTime,
 };
-
 use url::Url;
 
+#[cfg(feature = "frontend")]
+use crate::Pagination;
 use crate::{
     _inner::filtering::NumericValue,
     filtering::{FilterModifier, ScalarFieldFilter, StringFilter},
@@ -20,14 +21,10 @@ use crate::{
     tag::search::Filter as TagFilter,
 };
 
-#[cfg(feature = "frontend")]
-use crate::Pagination;
-
 mod _inner {
-    pub(super) use crate::_inner::track::search::*;
-
     #[cfg(feature = "frontend")]
     pub(super) use crate::_inner::filtering::*;
+    pub(super) use crate::_inner::track::search::*;
 }
 
 #[derive(Debug)]

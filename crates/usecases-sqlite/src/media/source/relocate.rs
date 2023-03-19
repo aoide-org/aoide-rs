@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{media::content::ContentPath, util::clock::DateTime};
-
 use aoide_repo::{collection::EntityRepo as _, media::source::CollectionRepo as _};
 
 use super::*;

@@ -3,15 +3,13 @@
 
 use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
 use aoide_core_api::media::source::purge_untracked::{Outcome, Params, Summary};
-
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     media::source::CollectionRepo as MediaSourceCollectionRepo,
 };
 
-use crate::collection::vfs::RepoContext;
-
 use super::*;
+use crate::collection::vfs::RepoContext;
 
 pub fn purge_untracked<Repo>(
     repo: &mut Repo,

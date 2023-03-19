@@ -11,14 +11,12 @@ use std::{
     time::Duration,
 };
 
-use tokio::{sync::RwLock, task::spawn_blocking, time::sleep};
-
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-
-use crate::{Error, Result};
+use tokio::{sync::RwLock, task::spawn_blocking, time::sleep};
 
 use super::{get_pooled_connection, ConnectionPool, PooledConnection};
+use crate::{Error, Result};
 
 /// Manage database connections for asynchronous tasks
 ///

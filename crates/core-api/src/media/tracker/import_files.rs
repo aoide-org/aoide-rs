@@ -5,9 +5,8 @@ use std::ops::AddAssign;
 
 use aoide_core::{media::content::ContentPath, util::url::BaseUrl};
 
-use crate::{media::SyncMode, track::replace::Summary as TrackReplaceSummary};
-
 use super::Completion;
+use crate::{media::SyncMode, track::replace::Summary as TrackReplaceSummary};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Params {

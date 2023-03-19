@@ -2,15 +2,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::CollectionUid;
-
 use aoide_core_api_json::track::search::client_request_params;
-
-use crate::webapi::{receive_response_body, ClientEnvironment};
 
 use super::{
     super::{Effect, FetchResultPage, FetchResultPageRequest, FetchResultPageResponse},
     Task,
 };
+use crate::webapi::{receive_response_body, ClientEnvironment};
 
 impl Task {
     pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {

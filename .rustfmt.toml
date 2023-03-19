@@ -6,19 +6,20 @@
 # Consistently use a single edition for all workspace crates, should match Cargo.toml
 edition = "2021"
 
+# <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#imports_granularity>
+imports_granularity = "Crate"
+
+# <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#group_imports>
+group_imports = "StdExternalCrate"
+
+# <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#use_field_init_shorthand>
 use_field_init_shorthand = true
+
+# <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#use_try_shorthand>
 use_try_shorthand = true
 
-# TODO: Enable when available on the stable channel
-#format_strings = true
-#imports_granularity = "Crate"
-#group_imports = "StdExternalCrate"
+# <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#format_strings>
+format_strings = true
 
-# Treat code in doc comments as regular code
-# TODO: Enable when available on the stable channel and still not the default!
-#format_code_in_doc_comments = true
-
-# Comments should be treated like any other code. Reword your comments or add
-# manual breaks if needed.
-# TODO: Enable when available on the stable channel and still not the default!
-#wrap_comments = true
+# <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#format_code_in_doc_comments>
+format_code_in_doc_comments = true

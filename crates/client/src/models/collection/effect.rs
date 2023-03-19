@@ -3,9 +3,8 @@
 
 use aoide_core::collection::{Entity, EntityUid};
 
-use crate::util::roundtrip::PendingToken;
-
 use super::{Action, EffectApplied, Model, PendingTask, Task};
+use crate::util::roundtrip::PendingToken;
 
 #[derive(Debug)]
 pub enum Effect {

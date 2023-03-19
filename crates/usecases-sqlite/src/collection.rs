@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::collection::*;
-
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
-
 use aoide_repo::{
     collection::{EntityRepo as _, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
     prelude::*,

@@ -6,9 +6,8 @@ use std::{future::Future, sync::Weak};
 use discro::{tasklet::OnChanged, Subscriber};
 use unnest::{some_or_break, some_or_return};
 
-use crate::{environment::WeakHandle, fs::DirPath, settings};
-
 use super::{NestedMusicDirectoriesStrategy, ObservableState, State, StateTag};
+use crate::{environment::WeakHandle, fs::DirPath, settings};
 
 pub fn on_state_tag_changed(
     subscriber: Subscriber<State>,

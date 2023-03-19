@@ -3,9 +3,9 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use crate::prelude::*;
-
 use std::fmt;
+
+use crate::prelude::*;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct Index {

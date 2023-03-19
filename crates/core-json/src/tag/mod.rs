@@ -3,9 +3,8 @@
 
 use std::{collections::HashMap, fmt};
 
-use serde::{de::Visitor, Deserializer, Serializer};
-
 use aoide_core::prelude::*;
+use serde::{de::Visitor, Deserializer, Serializer};
 
 use crate::prelude::*;
 

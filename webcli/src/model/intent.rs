@@ -5,9 +5,8 @@ use std::{num::NonZeroUsize, time::Instant};
 
 use aoide_client::models::{collection, media_source, media_tracker};
 
-use crate::model::State;
-
 use super::{Action, CollectionUid, Effect, ExportTracksParams, IntentHandled, Model, Task};
+use crate::model::State;
 
 #[derive(Debug)]
 pub enum Intent {

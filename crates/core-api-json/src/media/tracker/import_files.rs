@@ -1,14 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use url::Url;
-
 #[cfg(feature = "backend")]
 use aoide_core::util::url::{BaseUrl, BaseUrlError};
-
-use crate::{media::SyncMode, prelude::*};
+use url::Url;
 
 use super::Completion;
+use crate::{media::SyncMode, prelude::*};
 
 mod _inner {
     pub(super) use aoide_core_api::media::tracker::import_files::*;

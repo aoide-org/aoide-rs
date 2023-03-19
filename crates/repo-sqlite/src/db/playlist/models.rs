@@ -1,17 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use super::schema::*;
-
-use crate::prelude::*;
-
 use aoide_core::{
     playlist::Flags,
     util::{clock::*, color::*},
     EntityRevision, Playlist, PlaylistEntity, PlaylistHeader,
 };
-
 use aoide_repo::{collection::RecordId as CollectionId, playlist::RecordHeader};
+
+use super::schema::*;
+use crate::prelude::*;
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = playlist)]

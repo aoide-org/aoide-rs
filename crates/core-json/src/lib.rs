@@ -25,7 +25,6 @@
 
 pub mod prelude {
     pub(crate) use serde::{Deserialize, Serialize};
-
     pub(crate) use serde_repr::*;
 
     pub(crate) use crate::util::{clock::*, color::*};

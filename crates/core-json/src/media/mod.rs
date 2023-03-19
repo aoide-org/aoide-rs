@@ -1,16 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use base64::Engine as _;
-
 use aoide_core::media::content::ContentMetadataFlags;
-
-use crate::{prelude::*, util::clock::DateTime};
+use base64::Engine as _;
 
 use self::{
     artwork::Artwork,
     content::{ContentLink, ContentMetadata},
 };
+use crate::{prelude::*, util::clock::DateTime};
 
 pub mod artwork;
 pub mod content;

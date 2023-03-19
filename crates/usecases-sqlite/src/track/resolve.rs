@@ -3,7 +3,6 @@
 
 use aoide_core::media::content::ContentPath;
 use aoide_repo::collection::EntityRepo as _;
-
 use aoide_usecases::track::resolve as uc;
 
 use super::*;
