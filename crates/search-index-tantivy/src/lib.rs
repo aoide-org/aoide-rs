@@ -23,7 +23,7 @@
 // TODO: Add missing docs
 #![allow(clippy::missing_errors_doc)]
 
-use std::{fs, path::Path};
+use std::{borrow::Cow, fs, path::Path};
 
 use num_traits::cast::ToPrimitive as _;
 use tantivy::{
@@ -38,7 +38,7 @@ use aoide_core::{
     collection::EntityUid as CollectionUid,
     entity::{EncodedEntityUid, EntityRevision, EntityUid},
     media::content::ContentMetadata,
-    tag::{FacetId as TagFacetId, FacetedTags, Label as TagLabel, PlainTag},
+    tag::{FacetId as TagFacetId, FacetedTags, PlainTag},
     track::{
         actor::Actors,
         tag::{
@@ -124,21 +124,64 @@ fn add_date_field(doc: &mut Document, field: Field, date_time: DateTime) {
     doc.add_date(field, tantivy::DateTime::from_utc(date_time.to_inner()));
 }
 
-const TAG_FACET_ID_LABEL_SEPARATOR: char = '#';
-
-fn format_faceted_tag_text(facet_id: &TagFacetId<'_>, label: &TagLabel<'_>) -> String {
-    debug_assert!(!facet_id.is_empty());
-    debug_assert!(!facet_id.as_str().contains(TAG_FACET_ID_LABEL_SEPARATOR));
-    debug_assert!(!label.is_empty());
-    if label.as_str().starts_with(TAG_FACET_ID_LABEL_SEPARATOR) {
-        // Omit the redundant separator
-        format!("{facet_id}{label}")
-    } else {
-        format!("{facet_id}{TAG_FACET_ID_LABEL_SEPARATOR}{label}")
-    }
-}
+const TAG_LABEL_PREFIX: char = '#';
 
 impl TrackFields {
+    fn format_tag_field_text<'a>(
+        &self,
+        facet_id: Option<&TagFacetId<'_>>,
+        tag: &'a PlainTag<'a>,
+    ) -> Option<(Field, Cow<'a, str>)> {
+        let PlainTag { label, score } = tag;
+        let Some(label) = label else {
+            return None
+        };
+        debug_assert!(!label.is_empty());
+        if *score != Default::default() {
+            // TODO: How to take the score into account?
+            if let Some(facet_id) = facet_id {
+                log::trace!("Ignoring non-default score of \"{facet_id}\" tag: {tag:?}");
+            } else {
+                log::trace!("Ignoring non-default score of plain tag: {tag:?}");
+            }
+        }
+        // Special case handling for faceted tags with dedicated document fields
+        match facet_id.map(TagFacetId::as_str) {
+            Some(FACET_COMMENT) => {
+                return Some((self.comment, Cow::Borrowed(label.as_str())));
+            }
+            Some(FACET_GENRE) => {
+                return Some((self.genre, Cow::Borrowed(label.as_str())));
+            }
+            Some(FACET_GROUPING) => {
+                return Some((self.grouping, Cow::Borrowed(label.as_str())));
+            }
+            Some(FACET_MOOD) => {
+                return Some((self.mood, Cow::Borrowed(label.as_str())));
+            }
+            _ => {
+                // Generic tag field
+                let facet_prefix = facet_id
+                    .map(|facet_id| {
+                        debug_assert!(!facet_id.is_empty());
+                        debug_assert!(!facet_id.as_str().contains(TAG_LABEL_PREFIX));
+                        facet_id.as_str()
+                    })
+                    .unwrap_or_default();
+                let text = if label.as_str().starts_with(TAG_LABEL_PREFIX) {
+                    // Omit the redundant prefix
+                    if facet_prefix.is_empty() {
+                        return Some((self.tag, Cow::Borrowed(label.as_str())));
+                    }
+                    format!("{facet_prefix}{label}")
+                } else {
+                    format!("{facet_prefix}{TAG_LABEL_PREFIX}{label}")
+                };
+                Some((self.tag, Cow::Owned(text)))
+            }
+        }
+    }
+
     /// Create a new document from a track entity
     ///
     /// When storing tracks from multiple collections in a single index
@@ -226,54 +269,43 @@ impl TrackFields {
                 add_date_field(&mut doc, self.last_played_at, *last_played_at);
             }
         }
+        for tag in &entity.body.track.tags.plain {
+            if let Some((field, text)) = self.format_tag_field_text(None, tag) {
+                debug_assert_eq!(self.tag, field);
+                doc.add_text(field, text);
+            }
+        }
         for faceted_tags in &entity.body.track.tags.facets {
             let FacetedTags { facet_id, tags } = faceted_tags;
             debug_assert!(!facet_id.is_empty());
-            let (label_field, score_field) = match facet_id.as_str() {
-                FACET_GENRE => (Some(self.genre), None),
-                FACET_MOOD => (Some(self.mood), None),
-                FACET_COMMENT => (Some(self.comment), None),
-                FACET_GROUPING => (Some(self.grouping), None),
-                FACET_ACOUSTICNESS => (None, Some(self.acousticness)),
-                FACET_AROUSAL => (None, Some(self.arousal)),
-                FACET_DANCEABILITY => (None, Some(self.danceability)),
-                FACET_ENERGY => (None, Some(self.energy)),
-                FACET_INSTRUMENTALNESS => (None, Some(self.instrumentalness)),
-                FACET_LIVENESS => (None, Some(self.liveness)),
-                FACET_POPULARITY => (None, Some(self.popularity)),
-                FACET_SPEECHINESS => (None, Some(self.speechiness)),
-                FACET_VALENCE => (None, Some(self.valence)),
-                _ => (Some(self.tag), None),
-            };
-            match (label_field, score_field) {
-                (Some(field), None) => {
+            let score_field = match facet_id.as_str() {
+                FACET_ACOUSTICNESS => self.acousticness,
+                FACET_AROUSAL => self.arousal,
+                FACET_DANCEABILITY => self.danceability,
+                FACET_ENERGY => self.energy,
+                FACET_INSTRUMENTALNESS => self.instrumentalness,
+                FACET_LIVENESS => self.liveness,
+                FACET_POPULARITY => self.popularity,
+                FACET_SPEECHINESS => self.speechiness,
+                FACET_VALENCE => self.valence,
+                _ => {
                     for tag in tags {
-                        let PlainTag { label, score } = tag;
-                        if let Some(label) = &label {
-                            debug_assert!(!label.is_empty());
-                            if *score != Default::default() {
-                                // TODO: How to take the score into account?
-                                log::trace!(
-                                    "Ignoring non-default score of \"{facet_id}\" tag: {tag:?}"
-                                );
-                            }
-                            let text = format_faceted_tag_text(facet_id, label);
+                        if let Some((field, text)) = self.format_tag_field_text(Some(facet_id), tag)
+                        {
                             doc.add_text(field, text);
                         } else {
-                            log::debug!("Ignoring \"{facet_id}\" tag without label: {tag:?}");
+                            log::debug!("Ignoring faceted tag \"{facet_id}\": {tag:?}");
                         }
                     }
+                    continue;
                 }
-                (None, Some(field)) => {
-                    for tag in tags {
-                        let PlainTag { label, score } = tag;
-                        if label.is_some() {
-                            log::debug!("Ignoring label of \"{facet_id}\" tag: {tag:?}");
-                        }
-                        doc.add_f64(field, score.value());
-                    }
+            };
+            for tag in tags {
+                let PlainTag { label, score } = tag;
+                if label.is_some() {
+                    log::debug!("Ignoring label of \"{facet_id}\" tag: {tag:?}");
                 }
-                (None, None) | (Some(_), Some(_)) => unreachable!(),
+                doc.add_f64(score_field, score.value());
             }
         }
         doc
