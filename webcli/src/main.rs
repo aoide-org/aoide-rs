@@ -24,7 +24,8 @@ use std::{
 
 use clap::{builder::StyledStr, Arg, ArgMatches, Command};
 use infect::{
-    consume_messages, message_channel, submit_message, MessagesConsumed, ModelRender, TaskContext,
+    consume_messages, message_channel, submit_effect, submit_intent, MessagesConsumed, ModelRender,
+    TaskContext,
 };
 use model::{EffectApplied, IntentHandled};
 use tokio::signal;
@@ -321,7 +322,7 @@ impl ModelRender for RenderCliModel {
                         if now >= *last_fetched {
                             let not_before = now + PROGRESS_POLLING_PERIOD;
                             *last_media_tracker_progress_fetched = Some(not_before);
-                            let intent = Intent::Scheduled {
+                            let intent = Intent::Schedule {
                                 not_before,
                                 intent: Box::new(media_tracker::Intent::FetchProgress.into()),
                             };
@@ -887,13 +888,13 @@ async fn main() -> anyhow::Result<()> {
                 log::error!("Failed to receive Ctrl-C/SIGINT signal: {err}");
             }
             log::info!("Terminating after receiving Ctrl-C/SIGINT...");
-            submit_message(&mut message_tx, Intent::Terminate);
+            submit_intent(&mut message_tx, Intent::Terminate);
         }
     });
 
     // Kick off the loop by sending a first message
     // before awaiting its termination
-    submit_message(&mut message_tx, Intent::RenderModel);
+    submit_effect(&mut message_tx, Effect::RenderModel);
     message_loop.await?;
 
     Ok(())

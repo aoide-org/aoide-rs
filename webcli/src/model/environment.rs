@@ -8,7 +8,7 @@ use reqwest::{Client, Url};
 
 use aoide_client::webapi::ClientEnvironment;
 
-use super::{Effect, Intent, Message, Task};
+use super::{Effect, Intent, Task};
 
 /// Immutable environment
 #[derive(Debug)]
@@ -65,7 +65,7 @@ impl TaskExecutor<Arc<Environment>> for Environment {
             log::debug!("Executing task {task:?}");
             let effect = task.execute(&*context.task_executor).await;
             log::debug!("Task finished with effect: {effect:?}");
-            context.submit_message(Message::Effect(effect));
+            context.submit_effect(effect);
             if context.task_executor.pending_tasks_counter.finish_task() == 0 {
                 log::debug!("Finished last pending task");
             }

@@ -7,8 +7,8 @@ use std::{
 };
 
 use infect::{
-    consume_messages, message_channel, process_message, submit_message, MessageProcessed,
-    MessagesConsumed, TaskContext,
+    consume_messages, message_channel, process_message, submit_effect, submit_intent,
+    MessageProcessed, MessagesConsumed, TaskContext,
 };
 use reqwest::Url;
 
@@ -74,7 +74,7 @@ async fn should_catch_error_and_terminate() {
     let model = &mut Model::default();
     let model_render = &mut ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    submit_message(&mut message_tx, effect);
+    submit_effect(&mut message_tx, effect);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert_eq!(1, model.last_errors().len());
 }
@@ -113,7 +113,7 @@ async fn should_catch_collection_error_and_terminate() {
     let model = &mut Model::default();
     let model_render = &mut ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    submit_message(&mut message_tx, effect);
+    submit_effect(&mut message_tx, effect);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert_eq!(1, model.last_errors().len());
 }
@@ -152,7 +152,7 @@ async fn should_catch_media_tracker_error_and_terminate() {
     let model = &mut Model::default();
     let model_render = &mut ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    submit_message(&mut message_tx, effect);
+    submit_effect(&mut message_tx, effect);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert_eq!(1, model.last_errors().len());
 }
@@ -167,7 +167,7 @@ async fn should_terminate_on_intent_when_no_tasks_pending() {
     };
     let model = &mut Model::default();
     let model_render = &mut ModelRender;
-    submit_message(&mut message_tx, Intent::Terminate);
+    submit_intent(&mut message_tx, Intent::Terminate);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert!(model.last_errors().is_empty());
 }
@@ -220,14 +220,14 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
     };
     let model = &mut Model::default();
     let model_render = &mut TerminationModelRender::new(Arc::clone(&shared_env));
-    submit_message(
+    submit_intent(
         &mut message_tx,
-        Intent::Scheduled {
+        Intent::Schedule {
             not_before: Instant::now() + Duration::from_millis(100),
             intent: Box::new(Intent::RenderModel),
         },
     );
-    submit_message(&mut message_tx, Intent::Terminate);
+    submit_intent(&mut message_tx, Intent::Terminate);
     assert_eq!(model.state, State::Running);
     loop {
         let stopped = consume_messages(&mut message_rx, task_context, model, model_render).await;

@@ -12,7 +12,7 @@ use super::{Action, CollectionUid, Effect, ExportTracksParams, IntentHandled, Mo
 #[derive(Debug)]
 pub enum Intent {
     RenderModel,
-    Scheduled {
+    Schedule {
         not_before: Instant,
         intent: Box<Intent>,
     },
@@ -58,13 +58,13 @@ impl Intent {
             Self::RenderModel => {
                 IntentHandled::Accepted(Action::apply_effect(Effect::RenderModel).into())
             }
-            Self::Scheduled { not_before, intent } => {
+            Self::Schedule { not_before, intent } => {
                 if model.state == State::Running {
                     let next_action =
-                        Action::spawn_task(Task::ScheduledIntent { not_before, intent });
+                        Action::spawn_task(Task::ScheduleIntent { not_before, intent });
                     IntentHandled::accepted(next_action)
                 } else {
-                    let self_reconstructed = Self::Scheduled { not_before, intent };
+                    let self_reconstructed = Self::Schedule { not_before, intent };
                     log::debug!("Discarding intent while not running: {self_reconstructed:?}");
                     IntentHandled::Rejected(self_reconstructed)
                 }
