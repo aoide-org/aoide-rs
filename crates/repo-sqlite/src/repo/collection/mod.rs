@@ -4,9 +4,8 @@
 use diesel::dsl::count_star;
 
 use aoide_core::{
-    collection::*,
-    entity::{EncodedEntityUid, EntityRevision},
-    util::clock::*,
+    collection::EntityHeader, util::clock::*, CollectionEntity, CollectionUid, EncodedEntityUid,
+    EntityRevision,
 };
 
 use aoide_core_api::collection::{
@@ -31,7 +30,7 @@ use crate::{
 impl<'db> EntityRepo for crate::Connection<'db> {
     fn resolve_collection_entity_revision(
         &mut self,
-        uid: &EntityUid,
+        uid: &CollectionUid,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
         collection::table
             .select((
@@ -56,7 +55,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn insert_collection_entity(
         &mut self,
         created_at: DateTime,
-        created_entity: &Entity,
+        created_entity: &CollectionEntity,
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(created_at, created_entity);
         let query = diesel::insert_into(collection::table).values(&insertable);
@@ -94,7 +93,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         &mut self,
         id: RecordId,
         updated_at: DateTime,
-        updated_entity: &Entity,
+        updated_entity: &CollectionEntity,
     ) -> RepoResult<()> {
         let updatable =
             UpdatableRecord::bind(updated_at, updated_entity.hdr.rev, &updated_entity.body);
@@ -108,7 +107,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn load_collection_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
+    fn load_collection_entity(
+        &mut self,
+        id: RecordId,
+    ) -> RepoResult<(RecordHeader, CollectionEntity)> {
         collection::table
             .filter(collection::row_id.eq(RowId::from(id)))
             .first::<QueryableRecord>(self.as_mut())

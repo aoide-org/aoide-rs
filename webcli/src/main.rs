@@ -30,9 +30,7 @@ use infect::{
 use model::{EffectApplied, IntentHandled};
 use tokio::signal;
 
-use aoide_core::collection::{
-    Collection, Entity as CollectionEntity, EntityUid as CollectionUid, MediaSourceConfig,
-};
+use aoide_core::{collection::MediaSourceConfig, Collection, CollectionEntity, CollectionUid};
 
 use aoide_core_api::{
     media::{tracker::DirTrackingStatus, SyncMode},

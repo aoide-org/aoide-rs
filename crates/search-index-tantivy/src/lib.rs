@@ -35,8 +35,6 @@ use tantivy::{
 };
 
 use aoide_core::{
-    collection::EntityUid as CollectionUid,
-    entity::{EncodedEntityUid, EntityRevision, EntityUid},
     media::content::ContentMetadata,
     tag::{FacetId as TagFacetId, FacetedTags, PlainTag},
     track::{
@@ -46,9 +44,10 @@ use aoide_core::{
             FACET_GENRE, FACET_GROUPING, FACET_INSTRUMENTALNESS, FACET_LIVENESS, FACET_MOOD,
             FACET_POPULARITY, FACET_SPEECHINESS, FACET_VALENCE,
         },
-        Entity as TrackEntity, EntityUid as TrackUid, PlayCounter,
+        PlayCounter,
     },
     util::clock::{DateTime, DateYYYYMMDD},
+    CollectionUid, EncodedEntityUid, EntityRevision, EntityUid, TrackEntity, TrackUid,
 };
 
 const COLLECTION_UID: &str = "collection_uid";

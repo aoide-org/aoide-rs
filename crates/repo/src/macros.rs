@@ -43,13 +43,13 @@ macro_rules! entity_repo_trait_common_functions {
             fn [<resolve_ $entity_type_name:lower _entity_revision>](
                 &mut self,
                 uid: &$entity_uid_type,
-            ) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, aoide_core::entity::EntityRevision)>;
+            ) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, aoide_core::EntityRevision)>;
 
             fn [<touch_ $entity_type_name:lower _entity_revision>](
                 &mut self,
                 entity_header: &$entity_header_type,
                 updated_at: aoide_core::util::clock::DateTime,
-            ) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, aoide_core::entity::EntityRevision)>;
+            ) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, aoide_core::EntityRevision)>;
 
             fn [<update_ $entity_type_name:lower _entity_revision>](
                 &mut self,

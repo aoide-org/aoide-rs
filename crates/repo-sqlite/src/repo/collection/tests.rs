@@ -7,7 +7,9 @@ use crate::prelude::tests::*;
 
 use test_log::test;
 
-use aoide_core::{entity::EntityHeaderTyped, media, util::url::BaseUrl};
+use aoide_core::{
+    collection::MediaSourceConfig, media, util::url::BaseUrl, Collection, CollectionHeader,
+};
 
 struct Fixture {
     db: DbConnection,
@@ -20,8 +22,11 @@ impl Fixture {
     }
 }
 
-fn create_collection(repo: &mut dyn EntityRepo, collection: Collection) -> RepoResult<Entity> {
-    let entity = Entity::new(EntityHeaderTyped::initial_random(), collection);
+fn create_collection(
+    repo: &mut dyn EntityRepo,
+    collection: Collection,
+) -> RepoResult<CollectionEntity> {
+    let entity = CollectionEntity::new(CollectionHeader::initial_random(), collection);
     repo.insert_collection_entity(DateTime::now_utc(), &entity)
         .and(Ok(entity))
 }

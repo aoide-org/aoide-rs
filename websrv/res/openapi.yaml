@@ -3345,7 +3345,7 @@ components:
       items:
         oneOf:
           - $ref: "#/components/schemas/EntityHeader"
-          - $ref: "#/components/schemas/TrackEntityBody"
+          - $ref: "#/components/schemas/TrackBody"
     Track:
       type: object
       properties:
@@ -3413,7 +3413,7 @@ components:
           $ref: "#/components/schemas/Color"
         flags:
           $ref: "#/components/schemas/CueFlags"
-    TrackEntityBody:
+    TrackBody:
       type: object
       properties:
         track:

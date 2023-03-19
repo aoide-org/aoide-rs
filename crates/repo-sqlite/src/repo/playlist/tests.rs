@@ -9,14 +9,14 @@ use super::*;
 
 use aoide_core::{
     audio::DurationMs,
-    collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
-    entity::EntityHeaderTyped,
+    collection::MediaSourceConfig,
     media::{
         self,
         content::{AudioContentMetadata, ContentLink, ContentPathConfig},
     },
-    track::{Entity as TrackEntity, EntityBody as TrackEntityBody, EntityUid as TrackUid, Track},
     util::{clock::DateTime, url::BaseUrl},
+    Collection, CollectionEntity, CollectionHeader, Playlist, PlaylistHeader, Track, TrackBody,
+    TrackEntity, TrackHeader, TrackUid,
 };
 
 use aoide_repo::{
@@ -49,7 +49,7 @@ impl Fixture {
             },
         };
         let collection_entity =
-            CollectionEntity::new(EntityHeaderTyped::initial_random(), collection);
+            CollectionEntity::new(CollectionHeader::initial_random(), collection);
         let collection_id = crate::Connection::new(db)
             .insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
         Ok(Self { collection_id })
@@ -85,13 +85,13 @@ impl Fixture {
                 .insert_media_source(self.collection_id, DateTime::now_utc(), &media_source)?
                 .id;
             let track = Track::new_from_media_source(media_source);
-            let entity_body = TrackEntityBody {
+            let entity_body = TrackBody {
                 track,
                 updated_at: created_at,
                 last_synchronized_rev: None,
                 content_url: None,
             };
-            let track_entity = TrackEntity::new(EntityHeaderTyped::initial_random(), entity_body);
+            let track_entity = TrackEntity::new(TrackHeader::initial_random(), entity_body);
             let track_id = db.insert_track_entity(media_source_id, &track_entity)?;
             created.push((media_source_id, track_id, track_entity.raw.hdr.uid));
         }
@@ -111,7 +111,7 @@ impl Fixture {
             color: None,
             flags: Default::default(),
         };
-        let playlist_entity = Entity::new(EntityHeaderTyped::initial_random(), playlist);
+        let playlist_entity = PlaylistEntity::new(PlaylistHeader::initial_random(), playlist);
         let collection_id = match scope {
             PlaylistScope::Global => None,
             PlaylistScope::Collection => Some(self.collection_id),

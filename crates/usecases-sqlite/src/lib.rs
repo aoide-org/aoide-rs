@@ -27,7 +27,7 @@
 
 use thiserror::Error;
 
-use aoide_core::collection::EntityUid as CollectionUid;
+use aoide_core::CollectionUid;
 
 use aoide_media::Error as MediaError;
 

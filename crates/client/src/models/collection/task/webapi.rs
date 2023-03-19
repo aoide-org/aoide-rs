@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::collection::Entity as CollectionEntity;
+use aoide_core::{CollectionEntity, CollectionUid};
 
 use crate::webapi::{receive_response_body, ClientEnvironment};
 
@@ -118,7 +118,7 @@ async fn update_entity<E: ClientEnvironment>(
 
 async fn purge_entity<E: ClientEnvironment>(
     env: &E,
-    entity_uid: &aoide_core::entity::EntityUid,
+    entity_uid: &CollectionUid,
 ) -> anyhow::Result<()> {
     let url = env.join_api_url(&format!("c/{entity_uid}"))?;
     let request = env.client().delete(url);

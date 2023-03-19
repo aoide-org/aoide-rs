@@ -13,9 +13,11 @@ use crate::{
 };
 
 use aoide_core::{
-    entity::{EncodedEntityUid, EntityRevision},
-    playlist::*,
+    playlist::{
+        EntityHeader, EntityWithEntries, EntriesSummary, Entry, Item, TrackItem, TracksSummary,
+    },
     util::clock::*,
+    EncodedEntityUid, EntityRevision, PlaylistEntity, PlaylistUid,
 };
 
 use aoide_core_api::playlist::EntityWithEntriesSummary;
@@ -25,7 +27,7 @@ use diesel::dsl::count_star;
 impl<'db> EntityRepo for crate::Connection<'db> {
     fn resolve_playlist_entity_revision(
         &mut self,
-        uid: &EntityUid,
+        uid: &PlaylistUid,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
         playlist::table
             .select((
@@ -76,7 +78,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         &mut self,
         id: RecordId,
         updated_at: DateTime,
-        updated_entity: &Entity,
+        updated_entity: &PlaylistEntity,
     ) -> RepoResult<()> {
         let updatable =
             UpdatableRecord::bind(updated_at, updated_entity.hdr.rev, &updated_entity.body);
@@ -90,7 +92,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn load_playlist_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
+    fn load_playlist_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, PlaylistEntity)> {
         let record = playlist::table
             .filter(playlist::row_id.eq(RowId::from(id)))
             .first::<QueryableRecord>(self.as_mut())
@@ -120,7 +122,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         &mut self,
         collection_id: Option<CollectionId>,
         created_at: DateTime,
-        created_entity: &Entity,
+        created_entity: &PlaylistEntity,
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(collection_id, created_at, created_entity);
         let query = diesel::insert_into(playlist::table).values(&insertable);

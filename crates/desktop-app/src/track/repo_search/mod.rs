@@ -8,8 +8,8 @@ use xxhash_rust::xxh3::Xxh3;
 
 use aoide_backend_embedded::track::search;
 use aoide_core::{
-    collection::EntityUid as CollectionUid,
     track::{Entity, EntityHeader},
+    CollectionUid,
 };
 use aoide_core_api::{track::search::Params, Pagination};
 

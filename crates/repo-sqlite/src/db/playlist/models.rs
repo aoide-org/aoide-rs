@@ -6,14 +6,12 @@ use super::schema::*;
 use crate::prelude::*;
 
 use aoide_core::{
-    entity::{EntityHeaderTyped, EntityRevision},
-    playlist::*,
+    playlist::Flags,
     util::{clock::*, color::*},
+    EntityRevision, Playlist, PlaylistEntity, PlaylistHeader,
 };
 
 use aoide_repo::{collection::RecordId as CollectionId, playlist::RecordHeader};
-
-///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = playlist)]
@@ -32,7 +30,7 @@ pub struct QueryableRecord {
     pub flags: i16,
 }
 
-impl From<QueryableRecord> for (RecordHeader, Option<CollectionId>, Entity) {
+impl From<QueryableRecord> for (RecordHeader, Option<CollectionId>, PlaylistEntity) {
     fn from(from: QueryableRecord) -> Self {
         let QueryableRecord {
             id,
@@ -72,7 +70,7 @@ impl From<QueryableRecord> for (RecordHeader, Option<CollectionId>, Entity) {
         (
             header,
             collection_id,
-            Entity::new(EntityHeaderTyped::from_untyped(entity_hdr), entity_body),
+            PlaylistEntity::new(PlaylistHeader::from_untyped(entity_hdr), entity_body),
         )
     }
 }
@@ -97,11 +95,11 @@ impl<'a> InsertableRecord<'a> {
     pub fn bind(
         collection_id: Option<CollectionId>,
         created_at: DateTime,
-        entity: &'a Entity,
+        entity: &'a PlaylistEntity,
     ) -> Self {
         let row_created_updated_ms = created_at.timestamp_millis();
         let (hdr, body) = entity.into();
-        let EntityHeaderTyped { uid, rev } = hdr;
+        let PlaylistHeader { uid, rev } = hdr;
         let Playlist {
             title,
             kind,

@@ -10,8 +10,7 @@ use crate::prelude::tests::*;
 
 use aoide_core::{
     audio::DurationMs,
-    collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
-    entity::EntityHeaderTyped,
+    collection::MediaSourceConfig,
     media::{
         self,
         artwork::{
@@ -24,6 +23,7 @@ use aoide_core::{
         },
     },
     util::{clock::DateTime, color::RgbColor},
+    Collection, CollectionEntity, CollectionHeader,
 };
 
 use aoide_repo::collection::{EntityRepo as _, RecordId as CollectionId};
@@ -46,7 +46,7 @@ impl Fixture {
             },
         };
         let collection_entity =
-            CollectionEntity::new(EntityHeaderTyped::initial_random(), collection);
+            CollectionEntity::new(CollectionHeader::initial_random(), collection);
         let collection_id = db.insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
         Ok(Self { collection_id })
     }

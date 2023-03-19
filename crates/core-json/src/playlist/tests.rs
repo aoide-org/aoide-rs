@@ -13,7 +13,7 @@ fn serialize_item_default_separator() {
 
 #[test]
 fn deserialize_playlist() {
-    let uid: aoide_core::entity::EntityUid = "01AN4Z07BY79KA1307SR9X4MV3".parse().unwrap();
+    let uid: EntityUid = "01AN4Z07BY79KA1307SR9X4MV3".parse().unwrap();
     let added_at1: aoide_core::util::clock::DateTime = "2020-12-18T21:27:15Z".parse().unwrap();
     let added_at2 = aoide_core::util::clock::DateTime::now_utc();
     let playlist = PlaylistWithEntries {

@@ -4,12 +4,10 @@
 use crate::prelude::*;
 
 mod _core {
-    pub(super) use aoide_core::entity::*;
+    pub(super) use aoide_core::{EntityHeader, EntityHeaderTyped};
 }
 
-pub type EntityUid = _core::EntityUid;
-
-pub type EntityRevision = _core::EntityRevision;
+pub use aoide_core::{EntityRevision, EntityUid};
 
 ///////////////////////////////////////////////////////////////////////
 // EntityHeader

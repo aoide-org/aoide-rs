@@ -4,9 +4,8 @@
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
 
 use aoide_core::{
-    collection::{Collection, Entity, EntityHeader as CollectionHeader, EntityUid},
-    prelude::*,
-    util::clock::DateTime,
+    collection::EntityHeader as CollectionEntityHeader, prelude::*, util::clock::DateTime,
+    Collection, CollectionEntity, CollectionUid,
 };
 
 use aoide_repo::collection::EntityRepo;
@@ -25,29 +24,32 @@ pub fn validate_input(collection: Collection) -> InputResult<ValidatedInput> {
     Ok(ValidatedInput(collection))
 }
 
-pub fn create_entity(new_collection: Collection) -> Result<Entity> {
+pub fn create_entity(new_collection: Collection) -> Result<CollectionEntity> {
     let ValidatedInput(collection) = validate_input(new_collection)?;
-    let header = CollectionHeader::initial_random();
-    let entity = Entity::new(header, collection);
+    let header = CollectionEntityHeader::initial_random();
+    let entity = CollectionEntity::new(header, collection);
     Ok(entity)
 }
 
-pub fn store_created_entity(repo: &mut impl EntityRepo, entity: &Entity) -> Result<()> {
+pub fn store_created_entity(repo: &mut impl EntityRepo, entity: &CollectionEntity) -> Result<()> {
     let created_at = DateTime::now_utc();
     repo.insert_collection_entity(created_at, entity)?;
     Ok(())
 }
 
-pub fn update_entity(hdr: CollectionHeader, modified_collection: Collection) -> Result<Entity> {
+pub fn update_entity(
+    hdr: CollectionEntityHeader,
+    modified_collection: Collection,
+) -> Result<CollectionEntity> {
     let ValidatedInput(collection) = validate_input(modified_collection)?;
     let next_hdr = hdr
         .next_rev()
         .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
-    let updated_entity = Entity::new(next_hdr, collection);
+    let updated_entity = CollectionEntity::new(next_hdr, collection);
     Ok(updated_entity)
 }
 
-pub fn store_updated_entity(repo: &mut impl EntityRepo, entity: &Entity) -> Result<()> {
+pub fn store_updated_entity(repo: &mut impl EntityRepo, entity: &CollectionEntity) -> Result<()> {
     let updated_at = DateTime::now_utc();
     repo.update_collection_entity_revision(updated_at, entity)?;
     Ok(())
@@ -55,10 +57,10 @@ pub fn store_updated_entity(repo: &mut impl EntityRepo, entity: &Entity) -> Resu
 
 pub fn load_one(
     repo: &mut impl EntityRepo,
-    entity_uid: &EntityUid,
+    collection_uid: &CollectionUid,
     scope: LoadScope,
 ) -> Result<EntityWithSummary> {
-    let id = repo.resolve_collection_id(entity_uid)?;
+    let id = repo.resolve_collection_id(collection_uid)?;
     let (record_hdr, entity) = repo.load_collection_entity(id)?;
     let summary = match scope {
         LoadScope::Entity => None,
@@ -67,7 +69,7 @@ pub fn load_one(
     Ok(EntityWithSummary { entity, summary })
 }
 
-pub fn purge(repo: &mut impl EntityRepo, entity_uid: &EntityUid) -> Result<()> {
-    let id = repo.resolve_collection_id(entity_uid)?;
+pub fn purge(repo: &mut impl EntityRepo, collection_uid: &CollectionUid) -> Result<()> {
+    let id = repo.resolve_collection_id(collection_uid)?;
     repo.purge_collection_entity(id).map_err(Into::into)
 }

@@ -1,11 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{
-    entity::{Entity, EntityRevision},
-    media::content::ContentLink,
-    track,
-};
+use aoide_core::{media::content::ContentLink, track, Entity, EntityRevision};
 
 use crate::{filtering::StringPredicate, media::source::ResolveUrlFromContentPath};
 

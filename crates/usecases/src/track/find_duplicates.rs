@@ -8,7 +8,8 @@ use bitflags::bitflags;
 use aoide_core::{
     audio::DurationMs,
     media::content::{ContentMetadata, ContentPath},
-    track::{actor::Role as ActorRole, Entity as TrackEntity, Track},
+    track::actor::Role as ActorRole,
+    Track, TrackEntity,
 };
 
 use aoide_core_api::track::search::*;

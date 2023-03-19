@@ -5,14 +5,13 @@ use num_derive::{FromPrimitive, ToPrimitive};
 
 use aoide_core::{
     audio::DurationMs,
-    playlist::EntityUid as PlaylistUid,
     prelude::*,
     track::{
         actor::{Kind as ActorKind, Role as ActorRole},
         title::Kind as TitleKind,
-        EntityUid as TrackUid,
     },
     util::clock::{DateOrDateTime, DateTime},
+    PlaylistUid, TrackUid,
 };
 
 use crate::{filtering::*, media::source::ResolveUrlFromContentPath, sorting::*, tag};

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::collection::{Entity as CollectionEntity, EntityUid};
+use aoide_core::{CollectionEntity, CollectionUid};
 
 use crate::util::{remote::RemoteData, roundtrip::PendingToken};
 
@@ -75,14 +75,14 @@ impl RemoteView {
     }
 
     #[must_use]
-    fn count_entities_by_uid(&self, uid: &EntityUid) -> Option<usize> {
+    fn count_entities_by_uid(&self, uid: &CollectionUid) -> Option<usize> {
         self.filtered_entities
             .last_value()
             .map(|v| v.iter().filter(|x| &x.hdr.uid == uid).count())
     }
 
     #[must_use]
-    pub fn find_entity_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
+    pub fn find_entity_by_uid(&self, uid: &CollectionUid) -> Option<&CollectionEntity> {
         debug_assert!(self.count_entities_by_uid(uid).unwrap_or_default() <= 1);
         self.filtered_entities
             .last_value()
@@ -108,7 +108,7 @@ impl RemoteView {
 #[derive(Debug, Default)]
 pub struct Model {
     pub(super) remote_view: RemoteView,
-    pub(super) active_entity_uid: Option<EntityUid>,
+    pub(super) active_entity_uid: Option<CollectionUid>,
 }
 
 impl Model {
@@ -118,7 +118,7 @@ impl Model {
     }
 
     #[must_use]
-    pub const fn active_entity_uid(&self) -> Option<&EntityUid> {
+    pub const fn active_entity_uid(&self) -> Option<&CollectionUid> {
         self.active_entity_uid.as_ref()
     }
 
@@ -181,11 +181,14 @@ impl Model {
     }
 
     #[allow(clippy::unnecessary_wraps)]
-    pub(super) fn after_entity_purged(&mut self, _entity_uid: &EntityUid) -> Option<Action> {
+    pub(super) fn after_entity_purged(&mut self, _entity_uid: &CollectionUid) -> Option<Action> {
         refresh_all_kinds_action(self)
     }
 
-    pub(super) fn set_active_entity_uid(&mut self, new_active_uid: impl Into<Option<EntityUid>>) {
+    pub(super) fn set_active_entity_uid(
+        &mut self,
+        new_active_uid: impl Into<Option<CollectionUid>>,
+    ) {
         self.active_entity_uid = if let (Some(filtered_entities), Some(new_active_uid)) = (
             self.remote_view.filtered_entities.last_value(),
             new_active_uid.into(),

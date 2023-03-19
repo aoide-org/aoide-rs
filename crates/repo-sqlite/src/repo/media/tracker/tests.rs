@@ -7,10 +7,10 @@ use crate::prelude::tests::*;
 use test_log::test;
 
 use aoide_core::{
-    collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
-    entity::EntityHeaderTyped,
+    collection::MediaSourceConfig,
     media::content::ContentPathConfig,
     util::{clock::DateTime, url::BaseUrl},
+    Collection, CollectionEntity, CollectionHeader,
 };
 
 use aoide_repo::{
@@ -38,7 +38,7 @@ impl Fixture {
         };
         let mut db = establish_connection()?;
         let collection_entity =
-            CollectionEntity::new(EntityHeaderTyped::initial_random(), collection);
+            CollectionEntity::new(CollectionHeader::initial_random(), collection);
         let collection_id = crate::Connection::new(&mut db)
             .insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
         Ok(Self { db, collection_id })

@@ -13,10 +13,9 @@ use aoide_core::{
         signal::{BitrateBps, LoudnessLufs, SampleRateHz},
         ChannelFlags, DurationMs,
     },
-    playlist::EntityUid as PlaylistUid,
     tag::FacetKey,
-    track::EntityUid as TrackUid,
     util::clock::YYYYMMDD,
+    PlaylistUid, TrackUid,
 };
 
 use aoide_core_api::{tag::search::Filter as TagFilter, track::search::*};

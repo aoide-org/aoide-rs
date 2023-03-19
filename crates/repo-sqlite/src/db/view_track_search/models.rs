@@ -4,7 +4,6 @@
 use num_traits::FromPrimitive as _;
 
 use aoide_core::{
-    entity::EntityHeaderTyped,
     music::{
         beat::{BeatUnit, BeatsPerMeasure, TimeSignature},
         key::{KeyCode, KeyCodeValue, KeySignature},
@@ -15,9 +14,10 @@ use aoide_core::{
         album::{Album, Kind as AlbumKind},
         index::*,
         metric::*,
-        AdvisoryRating, Entity, EntityBody, EntityHeader, Track,
+        AdvisoryRating,
     },
     util::{clock::*, color::*},
+    Track, TrackBody, TrackEntity, TrackHeader,
 };
 
 use aoide_repo::{media::source::RecordId as MediaSourceId, track::RecordHeader};
@@ -74,7 +74,7 @@ pub struct QueryableRecord {
     pub audio_loudness_lufs: Option<f64>,
 }
 
-impl From<QueryableRecord> for (MediaSourceId, RecordHeader, EntityHeader) {
+impl From<QueryableRecord> for (MediaSourceId, RecordHeader, TrackHeader) {
     fn from(from: QueryableRecord) -> Self {
         let QueryableRecord {
             id,
@@ -94,7 +94,7 @@ impl From<QueryableRecord> for (MediaSourceId, RecordHeader, EntityHeader) {
         (
             media_source_id.into(),
             record_header,
-            EntityHeaderTyped::from_untyped(entity_header),
+            TrackHeader::from_untyped(entity_header),
         )
     }
 }
@@ -103,7 +103,7 @@ impl From<QueryableRecord> for (MediaSourceId, RecordHeader, EntityHeader) {
 pub(crate) fn load_repo_entity(
     preload: EntityPreload,
     queryable: QueryableRecord,
-) -> RepoResult<(RecordHeader, Entity)> {
+) -> RepoResult<(RecordHeader, TrackEntity)> {
     let EntityPreload {
         media_source,
         track_titles,
@@ -271,12 +271,12 @@ pub(crate) fn load_repo_entity(
         metrics,
         cues,
     };
-    let entity_body = EntityBody {
+    let entity_body = TrackBody {
         track,
         updated_at: header.updated_at,
         last_synchronized_rev,
         content_url: None,
     };
-    let entity = Entity::new(EntityHeaderTyped::from_untyped(entity_hdr), entity_body);
+    let entity = TrackEntity::new(TrackHeader::from_untyped(entity_hdr), entity_body);
     Ok((header, entity))
 }

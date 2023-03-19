@@ -45,7 +45,7 @@ pub struct ExportTracksParams {
     pub output_file_path: PathBuf,
 }
 
-use aoide_core::collection::EntityUid as CollectionUid;
+use aoide_core::CollectionUid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum State {

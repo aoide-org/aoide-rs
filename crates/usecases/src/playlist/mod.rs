@@ -6,8 +6,9 @@ use std::borrow::Cow;
 use aoide_core_api::playlist::EntityWithEntriesSummary;
 
 use aoide_core::{
-    playlist::{Entity, EntityHeader as PlaylistHeader, EntityUid, EntityWithEntries, Playlist},
+    playlist::{EntityHeader as PlaylistEntityHeader, EntityWithEntries},
     util::clock::DateTime,
+    Playlist, PlaylistEntity, PlaylistUid,
 };
 
 use aoide_repo::{
@@ -29,17 +30,17 @@ pub fn validate_input(playlist: Playlist) -> InputResult<ValidatedInput> {
     Ok(ValidatedInput(playlist))
 }
 
-pub fn create_entity(new_playlist: Playlist) -> Result<Entity> {
+pub fn create_entity(new_playlist: Playlist) -> Result<PlaylistEntity> {
     let ValidatedInput(playlist) = validate_input(new_playlist)?;
-    let header = PlaylistHeader::initial_random();
-    let entity = Entity::new(header, playlist);
+    let header = PlaylistEntityHeader::initial_random();
+    let entity = PlaylistEntity::new(header, playlist);
     Ok(entity)
 }
 
 pub fn store_created_entity<Repo>(
     repo: &mut Repo,
     collection_uid: Option<&CollectionUid>,
-    entity: &Entity,
+    entity: &PlaylistEntity,
 ) -> RepoResult<()>
 where
     Repo: CollectionRepo + EntityRepo,
@@ -52,16 +53,22 @@ where
     Ok(())
 }
 
-pub fn update_entity(hdr: PlaylistHeader, modified_playlist: Playlist) -> Result<Entity> {
+pub fn update_entity(
+    hdr: PlaylistEntityHeader,
+    modified_playlist: Playlist,
+) -> Result<PlaylistEntity> {
     let ValidatedInput(playlist) = validate_input(modified_playlist)?;
     let next_hdr = hdr
         .next_rev()
         .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
-    let updated_entity = Entity::new(next_hdr, playlist);
+    let updated_entity = PlaylistEntity::new(next_hdr, playlist);
     Ok(updated_entity)
 }
 
-pub fn store_updated_entity<Repo>(repo: &mut Repo, updated_entity: &Entity) -> RepoResult<()>
+pub fn store_updated_entity<Repo>(
+    repo: &mut Repo,
+    updated_entity: &PlaylistEntity,
+) -> RepoResult<()>
 where
     Repo: EntityRepo,
 {
@@ -77,12 +84,12 @@ pub struct CollectionFilter<'a> {
 
 pub fn load_one_with_entries<Repo>(
     repo: &mut Repo,
-    entity_uid: &EntityUid,
+    playlist_uid: &PlaylistUid,
 ) -> Result<EntityWithEntries>
 where
     Repo: CollectionRepo + EntityRepo,
 {
-    let id = repo.resolve_playlist_id(entity_uid)?;
+    let id = repo.resolve_playlist_id(playlist_uid)?;
     repo.load_playlist_entity_with_entries(id)
         .map_err(Into::into)
 }

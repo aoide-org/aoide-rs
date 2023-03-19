@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{
-    entity::EntityRevision,
     media::content::{ContentLink, ContentPath},
-    track::{Entity, EntityHeader, EntityUid, Track},
+    track::EntityHeader,
+    EntityRevision, Track, TrackEntity, TrackUid,
 };
 use aoide_core_api::track::search::{Filter, SortOrder, StringField};
 
@@ -31,9 +31,9 @@ pub enum ReplaceMode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ReplaceOutcome {
-    Created(MediaSourceId, RecordId, Entity),
-    Updated(MediaSourceId, RecordId, Entity),
-    Unchanged(MediaSourceId, RecordId, Entity),
+    Created(MediaSourceId, RecordId, TrackEntity),
+    Updated(MediaSourceId, RecordId, TrackEntity),
+    Unchanged(MediaSourceId, RecordId, TrackEntity),
     NotCreated(Track),
     NotUpdated(MediaSourceId, RecordId, Track),
 }
@@ -57,23 +57,26 @@ pub struct ReplaceParams {
 }
 
 pub trait EntityRepo {
-    fn resolve_track_id(&mut self, uid: &EntityUid) -> RepoResult<RecordId>;
+    fn resolve_track_id(&mut self, uid: &TrackUid) -> RepoResult<RecordId>;
 
-    fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Entity)>;
+    fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, TrackEntity)>;
 
-    fn load_track_entity_by_uid(&mut self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)>;
+    fn load_track_entity_by_uid(
+        &mut self,
+        uid: &TrackUid,
+    ) -> RepoResult<(RecordHeader, TrackEntity)>;
 
     fn insert_track_entity(
         &mut self,
         media_source_id: MediaSourceId,
-        created_entity: &Entity,
+        created_entity: &TrackEntity,
     ) -> RepoResult<RecordId>;
 
     fn update_track_entity(
         &mut self,
         id: RecordId,
         media_source_id: MediaSourceId,
-        updated_entity: &Entity,
+        updated_entity: &TrackEntity,
     ) -> RepoResult<()>;
 
     fn purge_track_entity(&mut self, id: RecordId) -> RepoResult<()>;
@@ -84,7 +87,7 @@ pub trait CollectionRepo {
         &mut self,
         collection_id: CollectionId,
         content_path: &ContentPath<'_>,
-    ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)>;
+    ) -> RepoResult<(MediaSourceId, RecordHeader, TrackEntity)>;
 
     fn resolve_track_entity_header_by_media_source_content_path(
         &mut self,
@@ -105,7 +108,7 @@ pub trait CollectionRepo {
         pagination: &Pagination,
         filter: Option<Filter>,
         ordering: Vec<SortOrder>,
-        collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
+        collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = TrackEntity>,
     ) -> RepoResult<usize>;
 
     fn count_tracks(&mut self, collection_id: CollectionId) -> RepoResult<u64>;

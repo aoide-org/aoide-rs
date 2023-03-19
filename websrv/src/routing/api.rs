@@ -9,10 +9,7 @@ use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
 #[cfg(feature = "json-schema")]
 use schemars::schema_for;
 
-use aoide_core::{
-    collection::EntityUid as CollectionUid, playlist::EntityUid as PlaylistUid,
-    track::EntityUid as TrackUid,
-};
+use aoide_core::{CollectionUid, PlaylistUid, TrackUid};
 
 use aoide_storage_sqlite::{
     cleanse_database,

@@ -36,5 +36,5 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub mod prelude {
     pub use super::{Error, Result};
 
-    pub use aoide_core::collection::EntityUid as CollectionUid;
+    pub use aoide_core::CollectionUid;
 }

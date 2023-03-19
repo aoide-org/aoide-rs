@@ -30,7 +30,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
 
-use aoide_core::collection::EntityUid as CollectionUid;
+use aoide_core::CollectionUid;
 
 use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset};
 

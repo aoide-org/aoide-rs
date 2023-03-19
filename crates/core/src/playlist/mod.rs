@@ -8,7 +8,7 @@ use rand::{seq::SliceRandom as _, RngCore};
 
 use crate::{
     prelude::{random::adhoc_rng, *},
-    track::EntityUid as TrackUid,
+    TrackUid,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

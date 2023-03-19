@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::collection::EntityUid as CollectionUid;
+use aoide_core::CollectionUid;
 
 use aoide_core_api_json::track::search::client_request_params;
 

@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{
-    entity::{EntityHeaderTyped, EntityRevision},
     music::tempo::{Bpm, TempoBpm},
-    track::{album::Album, index::*, metric::*, Entity, EntityBody, Track},
+    track::{album::Album, index::*, metric::*},
     util::{clock::*, color::*},
+    EntityRevision, Track, TrackBody, TrackEntity, TrackHeader,
 };
 
 use aoide_repo::media::source::RecordId as MediaSourceId;
@@ -53,9 +53,9 @@ pub struct InsertableRecord<'a> {
 
 impl<'a> InsertableRecord<'a> {
     #[allow(clippy::too_many_lines)] // TODO
-    pub fn bind(media_source_id: MediaSourceId, entity: &'a Entity) -> Self {
-        let EntityHeaderTyped { uid, rev } = &entity.hdr;
-        let EntityBody {
+    pub fn bind(media_source_id: MediaSourceId, entity: &'a TrackEntity) -> Self {
+        let TrackHeader { uid, rev } = &entity.hdr;
+        let TrackBody {
             track,
             updated_at,
             last_synchronized_rev,
@@ -198,10 +198,10 @@ impl<'a> UpdatableRecord<'a> {
     pub fn bind(
         next_rev: EntityRevision,
         media_source_id: MediaSourceId,
-        entity_body: &'a EntityBody,
+        entity_body: &'a TrackBody,
     ) -> Self {
         let entity_rev = entity_revision_to_sql(next_rev);
-        let EntityBody {
+        let TrackBody {
             track,
             updated_at,
             last_synchronized_rev,

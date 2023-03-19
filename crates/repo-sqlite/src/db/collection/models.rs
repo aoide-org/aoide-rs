@@ -5,10 +5,10 @@ use num_traits::FromPrimitive as _;
 use url::Url;
 
 use aoide_core::{
-    collection::*,
-    entity::{EntityHeaderTyped, EntityRevision},
+    collection::MediaSourceConfig,
     media::content::{ContentPathConfig, ContentPathKind},
     util::{clock::*, color::*, url::BaseUrl},
+    Collection, CollectionEntity, CollectionHeader, EntityRevision,
 };
 
 use super::{schema::*, *};
@@ -30,7 +30,7 @@ pub struct QueryableRecord {
     pub media_source_root_url: Option<String>,
 }
 
-impl TryFrom<QueryableRecord> for (RecordHeader, Entity) {
+impl TryFrom<QueryableRecord> for (RecordHeader, CollectionEntity) {
     type Error = anyhow::Error;
 
     fn try_from(from: QueryableRecord) -> anyhow::Result<Self> {
@@ -80,12 +80,12 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Entity) {
             },
             media_source_config,
         };
-        let entity = Entity::new(EntityHeaderTyped::from_untyped(entity_hdr), entity_body);
+        let entity = CollectionEntity::new(CollectionHeader::from_untyped(entity_hdr), entity_body);
         Ok((header, entity))
     }
 }
 
-impl TryFrom<QueryableRecord> for Entity {
+impl TryFrom<QueryableRecord> for CollectionEntity {
     type Error = anyhow::Error;
 
     fn try_from(from: QueryableRecord) -> anyhow::Result<Self> {
@@ -111,10 +111,10 @@ pub struct InsertableRecord<'a> {
 }
 
 impl<'a> InsertableRecord<'a> {
-    pub fn bind(created_at: DateTime, entity: &'a Entity) -> Self {
+    pub fn bind(created_at: DateTime, entity: &'a CollectionEntity) -> Self {
         let row_created_updated_ms = created_at.timestamp_millis();
         let (hdr, body) = entity.into();
-        let EntityHeaderTyped { uid, rev } = hdr;
+        let CollectionHeader { uid, rev } = hdr;
         let Collection {
             media_source_config:
                 MediaSourceConfig {

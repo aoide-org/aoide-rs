@@ -27,17 +27,34 @@
 // TODO: Add missing docs
 #![allow(clippy::missing_errors_doc)]
 
-// TODO: Move into `domain` submodule
-pub mod album;
 pub mod audio;
-pub mod collection;
-pub mod entity;
 pub mod media;
 pub mod music;
-pub mod playlist;
 pub mod tag;
-pub mod track;
 pub mod util;
+
+mod album;
+pub use self::album::AlbumSummary;
+
+mod entity;
+pub use self::entity::*;
+
+pub mod collection;
+pub use self::collection::{
+    Collection, Entity as CollectionEntity, EntityHeader as CollectionHeader,
+    EntityUid as CollectionUid,
+};
+
+pub mod track;
+pub use self::track::{
+    Entity as TrackEntity, EntityBody as TrackBody, EntityHeader as TrackHeader,
+    EntityUid as TrackUid, Track,
+};
+
+pub mod playlist;
+pub use self::playlist::{
+    Entity as PlaylistEntity, EntityHeader as PlaylistHeader, EntityUid as PlaylistUid, Playlist,
+};
 
 pub mod prelude {
     pub(crate) use crate::{

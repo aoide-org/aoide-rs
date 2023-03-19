@@ -569,7 +569,7 @@ pub enum Filter {
 #[cfg(feature = "backend")]
 impl From<Filter> for _inner::Filter {
     fn from(from: Filter) -> Self {
-        use aoide_core::entity::EntityUidTyped;
+        use aoide_core::EntityUidTyped;
         use Filter::*;
         match from {
             Phrase(from) => Self::Phrase(from.into()),

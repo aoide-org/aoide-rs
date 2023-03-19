@@ -12,7 +12,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.70"
-bitflags = "2.0.1"
+bitflags = "2.0.2"
 log = "0.4.17"
 thiserror = "1.0.40"
 

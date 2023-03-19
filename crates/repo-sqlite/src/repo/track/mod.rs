@@ -6,15 +6,15 @@ use std::time::Instant;
 use diesel::dsl::count_star;
 
 use aoide_core::{
-    entity::{EncodedEntityUid, EntityHeaderTyped},
     media::{
         content::{ContentLink, ContentPath, ContentRevision},
         Source,
     },
     prelude::*,
     tag::*,
-    track::{actor::Actor, cue::Cue, title::Title, EntityHeader, EntityUid, *},
+    track::{actor::Actor, cue::Cue, title::Title},
     util::clock::*,
+    EncodedEntityUid, Track, TrackBody, TrackEntity, TrackHeader, TrackUid,
 };
 
 use aoide_core_api::track::search::{Filter, Scope, SortOrder};
@@ -406,7 +406,7 @@ fn preload_entity(
 }
 
 impl<'db> EntityRepo for crate::Connection<'db> {
-    fn resolve_track_id(&mut self, uid: &EntityUid) -> RepoResult<RecordId> {
+    fn resolve_track_id(&mut self, uid: &TrackUid) -> RepoResult<RecordId> {
         track::table
             .select(track::row_id)
             .filter(track::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
@@ -418,7 +418,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn insert_track_entity(
         &mut self,
         media_source_id: MediaSourceId,
-        created_entity: &Entity,
+        created_entity: &TrackEntity,
     ) -> RepoResult<RecordId> {
         let record = InsertableRecord::bind(media_source_id, created_entity);
         let query = diesel::insert_into(track::table).values(&record);
@@ -450,7 +450,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         &mut self,
         id: RecordId,
         media_source_id: MediaSourceId,
-        updated_entity: &Entity,
+        updated_entity: &TrackEntity,
     ) -> RepoResult<()> {
         let record = UpdatableRecord::bind(
             updated_entity.hdr.rev,
@@ -485,7 +485,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
+    fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, TrackEntity)> {
         let queryable = view_track_search::table
             .filter(view_track_search::row_id.eq(RowId::from(id)))
             .first::<SearchQueryableRecord>(self.as_mut())
@@ -495,7 +495,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         load_repo_entity(preload, queryable)
     }
 
-    fn load_track_entity_by_uid(&mut self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)> {
+    fn load_track_entity_by_uid(
+        &mut self,
+        uid: &TrackUid,
+    ) -> RepoResult<(RecordHeader, TrackEntity)> {
         let queryable = view_track_search::table
             .filter(view_track_search::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
             .first::<SearchQueryableRecord>(self.as_mut())
@@ -522,7 +525,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         &mut self,
         collection_id: CollectionId,
         content_path: &ContentPath<'_>,
-    ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)> {
+    ) -> RepoResult<(MediaSourceId, RecordHeader, TrackEntity)> {
         let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
             StringPredicate::Equals(content_path.as_borrowed().into_inner()),
@@ -542,7 +545,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         &mut self,
         collection_id: CollectionId,
         content_path: &ContentPath<'_>,
-    ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)> {
+    ) -> RepoResult<(MediaSourceId, RecordHeader, TrackHeader)> {
         let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
             StringPredicate::Equals(content_path.as_borrowed().into_inner()),
@@ -619,13 +622,13 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 // Keep the current synchronized revision
                 entity.raw.body.last_synchronized_rev
             };
-            let entity_body = EntityBody {
+            let entity_body = TrackBody {
                 track,
                 updated_at,
                 last_synchronized_rev,
                 content_url: None,
             };
-            let entity = Entity::new(entity_hdr, entity_body);
+            let entity = TrackEntity::new(entity_hdr, entity_body);
             self.update_track_entity(id, media_source_id, &entity)?;
             Ok(ReplaceOutcome::Updated(media_source_id, id, entity))
         } else {
@@ -637,7 +640,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             let media_source_id = self
                 .insert_media_source(collection_id, created_at, &track.media_source)?
                 .id;
-            let entity_hdr = EntityHeader::initial_random();
+            let entity_hdr = TrackHeader::initial_random();
             let last_synchronized_rev =
                 if update_last_synchronized_rev && track.media_source.content.link.rev.is_some() {
                     // Mark the track as synchronized with the media source
@@ -645,13 +648,13 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 } else {
                     None
                 };
-            let entity_body = EntityBody {
+            let entity_body = TrackBody {
                 track,
                 updated_at: created_at,
                 last_synchronized_rev,
                 content_url: None,
             };
-            let entity = Entity::new(entity_hdr, entity_body);
+            let entity = TrackEntity::new(entity_hdr, entity_body);
             let id = self.insert_track_entity(media_source_id, &entity)?;
             Ok(ReplaceOutcome::Created(media_source_id, id, entity))
         }
@@ -663,7 +666,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         pagination: &Pagination,
         filter: Option<Filter>,
         ordering: Vec<SortOrder>,
-        collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
+        collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = TrackEntity>,
     ) -> RepoResult<usize> {
         let mut query = view_track_search::table
             .select(view_track_search::all_columns)
@@ -757,7 +760,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         collection_id: CollectionId,
         pagination: &Pagination,
         content_path_predicate: Option<StringPredicate<'_>>,
-    ) -> RepoResult<Vec<(EntityHeader, RecordHeader, RecordTrail)>> {
+    ) -> RepoResult<Vec<(TrackHeader, RecordHeader, RecordTrail)>> {
         let mut query = collection::table
             .inner_join(media_source::table.inner_join(track::table))
             .select((
@@ -834,9 +837,10 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                                 created_at: DateTime::new_timestamp_millis(row_created_ms),
                                 updated_at: DateTime::new_timestamp_millis(row_updated_ms),
                             };
-                            let entity_header = EntityHeaderTyped::from_untyped(
-                                entity_header_from_sql(&entity_uid, entity_rev),
-                            );
+                            let entity_header = TrackHeader::from_untyped(entity_header_from_sql(
+                                &entity_uid,
+                                entity_rev,
+                            ));
                             let content_link = ContentLink {
                                 path: content_link_path.into(),
                                 rev: content_link_rev.map(ContentRevision::from_signed_value),
