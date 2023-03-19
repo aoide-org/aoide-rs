@@ -10,7 +10,7 @@ use aoide_core::{
 };
 use aoide_core_api::{track::search::Params, Pagination};
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
-use xxhash_rust::xxh3::Xxh3;
+use highway::{HighwayHash, HighwayHasher, Key};
 
 use crate::environment::Handle;
 
@@ -484,11 +484,31 @@ impl ObservableState {
 
 const INITIAL_OFFSET_HASH_SEED: u64 = 0;
 
+const fn hash_key_for_offset(seed: u64, offset: usize) -> Key {
+    let offset_u64 = offset as u64;
+    Key([seed, offset_u64, seed, offset_u64])
+}
+
 fn hash_entity_header_at_offset(seed: u64, offset: usize, entity_header: &EntityHeader) -> u64 {
     debug_assert_eq!(seed == INITIAL_OFFSET_HASH_SEED, offset == 0);
-    let mut hasher = Xxh3::with_seed(seed);
+    let mut hasher = HighwayHasher::new(hash_key_for_offset(seed, offset));
     offset.hash(&mut hasher);
     // Ugly workaround, because the tag type does not implement `Hash`. No allocations.
     entity_header.clone().into_untyped().hash(&mut hasher);
-    hasher.digest()
+    hasher.finalize64()
+}
+
+#[cfg(test)]
+mod tests {
+    use highway::Key;
+
+    use crate::track::repo_search::{hash_key_for_offset, INITIAL_OFFSET_HASH_SEED};
+
+    #[test]
+    fn default_hash_key_equals_offset_zero() {
+        assert_eq!(
+            Key::default().0,
+            hash_key_for_offset(INITIAL_OFFSET_HASH_SEED, 0).0
+        );
+    }
 }
