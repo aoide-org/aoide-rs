@@ -82,6 +82,7 @@ impl CliModel {
 
 impl infect::Model for CliModel {
     type Intent = Intent;
+    type IntentRejected = Intent;
     type Effect = Effect;
     type Task = Task;
 

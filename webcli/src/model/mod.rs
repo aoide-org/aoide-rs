@@ -85,6 +85,7 @@ impl Model {
 
 impl ClientModel for Model {
     type Intent = Intent;
+    type IntentRejected = Intent;
     type Effect = Effect;
     type Task = Task;
 
