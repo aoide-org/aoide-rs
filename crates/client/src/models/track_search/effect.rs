@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use super::{Action, EffectApplied, FetchResultPage, FetchResultPageResponse, Model, Reset, Task};
+use super::{EffectApplied, FetchResultPage, FetchResultPageResponse, Model, Reset, Task};
 
 #[derive(Debug)]
 pub enum Effect {
@@ -24,8 +24,7 @@ impl Effect {
                 debug_assert!(model.can_fetch_results());
                 model.set_fetching_results();
                 let task = Task::FetchResultPage(fetch_result_page);
-                let next_action = Action::spawn_task(task);
-                EffectApplied::maybe_changed(Some(next_action))
+                EffectApplied::maybe_changed(task)
             }
             Self::FetchResultPageFinished(res) => match res {
                 Ok(response) => {
@@ -33,11 +32,13 @@ impl Effect {
                     EffectApplied::maybe_changed_done()
                 }
                 Err(err) => {
-                    EffectApplied::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                    model.last_error = Some(err);
+                    EffectApplied::maybe_changed_done()
                 }
             },
             Self::ErrorOccurred(err) => {
-                EffectApplied::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                model.last_error = Some(err);
+                EffectApplied::maybe_changed_done()
             }
         }
     }

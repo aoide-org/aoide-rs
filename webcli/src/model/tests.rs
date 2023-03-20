@@ -59,7 +59,7 @@ fn should_handle_error_and_terminate() {
         ),
         MessageProcessed::NoProgress,
     ));
-    assert_eq!(1, model.last_errors().len());
+    assert_eq!(1, model.last_errors().count());
 }
 
 #[tokio::test]
@@ -75,7 +75,7 @@ async fn should_catch_error_and_terminate() {
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     submit_effect(&mut message_tx, effect);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
-    assert_eq!(1, model.last_errors().len());
+    assert_eq!(1, model.last_errors().count());
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn should_handle_collection_error_and_terminate() {
         ),
         MessageProcessed::NoProgress,
     ));
-    assert_eq!(1, model.last_errors().len());
+    assert_eq!(1, model.last_errors().count());
 }
 
 #[tokio::test]
@@ -114,7 +114,7 @@ async fn should_catch_collection_error_and_terminate() {
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     submit_effect(&mut message_tx, effect);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
-    assert_eq!(1, model.last_errors().len());
+    assert_eq!(1, model.last_errors().count());
 }
 
 #[test]
@@ -137,7 +137,7 @@ fn should_handle_media_tracker_error() {
         ),
         MessageProcessed::NoProgress,
     ));
-    assert_eq!(1, model.last_errors().len());
+    assert_eq!(1, model.last_errors().count());
 }
 
 #[tokio::test]
@@ -153,7 +153,7 @@ async fn should_catch_media_tracker_error_and_terminate() {
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     submit_effect(&mut message_tx, effect);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
-    assert_eq!(1, model.last_errors().len());
+    assert_eq!(1, model.last_errors().count());
 }
 
 #[tokio::test]
@@ -168,7 +168,7 @@ async fn should_terminate_on_intent_when_no_tasks_pending() {
     let model_render = &mut ModelRender;
     submit_intent(&mut message_tx, Intent::Terminate);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
-    assert!(model.last_errors().is_empty());
+    assert!(model.last_errors().next().is_none());
 }
 
 struct TerminationModelRender {
@@ -242,5 +242,5 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
             .invocation_count
             .load(std::sync::atomic::Ordering::SeqCst)
     );
-    assert!(model.last_errors().is_empty());
+    assert!(model.last_errors().next().is_none());
 }

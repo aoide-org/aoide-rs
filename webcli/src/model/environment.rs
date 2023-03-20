@@ -62,9 +62,9 @@ impl TaskExecutor<Arc<Environment>> for Environment {
         }
         tokio::spawn(async move {
             log::debug!("Executing task {task:?}");
-            let effect = task.execute(&*context.task_executor).await;
-            log::debug!("Task finished with effect: {effect:?}");
-            context.submit_effect(effect);
+            let message = task.execute(&*context.task_executor).await;
+            log::debug!("Task finished with message: {message:?}");
+            context.submit_message(message);
             if context.task_executor.pending_tasks_counter.finish_task() == 0 {
                 log::debug!("Finished last pending task");
             }

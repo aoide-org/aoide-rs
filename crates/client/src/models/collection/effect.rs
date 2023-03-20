@@ -3,7 +3,7 @@
 
 use aoide_core::collection::{Entity, EntityUid};
 
-use super::{Action, EffectApplied, Model, PendingTask, Task};
+use super::{EffectApplied, Model, PendingTask, Task};
 use crate::util::roundtrip::PendingToken;
 
 #[derive(Debug)]
@@ -44,10 +44,10 @@ impl Effect {
             }
             Self::PendingTaskAccepted { task } => {
                 debug_assert!(!model.remote_view().is_pending());
+                model.last_error = None;
                 let token = model.remote_view.all_kinds.start_pending_now();
                 let task = Task::Pending { token, task };
-                let next_action = Action::spawn_task(task);
-                EffectApplied::maybe_changed(next_action)
+                EffectApplied::maybe_changed(task)
             }
             Self::FetchAllKindsFinished { token, result } => match result {
                 Ok(all_kinds) => {
@@ -58,12 +58,9 @@ impl Effect {
                     }
                 }
                 Err(err) => {
-                    let next_action = Action::apply_effect(Self::ErrorOccurred(err));
-                    if model.finish_pending_all_kinds(token, None) {
-                        EffectApplied::maybe_changed(next_action)
-                    } else {
-                        EffectApplied::unchanged(next_action)
-                    }
+                    model.last_error = Some(err);
+                    model.finish_pending_all_kinds(token, None);
+                    EffectApplied::maybe_changed_done()
                 }
             },
             Self::FetchFilteredEntitiesFinished {
@@ -83,42 +80,28 @@ impl Effect {
                     }
                 }
                 Err(err) => {
-                    let next_action = Action::apply_effect(Self::ErrorOccurred(err));
-                    if model.finish_pending_filtered_entities(token, filtered_by_kind, None) {
-                        EffectApplied::maybe_changed(next_action)
-                    } else {
-                        EffectApplied::unchanged(next_action)
-                    }
+                    model.last_error = Some(err);
+                    model.finish_pending_filtered_entities(token, filtered_by_kind, None);
+                    EffectApplied::maybe_changed_done()
                 }
             },
             Self::CreateEntityFinished(res) | Self::UpdateEntityFinished(res) => match res {
-                Ok(entity) => {
-                    let next_action = model.after_entity_created_or_updated(entity);
-                    if next_action.is_some() {
-                        EffectApplied::maybe_changed(next_action)
-                    } else {
-                        EffectApplied::unchanged(next_action)
-                    }
-                }
+                Ok(entity) => model.after_entity_created_or_updated(entity),
                 Err(err) => {
-                    EffectApplied::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                    model.last_error = Some(err);
+                    EffectApplied::maybe_changed_done()
                 }
             },
             Self::PurgeEntityFinished(res) => match res {
-                Ok(entity_uid) => {
-                    let next_action = model.after_entity_purged(&entity_uid);
-                    if next_action.is_some() {
-                        EffectApplied::maybe_changed(next_action)
-                    } else {
-                        EffectApplied::unchanged(next_action)
-                    }
-                }
+                Ok(entity_uid) => model.after_entity_purged(&entity_uid),
                 Err(err) => {
-                    EffectApplied::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                    model.last_error = Some(err);
+                    EffectApplied::maybe_changed_done()
                 }
             },
-            Self::ErrorOccurred(error) => {
-                EffectApplied::unchanged(Action::apply_effect(Self::ErrorOccurred(error)))
+            Self::ErrorOccurred(err) => {
+                model.last_error = Some(err);
+                EffectApplied::maybe_changed_done()
             }
         }
     }

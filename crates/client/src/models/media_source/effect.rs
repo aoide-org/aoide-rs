@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use super::{Action, EffectApplied, Model, PendingTask, PurgeOrphaned, PurgeUntracked, Task};
+use super::{EffectApplied, Model, PendingTask, PurgeOrphaned, PurgeUntracked, Task};
 use crate::util::roundtrip::PendingToken;
 
 #[derive(Debug)]
@@ -25,79 +25,76 @@ impl Effect {
         match self {
             Self::PurgeOrphanedAccepted(purge_orphaned) => {
                 debug_assert!(!model.remote_view().last_purge_orphaned_outcome.is_pending());
+                model.last_error = None;
                 let token = model
                     .remote_view
                     .last_purge_orphaned_outcome
                     .start_pending_now();
                 let task = PendingTask::PurgeOrphaned(purge_orphaned);
                 let task = Task::Pending { token, task };
-                let next_action = Action::spawn_task(task);
-                EffectApplied::maybe_changed(next_action)
+                EffectApplied::maybe_changed(task)
             }
-            Self::PurgeOrphanedFinished { token, result } => {
-                let next_action = match result {
-                    Ok(outcome) => {
-                        if let Err(outcome) = model
-                            .remote_view
-                            .last_purge_orphaned_outcome
-                            .finish_pending_with_value_now(token, outcome)
-                        {
-                            let effect_reconstructed = Self::PurgeOrphanedFinished {
-                                token,
-                                result: Ok(outcome),
-                            };
-                            log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
-                            return EffectApplied::unchanged_done();
-                        }
-                        None
+            Self::PurgeOrphanedFinished { token, result } => match result {
+                Ok(outcome) => {
+                    if let Err(outcome) = model
+                        .remote_view
+                        .last_purge_orphaned_outcome
+                        .finish_pending_with_value_now(token, outcome)
+                    {
+                        let effect_reconstructed = Self::PurgeOrphanedFinished {
+                            token,
+                            result: Ok(outcome),
+                        };
+                        log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
+                        return EffectApplied::unchanged_done();
                     }
-                    Err(err) => {
-                        model.remote_view.last_purge_orphaned_outcome.reset();
-                        Some(Action::apply_effect(Self::ErrorOccurred(err)))
-                    }
-                };
-                EffectApplied::maybe_changed(next_action)
-            }
+                    EffectApplied::maybe_changed_done()
+                }
+                Err(err) => {
+                    model.remote_view.last_purge_orphaned_outcome.reset();
+                    model.last_error = Some(err);
+                    EffectApplied::maybe_changed_done()
+                }
+            },
             Self::PurgeUntrackedAccepted(purge_untracked) => {
                 debug_assert!(!model
                     .remote_view()
                     .last_purge_untracked_outcome
                     .is_pending());
+                model.last_error = None;
                 let token = model
                     .remote_view
                     .last_purge_untracked_outcome
                     .start_pending_now();
                 let task = PendingTask::PurgeUntracked(purge_untracked);
                 let task = Task::Pending { token, task };
-                let next_action = Action::spawn_task(task);
-                EffectApplied::maybe_changed(next_action)
+                EffectApplied::maybe_changed(task)
             }
-            Self::PurgeUntrackedFinished { token, result } => {
-                let next_action = match result {
-                    Ok(outcome) => {
-                        if let Err(outcome) = model
-                            .remote_view
-                            .last_purge_untracked_outcome
-                            .finish_pending_with_value_now(token, outcome)
-                        {
-                            let effect_reconstructed = Self::PurgeUntrackedFinished {
-                                token,
-                                result: Ok(outcome),
-                            };
-                            log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
-                            return EffectApplied::unchanged_done();
-                        }
-                        None
+            Self::PurgeUntrackedFinished { token, result } => match result {
+                Ok(outcome) => {
+                    if let Err(outcome) = model
+                        .remote_view
+                        .last_purge_untracked_outcome
+                        .finish_pending_with_value_now(token, outcome)
+                    {
+                        let effect_reconstructed = Self::PurgeUntrackedFinished {
+                            token,
+                            result: Ok(outcome),
+                        };
+                        log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
+                        return EffectApplied::unchanged_done();
                     }
-                    Err(err) => {
-                        model.remote_view.last_purge_orphaned_outcome.reset();
-                        Some(Action::apply_effect(Self::ErrorOccurred(err)))
-                    }
-                };
-                EffectApplied::maybe_changed(next_action)
-            }
+                    EffectApplied::maybe_changed_done()
+                }
+                Err(err) => {
+                    model.remote_view.last_purge_orphaned_outcome.reset();
+                    model.last_error = Some(err);
+                    EffectApplied::maybe_changed_done()
+                }
+            },
             Self::ErrorOccurred(err) => {
-                EffectApplied::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                model.last_error = Some(err);
+                EffectApplied::maybe_changed_done()
             }
         }
     }

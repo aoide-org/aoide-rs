@@ -10,7 +10,7 @@ use aoide_client::{
 use aoide_core_api::{track::find_unsynchronized::UnsynchronizedTrackEntity, Pagination};
 use aoide_core_api_json::track::search::{client_query_params, client_request_params};
 
-use super::{CollectionUid, Effect, ExportTracksParams, Intent};
+use super::{CollectionUid, Effect, ExportTracksParams, Intent, Message};
 
 #[derive(Debug)]
 pub enum Task {
@@ -51,26 +51,26 @@ impl From<media_tracker::Task> for Task {
 }
 
 impl Task {
-    pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Effect {
+    pub async fn execute<E: ClientEnvironment>(self, env: &E) -> Message {
         log::debug!("Executing task {self:?}");
         match self {
             Self::ScheduleIntent { not_before, intent } => {
                 tokio::time::sleep_until(not_before.into()).await;
-                Effect::HandleIntent(*intent)
+                (*intent).into()
             }
-            Self::ActiveCollection(task) => task.execute(env).await.into(),
-            Self::MediaSources(task) => task.execute(env).await.into(),
-            Self::MediaTracker(task) => task.execute(env).await.into(),
+            Self::ActiveCollection(task) => Message::Effect(task.execute(env).await.into()),
+            Self::MediaSources(task) => Message::Effect(task.execute(env).await.into()),
+            Self::MediaTracker(task) => Message::Effect(task.execute(env).await.into()),
             Self::AbortPendingRequest => {
                 let res = abort(env).await;
-                Effect::AbortFinished(res)
+                Effect::AbortFinished(res).into()
             }
             Self::FindUnsynchronizedTracks {
                 collection_uid,
                 params,
             } => {
                 let res = find_unsynchronized_tracks(env, &collection_uid, params).await;
-                Effect::FindUnsynchronizedTracksFinished(res)
+                Effect::FindUnsynchronizedTracksFinished(res).into()
             }
             Self::ExportTracks {
                 collection_uid,
@@ -82,7 +82,7 @@ impl Task {
                 } = params;
                 let res =
                     export_tracks(env, &collection_uid, search_params, &output_file_path).await;
-                Effect::ExportTracksFinished(res)
+                Effect::ExportTracksFinished(res).into()
             }
         }
     }

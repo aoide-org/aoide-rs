@@ -18,13 +18,10 @@ pub(crate) use self::intent::Intent;
 pub(crate) mod task;
 pub(crate) use self::task::Task;
 
-pub(crate) type Action = infect::Action<Effect, Task>;
-
 pub(crate) type Message = infect::Message<Intent, Effect>;
-
 pub(crate) type IntentHandled = infect::IntentHandled<Intent, Effect, Task>;
-
-pub(crate) type EffectApplied = infect::EffectApplied<Effect, Task>;
+pub(crate) type IntentAccepted = infect::IntentAccepted<Effect, Task>;
+pub(crate) type EffectApplied = infect::EffectApplied<Task>;
 
 impl From<Intent> for Message {
     fn from(intent: Intent) -> Self {
@@ -63,8 +60,12 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn last_errors(&self) -> &[anyhow::Error] {
-        &self.last_errors
+    pub fn last_errors(&self) -> impl Iterator<Item = &anyhow::Error> {
+        self.last_errors
+            .iter()
+            .chain(self.active_collection.last_error())
+            .chain(self.media_sources.last_error())
+            .chain(self.media_tracker.last_error())
     }
 
     pub fn is_pending(&self) -> bool {
@@ -77,9 +78,8 @@ impl Model {
         self.state == State::Terminating
     }
 
-    pub fn abort_pending_request_action(&self) -> Option<Action> {
-        self.is_pending()
-            .then(|| Action::apply_effect(Effect::AbortPendingRequest(None)))
+    pub fn abort_pending_request_effect(&self) -> Option<Effect> {
+        self.is_pending().then(|| Effect::AbortPendingRequest(None))
     }
 }
 

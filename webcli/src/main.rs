@@ -141,7 +141,7 @@ impl ModelRender for RenderCliModel {
         } = self;
         let CliModel { matches, model } = cli_model;
 
-        if !model.last_errors().is_empty() {
+        if model.last_errors().next().is_some() {
             for err in model.last_errors() {
                 log::error!("{err}");
             }

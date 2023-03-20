@@ -14,11 +14,9 @@ pub use self::effect::Effect;
 pub mod task;
 pub use self::task::{PendingTask, Task};
 
-pub type Action = infect::Action<Effect, Task>;
-
 pub type IntentHandled = infect::IntentHandled<Intent, Effect, Task>;
-
-pub type EffectApplied = infect::EffectApplied<Effect, Task>;
+pub type IntentAccepted = infect::IntentAccepted<Effect, Task>;
+pub type EffectApplied = infect::EffectApplied<Task>;
 
 #[derive(Debug, Clone)]
 pub struct PurgeOrphaned {
@@ -51,11 +49,17 @@ impl RemoteView {
 #[derive(Debug, Default)]
 pub struct Model {
     pub(super) remote_view: RemoteView,
+    pub(super) last_error: Option<anyhow::Error>,
 }
 
 impl Model {
     #[must_use]
     pub fn remote_view(&self) -> &RemoteView {
         &self.remote_view
+    }
+
+    #[must_use]
+    pub fn last_error(&self) -> Option<&anyhow::Error> {
+        self.last_error.as_ref()
     }
 }

@@ -13,11 +13,9 @@ pub use self::effect::Effect;
 pub mod task;
 pub use self::task::Task;
 
-pub type Action = infect::Action<Effect, Task>;
-
 pub type IntentHandled = infect::IntentHandled<Intent, Effect, Task>;
-
-pub type EffectApplied = infect::EffectApplied<Effect, Task>;
+pub type IntentAccepted = infect::IntentAccepted<Effect, Task>;
+pub type EffectApplied = infect::EffectApplied<Task>;
 
 #[derive(Debug, Clone)]
 pub struct Reset {
@@ -55,12 +53,18 @@ pub struct Model {
     state: State,
     search_params: Option<Params>,
     results: Vec<Entity>,
+    last_error: Option<anyhow::Error>,
 }
 
 impl Model {
     #[must_use]
     pub fn state(&self) -> State {
         self.state
+    }
+
+    #[must_use]
+    pub fn last_error(&self) -> Option<&anyhow::Error> {
+        self.last_error.as_ref()
     }
 
     #[must_use]
@@ -97,6 +101,7 @@ impl Model {
         self.state = State::Idle;
         self.search_params = search_params.into();
         self.results.clear();
+        self.last_error = None;
     }
 
     pub(super) fn set_fetching_results(&mut self) {

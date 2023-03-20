@@ -3,7 +3,9 @@
 
 use aoide_core::collection::{Collection, EntityUid};
 
-use super::{Action, Effect, FetchFilteredEntities, IntentHandled, Model, PendingTask, Task};
+use super::{
+    Effect, FetchFilteredEntities, IntentAccepted, IntentHandled, Model, PendingTask, Task,
+};
 
 #[derive(Debug)]
 pub enum Intent {
@@ -17,7 +19,7 @@ impl Intent {
     #[must_use]
     pub fn apply_on(self, model: &Model) -> IntentHandled {
         log::trace!("Applying intent {self:?} on {model:?}");
-        let next_action = match self {
+        match self {
             Self::FetchAllKinds => {
                 if model.remote_view.all_kinds.is_pending() {
                     let self_reconstructed = Self::FetchAllKinds;
@@ -26,7 +28,7 @@ impl Intent {
                 }
                 let task = PendingTask::FetchAllKinds;
                 let effect = Effect::PendingTaskAccepted { task };
-                Action::apply_effect(effect)
+                IntentAccepted::apply_effect(effect).into()
             }
             Self::FetchFilteredEntities(FetchFilteredEntities { filter_by_kind }) => {
                 if model.remote_view.all_kinds.is_pending() {
@@ -37,7 +39,7 @@ impl Intent {
                 let task =
                     PendingTask::FetchFilteredEntities(FetchFilteredEntities { filter_by_kind });
                 let effect = Effect::PendingTaskAccepted { task };
-                Action::apply_effect(effect)
+                IntentAccepted::apply_effect(effect).into()
             }
             Self::ActivateEntity { entity_uid } => {
                 if model.remote_view.all_kinds.is_pending() {
@@ -46,14 +48,13 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::ActiveEntityUidUpdated { entity_uid };
-                Action::apply_effect(effect)
+                IntentAccepted::apply_effect(effect).into()
             }
             Self::CreateEntity { new_collection } => {
                 let task = Task::CreateEntity { new_collection };
                 log::debug!("Dispatching task {task:?}");
-                Action::spawn_task(task)
+                IntentAccepted::spawn_task(task).into()
             }
-        };
-        IntentHandled::Accepted(Some(next_action))
+        }
     }
 }

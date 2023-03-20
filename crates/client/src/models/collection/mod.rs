@@ -14,11 +14,9 @@ pub use self::effect::Effect;
 pub mod task;
 pub use self::task::{PendingTask, Task};
 
-pub type Action = infect::Action<Effect, Task>;
-
 pub type IntentHandled = infect::IntentHandled<Intent, Effect, Task>;
-
-pub type EffectApplied = infect::EffectApplied<Effect, Task>;
+pub type IntentAccepted = infect::IntentAccepted<Effect, Task>;
+pub type EffectApplied = infect::EffectApplied<Task>;
 
 #[derive(Debug, Clone)]
 pub struct FetchFilteredEntities {
@@ -109,12 +107,18 @@ impl RemoteView {
 pub struct Model {
     pub(super) remote_view: RemoteView,
     pub(super) active_entity_uid: Option<CollectionUid>,
+    pub(super) last_error: Option<anyhow::Error>,
 }
 
 impl Model {
     #[must_use]
     pub const fn remote_view(&self) -> &RemoteView {
         &self.remote_view
+    }
+
+    #[must_use]
+    pub fn last_error(&self) -> Option<&anyhow::Error> {
+        self.last_error.as_ref()
     }
 
     #[must_use]
@@ -166,7 +170,7 @@ impl Model {
     pub(super) fn after_entity_created_or_updated(
         &mut self,
         entity: CollectionEntity,
-    ) -> Option<Action> {
+    ) -> EffectApplied {
         if let Some(last_snapshot) = self.remote_view.all_kinds.last_snapshot() {
             if last_snapshot
                 .value
@@ -174,15 +178,14 @@ impl Model {
                 .any(|kind| Some(kind) == entity.body.kind.as_ref())
             {
                 // The new/modified entity is of a known kind
-                return None;
+                return EffectApplied::unchanged_done();
             }
         }
-        refresh_all_kinds_action(self)
+        refresh_all_kinds(self)
     }
 
-    #[allow(clippy::unnecessary_wraps)]
-    pub(super) fn after_entity_purged(&mut self, _entity_uid: &CollectionUid) -> Option<Action> {
-        refresh_all_kinds_action(self)
+    pub(super) fn after_entity_purged(&mut self, _entity_uid: &CollectionUid) -> EffectApplied {
+        refresh_all_kinds(self)
     }
 
     pub(super) fn set_active_entity_uid(
@@ -207,12 +210,13 @@ impl Model {
     }
 }
 
-fn refresh_all_kinds_action(model: &Model) -> Option<Action> {
+fn refresh_all_kinds(model: &mut Model) -> EffectApplied {
     if model.remote_view().is_pending() {
         log::warn!("Cannot refresh all kinds while pending");
-        return None;
+        return EffectApplied::unchanged_done();
     }
     let task = PendingTask::FetchAllKinds;
-    let effect = Effect::PendingTaskAccepted { task };
-    Some(Action::apply_effect(effect))
+    let token = model.remote_view.all_kinds.start_pending_now();
+    let task = Task::Pending { token, task };
+    EffectApplied::maybe_changed(task)
 }

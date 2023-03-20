@@ -5,7 +5,9 @@ use std::{num::NonZeroUsize, time::Instant};
 
 use aoide_client::models::{collection, media_source, media_tracker};
 
-use super::{Action, CollectionUid, Effect, ExportTracksParams, IntentHandled, Model, Task};
+use super::{
+    CollectionUid, Effect, ExportTracksParams, IntentAccepted, IntentHandled, Model, Task,
+};
 use crate::model::State;
 
 #[derive(Debug)]
@@ -55,12 +57,12 @@ impl Intent {
         log::debug!("Applying {self:?} on {model:?}");
         match self {
             Self::RenderModel => {
-                IntentHandled::Accepted(Action::apply_effect(Effect::RenderModel).into())
+                IntentHandled::Accepted(IntentAccepted::apply_effect(Effect::RenderModel))
             }
             Self::Schedule { not_before, intent } => {
                 if model.state == State::Running {
                     let next_action =
-                        Action::spawn_task(Task::ScheduleIntent { not_before, intent });
+                        IntentAccepted::spawn_task(Task::ScheduleIntent { not_before, intent });
                     IntentHandled::accepted(next_action)
                 } else {
                     let self_reconstructed = Self::Schedule { not_before, intent };
@@ -71,34 +73,33 @@ impl Intent {
             Self::DiscardFirstErrors(num_errors_requested) => {
                 let num_errors =
                     NonZeroUsize::new(num_errors_requested.get().min(model.last_errors.len()));
-                let next_action = if let Some(num_errors) = num_errors {
+                if let Some(num_errors) = num_errors {
                     if num_errors < num_errors_requested {
                         debug_assert!(num_errors_requested.get() > 1);
                         log::debug!(
                             "Discarding only {num_errors} instead of {num_errors_requested} errors"
                         );
                     }
-                    Some(Action::apply_effect(Effect::FirstErrorsDiscarded(
-                        num_errors,
-                    )))
+                    IntentAccepted::apply_effect(Effect::FirstErrorsDiscarded(num_errors)).into()
                 } else {
                     log::debug!("No errors to discard");
-                    None
-                };
-                IntentHandled::Accepted(next_action)
+                    IntentAccepted::NoEffect.into()
+                }
             }
             Self::AbortPendingRequest => {
-                let next_action = model.abort_pending_request_action();
-                IntentHandled::Accepted(next_action)
+                let effect = model.abort_pending_request_effect();
+                effect
+                    .map(IntentAccepted::ApplyEffect)
+                    .unwrap_or(IntentAccepted::NoEffect)
+                    .into()
             }
             Self::Terminate => {
                 if model.state == State::Terminating {
                     // Already terminating, nothing to do
-                    return IntentHandled::Accepted(None);
+                    return IntentAccepted::NoEffect.into();
                 }
-                let next_action =
-                    Action::apply_effect(Effect::AbortPendingRequest(Some(State::Terminating)));
-                IntentHandled::accepted(next_action)
+                IntentAccepted::apply_effect(Effect::AbortPendingRequest(Some(State::Terminating)))
+                    .into()
             }
             Self::ActiveCollection(intent) => {
                 if model.state != State::Running {
@@ -128,7 +129,7 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                let next_action = Action::spawn_task(Task::FindUnsynchronizedTracks {
+                let next_action = IntentAccepted::spawn_task(Task::FindUnsynchronizedTracks {
                     collection_uid,
                     params,
                 });
@@ -138,7 +139,7 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                let next_action = Action::spawn_task(Task::ExportTracks {
+                let next_action = IntentAccepted::spawn_task(Task::ExportTracks {
                     collection_uid,
                     params,
                 });

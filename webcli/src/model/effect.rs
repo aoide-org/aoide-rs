@@ -5,16 +5,15 @@ use std::num::NonZeroUsize;
 
 use aoide_client::models::{collection, media_source, media_tracker};
 use aoide_core_api::track::find_unsynchronized::UnsynchronizedTrackEntity;
-use infect::IntentHandled;
+use infect::ModelChanged;
 
-use super::{EffectApplied, Intent, Model};
-use crate::model::{Action, State, Task};
+use super::{EffectApplied, Model};
+use crate::model::{State, Task};
 
 #[derive(Debug)]
 pub enum Effect {
     ErrorOccurred(anyhow::Error),
     FirstErrorsDiscarded(NonZeroUsize),
-    HandleIntent(Intent),
     AbortFinished(anyhow::Result<()>),
     ActiveCollection(collection::Effect),
     MediaSources(media_source::Effect),
@@ -58,26 +57,21 @@ impl Effect {
                 model.last_errors = model.last_errors.drain(num_errors.get()..).collect();
                 EffectApplied::maybe_changed_done()
             }
-            Self::HandleIntent(intent) => {
-                let next_action = match intent.apply_on(model) {
-                    IntentHandled::Accepted(next_action) => next_action,
-                    IntentHandled::Rejected(_) => None,
-                };
-                EffectApplied::unchanged(next_action)
-            }
             Self::AbortFinished(res) => {
-                let next_action = match res {
+                match res {
                     Ok(()) => {
                         if model.state == State::Terminating && model.is_pending() {
                             // Abort next pending request until idle
-                            Some(Action::SpawnTask(Task::AbortPendingRequest))
+                            EffectApplied::unchanged(Task::AbortPendingRequest)
                         } else {
-                            None
+                            EffectApplied::unchanged_done()
                         }
                     }
-                    Err(err) => Some(Action::apply_effect(Self::ErrorOccurred(err))),
-                };
-                EffectApplied::unchanged(next_action)
+                    Err(err) => {
+                        model.last_errors.push(err);
+                        EffectApplied::maybe_changed_done()
+                    }
+                }
             }
             Self::ActiveCollection(effect) => {
                 effect.apply_on(&mut model.active_collection).map_into()
@@ -109,15 +103,20 @@ impl Effect {
             }
             Self::RenderModel => EffectApplied::maybe_changed_done(), // enforce re-rendering
             Self::AbortPendingRequest(state) => {
-                let next_action = model.abort_pending_request_action();
+                let mut effect_applied = model
+                    .abort_pending_request_effect()
+                    .map_or_else(EffectApplied::unchanged_done, |effect| {
+                        effect.apply_on(model)
+                    });
                 let Some(state) = state else {
-                    return EffectApplied::unchanged(next_action);
+                    return effect_applied;
                 };
                 if model.state == state {
-                    return EffectApplied::unchanged(next_action);
+                    return effect_applied;
                 }
                 model.state = state;
-                EffectApplied::maybe_changed(next_action)
+                effect_applied.model_changed = ModelChanged::MaybeChanged;
+                effect_applied
             }
         }
     }

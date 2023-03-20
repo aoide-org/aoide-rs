@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use super::{
-    Action, Effect, FetchStatus, IntentHandled, Model, StartFindUntrackedFiles, StartImportFiles,
-    StartScanDirectories, UntrackDirectories,
+    Effect, FetchStatus, IntentAccepted, IntentHandled, Model, StartFindUntrackedFiles,
+    StartImportFiles, StartScanDirectories, UntrackDirectories,
 };
 
 #[derive(Debug)]
@@ -21,7 +21,7 @@ impl Intent {
     #[must_use]
     pub fn apply_on(self, model: &Model) -> IntentHandled {
         log::trace!("Applying intent {self:?} on {model:?}");
-        let next_action = match self {
+        match self {
             Self::FetchProgress => {
                 if model.remote_view.progress.is_pending() {
                     let self_reconstructed = Self::FetchProgress;
@@ -29,7 +29,7 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::FetchProgressAccepted;
-                Action::apply_effect(effect)
+                IntentAccepted::apply_effect(effect).into()
             }
             Self::FetchStatus(fetch_status) => {
                 if model.remote_view.status.is_pending() {
@@ -38,7 +38,7 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::FetchStatusAccepted(fetch_status);
-                Action::apply_effect(effect)
+                IntentAccepted::apply_effect(effect).into()
             }
             Self::StartScanDirectories(start_scan_directories) => {
                 if model.remote_view.last_scan_directories_outcome.is_pending() {
@@ -47,7 +47,7 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::StartScanDirectoriesAccepted(start_scan_directories);
-                Action::apply_effect(effect)
+                IntentAccepted::apply_effect(effect).into()
             }
             Self::StartImportFiles(start_import_files) => {
                 if model.remote_view.last_import_files_outcome.is_pending() {
@@ -56,7 +56,7 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::StartImportFilesAccepted(start_import_files);
-                Action::apply_effect(effect)
+                IntentAccepted::apply_effect(effect).into()
             }
             Self::StartFindUntrackedFiles(start_find_untracked_files) => {
                 if model
@@ -70,7 +70,7 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::StartFindUntrackedFilesAccepted(start_find_untracked_files);
-                Action::apply_effect(effect)
+                IntentAccepted::apply_effect(effect).into()
             }
             Self::UntrackDirectories(untrack_directories) => {
                 if model
@@ -83,9 +83,8 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::UntrackDirectoriesAccepted(untrack_directories);
-                Action::apply_effect(effect)
+                IntentAccepted::apply_effect(effect).into()
             }
-        };
-        IntentHandled::Accepted(Some(next_action))
+        }
     }
 }
