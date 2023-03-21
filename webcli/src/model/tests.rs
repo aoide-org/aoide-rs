@@ -8,8 +8,8 @@ use std::{
 
 use aoide_client::models::media_tracker;
 use infect::{
-    consume_messages, message_channel, process_message, submit_effect, submit_intent,
-    MessageProcessed, MessagesConsumed, TaskContext,
+    consume_messages, message_channel, process_message, MessagePort, MessageProcessed,
+    MessagesConsumed, TaskContext,
 };
 use reqwest::Url;
 
@@ -43,8 +43,9 @@ impl infect::ModelRender for ModelRender {
 fn should_handle_error_and_terminate() {
     let shared_env = Arc::new(test_env());
     let (message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let message_port = MessagePort::new(message_tx);
     let mut task_context = TaskContext {
-        message_tx,
+        message_port,
         task_executor: shared_env,
     };
     let mut model = Model::default();
@@ -65,15 +66,16 @@ fn should_handle_error_and_terminate() {
 #[tokio::test]
 async fn should_catch_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let message_port = MessagePort::new(message_tx);
     let task_context = &mut TaskContext {
-        message_tx: message_tx.clone(),
+        message_port,
         task_executor: shared_env,
     };
     let model = &mut Model::default();
     let model_render = &mut ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    submit_effect(&mut message_tx, effect);
+    task_context.submit_effect(effect);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert_eq!(1, model.last_errors().count());
 }
@@ -82,8 +84,9 @@ async fn should_catch_error_and_terminate() {
 fn should_handle_collection_error_and_terminate() {
     let shared_env = Arc::new(test_env());
     let (message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let message_port = MessagePort::new(message_tx);
     let mut task_context = TaskContext {
-        message_tx,
+        message_port,
         task_executor: shared_env,
     };
     let mut model = Model::default();
@@ -104,15 +107,16 @@ fn should_handle_collection_error_and_terminate() {
 #[tokio::test]
 async fn should_catch_collection_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let message_port = MessagePort::new(message_tx);
     let task_context = &mut TaskContext {
-        message_tx: message_tx.clone(),
+        message_port,
         task_executor: shared_env,
     };
     let model = &mut Model::default();
     let model_render = &mut ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    submit_effect(&mut message_tx, effect);
+    task_context.submit_effect(effect);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert_eq!(1, model.last_errors().count());
 }
@@ -121,8 +125,9 @@ async fn should_catch_collection_error_and_terminate() {
 fn should_handle_media_tracker_error() {
     let shared_env = Arc::new(test_env());
     let (message_tx, _) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let message_port = MessagePort::new(message_tx);
     let task_context = &mut TaskContext {
-        message_tx,
+        message_port,
         task_executor: shared_env,
     };
     let model = &mut Model::default();
@@ -143,15 +148,16 @@ fn should_handle_media_tracker_error() {
 #[tokio::test]
 async fn should_catch_media_tracker_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let message_port = MessagePort::new(message_tx);
     let task_context = &mut TaskContext {
-        message_tx: message_tx.clone(),
+        message_port,
         task_executor: shared_env,
     };
     let model = &mut Model::default();
     let model_render = &mut ModelRender;
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    submit_effect(&mut message_tx, effect);
+    task_context.message_port.submit_effect(effect);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert_eq!(1, model.last_errors().count());
 }
@@ -159,14 +165,15 @@ async fn should_catch_media_tracker_error_and_terminate() {
 #[tokio::test]
 async fn should_terminate_on_intent_when_no_tasks_pending() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let message_port = MessagePort::new(message_tx);
     let task_context = &mut TaskContext {
-        message_tx: message_tx.clone(),
+        message_port,
         task_executor: shared_env,
     };
     let model = &mut Model::default();
     let model_render = &mut ModelRender;
-    submit_intent(&mut message_tx, Intent::Terminate);
+    task_context.submit_intent(Intent::Terminate);
     consume_messages(&mut message_rx, task_context, model, model_render).await;
     assert!(model.last_errors().next().is_none());
 }
@@ -212,21 +219,19 @@ impl infect::ModelRender for TerminationModelRender {
 #[tokio::test]
 async fn should_terminate_on_intent_after_pending_tasks_finished() {
     let shared_env = Arc::new(test_env());
-    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let message_port = MessagePort::new(message_tx);
     let task_context = &mut TaskContext {
-        message_tx: message_tx.clone(),
+        message_port,
         task_executor: Arc::clone(&shared_env),
     };
     let model = &mut Model::default();
     let model_render = &mut TerminationModelRender::new(Arc::clone(&shared_env));
-    submit_intent(
-        &mut message_tx,
-        Intent::Schedule {
-            not_before: Instant::now() + Duration::from_millis(100),
-            intent: Box::new(Intent::RenderModel),
-        },
-    );
-    submit_intent(&mut message_tx, Intent::Terminate);
+    task_context.submit_intent(Intent::Schedule {
+        not_before: Instant::now() + Duration::from_millis(100),
+        intent: Box::new(Intent::RenderModel),
+    });
+    task_context.submit_intent(Intent::Terminate);
     assert_eq!(model.state, State::Running);
     loop {
         let stopped = consume_messages(&mut message_rx, task_context, model, model_render).await;

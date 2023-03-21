@@ -32,15 +32,13 @@ WEBSRV_LOG_DIR=/tmp/
 
 # Database URL (SQLite)
 DATABASE_URL="file:///tmp/aoide.sqlite"
-#DATABASE_URL="file://${HOME}/.mixxx/aoide.sqlite"
 
 # Collection properties
 COLLECTION_TITLE="1st Collection"
-#COLLECTION_KIND="mixxx.org"
 
 # The music directory as a `file://` URL
-COLLECTION_VFS_ROOT_URL="file://${XDG_MUSIC_DIR}/"
-#COLLECTION_VFS_ROOT_URL="file://${XDG_MUSIC_DIR}/Collections/1st"
+#COLLECTION_VFS_ROOT_URL="file://${XDG_MUSIC_DIR}/"
+COLLECTION_VFS_ROOT_URL="file://${XDG_MUSIC_DIR}/Corrupt Tracks"
 
 # The subdirectory or folder within the music directory that the
 # media tracker should actually process. Only needs to be adjusted

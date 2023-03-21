@@ -89,6 +89,7 @@ where
 {
     let id = repo.resolve_playlist_id(playlist_uid)?;
     repo.load_playlist_entity_with_entries(id)
+        .map(|(_, entity_with_entries)| entity_with_entries)
         .map_err(Into::into)
 }
 

@@ -100,10 +100,14 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok((record_header, entity))
     }
 
-    fn load_playlist_entity_with_entries(&mut self, id: RecordId) -> RepoResult<EntityWithEntries> {
-        let (_, entity) = self.load_playlist_entity(id)?;
+    fn load_playlist_entity_with_entries(
+        &mut self,
+        id: RecordId,
+    ) -> RepoResult<(RecordHeader, EntityWithEntries)> {
+        let (record_header, entity) = self.load_playlist_entity(id)?;
         let entries = self.load_all_playlist_entries(id)?;
-        Ok((entity, entries).into())
+        let entity_with_entries = EntityWithEntries::from((entity, entries));
+        Ok((record_header, entity_with_entries))
     }
 
     fn purge_playlist_entity(&mut self, id: RecordId) -> RepoResult<()> {

@@ -29,7 +29,10 @@ pub struct KindFilter<'a> {
 pub trait EntityRepo: EntryRepo {
     entity_repo_trait_common_functions!(RecordId, Entity, EntityUid, EntityHeader, Playlist);
 
-    fn load_playlist_entity_with_entries(&mut self, id: RecordId) -> RepoResult<EntityWithEntries>;
+    fn load_playlist_entity_with_entries(
+        &mut self,
+        id: RecordId,
+    ) -> RepoResult<(RecordHeader, EntityWithEntries)>;
 
     fn load_playlist_entity_with_entries_summary(
         &mut self,

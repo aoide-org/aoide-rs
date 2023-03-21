@@ -33,8 +33,7 @@ use aoide_core_api::{
 };
 use clap::{builder::StyledStr, Arg, ArgMatches, Command};
 use infect::{
-    consume_messages, message_channel, submit_effect, submit_intent, MessagesConsumed, ModelRender,
-    TaskContext,
+    consume_messages, message_channel, MessagePort, MessagesConsumed, ModelRender, TaskContext,
 };
 use model::{EffectApplied, IntentHandled};
 use tokio::signal;
@@ -797,9 +796,10 @@ async fn main() -> anyhow::Result<()> {
         .expect(WEBSRV_URL_ARG);
 
     let shared_env = Arc::new(Environment::new(websrv_url));
-    let (mut message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let (message_tx, mut message_rx) = message_channel(MESSAGE_CHANNEL_CAPACITY);
+    let mut message_port = MessagePort::new(message_tx);
     let mut task_context = TaskContext {
-        message_tx: message_tx.clone(),
+        message_port: message_port.clone(),
         task_executor: Arc::clone(&shared_env),
     };
 
@@ -848,19 +848,19 @@ async fn main() -> anyhow::Result<()> {
 
     // Handle Ctrl-C/SIGINT signals to abort processing
     tokio::spawn({
-        let mut message_tx = message_tx.clone();
+        let mut message_port = message_port.clone();
         async move {
             if let Err(err) = signal::ctrl_c().await {
                 log::error!("Failed to receive Ctrl-C/SIGINT signal: {err}");
             }
             log::info!("Terminating after receiving Ctrl-C/SIGINT...");
-            submit_intent(&mut message_tx, Intent::Terminate);
+            message_port.submit_intent(Intent::Terminate);
         }
     });
 
     // Kick off the loop by sending a first message
     // before awaiting its termination
-    submit_effect(&mut message_tx, Effect::RenderModel);
+    message_port.submit_effect(Effect::RenderModel);
     message_loop.await?;
 
     Ok(())

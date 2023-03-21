@@ -170,7 +170,7 @@ fn prepend_append_entries() -> anyhow::Result<()> {
     // Prepend entry
     let first_separator = new_separator_entry_with_title("First".to_string());
     db.prepend_playlist_entries(playlist_id, &[first_separator.clone()])?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 1, playlist_with_entries.entries.len());
     assert_eq!(
         Some(&first_separator),
@@ -181,7 +181,7 @@ fn prepend_append_entries() -> anyhow::Result<()> {
     // Append entry
     let last_separator = new_separator_entry_with_title("Last".to_string());
     db.append_playlist_entries(playlist_id, &[last_separator.clone()])?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
     assert_eq!(
         Some(&first_separator),
@@ -215,47 +215,47 @@ fn should_not_modify_entries_when_moving_empty_ranges() -> anyhow::Result<()> {
     let playlist_id = db.resolve_playlist_id(&entity_header.uid)?;
 
     db.move_playlist_entries(playlist_id, &(0..0), 0)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     db.move_playlist_entries(playlist_id, &(0..0), 1)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     db.move_playlist_entries(playlist_id, &(0..0), -1)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     db.move_playlist_entries(playlist_id, &(0..0), track_count as isize + 1)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     db.move_playlist_entries(playlist_id, &(0..0), -(track_count as isize + 1))?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     db.move_playlist_entries(playlist_id, &(100..100), 0)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     db.move_playlist_entries(playlist_id, &(100..100), 1)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     db.move_playlist_entries(playlist_id, &(100..100), track_count as isize + 1)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     db.move_playlist_entries(playlist_id, &(100..100), -1)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     db.move_playlist_entries(playlist_id, &(100..100), track_count as isize + 1)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     db.move_playlist_entries(playlist_id, &(100..100), -(track_count as isize + 1))?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     Ok(())
@@ -280,13 +280,13 @@ fn should_not_modify_entries_when_removing_empty_ranges() -> anyhow::Result<()> 
     let playlist_id = db.resolve_playlist_id(&entity_header.uid)?;
 
     db.remove_playlist_entries(playlist_id, &(0..0))?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     // Non-overlapping range
     #[allow(clippy::range_plus_one)]
     db.remove_playlist_entries(playlist_id, &(track_count..track_count + 1))?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     Ok(())
@@ -311,17 +311,17 @@ fn should_not_modify_entries_when_moving_by_zero_delta() -> anyhow::Result<()> {
     let playlist_id = db.resolve_playlist_id(&entity_header.uid)?;
 
     db.move_playlist_entries(playlist_id, &(0..1), 0)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     #[allow(clippy::range_plus_one)]
     db.move_playlist_entries(playlist_id, &(0..track_count + 1), 0)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     #[allow(clippy::range_plus_one)]
     db.move_playlist_entries(playlist_id, &(1..track_count + 1), 0)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     Ok(())
@@ -349,7 +349,7 @@ fn move_entries_forward() -> anyhow::Result<()> {
     assert!(!moved_range.is_empty());
     db.insert_playlist_entries(playlist_id, moved_range.start, &[new_separator_entry()])?;
     db.insert_playlist_entries(playlist_id, moved_range.end - 1, &[new_separator_entry()])?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
     assert!(playlist_with_entries.entries[moved_range.start]
         .item
@@ -361,7 +361,7 @@ fn move_entries_forward() -> anyhow::Result<()> {
     let delta = (track_count / 2) as isize - 1;
     assert!(delta > 0);
     db.move_playlist_entries(playlist_id, &moved_range, delta)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
     assert!(
         playlist_with_entries.entries[(moved_range.start as isize + delta) as usize]
@@ -399,7 +399,7 @@ fn move_entries_forward_beyond_last_element() -> anyhow::Result<()> {
     assert!(!moved_range.is_empty());
     db.insert_playlist_entries(playlist_id, moved_range.start, &[new_separator_entry()])?;
     db.insert_playlist_entries(playlist_id, moved_range.end - 1, &[new_separator_entry()])?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
     assert!(playlist_with_entries.entries[moved_range.start]
         .item
@@ -411,7 +411,7 @@ fn move_entries_forward_beyond_last_element() -> anyhow::Result<()> {
     let delta = (track_count - moved_range.start) as isize + 1;
     assert!(delta > 0);
     db.move_playlist_entries(playlist_id, &moved_range, delta)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
     assert!(
         playlist_with_entries.entries[playlist_with_entries.entries.len() - 1]
@@ -449,7 +449,7 @@ fn move_entries_backward() -> anyhow::Result<()> {
     assert!(!moved_range.is_empty());
     db.insert_playlist_entries(playlist_id, moved_range.start, &[new_separator_entry()])?;
     db.insert_playlist_entries(playlist_id, moved_range.end - 1, &[new_separator_entry()])?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
     assert!(playlist_with_entries.entries[moved_range.start]
         .item
@@ -462,7 +462,7 @@ fn move_entries_backward() -> anyhow::Result<()> {
     let delta = -(moved_range.start as isize - 1);
     assert!(delta < 0);
     db.move_playlist_entries(playlist_id, &moved_range, delta)?;
-    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.into();
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
     assert!(
         playlist_with_entries.entries[(moved_range.start as isize + delta) as usize]
