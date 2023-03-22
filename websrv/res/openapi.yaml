@@ -731,6 +731,8 @@ paths:
       summary: List global playlists that do not belong to a particular collection
       description: |
         Load global playlists that have recently been modified (created/updated).
+
+        For each playlist a summary of all entries is provided.
       tags:
         - Playlists
       parameters:

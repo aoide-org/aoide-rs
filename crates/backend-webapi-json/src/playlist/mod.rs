@@ -18,7 +18,8 @@ mod _core {
 
 pub mod create;
 pub mod entries;
-pub mod load;
+pub mod load_all_with_summary;
+pub mod load_one_with_entries;
 pub mod purge;
 pub mod update;
 

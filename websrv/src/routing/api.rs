@@ -198,23 +198,19 @@ pub(crate) fn create_filters(
             warp::reply::json(&schema)
         });
 
-    let collections_load_one = warp::get()
+    let collections_load_one_with_summary = warp::get()
         .and(collections_path)
         .and(path_param_collection_uid)
         .and(warp::path::end())
-        .and(warp::query())
         .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |uid,
-                  query_params,
-                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+            move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
                 websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |mut pooled_connection, _abort_flag| {
-                        api::collection::load_one::handle_request(
+                        api::collection::load_one_with_summary::handle_request(
                             &mut pooled_connection,
                             &uid,
-                            query_params,
                         )
                     },
                 )
@@ -223,16 +219,14 @@ pub(crate) fn create_filters(
             },
         );
     #[cfg(feature = "json-schema")]
-    let collections_load_one_schema = warp::get()
+    let collections_load_one_with_summary_schema = warp::get()
         .and(schema_get_path)
         .and(collections_path)
         .and(path_param_collection_uid)
         .and(warp::path::end())
         .map(|_uid| {
-            let query_schema = schema_for!(api::collection::load_one::QueryParams);
-            let response_schema = schema_for!(api::collection::load_one::ResponseBody);
+            let response_schema = schema_for!(api::collection::load_one_with_summary::ResponseBody);
             let schema = serde_json::json!({
-                "query": query_schema,
                 "response": response_schema,
             });
             warp::reply::json(&schema)
@@ -270,7 +264,7 @@ pub(crate) fn create_filters(
         });
 
     let collections_filters = collections_load_all
-        .or(collections_load_one)
+        .or(collections_load_one_with_summary)
         .or(collections_load_all_kinds)
         .or(collections_create)
         .or(collections_update)
@@ -279,7 +273,7 @@ pub(crate) fn create_filters(
     #[cfg(feature = "json-schema")]
     let collections_filters = collections_filters
         .or(collections_load_all_schema)
-        .or(collections_load_one_schema)
+        .or(collections_load_one_with_summary_schema)
         .or(collections_load_all_kinds_schema)
         .or(collections_create_schema)
         .or(collections_update_schema);
@@ -859,7 +853,27 @@ pub(crate) fn create_filters(
                 })
             },
         );
-    let playlists_list = warp::get()
+    let playlists_load_one_with_entries = warp::get()
+        .and(playlists_path)
+        .and(path_param_playlist_uid)
+        .and(warp::path::end())
+        .and(shared_connection_gatekeeper.clone())
+        .and_then(
+            move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                websrv::spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |mut pooled_connection, _abort_flag| {
+                        api::playlist::load_one_with_entries::handle_request(
+                            &mut pooled_connection,
+                            &uid,
+                        )
+                    },
+                )
+                .await
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
+    let playlists_load_all_with_summary = warp::get()
         .and(playlists_path)
         .and(warp::path::end())
         .and(warp::query())
@@ -870,7 +884,7 @@ pub(crate) fn create_filters(
                 websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |mut pooled_connection, _abort_flag| {
-                        api::playlist::load::handle_request(
+                        api::playlist::load_all_with_summary::handle_request(
                             &mut pooled_connection,
                             None,
                             query_params,
@@ -956,7 +970,8 @@ pub(crate) fn create_filters(
     let playlists_filters = playlists_create
         .or(playlists_update)
         .or(playlists_delete)
-        .or(playlists_list)
+        .or(playlists_load_one_with_entries)
+        .or(playlists_load_all_with_summary)
         .or(playlists_entries_patch);
 
     let collected_playlists_create = warp::post()
@@ -986,7 +1001,7 @@ pub(crate) fn create_filters(
                 })
             },
         );
-    let collected_playlists_list = warp::get()
+    let collected_playlists_load_all_with_summary = warp::get()
         .and(collections_path)
         .and(path_param_collection_uid)
         .and(playlists_path)
@@ -1003,7 +1018,7 @@ pub(crate) fn create_filters(
                 websrv::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |mut pooled_connection, _abort_flag| {
-                        api::playlist::load::handle_request(
+                        api::playlist::load_all_with_summary::handle_request(
                             &mut pooled_connection,
                             Some(collection_filter),
                             query_params,
@@ -1014,7 +1029,8 @@ pub(crate) fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let collected_playlists_filters = collected_playlists_create.or(collected_playlists_list);
+    let collected_playlists_filters =
+        collected_playlists_create.or(collected_playlists_load_all_with_summary);
 
     // Storage
     let storage_get_pending_tasks = warp::get()
