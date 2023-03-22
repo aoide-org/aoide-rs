@@ -87,7 +87,7 @@ pub async fn load_one(
         .unwrap_or_else(Err)
 }
 
-/// Load a multiple entities, each with a summary of their entries
+/// Load multiple entities, each with a summary of their entries
 pub async fn load_all(
     db_gatekeeper: &Gatekeeper,
     collection_filter: Option<CollectionFilter<'static>>,
