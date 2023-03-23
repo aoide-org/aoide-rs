@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use super::{Effect, FetchResultPage, IntentAccepted, IntentHandled, Model, Reset};
+use super::{Effect, FetchResultPage, IntentHandled, Model, Reset};
 
 #[derive(Debug)]
 pub enum Intent {
@@ -10,7 +10,7 @@ pub enum Intent {
 }
 
 impl Intent {
-    pub fn apply_on(self, model: &mut Model) -> IntentHandled {
+    pub fn handle_on(self, model: &mut Model) -> IntentHandled {
         log::trace!("Applying intent {self:?} on {model:?}");
         match self {
             Self::Reset(reset) => {
@@ -20,7 +20,7 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::Reset(reset);
-                IntentAccepted::apply_effect(effect).into()
+                effect.apply_on(model).into()
             }
             Self::FetchResultPage(fetch_result_page) => {
                 if !model.can_fetch_results() {
@@ -29,7 +29,7 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::FetchResultPageAccepted(fetch_result_page);
-                IntentAccepted::apply_effect(effect).into()
+                effect.apply_on(model).into()
             }
         }
     }

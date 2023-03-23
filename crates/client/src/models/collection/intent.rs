@@ -4,7 +4,7 @@
 use aoide_core::collection::{Collection, EntityUid};
 
 use super::{
-    Effect, FetchFilteredEntities, IntentAccepted, IntentHandled, Model, PendingTask, Task,
+    Effect, EffectApplied, FetchFilteredEntities, IntentHandled, Model, PendingTask, Task,
 };
 
 #[derive(Debug)]
@@ -17,7 +17,7 @@ pub enum Intent {
 
 impl Intent {
     #[must_use]
-    pub fn apply_on(self, model: &Model) -> IntentHandled {
+    pub fn handle_on(self, model: &mut Model) -> IntentHandled {
         log::trace!("Applying intent {self:?} on {model:?}");
         match self {
             Self::FetchAllKinds => {
@@ -28,7 +28,7 @@ impl Intent {
                 }
                 let task = PendingTask::FetchAllKinds;
                 let effect = Effect::PendingTaskAccepted { task };
-                IntentAccepted::apply_effect(effect).into()
+                effect.apply_on(model).into()
             }
             Self::FetchFilteredEntities(FetchFilteredEntities { filter_by_kind }) => {
                 if model.remote_view.all_kinds.is_pending() {
@@ -39,7 +39,7 @@ impl Intent {
                 let task =
                     PendingTask::FetchFilteredEntities(FetchFilteredEntities { filter_by_kind });
                 let effect = Effect::PendingTaskAccepted { task };
-                IntentAccepted::apply_effect(effect).into()
+                effect.apply_on(model).into()
             }
             Self::ActivateEntity { entity_uid } => {
                 if model.remote_view.all_kinds.is_pending() {
@@ -48,12 +48,11 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::ActiveEntityUidUpdated { entity_uid };
-                IntentAccepted::apply_effect(effect).into()
+                effect.apply_on(model).into()
             }
             Self::CreateEntity { new_collection } => {
                 let task = Task::CreateEntity { new_collection };
-                log::debug!("Dispatching task {task:?}");
-                IntentAccepted::spawn_task(task).into()
+                EffectApplied::unchanged(task).into()
             }
         }
     }

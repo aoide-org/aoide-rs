@@ -20,7 +20,6 @@ pub enum Effect {
     MediaTracker(media_tracker::Effect),
     FindUnsynchronizedTracksFinished(anyhow::Result<Vec<UnsynchronizedTrackEntity>>),
     ExportTracksFinished(anyhow::Result<()>),
-    RenderModel,
     AbortPendingRequest(Option<State>),
 }
 
@@ -101,7 +100,6 @@ impl Effect {
                     EffectApplied::unchanged_done()
                 }
             }
-            Self::RenderModel => EffectApplied::maybe_changed_done(), // enforce re-rendering
             Self::AbortPendingRequest(state) => {
                 let mut effect_applied = model
                     .abort_pending_request_effect()

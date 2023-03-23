@@ -19,8 +19,8 @@ pub(crate) mod task;
 pub(crate) use self::task::Task;
 
 pub(crate) type Message = infect::Message<Intent, Effect>;
-pub(crate) type IntentHandled = infect::IntentHandled<Intent, Effect, Task>;
-pub(crate) type IntentAccepted = infect::IntentAccepted<Effect, Task>;
+pub(crate) type IntentRejected = Intent;
+pub(crate) type IntentHandled = infect::IntentHandled<IntentRejected, Task>;
 pub(crate) type EffectApplied = infect::EffectApplied<Task>;
 
 impl From<Intent> for Message {
@@ -85,17 +85,15 @@ impl Model {
 
 impl ClientModel for Model {
     type Intent = Intent;
-    type IntentRejected = Intent;
+    type IntentRejected = IntentRejected;
     type Effect = Effect;
     type Task = Task;
 
-    fn handle_intent(&self, intent: Self::Intent) -> IntentHandled {
-        log::debug!("Handling {intent:?} on state {self:?}");
-        intent.apply_on(self)
+    fn handle_intent(&mut self, intent: Self::Intent) -> IntentHandled {
+        intent.handle_on(self)
     }
 
     fn apply_effect(&mut self, effect: Self::Effect) -> EffectApplied {
-        log::debug!("Updating state {self:?} with {effect:?}");
         effect.apply_on(self)
     }
 }

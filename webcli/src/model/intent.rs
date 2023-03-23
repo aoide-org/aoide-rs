@@ -5,9 +5,7 @@ use std::{num::NonZeroUsize, time::Instant};
 
 use aoide_client::models::{collection, media_source, media_tracker};
 
-use super::{
-    CollectionUid, Effect, ExportTracksParams, IntentAccepted, IntentHandled, Model, Task,
-};
+use super::{CollectionUid, Effect, EffectApplied, ExportTracksParams, IntentHandled, Model, Task};
 use crate::model::State;
 
 #[derive(Debug)]
@@ -53,97 +51,85 @@ impl From<media_tracker::Intent> for Intent {
 
 impl Intent {
     #[must_use]
-    pub fn apply_on(self, model: &Model) -> IntentHandled {
+    pub fn handle_on(self, model: &mut Model) -> IntentHandled {
         log::debug!("Applying {self:?} on {model:?}");
         match self {
             Self::RenderModel => {
-                IntentHandled::Accepted(IntentAccepted::apply_effect(Effect::RenderModel))
+                // Enforce re-rendering by considering the unchanged model as (maybe) changed
+                IntentHandled::Accepted(EffectApplied::maybe_changed_done())
             }
             Self::Schedule { not_before, intent } => {
-                if model.state == State::Running {
-                    let next_action =
-                        IntentAccepted::spawn_task(Task::ScheduleIntent { not_before, intent });
-                    IntentHandled::accepted(next_action)
-                } else {
+                if model.state != State::Running {
                     let self_reconstructed = Self::Schedule { not_before, intent };
-                    log::debug!("Discarding intent while not running: {self_reconstructed:?}");
-                    IntentHandled::Rejected(self_reconstructed)
+                    return IntentHandled::Rejected(self_reconstructed);
                 }
+                let task = Task::ScheduleIntent { not_before, intent };
+                IntentHandled::Accepted(EffectApplied::unchanged(task))
             }
             Self::DiscardFirstErrors(num_errors_requested) => {
-                let num_errors =
-                    NonZeroUsize::new(num_errors_requested.get().min(model.last_errors.len()));
-                if let Some(num_errors) = num_errors {
-                    if num_errors < num_errors_requested {
-                        debug_assert!(num_errors_requested.get() > 1);
-                        log::debug!(
-                            "Discarding only {num_errors} instead of {num_errors_requested} errors"
-                        );
-                    }
-                    IntentAccepted::apply_effect(Effect::FirstErrorsDiscarded(num_errors)).into()
-                } else {
-                    log::debug!("No errors to discard");
-                    IntentAccepted::NoEffect.into()
+                let Some(num_errors) =
+                    NonZeroUsize::new(num_errors_requested.get().min(model.last_errors.len())) else {
+                        return IntentHandled::Rejected(Self::DiscardFirstErrors(num_errors_requested));
+                    };
+                if num_errors < num_errors_requested {
+                    debug_assert!(num_errors_requested.get() > 1);
+                    log::debug!(
+                        "Discarding only {num_errors} instead of {num_errors_requested} errors"
+                    );
                 }
+                let effect = Effect::FirstErrorsDiscarded(num_errors);
+                IntentHandled::Accepted(effect.apply_on(model))
             }
             Self::AbortPendingRequest => {
-                let effect = model.abort_pending_request_effect();
-                effect
-                    .map(IntentAccepted::ApplyEffect)
-                    .unwrap_or(IntentAccepted::NoEffect)
-                    .into()
+                let Some(effect) = model.abort_pending_request_effect() else {
+                    return IntentHandled::Rejected(Self::AbortPendingRequest);
+                };
+                IntentHandled::Accepted(effect.apply_on(model))
             }
             Self::Terminate => {
-                if model.state == State::Terminating {
-                    // Already terminating, nothing to do
-                    return IntentAccepted::NoEffect.into();
+                if model.state != State::Running {
+                    return IntentHandled::Rejected(Self::Terminate);
                 }
-                IntentAccepted::apply_effect(Effect::AbortPendingRequest(Some(State::Terminating)))
-                    .into()
+                let effect = Effect::AbortPendingRequest(Some(State::Terminating));
+                IntentHandled::Accepted(effect.apply_on(model))
             }
             Self::ActiveCollection(intent) => {
                 if model.state != State::Running {
-                    let self_reconstructed = Self::ActiveCollection(intent);
-                    log::debug!("Discarding intent while not running: {self_reconstructed:?}");
-                    return IntentHandled::Rejected(self_reconstructed);
+                    return IntentHandled::Rejected(Self::ActiveCollection(intent));
                 }
-                intent.apply_on(&model.active_collection).map_into()
+                intent.handle_on(&mut model.active_collection).map_into()
             }
             Self::MediaSources(intent) => {
                 if model.state != State::Running {
-                    let self_reconstructed = Self::MediaSources(intent);
-                    log::debug!("Discarding intent while not running: {self_reconstructed:?}");
-                    return IntentHandled::Rejected(self_reconstructed);
+                    return IntentHandled::Rejected(Self::MediaSources(intent));
                 }
-                intent.apply_on(&model.media_sources).map_into()
+                intent.handle_on(&mut model.media_sources).map_into()
             }
             Self::MediaTracker(intent) => {
                 if model.state != State::Running {
-                    let self_reconstructed = Self::MediaTracker(intent);
-                    log::debug!("Discarding intent while not running: {self_reconstructed:?}");
-                    return IntentHandled::Rejected(self_reconstructed);
+                    return IntentHandled::Rejected(Self::MediaTracker(intent));
                 }
-                intent.apply_on(&model.media_tracker).map_into()
+                intent.handle_on(&mut model.media_tracker).map_into()
             }
             Self::FindUnsynchronizedTracks {
                 collection_uid,
                 params,
             } => {
-                let next_action = IntentAccepted::spawn_task(Task::FindUnsynchronizedTracks {
+                let task = Task::FindUnsynchronizedTracks {
                     collection_uid,
                     params,
-                });
-                IntentHandled::accepted(next_action)
+                };
+                IntentHandled::Accepted(EffectApplied::unchanged(task))
             }
             Self::ExportTracks {
                 collection_uid,
                 params,
             } => {
-                let next_action = IntentAccepted::spawn_task(Task::ExportTracks {
+                let task = Task::ExportTracks {
                     collection_uid,
                     params,
-                });
-                IntentHandled::accepted(next_action)
+                };
+                IntentHandled::Accepted(EffectApplied::unchanged(task))
             }
         }
     }

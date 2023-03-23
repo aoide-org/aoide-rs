@@ -13,8 +13,8 @@ pub use self::effect::Effect;
 pub mod task;
 pub use self::task::Task;
 
-pub type IntentHandled = infect::IntentHandled<Intent, Effect, Task>;
-pub type IntentAccepted = infect::IntentAccepted<Effect, Task>;
+pub type IntentRejected = Intent;
+pub type IntentHandled = infect::IntentHandled<IntentRejected, Task>;
 pub type EffectApplied = infect::EffectApplied<Task>;
 
 #[derive(Debug, Clone)]

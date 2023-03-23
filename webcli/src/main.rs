@@ -85,8 +85,8 @@ impl infect::Model for CliModel {
     type Effect = Effect;
     type Task = Task;
 
-    fn handle_intent(&self, intent: Self::Intent) -> IntentHandled {
-        intent.apply_on(&self.model)
+    fn handle_intent(&mut self, intent: Self::Intent) -> IntentHandled {
+        intent.handle_on(&mut self.model)
     }
 
     fn apply_effect(&mut self, effect: Self::Effect) -> EffectApplied {
@@ -860,7 +860,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Kick off the loop by sending a first message
     // before awaiting its termination
-    message_port.submit_effect(Effect::RenderModel);
+    message_port.submit_intent(Intent::RenderModel);
     message_loop.await?;
 
     Ok(())

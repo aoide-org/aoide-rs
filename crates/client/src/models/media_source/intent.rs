@@ -1,9 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use super::{
-    CollectionUid, Effect, IntentAccepted, IntentHandled, Model, PurgeOrphaned, PurgeUntracked,
-};
+use super::{CollectionUid, Effect, IntentHandled, Model, PurgeOrphaned, PurgeUntracked};
 
 #[derive(Debug)]
 pub enum Intent {
@@ -19,7 +17,7 @@ pub enum Intent {
 
 impl Intent {
     #[must_use]
-    pub fn apply_on(self, model: &Model) -> IntentHandled {
+    pub fn handle_on(self, model: &mut Model) -> IntentHandled {
         log::trace!("Applying intent {self:?} on {model:?}");
         match self {
             Self::PurgeOrphaned {
@@ -39,7 +37,7 @@ impl Intent {
                     params,
                 };
                 let effect = Effect::PurgeOrphanedAccepted(purge_orphaned);
-                IntentAccepted::apply_effect(effect).into()
+                effect.apply_on(model).into()
             }
             Self::PurgeUntracked {
                 collection_uid,
@@ -58,7 +56,7 @@ impl Intent {
                     params,
                 };
                 let effect = Effect::PurgeUntrackedAccepted(purge_untracked);
-                IntentAccepted::apply_effect(effect).into()
+                effect.apply_on(model).into()
             }
         }
     }
