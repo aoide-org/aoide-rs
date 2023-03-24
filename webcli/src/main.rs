@@ -33,7 +33,8 @@ use aoide_core_api::{
 };
 use clap::{builder::StyledStr, Arg, ArgMatches, Command};
 use infect::{
-    consume_messages, message_channel, MessagePort, MessagesConsumed, ModelRender, TaskContext,
+    consume_messages, message_channel, MessagePort, MessagesConsumed, ModelChanged, ModelRender,
+    TaskContext,
 };
 use model::{EffectApplied, IntentHandled};
 use tokio::signal;
@@ -84,6 +85,7 @@ impl infect::Model for CliModel {
     type IntentRejected = Intent;
     type Effect = Effect;
     type Task = Task;
+    type RenderHint = ModelChanged;
 
     fn handle_intent(&mut self, intent: Self::Intent) -> IntentHandled {
         intent.handle_on(&mut self.model)
@@ -123,7 +125,9 @@ impl ModelRender for RenderCliModel {
     fn render_model(
         &mut self,
         cli_model: &Self::Model,
+        model_changed: ModelChanged,
     ) -> Option<<Self::Model as infect::Model>::Intent> {
+        debug_assert_eq!(ModelChanged::MaybeChanged, model_changed);
         let Self {
             app_usage,
             collection_uid,
@@ -306,32 +310,27 @@ impl ModelRender for RenderCliModel {
 
         // Only submit a single subcommand
         if *subcommand_submitted {
-            let next_intent = if !model.is_terminating() && !model.is_pending() {
-                // Terminate when idle and no task is pending
-                Some(Intent::Terminate)
-            } else {
-                // Periodically refetch and report progress while busy
-                if model.media_tracker.remote_view().is_pending() {
-                    if let Some(last_fetched) = last_media_tracker_progress_fetched {
-                        let now = Instant::now();
-                        if now >= *last_fetched {
-                            let not_before = now + PROGRESS_POLLING_PERIOD;
-                            *last_media_tracker_progress_fetched = Some(not_before);
-                            let intent = Intent::Schedule {
-                                not_before,
-                                intent: Box::new(media_tracker::Intent::FetchProgress.into()),
-                            };
-                            Some(intent)
-                        } else {
-                            None
-                        }
+            // Periodically refetch and report progress while busy
+            let next_intent = if !model.is_terminating() {
+                if let Some(last_fetched) = last_media_tracker_progress_fetched {
+                    let now = Instant::now();
+                    if now >= *last_fetched {
+                        let not_before = now + PROGRESS_POLLING_PERIOD;
+                        *last_media_tracker_progress_fetched = Some(not_before);
+                        let intent = Intent::Schedule {
+                            not_before,
+                            intent: Box::new(media_tracker::Intent::FetchProgress.into()),
+                        };
+                        Some(intent)
                     } else {
-                        *last_media_tracker_progress_fetched = Some(Instant::now());
-                        Some(media_tracker::Intent::FetchProgress.into())
+                        None
                     }
                 } else {
-                    None
+                    *last_media_tracker_progress_fetched = Some(Instant::now());
+                    Some(media_tracker::Intent::FetchProgress.into())
                 }
+            } else {
+                None
             };
             return next_intent;
         }
@@ -818,30 +817,43 @@ async fn main() -> anyhow::Result<()> {
         last_media_tracker_untrack_directories_outcome: None,
         subcommand_submitted: false,
     };
-    let message_loop = async move {
-        loop {
-            match consume_messages(
-                &mut message_rx,
-                &mut task_context,
-                &mut model,
-                &mut render_model,
-            )
-            .await
-            {
-                MessagesConsumed::IntentRejected(intent) => {
-                    log::warn!("Continuing message loop after intent rejected: {intent:?}");
-                    continue;
-                }
-                MessagesConsumed::ChannelClosed => (),
-                MessagesConsumed::NoProgress => {
-                    if !shared_env.all_tasks_finished() {
-                        log::info!("Continuing message loop until all tasks finished");
-                        continue;
+    let message_loop = {
+        let mut message_port = message_port.clone();
+        async move {
+            let message_port = &mut message_port;
+            loop {
+                match consume_messages(
+                    &mut message_rx,
+                    &mut task_context,
+                    &mut model,
+                    &mut render_model,
+                )
+                .await
+                {
+                    MessagesConsumed::IntentRejected(intent) => match intent {
+                        Intent::MediaTracker(media_tracker::Intent::FetchProgress) => {
+                            message_port.submit_intent(Intent::Terminate);
+                            continue;
+                        }
+                        Intent::Terminate => {
+                            debug_assert!(model.model.is_terminating());
+                        }
+                        _ => {
+                            log::warn!("Continuing message loop after intent rejected: {intent:?}");
+                            continue;
+                        }
+                    },
+                    MessagesConsumed::ChannelClosed => (),
+                    MessagesConsumed::NoProgress => {
+                        if !shared_env.all_tasks_finished() {
+                            log::info!("Continuing message loop until all tasks finished");
+                            continue;
+                        }
                     }
                 }
+                log::info!("Exiting message loop");
+                break;
             }
-            log::info!("Exiting message loop");
-            break;
         }
     };
     let message_loop = tokio::spawn(message_loop);

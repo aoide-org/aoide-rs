@@ -3,7 +3,7 @@
 
 use std::sync::{atomic::AtomicUsize, Arc};
 
-use aoide_client::webapi::ClientEnvironment;
+use aoide_client::{models::media_tracker, webapi::ClientEnvironment};
 use infect::{TaskContext, TaskExecutor};
 use reqwest::{Client, Url};
 
@@ -55,17 +55,29 @@ impl TaskExecutor<Arc<Environment>> for Environment {
         mut context: TaskContext<Arc<Environment>, Self::Intent, Self::Effect>,
         task: Self::Task,
     ) {
-        let started_pending_task = self.pending_tasks_counter.start_task();
-        debug_assert!(started_pending_task > 0);
-        if started_pending_task == 1 {
-            log::debug!("Started first pending task");
-        }
+        let finish_task = match task {
+            Task::MediaTracker(media_tracker::Task::Pending {
+                token: _,
+                task: media_tracker::PendingTask::FetchProgress,
+            }) => {
+                // This periodic task should not prevent termination while pending!
+                false
+            }
+            _ => {
+                let started_pending_task = self.pending_tasks_counter.start_task();
+                debug_assert!(started_pending_task > 0);
+                if started_pending_task == 1 {
+                    log::debug!("Started first pending task");
+                }
+                true
+            }
+        };
         tokio::spawn(async move {
             log::debug!("Executing task {task:?}");
             let message = task.execute(&*context.task_executor).await;
             log::debug!("Task finished with message: {message:?}");
             context.submit_message(message);
-            if context.task_executor.pending_tasks_counter.finish_task() == 0 {
+            if finish_task && context.task_executor.pending_tasks_counter.finish_task() == 0 {
                 log::debug!("Finished last pending task");
             }
         });

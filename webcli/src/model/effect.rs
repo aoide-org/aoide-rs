@@ -101,11 +101,11 @@ impl Effect {
                 }
             }
             Self::AbortPendingRequest(state) => {
-                let mut effect_applied = model
-                    .abort_pending_request_effect()
-                    .map_or_else(EffectApplied::unchanged_done, |effect| {
-                        effect.apply_on(model)
-                    });
+                let mut effect_applied = if model.abort_pending_request_effect().is_some() {
+                    EffectApplied::unchanged(Task::AbortPendingRequest)
+                } else {
+                    EffectApplied::unchanged_done()
+                };
                 let Some(state) = state else {
                     return effect_applied;
                 };
@@ -113,7 +113,7 @@ impl Effect {
                     return effect_applied;
                 }
                 model.state = state;
-                effect_applied.model_changed = ModelChanged::MaybeChanged;
+                effect_applied.render_hint = ModelChanged::MaybeChanged;
                 effect_applied
             }
         }

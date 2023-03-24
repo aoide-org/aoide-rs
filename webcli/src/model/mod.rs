@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_client::models::{collection, media_source, media_tracker};
-use infect::Model as ClientModel;
+use infect::{Model as ClientModel, ModelChanged};
 
 pub(crate) mod effect;
 use std::path::PathBuf;
@@ -20,8 +20,8 @@ pub(crate) use self::task::Task;
 
 pub(crate) type Message = infect::Message<Intent, Effect>;
 pub(crate) type IntentRejected = Intent;
-pub(crate) type IntentHandled = infect::IntentHandled<IntentRejected, Task>;
-pub(crate) type EffectApplied = infect::EffectApplied<Task>;
+pub(crate) type IntentHandled = infect::IntentHandled<IntentRejected, Task, ModelChanged>;
+pub(crate) type EffectApplied = infect::EffectApplied<Task, ModelChanged>;
 
 impl From<Intent> for Message {
     fn from(intent: Intent) -> Self {
@@ -88,6 +88,7 @@ impl ClientModel for Model {
     type IntentRejected = IntentRejected;
     type Effect = Effect;
     type Task = Task;
+    type RenderHint = ModelChanged;
 
     fn handle_intent(&mut self, intent: Self::Intent) -> IntentHandled {
         intent.handle_on(self)

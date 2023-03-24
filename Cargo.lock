@@ -702,13 +702,13 @@ dependencies = [
 
 [[package]]
 name = "bytemuck_derive"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1aca418a974d83d40a0c1f0c5cba6ff4bc28d8df099109ca459a2118d40b6322"
+checksum = "fdde5c9cd29ebd706ce1b35600920a33550e402fc998a2e53ad3b42c3c47a192"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.8",
 ]
 
 [[package]]
@@ -799,11 +799,11 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.1.11"
+version = "4.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42dfd32784433290c51d92c438bb72ea5063797fc3cc9a21a8c4346bebbb2098"
+checksum = "3c911b090850d79fc64fe9ea01e28e465f65e821e08813ced95bced72f7a8a9b"
 dependencies = [
- "bitflags 2.0.2",
+ "bitflags 1.3.2",
  "clap_lex",
  "is-terminal",
  "strsim",
@@ -1954,9 +1954,9 @@ dependencies = [
 
 [[package]]
 name = "infect"
-version = "0.0.22"
+version = "0.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fa3a7d6a935385b5845e4190c7b98f1040fc070e3e11061aae11a0a7230471b"
+checksum = "aa99de2bd2dfaaf2ebb329f5cf02af4ff6de6218beba50f44056b1a41c502b61"
 dependencies = [
  "futures",
  "log",
@@ -2143,7 +2143,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.11.0"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#18933087d539df498333cb9e9da365d667081ace"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#8a389c4005186da9c1c4517a9d72794ad9851ade"
 dependencies = [
  "base64 0.21.0",
  "byteorder",

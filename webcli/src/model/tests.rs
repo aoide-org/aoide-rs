@@ -34,7 +34,9 @@ impl infect::ModelRender for ModelRender {
     fn render_model(
         &mut self,
         _model: &Self::Model,
+        model_changed: ModelChanged,
     ) -> Option<<Self::Model as ClientModel>::Intent> {
+        assert_eq!(ModelChanged::MaybeChanged, model_changed);
         None
     }
 }
@@ -198,7 +200,9 @@ impl infect::ModelRender for TerminationModelRender {
     fn render_model(
         &mut self,
         model: &Self::Model,
+        model_changed: ModelChanged,
     ) -> Option<<Self::Model as ClientModel>::Intent> {
+        assert_eq!(ModelChanged::MaybeChanged, model_changed);
         let last_invocation_count = self
             .invocation_count
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);

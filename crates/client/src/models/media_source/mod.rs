@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::CollectionUid;
+use infect::ModelChanged;
 
 use crate::util::remote::RemoteData;
 
@@ -15,8 +16,8 @@ pub mod task;
 pub use self::task::{PendingTask, Task};
 
 pub type IntentRejected = Intent;
-pub type IntentHandled = infect::IntentHandled<IntentRejected, Task>;
-pub type EffectApplied = infect::EffectApplied<Task>;
+pub type IntentHandled = infect::IntentHandled<IntentRejected, Task, ModelChanged>;
+pub type EffectApplied = infect::EffectApplied<Task, ModelChanged>;
 
 #[derive(Debug, Clone)]
 pub struct PurgeOrphaned {

@@ -3,6 +3,7 @@
 
 use aoide_core::{track::Entity, CollectionUid};
 use aoide_core_api::{track::search::Params, Pagination};
+use infect::ModelChanged;
 
 pub mod intent;
 pub use self::intent::Intent;
@@ -14,8 +15,8 @@ pub mod task;
 pub use self::task::Task;
 
 pub type IntentRejected = Intent;
-pub type IntentHandled = infect::IntentHandled<IntentRejected, Task>;
-pub type EffectApplied = infect::EffectApplied<Task>;
+pub type IntentHandled = infect::IntentHandled<IntentRejected, Task, ModelChanged>;
+pub type EffectApplied = infect::EffectApplied<Task, ModelChanged>;
 
 #[derive(Debug, Clone)]
 pub struct Reset {

@@ -25,7 +25,14 @@ impl Intent {
             Self::FetchProgress => {
                 if model.remote_view.progress.is_pending() {
                     let self_reconstructed = Self::FetchProgress;
-                    log::warn!("Discarding intent while already pending: {self_reconstructed:?}");
+                    log::info!("Discarding intent while already pending: {self_reconstructed:?}");
+                    return IntentHandled::Rejected(self_reconstructed);
+                }
+                if !model.remote_view.is_pending() {
+                    let self_reconstructed = Self::FetchProgress;
+                    log::info!(
+                        "Discarding intent while no other request pending: {self_reconstructed:?}"
+                    );
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let effect = Effect::FetchProgressAccepted;

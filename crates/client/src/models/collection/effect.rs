@@ -3,16 +3,13 @@
 
 use aoide_core::collection::{Entity, EntityUid};
 
-use super::{EffectApplied, Model, PendingTask, Task};
+use super::{EffectApplied, Model};
 use crate::util::roundtrip::PendingToken;
 
 #[derive(Debug)]
 pub enum Effect {
     ActiveEntityUidUpdated {
         entity_uid: Option<EntityUid>,
-    },
-    PendingTaskAccepted {
-        task: PendingTask,
     },
     FetchAllKindsFinished {
         token: PendingToken,
@@ -41,13 +38,6 @@ impl Effect {
                 }
                 model.set_active_entity_uid(entity_uid);
                 EffectApplied::maybe_changed_done()
-            }
-            Self::PendingTaskAccepted { task } => {
-                debug_assert!(!model.remote_view().is_pending());
-                model.last_error = None;
-                let token = model.remote_view.all_kinds.start_pending_now();
-                let task = Task::Pending { token, task };
-                EffectApplied::maybe_changed(task)
             }
             Self::FetchAllKindsFinished { token, result } => match result {
                 Ok(all_kinds) => {
