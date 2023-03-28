@@ -13,14 +13,13 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.70"
-ctrlc = { version = "3.2.5", features = ["termination"] }
 directories = "5.0.0"
 discro = { version = "0.8.0", features = ["tokio"] }
 dotenvy = "0.15.7"
 log = { version = "0.4.17", features = ["release_max_level_debug"] }
 parking_lot = "0.12.1"
 ron = "0.8.0"
-serde = { version = "1.0.158", features = ["derive"] }
+serde = { version = "1.0.159", features = ["derive"] }
 serde_json = "1.0.95"
 thiserror = "1.0.40"
 time = { version = "0.3.20", features = ["serde-human-readable"] }

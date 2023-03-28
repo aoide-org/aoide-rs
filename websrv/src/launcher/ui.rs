@@ -20,7 +20,7 @@ use rfd::FileDialog;
 
 use crate::{
     app_dirs, join_runtime_thread, launcher::State as LauncherState,
-    runtime::State as RuntimeState, save_app_config, LauncherMutex,
+    runtime::State as RuntimeState, save_app_config, shutdown_signal, LauncherMutex,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -386,17 +386,16 @@ impl eframe::App for App {
 
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
         if matches!(self.state, State::Setup) {
-            log::info!("Registering signal handler for Ctrl-C");
-            if let Err(err) = ctrlc::set_handler({
-                let ctx = ctx.clone();
-                let exit_flag = Arc::clone(&self.exit_flag);
-                move || {
-                    exit_flag.store(true, Ordering::Release);
-                    ctx.request_repaint();
-                }
-            }) {
-                log::error!("Failed to register signal handler for Ctrl-C: {err}");
-                self.exit_flag.store(true, Ordering::Release);
+            if let Some(rt_handle) = self.launcher.lock().runtime_handle() {
+                rt_handle.spawn({
+                    let ctx = ctx.clone();
+                    let exit_flag = Arc::clone(&self.exit_flag);
+                    async move {
+                        shutdown_signal().await;
+                        exit_flag.store(true, Ordering::Release);
+                        ctx.request_repaint();
+                    }
+                });
             }
             // The transition from Setup to Idle must only occur once!
             self.state = State::Idle;

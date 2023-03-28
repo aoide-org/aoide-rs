@@ -32,6 +32,7 @@ use std::{
 };
 
 use directories::ProjectDirs;
+use tokio::signal;
 
 use crate::{
     config::Config,
@@ -189,29 +190,33 @@ fn main() {
 fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exit: bool) {
     log::info!("Running headless");
 
-    log::info!("Registering signal handler for Ctrl-C");
-    if let Err(err) = ctrlc::set_handler({
-        let launcher = Arc::clone(&launcher);
-        move || {
-            if let Err(err) = launcher.lock().terminate_runtime(true) {
-                log::error!("Failed to terminate runtime: {err}");
-            }
-        }
-    }) {
-        log::error!("Failed to register signal handler: {err}");
-    }
-
     log::info!("Launching runtime");
-    let runtime_thread = match launcher.lock().launch_runtime(config, |state| {
-        if let State::Running(RuntimeState::Listening { socket_addr }) = state {
-            // Publish socket address on stdout
-            println!("{socket_addr}");
-        }
-    }) {
-        Ok(join_handle) => join_handle,
-        Err(err) => {
-            log::error!("Failed to launch runtime: {err}");
-            return;
+    let runtime_thread = {
+        let mut launcher_locked = launcher.lock();
+        match launcher_locked.launch_runtime(config, |state| {
+            if let State::Running(RuntimeState::Listening { socket_addr }) = state {
+                // Publish socket address on stdout
+                println!("{socket_addr}");
+            }
+        }) {
+            Ok(join_handle) => {
+                if let Some(rt_handle) = launcher_locked.runtime_handle() {
+                    rt_handle.spawn({
+                        let launcher = Arc::clone(&launcher);
+                        async move {
+                            shutdown_signal().await;
+                            if let Err(err) = launcher.lock().terminate_runtime(true) {
+                                log::error!("Failed to terminate runtime: {err}");
+                            }
+                        }
+                    });
+                }
+                join_handle
+            }
+            Err(err) => {
+                log::error!("Failed to launch runtime: {err}");
+                return;
+            }
         }
     };
 
@@ -229,4 +234,32 @@ fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exi
     }
 
     log::info!("Exiting");
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        log::info!("Installing Ctrl+C signal handler");
+        signal::ctrl_c()
+            .await
+            .expect("installed Ctrl+C signal handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        log::info!("Installing termination signal handler");
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("installed termination signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    log::info!("Listening for shutdown signals");
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+    log::info!("Received shutdown signal");
 }

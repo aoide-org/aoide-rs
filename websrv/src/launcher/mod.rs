@@ -30,7 +30,7 @@ enum InternalState {
         runtime_command_tx: mpsc::UnboundedSender<RuntimeCommand>,
 
         // Keep the Tokio runtime alive while running.
-        _tokio_rt: Box<tokio::runtime::Runtime>,
+        runtime: Box<tokio::runtime::Runtime>,
     },
 }
 
@@ -59,10 +59,17 @@ impl Launcher {
 
     #[must_use]
     pub(crate) fn config(&self) -> Option<&Config> {
-        if let InternalState::Running { config, .. } = &self.state {
-            Some(config)
-        } else {
-            None
+        match &self.state {
+            InternalState::Idle => None,
+            InternalState::Running { config, .. } => Some(config),
+        }
+    }
+
+    #[must_use]
+    pub(crate) fn runtime_handle(&self) -> Option<&tokio::runtime::Handle> {
+        match &self.state {
+            InternalState::Idle => None,
+            InternalState::Running { runtime, .. } => Some(runtime.handle()),
         }
     }
 
@@ -75,10 +82,10 @@ impl Launcher {
             anyhow::bail!("Invalid state: {:?}", self.state());
         }
 
-        let tokio_rt = tokio::runtime::Runtime::new()?;
+        let runtime = tokio::runtime::Runtime::new()?;
 
         let (current_state_tx, current_state_rx) = discro::new_pubsub(State::Idle);
-        tokio_rt.spawn({
+        runtime.spawn({
             let mut current_state_rx = current_state_rx.clone();
             async move {
                 while current_state_rx.changed().await.is_ok() {
@@ -92,12 +99,12 @@ impl Launcher {
         let (runtime_command_tx, runtime_command_rx) = mpsc::unbounded_channel();
         let (current_runtime_state_tx, current_runtime_state_rx) = discro::new_pubsub(None);
         let join_handle = std::thread::spawn({
-            let tokio_rt = tokio_rt.handle().clone();
+            let tokio_rt = runtime.handle().clone();
             let config = config.clone();
             move || tokio_rt.block_on(run(config, runtime_command_rx, current_runtime_state_tx))
         });
 
-        tokio_rt.spawn({
+        runtime.spawn({
             debug_assert!(matches!(*current_state_rx.read(), State::Idle));
             let mut current_runtime_state_rx = current_runtime_state_rx;
             async move {
@@ -115,7 +122,7 @@ impl Launcher {
             config,
             current_state_rx,
             runtime_command_tx,
-            _tokio_rt: Box::new(tokio_rt),
+            runtime: Box::new(runtime),
         };
 
         Ok(join_handle)

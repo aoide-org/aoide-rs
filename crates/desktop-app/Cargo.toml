@@ -17,7 +17,7 @@ highway = { version = "1.0.0" }
 log = "0.4.17"
 rfd = { version = "0.11.3", default-features = false, features = ["xdg-portal"] }
 ron = "0.8.0"
-serde = { version = "1.0.158", features = ["derive"] }
+serde = { version = "1.0.159", features = ["derive"] }
 tokio = { version = "1.27.0", default-features = false }
 unnest = "0.3.1"
 url = { version = "2.3.1", features = ["serde"] }
