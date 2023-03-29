@@ -223,6 +223,7 @@ paths:
         - $ref: "#/components/parameters/collectionUidPath"
         - $ref: "#/components/parameters/resolveMediaSourceUrlFromContentPathQuery"
         - $ref: "#/components/parameters/overrideMediaSourceRootUrlQuery"
+        - $ref: "#/components/parameters/encodeGigtagsQuery"
         - $ref: "#/components/parameters/paginationOffsetQuery"
         - $ref: "#/components/parameters/paginationLimitQuery"
       requestBody:
@@ -1105,6 +1106,15 @@ components:
       required: false
       schema:
         $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
+    encodeGigtagsQuery:
+      name: encodeGigtags
+      description: |
+        Encode all custom tags as gig tags in the grouping tag.
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
     collectionUidPath:
       name: collectionUid
       in: path

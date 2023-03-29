@@ -30,8 +30,13 @@ async fn fetch_result_page<E: ClientEnvironment>(
     collection_uid: &CollectionUid,
     request: FetchResultPageRequest,
 ) -> anyhow::Result<FetchResultPageResponse> {
-    let FetchResultPageRequest { params, pagination } = request;
-    let (query_params, search_params) = client_request_params(params, pagination.clone());
+    let FetchResultPageRequest {
+        params,
+        encode_gigtags,
+        pagination,
+    } = request;
+    let (query_params, search_params) =
+        client_request_params(params, encode_gigtags, pagination.clone());
     let query_params_urlencoded = serde_urlencoded::to_string(query_params)?;
     let request_url = env.join_api_url(&format!(
         "c/{collection_uid}/t/search?{query_params_urlencoded}",

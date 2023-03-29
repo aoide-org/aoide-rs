@@ -232,6 +232,29 @@ impl<'a> Tags<'a> {
             .iter()
             .fold(plain.len(), |sum, faceted| sum + faceted.tags.len())
     }
+
+    pub fn split_off_faceted_tags<'b>(
+        &mut self,
+        facet_ids: impl Iterator<Item = &'b FacetId<'b>> + Clone + ExactSizeIterator,
+    ) -> Vec<FacetedTags<'a>> {
+        let mut facets = Vec::with_capacity(facet_ids.len());
+        self.facets.retain_mut(|faceted_tags| {
+            for facet_id in facet_ids.clone() {
+                if *facet_id != faceted_tags.facet_id {
+                    continue;
+                }
+                let mut facet = FacetedTags {
+                    facet_id: FacetId::new("".into()),
+                    tags: Default::default(),
+                };
+                std::mem::swap(faceted_tags, &mut facet);
+                facets.push(facet);
+                return false;
+            }
+            true
+        });
+        facets
+    }
 }
 
 impl IsCanonical for Tags<'_> {
@@ -635,6 +658,10 @@ impl<'a> TagsMap<'a> {
         all_tags
             .remove(&FacetKey::from(facet_id))
             .map(|tags| tags.len())
+    }
+
+    pub fn facet_keys(&self) -> impl Iterator<Item = &FacetKey<'_>> {
+        self.0.keys()
     }
 }
 

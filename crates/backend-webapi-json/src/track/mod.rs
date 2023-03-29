@@ -1,12 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::track::EntityUid;
+use aoide_core::{
+    tag::FacetedTags,
+    track::{tag::FACET_ID_GROUPING, EntityUid},
+};
 use aoide_core_json::track::Entity;
+use aoide_media::fmt::encode_gig_tags;
 use aoide_repo::{
     prelude::{RecordCollector, ReservableRecordCollector},
     track::RecordHeader,
 };
+use nonicle::Canonical;
 
 use super::*;
 
@@ -28,26 +33,54 @@ const DEFAULT_PAGINATION: Pagination = Pagination {
     offset: None,
 };
 
-#[derive(Debug, Default)]
-pub struct EntityCollector(Vec<Entity>);
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct TrackQueryParams {
+    pub encode_gigtags: Option<bool>,
+}
+
+fn new_request_id() -> Uuid {
+    Uuid::new_v4()
+}
+
+#[derive(Debug, Clone)]
+pub struct EntityCollectorConfig {
+    pub capacity: Option<usize>,
+
+    pub encode_gigtags: bool,
+}
+
+#[derive(Debug)]
+pub struct EntityCollector {
+    encode_gigtags: bool,
+
+    collected: Vec<Entity>,
+}
 
 impl EntityCollector {
     #[must_use]
-    pub const fn new(inner: Vec<Entity>) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub fn with_capacity(capacity: usize) -> Self {
-        let inner = Vec::with_capacity(capacity);
-        Self(inner)
+    pub fn new(config: EntityCollectorConfig) -> Self {
+        let EntityCollectorConfig {
+            capacity,
+            encode_gigtags,
+        } = config;
+        let collected = if let Some(capacity) = capacity {
+            Vec::with_capacity(capacity)
+        } else {
+            Vec::new()
+        };
+        Self {
+            encode_gigtags,
+            collected,
+        }
     }
 }
 
 impl From<EntityCollector> for Vec<Entity> {
     fn from(from: EntityCollector) -> Self {
-        let EntityCollector(inner) = from;
-        inner
+        let EntityCollector { collected, .. } = from;
+        collected
     }
 }
 
@@ -55,15 +88,38 @@ impl RecordCollector for EntityCollector {
     type Header = RecordHeader;
     type Record = _core::Entity;
 
-    fn collect(&mut self, _record_header: RecordHeader, entity: _core::Entity) {
-        let Self(inner) = self;
-        inner.push(entity.into());
+    fn collect(&mut self, _record_header: RecordHeader, mut entity: _core::Entity) {
+        let Self {
+            collected,
+            encode_gigtags,
+        } = self;
+        if *encode_gigtags {
+            let mut tags = std::mem::take(&mut entity.body.track.tags).untie();
+            let mut grouping_tags = tags
+                .facets
+                .iter()
+                .enumerate()
+                .find_map(|(index, faceted_tags)| {
+                    (faceted_tags.facet_id == *FACET_ID_GROUPING).then_some(index)
+                })
+                .map(|index| tags.facets.remove(index).tags)
+                .unwrap_or_default();
+            let mut tags = Canonical::tie(tags);
+            encode_gig_tags(&mut tags, &mut grouping_tags).expect("no error");
+            let mut tags = tags.untie();
+            tags.facets.push(FacetedTags {
+                facet_id: FACET_ID_GROUPING.clone(),
+                tags: grouping_tags,
+            });
+            entity.body.track.tags = Canonical::tie(tags);
+        }
+        collected.push(entity.into());
     }
 }
 
 impl ReservableRecordCollector for EntityCollector {
     fn reserve(&mut self, additional: usize) {
-        let Self(inner) = self;
-        inner.reserve(additional);
+        let Self { collected, .. } = self;
+        collected.reserve(additional);
     }
 }

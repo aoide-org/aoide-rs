@@ -111,7 +111,7 @@ async fn find_unsynchronized_tracks<E: ClientEnvironment>(
         resolve_url_from_content_path,
         content_path_predicate,
     } = params;
-    let query_params = client_query_params(resolve_url_from_content_path, no_pagination);
+    let query_params = client_query_params(resolve_url_from_content_path, false, no_pagination);
     let query_params_urlencoded = serde_urlencoded::to_string(query_params)?;
     let request_url = env.join_api_url(&format!(
         "c/{collection_uid}/t/find-unsynchronized?{query_params_urlencoded}",
@@ -139,7 +139,7 @@ async fn export_tracks<E: ClientEnvironment>(
         offset: Some(0),
         limit: None, // unlimited
     };
-    let (query_params, search_params) = client_request_params(search_params, no_pagination);
+    let (query_params, search_params) = client_request_params(search_params, false, no_pagination);
     let query_params_urlencoded = serde_urlencoded::to_string(query_params)?;
     let request_url = env.join_api_url(&format!(
         "c/{collection_uid}/t/search?{query_params_urlencoded}"

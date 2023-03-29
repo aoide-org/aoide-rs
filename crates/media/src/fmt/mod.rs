@@ -15,7 +15,7 @@ use aoide_core::{
     },
     music::tempo::TempoBpm,
     prelude::*,
-    tag::{FacetKey, FacetedTags, Label, PlainTag, Score as TagScore, TagsMap},
+    tag::{FacetId, FacetKey, FacetedTags, Label, PlainTag, Score as TagScore, Tags, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
@@ -72,6 +72,40 @@ pub(crate) mod opus;
 pub(crate) mod vorbis;
 
 const ENCODER_FIELD_SEPARATOR: &str = "|";
+
+/// All facets that could be stored as native file tags.
+pub const FILE_TAG_FACETS_WITHOUT_GROUPING: &[&FacetId<'_>] = &[
+    FACET_ID_COMMENT,
+    FACET_ID_DESCRIPTION,
+    FACET_ID_GENRE,
+    FACET_ID_GROUPING,
+    FACET_ID_ISRC,
+    FACET_ID_MBID_RECORDING,
+    FACET_ID_MBID_RELEASE,
+    FACET_ID_MBID_RELEASE_GROUP,
+    FACET_ID_MBID_TRACK,
+    FACET_ID_MOOD,
+    FACET_ID_XID,
+];
+
+#[cfg(feature = "gigtag")]
+pub fn encode_gig_tags(
+    tags: &mut Canonical<Tags<'_>>,
+    encoded_tags: &mut Vec<PlainTag<'_>>,
+) -> std::fmt::Result {
+    let mut remaining_tags = std::mem::take(tags).untie();
+    let facets =
+        remaining_tags.split_off_faceted_tags(FILE_TAG_FACETS_WITHOUT_GROUPING.iter().copied());
+    let remaining_tags = Canonical::tie(remaining_tags);
+    *tags = Canonical::tie(Tags {
+        facets,
+        plain: Default::default(),
+    });
+    crate::util::gigtag::export_and_encode_tags_into(
+        remaining_tags.as_canonical_ref(),
+        encoded_tags,
+    )
+}
 
 pub(crate) fn parse_options() -> ParseOptions {
     ParseOptions::new()
@@ -1303,10 +1337,20 @@ pub(crate) fn export_track_to_tag(
             .take_faceted_tags(facet_id)
             .map(|FacetedTags { facet_id: _, tags }| tags)
             .unwrap_or_default();
+        // Verify that FILE_TAG_FACETS is consistent with the code.
+        debug_assert!(tags_map.facet_keys().all(|facet_key| {
+            let Some(facet_id) = facet_key.as_ref() else {
+                // Plain tag
+                return true;
+            };
+            FILE_TAG_FACETS_WITHOUT_GROUPING
+                .iter()
+                .all(|file_tag_facet_id| *file_tag_facet_id != facet_id)
+        }));
         #[cfg(feature = "gigtag")]
         if config.flags.contains(ExportTrackFlags::GIGTAGS) {
             let remaining_tags = tags_map.canonicalize_into();
-            if let Err(err) = crate::util::gigtag::export_and_encode_remaining_tags_into(
+            if let Err(err) = crate::util::gigtag::export_and_encode_tags_into(
                 remaining_tags.as_canonical_ref(),
                 &mut tags,
             ) {

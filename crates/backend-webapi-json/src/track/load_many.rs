@@ -18,7 +18,11 @@ pub fn handle_request(
     connection: &mut DbConnection,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    let mut collector = EntityCollector::with_capacity(request_body.len());
+    let collector_config = EntityCollectorConfig {
+        capacity: Some(request_body.len()),
+        encode_gigtags: false,
+    };
+    let mut collector = EntityCollector::new(collector_config);
     connection.transaction::<_, Error, _>(|connection| {
         uc::load_many(
             connection,

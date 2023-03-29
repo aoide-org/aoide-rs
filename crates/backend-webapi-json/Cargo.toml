@@ -14,6 +14,7 @@ publish = false
 anyhow = "1.0.70"
 diesel = { version = "2.0.3", default-features = false, features = ["sqlite"] }
 log = "0.4.17"
+nonicle = "0.1.0"
 serde = { version = "1.0.159" }
 thiserror = "1.0.40"
 url = "2.3.1"
@@ -31,7 +32,7 @@ aoide-core = { version = "=0.8.0", features = ["serde"] }
 aoide-core-api = "=0.8.0"
 aoide-core-json = "=0.8.0"
 aoide-core-api-json = { version = "=0.8.0", features = ["backend"] }
-aoide-media = "=0.8.0"
+aoide-media = { version = "=0.8.0", features = ["gigtag"] }
 aoide-repo = "=0.8.0"
 aoide-repo-sqlite = "=0.8.0"
 aoide-usecases = "=0.8.0"

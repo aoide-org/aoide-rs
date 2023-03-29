@@ -32,6 +32,7 @@ pub struct FetchResultPage {
 #[derive(Debug, Clone)]
 pub struct FetchResultPageRequest {
     pub params: Params,
+    pub encode_gigtags: bool,
     pub pagination: Pagination,
 }
 

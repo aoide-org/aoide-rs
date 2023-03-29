@@ -105,14 +105,14 @@ pub fn update_tags_in_encoded(
 }
 
 #[allow(clippy::needless_pass_by_value)] // consume remaining_tags
-pub fn export_and_encode_remaining_tags_into(
-    remaining_tags: Canonical<&Tags<'_>>,
+pub fn export_and_encode_tags_into(
+    tags: Canonical<&Tags<'_>>,
     encoded_tags: &mut Vec<PlainTag<'_>>,
 ) -> std::fmt::Result {
     if encoded_tags.len() == 1 {
         let PlainTag { label, score } = encoded_tags.drain(..).next().expect("exactly one item");
         let mut encoded = label.unwrap_or_default().into_inner();
-        crate::util::gigtag::update_tags_in_encoded(remaining_tags, &mut encoded)?;
+        crate::util::gigtag::update_tags_in_encoded(tags, &mut encoded)?;
         let tag = PlainTag {
             label: aoide_core::tag::Label::clamp_from(encoded),
             score,
@@ -120,7 +120,7 @@ pub fn export_and_encode_remaining_tags_into(
         *encoded_tags = vec![tag];
     } else {
         let mut encoded = Cow::Owned(String::new());
-        crate::util::gigtag::update_tags_in_encoded(remaining_tags, &mut encoded)?;
+        crate::util::gigtag::update_tags_in_encoded(tags, &mut encoded)?;
         let tag = PlainTag {
             label: aoide_core::tag::Label::clamp_from(encoded),
             ..Default::default()

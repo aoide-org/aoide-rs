@@ -30,6 +30,7 @@ pub fn handle_request(
     let QueryParams {
         resolve_url_from_content_path,
         override_root_url,
+        encode_gigtags: _,
         limit,
         offset,
     } = query_params;

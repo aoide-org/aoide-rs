@@ -38,6 +38,7 @@ pub fn handle_request(
     let QueryParams {
         resolve_url_from_content_path,
         override_root_url,
+        encode_gigtags,
         limit,
         offset,
     } = query_params;
@@ -71,7 +72,17 @@ pub fn handle_request(
         filter: filter.map(Into::into),
         ordering: ordering.into_iter().map(Into::into).collect(),
     };
-    let mut collector = EntityCollector::default();
+    let collector_config = EntityCollectorConfig {
+        capacity: limit.and_then(|limit| {
+            if limit > 0 {
+                limit.try_into().ok()
+            } else {
+                None
+            }
+        }),
+        encode_gigtags: encode_gigtags.unwrap_or(false),
+    };
+    let mut collector = EntityCollector::new(collector_config);
     connection.transaction::<_, Error, _>(|connection| {
         uc::search(
             connection,

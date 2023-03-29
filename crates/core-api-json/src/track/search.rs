@@ -627,6 +627,9 @@ pub struct QueryParams {
     pub override_root_url: Option<Url>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub encode_gigtags: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<PaginationLimit>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -654,6 +657,7 @@ pub struct SearchParams {
 #[cfg(feature = "frontend")]
 pub fn client_query_params(
     resolve_url_from_content_path: Option<aoide_core_api::media::source::ResolveUrlFromContentPath>,
+    encode_gigtags: bool,
     pagination: impl Into<Pagination>,
 ) -> QueryParams {
     use aoide_core_api::media::source::ResolveUrlFromContentPath;
@@ -672,6 +676,7 @@ pub fn client_query_params(
     QueryParams {
         resolve_url_from_content_path: Some(resolve_url_from_content_path),
         override_root_url: override_root_url.map(Into::into),
+        encode_gigtags: Some(encode_gigtags),
         limit,
         offset,
     }
@@ -680,6 +685,7 @@ pub fn client_query_params(
 #[cfg(feature = "frontend")]
 pub fn client_request_params(
     params: _inner::Params,
+    encode_gigtags: bool,
     pagination: impl Into<Pagination>,
 ) -> (QueryParams, SearchParams) {
     let _inner::Params {
@@ -687,7 +693,8 @@ pub fn client_request_params(
         filter,
         ordering,
     } = params;
-    let query_params = client_query_params(resolve_url_from_content_path, pagination);
+    let query_params =
+        client_query_params(resolve_url_from_content_path, encode_gigtags, pagination);
     let search_params = SearchParams {
         filter: filter.map(Into::into),
         ordering: ordering.into_iter().map(Into::into).collect(),
