@@ -48,7 +48,7 @@ pub enum Error {
 
     #[cfg(feature = "tokio")]
     #[error(transparent)]
-    TaskScheduling(#[from] ::tokio::task::JoinError),
+    TaskScheduling(#[from] tokio::task::JoinError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

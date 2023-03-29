@@ -466,7 +466,6 @@ dependencies = [
  "log",
  "serde",
  "thiserror",
- "tokio",
  "warp",
 ]
 

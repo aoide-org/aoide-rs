@@ -39,7 +39,6 @@ use aoide_storage_sqlite::{
 use aoide_usecases_sqlite as uc;
 use serde::Serialize;
 use thiserror::Error;
-use tokio::task::JoinError;
 use warp::{
     body::BodyDeserializeError,
     http::StatusCode,
@@ -110,12 +109,6 @@ impl From<db::Error> for Error {
             TaskTimeout { reason } => Self::Timeout { reason },
             Other(err) => Self::Other(err),
         }
-    }
-}
-
-impl From<JoinError> for Error {
-    fn from(err: JoinError) -> Self {
-        Self::Other(err.into())
     }
 }
 
