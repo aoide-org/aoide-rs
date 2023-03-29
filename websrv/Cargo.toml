@@ -50,7 +50,7 @@ rfd = { version = "0.11.3", optional = true, default-features = false, features 
 aoide-backend-webapi-json = "=0.8.0"
 aoide-core = { version = "=0.8.0", features = ["serde"] }
 aoide-repo-sqlite = "=0.8.0"
-aoide-storage-sqlite = { version = "=0.8.0", features = ["serde", "tokio"] }
+aoide-storage-sqlite = { version = "=0.8.0", features = ["serde", "sqlite-bundled", "tokio"] }
 aoide-usecases = "=0.8.0"
 aoide-usecases-sqlite = "=0.8.0"
 aoide-websrv-warp-sqlite = "=0.8.0"
