@@ -3433,11 +3433,12 @@ components:
       allOf:
         - $ref: "#/components/schemas/Index"
     TrackScope:
-      type: integer
-      enum: [0, 1]
+      type: string
+      enum:
+        - track
+        - album
       description: |
-        * 0 = track
-        * 1 = album
+        The scope of a field or property in a track.
     TrackSearchAllFilterNode:
       type: object
       properties:
