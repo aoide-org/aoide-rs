@@ -8,7 +8,7 @@ use aoide_core::{
     tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, Tags, TagsMap},
 };
 use compact_str::{format_compact, CompactString};
-use gigtag::facet::Facet as _;
+use gigtag::facet::{has_date_like_suffix, Facet as _};
 
 pub type Facet = gigtag::facet::CompactFacet;
 
@@ -42,8 +42,10 @@ fn try_export_plain_tag(facet: Facet, plain_tag: &PlainTag<'_>) -> Option<Tag> {
     } else {
         Default::default()
     };
-    // A default score could only be omitted if the tag has a label!
-    let score = (plain_tag.score != Default::default() || label.is_empty()).then(|| Property {
+    // A default score could only be omitted if the tag has a label or a date-like facet!
+    let score = (plain_tag.score != Default::default()
+        || (label.is_empty() && !has_date_like_suffix(&facet)))
+    .then(|| Property {
         name: gigtag::props::Name::from_str(SCORE_PROP_NAME),
         value: format_compact!("{score}", score = plain_tag.score.value()),
     });

@@ -325,3 +325,19 @@ fn encode_decode_roundtrip_with_valid_tags() {
     let decoded_tags = decoded_tags.canonicalize_into();
     assert_eq!(tags, decoded_tags);
 }
+
+#[test]
+fn encode_date_like_facet_should_omit_default_score() {
+    let mut tags_map = TagsMap::default();
+    tags_map.insert(
+        FacetKey::new(FacetId::clamp_from("@20230330")),
+        Default::default(),
+    );
+    let tags = tags_map.canonicalize_into();
+    assert!(tags.is_valid());
+
+    let mut encoded = Cow::Owned(String::new());
+    assert!(update_tags_in_encoded(tags.as_canonical_ref(), &mut encoded).is_ok());
+    println!("encoded = {encoded}");
+    assert_eq!("@20230330", encoded);
+}
