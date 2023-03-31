@@ -15,7 +15,7 @@ anyhow = "1.0.70"
 log = "0.4.17"
 serde = "1.0.159"
 thiserror = "1.0.40"
-warp = { version = "0.3.3", default-features = false }
+warp = { version = "0.3.4", default-features = false }
 
 # Workspace dependencies
 aoide-backend-webapi-json = "=0.8.0"

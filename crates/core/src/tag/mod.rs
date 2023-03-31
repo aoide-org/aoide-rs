@@ -233,10 +233,10 @@ impl<'a> Tags<'a> {
             .fold(plain.len(), |sum, faceted| sum + faceted.tags.len())
     }
 
-    pub fn split_off_faceted_tags<'b>(
-        &mut self,
-        facet_ids: impl Iterator<Item = &'b FacetId<'b>> + Clone + ExactSizeIterator,
-    ) -> Vec<FacetedTags<'a>> {
+    pub fn split_off_faceted_tags<'b, I>(&mut self, facet_ids: &I) -> Vec<FacetedTags<'a>>
+    where
+        I: Iterator<Item = &'b FacetId<'b>> + Clone + ExactSizeIterator,
+    {
         let mut facets = Vec::with_capacity(facet_ids.len());
         self.facets.retain_mut(|faceted_tags| {
             for facet_id in facet_ids.clone() {

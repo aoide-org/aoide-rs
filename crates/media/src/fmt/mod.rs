@@ -95,7 +95,7 @@ pub fn encode_gig_tags(
 ) -> std::fmt::Result {
     let mut remaining_tags = std::mem::take(tags).untie();
     let facets =
-        remaining_tags.split_off_faceted_tags(FILE_TAG_FACETS_WITHOUT_GROUPING.iter().copied());
+        remaining_tags.split_off_faceted_tags(&FILE_TAG_FACETS_WITHOUT_GROUPING.iter().copied());
     let remaining_tags = Canonical::tie(remaining_tags);
     *tags = Canonical::tie(Tags {
         facets,
