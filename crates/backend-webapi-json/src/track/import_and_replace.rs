@@ -6,7 +6,7 @@ use std::sync::atomic::AtomicBool;
 use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
 use aoide_core_api_json::media::{tracker::import_files::ImportedSourceWithIssues, SyncMode};
 use aoide_core_json::track::{Entity, Track};
-use aoide_media::io::import::ImportTrackConfig;
+use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
 use super::{replace::ReplaceMode, *};
 
@@ -111,6 +111,9 @@ pub struct QueryParams {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub replace_mode: Option<ReplaceMode>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decode_gigtags: Option<bool>,
 }
 
 pub type RequestBody = Vec<String>;
@@ -138,15 +141,21 @@ pub fn handle_request(
     let QueryParams {
         sync_mode,
         replace_mode,
+        decode_gigtags,
     } = query_params;
     let sync_mode = sync_mode.unwrap_or(SyncMode::Modified);
     let replace_mode = replace_mode.unwrap_or(ReplaceMode::UpdateOrCreate);
     // FIXME: Replace hard-coded tag mapping config
     let faceted_tag_mapping_config = predefined_faceted_tag_mapping_config();
-    let import_config = ImportTrackConfig {
+    let mut import_config = ImportTrackConfig {
         faceted_tag_mapping: faceted_tag_mapping_config,
         ..Default::default()
     };
+    if let Some(decode_gigtags) = decode_gigtags {
+        import_config
+            .flags
+            .set(ImportTrackFlags::GIGTAGS, decode_gigtags);
+    }
     let params = uc::Params {
         sync_mode: sync_mode.into(),
         import_config,

@@ -531,6 +531,25 @@ impl<'a> TagsMap<'a> {
         }
     }
 
+    pub fn insert_many(&mut self, key: impl Into<FacetKey<'a>>, mut tags: Vec<PlainTag<'a>>) {
+        use std::collections::hash_map::*;
+        let Self(inner) = self;
+        match inner.entry(key.into()) {
+            Entry::Occupied(mut entry) => {
+                entry.get_mut().append(&mut tags);
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(tags);
+            }
+        }
+    }
+
+    pub fn merge(&mut self, other: Self) {
+        for (key, tags) in other.into_inner() {
+            self.insert_many(key, tags);
+        }
+    }
+
     pub fn count(&mut self, facet_id: &FacetId<'a>) -> usize {
         let Self(inner) = self;
         inner.get(&FacetKey::from(facet_id)).map_or(0, Vec::len)
@@ -540,6 +559,11 @@ impl<'a> TagsMap<'a> {
     pub fn total_count(&self) -> usize {
         let Self(inner) = self;
         inner.values().fold(0, |sum, tags| sum + tags.len())
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.total_count() == 0
     }
 }
 

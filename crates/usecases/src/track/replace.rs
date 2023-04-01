@@ -15,6 +15,7 @@ use super::*;
 use crate::collection::vfs::{ContentPathContext, RepoContext};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Params {
     pub mode: ReplaceMode,
 
@@ -29,6 +30,16 @@ pub struct Params {
     /// Set or update the synchronized revision if the media source
     /// has a synchronization time stamp
     pub update_last_synchronized_rev: bool,
+
+    /// Decode gig tags
+    ///
+    /// Decode all custom tags that are not supported as native file tags
+    /// from the "cgrp" (content group/grouping) tag when creating/updating
+    /// tags.
+    ///
+    /// This options is useful for interoperability with applications that
+    /// only support the common file tags and for file synchronization.
+    pub decode_gigtags: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,9 +120,12 @@ pub fn replace_many_by_media_source_content_path<Repo>(
 where
     Repo: aoide_repo::collection::EntityRepo + TrackCollectionRepo,
 {
+    use aoide_core::{tag::TagsMap, track::tag::FACET_ID_GROUPING};
+
     let Params {
         mode: replace_mode,
         resolve_path_from_url,
+        decode_gigtags,
         preserve_collected_at,
         update_last_synchronized_rev,
     } = params;
@@ -149,6 +163,15 @@ where
                     anyhow::anyhow!("Failed to resolve local file path from URL '{url}': {err}")
                 })
                 .map_err(Error::from)?;
+        }
+        if *decode_gigtags {
+            let mut tags_map: TagsMap<'static> = track.tags.untie().into();
+            if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_ID_GROUPING) {
+                let decoded_gig_tags =
+                    aoide_media::util::gigtag::import_from_faceted_tags(faceted_tags);
+                tags_map.merge(decoded_gig_tags);
+            }
+            track.tags = tags_map.canonicalize_into();
         }
         replace_collected_track_by_media_source_content_path(
             &mut summary,

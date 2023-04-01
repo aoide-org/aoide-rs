@@ -760,6 +760,7 @@ pub(crate) fn import_file_tag_into_track(
     #[cfg(feature = "gigtag")]
     if config.flags.contains(ImportTrackFlags::GIGTAGS) {
         if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_ID_GROUPING) {
+            debug_assert!(tags_map.is_empty());
             tags_map = crate::util::gigtag::import_from_faceted_tags(faceted_tags);
         }
     }

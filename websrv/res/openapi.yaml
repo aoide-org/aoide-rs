@@ -254,6 +254,7 @@ paths:
         - $ref: "#/components/parameters/collectionUidPath"
         - $ref: "#/components/parameters/replaceCollectedTrackModeQuery"
         - $ref: "#/components/parameters/resolveMediaContentPathFromUrlQuery"
+        - $ref: "#/components/parameters/decodeGigtagsQuery"
       requestBody:
         required: true
         content:
@@ -280,6 +281,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/collectionUidPath"
         - $ref: "#/components/parameters/replaceCollectedTrackModeQuery"
+        - $ref: "#/components/parameters/decodeGigtagsQuery"
       requestBody:
         required: true
         content:
@@ -1109,7 +1111,25 @@ components:
     encodeGigtagsQuery:
       name: encodeGigtags
       description: |
-        Encode all custom tags as gig tags in the grouping tag.
+        Encode all custom tags that are not supported as native file tags
+        into the "cgrp" (content group/grouping) tag.
+
+        This options is useful for interoperability with applications that
+        only support the common file tags and for file synchronization.
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    decodeGigtagsQuery:
+      name: decodeGigtags
+      description: |
+        Decode all custom tags that are not supported as native file tags
+        from the "cgrp" (content group/grouping) tag when creating/updating
+        tags.
+
+        This options is useful for interoperability with applications that
+        only support the common file tags and for file synchronization.
       in: query
       required: false
       schema:

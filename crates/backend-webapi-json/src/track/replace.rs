@@ -78,6 +78,9 @@ pub struct QueryParams {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolve_path_from_url: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decode_gigtags: Option<bool>,
 }
 
 pub type RequestBody = Vec<Track>;
@@ -93,12 +96,14 @@ pub fn handle_request(
     let QueryParams {
         mode,
         resolve_path_from_url,
+        decode_gigtags,
     } = query_params;
     let replace_mode = mode.unwrap_or(ReplaceMode::UpdateOrCreate);
     let resolve_path_from_url = resolve_path_from_url.unwrap_or(false);
     let params = uc::Params {
         mode: replace_mode.into(),
         resolve_path_from_url,
+        decode_gigtags: decode_gigtags.unwrap_or(false),
         preserve_collected_at: true,
         update_last_synchronized_rev: false,
     };
