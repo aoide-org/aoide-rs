@@ -7,7 +7,7 @@ use discro::{tasklet::OnChanged, Subscriber};
 use unnest::{some_or_return, some_or_return_with};
 
 use super::{FetchStateTag, ObservableState, State};
-use crate::{collection, environment::WeakHandle};
+use crate::{collection, WeakHandle};
 
 pub fn on_should_prefetch_trigger(
     subscriber: Subscriber<State>,
@@ -52,7 +52,7 @@ pub fn on_should_prefetch(
         .map(|observable| observable.subscribe());
     async move {
         let observable_state_sub = some_or_return!(observable_state_sub);
-        log::debug!("Starting on_should_prefetch_prefetch");
+        log::debug!("Starting on_should_prefetch");
         on_should_prefetch_trigger_async(observable_state_sub, move || {
             let observable_state = observable_state.clone();
             let handle = handle.clone();
@@ -69,7 +69,7 @@ pub fn on_should_prefetch(
             }
         })
         .await;
-        log::debug!("Stopping on_should_prefetch_prefetch");
+        log::debug!("Stopping on_should_prefetch");
     }
 }
 

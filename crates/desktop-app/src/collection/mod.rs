@@ -27,7 +27,7 @@ use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
 use url::Url;
 
-use crate::{environment::Handle, fs::DirPath};
+use crate::{fs::DirPath, Environment, Handle};
 
 pub mod tasklet;
 
@@ -71,11 +71,11 @@ pub enum NestedMusicDirectoriesStrategy {
 }
 
 async fn try_refresh_entity_from_db(
-    handle: &Handle,
+    environment: &Environment,
     entity_uid: EntityUid,
 ) -> anyhow::Result<Option<EntityWithSummary>> {
     aoide_backend_embedded::collection::try_load_one(
-        handle.db_gatekeeper(),
+        environment.db_gatekeeper(),
         entity_uid.clone(),
         ENTITY_LOAD_SCOPE,
     )
@@ -148,7 +148,7 @@ fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
 }
 
 impl RestoreOrCreateState {
-    pub async fn restore_or_create(self, handle: &Handle) -> anyhow::Result<State> {
+    pub async fn restore_or_create(self, environment: &Environment) -> anyhow::Result<State> {
         let Self {
             kind,
             music_dir,
@@ -170,7 +170,7 @@ impl RestoreOrCreateState {
             kind: Some(kind.to_owned().into()),
         });
         let candidates = aoide_backend_embedded::collection::load_all(
-            handle.db_gatekeeper(),
+            environment.db_gatekeeper(),
             kind_filter.clone(),
             Some(media_source_root_url_filter),
             ENTITY_LOAD_SCOPE,
@@ -212,7 +212,7 @@ impl RestoreOrCreateState {
             // Search for an existing collection with a root directory
             // that is a child of the music directory.
             let candidates = aoide_backend_embedded::collection::load_all(
-                handle.db_gatekeeper(),
+                environment.db_gatekeeper(),
                 kind_filter,
                 Some(MediaSourceRootUrlFilter::Prefix(root_url.clone())),
                 ENTITY_LOAD_SCOPE,
@@ -238,14 +238,14 @@ impl RestoreOrCreateState {
             color: None,
         };
         let entity_uid =
-            aoide_backend_embedded::collection::create(handle.db_gatekeeper(), new_collection)
+            aoide_backend_embedded::collection::create(environment.db_gatekeeper(), new_collection)
                 .await?
                 .raw
                 .hdr
                 .uid;
         // Reload the newly created entity with its summary
         aoide_backend_embedded::collection::load_one(
-            handle.db_gatekeeper(),
+            environment.db_gatekeeper(),
             entity_uid,
             ENTITY_LOAD_SCOPE,
         )
@@ -544,9 +544,9 @@ impl ObservableState {
         Ok(modified)
     }
 
-    pub async fn refresh_from_db(&self, handle: &Handle) -> anyhow::Result<()> {
+    pub async fn refresh_from_db(&self, environment: &Environment) -> anyhow::Result<()> {
         let refresh_params = self.read().prepare_refresh_from_db()?;
-        let refreshed_state = refresh_state_from_db(handle, refresh_params).await?;
+        let refreshed_state = refresh_state_from_db(environment, refresh_params).await?;
         log::debug!("Refreshed state: {refreshed_state:?}");
         self.modify(|state| state.replace(refreshed_state));
         Ok(())
@@ -566,7 +566,7 @@ struct RefreshStateFromDbParams {
 }
 
 async fn refresh_state_from_db<'a>(
-    handle: &Handle,
+    environment: &Environment,
     params: RefreshStateFromDbParams,
 ) -> anyhow::Result<State> {
     let RefreshStateFromDbParams {
@@ -574,7 +574,7 @@ async fn refresh_state_from_db<'a>(
         restore_or_create,
     } = params;
     let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
-        try_refresh_entity_from_db(handle, entity_uid.clone()).await?
+        try_refresh_entity_from_db(environment, entity_uid.clone()).await?
     } else {
         None
     };
@@ -597,11 +597,11 @@ async fn refresh_state_from_db<'a>(
             uid = entity_with_summary.entity.hdr.uid
         );
     }
-    restore_or_create.restore_or_create(handle).await
+    restore_or_create.restore_or_create(environment).await
 }
 
 pub async fn synchronize_vfs<ReportProgressFn>(
-    handle: &Handle,
+    environment: &Environment,
     entity_uid: EntityUid,
     import_track_config: ImportTrackConfig,
     report_progress_fn: ReportProgressFn,
@@ -620,7 +620,7 @@ where
         unsynchronized_tracks: UnsynchronizedTracks::Find,
     };
     batch::synchronize_collection_vfs::synchronize_collection_vfs(
-        handle.db_gatekeeper(),
+        environment.db_gatekeeper(),
         entity_uid,
         params,
         std::convert::identity,
