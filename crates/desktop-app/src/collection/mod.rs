@@ -312,6 +312,7 @@ impl State {
 
     pub fn reset(&mut self) -> bool {
         if matches!(self, Self::Initial) {
+            // No effect
             return false;
         }
         let reset = Self::Initial;
@@ -377,7 +378,7 @@ impl State {
                 if (new_kind.is_none() || new_kind.as_deref() == kind.as_deref())
                     && music_dir.borrowed() == new_music_dir
                 {
-                    // Unchanged
+                    // No effect
                     log::debug!(
                         "Music directory unchanged and not updated: {}",
                         new_music_dir.display()
@@ -403,6 +404,7 @@ impl State {
     pub fn reset_to_pending(&mut self) -> bool {
         let pending_state = match self {
             Self::Initial | Self::Loading { .. } | Self::RestoringOrCreating { .. } => {
+                // Not applicable / No effect
                 debug_assert!(!self.is_pending());
                 return false;
             }
@@ -454,6 +456,7 @@ impl State {
         // Only invoked while pending
         debug_assert!(self.is_pending());
         if self == &replacement {
+            // No effect
             return false;
         }
         log::debug!("Replacing state: {self:?} -> {replacement:?}");
@@ -524,7 +527,7 @@ impl ObservableState {
     ) -> anyhow::Result<bool> {
         let modified = if let Some(new_music_dir) = new_music_dir {
             log::debug!("Updating music directory: {}", new_music_dir.display());
-            if self.modify(|state| {
+            if !self.modify(|state| {
                 state.update_music_dir(
                     kind,
                     new_music_dir,
@@ -532,11 +535,10 @@ impl ObservableState {
                     nested_music_dirs,
                 )
             }) {
-                self.refresh_from_db(handle).await?;
-                true
-            } else {
-                false
+                // No effect
+                return Ok(false);
             }
+            self.refresh_from_db(handle).await?
         } else {
             log::debug!("Resetting music directory");
             self.modify(State::reset)
@@ -544,12 +546,12 @@ impl ObservableState {
         Ok(modified)
     }
 
-    pub async fn refresh_from_db(&self, environment: &Environment) -> anyhow::Result<()> {
+    pub async fn refresh_from_db(&self, environment: &Environment) -> anyhow::Result<bool> {
         let refresh_params = self.read().prepare_refresh_from_db()?;
         let refreshed_state = refresh_state_from_db(environment, refresh_params).await?;
         log::debug!("Refreshed state: {refreshed_state:?}");
-        self.modify(|state| state.replace(refreshed_state));
-        Ok(())
+        let modified = self.modify(|state| state.replace(refreshed_state));
+        Ok(modified)
     }
 }
 
@@ -579,9 +581,9 @@ async fn refresh_state_from_db<'a>(
         None
     };
     let Some(restore_or_create) = restore_or_create else {
-            let state = entity_with_summary.map(State::Ready).unwrap_or_default();
-            return Ok(state);
-        };
+        let state = entity_with_summary.map(State::Ready).unwrap_or_default();
+        return Ok(state);
+    };
     if let Some(entity_with_summary) = entity_with_summary {
         let RestoreOrCreateState {
             kind, music_dir, ..

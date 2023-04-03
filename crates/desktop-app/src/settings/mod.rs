@@ -140,6 +140,7 @@ impl State {
 
     pub fn update_music_dir(&mut self, new_music_dir: Option<&DirPath<'_>>) -> bool {
         if self.music_dir.as_ref() == new_music_dir {
+            // No effect
             return false;
         }
         if let Some(new_music_dir) = new_music_dir {

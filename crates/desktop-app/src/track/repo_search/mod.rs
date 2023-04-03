@@ -122,7 +122,7 @@ impl FetchState {
     #[must_use]
     const fn can_fetch_more(&self) -> Option<bool> {
         match self {
-            Self::Initial => Some(true),                                 // sure
+            Self::Initial => Some(true),                                 // always
             Self::Pending { .. } | Self::Failed { .. } => None,          // undefined
             Self::Ready { can_fetch_more, .. } => Some(*can_fetch_more), // maybe
         }
@@ -130,9 +130,11 @@ impl FetchState {
 
     fn reset(&mut self) -> bool {
         if matches!(self, Self::Initial) {
+            // No effect
             return false;
         }
-        *self = Self::Initial;
+        *self = Default::default();
+        debug_assert!(matches!(self, Self::Initial));
         true
     }
 
@@ -141,6 +143,7 @@ impl FetchState {
         let fetched_entities_before = match self {
             Self::Initial => None,
             Self::Pending { .. } | Self::Failed { .. } => {
+                // Not applicable
                 return false;
             }
             Self::Ready {
@@ -164,68 +167,63 @@ impl FetchState {
             "Fetching succeeded with {num_fetched_entities} newly fetched entities",
             num_fetched_entities = fetched_entities.len()
         );
-        if let Self::Pending {
+        let Self::Pending {
             fetched_entities_before,
-        } = self
-        {
-            let expected_offset = fetched_entities_before.as_ref().map(Vec::len).unwrap_or(0);
-            let expected_offset_hash =
-                last_offset_hash_of_fetched_entities(fetched_entities_before.as_deref());
-            if offset == expected_offset && offset_hash == expected_offset_hash {
-                let mut offset = offset;
-                let mut offset_hash_seed = offset_hash;
-                let mut fetched_entities_before =
-                    std::mem::take(fetched_entities_before).unwrap_or_default();
-                fetched_entities_before.reserve(fetched_entities.len());
-                fetched_entities_before.extend(fetched_entities.into_iter().map(|entity| {
-                    let offset_hash =
-                        hash_entity_header_at_offset(offset_hash_seed, offset, &entity.hdr);
-                    offset_hash_seed = offset_hash;
-                    offset += 1;
-                    FetchedEntity {
-                        offset_hash,
-                        entity,
-                    }
-                }));
-                let fetched_entities = fetched_entities_before;
-                let num_fetched_entities = fetched_entities.len();
-                *self = Self::Ready {
-                    fetched_entities,
-                    can_fetch_more,
-                };
-                log::debug!("Caching {num_fetched_entities} fetched entities");
-                return true;
-            }
+        } = self else {
+            // Not applicable
+            log::error!("Not pending when fetching succeeded");
+            return false;
+        };
+        let expected_offset = fetched_entities_before.as_ref().map(Vec::len).unwrap_or(0);
+        let expected_offset_hash =
+            last_offset_hash_of_fetched_entities(fetched_entities_before.as_deref());
+        if offset != expected_offset || offset_hash != expected_offset_hash {
+            // Not applicable
             log::warn!(
                 "Mismatching offset/hash after fetching succeeded: expected = \
                  {expected_offset}/{expected_offset_hash}, actual = {offset}/{offset_hash}"
             );
-        } else {
-            log::error!("Not pending when fetching succeeded");
+            return false;
         }
-        log::warn!(
-            "Discarding {num_fetched_entities} newly fetched entities",
-            num_fetched_entities = fetched_entities.len()
-        );
-        false
+        let mut offset = offset;
+        let mut offset_hash_seed = offset_hash;
+        let mut fetched_entities_before =
+            std::mem::take(fetched_entities_before).unwrap_or_default();
+        fetched_entities_before.reserve(fetched_entities.len());
+        fetched_entities_before.extend(fetched_entities.into_iter().map(|entity| {
+            let offset_hash = hash_entity_header_at_offset(offset_hash_seed, offset, &entity.hdr);
+            offset_hash_seed = offset_hash;
+            offset += 1;
+            FetchedEntity {
+                offset_hash,
+                entity,
+            }
+        }));
+        let fetched_entities = fetched_entities_before;
+        let num_fetched_entities = fetched_entities.len();
+        *self = Self::Ready {
+            fetched_entities,
+            can_fetch_more,
+        };
+        log::debug!("Caching {num_fetched_entities} fetched entities");
+        true
     }
 
     fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
         log::warn!("Fetching failed: {err}");
-        if let Self::Pending {
+        let Self::Pending {
             fetched_entities_before,
-        } = self
-        {
-            let fetched_entities_before = std::mem::take(fetched_entities_before);
-            *self = Self::Failed {
-                fetched_entities_before,
-                _err_msg: err.to_string(),
-            };
-            true
-        } else {
+        } = self else {
+            // No effect
             log::error!("Not pending when fetching failed");
-            false
-        }
+            return false;
+        };
+        let fetched_entities_before = std::mem::take(fetched_entities_before);
+        *self = Self::Failed {
+            fetched_entities_before,
+            _err_msg: err.to_string(),
+        };
+        true
     }
 }
 
@@ -278,6 +276,7 @@ impl State {
     #[must_use]
     pub const fn can_fetch_more(&self) -> Option<bool> {
         if self.context.collection_uid.is_none() {
+            // Not applicable
             return Some(false);
         }
         self.fetch.can_fetch_more()
@@ -289,8 +288,12 @@ impl State {
     }
 
     pub fn reset(&mut self) -> bool {
+        // Cloning the default params once for pre-creating the target state
+        // is required to avoid redundant code for determining in advance if
+        // the state would actually change or not.
         let reset = Self::new(self.default_params.clone());
         if self.context == reset.context && self.fetch.state_tag() == reset.fetch.state_tag() {
+            // No effect
             return false;
         }
         *self = reset;
@@ -303,6 +306,7 @@ impl State {
     /// Consumed the argument when returning `true`.
     pub fn update_collection_uid(&mut self, collection_uid: &mut Option<CollectionUid>) -> bool {
         if collection_uid.as_ref() == self.context.collection_uid.as_ref() {
+            // No effect
             return false;
         }
         self.context.collection_uid = collection_uid.take();
@@ -319,6 +323,7 @@ impl State {
     /// Consumed the argument when returning `true`.
     pub fn update_params(&mut self, params: &mut Params) -> bool {
         if params == &self.context.params {
+            // No effect
             return false;
         }
         self.context.params = std::mem::take(params);
@@ -346,6 +351,7 @@ impl State {
                  actual = {context:?}",
                 expected_context = self.context
             );
+            // No effect
             return false;
         }
         self.fetch
@@ -357,10 +363,7 @@ impl State {
     }
 
     pub fn reset_fetched(&mut self) -> bool {
-        if !self.fetch.reset() {
-            return false;
-        }
-        true
+        self.fetch.reset()
     }
 }
 
@@ -456,6 +459,7 @@ impl ObservableState {
             let mut pagination = Default::default();
             if !self.modify(|state| {
                 if state.can_fetch_more() != Some(true) || !state.try_fetch_more() {
+                    // Not modified
                     return false;
                 }
                 context = state.context().clone();
@@ -465,6 +469,7 @@ impl ObservableState {
                 pagination = Pagination { offset, limit };
                 true
             }) {
+                // No effect
                 return false;
             }
             (context, offset_hash, pagination)
