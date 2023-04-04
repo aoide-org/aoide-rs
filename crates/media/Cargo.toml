@@ -19,9 +19,9 @@ bytes = "1.4.0"
 color-thief = "0.2.2"
 digest = "0.10.6"
 image = "0.24.6"
-#lofty = "0.11.0"
-# TODO: Remove GitHub snapshot dependency after lofty v0.12.0 has been released
-lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
+lofty = "0.12.0"
+# Use main branch of lofty-rs for testing
+#lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
 log = "0.4.17"
 mime = "0.3.17"
 mime_guess = "2.0.4"
