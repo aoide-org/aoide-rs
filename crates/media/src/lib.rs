@@ -32,6 +32,8 @@ pub mod util;
 
 use std::{io::Error as IoError, result::Result as StdResult};
 
+use image::ImageError;
+use lofty::LoftyError;
 use mime::Mime;
 use thiserror::Error;
 
@@ -64,9 +66,18 @@ impl From<mime::FromStrError> for Error {
     }
 }
 
-impl From<lofty::LoftyError> for Error {
-    fn from(err: lofty::LoftyError) -> Self {
+impl From<LoftyError> for Error {
+    fn from(err: LoftyError) -> Self {
         Self::Metadata(err.into())
+    }
+}
+
+impl From<ImageError> for Error {
+    fn from(err: ImageError) -> Self {
+        match err {
+            ImageError::IoError(err) => Self::Io(err),
+            _ => Self::Metadata(err.into()),
+        }
     }
 }
 

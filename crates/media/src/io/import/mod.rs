@@ -3,7 +3,7 @@
 
 use std::{
     borrow::Cow,
-    io::{Read, Seek},
+    io::{Cursor, Read, Seek},
     path::Path,
     result::Result as StdResult,
 };
@@ -11,7 +11,7 @@ use std::{
 use aoide_core::{
     audio::signal::LoudnessLufs,
     media::{
-        artwork::ApicType,
+        artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork, LinkedArtwork},
         content::{ContentLink, ContentMetadata},
         Content, Source,
     },
@@ -24,8 +24,10 @@ use aoide_core::{
     util::clock::{DateOrDateTime, DateTime},
 };
 use bitflags::bitflags;
+use image::{io::Reader as ImageReader, DynamicImage};
 use lofty::FileType;
 use mime::Mime;
+use url::Url;
 
 use crate::{
     fmt::parse_options,
@@ -248,8 +250,8 @@ pub fn import_into_track(
     Ok(importer.finish())
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LoadedArtworkImage {
+#[derive(Debug, Clone)]
+pub struct LoadedArtworkImageData {
     /// The APIC type of an embedded image
     ///
     /// `Some` for embedded images and `None` for custom, external images.
@@ -262,9 +264,23 @@ pub struct LoadedArtworkImage {
     pub image_data: Vec<u8>,
 }
 
-pub fn load_embedded_artwork_image_from_file_path(
+#[derive(Debug, Clone)]
+pub struct LoadedArtworkImage {
+    /// The APIC type of an embedded image
+    ///
+    /// `Some` for embedded images and `None` for custom, external images.
+    pub apic_type: Option<ApicType>,
+
+    /// The MIME type of `image_data`
+    pub media_type: Mime,
+
+    /// The actual image
+    pub image: DynamicImage,
+}
+
+pub fn load_embedded_artwork_image_data_from_file_path(
     file_path: &Path,
-) -> Result<Option<LoadedArtworkImage>> {
+) -> Result<Option<LoadedArtworkImageData>> {
     let tag = {
         let mut tagged_file = lofty::read_from_path(file_path)?;
         crate::fmt::take_primary_or_first_tag(&mut tagged_file)
@@ -274,7 +290,7 @@ pub fn load_embedded_artwork_image_from_file_path(
         .and_then(crate::fmt::find_embedded_artwork_image)
     {
         let media_type = media_type.parse::<Mime>()?;
-        let loaded_artwork_image = LoadedArtworkImage {
+        let loaded_artwork_image = LoadedArtworkImageData {
             apic_type: Some(apic_type),
             media_type,
             image_data: image_data.to_owned(),
@@ -282,6 +298,86 @@ pub fn load_embedded_artwork_image_from_file_path(
         Ok(Some(loaded_artwork_image))
     } else {
         Ok(None)
+    }
+}
+
+fn verify_artwork_image_metadata(
+    artwork_image: &ArtworkImage,
+    apic_type: Option<ApicType>,
+    media_type: &Mime,
+) {
+    if let Some(apic_type) = apic_type {
+        if apic_type != artwork_image.apic_type {
+            log::warn!(
+                "Mismatching artwork image APIC types: expected = {expected:?}, actual = \
+                 {apic_type:?}",
+                expected = artwork_image.apic_type
+            );
+        }
+    }
+    if media_type.essence_str() != artwork_image.media_type.essence_str() {
+        log::warn!(
+            "Mismatching artwork image MIME types: expected = {expected}, actual = {actual}",
+            expected = artwork_image.media_type.essence_str(),
+            actual = media_type.essence_str(),
+        );
+    }
+}
+
+pub fn load_artwork_image_data(
+    file_path: &Path,
+    artwork: &Artwork,
+) -> Result<Option<LoadedArtworkImageData>> {
+    match artwork {
+        Artwork::Embedded(EmbeddedArtwork { image }) => {
+            let loaded = load_embedded_artwork_image_data_from_file_path(file_path)?;
+            let Some(loaded) = loaded else {
+                return Ok(None);
+            };
+            verify_artwork_image_metadata(image, loaded.apic_type, &loaded.media_type);
+            Ok(Some(loaded))
+        }
+        Artwork::Linked(LinkedArtwork { uri, image }) => {
+            let url = uri
+                .parse::<Url>()
+                .map_err(|err| anyhow::anyhow!("Invalid URL: {err}"))?;
+            let file_path = url
+                .to_file_path()
+                .map_err(|()| anyhow::anyhow!("No local file URL"))?;
+            let image_data = std::fs::read(file_path)?;
+            let loaded = LoadedArtworkImageData {
+                apic_type: Some(image.apic_type),
+                media_type: image.media_type.clone(),
+                image_data,
+            };
+            Ok(Some(loaded))
+        }
+        Artwork::Missing | Artwork::Unsupported | Artwork::Irregular => Ok(None),
+    }
+}
+
+pub fn load_artwork_image(file_path: &Path, artwork: &Artwork) -> Result<Option<DynamicImage>> {
+    match artwork {
+        Artwork::Embedded(EmbeddedArtwork { image }) => {
+            let loaded = load_embedded_artwork_image_data_from_file_path(file_path)?;
+            let Some(loaded) = loaded else {
+                return Ok(None);
+            };
+            verify_artwork_image_metadata(image, loaded.apic_type, &loaded.media_type);
+            let reader = ImageReader::new(Cursor::new(loaded.image_data.as_slice()));
+            reader.decode().map(Some).map_err(Into::into)
+        }
+        Artwork::Linked(LinkedArtwork { uri, image: _ }) => {
+            let url = uri
+                .parse::<Url>()
+                .map_err(|err| anyhow::anyhow!("Invalid URL: {err}"))?;
+            let file_path = url
+                .to_file_path()
+                .map_err(|()| anyhow::anyhow!("No local file URL"))?;
+            let reader = ImageReader::open(file_path)?;
+            reader.decode().map(Some).map_err(Into::into)
+        }
+        Artwork::Missing | Artwork::Unsupported | Artwork::Irregular => Ok(None),
     }
 }
 
