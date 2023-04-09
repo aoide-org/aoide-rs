@@ -452,7 +452,7 @@ impl State {
     }
 
     #[must_use]
-    fn replace(&mut self, mut replacement: State) -> bool {
+    fn replace(&mut self, replacement: State) -> bool {
         // Only invoked while pending
         debug_assert!(self.is_pending());
         if self == &replacement {
@@ -460,7 +460,7 @@ impl State {
             return false;
         }
         log::debug!("Replacing state: {self:?} -> {replacement:?}");
-        std::mem::swap(self, &mut replacement);
+        let _replaced = std::mem::replace(self, replacement);
         true
     }
 

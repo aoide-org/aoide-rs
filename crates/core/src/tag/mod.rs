@@ -248,12 +248,12 @@ impl<'a> Tags<'a> {
                 if *facet_id != faceted_tags.facet_id {
                     continue;
                 }
-                let mut facet = FacetedTags {
+                let tombstone = FacetedTags {
                     facet_id: FacetId::new("".into()),
                     tags: Default::default(),
                 };
-                std::mem::swap(faceted_tags, &mut facet);
-                facets.push(facet);
+                let faceted_tags = std::mem::replace(faceted_tags, tombstone);
+                facets.push(faceted_tags);
                 return false;
             }
             true
