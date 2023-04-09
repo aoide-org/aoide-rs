@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::borrow::Cow;
-
 use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
@@ -26,8 +24,8 @@ impl From<QueryableRecord> for (RecordId, Record) {
         } = from;
         let record = Record {
             track_id: track_id.into(),
-            facet_id: facet.map(Cow::Owned).map(FacetId::new),
-            label: label.map(Cow::Owned).map(Label::new),
+            facet_id: facet.map(FacetId::from_unchecked),
+            label: label.map(Label::from_unchecked),
             score: score.into(),
         };
         (id.into(), record)

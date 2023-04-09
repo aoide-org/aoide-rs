@@ -80,12 +80,21 @@ impl<'a> FacetId<'a> {
         }
         let mut owned = inner.into_owned();
         owned.retain(Self::is_valid_char);
-        debug_assert!(!owned.is_empty());
         Some(Cow::Owned(owned))
     }
 
-    pub fn clamp_from(from: impl Into<Cow<'a, str>>) -> Option<FacetId<'a>> {
-        Self::clamp_inner(from.into()).map(Self::new)
+    pub fn clamp_from(from: impl Into<Cow<'a, str>>) -> Option<Self> {
+        let clamped = Self::clamp_inner(from.into()).map(Self::new);
+        debug_assert!(clamped.is_valid());
+        clamped
+    }
+
+    #[must_use]
+    pub fn from_unchecked(from: impl Into<Cow<'a, str>>) -> Self {
+        let inner = from.into();
+        let unchecked = Self::new(inner);
+        debug_assert!(unchecked.is_valid());
+        unchecked
     }
 
     #[must_use]
