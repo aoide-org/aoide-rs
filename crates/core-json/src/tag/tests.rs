@@ -7,7 +7,7 @@ use super::*;
 
 #[test]
 fn deserialize_plain_tag_label() {
-    let label = _core::Label::new("label".into());
+    let label = _core::Label::from_unchecked("label");
     let json = format!("\"{label}\"");
     let tag: PlainTag = serde_json::from_str(&json).unwrap();
     assert_eq!(PlainTag::Label(label.into()), tag);
@@ -16,7 +16,7 @@ fn deserialize_plain_tag_label() {
 
 #[test]
 fn should_fail_to_deserialize_plain_tag_from_single_element_array_with_label() {
-    let label = _core::Label::new("label".into());
+    let label = _core::Label::from_unchecked("label");
     let json = format!("[\"{label}\"]");
     assert!(serde_json::from_str::<PlainTag>(&json).is_err());
 }
@@ -45,7 +45,7 @@ fn deserialize_plain_tag_score_integer_zero() {
 
 #[test]
 fn deserialize_plain_tag_label_score() {
-    let label = _core::Label::new("label".into());
+    let label = _core::Label::from_unchecked("label");
     let score = _core::Score::new(0.5);
     let json = format!("[\"{label}\",{}]", f64::from(score));
     let tag: PlainTag = serde_json::from_str(&json).unwrap();
@@ -56,7 +56,7 @@ fn deserialize_plain_tag_label_score() {
 #[test]
 fn deserialize_plain_tag_label_score_integer_zero() {
     let expected_tag = _core::PlainTag {
-        label: Some(_core::Label::new("label".into())),
+        label: Some(_core::Label::from_unchecked("label")),
         score: _core::Score::new(0.0),
     };
     // Ensure to parse score from literal 0, not 0.0!
@@ -69,7 +69,7 @@ fn deserialize_plain_tag_label_score_integer_zero() {
 #[test]
 fn deserialize_plain_tag_label_score_integer_one() {
     let expected_tag = _core::PlainTag {
-        label: Some(_core::Label::new("label".into())),
+        label: Some(_core::Label::from_unchecked("label")),
         score: _core::Score::new(1.0),
     };
     // Ensure to parse score from literal 1, not 1.0!

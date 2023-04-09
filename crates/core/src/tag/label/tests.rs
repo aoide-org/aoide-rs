@@ -6,7 +6,7 @@ use super::*;
 #[test]
 fn parse() {
     assert_eq!(
-        Some(Label::new("A Label".into())),
+        Some(Label::from_unchecked("A Label")),
         Label::clamp_from("A Label")
     );
 }
@@ -14,7 +14,7 @@ fn parse() {
 #[test]
 fn clamp_from() {
     assert_eq!(
-        Some(Label::new("A Label".into())),
+        Some(Label::from_unchecked("A Label")),
         Label::clamp_from("\tA Label  "),
     );
 }

@@ -94,7 +94,7 @@ fn try_import_tags() {
     };
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
     assert_eq!(
-        Some(FacetId::new(date_like_facet.as_ref().into())),
+        Some(FacetId::from_unchecked(date_like_facet.as_ref())),
         facet_key.into_inner()
     );
     assert_eq!(plain_tag_with_label(tag.label().to_string()), plain_tag);
@@ -106,7 +106,7 @@ fn try_import_tags() {
     };
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
     assert_eq!(
-        Some(FacetId::new(date_like_facet.as_ref().into())),
+        Some(FacetId::from_unchecked(date_like_facet.as_ref())),
         facet_key.into_inner()
     );
     assert_eq!(
@@ -121,7 +121,7 @@ fn try_import_tags() {
     };
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
     assert_eq!(
-        Some(FacetId::new(date_like_facet.as_ref().into())),
+        Some(FacetId::from_unchecked(date_like_facet.as_ref())),
         facet_key.into_inner()
     );
     assert_eq!(
@@ -217,7 +217,7 @@ fn reencode_roundtrip() {
 
     // Add #Tag2 with a non-date-like facet
     tags_map.replace_faceted_plain_tags(
-        FacetId::new("facet".into()),
+        FacetId::from_unchecked("facet"),
         vec![plain_tag_with_label("Tag2".to_string())],
     );
 

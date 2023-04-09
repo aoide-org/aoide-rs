@@ -23,11 +23,11 @@ fn canonical_unique_labels_and_score() {
     let tags = Tags {
         plain: vec![
             PlainTag {
-                label: Some(Label::new("label1".into())),
+                label: Some(Label::from_unchecked("label1")),
                 score: 0.5.into(),
             },
             PlainTag {
-                label: Some(Label::new("label2".into())),
+                label: Some(Label::from_unchecked("label2")),
                 ..Default::default()
             },
         ],
@@ -42,15 +42,15 @@ fn duplicate_labels_same_score() {
     let tags = Tags {
         plain: vec![
             PlainTag {
-                label: Some(Label::new("label1".into())),
+                label: Some(Label::from_unchecked("label1")),
                 score: 0.5.into(),
             },
             PlainTag {
-                label: Some(Label::new("label2".into())),
+                label: Some(Label::from_unchecked("label2")),
                 ..Default::default()
             },
             PlainTag {
-                label: Some(Label::new("label1".into())),
+                label: Some(Label::from_unchecked("label1")),
                 score: 0.5.into(),
             },
         ],
@@ -65,15 +65,15 @@ fn duplicate_labels_differing_score() {
     let tags = Tags {
         plain: vec![
             PlainTag {
-                label: Some(Label::new("label1".into())),
+                label: Some(Label::from_unchecked("label1")),
                 score: 0.7.into(),
             },
             PlainTag {
-                label: Some(Label::new("label2".into())),
+                label: Some(Label::from_unchecked("label2")),
                 ..Default::default()
             },
             PlainTag {
-                label: Some(Label::new("label1".into())),
+                label: Some(Label::from_unchecked("label1")),
                 score: 0.5.into(),
             },
         ],
@@ -89,26 +89,26 @@ fn canonical_faceted_tags() {
     let tags = Tags {
         plain: vec![
             PlainTag {
-                label: Some(Label::new("label1".into())),
+                label: Some(Label::from_unchecked("label1")),
                 ..Default::default()
             },
             PlainTag {
-                label: Some(Label::new("label2".into())),
+                label: Some(Label::from_unchecked("label2")),
                 ..Default::default()
             },
         ],
         facets: vec![
             FacetedTags {
-                facet_id: FacetId::new("facet1".into()),
+                facet_id: FacetId::from_unchecked("facet1"),
                 tags: vec![PlainTag {
-                    label: Some(Label::new("label1".into())),
+                    label: Some(Label::from_unchecked("label1")),
                     ..Default::default()
                 }],
             },
             FacetedTags {
-                facet_id: FacetId::new("facet2".into()),
+                facet_id: FacetId::from_unchecked("facet2"),
                 tags: vec![PlainTag {
-                    label: Some(Label::new("label1".into())),
+                    label: Some(Label::from_unchecked("label1")),
                     ..Default::default()
                 }],
             },
@@ -123,37 +123,37 @@ fn duplicate_facets() {
     let mut tags = Tags {
         plain: vec![
             PlainTag {
-                label: Some(Label::new("label2".into())),
+                label: Some(Label::from_unchecked("label2")),
                 ..Default::default()
             },
             PlainTag {
-                label: Some(Label::new("label1".into())),
+                label: Some(Label::from_unchecked("label1")),
                 ..Default::default()
             },
             PlainTag {
-                label: Some(Label::new("label2".into())),
+                label: Some(Label::from_unchecked("label2")),
                 ..Default::default()
             },
         ],
         facets: vec![
             FacetedTags {
-                facet_id: FacetId::new("facet1".into()),
+                facet_id: FacetId::from_unchecked("facet1"),
                 tags: vec![PlainTag {
-                    label: Some(Label::new("label1".into())),
+                    label: Some(Label::from_unchecked("label1")),
                     ..Default::default()
                 }],
             },
             FacetedTags {
-                facet_id: FacetId::new("facet2".into()),
+                facet_id: FacetId::from_unchecked("facet2"),
                 tags: vec![PlainTag {
-                    label: Some(Label::new("label1".into())),
+                    label: Some(Label::from_unchecked("label1")),
                     ..Default::default()
                 }],
             },
             FacetedTags {
-                facet_id: FacetId::new("facet1".into()),
+                facet_id: FacetId::from_unchecked("facet1"),
                 tags: vec![PlainTag {
-                    label: Some(Label::new("label2".into())),
+                    label: Some(Label::from_unchecked("label2")),
                     ..Default::default()
                 }],
             },
@@ -170,31 +170,31 @@ fn duplicate_facets_and_labels() {
     let mut tags = Tags {
         plain: vec![
             PlainTag {
-                label: Some(Label::new("label1".into())),
+                label: Some(Label::from_unchecked("label1")),
                 ..Default::default()
             },
             PlainTag {
-                label: Some(Label::new("label2".into())),
+                label: Some(Label::from_unchecked("label2")),
                 ..Default::default()
             },
         ],
         facets: vec![
             FacetedTags {
-                facet_id: FacetId::new("facet1".into()),
+                facet_id: FacetId::from_unchecked("facet1"),
                 tags: vec![PlainTag {
-                    label: Some(Label::new("label1".into())),
+                    label: Some(Label::from_unchecked("label1")),
                     ..Default::default()
                 }],
             },
             FacetedTags {
-                facet_id: FacetId::new("facet2".into()),
+                facet_id: FacetId::from_unchecked("facet2"),
                 tags: vec![
                     PlainTag {
-                        label: Some(Label::new("label2".into())),
+                        label: Some(Label::from_unchecked("label2")),
                         score: 0.5.into(),
                     },
                     PlainTag {
-                        label: Some(Label::new("label2".into())),
+                        label: Some(Label::from_unchecked("label2")),
                         score: 1.0.into(),
                     },
                 ],
@@ -207,53 +207,53 @@ fn duplicate_facets_and_labels() {
     let mut tags = Tags {
         plain: vec![
             PlainTag {
-                label: Some(Label::new("label2".into())),
+                label: Some(Label::from_unchecked("label2")),
                 ..Default::default()
             },
             PlainTag {
-                label: Some(Label::new("label1".into())),
+                label: Some(Label::from_unchecked("label1")),
                 ..Default::default()
             },
             PlainTag {
-                label: Some(Label::new("label2".into())),
+                label: Some(Label::from_unchecked("label2")),
                 ..Default::default()
             },
         ],
         facets: vec![
             FacetedTags {
-                facet_id: FacetId::new("facet1".into()),
+                facet_id: FacetId::from_unchecked("facet1"),
                 tags: vec![
                     PlainTag {
-                        label: Some(Label::new("label1".into())),
+                        label: Some(Label::from_unchecked("label1")),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::new("label2".into())),
+                        label: Some(Label::from_unchecked("label2")),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::new("label1".into())),
+                        label: Some(Label::from_unchecked("label1")),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::new("label2".into())),
+                        label: Some(Label::from_unchecked("label2")),
                         ..Default::default()
                     },
                 ],
             },
             FacetedTags {
-                facet_id: FacetId::new("facet2".into()),
+                facet_id: FacetId::from_unchecked("facet2"),
                 tags: vec![
                     PlainTag {
-                        label: Some(Label::new("label2".into())),
+                        label: Some(Label::from_unchecked("label2")),
                         score: 0.5.into(),
                     },
                     PlainTag {
-                        label: Some(Label::new("label2".into())),
+                        label: Some(Label::from_unchecked("label2")),
                         score: 0.75.into(),
                     },
                     PlainTag {
-                        label: Some(Label::new("label2".into())),
+                        label: Some(Label::from_unchecked("label2")),
                         score: 0.25.into(),
                     },
                 ],
@@ -264,9 +264,9 @@ fn duplicate_facets_and_labels() {
     assert!(tags.validate().is_ok());
     assert_eq!(5, tags.total_count());
     assert!(tags.facets.contains(&FacetedTags {
-        facet_id: FacetId::new("facet2".into()),
+        facet_id: FacetId::from_unchecked("facet2"),
         tags: vec![PlainTag {
-            label: Some(Label::new("label2".into())),
+            label: Some(Label::from_unchecked("label2")),
             score: Score::new(0.75),
         },],
     }));
@@ -278,22 +278,22 @@ fn canonicalize_should_remove_facets_without_tags() {
         plain: vec![],
         facets: vec![
             FacetedTags {
-                facet_id: FacetId::new("facet1".into()),
+                facet_id: FacetId::from_unchecked("facet1"),
                 tags: vec![
                     PlainTag {
-                        label: Some(Label::new("label1".into())),
+                        label: Some(Label::from_unchecked("label1")),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::new("label2".into())),
+                        label: Some(Label::from_unchecked("label2")),
                         ..Default::default()
                     },
                 ],
             },
             FacetedTags {
-                facet_id: FacetId::new("facet3".into()),
+                facet_id: FacetId::from_unchecked("facet3"),
                 tags: vec![PlainTag {
-                    label: Some(Label::new("label1".into())),
+                    label: Some(Label::from_unchecked("label1")),
                     ..Default::default()
                 }],
             },
@@ -305,23 +305,23 @@ fn canonicalize_should_remove_facets_without_tags() {
     actual_tags.facets.insert(
         1,
         FacetedTags {
-            facet_id: FacetId::new("facet2".into()),
+            facet_id: FacetId::from_unchecked("facet2"),
             tags: vec![],
         },
     );
     actual_tags.facets.insert(
         2,
         FacetedTags {
-            facet_id: FacetId::new("facet3".into()),
+            facet_id: FacetId::from_unchecked("facet3"),
             tags: vec![],
         },
     );
     actual_tags.facets.insert(
         3,
         FacetedTags {
-            facet_id: FacetId::new("facet3".into()),
+            facet_id: FacetId::from_unchecked("facet3"),
             tags: vec![PlainTag {
-                label: Some(Label::new("label1".into())),
+                label: Some(Label::from_unchecked("label1")),
                 ..Default::default()
             }],
         },
