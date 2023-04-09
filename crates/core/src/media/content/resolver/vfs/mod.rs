@@ -236,7 +236,7 @@ impl RemappingVfsResolver {
         if self.root_path.as_str().is_empty()
             || !content_path.as_str().starts_with(self.root_path.as_str())
         {
-            return content_path.as_borrowed();
+            return content_path.to_borrowed();
         }
         let content_path_suffix = &content_path.as_str()[self.root_path.as_str().len()..];
         ContentPath::new(Cow::Borrowed(content_path_suffix))

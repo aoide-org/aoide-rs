@@ -40,7 +40,7 @@ pub enum StringPredicate<'s> {
 
 impl<'s> StringPredicate<'s> {
     #[must_use]
-    pub fn as_borrowed(&'s self) -> Self {
+    pub fn to_borrowed(&'s self) -> Self {
         match self {
             Self::StartsWith(inner) => Self::StartsWith(Cow::Borrowed(inner)),
             Self::StartsNotWith(inner) => Self::StartsNotWith(Cow::Borrowed(inner)),
@@ -78,6 +78,11 @@ impl<'s> StringPredicate<'s> {
             Self::Prefix(inner) => StringPredicate::Prefix(Cow::Owned(inner.into_owned())),
         }
     }
+
+    #[must_use]
+    pub fn clone_owned(&self) -> StringPredicate<'static> {
+        self.to_borrowed().into_owned()
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -88,11 +93,11 @@ pub struct StringFilter<'s> {
 
 impl<'s> StringFilter<'s> {
     #[must_use]
-    pub fn as_borrowed(&'s self) -> Self {
+    pub fn to_borrowed(&'s self) -> Self {
         let Self { modifier, value } = self;
         Self {
             modifier: *modifier,
-            value: value.as_ref().map(StringPredicate::as_borrowed),
+            value: value.as_ref().map(StringPredicate::to_borrowed),
         }
     }
 
@@ -103,6 +108,11 @@ impl<'s> StringFilter<'s> {
             modifier,
             value: value.map(StringPredicate::into_owned),
         }
+    }
+
+    #[must_use]
+    pub fn clone_owned(&self) -> StringFilter<'static> {
+        self.to_borrowed().into_owned()
     }
 }
 

@@ -30,7 +30,7 @@ where
         repo.purge_untracked_media_sources(collection_id)
     } else {
         let root_path_predicate =
-            StringPredicate::Prefix(resolver.root_path().as_borrowed().into_inner());
+            StringPredicate::Prefix(resolver.root_path().to_borrowed().into_inner());
         repo.purge_untracked_media_sources_by_content_path_predicate(
             collection_id,
             root_path_predicate,

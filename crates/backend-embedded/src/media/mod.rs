@@ -39,14 +39,14 @@ pub const DEFAULT_GENRE_MOOD_SCORE_ATTENUATION: f64 = 0.75;
 pub fn predefined_faceted_tag_mapping_config() -> FacetedTagMappingConfig {
     [
         (
-            FACET_ID_GENRE.as_borrowed().into(),
+            FACET_ID_GENRE.to_borrowed().into(),
             TagMappingConfig {
                 label_separator: DEFAULT_GENRE_MOOD_LABEL_SEPARATOR.to_owned(),
                 split_score_attenuation: DEFAULT_GENRE_MOOD_SCORE_ATTENUATION,
             },
         ),
         (
-            FACET_ID_MOOD.as_borrowed().into(),
+            FACET_ID_MOOD.to_borrowed().into(),
             TagMappingConfig {
                 label_separator: DEFAULT_GENRE_MOOD_LABEL_SEPARATOR.to_owned(),
                 split_score_attenuation: DEFAULT_GENRE_MOOD_SCORE_ATTENUATION,

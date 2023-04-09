@@ -66,7 +66,7 @@ impl<'a> Label<'a> {
     }
 
     #[must_use]
-    pub fn as_borrowed(&'a self) -> Self {
+    pub fn to_borrowed(&'a self) -> Self {
         let Self(inner) = self;
         Label(Cow::Borrowed(inner))
     }
@@ -75,6 +75,11 @@ impl<'a> Label<'a> {
     pub fn into_owned(self) -> Label<'static> {
         let Self(inner) = self;
         Label(Cow::Owned(inner.into_owned()))
+    }
+
+    #[must_use]
+    pub fn clone_owned(&self) -> Label<'static> {
+        self.to_borrowed().into_owned()
     }
 }
 

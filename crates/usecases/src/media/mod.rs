@@ -153,7 +153,7 @@ pub fn import_track_from_file_path(
     }
     let content_type = guess_mime_from_path(&canonical_path)?;
     let content_link = ContentLink {
-        path: source_path.as_borrowed().into_owned(),
+        path: source_path.clone_owned(),
         rev: new_content_rev,
     };
     let mut track = import_track.with_content(content_link, content_type);

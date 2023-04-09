@@ -27,7 +27,7 @@ where
         // 1st step: Delete the tracks, leaving the corresponding media sources orphaned
         let purged_tracks = repo.purge_tracks_by_media_source_content_path_predicate(
             collection_id,
-            path_predicate.as_borrowed(),
+            path_predicate.to_borrowed(),
         )?;
         // 2nd step: Delete all orphaned media sources
         let purged_media_sources = repo.purge_orphaned_media_sources_by_content_path_predicate(

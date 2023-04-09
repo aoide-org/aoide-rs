@@ -111,7 +111,7 @@ impl<'a> FacetId<'a> {
     }
 
     #[must_use]
-    pub fn as_borrowed(&'a self) -> Self {
+    pub fn to_borrowed(&'a self) -> Self {
         let Self(inner) = self;
         FacetId(Cow::Borrowed(inner))
     }
@@ -120,6 +120,11 @@ impl<'a> FacetId<'a> {
     pub fn into_owned(self) -> FacetId<'static> {
         let Self(inner) = self;
         FacetId(Cow::Owned(inner.into_owned()))
+    }
+
+    #[must_use]
+    pub fn clone_owned(&self) -> FacetId<'static> {
+        self.to_borrowed().into_owned()
     }
 }
 

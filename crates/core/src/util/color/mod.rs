@@ -82,7 +82,22 @@ impl RgbColor {
 
     #[must_use]
     pub const fn max_code() -> RgbColorCode {
-        0xff_ff_ff
+        Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK
+    }
+
+    #[must_use]
+    pub const fn red(self) -> u8 {
+        (self.0 & Self::RED_MASK >> Self::RED_MASK.trailing_zeros()) as u8
+    }
+
+    #[must_use]
+    pub const fn green(self) -> u8 {
+        (self.0 & Self::GREEN_MASK >> Self::GREEN_MASK.trailing_zeros()) as u8
+    }
+
+    #[must_use]
+    pub const fn blue(self) -> u8 {
+        (self.0 & Self::BLUE_MASK >> Self::BLUE_MASK.trailing_zeros()) as u8
     }
 }
 

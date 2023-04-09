@@ -44,10 +44,10 @@ impl<'a> PlainTag<'a> {
     }
 
     #[must_use]
-    pub fn as_borrowed(&'a self) -> Self {
+    pub fn to_borrowed(&'a self) -> Self {
         let Self { label, score } = self;
         PlainTag {
-            label: label.as_ref().map(Label::as_borrowed),
+            label: label.as_ref().map(Label::to_borrowed),
             score: *score,
         }
     }
@@ -59,6 +59,11 @@ impl<'a> PlainTag<'a> {
             label: label.map(Label::into_owned),
             score,
         }
+    }
+
+    #[must_use]
+    pub fn clone_owned(&self) -> PlainTag<'static> {
+        self.to_borrowed().into_owned()
     }
 }
 
@@ -399,15 +404,20 @@ impl<'a> FacetKey<'a> {
     }
 
     #[must_use]
-    pub fn as_borrowed(&'a self) -> Self {
+    pub fn to_borrowed(&'a self) -> Self {
         let Self(inner) = self;
-        FacetKey(inner.as_ref().map(FacetId::as_borrowed))
+        FacetKey(inner.as_ref().map(FacetId::to_borrowed))
     }
 
     #[must_use]
     pub fn into_owned(self) -> FacetKey<'static> {
         let Self(inner) = self;
         FacetKey(inner.map(FacetId::into_owned))
+    }
+
+    #[must_use]
+    pub fn clone_owned(&self) -> FacetKey<'static> {
+        self.to_borrowed().into_owned()
     }
 
     #[must_use]
@@ -446,7 +456,7 @@ impl<'a> From<&'a FacetId<'a>> for FacetKey<'a> {
 
 impl<'a> From<Option<&'a FacetId<'a>>> for FacetKey<'a> {
     fn from(from: Option<&'a FacetId<'a>>) -> Self {
-        FacetKey::new(from.map(FacetId::as_borrowed))
+        FacetKey::new(from.map(FacetId::to_borrowed))
     }
 }
 
@@ -663,7 +673,7 @@ impl<'a> TagsMap<'a> {
 
     pub fn take_faceted_tags<'b>(&mut self, facet_id: &'b FacetId<'b>) -> Option<FacetedTags<'a>> {
         // TODO: How to avoid this needless allocation?
-        let facet_id = facet_id.as_borrowed().into_owned();
+        let facet_id = facet_id.clone_owned();
         let Self(all_tags) = self;
         all_tags
             .remove_entry(&FacetKey::from(facet_id))

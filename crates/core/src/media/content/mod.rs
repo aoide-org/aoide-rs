@@ -36,13 +36,18 @@ impl<'a> ContentPath<'a> {
     }
 
     #[must_use]
-    pub fn as_borrowed(&'a self) -> Self {
+    pub fn to_borrowed(&'a self) -> Self {
         Self::new(Cow::Borrowed(&self.0))
     }
 
     #[must_use]
     pub fn into_owned(self) -> ContentPath<'static> {
         ContentPath::new(Cow::Owned(self.0.into_owned()))
+    }
+
+    #[must_use]
+    pub fn clone_owned(&self) -> ContentPath<'static> {
+        self.to_borrowed().into_owned()
     }
 
     #[must_use]
