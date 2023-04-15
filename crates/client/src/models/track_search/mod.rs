@@ -15,8 +15,8 @@ pub mod task;
 pub use self::task::Task;
 
 pub type IntentRejected = Intent;
-pub type IntentHandled = infect::IntentHandled<IntentRejected, Task, ModelChanged>;
-pub type EffectApplied = infect::EffectApplied<Task, ModelChanged>;
+pub type IntentHandled = infect::IntentHandled<IntentRejected, Effect, Task, ModelChanged>;
+pub type EffectApplied = infect::EffectApplied<Effect, Task, ModelChanged>;
 
 #[derive(Debug, Clone)]
 pub struct Reset {

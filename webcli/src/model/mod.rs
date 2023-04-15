@@ -20,8 +20,8 @@ pub(crate) use self::task::Task;
 
 pub(crate) type Message = infect::Message<Intent, Effect>;
 pub(crate) type IntentRejected = Intent;
-pub(crate) type IntentHandled = infect::IntentHandled<IntentRejected, Task, ModelChanged>;
-pub(crate) type EffectApplied = infect::EffectApplied<Task, ModelChanged>;
+pub(crate) type IntentHandled = infect::IntentHandled<IntentRejected, Effect, Task, ModelChanged>;
+pub(crate) type EffectApplied = infect::EffectApplied<Effect, Task, ModelChanged>;
 
 impl From<Intent> for Message {
     fn from(intent: Intent) -> Self {

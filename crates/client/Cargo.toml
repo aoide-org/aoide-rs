@@ -13,11 +13,11 @@ publish = false
 [dependencies]
 anyhow = "1.0.70"
 bytes = "1.4.0"
-infect = "0.0.26"
+infect = "0.0.27"
 #infect = { git = "https://github.com/uklotzde/infect.git" }
 log = "0.4.17"
-serde = { version = "1.0.159", features = ["derive"], optional = true }
-serde_json = "1.0.95"
+serde = { version = "1.0.160", features = ["derive"], optional = true }
+serde_json = "1.0.96"
 serde_urlencoded = "0.7.1"
 static_assertions = "1.1.0"
 
