@@ -56,7 +56,7 @@ impl Intent {
         match self {
             Self::RenderModel => {
                 // Enforce re-rendering by considering the unchanged model as (maybe) changed
-                IntentHandled::Accepted(EffectApplied::maybe_changed_done())
+                IntentHandled::Accepted(EffectApplied::maybe_changed())
             }
             Self::Schedule { not_before, intent } => {
                 if model.state != State::Running {
@@ -64,7 +64,7 @@ impl Intent {
                     return IntentHandled::Rejected(self_reconstructed);
                 }
                 let task = Task::ScheduleIntent { not_before, intent };
-                IntentHandled::Accepted(EffectApplied::unchanged(task))
+                IntentHandled::Accepted(EffectApplied::unchanged_task(task))
             }
             Self::DiscardFirstErrors(num_errors_requested) => {
                 let Some(num_errors) =
@@ -119,7 +119,7 @@ impl Intent {
                     collection_uid,
                     params,
                 };
-                IntentHandled::Accepted(EffectApplied::unchanged(task))
+                IntentHandled::Accepted(EffectApplied::unchanged_task(task))
             }
             Self::ExportTracks {
                 collection_uid,
@@ -129,7 +129,7 @@ impl Intent {
                     collection_uid,
                     params,
                 };
-                IntentHandled::Accepted(EffectApplied::unchanged(task))
+                IntentHandled::Accepted(EffectApplied::unchanged_task(task))
             }
         }
     }

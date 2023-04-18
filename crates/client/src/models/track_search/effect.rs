@@ -18,27 +18,27 @@ impl Effect {
             Self::Reset(Reset { params }) => {
                 debug_assert!(model.can_reset());
                 model.reset(params);
-                EffectApplied::maybe_changed_done()
+                EffectApplied::maybe_changed()
             }
             Self::FetchResultPageAccepted(fetch_result_page) => {
                 debug_assert!(model.can_fetch_results());
                 model.set_fetching_results();
                 let task = Task::FetchResultPage(fetch_result_page);
-                EffectApplied::maybe_changed(task)
+                EffectApplied::maybe_changed_task(task)
             }
             Self::FetchResultPageFinished(res) => match res {
                 Ok(response) => {
                     model.append_fetched_result_page(response);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
                 Err(err) => {
                     model.last_error = Some(err);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::ErrorOccurred(err) => {
                 model.last_error = Some(err);
-                EffectApplied::maybe_changed_done()
+                EffectApplied::maybe_changed()
             }
         }
     }

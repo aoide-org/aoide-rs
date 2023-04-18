@@ -30,7 +30,7 @@ impl Intent {
                 let task = PendingTask::FetchAllKinds;
                 let token = model.remote_view.all_kinds.start_pending_now();
                 let task = Task::Pending { token, task };
-                IntentHandled::Accepted(EffectApplied::maybe_changed(task))
+                IntentHandled::Accepted(EffectApplied::maybe_changed_task(task))
             }
             Self::FetchFilteredEntities(fetch_filtered_entities) => {
                 if model.remote_view.is_pending() {
@@ -44,7 +44,7 @@ impl Intent {
                     PendingTask::FetchFilteredEntities(FetchFilteredEntities { filter_by_kind });
                 let token = model.remote_view.filtered_entities.start_pending_now();
                 let task = Task::Pending { token, task };
-                IntentHandled::Accepted(EffectApplied::maybe_changed(task))
+                IntentHandled::Accepted(EffectApplied::maybe_changed_task(task))
             }
             Self::ActivateEntity { entity_uid } => {
                 if model.remote_view.is_pending() {
@@ -57,7 +57,7 @@ impl Intent {
             }
             Self::CreateEntity { new_collection } => {
                 let task = Task::CreateEntity { new_collection };
-                EffectApplied::unchanged(task).into()
+                EffectApplied::unchanged_task(task).into()
             }
         }
     }

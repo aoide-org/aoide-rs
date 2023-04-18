@@ -49,26 +49,26 @@ impl Effect {
             | Self::ActiveCollection(collection::Effect::ErrorOccurred(error))
             | Self::MediaTracker(media_tracker::Effect::ErrorOccurred(error)) => {
                 model.last_errors.push(error);
-                EffectApplied::maybe_changed_done()
+                EffectApplied::maybe_changed()
             }
             Self::FirstErrorsDiscarded(num_errors) => {
                 debug_assert!(num_errors.get() <= model.last_errors.len());
                 model.last_errors = model.last_errors.drain(num_errors.get()..).collect();
-                EffectApplied::maybe_changed_done()
+                EffectApplied::maybe_changed()
             }
             Self::AbortFinished(res) => {
                 match res {
                     Ok(()) => {
                         if model.state == State::Terminating && model.is_pending() {
                             // Abort next pending request until idle
-                            EffectApplied::unchanged(Task::AbortPendingRequest)
+                            EffectApplied::unchanged_task(Task::AbortPendingRequest)
                         } else {
-                            EffectApplied::unchanged_done()
+                            EffectApplied::unchanged()
                         }
                     }
                     Err(err) => {
                         model.last_errors.push(err);
-                        EffectApplied::maybe_changed_done()
+                        EffectApplied::maybe_changed()
                     }
                 }
             }
@@ -84,27 +84,27 @@ impl Effect {
                         for entity in entities {
                             log::info!("{entity:?}");
                         }
-                        EffectApplied::unchanged_done()
+                        EffectApplied::unchanged()
                     }
                     Err(err) => {
                         model.last_errors.push(err);
-                        EffectApplied::maybe_changed_done()
+                        EffectApplied::maybe_changed()
                     }
                 }
             }
             Self::ExportTracksFinished(res) => {
                 if let Err(err) = res {
                     model.last_errors.push(err);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 } else {
-                    EffectApplied::unchanged_done()
+                    EffectApplied::unchanged()
                 }
             }
             Self::AbortPendingRequest(state) => {
                 let mut effect_applied = if model.abort_pending_request_effect().is_some() {
-                    EffectApplied::unchanged(Task::AbortPendingRequest)
+                    EffectApplied::unchanged_task(Task::AbortPendingRequest)
                 } else {
-                    EffectApplied::unchanged_done()
+                    EffectApplied::unchanged()
                 };
                 let Some(state) = state else {
                     return effect_applied;

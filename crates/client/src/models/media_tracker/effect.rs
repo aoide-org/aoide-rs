@@ -53,7 +53,7 @@ impl Effect {
                 let token = model.remote_view.progress.start_pending_now();
                 let task = PendingTask::FetchProgress;
                 let task = Task::Pending { token, task };
-                EffectApplied::maybe_changed(task)
+                EffectApplied::maybe_changed_task(task)
             }
             Self::FetchProgressFinished { token, result } => match result {
                 Ok(progress) => {
@@ -68,14 +68,14 @@ impl Effect {
                         };
                         // Doesn't matter when fetching data
                         log::debug!("Discarding outdated effect: {effect_reconstructed:?}");
-                        return EffectApplied::unchanged_done();
+                        return EffectApplied::unchanged();
                     }
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
                 Err(err) => {
                     model.last_error = Some(err);
                     model.remote_view.progress.finish_pending(token);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::FetchStatusAccepted(fetch_status) => {
@@ -84,7 +84,7 @@ impl Effect {
                 let token = model.remote_view.status.start_pending_now();
                 let task = PendingTask::FetchStatus(fetch_status);
                 let task = Task::Pending { token, task };
-                EffectApplied::maybe_changed(task)
+                EffectApplied::maybe_changed_task(task)
             }
             Self::FetchStatusFinished { token, result } => match result {
                 Ok(status) => {
@@ -99,14 +99,14 @@ impl Effect {
                         };
                         // Doesn't matter when fetching data
                         log::debug!("Discarding outdated effect: {effect_reconstructed:?}");
-                        return EffectApplied::unchanged_done();
+                        return EffectApplied::unchanged();
                     }
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
                 Err(err) => {
                     model.last_error = Some(err);
                     model.remote_view.status.finish_pending(token);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::StartScanDirectoriesAccepted(start_scan_directories) => {
@@ -121,7 +121,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::StartScanDirectories(start_scan_directories);
                 let task = Task::Pending { token, task };
-                EffectApplied::maybe_changed(task)
+                EffectApplied::maybe_changed_task(task)
             }
             Self::ScanDirectoriesFinished { token, result } => match result {
                 Ok(outcome) => {
@@ -135,12 +135,10 @@ impl Effect {
                             result: Ok(outcome),
                         };
                         log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
-                        return EffectApplied::unchanged_done();
+                        return EffectApplied::unchanged();
                     }
                     fetch_progress_effect(model)
-                        .map_or_else(EffectApplied::unchanged_done, |effect| {
-                            effect.apply_on(model)
-                        })
+                        .map_or_else(EffectApplied::unchanged, |effect| effect.apply_on(model))
                 }
                 Err(err) => {
                     model.last_error = Some(err);
@@ -148,7 +146,7 @@ impl Effect {
                         .remote_view
                         .last_scan_directories_outcome
                         .finish_pending(token);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::UntrackDirectoriesAccepted(untrack_directories) => {
@@ -163,7 +161,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::UntrackDirectories(untrack_directories);
                 let task = Task::Pending { token, task };
-                EffectApplied::maybe_changed(task)
+                EffectApplied::maybe_changed_task(task)
             }
             Self::UntrackDirectoriesFinished { token, result } => match result {
                 Ok(outcome) => {
@@ -177,17 +175,15 @@ impl Effect {
                             result: Ok(outcome),
                         };
                         log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
-                        return EffectApplied::unchanged_done();
+                        return EffectApplied::unchanged();
                     }
                     fetch_progress_effect(model)
-                        .map_or_else(EffectApplied::unchanged_done, |effect| {
-                            effect.apply_on(model)
-                        })
+                        .map_or_else(EffectApplied::unchanged, |effect| effect.apply_on(model))
                 }
                 Err(err) => {
                     model.last_error = Some(err);
                     model.remote_view.last_untrack_directories_outcome.reset();
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::StartImportFilesAccepted(start_import_files) => {
@@ -199,7 +195,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::StartImportFiles(start_import_files);
                 let task = Task::Pending { token, task };
-                EffectApplied::maybe_changed(task)
+                EffectApplied::maybe_changed_task(task)
             }
             Self::ImportFilesFinished { token, result } => match result {
                 Ok(outcome) => {
@@ -213,17 +209,15 @@ impl Effect {
                             result: Ok(outcome),
                         };
                         log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
-                        return EffectApplied::unchanged_done();
+                        return EffectApplied::unchanged();
                     }
                     fetch_progress_effect(model)
-                        .map_or_else(EffectApplied::unchanged_done, |effect| {
-                            effect.apply_on(model)
-                        })
+                        .map_or_else(EffectApplied::unchanged, |effect| effect.apply_on(model))
                 }
                 Err(err) => {
                     model.last_error = Some(err);
                     model.remote_view.last_import_files_outcome.reset();
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::StartFindUntrackedFilesAccepted(start_find_untracked_files) => {
@@ -238,7 +232,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::StartFindUntrackedFiles(start_find_untracked_files);
                 let task = Task::Pending { token, task };
-                EffectApplied::maybe_changed(task)
+                EffectApplied::maybe_changed_task(task)
             }
             Self::FindUntrackedFilesFinished { token, result } => match result {
                 Ok(outcome) => {
@@ -252,22 +246,20 @@ impl Effect {
                             result: Ok(outcome),
                         };
                         log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
-                        return EffectApplied::unchanged_done();
+                        return EffectApplied::unchanged();
                     }
                     fetch_progress_effect(model)
-                        .map_or_else(EffectApplied::unchanged_done, |effect| {
-                            effect.apply_on(model)
-                        })
+                        .map_or_else(EffectApplied::unchanged, |effect| effect.apply_on(model))
                 }
                 Err(err) => {
                     model.last_error = Some(err);
                     model.remote_view.last_find_untracked_files_outcome.reset();
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::ErrorOccurred(err) => {
                 model.last_error = Some(err);
-                EffectApplied::maybe_changed_done()
+                EffectApplied::maybe_changed()
             }
         }
     }

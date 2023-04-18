@@ -179,7 +179,7 @@ impl Model {
                 .any(|kind| Some(kind) == entity.body.kind.as_ref())
             {
                 // The new/modified entity is of a known kind
-                return EffectApplied::unchanged_done();
+                return EffectApplied::unchanged();
             }
         }
         refresh_all_kinds(self)
@@ -214,10 +214,10 @@ impl Model {
 fn refresh_all_kinds(model: &mut Model) -> EffectApplied {
     if model.remote_view().is_pending() {
         log::warn!("Cannot refresh all kinds while pending");
-        return EffectApplied::unchanged_done();
+        return EffectApplied::unchanged();
     }
     let task = PendingTask::FetchAllKinds;
     let token = model.remote_view.all_kinds.start_pending_now();
     let task = Task::Pending { token, task };
-    EffectApplied::maybe_changed(task)
+    EffectApplied::maybe_changed_task(task)
 }

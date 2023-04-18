@@ -32,7 +32,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::PurgeOrphaned(purge_orphaned);
                 let task = Task::Pending { token, task };
-                EffectApplied::maybe_changed(task)
+                EffectApplied::maybe_changed_task(task)
             }
             Self::PurgeOrphanedFinished { token, result } => match result {
                 Ok(outcome) => {
@@ -46,14 +46,14 @@ impl Effect {
                             result: Ok(outcome),
                         };
                         log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
-                        return EffectApplied::unchanged_done();
+                        return EffectApplied::unchanged();
                     }
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
                 Err(err) => {
                     model.remote_view.last_purge_orphaned_outcome.reset();
                     model.last_error = Some(err);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::PurgeUntrackedAccepted(purge_untracked) => {
@@ -68,7 +68,7 @@ impl Effect {
                     .start_pending_now();
                 let task = PendingTask::PurgeUntracked(purge_untracked);
                 let task = Task::Pending { token, task };
-                EffectApplied::maybe_changed(task)
+                EffectApplied::maybe_changed_task(task)
             }
             Self::PurgeUntrackedFinished { token, result } => match result {
                 Ok(outcome) => {
@@ -82,19 +82,19 @@ impl Effect {
                             result: Ok(outcome),
                         };
                         log::warn!("Discarding outdated effect: {effect_reconstructed:?}");
-                        return EffectApplied::unchanged_done();
+                        return EffectApplied::unchanged();
                     }
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
                 Err(err) => {
                     model.remote_view.last_purge_orphaned_outcome.reset();
                     model.last_error = Some(err);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::ErrorOccurred(err) => {
                 model.last_error = Some(err);
-                EffectApplied::maybe_changed_done()
+                EffectApplied::maybe_changed()
             }
         }
     }

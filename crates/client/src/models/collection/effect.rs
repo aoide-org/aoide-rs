@@ -34,23 +34,23 @@ impl Effect {
                 debug_assert!(!model.remote_view().is_pending());
                 if model.active_entity_uid() == entity_uid.as_ref() {
                     // Nothing to do
-                    return EffectApplied::unchanged_done();
+                    return EffectApplied::unchanged();
                 }
                 model.set_active_entity_uid(entity_uid);
-                EffectApplied::maybe_changed_done()
+                EffectApplied::maybe_changed()
             }
             Self::FetchAllKindsFinished { token, result } => match result {
                 Ok(all_kinds) => {
                     if model.finish_pending_all_kinds(token, Some(all_kinds)) {
-                        EffectApplied::maybe_changed_done()
+                        EffectApplied::maybe_changed()
                     } else {
-                        EffectApplied::unchanged_done()
+                        EffectApplied::unchanged()
                     }
                 }
                 Err(err) => {
                     model.last_error = Some(err);
                     model.finish_pending_all_kinds(token, None);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::FetchFilteredEntitiesFinished {
@@ -64,34 +64,34 @@ impl Effect {
                         filtered_by_kind,
                         Some(filtered_entities),
                     ) {
-                        EffectApplied::maybe_changed_done()
+                        EffectApplied::maybe_changed()
                     } else {
-                        EffectApplied::unchanged_done()
+                        EffectApplied::unchanged()
                     }
                 }
                 Err(err) => {
                     model.last_error = Some(err);
                     model.finish_pending_filtered_entities(token, filtered_by_kind, None);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::CreateEntityFinished(res) | Self::UpdateEntityFinished(res) => match res {
                 Ok(entity) => model.after_entity_created_or_updated(entity),
                 Err(err) => {
                     model.last_error = Some(err);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::PurgeEntityFinished(res) => match res {
                 Ok(entity_uid) => model.after_entity_purged(&entity_uid),
                 Err(err) => {
                     model.last_error = Some(err);
-                    EffectApplied::maybe_changed_done()
+                    EffectApplied::maybe_changed()
                 }
             },
             Self::ErrorOccurred(err) => {
                 model.last_error = Some(err);
-                EffectApplied::maybe_changed_done()
+                EffectApplied::maybe_changed()
             }
         }
     }
