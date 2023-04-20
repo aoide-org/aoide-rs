@@ -51,7 +51,7 @@ impl EndpointConfig {
         }
     }
 
-    pub fn socket_addr(self) -> SocketAddr {
+    pub const fn socket_addr(self) -> SocketAddr {
         let Self { ip_addr, port } = self;
         SocketAddr::new(ip_addr, port)
     }
