@@ -27,10 +27,10 @@ reqwest = { version = "0.11.16", optional = true, default-features = false, feat
 ] }
 
 # Workspace dependencies
-aoide-core = { version = "=0.8.0", features = ["serde"] }
-aoide-core-json = "=0.8.0"
-aoide-core-api = "=0.8.0"
-aoide-core-api-json = { version = "=0.8.0", features = ["frontend"] }
+aoide-core = { path = "../core", features = ["serde"] }
+aoide-core-api = { path = "../core-api" }
+aoide-core-api-json = { path = "../core-api-json", features = ["frontend"] }
+aoide-core-json = { path = "../core-json" }
 
 [features]
 default = []

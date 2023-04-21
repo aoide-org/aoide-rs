@@ -27,16 +27,16 @@ uuid = { version = "1.3.1", features = ["v4"] }
 schemars = { version = "0.8.12", optional = true }
 
 # Workspace dependencies
-aoide-backend-embedded = "=0.8.0"
-aoide-core = { version = "=0.8.0", features = ["serde"] }
-aoide-core-api = "=0.8.0"
-aoide-core-json = "=0.8.0"
-aoide-core-api-json = { version = "=0.8.0", features = ["backend"] }
-aoide-media = { version = "=0.8.0", features = ["gigtag"] }
-aoide-repo = "=0.8.0"
-aoide-repo-sqlite = "=0.8.0"
-aoide-usecases = "=0.8.0"
-aoide-usecases-sqlite = "=0.8.0"
+aoide-backend-embedded = { path = "../backend-embedded" }
+aoide-core = { path = "../core", features = ["serde"] }
+aoide-core-api = { path = "../core-api" }
+aoide-core-json = { path = "../core-json" }
+aoide-core-api-json = { path = "../core-api-json", features = ["backend"] }
+aoide-media = { path = "../media", features = ["gigtag"] }
+aoide-repo = { path = "../repo" }
+aoide-repo-sqlite = { path = "../repo-sqlite" }
+aoide-usecases = { path = "../usecases" }
+aoide-usecases-sqlite = { path = "../usecases-sqlite" }
 
 [features]
 default = []

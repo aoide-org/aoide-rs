@@ -23,8 +23,8 @@ serde_urlencoded = "0.7.1"
 tokio = { version = "1.27.0", default-features = false, features = ["macros", "fs", "rt-multi-thread", "signal"] }
 
 # Workspace dependencies
-aoide-client = { version = "=0.8.0", features = ["webapi-backend"] }
-aoide-core = "=0.8.0"
-aoide-core-json = "=0.8.0"
-aoide-core-api = "=0.8.0"
-aoide-core-api-json = { version = "=0.8.0", features = ["frontend"] }
+aoide-client = { path = "../crates/client", features = ["webapi-backend"] }
+aoide-core = { path = "../crates/core" }
+aoide-core-api = { path = "../crates/core-api" }
+aoide-core-api-json = { path = "../crates/core-api-json", features = ["frontend"] }
+aoide-core-json = { path = "../crates/core-json" }

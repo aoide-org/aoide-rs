@@ -18,17 +18,17 @@ serde = { version = "1.0.160", features = ["derive"] }
 thiserror = "1.0.40"
 
 # Workspace dependencies
-aoide-core = "=0.8.0"
-aoide-core-api = "=0.8.0"
-aoide-media = "=0.8.0"
-aoide-repo = "=0.8.0"
-aoide-repo-sqlite = "=0.8.0"
-aoide-storage-sqlite = { version = "=0.8.0", features = ["serde", "tokio"] }
-aoide-usecases = "=0.8.0"
-aoide-usecases-sqlite = "=0.8.0"
+aoide-core = { path = "../core" }
+aoide-core-api = { path = "../core-api" }
+aoide-media = { path = "../media" }
+aoide-repo = { path = "../repo" }
+aoide-repo-sqlite = { path = "../repo-sqlite" }
+aoide-storage-sqlite = { path = "../storage-sqlite", features = ["serde", "tokio"] }
+aoide-usecases = { path = "../usecases" }
+aoide-usecases-sqlite = { path = "../usecases-sqlite" }
 
 # Optional: Tantivy search index
-aoide-search-index-tantivy = { version = "=0.8.0", optional = true }
+aoide-search-index-tantivy = { path = "../search-index-tantivy", optional = true }
 tantivy = { version = "0.19.2", optional = true }
 
 [features]

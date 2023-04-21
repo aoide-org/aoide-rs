@@ -33,25 +33,6 @@ license = "AGPL-3.0-or-later"
 edition = "2021"
 rust-version = "1.69"
 
-[patch.crates-io]
-# Workspace crates
-aoide-backend-embedded = { path = "crates/backend-embedded" }
-aoide-backend-webapi-json = { path = "crates/backend-webapi-json" }
-aoide-client = { path = "crates/client" }
-aoide-core = { path = "crates/core" }
-aoide-core-json = { path = "crates/core-json" }
-aoide-core-api = { path = "crates/core-api" }
-aoide-core-api-json = { path = "crates/core-api-json" }
-aoide-desktop-app = { path = "crates/desktop-app" }
-aoide-media = { path = "crates/media" }
-aoide-repo = { path = "crates/repo" }
-aoide-repo-sqlite = { path = "crates/repo-sqlite" }
-aoide-search-index-tantivy = { path = "crates/search-index-tantivy" }
-aoide-storage-sqlite = { path = "crates/storage-sqlite" }
-aoide-usecases = { path = "crates/usecases" }
-aoide-usecases-sqlite = { path = "crates/usecases-sqlite" }
-aoide-websrv-warp-sqlite = { path = "crates/websrv-warp-sqlite" }
-
 [package]
 name = "aoide"
 description = "aoide - Music library management"

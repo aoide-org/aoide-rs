@@ -21,9 +21,9 @@ num-traits = "0.2.15"
 url = "2.3.1"
 
 # Workspace dependencies
-aoide-core = "=0.8.0"
-aoide-core-api = "=0.8.0"
-aoide-repo = "=0.8.0"
+aoide-core = { path = "../core" }
+aoide-core-api = { path = "../core-api" }
+aoide-repo = { path = "../repo" }
 
 [dev-dependencies]
 env_logger = "0.10.0"

@@ -17,13 +17,13 @@ log = "0.4.17"
 thiserror = "1.0.40"
 
 # Workspace dependencies
-aoide-core = "=0.8.0"
-aoide-core-api = "=0.8.0"
-aoide-media = "=0.8.0"
-aoide-repo = "=0.8.0"
-aoide-repo-sqlite = "=0.8.0"
-aoide-storage-sqlite = "=0.8.0"
-aoide-usecases = { version = "=0.8.0", features = ["media"] }
+aoide-core = { path = "../core" }
+aoide-core-api = { path = "../core-api" }
+aoide-media = { path = "../media" }
+aoide-repo = { path = "../repo" }
+aoide-repo-sqlite = { path = "../repo-sqlite" }
+aoide-storage-sqlite = { path = "../storage-sqlite" }
+aoide-usecases = { path = "../usecases", features = ["media"] }
 
 [features]
 default = []
