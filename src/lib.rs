@@ -3,6 +3,13 @@
 
 pub use aoide_core::*;
 
+pub mod media {
+    pub use aoide_core::media::*;
+
+    #[cfg(feature = "media")]
+    pub use aoide_media::*;
+}
+
 #[cfg(feature = "api")]
 pub use aoide_core_api as api;
 
@@ -17,9 +24,6 @@ pub use aoide_backend_embedded as backend_embedded;
 
 #[cfg(feature = "desktop-app")]
 pub use aoide_desktop_app as desktop_app;
-
-#[cfg(feature = "media")]
-pub use aoide_media as media;
 
 #[cfg(feature = "repo")]
 pub use aoide_repo as repo;
