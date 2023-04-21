@@ -6,6 +6,7 @@
 
 [workspace]
 members = [
+  ".",
   "crates/backend-embedded",
   "crates/backend-webapi-json",
   "crates/client",
@@ -50,6 +51,50 @@ aoide-storage-sqlite = { path = "crates/storage-sqlite" }
 aoide-usecases = { path = "crates/usecases" }
 aoide-usecases-sqlite = { path = "crates/usecases-sqlite" }
 aoide-websrv-warp-sqlite = { path = "crates/websrv-warp-sqlite" }
+
+[package]
+name = "aoide"
+description = "aoide - Music library management"
+version = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
+publish = false
+
+[dependencies]
+aoide-backend-embedded = { path = "crates/backend-embedded", optional = true }
+aoide-core = { path = "crates/core" }
+aoide-core-api = { path = "crates/core-api", optional = true }
+aoide-core-api-json = { path = "crates/core-api-json", optional = true }
+aoide-core-json = { path = "crates/core-json", optional = true }
+aoide-desktop-app = { path = "crates/desktop-app", optional = true }
+aoide-media = { path = "crates/media", optional = true }
+aoide-repo = { path = "crates/repo", optional = true }
+aoide-repo-sqlite = { path = "crates/repo-sqlite", optional = true }
+aoide-search-index-tantivy = { path = "crates/search-index-tantivy", optional = true }
+aoide-storage-sqlite = { path = "crates/storage-sqlite", optional = true }
+aoide-usecases = { path = "crates/usecases", optional = true }
+aoide-usecases-sqlite = { path = "crates/usecases-sqlite", optional = true }
+
+[features]
+default = ["api"]
+api = ["dep:aoide-core-api"]
+repo = ["api", "dep:aoide-repo"]
+usecases = ["api", "repo", "dep:aoide-usecases"]
+json = ["aoide-core/serde", "dep:aoide-core-json"]
+json-api = ["api", "json", "dep:aoide-core-api-json"]
+json-schema = ["aoide-core/json-schema", "aoide-core-api-json?/json-schema"]
+frontend = ["aoide-core-api-json?/frontend"]
+backend = ["aoide-core-api-json?/backend"]
+media = ["dep:aoide-media", "aoide-usecases?/media"]
+sqlite = ["media", "usecases", "dep:aoide-repo-sqlite", "dep:aoide-storage-sqlite", "dep:aoide-usecases-sqlite"]
+tantivy = ["dep:aoide-search-index-tantivy", "aoide-backend-embedded?/tantivy"]
+backend-embedded = ["backend", "sqlite", "dep:aoide-backend-embedded"]
+desktop-app = ["frontend", "backend-embedded", "dep:aoide-desktop-app"]
+
+# JavaScript/WASM features
+js = ["aoide-core/js", "aoide-core-api?/js", "aoide-core-api-json?/js", "aoide-core-json?/js", "aoide-repo?/js", "aoide-usecases?/js"]
+frontend-js = ["frontend", "js", "json-api"]
 
 [profile.dev]
 opt-level = 2
