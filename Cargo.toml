@@ -53,10 +53,7 @@ aoide-websrv-warp-sqlite = { path = "crates/websrv-warp-sqlite" }
 
 [profile.dev]
 opt-level = 2
-# TODO: Uncomment after
-# <https://github.com/rust-lang/cargo/pull/11347>
-# has been merged and released in stable (Rust v1.68).
-#split-debuginfo = "unpacked"
+split-debuginfo = "unpacked"
 
 [profile.test]
 inherits = "dev"
