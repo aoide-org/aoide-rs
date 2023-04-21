@@ -89,3 +89,19 @@ test:
 
 depgraph-svg:
     cargo depgraph --all-features --focus aoide-core | dot -T svg -o aoide-depgraph.svg
+
+publish-dry-run:
+    cargo publish --dry-run --allow-dirty -p aoide-core
+    cargo publish --dry-run --allow-dirty -p aoide-core-api
+    cargo publish --dry-run --allow-dirty -p aoide-core-api-json
+    cargo publish --dry-run --allow-dirty -p aoide-core-json
+    cargo publish --dry-run --allow-dirty -p aoide-media
+    cargo publish --dry-run --allow-dirty -p aoide-repo
+    cargo publish --dry-run --allow-dirty -p aoide-usecases
+    cargo publish --dry-run --allow-dirty -p aoide-storage-sqlite
+    cargo publish --dry-run --allow-dirty -p aoide-repo-sqlite
+    cargo publish --dry-run --allow-dirty -p aoide-usecases-sqlite
+    cargo publish --dry-run --allow-dirty -p aoide-search-index-tantivy
+    cargo publish --dry-run --allow-dirty -p aoide-backend-embedded
+    cargo publish --dry-run --allow-dirty -p aoide-desktop-app
+    cargo publish --dry-run --allow-dirty -p aoide

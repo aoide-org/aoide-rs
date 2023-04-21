@@ -4,6 +4,7 @@
 [package]
 name = "aoide-client"
 description = "aoide - [experimental] Unidirectional dataflow client components"
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }

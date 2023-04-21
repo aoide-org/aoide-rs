@@ -4,11 +4,11 @@
 [package]
 name = "aoide-search-index-tantivy"
 description = "aoide - [experimental] Full-text search index based on Tantivy"
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
 
 [dependencies]
 anyhow = "1.0.70"
@@ -18,4 +18,4 @@ tantivy = "0.19.2"
 thiserror = "1.0.40"
 
 # Workspace dependencies
-aoide-core = { path = "../core" }
+aoide-core = { version = "=0.8.0", path = "../core" }

@@ -4,11 +4,11 @@
 [package]
 name = "aoide-core"
 description = "aoide - Core domain model"
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
 
 [dependencies]
 anyhow = "1.0.70"

@@ -4,6 +4,7 @@
 [package]
 name = "aoide-websrv-warp-sqlite"
 description = "aoide - Routes and handlers for a web server (warp/SQLite)"
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }

@@ -4,11 +4,11 @@
 [package]
 name = "aoide-core-api-json"
 description = "aoide - JSON mapping for aoide-core-api boundary types"
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
 
 [dependencies]
 anyhow = "1.0.70"
@@ -19,9 +19,9 @@ url = { version = "2.3.1", features = ["serde"] }
 schemars = { version = "0.8.12", optional = true, features = ["url"] }
 
 # Workspace dependencies
-aoide-core = { path = "../core", features = ["serde"] }
-aoide-core-api = { path = "../core-api" }
-aoide-core-json = { path = "../core-json" }
+aoide-core = { version = "=0.8.0", path = "../core", features = ["serde"] }
+aoide-core-api = { version = "=0.8.0", path = "../core-api" }
+aoide-core-json = { version = "=0.8.0", path = "../core-json" }
 
 [features]
 default = []

@@ -28,6 +28,7 @@ members = [
 ]
 
 [workspace.package]
+repo = "https://gitlab.com/uklotzde/aoide-rs"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 edition = "2021"
@@ -36,26 +37,46 @@ rust-version = "1.69"
 [package]
 name = "aoide"
 description = "aoide - Music library management"
+keywords = ["music"]
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
+include = [
+  "assets/logo",
+  "crates/backend-embedded",
+  "crates/core",
+  "crates/core-api",
+  "crates/core-api-json",
+  "crates/core-json",
+  "crates/desktop-app",
+  "crates/media",
+  "crates/repo",
+  "crates/repo-sqlite",
+  "crates/search-index-tantivy",
+  "crates/storage-sqlite",
+  "crates/usecases",
+  "crates/usecases-sqlite",
+  "src",
+  "LICENSES",
+  "README.md",
+]
 
 [dependencies]
-aoide-backend-embedded = { path = "crates/backend-embedded", optional = true }
-aoide-core = { path = "crates/core" }
-aoide-core-api = { path = "crates/core-api", optional = true }
-aoide-core-api-json = { path = "crates/core-api-json", optional = true }
-aoide-core-json = { path = "crates/core-json", optional = true }
-aoide-desktop-app = { path = "crates/desktop-app", optional = true }
-aoide-media = { path = "crates/media", optional = true }
-aoide-repo = { path = "crates/repo", optional = true }
-aoide-repo-sqlite = { path = "crates/repo-sqlite", optional = true }
-aoide-search-index-tantivy = { path = "crates/search-index-tantivy", optional = true }
-aoide-storage-sqlite = { path = "crates/storage-sqlite", optional = true }
-aoide-usecases = { path = "crates/usecases", optional = true }
-aoide-usecases-sqlite = { path = "crates/usecases-sqlite", optional = true }
+aoide-backend-embedded = { version = "0.8.0", path = "crates/backend-embedded", optional = true }
+aoide-core = { version = "0.8.0", path = "crates/core" }
+aoide-core-api = { version = "0.8.0", path = "crates/core-api", optional = true }
+aoide-core-api-json = { version = "0.8.0", path = "crates/core-api-json", optional = true }
+aoide-core-json = { version = "0.8.0", path = "crates/core-json", optional = true }
+aoide-desktop-app = { version = "0.8.0", path = "crates/desktop-app", optional = true }
+aoide-media = { version = "0.8.0", path = "crates/media", optional = true }
+aoide-repo = { version = "0.8.0", path = "crates/repo", optional = true }
+aoide-repo-sqlite = { version = "0.8.0", path = "crates/repo-sqlite", optional = true }
+aoide-search-index-tantivy = { version = "0.8.0", path = "crates/search-index-tantivy", optional = true }
+aoide-storage-sqlite = { version = "0.8.0", path = "crates/storage-sqlite", optional = true }
+aoide-usecases = { version = "0.8.0", path = "crates/usecases", optional = true }
+aoide-usecases-sqlite = { version = "0.8.0", path = "crates/usecases-sqlite", optional = true }
 
 [features]
 default = ["api"]

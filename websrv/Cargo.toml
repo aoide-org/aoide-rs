@@ -5,6 +5,7 @@
 name = "aoide-websrv"
 description = "aoide - Standalone web server with embedded SQLite database"
 keywords = ["music", "collection"]
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }

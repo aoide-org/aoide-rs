@@ -4,11 +4,11 @@
 [package]
 name = "aoide-backend-embedded"
 description = "aoide - Asynchronous API for an embedded, serverless backend (no JSON/HTTP)"
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
 
 [dependencies]
 anyhow = "1.0.70"
@@ -18,17 +18,17 @@ serde = { version = "1.0.160", features = ["derive"] }
 thiserror = "1.0.40"
 
 # Workspace dependencies
-aoide-core = { path = "../core" }
-aoide-core-api = { path = "../core-api" }
-aoide-media = { path = "../media" }
-aoide-repo = { path = "../repo" }
-aoide-repo-sqlite = { path = "../repo-sqlite" }
-aoide-storage-sqlite = { path = "../storage-sqlite", features = ["serde", "tokio"] }
-aoide-usecases = { path = "../usecases" }
-aoide-usecases-sqlite = { path = "../usecases-sqlite" }
+aoide-core = { version = "=0.8.0", path = "../core" }
+aoide-core-api = { version = "=0.8.0", path = "../core-api" }
+aoide-media = { version = "=0.8.0", path = "../media" }
+aoide-repo = { version = "=0.8.0", path = "../repo" }
+aoide-repo-sqlite = { version = "=0.8.0", path = "../repo-sqlite" }
+aoide-storage-sqlite = { version = "=0.8.0", path = "../storage-sqlite", features = ["serde", "tokio"] }
+aoide-usecases = { version = "=0.8.0", path = "../usecases" }
+aoide-usecases-sqlite = { version = "=0.8.0", path = "../usecases-sqlite" }
 
 # Optional: Tantivy search index
-aoide-search-index-tantivy = { path = "../search-index-tantivy", optional = true }
+aoide-search-index-tantivy = { version = "=0.8.0", path = "../search-index-tantivy", optional = true }
 tantivy = { version = "0.19.2", optional = true }
 
 [features]

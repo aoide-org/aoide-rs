@@ -4,11 +4,11 @@
 [package]
 name = "aoide-media"
 description = "aoide - Import/export of metadata for media sources and tracks"
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
 
 [dependencies]
 anyhow = "1.0.70"
@@ -40,7 +40,7 @@ compact_str = { version = "0.7.0", optional = true }
 triseratops = { version = "0.0.2", optional = true }
 
 # Workspace dependencies
-aoide-core = { path = "../core" }
+aoide-core = { version = "=0.8.0", path = "../core" }
 
 [features]
 default = ["all"]

@@ -4,11 +4,11 @@
 [package]
 name = "aoide-usecases-sqlite"
 description = "aoide - SQLite wrappers for aoide-usecases"
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
 
 [dependencies]
 anyhow = "1.0.70"
@@ -17,13 +17,13 @@ log = "0.4.17"
 thiserror = "1.0.40"
 
 # Workspace dependencies
-aoide-core = { path = "../core" }
-aoide-core-api = { path = "../core-api" }
-aoide-media = { path = "../media" }
-aoide-repo = { path = "../repo" }
-aoide-repo-sqlite = { path = "../repo-sqlite" }
-aoide-storage-sqlite = { path = "../storage-sqlite" }
-aoide-usecases = { path = "../usecases", features = ["media"] }
+aoide-core = { version = "=0.8.0", path = "../core" }
+aoide-core-api = { version = "=0.8.0", path = "../core-api" }
+aoide-media = { version = "=0.8.0", path = "../media" }
+aoide-repo = { version = "=0.8.0", path = "../repo" }
+aoide-repo-sqlite = { version = "=0.8.0", path = "../repo-sqlite" }
+aoide-storage-sqlite = { version = "=0.8.0", path = "../storage-sqlite" }
+aoide-usecases = { version = "=0.8.0", path = "../usecases", features = ["media"] }
 
 [features]
 default = []

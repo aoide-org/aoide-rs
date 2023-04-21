@@ -4,6 +4,7 @@
 [package]
 name = "aoide-webcli"
 description = "aoide - Media tracker CLI for web server"
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }

@@ -4,11 +4,11 @@
 [package]
 name = "aoide-desktop-app"
 description = "aoide - Desktop app support"
+repo = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
 
 [dependencies]
 anyhow = "1.0.70"
@@ -23,9 +23,9 @@ unnest = "0.3.1"
 url = { version = "2.3.1", features = ["serde"] }
 
 # Workspace dependencies
-aoide-backend-embedded = { path = "../backend-embedded" }
-aoide-core = { path = "../core" }
-aoide-core-api = { path = "../core-api" }
-aoide-media = { path = "../media" }
-aoide-repo = { path = "../repo" }
-aoide-storage-sqlite = { path = "../storage-sqlite", features = ["serde", "tokio"] }
+aoide-backend-embedded = { version = "=0.8.0", path = "../backend-embedded" }
+aoide-core = { version = "=0.8.0", path = "../core" }
+aoide-core-api = { version = "=0.8.0", path = "../core-api" }
+aoide-media = { version = "=0.8.0", path = "../media" }
+aoide-repo = { version = "=0.8.0", path = "../repo" }
+aoide-storage-sqlite = { version = "=0.8.0", path = "../storage-sqlite", features = ["serde", "tokio"] }
