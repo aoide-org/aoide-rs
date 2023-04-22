@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 [package]
-name = "aoide-media"
-description = "aoide - Import/export of metadata for media sources and tracks"
-repo = { workspace = true }
+name = "aoide-media-file"
+description = "aoide - File-based import/export of metadata for media sources and tracks"
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }

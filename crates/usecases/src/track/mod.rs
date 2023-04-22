@@ -14,7 +14,7 @@ pub mod search;
 #[cfg(not(target_family = "wasm"))]
 pub mod find_unsynchronized;
 
-#[cfg(all(feature = "media", not(target_family = "wasm")))]
+#[cfg(all(feature = "media-file", not(target_family = "wasm")))]
 pub mod import_and_replace;
 
 #[cfg(not(target_family = "wasm"))]

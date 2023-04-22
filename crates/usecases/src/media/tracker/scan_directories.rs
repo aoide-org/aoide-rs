@@ -12,7 +12,7 @@ use aoide_core_api::media::tracker::{
     Completion, FsTraversalDirectoriesProgress, FsTraversalEntriesProgress, FsTraversalParams,
     FsTraversalProgress,
 };
-use aoide_media::fs::{digest, visit};
+use aoide_media_file::fs::{digest, visit};
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     media::tracker::{DirUpdateOutcome, Repo as MediaTrackerRepo},

@@ -4,7 +4,7 @@
 [package]
 name = "aoide-usecases-sqlite"
 description = "aoide - SQLite wrappers for aoide-usecases"
-repo = { workspace = true }
+repository = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
@@ -19,11 +19,11 @@ thiserror = "1.0.40"
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core" }
 aoide-core-api = { version = "=0.8.0", path = "../core-api" }
-aoide-media = { version = "=0.8.0", path = "../media" }
+aoide-media-file = { version = "=0.8.0", path = "../media-file" }
 aoide-repo = { version = "=0.8.0", path = "../repo" }
 aoide-repo-sqlite = { version = "=0.8.0", path = "../repo-sqlite" }
 aoide-storage-sqlite = { version = "=0.8.0", path = "../storage-sqlite" }
-aoide-usecases = { version = "=0.8.0", path = "../usecases", features = ["media"] }
+aoide-usecases = { version = "=0.8.0", path = "../usecases", features = ["media-file"] }
 
 [features]
 default = []

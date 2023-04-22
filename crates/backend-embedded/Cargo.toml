@@ -4,7 +4,7 @@
 [package]
 name = "aoide-backend-embedded"
 description = "aoide - Asynchronous API for an embedded, serverless backend (no JSON/HTTP)"
-repo = { workspace = true }
+repository = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
@@ -20,7 +20,7 @@ thiserror = "1.0.40"
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core" }
 aoide-core-api = { version = "=0.8.0", path = "../core-api" }
-aoide-media = { version = "=0.8.0", path = "../media" }
+aoide-media-file = { version = "=0.8.0", path = "../media-file" }
 aoide-repo = { version = "=0.8.0", path = "../repo" }
 aoide-repo-sqlite = { version = "=0.8.0", path = "../repo-sqlite" }
 aoide-storage-sqlite = { version = "=0.8.0", path = "../storage-sqlite", features = ["serde", "tokio"] }

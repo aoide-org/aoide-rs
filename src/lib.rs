@@ -3,13 +3,6 @@
 
 pub use aoide_core::*;
 
-pub mod media {
-    pub use aoide_core::media::*;
-
-    #[cfg(feature = "media")]
-    pub use aoide_media::*;
-}
-
 #[cfg(feature = "api")]
 pub use aoide_core_api as api;
 
@@ -33,6 +26,9 @@ pub use aoide_repo_sqlite as repo_sqlite;
 
 #[cfg(feature = "tantivy")]
 pub use aoide_search_index_tantivy as search_index_tantivy;
+
+#[cfg(feature = "media-file")]
+pub use aoide_media_file as media_file;
 
 #[cfg(feature = "sqlite")]
 pub use aoide_storage_sqlite as storage_sqlite;

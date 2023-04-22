@@ -15,7 +15,7 @@ members = [
   "crates/core-api",
   "crates/core-api-json",
   "crates/desktop-app",
-  "crates/media",
+  "crates/media-file",
   "crates/repo",
   "crates/repo-sqlite",
   "crates/search-index-tantivy",
@@ -28,7 +28,7 @@ members = [
 ]
 
 [workspace.package]
-repo = "https://gitlab.com/uklotzde/aoide-rs"
+repository = "https://gitlab.com/uklotzde/aoide-rs"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 edition = "2021"
@@ -38,7 +38,7 @@ rust-version = "1.69"
 name = "aoide"
 description = "aoide - Music library management"
 keywords = ["music"]
-repo = { workspace = true }
+repository = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
@@ -51,7 +51,7 @@ include = [
   "crates/core-api-json",
   "crates/core-json",
   "crates/desktop-app",
-  "crates/media",
+  "crates/media-file",
   "crates/repo",
   "crates/repo-sqlite",
   "crates/search-index-tantivy",
@@ -70,7 +70,7 @@ aoide-core-api = { version = "0.8.0", path = "crates/core-api", optional = true 
 aoide-core-api-json = { version = "0.8.0", path = "crates/core-api-json", optional = true }
 aoide-core-json = { version = "0.8.0", path = "crates/core-json", optional = true }
 aoide-desktop-app = { version = "0.8.0", path = "crates/desktop-app", optional = true }
-aoide-media = { version = "0.8.0", path = "crates/media", optional = true }
+aoide-media-file = { version = "0.8.0", path = "crates/media-file", optional = true }
 aoide-repo = { version = "0.8.0", path = "crates/repo", optional = true }
 aoide-repo-sqlite = { version = "0.8.0", path = "crates/repo-sqlite", optional = true }
 aoide-search-index-tantivy = { version = "0.8.0", path = "crates/search-index-tantivy", optional = true }
@@ -88,8 +88,8 @@ json-api = ["api", "json", "dep:aoide-core-api-json"]
 json-schema = ["aoide-core/json-schema", "aoide-core-api-json?/json-schema"]
 frontend = ["aoide-core-api-json?/frontend"]
 backend = ["aoide-core-api-json?/backend"]
-media = ["dep:aoide-media", "aoide-usecases?/media"]
-sqlite = ["media", "usecases", "dep:aoide-repo-sqlite", "dep:aoide-storage-sqlite", "dep:aoide-usecases-sqlite"]
+media-file = ["dep:aoide-media-file", "aoide-usecases?/media-file"]
+sqlite = ["media-file", "usecases", "dep:aoide-repo-sqlite", "dep:aoide-storage-sqlite", "dep:aoide-usecases-sqlite"]
 tantivy = ["dep:aoide-search-index-tantivy", "aoide-backend-embedded?/tantivy"]
 backend-embedded = ["backend", "sqlite", "dep:aoide-backend-embedded"]
 desktop-app = ["frontend", "backend-embedded", "dep:aoide-desktop-app"]

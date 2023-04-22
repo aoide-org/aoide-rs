@@ -7,7 +7,7 @@ use aoide_core_api::{
     media::{tracker::DirTrackingStatus, SyncMode},
     track::find_unsynchronized::UnsynchronizedTrackEntity,
 };
-use aoide_media::io::import::ImportTrackConfig;
+use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::prelude::*;

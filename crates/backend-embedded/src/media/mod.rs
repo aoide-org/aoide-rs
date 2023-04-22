@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::track::tag::{FACET_ID_GENRE, FACET_ID_MOOD};
-use aoide_media::util::tag::{
+use aoide_media_file::util::tag::{
     FacetedTagMappingConfig, FacetedTagMappingConfigInner, TagMappingConfig,
 };
 

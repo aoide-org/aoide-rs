@@ -4,7 +4,7 @@
 [package]
 name = "aoide-desktop-app"
 description = "aoide - Desktop app support"
-repo = { workspace = true }
+repository = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
@@ -26,6 +26,6 @@ url = { version = "2.3.1", features = ["serde"] }
 aoide-backend-embedded = { version = "=0.8.0", path = "../backend-embedded" }
 aoide-core = { version = "=0.8.0", path = "../core" }
 aoide-core-api = { version = "=0.8.0", path = "../core-api" }
-aoide-media = { version = "=0.8.0", path = "../media" }
+aoide-media-file = { version = "=0.8.0", path = "../media-file" }
 aoide-repo = { version = "=0.8.0", path = "../repo" }
 aoide-storage-sqlite = { version = "=0.8.0", path = "../storage-sqlite", features = ["serde", "tokio"] }

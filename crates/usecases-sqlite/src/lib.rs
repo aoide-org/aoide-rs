@@ -26,7 +26,7 @@
 #![allow(clippy::missing_errors_doc)]
 
 use aoide_core::CollectionUid;
-use aoide_media::Error as MediaError;
+use aoide_media_file::Error as MediaFileError;
 use aoide_repo::prelude::RepoError;
 use aoide_repo_sqlite::{prelude::Connection as RepoConnection, DbConnection};
 use aoide_storage_sqlite::Error as StorageError;
@@ -45,7 +45,7 @@ pub enum Error {
     Input(anyhow::Error),
 
     #[error(transparent)]
-    Media(#[from] MediaError),
+    MediaFile(#[from] MediaFileError),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
@@ -74,7 +74,7 @@ impl From<uc::Error> for Error {
         use uc::Error::*;
         match err {
             Input(uc::InputError(err)) => Self::Input(err),
-            Media(err) => Self::Media(err),
+            MediaFile(err) => Self::MediaFile(err),
             Io(err) => Self::Io(err),
             Repository(err) => Self::Repository(err),
             Other(err) => Self::Other(err),

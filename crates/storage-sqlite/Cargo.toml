@@ -4,7 +4,7 @@
 [package]
 name = "aoide-storage-sqlite"
 description = "aoide - Utilities for an SQLite storage backend"
-repo = { workspace = true }
+repository = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }

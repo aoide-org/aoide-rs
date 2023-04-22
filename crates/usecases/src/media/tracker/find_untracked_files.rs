@@ -8,7 +8,7 @@ use aoide_core_api::media::tracker::{
     find_untracked_files::Outcome, Completion, FsTraversalDirectoriesProgress,
     FsTraversalEntriesProgress, FsTraversalParams, FsTraversalProgress,
 };
-use aoide_media::fs::visit::{self, url_from_walkdir_entry};
+use aoide_media_file::fs::visit::{self, url_from_walkdir_entry};
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::tracker::Repo as MediaTrackerRepo,

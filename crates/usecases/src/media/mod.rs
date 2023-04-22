@@ -9,7 +9,7 @@ use aoide_core::{
     util::clock::DateTime,
 };
 use aoide_core_api::media::SyncMode;
-use aoide_media::{
+use aoide_media_file::{
     fs::open_file_for_reading,
     io::{
         export::{export_track_to_path, ExportTrackConfig},

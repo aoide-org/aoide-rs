@@ -4,7 +4,7 @@
 [package]
 name = "aoide-usecases"
 description = "aoide - Storage-agnostic use case implementations for the backend"
-repo = { workspace = true }
+repository = { workspace = true }
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
@@ -22,7 +22,7 @@ aoide-core-api = { version = "=0.8.0", path = "../core-api" }
 aoide-repo = { version = "=0.8.0", path = "../repo" }
 
 # Workspace dependencies (optional): media
-aoide-media = { version = "=0.8.0", path = "../media", optional = true }
+aoide-media-file = { version = "=0.8.0", path = "../media-file", optional = true }
 blake3 = { version = "1.3.3", optional = true }
 url = { version = "2.3.1", optional = true }
 walkdir = { version = "2.3.3", optional = true }
@@ -30,5 +30,5 @@ walkdir = { version = "2.3.3", optional = true }
 # Feature to enable JavaScript bindings on wasm32-unknown-unknown
 [features]
 default = []
-media = ["dep:aoide-media", "dep:blake3", "dep:url", "dep:walkdir"]
+media-file = ["dep:aoide-media-file", "dep:blake3", "dep:url", "dep:walkdir"]
 js = ["aoide-core/js", "aoide-core-api/js", "aoide-repo/js"]

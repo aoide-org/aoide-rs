@@ -35,10 +35,10 @@ pub mod collection;
 pub mod playlist;
 pub mod track;
 
-#[cfg(feature = "media")]
-use aoide_media::Error as MediaError;
+#[cfg(feature = "media-file")]
+use aoide_media_file::Error as MediaFileError;
 
-#[cfg(feature = "media")]
+#[cfg(feature = "media-file")]
 pub mod media;
 
 #[derive(Error, Debug)]
@@ -52,9 +52,9 @@ pub enum Error {
     #[error(transparent)]
     Input(#[from] InputError),
 
-    #[cfg(feature = "media")]
+    #[cfg(feature = "media-file")]
     #[error(transparent)]
-    Media(#[from] MediaError),
+    MediaFile(#[from] MediaFileError),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),

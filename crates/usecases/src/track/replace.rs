@@ -168,7 +168,7 @@ where
             let mut tags_map: TagsMap<'static> = track.tags.untie().into();
             if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_ID_GROUPING) {
                 let decoded_gig_tags =
-                    aoide_media::util::gigtag::import_from_faceted_tags(faceted_tags);
+                    aoide_media_file::util::gigtag::import_from_faceted_tags(faceted_tags);
                 tags_map.merge(decoded_gig_tags);
             }
             track.tags = tags_map.canonicalize_into();

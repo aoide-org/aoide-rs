@@ -12,7 +12,7 @@ use aoide_core_api::media::tracker::{
     import_files::{ImportedSourceWithIssues, Outcome, Params, Summary},
     Completion,
 };
-use aoide_media::io::import::ImportTrackConfig;
+use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     media::tracker::{Repo as MediaTrackerRepo, TrackedDirectory},

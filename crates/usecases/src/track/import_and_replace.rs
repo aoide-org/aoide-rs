@@ -14,7 +14,7 @@ use aoide_core::{
     util::clock::DateTime,
 };
 use aoide_core_api::{media::SyncMode, track::replace::Summary};
-use aoide_media::io::import::{ImportTrack, ImportTrackConfig, Issues};
+use aoide_media_file::io::import::{ImportTrack, ImportTrackConfig, Issues};
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::source::RecordId as MediaSourceId,
@@ -137,8 +137,8 @@ where
             // Nothing to do
         }
         Err(err) => match err {
-            Error::Media(
-                MediaError::UnknownContentType(_) | MediaError::UnsupportedContentType(_),
+            Error::MediaFile(
+                MediaFileError::UnknownContentType(_) | MediaFileError::UnsupportedContentType(_),
             ) => {
                 log::info!(
                     "Skipped import of track from local file path {}: {err}",

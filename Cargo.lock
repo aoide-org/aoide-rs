@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "ab_glyph"
-version = "0.2.20"
+version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe21446ad43aa56417a767f3e2f3d7c4ca522904de1dd640529a76e9c5c3b33c"
+checksum = "5110f1c78cf582855d895ecd0746b653db010cec6d9f5575293f27934d980a39"
 dependencies = [
  "ab_glyph_rasterizer",
  "owned_ttf_parser",
@@ -153,7 +153,7 @@ dependencies = [
  "aoide-core-api-json",
  "aoide-core-json",
  "aoide-desktop-app",
- "aoide-media",
+ "aoide-media-file",
  "aoide-repo",
  "aoide-repo-sqlite",
  "aoide-search-index-tantivy",
@@ -169,7 +169,7 @@ dependencies = [
  "anyhow",
  "aoide-core",
  "aoide-core-api",
- "aoide-media",
+ "aoide-media-file",
  "aoide-repo",
  "aoide-repo-sqlite",
  "aoide-search-index-tantivy",
@@ -193,7 +193,7 @@ dependencies = [
  "aoide-core-api",
  "aoide-core-api-json",
  "aoide-core-json",
- "aoide-media",
+ "aoide-media-file",
  "aoide-repo",
  "aoide-repo-sqlite",
  "aoide-usecases",
@@ -302,7 +302,7 @@ dependencies = [
  "aoide-backend-embedded",
  "aoide-core",
  "aoide-core-api",
- "aoide-media",
+ "aoide-media-file",
  "aoide-repo",
  "aoide-storage-sqlite",
  "discro",
@@ -317,7 +317,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoide-media"
+name = "aoide-media-file"
 version = "0.8.0"
 dependencies = [
  "anyhow",
@@ -410,7 +410,7 @@ dependencies = [
  "anyhow",
  "aoide-core",
  "aoide-core-api",
- "aoide-media",
+ "aoide-media-file",
  "aoide-repo",
  "bitflags 2.1.0",
  "blake3",
@@ -427,7 +427,7 @@ dependencies = [
  "anyhow",
  "aoide-core",
  "aoide-core-api",
- "aoide-media",
+ "aoide-media-file",
  "aoide-repo",
  "aoide-repo-sqlite",
  "aoide-storage-sqlite",
@@ -761,9 +761,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.12.0"
+version = "3.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d261e256854913907f67ed06efbc3338dfe6179796deefc1ff763fc1aee5535"
+checksum = "9b1ce199063694f33ffb7dd4e0ee620741495c32833cde5aa08f02a0bf96f0c8"
 
 [[package]]
 name = "bytemuck"
@@ -2726,9 +2726,9 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "owned_ttf_parser"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e25e9fb15717794fae58ab55c26e044103aad13186fbb625893f9a3bbcc24228"
+checksum = "706de7e2214113d63a8238d1910463cfce781129a6f263d13fdb09ff64355ba4"
 dependencies = [
  "ttf-parser",
 ]
@@ -3938,9 +3938,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-subscriber"
-version = "0.3.16"
+version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6176eae26dd70d0c919749377897b54a9276bd7061339665dd68777926b5a70"
+checksum = "30a651bc37f915e81f087d86e62a18eec5f79550c7faff886f7090b4ea757c77"
 dependencies = [
  "matchers",
  "nu-ansi-term",
@@ -3973,9 +3973,9 @@ checksum = "3528ecfd12c466c6f163363caf2d02a71161dd5e1cc6ae7b34207ea2d42d81ed"
 
 [[package]]
 name = "ttf-parser"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0609f771ad9c6155384897e1df4d948e692667cc0588548b68eb44d052b27633"
+checksum = "44dcf002ae3b32cd25400d6df128c5babec3927cd1eb7ce813cfff20eb6c3746"
 
 [[package]]
 name = "typenum"

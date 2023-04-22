@@ -22,7 +22,7 @@ use aoide_core_api::{
     collection::{EntityWithSummary, LoadScope},
     media::SyncMode,
 };
-use aoide_media::io::import::ImportTrackConfig;
+use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 use discro::{new_pubsub, Publisher, Ref, Subscriber};
 use url::Url;

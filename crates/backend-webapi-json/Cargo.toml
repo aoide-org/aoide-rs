@@ -32,7 +32,7 @@ aoide-core = { path = "../core", features = ["serde"] }
 aoide-core-api = { path = "../core-api" }
 aoide-core-json = { path = "../core-json" }
 aoide-core-api-json = { path = "../core-api-json", features = ["backend"] }
-aoide-media = { path = "../media", features = ["gigtag"] }
+aoide-media-file = { path = "../media-file", features = ["gigtag"] }
 aoide-repo = { path = "../repo" }
 aoide-repo-sqlite = { path = "../repo-sqlite" }
 aoide-usecases = { path = "../usecases" }

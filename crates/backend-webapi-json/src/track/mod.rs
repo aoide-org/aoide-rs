@@ -6,7 +6,7 @@ use aoide_core::{
     track::{tag::FACET_ID_GROUPING, EntityUid},
 };
 use aoide_core_json::track::Entity;
-use aoide_media::fmt::encode_gig_tags;
+use aoide_media_file::fmt::encode_gig_tags;
 use aoide_repo::{
     prelude::{RecordCollector, ReservableRecordCollector},
     track::RecordHeader,

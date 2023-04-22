@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::media::content::resolver::vfs::VfsResolver;
-use aoide_media::{io::export::ExportTrackConfig, util::artwork::EditEmbeddedArtworkImage};
+use aoide_media_file::{io::export::ExportTrackConfig, util::artwork::EditEmbeddedArtworkImage};
 use aoide_repo::track::EntityRepo as _;
 
 use super::*;

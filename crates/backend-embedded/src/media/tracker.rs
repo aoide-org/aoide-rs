@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::track::Track;
-use aoide_media::io::import::ImportTrackConfig;
+use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use diesel::Connection as _;
 

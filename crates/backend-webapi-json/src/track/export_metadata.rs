@@ -3,7 +3,7 @@
 
 use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
 use aoide_core::media::content::resolver::vfs::VfsResolver;
-use aoide_media::io::export::ExportTrackConfig;
+use aoide_media_file::io::export::ExportTrackConfig;
 
 use super::*;
 

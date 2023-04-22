@@ -4,7 +4,7 @@
 use std::sync::atomic::AtomicBool;
 
 use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
-use aoide_media::io::import::ImportTrackConfig;
+use aoide_media_file::io::import::ImportTrackConfig;
 
 use super::*;
 

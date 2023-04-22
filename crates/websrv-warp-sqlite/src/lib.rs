@@ -85,7 +85,7 @@ impl From<uc::Error> for Error {
         match err {
             Input(err) => Self::BadRequest(err),
             Io(err) => Self::Other(err.into()),
-            Media(err) => Self::Other(err.into()),
+            MediaFile(err) => Self::Other(err.into()),
             Storage(err) => err.into(),
             Repository(err) => match err {
                 RepoError::NotFound => Self::NotFound,
