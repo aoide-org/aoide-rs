@@ -95,7 +95,7 @@ RUN USER=root \
     cargo new --vcs none --lib ${WORKSPACE_NAME}-desktop-app && \
     mv ${WORKSPACE_NAME}-desktop-app crates/desktop-app && \
     cargo new --vcs none --lib ${WORKSPACE_NAME}-media && \
-    mv ${WORKSPACE_NAME}-media crates/media && \
+    mv ${WORKSPACE_NAME}-media crates/media-file && \
     cargo new --vcs none --lib ${WORKSPACE_NAME}-repo && \
     mv ${WORKSPACE_NAME}-repo crates/repo && \
     cargo new --vcs none --lib ${WORKSPACE_NAME}-repo-sqlite && \
@@ -142,8 +142,8 @@ COPY [ \
     "crates/core-api-json/Cargo.toml", \
     "./crates/core-api-json/" ]
 COPY [ \
-    "crates/media/Cargo.toml", \
-    "./crates/media/" ]
+    "crates/media-file /Cargo.toml", \
+    "./crates/media-file /" ]
 COPY [ \
     "crates/desktop-app/Cargo.toml", \
     "./crates/desktop-app/" ]
@@ -228,8 +228,8 @@ COPY [ \
     "crates/core-api-json/src", \
     "./crates/core-api-json/src/" ]
 COPY [ \
-    "crates/media/src", \
-    "./crates/media/src/" ]
+    "crates/media-file /src", \
+    "./crates/media-file /src/" ]
 COPY [ \
     "crates/desktop-app/src", \
     "./crates/desktop-app/src/" ]
