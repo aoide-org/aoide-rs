@@ -5,7 +5,7 @@ use aoide_core::{
     music::tempo::TempoBpm,
     track::{metric::MetricsFlags, Track},
 };
-use lofty::id3::v2::{EncodedTextFrame, Frame, FrameValue, ID3v2Tag};
+use lofty::id3::v2::{ExtendedTextFrame, Frame, FrameValue, ID3v2Tag};
 
 use crate::{
     io::{
@@ -147,7 +147,7 @@ pub(crate) fn export_track_to_tag(
         &mut track.metrics.tempo_bpm,
         crate::util::TempoBpmFormat::Float,
     ) {
-        let frame = FrameValue::UserText(EncodedTextFrame {
+        let frame = FrameValue::UserText(ExtendedTextFrame {
             description: FLOAT_BPM_FRAME_ID.to_owned(),
             content: formatted_bpm,
             encoding: lofty::TextEncoding::UTF8,

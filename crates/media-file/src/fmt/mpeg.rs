@@ -4,7 +4,7 @@
 use std::fs::File;
 
 use aoide_core::track::Track;
-use lofty::{mpeg::MPEGFile, AudioFile};
+use lofty::{mpeg::MpegFile, AudioFile};
 
 use super::{
     id3v2::{export_track_to_tag, Import},
@@ -22,7 +22,7 @@ use crate::{
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,
     config: &ImportTrackConfig,
-    mpeg_file: MPEGFile,
+    mpeg_file: MpegFile,
     track: &mut Track,
 ) {
     // Pre-processing
@@ -49,7 +49,7 @@ pub(crate) fn export_track_to_file(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
-    let mut mpeg_file = <MPEGFile as AudioFile>::read_from(file, parse_options())?;
+    let mut mpeg_file = <MpegFile as AudioFile>::read_from(file, parse_options())?;
 
     let mut id3v2 = mpeg_file
         .id3v2_mut()

@@ -211,22 +211,22 @@ pub fn import_into_track(
     };
     let mut importer = Importer::new();
     match file_type {
-        FileType::AIFF => {
+        FileType::Aiff => {
             let reader = probe.into_inner();
             let aiff_file = lofty::AudioFile::read_from(reader, parse_options())?;
             crate::fmt::aiff::import_file_into_track(&mut importer, config, aiff_file, track);
         }
-        FileType::FLAC => {
+        FileType::Flac => {
             let reader = probe.into_inner();
             let flac_file = lofty::AudioFile::read_from(reader, parse_options())?;
             crate::fmt::flac::import_file_into_track(&mut importer, config, flac_file, track);
         }
-        FileType::MP4 => {
+        FileType::Mp4 => {
             let reader = probe.into_inner();
             let mp4_file = lofty::AudioFile::read_from(reader, parse_options())?;
             crate::fmt::mp4::import_file_into_track(&mut importer, config, mp4_file, track);
         }
-        FileType::MPEG => {
+        FileType::Mpeg => {
             let reader = probe.into_inner();
             let mpeg_file = lofty::AudioFile::read_from(reader, parse_options())?;
             crate::fmt::mpeg::import_file_into_track(&mut importer, config, mpeg_file, track);

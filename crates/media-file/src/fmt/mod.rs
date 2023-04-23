@@ -23,8 +23,9 @@ use aoide_core::{
         metric::MetricsFlags,
         tag::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
-            FACET_ID_ISRC, FACET_ID_MBID_RECORDING, FACET_ID_MBID_RELEASE,
-            FACET_ID_MBID_RELEASE_GROUP, FACET_ID_MBID_TRACK, FACET_ID_MOOD, FACET_ID_XID,
+            FACET_ID_ISRC, FACET_ID_MBID_ARTIST, FACET_ID_MBID_RECORDING, FACET_ID_MBID_RELEASE,
+            FACET_ID_MBID_RELEASE_ARTIST, FACET_ID_MBID_RELEASE_GROUP, FACET_ID_MBID_TRACK,
+            FACET_ID_MBID_WORK, FACET_ID_MOOD, FACET_ID_XID,
         },
         title::{Kind as TitleKind, Titles},
         Track,
@@ -80,10 +81,13 @@ pub const FILE_TAG_FACETS_WITHOUT_GROUPING: &[&FacetId<'_>] = &[
     FACET_ID_GENRE,
     FACET_ID_GROUPING,
     FACET_ID_ISRC,
+    FACET_ID_MBID_ARTIST,
     FACET_ID_MBID_RECORDING,
     FACET_ID_MBID_RELEASE,
+    FACET_ID_MBID_RELEASE_ARTIST,
     FACET_ID_MBID_RELEASE_GROUP,
     FACET_ID_MBID_TRACK,
+    FACET_ID_MBID_WORK,
     FACET_ID_MOOD,
     FACET_ID_XID,
 ];
@@ -326,7 +330,7 @@ impl Compatibility {
         let secondary_content_group_item_key;
         let primary_work_item_key;
         let secondary_work_item_key;
-        if matches!(tage_type, TagType::ID3v2) {
+        if matches!(tage_type, TagType::Id3v2) {
             primary_content_group_item_key = ItemKey::AppleId3v2ContentGroup; // GRP1
             primary_work_item_key = ItemKey::Work; // TXXX:WORK
             if apple_grp1 {
@@ -401,7 +405,7 @@ pub(crate) fn import_file_tag_into_track(
 
     // Musical metrics: tempo (bpm)
     for imported_tempo_bpm in tag
-        .take_strings(&ItemKey::BPM)
+        .take_strings(&ItemKey::Bpm)
         .filter_map(|input| importer.import_tempo_bpm(&input))
     {
         let is_non_fractional = imported_tempo_bpm.is_non_fractional();
@@ -805,12 +809,12 @@ pub(crate) fn import_file_tag_into_track(
         tag.take_strings(&ItemKey::Description).map(Into::into),
     );
 
-    // ISRC tag
+    // Isrc tag
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_ISRC,
-        tag.take_strings(&ItemKey::ISRC).map(Into::into),
+        tag.take_strings(&ItemKey::Isrc).map(Into::into),
     );
 
     // XID tag
@@ -1001,15 +1005,15 @@ pub(crate) fn export_track_to_tag(
         tag.remove_key(&secondary_work_item_key);
     }
 
-    // Music: Tempo/BPM
-    // Write the BPM rounded to an integer value as the least common denominator.
-    // The precise BPM could be written into custom tag fields during post-processing.
+    // Music: Tempo/Bpm
+    // Write the Bpm rounded to an integer value as the least common denominator.
+    // The precise Bpm could be written into custom tag fields during post-processing.
     if let Some(bpm_text) =
         format_validated_tempo_bpm(&mut track.metrics.tempo_bpm, TempoBpmFormat::Integer)
     {
-        tag.insert_text(ItemKey::BPM, bpm_text);
+        tag.insert_text(ItemKey::Bpm, bpm_text);
     } else {
-        tag.remove_key(&ItemKey::BPM);
+        tag.remove_key(&ItemKey::Bpm);
     }
 
     // Music: Key
@@ -1260,16 +1264,16 @@ pub(crate) fn export_track_to_tag(
         tag.remove_key(&ItemKey::Mood);
     }
 
-    // ISRC(s)
+    // Isrc(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_ISRC) {
         export_faceted_tags(
             tag,
-            ItemKey::ISRC,
+            ItemKey::Isrc,
             config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
             tags,
         );
     } else {
-        tag.remove_key(&ItemKey::ISRC);
+        tag.remove_key(&ItemKey::Isrc);
     }
 
     // XID(s)
@@ -1329,6 +1333,38 @@ pub(crate) fn export_track_to_tag(
         );
     } else {
         tag.remove_key(&ItemKey::MusicBrainzReleaseGroupId);
+    }
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MBID_ARTIST) {
+        export_faceted_tags(
+            tag,
+            ItemKey::MusicBrainzArtistId,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::MusicBrainzArtistId);
+    }
+    if let Some(FacetedTags { facet_id, tags }) =
+        tags_map.take_faceted_tags(FACET_ID_MBID_RELEASE_ARTIST)
+    {
+        export_faceted_tags(
+            tag,
+            ItemKey::MusicBrainzReleaseArtistId,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::MusicBrainzReleaseArtistId);
+    }
+    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MBID_WORK) {
+        export_faceted_tags(
+            tag,
+            ItemKey::MusicBrainzWorkId,
+            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+            tags,
+        );
+    } else {
+        tag.remove_key(&ItemKey::MusicBrainzWorkId);
     }
 
     // Grouping(s)

@@ -68,7 +68,7 @@ pub fn export_track_to_path(
         ));
     };
     match file_type {
-        FileType::AIFF => {
+        FileType::Aiff => {
             if track.media_source.content.r#type.essence_str() != "audio/aiff" {
                 return Err(Error::UnsupportedContentType(
                     track.media_source.content.r#type.clone(),
@@ -82,7 +82,7 @@ pub fn export_track_to_path(
                 edit_embedded_artwork_image,
             )
         }
-        FileType::FLAC => {
+        FileType::Flac => {
             if track.media_source.content.r#type.essence_str() != "audio/flac" {
                 return Err(Error::UnsupportedContentType(
                     track.media_source.content.r#type.clone(),
@@ -96,7 +96,7 @@ pub fn export_track_to_path(
                 edit_embedded_artwork_image,
             )
         }
-        FileType::MP4 => {
+        FileType::Mp4 => {
             if !matches!(
                 track.media_source.content.r#type.essence_str(),
                 "audio/m4a" | "audio/mp4" | "video/mp4"
@@ -113,7 +113,7 @@ pub fn export_track_to_path(
                 edit_embedded_artwork_image,
             )
         }
-        FileType::MPEG => {
+        FileType::Mpeg => {
             if track.media_source.content.r#type.essence_str() != "audio/mpeg" {
                 return Err(Error::UnsupportedContentType(
                     track.media_source.content.r#type.clone(),

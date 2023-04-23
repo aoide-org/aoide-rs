@@ -98,6 +98,28 @@ pub const FACET_MBID_RELEASE_GROUP: &str = "mbid-rel-grp";
 pub const FACET_ID_MBID_RELEASE_GROUP: &FacetId<'_> =
     &FacetId::new(Cow::Borrowed(FACET_MBID_RELEASE_GROUP));
 
+// [MusicBrainz Artist Identifier](https://musicbrainz.org/doc/Artist)
+// ID3v2.4: TXXX:MusicBrainz Artist Id
+// Vorbis:  MUSICBRAINZ_ARTISTID
+// MP4:     ----:com.apple.iTunes:MusicBrainz Artist Id
+pub const FACET_MBID_ARTIST: &str = "mbid-art";
+pub const FACET_ID_MBID_ARTIST: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_MBID_ARTIST));
+
+// [MusicBrainz Release Artist Identifier](https://musicbrainz.org/doc/Release_Artist)
+// ID3v2.4: TXXX:MusicBrainz Album Artist Id
+// Vorbis:  MUSICBRAINZ_ALBUMARTISTID
+// MP4:     ----:com.apple.iTunes:MusicBrainz Album Id
+pub const FACET_MBID_RELEASE_ARTIST: &str = "mbid-rel-art";
+pub const FACET_ID_MBID_RELEASE_ARTIST: &FacetId<'_> =
+    &FacetId::new(Cow::Borrowed(FACET_MBID_RELEASE_ARTIST));
+
+// [MusicBrainz Work Identifier](https://musicbrainz.org/doc/Work)
+// ID3v2.4: TXXX:MusicBrainz Work Id
+// Vorbis:  MUSICBRAINZ_WORKID
+// MP4:     ----:com.apple.iTunes:MusicBrainz Work Id
+pub const FACET_MBID_WORK: &str = "mbid-wrk";
+pub const FACET_ID_MBID_WORK: &FacetId<'_> = &FacetId::new(Cow::Borrowed(FACET_MBID_WORK));
+
 // Predefined musical or audio feature scores (as of Spotify/EchoNest).
 // A label is optional and could be used for identifying the source of
 // the score.
