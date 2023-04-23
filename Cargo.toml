@@ -34,10 +34,6 @@ license = "AGPL-3.0-or-later"
 edition = "2021"
 rust-version = "1.69"
 
-[patch.crates-io]
-# TODO: Remove after lofty v0.13.0 has been released
-lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
-
 [package]
 name = "aoide"
 description = "aoide - Music library management"
