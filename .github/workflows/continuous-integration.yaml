@@ -92,7 +92,7 @@ jobs:
 
       - name: Check aoide-media
         run: |
-          cargo check --locked --all-targets --all-features --manifest-path crates/media/Cargo.toml
+          cargo check --locked --all-targets --all-features --manifest-path crates/media-file/Cargo.toml
 
       - name: Check aoide-repo
         run: |
