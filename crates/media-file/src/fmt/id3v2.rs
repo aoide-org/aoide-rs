@@ -5,7 +5,7 @@ use aoide_core::{
     music::tempo::TempoBpm,
     track::{metric::MetricsFlags, Track},
 };
-use lofty::id3::v2::{ExtendedTextFrame, Frame, FrameValue, ID3v2Tag};
+use lofty::id3::v2::{ExtendedTextFrame, Frame, FrameValue, Id3v2Tag};
 
 use crate::{
     io::{
@@ -29,7 +29,7 @@ impl Import {
     pub(super) fn build(
         importer: &mut Importer,
         config: &ImportTrackConfig,
-        tag: &ID3v2Tag,
+        tag: &Id3v2Tag,
     ) -> Self {
         debug_assert!(config.flags.contains(ImportTrackFlags::METADATA));
 
@@ -85,7 +85,7 @@ impl Import {
 #[must_use]
 pub(super) fn import_serato_markers(
     importer: &mut crate::io::import::Importer,
-    tag: &ID3v2Tag,
+    tag: &Id3v2Tag,
 ) -> Option<triseratops::tag::TagContainer> {
     let mut serato_tags = triseratops::tag::TagContainer::new();
     let mut parsed = false;
@@ -127,7 +127,7 @@ pub(super) fn import_serato_markers(
 }
 
 pub(crate) fn export_track_to_tag(
-    tag: &mut ID3v2Tag,
+    tag: &mut Id3v2Tag,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
