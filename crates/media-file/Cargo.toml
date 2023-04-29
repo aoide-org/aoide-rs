@@ -10,7 +10,7 @@ edition = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
-anyhow = "1.0.70"
+anyhow = "1.0.71"
 base64 = "0.21.0"
 blake3 = { version = "1.3.3", features = ["traits-preview"] }
 bitflags = "2.2.1"

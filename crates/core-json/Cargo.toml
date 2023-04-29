@@ -11,7 +11,7 @@ edition = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
-anyhow = "1.0.70"
+anyhow = "1.0.71"
 base64 = "0.21.0"
 mime = "0.3.17"
 num-traits = "0.2.15"
