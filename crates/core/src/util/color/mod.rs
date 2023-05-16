@@ -56,6 +56,9 @@ impl RgbColor {
     pub const GREEN_MASK: RgbColorCode = 0x00_ff_00;
     pub const BLUE_MASK: RgbColorCode = 0x00_00_ff;
 
+    pub const MIN_CODE: RgbColorCode = 0x00_00_00;
+    pub const MAX_CODE: RgbColorCode = Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK;
+
     pub const BLACK: Self = RgbColor(0);
     pub const RED: Self = RgbColor(Self::RED_MASK);
     pub const GREEN: Self = RgbColor(Self::GREEN_MASK);
@@ -73,16 +76,6 @@ impl RgbColor {
     #[must_use]
     pub const fn code(self) -> RgbColorCode {
         self.0
-    }
-
-    #[must_use]
-    pub const fn min_code() -> RgbColorCode {
-        0x00_00_00
-    }
-
-    #[must_use]
-    pub const fn max_code() -> RgbColorCode {
-        Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK
     }
 
     #[must_use]
@@ -159,10 +152,11 @@ pub enum RgbColorInvalidity {
 impl Validate for RgbColor {
     type Invalidity = RgbColorInvalidity;
 
+    #[allow(clippy::absurd_extreme_comparisons)]
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                self.code() < Self::min_code() || self.code() > Self::max_code(),
+                self.code() < Self::MIN_CODE || self.code() > Self::MAX_CODE,
                 Self::Invalidity::CodeOutOfRange,
             )
             .into()

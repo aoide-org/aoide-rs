@@ -8,7 +8,7 @@ struct EntityType;
 #[test]
 fn default_uid() {
     assert!(EntityUid::default().validate().is_err());
-    assert_eq!(EntityUid::default(), EntityUid::nil(),);
+    assert_eq!(EntityUid::default(), EntityUid::NIL);
 }
 
 #[test]

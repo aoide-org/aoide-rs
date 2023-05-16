@@ -233,9 +233,8 @@ fn reencode_roundtrip() {
 
 #[test]
 fn encode_decode_roundtrip_with_valid_tags() {
-    let half_score = Score::clamp_from(
-        Score::min().value() + (Score::max().value() - Score::min().value()) / 2.0,
-    );
+    let half_score =
+        Score::clamp_from(Score::MIN.value() + (Score::MAX.value() - Score::MIN.value()) / 2.0);
     let mut tags_map = TagsMap::default();
     // Only a facet, no label, default score
     tags_map.insert(
@@ -247,7 +246,7 @@ fn encode_decode_roundtrip_with_valid_tags() {
         FacetKey::new(FacetId::clamp_from("facet_min_score")),
         PlainTag {
             label: None,
-            score: Score::min(),
+            score: Score::MIN,
         },
     );
     // Only a facet, no label, max. score
@@ -255,7 +254,7 @@ fn encode_decode_roundtrip_with_valid_tags() {
         FacetKey::new(FacetId::clamp_from("facet_max_score")),
         PlainTag {
             label: None,
-            score: Score::max(),
+            score: Score::MAX,
         },
     );
     // Only a facet, no label, half score
@@ -274,12 +273,12 @@ fn encode_decode_roundtrip_with_valid_tags() {
     // Only a label, no facet, min. score
     tags_map.insert(
         FacetKey::new(None),
-        plain_tag_with_label_and_score("Label with min. score".to_string(), Score::min()),
+        plain_tag_with_label_and_score("Label with min. score".to_string(), Score::MIN),
     );
     // Only a label, no facet, max. score
     tags_map.insert(
         FacetKey::new(None),
-        plain_tag_with_label_and_score("Label with max. score".to_string(), Score::max()),
+        plain_tag_with_label_and_score("Label with max. score".to_string(), Score::MAX),
     );
     // Only a label, no facet, half score
     tags_map.insert(
@@ -294,12 +293,12 @@ fn encode_decode_roundtrip_with_valid_tags() {
     // Both facet and label, min. score
     tags_map.insert(
         FacetKey::new(FacetId::clamp_from("facet")),
-        plain_tag_with_label_and_score("Label with min. score".to_string(), Score::min()),
+        plain_tag_with_label_and_score("Label with min. score".to_string(), Score::MIN),
     );
     // Both facet and label, max. score
     tags_map.insert(
         FacetKey::new(FacetId::clamp_from("facet")),
-        plain_tag_with_label_and_score("Label with max. score".to_string(), Score::max()),
+        plain_tag_with_label_and_score("Label with max. score".to_string(), Score::MAX),
     );
     // Both facet and label, half score
     tags_map.insert(

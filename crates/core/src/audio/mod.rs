@@ -29,10 +29,7 @@ pub type PositionInMilliseconds = f64;
 pub struct PositionMs(pub PositionInMilliseconds);
 
 impl PositionMs {
-    #[must_use]
-    pub const fn unit_of_measure() -> &'static str {
-        "ms"
-    }
+    pub const UNIT_OF_MEASURE: &str = "ms";
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -52,7 +49,7 @@ impl Validate for PositionMs {
 
 impl fmt::Display for PositionMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:+} {}", self.0, Self::unit_of_measure())
+        write!(f, "{:+} {}", self.0, Self::UNIT_OF_MEASURE)
     }
 }
 
@@ -71,10 +68,7 @@ pub type DurationInMilliseconds = f64;
 pub struct DurationMs(DurationInMilliseconds);
 
 impl DurationMs {
-    #[must_use]
-    pub const fn unit_of_measure() -> &'static str {
-        "ms"
-    }
+    pub const UNIT_OF_MEASURE: &str = "ms";
 
     #[must_use]
     pub const fn new(inner: DurationInMilliseconds) -> Self {
@@ -148,7 +142,7 @@ impl TryFrom<DurationMs> for Duration {
 
 impl fmt::Display for DurationMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.to_inner(), Self::unit_of_measure())
+        write!(f, "{} {}", self.to_inner(), Self::UNIT_OF_MEASURE)
     }
 }
 

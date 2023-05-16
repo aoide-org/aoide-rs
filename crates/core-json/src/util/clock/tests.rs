@@ -13,8 +13,8 @@ mod _core {
 #[test]
 fn deserialize_min() {
     assert_eq!(
-        _core::DateOrDateTime::Date(DateYYYYMMDD::min()),
-        serde_json::from_value::<DateOrDateTime>(json!(DateYYYYMMDD::min().to_inner()))
+        _core::DateOrDateTime::Date(DateYYYYMMDD::MIN),
+        serde_json::from_value::<DateOrDateTime>(json!(DateYYYYMMDD::MIN.to_inner()))
             .unwrap()
             .into()
     );
@@ -23,8 +23,8 @@ fn deserialize_min() {
 #[test]
 fn deserialize_max() {
     assert_eq!(
-        _core::DateOrDateTime::Date(DateYYYYMMDD::max()),
-        serde_json::from_value::<DateOrDateTime>(json!(DateYYYYMMDD::max().to_inner()))
+        _core::DateOrDateTime::Date(DateYYYYMMDD::MAX),
+        serde_json::from_value::<DateOrDateTime>(json!(DateYYYYMMDD::MAX.to_inner()))
             .unwrap()
             .into()
     );
@@ -70,19 +70,19 @@ fn deserialize_year() {
 
 #[test]
 fn serialize_min() {
-    assert!(DateYYYYMMDD::min().is_year());
+    assert!(DateYYYYMMDD::MIN.is_year());
     assert_eq!(
-        serde_json::to_string(&DateOrDateTime::Date(DateYYYYMMDD::min().into())).unwrap(),
+        serde_json::to_string(&DateOrDateTime::Date(DateYYYYMMDD::MIN.into())).unwrap(),
         serde_json::to_string(&json!(YEAR_MIN)).unwrap()
     );
 }
 
 #[test]
 fn serialize_max() {
-    assert!(!DateYYYYMMDD::max().is_year());
+    assert!(!DateYYYYMMDD::MAX.is_year());
     assert_eq!(
-        serde_json::to_string(&DateOrDateTime::Date(DateYYYYMMDD::max().into())).unwrap(),
-        serde_json::to_string(&json!(DateYYYYMMDD::max().to_inner())).unwrap()
+        serde_json::to_string(&DateOrDateTime::Date(DateYYYYMMDD::MAX.into())).unwrap(),
+        serde_json::to_string(&json!(DateYYYYMMDD::MAX.to_inner())).unwrap()
     );
 }
 

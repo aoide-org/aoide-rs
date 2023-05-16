@@ -244,8 +244,8 @@ impl MeasurePosition {
             beat_offset_in_measure: _,
         } = self;
         let measure_number = measure_offset.floor().clamp(
-            MeasureNumber::min_value() as MeasureOffset,
-            MeasureNumber::max_value() as MeasureOffset,
+            MeasureNumber::MIN as MeasureOffset,
+            MeasureNumber::MAX as MeasureOffset,
         ) as MeasureNumber;
         if measure_number < 0 {
             measure_number

@@ -7,5 +7,5 @@ use super::*;
 fn duration_to_string() {
     assert!(DurationMs(123.4)
         .to_string()
-        .ends_with(DurationMs::unit_of_measure()));
+        .ends_with(DurationMs::UNIT_OF_MEASURE));
 }

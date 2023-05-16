@@ -131,9 +131,9 @@ impl<'de> SerdeDeserializeVisitor<'de> for DateYYYYMMDDDeserializeVisitor {
         E: de::Error,
     {
         let value = value as YYYYMMDD;
-        let value = if value < _core::DateYYYYMMDD::min().into()
-            && value >= YYYYMMDD::from(_core::DateYYYYMMDD::min().year())
-            && value <= YYYYMMDD::from(_core::DateYYYYMMDD::max().year())
+        let value = if value < _core::DateYYYYMMDD::MIN.into()
+            && value >= YYYYMMDD::from(_core::DateYYYYMMDD::MIN.year())
+            && value <= YYYYMMDD::from(_core::DateYYYYMMDD::MAX.year())
         {
             // Special case handling: YYYY
             _core::DateYYYYMMDD::from_year(value as YearType)

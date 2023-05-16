@@ -25,7 +25,7 @@ pub const DEFAULT_GENRE_MOOD_LABEL_SEPARATOR: &str = ";";
 ///
 /// Used when importing tags from composite tag field, see
 /// also [`DEFAULT_GENRE_MOOD_LABEL_SEPARATOR`]. The score
-/// value of the first tag is [`aoide_core::tag::Score::max()`].
+/// value of the first tag is [`aoide_core::tag::Score::MAX`].
 pub const DEFAULT_GENRE_MOOD_SCORE_ATTENUATION: f64 = 0.75;
 
 /// An opinionated [`FacetedTagMappingConfig`] that supports

@@ -38,10 +38,7 @@ pub struct PlainTag<'a> {
 }
 
 impl<'a> PlainTag<'a> {
-    #[must_use]
-    pub const fn default_score() -> Score {
-        Score::max()
-    }
+    pub const DEFAULT_SCORE: Score = Score::DEFAULT;
 
     #[must_use]
     pub fn to_borrowed(&'a self) -> Self {
@@ -71,7 +68,7 @@ impl Default for PlainTag<'_> {
     fn default() -> Self {
         Self {
             label: None,
-            score: Self::default_score(),
+            score: Self::DEFAULT_SCORE,
         }
     }
 }

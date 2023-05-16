@@ -3,8 +3,6 @@
 
 use super::*;
 
-///////////////////////////////////////////////////////////////////////
-
 #[test]
 fn sample_rate_default() {
     assert!(SampleRateHz::default().validate().is_err());
@@ -12,36 +10,40 @@ fn sample_rate_default() {
 
 #[test]
 fn validate_sample_rate() {
-    assert!(SampleRateHz::min().validate().is_ok());
-    assert!(SampleRateHz::max().validate().is_ok());
-    assert!(SampleRateHz::of_compact_disc().validate().is_ok());
-    assert!(SampleRateHz::of_studio_48k().validate().is_ok());
-    assert!(SampleRateHz::of_studio_96k().validate().is_ok());
-    assert!(SampleRateHz::of_studio_192k().validate().is_ok());
+    assert!(SampleRateHz::MIN.validate().is_ok());
+    assert!(SampleRateHz::MAX.validate().is_ok());
+    assert!(SampleRateHz::new(44_100.0).validate().is_ok());
+    assert!(SampleRateHz::new(48_000.0).validate().is_ok());
+    assert!(SampleRateHz::new(96_000.0).validate().is_ok());
+    assert!(SampleRateHz::new(192_000.0).validate().is_ok());
+    assert!(SampleRateHz::new(0.0).validate().is_err());
+    assert!(SampleRateHz::new(SampleRateHz::MAX.to_inner() + 0.1)
+        .validate()
+        .is_err());
 }
 
 #[test]
 fn sample_rate_to_string() {
     assert!(SampleRateHz::default()
         .to_string()
-        .ends_with(SampleRateHz::unit_of_measure()));
-    assert!(SampleRateHz::of_compact_disc()
+        .ends_with(SampleRateHz::UNIT_OF_MEASURE));
+    assert!(SampleRateHz::new(44_100.0)
         .to_string()
-        .ends_with(SampleRateHz::unit_of_measure()));
-    assert!(SampleRateHz::of_studio_48k()
+        .ends_with(SampleRateHz::UNIT_OF_MEASURE));
+    assert!(SampleRateHz::new(48_000.0)
         .to_string()
-        .ends_with(SampleRateHz::unit_of_measure()));
-    assert!(SampleRateHz::of_studio_96k()
+        .ends_with(SampleRateHz::UNIT_OF_MEASURE));
+    assert!(SampleRateHz::new(96_000.0)
         .to_string()
-        .ends_with(SampleRateHz::unit_of_measure()));
-    assert!(SampleRateHz::of_studio_192k()
+        .ends_with(SampleRateHz::UNIT_OF_MEASURE));
+    assert!(SampleRateHz::new(192_000.0)
         .to_string()
-        .ends_with(SampleRateHz::unit_of_measure()));
+        .ends_with(SampleRateHz::UNIT_OF_MEASURE));
 }
 
 #[test]
 fn loudness_to_string() {
     assert!(LoudnessLufs(-1.234)
         .to_string()
-        .ends_with(LoudnessLufs::unit_of_measure()));
+        .ends_with(LoudnessLufs::UNIT_OF_MEASURE));
 }

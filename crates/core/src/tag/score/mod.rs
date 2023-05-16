@@ -16,42 +16,24 @@ pub type ScoreValue = f64;
 pub struct Score(ScoreValue);
 
 impl Score {
-    #[must_use]
-    pub const fn min_value() -> ScoreValue {
-        0.0
-    }
+    pub const MIN_VALUE: ScoreValue = 0.0;
 
-    #[must_use]
-    pub const fn max_value() -> ScoreValue {
-        1.0
-    }
+    pub const MAX_VALUE: ScoreValue = 1.0;
 
-    #[must_use]
-    pub const fn default_value() -> ScoreValue {
-        Self::max_value()
-    }
+    pub const DEFAULT_VALUE: ScoreValue = Self::MAX_VALUE;
+
+    pub const MIN: Self = Self(Self::MIN_VALUE);
+
+    pub const MAX: Self = Self(Self::MAX_VALUE);
+
+    pub const DEFAULT: Self = Self(Self::DEFAULT_VALUE);
 
     pub fn clamp_value(value: impl Into<ScoreValue>) -> ScoreValue {
-        value.into().clamp(Self::min_value(), Self::max_value())
+        value.into().clamp(Self::MIN_VALUE, Self::MAX_VALUE)
     }
 
     pub fn clamp_from(value: impl Into<ScoreValue>) -> Self {
         Self::clamp_value(value).into()
-    }
-
-    #[must_use]
-    pub const fn min() -> Self {
-        Self(Self::min_value())
-    }
-
-    #[must_use]
-    pub const fn max() -> Self {
-        Self(Self::max_value())
-    }
-
-    #[must_use]
-    pub const fn default() -> Self {
-        Self(Self::default_value())
     }
 
     #[must_use]
@@ -82,7 +64,7 @@ impl Score {
 
 impl Default for Score {
     fn default() -> Self {
-        Self::default()
+        Self::DEFAULT
     }
 }
 
@@ -97,7 +79,7 @@ impl Validate for Score {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                !(*self >= Self::min() && *self <= Self::max()),
+                !(*self >= Self::MIN && *self <= Self::MAX),
                 Self::Invalidity::OutOfRange,
             )
             .into()

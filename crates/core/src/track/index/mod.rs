@@ -14,15 +14,8 @@ pub struct Index {
 }
 
 impl Index {
-    #[must_use]
-    pub const fn min_number() -> u16 {
-        1
-    }
-
-    #[must_use]
-    pub const fn min_total() -> u16 {
-        1
-    }
+    pub const MIN_NUMBER: u16 = 1;
+    pub const MIN_TOTAL: u16 = 1;
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -39,11 +32,11 @@ impl Validate for Index {
         let mut context = ValidationContext::new();
         if let Some(number) = self.number {
             context =
-                context.invalidate_if(number < Self::min_number(), Self::Invalidity::NumberInvalid);
+                context.invalidate_if(number < Self::MIN_NUMBER, Self::Invalidity::NumberInvalid);
         }
         if let Some(total) = self.total {
             context =
-                context.invalidate_if(total < Self::min_total(), Self::Invalidity::TotalInvalid);
+                context.invalidate_if(total < Self::MIN_TOTAL, Self::Invalidity::TotalInvalid);
         }
         if let (Some(number), Some(total)) = (self.number, self.total) {
             context = context.invalidate_if(number > total, Self::Invalidity::NumberExceedsTotal);

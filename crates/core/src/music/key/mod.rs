@@ -759,14 +759,8 @@ impl From<KeySignature> for KeyCode {
 pub struct OpenKeySignature(KeySignature);
 
 impl OpenKeySignature {
-    #[must_use]
-    pub const fn min_code() -> KeyCodeValue {
-        1
-    }
-    #[must_use]
-    pub const fn max_code() -> KeyCodeValue {
-        12
-    }
+    pub const MIN_CODE: KeyCodeValue = 1;
+    pub const MAX_CODE: KeyCodeValue = 12;
 
     #[must_use]
     #[allow(clippy::similar_names)]
@@ -819,14 +813,8 @@ impl fmt::Display for OpenKeySignature {
 pub struct LancelotKeySignature(KeySignature);
 
 impl LancelotKeySignature {
-    #[must_use]
-    pub const fn min_code() -> KeyCodeValue {
-        1
-    }
-    #[must_use]
-    pub const fn max_code() -> KeyCodeValue {
-        12
-    }
+    pub const MIN_CODE: KeyCodeValue = 1;
+    pub const MAX_CODE: KeyCodeValue = 12;
 
     #[must_use]
     #[allow(clippy::similar_names)]
@@ -879,14 +867,8 @@ impl fmt::Display for LancelotKeySignature {
 pub struct EngineKeySignature(KeySignature);
 
 impl EngineKeySignature {
-    #[must_use]
-    pub const fn min_code() -> KeyCodeValue {
-        1
-    }
-    #[must_use]
-    pub const fn max_code() -> KeyCodeValue {
-        24
-    }
+    pub const MIN_CODE: KeyCodeValue = 1;
+    pub const MAX_CODE: KeyCodeValue = 24;
 
     #[must_use]
     pub fn from_code(code: KeyCodeValue) -> Self {

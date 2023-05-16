@@ -5,7 +5,7 @@ use super::*;
 
 #[test]
 fn default_plain_tag_score() {
-    assert_eq!(PlainTag::default_score(), PlainTag::default().score);
+    assert_eq!(PlainTag::DEFAULT_SCORE, PlainTag::default().score);
 }
 
 #[test]

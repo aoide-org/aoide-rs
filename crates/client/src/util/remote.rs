@@ -37,17 +37,13 @@ impl<T> DataSnapshot<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RoundtripState {
+    #[default]
     Idle,
-    Pending { since: Instant },
-}
-
-impl RoundtripState {
-    #[must_use]
-    pub const fn new() -> Self {
-        Self::Idle
-    }
+    Pending {
+        since: Instant,
+    },
 }
 
 #[derive(Debug)]
@@ -97,6 +93,12 @@ impl Roundtrip {
     }
 }
 
+impl Default for Roundtrip {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug)]
 pub struct RemoteData<T> {
     roundtrip: Roundtrip,
@@ -105,7 +107,7 @@ pub struct RemoteData<T> {
 
 impl<T> RemoteData<T> {
     #[must_use]
-    pub const fn default() -> Self {
+    pub const fn new() -> Self {
         Self {
             roundtrip: Roundtrip::new(),
             last_snapshot: None,
@@ -196,6 +198,6 @@ impl<T> RemoteData<T> {
 
 impl<T> Default for RemoteData<T> {
     fn default() -> Self {
-        Self::default()
+        Self::new()
     }
 }

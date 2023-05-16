@@ -140,15 +140,9 @@ pub type YYYYMMDD = i32;
 pub struct DateYYYYMMDD(YYYYMMDD);
 
 impl DateYYYYMMDD {
-    #[must_use]
-    pub const fn min() -> Self {
-        Self(10_000)
-    }
+    pub const MIN: Self = Self(10_000);
 
-    #[must_use]
-    pub const fn max() -> Self {
-        Self(99_991_231)
-    }
+    pub const MAX: Self = Self(99_991_231);
 
     #[must_use]
     pub const fn new(val: YYYYMMDD) -> Self {
@@ -208,8 +202,8 @@ impl Validate for DateYYYYMMDD {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(*self < Self::min(), Self::Invalidity::Min)
-            .invalidate_if(*self > Self::max(), Self::Invalidity::Min)
+            .invalidate_if(*self < Self::MIN, Self::Invalidity::Min)
+            .invalidate_if(*self > Self::MAX, Self::Invalidity::Max)
             .invalidate_if(
                 self.month() < 0 || self.month() > 12,
                 Self::Invalidity::MonthOutOfRange,

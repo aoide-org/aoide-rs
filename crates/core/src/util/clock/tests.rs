@@ -7,8 +7,8 @@ use super::*;
 
 #[test]
 fn min_max_date_year() {
-    assert!(YEAR_MIN <= DateYYYYMMDD::min().year());
-    assert!(YEAR_MAX <= DateYYYYMMDD::max().year());
+    assert!(YEAR_MIN <= DateYYYYMMDD::MIN.year());
+    assert!(YEAR_MAX <= DateYYYYMMDD::MAX.year());
 }
 
 #[test]

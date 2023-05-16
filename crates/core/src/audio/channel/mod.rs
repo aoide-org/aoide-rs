@@ -22,20 +22,9 @@ pub type NumberOfChannels = u16;
 pub struct ChannelCount(pub NumberOfChannels);
 
 impl ChannelCount {
-    #[must_use]
-    pub const fn zero() -> Self {
-        Self(0)
-    }
-
-    #[must_use]
-    pub const fn min() -> Self {
-        Self(1)
-    }
-
-    #[must_use]
-    pub const fn max() -> Self {
-        Self(u16::MAX)
-    }
+    pub const ZERO: Self = Self(0);
+    pub const MIN: Self = Self(1);
+    pub const MAX: Self = Self(u16::MAX);
 
     #[must_use]
     pub fn is_valid(&self) -> bool {
@@ -54,8 +43,8 @@ impl Validate for ChannelCount {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(*self < Self::min(), Self::Invalidity::Min(Self::min()))
-            .invalidate_if(*self > Self::max(), Self::Invalidity::Max(Self::max()))
+            .invalidate_if(*self < Self::MIN, Self::Invalidity::Min(Self::MIN))
+            .invalidate_if(*self > Self::MAX, Self::Invalidity::Max(Self::MAX))
             .into()
     }
 }
@@ -136,15 +125,9 @@ impl Default for ChannelFlags {
 }
 
 impl ChannelFlags {
-    #[must_use]
-    pub const fn mono() -> Self {
-        Self::FRONT_CENTER
-    }
+    pub const MONO: Self = Self::FRONT_CENTER;
 
-    #[must_use]
-    pub const fn stereo() -> Self {
-        Self::FRONT_LEFT.union(Self::FRONT_RIGHT)
-    }
+    pub const STEREO: Self = Self::FRONT_LEFT.union(Self::FRONT_RIGHT);
 
     #[must_use]
     pub const fn channel_count(self) -> ChannelCount {

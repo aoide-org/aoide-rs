@@ -10,8 +10,8 @@ fn channel_count_default() {
 
 #[test]
 fn channel_count_validate() {
-    assert!(ChannelCount::min().validate().is_ok());
-    assert!(ChannelCount::max().validate().is_ok());
+    assert!(ChannelCount::MIN.validate().is_ok());
+    assert!(ChannelCount::MAX.validate().is_ok());
     // Support more than 255 channels
     assert!(ChannelCount(256).validate().is_ok());
 }

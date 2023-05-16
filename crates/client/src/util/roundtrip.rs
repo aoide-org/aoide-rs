@@ -37,11 +37,6 @@ impl Watermark {
         self.sequence == FINAL_SEQUENCE_NUMBER
     }
 
-    #[must_use]
-    pub const fn new() -> Self {
-        Self::INITIAL
-    }
-
     pub fn reset(&mut self) {
         self.bump_epoch();
     }
@@ -132,6 +127,6 @@ impl AsRef<Watermark> for PendingToken {
 
 impl Default for Watermark {
     fn default() -> Self {
-        Self::new()
+        Self::INITIAL
     }
 }

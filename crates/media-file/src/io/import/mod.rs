@@ -603,7 +603,7 @@ impl Importer {
         let tag_mapping_config = faceted_tag_mapping_config.get(facet_id.as_str());
         let mut total_import_count = 0;
         let mut plain_tags = Vec::with_capacity(8);
-        let mut next_score_value = TagScore::default_value();
+        let mut next_score_value = PlainTag::DEFAULT_SCORE.value();
         for label_value in label_values {
             total_import_count += self.import_plain_tags_from_joined_label_value(
                 tag_mapping_config,

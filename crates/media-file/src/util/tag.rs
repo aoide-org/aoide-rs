@@ -14,8 +14,8 @@ pub struct TagMappingConfig {
 impl TagMappingConfig {
     #[must_use]
     pub fn next_score_value(&self, score: ScoreValue) -> ScoreValue {
-        debug_assert!(score > TagScore::min().value());
-        debug_assert!(self.split_score_attenuation > TagScore::min().value());
+        debug_assert!(score > TagScore::MIN.value());
+        debug_assert!(self.split_score_attenuation > TagScore::MIN.value());
         score * self.split_score_attenuation
     }
 

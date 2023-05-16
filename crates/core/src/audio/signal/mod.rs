@@ -26,20 +26,10 @@ pub type BitsPerSecond = f64;
 pub struct BitrateBps(BitsPerSecond);
 
 impl BitrateBps {
-    #[must_use]
-    pub const fn unit_of_measure() -> &'static str {
-        "bps"
-    }
+    pub const UNIT_OF_MEASURE: &str = "bps";
 
-    #[must_use]
-    pub const fn min() -> Self {
-        Self(f64::MIN_POSITIVE)
-    }
-
-    #[must_use]
-    pub const fn max() -> Self {
-        Self(f64::MAX)
-    }
+    pub const MIN: Self = Self(f64::MIN_POSITIVE);
+    pub const MAX: Self = Self(f64::MAX);
 
     #[must_use]
     pub const fn new(inner: SamplesPerSecond) -> Self {
@@ -69,15 +59,15 @@ impl Validate for BitrateBps {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(*self < Self::min(), Self::Invalidity::Min(Self::min()))
-            .invalidate_if(*self > Self::max(), Self::Invalidity::Max(Self::max()))
+            .invalidate_if(*self < Self::MIN, Self::Invalidity::Min(Self::MIN))
+            .invalidate_if(*self > Self::MAX, Self::Invalidity::Max(Self::MAX))
             .into()
     }
 }
 
 impl fmt::Display for BitrateBps {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.to_inner(), Self::unit_of_measure())
+        write!(f, "{} {}", self.to_inner(), Self::UNIT_OF_MEASURE)
     }
 }
 
@@ -96,40 +86,10 @@ pub type SamplesPerSecond = f64;
 pub struct SampleRateHz(SamplesPerSecond);
 
 impl SampleRateHz {
-    #[must_use]
-    pub const fn unit_of_measure() -> &'static str {
-        "Hz"
-    }
+    pub const UNIT_OF_MEASURE: &str = "Hz";
 
-    #[must_use]
-    pub const fn min() -> Self {
-        Self(f64::MIN_POSITIVE)
-    }
-
-    #[must_use]
-    pub const fn max() -> Self {
-        Self(192_000.0)
-    }
-
-    #[must_use]
-    pub const fn of_compact_disc() -> Self {
-        Self(44_100.0)
-    }
-
-    #[must_use]
-    pub const fn of_studio_48k() -> Self {
-        Self(48_000.0)
-    }
-
-    #[must_use]
-    pub const fn of_studio_96k() -> Self {
-        Self(96_000.0)
-    }
-
-    #[must_use]
-    pub const fn of_studio_192k() -> Self {
-        Self(192_000.0)
-    }
+    pub const MIN: Self = Self(f64::MIN_POSITIVE);
+    pub const MAX: Self = Self(192_000.0);
 
     #[must_use]
     pub const fn new(inner: SamplesPerSecond) -> Self {
@@ -159,15 +119,15 @@ impl Validate for SampleRateHz {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(*self < Self::min(), Self::Invalidity::Min(Self::min()))
-            .invalidate_if(*self > Self::max(), Self::Invalidity::Max(Self::max()))
+            .invalidate_if(*self < Self::MIN, Self::Invalidity::Min(Self::MIN))
+            .invalidate_if(*self > Self::MAX, Self::Invalidity::Max(Self::MAX))
             .into()
     }
 }
 
 impl fmt::Display for SampleRateHz {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.to_inner(), Self::unit_of_measure())
+        write!(f, "{} {}", self.to_inner(), Self::UNIT_OF_MEASURE)
     }
 }
 
@@ -234,25 +194,18 @@ pub type LatencyInMilliseconds = f64;
 pub struct LatencyMs(pub LatencyInMilliseconds);
 
 impl LatencyMs {
-    #[must_use]
-    pub const fn unit_of_measure() -> &'static str {
-        "ms"
-    }
+    pub const UNIT_OF_MEASURE: &str = "ms";
 
-    const fn units_per_second() -> LatencyInMilliseconds {
-        1_000.0
-    }
+    const UNITS_PER_SECOND: LatencyInMilliseconds = 1_000.0;
 
-    #[must_use]
-    pub const fn min() -> Self {
-        Self(0.0)
-    }
+    pub const MIN: Self = Self(0.0);
+    pub const MAX: Self = Self(192_000.0);
 
     #[must_use]
     pub fn from_samples(sample_length: SampleLength, sample_rate: SampleRateHz) -> LatencyMs {
         debug_assert!(sample_length.validate().is_ok());
         debug_assert!(sample_rate.validate().is_ok());
-        Self((sample_length.0 * Self::units_per_second()) / sample_rate.0)
+        Self((sample_length.0 * Self::UNITS_PER_SECOND) / sample_rate.0)
     }
 
     #[must_use]
@@ -272,7 +225,7 @@ impl Validate for LatencyMs {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                !self.0.is_finite() || *self < Self::min(),
+                !self.0.is_finite() || *self < Self::MIN,
                 Self::Invalidity::OutOfRange,
             )
             .into()
@@ -281,7 +234,7 @@ impl Validate for LatencyMs {
 
 impl fmt::Display for LatencyMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.0, Self::unit_of_measure())
+        write!(f, "{} {}", self.0, Self::UNIT_OF_MEASURE)
     }
 }
 
@@ -305,10 +258,7 @@ pub struct LoudnessLufs(pub LufsValue);
 // specification (RG2) proposes -18 LUFS for achieving similar perceptive
 // results compared to ReplayGain v1 (RG1).
 impl LoudnessLufs {
-    #[must_use]
-    pub const fn unit_of_measure() -> &'static str {
-        "LUFS"
-    }
+    pub const UNIT_OF_MEASURE: &str = "LUFS";
 
     #[must_use]
     pub fn is_valid(&self) -> bool {
@@ -333,7 +283,7 @@ impl Validate for LoudnessLufs {
 
 impl fmt::Display for LoudnessLufs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.0, Self::unit_of_measure())
+        write!(f, "{} {}", self.0, Self::UNIT_OF_MEASURE)
     }
 }
 

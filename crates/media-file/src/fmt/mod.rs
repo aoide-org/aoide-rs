@@ -15,7 +15,7 @@ use aoide_core::{
     },
     music::tempo::TempoBpm,
     prelude::*,
-    tag::{FacetId, FacetKey, FacetedTags, Label, PlainTag, Score as TagScore, Tags, TagsMap},
+    tag::{FacetId, FacetKey, FacetedTags, Label, PlainTag, Tags, TagsMap},
     track::{
         actor::Role as ActorRole,
         album::Kind as AlbumKind,
@@ -772,7 +772,7 @@ pub(crate) fn import_file_tag_into_track(
     // Genre tags
     {
         let tag_mapping_config = config.faceted_tag_mapping.get(FACET_ID_GENRE.as_str());
-        let mut next_score_value = TagScore::default_value();
+        let mut next_score_value = PlainTag::DEFAULT_SCORE.value();
         let mut plain_tags = Vec::with_capacity(8);
         for genre in tag.take_strings(&ItemKey::Genre) {
             importer.import_plain_tags_from_joined_label_value(

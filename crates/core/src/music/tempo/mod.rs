@@ -16,20 +16,11 @@ pub type Bpm = f64;
 pub struct TempoBpm(Bpm);
 
 impl TempoBpm {
-    #[must_use]
-    pub const fn unit_of_measure() -> &'static str {
-        "bpm"
-    }
+    pub const UNIT_OF_MEASURE: &str = "bpm";
 
-    #[must_use]
-    pub const fn min() -> Self {
-        Self(f64::MIN_POSITIVE)
-    }
+    pub const MIN: Self = Self(f64::MIN_POSITIVE);
 
-    #[must_use]
-    pub const fn max() -> Self {
-        Self(f64::MAX)
-    }
+    pub const MAX: Self = Self(f64::MAX);
 
     #[must_use]
     pub const fn new(inner: Bpm) -> Self {
@@ -59,7 +50,7 @@ impl Validate for TempoBpm {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                !(*self >= Self::min() && *self <= Self::max()),
+                !(*self >= Self::MIN && *self <= Self::MAX),
                 Self::Invalidity::OutOfRange,
             )
             .into()
@@ -68,6 +59,6 @@ impl Validate for TempoBpm {
 
 impl fmt::Display for TempoBpm {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.0, Self::unit_of_measure())
+        write!(f, "{} {}", self.0, Self::UNIT_OF_MEASURE)
     }
 }

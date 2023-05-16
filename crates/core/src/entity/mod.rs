@@ -32,11 +32,7 @@ pub struct EntityUid {
 impl EntityUid {
     pub const STR_LEN: usize = ULID_LEN;
 
-    #[must_use]
-    pub const fn nil() -> Self {
-        let ulid = Ulid::nil();
-        Self { ulid }
-    }
+    pub const NIL: Self = Self { ulid: Ulid::nil() };
 
     #[must_use]
     pub const fn is_nil(&self) -> bool {
@@ -234,7 +230,7 @@ impl EncodedEntityUid {
 
 impl Default for EncodedEntityUid {
     fn default() -> Self {
-        Self::from(&EntityUid::nil())
+        Self::from(&EntityUid::NIL)
     }
 }
 
