@@ -15,7 +15,7 @@ anyhow = "1.0.71"
 discro = { version = "0.8.2", features = ["tokio"] }
 highway = { version = "1.0.0" }
 log = "0.4.17"
-rfd = { version = "0.11.3", default-features = false, features = ["xdg-portal"] }
+rfd = { version = "0.11.4", default-features = false, features = ["xdg-portal"] }
 ron = "0.8.0"
 serde = { version = "1.0.163", features = ["derive"] }
 tokio = { version = "1.28.1", default-features = false }
