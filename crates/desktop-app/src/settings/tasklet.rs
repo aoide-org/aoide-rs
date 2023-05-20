@@ -14,12 +14,12 @@ pub fn on_state_changed_save_to_file(
     settings_dir: PathBuf,
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
-    // Read the initial settings immediately before spawning the async task.
-    // These are supposed to be saved already. Only subsequent changes will
-    // be noticed, which might occur already while spawning the task. Otherwise
-    // when reading the initial settings later within the spawned task all
-    // intermediate changes would slip through unnoticed!
-    let mut old_settings = subscriber.read().clone();
+    // Read and acknowledge the initial settings immediately before spawning
+    // the async task. These are supposed to be saved already. Only subsequent
+    // changes will be noticed, which might occur already while spawning the task.
+    // Otherwise when reading the initial settings later within the spawned task
+    // all intermediate changes would slip through unnoticed!
+    let mut old_settings = subscriber.read_ack().clone();
     async move {
         log::debug!("Starting on_state_changed_save_to_file");
         let mut settings_changed = false;

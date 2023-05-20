@@ -13,7 +13,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.71"
-clap = "4.2.7"
+clap = "4.3.0"
 env_logger = "0.10.0"
 infect = "0.0.29"
 #infect = { git = "https://github.com/uklotzde/infect.git" }
