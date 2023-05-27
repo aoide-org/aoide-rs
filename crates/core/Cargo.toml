@@ -12,7 +12,7 @@ rust-version = { workspace = true }
 
 [dependencies]
 anyhow = "1.0.71"
-base64 = "0.21.1"
+base64 = "0.21.2"
 bitflags = "2.3.1"
 image = { version = "0.24.6", default-features = false, features = ["png"] }
 mime = "0.3.17"
