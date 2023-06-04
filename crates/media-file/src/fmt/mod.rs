@@ -112,9 +112,7 @@ pub fn encode_gig_tags(
 }
 
 pub(crate) fn parse_options() -> ParseOptions {
-    ParseOptions::new()
-        .parsing_mode(lofty::ParsingMode::Relaxed)
-        .read_properties(true)
+    ParseOptions::new().read_properties(true)
 }
 
 fn import_audio_content_from_file_properties(properties: &FileProperties) -> AudioContentMetadata {
