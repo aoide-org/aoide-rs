@@ -18,7 +18,7 @@ num-traits = "0.2.15"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_repr = "0.1.12"
 time = { version = "0.3.21", features = ["serde-human-readable"] }
-url = { version = "2.3.1", features = ["serde"] }
+url = { version = "2.4.0", features = ["serde"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.12", optional = true, features = ["chrono", "url"] }

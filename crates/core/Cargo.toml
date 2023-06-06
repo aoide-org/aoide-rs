@@ -29,7 +29,7 @@ time = { version = "0.3.21", features = [
 ] }
 thiserror = "1.0.40"
 ulid = "1.0.0"
-url = "2.3.1"
+url = "2.4.0"
 
 # Serialization of selected, primitive types
 serde = { version = "1.0.163", optional = true, features = ["derive"] }
@@ -38,13 +38,13 @@ serde = { version = "1.0.163", optional = true, features = ["derive"] }
 schemars = { version = "0.8.12", optional = true, features = ["url"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = "0.2.9"
+getrandom = "0.2.10"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 path-slash = "0.2.1"
 
 [dev-dependencies]
-data-url = "0.2.0"
+data-url = "0.3.0"
 
 [features]
 default = []
