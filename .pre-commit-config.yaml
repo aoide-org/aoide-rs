@@ -56,7 +56,7 @@ repos:
       - id: markdownlint-cli2
         exclude: ^LICENSE\.md$
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.9.0.2
+    rev: v0.9.0.5
     hooks:
       - id: shellcheck
   - repo: https://github.com/codespell-project/codespell
@@ -65,7 +65,7 @@ repos:
       - id: codespell
         args: [--ignore-words=.codespellignore]
   - repo: https://github.com/sirosen/check-jsonschema
-    rev: 0.23.0
+    rev: 0.23.1
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
