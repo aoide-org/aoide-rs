@@ -21,7 +21,7 @@ image = "0.24.6"
 lofty = "0.14.0"
 # Use main branch of lofty-rs for using unreleased features
 #lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
-log = "0.4.18"
+log = "0.4.19"
 mime = "0.3.17"
 mime_guess = "2.0.4"
 nom = "7.1.3"
