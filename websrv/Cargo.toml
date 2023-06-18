@@ -21,7 +21,7 @@ log = { version = "0.4.19", features = ["release_max_level_debug"] }
 parking_lot = "0.12.1"
 ron = "0.8.0"
 serde = { version = "1.0.164", features = ["derive"] }
-serde_json = "1.0.96"
+serde_json = "1.0.97"
 thiserror = "1.0.40"
 time = { version = "0.3.22", features = ["serde-human-readable"] }
 tokio = { version = "1.28.2", default-features = false, features = [

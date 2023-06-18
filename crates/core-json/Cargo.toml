@@ -34,4 +34,4 @@ json-schema = ["dep:schemars", "dep:chrono", "aoide-core/json-schema"]
 js = ["aoide-core/js"]
 
 [dev-dependencies]
-serde_json = "1.0.96"
+serde_json = "1.0.97"
