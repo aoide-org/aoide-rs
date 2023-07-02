@@ -11,7 +11,7 @@ edition = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
-num-derive = "0.3.3"
+num-derive = "0.4.0"
 num-traits = "0.2.15"
 url = "2.4.0"
 
