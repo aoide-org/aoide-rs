@@ -23,7 +23,7 @@ const ADVISORY_RATING_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"rtng");
 
 const LEGACY_GENRE_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"gnre"); // numeric identifier
 
-const COM_APPLE_ITUNES_FREEFORM_MEAN: &str = "----:com.apple.iTunes";
+const COM_APPLE_ITUNES_FREEFORM_MEAN: &str = "com.apple.iTunes";
 
 const FLOAT_BPM_IDENT: AtomIdent<'_> = AtomIdent::Freeform {
     mean: Cow::Borrowed(COM_APPLE_ITUNES_FREEFORM_MEAN),
