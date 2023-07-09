@@ -14,8 +14,8 @@ publish = false
 [dependencies]
 anyhow = "1.0.71"
 log = "0.4.19"
-serde = "1.0.164"
-thiserror = "1.0.40"
+serde = "1.0.169"
+thiserror = "1.0.43"
 warp = { version = "0.3.5", default-features = false }
 
 # Workspace dependencies
