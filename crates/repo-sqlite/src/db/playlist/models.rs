@@ -50,7 +50,7 @@ impl From<QueryableRecord> for (RecordHeader, Option<CollectionId>, PlaylistEnti
             updated_at: DateTime::new_timestamp_millis(row_updated_ms),
         };
         let collection_id = collection_id.map(Into::into);
-        let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
+        let entity_hdr = decode_entity_header(&entity_uid, entity_rev);
         let entity_body = Playlist {
             title,
             kind,
@@ -108,8 +108,8 @@ impl<'a> InsertableRecord<'a> {
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
-            entity_uid: entity_uid_to_sql(uid),
-            entity_rev: entity_revision_to_sql(*rev),
+            entity_uid: encode_entity_uid(uid),
+            entity_rev: encode_entity_revision(*rev),
             collection_id: collection_id.map(Into::into),
             title,
             kind: kind.as_deref(),
@@ -138,7 +138,7 @@ pub struct TouchableRecord {
 
 impl TouchableRecord {
     pub fn bind(updated_at: DateTime, next_rev: EntityRevision) -> Self {
-        let entity_rev = entity_revision_to_sql(next_rev);
+        let entity_rev = encode_entity_revision(next_rev);
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             entity_rev,
@@ -161,7 +161,7 @@ pub struct UpdatableRecord<'a> {
 
 impl<'a> UpdatableRecord<'a> {
     pub fn bind(updated_at: DateTime, next_rev: EntityRevision, playlist: &'a Playlist) -> Self {
-        let entity_rev = entity_revision_to_sql(next_rev);
+        let entity_rev = encode_entity_revision(next_rev);
         let Playlist {
             title,
             kind,

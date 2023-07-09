@@ -4,7 +4,7 @@
 use aoide_core::{
     music::{
         beat::{BeatUnit, BeatsPerMeasure, TimeSignature},
-        key::{KeyCode, KeyCodeValue, KeySignature},
+        key::KeySignature,
         tempo::{Bpm, TempoBpm},
     },
     prelude::*,
@@ -16,7 +16,7 @@ use aoide_repo::{media::source::RecordId as MediaSourceId, track::RecordHeader};
 
 use super::schema::*;
 use crate::{
-    db::track::{decode_advisory_rating, decode_album_kind, EntityPreload},
+    db::track::{decode_advisory_rating, decode_album_kind, decode_music_key_code, EntityPreload},
     prelude::*,
 };
 
@@ -84,7 +84,7 @@ impl From<QueryableRecord> for (MediaSourceId, RecordHeader, TrackHeader) {
             created_at: DateTime::new_timestamp_millis(row_created_ms),
             updated_at: DateTime::new_timestamp_millis(row_updated_ms),
         };
-        let entity_header = entity_header_from_sql(&entity_uid, entity_rev);
+        let entity_header = decode_entity_header(&entity_uid, entity_rev);
         (
             media_source_id.into(),
             record_header,
@@ -148,8 +148,8 @@ pub(crate) fn load_repo_entity(
         created_at: DateTime::new_timestamp_millis(row_created_ms),
         updated_at: DateTime::new_timestamp_millis(row_updated_ms),
     };
-    let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
-    let last_synchronized_rev = last_synchronized_rev.map(entity_revision_from_sql);
+    let entity_hdr = decode_entity_header(&entity_uid, entity_rev);
+    let last_synchronized_rev = last_synchronized_rev.map(decode_entity_revision);
     let recorded_at = if let Some(recorded_at) = recorded_at {
         let recorded_at = parse_datetime_opt(Some(recorded_at.as_str()), recorded_ms);
         debug_assert_eq!(
@@ -218,12 +218,7 @@ pub(crate) fn load_repo_entity(
             None
         }
     };
-    let music_key_code = music_key_code
-        .map(|val| {
-            KeyCode::try_from_value(val as KeyCodeValue)
-                .ok_or_else(|| anyhow::anyhow!("Invalid musical key code value: {val}"))
-        })
-        .transpose()?;
+    let music_key_code = music_key_code.map(decode_music_key_code).transpose()?;
     let metrics = Metrics {
         tempo_bpm: music_tempo_bpm.map(TempoBpm::new),
         key_signature: music_key_code.map(KeySignature::new),

@@ -41,7 +41,7 @@ impl From<QueryableRecord> for (PlaylistId, i64, Option<TrackId>, Entry) {
         let item = if let Some(track_uid) = &track_uid {
             debug_assert!(item_data.is_none());
             Item::Track(TrackItem {
-                uid: entity_uid_typed_from_sql(track_uid),
+                uid: decode_entity_uid_typed(track_uid),
             })
         } else {
             Item::Separator(SeparatorItem { kind: item_data })

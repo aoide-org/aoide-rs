@@ -44,7 +44,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                     created_at: DateTime::new_timestamp_millis(row_created_ms),
                     updated_at: DateTime::new_timestamp_millis(row_updated_ms),
                 };
-                (header, entity_revision_from_sql(entity_rev))
+                (header, decode_entity_revision(entity_rev))
             })
     }
 
@@ -61,7 +61,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let encoded_uid = EncodedEntityUid::from(uid);
         let target = playlist::table
             .filter(playlist::entity_uid.eq(encoded_uid.as_str()))
-            .filter(playlist::entity_rev.eq(entity_revision_to_sql(*rev)));
+            .filter(playlist::entity_rev.eq(encode_entity_revision(*rev)));
         let query = diesel::update(target).set(&touchable);
         let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);

@@ -62,7 +62,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, CollectionEntity) {
         let media_source_config = MediaSourceConfig {
             content_path: content_path_config,
         };
-        let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
+        let entity_hdr = decode_entity_header(&entity_uid, entity_rev);
         let entity_body = Collection {
             title,
             kind,
@@ -130,8 +130,8 @@ impl<'a> InsertableRecord<'a> {
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
-            entity_uid: entity_uid_to_sql(uid),
-            entity_rev: entity_revision_to_sql(*rev),
+            entity_uid: encode_entity_uid(uid),
+            entity_rev: encode_entity_revision(*rev),
             title,
             kind: kind.as_deref(),
             notes: notes.as_deref(),
@@ -160,7 +160,7 @@ pub struct TouchableRecord {
 
 impl TouchableRecord {
     pub fn bind(updated_at: DateTime, next_rev: EntityRevision) -> Self {
-        let entity_rev = entity_revision_to_sql(next_rev);
+        let entity_rev = encode_entity_revision(next_rev);
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             entity_rev,
@@ -188,7 +188,7 @@ impl<'a> UpdatableRecord<'a> {
         next_rev: EntityRevision,
         collection: &'a Collection,
     ) -> Self {
-        let entity_rev = entity_revision_to_sql(next_rev);
+        let entity_rev = encode_entity_revision(next_rev);
         let Collection {
             media_source_config:
                 MediaSourceConfig {

@@ -5,15 +5,15 @@ use aoide_core::{
     EncodedEntityUid, EntityHeader, EntityRevision, EntityRevisionNumber, EntityUid, EntityUidTyped,
 };
 
-pub(crate) fn entity_uid_from_sql(uid: &str) -> EntityUid {
+pub(crate) fn decode_entity_uid(uid: &str) -> EntityUid {
     EntityUid::decode_from(uid).expect("valid entity UID")
 }
 
-pub(crate) fn entity_uid_typed_from_sql<T: 'static>(uid: &str) -> EntityUidTyped<T> {
-    EntityUidTyped::from_untyped(entity_uid_from_sql(uid))
+pub(crate) fn decode_entity_uid_typed<T: 'static>(uid: &str) -> EntityUidTyped<T> {
+    EntityUidTyped::from_untyped(decode_entity_uid(uid))
 }
 
-pub(crate) fn entity_uid_to_sql(uid: &impl AsRef<EntityUid>) -> String {
+pub(crate) fn encode_entity_uid(uid: &impl AsRef<EntityUid>) -> String {
     // TODO: Avoid dynamic allocation by using EncodedEntityUid instead of String
     let encoded = uid.as_ref().to_string();
     debug_assert_eq!(
@@ -23,16 +23,16 @@ pub(crate) fn entity_uid_to_sql(uid: &impl AsRef<EntityUid>) -> String {
     encoded
 }
 
-pub(crate) fn entity_revision_from_sql(rev: i64) -> EntityRevision {
+pub(crate) fn decode_entity_revision(rev: i64) -> EntityRevision {
     EntityRevision::new(rev as EntityRevisionNumber)
 }
 
-pub(crate) fn entity_revision_to_sql(rev: EntityRevision) -> i64 {
+pub(crate) fn encode_entity_revision(rev: EntityRevision) -> i64 {
     rev.to_inner() as i64
 }
 
-pub(crate) fn entity_header_from_sql(uid: &str, rev: i64) -> EntityHeader {
-    let uid = entity_uid_from_sql(uid);
-    let rev = entity_revision_from_sql(rev);
+pub(crate) fn decode_entity_header(uid: &str, rev: i64) -> EntityHeader {
+    let uid = decode_entity_uid(uid);
+    let rev = decode_entity_revision(rev);
     EntityHeader { uid, rev }
 }

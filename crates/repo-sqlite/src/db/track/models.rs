@@ -2,14 +2,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{
-    music::tempo::{Bpm, TempoBpm},
+    music::{
+        key::KeySignature,
+        tempo::{Bpm, TempoBpm},
+    },
     track::{album::Album, index::*, metric::*},
     util::{clock::*, color::*},
     EntityRevision, Track, TrackBody, TrackEntity, TrackHeader,
 };
 use aoide_repo::media::source::RecordId as MediaSourceId;
 
-use super::{encode_advisory_rating, encode_album_kind, schema::*};
+use super::{encode_advisory_rating, encode_album_kind, encode_music_key_code, schema::*};
 use crate::prelude::*;
 
 #[derive(Debug, Insertable)]
@@ -111,10 +114,10 @@ impl<'a> InsertableRecord<'a> {
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
-            entity_uid: entity_uid_to_sql(uid),
-            entity_rev: entity_revision_to_sql(*rev),
+            entity_uid: encode_entity_uid(uid),
+            entity_rev: encode_entity_revision(*rev),
             media_source_id: media_source_id.into(),
-            last_synchronized_rev: last_synchronized_rev.map(entity_revision_to_sql),
+            last_synchronized_rev: last_synchronized_rev.map(encode_entity_revision),
             recorded_at: recorded_at.as_ref().map(ToString::to_string),
             recorded_ms: recorded_at.map(DateTime::timestamp_millis),
             recorded_at_yyyymmdd: recorded_at_yyyymmdd.map(Into::into),
@@ -135,7 +138,9 @@ impl<'a> InsertableRecord<'a> {
             movement_number: movement_index.number.map(|idx| idx as i16),
             movement_total: movement_index.total.map(|idx| idx as i16),
             music_tempo_bpm: tempo_bpm.map(TempoBpm::to_inner),
-            music_key_code: key_signature.map(|s| i16::from(s.code().to_value())),
+            music_key_code: key_signature
+                .map(KeySignature::code)
+                .map(encode_music_key_code),
             music_beats_per_measure: time_signature
                 .map(|time_sig| time_sig.beats_per_measure as i16),
             music_beat_unit: time_signature
@@ -198,7 +203,7 @@ impl<'a> UpdatableRecord<'a> {
         media_source_id: MediaSourceId,
         entity_body: &'a TrackBody,
     ) -> Self {
-        let entity_rev = entity_revision_to_sql(next_rev);
+        let entity_rev = encode_entity_revision(next_rev);
         let TrackBody {
             track,
             updated_at,
@@ -260,7 +265,7 @@ impl<'a> UpdatableRecord<'a> {
             row_updated_ms: updated_at.timestamp_millis(),
             entity_rev,
             media_source_id: media_source_id.into(),
-            last_synchronized_rev: last_synchronized_rev.map(entity_revision_to_sql),
+            last_synchronized_rev: last_synchronized_rev.map(encode_entity_revision),
             recorded_at: recorded_at.as_ref().map(ToString::to_string),
             recorded_ms: recorded_at.map(DateTime::timestamp_millis),
             recorded_at_yyyymmdd: recorded_at_yyyymmdd.map(Into::into),
@@ -272,8 +277,8 @@ impl<'a> UpdatableRecord<'a> {
             released_orig_at_yyyymmdd: released_orig_at_yyyymmdd.map(Into::into),
             publisher: publisher.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),
-            advisory_rating: advisory_rating.map(|advisory_rating| advisory_rating as i16),
-            album_kind: album_kind.map(|kind| kind as i16),
+            advisory_rating: advisory_rating.map(encode_advisory_rating),
+            album_kind: album_kind.map(encode_album_kind),
             track_number: track_index.number.map(|number| number as i16),
             track_total: track_index.total.map(|total| total as i16),
             disc_number: disc_index.number.map(|number| number as i16),
@@ -281,7 +286,9 @@ impl<'a> UpdatableRecord<'a> {
             movement_number: movement_index.number.map(|number| number as i16),
             movement_total: movement_index.total.map(|total| total as i16),
             music_tempo_bpm: tempo_bpm.map(TempoBpm::to_inner),
-            music_key_code: key_signature.map(|s| i16::from(s.code().to_value())),
+            music_key_code: key_signature
+                .map(KeySignature::code)
+                .map(encode_music_key_code),
             music_beats_per_measure: time_signature
                 .map(|time_sig| time_sig.beats_per_measure as i16),
             music_beat_unit: time_signature

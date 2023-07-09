@@ -834,7 +834,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                                 created_at: DateTime::new_timestamp_millis(row_created_ms),
                                 updated_at: DateTime::new_timestamp_millis(row_updated_ms),
                             };
-                            let entity_header = TrackHeader::from_untyped(entity_header_from_sql(
+                            let entity_header = TrackHeader::from_untyped(decode_entity_header(
                                 &entity_uid,
                                 entity_rev,
                             ));
@@ -843,7 +843,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                                 rev: content_link_rev.map(ContentRevision::from_signed_value),
                             };
                             let last_synchronized_rev =
-                                last_synchronized_rev.map(entity_revision_from_sql);
+                                last_synchronized_rev.map(decode_entity_revision);
                             let record_trail = RecordTrail {
                                 collection_id: collection_id.into(),
                                 media_source_id: media_source_id.into(),

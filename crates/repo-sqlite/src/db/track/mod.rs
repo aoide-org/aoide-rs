@@ -3,6 +3,7 @@
 
 use aoide_core::{
     media::Source,
+    music::key::KeyCode,
     prelude::*,
     tag::Tags,
     track::{actor::Actor, album::Kind, cue::Cue, title::Title, AdvisoryRating},
@@ -55,4 +56,16 @@ pub(crate) fn decode_search_scope(value: i16) -> RepoResult<Scope> {
         .ok()
         .and_then(Scope::from_repr)
         .ok_or_else(|| anyhow::anyhow!("invalid track search Scope value: {value}").into())
+}
+
+pub(crate) fn encode_music_key_code(value: KeyCode) -> i16 {
+    i16::from(value.to_value())
+}
+
+pub(crate) fn decode_music_key_code(value: i16) -> RepoResult<KeyCode> {
+    value
+        .try_into()
+        .ok()
+        .and_then(KeyCode::try_from_value)
+        .ok_or_else(|| anyhow::anyhow!("invalid musical KeyCode value: {value}").into())
 }

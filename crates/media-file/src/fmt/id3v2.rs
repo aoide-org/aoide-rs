@@ -157,10 +157,7 @@ pub(crate) fn export_track_to_tag(
         if frame.id_str() != "TXXX" {
             return true;
         }
-        let FrameValue::UserText(ExtendedTextFrame {
-            description,
-            ..
-        }) = frame.content() else {
+        let FrameValue::UserText(ExtendedTextFrame { description, .. }) = frame.content() else {
             return true;
         };
         if description != "BPM" {
