@@ -11,7 +11,7 @@ use aoide_core::{
     util::clock::{DateOrDateTime, DateTime},
     PlaylistUid, TrackUid,
 };
-use num_derive::{FromPrimitive, ToPrimitive};
+use strum::FromRepr;
 
 use crate::{filtering::*, media::source::ResolveUrlFromContentPath, sorting::*, tag};
 
@@ -80,7 +80,8 @@ pub struct SourceFilterBorrowed<'s> {
     pub path: StringPredicate<'s>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromRepr)]
+#[repr(u8)]
 pub enum Scope {
     Track = 0,
     Album = 1,

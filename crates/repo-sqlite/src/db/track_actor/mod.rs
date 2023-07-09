@@ -16,3 +16,25 @@ pub struct Record {
     pub scope: Scope,
     pub actor: Actor,
 }
+
+pub(crate) fn encode_role(value: Role) -> i16 {
+    value as _
+}
+
+pub(crate) fn decode_role(value: i16) -> RepoResult<Role> {
+    u8::try_from(value)
+        .ok()
+        .and_then(Role::from_repr)
+        .ok_or_else(|| anyhow::anyhow!("invalid track actor Role value: {value}").into())
+}
+
+pub(crate) fn encode_kind(value: Kind) -> i16 {
+    value as _
+}
+
+pub(crate) fn decode_kind(value: i16) -> RepoResult<Kind> {
+    u8::try_from(value)
+        .ok()
+        .and_then(Kind::from_repr)
+        .ok_or_else(|| anyhow::anyhow!("invalid track actor Kind value: {value}").into())
+}

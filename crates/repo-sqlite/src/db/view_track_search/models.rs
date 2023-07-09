@@ -8,20 +8,17 @@ use aoide_core::{
         tempo::{Bpm, TempoBpm},
     },
     prelude::*,
-    track::{
-        album::{Album, Kind as AlbumKind},
-        index::*,
-        metric::*,
-        AdvisoryRating,
-    },
+    track::{album::Album, index::*, metric::*},
     util::{clock::*, color::*},
     Track, TrackBody, TrackEntity, TrackHeader,
 };
 use aoide_repo::{media::source::RecordId as MediaSourceId, track::RecordHeader};
-use num_traits::FromPrimitive as _;
 
 use super::schema::*;
-use crate::{db::track::EntityPreload, prelude::*};
+use crate::{
+    db::track::{decode_advisory_rating, decode_album_kind, EntityPreload},
+    prelude::*,
+};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = view_track_search)]
@@ -186,18 +183,8 @@ pub(crate) fn load_repo_entity(
             .map(DateYYYYMMDD::new)
             .map(Into::into)
     };
-    let advisory_rating = advisory_rating
-        .map(|val| {
-            AdvisoryRating::from_i16(val)
-                .ok_or_else(|| anyhow::anyhow!("Invalid advisory rating value: {val}"))
-        })
-        .transpose()?;
-    let album_kind = album_kind
-        .map(|val| {
-            AlbumKind::from_i16(val)
-                .ok_or_else(|| anyhow::anyhow!("Invalid album kind value: {val}"))
-        })
-        .transpose()?;
+    let advisory_rating = advisory_rating.map(decode_advisory_rating).transpose()?;
+    let album_kind = album_kind.map(decode_album_kind).transpose()?;
     let album = Canonical::tie(Album {
         kind: album_kind,
         actors: album_actors,

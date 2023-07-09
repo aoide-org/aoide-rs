@@ -3,14 +3,14 @@
 
 use aoide_core::{
     collection::MediaSourceConfig,
-    media::content::{ContentPathConfig, ContentPathKind},
+    media::content::ContentPathConfig,
     util::{clock::*, color::*, url::BaseUrl},
     Collection, CollectionEntity, CollectionHeader, EntityRevision,
 };
-use num_traits::FromPrimitive as _;
 use url::Url;
 
 use super::{schema::*, *};
+use crate::db::media_source::{decode_content_path_kind, encode_content_path_kind};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = collection)]
@@ -52,9 +52,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, CollectionEntity) {
             created_at: DateTime::new_timestamp_millis(row_created_ms),
             updated_at: DateTime::new_timestamp_millis(row_updated_ms),
         };
-        let Some(media_source_path_kind) = ContentPathKind::from_i16(media_source_path_kind) else {
-            anyhow::bail!("Invalid media source path kind value: {media_source_path_kind}");
-        };
+        let media_source_path_kind = decode_content_path_kind(media_source_path_kind)?;
         let media_source_root_url = media_source_root_url
             .as_deref()
             .map(BaseUrl::parse_strict)
@@ -124,8 +122,11 @@ impl<'a> InsertableRecord<'a> {
             notes,
             color,
         } = body;
-        let media_source_path_kind = content_path_config.kind();
-        let media_source_root_url: Option<&Url> = content_path_config.root_url().map(Deref::deref);
+        let media_source_path_kind = encode_content_path_kind(content_path_config.kind());
+        let media_source_root_url = content_path_config
+            .root_url()
+            .map(Deref::deref)
+            .map(Url::as_str);
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
@@ -144,8 +145,8 @@ impl<'a> InsertableRecord<'a> {
             } else {
                 None
             },
-            media_source_path_kind: media_source_path_kind as i16,
-            media_source_root_url: media_source_root_url.map(Url::as_str),
+            media_source_path_kind,
+            media_source_root_url,
         }
     }
 }
@@ -198,8 +199,11 @@ impl<'a> UpdatableRecord<'a> {
             notes,
             color,
         } = collection;
-        let media_source_path_kind = content_path_config.kind();
-        let media_source_root_url: Option<&Url> = content_path_config.root_url().map(Deref::deref);
+        let media_source_path_kind = encode_content_path_kind(content_path_config.kind());
+        let media_source_root_url = content_path_config
+            .root_url()
+            .map(Deref::deref)
+            .map(Url::as_str);
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             entity_rev,
@@ -216,8 +220,8 @@ impl<'a> UpdatableRecord<'a> {
             } else {
                 None
             },
-            media_source_path_kind: media_source_path_kind as i16,
-            media_source_root_url: media_source_root_url.map(Url::as_str),
+            media_source_path_kind,
+            media_source_root_url,
         }
     }
 }

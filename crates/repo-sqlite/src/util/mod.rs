@@ -5,7 +5,6 @@ use std::i64;
 
 use aoide_core_api::Pagination;
 use diesel::{expression::SqlLiteral, sql_types};
-use num_traits::ToPrimitive as _;
 
 pub(crate) mod clock;
 pub(crate) mod entity;
@@ -18,13 +17,13 @@ pub(crate) fn pagination_to_limit_offset(pagination: &Pagination) -> (Option<i64
     // according to the syntax diagram for the SELECT statement:
     // <https://www.sqlite.org/lang_select.html>
     let limit = if pagination.has_offset() || pagination.is_limited() {
-        Some(pagination.mandatory_limit().to_i64().unwrap_or(i64::MAX))
+        Some(pagination.mandatory_limit().try_into().unwrap_or(i64::MAX))
     } else {
         None
     };
     let offset = pagination
         .offset
-        .map(|offset| offset.to_i64().unwrap_or(i64::MAX));
+        .map(|offset| offset.try_into().unwrap_or(i64::MAX));
     (limit, offset)
 }
 

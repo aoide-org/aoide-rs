@@ -169,7 +169,8 @@ impl FetchState {
         );
         let Self::Pending {
             fetched_entities_before,
-        } = self else {
+        } = self
+        else {
             // Not applicable
             log::error!("Not pending when fetching succeeded");
             return false;
@@ -213,7 +214,8 @@ impl FetchState {
         log::warn!("Fetching failed: {err}");
         let Self::Pending {
             fetched_entities_before,
-        } = self else {
+        } = self
+        else {
             // No effect
             log::error!("Not pending when fetching failed");
             return false;

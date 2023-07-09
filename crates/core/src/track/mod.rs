@@ -11,7 +11,7 @@ pub mod title;
 
 use ::url::Url;
 use nonicle::{Canonical, IsCanonical};
-use num_derive::{FromPrimitive, ToPrimitive};
+use strum::FromRepr;
 
 use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
 use crate::{media::*, prelude::*, tag::*};
@@ -23,7 +23,8 @@ use crate::{media::*, prelude::*, tag::*};
 ///
 /// Note: Previously Apple used the value 4 for explicit content that
 /// has now been replaced by 1.
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromRepr)]
+#[repr(u8)]
 pub enum AdvisoryRating {
     /// Inoffensive
     #[default]

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use nonicle::{Canonical, IsCanonical};
-use num_derive::{FromPrimitive, ToPrimitive};
+use strum::FromRepr;
 
 use super::{
     actor::{self, Actor, Actors, ActorsInvalidity},
@@ -10,7 +10,8 @@ use super::{
 };
 use crate::prelude::*;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromRepr)]
+#[repr(u8)]
 pub enum Kind {
     #[default]
     NoCompilation = 0, // either Album or Single

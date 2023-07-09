@@ -40,7 +40,6 @@ use aoide_core::{
     util::clock::{DateTime, DateYYYYMMDD},
     CollectionUid, EncodedEntityUid, EntityRevision, EntityUid, TrackEntity, TrackUid,
 };
-use num_traits::cast::ToPrimitive as _;
 use tantivy::{
     collector::TopDocs,
     directory::MmapDirectory,
@@ -131,9 +130,7 @@ impl TrackFields {
         tag: &'a PlainTag<'a>,
     ) -> Option<(Field, Cow<'a, str>)> {
         let PlainTag { label, score } = tag;
-        let Some(label) = label else {
-            return None
-        };
+        let Some(label) = label else { return None };
         debug_assert!(!label.is_empty());
         if *score != Default::default() {
             // TODO: How to take the score into account?
@@ -247,13 +244,7 @@ impl TrackFields {
             doc.add_f64(self.tempo_bpm, tempo_bpm.to_inner());
         }
         if let Some(key_signature) = entity.body.track.metrics.key_signature {
-            doc.add_u64(
-                self.key_code,
-                key_signature
-                    .code()
-                    .to_u64()
-                    .expect("valid key signature code"),
-            );
+            doc.add_u64(self.key_code, key_signature.code() as _);
         }
         if let Some(play_counter) = play_counter {
             let PlayCounter {

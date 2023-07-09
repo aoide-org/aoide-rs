@@ -12,7 +12,7 @@ rust-version = { workspace = true }
 
 [dependencies]
 anyhow = "1.0.71"
-num-traits = "0.2.15"
+strum = "0.25.0"
 log = "0.4.19"
 tantivy = "0.20.2"
 thiserror = "1.0.43"

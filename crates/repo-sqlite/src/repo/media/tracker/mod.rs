@@ -7,12 +7,13 @@ use aoide_repo::{
     collection::RecordId as CollectionId,
     media::{source::RecordId as MediaSourceId, tracker::*, DigestBytes},
 };
-use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
 use crate::{
     db::{
         media_source::schema::*,
-        media_tracker::{models::*, schema::*},
+        media_tracker::{
+            decode_dir_tracking_status, encode_dir_tracking_status, models::*, schema::*,
+        },
     },
     prelude::*,
 };
@@ -35,13 +36,12 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         let mut query = diesel::update(target)
             .set((
                 media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
-                media_tracker_directory::status.eq(new_status.to_i16().expect("new_status")),
+                media_tracker_directory::status.eq(encode_dir_tracking_status(new_status)),
             ))
             .into_boxed();
         if let Some(old_status) = old_status {
-            query = query.filter(
-                media_tracker_directory::status.eq(old_status.to_i16().expect("old_status")),
-            );
+            query = query
+                .filter(media_tracker_directory::status.eq(encode_dir_tracking_status(old_status)));
         }
         query.execute(self.as_mut()).map_err(repo_error)
     }
@@ -62,7 +62,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         if let Some(status) = status {
             // Filter by status
             let status_filter =
-                media_tracker_directory::status.eq(status.to_i16().expect("status"));
+                media_tracker_directory::status.eq(encode_dir_tracking_status(status));
             diesel::delete(media_tracker_source::table.filter(
                 media_tracker_source::directory_id.eq_any(subselect.filter(status_filter)),
             ))
@@ -104,14 +104,14 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             // Those entries will finally be skipped (see below).
             .filter(
                 media_tracker_directory::status
-                    .eq(DirTrackingStatus::Outdated.to_i16().expect("outdated"))
+                    .eq(encode_dir_tracking_status(DirTrackingStatus::Outdated))
                     .or(media_tracker_directory::status
-                        .eq(DirTrackingStatus::Orphaned.to_i16().expect("orphaned"))),
+                        .eq(encode_dir_tracking_status(DirTrackingStatus::Orphaned))),
             );
         let query = diesel::update(target).set((
             media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
             media_tracker_directory::status
-                .eq(DirTrackingStatus::Current.to_i16().expect("current")),
+                .eq(encode_dir_tracking_status(DirTrackingStatus::Current)),
         ));
         let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
@@ -126,7 +126,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         let query = diesel::update(target).set((
             media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
             media_tracker_directory::status
-                .eq(DirTrackingStatus::Modified.to_i16().expect("modified")),
+                .eq(encode_dir_tracking_status(DirTrackingStatus::Modified)),
             media_tracker_directory::digest.eq(&digest[..]),
         ));
         let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
@@ -200,7 +200,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         let query = diesel::update(target).set((
             media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
             media_tracker_directory::status
-                .eq(DirTrackingStatus::Current.to_i16().expect("current")),
+                .eq(encode_dir_tracking_status(DirTrackingStatus::Current)),
         ));
         let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
@@ -219,7 +219,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .filter(media_tracker_directory::content_path.eq(content_path.as_str()))
             .first::<i16>(self.as_mut())
             .map_err(repo_error)
-            .map(|val| DirTrackingStatus::from_i16(val).expect("DirTrackingStatus"))
+            .and_then(decode_dir_tracking_status)
     }
 
     fn media_tracker_aggregate_directories_tracking_status(
@@ -241,8 +241,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 v.into_iter().fold(
                     DirectoriesStatus::default(),
                     |mut aggregate_status, (status, count)| {
-                        let status =
-                            DirTrackingStatus::from_i16(status).expect("DirTrackingStatus");
+                        let status = match decode_dir_tracking_status(status) {
+                            Ok(status) => status,
+                            Err(err) => {
+                                log::error!("{err}");
+                                return aggregate_status;
+                            }
+                        };
                         let count = (count as u64) as usize;
                         match status {
                             DirTrackingStatus::Current => {
@@ -283,9 +288,9 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             // Status is pending
             .filter(
                 media_tracker_directory::status
-                    .eq(DirTrackingStatus::Added.to_i16().unwrap())
+                    .eq(encode_dir_tracking_status(DirTrackingStatus::Added))
                     .or(media_tracker_directory::status
-                        .eq(DirTrackingStatus::Modified.to_i16().unwrap())),
+                        .eq(encode_dir_tracking_status(DirTrackingStatus::Modified))),
             )
             // Oldest first
             .order_by(media_tracker_directory::row_updated_ms)

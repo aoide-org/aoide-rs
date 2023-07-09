@@ -16,3 +16,14 @@ pub struct Record {
     pub scope: Scope,
     pub title: Title,
 }
+
+pub(crate) fn encode_kind(value: Kind) -> i16 {
+    value as _
+}
+
+pub(crate) fn decode_kind(value: i16) -> RepoResult<Kind> {
+    u8::try_from(value)
+        .ok()
+        .and_then(Kind::from_repr)
+        .ok_or_else(|| anyhow::anyhow!("invalid track title Kind value: {value}").into())
+}

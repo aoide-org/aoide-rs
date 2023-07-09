@@ -4,7 +4,7 @@
 use std::cmp::Ordering;
 
 use nonicle::{CanonicalOrd, Canonicalize, IsCanonical};
-use num_derive::{FromPrimitive, ToPrimitive};
+use strum::FromRepr;
 
 use crate::prelude::*;
 
@@ -12,9 +12,8 @@ use crate::prelude::*;
 // Role
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(
-    Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive,
-)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromRepr)]
+#[repr(u8)]
 pub enum Role {
     #[default]
     Artist = 0,
@@ -36,9 +35,8 @@ pub enum Role {
 // Kind
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(
-    Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive,
-)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromRepr)]
+#[repr(u8)]
 pub enum Kind {
     #[default]
     Summary = 0, /* unspecified for display, may mention multiple actors with differing kinds and roles */

@@ -4,7 +4,7 @@
 use std::{borrow::Cow, fmt};
 
 use bitflags::bitflags;
-use num_derive::{FromPrimitive, ToPrimitive};
+use strum::FromRepr;
 
 use crate::{
     audio::{
@@ -107,7 +107,8 @@ impl fmt::Display for ContentPath<'_> {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, FromRepr)]
+#[repr(u8)]
 pub enum ContentPathKind {
     /// Percent-encoded, canonical URI (case-sensitive)
     Uri = 0,

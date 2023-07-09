@@ -68,9 +68,10 @@ impl Intent {
             }
             Self::DiscardFirstErrors(num_errors_requested) => {
                 let Some(num_errors) =
-                    NonZeroUsize::new(num_errors_requested.get().min(model.last_errors.len())) else {
-                        return IntentHandled::Rejected(Self::DiscardFirstErrors(num_errors_requested));
-                    };
+                    NonZeroUsize::new(num_errors_requested.get().min(model.last_errors.len()))
+                else {
+                    return IntentHandled::Rejected(Self::DiscardFirstErrors(num_errors_requested));
+                };
                 if num_errors < num_errors_requested {
                     debug_assert!(num_errors_requested.get() > 1);
                     log::debug!(

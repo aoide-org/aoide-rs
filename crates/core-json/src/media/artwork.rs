@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use num_traits::{FromPrimitive as _, ToPrimitive as _};
-
 use super::{Base64, Digest};
 use crate::prelude::*;
 
@@ -54,7 +52,7 @@ impl From<_core::ArtworkImage> for ArtworkImage {
         });
         Self {
             media_type: media_type.to_string(),
-            apic_type: apic_type.to_u8().expect("u8"),
+            apic_type: apic_type as _,
             size,
             digest: digest.as_ref().map(Into::into),
             color: color.map(Into::into),
@@ -76,7 +74,7 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
             thumbnail,
         } = from;
         let media_type = media_type.parse()?;
-        let apic_type = _core::ApicType::from_u8(apic_type)
+        let apic_type = _core::ApicType::from_repr(apic_type)
             .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {apic_type}"))?;
         let size = size.map(|size| {
             let ImageSize(width, height) = size;

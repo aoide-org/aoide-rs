@@ -9,7 +9,7 @@ use aoide_core::{
 };
 use aoide_repo::media::source::RecordId as MediaSourceId;
 
-use super::schema::*;
+use super::{encode_advisory_rating, encode_album_kind, schema::*};
 use crate::prelude::*;
 
 #[derive(Debug, Insertable)]
@@ -126,8 +126,8 @@ impl<'a> InsertableRecord<'a> {
             released_orig_at_yyyymmdd: released_orig_at_yyyymmdd.map(Into::into),
             publisher: publisher.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),
-            advisory_rating: advisory_rating.map(|advisory_rating| advisory_rating as i16),
-            album_kind: album_kind.map(|kind| kind as i16),
+            advisory_rating: advisory_rating.map(encode_advisory_rating),
+            album_kind: album_kind.map(encode_album_kind),
             track_number: track_index.number.map(|idx| idx as i16),
             track_total: track_index.total.map(|idx| idx as i16),
             disc_number: disc_index.number.map(|idx| idx as i16),

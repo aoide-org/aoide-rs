@@ -7,7 +7,6 @@ use aoide_repo::{
     collection::RecordId as CollectionId,
     media::{read_digest_from_slice, tracker::*, DigestBytes},
 };
-use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
 use super::{schema::*, *};
 
@@ -36,8 +35,7 @@ impl TryFrom<QueryableRecord> for TrackedDirectory {
             status,
             digest,
         } = from;
-        let status = DirTrackingStatus::from_i16(status)
-            .ok_or_else(|| anyhow::anyhow!("Invalid entry status value: {status}"))?;
+        let status = decode_dir_tracking_status(status)?;
         let digest = read_digest_from_slice(digest.as_slice())
             .ok_or_else(|| anyhow::anyhow!("Invalid digest: {:?}", digest.as_slice()))?;
         let into = Self {
@@ -69,12 +67,14 @@ impl<'a> InsertableRecord<'a> {
         digest: &'a DigestBytes,
     ) -> Self {
         let row_created_ms = created_at.timestamp_millis();
+        let collection_id = RowId::from(collection_id);
+        let status = encode_dir_tracking_status(status);
         Self {
             row_created_ms,
             row_updated_ms: row_created_ms,
-            collection_id: RowId::from(collection_id),
+            collection_id,
             content_path,
-            status: status.to_i16().expect("status"),
+            status,
             digest: &digest[..],
         }
     }
@@ -90,9 +90,10 @@ pub struct UpdateDigest<'a> {
 
 impl<'a> UpdateDigest<'a> {
     pub fn bind(updated_at: DateTime, status: DirTrackingStatus, digest: &'a DigestBytes) -> Self {
+        let status = encode_dir_tracking_status(status);
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
-            status: status.to_i16().expect("status"),
+            status,
             digest: &digest[..],
         }
     }

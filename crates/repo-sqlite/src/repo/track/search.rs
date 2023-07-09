@@ -15,12 +15,17 @@ use aoide_core_api::{tag::search::Filter as TagFilter, track::search::*};
 use diesel::{
     sql_types, BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods,
 };
-use num_traits::ToPrimitive as _;
 
 use crate::{
     db::{
-        media_tracker::schema::*, playlist::schema::*, playlist_entry::schema::*,
-        track_actor::schema::*, track_cue::schema::*, track_tag::schema::*, track_title::schema::*,
+        media_tracker::schema::*,
+        playlist::schema::*,
+        playlist_entry::schema::*,
+        track::{encode_advisory_rating, encode_search_scope},
+        track_actor::schema::*,
+        track_cue::schema::*,
+        track_tag::schema::*,
+        track_title::schema::*,
         view_track_search::schema::*,
     },
     prelude::*,
@@ -505,12 +510,7 @@ fn build_numeric_field_filter_expression(
         }
         AdvisoryRating => {
             let expr = view_track_search::advisory_rating;
-            let expr_not_null = ifnull(
-                expr,
-                aoide_core::track::AdvisoryRating::default()
-                    .to_i16()
-                    .expect("i16"),
-            );
+            let expr_not_null = ifnull(expr, encode_advisory_rating(Default::default()));
             // TODO: Check and limit/clamp value range when converting from f64 to i16
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
@@ -1095,20 +1095,30 @@ fn select_track_ids_matching_actor_filter(
     } = filter;
 
     if let Some(scope) = scope {
-        select = select.filter(track_actor::scope.eq(scope.to_i16().expect("actor scope")));
+        select = select.filter(track_actor::scope.eq(encode_search_scope(*scope)));
     }
 
     // Filter role(s)
     if !roles.is_empty() {
         select = select.filter(
-            track_actor::role.eq_any(roles.iter().map(|role| role.to_i16().expect("actor role"))),
+            track_actor::role.eq_any(
+                roles
+                    .iter()
+                    .copied()
+                    .map(crate::db::track_actor::encode_role),
+            ),
         );
     }
 
     // Filter kind(s)
     if !kinds.is_empty() {
         select = select.filter(
-            track_actor::kind.eq_any(kinds.iter().map(|kind| kind.to_i16().expect("actor kind"))),
+            track_actor::kind.eq_any(
+                kinds
+                    .iter()
+                    .copied()
+                    .map(crate::db::track_actor::encode_kind),
+            ),
         );
     }
 
@@ -1152,13 +1162,18 @@ fn select_track_ids_matching_title_filter(
     } = filter;
 
     if let Some(scope) = scope {
-        select = select.filter(track_title::scope.eq(scope.to_i16().expect("title scope")));
+        select = select.filter(track_title::scope.eq(encode_search_scope(*scope)));
     }
 
     // Filter kind(s)
     if !kinds.is_empty() {
         select = select.filter(
-            track_title::kind.eq_any(kinds.iter().map(|kind| kind.to_i16().expect("title kind"))),
+            track_title::kind.eq_any(
+                kinds
+                    .iter()
+                    .copied()
+                    .map(crate::db::track_title::encode_kind),
+            ),
         );
     }
 

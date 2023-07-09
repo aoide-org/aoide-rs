@@ -3,10 +3,12 @@
 
 use std::fmt;
 
-use num_derive::{FromPrimitive, ToPrimitive};
-use num_traits::{FromPrimitive as _, ToPrimitive as _};
+use strum::FromRepr;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
+pub type KeyCodeValue = u8;
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromRepr)]
+#[repr(u8)]
 pub enum KeyCode {
     /// Off key
     Off = 0,
@@ -668,17 +670,15 @@ impl KeyCode {
     }
 }
 
-pub type KeyCodeValue = u8;
-
 impl KeyCode {
     #[must_use]
     pub fn to_value(self) -> KeyCodeValue {
-        self.to_u8().expect("key code")
+        self.into()
     }
 
     #[must_use]
     pub fn try_from_value(val: KeyCodeValue) -> Option<Self> {
-        Self::from_u8(val)
+        Self::from_repr(val)
     }
 }
 

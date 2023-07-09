@@ -6,7 +6,6 @@ use aoide_core::{
     track::cue::*,
     util::color::*,
 };
-use num_traits::{FromPrimitive, ToPrimitive};
 
 use super::{schema::*, *};
 
@@ -50,7 +49,12 @@ impl From<QueryableRecord> for (RecordId, Record) {
         });
         let out_marker = out_position_ms.map(|position_ms| OutMarker {
             position: PositionMs(position_ms),
-            mode: out_mode.and_then(FromPrimitive::from_i16),
+            mode: out_mode
+                .map(TryInto::try_into)
+                .transpose()
+                .ok()
+                .flatten()
+                .and_then(OutMode::from_repr),
         });
         let cue = Cue {
             bank_index: bank_idx,
@@ -117,7 +121,7 @@ impl<'a> InsertableRecord<'a> {
             slot_idx: *slot_index,
             in_position_ms: in_position.map(|pos| pos.0),
             out_position_ms: out_position.map(|pos| pos.0),
-            out_mode: out_mode.as_ref().and_then(ToPrimitive::to_i16),
+            out_mode: out_mode.map(|out_mode| out_mode as _),
             kind: kind.as_ref().map(String::as_str),
             label: label.as_ref().map(String::as_str),
             color_rgb: if let Some(Color::Rgb(color)) = color {

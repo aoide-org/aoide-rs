@@ -4,12 +4,13 @@
 use base64::{prelude::BASE64_STANDARD_NO_PAD, Engine as _};
 use image::{codecs::png::PngEncoder, ImageEncoder as _};
 use mime::Mime;
-use num_derive::{FromPrimitive, ToPrimitive};
+use strum::FromRepr;
 
 use crate::prelude::*;
 
 /// The `APIC` picture type code as defined by `ID3v2`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromRepr)]
+#[repr(u8)]
 pub enum ApicType {
     Other = 0x00,
     Icon = 0x01,

@@ -4,13 +4,38 @@
 pub(crate) mod models;
 pub(crate) mod schema;
 
+use aoide_core::media::{artwork::ApicType, content::ContentPathKind};
 use aoide_repo::{collection::RecordId as CollectionId, media::source::RecordHeader};
 use diesel::sql_types::BigInt;
+use strum::FromRepr;
 
 use self::schema::*;
 use crate::prelude::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) fn encode_content_path_kind(value: ContentPathKind) -> i16 {
+    value as _
+}
+
+pub(crate) fn decode_content_path_kind(value: i16) -> RepoResult<ContentPathKind> {
+    u8::try_from(value)
+        .ok()
+        .and_then(ContentPathKind::from_repr)
+        .ok_or_else(|| anyhow::anyhow!("invalid ContentPathKind value: {value}").into())
+}
+
+pub(crate) fn encode_apic_type(value: ApicType) -> i16 {
+    value as _
+}
+
+pub(crate) fn decode_apic_type(value: i16) -> RepoResult<ApicType> {
+    u8::try_from(value)
+        .ok()
+        .and_then(ApicType::from_repr)
+        .ok_or_else(|| anyhow::anyhow!("invalid ApicType value: {value}").into())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromRepr)]
+#[repr(i8)]
 enum ArtworkSource {
     Irregular = -2,
     Unsupported = -1,
@@ -20,18 +45,16 @@ enum ArtworkSource {
 }
 
 impl ArtworkSource {
-    fn try_read(value: i16) -> Option<Self> {
-        let read = match value {
-            0 => Self::Missing,
-            1 => Self::Embedded,
-            2 => Self::Linked,
-            _ => return None,
-        };
-        Some(read)
+    fn decode(value: i16) -> RepoResult<Self> {
+        value
+            .try_into()
+            .ok()
+            .and_then(Self::from_repr)
+            .ok_or_else(|| anyhow::anyhow!("invalid ArtworkSource value: {value}").into())
     }
 
-    const fn write(self) -> i16 {
-        self as i16
+    const fn encode(self) -> i16 {
+        self as _
     }
 }
 

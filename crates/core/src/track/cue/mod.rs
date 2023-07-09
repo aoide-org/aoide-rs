@@ -4,7 +4,7 @@
 use std::cmp::Ordering;
 
 use nonicle::{CanonicalOrd, Canonicalize, IsCanonical};
-use num_derive::{FromPrimitive, ToPrimitive};
+use strum::FromRepr;
 
 use crate::{audio::PositionMs, prelude::*};
 
@@ -17,7 +17,8 @@ pub type SlotIndex = i16;
 ///
 /// If no behavior is specified then playback continues at the
 /// out position.
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ToPrimitive, FromPrimitive)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromRepr)]
+#[repr(u8)]
 pub enum OutMode {
     /// Continue playback when reaching the out position.
     #[default]

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::util::url::BaseUrl;
-use num_derive::{FromPrimitive, ToPrimitive};
+use strum::FromRepr;
 
 pub mod find_untracked_files;
 pub mod import_files;
@@ -16,7 +16,8 @@ pub struct FsTraversalParams {
     pub max_depth: Option<usize>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromRepr)]
+#[repr(u8)]
 pub enum DirTrackingStatus {
     Current = 0,
     Outdated = 1,

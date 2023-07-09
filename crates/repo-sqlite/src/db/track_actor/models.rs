@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use num_traits::FromPrimitive as _;
-
 use super::{schema::*, *};
+use crate::db::track::{decode_search_scope, encode_search_scope};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = track_actor)]
@@ -30,12 +29,9 @@ impl TryFrom<QueryableRecord> for (RecordId, Record) {
             role,
             role_notes,
         } = from;
-        let kind = Kind::from_i16(kind)
-            .ok_or_else(|| anyhow::anyhow!("Invalid actor kind value: {kind}"))?;
-        let role = Role::from_i16(role)
-            .ok_or_else(|| anyhow::anyhow!("Invalid actor role value: {role}"))?;
-        let scope = Scope::from_i16(scope)
-            .ok_or_else(|| anyhow::anyhow!("Invalid scope value: {scope}"))?;
+        let scope = decode_search_scope(scope)?;
+        let kind = decode_kind(kind)?;
+        let role = decode_role(role)?;
         let record = Record {
             track_id: track_id.into(),
             scope,
@@ -69,12 +65,15 @@ impl<'a> InsertableRecord<'a> {
             role,
             role_notes,
         } = actor;
+        let scope = encode_search_scope(scope);
+        let kind = encode_kind(*kind);
+        let role = encode_role(*role);
         Self {
             track_id: track_id.into(),
-            scope: scope as i16,
-            kind: *kind as i16,
+            scope,
+            kind,
             name: name.as_str(),
-            role: *role as i16,
+            role,
             role_notes: role_notes.as_ref().map(String::as_str),
         }
     }

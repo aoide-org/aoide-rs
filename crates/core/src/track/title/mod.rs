@@ -4,7 +4,7 @@
 use std::{cmp::Ordering, iter::once};
 
 use nonicle::{CanonicalOrd, Canonicalize, IsCanonical};
-use num_derive::{FromPrimitive, ToPrimitive};
+use strum::FromRepr;
 
 use crate::prelude::*;
 
@@ -12,9 +12,8 @@ use crate::prelude::*;
 // Kind
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(
-    Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromPrimitive, ToPrimitive,
-)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromRepr)]
+#[repr(u8)]
 pub enum Kind {
     #[default]
     Main = 0,

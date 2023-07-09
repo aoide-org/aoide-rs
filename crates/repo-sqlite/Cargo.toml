@@ -16,8 +16,7 @@ diesel = { version = "2.1.0", default-features = false, features = ["sqlite", "6
 diesel_migrations =  { version = "2.1.0", default-features = false, features = ["sqlite"] }
 log = "0.4.19"
 mime = "0.3.17"
-num-derive = "0.4.0"
-num-traits = "0.2.15"
+strum = { version = "0.25.0", features = ["derive"] }
 url = "2.4.0"
 
 # Workspace dependencies

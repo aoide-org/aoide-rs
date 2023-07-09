@@ -26,7 +26,6 @@ use aoide_core::{
 };
 use aoide_repo::collection::RecordId as CollectionId;
 use mime::Mime;
-use num_traits::{FromPrimitive as _, ToPrimitive};
 
 use super::{schema::*, *};
 use crate::prelude::*;
@@ -111,7 +110,13 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             loudness: audio_loudness_lufs.map(LoudnessLufs),
             encoder: audio_encoder,
         };
-        let artwork = if let Some(source) = artwork_source.and_then(ArtworkSource::try_read) {
+        let artwork = if let Some(source) = artwork_source
+            .map(ArtworkSource::decode)
+            .transpose()
+            .unwrap_or_else(|err| {
+                log::error!("{err}");
+                None
+            }) {
             match source {
                 ArtworkSource::Missing => Some(Artwork::Missing),
                 ArtworkSource::Linked if artwork_uri.is_none() => {
@@ -119,10 +124,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                 }
                 _ => {
                     let apic_type = artwork_apic_type
-                        .map(|apic_type| {
-                            ApicType::from_i16(apic_type)
-                                .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {apic_type}"))
-                        })
+                        .map(decode_apic_type)
                         .transpose()?
                         .unwrap_or(ApicType::Other);
                     let media_type = Mime::from_str(&artwork_media_type.unwrap_or_default())?;
@@ -287,7 +289,7 @@ impl<'a> InsertableRecord<'a> {
                 color,
                 thumbnail,
             } = image;
-            artwork_apic_type = apic_type.to_i16();
+            artwork_apic_type = Some(encode_apic_type(*apic_type));
             artwork_media_type = Some(media_type.to_string());
             artwork_size_width = size.map(|size| size.width as _);
             artwork_size_height = size.map(|size| size.height as _);
@@ -331,7 +333,7 @@ impl<'a> InsertableRecord<'a> {
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
             audio_encoder: audio_metadata.and_then(|audio| audio.encoder.as_deref()),
-            artwork_source: artwork_source.map(ArtworkSource::write),
+            artwork_source: artwork_source.map(ArtworkSource::encode),
             artwork_uri,
             artwork_apic_type,
             artwork_media_type,
@@ -427,7 +429,7 @@ impl<'a> UpdatableRecord<'a> {
                 color,
                 thumbnail,
             } = image;
-            artwork_apic_type = apic_type.to_i16();
+            artwork_apic_type = Some(*apic_type as _);
             artwork_media_type = Some(media_type.to_string());
             artwork_size_width = size.map(|size| size.width as _);
             artwork_size_height = size.map(|size| size.height as _);
@@ -472,7 +474,7 @@ impl<'a> UpdatableRecord<'a> {
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
             audio_encoder: audio_metadata.and_then(|audio| audio.encoder.as_deref()),
-            artwork_source: artwork_source.map(ArtworkSource::write),
+            artwork_source: artwork_source.map(ArtworkSource::encode),
             artwork_uri,
             artwork_apic_type,
             artwork_media_type,
