@@ -12,10 +12,10 @@ use aoide_core_api::media::SyncMode;
 use aoide_media_file::{
     fs::open_file_for_reading,
     io::{
-        export::{export_track_to_path, ExportTrackConfig},
+        export::{export_track_to_file_path, ExportTrackConfig},
         import::*,
     },
-    util::{artwork::EditEmbeddedArtworkImage, guess_mime_from_path},
+    util::{artwork::EditEmbeddedArtworkImage, guess_mime_from_file_path},
 };
 
 use super::*;
@@ -151,7 +151,7 @@ pub fn import_track_from_file_path(
             // Continue regardless of last_modified_at and synchronized revision
         }
     }
-    let content_type = guess_mime_from_path(&canonical_path)?;
+    let content_type = guess_mime_from_file_path(&canonical_path)?;
     let content_link = ContentLink {
         path: source_path.clone_owned(),
         rev: new_content_rev,
@@ -170,5 +170,6 @@ pub fn export_track_metadata_into_file(
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
     let file_path = content_path_resolver.build_file_path(&track.media_source.content.link.path);
-    export_track_to_path(&file_path, config, track, edit_embedded_artwork_image).map_err(Into::into)
+    export_track_to_file_path(&file_path, None, config, track, edit_embedded_artwork_image)
+        .map_err(Into::into)
 }

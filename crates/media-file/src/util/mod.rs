@@ -54,11 +54,28 @@ pub fn trim_readable(input: &str) -> &str {
     input.trim_matches(|c: char| c.is_whitespace() || c.is_control())
 }
 
-pub fn guess_mime_from_path(path: impl AsRef<Path>) -> Result<Mime> {
+pub fn guess_mime_from_file_ext(file_ext: &str) -> Result<Mime> {
+    let mime_guess = mime_guess::from_ext(file_ext);
+    if mime_guess.first().is_none() {
+        return Err(Error::UnknownContentType(format!(
+            "unsupported file extension \"{file_ext}\"",
+        )));
+    }
+    mime_guess
+        .iter()
+        .filter(|mime| mime.type_() == mime::AUDIO)
+        .chain(mime_guess.iter().filter(|mime| mime.type_() == mime::VIDEO))
+        .next()
+        .ok_or(Error::UnknownContentType(format!(
+            "unsupported file extension \"{file_ext}\"",
+        )))
+}
+
+pub fn guess_mime_from_file_path(path: impl AsRef<Path>) -> Result<Mime> {
     let mime_guess = mime_guess::from_path(path.as_ref());
     if mime_guess.first().is_none() {
         return Err(Error::UnknownContentType(format!(
-            "{path}",
+            "file path \"{path}\"",
             path = path.as_ref().display()
         )));
     }
@@ -68,7 +85,7 @@ pub fn guess_mime_from_path(path: impl AsRef<Path>) -> Result<Mime> {
         .chain(mime_guess.iter().filter(|mime| mime.type_() == mime::VIDEO))
         .next()
         .ok_or(Error::UnknownContentType(format!(
-            "{path}",
+            "file path \"{path}\"",
             path = path.as_ref().display()
         )))
 }
@@ -236,10 +253,26 @@ pub fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
     Ok((input, replay_gain_db))
 }
 
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
+pub(crate) enum FormattedTempoBpm {
+    Fractional(String),
+    NonFractional(String),
+}
+
+impl From<FormattedTempoBpm> for String {
+    fn from(formatted_tempo_bpm: FormattedTempoBpm) -> Self {
+        match formatted_tempo_bpm {
+            FormattedTempoBpm::Fractional(formatted)
+            | FormattedTempoBpm::NonFractional(formatted) => formatted,
+        }
+    }
+}
+
 pub(crate) fn format_validated_tempo_bpm(
     tempo_bpm: &mut Option<TempoBpm>,
     format: TempoBpmFormat,
-) -> Option<String> {
+) -> Option<FormattedTempoBpm> {
     let validated_tempo_bpm = tempo_bpm
         .map(TempoBpm::validated_from)
         .transpose()
@@ -257,26 +290,34 @@ pub(crate) enum TempoBpmFormat {
     Float,
 }
 
-pub(crate) fn format_tempo_bpm(tempo_bpm: &mut TempoBpm, format: TempoBpmFormat) -> String {
+pub(crate) fn format_tempo_bpm(
+    tempo_bpm: &mut TempoBpm,
+    format: TempoBpmFormat,
+) -> FormattedTempoBpm {
     match format {
         TempoBpmFormat::Integer => {
             // Do not touch the original value when rounding to integer!
             let tempo_bpm = TempoBpm::new(tempo_bpm.to_inner().round());
-            format_parseable_value(&mut tempo_bpm.to_inner())
+            FormattedTempoBpm::NonFractional(format_parseable_value(&mut tempo_bpm.to_inner()))
         }
         TempoBpmFormat::Float => {
-            let formatted_bpm = format_parseable_value(&mut tempo_bpm.to_inner());
+            let mut value = tempo_bpm.to_inner();
+            let formatted = format_parseable_value(&mut value);
             debug_assert!({
                 // Verify the formatted float value by re-parsing it.
                 let mut importer = Importer::new();
                 debug_assert_eq!(
                     Some(*tempo_bpm),
-                    importer.import_tempo_bpm(&formatted_bpm).map(Into::into)
+                    importer.import_tempo_bpm(&formatted).map(Into::into)
                 );
                 debug_assert!(importer.finish().into_messages().is_empty());
                 true
             });
-            formatted_bpm
+            if value.fract() == 0.0 {
+                FormattedTempoBpm::NonFractional(formatted)
+            } else {
+                FormattedTempoBpm::Fractional(formatted)
+            }
         }
     }
 }

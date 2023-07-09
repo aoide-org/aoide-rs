@@ -314,6 +314,7 @@ version = "0.8.0"
 dependencies = [
  "anyhow",
  "aoide-core",
+ "aoide-media-file",
  "base64 0.21.2",
  "bitflags 2.3.3",
  "blake3",
@@ -329,6 +330,7 @@ dependencies = [
  "mime_guess",
  "nom",
  "num-traits",
+ "tempfile",
  "thiserror",
  "time",
  "triseratops",

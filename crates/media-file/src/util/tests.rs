@@ -117,22 +117,28 @@ fn format_validated_tempo_bpm_invalid() {
 fn format_validated_tempo_bpm_min_max() {
     let mut tempo_bpm = Some(TempoBpm::new(TempoBpm::MIN.to_inner()));
     assert_eq!(
-        Some("0"),
-        format_validated_tempo_bpm(&mut tempo_bpm, TempoBpmFormat::Integer).as_deref()
+        Some(FormattedTempoBpm::NonFractional("0".into())),
+        format_validated_tempo_bpm(&mut tempo_bpm, TempoBpmFormat::Integer)
     );
     assert_eq!(
-        Some(TempoBpm::MIN.to_inner().to_string()),
+        Some(FormattedTempoBpm::Fractional(
+            TempoBpm::MIN.to_inner().to_string()
+        )),
         format_validated_tempo_bpm(&mut tempo_bpm, TempoBpmFormat::Float)
     );
     assert_eq!(Some(TempoBpm::MIN), tempo_bpm);
 
     let mut tempo_bpm = Some(TempoBpm::new(TempoBpm::MAX.to_inner()));
     assert_eq!(
-        Some(TempoBpm::MAX.to_inner().to_string()),
+        Some(FormattedTempoBpm::NonFractional(
+            TempoBpm::MAX.to_inner().to_string()
+        )),
         format_validated_tempo_bpm(&mut tempo_bpm, TempoBpmFormat::Integer)
     );
     assert_eq!(
-        Some(TempoBpm::MAX.to_inner().to_string()),
+        Some(FormattedTempoBpm::NonFractional(
+            TempoBpm::MAX.to_inner().to_string()
+        )),
         format_validated_tempo_bpm(&mut tempo_bpm, TempoBpmFormat::Float)
     );
     assert_eq!(Some(TempoBpm::MAX), tempo_bpm);
@@ -142,21 +148,21 @@ fn format_validated_tempo_bpm_min_max() {
 fn format_fractional_bpm() {
     let mut tempo_bpm_round_up = Some(TempoBpm::new(100.5));
     assert_eq!(
-        Some("101"),
-        format_validated_tempo_bpm(&mut tempo_bpm_round_up, TempoBpmFormat::Integer).as_deref()
+        Some(FormattedTempoBpm::NonFractional("101".into())),
+        format_validated_tempo_bpm(&mut tempo_bpm_round_up, TempoBpmFormat::Integer)
     );
     assert_eq!(
-        Some("100.5"),
-        format_validated_tempo_bpm(&mut tempo_bpm_round_up, TempoBpmFormat::Float).as_deref()
+        Some(FormattedTempoBpm::Fractional("100.5".into())),
+        format_validated_tempo_bpm(&mut tempo_bpm_round_up, TempoBpmFormat::Float)
     );
     let mut tempo_bpm_round_down = Some(TempoBpm::new(100.4));
     assert_eq!(
-        Some("100"),
-        format_validated_tempo_bpm(&mut tempo_bpm_round_down, TempoBpmFormat::Integer).as_deref()
+        Some(FormattedTempoBpm::NonFractional("100".into())),
+        format_validated_tempo_bpm(&mut tempo_bpm_round_down, TempoBpmFormat::Integer)
     );
     assert_eq!(
-        Some("100.4"),
-        format_validated_tempo_bpm(&mut tempo_bpm_round_down, TempoBpmFormat::Float).as_deref()
+        Some(FormattedTempoBpm::Fractional("100.4".into())),
+        format_validated_tempo_bpm(&mut tempo_bpm_round_down, TempoBpmFormat::Float)
     );
 }
 

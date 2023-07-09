@@ -49,6 +49,7 @@ pub(crate) fn export_track_to_file(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
+    std::io::Seek::rewind(file)?;
     let mut mpeg_file = <MpegFile as AudioFile>::read_from(file, parse_options())?;
 
     let mut id3v2 = mpeg_file

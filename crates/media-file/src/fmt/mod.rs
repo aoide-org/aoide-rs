@@ -1006,10 +1006,10 @@ pub(crate) fn export_track_to_tag(
     // Music: Tempo/Bpm
     // Write the Bpm rounded to an integer value as the least common denominator.
     // The precise Bpm could be written into custom tag fields during post-processing.
-    if let Some(bpm_text) =
+    if let Some(formatted) =
         format_validated_tempo_bpm(&mut track.metrics.tempo_bpm, TempoBpmFormat::Integer)
     {
-        tag.insert_text(ItemKey::Bpm, bpm_text);
+        tag.insert_text(ItemKey::Bpm, formatted.into());
     } else {
         tag.remove_key(&ItemKey::Bpm);
     }

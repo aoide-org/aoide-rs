@@ -12,10 +12,8 @@ use crate::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, ImportedTempoBpm, Importer},
     },
-    util::{artwork::EditEmbeddedArtworkImage, format_validated_tempo_bpm},
+    util::{artwork::EditEmbeddedArtworkImage, format_validated_tempo_bpm, FormattedTempoBpm},
 };
-
-const FLOAT_BPM_FRAME_ID: &str = "TXXX:BPM";
 
 #[derive(Debug, Default)]
 pub(super) struct Import {
@@ -33,9 +31,22 @@ impl Import {
     ) -> Self {
         debug_assert!(config.flags.contains(ImportTrackFlags::METADATA));
 
-        let float_bpm = tag
-            .get_text(FLOAT_BPM_FRAME_ID)
-            .and_then(|input| importer.import_tempo_bpm(&input));
+        let float_bpm = tag.into_iter().find_map(|frame| {
+            if let FrameValue::UserText(ExtendedTextFrame {
+                description,
+                encoding: _,
+                content,
+                ..
+            }) = frame.content()
+            {
+                if description != "BPM" {
+                    return None;
+                }
+                importer.import_tempo_bpm(content)
+            } else {
+                None
+            }
+        });
 
         #[cfg(feature = "serato-markers")]
         let serato_tags = config
@@ -142,17 +153,43 @@ pub(crate) fn export_track_to_tag(
     // Post-processing: Export custom metadata
 
     // Music: Precise tempo BPM as a float value
-    debug_assert!(tag.get(FLOAT_BPM_FRAME_ID).is_none());
-    if let Some(formatted_bpm) = format_validated_tempo_bpm(
+    tag.retain(|frame| {
+        if frame.id_str() != "TXXX" {
+            return true;
+        }
+        let FrameValue::UserText(ExtendedTextFrame {
+            description,
+            ..
+        }) = frame.content() else {
+            return true;
+        };
+        if description != "BPM" {
+            return true;
+        }
+        // Drop the custom BPM frame
+        false
+    });
+    if let Some(formatted) = format_validated_tempo_bpm(
         &mut track.metrics.tempo_bpm,
         crate::util::TempoBpmFormat::Float,
     ) {
-        let frame = FrameValue::UserText(ExtendedTextFrame {
-            description: FLOAT_BPM_FRAME_ID.to_owned(),
-            content: formatted_bpm,
-            encoding: lofty::TextEncoding::UTF8,
-        });
-        tag.insert(Frame::new("TXXX", frame, Default::default()).expect("valid frame"));
+        if !track
+            .metrics
+            .flags
+            .contains(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL)
+            || matches!(formatted, FormattedTempoBpm::Fractional(_))
+        {
+            track
+                .metrics
+                .flags
+                .remove(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL);
+            let frame = FrameValue::UserText(ExtendedTextFrame {
+                description: "BPM".to_owned(),
+                encoding: lofty::TextEncoding::UTF8,
+                content: formatted.into(),
+            });
+            tag.insert(Frame::new("TXXX", frame, Default::default()).expect("valid frame"));
+        }
     }
 
     #[cfg(feature = "serato-markers")]

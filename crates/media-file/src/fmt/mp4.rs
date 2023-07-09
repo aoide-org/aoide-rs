@@ -3,7 +3,7 @@
 
 use std::{borrow::Cow, fs::File};
 
-use aoide_core::track::{AdvisoryRating, Track};
+use aoide_core::track::{metric::MetricsFlags, AdvisoryRating, Track};
 use lofty::{
     mp4::{Atom, AtomData, AtomIdent, Ilst, Mp4File},
     AudioFile,
@@ -15,7 +15,7 @@ use crate::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
-    util::{artwork::EditEmbeddedArtworkImage, format_validated_tempo_bpm},
+    util::{artwork::EditEmbeddedArtworkImage, format_validated_tempo_bpm, FormattedTempoBpm},
     Result,
 };
 
@@ -234,12 +234,25 @@ pub(crate) fn export_track_to_tag(
     }
 
     // Music: Precise tempo BPM as a float value
-    if let Some(formatted_bpm) = format_validated_tempo_bpm(
+    if let Some(formatted) = format_validated_tempo_bpm(
         &mut track.metrics.tempo_bpm,
         crate::util::TempoBpmFormat::Float,
     ) {
-        let atom = Atom::new(FLOAT_BPM_IDENT, AtomData::UTF8(formatted_bpm));
-        ilst.replace_atom(atom);
+        if !track
+            .metrics
+            .flags
+            .contains(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL)
+            || matches!(formatted, FormattedTempoBpm::Fractional(_))
+        {
+            track
+                .metrics
+                .flags
+                .remove(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL);
+            let atom = Atom::new(FLOAT_BPM_IDENT, AtomData::UTF8(formatted.into()));
+            ilst.replace_atom(atom);
+        } else {
+            ilst.remove(&FLOAT_BPM_IDENT);
+        }
     } else {
         ilst.remove(&FLOAT_BPM_IDENT);
     }

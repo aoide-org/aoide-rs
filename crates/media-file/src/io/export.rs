@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::{
+    ffi::OsStr,
     fs::{File, OpenOptions},
+    io::Seek as _,
     path::Path,
 };
 
@@ -50,23 +52,49 @@ impl Default for ExportTrackConfig {
 }
 
 #[allow(clippy::too_many_lines)] // TODO
-pub fn export_track_to_path(
+pub fn export_track_to_file_path(
     path: &Path,
+    file_ext: Option<&str>,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
-    let file = File::open(path)?;
-    let probe = lofty::Probe::new(file).guess_file_type()?;
-    let Some(file_type) = probe.file_type() else {
-        log::debug!(
-            "Skipping export of track {media_source_content_link:?}: {config:?}",
-            media_source_content_link = track.media_source.content.link
-        );
-        return Err(Error::UnsupportedContentType(
-            track.media_source.content.r#type.clone(),
-        ));
+    let mut file = OpenOptions::new().write(true).open(path)?;
+    let file_ext = file_ext.or_else(|| path.extension().and_then(OsStr::to_str));
+    export_track_to_file(
+        &mut file,
+        file_ext,
+        config,
+        track,
+        edit_embedded_artwork_image,
+    )
+}
+
+#[allow(clippy::too_many_lines)] // TODO
+pub fn export_track_to_file(
+    file: &mut File,
+    file_ext: Option<&str>,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
+) -> Result<()> {
+    let file_type = if let Some(file_type) = file_ext.and_then(FileType::from_ext) {
+        file_type
+    } else {
+        let probe = lofty::Probe::new(file.try_clone()?).guess_file_type()?;
+        let Some(file_type) = probe.file_type() else {
+            log::debug!(
+                "Skipping export of track {media_source_content_link:?}: {config:?}",
+                media_source_content_link = track.media_source.content.link
+            );
+            return Err(Error::UnsupportedContentType(
+                track.media_source.content.r#type.clone(),
+            ));
+        };
+        file_type
     };
+    // Ensure that the file could be read again
+    file.rewind()?;
     match file_type {
         FileType::Aiff => {
             if track.media_source.content.r#type.essence_str() != "audio/aiff" {
@@ -74,13 +102,7 @@ pub fn export_track_to_path(
                     track.media_source.content.r#type.clone(),
                 ));
             }
-            let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::aiff::export_track_to_file(
-                &mut file,
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )
+            crate::fmt::aiff::export_track_to_file(file, config, track, edit_embedded_artwork_image)
         }
         FileType::Flac => {
             if track.media_source.content.r#type.essence_str() != "audio/flac" {
@@ -88,13 +110,7 @@ pub fn export_track_to_path(
                     track.media_source.content.r#type.clone(),
                 ));
             }
-            let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::flac::export_track_to_file(
-                &mut file,
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )
+            crate::fmt::flac::export_track_to_file(file, config, track, edit_embedded_artwork_image)
         }
         FileType::Mp4 => {
             if !matches!(
@@ -105,13 +121,7 @@ pub fn export_track_to_path(
                     track.media_source.content.r#type.clone(),
                 ));
             }
-            let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::mp4::export_track_to_file(
-                &mut file,
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )
+            crate::fmt::mp4::export_track_to_file(file, config, track, edit_embedded_artwork_image)
         }
         FileType::Mpeg => {
             if track.media_source.content.r#type.essence_str() != "audio/mpeg" {
@@ -119,13 +129,7 @@ pub fn export_track_to_path(
                     track.media_source.content.r#type.clone(),
                 ));
             }
-            let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::mpeg::export_track_to_file(
-                &mut file,
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )
+            crate::fmt::mpeg::export_track_to_file(file, config, track, edit_embedded_artwork_image)
         }
         FileType::Opus => {
             if track.media_source.content.r#type.essence_str() != "audio/ogg" {
@@ -133,13 +137,7 @@ pub fn export_track_to_path(
                     track.media_source.content.r#type.clone(),
                 ));
             }
-            let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::ogg::export_track_to_file(
-                &mut file,
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )
+            crate::fmt::ogg::export_track_to_file(file, config, track, edit_embedded_artwork_image)
         }
         FileType::Vorbis => {
             if track.media_source.content.r#type.essence_str() != "audio/opus" {
@@ -147,17 +145,11 @@ pub fn export_track_to_path(
                     track.media_source.content.r#type.clone(),
                 ));
             }
-            let mut file = OpenOptions::new().write(true).open(path)?;
-            crate::fmt::opus::export_track_to_file(
-                &mut file,
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )
+            crate::fmt::opus::export_track_to_file(file, config, track, edit_embedded_artwork_image)
         }
         _ => {
             log::debug!(
-                "Skipping export of track {media_source_content_link:?}: {path:?} {config:?}",
+                "Skipping export of track {media_source_content_link:?}: {config:?}",
                 media_source_content_link = track.media_source.content.link
             );
             Err(Error::UnsupportedContentType(
