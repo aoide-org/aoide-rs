@@ -31,6 +31,7 @@ impl Import {
     ) -> Self {
         debug_assert!(config.flags.contains(ImportTrackFlags::METADATA));
 
+        // TODO: Make use of <https://github.com/Serial-ATA/lofty-rs/pull/232>
         let float_bpm = tag.into_iter().find_map(|frame| {
             if let FrameValue::UserText(ExtendedTextFrame {
                 description,
@@ -153,6 +154,7 @@ pub(crate) fn export_track_to_tag(
     // Post-processing: Export custom metadata
 
     // Music: Precise tempo BPM as a float value
+    // TODO: Make use of <https://github.com/Serial-ATA/lofty-rs/pull/232>
     tag.retain(|frame| {
         if frame.id_str() != "TXXX" {
             return true;
