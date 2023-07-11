@@ -18,7 +18,7 @@ bytes = "1.4.0"
 color-thief = "0.2.2"
 digest = "0.10.7"
 image = "0.24.6"
-lofty = "0.14.0"
+lofty = "0.15.0"
 # Use main branch of lofty-rs for testing unreleased features
 #lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
 log = "0.4.19"

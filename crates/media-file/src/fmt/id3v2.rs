@@ -5,7 +5,7 @@ use aoide_core::{
     music::tempo::TempoBpm,
     track::{metric::MetricsFlags, Track},
 };
-use lofty::id3::v2::{ExtendedTextFrame, Frame, FrameValue, Id3v2Tag};
+use lofty::id3::v2::{ExtendedTextFrame, FrameValue, Id3v2Tag};
 
 use crate::{
     io::{
@@ -31,23 +31,9 @@ impl Import {
     ) -> Self {
         debug_assert!(config.flags.contains(ImportTrackFlags::METADATA));
 
-        // TODO: Make use of <https://github.com/Serial-ATA/lofty-rs/pull/232>
-        let float_bpm = tag.into_iter().find_map(|frame| {
-            if let FrameValue::UserText(ExtendedTextFrame {
-                description,
-                encoding: _,
-                content,
-                ..
-            }) = frame.content()
-            {
-                if description != "BPM" {
-                    return None;
-                }
-                importer.import_tempo_bpm(content)
-            } else {
-                None
-            }
-        });
+        let float_bpm = tag
+            .get_user_text("BPM")
+            .and_then(|content| importer.import_tempo_bpm(content));
 
         #[cfg(feature = "serato-markers")]
         let serato_tags = config
@@ -154,6 +140,7 @@ pub(crate) fn export_track_to_tag(
     // Post-processing: Export custom metadata
 
     // Music: Precise tempo BPM as a float value
+    let mut remove_float_bpm_frame = true;
     // TODO: Make use of <https://github.com/Serial-ATA/lofty-rs/pull/232>
     tag.retain(|frame| {
         if frame.id_str() != "TXXX" {
@@ -182,13 +169,12 @@ pub(crate) fn export_track_to_tag(
                 .metrics
                 .flags
                 .remove(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL);
-            let frame = FrameValue::UserText(ExtendedTextFrame {
-                description: "BPM".to_owned(),
-                encoding: lofty::TextEncoding::UTF8,
-                content: formatted.into(),
-            });
-            tag.insert(Frame::new("TXXX", frame, Default::default()).expect("valid frame"));
+            tag.insert_user_text("BPM".into(), formatted.into());
+            remove_float_bpm_frame = false;
         }
+    }
+    if remove_float_bpm_frame {
+        tag.remove_user_text("BPM");
     }
 
     #[cfg(feature = "serato-markers")]
