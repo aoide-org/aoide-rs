@@ -12,7 +12,8 @@ use aoide_core::{
     prelude::*,
     track::{
         actor::{
-            is_valid_summary_individual_actor_name, Actor, Kind as ActorKind, Role as ActorRole,
+            is_valid_summary_individual_actor_name, Actor, Actors, Kind as ActorKind,
+            Role as ActorRole,
         },
         title::{Kind as TitleKind, Title},
     },
@@ -100,7 +101,7 @@ pub fn guess_mime_from_file_path(path: impl AsRef<Path>) -> Result<Mime> {
 /// Otherwise a new chunk of actors is started, starting with the kind
 /// Summary.
 fn adjust_summary_actor_kind(actors: &mut [Actor], role: ActorRole, next_name: &str) -> ActorKind {
-    // Precodinition: Coherent chunk of actors with the given role at the back of the slice
+    // Precondition: Coherent chunk of actors with the given role at the back of the slice
     debug_assert_eq!(
         actors.iter().filter(|actor| actor.role == role).count(),
         actors
@@ -171,28 +172,44 @@ fn adjust_summary_actor_kind(actors: &mut [Actor], role: ActorRole, next_name: &
     proposed_kind
 }
 
-pub fn push_next_actor_role_name(actors: &mut Vec<Actor>, role: ActorRole, name: String) -> bool {
-    if let Some(mut actor) = ingest_actor_from_owned(name, Default::default(), role) {
-        actor.kind = adjust_summary_actor_kind(actors.as_mut_slice(), role, &actor.name);
-        actors.push(actor);
-        true
-    } else {
-        false
-    }
-}
-
-pub fn push_next_actor_role_name_from<'a>(
+pub fn push_next_actor<'a>(
     actors: &mut Vec<Actor>,
-    role: ActorRole,
     name: impl Into<Cow<'a, str>>,
+    kind: ActorKind,
+    role: ActorRole,
 ) -> bool {
-    if let Some(mut actor) = ingest_actor_from(name, Default::default(), role) {
-        actor.kind = adjust_summary_actor_kind(actors.as_mut_slice(), role, &actor.name);
-        actors.push(actor);
-        true
-    } else {
-        false
-    }
+    let Some(name) = trimmed_non_empty_from(name) else {
+        return false;
+    };
+    let kind = match kind {
+        ActorKind::Summary => adjust_summary_actor_kind(actors.as_mut_slice(), role, &name),
+        ActorKind::Individual => ActorKind::Individual,
+        ActorKind::Sorting => {
+            if let Some(actor) = Actors::filter_kind_role(actors.as_slice(), kind, role).next() {
+                // Only a single sorting actor is supported
+                if name == actor.name {
+                    // Silently ignore redundant/duplicate sorting actors
+                    return true;
+                }
+                // Warn about ambiguous sorting actors
+                log::warn!(
+                    "Ignoring {role:?} actor \"{name}\" because \"{actor_name}\" is already \
+                    used for sorting",
+                    actor_name = actor.name
+                );
+                return false;
+            }
+            ActorKind::Sorting
+        }
+    };
+    let actor = Actor {
+        name: name.into(),
+        kind,
+        role,
+        role_notes: None,
+    };
+    actors.push(actor);
+    true
 }
 
 pub fn format_parseable_value<T>(value: &mut T) -> String
@@ -479,29 +496,6 @@ pub fn ingest_title_from_owned(name: String, kind: TitleKind) -> Option<Title> {
     trimmed_non_empty_from_owned(name).map(|name| Title {
         name: name.into(),
         kind,
-    })
-}
-
-pub fn ingest_actor_from<'a>(
-    name: impl Into<Cow<'a, str>>,
-    kind: ActorKind,
-    role: ActorRole,
-) -> Option<Actor> {
-    trimmed_non_empty_from(name).map(|name| Actor {
-        name: name.into(),
-        kind,
-        role,
-        role_notes: None,
-    })
-}
-
-#[must_use]
-pub fn ingest_actor_from_owned(name: String, kind: ActorKind, role: ActorRole) -> Option<Actor> {
-    trimmed_non_empty_from_owned(name).map(|name| Actor {
-        name: name.into(),
-        kind,
-        role,
-        role_notes: None,
     })
 }
 

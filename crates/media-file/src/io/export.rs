@@ -163,31 +163,56 @@ pub fn export_track_to_file(
 pub enum FilteredActorNames<'a> {
     Summary(&'a str),
     Individual(Vec<&'a str>), // TODO: Replace with impl Iterator<Item = &'a str>! How?
+    Sorting(&'a str),
 }
 
 impl<'a> FilteredActorNames<'a> {
     #[must_use]
-    pub fn new(actors: impl IntoIterator<Item = &'a Actor> + Clone, role: ActorRole) -> Self {
-        // At most a single summary actor
-        debug_assert!(
-            Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role).count() <= 1
-        );
-        // Either a summary actor or individual actors but not both at the same time
-        debug_assert!(
-            Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role)
-                .next()
-                .is_none()
-                || Actors::filter_kind_role(actors.clone(), ActorKind::Individual, role)
+    pub fn filter(
+        actors: impl IntoIterator<Item = &'a Actor> + Clone,
+        role: ActorRole,
+        kind: ActorKind,
+    ) -> Option<Self> {
+        match kind {
+            ActorKind::Summary | ActorKind::Individual => {
+                // At most a single summary actor
+                debug_assert!(
+                    Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role).count() <= 1
+                );
+                // Either a summary actor or individual actors but not both at the same time
+                debug_assert!(
+                    Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role)
+                        .next()
+                        .is_none()
+                        || Actors::filter_kind_role(actors.clone(), ActorKind::Individual, role)
+                            .next()
+                            .is_none()
+                );
+                if let Some(summary_actor) =
+                    Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role).next()
+                {
+                    Some(Self::Summary(summary_actor.name.as_str()))
+                } else {
+                    let individual_actors =
+                        Actors::filter_kind_role(actors, ActorKind::Individual, role)
+                            .map(|actor| actor.name.as_str())
+                            .collect::<Vec<_>>();
+                    if individual_actors.is_empty() {
+                        None
+                    } else {
+                        Some(Self::Individual(individual_actors))
+                    }
+                }
+            }
+            ActorKind::Sorting => {
+                // At most a single sorting actor
+                debug_assert!(
+                    Actors::filter_kind_role(actors.clone(), ActorKind::Sorting, role).count() <= 1
+                );
+                Actors::filter_kind_role(actors, ActorKind::Sorting, role)
                     .next()
-                    .is_none()
-        );
-        if let Some(summary_actor) =
-            Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role).next()
-        {
-            Self::Summary(summary_actor.name.as_str())
-        } else {
-            let individual_actors = Actors::filter_kind_role(actors, ActorKind::Individual, role);
-            Self::Individual(individual_actors.map(|actor| actor.name.as_str()).collect())
+                    .map(|actor| Self::Sorting(actor.name.as_str()))
+            }
         }
     }
 }

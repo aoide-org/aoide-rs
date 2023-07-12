@@ -90,6 +90,7 @@ pub enum TitlesInvalidity {
     Title(TitleInvalidity),
     MainTitleMissing,
     MainTitleAmbiguous,
+    TitleSortingAmbiguous,
 }
 
 pub const ANY_KIND_FILTER: Option<Kind> = None;
@@ -113,6 +114,12 @@ impl Titles {
                 0 => context.invalidate(TitlesInvalidity::MainTitleMissing),
                 1 => context, // ok
                 _ => context.invalidate(TitlesInvalidity::MainTitleAmbiguous),
+            }
+        }
+        if context.is_valid() {
+            context = match Self::sorting_titles(titles.to_owned()).count() {
+                0 | 1 => context, // ok
+                _ => context.invalidate(TitlesInvalidity::TitleSortingAmbiguous),
             }
         }
         context.into()
@@ -143,6 +150,20 @@ impl Titles {
         I: IntoIterator<Item = &'a Title>,
     {
         Self::main_titles(titles).next()
+    }
+
+    pub fn sorting_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title>
+    where
+        I: IntoIterator<Item = &'a Title>,
+    {
+        Self::filter_kind(titles, Kind::Sorting)
+    }
+
+    pub fn title_sorting<'a, I>(titles: I) -> Option<&'a Title>
+    where
+        I: IntoIterator<Item = &'a Title>,
+    {
+        Self::sorting_titles(titles).next()
     }
 
     pub fn set_main_title(titles: &mut Vec<Title>, name: impl Into<String>) -> bool {

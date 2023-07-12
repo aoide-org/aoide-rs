@@ -17,7 +17,7 @@ use aoide_core::{
     prelude::*,
     tag::{FacetId, FacetKey, FacetedTags, Label, PlainTag, Tags, TagsMap},
     track::{
-        actor::Role as ActorRole,
+        actor::{Kind as ActorKind, Role as ActorRole},
         album::Kind as AlbumKind,
         index::Index,
         metric::MetricsFlags,
@@ -50,7 +50,7 @@ use crate::{
         },
         digest::MediaDigest,
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
-        key_signature_as_str, push_next_actor_role_name_from,
+        key_signature_as_str, push_next_actor,
         tag::TagMappingConfig,
         TempoBpmFormat,
     },
@@ -461,6 +461,12 @@ pub(crate) fn import_file_tag_into_track(
         track_titles.push(title);
     }
     if let Some(title) = tag
+        .take_strings(&ItemKey::TrackTitleSortOrder)
+        .find_map(|name| ingest_title_from(name, TitleKind::Sorting))
+    {
+        track_titles.push(title);
+    }
+    if let Some(title) = tag
         .take_strings(&ItemKey::TrackSubtitle)
         .find_map(|name| ingest_title_from(name, TitleKind::Sub))
     {
@@ -495,40 +501,116 @@ pub(crate) fn import_file_tag_into_track(
     // Track actors
     let mut track_actors = Vec::with_capacity(8);
     for name in tag.take_strings(&ItemKey::TrackArtist) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Artist, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Artist,
+        );
+    }
+    for name in tag.take_strings(&ItemKey::TrackArtistSortOrder) {
+        push_next_actor(
+            &mut track_actors,
+            name,
+            ActorKind::Sorting,
+            ActorRole::Artist,
+        );
     }
     for name in tag.take_strings(&ItemKey::Arranger) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Arranger, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Arranger,
+        );
     }
     for name in tag.take_strings(&ItemKey::Composer) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Composer, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Composer,
+        );
+    }
+    for name in tag.take_strings(&ItemKey::ComposerSortOrder) {
+        push_next_actor(
+            &mut track_actors,
+            name,
+            ActorKind::Sorting,
+            ActorRole::Composer,
+        );
     }
     for name in tag.take_strings(&ItemKey::Conductor) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Conductor, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Conductor,
+        );
     }
     for name in tag.take_strings(&ItemKey::Director) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Director, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Director,
+        );
     }
     for name in tag.take_strings(&ItemKey::Engineer) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Engineer, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Engineer,
+        );
     }
     for name in tag.take_strings(&ItemKey::Lyricist) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Lyricist, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Lyricist,
+        );
     }
     for name in tag.take_strings(&ItemKey::MixDj) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::MixDj, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::MixDj,
+        );
     }
     for name in tag.take_strings(&ItemKey::MixEngineer) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::MixEngineer, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::MixEngineer,
+        );
     }
     for name in tag.take_strings(&ItemKey::Performer) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Performer, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Performer,
+        );
     }
     for name in tag.take_strings(&ItemKey::Producer) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Producer, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Producer,
+        );
     }
     for name in tag.take_strings(&ItemKey::Writer) {
-        push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Writer,
+        );
     }
     let new_track_actors = importer.finish_import_of_actors(TrackScope::Track, track_actors);
     let old_track_actors = &mut track.actors;
@@ -547,6 +629,12 @@ pub(crate) fn import_file_tag_into_track(
     {
         album_titles.push(title);
     }
+    if let Some(title) = tag
+        .take_strings(&ItemKey::AlbumTitleSortOrder)
+        .find_map(|name| ingest_title_from(name, TitleKind::Sorting))
+    {
+        album_titles.push(title);
+    }
     let new_album_titles = importer.finish_import_of_titles(TrackScope::Album, album_titles);
     let old_album_titles = &mut album.titles;
     if !old_album_titles.is_empty() && *old_album_titles != new_album_titles {
@@ -557,7 +645,20 @@ pub(crate) fn import_file_tag_into_track(
     // Album actors
     let mut album_actors = Vec::with_capacity(4);
     for name in tag.take_strings(&ItemKey::AlbumArtist) {
-        push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
+        push_next_actor(
+            &mut album_actors,
+            name,
+            Default::default(),
+            ActorRole::Artist,
+        );
+    }
+    for name in tag.take_strings(&ItemKey::AlbumArtistSortOrder) {
+        push_next_actor(
+            &mut album_actors,
+            name,
+            ActorKind::Sorting,
+            ActorRole::Artist,
+        );
     }
     let new_album_actors = importer.finish_import_of_actors(TrackScope::Album, album_actors);
     let old_album_actors = &mut album.actors;
@@ -898,10 +999,14 @@ pub(crate) fn import_serato_tags(track: &mut Track, serato_tags: &triseratops::t
 fn export_filtered_actor_names(
     tag: &mut Tag,
     item_key: ItemKey,
-    actor_names: FilteredActorNames<'_>,
+    actor_names: Option<FilteredActorNames<'_>>,
 ) {
+    let Some(actor_names) = actor_names else {
+        tag.remove_key(&item_key);
+        return;
+    };
     match actor_names {
-        FilteredActorNames::Summary(name) => {
+        FilteredActorNames::Summary(name) | FilteredActorNames::Sorting(name) => {
             tag.insert_text(item_key, name.to_owned());
         }
         FilteredActorNames::Individual(names) => {
@@ -1023,10 +1128,18 @@ pub(crate) fn export_track_to_tag(
     }
 
     // Track titles
-    if let Some(title) = Titles::main_title(track.titles.iter()) {
-        tag.set_title(title.name.clone());
+    if let Some(track_title) = Titles::main_title(track.titles.iter()) {
+        tag.set_title(track_title.name.clone());
     } else {
         tag.remove_title();
+    }
+    if let Some(track_title_sorting) = Titles::title_sorting(track.titles.iter()) {
+        tag.insert_text(
+            ItemKey::TrackTitleSortOrder,
+            track_title_sorting.name.clone(),
+        );
+    } else {
+        tag.remove_key(&ItemKey::TrackTitleSortOrder);
     }
     tag.remove_key(&ItemKey::TrackSubtitle);
     for track_subtitle in Titles::filter_kind(track.titles.iter(), TitleKind::Sub).peekable() {
@@ -1052,79 +1165,122 @@ pub(crate) fn export_track_to_tag(
     export_filtered_actor_names(
         tag,
         ItemKey::TrackArtist,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Artist),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Artist, Default::default()),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::TrackArtistSortOrder,
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Artist, ActorKind::Sorting),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::Arranger,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Arranger),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Arranger, Default::default()),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::Composer,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Composer),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Composer, Default::default()),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::ComposerSortOrder,
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Composer, ActorKind::Sorting),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::Conductor,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Conductor),
+        FilteredActorNames::filter(
+            track.actors.iter(),
+            ActorRole::Conductor,
+            Default::default(),
+        ),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::Director,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Director),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Director, Default::default()),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::Engineer,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Engineer),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Engineer, Default::default()),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::MixDj,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::MixDj),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::MixDj, Default::default()),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::MixEngineer,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::MixEngineer),
+        FilteredActorNames::filter(
+            track.actors.iter(),
+            ActorRole::MixEngineer,
+            Default::default(),
+        ),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::Lyricist,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Lyricist),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Lyricist, Default::default()),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::Performer,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Performer),
+        FilteredActorNames::filter(
+            track.actors.iter(),
+            ActorRole::Performer,
+            Default::default(),
+        ),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::Producer,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Producer),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Producer, Default::default()),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::Remixer,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Remixer),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Remixer, Default::default()),
     );
     export_filtered_actor_names(
         tag,
         ItemKey::Writer,
-        FilteredActorNames::new(track.actors.iter(), ActorRole::Writer),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Writer, Default::default()),
     );
 
     // Album
-    if let Some(title) = Titles::main_title(track.album.titles.iter()) {
-        tag.set_album(title.name.clone());
+    if let Some(album_title) = Titles::main_title(track.album.titles.iter()) {
+        tag.set_album(album_title.name.clone());
     } else {
         tag.remove_album();
+    }
+    if let Some(album_title_sorting) = Titles::title_sorting(track.album.titles.iter()) {
+        tag.insert_text(
+            ItemKey::AlbumTitleSortOrder,
+            album_title_sorting.name.clone(),
+        );
+    } else {
+        tag.remove_key(&ItemKey::AlbumTitleSortOrder);
     }
     export_filtered_actor_names(
         tag,
         ItemKey::AlbumArtist,
-        FilteredActorNames::new(track.album.actors.iter(), ActorRole::Artist),
+        FilteredActorNames::filter(
+            track.album.actors.iter(),
+            ActorRole::Artist,
+            Default::default(),
+        ),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::AlbumArtistSortOrder,
+        FilteredActorNames::filter(
+            track.album.actors.iter(),
+            ActorRole::Artist,
+            ActorKind::Sorting,
+        ),
     );
     if let Some(kind) = track.album.kind {
         match kind {

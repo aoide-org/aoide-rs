@@ -171,108 +171,121 @@ fn format_fractional_bpm() {
 fn push_next_actor_role_names() {
     let mut actors = vec![];
 
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Artist1 ft. Artist2"),
+        Default::default(),
         ActorRole::Artist,
-        "Artist1 ft. Artist2".to_owned()
     ));
     assert_eq!(
         Some("Artist1 ft. Artist2"),
         Actors::summary_actor(actors.iter(), ActorRole::Artist).map(|actor| actor.name.as_str())
     );
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Artist1"),
+        Default::default(),
         ActorRole::Artist,
-        "Artist1".to_owned()
     ));
     assert_eq!(
         Some("Artist1 ft. Artist2"),
         Actors::summary_actor(actors.iter(), ActorRole::Artist).map(|actor| actor.name.as_str())
     );
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Artist2"),
+        Default::default(),
         ActorRole::Artist,
-        "Artist2".to_owned()
     ));
     assert_eq!(
         Some("Artist1 ft. Artist2"),
         Actors::summary_actor(actors.iter(), ActorRole::Artist).map(|actor| actor.name.as_str())
     );
 
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Composer1"),
+        Default::default(),
         ActorRole::Composer,
-        "Composer1".to_owned()
     ));
     assert_eq!(
         Some("Composer1"),
         Actors::summary_actor(actors.iter(), ActorRole::Composer).map(|actor| actor.name.as_str())
     );
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Composer1, Composer2"),
+        Default::default(),
         ActorRole::Composer,
-        "Composer1, Composer2".to_owned()
     ));
     assert_eq!(
         Some("Composer1, Composer2"),
         Actors::summary_actor(actors.iter(), ActorRole::Composer).map(|actor| actor.name.as_str())
     );
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Composer2"),
+        Default::default(),
         ActorRole::Composer,
-        "Composer2".to_owned()
     ));
     assert_eq!(
         Some("Composer1, Composer2"),
         Actors::summary_actor(actors.iter(), ActorRole::Composer).map(|actor| actor.name.as_str())
     );
 
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Remixer2"),
+        Default::default(),
         ActorRole::Remixer,
-        "Remixer2".to_owned()
     ));
     assert_eq!(
         Some("Remixer2"),
         Actors::summary_actor(actors.iter(), ActorRole::Remixer).map(|actor| actor.name.as_str())
     );
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Remixer1"),
+        Default::default(),
         ActorRole::Remixer,
-        "Remixer1".to_owned()
     ));
     assert!(Actors::summary_actor(actors.iter(), ActorRole::Remixer).is_none());
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Remixer1 & Remixer2"),
+        Default::default(),
         ActorRole::Remixer,
-        "Remixer1 & Remixer2".to_owned()
     ));
     assert_eq!(
         Some("Remixer1 & Remixer2"),
         Actors::summary_actor(actors.iter(), ActorRole::Remixer).map(|actor| actor.name.as_str())
     );
 
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Lyricist1"),
+        Default::default(),
         ActorRole::Lyricist,
-        "Lyricist1".to_owned()
     ));
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
+        Cow::Borrowed("Lyricist2"),
+        Default::default(),
         ActorRole::Lyricist,
-        "Lyricist2".to_owned()
     ));
-    assert!(push_next_actor_role_name(
+    assert!(push_next_actor(
         &mut actors,
-        ActorRole::Lyricist,
         // Duplicate name
-        "Lyricist1".to_owned()
-    ));
-    assert!(push_next_actor_role_name(
-        &mut actors,
+        Cow::Borrowed("Lyricist1"),
+        Default::default(),
         ActorRole::Lyricist,
+    ));
+    assert!(push_next_actor(
+        &mut actors,
         // Duplicate name (again)
-        "Lyricist2".to_owned()
+        Cow::Borrowed("Lyricist2"),
+        Default::default(),
+        ActorRole::Lyricist,
     ));
     let actors = actors.canonicalize_into();
     assert_eq!(
