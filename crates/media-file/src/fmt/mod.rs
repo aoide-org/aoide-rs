@@ -461,7 +461,7 @@ pub(crate) fn import_file_tag_into_track(
         track_titles.push(title);
     }
     if let Some(title) = tag
-        .take_strings(&ItemKey::TrackTitle)
+        .take_strings(&ItemKey::TrackSubtitle)
         .find_map(|name| ingest_title_from(name, TitleKind::Sub))
     {
         track_titles.push(title);
