@@ -136,23 +136,6 @@ pub mod prelude {
     pub type RepoTransactionError = DieselTransactionError<RepoError>;
 
     pub(crate) use aoide_repo::RecordId as RowId;
-
-    #[cfg(test)]
-    pub mod tests {
-        use diesel::Connection as _;
-
-        use super::DbConnection;
-
-        pub type TestResult<T> = anyhow::Result<T>;
-
-        pub fn establish_connection() -> TestResult<DbConnection> {
-            let mut connection =
-                DbConnection::establish(":memory:").expect("in-memory database connection");
-            crate::run_migrations(&mut connection)
-                .map_err(|err| anyhow::anyhow!(err.to_string()))?;
-            Ok(connection)
-        }
-    }
 }
 
 pub mod repo;
@@ -190,4 +173,20 @@ const EMBEDDED_MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 pub fn run_migrations(connection: &mut DbConnection) -> MigrationResult<Vec<MigrationVersion<'_>>> {
     connection.run_pending_migrations(EMBEDDED_MIGRATIONS)
+}
+
+#[cfg(test)]
+pub mod tests {
+    use diesel::Connection as _;
+
+    use super::DbConnection;
+
+    pub type TestResult<T> = anyhow::Result<T>;
+
+    pub fn establish_connection() -> TestResult<DbConnection> {
+        let mut connection =
+            DbConnection::establish(":memory:").expect("in-memory database connection");
+        crate::run_migrations(&mut connection).map_err(|err| anyhow::anyhow!(err.to_string()))?;
+        Ok(connection)
+    }
 }

@@ -20,7 +20,7 @@ use aoide_repo::{
 use test_log::test;
 
 use super::*;
-use crate::prelude::tests::*;
+use crate::tests::*;
 
 struct Fixture {
     collection_id: CollectionId,
