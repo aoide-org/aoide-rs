@@ -11,7 +11,7 @@ edition = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
-anyhow = "1.0.71"
+anyhow = "1.0.72"
 diesel = { version = "2.1.0", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
 diesel_migrations =  { version = "2.1.0", default-features = false, features = ["sqlite"] }
 log = "0.4.19"

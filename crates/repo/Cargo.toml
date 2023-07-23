@@ -11,10 +11,10 @@ edition = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
-anyhow = "1.0.71"
-paste = "1.0.13"
+anyhow = "1.0.72"
+paste = "1.0.14"
 rand = "0.8.5"
-thiserror = "1.0.43"
+thiserror = "1.0.44"
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core" }
