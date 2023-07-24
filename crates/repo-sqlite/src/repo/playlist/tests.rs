@@ -152,7 +152,7 @@ fn new_separator_entry_with_title(title: String) -> Entry {
 }
 
 #[test]
-fn count_entries() -> anyhow::Result<()> {
+fn load_tracks_summary_and_count_entries() -> anyhow::Result<()> {
     let mut db = establish_connection()?;
     let mut db = crate::Connection::new(&mut db);
     let fixture = Fixture::new(&mut db)?;
@@ -184,11 +184,9 @@ fn count_entries() -> anyhow::Result<()> {
     let last_track_id = db.resolve_track_id(last_track_uid)?;
 
     assert_eq!(track_count, db.count_playlist_entries(playlist_id)?);
-    assert_eq!(track_count, db.count_playlist_track_entries(playlist_id)?);
-    assert_eq!(
-        track_count,
-        db.count_playlist_distinct_track_entries(playlist_id)?
-    );
+    let tracks_summary = db.load_playlist_tracks_summary(playlist_id)?;
+    assert_eq!(track_count, tracks_summary.total_count);
+    assert_eq!(track_count, tracks_summary.distinct_count);
     assert_eq!(
         1,
         db.count_playlist_single_track_entries(playlist_id, first_track_id)?
@@ -206,14 +204,9 @@ fn count_entries() -> anyhow::Result<()> {
     db.prepend_playlist_entries(playlist_id, &[first_separator.clone()])?;
 
     assert_eq!(track_count + 2, db.count_playlist_entries(playlist_id)?);
-    assert_eq!(
-        track_count + 1,
-        db.count_playlist_track_entries(playlist_id)?
-    );
-    assert_eq!(
-        track_count,
-        db.count_playlist_distinct_track_entries(playlist_id)?
-    );
+    let tracks_summary = db.load_playlist_tracks_summary(playlist_id)?;
+    assert_eq!(track_count + 1, tracks_summary.total_count);
+    assert_eq!(track_count, tracks_summary.distinct_count);
     assert_eq!(
         2,
         db.count_playlist_single_track_entries(playlist_id, first_track_id)?

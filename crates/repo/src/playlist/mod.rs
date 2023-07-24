@@ -4,7 +4,9 @@
 use std::{borrow::Cow, ops::Range};
 
 use aoide_core::{
-    playlist::{Entity, EntityHeader, EntityUid, EntityWithEntries, EntriesSummary, Entry},
+    playlist::{
+        Entity, EntityHeader, EntityUid, EntityWithEntries, EntriesSummary, Entry, TracksSummary,
+    },
     util::{clock::DateTime, random::adhoc_rng},
 };
 use aoide_core_api::playlist::EntityWithEntriesSummary;
@@ -198,9 +200,7 @@ pub trait EntryRepo {
 
     fn count_playlist_entries(&mut self, id: RecordId) -> RepoResult<usize>;
 
-    fn count_playlist_track_entries(&mut self, id: RecordId) -> RepoResult<usize>;
-
-    fn count_playlist_distinct_track_entries(&mut self, id: RecordId) -> RepoResult<usize>;
+    fn load_playlist_tracks_summary(&mut self, id: RecordId) -> RepoResult<TracksSummary>;
 
     fn count_playlist_single_track_entries(
         &mut self,

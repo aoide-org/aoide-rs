@@ -193,8 +193,8 @@ pub fn push_next_actor<'a>(
                 }
                 // Warn about ambiguous sorting actors
                 log::warn!(
-                    "Ignoring {role:?} actor \"{name}\" because \"{actor_name}\" is already \
-                    used for sorting",
+                    "Ignoring {role:?} actor \"{name}\" because \"{actor_name}\" is already used \
+                     for sorting",
                     actor_name = actor.name
                 );
                 return false;
