@@ -198,7 +198,11 @@ pub trait EntryRepo {
 
     fn count_playlist_entries(&mut self, id: RecordId) -> RepoResult<usize>;
 
-    fn count_playlist_track_entries(
+    fn count_playlist_track_entries(&mut self, id: RecordId) -> RepoResult<usize>;
+
+    fn count_playlist_distinct_track_entries(&mut self, id: RecordId) -> RepoResult<usize>;
+
+    fn count_playlist_single_track_entries(
         &mut self,
         id: RecordId,
         track_id: TrackId,

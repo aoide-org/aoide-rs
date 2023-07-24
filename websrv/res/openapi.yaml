@@ -1527,8 +1527,11 @@ components:
       properties:
         totalCount:
           $ref: "#/components/schemas/TotalPlaylistCount"
+        distinctCount:
+          $ref: "#/components/schemas/DistinctTrackCount"
       required:
         - totalCount
+        - distinctCount
     CollectionTrackSummary:
       type: object
       properties:
@@ -3366,6 +3369,11 @@ components:
     TotalTrackCount:
       description: |
         Total number of tracks.
+      allOf:
+        - $ref: "#/components/schemas/TotalCount"
+    DistinctTrackCount:
+      description: |
+        The distinct (deduplicated) number of tracks.
       allOf:
         - $ref: "#/components/schemas/TotalCount"
     TrackEntity:

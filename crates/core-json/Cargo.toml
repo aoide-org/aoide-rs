@@ -14,7 +14,7 @@ rust-version = { workspace = true }
 anyhow = "1.0.72"
 base64 = "0.21.2"
 mime = "0.3.17"
-serde = { version = "1.0.174", features = ["derive"] }
+serde = { version = "1.0.175", features = ["derive"] }
 serde_repr = "0.1.15"
 time = { version = "0.3.23", features = ["serde-human-readable"] }
 url = { version = "2.4.0", features = ["serde"] }

@@ -116,17 +116,19 @@ impl Fixture {
         let playlist_id =
             db.insert_playlist_entity(collection_id, DateTime::now_utc(), &playlist_entity)?;
         let media_sources_and_tracks = self.create_media_sources_and_tracks(db, track_count)?;
-        let mut playlist_entries = Vec::with_capacity(track_count);
-        for (i, (_, _, track_uid)) in media_sources_and_tracks.into_iter().enumerate() {
-            let entry = Entry {
+        let playlist_entries = media_sources_and_tracks
+            .into_iter()
+            .enumerate()
+            .map(|(i, (_media_source_id, _track_id, track_uid))| Entry {
                 added_at: DateTime::now_local_or_utc(),
                 title: Some(format!("Entry {i}")),
                 notes: None,
                 item: Item::Track(TrackItem { uid: track_uid }),
-            };
-            playlist_entries.push(entry);
-        }
+            })
+            .collect::<Vec<_>>();
         db.append_playlist_entries(playlist_id, &playlist_entries)?;
+        let db_playlist_entries = db.load_all_playlist_entries(playlist_id)?;
+        assert_eq!(playlist_entries, db_playlist_entries);
         Ok((playlist_entity, playlist_entries).into())
     }
 }
@@ -147,6 +149,81 @@ fn new_separator_entry_with_title(title: String) -> Entry {
         notes: None,
         item: Item::Separator(Default::default()),
     }
+}
+
+#[test]
+fn count_entries() -> anyhow::Result<()> {
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
+
+    let track_count = 5;
+    let entity_with_entries = fixture.create_playlists_with_track_entries(
+        &mut db,
+        PlaylistScope::Collection,
+        track_count,
+    )?;
+    let (entity_header, playlist_with_entries) = entity_with_entries.into();
+    let track_entries = playlist_with_entries.entries;
+    assert_eq!(track_count, track_entries.len());
+
+    let playlist_id = db.resolve_playlist_id(&entity_header.uid)?;
+
+    let first_track_entry = track_entries.first().unwrap();
+    let first_track_uid = match &first_track_entry.item {
+        Item::Track(item) => &item.uid,
+        Item::Separator(_) => panic!("Expected track item"),
+    };
+    let first_track_id = db.resolve_track_id(first_track_uid)?;
+
+    let last_track_entry = track_entries.last().unwrap();
+    let last_track_uid = match &last_track_entry.item {
+        Item::Track(item) => &item.uid,
+        Item::Separator(_) => panic!("Expected track item"),
+    };
+    let last_track_id = db.resolve_track_id(last_track_uid)?;
+
+    assert_eq!(track_count, db.count_playlist_entries(playlist_id)?);
+    assert_eq!(track_count, db.count_playlist_track_entries(playlist_id)?);
+    assert_eq!(
+        track_count,
+        db.count_playlist_distinct_track_entries(playlist_id)?
+    );
+    assert_eq!(
+        1,
+        db.count_playlist_single_track_entries(playlist_id, first_track_id)?
+    );
+    assert_eq!(
+        1,
+        db.count_playlist_single_track_entries(playlist_id, last_track_id)?
+    );
+
+    // Append first track again as new last track
+    db.append_playlist_entries(playlist_id, &[first_track_entry.clone()])?;
+
+    // Prepend separator entry
+    let first_separator = new_separator_entry_with_title("First".to_string());
+    db.prepend_playlist_entries(playlist_id, &[first_separator.clone()])?;
+
+    assert_eq!(track_count + 2, db.count_playlist_entries(playlist_id)?);
+    assert_eq!(
+        track_count + 1,
+        db.count_playlist_track_entries(playlist_id)?
+    );
+    assert_eq!(
+        track_count,
+        db.count_playlist_distinct_track_entries(playlist_id)?
+    );
+    assert_eq!(
+        2,
+        db.count_playlist_single_track_entries(playlist_id, first_track_id)?
+    );
+    assert_eq!(
+        1,
+        db.count_playlist_single_track_entries(playlist_id, last_track_id)?
+    );
+
+    Ok(())
 }
 
 #[test]

@@ -15,7 +15,7 @@ use aoide_repo::{
     collection::RecordId as CollectionId, playlist::*, track::EntityRepo as _,
     track::RecordId as TrackId,
 };
-use diesel::dsl::count_star;
+use diesel::dsl::{count_distinct, count_star};
 
 use crate::{
     db::{
@@ -333,7 +333,29 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             .map_err(repo_error)
     }
 
-    fn count_playlist_track_entries(
+    fn count_playlist_track_entries(&mut self, id: RecordId) -> RepoResult<usize> {
+        use playlist_entry_db::schema::*;
+        playlist_entry::table
+            .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
+            .select(count_star())
+            .filter(playlist_entry::track_id.is_not_null())
+            .first::<i64>(self.as_mut())
+            .map(|count| count as usize)
+            .map_err(repo_error)
+    }
+
+    fn count_playlist_distinct_track_entries(&mut self, id: RecordId) -> RepoResult<usize> {
+        use playlist_entry_db::schema::*;
+        playlist_entry::table
+            .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
+            .select(count_distinct(playlist_entry::track_id))
+            .filter(playlist_entry::track_id.is_not_null())
+            .first::<i64>(self.as_mut())
+            .map(|count| count as usize)
+            .map_err(repo_error)
+    }
+
+    fn count_playlist_single_track_entries(
         &mut self,
         id: RecordId,
         track_id: TrackId,
@@ -351,14 +373,10 @@ impl<'db> EntryRepo for crate::Connection<'db> {
     fn load_playlist_entries_summary(&mut self, id: RecordId) -> RepoResult<EntriesSummary> {
         use playlist_entry_db::schema::*;
         let entries_count = self.count_playlist_entries(id)?;
-        let tracks_count = playlist_entry::table
-            .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-            .select(count_star())
-            .filter(playlist_entry::track_id.is_not_null())
-            .first::<i64>(self.as_mut())
-            .map(|count| count as usize)
-            .map_err(repo_error)?;
-        debug_assert!(tracks_count <= entries_count);
+        let total_tracks_count = self.count_playlist_track_entries(id)?;
+        debug_assert!(total_tracks_count <= entries_count);
+        let distinct_tracks_count = self.count_playlist_distinct_track_entries(id)?;
+        debug_assert!(distinct_tracks_count <= total_tracks_count);
         let added_at_minmax = if entries_count > 0 {
             let added_at_min = playlist_entry::table
                 .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
@@ -389,7 +407,8 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             total_count: entries_count,
             added_at_minmax,
             tracks: TracksSummary {
-                total_count: tracks_count,
+                total_count: total_tracks_count,
+                distinct_count: distinct_tracks_count,
             },
         })
     }

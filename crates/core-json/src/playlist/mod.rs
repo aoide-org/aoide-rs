@@ -332,19 +332,32 @@ impl From<EntriesSummary> for _core::EntriesSummary {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TracksSummary {
     total_count: usize,
+    distinct_count: usize,
 }
 
 impl From<_core::TracksSummary> for TracksSummary {
     fn from(from: _core::TracksSummary) -> Self {
-        let _core::TracksSummary { total_count } = from;
-        Self { total_count }
+        let _core::TracksSummary {
+            total_count,
+            distinct_count,
+        } = from;
+        Self {
+            total_count,
+            distinct_count,
+        }
     }
 }
 
 impl From<TracksSummary> for _core::TracksSummary {
     fn from(from: TracksSummary) -> Self {
-        let TracksSummary { total_count } = from;
-        Self { total_count }
+        let TracksSummary {
+            total_count,
+            distinct_count,
+        } = from;
+        Self {
+            total_count,
+            distinct_count,
+        }
     }
 }
 

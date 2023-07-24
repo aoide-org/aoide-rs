@@ -284,6 +284,21 @@ impl PlaylistWithEntries {
     pub fn count_tracks(&self) -> usize {
         self.entries.iter().filter(|e| e.item.is_track()).count()
     }
+
+    #[must_use]
+    pub fn count_distinct_tracks(&self) -> usize {
+        let mut uids = self
+            .entries
+            .iter()
+            .filter_map(|e| match &e.item {
+                Item::Track(track) => Some(&track.uid),
+                Item::Separator(_) => None,
+            })
+            .collect::<Vec<_>>();
+        uids.sort_unstable();
+        uids.dedup();
+        uids.len()
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -339,6 +354,7 @@ pub struct EntriesSummary {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TracksSummary {
     pub total_count: usize,
+    pub distinct_count: usize,
 }
 
 impl PlaylistWithEntries {
@@ -349,6 +365,7 @@ impl PlaylistWithEntries {
             added_at_minmax: self.entries_added_at_minmax(),
             tracks: TracksSummary {
                 total_count: self.count_tracks(),
+                distinct_count: self.count_distinct_tracks(),
             },
         }
     }
