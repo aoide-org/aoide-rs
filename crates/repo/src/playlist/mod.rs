@@ -200,8 +200,6 @@ pub trait EntryRepo {
 
     fn count_playlist_entries(&mut self, id: RecordId) -> RepoResult<usize>;
 
-    fn load_playlist_tracks_summary(&mut self, id: RecordId) -> RepoResult<TracksSummary>;
-
     fn count_playlist_single_track_entries(
         &mut self,
         id: RecordId,
@@ -211,6 +209,8 @@ pub trait EntryRepo {
     fn load_all_playlist_entries(&mut self, id: RecordId) -> RepoResult<Vec<Entry>>;
 
     fn load_playlist_entries_summary(&mut self, id: RecordId) -> RepoResult<EntriesSummary>;
+
+    fn load_playlist_tracks_summary(&mut self, id: RecordId) -> RepoResult<TracksSummary>;
 }
 
 #[derive(Debug, Default)]
