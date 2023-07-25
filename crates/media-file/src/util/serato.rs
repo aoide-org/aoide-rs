@@ -24,7 +24,7 @@ fn import_cue(serato_cue: SeratoCue) -> Cue {
         bank_index: CUE_BANK_INDEX,
         slot_index: Some(serato_cue.index.into()),
         in_marker: Some(InMarker {
-            position: PositionMs(serato_cue.position.millis.into()),
+            position: PositionMs::new(serato_cue.position.millis.into()),
         }),
         out_marker: None,
         kind: None,
@@ -46,10 +46,10 @@ fn import_loop(serato_loop: Loop) -> Cue {
         bank_index: LOOP_BANK_INDEX,
         slot_index: Some(serato_loop.index.into()),
         in_marker: Some(InMarker {
-            position: PositionMs(serato_loop.start_position.millis.into()),
+            position: PositionMs::new(serato_loop.start_position.millis.into()),
         }),
         out_marker: Some(OutMarker {
-            position: PositionMs(serato_loop.end_position.millis.into()),
+            position: PositionMs::new(serato_loop.end_position.millis.into()),
             mode: Some(OutMode::Loop),
         }),
         kind: None,

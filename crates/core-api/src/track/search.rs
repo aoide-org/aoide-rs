@@ -3,7 +3,6 @@
 
 use aoide_core::{
     audio::DurationMs,
-    prelude::*,
     track::{
         actor::{Kind as ActorKind, Role as ActorRole},
         title::Kind as TitleKind,
@@ -214,8 +213,8 @@ impl Filter {
     pub fn audio_duration_around(duration: DurationMs, epsilon: DurationMs) -> Self {
         debug_assert!(duration.is_valid());
         debug_assert!(epsilon.is_valid());
-        let duration_value = duration.to_inner();
-        let epsilon_value = epsilon.to_inner();
+        let duration_value = duration.value();
+        let epsilon_value = epsilon.value();
         if epsilon_value > 0.0 {
             Self::All(vec![
                 Self::Numeric(NumericFieldFilter {

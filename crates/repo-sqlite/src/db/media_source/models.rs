@@ -5,8 +5,8 @@ use std::str::FromStr;
 
 use aoide_core::{
     audio::{
-        BitrateBps, BitsPerSecond, ChannelCount, ChannelFlags, Channels, DurationMs, LoudnessLufs,
-        SampleRateHz,
+        BitrateBps, BitrateBpsValue, ChannelCount, ChannelFlags, Channels, DurationMs,
+        DurationMsValue, LoudnessLufs, LoudnessLufsValue, SampleRateHz, SampleRateHzValue,
     },
     media::{
         artwork::{
@@ -46,12 +46,12 @@ pub struct QueryableRecord {
     pub content_type: String,
     pub content_digest: Option<Vec<u8>>,
     pub content_metadata_flags: i16,
-    pub audio_duration_ms: Option<f64>,
+    pub audio_duration_ms: Option<DurationMsValue>,
     pub audio_channel_count: Option<i16>,
     pub audio_channel_mask: Option<i32>,
-    pub audio_samplerate_hz: Option<f64>,
-    pub audio_bitrate_bps: Option<f64>,
-    pub audio_loudness_lufs: Option<f64>,
+    pub audio_samplerate_hz: Option<SampleRateHzValue>,
+    pub audio_bitrate_bps: Option<BitrateBpsValue>,
+    pub audio_loudness_lufs: Option<LoudnessLufsValue>,
     pub audio_encoder: Option<String>,
     pub artwork_source: Option<i16>,
     pub artwork_uri: Option<String>,
@@ -106,8 +106,8 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             duration: audio_duration_ms.map(DurationMs::new),
             channels,
             sample_rate: audio_samplerate_hz.map(SampleRateHz::new),
-            bitrate: audio_bitrate_bps.map(|val| BitrateBps::new(val as BitsPerSecond)),
-            loudness: audio_loudness_lufs.map(LoudnessLufs),
+            bitrate: audio_bitrate_bps.map(|val| BitrateBps::new(val as BitrateBpsValue)),
+            loudness: audio_loudness_lufs.map(LoudnessLufs::new),
             encoder: audio_encoder,
         };
         let artwork = if let Some(source) = artwork_source
@@ -214,11 +214,11 @@ pub struct InsertableRecord<'a> {
     pub content_type: String,
     pub content_digest: Option<&'a [u8]>,
     pub content_metadata_flags: i16,
-    pub audio_duration_ms: Option<f64>,
+    pub audio_duration_ms: Option<DurationMsValue>,
     pub audio_channel_count: Option<i16>,
-    pub audio_samplerate_hz: Option<f64>,
-    pub audio_bitrate_bps: Option<f64>,
-    pub audio_loudness_lufs: Option<f64>,
+    pub audio_samplerate_hz: Option<SampleRateHzValue>,
+    pub audio_bitrate_bps: Option<BitrateBpsValue>,
+    pub audio_loudness_lufs: Option<LoudnessLufsValue>,
     pub audio_encoder: Option<&'a str>,
     pub artwork_source: Option<i16>,
     pub artwork_uri: Option<&'a str>,
@@ -319,19 +319,19 @@ impl<'a> InsertableRecord<'a> {
             content_metadata_flags: i16::from(content_metadata_flags.bits()),
             audio_duration_ms: audio_metadata
                 .and_then(|audio| audio.duration)
-                .map(DurationMs::to_inner),
+                .map(DurationMs::value),
             audio_channel_count: audio_metadata
                 .and_then(|audio| audio.channels)
                 .map(|channels| channels.count().0 as i16),
             audio_samplerate_hz: audio_metadata
                 .and_then(|audio| audio.sample_rate)
-                .map(SampleRateHz::to_inner),
+                .map(SampleRateHz::value),
             audio_bitrate_bps: audio_metadata
                 .and_then(|audio| audio.bitrate)
-                .map(BitrateBps::to_inner),
+                .map(BitrateBps::value),
             audio_loudness_lufs: audio_metadata
                 .and_then(|audio| audio.loudness)
-                .map(|loudness| loudness.0),
+                .map(LoudnessLufs::value),
             audio_encoder: audio_metadata.and_then(|audio| audio.encoder.as_deref()),
             artwork_source: artwork_source.map(ArtworkSource::encode),
             artwork_uri,
@@ -357,12 +357,12 @@ pub struct UpdatableRecord<'a> {
     pub content_type: String,
     pub content_digest: Option<&'a [u8]>,
     pub content_metadata_flags: i16,
-    pub audio_duration_ms: Option<f64>,
+    pub audio_duration_ms: Option<DurationMsValue>,
     pub audio_channel_count: Option<i16>,
     pub audio_channel_mask: Option<i32>,
-    pub audio_samplerate_hz: Option<f64>,
-    pub audio_bitrate_bps: Option<f64>,
-    pub audio_loudness_lufs: Option<f64>,
+    pub audio_samplerate_hz: Option<SampleRateHzValue>,
+    pub audio_bitrate_bps: Option<BitrateBpsValue>,
+    pub audio_loudness_lufs: Option<LoudnessLufsValue>,
     pub audio_encoder: Option<&'a str>,
     pub artwork_source: Option<i16>,
     pub artwork_uri: Option<&'a str>,
@@ -456,7 +456,7 @@ impl<'a> UpdatableRecord<'a> {
             content_metadata_flags: i16::from(content_metadata_flags.bits()),
             audio_duration_ms: audio_metadata
                 .and_then(|audio| audio.duration)
-                .map(DurationMs::to_inner),
+                .map(DurationMs::value),
             audio_channel_count: audio_metadata
                 .and_then(|audio| audio.channels)
                 .map(|channels| channels.count().0 as _),
@@ -466,13 +466,13 @@ impl<'a> UpdatableRecord<'a> {
                 .map(|flags| flags.bits() as _),
             audio_samplerate_hz: audio_metadata
                 .and_then(|audio| audio.sample_rate)
-                .map(SampleRateHz::to_inner),
+                .map(SampleRateHz::value),
             audio_bitrate_bps: audio_metadata
                 .and_then(|audio| audio.bitrate)
-                .map(BitrateBps::to_inner),
+                .map(BitrateBps::value),
             audio_loudness_lufs: audio_metadata
                 .and_then(|audio| audio.loudness)
-                .map(|loudness| loudness.0),
+                .map(LoudnessLufs::value),
             audio_encoder: audio_metadata.and_then(|audio| audio.encoder.as_deref()),
             artwork_source: artwork_source.map(ArtworkSource::encode),
             artwork_uri,

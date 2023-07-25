@@ -5,7 +5,7 @@ use std::borrow::Cow;
 
 use aoide_core::{
     prelude::*,
-    tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, Tags, TagsMap},
+    tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, ScoreValue, Tags, TagsMap},
 };
 use compact_str::{format_compact, CompactString};
 use gigtag::facet::{has_date_like_suffix, Facet as _};
@@ -141,7 +141,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag<'_>)> {
                 return None;
             }
             // Skip non-aoide tag if property value fails to parse
-            let score_value = prop.value().parse::<f64>().ok()?;
+            let score_value = prop.value().parse::<ScoreValue>().ok()?;
             let score = Score::clamp_from(score_value);
             // Skip non-aoide tag if property value fails is not a valid score value
             #[allow(clippy::float_cmp)]

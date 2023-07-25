@@ -7,7 +7,7 @@ use aoide_core::{
     audio::{
         channel::ChannelCount,
         signal::{BitrateBps, SampleRateHz},
-        ChannelFlags, Channels, DurationMs,
+        BitrateBpsValue, ChannelFlags, Channels, DurationMs,
     },
     media::{
         artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork},
@@ -118,7 +118,7 @@ pub(crate) fn parse_options() -> ParseOptions {
 fn import_audio_content_from_file_properties(properties: &FileProperties) -> AudioContentMetadata {
     let bitrate = properties
         .audio_bitrate()
-        .map(|kbps| BitrateBps::new(f64::from(kbps) * 1000.0))
+        .map(|kbps| BitrateBps::new(BitrateBpsValue::from(kbps) * 1000.0))
         .filter(IsValid::is_valid);
     let channel_count = properties
         .channels()

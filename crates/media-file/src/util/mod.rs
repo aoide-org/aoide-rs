@@ -237,12 +237,12 @@ const EBU_R128_REFERENCE_LUFS: f64 = -18.0;
 #[must_use]
 pub fn db2lufs(relative_gain_db: f64) -> LoudnessLufs {
     // Reconstruct the LUFS value from the relative gain
-    LoudnessLufs(EBU_R128_REFERENCE_LUFS - relative_gain_db)
+    LoudnessLufs::new(EBU_R128_REFERENCE_LUFS - relative_gain_db)
 }
 
 #[must_use]
 pub fn lufs2db(loudness: LoudnessLufs) -> f64 {
-    EBU_R128_REFERENCE_LUFS - loudness.0
+    EBU_R128_REFERENCE_LUFS - loudness.value()
 }
 
 #[must_use]
@@ -314,11 +314,11 @@ pub(crate) fn format_tempo_bpm(
     match format {
         TempoBpmFormat::Integer => {
             // Do not touch the original value when rounding to integer!
-            let tempo_bpm = TempoBpm::new(tempo_bpm.to_inner().round());
-            FormattedTempoBpm::NonFractional(format_parseable_value(&mut tempo_bpm.to_inner()))
+            let tempo_bpm = TempoBpm::new(tempo_bpm.value().round());
+            FormattedTempoBpm::NonFractional(format_parseable_value(&mut tempo_bpm.value()))
         }
         TempoBpmFormat::Float => {
-            let mut value = tempo_bpm.to_inner();
+            let mut value = tempo_bpm.value();
             let formatted = format_parseable_value(&mut value);
             debug_assert!({
                 // Verify the formatted float value by re-parsing it.

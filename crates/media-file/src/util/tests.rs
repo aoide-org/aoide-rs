@@ -79,7 +79,7 @@ fn format_validated_tempo_bpm_none() {
 
 #[test]
 fn format_validated_tempo_bpm_invalid() {
-    let mut tempo_bpm = Some(TempoBpm::new(TempoBpm::MIN.to_inner() - 1.0));
+    let mut tempo_bpm = Some(TempoBpm::new(TempoBpm::MIN.value() - 1.0));
     assert_eq!(
         None,
         format_validated_tempo_bpm(&mut tempo_bpm, TempoBpmFormat::Integer)
@@ -115,29 +115,29 @@ fn format_validated_tempo_bpm_invalid() {
 
 #[test]
 fn format_validated_tempo_bpm_min_max() {
-    let mut tempo_bpm = Some(TempoBpm::new(TempoBpm::MIN.to_inner()));
+    let mut tempo_bpm = Some(TempoBpm::new(TempoBpm::MIN.value()));
     assert_eq!(
         Some(FormattedTempoBpm::NonFractional("0".into())),
         format_validated_tempo_bpm(&mut tempo_bpm, TempoBpmFormat::Integer)
     );
     assert_eq!(
         Some(FormattedTempoBpm::Fractional(
-            TempoBpm::MIN.to_inner().to_string()
+            TempoBpm::MIN.value().to_string()
         )),
         format_validated_tempo_bpm(&mut tempo_bpm, TempoBpmFormat::Float)
     );
     assert_eq!(Some(TempoBpm::MIN), tempo_bpm);
 
-    let mut tempo_bpm = Some(TempoBpm::new(TempoBpm::MAX.to_inner()));
+    let mut tempo_bpm = Some(TempoBpm::new(TempoBpm::MAX.value()));
     assert_eq!(
         Some(FormattedTempoBpm::NonFractional(
-            TempoBpm::MAX.to_inner().to_string()
+            TempoBpm::MAX.value().to_string()
         )),
         format_validated_tempo_bpm(&mut tempo_bpm, TempoBpmFormat::Integer)
     );
     assert_eq!(
         Some(FormattedTempoBpm::NonFractional(
-            TempoBpm::MAX.to_inner().to_string()
+            TempoBpm::MAX.value().to_string()
         )),
         format_validated_tempo_bpm(&mut tempo_bpm, TempoBpmFormat::Float)
     );

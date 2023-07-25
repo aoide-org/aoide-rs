@@ -110,7 +110,7 @@ impl IsInteger for SamplePosition {
 // SampleLength
 ///////////////////////////////////////////////////////////////////////
 
-pub type NumberOfSamples = f64;
+pub type SampleLengthValue = f64;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 #[repr(transparent)]
@@ -118,9 +118,20 @@ pub type NumberOfSamples = f64;
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct SampleLength(pub NumberOfSamples);
+pub struct SampleLength(SampleLengthValue);
 
 impl SampleLength {
+    #[must_use]
+    pub const fn new(value: SampleLengthValue) -> Self {
+        Self(value)
+    }
+
+    #[must_use]
+    pub const fn value(self) -> SampleLengthValue {
+        let Self(value) = self;
+        value
+    }
+
     #[must_use]
     pub fn is_valid(&self) -> bool {
         <Self as IsValid>::is_valid(self)
@@ -138,22 +149,10 @@ impl Validate for SampleLength {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                !(self.0.is_finite() && self.0.is_sign_positive()),
+                !(self.value().is_finite() && self.value().is_sign_positive()),
                 Self::Invalidity::OutOfRange,
             )
             .into()
-    }
-}
-
-impl From<NumberOfSamples> for SampleLength {
-    fn from(from: NumberOfSamples) -> Self {
-        Self(from)
-    }
-}
-
-impl From<SampleLength> for NumberOfSamples {
-    fn from(from: SampleLength) -> Self {
-        from.0
     }
 }
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{f64, fmt};
+use std::fmt;
 
 use crate::{
     audio::{
@@ -15,7 +15,7 @@ use crate::{
 // Bitrate
 ///////////////////////////////////////////////////////////////////////
 
-pub type BitsPerSecond = f64;
+pub type BitrateBpsValue = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
@@ -23,23 +23,24 @@ pub type BitsPerSecond = f64;
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct BitrateBps(BitsPerSecond);
+pub struct BitrateBps(BitrateBpsValue);
 
 impl BitrateBps {
     pub const UNIT_OF_MEASURE: &str = "bps";
 
-    pub const MIN: Self = Self(f64::MIN_POSITIVE);
-    pub const MAX: Self = Self(f64::MAX);
+    pub const ZERO: Self = Self(0.0);
+    pub const MIN: Self = Self(BitrateBpsValue::MIN_POSITIVE);
+    pub const MAX: Self = Self(BitrateBpsValue::MAX);
 
     #[must_use]
-    pub const fn new(inner: SamplesPerSecond) -> Self {
-        Self(inner)
+    pub const fn new(value: BitrateBpsValue) -> Self {
+        Self(value)
     }
 
     #[must_use]
-    pub const fn to_inner(self) -> SamplesPerSecond {
-        let Self(inner) = self;
-        inner
+    pub const fn value(self) -> BitrateBpsValue {
+        let Self(value) = self;
+        value
     }
 
     #[must_use]
@@ -67,7 +68,7 @@ impl Validate for BitrateBps {
 
 impl fmt::Display for BitrateBps {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.to_inner(), Self::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.value(), Self::UNIT_OF_MEASURE)
     }
 }
 
@@ -75,7 +76,7 @@ impl fmt::Display for BitrateBps {
 // SampleRate
 ///////////////////////////////////////////////////////////////////////
 
-pub type SamplesPerSecond = f64;
+pub type SampleRateHzValue = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
@@ -83,23 +84,24 @@ pub type SamplesPerSecond = f64;
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct SampleRateHz(SamplesPerSecond);
+pub struct SampleRateHz(SampleRateHzValue);
 
 impl SampleRateHz {
     pub const UNIT_OF_MEASURE: &str = "Hz";
 
-    pub const MIN: Self = Self(f64::MIN_POSITIVE);
-    pub const MAX: Self = Self(192_000.0);
+    pub const ZERO: Self = Self(0.0);
+    pub const MIN: Self = Self(SampleRateHzValue::MIN_POSITIVE);
+    pub const MAX: Self = Self(SampleRateHzValue::MAX);
 
     #[must_use]
-    pub const fn new(inner: SamplesPerSecond) -> Self {
+    pub const fn new(inner: SampleRateHzValue) -> Self {
         Self(inner)
     }
 
     #[must_use]
-    pub const fn to_inner(self) -> SamplesPerSecond {
-        let Self(inner) = self;
-        inner
+    pub const fn value(self) -> SampleRateHzValue {
+        let Self(value) = self;
+        value
     }
 
     #[must_use]
@@ -127,7 +129,7 @@ impl Validate for SampleRateHz {
 
 impl fmt::Display for SampleRateHz {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.to_inner(), Self::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.value(), Self::UNIT_OF_MEASURE)
     }
 }
 
@@ -147,10 +149,10 @@ pub struct PcmSignal {
 impl PcmSignal {
     #[must_use]
     pub fn bitrate(self, bits_per_sample: BitsPerSample) -> BitrateBps {
-        debug_assert!(self.validate().is_ok());
-        let bps = BitsPerSecond::from(self.channel_layout.channel_count().0)
-            * (self.sample_rate.0.round() as BitsPerSecond)
-            * BitsPerSecond::from(bits_per_sample);
+        debug_assert!(self.is_valid());
+        let bps = BitrateBpsValue::from(self.channel_layout.channel_count().0)
+            * self.sample_rate.0.round()
+            * BitrateBpsValue::from(bits_per_sample);
         BitrateBps(bps)
     }
 
@@ -183,7 +185,7 @@ impl Validate for PcmSignal {
 // Latency
 ///////////////////////////////////////////////////////////////////////
 
-pub type LatencyInMilliseconds = f64;
+pub type LatencyMsValue = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
@@ -191,21 +193,36 @@ pub type LatencyInMilliseconds = f64;
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct LatencyMs(pub LatencyInMilliseconds);
+pub struct LatencyMs(LatencyMsValue);
 
 impl LatencyMs {
     pub const UNIT_OF_MEASURE: &str = "ms";
 
-    const UNITS_PER_SECOND: LatencyInMilliseconds = 1_000.0;
+    const UNITS_PER_SECOND: LatencyMsValue = 1_000.0;
 
-    pub const MIN: Self = Self(0.0);
-    pub const MAX: Self = Self(192_000.0);
+    pub const ZERO: Self = Self(0.0);
+    pub const MIN: Self = Self::ZERO;
+    pub const MAX: Self = Self(f64::MAX);
+
+    #[must_use]
+    pub const fn new(value: LatencyMsValue) -> Self {
+        Self(value)
+    }
+
+    #[must_use]
+    pub const fn value(self) -> LatencyMsValue {
+        let Self(value) = self;
+        value
+    }
 
     #[must_use]
     pub fn from_samples(sample_length: SampleLength, sample_rate: SampleRateHz) -> LatencyMs {
-        debug_assert!(sample_length.validate().is_ok());
-        debug_assert!(sample_rate.validate().is_ok());
-        Self((sample_length.0 * Self::UNITS_PER_SECOND) / sample_rate.0)
+        debug_assert!(sample_length.is_valid());
+        debug_assert!(sample_rate.is_valid());
+        Self(
+            (sample_length.value() * Self::UNITS_PER_SECOND)
+                / sample_rate.value() as LatencyMsValue,
+        )
     }
 
     #[must_use]
@@ -242,7 +259,7 @@ impl fmt::Display for LatencyMs {
 // Loudness
 ///////////////////////////////////////////////////////////////////////
 
-pub type LufsValue = f64;
+pub type LoudnessLufsValue = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
@@ -250,7 +267,7 @@ pub type LufsValue = f64;
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct LoudnessLufs(pub LufsValue);
+pub struct LoudnessLufs(LoudnessLufsValue);
 
 // Loudness is measured according to ITU-R BS.1770 in "Loudness Units
 // relative to Full Scale" (LUFS) with 1 LU = 1 dB.
@@ -259,6 +276,17 @@ pub struct LoudnessLufs(pub LufsValue);
 // results compared to ReplayGain v1 (RG1).
 impl LoudnessLufs {
     pub const UNIT_OF_MEASURE: &str = "LUFS";
+
+    #[must_use]
+    pub const fn new(value: LoudnessLufsValue) -> Self {
+        Self(value)
+    }
+
+    #[must_use]
+    pub const fn value(self) -> LoudnessLufsValue {
+        let Self(value) = self;
+        value
+    }
 
     #[must_use]
     pub fn is_valid(&self) -> bool {

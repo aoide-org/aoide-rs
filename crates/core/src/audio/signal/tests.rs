@@ -5,21 +5,19 @@ use super::*;
 
 #[test]
 fn sample_rate_default() {
-    assert!(SampleRateHz::default().validate().is_err());
+    assert_eq!(SampleRateHz::ZERO, SampleRateHz::default());
 }
 
 #[test]
-fn validate_sample_rate() {
-    assert!(SampleRateHz::MIN.validate().is_ok());
-    assert!(SampleRateHz::MAX.validate().is_ok());
-    assert!(SampleRateHz::new(44_100.0).validate().is_ok());
-    assert!(SampleRateHz::new(48_000.0).validate().is_ok());
-    assert!(SampleRateHz::new(96_000.0).validate().is_ok());
-    assert!(SampleRateHz::new(192_000.0).validate().is_ok());
-    assert!(SampleRateHz::new(0.0).validate().is_err());
-    assert!(SampleRateHz::new(SampleRateHz::MAX.to_inner() + 0.1)
-        .validate()
-        .is_err());
+fn sample_rate_is_valid() {
+    assert!(!SampleRateHz::ZERO.is_valid());
+    assert!(SampleRateHz::MIN.is_valid());
+    assert!(SampleRateHz::MAX.is_valid());
+    assert!(!SampleRateHz::default().is_valid());
+    assert!(SampleRateHz::new(44_100.0).is_valid());
+    assert!(SampleRateHz::new(48_000.0).is_valid());
+    assert!(SampleRateHz::new(96_000.0).is_valid());
+    assert!(SampleRateHz::new(192_000.0).is_valid());
 }
 
 #[test]

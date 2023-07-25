@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{
+    audio::{BitrateBpsValue, DurationMsValue, LoudnessLufsValue, SampleRateHzValue},
     music::{
         beat::{BeatUnit, BeatsPerMeasure, TimeSignature},
         key::KeySignature,
-        tempo::{Bpm, TempoBpm},
+        tempo::{TempoBpm, TempoBpmValue},
     },
     prelude::*,
     track::{album::Album, index::*, metric::*},
@@ -49,7 +50,7 @@ pub struct QueryableRecord {
     pub disc_total: Option<i16>,
     pub movement_number: Option<i16>,
     pub movement_total: Option<i16>,
-    pub music_tempo_bpm: Option<Bpm>,
+    pub music_tempo_bpm: Option<TempoBpmValue>,
     pub music_key_code: Option<i16>,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
@@ -60,12 +61,12 @@ pub struct QueryableRecord {
     pub collected_ms: TimestampMillis,
     pub content_link_path: String,
     pub content_type: String,
-    pub audio_duration_ms: Option<f64>,
+    pub audio_duration_ms: Option<DurationMsValue>,
     pub audio_channel_count: Option<i16>,
     pub audio_channel_mask: Option<i32>,
-    pub audio_samplerate_hz: Option<f64>,
-    pub audio_bitrate_bps: Option<f64>,
-    pub audio_loudness_lufs: Option<f64>,
+    pub audio_samplerate_hz: Option<SampleRateHzValue>,
+    pub audio_bitrate_bps: Option<BitrateBpsValue>,
+    pub audio_loudness_lufs: Option<LoudnessLufsValue>,
 }
 
 impl From<QueryableRecord> for (MediaSourceId, RecordHeader, TrackHeader) {

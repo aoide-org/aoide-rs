@@ -7,19 +7,19 @@ use super::*;
 fn import_replay_gain_valid() {
     let mut importer = Importer::new();
     assert_eq!(
-        Some(LoudnessLufs(-8.49428)),
+        Some(LoudnessLufs::new(-8.49428)),
         importer.import_loudness_from_replay_gain("-9.50572 dB")
     );
     assert_eq!(
-        Some(LoudnessLufs(-8.49428)),
+        Some(LoudnessLufs::new(-8.49428)),
         importer.import_loudness_from_replay_gain(" -9.50572db ")
     );
     assert_eq!(
-        Some(LoudnessLufs(-18.178_062)),
+        Some(LoudnessLufs::new(-18.178_062)),
         importer.import_loudness_from_replay_gain("0.178062 DB")
     );
     assert_eq!(
-        Some(LoudnessLufs(-18.178_062)),
+        Some(LoudnessLufs::new(-18.178_062)),
         importer.import_loudness_from_replay_gain("  +0.178062   dB ")
     );
     assert!(importer.finish().into_messages().is_empty());

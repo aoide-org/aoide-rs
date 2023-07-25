@@ -364,7 +364,7 @@ fn build_numeric_field_filter_expression(
     match filter.field {
         AudioDurationMs => {
             let expr = view_track_search::audio_duration_ms;
-            let expr_not_null = ifnull(expr, DurationMs::empty().to_inner());
+            let expr_not_null = ifnull(expr, DurationMs::empty().value());
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value)),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value)),
@@ -388,7 +388,7 @@ fn build_numeric_field_filter_expression(
         }
         AudioSampleRateHz => {
             let expr = view_track_search::audio_samplerate_hz;
-            let expr_not_null = ifnull(expr, SampleRateHz::default().to_inner());
+            let expr_not_null = ifnull(expr, SampleRateHz::default().value());
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value)),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value)),
@@ -412,7 +412,7 @@ fn build_numeric_field_filter_expression(
         }
         AudioBitrateBps => {
             let expr = view_track_search::audio_bitrate_bps;
-            let expr_not_null = ifnull(expr, BitrateBps::default().to_inner());
+            let expr_not_null = ifnull(expr, BitrateBps::default().value());
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value)),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value)),
@@ -486,7 +486,7 @@ fn build_numeric_field_filter_expression(
         }
         AudioLoudnessLufs => {
             let expr = view_track_search::audio_loudness_lufs;
-            let expr_not_null = ifnull(expr, LoudnessLufs::default().0);
+            let expr_not_null = ifnull(expr, LoudnessLufs::default().value());
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value)),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value)),

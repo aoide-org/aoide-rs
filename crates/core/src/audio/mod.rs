@@ -18,7 +18,7 @@ pub use self::signal::*;
 // Position
 ///////////////////////////////////////////////////////////////////////
 
-pub type PositionInMilliseconds = f64;
+pub type PositionMsValue = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
@@ -26,10 +26,26 @@ pub type PositionInMilliseconds = f64;
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct PositionMs(pub PositionInMilliseconds);
+pub struct PositionMs(PositionMsValue);
 
 impl PositionMs {
     pub const UNIT_OF_MEASURE: &str = "ms";
+
+    #[must_use]
+    pub const fn new(value: DurationMsValue) -> Self {
+        Self(value)
+    }
+
+    #[must_use]
+    pub const fn value(self) -> DurationMsValue {
+        let Self(value) = self;
+        value
+    }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -57,7 +73,7 @@ impl fmt::Display for PositionMs {
 // Duration
 ///////////////////////////////////////////////////////////////////////
 
-pub type DurationInMilliseconds = f64;
+pub type DurationMsValue = f64;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 #[repr(transparent)]
@@ -65,20 +81,20 @@ pub type DurationInMilliseconds = f64;
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct DurationMs(DurationInMilliseconds);
+pub struct DurationMs(DurationMsValue);
 
 impl DurationMs {
     pub const UNIT_OF_MEASURE: &str = "ms";
 
     #[must_use]
-    pub const fn new(inner: DurationInMilliseconds) -> Self {
-        Self(inner)
+    pub const fn new(value: DurationMsValue) -> Self {
+        Self(value)
     }
 
     #[must_use]
-    pub const fn to_inner(self) -> DurationInMilliseconds {
-        let Self(inner) = self;
-        inner
+    pub const fn value(self) -> DurationMsValue {
+        let Self(value) = self;
+        value
     }
 
     #[must_use]
@@ -89,6 +105,11 @@ impl DurationMs {
     #[must_use]
     pub fn is_empty(self) -> bool {
         self <= Self::empty()
+    }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
     }
 }
 
@@ -112,12 +133,9 @@ impl Validate for DurationMs {
 
 impl From<Duration> for DurationMs {
     fn from(duration: Duration) -> Self {
-        let secs = duration.as_secs() as DurationInMilliseconds;
-        let subsec_nanos = DurationInMilliseconds::from(duration.subsec_nanos());
-        Self(
-            secs * DurationInMilliseconds::from(1_000)
-                + subsec_nanos / DurationInMilliseconds::from(1_000_000),
-        )
+        let secs = duration.as_secs() as DurationMsValue;
+        let subsec_nanos = DurationMsValue::from(duration.subsec_nanos());
+        Self(secs * DurationMsValue::from(1_000) + subsec_nanos / DurationMsValue::from(1_000_000))
     }
 }
 
@@ -142,7 +160,7 @@ impl TryFrom<DurationMs> for Duration {
 
 impl fmt::Display for DurationMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.to_inner(), Self::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.value(), Self::UNIT_OF_MEASURE)
     }
 }
 

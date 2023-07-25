@@ -208,7 +208,7 @@ impl TrackFields {
         let ContentMetadata::Audio(audio_metadata) =
             &entity.body.track.media_source.content.metadata;
         if let Some(duration) = audio_metadata.duration {
-            doc.add_f64(self.duration_ms, duration.to_inner());
+            doc.add_f64(self.duration_ms, duration.value());
         }
         if let Some(track_title) = entity.body.track.track_title() {
             doc.add_text(self.track_title, track_title);
@@ -241,7 +241,7 @@ impl TrackFields {
             );
         }
         if let Some(tempo_bpm) = entity.body.track.metrics.tempo_bpm {
-            doc.add_f64(self.tempo_bpm, tempo_bpm.to_inner());
+            doc.add_f64(self.tempo_bpm, tempo_bpm.value());
         }
         if let Some(key_signature) = entity.body.track.metrics.key_signature {
             doc.add_u64(self.key_code, key_signature.code() as _);

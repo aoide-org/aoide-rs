@@ -4,7 +4,7 @@
 use aoide_core::{
     music::{
         key::KeySignature,
-        tempo::{Bpm, TempoBpm},
+        tempo::{TempoBpm, TempoBpmValue},
     },
     track::{album::Album, index::*, metric::*},
     util::{clock::*, color::*},
@@ -43,7 +43,7 @@ pub struct InsertableRecord<'a> {
     pub disc_total: Option<i16>,
     pub movement_number: Option<i16>,
     pub movement_total: Option<i16>,
-    pub music_tempo_bpm: Option<Bpm>,
+    pub music_tempo_bpm: Option<TempoBpmValue>,
     pub music_key_code: Option<i16>,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
@@ -137,7 +137,7 @@ impl<'a> InsertableRecord<'a> {
             disc_total: disc_index.total.map(|idx| idx as i16),
             movement_number: movement_index.number.map(|idx| idx as i16),
             movement_total: movement_index.total.map(|idx| idx as i16),
-            music_tempo_bpm: tempo_bpm.map(TempoBpm::to_inner),
+            music_tempo_bpm: tempo_bpm.map(TempoBpm::value),
             music_key_code: key_signature
                 .map(KeySignature::code)
                 .map(encode_music_key_code),
@@ -187,7 +187,7 @@ pub struct UpdatableRecord<'a> {
     pub disc_total: Option<i16>,
     pub movement_number: Option<i16>,
     pub movement_total: Option<i16>,
-    pub music_tempo_bpm: Option<Bpm>,
+    pub music_tempo_bpm: Option<TempoBpmValue>,
     pub music_key_code: Option<i16>,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
@@ -285,7 +285,7 @@ impl<'a> UpdatableRecord<'a> {
             disc_total: disc_index.total.map(|total| total as i16),
             movement_number: movement_index.number.map(|number| number as i16),
             movement_total: movement_index.total.map(|total| total as i16),
-            music_tempo_bpm: tempo_bpm.map(TempoBpm::to_inner),
+            music_tempo_bpm: tempo_bpm.map(TempoBpm::value),
             music_key_code: key_signature
                 .map(KeySignature::code)
                 .map(encode_music_key_code),

@@ -292,13 +292,13 @@ impl EntityRevision {
     }
 
     pub fn prev(self) -> Option<Self> {
-        debug_assert!(self.validate().is_ok());
+        debug_assert!(self.is_valid());
         let Self(next) = self;
         next.checked_sub(1).map(Self::new)
     }
 
     pub fn next(self) -> Option<Self> {
-        debug_assert!(self.validate().is_ok());
+        debug_assert!(self.is_valid());
         let Self(prev) = self;
         prev.checked_add(1).map(Self::new)
     }

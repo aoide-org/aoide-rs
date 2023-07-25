@@ -50,14 +50,14 @@ impl Score {
     // Convert to percentage value with a single decimal digit
     #[must_use]
     pub fn to_percentage(self) -> ScoreValue {
-        debug_assert!(self.validate().is_ok());
+        debug_assert!(self.is_valid());
         (self.value() * ScoreValue::from(1_000)).round() / ScoreValue::from(10)
     }
 
     // Convert to an integer permille value
     #[must_use]
     pub fn to_permille(self) -> u16 {
-        debug_assert!(self.validate().is_ok());
+        debug_assert!(self.is_valid());
         (self.value() * ScoreValue::from(1_000)).round() as u16
     }
 }
@@ -100,7 +100,7 @@ impl From<ScoreValue> for Score {
 
 impl fmt::Display for Score {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        debug_assert!(self.validate().is_ok());
+        debug_assert!(self.is_valid());
         write!(f, "{:.1}%", self.to_percentage())
     }
 }

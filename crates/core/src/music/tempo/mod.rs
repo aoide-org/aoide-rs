@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{f64, fmt};
+use std::fmt;
 
 use crate::prelude::*;
 
-pub type Bpm = f64;
+pub type TempoBpmValue = f64;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 #[repr(transparent)]
@@ -13,22 +13,22 @@ pub type Bpm = f64;
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct TempoBpm(Bpm);
+pub struct TempoBpm(TempoBpmValue);
 
 impl TempoBpm {
     pub const UNIT_OF_MEASURE: &str = "bpm";
 
-    pub const MIN: Self = Self(f64::MIN_POSITIVE);
-
-    pub const MAX: Self = Self(f64::MAX);
+    pub const ZERO: Self = Self(0.0);
+    pub const MIN: Self = Self(TempoBpmValue::MIN_POSITIVE);
+    pub const MAX: Self = Self(TempoBpmValue::MAX);
 
     #[must_use]
-    pub const fn new(inner: Bpm) -> Self {
-        Self(inner)
+    pub const fn new(value: TempoBpmValue) -> Self {
+        Self(value)
     }
 
     #[must_use]
-    pub const fn to_inner(self) -> Bpm {
+    pub const fn value(self) -> TempoBpmValue {
         let Self(inner) = self;
         inner
     }
