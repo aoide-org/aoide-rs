@@ -15,7 +15,7 @@ use aoide_core::{
     },
     music::tempo::TempoBpm,
     prelude::*,
-    tag::{FacetId, FacetKey, FacetedTags, Label, PlainTag, Tags, TagsMap},
+    tag::{FacetId, FacetKey, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
         actor::{Kind as ActorKind, Role as ActorRole},
         album::Kind as AlbumKind,
@@ -1032,7 +1032,7 @@ fn export_faceted_tags(
     if let Some(config) = config {
         let joined_labels = config.join_labels(
             tags.into_iter()
-                .filter_map(|PlainTag { label, score: _ }| label.map(Label::into_inner)),
+                .filter_map(|PlainTag { label, score: _ }| label.map(Into::into)),
         );
         if let Some(joined_labels) = joined_labels {
             let inserted = tag.insert_text(item_key, joined_labels.into_owned());
@@ -1047,7 +1047,7 @@ fn export_faceted_tags(
             .filter_map(|PlainTag { label, score: _ }| label)
         {
             let item_key = item_key.clone();
-            let item_val = ItemValue::Text(label.into_inner().into_owned());
+            let item_val = ItemValue::Text(Cow::from(label).into_owned());
             let pushed = tag.push(TagItem::new(item_key, item_val));
             if !pushed {
                 // Unsupported key

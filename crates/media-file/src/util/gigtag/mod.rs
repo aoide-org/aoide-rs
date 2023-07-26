@@ -113,7 +113,7 @@ pub fn export_and_encode_tags_into(
 ) -> std::fmt::Result {
     if encoded_tags.len() == 1 {
         let PlainTag { label, score } = encoded_tags.drain(..).next().expect("exactly one item");
-        let mut encoded = label.unwrap_or_default().into_inner();
+        let mut encoded = label.unwrap_or_default().into();
         crate::util::gigtag::update_tags_in_encoded(tags, &mut encoded)?;
         let tag = PlainTag {
             label: aoide_core::tag::Label::clamp_from(encoded),
@@ -160,7 +160,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag<'_>)> {
     }
     let facet_key = if tag.has_facet() {
         let facet_id_clamped = FacetId::clamp_from(tag.facet().as_ref());
-        let facet_id_unclamped = Some(FacetId::new(Cow::Borrowed(tag.facet())));
+        let facet_id_unclamped = Some(FacetId::new_unchecked(Cow::Borrowed(tag.facet())));
         if facet_id_clamped != facet_id_unclamped {
             // Skip non-aoide tag
             return None;

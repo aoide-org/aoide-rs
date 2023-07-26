@@ -84,7 +84,7 @@ impl<'a> FacetId<'a> {
     }
 
     pub fn clamp_from(from: impl Into<Cow<'a, str>>) -> Option<Self> {
-        let clamped = Self::clamp_inner(from.into()).map(Self::new);
+        let clamped = Self::clamp_inner(from.into()).map(Self::new_unchecked);
         debug_assert!(clamped.is_valid());
         clamped
     }
@@ -92,20 +92,14 @@ impl<'a> FacetId<'a> {
     #[must_use]
     pub fn from_unchecked(from: impl Into<Cow<'a, str>>) -> Self {
         let inner = from.into();
-        let unchecked = Self::new(inner);
+        let unchecked = Self::new_unchecked(inner);
         debug_assert!(unchecked.is_valid());
         unchecked
     }
 
     #[must_use]
-    pub const fn new(inner: Cow<'a, str>) -> Self {
+    pub const fn new_unchecked(inner: Cow<'a, str>) -> Self {
         Self(inner)
-    }
-
-    #[must_use]
-    pub fn into_inner(self) -> Cow<'a, str> {
-        let Self(inner) = self;
-        inner
     }
 
     #[must_use]
@@ -158,6 +152,13 @@ impl fmt::Display for FacetId<'_> {
 impl CanonicalOrd for FacetId<'_> {
     fn canonical_cmp(&self, other: &Self) -> Ordering {
         self.cmp(other)
+    }
+}
+
+impl<'a> From<FacetId<'a>> for Cow<'a, str> {
+    fn from(from: FacetId<'a>) -> Self {
+        let FacetId(inner) = from;
+        inner
     }
 }
 

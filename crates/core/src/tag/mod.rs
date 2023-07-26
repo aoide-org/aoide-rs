@@ -246,7 +246,7 @@ impl<'a> Tags<'a> {
                     continue;
                 }
                 let tombstone = FacetedTags {
-                    facet_id: FacetId::new("".into()),
+                    facet_id: FacetId::new_unchecked("".into()),
                     tags: Default::default(),
                 };
                 let faceted_tags = std::mem::replace(faceted_tags, tombstone);

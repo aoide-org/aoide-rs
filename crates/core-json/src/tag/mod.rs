@@ -71,7 +71,7 @@ impl<'de> Visitor<'de> for FacetKeyVisitor {
             // i.e. by the string representation of the default facet identifier.
             _core::FacetKey::default()
         } else {
-            let facet_id = _core::FacetId::new(s.into());
+            let facet_id = _core::FacetId::new_unchecked(s.into());
             if !facet_id.is_valid() {
                 return Err(serde::de::Error::invalid_value(
                     serde::de::Unexpected::Str(s),

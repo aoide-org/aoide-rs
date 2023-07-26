@@ -31,10 +31,14 @@ fn clamp_from() {
 #[test]
 fn validate() {
     let reverse_alphabet: String = FACET_ID_ALPHABET.chars().rev().collect();
-    assert!(FacetId::new(reverse_alphabet.into()).validate().is_ok());
-    assert!(FacetId::new(FACET_ID_ALPHABET.into()).validate().is_ok());
-    assert!(FacetId::new("Facet".into()).validate().is_err());
-    assert!(FacetId::new("a facet".into()).validate().is_err());
+    assert!(FacetId::new_unchecked(reverse_alphabet.into())
+        .validate()
+        .is_ok());
+    assert!(FacetId::new_unchecked(FACET_ID_ALPHABET.into())
+        .validate()
+        .is_ok());
+    assert!(FacetId::new_unchecked("Facet".into()).validate().is_err());
+    assert!(FacetId::new_unchecked("a facet".into()).validate().is_err());
 }
 
 #[test]
@@ -44,7 +48,7 @@ fn default_is_invalid() {
 
 #[test]
 fn empty_is_invalid() {
-    assert!(FacetId::new("".into()).validate().is_err());
+    assert!(FacetId::new_unchecked("".into()).validate().is_err());
 }
 
 #[test]

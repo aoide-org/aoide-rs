@@ -13,8 +13,8 @@
 // modules for keeping the size of the source files handy. Often
 // types have the same name as their parent module.
 #![allow(clippy::module_name_repetitions)]
-// Repeating the type name in `..Default::default()` expressions
-// is not needed since the context is obvious.
+// Repeating the type name in `Default::default()` expressions is not needed
+// as long as the context is obvious.
 #![allow(clippy::default_trait_access)]
 // Using wildcard imports consciously is acceptable.
 #![allow(clippy::wildcard_imports)]

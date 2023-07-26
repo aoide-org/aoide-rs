@@ -59,12 +59,6 @@ impl<'a> Label<'a> {
     }
 
     #[must_use]
-    pub fn into_inner(self) -> Cow<'a, str> {
-        let Self(inner) = self;
-        inner
-    }
-
-    #[must_use]
     pub fn as_str(&self) -> &str {
         let Self(inner) = self;
         inner
@@ -114,6 +108,13 @@ impl fmt::Display for Label<'_> {
 impl CanonicalOrd for Label<'_> {
     fn canonical_cmp(&self, other: &Self) -> Ordering {
         self.cmp(other)
+    }
+}
+
+impl<'a> From<Label<'a>> for Cow<'a, str> {
+    fn from(from: Label<'a>) -> Self {
+        let Label(inner) = from;
+        inner
     }
 }
 
