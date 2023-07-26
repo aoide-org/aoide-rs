@@ -16,7 +16,6 @@ env:
 
 jobs:
   build-and-upload-artifacts:
-    name: Building and uploading artifacts
     runs-on: ${{ matrix.runner_os }}
     strategy:
       matrix:
@@ -57,18 +56,20 @@ jobs:
         run: |
           echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Install native Rust toolchain
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
+      # Checkout the repository before the remaining steps that depend on it.
+      # All preceding steps are independent of the repository contents.
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
         with:
-          # Distinguished by the action name to avoid sharing across different actions!
+          # Distinguished by the action name to avoid sharing between different actions.
           shared-key: "pre-release"
 
       - name: Build artifact
@@ -95,7 +96,6 @@ jobs:
           path: ${{ matrix.build_package }}-${{ matrix.target }}${{ matrix.artifact_suffix }}
 
   create-release-draft:
-    name: Creating release draft
     needs: build-and-upload-artifacts
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest

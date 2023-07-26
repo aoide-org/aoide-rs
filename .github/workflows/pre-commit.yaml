@@ -20,7 +20,6 @@ env:
 
 jobs:
   pre-commit:
-    name: Detecting code style issues
     runs-on: ubuntu-latest
     steps:
       - name: Setup Python
@@ -33,13 +32,15 @@ jobs:
         with:
           components: clippy, rustfmt
 
+      # Checkout the repository before the remaining steps that depend on it.
+      # All preceding steps are independent of the repository contents.
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
         with:
-          # Distinguished by the action name to avoid sharing across different actions!
+          # Distinguished by the action name to avoid sharing between different actions.
           shared-key: "pre-commit"
 
       - name: Detect code style issues (push)

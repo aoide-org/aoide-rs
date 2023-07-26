@@ -3,7 +3,7 @@
 
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow
 
-name: continuous-integration
+name: build-and-test
 
 permissions:
   contents: read
@@ -22,23 +22,20 @@ env:
   RUST_BACKTRACE: short
 
 jobs:
-  continuous-integration:
-    name: Building workspace projects and running tests
+  build-and-test:
     runs-on: ${{ matrix.runner_os }}
     strategy:
       matrix:
-        target:
-          - x86_64-unknown-linux-musl
         include:
-          - target: x86_64-unknown-linux-musl
-            runner_os: ubuntu-latest
-          - target: x86_64-apple-darwin
+          - target: aarch64-apple-darwin
             runner_os: macos-latest
           - target: x86_64-pc-windows-msvc
             runner_os: windows-latest
+          - target: x86_64-unknown-linux-musl
+            runner_os: ubuntu-latest
 
     steps:
-      - name: Install dependencies for `musl libc` on Linux
+      - name: Install dependencies for musl libc
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           sudo apt -y install musl-tools
@@ -60,14 +57,16 @@ jobs:
         with:
           targets: ${{ matrix.target }}, wasm32-unknown-unknown
 
+      # Checkout the repository before the remaining steps that depend on it.
+      # All preceding steps are independent of the repository contents.
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
         with:
-          # Distinguished by the action name to avoid sharing across different actions!
-          shared-key: "continuous-integration"
+          # Distinguished by the action name to avoid sharing between different actions.
+          shared-key: "build-and-test"
 
       - name: Check aoide-core
         run: |
@@ -141,14 +140,10 @@ jobs:
         run: |
           cargo check --locked --all-targets --all-features --manifest-path webcli/Cargo.toml
 
-      - name: Build tests with default features
+      - name: Build tests with all features enabled
         run: |
-          cargo test --locked --workspace --all-targets --no-run
+          cargo test --locked --workspace --all-targets --all-features --no-run
 
-      - name: Run tests with default features
+      - name: Run tests with all features enabled
         run: |
-          cargo test --locked --workspace --all-targets -- --nocapture --quiet
-
-      - name: Build workspace with profile `production` and default features
-        run: |
-          cargo build --locked --workspace --all-targets --profile production
+          cargo test --locked --workspace --all-targets --all-features -- --nocapture --quiet

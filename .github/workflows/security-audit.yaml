@@ -28,12 +28,14 @@ jobs:
         run: |
           cargo install cargo-audit
 
+      # Checkout the repository before the remaining steps that depend on it.
+      # All preceding steps are independent of the repository contents.
       - uses: actions/checkout@v3
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
         with:
-          # Distinguished by the action name to avoid sharing across different actions!
+          # Distinguished by the action name to avoid sharing between different actions.
           shared-key: "security-audit"
 
       - name: Run security audit
