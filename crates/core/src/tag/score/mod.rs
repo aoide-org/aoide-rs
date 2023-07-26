@@ -33,11 +33,11 @@ impl Score {
     }
 
     pub fn clamp_from(value: impl Into<ScoreValue>) -> Self {
-        Self::new(Self::clamp_value(value))
+        Self::new_unchecked(Self::clamp_value(value))
     }
 
     #[must_use]
-    pub const fn new(value: ScoreValue) -> Self {
+    pub const fn new_unchecked(value: ScoreValue) -> Self {
         Self(value)
     }
 

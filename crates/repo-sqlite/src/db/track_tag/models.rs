@@ -26,7 +26,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
         debug_assert!(facet_id.as_ref().map_or(true, FacetId::is_valid));
         let label = label.map(Label::from_unchecked);
         debug_assert!(label.as_ref().map_or(true, Label::is_valid));
-        let score = Score::new(score);
+        let score = Score::new_unchecked(score);
         debug_assert!(score.is_valid());
         let record = Record {
             track_id: track_id.into(),

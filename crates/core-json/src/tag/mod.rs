@@ -212,7 +212,7 @@ impl<'de> Visitor<'de> for ScoreVisitor {
     where
         E: serde::de::Error,
     {
-        let score = _core::Score::new(value);
+        let score = _core::Score::new_unchecked(value);
         if !score.is_valid() {
             return Err(serde::de::Error::invalid_value(
                 serde::de::Unexpected::Float(value),
@@ -259,12 +259,12 @@ impl From<PlainTag> for _core::PlainTag<'static> {
                 ..Default::default()
             },
             IntScoreFallback(iscore) => _core::PlainTag {
-                score: _core::Score::new(iscore as f64),
+                score: _core::Score::new_unchecked(iscore as f64),
                 ..Default::default()
             },
             LabelIntScoreFallback(label, iscore) => _core::PlainTag {
                 label: Some(label.into()),
-                score: _core::Score::new(iscore as f64),
+                score: _core::Score::new_unchecked(iscore as f64),
             },
             LabelScore(label, score) => _core::PlainTag {
                 label: Some(label.into()),

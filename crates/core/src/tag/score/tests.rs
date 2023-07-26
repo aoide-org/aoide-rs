@@ -7,9 +7,15 @@ use super::*;
 fn validate() {
     assert!(Score::MIN.validate().is_ok());
     assert!(Score::MAX.validate().is_ok());
-    assert!(Score::new(Score::MIN.0 + Score::MAX.0).validate().is_ok());
-    assert!(Score::new(Score::MIN.0 - Score::MAX.0).validate().is_err());
-    assert!(Score::new(Score::MAX.0 + Score::MAX.0).validate().is_err());
+    assert!(Score::new_unchecked(Score::MIN.0 + Score::MAX.0)
+        .validate()
+        .is_ok());
+    assert!(Score::new_unchecked(Score::MIN.0 - Score::MAX.0)
+        .validate()
+        .is_err());
+    assert!(Score::new_unchecked(Score::MAX.0 + Score::MAX.0)
+        .validate()
+        .is_err());
 }
 
 #[test]

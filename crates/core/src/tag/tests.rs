@@ -24,7 +24,7 @@ fn canonical_unique_labels_and_score() {
         plain: vec![
             PlainTag {
                 label: Some(Label::from_unchecked("label1")),
-                score: Score::new(0.5),
+                score: Score::new_unchecked(0.5),
             },
             PlainTag {
                 label: Some(Label::from_unchecked("label2")),
@@ -43,7 +43,7 @@ fn duplicate_labels_same_score() {
         plain: vec![
             PlainTag {
                 label: Some(Label::from_unchecked("label1")),
-                score: Score::new(0.5),
+                score: Score::new_unchecked(0.5),
             },
             PlainTag {
                 label: Some(Label::from_unchecked("label2")),
@@ -51,7 +51,7 @@ fn duplicate_labels_same_score() {
             },
             PlainTag {
                 label: Some(Label::from_unchecked("label1")),
-                score: Score::new(0.5),
+                score: Score::new_unchecked(0.5),
             },
         ],
         ..Default::default()
@@ -66,7 +66,7 @@ fn duplicate_labels_differing_score() {
         plain: vec![
             PlainTag {
                 label: Some(Label::from_unchecked("label1")),
-                score: Score::new(0.7),
+                score: Score::new_unchecked(0.7),
             },
             PlainTag {
                 label: Some(Label::from_unchecked("label2")),
@@ -74,7 +74,7 @@ fn duplicate_labels_differing_score() {
             },
             PlainTag {
                 label: Some(Label::from_unchecked("label1")),
-                score: Score::new(0.5),
+                score: Score::new_unchecked(0.5),
             },
         ],
         ..Default::default()
@@ -191,11 +191,11 @@ fn duplicate_facets_and_labels() {
                 tags: vec![
                     PlainTag {
                         label: Some(Label::from_unchecked("label2")),
-                        score: Score::new(0.5),
+                        score: Score::new_unchecked(0.5),
                     },
                     PlainTag {
                         label: Some(Label::from_unchecked("label2")),
-                        score: Score::new(1.0),
+                        score: Score::new_unchecked(1.0),
                     },
                 ],
             },
@@ -246,15 +246,15 @@ fn duplicate_facets_and_labels() {
                 tags: vec![
                     PlainTag {
                         label: Some(Label::from_unchecked("label2")),
-                        score: Score::new(0.5),
+                        score: Score::new_unchecked(0.5),
                     },
                     PlainTag {
                         label: Some(Label::from_unchecked("label2")),
-                        score: Score::new(0.75),
+                        score: Score::new_unchecked(0.75),
                     },
                     PlainTag {
                         label: Some(Label::from_unchecked("label2")),
-                        score: Score::new(0.25),
+                        score: Score::new_unchecked(0.25),
                     },
                 ],
             },
@@ -267,7 +267,7 @@ fn duplicate_facets_and_labels() {
         facet_id: FacetId::from_unchecked("facet2"),
         tags: vec![PlainTag {
             label: Some(Label::from_unchecked("label2")),
-            score: Score::new(0.75),
+            score: Score::new_unchecked(0.75),
         },],
     }));
 }

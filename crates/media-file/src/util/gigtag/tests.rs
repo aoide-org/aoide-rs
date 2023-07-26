@@ -76,7 +76,7 @@ fn plain_tag_with_label_and_score<'a>(
 fn try_import_tags() {
     let label_value = "DJ";
     let date_like_facet = facet_from_str("@20220703");
-    let score = aoide_core::tag::Score::new(0.75);
+    let score = aoide_core::tag::Score::new_unchecked(0.75);
 
     // Label
     let tag = Tag {
