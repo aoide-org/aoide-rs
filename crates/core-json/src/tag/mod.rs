@@ -195,7 +195,7 @@ impl Serialize for Score {
     where
         S: Serializer,
     {
-        serializer.serialize_f64(self.0.into())
+        serializer.serialize_f64(self.0.value())
     }
 }
 
@@ -208,14 +208,14 @@ impl<'de> Visitor<'de> for ScoreVisitor {
         formatter.write_str("Score")
     }
 
-    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+    fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        let score = _core::Score::from(v);
+        let score = _core::Score::new(value);
         if !score.is_valid() {
             return Err(serde::de::Error::invalid_value(
-                serde::de::Unexpected::Float(v),
+                serde::de::Unexpected::Float(value),
                 &self,
             ));
         }

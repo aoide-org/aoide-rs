@@ -33,12 +33,12 @@ impl Score {
     }
 
     pub fn clamp_from(value: impl Into<ScoreValue>) -> Self {
-        Self::clamp_value(value).into()
+        Self::new(Self::clamp_value(value))
     }
 
     #[must_use]
-    pub const fn new(inner: ScoreValue) -> Self {
-        Self(inner)
+    pub const fn new(value: ScoreValue) -> Self {
+        Self(value)
     }
 
     #[must_use]
@@ -83,18 +83,6 @@ impl Validate for Score {
                 Self::Invalidity::OutOfRange,
             )
             .into()
-    }
-}
-
-impl From<Score> for ScoreValue {
-    fn from(from: Score) -> Self {
-        from.value()
-    }
-}
-
-impl From<ScoreValue> for Score {
-    fn from(value: ScoreValue) -> Self {
-        Self::new(value)
     }
 }
 

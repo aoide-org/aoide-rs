@@ -47,7 +47,7 @@ fn deserialize_plain_tag_score_integer_zero() {
 fn deserialize_plain_tag_label_score() {
     let label = _core::Label::from_unchecked("label");
     let score = _core::Score::new(0.5);
-    let json = format!("[\"{label}\",{}]", f64::from(score));
+    let json = format!("[\"{label}\",{}]", score.value());
     let tag: PlainTag = serde_json::from_str(&json).unwrap();
     assert_eq!(PlainTag::LabelScore(label.into(), score.into()), tag);
     assert_eq!(json, serde_json::to_string(&tag).unwrap());

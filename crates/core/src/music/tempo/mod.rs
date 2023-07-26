@@ -29,8 +29,8 @@ impl TempoBpm {
 
     #[must_use]
     pub const fn value(self) -> TempoBpmValue {
-        let Self(inner) = self;
-        inner
+        let Self(value) = self;
+        value
     }
 
     #[must_use]

@@ -10,7 +10,7 @@ pub struct QueryableRecord {
     pub track_id: RowId,
     pub facet: Option<String>,
     pub label: Option<String>,
-    pub score: f64,
+    pub score: ScoreValue,
 }
 
 impl From<QueryableRecord> for (RecordId, Record) {
@@ -22,11 +22,17 @@ impl From<QueryableRecord> for (RecordId, Record) {
             label,
             score,
         } = from;
+        let facet_id = facet.map(FacetId::from_unchecked);
+        debug_assert!(facet_id.as_ref().map_or(true, FacetId::is_valid));
+        let label = label.map(Label::from_unchecked);
+        debug_assert!(label.as_ref().map_or(true, Label::is_valid));
+        let score = Score::new(score);
+        debug_assert!(score.is_valid());
         let record = Record {
             track_id: track_id.into(),
-            facet_id: facet.map(FacetId::from_unchecked),
-            label: label.map(Label::from_unchecked),
-            score: score.into(),
+            facet_id,
+            label,
+            score,
         };
         (id.into(), record)
     }
@@ -38,7 +44,7 @@ pub struct InsertableRecord<'a> {
     pub track_id: RowId,
     pub facet: Option<&'a str>,
     pub label: Option<&'a str>,
-    pub score: f64,
+    pub score: ScoreValue,
 }
 
 impl<'a> InsertableRecord<'a> {

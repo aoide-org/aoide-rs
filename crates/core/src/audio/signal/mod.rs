@@ -94,8 +94,8 @@ impl SampleRateHz {
     pub const MAX: Self = Self(SampleRateHzValue::MAX);
 
     #[must_use]
-    pub const fn new(inner: SampleRateHzValue) -> Self {
-        Self(inner)
+    pub const fn new(value: SampleRateHzValue) -> Self {
+        Self(value)
     }
 
     #[must_use]

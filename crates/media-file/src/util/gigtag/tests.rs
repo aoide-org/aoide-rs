@@ -64,10 +64,10 @@ fn plain_tag_with_label<'a>(label: impl Into<LabelOrValue<'a>>) -> PlainTag<'a> 
 
 fn plain_tag_with_label_and_score<'a>(
     label: impl Into<LabelOrValue<'a>>,
-    score: impl Into<aoide_core::tag::Score>,
+    score: aoide_core::tag::Score,
 ) -> PlainTag<'a> {
     PlainTag {
-        score: score.into(),
+        score,
         ..plain_tag_with_label(label)
     }
 }
@@ -76,7 +76,7 @@ fn plain_tag_with_label_and_score<'a>(
 fn try_import_tags() {
     let label_value = "DJ";
     let date_like_facet = facet_from_str("@20220703");
-    let score_value = 0.75;
+    let score = aoide_core::tag::Score::new(0.75);
 
     // Label
     let tag = Tag {
@@ -101,7 +101,7 @@ fn try_import_tags() {
 
     // Label + Facet + Score
     let tag = Tag {
-        props: vec![score_prop_from_value(score_value)],
+        props: vec![score_prop_from_value(score.value())],
         ..tag
     };
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
@@ -110,7 +110,7 @@ fn try_import_tags() {
         facet_key.into_inner()
     );
     assert_eq!(
-        plain_tag_with_label_and_score(tag.label().to_string(), score_value),
+        plain_tag_with_label_and_score(tag.label().to_string(), score),
         plain_tag
     );
 
@@ -126,7 +126,7 @@ fn try_import_tags() {
     );
     assert_eq!(
         PlainTag {
-            score: score_value.into(),
+            score,
             ..Default::default()
         },
         plain_tag
