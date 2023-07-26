@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::util::clock::{DateTime, TimestampMillis};
+use aoide_core::util::clock::{OffsetDateTimeMs, TimestampMillis};
 use aoide_core_api::media::tracker::DirTrackingStatus;
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -60,7 +60,7 @@ pub struct InsertableRecord<'a> {
 
 impl<'a> InsertableRecord<'a> {
     pub fn bind(
-        created_at: DateTime,
+        created_at: OffsetDateTimeMs,
         collection_id: CollectionId,
         content_path: &'a str,
         status: DirTrackingStatus,
@@ -89,7 +89,11 @@ pub struct UpdateDigest<'a> {
 }
 
 impl<'a> UpdateDigest<'a> {
-    pub fn bind(updated_at: DateTime, status: DirTrackingStatus, digest: &'a DigestBytes) -> Self {
+    pub fn bind(
+        updated_at: OffsetDateTimeMs,
+        status: DirTrackingStatus,
+        digest: &'a DigestBytes,
+    ) -> Self {
         let status = encode_dir_tracking_status(status);
         Self {
             row_updated_ms: updated_at.timestamp_millis(),

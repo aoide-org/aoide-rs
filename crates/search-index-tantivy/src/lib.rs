@@ -37,7 +37,7 @@ use aoide_core::{
         },
         PlayCounter,
     },
-    util::clock::{DateTime, DateYYYYMMDD},
+    util::clock::{OffsetDateTimeMs, YyyyMmDdDate},
     CollectionUid, EncodedEntityUid, EntityRevision, EntityUid, TrackEntity, TrackUid,
 };
 use tantivy::{
@@ -117,8 +117,8 @@ pub struct TrackFields {
     pub valence: Field,
 }
 
-fn add_date_field(doc: &mut Document, field: Field, date_time: DateTime) {
-    doc.add_date(field, tantivy::DateTime::from_utc(date_time.to_inner()));
+fn add_date_field(doc: &mut Document, field: Field, date_time: OffsetDateTimeMs) {
+    doc.add_date(field, tantivy::DateTime::from_utc(date_time.into()));
 }
 
 const TAG_LABEL_PREFIX: char = '#';
@@ -226,19 +226,16 @@ impl TrackFields {
         {
             doc.add_text(self.album_artist, album_artist);
         }
-        if let Some(recorded_at_yyyymmdd) = entity.body.track.recorded_at.map(DateYYYYMMDD::from) {
-            doc.add_i64(self.album_artist, recorded_at_yyyymmdd.to_inner().into());
+        if let Some(recorded_at_yyyymmdd) = entity.body.track.recorded_at.map(YyyyMmDdDate::from) {
+            doc.add_i64(self.album_artist, recorded_at_yyyymmdd.value().into());
         }
-        if let Some(released_at_yyyymmdd) = entity.body.track.released_at.map(DateYYYYMMDD::from) {
-            doc.add_i64(self.album_artist, released_at_yyyymmdd.to_inner().into());
+        if let Some(released_at_yyyymmdd) = entity.body.track.released_at.map(YyyyMmDdDate::from) {
+            doc.add_i64(self.album_artist, released_at_yyyymmdd.value().into());
         }
         if let Some(released_orig_at_yyyymmdd) =
-            entity.body.track.released_orig_at.map(DateYYYYMMDD::from)
+            entity.body.track.released_orig_at.map(YyyyMmDdDate::from)
         {
-            doc.add_i64(
-                self.album_artist,
-                released_orig_at_yyyymmdd.to_inner().into(),
-            );
+            doc.add_i64(self.album_artist, released_orig_at_yyyymmdd.value().into());
         }
         if let Some(tempo_bpm) = entity.body.track.metrics.tempo_bpm {
             doc.add_f64(self.tempo_bpm, tempo_bpm.value());

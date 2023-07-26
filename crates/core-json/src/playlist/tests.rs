@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::util::clock::OffsetDateTimeMs;
+
 use super::*;
 
 #[test]
@@ -14,8 +16,8 @@ fn serialize_item_default_separator() {
 #[test]
 fn deserialize_playlist() {
     let uid: EntityUid = "01AN4Z07BY79KA1307SR9X4MV3".parse().unwrap();
-    let added_at1: aoide_core::util::clock::DateTime = "2020-12-18T21:27:15Z".parse().unwrap();
-    let added_at2 = aoide_core::util::clock::DateTime::now_utc();
+    let added_at1 = "2020-12-18T21:27:15Z".parse::<OffsetDateTimeMs>().unwrap();
+    let added_at2 = OffsetDateTimeMs::now_utc();
     let playlist = PlaylistWithEntries {
         playlist: Playlist {
             title: "Title".to_string(),

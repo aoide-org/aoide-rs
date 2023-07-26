@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{media::content::ContentPath, util::clock::DateTime};
+use aoide_core::{media::content::ContentPath, util::clock::OffsetDateTimeMs};
 use aoide_core_api::media::tracker::{DirTrackingStatus, DirectoriesStatus};
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -21,7 +21,7 @@ use crate::{
 impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_update_directories_status(
         &mut self,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
         old_status: Option<DirTrackingStatus>,
@@ -87,7 +87,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
 
     fn media_tracker_update_directory_digest(
         &mut self,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         collection_id: CollectionId,
         content_path: &ContentPath<'_>,
         digest: &DigestBytes,
@@ -187,7 +187,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
 
     fn media_tracker_confirm_directory(
         &mut self,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         collection_id: CollectionId,
         directory_path: &ContentPath<'_>,
         digest: &DigestBytes,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{media::content::ContentPath, util::clock::DateTime};
+use aoide_core::{media::content::ContentPath, util::clock::OffsetDateTimeMs};
 use aoide_repo::{collection::EntityRepo as _, media::source::CollectionRepo as _};
 
 use super::*;
@@ -14,7 +14,7 @@ pub fn relocate(
 ) -> Result<usize> {
     let mut repo = RepoConnection::new(connection);
     let collection_id = repo.resolve_collection_id(collection_uid)?;
-    let updated_at = DateTime::now_utc();
+    let updated_at = OffsetDateTimeMs::now_utc();
     repo.relocate_media_sources_by_content_path_prefix(
         collection_id,
         updated_at,

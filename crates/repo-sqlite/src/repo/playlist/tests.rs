@@ -8,7 +8,7 @@ use aoide_core::{
         self,
         content::{AudioContentMetadata, ContentLink, ContentPathConfig},
     },
-    util::{clock::DateTime, url::BaseUrl},
+    util::{clock::OffsetDateTimeMs, url::BaseUrl},
     Collection, CollectionEntity, CollectionHeader, Playlist, PlaylistHeader, Track, TrackBody,
     TrackEntity, TrackHeader, TrackUid,
 };
@@ -48,7 +48,7 @@ impl Fixture {
         let collection_entity =
             CollectionEntity::new(CollectionHeader::initial_random(), collection);
         let collection_id = crate::Connection::new(db)
-            .insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
+            .insert_collection_entity(OffsetDateTimeMs::now_utc(), &collection_entity)?;
         Ok(Self { collection_id })
     }
 
@@ -59,7 +59,7 @@ impl Fixture {
     ) -> RepoResult<Vec<(MediaSourceId, TrackId, TrackUid)>> {
         let mut created = Vec::with_capacity(count);
         for i in 0..count {
-            let created_at = DateTime::now_local_or_utc();
+            let created_at = OffsetDateTimeMs::now_local_or_utc();
             let media_source = media::Source {
                 collected_at: created_at,
                 content: media::Content {
@@ -79,7 +79,11 @@ impl Fixture {
                 artwork: Default::default(),
             };
             let media_source_id = db
-                .insert_media_source(self.collection_id, DateTime::now_utc(), &media_source)?
+                .insert_media_source(
+                    self.collection_id,
+                    OffsetDateTimeMs::now_utc(),
+                    &media_source,
+                )?
                 .id;
             let track = Track::new_from_media_source(media_source);
             let entity_body = TrackBody {
@@ -113,14 +117,17 @@ impl Fixture {
             PlaylistScope::Global => None,
             PlaylistScope::Collection => Some(self.collection_id),
         };
-        let playlist_id =
-            db.insert_playlist_entity(collection_id, DateTime::now_utc(), &playlist_entity)?;
+        let playlist_id = db.insert_playlist_entity(
+            collection_id,
+            OffsetDateTimeMs::now_utc(),
+            &playlist_entity,
+        )?;
         let media_sources_and_tracks = self.create_media_sources_and_tracks(db, track_count)?;
         let playlist_entries = media_sources_and_tracks
             .into_iter()
             .enumerate()
             .map(|(i, (_media_source_id, _track_id, track_uid))| Entry {
-                added_at: DateTime::now_local_or_utc(),
+                added_at: OffsetDateTimeMs::now_local_or_utc(),
                 title: Some(format!("Entry {i}")),
                 notes: None,
                 item: Item::Track(TrackItem { uid: track_uid }),
@@ -135,7 +142,7 @@ impl Fixture {
 
 fn new_separator_entry() -> Entry {
     Entry {
-        added_at: DateTime::now_local_or_utc(),
+        added_at: OffsetDateTimeMs::now_local_or_utc(),
         title: None,
         notes: None,
         item: Item::Separator(Default::default()),
@@ -144,7 +151,7 @@ fn new_separator_entry() -> Entry {
 
 fn new_separator_entry_with_title(title: String) -> Entry {
     Entry {
-        added_at: DateTime::now_local_or_utc(),
+        added_at: OffsetDateTimeMs::now_local_or_utc(),
         title: Some(title),
         notes: None,
         item: Item::Separator(Default::default()),

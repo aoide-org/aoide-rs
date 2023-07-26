@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{media::content::ContentRevision, util::clock::DateTime};
+use aoide_core::{media::content::ContentRevision, util::clock::OffsetDateTimeMs};
 
 use super::*;
 
@@ -25,7 +25,7 @@ fn serde_digest() {
 
 #[test]
 fn deserialize_audio_source() {
-    let now = DateTime::now_local_or_utc();
+    let now = OffsetDateTimeMs::now_local_or_utc();
     let content_rev = ContentRevision::new(345);
     let json = serde_json::json!({
         "collectedAt": now.to_string(),

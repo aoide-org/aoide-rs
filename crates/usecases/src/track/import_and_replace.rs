@@ -11,7 +11,7 @@ use aoide_core::{
         resolver::{vfs::VfsResolver, ContentPathResolver as _},
         ContentPath,
     },
-    util::clock::DateTime,
+    util::clock::OffsetDateTimeMs,
 };
 use aoide_core_api::{media::SyncMode, track::replace::Summary};
 use aoide_media_file::io::import::{ImportTrack, ImportTrackConfig, Issues};
@@ -70,7 +70,7 @@ where
         });
     let import_track = entity_body.map_or_else(
         || ImportTrack::NewTrack {
-            collected_at: DateTime::now_local_or_utc(),
+            collected_at: OffsetDateTimeMs::now_local_or_utc(),
         },
         |entity_body| ImportTrack::UpdateTrack(entity_body.track),
     );

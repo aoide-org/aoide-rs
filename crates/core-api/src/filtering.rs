@@ -3,7 +3,7 @@
 
 use std::borrow::Cow;
 
-use aoide_core::util::clock::DateTime;
+use aoide_core::util::clock::OffsetDateTimeMs;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum FilterModifier {
@@ -136,4 +136,4 @@ pub type NumericValue = f64;
 
 pub type NumericPredicate = ScalarPredicate<NumericValue>;
 
-pub type DateTimePredicate = ScalarPredicate<DateTime>;
+pub type DateTimePredicate = ScalarPredicate<OffsetDateTimeMs>;

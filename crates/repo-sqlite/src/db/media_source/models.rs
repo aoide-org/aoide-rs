@@ -172,8 +172,8 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
 
         let header = RecordHeader {
             id: id.into(),
-            created_at: DateTime::new_timestamp_millis(row_created_ms),
-            updated_at: DateTime::new_timestamp_millis(row_updated_ms),
+            created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
+            updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
         };
 
         let collected_at = parse_datetime(&collected_at, collected_ms);
@@ -234,7 +234,7 @@ pub struct InsertableRecord<'a> {
 impl<'a> InsertableRecord<'a> {
     #[allow(clippy::too_many_lines)] // TODO
     pub fn bind(
-        created_at: DateTime,
+        created_at: OffsetDateTimeMs,
         collection_id: CollectionId,
         created_source: &'a Source,
     ) -> Self {
@@ -377,7 +377,7 @@ pub struct UpdatableRecord<'a> {
 
 #[allow(clippy::too_many_lines)] // TODO
 impl<'a> UpdatableRecord<'a> {
-    pub fn bind(updated_at: DateTime, updated_source: &'a Source) -> Self {
+    pub fn bind(updated_at: OffsetDateTimeMs, updated_source: &'a Source) -> Self {
         let Source {
             collected_at,
             content:

@@ -23,6 +23,8 @@
 // TODO: Add missing docs
 #![allow(clippy::missing_errors_doc)]
 
+use aoide_core::util::clock::OffsetDateTimeMs;
+
 #[macro_use]
 mod macros;
 
@@ -32,15 +34,13 @@ pub mod playlist;
 pub mod tag;
 pub mod track;
 
-use aoide_core::util::clock::DateTime;
-
 pub type RecordId = i64;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RecordHeader<Id> {
     pub id: Id,
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
+    pub created_at: OffsetDateTimeMs,
+    pub updated_at: OffsetDateTimeMs,
 }
 
 pub mod prelude {

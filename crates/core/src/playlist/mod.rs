@@ -84,7 +84,7 @@ impl Validate for Item {
 pub struct Entry {
     /// Time stamp added when this entry is part of the playlist,
     /// i.e. when it has been created and added.
-    pub added_at: DateTime,
+    pub added_at: OffsetDateTimeMs,
 
     /// Optional title for display.
     pub title: Option<String>,
@@ -221,7 +221,7 @@ pub struct PlaylistWithEntries {
 
 impl PlaylistWithEntries {
     #[must_use]
-    pub fn entries_added_at_minmax(&self) -> Option<(DateTime, DateTime)> {
+    pub fn entries_added_at_minmax(&self) -> Option<(OffsetDateTimeMs, OffsetDateTimeMs)> {
         let mut entries = self.entries.iter();
         if let Some(first_added) = entries.next().map(|e| e.added_at) {
             let mut added_min = first_added;
@@ -346,7 +346,7 @@ impl From<(Entity, Vec<Entry>)> for EntityWithEntries {
 pub struct EntriesSummary {
     pub total_count: usize,
 
-    pub added_at_minmax: Option<(DateTime, DateTime)>,
+    pub added_at_minmax: Option<(OffsetDateTimeMs, OffsetDateTimeMs)>,
 
     pub tracks: TracksSummary,
 }

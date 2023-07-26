@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{
-    collection::EntityHeader as CollectionEntityHeader, prelude::*, util::clock::DateTime,
+    collection::EntityHeader as CollectionEntityHeader, prelude::*, util::clock::OffsetDateTimeMs,
     Collection, CollectionEntity, CollectionUid,
 };
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
@@ -30,7 +30,7 @@ pub fn create_entity(new_collection: Collection) -> Result<CollectionEntity> {
 }
 
 pub fn store_created_entity(repo: &mut impl EntityRepo, entity: &CollectionEntity) -> Result<()> {
-    let created_at = DateTime::now_utc();
+    let created_at = OffsetDateTimeMs::now_utc();
     repo.insert_collection_entity(created_at, entity)?;
     Ok(())
 }
@@ -48,7 +48,7 @@ pub fn update_entity(
 }
 
 pub fn store_updated_entity(repo: &mut impl EntityRepo, entity: &CollectionEntity) -> Result<()> {
-    let updated_at = DateTime::now_utc();
+    let updated_at = OffsetDateTimeMs::now_utc();
     repo.update_collection_entity_revision(updated_at, entity)?;
     Ok(())
 }

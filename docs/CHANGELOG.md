@@ -236,8 +236,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Log executable path and version on startup
-- Support both simple release dates (YYYYMMDD) and full time stamps
-- Store complete release dates (YYYYMMDD) instead of only the year for filtering, sorting, and grouping of album tracks
+- Support both simple release dates (YyyyMmDdDateValue) and full time stamps
+- Store complete release dates (YyyyMmDdDateValue) instead of only the year for filtering, sorting, and grouping of album tracks
 
 ## [0.1.1] - 2019-08-31
 

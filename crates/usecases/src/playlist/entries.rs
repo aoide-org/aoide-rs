@@ -5,7 +5,7 @@ use std::ops::Range;
 
 use aoide_core::{
     playlist::{EntityHeader, EntityUid, Entry},
-    util::clock::DateTime,
+    util::clock::OffsetDateTimeMs,
 };
 use aoide_core_api::playlist::EntityWithEntriesSummary;
 use aoide_repo::{
@@ -34,7 +34,7 @@ pub fn patch<Repo>(
 where
     Repo: EntityRepo + EntryRepo,
 {
-    let updated_at = DateTime::now_utc();
+    let updated_at = OffsetDateTimeMs::now_utc();
     let (record_header, next_rev) =
         repo.touch_playlist_entity_revision(entity_header, updated_at)?;
     for operation in operations {

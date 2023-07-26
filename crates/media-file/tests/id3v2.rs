@@ -3,7 +3,9 @@
 
 use std::{io::BufReader, path::Path};
 
-use aoide_core::{media::content::ContentLink, music::tempo::TempoBpm, Track};
+use aoide_core::{
+    media::content::ContentLink, music::tempo::TempoBpm, util::clock::OffsetDateTimeMs, Track,
+};
 use aoide_media_file::{
     io::{
         export::export_track_to_file,
@@ -26,7 +28,7 @@ fn import_new_track_from_file_path<T: AsRef<Path>>(
     content_type: Option<Mime>,
 ) -> Track {
     let import_track = ImportTrack::NewTrack {
-        collected_at: aoide_core::util::clock::DateTime::now_utc(),
+        collected_at: OffsetDateTimeMs::now_utc(),
     };
     let content_type = content_type
         .or_else(|| guess_mime_from_file_path(file_path.as_ref()).ok())

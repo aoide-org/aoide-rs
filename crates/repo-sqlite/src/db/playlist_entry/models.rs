@@ -3,7 +3,7 @@
 
 use aoide_core::{
     playlist::{Entry, Item, SeparatorItem, TrackItem},
-    util::clock::{DateTime, TimestampMillis},
+    util::clock::{OffsetDateTimeMs, TimestampMillis},
 };
 use aoide_repo::{playlist::RecordId as PlaylistId, track::RecordId as TrackId};
 
@@ -81,7 +81,7 @@ impl<'a> InsertableRecord<'a> {
         playlist_id: PlaylistId,
         track_id: Option<TrackId>,
         ordering: i64,
-        created_at: DateTime,
+        created_at: OffsetDateTimeMs,
         created_entry: &'a Entry,
     ) -> Self {
         let row_created_updated_ms = created_at.timestamp_millis();

@@ -5,7 +5,7 @@ use std::{sync::atomic::AtomicBool, time::Duration};
 
 use aoide_core::{
     media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _},
-    util::clock::DateTime,
+    util::clock::OffsetDateTimeMs,
 };
 use aoide_core_api::media::tracker::{
     scan_directories::{Outcome, Summary},
@@ -86,7 +86,7 @@ pub fn scan_directories<
     let collection_id = collection_ctx.record_id;
     let root_file_path = resolver.build_file_path(resolver.root_path());
     let outdated_count = repo.media_tracker_mark_current_directories_outdated(
-        DateTime::now_utc(),
+        OffsetDateTimeMs::now_utc(),
         collection_id,
         resolver.root_path(),
     )?;
@@ -116,7 +116,7 @@ pub fn scan_directories<
             log::debug!("Updating digest of content path: {content_path}");
             match repo
                 .media_tracker_update_directory_digest(
-                    DateTime::now_utc(),
+                    OffsetDateTimeMs::now_utc(),
                     collection_id,
                     &content_path,
                     &digest.into(),
@@ -158,7 +158,7 @@ pub fn scan_directories<
                 // Mark all remaining entries that are unreachable and
                 // have not been visited as orphaned.
                 summary.orphaned = repo.media_tracker_mark_outdated_directories_orphaned(
-                    DateTime::now_utc(),
+                    OffsetDateTimeMs::now_utc(),
                     collection_id,
                     resolver.root_path(),
                 )?;

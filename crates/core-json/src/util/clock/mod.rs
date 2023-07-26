@@ -5,7 +5,7 @@ use std::fmt;
 
 use aoide_core::{
     prelude::*,
-    util::clock::{YearType, YYYYMMDD},
+    util::clock::{YearType, YyyyMmDdDateValue},
 };
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
@@ -15,7 +15,7 @@ use serde::{
 use crate::prelude::*;
 
 mod _core {
-    pub(super) use aoide_core::util::clock::{DateOrDateTime, DateTime, DateYYYYMMDD};
+    pub(super) use aoide_core::util::clock::{DateOrDateTime, OffsetDateTimeMs, YyyyMmDdDate};
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -31,16 +31,16 @@ pub struct DateTime {
         feature = "json-schema",
         schemars(with = "chrono::DateTime<chrono::FixedOffset>")
     )]
-    inner: _core::DateTime,
+    inner: _core::OffsetDateTimeMs,
 }
 
-impl From<_core::DateTime> for DateTime {
-    fn from(inner: _core::DateTime) -> Self {
+impl From<_core::OffsetDateTimeMs> for DateTime {
+    fn from(inner: _core::OffsetDateTimeMs) -> Self {
         Self { inner }
     }
 }
 
-impl From<DateTime> for _core::DateTime {
+impl From<DateTime> for _core::OffsetDateTimeMs {
     fn from(from: DateTime) -> Self {
         let DateTime { inner } = from;
         inner
@@ -63,45 +63,45 @@ impl<'de> Deserialize<'de> for DateTime {
         D: Deserializer<'de>,
     {
         time::serde::rfc3339::deserialize(deserializer)
-            .map(_core::DateTime::new)
+            .map(_core::OffsetDateTimeMs::clamp_from)
             .map(Into::into)
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
-// DateYYYYMMDD
+// YyyyMmDdDate
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[repr(transparent)]
 #[allow(clippy::upper_case_acronyms)]
-pub struct DateYYYYMMDD(_core::DateYYYYMMDD);
+pub struct YyyyMmDdDate(_core::YyyyMmDdDate);
 
-impl From<_core::DateYYYYMMDD> for DateYYYYMMDD {
-    fn from(from: _core::DateYYYYMMDD) -> Self {
+impl From<_core::YyyyMmDdDate> for YyyyMmDdDate {
+    fn from(from: _core::YyyyMmDdDate) -> Self {
         Self(from)
     }
 }
 
-impl From<DateYYYYMMDD> for _core::DateYYYYMMDD {
-    fn from(from: DateYYYYMMDD) -> Self {
+impl From<YyyyMmDdDate> for _core::YyyyMmDdDate {
+    fn from(from: YyyyMmDdDate) -> Self {
         from.0
     }
 }
 
 #[cfg(feature = "json-schema")]
-impl schemars::JsonSchema for DateYYYYMMDD {
+impl schemars::JsonSchema for YyyyMmDdDate {
     fn schema_name() -> String {
-        "DateYYYYMMDD".to_string()
+        "YyyyMmDdDate".to_string()
     }
 
     fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
-        gen.subschema_for::<YYYYMMDD>()
+        gen.subschema_for::<YyyyMmDdDateValue>()
     }
 }
 
 // Serialize (and deserialize) as string for maximum compatibility and portability
-impl Serialize for DateYYYYMMDD {
+impl Serialize for YyyyMmDdDate {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -109,20 +109,22 @@ impl Serialize for DateYYYYMMDD {
         let value = if self.0.is_year() {
             i32::from(self.0.year())
         } else {
-            self.0.into()
+            self.0.value()
         };
         serializer.serialize_i32(value)
     }
 }
 
 #[allow(clippy::upper_case_acronyms)]
-struct DateYYYYMMDDDeserializeVisitor;
+struct YyyyMmDdDateDeserializeVisitor;
 
-impl<'de> SerdeDeserializeVisitor<'de> for DateYYYYMMDDDeserializeVisitor {
-    type Value = DateYYYYMMDD;
+impl<'de> SerdeDeserializeVisitor<'de> for YyyyMmDdDateDeserializeVisitor {
+    type Value = YyyyMmDdDate;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_fmt(format_args!("4-digit YYYY or 8-digit YYYYMMDD integer"))
+        formatter.write_fmt(format_args!(
+            "4-digit YYYY or 8-digit YyyyMmDdDateValue integer"
+        ))
     }
 
     #[allow(clippy::cast_possible_truncation)]
@@ -130,29 +132,29 @@ impl<'de> SerdeDeserializeVisitor<'de> for DateYYYYMMDDDeserializeVisitor {
     where
         E: de::Error,
     {
-        let value = value as YYYYMMDD;
-        let value = if value < _core::DateYYYYMMDD::MIN.into()
-            && value >= YYYYMMDD::from(_core::DateYYYYMMDD::MIN.year())
-            && value <= YYYYMMDD::from(_core::DateYYYYMMDD::MAX.year())
+        let value = value as YyyyMmDdDateValue;
+        let value = if value < _core::YyyyMmDdDate::MIN.value()
+            && value >= YyyyMmDdDateValue::from(_core::YyyyMmDdDate::MIN.year())
+            && value <= YyyyMmDdDateValue::from(_core::YyyyMmDdDate::MAX.year())
         {
             // Special case handling: YYYY
-            _core::DateYYYYMMDD::from_year(value as YearType)
+            _core::YyyyMmDdDate::from_year(value as YearType)
         } else {
-            _core::DateYYYYMMDD::new(value)
+            _core::YyyyMmDdDate::new_unchecked(value)
         };
         value
             .validate()
             .map_err(|err| E::custom(format!("{err:?}")))
-            .map(|()| DateYYYYMMDD(value))
+            .map(|()| YyyyMmDdDate(value))
     }
 }
 
-impl<'de> Deserialize<'de> for DateYYYYMMDD {
-    fn deserialize<D>(deserializer: D) -> Result<DateYYYYMMDD, D::Error>
+impl<'de> Deserialize<'de> for YyyyMmDdDate {
+    fn deserialize<D>(deserializer: D) -> Result<YyyyMmDdDate, D::Error>
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_u64(DateYYYYMMDDDeserializeVisitor)
+        deserializer.deserialize_u64(YyyyMmDdDateDeserializeVisitor)
     }
 }
 
@@ -165,7 +167,7 @@ impl<'de> Deserialize<'de> for DateYYYYMMDD {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DateOrDateTime {
-    Date(DateYYYYMMDD),
+    Date(YyyyMmDdDate),
     DateTime(DateTime),
 }
 

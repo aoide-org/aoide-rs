@@ -2533,7 +2533,7 @@ components:
     RecordedAtDate:
       oneOf:
         - $ref: "#/components/schemas/YYYY"
-        - $ref: "#/components/schemas/YYYYMMDD"
+        - $ref: "#/components/schemas/YyyyMmDdDateValue"
     RecordedAtDateTime:
       allOf:
         - $ref: "#/components/schemas/DateTime"
@@ -2553,7 +2553,7 @@ components:
     ReleasedAtDate:
       oneOf:
         - $ref: "#/components/schemas/YYYY"
-        - $ref: "#/components/schemas/YYYYMMDD"
+        - $ref: "#/components/schemas/YyyyMmDdDateValue"
     ReleasedAtDateTime:
       allOf:
         - $ref: "#/components/schemas/DateTime"
@@ -2576,7 +2576,7 @@ components:
     ReleasedOrigAtDate:
       oneOf:
         - $ref: "#/components/schemas/YYYY"
-        - $ref: "#/components/schemas/YYYYMMDD"
+        - $ref: "#/components/schemas/YyyyMmDdDateValue"
     ReleasedOrigAtDateTime:
       allOf:
         - $ref: "#/components/schemas/DateTime"
@@ -3632,7 +3632,7 @@ components:
       example: 2019
       description: |
         A 4-digit integer representing a year
-    YYYYMMDD:
+    YyyyMmDdDateValue:
       type: integer
       format: int32
       minimum: 10000
@@ -3640,4 +3640,4 @@ components:
       example: 20191124
       description: |
         An 8-digit integer representing a naive date without any time zone information:
-        YYYYMMDD = YYYY (year, 4-digits) + MM (month, 2-digits) + DD (day of month, 2 digits):
+        YyyyMmDdDateValue = YYYY (year, 4-digits) + MM (month, 2-digits) + DD (day of month, 2 digits):

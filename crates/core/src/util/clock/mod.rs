@@ -11,110 +11,136 @@ use time::{
 
 use crate::prelude::*;
 
-pub type DateTimeInner = OffsetDateTime;
-
 pub type TimestampMillis = i64;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
-pub struct DateTime(DateTimeInner);
+pub struct OffsetDateTimeMs(OffsetDateTime);
 
 const NANOS_PER_MILLISECOND: i128 = 1_000_000;
 
 const YYYY_MM_DD_FORMAT: &[FormatItem<'static>] =
     time::macros::format_description!("[year]-[month]-[day]");
 
-/// A `DateTime` with truncated millisecond precision.
-impl DateTime {
+/// An [`OffsetDateTime`] with truncated millisecond precision.
+impl OffsetDateTimeMs {
     #[must_use]
-    pub fn new(inner: DateTimeInner) -> Self {
+    pub const fn new_unchecked(inner: OffsetDateTime) -> Self {
+        Self(inner)
+    }
+
+    #[must_use]
+    pub fn clamp_from(inner: OffsetDateTime) -> Self {
         let subsec_nanos_since_last_millis_boundary =
             inner.unix_timestamp_nanos() % NANOS_PER_MILLISECOND;
         let subsec_duration_since_last_millis_boundary =
             Duration::nanoseconds(subsec_nanos_since_last_millis_boundary as i64);
-        let truncated = inner - subsec_duration_since_last_millis_boundary;
-        debug_assert_eq!(0, truncated.unix_timestamp_nanos() % NANOS_PER_MILLISECOND);
-        Self(truncated)
+        let truncated = Self::new_unchecked(inner - subsec_duration_since_last_millis_boundary);
+        debug_assert!(truncated.is_valid());
+        truncated
     }
 
     #[must_use]
-    pub fn new_timestamp_millis(timestamp_millis: TimestampMillis) -> Self {
-        DateTimeInner::from_unix_timestamp_nanos(
+    pub fn from_timestamp_millis(timestamp_millis: TimestampMillis) -> Self {
+        let truncated = OffsetDateTime::from_unix_timestamp_nanos(
             i128::from(timestamp_millis) * NANOS_PER_MILLISECOND,
         )
-        .expect("valid timestamp")
-        .into()
-    }
-
-    #[must_use]
-    pub const fn to_inner(self) -> DateTimeInner {
-        let Self(inner) = self;
-        inner
+        .map(Self::clamp_from)
+        .expect("valid timestamp");
+        debug_assert!(truncated.is_valid());
+        truncated
     }
 
     #[must_use]
     pub fn now_utc() -> Self {
-        DateTimeInner::now_utc().into()
+        Self::clamp_from(OffsetDateTime::now_utc())
     }
 
     #[must_use]
     pub fn now_local_or_utc() -> Self {
-        DateTimeInner::now_local().map_or_else(|_: IndeterminateOffset| Self::now_utc(), Into::into)
+        OffsetDateTime::now_local()
+            .map_or_else(|_: IndeterminateOffset| Self::now_utc(), Self::clamp_from)
     }
 
     #[must_use]
     pub fn timestamp_millis(self) -> TimestampMillis {
-        (self.to_inner().unix_timestamp_nanos() / NANOS_PER_MILLISECOND) as TimestampMillis
+        (self.0.unix_timestamp_nanos() / NANOS_PER_MILLISECOND) as TimestampMillis
     }
 
     #[must_use]
     pub fn year(&self) -> YearType {
         self.0.year() as _
     }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
+    }
 }
 
-impl AsRef<DateTimeInner> for DateTime {
-    fn as_ref(&self) -> &DateTimeInner {
+impl AsRef<OffsetDateTime> for OffsetDateTimeMs {
+    fn as_ref(&self) -> &OffsetDateTime {
         &self.0
     }
 }
 
-impl From<DateTimeInner> for DateTime {
-    fn from(from: DateTimeInner) -> Self {
-        Self::new(from)
+impl From<OffsetDateTimeMs> for OffsetDateTime {
+    fn from(from: OffsetDateTimeMs) -> Self {
+        let OffsetDateTimeMs(into) = from;
+        into
     }
 }
 
-impl From<DateTime> for DateTimeInner {
-    fn from(from: DateTime) -> Self {
-        from.to_inner()
+impl From<OffsetDateTime> for OffsetDateTimeMs {
+    fn from(from: OffsetDateTime) -> Self {
+        Self::clamp_from(from)
     }
 }
 
-impl From<SystemTime> for DateTime {
+impl From<SystemTime> for OffsetDateTimeMs {
     fn from(from: SystemTime) -> Self {
-        Self::new(from.into())
+        OffsetDateTime::from(from).into()
     }
 }
 
-impl From<DateTime> for SystemTime {
-    fn from(from: DateTime) -> Self {
-        from.to_inner().into()
+impl From<OffsetDateTimeMs> for SystemTime {
+    fn from(from: OffsetDateTimeMs) -> Self {
+        OffsetDateTime::from(from).into()
     }
 }
 
-impl FromStr for DateTime {
+impl FromStr for OffsetDateTimeMs {
     type Err = ParseError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        DateTimeInner::parse(input, &Rfc3339).map(Into::into)
+        OffsetDateTime::parse(input, &Rfc3339).map(Into::into)
     }
 }
 
-impl fmt::Display for DateTime {
+impl fmt::Display for OffsetDateTimeMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // TODO: Avoid allocation of temporary String?
-        f.write_str(&self.to_inner().format(&Rfc3339).expect("valid timestamp"))
+        f.write_str(&self.0.format(&Rfc3339).expect("valid timestamp"))
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+#[allow(clippy::upper_case_acronyms)]
+pub enum OffsetDateTimeMsInvalidity {
+    /// Higher precision than expected
+    Unclamped,
+}
+
+impl Validate for OffsetDateTimeMs {
+    type Invalidity = OffsetDateTimeMsInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                self.0.unix_timestamp_nanos() % NANOS_PER_MILLISECOND != 0,
+                Self::Invalidity::Unclamped,
+            )
+            .into()
     }
 }
 
@@ -130,29 +156,27 @@ pub type DayOfMonthType = i8;
 pub const YEAR_MIN: YearType = 1;
 pub const YEAR_MAX: YearType = 9999;
 
-// 8-digit year+month+day (YYYYMMDD)
-#[allow(clippy::upper_case_acronyms)]
-pub type YYYYMMDD = i32;
+pub type YyyyMmDdDateValue = i32;
 
+/// 8-digit year+month+day (YYYYMMDD)
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[allow(clippy::upper_case_acronyms)]
 #[repr(transparent)]
-pub struct DateYYYYMMDD(YYYYMMDD);
+pub struct YyyyMmDdDate(YyyyMmDdDateValue);
 
-impl DateYYYYMMDD {
+impl YyyyMmDdDate {
     pub const MIN: Self = Self(10_000);
 
     pub const MAX: Self = Self(99_991_231);
 
     #[must_use]
-    pub const fn new(val: YYYYMMDD) -> Self {
-        Self(val)
+    pub const fn new_unchecked(value: YyyyMmDdDateValue) -> Self {
+        Self(value)
     }
 
     #[must_use]
-    pub const fn to_inner(self) -> YYYYMMDD {
-        let Self(inner) = self;
-        inner
+    pub const fn value(self) -> YyyyMmDdDateValue {
+        let Self(value) = self;
+        value
     }
 
     #[must_use]
@@ -172,23 +196,28 @@ impl DateYYYYMMDD {
 
     #[must_use]
     pub fn from_year(year: YearType) -> Self {
-        Self(YYYYMMDD::from(year) * 10_000)
+        Self(YyyyMmDdDateValue::from(year) * 10_000)
     }
 
     #[must_use]
     pub fn from_year_month(year: YearType, month: MonthType) -> Self {
-        Self(YYYYMMDD::from(year) * 10_000 + YYYYMMDD::from(month) * 100)
+        Self(YyyyMmDdDateValue::from(year) * 10_000 + YyyyMmDdDateValue::from(month) * 100)
     }
 
     #[must_use]
     pub fn is_year(self) -> bool {
         Self::from_year(self.year()) == self
     }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
 #[allow(clippy::upper_case_acronyms)]
-pub enum DateYYYYMMDDInvalidity {
+pub enum YyyyMmDdDateInvalidity {
     Min,
     Max,
     MonthOutOfRange,
@@ -197,8 +226,8 @@ pub enum DateYYYYMMDDInvalidity {
     Invalid,
 }
 
-impl Validate for DateYYYYMMDD {
-    type Invalidity = DateYYYYMMDDInvalidity;
+impl Validate for YyyyMmDdDate {
+    type Invalidity = YyyyMmDdDateInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
@@ -233,36 +262,24 @@ impl Validate for DateYYYYMMDD {
     }
 }
 
-impl From<YYYYMMDD> for DateYYYYMMDD {
-    fn from(from: YYYYMMDD) -> Self {
-        Self::new(from)
-    }
-}
-
-impl From<DateYYYYMMDD> for YYYYMMDD {
-    fn from(from: DateYYYYMMDD) -> Self {
-        from.to_inner()
-    }
-}
-
-impl From<DateTime> for DateYYYYMMDD {
-    fn from(from: DateTime) -> Self {
+impl From<OffsetDateTimeMs> for YyyyMmDdDate {
+    fn from(from: OffsetDateTimeMs) -> Self {
         from.0.date().into()
     }
 }
 
-impl From<Date> for DateYYYYMMDD {
+impl From<Date> for YyyyMmDdDate {
     #[allow(clippy::cast_possible_wrap)]
     fn from(from: Date) -> Self {
         Self(
-            from.year() as YYYYMMDD * 10_000
-                + from.month() as YYYYMMDD * 100
-                + YYYYMMDD::from(from.day()),
+            from.year() as YyyyMmDdDateValue * 10_000
+                + from.month() as YyyyMmDdDateValue * 100
+                + YyyyMmDdDateValue::from(from.day()),
         )
     }
 }
 
-impl fmt::Display for DateYYYYMMDD {
+impl fmt::Display for YyyyMmDdDate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_year() {
             return write!(f, "{:04}", self.year());
@@ -288,8 +305,8 @@ impl fmt::Display for DateYYYYMMDD {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DateOrDateTime {
-    Date(DateYYYYMMDD),
-    DateTime(DateTime),
+    Date(YyyyMmDdDate),
+    DateTime(OffsetDateTimeMs),
 }
 
 impl DateOrDateTime {
@@ -300,21 +317,26 @@ impl DateOrDateTime {
             Self::DateTime(inner) => inner.year(),
         }
     }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
+    }
 }
 
-impl From<DateTime> for DateOrDateTime {
-    fn from(from: DateTime) -> Self {
+impl From<OffsetDateTimeMs> for DateOrDateTime {
+    fn from(from: OffsetDateTimeMs) -> Self {
         Self::DateTime(from)
     }
 }
 
-impl From<DateYYYYMMDD> for DateOrDateTime {
-    fn from(from: DateYYYYMMDD) -> Self {
+impl From<YyyyMmDdDate> for DateOrDateTime {
+    fn from(from: YyyyMmDdDate) -> Self {
         Self::Date(from)
     }
 }
 
-impl From<DateOrDateTime> for DateYYYYMMDD {
+impl From<DateOrDateTime> for YyyyMmDdDate {
     fn from(from: DateOrDateTime) -> Self {
         match from {
             DateOrDateTime::Date(date) => date,
@@ -344,7 +366,7 @@ impl fmt::Display for DateOrDateTime {
 
 #[derive(Copy, Clone, Debug)]
 pub enum DateOrDateTimeInvalidity {
-    Date(DateYYYYMMDDInvalidity),
+    Date(YyyyMmDdDateInvalidity),
 }
 
 impl Validate for DateOrDateTime {

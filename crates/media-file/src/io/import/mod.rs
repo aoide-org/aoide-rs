@@ -21,7 +21,7 @@ use aoide_core::{
         FacetId as TagFacetId, Label as TagLabel, PlainTag, Score as TagScore, ScoreValue, TagsMap,
     },
     track::{actor::Actor, title::Title, Track},
-    util::clock::{DateOrDateTime, DateTime},
+    util::clock::{DateOrDateTime, OffsetDateTimeMs},
 };
 use bitflags::bitflags;
 use image::{io::Reader as ImageReader, DynamicImage};
@@ -122,7 +122,7 @@ impl Default for ImportTrackConfig {
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum ImportTrack {
-    NewTrack { collected_at: DateTime },
+    NewTrack { collected_at: OffsetDateTimeMs },
     UpdateTrack(Track),
 }
 

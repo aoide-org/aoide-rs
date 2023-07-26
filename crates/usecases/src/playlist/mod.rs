@@ -5,7 +5,7 @@ use std::borrow::Cow;
 
 use aoide_core::{
     playlist::{EntityHeader as PlaylistEntityHeader, EntityWithEntries},
-    util::clock::DateTime,
+    util::clock::OffsetDateTimeMs,
     Playlist, PlaylistEntity, PlaylistUid,
 };
 use aoide_core_api::playlist::EntityWithEntriesSummary;
@@ -46,7 +46,7 @@ where
     let collection_id = collection_uid
         .map(|uid| repo.resolve_collection_id(uid))
         .transpose()?;
-    let created_at = DateTime::now_utc();
+    let created_at = OffsetDateTimeMs::now_utc();
     repo.insert_playlist_entity(collection_id, created_at, entity)?;
     Ok(())
 }
@@ -70,7 +70,7 @@ pub fn store_updated_entity<Repo>(
 where
     Repo: EntityRepo,
 {
-    let updated_at = DateTime::now_utc();
+    let updated_at = OffsetDateTimeMs::now_utc();
     repo.update_playlist_entity_revision(updated_at, updated_entity)?;
     Ok(())
 }

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::util::clock::YYYYMMDD;
+use aoide_core::util::clock::YyyyMmDdDateValue;
 
 use crate::prelude::*;
 
@@ -16,10 +16,10 @@ pub struct QueryableRecord {
     pub track_id_concat: String,
     pub kind: Option<i16>,
     pub publisher: Option<String>,
-    pub min_recorded_at_yyyymmdd: Option<YYYYMMDD>,
-    pub max_recorded_at_yyyymmdd: Option<YYYYMMDD>,
-    pub min_released_at_yyyymmdd: Option<YYYYMMDD>,
-    pub max_released_at_yyyymmdd: Option<YYYYMMDD>,
-    pub min_released_orig_at_yyyymmdd: Option<YYYYMMDD>,
-    pub max_released_orig_at_yyyymmdd: Option<YYYYMMDD>,
+    pub min_recorded_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub max_recorded_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub min_released_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub max_released_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub min_released_orig_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub max_released_orig_at_yyyymmdd: Option<YyyyMmDdDateValue>,
 }

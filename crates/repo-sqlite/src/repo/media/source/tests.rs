@@ -15,7 +15,7 @@ use aoide_core::{
             ContentPathConfig, ContentRevision,
         },
     },
-    util::{clock::DateTime, color::RgbColor},
+    util::{clock::OffsetDateTimeMs, color::RgbColor},
     Collection, CollectionEntity, CollectionHeader,
 };
 use aoide_repo::collection::{EntityRepo as _, RecordId as CollectionId};
@@ -44,7 +44,8 @@ impl Fixture {
         };
         let collection_entity =
             CollectionEntity::new(CollectionHeader::initial_random(), collection);
-        let collection_id = db.insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
+        let collection_id =
+            db.insert_collection_entity(OffsetDateTimeMs::now_utc(), &collection_entity)?;
         Ok(Self { collection_id })
     }
 
@@ -67,7 +68,7 @@ fn insert_media_source() -> anyhow::Result<()> {
     let fixture = Fixture::new(&mut db)?;
 
     let created_source = media::Source {
-        collected_at: DateTime::now_local_or_utc(),
+        collected_at: OffsetDateTimeMs::now_local_or_utc(),
         content: media::Content {
             link: ContentLink {
                 path: ContentPath::from("file:///home/test/file.mp3"),
@@ -97,7 +98,7 @@ fn insert_media_source() -> anyhow::Result<()> {
             },
         })),
     };
-    let created_at = DateTime::now_local_or_utc();
+    let created_at = OffsetDateTimeMs::now_local_or_utc();
 
     let created_header =
         db.insert_media_source(fixture.collection_id, created_at, &created_source)?;
@@ -120,7 +121,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
     let collection_id = fixture.collection_id;
 
     let file_lowercase = media::Source {
-        collected_at: DateTime::now_local_or_utc(),
+        collected_at: OffsetDateTimeMs::now_local_or_utc(),
         content: media::Content {
             link: ContentLink {
                 path: ContentPath::from("file:///home/file.mp3"),
@@ -138,10 +139,10 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         artwork: Default::default(),
     };
     let header_lowercase =
-        db.insert_media_source(collection_id, DateTime::now_utc(), &file_lowercase)?;
+        db.insert_media_source(collection_id, OffsetDateTimeMs::now_utc(), &file_lowercase)?;
 
     let file_uppercase = media::Source {
-        collected_at: DateTime::now_local_or_utc(),
+        collected_at: OffsetDateTimeMs::now_local_or_utc(),
         content: media::Content {
             link: ContentLink {
                 path: ContentPath::from("file:///Home/File.mp3"),
@@ -159,7 +160,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         artwork: Default::default(),
     };
     let header_uppercase =
-        db.insert_media_source(collection_id, DateTime::now_utc(), &file_uppercase)?;
+        db.insert_media_source(collection_id, OffsetDateTimeMs::now_utc(), &file_uppercase)?;
 
     // Equals is case-sensitive
     assert_eq!(
@@ -304,7 +305,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
     let collection_id = fixture.collection_id;
 
     let file_lowercase = media::Source {
-        collected_at: DateTime::now_local_or_utc(),
+        collected_at: OffsetDateTimeMs::now_local_or_utc(),
         content: media::Content {
             link: ContentLink {
                 path: ContentPath::from("file:///ho''me/file.mp3"),
@@ -322,10 +323,10 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         artwork: Default::default(),
     };
     let header_lowercase =
-        db.insert_media_source(collection_id, DateTime::now_utc(), &file_lowercase)?;
+        db.insert_media_source(collection_id, OffsetDateTimeMs::now_utc(), &file_lowercase)?;
 
     let file_uppercase = media::Source {
-        collected_at: DateTime::now_local_or_utc(),
+        collected_at: OffsetDateTimeMs::now_local_or_utc(),
         content: media::Content {
             link: ContentLink {
                 path: ContentPath::from("file:///Ho''me/File.mp3"),
@@ -343,9 +344,9 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         artwork: Default::default(),
     };
     let header_uppercase =
-        db.insert_media_source(collection_id, DateTime::now_utc(), &file_uppercase)?;
+        db.insert_media_source(collection_id, OffsetDateTimeMs::now_utc(), &file_uppercase)?;
 
-    let updated_at = DateTime::now_utc();
+    let updated_at = OffsetDateTimeMs::now_utc();
     let old_path_prefix = ContentPath::from("file:///ho''");
     let new_path_prefix = ContentPath::from("file:///h'o''");
 

@@ -49,8 +49,8 @@ impl TryFrom<QueryableRecord> for (RecordHeader, CollectionEntity) {
         } = from;
         let header = RecordHeader {
             id: id.into(),
-            created_at: DateTime::new_timestamp_millis(row_created_ms),
-            updated_at: DateTime::new_timestamp_millis(row_updated_ms),
+            created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
+            updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
         };
         let media_source_path_kind = decode_content_path_kind(media_source_path_kind)?;
         let media_source_root_url = media_source_root_url
@@ -108,7 +108,7 @@ pub struct InsertableRecord<'a> {
 }
 
 impl<'a> InsertableRecord<'a> {
-    pub fn bind(created_at: DateTime, entity: &'a CollectionEntity) -> Self {
+    pub fn bind(created_at: OffsetDateTimeMs, entity: &'a CollectionEntity) -> Self {
         let row_created_updated_ms = created_at.timestamp_millis();
         let (hdr, body) = entity.into();
         let CollectionHeader { uid, rev } = hdr;
@@ -159,7 +159,7 @@ pub struct TouchableRecord {
 }
 
 impl TouchableRecord {
-    pub fn bind(updated_at: DateTime, next_rev: EntityRevision) -> Self {
+    pub fn bind(updated_at: OffsetDateTimeMs, next_rev: EntityRevision) -> Self {
         let entity_rev = encode_entity_revision(next_rev);
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
@@ -184,7 +184,7 @@ pub struct UpdatableRecord<'a> {
 
 impl<'a> UpdatableRecord<'a> {
     pub fn bind(
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         next_rev: EntityRevision,
         collection: &'a Collection,
     ) -> Self {

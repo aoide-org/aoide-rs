@@ -3,7 +3,7 @@
 
 use aoide_core::{
     media::{content::ContentPath, Source},
-    util::clock::DateTime,
+    util::clock::OffsetDateTimeMs,
 };
 use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
 
@@ -20,7 +20,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn update_media_source(
         &mut self,
         id: RecordId,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         updated_source: &Source,
     ) -> RepoResult<()> {
         let updatable = UpdatableRecord::bind(updated_at, updated_source);
@@ -96,7 +96,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     fn relocate_media_sources_by_content_path_prefix(
         &mut self,
         collection_id: CollectionId,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         old_content_path_prefix: &ContentPath<'_>,
         new_content_path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize> {
@@ -187,7 +187,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     fn insert_media_source(
         &mut self,
         collection_id: CollectionId,
-        created_at: DateTime,
+        created_at: OffsetDateTimeMs,
         created_source: &Source,
     ) -> RepoResult<RecordHeader> {
         let insertable = InsertableRecord::bind(created_at, collection_id, created_source);

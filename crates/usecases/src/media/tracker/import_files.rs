@@ -191,7 +191,7 @@ where
                     break 'outcome outcome;
                 }
             }
-            let updated_at = DateTime::now_utc();
+            let updated_at = OffsetDateTimeMs::now_utc();
             if tracks_summary.failed.is_empty() {
                 match repo.media_tracker_confirm_directory(
                     updated_at,

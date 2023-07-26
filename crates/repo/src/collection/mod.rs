@@ -5,7 +5,7 @@ use std::borrow::Cow;
 
 use aoide_core::{
     collection::{Entity, EntityHeader, EntityUid},
-    util::{clock::DateTime, url::BaseUrl},
+    util::{clock::OffsetDateTimeMs, url::BaseUrl},
 };
 use aoide_core_api::collection::{EntityWithSummary, LoadScope, Summary};
 
@@ -32,7 +32,7 @@ pub trait EntityRepo {
 
     fn insert_collection_entity(
         &mut self,
-        created_at: DateTime,
+        created_at: OffsetDateTimeMs,
         created_entity: &Entity,
     ) -> RepoResult<RecordId>;
 

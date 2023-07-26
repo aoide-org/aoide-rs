@@ -7,7 +7,7 @@ pub type RecordHeader = crate::RecordHeader<RecordId>;
 
 use aoide_core::{
     media::{content::ContentPath, Source},
-    util::clock::DateTime,
+    util::clock::OffsetDateTimeMs,
 };
 
 use crate::{collection::RecordId as CollectionId, prelude::*};
@@ -16,7 +16,7 @@ pub trait Repo {
     fn update_media_source(
         &mut self,
         id: RecordId,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         updated_source: &Source,
     ) -> RepoResult<()>;
 
@@ -41,7 +41,7 @@ pub trait CollectionRepo {
     fn insert_media_source(
         &mut self,
         collection_id: CollectionId,
-        created_at: DateTime,
+        created_at: OffsetDateTimeMs,
         created_source: &Source,
     ) -> RepoResult<RecordHeader>;
 
@@ -54,7 +54,7 @@ pub trait CollectionRepo {
     fn relocate_media_sources_by_content_path_prefix(
         &mut self,
         collection_id: CollectionId,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         old_content_path_prefix: &ContentPath<'_>,
         new_content_path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize>;

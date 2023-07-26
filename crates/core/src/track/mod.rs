@@ -275,7 +275,7 @@ impl IsCanonical for Track {
 pub struct EntityBody {
     pub track: Track,
 
-    pub updated_at: DateTime,
+    pub updated_at: OffsetDateTimeMs,
 
     /// Last synchronized track entity revision
     ///
@@ -317,6 +317,6 @@ pub type PlayCount = u64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct PlayCounter {
-    pub last_played_at: Option<DateTime>,
+    pub last_played_at: Option<OffsetDateTimeMs>,
     pub times_played: Option<PlayCount>,
 }

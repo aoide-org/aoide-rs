@@ -18,13 +18,13 @@ CREATE TABLE IF NOT EXISTS track (
     -- properties: album/release
     recorded_at              TEXT,
     recorded_ms              INTEGER,
-    recorded_at_yyyymmdd     INTEGER, -- naive, gregorian release date as YYYYMMDD (parsed from recorded_at)
+    recorded_at_yyyymmdd     INTEGER, -- naive, gregorian release date as YyyyMmDdDateValue (parsed from recorded_at)
     released_at              TEXT,
     released_ms              INTEGER,
-    released_at_yyyymmdd     INTEGER, -- naive, gregorian release date as YYYYMMDD (parsed from released_at)
+    released_at_yyyymmdd     INTEGER, -- naive, gregorian release date as YyyyMmDdDateValue (parsed from released_at)
     released_orig_at          TEXT,
     released_orig_ms          INTEGER,
-    released_orig_at_yyyymmdd INTEGER, -- naive, gregorian release date as YYYYMMDD (parsed from released_at)
+    released_orig_at_yyyymmdd INTEGER, -- naive, gregorian release date as YyyyMmDdDateValue (parsed from released_at)
     publisher                TEXT,    -- publisher or record label
     copyright                TEXT,
     advisory_rating          INTEGER, -- 0 = unrated, 1 = explicit, 2 = clean

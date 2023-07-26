@@ -33,13 +33,13 @@ pub struct QueryableRecord {
     pub last_synchronized_rev: Option<i64>,
     pub recorded_at: Option<String>,
     pub recorded_ms: Option<TimestampMillis>,
-    pub recorded_at_yyyymmdd: Option<YYYYMMDD>,
+    pub recorded_at_yyyymmdd: Option<YyyyMmDdDateValue>,
     pub released_at: Option<String>,
     pub released_ms: Option<TimestampMillis>,
-    pub released_at_yyyymmdd: Option<YYYYMMDD>,
+    pub released_at_yyyymmdd: Option<YyyyMmDdDateValue>,
     pub released_orig_at: Option<String>,
     pub released_orig_ms: Option<TimestampMillis>,
-    pub released_orig_at_yyyymmdd: Option<YYYYMMDD>,
+    pub released_orig_at_yyyymmdd: Option<YyyyMmDdDateValue>,
     pub publisher: Option<String>,
     pub copyright: Option<String>,
     pub advisory_rating: Option<i16>,
@@ -82,8 +82,8 @@ impl From<QueryableRecord> for (MediaSourceId, RecordHeader, TrackHeader) {
         } = from;
         let record_header = RecordHeader {
             id: id.into(),
-            created_at: DateTime::new_timestamp_millis(row_created_ms),
-            updated_at: DateTime::new_timestamp_millis(row_updated_ms),
+            created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
+            updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
         };
         let entity_header = decode_entity_header(&entity_uid, entity_rev);
         (
@@ -146,8 +146,8 @@ pub(crate) fn load_repo_entity(
     } = queryable;
     let header = RecordHeader {
         id: id.into(),
-        created_at: DateTime::new_timestamp_millis(row_created_ms),
-        updated_at: DateTime::new_timestamp_millis(row_updated_ms),
+        created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
+        updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
     };
     let entity_hdr = decode_entity_header(&entity_uid, entity_rev);
     let last_synchronized_rev = last_synchronized_rev.map(decode_entity_revision);
@@ -155,35 +155,44 @@ pub(crate) fn load_repo_entity(
         let recorded_at = parse_datetime_opt(Some(recorded_at.as_str()), recorded_ms);
         debug_assert_eq!(
             recorded_at.map(Into::into),
-            recorded_at_yyyymmdd.map(DateYYYYMMDD::new),
+            recorded_at_yyyymmdd.map(YyyyMmDdDate::new_unchecked),
         );
         recorded_at.map(Into::into)
     } else {
-        recorded_at_yyyymmdd.map(DateYYYYMMDD::new).map(Into::into)
+        recorded_at_yyyymmdd
+            .map(YyyyMmDdDate::new_unchecked)
+            .map(Into::into)
     };
+    debug_assert!(recorded_at.as_ref().map_or(true, DateOrDateTime::is_valid));
     let released_at = if let Some(released_at) = released_at {
         let released_at = parse_datetime_opt(Some(released_at.as_str()), released_ms);
         debug_assert_eq!(
             released_at.map(Into::into),
-            released_at_yyyymmdd.map(DateYYYYMMDD::new),
+            released_at_yyyymmdd.map(YyyyMmDdDate::new_unchecked),
         );
         released_at.map(Into::into)
     } else {
-        released_at_yyyymmdd.map(DateYYYYMMDD::new).map(Into::into)
+        released_at_yyyymmdd
+            .map(YyyyMmDdDate::new_unchecked)
+            .map(Into::into)
     };
+    debug_assert!(released_at.as_ref().map_or(true, DateOrDateTime::is_valid));
     let released_orig_at = if let Some(released_orig_at) = released_orig_at {
         let released_orig_at =
             parse_datetime_opt(Some(released_orig_at.as_str()), released_orig_ms);
         debug_assert_eq!(
             released_orig_at.map(Into::into),
-            released_orig_at_yyyymmdd.map(DateYYYYMMDD::new),
+            released_orig_at_yyyymmdd.map(YyyyMmDdDate::new_unchecked),
         );
         released_orig_at.map(Into::into)
     } else {
         released_orig_at_yyyymmdd
-            .map(DateYYYYMMDD::new)
+            .map(YyyyMmDdDate::new_unchecked)
             .map(Into::into)
     };
+    debug_assert!(released_orig_at
+        .as_ref()
+        .map_or(true, DateOrDateTime::is_valid));
     let advisory_rating = advisory_rating.map(decode_advisory_rating).transpose()?;
     let album_kind = album_kind.map(decode_album_kind).transpose()?;
     let album = Canonical::tie(Album {

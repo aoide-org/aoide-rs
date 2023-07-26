@@ -4,7 +4,7 @@
 use aoide_core::{
     collection::MediaSourceConfig,
     media::content::ContentPathConfig,
-    util::{clock::DateTime, url::BaseUrl},
+    util::{clock::OffsetDateTimeMs, url::BaseUrl},
     Collection, CollectionEntity, CollectionHeader,
 };
 use aoide_repo::{
@@ -38,7 +38,7 @@ impl Fixture {
         let collection_entity =
             CollectionEntity::new(CollectionHeader::initial_random(), collection);
         let collection_id = crate::Connection::new(&mut db)
-            .insert_collection_entity(DateTime::now_utc(), &collection_entity)?;
+            .insert_collection_entity(OffsetDateTimeMs::now_utc(), &collection_entity)?;
         Ok(Self { db, collection_id })
     }
 }
@@ -48,7 +48,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     let mut fixture = Fixture::new()?;
     let mut db = crate::Connection::new(&mut fixture.db);
 
-    let updated_at = DateTime::now_utc();
+    let updated_at = OffsetDateTimeMs::now_utc();
     let collection_id = fixture.collection_id;
     let path = ContentPath::from("file:///test/");
     let mut digest = DigestBytes::default();
@@ -220,7 +220,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     let mut fixture = Fixture::new()?;
     let mut db = crate::Connection::new(&mut fixture.db);
 
-    let updated_at = DateTime::now_utc();
+    let updated_at = OffsetDateTimeMs::now_utc();
     let collection_id = fixture.collection_id;
     let path = ContentPath::from("file:///test/");
     let digest = DigestBytes::default();

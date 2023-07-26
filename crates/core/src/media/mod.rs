@@ -68,7 +68,7 @@ pub struct Content {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Source {
-    pub collected_at: DateTime,
+    pub collected_at: OffsetDateTimeMs,
 
     pub content: Content,
 

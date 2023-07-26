@@ -3,7 +3,7 @@
 
 use std::num::NonZeroU64;
 
-use aoide_core::util::clock::DateTime;
+use aoide_core::util::clock::OffsetDateTimeMs;
 use aoide_core_api::{
     sorting::SortDirection,
     track::search::{SortField, SortOrder},
@@ -76,7 +76,7 @@ pub async fn reindex_tracks(
             #[allow(clippy::cast_possible_truncation)]
             let mut collector = EntityCollector::new(Vec::with_capacity(batch_size.get() as usize));
             // Last timestamp to consider for updates
-            let mut last_updated_at: Option<DateTime> = None;
+            let mut last_updated_at: Option<OffsetDateTimeMs> = None;
             connection.transaction::<_, anyhow::Error, _>(|connection| {
                 'batch_loop: loop {
                     let pagination = Pagination {

@@ -18,7 +18,7 @@ use aoide_core::{
         title::{Kind as TitleKind, Title},
     },
     util::{
-        clock::{DateOrDateTime, DateTime, DateYYYYMMDD, YYYYMMDD},
+        clock::{DateOrDateTime, OffsetDateTimeMs, YyyyMmDdDate, YyyyMmDdDateValue},
         string::{trimmed_non_empty_from, trimmed_non_empty_from_owned},
     },
 };
@@ -410,11 +410,11 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
         if remainder.is_empty()
             && (/* YYYY */digits_input.len() == 4 ||
             /*YYYYMM*/ digits_input.len() == 6 ||
-            /*YYYYMMDD*/ digits_input.len() == 8)
+            /*YyyyMmDdDateValue*/ digits_input.len() == 8)
         {
             if let Ok(yyyymmdd) =
                 digits_input
-                    .parse::<YYYYMMDD>()
+                    .parse::<YyyyMmDdDateValue>()
                     .map(|val| match digits_input.len() {
                         4 => val * 10000,
                         6 => val * 100,
@@ -422,7 +422,7 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
                         _ => unreachable!(),
                     })
             {
-                let date = DateYYYYMMDD::new(yyyymmdd);
+                let date = YyyyMmDdDate::new_unchecked(yyyymmdd);
                 if date.is_valid() {
                     return Some(date.into());
                 }
@@ -438,11 +438,11 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
     if let Ok((remainder, (year_input, month_input))) = year_month_parsed {
         if year_input.len() == 4 && month_input.len() <= 2 {
             if let (Ok(year), Ok(month)) = (
-                year_input.parse::<YYYYMMDD>(),
-                month_input.parse::<YYYYMMDD>(),
+                year_input.parse::<YyyyMmDdDateValue>(),
+                month_input.parse::<YyyyMmDdDateValue>(),
             ) {
                 if remainder.is_empty() {
-                    let date = DateYYYYMMDD::new(year * 10000 + month * 100);
+                    let date = YyyyMmDdDate::new_unchecked(year * 10000 + month * 100);
                     if date.is_valid() {
                         return Some(date.into());
                     }
@@ -451,10 +451,11 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
                 let day_of_month_parsed: IResult<_, _> = day_of_month_parser(remainder);
                 if let Ok((remainder, day_of_month_input)) = day_of_month_parsed {
                     if remainder.is_empty() {
-                        if let Ok(day_of_month) = day_of_month_input.parse::<YYYYMMDD>() {
+                        if let Ok(day_of_month) = day_of_month_input.parse::<YyyyMmDdDateValue>() {
                             if (0..=31).contains(&day_of_month) {
-                                let date =
-                                    DateYYYYMMDD::new(year * 10000 + month * 100 + day_of_month);
+                                let date = YyyyMmDdDate::new_unchecked(
+                                    year * 10000 + month * 100 + day_of_month,
+                                );
                                 if date.is_valid() {
                                     return Some(date.into());
                                 }
@@ -468,13 +469,13 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
     if let Ok(date_time) =
         OffsetDateTime::parse(input, &Rfc3339).or_else(|_| OffsetDateTime::parse(input, &Rfc2822))
     {
-        return Some(DateTime::new(date_time).into());
+        return Some(OffsetDateTimeMs::clamp_from(date_time).into());
     }
     if let Ok(date_time) = PrimitiveDateTime::parse(input, RFC3339_WITHOUT_TZ_FORMAT)
         .or_else(|_| PrimitiveDateTime::parse(input, RFC3339_WITHOUT_T_TZ_FORMAT))
     {
         // Assume UTC if time zone is missing
-        return Some(DateTime::from(date_time.assume_utc()).into());
+        return Some(OffsetDateTimeMs::clamp_from(date_time.assume_utc()).into());
     }
     // Replace arbitrary whitespace by a single space and try again
     let recombined = input.split_whitespace().collect::<Vec<_>>().join(" ");

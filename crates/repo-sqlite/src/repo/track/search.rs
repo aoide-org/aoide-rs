@@ -8,7 +8,7 @@ use aoide_core::{
         ChannelFlags, DurationMs,
     },
     tag::FacetKey,
-    util::clock::YYYYMMDD,
+    util::clock::YyyyMmDdDateValue,
     PlaylistUid, TrackUid,
 };
 use aoide_core_api::{tag::search::Filter as TagFilter, track::search::*};
@@ -636,22 +636,22 @@ fn build_numeric_field_filter_expression(
         RecordedAtDate => {
             let expr = view_track_search::recorded_at_yyyymmdd;
             let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
+            // TODO: Check and limit/clamp value range when converting from f64 to YyyyMmDdDateValue
             match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as YYYYMMDD)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as YYYYMMDD)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as YYYYMMDD)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as YYYYMMDD)),
+                LessThan(value) => Box::new(expr_not_null.lt(value as YyyyMmDdDateValue)),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value as YyyyMmDdDateValue)),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value as YyyyMmDdDateValue)),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as YyyyMmDdDateValue)),
                 Equal(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as YYYYMMDD))
+                        Box::new(expr_not_null.eq(value as YyyyMmDdDateValue))
                     } else {
                         Box::new(expr.is_null())
                     }
                 }
                 NotEqual(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as YYYYMMDD))
+                        Box::new(expr_not_null.ne(value as YyyyMmDdDateValue))
                     } else {
                         Box::new(expr.is_not_null())
                     }
@@ -661,22 +661,22 @@ fn build_numeric_field_filter_expression(
         ReleasedAtDate => {
             let expr = view_track_search::released_at_yyyymmdd;
             let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
+            // TODO: Check and limit/clamp value range when converting from f64 to YyyyMmDdDateValue
             match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as YYYYMMDD)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as YYYYMMDD)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as YYYYMMDD)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as YYYYMMDD)),
+                LessThan(value) => Box::new(expr_not_null.lt(value as YyyyMmDdDateValue)),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value as YyyyMmDdDateValue)),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value as YyyyMmDdDateValue)),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as YyyyMmDdDateValue)),
                 Equal(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as YYYYMMDD))
+                        Box::new(expr_not_null.eq(value as YyyyMmDdDateValue))
                     } else {
                         Box::new(expr.is_null())
                     }
                 }
                 NotEqual(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as YYYYMMDD))
+                        Box::new(expr_not_null.ne(value as YyyyMmDdDateValue))
                     } else {
                         Box::new(expr.is_not_null())
                     }
@@ -686,22 +686,22 @@ fn build_numeric_field_filter_expression(
         ReleasedOrigAtDate => {
             let expr = view_track_search::released_orig_at_yyyymmdd;
             let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
+            // TODO: Check and limit/clamp value range when converting from f64 to YyyyMmDdDateValue
             match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as YYYYMMDD)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as YYYYMMDD)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as YYYYMMDD)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as YYYYMMDD)),
+                LessThan(value) => Box::new(expr_not_null.lt(value as YyyyMmDdDateValue)),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value as YyyyMmDdDateValue)),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value as YyyyMmDdDateValue)),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as YyyyMmDdDateValue)),
                 Equal(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as YYYYMMDD))
+                        Box::new(expr_not_null.eq(value as YyyyMmDdDateValue))
                     } else {
                         Box::new(expr.is_null())
                     }
                 }
                 NotEqual(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as YYYYMMDD))
+                        Box::new(expr_not_null.ne(value as YyyyMmDdDateValue))
                     } else {
                         Box::new(expr.is_not_null())
                     }

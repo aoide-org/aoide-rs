@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{media::content::ContentPath, util::clock::DateTime};
+use aoide_core::{media::content::ContentPath, util::clock::OffsetDateTimeMs};
 use aoide_core_api::media::tracker::{DirTrackingStatus, DirectoriesStatus};
 
 use super::*;
@@ -51,7 +51,7 @@ impl From<DirUpdateOutcome> for DirTrackingStatus {
 pub trait Repo {
     fn media_tracker_update_directories_status(
         &mut self,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
         old_status: Option<DirTrackingStatus>,
@@ -60,7 +60,7 @@ pub trait Repo {
 
     fn media_tracker_update_directory_digest(
         &mut self,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         collection_id: CollectionId,
         content_path: &ContentPath<'_>,
         digest: &DigestBytes,
@@ -98,7 +98,7 @@ pub trait Repo {
     /// a directory traversal with calculating new digests.
     fn media_tracker_mark_current_directories_outdated(
         &mut self,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize> {
@@ -115,7 +115,7 @@ pub trait Repo {
     /// as orphaned.
     fn media_tracker_mark_outdated_directories_orphaned(
         &mut self,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize> {
@@ -155,7 +155,7 @@ pub trait Repo {
     /// current. Returns false if the operation has been rejected.
     fn media_tracker_confirm_directory(
         &mut self,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         collection_id: CollectionId,
         directory_path: &ContentPath<'_>,
         digest: &DigestBytes,

@@ -7,7 +7,7 @@ use aoide_core::{
         actor::{Kind as ActorKind, Role as ActorRole},
         title::Kind as TitleKind,
     },
-    util::clock::{DateOrDateTime, DateTime},
+    util::clock::{DateOrDateTime, OffsetDateTimeMs},
     PlaylistUid, TrackUid,
 };
 use strum::FromRepr;
@@ -58,7 +58,7 @@ pub enum ConditionFilter {
 
 pub type NumericFieldFilter = ScalarFieldFilter<NumericField, NumericValue>;
 
-pub type DateTimeFieldFilter = ScalarFieldFilter<DateTimeField, DateTime>;
+pub type DateTimeFieldFilter = ScalarFieldFilter<DateTimeField, OffsetDateTimeMs>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PhraseFieldFilter {
@@ -176,7 +176,7 @@ impl Filter {
             }),
             DateOrDateTime::Date(date) => Self::Numeric(NumericFieldFilter {
                 field: NumericField::RecordedAtDate,
-                predicate: NumericPredicate::Equal(Some(date.to_inner().into())),
+                predicate: NumericPredicate::Equal(Some(date.value().into())),
             }),
         }
     }
@@ -190,7 +190,7 @@ impl Filter {
             }),
             DateOrDateTime::Date(date) => Self::Numeric(NumericFieldFilter {
                 field: NumericField::ReleasedAtDate,
-                predicate: NumericPredicate::Equal(Some(date.to_inner().into())),
+                predicate: NumericPredicate::Equal(Some(date.value().into())),
             }),
         }
     }
@@ -204,7 +204,7 @@ impl Filter {
             }),
             DateOrDateTime::Date(date) => Self::Numeric(NumericFieldFilter {
                 field: NumericField::ReleasedOrigAtDate,
-                predicate: NumericPredicate::Equal(Some(date.to_inner().into())),
+                predicate: NumericPredicate::Equal(Some(date.value().into())),
             }),
         }
     }

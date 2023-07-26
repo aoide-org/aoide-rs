@@ -42,8 +42,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
                 let header = RecordHeader {
                     id: row_id.into(),
-                    created_at: DateTime::new_timestamp_millis(row_created_ms),
-                    updated_at: DateTime::new_timestamp_millis(row_updated_ms),
+                    created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
+                    updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
                 };
                 (header, decode_entity_revision(entity_rev))
             })
@@ -51,7 +51,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn insert_collection_entity(
         &mut self,
-        created_at: DateTime,
+        created_at: OffsetDateTimeMs,
         created_entity: &CollectionEntity,
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(created_at, created_entity);
@@ -64,7 +64,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn touch_collection_entity_revision(
         &mut self,
         entity_header: &EntityHeader,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
         let EntityHeader { uid, rev } = entity_header;
         let next_rev = rev
@@ -89,7 +89,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn update_collection_entity(
         &mut self,
         id: RecordId,
-        updated_at: DateTime,
+        updated_at: OffsetDateTimeMs,
         updated_entity: &CollectionEntity,
     ) -> RepoResult<()> {
         let updatable =

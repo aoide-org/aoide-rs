@@ -6,7 +6,7 @@ use std::io::BufReader;
 use aoide_core::{
     media::content::{resolver::vfs::VfsResolver, ContentLink, ContentPath, ContentRevision},
     track::Track,
-    util::clock::DateTime,
+    util::clock::OffsetDateTimeMs,
 };
 use aoide_core_api::media::SyncMode;
 use aoide_media_file::{
