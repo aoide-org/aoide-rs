@@ -195,7 +195,7 @@ impl TrackFields {
             doc.add_text(self.collection_uid, collection_uid);
         }
         doc.add_text(self.uid, &entity.hdr.uid);
-        doc.add_u64(self.rev, entity.hdr.rev.to_inner());
+        doc.add_u64(self.rev, entity.hdr.rev.value());
         doc.add_text(
             self.content_path,
             &entity.body.track.media_source.content.link.path,
@@ -350,9 +350,12 @@ impl TrackFields {
 
     #[must_use]
     pub fn read_rev(&self, doc: &Document) -> Option<EntityRevision> {
-        doc.get_first(self.rev)
+        let rev = doc
+            .get_first(self.rev)
             .and_then(Value::as_u64)
-            .map(EntityRevision::new)
+            .map(EntityRevision::new_unchecked)?;
+        debug_assert!(rev.is_valid());
+        Some(rev)
     }
 
     pub fn find_rev_by_uid(

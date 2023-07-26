@@ -271,7 +271,7 @@ impl AsRef<str> for EncodedEntityUid {
 ///////////////////////////////////////////////////////////////////////
 
 // A 1-based, non-negative, monotonously increasing number
-pub type EntityRevisionNumber = u64;
+pub type EntityRevisionValue = u64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
@@ -279,51 +279,53 @@ pub type EntityRevisionNumber = u64;
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct EntityRevision(EntityRevisionNumber);
+pub struct EntityRevision(EntityRevisionValue);
 
 impl EntityRevision {
-    const fn initial() -> Self {
-        Self(1)
+    #[must_use]
+    pub const fn new_unchecked(value: EntityRevisionValue) -> Self {
+        Self(value)
     }
+
+    #[must_use]
+    pub const fn value(self) -> EntityRevisionValue {
+        let Self(value) = self;
+        value
+    }
+
+    #[cfg(test)]
+    const RESERVED_DEFAULT: Self = Self(0);
+
+    const INITIAL: Self = Self(1);
 
     #[must_use]
     pub fn is_initial(self) -> bool {
-        self == Self::initial()
+        self == Self::INITIAL
     }
 
+    #[must_use]
     pub fn prev(self) -> Option<Self> {
         debug_assert!(self.is_valid());
-        let Self(next) = self;
-        next.checked_sub(1).map(Self::new)
+        let Self(value) = self;
+        let prev = Self::new_unchecked(value.checked_sub(1)?);
+        #[cfg(not(test))] // Allow for testing with invalid revisions
+        debug_assert!(prev.is_valid());
+        Some(prev)
     }
 
+    #[must_use]
     pub fn next(self) -> Option<Self> {
         debug_assert!(self.is_valid());
-        let Self(prev) = self;
-        prev.checked_add(1).map(Self::new)
+        let Self(value) = self;
+        let next = Self::new_unchecked(value.checked_add(1)?);
+        #[cfg(not(test))] // Allow for testing with invalid revisions
+        debug_assert!(next.is_valid());
+        Some(next)
     }
 
     #[must_use]
-    pub const fn new(inner: EntityRevisionNumber) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub const fn to_inner(self) -> EntityRevisionNumber {
-        let Self(inner) = self;
-        inner
-    }
-}
-
-impl From<EntityRevisionNumber> for EntityRevision {
-    fn from(from: EntityRevisionNumber) -> Self {
-        Self::new(from)
-    }
-}
-
-impl From<EntityRevision> for EntityRevisionNumber {
-    fn from(from: EntityRevision) -> Self {
-        from.to_inner()
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
     }
 }
 
@@ -337,7 +339,7 @@ impl Validate for EntityRevision {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(*self < Self::initial(), Self::Invalidity::OutOfRange)
+            .invalidate_if(*self < Self::INITIAL, Self::Invalidity::OutOfRange)
             .into()
     }
 }
@@ -372,10 +374,9 @@ impl EntityHeader {
 
     #[must_use]
     pub fn initial_with_uid<T: Into<EntityUid>>(uid: T) -> Self {
-        let initial_rev = EntityRevision::initial();
         Self {
             uid: uid.into(),
-            rev: initial_rev,
+            rev: EntityRevision::INITIAL,
         }
     }
 

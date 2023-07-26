@@ -67,20 +67,20 @@ fn should_fail_to_decode_too_short_string() {
 
 #[test]
 fn rev_sequence() {
-    let initial = EntityRevision::initial();
+    let initial = EntityRevision::INITIAL;
     assert!(initial.validate().is_ok());
     let invalid = initial.prev().unwrap();
     assert!(invalid.validate().is_err());
 
     let next = initial.next().unwrap();
     assert!(next.validate().is_ok());
-    assert_ne!(EntityRevision::initial(), next);
-    assert_eq!(EntityRevision::initial(), next.prev().unwrap());
+    assert_ne!(EntityRevision::INITIAL, next);
+    assert_eq!(EntityRevision::INITIAL, next.prev().unwrap());
     assert!(initial < next);
 
     let nextnext = next.next().unwrap();
     assert!(nextnext.validate().is_ok());
-    assert_ne!(EntityRevision::initial(), next);
+    assert_ne!(EntityRevision::INITIAL, next);
     assert!(next < nextnext);
 }
 
@@ -88,7 +88,7 @@ fn rev_sequence() {
 fn hdr_without_uid() {
     let hdr = EntityHeader::initial_with_uid(EntityUid::default());
     assert!(hdr.validate().is_err());
-    assert_eq!(EntityRevision::initial(), hdr.rev);
+    assert_eq!(EntityRevision::INITIAL, hdr.rev);
 }
 
 #[test]
@@ -96,9 +96,22 @@ fn should_generate_unique_initial_hdrs() {
     let hdr1 = EntityHeader::initial_random();
     let hdr2 = EntityHeader::initial_random();
     assert!(hdr1.validate().is_ok());
-    assert_eq!(EntityRevision::initial(), hdr1.rev);
+    assert_eq!(EntityRevision::INITIAL, hdr1.rev);
     assert!(hdr2.validate().is_ok());
-    assert_eq!(EntityRevision::initial(), hdr2.rev);
+    assert_eq!(EntityRevision::INITIAL, hdr2.rev);
     assert_ne!(hdr1.uid, hdr2.uid);
     assert_eq!(hdr1.rev, hdr2.rev);
+}
+
+#[test]
+fn default_entity_revision() {
+    assert_eq!(EntityRevision::RESERVED_DEFAULT, EntityRevision::default());
+    assert!(!EntityRevision::RESERVED_DEFAULT.is_valid());
+}
+
+#[test]
+fn initial_entity_revision() {
+    assert!(EntityRevision::INITIAL.is_valid());
+    assert!(!EntityRevision::INITIAL.prev().unwrap().is_valid());
+    assert!(EntityRevision::INITIAL.next().unwrap().is_valid());
 }

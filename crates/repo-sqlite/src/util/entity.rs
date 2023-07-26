@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{
-    EncodedEntityUid, EntityHeader, EntityRevision, EntityRevisionNumber, EntityUid, EntityUidTyped,
+    EncodedEntityUid, EntityHeader, EntityRevision, EntityRevisionValue, EntityUid, EntityUidTyped,
 };
 
 pub(crate) fn decode_entity_uid(uid: &str) -> EntityUid {
@@ -24,11 +24,13 @@ pub(crate) fn encode_entity_uid(uid: &impl AsRef<EntityUid>) -> String {
 }
 
 pub(crate) fn decode_entity_revision(rev: i64) -> EntityRevision {
-    EntityRevision::new(rev as EntityRevisionNumber)
+    let decoded = EntityRevision::new_unchecked(rev as EntityRevisionValue);
+    debug_assert!(decoded.is_valid());
+    decoded
 }
 
 pub(crate) fn encode_entity_revision(rev: EntityRevision) -> i64 {
-    rev.to_inner() as i64
+    rev.value() as _
 }
 
 pub(crate) fn decode_entity_header(uid: &str, rev: i64) -> EntityHeader {
