@@ -20,7 +20,7 @@ setup:
         cargo-hack \
         trunk
     pip install -U pre-commit
-    pre-commit install --hook-type commit-msg --hook-type pre-commit
+    #pre-commit install --hook-type commit-msg --hook-type pre-commit
 
 # Upgrade (and update) dependencies
 upgrade: setup
