@@ -11,8 +11,8 @@ Some build tools require _Python_.
 
 ### Install the _Rust_ toolchain
 
-Install the appropriate _Rust_ toolchain for your native OS/platform
-by following these [instructions](https://www.rust-lang.org/tools/install).
+Install the appropriate _Rust_ toolchain for your native OS/platform by
+following these [instructions](https://www.rust-lang.org/tools/install).
 
 We are using the `stable` toolchain only.
 
@@ -30,7 +30,8 @@ cargo install just
 
 ### Install build tooling
 
-The remaining setup of all build tooling is accomplished by running the following command:
+The remaining setup of all build tooling is accomplished by running the
+following command:
 
 ```sh
 just setup
@@ -67,9 +68,9 @@ The following build profiles are available.
 
 ### Run configuration
 
-The last settings are stored in a local configuration file and could
-be overridden by both environment variables and a _dotenv_ (`.env`) file.
-Watch the log messages for details.
+The last settings are stored in a local configuration file and could be
+overridden by both environment variables and a _dotenv_ (`.env`) file. Watch the
+log messages for details.
 
-When started without any environment variables set the _Launcher UI_
-will appear. Set `LAUNCH_HEADLESS=true` to suppress the _Launcher UI_.
+When started without any environment variables set the _Launcher UI_ will
+appear. Set `LAUNCH_HEADLESS=true` to suppress the _Launcher UI_.

@@ -25,13 +25,13 @@ The value of a sample-based measurement will vary depending on the actual sample
 rate while the time-based measurement is independent of the sample rate.
 
 Time-based measurements could be represented by different units. A common
-representation are seconds (SI unit) stored with fractional digits, i.e.
-a floating-point number or fixed-point representation.
+representation are seconds (SI unit) stored with fractional digits, i.e. a
+floating-point number or fixed-point representation.
 
-Depending on the use case an integer representation might be sufficient
-if sub-seconds are used as the unit, i.e milliseconds or microcseconds.
-Milliseconds should provide an acceptable compromise between readability
-and precision.
+Depending on the use case an integer representation might be sufficient if
+sub-seconds are used as the unit, i.e milliseconds or microcseconds.
+Milliseconds should provide an acceptable compromise between readability and
+precision.
 
 ## Decision
 
@@ -43,16 +43,16 @@ Values will be encoded as floating-point numbers using milliseconds as the unit.
 
 ## Consequences
 
-Seconds as a floating-point number are a commonly used for positions and durations.
-When importing or exporting data one has to convert between seconds and milliseconds
-by multiplying/dividing by 1000.
+Seconds as a floating-point number are a commonly used for positions and
+durations. When importing or exporting data one has to convert between seconds
+and milliseconds by multiplying/dividing by 1000.
 
-Since the internal representation uses floating-point the actual unit doesn't really
-matter, not considering slight rounding errors caused by binary vs. decimal
-floating-point encoding. But if the number of decimal places of the textual
-representation is limited or fixed then using milliseconds provides a higher
-precision.
+Since the internal representation uses floating-point the actual unit doesn't
+really matter, not considering slight rounding errors caused by binary vs.
+decimal floating-point encoding. But if the number of decimal places of the
+textual representation is limited or fixed then using milliseconds provides a
+higher precision.
 
-Using integers with millisecond precision (e.g. for track durations) will improve
-the readability in JSON and is more compact. Floating-point numbers in JSON do not
-require a decimal point.
+Using integers with millisecond precision (e.g. for track durations) will
+improve the readability in JSON and is more compact. Floating-point numbers in
+JSON do not require a decimal point.

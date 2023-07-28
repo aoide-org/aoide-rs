@@ -12,8 +12,8 @@ issue you have might not be directly be related to this project's own code base.
 When filing an issue, do your best to be as specific as possible. Use a short
 and concise title that fits into a single line. Like any good commit message
 titles don't end with a period ;) Add a comprehensive description that explains
-your motivation and includes steps to reproduce exceptional behaviour in case
-of a bug.
+your motivation and includes steps to reproduce exceptional behaviour in case of
+a bug.
 
 ## Writing Code
 
@@ -21,10 +21,10 @@ of a bug.
 
 All code written in Rust should follow the [Rust API Guidelines].
 
-Use existing code as a template, but do **not** copy it blindly. Remember
-that code, even when written by the most experienced contributor long ago,
-might not comply with the current version of the guide. When in doubt
-don't hesitate to ask for help or advice.
+Use existing code as a template, but do **not** copy it blindly. Remember that
+code, even when written by the most experienced contributor long ago, might not
+comply with the current version of the guide. When in doubt don't hesitate to
+ask for help or advice.
 
 [rust api guidelines]: https://rust-lang-nursery.github.io/api-guidelines/
 
@@ -39,8 +39,8 @@ rustup override set stable
 
 ### Keep Rust and all Components up-to-date
 
-We closely follow all updates of `stable` Rust and its components. Keep your installation up-to-date with the
-following command:
+We closely follow all updates of `stable` Rust and its components. Keep your
+installation up-to-date with the following command:
 
 ```sh
 rustup update stable
@@ -48,12 +48,12 @@ rustup update stable
 
 ### Format the Code
 
-Before submitting code in a PR, make sure that you have formatted the codebase using
-[rustfmt][rustfmt]. `rustfmt` is a tool for formatting Rust code, which helps keep style
-consistent across the project.
+Before submitting code in a PR, make sure that you have formatted the codebase
+using [rustfmt][rustfmt]. `rustfmt` is a tool for formatting Rust code, which
+helps keep style consistent across the project.
 
-If you have not already configured `rustfmt` for the stable toolchain, install the most recent
-version of `rustfmt` using this command:
+If you have not already configured `rustfmt` for the stable toolchain, install
+the most recent version of `rustfmt` using this command:
 
 ```sh
 rustup component add rustfmt-preview --toolchain stable
@@ -65,9 +65,10 @@ To run `rustfmt`, use this command:
 cargo fmt
 ```
 
-You can configure a git pre-commit hook (see [Customizing Git - Git Hooks][githooks])
-to make sure you only commit properly formatted code. This [hook][hook] emits an
-error when code is not formatted according to `rustfmt` or tests fail.
+You can configure a git pre-commit hook (see [Customizing Git - Git
+Hooks][githooks]) to make sure you only commit properly formatted code. This
+[hook][hook] emits an error when code is not formatted according to `rustfmt` or
+tests fail.
 
 [rustfmt]: https://github.com/rust-lang-nursery/rustfmt/
 [githooks]: https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
@@ -75,9 +76,9 @@ error when code is not formatted according to `rustfmt` or tests fail.
 
 ### Check the Coding Style
 
-You should regularly check your coding style with [Clippy] avoid common
-pitfalls and get the most out of Rust. This might not work as expected
-at any time until [Clippy] finally becomes available in the stable toolchain.
+You should regularly check your coding style with [Clippy] avoid common pitfalls
+and get the most out of Rust. This might not work as expected at any time until
+[Clippy] finally becomes available in the stable toolchain.
 
 First update your `nightly` toolchain:
 
@@ -104,11 +105,12 @@ cargo +nightly clippy
 Keep your change sets small per commit:
 
 - Revert any unnecessary changes or changes to unrelated files
-- Use separate commits when moving or renaming files and when fixing formatting issues with `rustfmt`
+- Use separate commits when moving or renaming files and when fixing formatting
+  issues with `rustfmt`
 - Don't accidentally check in any temporary files
 
-Make sure that the code compiles without errors. The only exception is allowed for tests that might neither compile
-nor succeed for an intermediate commit.
+Make sure that the code compiles without errors. The only exception is allowed
+for tests that might neither compile nor succeed for an intermediate commit.
 
 Try _really_ hard to follow [The seven rules of a great Git commit message]:
 
@@ -124,21 +126,24 @@ The [Atom editor] has built-in syntax highlighting for git commit messages. You
 may use it to help your commit messages comply with the rules above. Check out
 [how to configure Atom to be your Git commit editor].
 
-[the seven rules of a great git commit message]: https://chris.beams.io/posts/git-commit/
+[the seven rules of a great git commit message]:
+  https://chris.beams.io/posts/git-commit/
 [atom editor]: https://www.atom.io
-[how to configure atom to be your git commit editor]: http://blog.atom.io/2014/03/13/git-integration.html#commit-editor
+[how to configure atom to be your git commit editor]:
+  http://blog.atom.io/2014/03/13/git-integration.html#commit-editor
 
 ## Submitting a Merge Request (MR)
 
-If you are considering to submit a merge request, make sure that there's an issue
-filed for the work you'd like to do. There might be some discussion required!
-Filing an issue first helps to ensure that the work you put into your merge
-request is acceptable for all participants of the project and will get merged. :)
+If you are considering to submit a merge request, make sure that there's an
+issue filed for the work you'd like to do. There might be some discussion
+required! Filing an issue first helps to ensure that the work you put into your
+merge request is acceptable for all participants of the project and will get
+merged. :)
 
 Before you submit your merge request, check that you have completed all of the
-steps and followed the rules mentioned above in _Writing Code_. Finally link
-the issue that your merge request is responding to in the descriptive text of
-the MR.
+steps and followed the rules mentioned above in _Writing Code_. Finally link the
+issue that your merge request is responding to in the descriptive text of the
+MR.
 
 ## Conduct
 
