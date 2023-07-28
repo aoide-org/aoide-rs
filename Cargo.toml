@@ -7,22 +7,7 @@
 [workspace]
 members = [
   ".",
-  "crates/backend-embedded",
-  "crates/backend-webapi-json",
-  "crates/client",
-  "crates/core",
-  "crates/core-json",
-  "crates/core-api",
-  "crates/core-api-json",
-  "crates/desktop-app",
-  "crates/media-file",
-  "crates/repo",
-  "crates/repo-sqlite",
-  "crates/search-index-tantivy",
-  "crates/storage-sqlite",
-  "crates/usecases",
-  "crates/usecases-sqlite",
-  "crates/websrv-warp-sqlite",
+  "crates/*",
   "webcli",
   "websrv",
 ]
