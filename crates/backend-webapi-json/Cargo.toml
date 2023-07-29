@@ -15,7 +15,7 @@ anyhow = "1.0.72"
 diesel = { version = "2.1.0", default-features = false, features = ["sqlite"] }
 log = "0.4.19"
 nonicle = "0.1.0"
-serde = { version = "1.0.177" }
+serde = { version = "1.0.178" }
 thiserror = "1.0.44"
 url = "2.4.0"
 

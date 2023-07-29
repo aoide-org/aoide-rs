@@ -14,7 +14,7 @@ rust-version = { workspace = true }
 anyhow = "1.0.72"
 diesel = { version = "2.1.0", default-features = false, features = ["sqlite"] }
 log = "0.4.19"
-serde = { version = "1.0.177", features = ["derive"] }
+serde = { version = "1.0.178", features = ["derive"] }
 thiserror = "1.0.44"
 
 # Workspace dependencies
