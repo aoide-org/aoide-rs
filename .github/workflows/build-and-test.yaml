@@ -22,7 +22,7 @@ env:
   RUST_BACKTRACE: short
 
 jobs:
-  build-and-test:
+  the-job:
     strategy:
       matrix:
         include:
@@ -78,6 +78,11 @@ jobs:
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          # The cache should not be shared between different workflows and jobs.
+          shared-key: ${{ github.workflow }}-${{ github.job }}
+          # Two jobs might share the same default target but have different build targets.
+          key: ${{ matrix.target }}
 
       - name: Check aoide-core
         run: |

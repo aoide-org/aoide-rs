@@ -19,8 +19,9 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  pre-commit:
+  the-job:
     runs-on: ubuntu-latest
+
     steps:
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -39,6 +40,9 @@ jobs:
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          # The cache should not be shared between different workflows and jobs.
+          shared-key: ${{ github.workflow }}-${{ github.job }}
 
       - name: Detect code style issues (push)
         uses: pre-commit/action@v3.0.0

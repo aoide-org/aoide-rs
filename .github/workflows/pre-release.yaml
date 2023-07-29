@@ -78,6 +78,9 @@ jobs:
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          # The cache should not be shared between different workflows and jobs.
+          shared-key: ${{ github.workflow }}-${{ github.job }}
 
       - name: Build artifact
         run: |
@@ -105,7 +108,9 @@ jobs:
   create-release-draft:
     needs: build-and-upload-artifacts
     if: startsWith(github.ref, 'refs/tags/v')
+
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
