@@ -39,9 +39,6 @@ jobs:
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
-        with:
-          # Distinguished by the action name to avoid sharing between different actions.
-          shared-key: "pre-commit"
 
       - name: Detect code style issues (push)
         uses: pre-commit/action@v3.0.0

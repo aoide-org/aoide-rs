@@ -26,8 +26,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-audit
-        run: |
-          cargo install cargo-audit
+        run: cargo install cargo-audit
 
       # Checkout the repository before the remaining steps that depend on it.
       # All preceding steps are independent of the repository contents.
@@ -35,10 +34,6 @@ jobs:
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
-        with:
-          # Distinguished by the action name to avoid sharing between different actions.
-          shared-key: "security-audit"
 
       - name: Run security audit
-        run: |
-          cargo audit --deny unsound --deny yanked
+        run: cargo audit --deny unsound --deny yanked
