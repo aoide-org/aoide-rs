@@ -19,7 +19,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  the-job:
+  run:
     runs-on: ubuntu-latest
 
     steps:

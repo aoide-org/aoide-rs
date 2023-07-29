@@ -22,7 +22,7 @@ env:
   RUST_BACKTRACE: short
 
 jobs:
-  the-job:
+  run:
     strategy:
       matrix:
         include:
@@ -42,7 +42,7 @@ jobs:
     steps:
       - name: Install dependencies for musl libc
         if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
+        run: >+
           sudo apt update && \
           sudo apt -y install \
           musl-tools
@@ -50,7 +50,7 @@ jobs:
       # See also: <https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml>
       - name: Install dependencies for `egui` on Linux
         if: runner.os == 'Linux'
-        run: |
+        run: >+
           sudo apt update && \
           sudo apt -y install \
           libgtk-3-dev \
@@ -63,8 +63,7 @@ jobs:
       # See also: <https://github.com/rusqlite/rusqlite/blob/master/.github/workflows/main.yml>
       - name: Add LLVM path on Windows
         if: runner.os == 'Windows'
-        run: |
-          echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        run: echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install Rust toolchains for both native target and WASM
         uses: dtolnay/rust-toolchain@stable
@@ -85,82 +84,102 @@ jobs:
           key: ${{ matrix.target }}
 
       - name: Check aoide-core
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/core/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/core/Cargo.toml
 
       - name: Check aoide-core-json
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/core-json/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/core-json/Cargo.toml
 
       - name: Check aoide-core-api
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/core-api/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/core-api/Cargo.toml
 
       - name: Check aoide-core-api-json
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/core-api-json/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/core-api-json/Cargo.toml
 
       - name: Check aoide-desktop-app
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/desktop-app/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/desktop-app/Cargo.toml
 
       - name: Check aoide-media
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/media-file/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/media-file/Cargo.toml
 
       - name: Check aoide-repo
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/repo/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/repo/Cargo.toml
 
       - name: Check aoide-repo-sqlite
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/repo-sqlite/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/repo-sqlite/Cargo.toml
 
       - name: Check aoide-storage-sqlite
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/storage-sqlite/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/storage-sqlite/Cargo.toml
 
       - name: Check aoide-search-index-tantivy
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/search-index-tantivy/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/search-index-tantivy/Cargo.toml
 
       - name: Check aoide-usecases
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/usecases/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/usecases/Cargo.toml
 
       - name: Check aoide-usecases-sqlite
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/usecases-sqlite/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/usecases-sqlite/Cargo.toml
 
       - name: Check aoide-backend-embedded
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/backend-embedded/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/backend-embedded/Cargo.toml
 
       - name: Check aoide-backend-webapi-json
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/backend-webapi-json/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/backend-webapi-json/Cargo.toml
 
       - name: Check aoide-websrv-warp-sqlite
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/websrv-warp-sqlite/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/websrv-warp-sqlite/Cargo.toml
 
       - name: Check aoide-websrv
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path websrv/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path websrv/Cargo.toml
 
       - name: Check aoide-client
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path crates/client/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path crates/client/Cargo.toml
 
       - name: Check aoide-webcli
-        run: |
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features --manifest-path webcli/Cargo.toml
+        run: >-
+          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
+          --manifest-path webcli/Cargo.toml
 
       - name: Build tests with all features enabled
-        run: |
-          cargo test --locked --target  ${{ matrix.target }} --workspace --all-targets --all-features --no-run
+        run: >-
+          cargo test --locked --target  ${{ matrix.target }} --workspace --all-targets --all-features
+          --no-run
 
       - name: Run tests with all features enabled
         if: matrix.run_tests
-        run: |
-          cargo test --locked --target  ${{ matrix.target }} --workspace --all-targets --all-features -- --nocapture --quiet
+        run: >-
+          cargo test --locked --target  ${{ matrix.target }} --workspace --all-targets --all-features
+          -- --nocapture --quiet

@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  the-job:
+  run:
     runs-on: ubuntu-latest
 
     steps:

@@ -22,10 +22,6 @@ jobs:
           - aoide-websrv
         build_profile:
           - production
-        target:
-          - aarch64-apple-darwin
-          - x86_64-unknown-linux-musl
-          - x86_64-pc-windows-msvc
         include:
           - target: aarch64-apple-darwin
             runner_os: macos-latest
@@ -42,7 +38,7 @@ jobs:
     steps:
       - name: Install dependencies for `musl libc` on Linux
         if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
+        run: >+
           sudo apt update && \
           sudo apt -y install \
           musl-tools
@@ -50,7 +46,7 @@ jobs:
       # See also: <https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml>
       - name: Install dependencies for `egui` on Linux
         if: runner.os == 'Linux'
-        run: |
+        run: >+
           sudo apt update && \
           sudo apt -y install \
           libgtk-3-dev \
@@ -63,8 +59,7 @@ jobs:
       # See also: <https://github.com/rusqlite/rusqlite/blob/master/.github/workflows/main.yml>
       - name: Add LLVM path on Windows
         if: runner.os == 'Windows'
-        run: |
-          echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        run: echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -83,18 +78,17 @@ jobs:
           shared-key: ${{ github.workflow }}-${{ github.job }}
 
       - name: Build artifact
-        run: |
-          cargo build --locked --target ${{ matrix.target }} --profile ${{ matrix.build_profile }} --package ${{ matrix.build_package }}
+        run: cargo build --locked --target ${{ matrix.target }} --profile ${{ matrix.build_profile }} --package ${{ matrix.build_package }}
 
       - name: Prepare artifact on Linux/macOS
         if: runner.os != 'Windows'
-        run: |
+        run: >+
           cd target/${{ matrix.target }}/${{ matrix.build_profile }}
           tar cJvf ../../../${{ matrix.build_package }}-${{ matrix.target }}${{ matrix.artifact_suffix }} ${{ matrix.build_package }}
           cd -
       - name: Prepare artifact on Windows
         if: runner.os == 'Windows'
-        run: |
+        run: >+
           cd target/${{ matrix.target }}/${{ matrix.build_profile }}
           7z a ../../../${{ matrix.build_package }}-${{ matrix.target }}${{ matrix.artifact_suffix }} ${{ matrix.build_package }}.exe
           cd -
@@ -121,7 +115,11 @@ jobs:
         uses: actions/download-artifact@v3
 
       - name: Generate artifact checksums
-        run: for file in ${{ matrix.build_package }}-*/${{ matrix.build_package }}-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+        run: >-
+          for file in ${{ matrix.build_package }}-*/${{ matrix.build_package }}-*;
+          do
+            openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256";
+          done
 
       - name: Extract release notes from changelog
         run: cat CHANGELOG.md | tail -n +7 | head -n 25 > RELEASE_NOTES.md
