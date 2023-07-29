@@ -16,7 +16,6 @@ env:
 
 jobs:
   build-and-upload-artifacts:
-    runs-on: ${{ matrix.runner_os }}
     strategy:
       matrix:
         build_package:
@@ -24,31 +23,42 @@ jobs:
         build_profile:
           - production
         target:
+          - aarch64-apple-darwin
           - x86_64-unknown-linux-musl
-          - x86_64-apple-darwin
           - x86_64-pc-windows-msvc
         include:
+          - target: aarch64-apple-darwin
+            runner_os: macos-latest
+            artifact_suffix: .tar.xz
           - target: x86_64-unknown-linux-musl
             runner_os: ubuntu-latest
-            artifact_suffix: .tar.xz
-          - target: x86_64-apple-darwin
-            runner_os: macos-latest
             artifact_suffix: .tar.xz
           - target: x86_64-pc-windows-msvc
             runner_os: windows-latest
             artifact_suffix: .7z
 
+    runs-on: ${{ matrix.runner_os }}
+
     steps:
       - name: Install dependencies for `musl libc` on Linux
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
-          sudo apt -y install musl-tools
+          sudo apt update && \
+          sudo apt -y install \
+          musl-tools
 
       # See also: <https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml>
       - name: Install dependencies for `egui` on Linux
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev
+          sudo apt update && \
+          sudo apt -y install \
+          libgtk-3-dev \
+          libssl-dev \
+          libxcb-render0-dev \
+          libxcb-shape0-dev \
+          libxcb-xfixes0-dev \
+          libxkbcommon-dev
 
       # See also: <https://github.com/rusqlite/rusqlite/blob/master/.github/workflows/main.yml>
       - name: Add LLVM path on Windows
@@ -74,7 +84,7 @@ jobs:
           cargo build --locked --target ${{ matrix.target }} --profile ${{ matrix.build_profile }} --package ${{ matrix.build_package }}
 
       - name: Prepare artifact on Linux/macOS
-        if: runner.os == 'Linux' || runner.os == 'macOS'
+        if: runner.os != 'Windows'
         run: |
           cd target/${{ matrix.target }}/${{ matrix.build_profile }}
           tar cJvf ../../../${{ matrix.build_package }}-${{ matrix.target }}${{ matrix.artifact_suffix }} ${{ matrix.build_package }}
