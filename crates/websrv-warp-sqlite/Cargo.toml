@@ -14,7 +14,7 @@ publish = false
 [dependencies]
 anyhow = "1.0.72"
 log = "0.4.19"
-serde = "1.0.178"
+serde = "1.0.179"
 thiserror = "1.0.44"
 warp = { version = "0.3.5", default-features = false }
 
