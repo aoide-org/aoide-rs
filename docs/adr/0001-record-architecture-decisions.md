@@ -20,5 +20,5 @@ We will use Architecture Decision Records, as
 
 ## Consequences
 
-See Michael Nygard's article, linked above. For a lightweight ADR toolset, see
-Nat Pryce's [adr-tools](https://github.com/npryce/adr-tools).
+See Michael Nygard's article, linked above. For a lightweight ADR toolset, see Nat Pryce's
+[adr-tools](https://github.com/npryce/adr-tools).

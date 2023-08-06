@@ -5,9 +5,8 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
@@ -29,8 +28,8 @@ and this project adheres to
 
 ## [0.7.4] - 2020-09-26
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
 ### Added
 
@@ -46,15 +45,14 @@ databases need to be rebuilt.**
 
 ## [0.7.3] - 2020-06-14
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
 ### Added
 
 - Added _measure position_ to beat marker
 - Added support for beat loops to _cue markers_
-- Added optional _out behavior_ (stop/loop/next) to cue markers for quick edits
-  and loops
+- Added optional _out behavior_ (stop/loop/next) to cue markers for quick edits and loops
 
 ### Changed
 
@@ -65,14 +63,14 @@ databases need to be rebuilt.**
 
 ### Removed
 
-- Removed end position of key and beat marker, i.e. store only a single position
-  for each beat and key marker
+- Removed end position of key and beat marker, i.e. store only a single position for each beat and
+  key marker
 - Removed optional (geographical) location field for playlists
 
 ## [0.7.2] - 2020-05-03
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
 ### Changed
 
@@ -81,8 +79,8 @@ databases need to be rebuilt.**
 
 ## [0.7.1] - 2020-04-27
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
 ### Changed
 
@@ -91,12 +89,11 @@ databases need to be rebuilt.**
 
 ## [0.7.0] - 2020-04-17
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
-**All upcoming minor versions in the 0.7.x release series are supposed to
-introduce breaking changes without further notice. This will affect both the API
-as well as the database schema!**
+**All upcoming minor versions in the 0.7.x release series are supposed to introduce breaking changes
+without further notice. This will affect both the API as well as the database schema!**
 
 ### Changed
 
@@ -138,8 +135,8 @@ as well as the database schema!**
 
 ## [0.6.1] - 2020-01-19
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
 ### Added
 
@@ -153,8 +150,8 @@ databases need to be rebuilt.**
 
 ## [0.6.0] - 2020-01-18
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
 ### Added
 
@@ -172,29 +169,27 @@ databases need to be rebuilt.**
 
 ### Changed
 
-- Fixed serialization mapping of collection properties. The _name_ and
-  _description_ of existing collections must be exchanged manually.
+- Fixed serialization mapping of collection properties. The _name_ and _description_ of existing
+  collections must be exchanged manually.
 
 ## [0.5.0] - 2019-12-19
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
 ### Added
 
 - Added auxiliary table for locating tracks by URI in collections
-- Added constraints to prevent tracks with ambiguous/duplicate URIs in a single
-  collection
+- Added constraints to prevent tracks with ambiguous/duplicate URIs in a single collection
 
 ## [0.4.0] - 2019-12-08
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
 ### Changed
 
-- Aggregated position/beat/key markers into a separate abstraction level with
-  `state`
+- Aggregated position/beat/key markers into a separate abstraction level with `state`
 - Renamed various marker properties in serialization format
 
 ### Removed
@@ -216,8 +211,8 @@ databases need to be rebuilt.**
 
 ## [0.3.1] - 2019-09-22
 
-**This release introduces a backward-incompatible API change. The parameter
-_mediaUri_ has been replaced by _mediaUriDecoded_.**
+**This release introduces a backward-incompatible API change. The parameter _mediaUri_ has been
+replaced by _mediaUriDecoded_.**
 
 ### Added
 
@@ -230,8 +225,8 @@ _mediaUri_ has been replaced by _mediaUriDecoded_.**
 
 ## [0.3.0] - 2019-09-13
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
 ### Added
 
@@ -239,8 +234,7 @@ databases need to be rebuilt.**
 
 ### Changed
 
-- Changed the representation of media sources to allow adding optional metadata
-  like artwork
+- Changed the representation of media sources to allow adding optional metadata like artwork
 
 ### Removed
 
@@ -248,15 +242,15 @@ databases need to be rebuilt.**
 
 ## [0.2.0] - 2019-09-04
 
-**This release breaks backward compatibility with old versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with old versions! Existing databases need to be
+rebuilt.**
 
 ### Changed
 
 - Log executable path and version on startup
 - Support both simple release dates (YyyyMmDdDateValue) and full time stamps
-- Store complete release dates (YyyyMmDdDateValue) instead of only the year for
-  filtering, sorting, and grouping of album tracks
+- Store complete release dates (YyyyMmDdDateValue) instead of only the year for filtering, sorting,
+  and grouping of album tracks
 
 ## [0.1.1] - 2019-08-31
 
@@ -270,14 +264,14 @@ databases need to be rebuilt.**
 
 ## [0.1.0] - 2019-08-30
 
-**This release breaks backward compatibility with existing versions! Existing
-databases need to be rebuilt.**
+**This release breaks backward compatibility with existing versions! Existing databases need to be
+rebuilt.**
 
 ### Added
 
 - Support track/disc number and total for filtering and sorting
-- Evaluate environment variables if corresponding command-line arguments are
-  missing: LOG_LEVEL, LISTEN_ADDR, DATABASE_URL
+- Evaluate environment variables if corresponding command-line arguments are missing: LOG_LEVEL,
+  LISTEN_ADDR, DATABASE_URL
 - New multi-stage Docker build image
 
 ### Changed
@@ -332,8 +326,7 @@ databases need to be rebuilt.**
 - Added /about (GET) for health checks and monitoring
 - Added /shutdown (POST) for graceful shutdown
 - Added /tracks/purge (POST) to purge track sources and tracks by URI
-- Print socket address to _stdout_ for connecting clients through an ephemeral
-  port
+- Print socket address to _stdout_ for connecting clients through an ephemeral port
 
 ### Changed
 
@@ -373,9 +366,9 @@ databases need to be rebuilt.**
 
 ### Removed
 
-- Removed support for assigning tags to track/position markers that were not
-  searchable. The single label that can be assigned to a position marker should
-  be sufficient and is supported for searching.
+- Removed support for assigning tags to track/position markers that were not searchable. The single
+  label that can be assigned to a position marker should be sufficient and is supported for
+  searching.
 
 ## [0.0.2] - 2019-03-31
 
@@ -389,8 +382,7 @@ databases need to be rebuilt.**
 - The `label` of a faceted tag is now optional and may be missing
 - Revised tag reporting for tracks by using `count` POST requests
 - Fixed various documentation issues
-- Changed the database schema. Existing SQLite databases need to be rebuilt from
-  scratch!
+- Changed the database schema. Existing SQLite databases need to be rebuilt from scratch!
 
 ### Removed
 

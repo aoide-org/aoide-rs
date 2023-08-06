@@ -27,12 +27,12 @@ mime_guess = "2.0.4"
 nom = "7.1.3"
 num-traits = "0.2.16"
 thiserror = "1.0.44"
-time = { version = "0.3.24", features = ["parsing"] }
+time = { version = "0.3.25", features = ["parsing"] }
 url = "2.4.0"
 walkdir = "2.3.3"
 
 # Dependencies (optional): gigtag
-gigtag = { version = "0.1.6", optional = true }
+gigtag = { version = "0.1.7", optional = true }
 compact_str = { version = "0.7.1", optional = true }
 
 # Dependencies (optional): serato-markers
