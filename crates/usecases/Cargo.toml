@@ -12,7 +12,7 @@ rust-version = { workspace = true }
 
 [dependencies]
 anyhow = "1.0.72"
-bitflags = "2.3.3"
+bitflags = "2.4.0"
 log = "0.4.19"
 thiserror = "1.0.44"
 

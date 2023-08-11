@@ -13,7 +13,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.72"
-clap = "4.3.19"
+clap = "4.3.21"
 env_logger = "0.10.0"
 infect = "0.0.29"
 #infect = { git = "https://github.com/uklotzde/infect.git" }
@@ -21,7 +21,7 @@ log = { version = "0.4.19", features = ["release_max_level_debug"] }
 reqwest = { version = "0.11.18", default-features = false, features = ["rustls-tls"] }
 serde_json = "1.0.104"
 serde_urlencoded = "0.7.1"
-tokio = { version = "1.29.1", default-features = false, features = ["macros", "fs", "rt-multi-thread", "signal"] }
+tokio = { version = "1.30.0", default-features = false, features = ["macros", "fs", "rt-multi-thread", "signal"] }
 
 # Workspace dependencies
 aoide-client = { path = "../crates/client", features = ["webapi-backend"] }
