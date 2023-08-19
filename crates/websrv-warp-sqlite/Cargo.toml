@@ -12,10 +12,10 @@ rust-version = { workspace = true }
 publish = false
 
 [dependencies]
-anyhow = "1.0.72"
-log = "0.4.19"
+anyhow = "1.0.75"
+log = "0.4.20"
 serde = "1.0.183"
-thiserror = "1.0.44"
+thiserror = "1.0.47"
 warp = { version = "0.3.5", default-features = false }
 
 # Workspace dependencies

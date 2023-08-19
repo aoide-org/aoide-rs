@@ -10,7 +10,7 @@ edition = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
-anyhow = "1.0.72"
+anyhow = "1.0.75"
 base64 = "0.21.2"
 blake3 = { version = "1.4.1", features = ["traits-preview"] }
 bitflags = "2.4.0"
@@ -21,13 +21,13 @@ image = "0.24.7"
 lofty = "0.15.0"
 # Use main branch of lofty-rs for testing unreleased features
 #lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
-log = "0.4.19"
+log = "0.4.20"
 mime = "0.3.17"
 mime_guess = "2.0.4"
 nom = "7.1.3"
 num-traits = "0.2.16"
-thiserror = "1.0.44"
-time = { version = "0.3.25", features = ["parsing"] }
+thiserror = "1.0.47"
+time = { version = "=0.3.25", features = ["parsing"] }
 url = "2.4.0"
 walkdir = "2.3.3"
 
@@ -43,7 +43,7 @@ aoide-core = { version = "=0.8.0", path = "../core" }
 
 [dev-dependencies]
 aoide-media-file = { version = "=0.8.0", path = "../media-file" }
-tempfile = "3.7.1"
+tempfile = "3.8.0"
 
 [features]
 default = ["all"]

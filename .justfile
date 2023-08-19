@@ -26,7 +26,8 @@ setup:
 upgrade: setup
     pre-commit autoupdate
     cargo upgrade \
-        --exclude libsqlite3-sys
+        --exclude libsqlite3-sys \
+        --incompatible
     cargo update
 
 # Format source code

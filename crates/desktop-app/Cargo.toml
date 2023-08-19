@@ -11,14 +11,14 @@ edition = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
-anyhow = "1.0.72"
-discro = { version = "0.8.2", features = ["tokio"] }
+anyhow = "1.0.75"
+discro = { version = "0.9.0", features = ["tokio"] }
 highway = { version = "1.1.0" }
-log = "0.4.19"
+log = "0.4.20"
 rfd = { version = "0.11.4", default-features = false, features = ["xdg-portal"] }
-ron = "0.8.0"
+ron = "0.8.1"
 serde = { version = "1.0.183", features = ["derive"] }
-tokio = { version = "1.30.0", default-features = false }
+tokio = { version = "1.32.0", default-features = false }
 unnest = "0.3.1"
 url = { version = "2.4.0", features = ["serde"] }
 
