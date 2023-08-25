@@ -24,6 +24,7 @@ pub fn url_from_path(path: &Path) -> Result<Url, ()> {
     }
 }
 
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn url_from_dir_entry(dir_entry: &DirEntry) -> std::io::Result<Url> {
     let file_type = dir_entry.file_type()?;
     let url =

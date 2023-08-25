@@ -213,6 +213,7 @@ impl RemappingVfsResolver {
     }
 
     #[must_use]
+    #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn canonical_root_url(&self) -> &BaseUrl {
         self.root_url
             .as_ref()
@@ -259,6 +260,7 @@ impl RemappingVfsResolver {
     }
 
     #[must_use]
+    #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn dismantle(self) -> (BaseUrl, ContentPath<'static>) {
         let Self {
             root_url,

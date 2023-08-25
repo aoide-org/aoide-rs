@@ -1376,7 +1376,7 @@ pub(crate) fn export_track_to_tag(
             tag,
             ItemKey::Genre,
             config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags.into_iter(),
+            tags,
         );
     } else {
         tag.remove_key(&ItemKey::Genre);

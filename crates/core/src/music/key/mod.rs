@@ -764,7 +764,9 @@ impl OpenKeySignature {
 
     #[must_use]
     #[allow(clippy::similar_names)]
+    #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
+        #[allow(clippy::missing_panics_doc)] // Never panics
         let code = KeyCode::try_from_value(
             2 * code
                 - match mode {
@@ -818,6 +820,7 @@ impl LancelotKeySignature {
 
     #[must_use]
     #[allow(clippy::similar_names)]
+    #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
         let code = KeyCode::try_from_value(
             ((code * 2 + 9) % 24)
@@ -871,6 +874,7 @@ impl EngineKeySignature {
     pub const MAX_CODE: KeyCodeValue = 24;
 
     #[must_use]
+    #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn from_code(code: KeyCodeValue) -> Self {
         let code = KeyCode::try_from_value(code % 24 + 1).expect("valid key code");
         Self(KeySignature::new(code))

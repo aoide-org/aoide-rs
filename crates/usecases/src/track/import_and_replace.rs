@@ -39,6 +39,7 @@ pub struct Outcome {
 
 #[allow(clippy::too_many_arguments)] // TODO
 #[allow(clippy::too_many_lines)] // TODO
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn import_and_replace_from_file_path<Repo, InterceptImportedTrackFn>(
     summary: &mut Summary,
     visited_media_source_ids: &mut Vec<MediaSourceId>,
@@ -171,6 +172,7 @@ pub struct Params {
     pub replace_mode: ReplaceMode,
 }
 
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn import_and_replace_many_by_local_file_path<Repo, InterceptImportedTrackFn>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,

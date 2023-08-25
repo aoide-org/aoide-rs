@@ -53,6 +53,7 @@ pub struct LoadedArtworkPicture {
 
 pub type LoadArtworkPictureResult = std::result::Result<LoadedArtworkPicture, ArtworkImageError>;
 
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn media_type_from_image_format(
     image_format: ImageFormat,
 ) -> std::result::Result<Mime, ArtworkImageError> {

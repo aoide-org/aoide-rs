@@ -120,6 +120,7 @@ fn ancestor_finished(
     Ok(visit::AfterAncestorFinished::Continue)
 }
 
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn visit_directories<
     Repo: CollectionRepo + MediaTrackerRepo,
     ReportProgressFn: FnMut(ProgressEvent),

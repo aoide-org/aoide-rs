@@ -75,6 +75,7 @@ pub type Thumbnail4x4Rgb8 = [u8; THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3];
 
 /// Create an image from thumbnail data
 #[must_use]
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn thumbnail_image(thumbnail: &Thumbnail4x4Rgb8) -> image::RgbImage {
     image::RgbImage::from_raw(
         THUMBNAIL_WIDTH.try_into().expect("infallible"),
@@ -87,6 +88,7 @@ pub fn thumbnail_image(thumbnail: &Thumbnail4x4Rgb8) -> image::RgbImage {
 /// Create an ICO [data URI](<https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs>)
 /// from thumbnail data
 #[must_use]
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn thumbnail_png_data_uri(thumbnail: &Thumbnail4x4Rgb8) -> String {
     let mut png_data = Vec::with_capacity(192);
     let png_encoder = PngEncoder::new(&mut png_data);

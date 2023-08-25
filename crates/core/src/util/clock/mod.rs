@@ -41,6 +41,7 @@ impl OffsetDateTimeMs {
     }
 
     #[must_use]
+    #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn from_timestamp_millis(timestamp_millis: TimestampMillis) -> Self {
         let truncated = OffsetDateTime::from_unix_timestamp_nanos(
             i128::from(timestamp_millis) * NANOS_PER_MILLISECOND,

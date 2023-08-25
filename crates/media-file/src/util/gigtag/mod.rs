@@ -107,6 +107,7 @@ pub fn update_tags_in_encoded(
 }
 
 #[allow(clippy::needless_pass_by_value)] // consume remaining_tags
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn export_and_encode_tags_into(
     tags: Canonical<&Tags<'_>>,
     encoded_tags: &mut Vec<PlainTag<'_>>,

@@ -291,7 +291,7 @@ impl Canonicalize for Tags<'_> {
             prev.tags.append(&mut next.tags);
             true
         });
-        for facet in facets.iter_mut() {
+        for facet in &mut *facets {
             facet.canonicalize();
         }
         debug_assert!(facets.is_canonical());
@@ -668,6 +668,7 @@ impl<'a> TagsMap<'a> {
         true
     }
 
+    #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn take_faceted_tags<'b>(&mut self, facet_id: &'b FacetId<'b>) -> Option<FacetedTags<'a>> {
         // TODO: How to avoid this needless allocation?
         let facet_id = facet_id.clone_owned();

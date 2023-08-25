@@ -185,6 +185,7 @@ pub mod tests {
 
     pub type TestResult<T> = anyhow::Result<T>;
 
+    #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn establish_connection() -> TestResult<DbConnection> {
         let mut connection =
             DbConnection::establish(":memory:").expect("in-memory database connection");

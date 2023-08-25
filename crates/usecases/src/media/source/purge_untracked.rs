@@ -11,6 +11,7 @@ use aoide_repo::{
 use super::*;
 use crate::collection::vfs::RepoContext;
 
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn purge_untracked<Repo>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,

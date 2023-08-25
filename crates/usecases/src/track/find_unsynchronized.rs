@@ -11,6 +11,7 @@ use aoide_repo::{
 use super::*;
 use crate::collection::vfs::RepoContext;
 
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn find_unsynchronized<Repo, Resolver>(
     repo: &mut Repo,
     collection_id: CollectionId,

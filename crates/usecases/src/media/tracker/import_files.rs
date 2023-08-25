@@ -39,6 +39,7 @@ pub struct ProgressEvent {
 }
 
 #[allow(clippy::too_many_lines)] // TODO
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn import_files<Repo, InterceptImportedTrackFn, ReportProgressFn>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,

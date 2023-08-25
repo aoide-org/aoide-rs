@@ -134,6 +134,7 @@ impl ProgressEvent {
     }
 }
 
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn url_from_walkdir_entry(dir_entry: &walkdir::DirEntry) -> anyhow::Result<Url> {
     let url = if dir_entry.file_type().is_dir()
         || dir_entry.path_is_symlink() && read_link(dir_entry.path())?.is_dir()
@@ -162,6 +163,7 @@ pub trait AncestorVisitor<C, T, E> {
 /// update after invoking [`ProgressEvent::try_finish()`] and for obtaining
 /// execution statistics by invoking [`ProgressEvent::finalize()`].
 #[allow(clippy::too_many_lines)] // TODO
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn visit_directories<
     C,
     T,

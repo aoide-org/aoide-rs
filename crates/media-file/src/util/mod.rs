@@ -212,6 +212,7 @@ pub fn push_next_actor<'a>(
     true
 }
 
+#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn format_parseable_value<T>(value: &mut T) -> String
 where
     T: Copy + PartialEq + ToString + FromStr,

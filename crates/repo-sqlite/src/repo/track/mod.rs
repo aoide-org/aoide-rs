@@ -97,14 +97,14 @@ fn insert_track_and_album_titles(
     album_titles: Canonical<&[Title]>,
 ) -> RepoResult<()> {
     use crate::db::track_title::{models::*, schema::*};
-    for track_title in track_titles.iter() {
+    for track_title in *track_titles.as_ref() {
         let insertable = InsertableRecord::bind(track_id, Scope::Track, track_title);
         diesel::insert_into(track_title::table)
             .values(&insertable)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
-    for album_title in album_titles.iter() {
+    for album_title in *album_titles.as_ref() {
         let insertable = InsertableRecord::bind(track_id, Scope::Album, album_title);
         diesel::insert_into(track_title::table)
             .values(&insertable)
@@ -190,14 +190,14 @@ fn insert_track_and_album_actors(
     album_actors: Canonical<&[Actor]>,
 ) -> RepoResult<()> {
     use crate::db::track_actor::{models::*, schema::*};
-    for track_actor in track_actors.iter() {
+    for track_actor in *track_actors.as_ref() {
         let insertable = InsertableRecord::bind(track_id, Scope::Track, track_actor);
         diesel::insert_into(track_actor::table)
             .values(&insertable)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
-    for album_actor in album_actors.iter() {
+    for album_actor in *album_actors.as_ref() {
         let insertable = InsertableRecord::bind(track_id, Scope::Album, album_actor);
         diesel::insert_into(track_actor::table)
             .values(&insertable)
@@ -265,7 +265,7 @@ fn insert_track_cues(
     cues: Canonical<&[Cue]>,
 ) -> RepoResult<()> {
     use crate::db::track_cue::{models::*, schema::*};
-    for cue in cues.iter() {
+    for cue in *cues.as_ref() {
         let insertable = InsertableRecord::bind(track_id, cue);
         diesel::insert_into(track_cue::table)
             .values(&insertable)
