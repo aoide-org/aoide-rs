@@ -290,9 +290,12 @@ pub(crate) fn import_tagged_file_into_track(
     let tag = take_primary_or_first_tag(&mut tagged_file);
     if let Some(tag) = tag {
         log::debug!(
-            "Importing track metadata from {tag_type:?} tag in {file_type:?} file",
+            "Importing track metadata from {tag_type:?} tag in {file_type:?} file \
+             \"{content_path}\": {tag_items:?}",
             tag_type = tag.tag_type(),
             file_type = tagged_file.file_type(),
+            content_path = track.media_source.content.link.path,
+            tag_items = tag.items().collect::<Vec<_>>(),
         );
         let file_properties = tagged_file.properties();
         import_file_tag_into_track(importer, config, file_properties, tag, track);
