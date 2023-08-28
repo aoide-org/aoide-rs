@@ -181,6 +181,12 @@ impl Issues {
         messages.is_empty()
     }
 
+    #[must_use]
+    pub fn len(&self) -> usize {
+        let Self { messages } = self;
+        messages.len()
+    }
+
     pub fn add_message(&mut self, message: impl Into<String>) {
         let message = message.into();
         debug_assert!(!message.trim().is_empty());

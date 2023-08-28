@@ -151,6 +151,10 @@ pub fn import_track_from_file_path(
             // Continue regardless of last_modified_at and synchronized revision
         }
     }
+    log::debug!(
+        "Importing file \"{canonical_path}\"",
+        canonical_path = canonical_path.display()
+    );
     let content_type = guess_mime_from_file_path(&canonical_path)?;
     let content_link = ContentLink {
         path: source_path.clone_owned(),
@@ -159,6 +163,18 @@ pub fn import_track_from_file_path(
     let mut track = import_track.with_content(content_link, content_type);
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let issues = import_into_track(&mut reader, config, &mut track)?;
+    if issues.is_empty() {
+        log::debug!(
+            "Finished import of file \"{canonical_path}\" without issues",
+            canonical_path = canonical_path.display()
+        );
+    } else {
+        log::warn!(
+            "Finished import of file \"{canonical_path}\" with {num_issues} issue(s)",
+            canonical_path = canonical_path.display(),
+            num_issues = issues.len()
+        );
+    }
     Ok(ImportTrackFromFileOutcome::Imported { track, issues })
 }
 
