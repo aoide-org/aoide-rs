@@ -15,14 +15,14 @@ pub type BeatNumber = u16;
 pub type BeatsPerMeasure = BeatNumber;
 
 #[must_use]
-pub fn is_valid_beats_per_measure(beats_per_measure: BeatsPerMeasure) -> bool {
+pub const fn is_valid_beats_per_measure(beats_per_measure: BeatsPerMeasure) -> bool {
     beats_per_measure > 0
 }
 
 pub type BeatUnit = BeatNumber;
 
 #[must_use]
-pub fn is_valid_beat_unit(beat_unit: BeatUnit) -> bool {
+pub const fn is_valid_beat_unit(beat_unit: BeatUnit) -> bool {
     beat_unit > 0
 }
 
@@ -61,7 +61,7 @@ fn gcd(nom: BeatNumber, denom: BeatNumber) -> BeatNumber {
 
 impl TimeSignature {
     #[must_use]
-    pub fn new(beats_per_measure: BeatsPerMeasure, beat_unit: Option<BeatUnit>) -> Self {
+    pub const fn new(beats_per_measure: BeatsPerMeasure, beat_unit: Option<BeatUnit>) -> Self {
         Self {
             beats_per_measure,
             beat_unit,
@@ -146,7 +146,7 @@ pub type MeasureOffset = f32;
 pub type MeasureNumber = i32;
 
 #[must_use]
-pub fn is_valid_measure_number(measure_number: MeasureNumber) -> bool {
+pub const fn is_valid_measure_number(measure_number: MeasureNumber) -> bool {
     measure_number != 0
 }
 
@@ -188,7 +188,7 @@ pub struct MeasurePosition {
 
 impl MeasurePosition {
     #[must_use]
-    pub fn from_measure_number_and_beat_offset(
+    pub const fn from_measure_number_and_beat_offset(
         measure_number: MeasureNumber,
         beat_offset_in_measure: BeatOffsetInMeasure,
     ) -> Self {

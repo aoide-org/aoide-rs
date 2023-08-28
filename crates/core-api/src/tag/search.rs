@@ -24,7 +24,7 @@ pub struct Filter {
 
 impl Filter {
     #[must_use]
-    pub fn any_facet() -> Option<Vec<String>> {
+    pub const fn any_facet() -> Option<Vec<String>> {
         None
     }
 
@@ -34,12 +34,12 @@ impl Filter {
     }
 
     #[must_use]
-    pub fn any_term() -> Option<StringPredicate<'static>> {
+    pub const fn any_term() -> Option<StringPredicate<'static>> {
         None
     }
 
     #[must_use]
-    pub fn any_score() -> Option<NumericPredicate> {
+    pub const fn any_score() -> Option<NumericPredicate> {
         None
     }
 }

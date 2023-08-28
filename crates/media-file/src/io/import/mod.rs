@@ -83,7 +83,7 @@ bitflags! {
 
 impl ImportTrackFlags {
     #[must_use]
-    pub fn is_valid(self) -> bool {
+    pub const fn is_valid(self) -> bool {
         Self::all().contains(self)
     }
 
@@ -408,7 +408,7 @@ pub(crate) enum TrackScope {
 }
 
 impl TrackScope {
-    fn message_str(self) -> &'static str {
+    const fn message_str(self) -> &'static str {
         match self {
             Self::Track => "track",
             Self::Album => "album",

@@ -10,6 +10,7 @@
 #![warn(clippy::pedantic)]
 // Additional restrictions
 #![warn(clippy::clone_on_ref_ptr)]
+#![warn(clippy::missing_const_for_fn)]
 #![warn(clippy::self_named_module_files)]
 // Repetitions of module/type names occur frequently when using many
 // modules for keeping the size of the source files handy. Often

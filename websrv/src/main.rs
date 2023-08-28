@@ -49,7 +49,7 @@ mod routing;
 mod runtime;
 
 #[must_use]
-pub fn app_name() -> &'static str {
+pub const fn app_name() -> &'static str {
     env!("CARGO_PKG_NAME")
 }
 

@@ -29,7 +29,7 @@ pub enum DirTrackingStatus {
 impl DirTrackingStatus {
     /// Determine if an entry is stale.
     #[must_use]
-    pub fn is_stale(self) -> bool {
+    pub const fn is_stale(self) -> bool {
         match self {
             Self::Outdated | Self::Added | Self::Modified => true,
             Self::Current | Self::Orphaned => false,
@@ -38,7 +38,7 @@ impl DirTrackingStatus {
 
     /// Determine if an entry is stale and requires further processing.
     #[must_use]
-    pub fn is_pending(self) -> bool {
+    pub const fn is_pending(self) -> bool {
         match self {
             Self::Added | Self::Modified => {
                 debug_assert!(self.is_stale());

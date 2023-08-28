@@ -64,12 +64,12 @@ impl OffsetDateTimeMs {
     }
 
     #[must_use]
-    pub fn timestamp_millis(self) -> TimestampMillis {
+    pub const fn timestamp_millis(self) -> TimestampMillis {
         (self.0.unix_timestamp_nanos() / NANOS_PER_MILLISECOND) as TimestampMillis
     }
 
     #[must_use]
-    pub fn year(&self) -> YearType {
+    pub const fn year(&self) -> YearType {
         self.0.year() as _
     }
 
@@ -181,17 +181,17 @@ impl YyyyMmDdDate {
     }
 
     #[must_use]
-    pub fn year(self) -> YearType {
+    pub const fn year(self) -> YearType {
         (self.0 / 10_000) as YearType
     }
 
     #[must_use]
-    pub fn month(self) -> MonthType {
+    pub const fn month(self) -> MonthType {
         ((self.0 % 10_000) / 100) as MonthType
     }
 
     #[must_use]
-    pub fn day_of_month(self) -> DayOfMonthType {
+    pub const fn day_of_month(self) -> DayOfMonthType {
         (self.0 % 100) as DayOfMonthType
     }
 
@@ -312,7 +312,7 @@ pub enum DateOrDateTime {
 
 impl DateOrDateTime {
     #[must_use]
-    pub fn year(self) -> YearType {
+    pub const fn year(self) -> YearType {
         match self {
             Self::Date(inner) => inner.year(),
             Self::DateTime(inner) => inner.year(),

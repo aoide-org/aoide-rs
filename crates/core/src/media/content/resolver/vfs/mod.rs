@@ -222,7 +222,7 @@ impl RemappingVfsResolver {
     }
 
     #[must_use]
-    pub fn root_path(&self) -> &ContentPath<'_> {
+    pub const fn root_path(&self) -> &ContentPath<'_> {
         &self.root_path
     }
 

@@ -139,7 +139,7 @@ pub enum ContentPathConfig {
 
 impl ContentPathConfig {
     #[must_use]
-    pub fn kind(&self) -> ContentPathKind {
+    pub const fn kind(&self) -> ContentPathKind {
         match self {
             Self::Uri => ContentPathKind::Uri,
             Self::Url => ContentPathKind::Url,
@@ -149,7 +149,7 @@ impl ContentPathConfig {
     }
 
     #[must_use]
-    pub fn root_url(&self) -> Option<&BaseUrl> {
+    pub const fn root_url(&self) -> Option<&BaseUrl> {
         match self {
             Self::VirtualFilePath { root_url } => Some(root_url),
             Self::Uri | Self::Url | Self::FileUrl => None,
@@ -337,7 +337,7 @@ bitflags! {
 
 impl ContentMetadataFlags {
     #[must_use]
-    pub fn is_valid(self) -> bool {
+    pub const fn is_valid(self) -> bool {
         Self::all().contains(self)
     }
 
@@ -347,17 +347,17 @@ impl ContentMetadataFlags {
     }
 
     #[must_use]
-    pub fn is_reliable(self) -> bool {
+    pub const fn is_reliable(self) -> bool {
         self.intersects(Self::RELIABLE)
     }
 
     #[must_use]
-    pub fn is_locked(self) -> bool {
+    pub const fn is_locked(self) -> bool {
         self.intersects(Self::LOCKED)
     }
 
     #[must_use]
-    pub fn is_stale(self) -> bool {
+    pub const fn is_stale(self) -> bool {
         self.intersects(Self::STALE)
     }
 

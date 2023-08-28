@@ -39,7 +39,7 @@ pub enum AdvisoryRating {
 
 impl AdvisoryRating {
     #[must_use]
-    pub fn is_offensive(self) -> bool {
+    pub const fn is_offensive(self) -> bool {
         match self {
             Self::Unrated | Self::Clean => false,
             Self::Explicit => true,

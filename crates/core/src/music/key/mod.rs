@@ -92,7 +92,7 @@ impl fmt::Display for KeyCode {
 
 impl KeyCode {
     #[must_use]
-    pub fn as_canonical_str(self) -> &'static str {
+    pub const fn as_canonical_str(self) -> &'static str {
         use KeyCode::*;
         match self {
             Off => "Off",
@@ -160,7 +160,7 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn as_traditional_str(self) -> &'static str {
+    pub const fn as_traditional_str(self) -> &'static str {
         use KeyCode::*;
         match self {
             Off => "",
@@ -256,7 +256,7 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn as_traditional_ascii_str(self) -> &'static str {
+    pub const fn as_traditional_ascii_str(self) -> &'static str {
         use KeyCode::*;
         match self {
             Off => "",
@@ -324,7 +324,7 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn as_openkey_str(self) -> &'static str {
+    pub const fn as_openkey_str(self) -> &'static str {
         use KeyCode::*;
         match self {
             Off => "",
@@ -392,7 +392,7 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn as_camelot_str(self) -> &'static str {
+    pub const fn as_camelot_str(self) -> &'static str {
         use KeyCode::*;
         match self {
             Off => "",
@@ -460,7 +460,7 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn as_traxsource_str(self) -> &'static str {
+    pub const fn as_traxsource_str(self) -> &'static str {
         use KeyCode::*;
         match self {
             Off => "",
@@ -528,7 +528,7 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn as_beatport_str(self) -> &'static str {
+    pub const fn as_beatport_str(self) -> &'static str {
         use KeyCode::*;
         match self {
             Off => "",
@@ -598,7 +598,7 @@ impl KeyCode {
     #[allow(clippy::doc_markdown)]
     /// See also `TKEY` in _ID3v2_: <https://id3.org/id3v2.4.0-frames>
     #[must_use]
-    pub fn as_serato_str(self) -> &'static str {
+    pub const fn as_serato_str(self) -> &'static str {
         use KeyCode::*;
         match self {
             Off => "o",
@@ -675,7 +675,7 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn try_from_value(val: KeyCodeValue) -> Option<Self> {
+    pub const fn try_from_value(val: KeyCodeValue) -> Option<Self> {
         Self::from_repr(val)
     }
 }
@@ -837,7 +837,7 @@ impl LancelotKeySignature {
     }
 
     #[must_use]
-    pub fn mode(self) -> Option<KeyMode> {
+    pub const fn mode(self) -> Option<KeyMode> {
         self.0.mode()
     }
 }
@@ -887,7 +887,7 @@ impl EngineKeySignature {
     }
 
     #[must_use]
-    pub fn mode(self) -> Option<KeyMode> {
+    pub const fn mode(self) -> Option<KeyMode> {
         self.0.mode()
     }
 }

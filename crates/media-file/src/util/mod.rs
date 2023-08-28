@@ -390,7 +390,7 @@ pub(crate) fn parse_key_signature(input: &str) -> Option<KeySignature> {
 }
 
 #[must_use]
-pub(crate) fn key_signature_as_str(key_signature: KeySignature) -> &'static str {
+pub(crate) const fn key_signature_as_str(key_signature: KeySignature) -> &'static str {
     // Follow the ID3v2 recommendation, independent of the actual format.
     // See also: https://mutagen-specs.readthedocs.io/en/latest/id3/id3v2.4.0-frames.html#tkey
     // TODO: Should this be configurable depending on the format?

@@ -53,7 +53,7 @@ bitflags! {
 
 impl CueFlags {
     #[must_use]
-    pub fn is_valid(self) -> bool {
+    pub const fn is_valid(self) -> bool {
         Self::all().contains(self)
     }
 }

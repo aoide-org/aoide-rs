@@ -52,12 +52,12 @@ pub enum Item {
 
 impl Item {
     #[must_use]
-    pub fn is_separator(&self) -> bool {
+    pub const fn is_separator(&self) -> bool {
         matches!(self, Self::Separator(_))
     }
 
     #[must_use]
-    pub fn is_track(&self) -> bool {
+    pub const fn is_track(&self) -> bool {
         matches!(self, Self::Track(_))
     }
 }
@@ -128,7 +128,7 @@ bitflags! {
 
 impl Flags {
     #[must_use]
-    pub fn is_valid(self) -> bool {
+    pub const fn is_valid(self) -> bool {
         Self::all().contains(self)
     }
 }
