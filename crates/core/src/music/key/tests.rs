@@ -1,7 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use strum::IntoEnumIterator as _;
+
 use super::*;
+
+#[test]
+fn from_to_value() {
+    for key_code in KeyCode::iter() {
+        assert_eq!(
+            key_code,
+            KeyCode::try_from_value(key_code.to_value()).unwrap()
+        );
+    }
+}
 
 #[test]
 fn convert_key_sigs() {

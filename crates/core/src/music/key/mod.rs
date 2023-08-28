@@ -3,11 +3,9 @@
 
 use std::fmt;
 
-use strum::FromRepr;
-
 pub type KeyCodeValue = u8;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, FromRepr)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, strum::FromRepr, strum::EnumIter)]
 #[repr(u8)]
 pub enum KeyCode {
     /// Off key
@@ -672,8 +670,8 @@ impl KeyCode {
 
 impl KeyCode {
     #[must_use]
-    pub fn to_value(self) -> KeyCodeValue {
-        self.into()
+    pub const fn to_value(self) -> KeyCodeValue {
+        self as _
     }
 
     #[must_use]
@@ -715,13 +713,13 @@ impl KeySignature {
     }
 
     #[must_use]
-    pub fn code(self) -> KeyCode {
+    pub const fn code(self) -> KeyCode {
         let Self(code) = self;
         code
     }
 
     #[must_use]
-    pub fn mode(self) -> Option<KeyMode> {
+    pub const fn mode(self) -> Option<KeyMode> {
         match self.code() {
             KeyCode::Off => None,
             code => match code.to_value() % 2 {
@@ -779,12 +777,12 @@ impl OpenKeySignature {
     }
 
     #[must_use]
-    pub fn code(self) -> KeyCodeValue {
+    pub const fn code(self) -> KeyCodeValue {
         1 + (self.0.code().to_value() - 1) / 2
     }
 
     #[must_use]
-    pub fn mode(self) -> Option<KeyMode> {
+    pub const fn mode(self) -> Option<KeyMode> {
         self.0.mode()
     }
 }
@@ -834,7 +832,7 @@ impl LancelotKeySignature {
     }
 
     #[must_use]
-    pub fn code(self) -> KeyCodeValue {
+    pub const fn code(self) -> KeyCodeValue {
         1 + ((self.0.code().to_value() + 13) / 2) % 12
     }
 
@@ -881,7 +879,7 @@ impl EngineKeySignature {
     }
 
     #[must_use]
-    pub fn code(self) -> KeyCodeValue {
+    pub const fn code(self) -> KeyCodeValue {
         match self.0.code().to_value() {
             1 => 24,
             code => code - 1,
