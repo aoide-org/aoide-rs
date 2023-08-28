@@ -12,8 +12,8 @@ rust-version = { workspace = true }
 
 [dependencies]
 anyhow = "1.0.75"
-serde = { version = "1.0.186", features = ["derive"] }
-url = { version = "2.4.0", features = ["serde"] }
+serde = { version = "1.0.188", features = ["derive"] }
+url = { version = "2.4.1", features = ["serde"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.12", optional = true, features = ["url"] }
