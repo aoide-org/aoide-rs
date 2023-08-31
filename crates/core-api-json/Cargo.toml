@@ -16,7 +16,7 @@ serde = { version = "1.0.188", features = ["derive"] }
 url = { version = "2.4.1", features = ["serde"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.12", optional = true, features = ["url"] }
+schemars = { version = "0.8.13", optional = true, features = ["url"] }
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core", features = ["serde"] }
