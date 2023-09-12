@@ -15,7 +15,7 @@ anyhow = "1.0.75"
 strum = "0.25.0"
 log = "0.4.20"
 tantivy = "0.21.0"
-thiserror = "1.0.47"
+thiserror = "1.0.48"
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core" }

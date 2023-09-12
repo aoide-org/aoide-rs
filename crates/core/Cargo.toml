@@ -12,7 +12,7 @@ rust-version = { workspace = true }
 
 [dependencies]
 anyhow = "1.0.75"
-base64 = "0.21.3"
+base64 = "0.21.4"
 bitflags = "2.4.0"
 image = { version = "0.24.7", default-features = false, features = ["png"] }
 mime = "0.3.17"
@@ -26,8 +26,8 @@ time = { version = "0.3.28", features = [
     "parsing",
     "formatting",
 ] }
-thiserror = "1.0.47"
-ulid = "1.0.1"
+thiserror = "1.0.48"
+ulid = "1.1.0"
 url = "2.4.1"
 
 # Serialization of selected, primitive types

@@ -12,7 +12,7 @@ rust-version = { workspace = true }
 
 [dependencies]
 anyhow = "1.0.75"
-base64 = "0.21.3"
+base64 = "0.21.4"
 mime = "0.3.17"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_repr = "0.1.16"
@@ -21,7 +21,7 @@ url = { version = "2.4.1", features = ["serde"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.13", optional = true, features = ["chrono", "url"] }
-chrono = { version = "0.4.28", optional = true, default-features = false }
+chrono = { version = "0.4.30", optional = true, default-features = false }
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core", features = ["serde"] }
@@ -33,4 +33,4 @@ json-schema = ["dep:schemars", "dep:chrono", "aoide-core/json-schema"]
 js = ["aoide-core/js"]
 
 [dev-dependencies]
-serde_json = "1.0.105"
+serde_json = "1.0.106"

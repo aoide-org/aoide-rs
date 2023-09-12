@@ -15,7 +15,7 @@ anyhow = "1.0.75"
 diesel = { version = "2.1.1", default-features = false, features = ["sqlite"] }
 log = "0.4.20"
 serde = { version = "1.0.188", features = ["derive"] }
-thiserror = "1.0.47"
+thiserror = "1.0.48"
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core" }

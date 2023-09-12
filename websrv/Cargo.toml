@@ -15,14 +15,14 @@ publish = false
 [dependencies]
 anyhow = "1.0.75"
 directories = "5.0.1"
-discro = { version = "0.15.0", features = ["tokio"] }
+discro = { version = "0.16.0", features = ["tokio"] }
 dotenvy = "0.15.7"
 log = { version = "0.4.20", features = ["release_max_level_debug"] }
 parking_lot = "0.12.1"
 ron = "0.8.1"
 serde = { version = "1.0.188", features = ["derive"] }
-serde_json = "1.0.105"
-thiserror = "1.0.47"
+serde_json = "1.0.106"
+thiserror = "1.0.48"
 time = { version = "0.3.28", features = ["serde-human-readable"] }
 tokio = { version = "1.32.0", default-features = false, features = [
     "rt-multi-thread",
@@ -43,7 +43,7 @@ eframe = { version = "0.22.0", optional = true, default-features = false, featur
     "glow",
 ] }
 egui = { version = "0.22.0", optional = true, default-features = false }
-rfd = { version = "0.11.4", optional = true, default-features = false, features = [
+rfd = { version = "0.12.0", optional = true, default-features = false, features = [
     "xdg-portal",
 ] }
 
