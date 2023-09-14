@@ -12,7 +12,7 @@ rust-version = { workspace = true }
 
 [dependencies]
 anyhow = "1.0.75"
-discro = { version = "0.16.0", features = ["tokio"] }
+discro = { version = "0.18.0", features = ["tokio"] }
 highway = { version = "1.1.0" }
 log = "0.4.20"
 rfd = { version = "0.12.0", default-features = false, features = ["xdg-portal"] }

@@ -9,7 +9,7 @@ use aoide_core::{
     CollectionUid,
 };
 use aoide_core_api::{track::search::Params, Pagination};
-use discro::{new_pubsub, Publisher, Ref, Subscriber};
+use discro::{Publisher, Ref, Subscriber};
 use highway::{HighwayHash, HighwayHasher, Key};
 
 use crate::environment::Handle;
@@ -420,7 +420,7 @@ pub struct ObservableState {
 impl ObservableState {
     #[must_use]
     pub fn new(initial_state: State) -> Self {
-        let (state_pub, _) = new_pubsub(initial_state);
+        let state_pub = Publisher::new(initial_state);
         Self { state_pub }
     }
 

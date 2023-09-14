@@ -24,7 +24,7 @@ use aoide_core_api::{
 };
 use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
-use discro::{new_pubsub, Publisher, Ref, Subscriber};
+use discro::{Publisher, Ref, Subscriber};
 use url::Url;
 
 use crate::{fs::DirPath, Environment, Handle};
@@ -498,7 +498,7 @@ pub struct ObservableState {
 impl ObservableState {
     #[must_use]
     pub fn new(initial_state: State) -> Self {
-        let (state_pub, _) = new_pubsub(initial_state);
+        let state_pub = Publisher::new(initial_state);
         Self { state_pub }
     }
 

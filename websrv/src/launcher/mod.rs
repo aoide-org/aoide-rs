@@ -84,9 +84,10 @@ impl Launcher {
 
         let runtime = tokio::runtime::Runtime::new()?;
 
-        let (current_state_tx, current_state_rx) = discro::new_pubsub(State::Idle);
+        let current_state_tx = discro::Publisher::new(State::Idle);
+        let current_state_rx = current_state_tx.subscribe();
         runtime.spawn({
-            let mut current_state_rx = current_state_rx.clone();
+            let mut current_state_rx = current_state_tx.subscribe();
             async move {
                 while current_state_rx.changed().await.is_ok() {
                     let state = *current_state_rx.read_ack();
@@ -97,14 +98,11 @@ impl Launcher {
         });
 
         let (runtime_command_tx, runtime_command_rx) = mpsc::unbounded_channel();
-        let (current_runtime_state_tx, current_runtime_state_rx) = discro::new_pubsub(None);
-        let join_handle = std::thread::spawn({
-            let tokio_rt = runtime.handle().clone();
-            let config = config.clone();
-            move || tokio_rt.block_on(run(config, runtime_command_rx, current_runtime_state_tx))
-        });
+        let current_runtime_state_tx = discro::Publisher::new(None);
 
         runtime.spawn({
+            let current_state_rx = current_state_tx.subscribe();
+            let current_runtime_state_rx = current_runtime_state_tx.subscribe();
             debug_assert!(matches!(*current_state_rx.read(), State::Idle));
             let mut current_runtime_state_rx = current_runtime_state_rx;
             async move {
@@ -116,6 +114,12 @@ impl Launcher {
                 log::debug!("Stop listening for state changes after runtime has been terminated");
                 current_state_tx.write(State::Terminating);
             }
+        });
+
+        let join_handle = std::thread::spawn({
+            let tokio_rt = runtime.handle().clone();
+            let config = config.clone();
+            move || tokio_rt.block_on(run(config, runtime_command_rx, current_runtime_state_tx))
         });
 
         self.state = InternalState::Running {

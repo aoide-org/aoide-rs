@@ -7,7 +7,7 @@ use std::{
 };
 
 use aoide_backend_embedded::storage::DatabaseConfig;
-use discro::{new_pubsub, Publisher, Ref, Subscriber};
+use discro::{Publisher, Ref, Subscriber};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -180,7 +180,7 @@ pub struct ObservableState {
 impl ObservableState {
     #[must_use]
     pub fn new(initial_state: State) -> Self {
-        let (state_pub, _) = new_pubsub(initial_state);
+        let state_pub = Publisher::new(initial_state);
         Self { state_pub }
     }
 
