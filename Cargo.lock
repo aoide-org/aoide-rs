@@ -465,6 +465,7 @@ dependencies = [
  "eframe",
  "egui",
  "log",
+ "mimalloc",
  "parking_lot",
  "rfd",
  "ron",
@@ -1351,9 +1352,9 @@ dependencies = [
 
 [[package]]
 name = "discro"
-version = "0.18.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0b4170e8fac690d97d3436050e3473537a19b5b3930212774ace8fdc82c9f17"
+checksum = "c0b92dd4fe016291a3d9228ff96285a5bfaaa7d03d8f4e02df1fe3e261480302"
 dependencies = [
  "async-stream",
  "futures",
@@ -2396,6 +2397,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7012b1bbb0719e1097c47611d3898568c546d597c2e74d66f6087edd5233ff4"
 
 [[package]]
+name = "libmimalloc-sys"
+version = "0.1.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3979b5c37ece694f1f5e51e7ecc871fdb0f517ed04ee45f88d15d6d553cb9664"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
 name = "libsqlite3-sys"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2591,6 +2602,15 @@ dependencies = [
  "migrations_internals",
  "proc-macro2",
  "quote",
+]
+
+[[package]]
+name = "mimalloc"
+version = "0.1.39"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa01922b5ea280a911e323e4d2fd24b7fe5cc4042e0d2cda3c40775cdc4bdc9c"
+dependencies = [
+ "libmimalloc-sys",
 ]
 
 [[package]]
