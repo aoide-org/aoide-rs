@@ -15,12 +15,12 @@ pub fn on_should_prefetch_trigger(
 ) -> impl Future<Output = ()> + Send + 'static {
     discro::tasklet::capture_changes(
         subscriber,
-        |_| (),
+        (),
         |(), state| {
             // Keep nagging the listener until should_prefetch() returns false
-            state.should_prefetch()
+            state.should_prefetch().then_some(())
         },
-        move |_| on_trigger(),
+        move |()| on_trigger(),
     )
 }
 
@@ -33,10 +33,10 @@ where
 {
     discro::tasklet::capture_changes_async(
         subscriber,
-        |_| (),
-        |(), state| {
+        (),
+        |_, state| {
             // Keep nagging the listener until should_prefetch() returns false
-            state.should_prefetch()
+            state.should_prefetch().then_some(())
         },
         move |()| on_trigger(),
     )
@@ -74,28 +74,34 @@ pub fn on_should_prefetch(
 }
 
 pub fn on_fetch_state_tag_changed(
-    subscriber: Subscriber<State>,
+    mut subscriber: Subscriber<State>,
     mut on_changed: impl FnMut(FetchStateTag) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
+    let initial_value = subscriber.read_ack().fetch_state_tag();
     discro::tasklet::capture_changes(
         subscriber,
-        |state| state.fetch_state_tag(),
-        |fetch_state_tag, state| *fetch_state_tag != state.fetch_state_tag(),
+        initial_value,
+        |fetch_state_tag, state| {
+            (*fetch_state_tag != state.fetch_state_tag()).then(|| state.fetch_state_tag())
+        },
         move |fetch_state_tag| on_changed(*fetch_state_tag),
     )
 }
 
 pub fn on_fetch_state_tag_changed_async<T>(
-    subscriber: Subscriber<State>,
+    mut subscriber: Subscriber<State>,
     mut on_changed: impl FnMut(FetchStateTag) -> T + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static
 where
     T: Future<Output = OnChanged> + Send + 'static,
 {
+    let initial_value = subscriber.read_ack().fetch_state_tag();
     discro::tasklet::capture_changes_async(
         subscriber,
-        |state| state.fetch_state_tag(),
-        |fetch_state_tag, state| *fetch_state_tag != state.fetch_state_tag(),
+        initial_value,
+        |fetch_state_tag, state| {
+            (*fetch_state_tag != state.fetch_state_tag()).then(|| state.fetch_state_tag())
+        },
         move |fetch_state_tag| on_changed(*fetch_state_tag),
     )
 }

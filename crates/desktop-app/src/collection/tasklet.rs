@@ -10,28 +10,30 @@ use super::{NestedMusicDirectoriesStrategy, ObservableState, State, StateTag};
 use crate::{fs::DirPath, settings, WeakHandle};
 
 pub fn on_state_tag_changed(
-    subscriber: Subscriber<State>,
+    mut subscriber: Subscriber<State>,
     mut on_changed: impl FnMut(StateTag) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
+    let initial_value = subscriber.read_ack().state_tag();
     discro::tasklet::capture_changes(
         subscriber,
-        |state| state.state_tag(),
-        |state_tag, state| *state_tag != state.state_tag(),
+        initial_value,
+        |state_tag, state| (*state_tag != state.state_tag()).then(|| state.state_tag()),
         move |state_tag| on_changed(*state_tag),
     )
 }
 
 pub fn on_state_tag_changed_async<T>(
-    subscriber: Subscriber<State>,
+    mut subscriber: Subscriber<State>,
     mut on_changed: impl FnMut(StateTag) -> T + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static
 where
     T: Future<Output = OnChanged> + Send + 'static,
 {
+    let initial_value = subscriber.read_ack().state_tag();
     discro::tasklet::capture_changes_async(
         subscriber,
-        |state| state.state_tag(),
-        |state_tag, state| *state_tag != state.state_tag(),
+        initial_value,
+        |state_tag, state| (*state_tag != state.state_tag()).then(|| state.state_tag()),
         move |state_tag| on_changed(*state_tag),
     )
 }

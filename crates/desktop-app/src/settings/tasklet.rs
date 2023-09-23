@@ -22,27 +22,24 @@ pub fn on_state_changed_save_to_file(
     let mut old_settings = subscriber.read_ack().clone();
     async move {
         log::debug!("Starting on_state_changed_save_to_file");
-        let mut settings_changed = false;
         loop {
-            if settings_changed {
-                log::debug!("Saving changed settings: {old_settings:?}");
-                let new_settings = old_settings.clone();
-                if let Err(err) = new_settings.save_spawn_blocking(settings_dir.clone()).await {
-                    report_error(err);
-                }
-            }
-            settings_changed = false;
             if subscriber.changed().await.is_err() {
                 // Publisher has disappeared
                 log::debug!("Aborting on_state_changed_save_to_file");
                 break;
             }
-            let new_settings = subscriber.read_ack();
-            if old_settings != *new_settings {
+            {
+                let new_settings = subscriber.read_ack();
+                if old_settings == *new_settings {
+                    log::debug!("Settings unchanged: {old_settings:?}");
+                    continue;
+                }
                 old_settings = new_settings.clone();
-                settings_changed = true;
-            } else {
-                log::debug!("Settings unchanged: {old_settings:?}");
+            }
+            log::debug!("Saving changed settings: {old_settings:?}");
+            let new_settings = old_settings.clone();
+            if let Err(err) = new_settings.save_spawn_blocking(settings_dir.clone()).await {
+                report_error(err);
             }
         }
     }
