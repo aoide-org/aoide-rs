@@ -1351,9 +1351,9 @@ dependencies = [
 
 [[package]]
 name = "discro"
-version = "0.25.0"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d43bdf19f53f4af94e8b634da6c41d0ebd7542e189574fae888ada111da89ea2"
+checksum = "15c99cdadc0ebd3bc3a7ec974fd91fb6ba1bdee31dccfab81c6256dbc6deb286"
 dependencies = [
  "async-stream",
  "futures",
