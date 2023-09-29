@@ -114,9 +114,9 @@ pub(crate) async fn run(
                 server_shutdown_tx
                     .send(())
                     .map(|()| StatusCode::ACCEPTED)
-                    .or_else(|_| {
+                    .map_err(|_| {
                         log::warn!("Failed to forward shutdown request");
-                        Ok(StatusCode::BAD_GATEWAY)
+                        StatusCode::BAD_GATEWAY
                     })
             })
     };

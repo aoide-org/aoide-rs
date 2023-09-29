@@ -16,7 +16,7 @@ base64 = "0.21.4"
 mime = "0.3.17"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_repr = "0.1.16"
-time = { version = "0.3.28", features = ["serde-human-readable"] }
+time = { version = "0.3.29", features = ["serde-human-readable"] }
 url = { version = "2.4.1", features = ["serde"] }
 
 # JSON Schema (optional)
