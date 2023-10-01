@@ -85,12 +85,14 @@ pub(super) fn import_serato_markers(
     importer: &mut crate::io::import::Importer,
     tag: &Id3v2Tag,
 ) -> Option<triseratops::tag::TagContainer> {
+    use lofty::id3::v2::FrameId;
+
     let mut serato_tags = triseratops::tag::TagContainer::new();
     let mut parsed = false;
 
-    if let Some(frame) =
-        tag.get(<triseratops::tag::Markers as triseratops::tag::format::id3::ID3Tag>::ID3_TAG)
-    {
+    if let Some(frame) = tag.get(&FrameId::Valid(
+        <triseratops::tag::Markers as triseratops::tag::format::id3::ID3Tag>::ID3_TAG.into(),
+    )) {
         if let lofty::id3::v2::FrameValue::Binary(data) = frame.content() {
             match serato_tags.parse_markers(data, triseratops::tag::TagFormat::ID3) {
                 Ok(()) => {
@@ -104,9 +106,9 @@ pub(super) fn import_serato_markers(
             importer.add_issue(format!("Unexpected Serato Markers frame: {frame:?}"));
         }
     }
-    if let Some(frame) =
-        tag.get(<triseratops::tag::Markers2 as triseratops::tag::format::id3::ID3Tag>::ID3_TAG)
-    {
+    if let Some(frame) = tag.get(&FrameId::Valid(
+        <triseratops::tag::Markers2 as triseratops::tag::format::id3::ID3Tag>::ID3_TAG.into(),
+    )) {
         if let lofty::id3::v2::FrameValue::Binary(data) = frame.content() {
             match serato_tags.parse_markers(data, triseratops::tag::TagFormat::ID3) {
                 Ok(()) => {

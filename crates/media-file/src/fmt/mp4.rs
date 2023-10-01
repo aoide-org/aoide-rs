@@ -230,7 +230,7 @@ pub(crate) fn export_track_to_tag(
     if let Some(advisory_rating) = track.advisory_rating.map(export_advisory_rating) {
         ilst.set_advisory_rating(advisory_rating);
     } else {
-        ilst.remove(&ADVISORY_RATING_IDENT);
+        drop(ilst.remove(&ADVISORY_RATING_IDENT));
     }
 
     // Music: Precise tempo BPM as a float value
@@ -251,10 +251,10 @@ pub(crate) fn export_track_to_tag(
             let atom = Atom::new(FLOAT_BPM_IDENT, AtomData::UTF8(formatted.into()));
             ilst.replace_atom(atom);
         } else {
-            ilst.remove(&FLOAT_BPM_IDENT);
+            drop(ilst.remove(&FLOAT_BPM_IDENT));
         }
     } else {
-        ilst.remove(&FLOAT_BPM_IDENT);
+        drop(ilst.remove(&FLOAT_BPM_IDENT));
     }
 
     #[cfg(feature = "serato-markers")]
