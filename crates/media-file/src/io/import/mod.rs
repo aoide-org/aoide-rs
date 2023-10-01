@@ -25,7 +25,7 @@ use aoide_core::{
 };
 use bitflags::bitflags;
 use image::{io::Reader as ImageReader, DynamicImage};
-use lofty::FileType;
+use lofty::{FileType, ParseOptions};
 use mime::Mime;
 use url::Url;
 
@@ -205,7 +205,10 @@ pub fn import_into_track(
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<Issues> {
-    let probe = lofty::Probe::new(reader).guess_file_type()?;
+    let probe = lofty::Probe::new(reader)
+        // Workaround for <https://github.com/Serial-ATA/lofty-rs/issues/260>
+        .options(ParseOptions::new().max_junk_bytes(usize::MAX))
+        .guess_file_type()?;
     let Some(file_type) = probe.file_type() else {
         log::debug!(
             "Skipping import of track {media_source_content_link:?}: {config:?}",
