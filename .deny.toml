@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 # SPDX-License-Identifier: CC0-1.0
 
+all-features = true
+
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
@@ -16,10 +18,13 @@ copyleft = "warn"
 allow = [
     "AGPL-3.0",
     "Apache-2.0",
+    "BSD-2-Clause",
     "BSD-3-Clause",
     "MIT",
     "MPL-2.0",
     "Unicode-DFS-2016",
+    "Unlicense",
+    "zlib-acknowledgement",
 ]
 
 [bans]
