@@ -12,8 +12,8 @@ rust-version = { workspace = true }
 
 [dependencies]
 anyhow = "1.0.75"
-base64 = "0.21.4"
 bitflags = "2.4.0"
+data-encoding = "2.4.0"
 image = { version = "0.24.7", default-features = false, features = ["png"] }
 mime = "0.3.17"
 nonicle = "0.1.0"

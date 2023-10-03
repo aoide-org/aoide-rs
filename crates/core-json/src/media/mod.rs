@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::media::content::ContentMetadataFlags;
-use base64::Engine as _;
+use data_encoding::{Encoding, BASE64URL_NOPAD};
 
 use self::{
     artwork::Artwork,
@@ -22,22 +22,21 @@ mod _core {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct Base64(String);
 
-const BASE64_ENGINE: base64::engine::GeneralPurpose =
-    base64::engine::general_purpose::URL_SAFE_NO_PAD;
+const BASE64: Encoding = BASE64URL_NOPAD;
 
 impl Base64 {
     pub fn encode(bytes: impl AsRef<[u8]>) -> Self {
-        let encoded = BASE64_ENGINE.encode(bytes.as_ref());
+        let encoded = BASE64.encode(bytes.as_ref());
         Self(encoded)
     }
 
-    pub fn try_decode(&self) -> Result<Vec<u8>, base64::DecodeError> {
+    pub fn try_decode(&self) -> Result<Vec<u8>, data_encoding::DecodeError> {
         let Self(encoded) = self;
         Self::try_decode_impl(encoded)
     }
 
-    fn try_decode_impl(encoded: impl AsRef<str>) -> Result<Vec<u8>, base64::DecodeError> {
-        BASE64_ENGINE.decode(encoded.as_ref())
+    fn try_decode_impl(encoded: impl AsRef<str>) -> Result<Vec<u8>, data_encoding::DecodeError> {
+        BASE64.decode(encoded.as_ref().as_bytes())
     }
 
     pub fn from_encoded(encoded: impl Into<String>) -> Self {
@@ -64,7 +63,7 @@ where
 }
 
 impl TryFrom<&Base64> for Vec<u8> {
-    type Error = base64::DecodeError;
+    type Error = data_encoding::DecodeError;
 
     fn try_from(from: &Base64) -> Result<Self, Self::Error> {
         from.try_decode()
@@ -88,7 +87,7 @@ impl<'a> AsRef<str> for DigestRef<'a> {
 }
 
 impl<'a> TryFrom<DigestRef<'a>> for Vec<u8> {
-    type Error = base64::DecodeError;
+    type Error = data_encoding::DecodeError;
 
     fn try_from(from: DigestRef<'a>) -> Result<Self, Self::Error> {
         let DigestRef(encoded) = from;
