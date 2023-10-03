@@ -58,9 +58,10 @@ pub fn last_offset_hash_of_fetched_entities<'a>(
 ) -> u64 {
     fetched_entities
         .into()
-        .and_then(|fetched_entities| fetched_entities.last())
-        .map(|fetched_entity| fetched_entity.offset_hash)
-        .unwrap_or(INITIAL_OFFSET_HASH_SEED)
+        .and_then(<[FetchedEntity]>::last)
+        .map_or(INITIAL_OFFSET_HASH_SEED, |fetched_entity| {
+            fetched_entity.offset_hash
+        })
 }
 
 #[derive(Debug, Default)]
@@ -175,7 +176,7 @@ impl FetchState {
             log::error!("Not pending when fetching succeeded");
             return false;
         };
-        let expected_offset = fetched_entities_before.as_ref().map(Vec::len).unwrap_or(0);
+        let expected_offset = fetched_entities_before.as_ref().map_or(0, Vec::len);
         let expected_offset_hash =
             last_offset_hash_of_fetched_entities(fetched_entities_before.as_deref());
         if offset != expected_offset || offset_hash != expected_offset_hash {
@@ -210,6 +211,7 @@ impl FetchState {
         true
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
         log::warn!("Fetching failed: {err}");
         let Self::Pending {
@@ -378,6 +380,7 @@ pub struct FetchMoreSucceeded {
     can_fetch_more: bool,
 }
 
+#[allow(clippy::cast_possible_truncation)]
 pub async fn fetch_more(
     handle: &Handle,
     context: Context,
@@ -391,7 +394,7 @@ pub async fn fetch_more(
     let collection_uid = if let Some(collection_uid) = collection_uid {
         collection_uid.clone()
     } else {
-        anyhow::bail!("Cannot fetch more without collection");
+        anyhow::bail!("cannot fetch more without collection");
     };
     let params = params.clone();
     let offset = pagination.offset.unwrap_or(0) as usize;
@@ -441,7 +444,7 @@ impl ObservableState {
 
     #[allow(clippy::must_use_candidate)]
     pub fn reset(&self) -> bool {
-        self.modify(|state| state.reset())
+        self.modify(State::reset)
     }
 
     pub fn update_collection_uid(&self, collection_uid: &mut Option<CollectionUid>) -> bool {
@@ -468,7 +471,7 @@ impl ObservableState {
                 offset_hash = last_offset_hash_of_fetched_entities(state.fetched_entities());
                 let offset = state.fetched_entities().map(|slice| slice.len() as u64);
                 let limit = fetch_limit.map(|limit| limit as u64);
-                pagination = Pagination { offset, limit };
+                pagination = Pagination { limit, offset };
                 true
             }) {
                 // No effect
@@ -485,7 +488,7 @@ impl ObservableState {
 
     #[allow(clippy::must_use_candidate)]
     pub fn reset_fetched(&self) -> bool {
-        self.modify(|state| state.reset_fetched())
+        self.modify(State::reset_fetched)
     }
 }
 

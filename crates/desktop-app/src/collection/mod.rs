@@ -32,7 +32,7 @@ use crate::{fs::DirPath, Environment, Handle};
 pub mod tasklet;
 
 #[must_use]
-pub fn vfs_root_url(collection: &Collection) -> Option<&BaseUrl> {
+pub const fn vfs_root_url(collection: &Collection) -> Option<&BaseUrl> {
     if let ContentPathConfig::VirtualFilePath { root_url } =
         &collection.media_source_config.content_path
     {
@@ -148,6 +148,7 @@ fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
 }
 
 impl RestoreOrCreateState {
+    #[allow(clippy::missing_panics_doc)]
     pub async fn restore_or_create(self, environment: &Environment) -> anyhow::Result<State> {
         let Self {
             kind,
@@ -167,7 +168,7 @@ impl RestoreOrCreateState {
             }
         };
         let kind_filter = kind.as_ref().map(|kind| KindFilter {
-            kind: Some(kind.to_owned().into()),
+            kind: Some(kind.clone().into()),
         });
         let candidates = aoide_backend_embedded::collection::load_all(
             environment.db_gatekeeper(),
@@ -441,7 +442,7 @@ impl State {
     }
 
     #[must_use]
-    pub fn entity(&self) -> Option<&Entity> {
+    pub const fn entity(&self) -> Option<&Entity> {
         match self {
             Self::Initial
             | Self::Loading { .. }
@@ -482,8 +483,8 @@ impl State {
                 entity_uid: None,
                 restore_or_create: Some(state.clone()),
             }),
-            _ => {
-                anyhow::bail!("Illegal state when refreshing from database: {self:?}");
+            State::Initial => {
+                anyhow::bail!("illegal state when refreshing from database: {self:?}");
             }
         }
     }

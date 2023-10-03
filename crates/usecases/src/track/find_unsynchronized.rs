@@ -79,7 +79,7 @@ where
             Some(resolver)
         } else {
             let path_kind = collection_ctx.content_path.kind;
-            return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
+            return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
         }
     } else {
         None

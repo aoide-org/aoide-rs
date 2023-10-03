@@ -39,7 +39,7 @@ impl Environment {
     }
 
     /// The [`Gatekeeper`] for accessing the database
-    pub fn db_gatekeeper(&self) -> &Gatekeeper {
+    pub const fn db_gatekeeper(&self) -> &Gatekeeper {
         &self.db_gatekeeper
     }
 }

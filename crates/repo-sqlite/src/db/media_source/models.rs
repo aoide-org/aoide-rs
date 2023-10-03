@@ -120,7 +120,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             match source {
                 ArtworkSource::Missing => Some(Artwork::Missing),
                 ArtworkSource::Linked if artwork_uri.is_none() => {
-                    anyhow::bail!("Missing URI for linked artwork");
+                    anyhow::bail!("missing URI for linked artwork");
                 }
                 _ => {
                     let apic_type = artwork_apic_type

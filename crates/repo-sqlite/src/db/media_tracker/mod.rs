@@ -8,7 +8,7 @@ use aoide_core_api::media::tracker::DirTrackingStatus;
 
 use crate::prelude::*;
 
-pub(crate) fn encode_dir_tracking_status(value: DirTrackingStatus) -> i16 {
+pub(crate) const fn encode_dir_tracking_status(value: DirTrackingStatus) -> i16 {
     value as _
 }
 

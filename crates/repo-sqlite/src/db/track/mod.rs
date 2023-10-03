@@ -25,7 +25,7 @@ pub(crate) struct EntityPreload {
     pub(crate) cues: Canonical<Vec<Cue>>,
 }
 
-pub(crate) fn encode_album_kind(value: Kind) -> i16 {
+pub(crate) const fn encode_album_kind(value: Kind) -> i16 {
     value as _
 }
 
@@ -36,7 +36,7 @@ pub(crate) fn decode_album_kind(value: i16) -> RepoResult<Kind> {
         .ok_or_else(|| anyhow::anyhow!("invalid track album Kind value: {value}").into())
 }
 
-pub(crate) fn encode_advisory_rating(value: AdvisoryRating) -> i16 {
+pub(crate) const fn encode_advisory_rating(value: AdvisoryRating) -> i16 {
     value as _
 }
 
@@ -47,7 +47,7 @@ pub(crate) fn decode_advisory_rating(value: i16) -> RepoResult<AdvisoryRating> {
         .ok_or_else(|| anyhow::anyhow!("invalid track AdvisoryRating value: {value}").into())
 }
 
-pub(crate) fn encode_search_scope(value: Scope) -> i16 {
+pub(crate) const fn encode_search_scope(value: Scope) -> i16 {
     value as _
 }
 

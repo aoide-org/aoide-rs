@@ -28,7 +28,7 @@ impl<T> DataSnapshot<T> {
         }
     }
 
-    pub fn as_ref(&self) -> DataSnapshot<&T> {
+    pub const fn as_ref(&self) -> DataSnapshot<&T> {
         let Self { since, value } = self;
         DataSnapshot {
             since: *since,
@@ -114,7 +114,7 @@ impl<T> RemoteData<T> {
         }
     }
 
-    pub fn last_snapshot(&self) -> Option<&DataSnapshot<T>> {
+    pub const fn last_snapshot(&self) -> Option<&DataSnapshot<T>> {
         self.last_snapshot.as_ref()
     }
 
@@ -127,7 +127,7 @@ impl<T> RemoteData<T> {
         self.last_snapshot.take()
     }
 
-    pub fn is_pending(&self) -> bool {
+    pub const fn is_pending(&self) -> bool {
         matches!(self.roundtrip.state, RoundtripState::Pending { .. })
     }
 

@@ -93,10 +93,10 @@ impl State {
         {
             Ok(Ok(())) => Ok(()),
             Ok(Err(err)) => {
-                anyhow::bail!("Failed to save: {err}");
+                anyhow::bail!("failed to save: {err}");
             }
             Err(err) => {
-                anyhow::bail!("Failed to join blocking task after saving: {err}");
+                anyhow::bail!("failed to join blocking task after saving: {err}");
             }
         }
     }
@@ -114,14 +114,15 @@ impl State {
             .map(DirPath::from_owned)
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn create_database_config(&self) -> anyhow::Result<DatabaseConfig> {
         let url = self
             .database_url
             .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Missing database URL"))?;
+            .ok_or_else(|| anyhow::anyhow!("missing database URL"))?;
         let file_path = url
             .to_file_path()
-            .map_err(|()| anyhow::anyhow!("Unsupported database URL: {}", url))?;
+            .map_err(|()| anyhow::anyhow!("unsupported database URL: {}", url))?;
         let config = DatabaseConfig {
             connection: aoide_storage_sqlite::connection::Config {
                 storage: aoide_storage_sqlite::connection::Storage::File { path: file_path },

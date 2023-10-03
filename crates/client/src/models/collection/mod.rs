@@ -33,7 +33,7 @@ pub struct RemoteView {
 
 impl RemoteView {
     #[must_use]
-    pub fn is_pending(&self) -> bool {
+    pub const fn is_pending(&self) -> bool {
         self.all_kinds.is_pending() || self.filtered_entities.is_pending()
     }
 
@@ -118,7 +118,7 @@ impl Model {
     }
 
     #[must_use]
-    pub fn last_error(&self) -> Option<&anyhow::Error> {
+    pub const fn last_error(&self) -> Option<&anyhow::Error> {
         self.last_error.as_ref()
     }
 

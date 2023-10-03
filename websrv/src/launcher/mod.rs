@@ -58,7 +58,7 @@ impl Launcher {
     }
 
     #[must_use]
-    pub(crate) fn config(&self) -> Option<&Config> {
+    pub(crate) const fn config(&self) -> Option<&Config> {
         match &self.state {
             InternalState::Idle => None,
             InternalState::Running { config, .. } => Some(config),
@@ -79,7 +79,7 @@ impl Launcher {
         mut on_state_changed: impl FnMut(State) + Send + 'static,
     ) -> anyhow::Result<JoinHandle<anyhow::Result<()>>> {
         if !matches!(self.state(), State::Idle) {
-            anyhow::bail!("Invalid state: {:?}", self.state());
+            anyhow::bail!("invalid state: {:?}", self.state());
         }
 
         let runtime = tokio::runtime::Runtime::new()?;
@@ -134,7 +134,7 @@ impl Launcher {
 
     pub(crate) fn terminate_runtime(&mut self, abort_pending_tasks: bool) -> anyhow::Result<()> {
         match &mut self.state {
-            InternalState::Idle => anyhow::bail!("Invalid state: {:?}", self.state()),
+            InternalState::Idle => anyhow::bail!("invalid state: {:?}", self.state()),
             InternalState::Running {
                 runtime_command_tx, ..
             } => {
@@ -143,7 +143,7 @@ impl Launcher {
                 };
                 if let Err(command) = runtime_command_tx.send(command) {
                     anyhow::bail!(
-                        "Failed to send command {command:?} in state {:?}",
+                        "failed to send command {command:?} in state {:?}",
                         self.state()
                     );
                 }

@@ -61,7 +61,7 @@ where
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
-        return Err(anyhow::anyhow!("Unsupported path kind: {path_kind:?}").into());
+        return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
     };
     let import_and_replace_params = import_and_replace::Params {
         sync_mode: *sync_mode,

@@ -12,7 +12,7 @@ use strum::FromRepr;
 use self::schema::*;
 use crate::prelude::*;
 
-pub(crate) fn encode_content_path_kind(value: ContentPathKind) -> i16 {
+pub(crate) const fn encode_content_path_kind(value: ContentPathKind) -> i16 {
     value as _
 }
 
@@ -23,7 +23,7 @@ pub(crate) fn decode_content_path_kind(value: i16) -> RepoResult<ContentPathKind
         .ok_or_else(|| anyhow::anyhow!("invalid ContentPathKind value: {value}").into())
 }
 
-pub(crate) fn encode_apic_type(value: ApicType) -> i16 {
+pub(crate) const fn encode_apic_type(value: ApicType) -> i16 {
     value as _
 }
 

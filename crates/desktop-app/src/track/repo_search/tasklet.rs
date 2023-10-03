@@ -54,7 +54,7 @@ pub fn on_should_prefetch(
         let observable_state_sub = some_or_return!(observable_state_sub);
         log::debug!("Starting on_should_prefetch");
         on_should_prefetch_trigger_async(observable_state_sub, move || {
-            let observable_state = observable_state.clone();
+            let observable_state = Weak::clone(&observable_state);
             let handle = handle.clone();
             async move {
                 let observable_state =

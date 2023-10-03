@@ -112,7 +112,7 @@ impl ContentPathContext {
             ContentPathKind::VirtualFilePath => {
                 let Some(canonical_root_url) = canonical_root_url else {
                     return Err(anyhow::anyhow!(
-                        "Missing root URL for collection {record_id:?} with content path kind \
+                        "missing root URL for collection {record_id:?} with content path kind \
                          {kind:?}"
                     )
                     .into());
@@ -125,7 +125,7 @@ impl ContentPathContext {
             }
             #[cfg(target_family = "wasm")]
             ContentPathKind::VirtualFilePath => {
-                return Err(anyhow::anyhow!("Unsupported content path kind: {kind:?}").into());
+                return Err(anyhow::anyhow!("unsupported content path kind: {kind:?}").into());
             }
         };
         Ok(Self { kind, resolver })

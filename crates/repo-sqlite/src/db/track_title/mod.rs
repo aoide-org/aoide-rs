@@ -17,7 +17,7 @@ pub struct Record {
     pub title: Title,
 }
 
-pub(crate) fn encode_kind(value: Kind) -> i16 {
+pub(crate) const fn encode_kind(value: Kind) -> i16 {
     value as _
 }
 

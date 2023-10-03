@@ -75,7 +75,7 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
         } = from;
         let media_type = media_type.parse()?;
         let apic_type = _core::ApicType::from_repr(apic_type)
-            .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {apic_type}"))?;
+            .ok_or_else(|| anyhow::anyhow!("invalid APIC type: {apic_type}"))?;
         let size = size.map(|size| {
             let ImageSize(width, height) = size;
             _core::ImageSize { width, height }
@@ -84,13 +84,13 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
         let digest = digest_data
             .map(TryFrom::try_from)
             .transpose()
-            .map_err(|_| anyhow::anyhow!("Failed to deserialize artwork digest"))?;
+            .map_err(|_| anyhow::anyhow!("failed to deserialize artwork digest"))?;
         let thumbnail_data = thumbnail.as_ref().map(Vec::try_from).transpose()?;
         let color = color.map(Into::into);
         let thumbnail = thumbnail_data
             .map(TryFrom::try_from)
             .transpose()
-            .map_err(|_| anyhow::anyhow!("Failed to deserialize artwork thumbnail"))?;
+            .map_err(|_| anyhow::anyhow!("failed to deserialize artwork thumbnail"))?;
         let into = Self {
             media_type,
             apic_type,

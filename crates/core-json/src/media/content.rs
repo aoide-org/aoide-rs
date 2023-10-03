@@ -110,12 +110,12 @@ impl TryFrom<ContentPathConfig> for _core::ContentPathConfig {
                     let root_url = match BaseUrl::try_from(root_url) {
                         Ok(root_url) => root_url,
                         Err(err) => {
-                            anyhow::bail!("Invalid root URL: {err}");
+                            anyhow::bail!("invalid root URL: {err}");
                         }
                     };
                     Self::VirtualFilePath { root_url }
                 } else {
-                    anyhow::bail!("Missing root URL");
+                    anyhow::bail!("missing root URL");
                 }
             }
         };

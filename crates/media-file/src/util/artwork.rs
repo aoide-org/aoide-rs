@@ -36,7 +36,7 @@ impl From<ArtworkImageError> for crate::Error {
     fn from(err: ArtworkImageError) -> crate::Error {
         match err {
             ArtworkImageError::UnsupportedFormat(image_format) => Self::Metadata(anyhow::anyhow!(
-                "Unsupported artwork image format: {image_format:?}"
+                "unsupported artwork image format: {image_format:?}"
             )),
             ArtworkImageError::Image(err) => Self::Metadata(err.into()),
             ArtworkImageError::Other(err) => Self::Metadata(err),
@@ -90,7 +90,7 @@ pub fn load_artwork_picture(
                 .parse::<Mime>()
                 .map_err(|err| {
                     recoverable_errors.push(anyhow::anyhow!(
-                        "Failed to parse MIME type from '{media_type_hint}': {err}"
+                        "failed to parse MIME type from '{media_type_hint}': {err}"
                     ));
                     err
                 })
@@ -137,9 +137,9 @@ fn ingest_artwork_image(
     } = load_artwork_picture(image_data, image_format_hint, media_type_hint)?;
     let (width, height) = picture.dimensions();
     let width = ImageDimension::try_from(width)
-        .map_err(|_| anyhow::anyhow!("Unsupported image size: {width}x{height}"))?;
+        .map_err(|_| anyhow::anyhow!("unsupported image size: {width}x{height}"))?;
     let height = ImageDimension::try_from(height)
-        .map_err(|_| anyhow::anyhow!("Unsupported image size: {width}x{height}"))?;
+        .map_err(|_| anyhow::anyhow!("unsupported image size: {width}x{height}"))?;
     let size = ImageSize { width, height };
     let digest = image_digest.digest_content(image_data).finalize_reset();
     let color_thief_format = match picture.color() {

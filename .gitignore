@@ -7,7 +7,8 @@
 # .gitignore file that can be configured by setting core.excludesFile.
 # See also: https://git-scm.com/docs/gitignore
 
-# Build directories (or a symbolic link, i.e. without a trailing slash)
+# Build directories
+# Without a trailing slash to include symbolic links.
 /target
 
 # Benchmark directories

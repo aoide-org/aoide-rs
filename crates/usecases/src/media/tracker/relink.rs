@@ -113,7 +113,7 @@ pub struct Progress {
 }
 
 impl Progress {
-    fn new(total: usize) -> Self {
+    const fn new(total: usize) -> Self {
         Self {
             total,
             relinked: 0,
@@ -122,27 +122,27 @@ impl Progress {
     }
 
     #[must_use]
-    pub fn total(&self) -> usize {
+    pub const fn total(&self) -> usize {
         self.total
     }
 
     #[must_use]
-    pub fn relinked(&self) -> usize {
+    pub const fn relinked(&self) -> usize {
         self.relinked
     }
 
     #[must_use]
-    pub fn skipped(&self) -> usize {
+    pub const fn skipped(&self) -> usize {
         self.skipped
     }
 
     #[must_use]
-    pub fn finished(&self) -> usize {
+    pub const fn finished(&self) -> usize {
         self.relinked + self.skipped
     }
 
     #[must_use]
-    pub fn remaining(&self) -> usize {
+    pub const fn remaining(&self) -> usize {
         debug_assert!(self.finished() <= self.total);
         self.total - self.finished()
     }

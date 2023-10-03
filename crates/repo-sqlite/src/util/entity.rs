@@ -29,7 +29,7 @@ pub(crate) fn decode_entity_revision(rev: i64) -> EntityRevision {
     decoded
 }
 
-pub(crate) fn encode_entity_revision(rev: EntityRevision) -> i64 {
+pub(crate) const fn encode_entity_revision(rev: EntityRevision) -> i64 {
     rev.value() as _
 }
 

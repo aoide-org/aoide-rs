@@ -41,7 +41,7 @@ pub struct RemoteView {
 
 impl RemoteView {
     #[must_use]
-    pub fn is_pending(&self) -> bool {
+    pub const fn is_pending(&self) -> bool {
         self.last_purge_orphaned_outcome.is_pending()
             || self.last_purge_untracked_outcome.is_pending()
     }
@@ -55,12 +55,12 @@ pub struct Model {
 
 impl Model {
     #[must_use]
-    pub fn remote_view(&self) -> &RemoteView {
+    pub const fn remote_view(&self) -> &RemoteView {
         &self.remote_view
     }
 
     #[must_use]
-    pub fn last_error(&self) -> Option<&anyhow::Error> {
+    pub const fn last_error(&self) -> Option<&anyhow::Error> {
         self.last_error.as_ref()
     }
 }

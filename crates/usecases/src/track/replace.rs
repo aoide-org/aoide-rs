@@ -152,7 +152,7 @@ where
                 .parse()
                 .map_err(|err| {
                     anyhow::anyhow!(
-                        "Failed to parse URL from path '{}': {err}",
+                        "failed to parse URL from path '{}': {err}",
                         track.media_source.content.link.path,
                     )
                 })
@@ -160,7 +160,7 @@ where
             track.media_source.content.link.path = content_path_resolver
                 .resolve_path_from_url(&url)
                 .map_err(|err| {
-                    anyhow::anyhow!("Failed to resolve local file path from URL '{url}': {err}")
+                    anyhow::anyhow!("failed to resolve local file path from URL '{url}': {err}")
                 })
                 .map_err(Error::from)?;
         }

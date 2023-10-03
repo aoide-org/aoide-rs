@@ -17,7 +17,7 @@ pub struct ValidatedInput(Collection);
 
 pub fn validate_input(collection: Collection) -> InputResult<ValidatedInput> {
     if let Err(err) = collection.validate() {
-        return Err(anyhow::anyhow!("Invalid collection input: {err:?}").into());
+        return Err(anyhow::anyhow!("invalid collection input: {err:?}").into());
     }
     Ok(ValidatedInput(collection))
 }

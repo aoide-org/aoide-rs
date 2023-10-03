@@ -17,7 +17,7 @@ pub struct Record {
     pub actor: Actor,
 }
 
-pub(crate) fn encode_role(value: Role) -> i16 {
+pub(crate) const fn encode_role(value: Role) -> i16 {
     value as _
 }
 
@@ -28,7 +28,7 @@ pub(crate) fn decode_role(value: i16) -> RepoResult<Role> {
         .ok_or_else(|| anyhow::anyhow!("invalid track actor Role value: {value}").into())
 }
 
-pub(crate) fn encode_kind(value: Kind) -> i16 {
+pub(crate) const fn encode_kind(value: Kind) -> i16 {
     value as _
 }
 

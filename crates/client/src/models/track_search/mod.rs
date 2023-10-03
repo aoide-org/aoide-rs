@@ -60,17 +60,17 @@ pub struct Model {
 
 impl Model {
     #[must_use]
-    pub fn state(&self) -> State {
+    pub const fn state(&self) -> State {
         self.state
     }
 
     #[must_use]
-    pub fn last_error(&self) -> Option<&anyhow::Error> {
+    pub const fn last_error(&self) -> Option<&anyhow::Error> {
         self.last_error.as_ref()
     }
 
     #[must_use]
-    pub fn search_params(&self) -> Option<&Params> {
+    pub const fn search_params(&self) -> Option<&Params> {
         self.search_params.as_ref()
     }
 

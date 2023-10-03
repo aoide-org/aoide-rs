@@ -1,15 +1,24 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+// Opt-in for allowed-by-default lints (in alphabetical order)
+// See also: <https://doc.rust-lang.org/rustc/lints>
+#![warn(future_incompatible)]
+#![warn(let_underscore)]
+#![warn(missing_debug_implementations)]
+//#![warn(missing_docs)] // TODO
 #![warn(rust_2018_idioms)]
 #![warn(rust_2021_compatibility)]
-#![warn(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
+#![warn(unused)]
+// Rustdoc lints
 #![warn(rustdoc::broken_intra_doc_links)]
+// Clippy lints
 #![warn(clippy::pedantic)]
 // Additional restrictions
 #![warn(clippy::clone_on_ref_ptr)]
+#![warn(clippy::missing_const_for_fn)]
 #![warn(clippy::self_named_module_files)]
 // Repetitions of module/type names occur frequently when using many
 // modules for keeping the size of the source files handy. Often

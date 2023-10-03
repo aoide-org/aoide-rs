@@ -55,22 +55,20 @@ impl TaskExecutor<Arc<Environment>> for Environment {
         mut context: TaskContext<Arc<Environment>, Self::Intent, Self::Effect>,
         task: Self::Task,
     ) {
-        let finish_task = match task {
-            Task::MediaTracker(media_tracker::Task::Pending {
-                token: _,
-                task: media_tracker::PendingTask::FetchProgress,
-            }) => {
-                // This periodic task should not prevent termination while pending!
-                false
+        let finish_task = if let Task::MediaTracker(media_tracker::Task::Pending {
+            token: _,
+            task: media_tracker::PendingTask::FetchProgress,
+        }) = task
+        {
+            // This periodic task should not prevent termination while pending!
+            false
+        } else {
+            let started_pending_task = self.pending_tasks_counter.start_task();
+            debug_assert!(started_pending_task > 0);
+            if started_pending_task == 1 {
+                log::debug!("Started first pending task");
             }
-            _ => {
-                let started_pending_task = self.pending_tasks_counter.start_task();
-                debug_assert!(started_pending_task > 0);
-                if started_pending_task == 1 {
-                    log::debug!("Started first pending task");
-                }
-                true
-            }
+            true
         };
         tokio::spawn(async move {
             log::debug!("Executing task {task:?}");

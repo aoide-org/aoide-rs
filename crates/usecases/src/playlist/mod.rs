@@ -23,7 +23,7 @@ pub struct ValidatedInput(Playlist);
 
 pub fn validate_input(playlist: Playlist) -> InputResult<ValidatedInput> {
     if let Err(err) = playlist.validate() {
-        return Err(anyhow::anyhow!("Invalid playlist input: {:?}", err).into());
+        return Err(anyhow::anyhow!("invalid playlist input: {:?}", err).into());
     }
     Ok(ValidatedInput(playlist))
 }

@@ -37,7 +37,7 @@ impl TryFrom<QueryableRecord> for TrackedDirectory {
         } = from;
         let status = decode_dir_tracking_status(status)?;
         let digest = read_digest_from_slice(digest.as_slice())
-            .ok_or_else(|| anyhow::anyhow!("Invalid digest: {:?}", digest.as_slice()))?;
+            .ok_or_else(|| anyhow::anyhow!("invalid digest: {:?}", digest.as_slice()))?;
         let into = Self {
             content_path: content_path.into(),
             status,

@@ -68,14 +68,14 @@ impl Model {
             .chain(self.media_tracker.last_error())
     }
 
-    pub fn is_pending(&self) -> bool {
+    pub const fn is_pending(&self) -> bool {
         self.active_collection.remote_view().is_pending()
             || self.media_sources.remote_view().is_pending()
             || self.media_tracker.remote_view().is_pending()
     }
 
-    pub fn is_terminating(&self) -> bool {
-        self.state == State::Terminating
+    pub const fn is_terminating(&self) -> bool {
+        matches!(self.state, State::Terminating)
     }
 
     pub fn abort_pending_request_effect(&self) -> Option<Effect> {

@@ -1,19 +1,28 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+// Opt-in for allowed-by-default lints (in alphabetical order)
+// See also: <https://doc.rust-lang.org/rustc/lints>
+#![warn(future_incompatible)]
+#![warn(let_underscore)]
+#![warn(missing_debug_implementations)]
+//#![warn(missing_docs)] // TODO
 #![warn(rust_2018_idioms)]
 #![warn(rust_2021_compatibility)]
-#![warn(missing_debug_implementations)]
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
-#![warn(clippy::all)]
-#![warn(clippy::explicit_deref_methods)]
-#![warn(clippy::explicit_into_iter_loop)]
-#![warn(clippy::explicit_iter_loop)]
-#![warn(clippy::must_use_candidate)]
+#![warn(unused)]
+// Rustdoc lints
 #![warn(rustdoc::broken_intra_doc_links)]
-#![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
-#![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
+// Clippy lints
+#![warn(clippy::pedantic)]
+// Additional restrictions
+#![warn(clippy::clone_on_ref_ptr)]
+#![warn(clippy::missing_const_for_fn)]
+#![warn(clippy::self_named_module_files)]
+// Repeating the type name in `Default::default()` expressions is not needed
+// as long as the context is obvious.
+#![allow(clippy::default_trait_access)]
 
 use std::{
     env,
@@ -26,7 +35,10 @@ use aoide_client::{
     models::{collection, media_source, media_tracker},
     util::remote::DataSnapshot,
 };
-use aoide_core::{collection::MediaSourceConfig, Collection, CollectionEntity, CollectionUid};
+use aoide_core::{
+    collection::MediaSourceConfig, media::content::ContentPath, Collection, CollectionEntity,
+    CollectionUid,
+};
 use aoide_core_api::{
     media::{tracker::DirTrackingStatus, SyncMode},
     track::search::{SortField, SortOrder},
@@ -122,6 +134,7 @@ struct RenderCliModel {
 impl ModelRender for RenderCliModel {
     type Model = CliModel;
 
+    #[allow(clippy::too_many_lines)] // TODO
     fn render_model(
         &mut self,
         cli_model: &Self::Model,
@@ -300,7 +313,7 @@ impl ModelRender for RenderCliModel {
                             .value
                             .content_paths
                             .iter()
-                            .map(|content_path| content_path.as_str())
+                            .map(ContentPath::as_str)
                             .collect::<Vec<_>>()
                             .join("\n"),
                     );
@@ -311,28 +324,25 @@ impl ModelRender for RenderCliModel {
         // Only submit a single subcommand
         if *subcommand_submitted {
             // Periodically refetch and report progress while busy
-            let next_intent = if !model.is_terminating() {
-                if let Some(last_fetched) = last_media_tracker_progress_fetched {
-                    let now = Instant::now();
-                    if now >= *last_fetched {
-                        let not_before = now + PROGRESS_POLLING_PERIOD;
-                        *last_media_tracker_progress_fetched = Some(not_before);
-                        let intent = Intent::Schedule {
-                            not_before,
-                            intent: Box::new(media_tracker::Intent::FetchProgress.into()),
-                        };
-                        Some(intent)
-                    } else {
-                        None
-                    }
-                } else {
-                    *last_media_tracker_progress_fetched = Some(Instant::now());
-                    Some(media_tracker::Intent::FetchProgress.into())
+            if model.is_terminating() {
+                return None;
+            }
+            let next_intent = if let Some(last_fetched) = last_media_tracker_progress_fetched {
+                let now = Instant::now();
+                if now < *last_fetched {
+                    return None;
+                }
+                let not_before = now + PROGRESS_POLLING_PERIOD;
+                *last_media_tracker_progress_fetched = Some(not_before);
+                Intent::Schedule {
+                    not_before,
+                    intent: Box::new(media_tracker::Intent::FetchProgress.into()),
                 }
             } else {
-                None
+                *last_media_tracker_progress_fetched = Some(Instant::now());
+                media_tracker::Intent::FetchProgress.into()
             };
-            return next_intent;
+            return Some(next_intent);
         }
 
         // Commands that don't require an active collection
@@ -367,7 +377,7 @@ impl ModelRender for RenderCliModel {
                     .map(|s| s.parse().expect(CREATE_COLLECTION_VFS_ROOT_URL_ARG))
                     .expect(CREATE_COLLECTION_VFS_ROOT_URL_ARG);
                 let new_collection = Collection {
-                    title: title.to_owned(),
+                    title: title.clone(),
                     kind: kind.map(ToOwned::to_owned),
                     notes: None,
                     color: None,
@@ -600,7 +610,7 @@ impl ModelRender for RenderCliModel {
                         let output_file_path = matches
                             .get_one::<String>(OUTPUT_FILE_ARG)
                             .expect(OUTPUT_FILE_ARG)
-                            .to_owned();
+                            .clone();
                         let params = ExportTracksParams {
                             output_file_path: output_file_path.into(),
                             track_search: aoide_core_api::track::search::Params {
@@ -642,6 +652,7 @@ impl ModelRender for RenderCliModel {
 }
 
 #[tokio::main]
+#[allow(clippy::too_many_lines)] // TODO
 async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(DEFAULT_LOG_FILTER))
         .init();
@@ -892,12 +903,9 @@ fn require_active_collection<'s>(
         );
         return Ok(entity);
     }
-    let collection_title =
-        if let Some(collection_title) = matches.get_one::<String>(ACTIVE_COLLECTION_TITLE_ARG) {
-            collection_title
-        } else {
-            return Err(None);
-        };
+    let Some(collection_title) = matches.get_one::<String>(ACTIVE_COLLECTION_TITLE_ARG) else {
+        return Err(None);
+    };
     if let Some(filtered_entities) = model
         .active_collection
         .remote_view()
@@ -918,7 +926,7 @@ fn require_active_collection<'s>(
                     entity.body.title,
                     entity.hdr.uid,
                 );
-                let entity_uid = Some(entity.hdr.uid.to_owned());
+                let entity_uid = Some(entity.hdr.uid.clone());
                 *collection_uid = entity_uid.clone();
                 let intent = collection::Intent::ActivateEntity { entity_uid };
                 return Err(Some(intent.into()));

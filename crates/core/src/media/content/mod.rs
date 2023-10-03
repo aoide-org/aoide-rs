@@ -171,7 +171,7 @@ impl TryFrom<(ContentPathKind, Option<BaseUrl>)> for ContentPathConfig {
                 if let Some(root_url) = root_url {
                     Self::VirtualFilePath { root_url }
                 } else {
-                    anyhow::bail!("Missing root URL");
+                    anyhow::bail!("missing root URL");
                 }
             }
         };
