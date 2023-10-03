@@ -12,8 +12,6 @@
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
 #![warn(unused)]
-// Rustdoc lints
-#![warn(rustdoc::broken_intra_doc_links)]
 // Clippy lints
 #![warn(clippy::pedantic)]
 // Additional restrictions
