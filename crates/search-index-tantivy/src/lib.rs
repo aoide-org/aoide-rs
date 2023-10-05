@@ -139,7 +139,7 @@ impl TrackFields {
         tag: &'a PlainTag<'a>,
     ) -> Option<(Field, Cow<'a, str>)> {
         let PlainTag { label, score } = tag;
-        let Some(label) = label else { return None };
+        let label = label.as_ref()?;
         debug_assert!(!label.is_empty());
         if *score != Default::default() {
             // TODO: How to take the score into account?

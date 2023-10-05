@@ -159,7 +159,7 @@ impl Gatekeeper {
         let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
         let mut timeout = pin!(sleep(acquire_read_timeout));
         tokio::select! {
-            _ = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
+            () = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
             guard = self.connection_pool.read() => {
                 self.check_not_decommissioned()?;
                 let connection = get_pooled_connection(&guard)?;
@@ -199,7 +199,7 @@ impl Gatekeeper {
         let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
         let mut timeout = pin!(sleep(acquire_write_timeout));
         tokio::select! {
-            _ = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
+            () = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
             guard = self.connection_pool.write() => {
                 self.check_not_decommissioned()?;
                 let connection = get_pooled_connection(&guard)?;

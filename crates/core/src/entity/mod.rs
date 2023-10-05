@@ -192,7 +192,7 @@ impl<T> Eq for EntityUidTyped<T> {}
 
 impl<T> PartialOrd for EntityUidTyped<T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.deref().partial_cmp(other)
+        Some(self.cmp(other))
     }
 }
 

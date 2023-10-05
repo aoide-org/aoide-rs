@@ -271,8 +271,8 @@ async fn shutdown_signal() {
 
     log::info!("Listening for shutdown signals");
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
+        () = ctrl_c => {},
+        () = terminate => {},
     }
     log::info!("Received shutdown signal");
 }
