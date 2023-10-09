@@ -142,8 +142,8 @@ COPY [ \
     "crates/core-api-json/Cargo.toml", \
     "./crates/core-api-json/" ]
 COPY [ \
-    "crates/media-file /Cargo.toml", \
-    "./crates/media-file /" ]
+    "crates/media-file/Cargo.toml", \
+    "./crates/media-file/" ]
 COPY [ \
     "crates/desktop-app/Cargo.toml", \
     "./crates/desktop-app/" ]
