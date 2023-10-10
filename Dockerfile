@@ -119,8 +119,10 @@ RUN USER=root \
 COPY [ \
     "Cargo.toml", \
     "Cargo.lock", \
-    "src", \
     "./" ]
+COPY [ \
+    "src/lib.rs", \
+    "./src/" ]
 COPY [ \
     "crates/backend-embedded/Cargo.toml", \
     "./crates/backend-embedded/" ]
