@@ -228,8 +228,8 @@ COPY [ \
     "crates/core-api-json/src", \
     "./crates/core-api-json/src/" ]
 COPY [ \
-    "crates/media-file /src", \
-    "./crates/media-file /src/" ]
+    "crates/media-file/src", \
+    "./crates/media-file/src/" ]
 COPY [ \
     "crates/desktop-app/src", \
     "./crates/desktop-app/src/" ]
