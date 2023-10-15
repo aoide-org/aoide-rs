@@ -14,9 +14,9 @@ rust-version = { workspace = true }
 anyhow = "1.0.75"
 data-encoding = "2.4.0"
 mime = "0.3.17"
-serde = { version = "1.0.188", features = ["derive"] }
+serde = { version = "1.0.189", features = ["derive"] }
 serde_repr = "0.1.16"
-time = { version = "0.3.29", features = ["serde-human-readable"] }
+time = { version = "0.3.30", features = ["serde-human-readable"] }
 url = { version = "2.4.1", features = ["serde"] }
 
 # JSON Schema (optional)

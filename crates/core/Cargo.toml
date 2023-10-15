@@ -20,7 +20,7 @@ nonicle = "0.1.0"
 rand = "0.8.5"
 semval = "0.5.0"
 strum = { version = "0.25.0", features = ["derive"] }
-time = { version = "0.3.29", features = [
+time = { version = "0.3.30", features = [
     "macros",
     "local-offset",
     "parsing",
@@ -31,7 +31,7 @@ ulid = "1.1.0"
 url = "2.4.1"
 
 # Serialization of selected, primitive types
-serde = { version = "1.0.188", optional = true, features = ["derive"] }
+serde = { version = "1.0.189", optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.15", optional = true, features = ["url"] }

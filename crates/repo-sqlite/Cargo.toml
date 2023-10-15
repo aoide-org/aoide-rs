@@ -26,4 +26,4 @@ aoide-repo = { version = "=0.8.0", path = "../repo" }
 
 [dev-dependencies]
 env_logger = "0.10.0"
-test-log = "0.2.12"
+test-log = "0.2.13"
