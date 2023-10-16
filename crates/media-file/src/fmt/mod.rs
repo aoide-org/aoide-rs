@@ -356,6 +356,22 @@ impl Compatibility {
     }
 }
 
+fn try_parse_boolean_flag(input: &str) -> Option<bool> {
+    let input = input.trim();
+    input
+        .parse::<u8>()
+        .ok()
+        .and_then(|value| match value {
+            0 => Some(false),
+            1 => Some(true),
+            _ => None,
+        })
+        .or_else(|| {
+            // Fallback: Parse "true" or "false" as boolean
+            input.to_ascii_lowercase().parse::<bool>().ok()
+        })
+}
+
 #[allow(clippy::too_many_lines)] // TODO
 pub(crate) fn import_file_tag_into_track(
     importer: &mut Importer,
@@ -671,15 +687,17 @@ pub(crate) fn import_file_tag_into_track(
     *old_album_actors = new_album_actors;
 
     if let Some(item) = tag.take(&ItemKey::FlagCompilation).next() {
-        if let Some(kind) = item
-            .value()
-            .text()
-            .and_then(|input| input.parse::<u8>().ok())
-            .and_then(|value| match value {
-                0 => Some(AlbumKind::NoCompilation),
-                1 => Some(AlbumKind::Compilation),
-                _ => None,
-            })
+        if let Some(kind) =
+            item.value()
+                .text()
+                .and_then(try_parse_boolean_flag)
+                .map(|compilation| {
+                    if compilation {
+                        AlbumKind::Compilation
+                    } else {
+                        AlbumKind::NoCompilation
+                    }
+                })
         {
             album.kind = Some(kind);
         } else {
