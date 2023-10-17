@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::track::actor::ActorNamesSummarySplitter;
+use aoide_repo::{collection::EntityRepo as _, track::ActorRepo};
+
 use super::*;
 
 pub fn load_one(connection: &mut DbConnection, entity_uid: &EntityUid) -> Result<Entity> {
@@ -30,4 +33,17 @@ pub fn load_many(
         }
     }
     Ok(())
+}
+
+pub fn load_all_actor_names(
+    connection: &mut DbConnection,
+    collection_uid: Option<&CollectionUid>,
+    summary_splitter: &ActorNamesSummarySplitter,
+) -> Result<Vec<String>> {
+    let mut repo = RepoConnection::new(connection);
+    let collection_id = collection_uid
+        .map(|uid| repo.resolve_collection_id(uid))
+        .transpose()?;
+    repo.load_all_actor_names(collection_id, summary_splitter)
+        .map_err(Into::into)
 }

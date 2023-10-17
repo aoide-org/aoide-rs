@@ -3,7 +3,9 @@
 
 use std::cmp::Ordering;
 
+use aho_corasick::{AhoCorasick, AhoCorasickBuilder};
 use nonicle::{CanonicalOrd, Canonicalize, IsCanonical};
+use regex::{Regex, RegexBuilder};
 use strum::FromRepr;
 
 use crate::prelude::*;
@@ -256,6 +258,93 @@ impl Actors {
         actor_names.sort_unstable();
         actor_names.dedup();
         actor_names
+    }
+}
+
+#[derive(Debug)]
+pub struct ActorNamesSummarySplitter {
+    separator_regex: Regex,
+    protected_names: AhoCorasick,
+}
+
+impl ActorNamesSummarySplitter {
+    /// Creates a new actor name splitter.
+    ///
+    /// Both `separators` and `protected_names` are case-insensitive.
+    ///
+    /// Space characters in are replaced by whitespace matching regexes.
+    #[allow(clippy::missing_panics_doc)] // never panics
+    pub fn new<'a>(
+        separators: impl IntoIterator<Item = &'a str>,
+        protected_names: impl IntoIterator<Item = &'a str>,
+    ) -> Self {
+        let separator_pattern = format!(
+            r"({})",
+            separators
+                .into_iter()
+                .map(|separator| regex::escape(separator).replace(' ', r"\s+"))
+                .collect::<Vec<_>>()
+                .join("|")
+        );
+        let separator_regex = RegexBuilder::new(&separator_pattern)
+            .case_insensitive(true)
+            .build()
+            .unwrap();
+        let protected_names = AhoCorasickBuilder::new()
+            .ascii_case_insensitive(true)
+            .match_kind(aho_corasick::MatchKind::LeftmostFirst)
+            .build(protected_names)
+            .unwrap();
+        Self {
+            separator_regex,
+            protected_names,
+        }
+    }
+
+    fn split_next<'a>(&self, mut name: &'a str) -> Option<(&'a str, Option<&'a str>)> {
+        let mut skipped_leading_separator = false;
+        loop {
+            let name_trimmed = name.trim_start();
+            if let Some(first_match) = self.protected_names.find(name_trimmed) {
+                if first_match.start() == 0 {
+                    let (first_name, rest) = name_trimmed.split_at(first_match.end());
+                    let rest = rest.trim_end();
+                    let rest = if rest.is_empty() { None } else { Some(rest) };
+                    return Some((first_name, rest));
+                }
+            }
+            if skipped_leading_separator {
+                break;
+            }
+            if let Some(separator_match) = self.separator_regex.find(name) {
+                debug_assert!(separator_match.end() > 0);
+                if separator_match.start() == 0 {
+                    // Skip leading separator
+                    name = &name[separator_match.end()..];
+                    debug_assert!(!skipped_leading_separator);
+                    skipped_leading_separator = true;
+                    // Try to find another protected name after the separator
+                    continue;
+                }
+            }
+            break;
+        }
+        let mut regex_split_iter = self.separator_regex.splitn(name, 2);
+        let first_name = regex_split_iter.next()?.trim();
+        let rest = regex_split_iter.next();
+        Some((first_name, rest))
+    }
+
+    pub fn split_all<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a str> + 'a {
+        let mut rest = Some(name);
+        std::iter::from_fn(move || loop {
+            let (first_name, next_rest) = self.split_next(rest?)?;
+            rest = next_rest;
+            if first_name.is_empty() {
+                continue;
+            }
+            return Some(first_name);
+        })
     }
 }
 

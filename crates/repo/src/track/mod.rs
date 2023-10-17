@@ -3,7 +3,7 @@
 
 use aoide_core::{
     media::content::{ContentLink, ContentPath},
-    track::EntityHeader,
+    track::{actor::ActorNamesSummarySplitter, EntityHeader},
     EntityRevision, Track, TrackEntity, TrackUid,
 };
 use aoide_core_api::track::search::{Filter, SortOrder, StringField};
@@ -125,4 +125,12 @@ pub trait CollectionRepo {
         pagination: &Pagination,
         content_path_predicate: Option<StringPredicate<'_>>,
     ) -> RepoResult<Vec<(EntityHeader, RecordHeader, RecordTrail)>>;
+}
+
+pub trait ActorRepo {
+    fn load_all_actor_names(
+        &mut self,
+        collection_id: Option<CollectionId>,
+        summary_splitter: &ActorNamesSummarySplitter,
+    ) -> RepoResult<Vec<String>>;
 }

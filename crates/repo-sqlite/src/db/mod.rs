@@ -17,7 +17,7 @@ pub(crate) mod view_track_search;
 mod join {
     use crate::db::{
         collection::schema::*, media_source::schema::*, media_tracker::schema::*,
-        playlist::schema::*, playlist_entry::schema::*, track::schema::*,
+        playlist::schema::*, playlist_entry::schema::*, track::schema::*, track_actor::schema::*,
         view_track_search::schema::*,
     };
 
@@ -25,6 +25,7 @@ mod join {
         collection,
         media_source,
         track,
+        track_actor,
         playlist,
         playlist_entry,
         media_tracker_directory,

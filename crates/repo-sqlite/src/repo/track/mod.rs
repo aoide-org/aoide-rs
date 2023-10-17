@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::time::Instant;
+use std::{collections::HashSet, time::Instant};
 
 use aoide_core::{
     media::{
@@ -10,7 +10,11 @@ use aoide_core::{
     },
     prelude::*,
     tag::*,
-    track::{actor::Actor, cue::Cue, title::Title},
+    track::{
+        actor::{Actor, ActorNamesSummarySplitter, Kind as ActorKind},
+        cue::Cue,
+        title::Title,
+    },
     util::clock::*,
     EncodedEntityUid, Track, TrackBody, TrackEntity, TrackHeader, TrackUid,
 };
@@ -855,5 +859,57 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                     )
                     .collect()
             })
+    }
+}
+
+impl<'db> ActorRepo for crate::Connection<'db> {
+    fn load_all_actor_names(
+        &mut self,
+        collection_id: Option<CollectionId>,
+        summary_splitter: &ActorNamesSummarySplitter,
+    ) -> RepoResult<Vec<String>> {
+        use crate::db::{
+            media_source::schema::*,
+            track::schema::*,
+            track_actor::{schema::*, *},
+        };
+        let mut target = track_actor::table
+            .select((track_actor::name, track_actor::kind))
+            .filter(track_actor::kind.ne(encode_kind(ActorKind::Sorting)))
+            .into_boxed();
+        if let Some(collection_id) = collection_id {
+            target = target.filter(
+                track_actor::track_id.eq_any(
+                    track::table.select(track::row_id).filter(
+                        track::media_source_id.eq_any(
+                            media_source::table
+                                .select(media_source::row_id)
+                                .filter(media_source::collection_id.eq(RowId::from(collection_id))),
+                        ),
+                    ),
+                ),
+            );
+        }
+        let names_with_kinds = target
+            .load::<(String, i16)>(self.as_mut())
+            .map_err(repo_error)?;
+        let mut actor_names = HashSet::new();
+        for (name, kind) in names_with_kinds {
+            let kind = decode_kind(kind).unwrap();
+            match kind {
+                ActorKind::Individual => {
+                    actor_names.insert(name);
+                }
+                ActorKind::Summary => {
+                    for name in summary_splitter.split_all(&name) {
+                        if !actor_names.contains(name) {
+                            actor_names.insert(name.to_owned());
+                        }
+                    }
+                }
+                ActorKind::Sorting => unreachable!(),
+            }
+        }
+        Ok(actor_names.into_iter().collect())
     }
 }

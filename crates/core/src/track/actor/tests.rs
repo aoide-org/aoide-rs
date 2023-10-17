@@ -124,3 +124,38 @@ fn summary_individual_actor_names() {
         "Artist 2"
     ));
 }
+
+const ACTOR_NAME_SEPARATORS: &[&str] = &[
+    " & ",
+    " and ",
+    " with ",
+    ", ", // without leading whitespace
+    " + ",
+    " x ",
+    " ft. ",
+    " feat. ",
+    " featuring ",
+    " vs. ",
+];
+
+const PROTECTED_ACTOR_NAMES: &[&str] = &["simon & garfunkel", "tyler, the creator"];
+
+#[test]
+fn split_actor_names_summary() {
+    let splitter = ActorNamesSummarySplitter::new(
+        ACTOR_NAME_SEPARATORS.iter().copied(),
+        PROTECTED_ACTOR_NAMES.iter().copied(),
+    );
+    assert_eq!(
+        [
+            "The Beatles",
+            "Simon & Garfunkel",
+            "Tyler, the Creator",
+            "ABBA"
+        ],
+        splitter
+            .split_all(" The Beatles, Simon & Garfunkel & Tyler, the Creator   ft. ABBA ")
+            .collect::<Vec<_>>()
+            .as_slice()
+    );
+}
