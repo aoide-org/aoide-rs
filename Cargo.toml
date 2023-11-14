@@ -48,6 +48,9 @@ include = [
   "README.md",
 ]
 
+[patch.crates-io]
+lofty = { git = "https://github.com/Serial-ATA/lofty-rs.git", branch = "main" }
+
 [dependencies]
 aoide-backend-embedded = { version = "0.8.0", path = "crates/backend-embedded", optional = true }
 aoide-core = { version = "0.8.0", path = "crates/core" }
