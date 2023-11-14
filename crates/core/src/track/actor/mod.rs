@@ -263,7 +263,7 @@ impl Actors {
 
 #[derive(Debug)]
 pub struct ActorNamesSummarySplitter {
-    separator_regex: Regex,
+    name_separator_regex: Regex,
     protected_names: AhoCorasick,
 }
 
@@ -275,18 +275,18 @@ impl ActorNamesSummarySplitter {
     /// Space characters in are replaced by whitespace matching regexes.
     #[allow(clippy::missing_panics_doc)] // never panics
     pub fn new<'a>(
-        separators: impl IntoIterator<Item = &'a str>,
+        name_separators: impl IntoIterator<Item = &'a str>,
         protected_names: impl IntoIterator<Item = &'a str>,
     ) -> Self {
-        let separator_pattern = format!(
+        let name_separator_pattern = format!(
             r"({})",
-            separators
+            name_separators
                 .into_iter()
                 .map(|separator| regex::escape(separator).replace(' ', r"\s+"))
                 .collect::<Vec<_>>()
                 .join("|")
         );
-        let separator_regex = RegexBuilder::new(&separator_pattern)
+        let name_separator_regex = RegexBuilder::new(&name_separator_pattern)
             .case_insensitive(true)
             .build()
             .unwrap();
@@ -296,7 +296,7 @@ impl ActorNamesSummarySplitter {
             .build(protected_names)
             .unwrap();
         Self {
-            separator_regex,
+            name_separator_regex,
             protected_names,
         }
     }
@@ -316,7 +316,7 @@ impl ActorNamesSummarySplitter {
             if skipped_leading_separator {
                 break;
             }
-            if let Some(separator_match) = self.separator_regex.find(name) {
+            if let Some(separator_match) = self.name_separator_regex.find(name) {
                 debug_assert!(separator_match.end() > 0);
                 if separator_match.start() == 0 {
                     // Skip leading separator
@@ -329,7 +329,7 @@ impl ActorNamesSummarySplitter {
             }
             break;
         }
-        let mut regex_split_iter = self.separator_regex.splitn(name, 2);
+        let mut regex_split_iter = self.name_separator_regex.splitn(name, 2);
         let first_name = regex_split_iter.next()?.trim();
         let rest = regex_split_iter.next();
         Some((first_name, rest))
