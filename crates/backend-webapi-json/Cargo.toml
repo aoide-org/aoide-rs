@@ -12,19 +12,19 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.75"
-diesel = { version = "2.1.3", default-features = false, features = ["sqlite"] }
+diesel = { version = "2.1.4", default-features = false, features = ["sqlite"] }
 log = "0.4.20"
 nonicle = "0.1.0"
-serde = { version = "1.0.189" }
-thiserror = "1.0.49"
+serde = { version = "1.0.192" }
+thiserror = "1.0.50"
 url = "2.4.1"
 
 # tracing
-tracing = { version = "0.1.39", features = ["log"] }
-uuid = { version = "1.4.1", features = ["v4"] }
+tracing = { version = "0.1.40", features = ["log"] }
+uuid = { version = "1.5.0", features = ["v4"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.15", optional = true }
+schemars = { version = "0.8.16", optional = true }
 
 # Workspace dependencies
 aoide-backend-embedded = { path = "../backend-embedded" }

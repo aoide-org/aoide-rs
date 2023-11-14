@@ -28,18 +28,18 @@ time = { version = "0.3.30", features = [
     "parsing",
     "formatting",
 ] }
-thiserror = "1.0.49"
+thiserror = "1.0.50"
 ulid = "1.1.0"
 url = "2.4.1"
 
 # Serialization of selected, primitive types
-serde = { version = "1.0.189", optional = true, features = ["derive"] }
+serde = { version = "1.0.192", optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.15", optional = true, features = ["url"] }
+schemars = { version = "0.8.16", optional = true, features = ["url"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = "0.2.10"
+getrandom = "0.2.11"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 path-slash = "0.2.1"
