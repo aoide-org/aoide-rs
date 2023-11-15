@@ -70,6 +70,6 @@ fn track_index_smoke_test_to_verify_dynamic_schema_against_static_types() {
     let document = track_index
         .fields
         .create_document(Some(&collection_uid), &entity, None);
-    let writer = track_index.index.writer(3_000_000).unwrap();
+    let writer = track_index.index.writer(15_000_000).unwrap();
     let _doc_id = writer.add_document(document).unwrap();
 }
