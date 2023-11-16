@@ -17,7 +17,7 @@ repository = "https://gitlab.com/uklotzde/aoide-rs"
 version = "0.8.0"
 license = "AGPL-3.0-or-later"
 edition = "2021"
-rust-version = "1.73"
+rust-version = "1.74"
 
 [package]
 name = "aoide"

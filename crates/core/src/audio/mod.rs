@@ -29,7 +29,7 @@ pub type PositionMsValue = f64;
 pub struct PositionMs(PositionMsValue);
 
 impl PositionMs {
-    pub const UNIT_OF_MEASURE: &str = "ms";
+    pub const UNIT_OF_MEASURE: &'static str = "ms";
 
     #[must_use]
     pub const fn new(value: DurationMsValue) -> Self {
@@ -84,7 +84,7 @@ pub type DurationMsValue = f64;
 pub struct DurationMs(DurationMsValue);
 
 impl DurationMs {
-    pub const UNIT_OF_MEASURE: &str = "ms";
+    pub const UNIT_OF_MEASURE: &'static str = "ms";
 
     #[must_use]
     pub const fn new(value: DurationMsValue) -> Self {

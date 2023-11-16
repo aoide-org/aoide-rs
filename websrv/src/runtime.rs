@@ -164,21 +164,18 @@ pub(crate) async fn run(
         let mut command_rx = command_rx;
         let abort_pending_tasks_on_termination = Arc::clone(&abort_pending_tasks_on_termination);
         server.bind_with_graceful_shutdown(config.network.endpoint.socket_addr(), async move {
-            loop {
-                tokio::select! {
-                    Some(()) = server_shutdown_rx.recv() => break,
-                    Some(command) = command_rx.recv() => {
-                        match command {
-                            Command::Terminate {
-                                abort_pending_tasks,
-                            } => {
-                                abort_pending_tasks_on_termination.store(abort_pending_tasks, Ordering::Release);
-                                break;
-                            }
+            tokio::select! {
+                Some(()) = server_shutdown_rx.recv() => (),
+                Some(command) = command_rx.recv() => {
+                    match command {
+                        Command::Terminate {
+                            abort_pending_tasks,
+                        } => {
+                            abort_pending_tasks_on_termination.store(abort_pending_tasks, Ordering::Release);
                         }
                     }
-                    else => break,
                 }
+                else => (),
             }
         })
     };

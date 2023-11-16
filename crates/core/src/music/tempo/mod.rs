@@ -16,7 +16,7 @@ pub type TempoBpmValue = f64;
 pub struct TempoBpm(TempoBpmValue);
 
 impl TempoBpm {
-    pub const UNIT_OF_MEASURE: &str = "bpm";
+    pub const UNIT_OF_MEASURE: &'static str = "bpm";
 
     pub const ZERO: Self = Self(0.0);
     pub const MIN: Self = Self(TempoBpmValue::MIN_POSITIVE);

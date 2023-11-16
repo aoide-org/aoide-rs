@@ -26,7 +26,7 @@ pub type BitrateBpsValue = f64;
 pub struct BitrateBps(BitrateBpsValue);
 
 impl BitrateBps {
-    pub const UNIT_OF_MEASURE: &str = "bps";
+    pub const UNIT_OF_MEASURE: &'static str = "bps";
 
     pub const ZERO: Self = Self(0.0);
     pub const MIN: Self = Self(BitrateBpsValue::MIN_POSITIVE);
@@ -87,7 +87,7 @@ pub type SampleRateHzValue = f64;
 pub struct SampleRateHz(SampleRateHzValue);
 
 impl SampleRateHz {
-    pub const UNIT_OF_MEASURE: &str = "Hz";
+    pub const UNIT_OF_MEASURE: &'static str = "Hz";
 
     pub const ZERO: Self = Self(0.0);
     pub const MIN: Self = Self(SampleRateHzValue::MIN_POSITIVE);
@@ -196,7 +196,7 @@ pub type LatencyMsValue = f64;
 pub struct LatencyMs(LatencyMsValue);
 
 impl LatencyMs {
-    pub const UNIT_OF_MEASURE: &str = "ms";
+    pub const UNIT_OF_MEASURE: &'static str = "ms";
 
     const UNITS_PER_SECOND: LatencyMsValue = 1_000.0;
 
@@ -275,7 +275,7 @@ pub struct LoudnessLufs(LoudnessLufsValue);
 // specification (RG2) proposes -18 LUFS for achieving similar perceptive
 // results compared to ReplayGain v1 (RG1).
 impl LoudnessLufs {
-    pub const UNIT_OF_MEASURE: &str = "LUFS";
+    pub const UNIT_OF_MEASURE: &'static str = "LUFS";
 
     #[must_use]
     pub const fn new(value: LoudnessLufsValue) -> Self {

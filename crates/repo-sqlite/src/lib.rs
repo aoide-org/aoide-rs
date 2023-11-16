@@ -163,7 +163,7 @@ use prelude::Connection;
 /// Some values like the text encoding can only be changed once after the
 /// database has initially been created.
 pub fn initialize_database(connection: &mut DbConnection) -> QueryResult<()> {
-    diesel::sql_query(r#"
+    diesel::sql_query(r"
 PRAGMA journal_mode = WAL;        -- better write-concurrency
 PRAGMA synchronous = NORMAL;      -- fsync only in critical moments, safe for journal_mode = WAL
 PRAGMA wal_autocheckpoint = 1000; -- write WAL changes back every 1000 pages (default), for an in average 1MB WAL file
@@ -174,7 +174,7 @@ PRAGMA foreign_keys = 1;          -- check foreign key constraints
 PRAGMA defer_foreign_keys = 1;    -- delay enforcement of foreign key constraints until commit
 PRAGMA recursive_triggers = 1;    -- for recursive ON CASCADE DELETE actions
 PRAGMA encoding = 'UTF-8';
-"#).execute(connection)?;
+").execute(connection)?;
     Ok(())
 }
 
