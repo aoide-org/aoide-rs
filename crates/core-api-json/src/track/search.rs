@@ -60,30 +60,30 @@ pub enum SortField {
 #[cfg(feature = "backend")]
 impl From<SortField> for _inner::SortField {
     fn from(from: SortField) -> Self {
-        use SortField::*;
+        use SortField as From;
         match from {
-            AudioBitrateBps => Self::AudioBitrateBps,
-            AudioChannelCount => Self::AudioChannelCount,
-            AudioChannelMask => Self::AudioChannelMask,
-            AudioDurationMs => Self::AudioDurationMs,
-            AudioLoudnessLufs => Self::AudioLoudnessLufs,
-            AudioSampleRateHz => Self::AudioSampleRateHz,
-            CollectedAt => Self::CollectedAt,
-            ContentPath => Self::ContentPath,
-            ContentType => Self::ContentType,
-            Copyright => Self::Copyright,
-            CreatedAt => Self::CreatedAt,
-            DiscNumber => Self::DiscNumber,
-            DiscTotal => Self::DiscTotal,
-            MusicTempoBpm => Self::MusicTempoBpm,
-            MusicKeyCode => Self::MusicKeyCode,
-            Publisher => Self::Publisher,
-            RecordedAtDate => Self::RecordedAtDate,
-            ReleasedAtDate => Self::ReleasedAtDate,
-            ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            TrackNumber => Self::TrackNumber,
-            TrackTotal => Self::TrackTotal,
-            UpdatedAt => Self::UpdatedAt,
+            From::AudioBitrateBps => Self::AudioBitrateBps,
+            From::AudioChannelCount => Self::AudioChannelCount,
+            From::AudioChannelMask => Self::AudioChannelMask,
+            From::AudioDurationMs => Self::AudioDurationMs,
+            From::AudioLoudnessLufs => Self::AudioLoudnessLufs,
+            From::AudioSampleRateHz => Self::AudioSampleRateHz,
+            From::CollectedAt => Self::CollectedAt,
+            From::ContentPath => Self::ContentPath,
+            From::ContentType => Self::ContentType,
+            From::Copyright => Self::Copyright,
+            From::CreatedAt => Self::CreatedAt,
+            From::DiscNumber => Self::DiscNumber,
+            From::DiscTotal => Self::DiscTotal,
+            From::MusicTempoBpm => Self::MusicTempoBpm,
+            From::MusicKeyCode => Self::MusicKeyCode,
+            From::Publisher => Self::Publisher,
+            From::RecordedAtDate => Self::RecordedAtDate,
+            From::ReleasedAtDate => Self::ReleasedAtDate,
+            From::ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
+            From::TrackNumber => Self::TrackNumber,
+            From::TrackTotal => Self::TrackTotal,
+            From::UpdatedAt => Self::UpdatedAt,
         }
     }
 }
@@ -91,30 +91,30 @@ impl From<SortField> for _inner::SortField {
 #[cfg(feature = "frontend")]
 impl From<_inner::SortField> for SortField {
     fn from(from: _inner::SortField) -> Self {
-        use _inner::SortField::*;
+        use _inner::SortField as From;
         match from {
-            AudioBitrateBps => Self::AudioBitrateBps,
-            AudioChannelCount => Self::AudioChannelCount,
-            AudioChannelMask => Self::AudioChannelMask,
-            AudioDurationMs => Self::AudioDurationMs,
-            AudioLoudnessLufs => Self::AudioLoudnessLufs,
-            AudioSampleRateHz => Self::AudioSampleRateHz,
-            CollectedAt => Self::CollectedAt,
-            ContentPath => Self::ContentPath,
-            ContentType => Self::ContentType,
-            Copyright => Self::Copyright,
-            CreatedAt => Self::CreatedAt,
-            DiscNumber => Self::DiscNumber,
-            DiscTotal => Self::DiscTotal,
-            MusicTempoBpm => Self::MusicTempoBpm,
-            MusicKeyCode => Self::MusicKeyCode,
-            Publisher => Self::Publisher,
-            RecordedAtDate => Self::RecordedAtDate,
-            ReleasedAtDate => Self::ReleasedAtDate,
-            ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            TrackNumber => Self::TrackNumber,
-            TrackTotal => Self::TrackTotal,
-            UpdatedAt => Self::UpdatedAt,
+            From::AudioBitrateBps => Self::AudioBitrateBps,
+            From::AudioChannelCount => Self::AudioChannelCount,
+            From::AudioChannelMask => Self::AudioChannelMask,
+            From::AudioDurationMs => Self::AudioDurationMs,
+            From::AudioLoudnessLufs => Self::AudioLoudnessLufs,
+            From::AudioSampleRateHz => Self::AudioSampleRateHz,
+            From::CollectedAt => Self::CollectedAt,
+            From::ContentPath => Self::ContentPath,
+            From::ContentType => Self::ContentType,
+            From::Copyright => Self::Copyright,
+            From::CreatedAt => Self::CreatedAt,
+            From::DiscNumber => Self::DiscNumber,
+            From::DiscTotal => Self::DiscTotal,
+            From::MusicTempoBpm => Self::MusicTempoBpm,
+            From::MusicKeyCode => Self::MusicKeyCode,
+            From::Publisher => Self::Publisher,
+            From::RecordedAtDate => Self::RecordedAtDate,
+            From::ReleasedAtDate => Self::ReleasedAtDate,
+            From::ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
+            From::TrackNumber => Self::TrackNumber,
+            From::TrackTotal => Self::TrackTotal,
+            From::UpdatedAt => Self::UpdatedAt,
         }
     }
 }
@@ -160,12 +160,12 @@ pub enum StringField {
 #[cfg(feature = "backend")]
 impl From<StringField> for _inner::StringField {
     fn from(from: StringField) -> Self {
-        use StringField::*;
+        use StringField as From;
         match from {
-            ContentPath => Self::ContentPath,
-            ContentType => Self::ContentType,
-            Copyright => Self::Copyright,
-            Publisher => Self::Publisher,
+            From::ContentPath => Self::ContentPath,
+            From::ContentType => Self::ContentType,
+            From::Copyright => Self::Copyright,
+            From::Publisher => Self::Publisher,
         }
     }
 }
@@ -173,12 +173,12 @@ impl From<StringField> for _inner::StringField {
 #[cfg(feature = "frontend")]
 impl From<_inner::StringField> for StringField {
     fn from(from: _inner::StringField) -> Self {
-        use _inner::StringField::*;
+        use _inner::StringField as From;
         match from {
-            ContentPath => Self::ContentPath,
-            ContentType => Self::ContentType,
-            Copyright => Self::Copyright,
-            Publisher => Self::Publisher,
+            From::ContentPath => Self::ContentPath,
+            From::ContentType => Self::ContentType,
+            From::Copyright => Self::Copyright,
+            From::Publisher => Self::Publisher,
         }
     }
 }
@@ -210,24 +210,24 @@ pub enum NumericField {
 #[cfg(feature = "backend")]
 impl From<NumericField> for _inner::NumericField {
     fn from(from: NumericField) -> Self {
-        use NumericField::*;
+        use NumericField as From;
         match from {
-            AudioBitrateBps => Self::AudioBitrateBps,
-            AudioChannelCount => Self::AudioChannelCount,
-            AudioChannelMask => Self::AudioChannelMask,
-            AudioDurationMs => Self::AudioDurationMs,
-            AudioSampleRateHz => Self::AudioSampleRateHz,
-            AudioLoudnessLufs => Self::AudioLoudnessLufs,
-            AdvisoryRating => Self::AdvisoryRating,
-            DiscNumber => Self::DiscNumber,
-            DiscTotal => Self::DiscTotal,
-            MusicTempoBpm => Self::MusicTempoBpm,
-            MusicKeyCode => Self::MusicKeyCode,
-            RecordedAtDate => Self::RecordedAtDate,
-            ReleasedAtDate => Self::ReleasedAtDate,
-            ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            TrackNumber => Self::TrackNumber,
-            TrackTotal => Self::TrackTotal,
+            From::AudioBitrateBps => Self::AudioBitrateBps,
+            From::AudioChannelCount => Self::AudioChannelCount,
+            From::AudioChannelMask => Self::AudioChannelMask,
+            From::AudioDurationMs => Self::AudioDurationMs,
+            From::AudioSampleRateHz => Self::AudioSampleRateHz,
+            From::AudioLoudnessLufs => Self::AudioLoudnessLufs,
+            From::AdvisoryRating => Self::AdvisoryRating,
+            From::DiscNumber => Self::DiscNumber,
+            From::DiscTotal => Self::DiscTotal,
+            From::MusicTempoBpm => Self::MusicTempoBpm,
+            From::MusicKeyCode => Self::MusicKeyCode,
+            From::RecordedAtDate => Self::RecordedAtDate,
+            From::ReleasedAtDate => Self::ReleasedAtDate,
+            From::ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
+            From::TrackNumber => Self::TrackNumber,
+            From::TrackTotal => Self::TrackTotal,
         }
     }
 }
@@ -235,24 +235,24 @@ impl From<NumericField> for _inner::NumericField {
 #[cfg(feature = "frontend")]
 impl From<_inner::NumericField> for NumericField {
     fn from(from: _inner::NumericField) -> Self {
-        use _inner::NumericField::*;
+        use _inner::NumericField as From;
         match from {
-            AudioBitrateBps => Self::AudioBitrateBps,
-            AudioChannelCount => Self::AudioChannelCount,
-            AudioChannelMask => Self::AudioChannelMask,
-            AudioDurationMs => Self::AudioDurationMs,
-            AudioSampleRateHz => Self::AudioSampleRateHz,
-            AudioLoudnessLufs => Self::AudioLoudnessLufs,
-            AdvisoryRating => Self::AdvisoryRating,
-            DiscNumber => Self::DiscNumber,
-            DiscTotal => Self::DiscTotal,
-            MusicTempoBpm => Self::MusicTempoBpm,
-            MusicKeyCode => Self::MusicKeyCode,
-            RecordedAtDate => Self::RecordedAtDate,
-            ReleasedAtDate => Self::ReleasedAtDate,
-            ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
-            TrackNumber => Self::TrackNumber,
-            TrackTotal => Self::TrackTotal,
+            From::AudioBitrateBps => Self::AudioBitrateBps,
+            From::AudioChannelCount => Self::AudioChannelCount,
+            From::AudioChannelMask => Self::AudioChannelMask,
+            From::AudioDurationMs => Self::AudioDurationMs,
+            From::AudioSampleRateHz => Self::AudioSampleRateHz,
+            From::AudioLoudnessLufs => Self::AudioLoudnessLufs,
+            From::AdvisoryRating => Self::AdvisoryRating,
+            From::DiscNumber => Self::DiscNumber,
+            From::DiscTotal => Self::DiscTotal,
+            From::MusicTempoBpm => Self::MusicTempoBpm,
+            From::MusicKeyCode => Self::MusicKeyCode,
+            From::RecordedAtDate => Self::RecordedAtDate,
+            From::ReleasedAtDate => Self::ReleasedAtDate,
+            From::ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
+            From::TrackNumber => Self::TrackNumber,
+            From::TrackTotal => Self::TrackTotal,
         }
     }
 }
@@ -272,12 +272,12 @@ pub enum DateTimeField {
 #[cfg(feature = "backend")]
 impl From<DateTimeField> for _inner::DateTimeField {
     fn from(from: DateTimeField) -> Self {
-        use DateTimeField::*;
+        use DateTimeField as From;
         match from {
-            CollectedAt => Self::CollectedAt,
-            RecordedAt => Self::RecordedAt,
-            ReleasedAt => Self::ReleasedAt,
-            ReleasedOrigAt => Self::ReleasedOrigAt,
+            From::CollectedAt => Self::CollectedAt,
+            From::RecordedAt => Self::RecordedAt,
+            From::ReleasedAt => Self::ReleasedAt,
+            From::ReleasedOrigAt => Self::ReleasedOrigAt,
         }
     }
 }
@@ -285,12 +285,12 @@ impl From<DateTimeField> for _inner::DateTimeField {
 #[cfg(feature = "frontend")]
 impl From<_inner::DateTimeField> for DateTimeField {
     fn from(from: _inner::DateTimeField) -> Self {
-        use _inner::DateTimeField::*;
+        use _inner::DateTimeField as From;
         match from {
-            CollectedAt => Self::CollectedAt,
-            RecordedAt => Self::RecordedAt,
-            ReleasedAt => Self::ReleasedAt,
-            ReleasedOrigAt => Self::ReleasedOrigAt,
+            From::CollectedAt => Self::CollectedAt,
+            From::RecordedAt => Self::RecordedAt,
+            From::ReleasedAt => Self::ReleasedAt,
+            From::ReleasedOrigAt => Self::ReleasedOrigAt,
         }
     }
 }
@@ -308,10 +308,10 @@ pub enum ConditionFilter {
 #[cfg(feature = "backend")]
 impl From<ConditionFilter> for _inner::ConditionFilter {
     fn from(from: ConditionFilter) -> Self {
-        use ConditionFilter::*;
+        use ConditionFilter as From;
         match from {
-            SourceTracked => Self::SourceTracked,
-            SourceUntracked => Self::SourceUntracked,
+            From::SourceTracked => Self::SourceTracked,
+            From::SourceUntracked => Self::SourceUntracked,
         }
     }
 }
@@ -319,10 +319,10 @@ impl From<ConditionFilter> for _inner::ConditionFilter {
 #[cfg(feature = "frontend")]
 impl From<_inner::ConditionFilter> for ConditionFilter {
     fn from(from: _inner::ConditionFilter) -> Self {
-        use _inner::ConditionFilter::*;
+        use _inner::ConditionFilter as From;
         match from {
-            SourceTracked => Self::SourceTracked,
-            SourceUntracked => Self::SourceUntracked,
+            From::SourceTracked => Self::SourceTracked,
+            From::SourceUntracked => Self::SourceUntracked,
         }
     }
 }
@@ -567,25 +567,25 @@ pub enum Filter {
 impl From<Filter> for _inner::Filter {
     fn from(from: Filter) -> Self {
         use aoide_core::EntityUidTyped;
-        use Filter::*;
+        use Filter as From;
         match from {
-            Phrase(from) => Self::Phrase(from.into()),
-            ActorPhrase(from) => Self::ActorPhrase(from.into()),
-            TitlePhrase(from) => Self::TitlePhrase(from.into()),
-            Numeric(from) => Self::Numeric(from.into()),
-            DateTime(from) => Self::DateTime(from.into()),
-            Condition(from) => Self::Condition(from.into()),
-            Tag(from) => Self::Tag(from.into()),
-            CueLabel(from) => Self::CueLabel(from.into()),
-            AnyTrackUid(from) => {
+            From::Phrase(from) => Self::Phrase(from.into()),
+            From::ActorPhrase(from) => Self::ActorPhrase(from.into()),
+            From::TitlePhrase(from) => Self::TitlePhrase(from.into()),
+            From::Numeric(from) => Self::Numeric(from.into()),
+            From::DateTime(from) => Self::DateTime(from.into()),
+            From::Condition(from) => Self::Condition(from.into()),
+            From::Tag(from) => Self::Tag(from.into()),
+            From::CueLabel(from) => Self::CueLabel(from.into()),
+            From::AnyTrackUid(from) => {
                 Self::AnyTrackUid(from.into_iter().map(EntityUidTyped::from_untyped).collect())
             }
-            AnyPlaylistUid(from) => {
+            From::AnyPlaylistUid(from) => {
                 Self::AnyPlaylistUid(from.into_iter().map(EntityUidTyped::from_untyped).collect())
             }
-            All(from) => Self::All(from.into_iter().map(Into::into).collect()),
-            Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
-            Not(from) => Self::Not(Box::new((*from).into())),
+            From::All(from) => Self::All(from.into_iter().map(Into::into).collect()),
+            From::Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
+            From::Not(from) => Self::Not(Box::new((*from).into())),
         }
     }
 }
@@ -593,23 +593,25 @@ impl From<Filter> for _inner::Filter {
 #[cfg(feature = "frontend")]
 impl From<_inner::Filter> for Filter {
     fn from(from: _inner::Filter) -> Self {
-        use _inner::Filter::*;
+        use _inner::Filter as From;
         match from {
-            Phrase(from) => Self::Phrase(from.into()),
-            ActorPhrase(from) => Self::ActorPhrase(from.into()),
-            TitlePhrase(from) => Self::TitlePhrase(from.into()),
-            Numeric(from) => Self::Numeric(from.into()),
-            DateTime(from) => Self::DateTime(from.into()),
-            Condition(from) => Self::Condition(from.into()),
-            Tag(from) => Self::Tag(from.into()),
-            CueLabel(from) => Self::CueLabel(from.into()),
-            AnyTrackUid(from) => Self::AnyTrackUid(from.into_iter().map(Into::into).collect()),
-            AnyPlaylistUid(from) => {
+            From::Phrase(from) => Self::Phrase(from.into()),
+            From::ActorPhrase(from) => Self::ActorPhrase(from.into()),
+            From::TitlePhrase(from) => Self::TitlePhrase(from.into()),
+            From::Numeric(from) => Self::Numeric(from.into()),
+            From::DateTime(from) => Self::DateTime(from.into()),
+            From::Condition(from) => Self::Condition(from.into()),
+            From::Tag(from) => Self::Tag(from.into()),
+            From::CueLabel(from) => Self::CueLabel(from.into()),
+            From::AnyTrackUid(from) => {
+                Self::AnyTrackUid(from.into_iter().map(Into::into).collect())
+            }
+            From::AnyPlaylistUid(from) => {
                 Self::AnyPlaylistUid(from.into_iter().map(Into::into).collect())
             }
-            All(from) => Self::All(from.into_iter().map(Into::into).collect()),
-            Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
-            Not(from) => Self::Not(Box::new((*from).into())),
+            From::All(from) => Self::All(from.into_iter().map(Into::into).collect()),
+            From::Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
+            From::Not(from) => Self::Not(Box::new((*from).into())),
         }
     }
 }

@@ -54,32 +54,32 @@ pub enum PatchOperation {
 
 impl From<PatchOperation> for uc::PatchOperation {
     fn from(from: PatchOperation) -> Self {
-        use PatchOperation::*;
+        use PatchOperation as From;
         match from {
-            Append { entries } => Self::Append {
+            From::Append { entries } => Self::Append {
                 entries: entries.into_iter().map(Into::into).collect(),
             },
-            Prepend { entries } => Self::Prepend {
+            From::Prepend { entries } => Self::Prepend {
                 entries: entries.into_iter().map(Into::into).collect(),
             },
-            Insert { before, entries } => Self::Insert {
+            From::Insert { before, entries } => Self::Insert {
                 before,
                 entries: entries.into_iter().map(Into::into).collect(),
             },
-            CopyAll { source_playlist } => {
+            From::CopyAll { source_playlist } => {
                 let PlaylistRef { uid } = source_playlist;
                 Self::CopyAll {
                     source_playlist_uid: EntityUidTyped::from_untyped(uid),
                 }
             }
-            Move { start, end, delta } => Self::Move {
+            From::Move { start, end, delta } => Self::Move {
                 range: start..end,
                 delta,
             },
-            Remove { start, end } => Self::Remove { range: start..end },
-            RemoveAll => Self::RemoveAll,
-            ReverseAll => Self::ReverseAll,
-            ShuffleAll => Self::ShuffleAll,
+            From::Remove { start, end } => Self::Remove { range: start..end },
+            From::RemoveAll => Self::RemoveAll,
+            From::ReverseAll => Self::ReverseAll,
+            From::ShuffleAll => Self::ShuffleAll,
         }
     }
 }

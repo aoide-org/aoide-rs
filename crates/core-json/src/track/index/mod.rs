@@ -21,7 +21,7 @@ pub enum Index {
 }
 
 impl Index {
-    fn encode(from: _core::Index) -> Option<Self> {
+    const fn encode(from: _core::Index) -> Option<Self> {
         match (from.number, from.total) {
             (None, None) => None,
             (Some(number), None) => Some(Index::Number(number)),
@@ -32,13 +32,13 @@ impl Index {
 
     fn decode(from: Option<Self>) -> _core::Index {
         if let Some(from) = from {
-            use Index::*;
+            use Index as From;
             match from {
-                Number(number) => _core::Index {
+                From::Number(number) => _core::Index {
                     number: Some(number),
                     ..Default::default()
                 },
-                NumberAndTotal(number, total) => _core::Index {
+                From::NumberAndTotal(number, total) => _core::Index {
                     number: Some(number),
                     total: Some(total),
                 },
@@ -69,7 +69,7 @@ pub struct Indexes {
 }
 
 impl Indexes {
-    pub(crate) fn is_default(&self) -> bool {
+    pub(crate) const fn is_default(&self) -> bool {
         let Self {
             track,
             disc,

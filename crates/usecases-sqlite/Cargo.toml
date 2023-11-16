@@ -10,6 +10,9 @@ license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
 
+[lints]
+workspace = true
+
 [dependencies]
 anyhow = "1.0.75"
 diesel = { version = "2.1.4", default-features = false, features = ["sqlite"] }

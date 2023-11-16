@@ -26,24 +26,24 @@ pub enum OutMode {
 
 impl From<_core::OutMode> for OutMode {
     fn from(from: _core::OutMode) -> Self {
-        use _core::OutMode::*;
+        use _core::OutMode as From;
         match from {
-            Cont => OutMode::Cont,
-            Stop => OutMode::Stop,
-            Loop => OutMode::Loop,
-            Next => OutMode::Next,
+            From::Cont => Self::Cont,
+            From::Stop => Self::Stop,
+            From::Loop => Self::Loop,
+            From::Next => Self::Next,
         }
     }
 }
 
 impl From<OutMode> for _core::OutMode {
     fn from(from: OutMode) -> Self {
-        use _core::OutMode::*;
+        use OutMode as From;
         match from {
-            OutMode::Cont => Cont,
-            OutMode::Stop => Stop,
-            OutMode::Loop => Loop,
-            OutMode::Next => Next,
+            From::Cont => Self::Cont,
+            From::Stop => Self::Stop,
+            From::Loop => Self::Loop,
+            From::Next => Self::Next,
         }
     }
 }

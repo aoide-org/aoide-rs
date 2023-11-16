@@ -173,20 +173,20 @@ pub enum DateOrDateTime {
 
 impl From<_core::DateOrDateTime> for DateOrDateTime {
     fn from(from: _core::DateOrDateTime) -> Self {
-        use _core::DateOrDateTime::*;
+        use _core::DateOrDateTime as From;
         match from {
-            Date(from) => Self::Date(from.into()),
-            DateTime(from) => Self::DateTime(from.into()),
+            From::Date(from) => Self::Date(from.into()),
+            From::DateTime(from) => Self::DateTime(from.into()),
         }
     }
 }
 
 impl From<DateOrDateTime> for _core::DateOrDateTime {
     fn from(from: DateOrDateTime) -> Self {
-        use DateOrDateTime::*;
+        use DateOrDateTime as From;
         match from {
-            Date(from) => Self::Date(from.into()),
-            DateTime(from) => Self::DateTime(from.into()),
+            From::Date(from) => Self::Date(from.into()),
+            From::DateTime(from) => Self::DateTime(from.into()),
         }
     }
 }

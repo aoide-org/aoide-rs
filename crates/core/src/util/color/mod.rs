@@ -110,19 +110,18 @@ pub enum ParseError {
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use ParseError::*;
         match self {
-            InputLen => write!(
+            Self::InputLen => write!(
                 f,
                 "Invalid input length: expected = {}",
                 RgbColor::STRING_LEN
             ),
-            InputPrefix => write!(
+            Self::InputPrefix => write!(
                 f,
                 "Invalid input prefix: expected = {}",
                 RgbColor::STRING_PREFIX
             ),
-            ParseIntError(err) => f.write_str(&err.to_string()),
+            Self::ParseIntError(err) => f.write_str(&err.to_string()),
         }
     }
 }

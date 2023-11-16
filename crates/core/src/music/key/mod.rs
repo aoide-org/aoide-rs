@@ -93,6 +93,7 @@ impl fmt::Display for KeyCode {
 impl KeyCode {
     #[must_use]
     pub const fn as_canonical_str(self) -> &'static str {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         match self {
             Off => "Off",
@@ -125,6 +126,7 @@ impl KeyCode {
 
     #[must_use]
     pub fn try_from_canonical_str(s: &str) -> Option<Self> {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         let code = match s {
             "Off" => Off,
@@ -161,6 +163,7 @@ impl KeyCode {
 
     #[must_use]
     pub const fn as_traditional_str(self) -> &'static str {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         match self {
             Off => "",
@@ -193,6 +196,7 @@ impl KeyCode {
 
     #[must_use]
     pub fn try_from_traditional_str(s: &str) -> Option<Self> {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         let code = match s {
             "" => Off,
@@ -257,6 +261,7 @@ impl KeyCode {
 
     #[must_use]
     pub const fn as_traditional_ascii_str(self) -> &'static str {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         match self {
             Off => "",
@@ -289,6 +294,7 @@ impl KeyCode {
 
     #[must_use]
     pub fn try_from_traditional_ascii_str(s: &str) -> Option<Self> {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         let code = match s {
             "" => Off,
@@ -325,6 +331,7 @@ impl KeyCode {
 
     #[must_use]
     pub const fn as_openkey_str(self) -> &'static str {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         match self {
             Off => "",
@@ -357,6 +364,7 @@ impl KeyCode {
 
     #[must_use]
     pub fn try_from_openkey_str(s: &str) -> Option<Self> {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         let code = match s {
             "" => Off,
@@ -393,6 +401,7 @@ impl KeyCode {
 
     #[must_use]
     pub const fn as_camelot_str(self) -> &'static str {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         match self {
             Off => "",
@@ -425,6 +434,7 @@ impl KeyCode {
 
     #[must_use]
     pub fn try_from_camelot_str(s: &str) -> Option<Self> {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         let code = match s {
             "" => Off,
@@ -461,6 +471,7 @@ impl KeyCode {
 
     #[must_use]
     pub const fn as_traxsource_str(self) -> &'static str {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         match self {
             Off => "",
@@ -493,6 +504,7 @@ impl KeyCode {
 
     #[must_use]
     pub fn try_from_traxsource_str(s: &str) -> Option<Self> {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         let code = match s {
             "" => Off,
@@ -529,6 +541,7 @@ impl KeyCode {
 
     #[must_use]
     pub const fn as_beatport_str(self) -> &'static str {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         match self {
             Off => "",
@@ -561,6 +574,7 @@ impl KeyCode {
 
     #[must_use]
     pub fn try_from_beatport_str(s: &str) -> Option<Self> {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         let code = match s {
             "" => Off,
@@ -599,6 +613,7 @@ impl KeyCode {
     /// See also `TKEY` in _ID3v2_: <https://id3.org/id3v2.4.0-frames>
     #[must_use]
     pub const fn as_serato_str(self) -> &'static str {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         match self {
             Off => "o",
@@ -633,6 +648,7 @@ impl KeyCode {
     /// See also `TKEY` in _ID3v2_: <https://id3.org/id3v2.4.0-frames>
     #[must_use]
     pub fn try_from_serato_str(s: &str) -> Option<Self> {
+        #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         let code = match s {
             "o" => Off,
@@ -761,8 +777,8 @@ impl OpenKeySignature {
     pub const MAX_CODE: KeyCodeValue = 12;
 
     #[must_use]
-    #[allow(clippy::similar_names)]
     #[allow(clippy::missing_panics_doc)] // Never panics
+    #[allow(clippy::similar_names)] // False positive
     pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
         #[allow(clippy::missing_panics_doc)] // Never panics
         let code = KeyCode::try_from_value(
@@ -817,8 +833,8 @@ impl LancelotKeySignature {
     pub const MAX_CODE: KeyCodeValue = 12;
 
     #[must_use]
-    #[allow(clippy::similar_names)]
     #[allow(clippy::missing_panics_doc)] // Never panics
+    #[allow(clippy::similar_names)] // False positive
     pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
         let code = KeyCode::try_from_value(
             ((code * 2 + 9) % 24)

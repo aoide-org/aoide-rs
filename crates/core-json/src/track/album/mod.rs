@@ -27,24 +27,24 @@ pub enum Kind {
 
 impl From<_core::Kind> for Kind {
     fn from(from: _core::Kind) -> Self {
-        use _core::Kind::*;
+        use _core::Kind as From;
         match from {
-            NoCompilation => Self::NoCompilation,
-            Album => Self::Album,
-            Single => Self::Single,
-            Compilation => Self::Compilation,
+            From::NoCompilation => Self::NoCompilation,
+            From::Album => Self::Album,
+            From::Single => Self::Single,
+            From::Compilation => Self::Compilation,
         }
     }
 }
 
 impl From<Kind> for _core::Kind {
     fn from(from: Kind) -> Self {
-        use Kind::*;
+        use Kind as From;
         match from {
-            NoCompilation => Self::NoCompilation,
-            Album => Self::Album,
-            Single => Self::Single,
-            Compilation => Self::Compilation,
+            From::NoCompilation => Self::NoCompilation,
+            From::Album => Self::Album,
+            From::Single => Self::Single,
+            From::Compilation => Self::Compilation,
         }
     }
 }

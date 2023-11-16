@@ -33,20 +33,20 @@ pub enum Color {
 
 impl From<_core::Color> for Color {
     fn from(from: _core::Color) -> Self {
-        use _core::Color::*;
+        use _core::Color as From;
         match from {
-            Rgb(rgb) => Color::Rgb(rgb.into()),
-            Index(idx) => Color::Index(idx),
+            From::Rgb(rgb) => Self::Rgb(rgb.into()),
+            From::Index(idx) => Self::Index(idx),
         }
     }
 }
 
 impl From<Color> for _core::Color {
     fn from(from: Color) -> Self {
-        use _core::Color::*;
+        use Color as From;
         match from {
-            Color::Rgb(rgb) => Rgb(rgb.into()),
-            Color::Index(idx) => Index(idx),
+            From::Rgb(rgb) => Self::Rgb(rgb.into()),
+            From::Index(idx) => Self::Index(idx),
         }
     }
 }

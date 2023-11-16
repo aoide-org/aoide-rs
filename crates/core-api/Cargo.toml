@@ -10,6 +10,9 @@ license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
 
+[lints]
+workspace = true
+
 [dependencies]
 strum = { version = "0.25.0", features = ["derive"] }
 url = "2.4.1"

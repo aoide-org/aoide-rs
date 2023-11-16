@@ -11,6 +11,9 @@ edition = { workspace = true }
 rust-version = { workspace = true }
 publish = false
 
+[lints]
+workspace = true
+
 [dependencies]
 anyhow = "1.0.75"
 clap = "4.4.8"

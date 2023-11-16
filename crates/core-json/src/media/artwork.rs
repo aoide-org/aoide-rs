@@ -178,29 +178,29 @@ impl TryFrom<Artwork> for _core::Artwork {
 
 impl From<_core::Artwork> for Artwork {
     fn from(from: _core::Artwork) -> Self {
-        use _core::Artwork::*;
+        use _core::Artwork as From;
         match from {
-            Missing => Self {
+            From::Missing => Self {
                 source: ArtworkSource::Missing,
                 uri: None,
                 image: None,
             },
-            Unsupported => Self {
+            From::Unsupported => Self {
                 source: ArtworkSource::Unsupported,
                 uri: None,
                 image: None,
             },
-            Irregular => Self {
+            From::Irregular => Self {
                 source: ArtworkSource::Irregular,
                 uri: None,
                 image: None,
             },
-            Embedded(embedded) => Self {
+            From::Embedded(embedded) => Self {
                 source: ArtworkSource::Embedded,
                 uri: None,
                 image: Some(embedded.image.into()),
             },
-            Linked(linked) => Self {
+            From::Linked(linked) => Self {
                 source: ArtworkSource::Linked,
                 uri: Some(linked.uri),
                 image: Some(linked.image.into()),

@@ -5,7 +5,7 @@ use std::{
     borrow::Borrow,
     cmp::Ordering,
     collections::{
-        hash_map::Entry::{Occupied, Vacant},
+        hash_map::Entry::{self, Occupied, Vacant},
         HashMap,
     },
     fmt,
@@ -526,7 +526,6 @@ impl<'a> TagsMap<'a> {
     }
 
     pub fn insert(&mut self, key: impl Into<FacetKey<'a>>, tag: PlainTag<'a>) {
-        use std::collections::hash_map::*;
         let Self(inner) = self;
         match inner.entry(key.into()) {
             Entry::Occupied(mut entry) => {
@@ -539,7 +538,6 @@ impl<'a> TagsMap<'a> {
     }
 
     pub fn insert_many(&mut self, key: impl Into<FacetKey<'a>>, mut tags: Vec<PlainTag<'a>>) {
-        use std::collections::hash_map::*;
         let Self(inner) = self;
         match inner.entry(key.into()) {
             Entry::Occupied(mut entry) => {

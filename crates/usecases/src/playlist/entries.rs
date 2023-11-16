@@ -38,6 +38,7 @@ where
     let (record_header, next_rev) =
         repo.touch_playlist_entity_revision(entity_header, updated_at)?;
     for operation in operations {
+        #[allow(clippy::enum_glob_use)]
         use PatchOperation::*;
         // TODO: Accept a streaming iterator that only borrows the items that it yields
         let operation = &operation;

@@ -188,7 +188,7 @@ fn apic_type_from_picture_type(picture_type: PictureType) -> Option<ApicType> {
     Some(apic_type)
 }
 
-fn picture_type_from_apic_type(apic_type: ApicType) -> PictureType {
+const fn picture_type_from_apic_type(apic_type: ApicType) -> PictureType {
     match apic_type {
         ApicType::Artist => PictureType::Artist,
         ApicType::Band => PictureType::Band,
@@ -312,21 +312,21 @@ struct Compatibility {
 }
 
 impl Compatibility {
-    fn import(tage_type: TagType, flags: ImportTrackFlags) -> Self {
+    const fn import(tage_type: TagType, flags: ImportTrackFlags) -> Self {
         Self::new(
             tage_type,
             flags.contains(ImportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1),
         )
     }
 
-    fn export(tage_type: TagType, flags: ExportTrackFlags) -> Self {
+    const fn export(tage_type: TagType, flags: ExportTrackFlags) -> Self {
         Self::new(
             tage_type,
             flags.contains(ExportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1),
         )
     }
 
-    fn new(tage_type: TagType, apple_grp1: bool) -> Self {
+    const fn new(tage_type: TagType, apple_grp1: bool) -> Self {
         let primary_content_group_item_key;
         let secondary_content_group_item_key;
         let primary_work_item_key;

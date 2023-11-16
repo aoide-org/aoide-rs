@@ -22,7 +22,7 @@ pub enum Kind {
 }
 
 impl Kind {
-    fn is_default(&self) -> bool {
+    const fn is_default(&self) -> bool {
         matches!(self, Kind::Summary)
     }
 }
@@ -35,22 +35,22 @@ impl Default for Kind {
 
 impl From<Kind> for _core::Kind {
     fn from(from: Kind) -> Self {
-        use _core::Kind::*;
+        use Kind as From;
         match from {
-            Kind::Summary => Summary,
-            Kind::Individual => Individual,
-            Kind::Sorting => Sorting,
+            From::Summary => Self::Summary,
+            From::Individual => Self::Individual,
+            From::Sorting => Self::Sorting,
         }
     }
 }
 
 impl From<_core::Kind> for Kind {
     fn from(from: _core::Kind) -> Self {
-        use _core::Kind::*;
+        use _core::Kind as From;
         match from {
-            Summary => Kind::Summary,
-            Individual => Kind::Individual,
-            Sorting => Kind::Sorting,
+            From::Summary => Self::Summary,
+            From::Individual => Self::Individual,
+            From::Sorting => Self::Sorting,
         }
     }
 }
@@ -80,7 +80,7 @@ pub enum Role {
 }
 
 impl Role {
-    fn is_default(&self) -> bool {
+    const fn is_default(&self) -> bool {
         matches!(self, Self::Artist)
     }
 }
@@ -93,42 +93,42 @@ impl Default for Role {
 
 impl From<Role> for _core::Role {
     fn from(from: Role) -> Self {
-        use _core::Role::*;
+        use Role as From;
         match from {
-            Role::Artist => Artist,
-            Role::Arranger => Arranger,
-            Role::Composer => Composer,
-            Role::Conductor => Conductor,
-            Role::MixDj => MixDj,
-            Role::Engineer => Engineer,
-            Role::Lyricist => Lyricist,
-            Role::MixEngineer => MixEngineer,
-            Role::Performer => Performer,
-            Role::Producer => Producer,
-            Role::Director => Director,
-            Role::Remixer => Remixer,
-            Role::Writer => Writer,
+            From::Artist => Self::Artist,
+            From::Arranger => Self::Arranger,
+            From::Composer => Self::Composer,
+            From::Conductor => Self::Conductor,
+            From::MixDj => Self::MixDj,
+            From::Engineer => Self::Engineer,
+            From::Lyricist => Self::Lyricist,
+            From::MixEngineer => Self::MixEngineer,
+            From::Performer => Self::Performer,
+            From::Producer => Self::Producer,
+            From::Director => Self::Director,
+            From::Remixer => Self::Remixer,
+            From::Writer => Self::Writer,
         }
     }
 }
 
 impl From<_core::Role> for Role {
     fn from(from: _core::Role) -> Self {
-        use _core::Role::*;
+        use _core::Role as From;
         match from {
-            Artist => Role::Artist,
-            Arranger => Role::Arranger,
-            Composer => Role::Composer,
-            Conductor => Role::Conductor,
-            MixDj => Role::MixDj,
-            Engineer => Role::Engineer,
-            Lyricist => Role::Lyricist,
-            MixEngineer => Role::MixEngineer,
-            Performer => Role::Performer,
-            Producer => Role::Producer,
-            Director => Role::Director,
-            Remixer => Role::Remixer,
-            Writer => Role::Writer,
+            From::Artist => Self::Artist,
+            From::Arranger => Self::Arranger,
+            From::Composer => Self::Composer,
+            From::Conductor => Self::Conductor,
+            From::MixDj => Self::MixDj,
+            From::Engineer => Self::Engineer,
+            From::Lyricist => Self::Lyricist,
+            From::MixEngineer => Self::MixEngineer,
+            From::Performer => Self::Performer,
+            From::Producer => Self::Producer,
+            From::Director => Self::Director,
+            From::Remixer => Self::Remixer,
+            From::Writer => Self::Writer,
         }
     }
 }
@@ -225,21 +225,21 @@ impl From<_core::Actor> for Actor {
 
 impl From<Actor> for _core::Actor {
     fn from(from: Actor) -> Self {
-        use Actor::*;
+        use Actor as From;
         match from {
-            Name(name) => Self {
+            From::Name(name) => Self {
                 kind: _core::Kind::Summary,
                 name,
                 role: _core::Role::Artist,
                 role_notes: None,
             },
-            NameAndRole(name, role) => Self {
+            From::NameAndRole(name, role) => Self {
                 kind: _core::Kind::Summary,
                 name,
                 role: role.into(),
                 role_notes: None,
             },
-            FullActor(actor) => actor.into(),
+            From::FullActor(actor) => actor.into(),
         }
     }
 }

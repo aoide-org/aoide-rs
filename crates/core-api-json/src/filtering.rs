@@ -21,9 +21,9 @@ pub enum FilterModifier {
 #[cfg(feature = "backend")]
 impl From<FilterModifier> for _inner::FilterModifier {
     fn from(from: FilterModifier) -> Self {
-        use FilterModifier::*;
+        use FilterModifier as From;
         match from {
-            Complement => Self::Complement,
+            From::Complement => Self::Complement,
         }
     }
 }
@@ -31,9 +31,9 @@ impl From<FilterModifier> for _inner::FilterModifier {
 #[cfg(feature = "frontend")]
 impl From<_inner::FilterModifier> for FilterModifier {
     fn from(from: _inner::FilterModifier) -> Self {
-        use _inner::FilterModifier::*;
+        use _inner::FilterModifier as From;
         match from {
-            Complement => Self::Complement,
+            From::Complement => Self::Complement,
         }
     }
 }
@@ -61,19 +61,19 @@ pub enum StringPredicate {
 #[cfg(feature = "backend")]
 impl From<StringPredicate> for _inner::StringPredicate<'static> {
     fn from(from: StringPredicate) -> Self {
-        use StringPredicate::*;
+        use StringPredicate as From;
         match from {
-            StartsWith(s) => Self::StartsWith(s.into()),
-            StartsNotWith(s) => Self::StartsNotWith(s.into()),
-            EndsWith(s) => Self::EndsWith(s.into()),
-            EndsNotWith(s) => Self::EndsNotWith(s.into()),
-            Contains(s) => Self::Contains(s.into()),
-            ContainsNot(s) => Self::ContainsNot(s.into()),
-            Matches(s) => Self::Matches(s.into()),
-            MatchesNot(s) => Self::MatchesNot(s.into()),
-            Prefix(s) => Self::Prefix(s.into()),
-            Equals(s) => Self::Equals(s.into()),
-            EqualsNot(s) => Self::EqualsNot(s.into()),
+            From::StartsWith(s) => Self::StartsWith(s.into()),
+            From::StartsNotWith(s) => Self::StartsNotWith(s.into()),
+            From::EndsWith(s) => Self::EndsWith(s.into()),
+            From::EndsNotWith(s) => Self::EndsNotWith(s.into()),
+            From::Contains(s) => Self::Contains(s.into()),
+            From::ContainsNot(s) => Self::ContainsNot(s.into()),
+            From::Matches(s) => Self::Matches(s.into()),
+            From::MatchesNot(s) => Self::MatchesNot(s.into()),
+            From::Prefix(s) => Self::Prefix(s.into()),
+            From::Equals(s) => Self::Equals(s.into()),
+            From::EqualsNot(s) => Self::EqualsNot(s.into()),
         }
     }
 }
@@ -81,19 +81,19 @@ impl From<StringPredicate> for _inner::StringPredicate<'static> {
 #[cfg(feature = "frontend")]
 impl From<_inner::StringPredicate<'static>> for StringPredicate {
     fn from(from: _inner::StringPredicate<'static>) -> Self {
-        use _inner::StringPredicate::*;
+        use _inner::StringPredicate as From;
         match from {
-            StartsWith(s) => Self::StartsWith(s.into_owned()),
-            StartsNotWith(s) => Self::StartsNotWith(s.into_owned()),
-            EndsWith(s) => Self::EndsWith(s.into_owned()),
-            EndsNotWith(s) => Self::EndsNotWith(s.into_owned()),
-            Contains(s) => Self::Contains(s.into_owned()),
-            ContainsNot(s) => Self::ContainsNot(s.into_owned()),
-            Matches(s) => Self::Matches(s.into_owned()),
-            MatchesNot(s) => Self::MatchesNot(s.into_owned()),
-            Prefix(s) => Self::Prefix(s.into_owned()),
-            Equals(s) => Self::Equals(s.into_owned()),
-            EqualsNot(s) => Self::EqualsNot(s.into_owned()),
+            From::StartsWith(s) => Self::StartsWith(s.into_owned()),
+            From::StartsNotWith(s) => Self::StartsNotWith(s.into_owned()),
+            From::EndsWith(s) => Self::EndsWith(s.into_owned()),
+            From::EndsNotWith(s) => Self::EndsNotWith(s.into_owned()),
+            From::Contains(s) => Self::Contains(s.into_owned()),
+            From::ContainsNot(s) => Self::ContainsNot(s.into_owned()),
+            From::Matches(s) => Self::Matches(s.into_owned()),
+            From::MatchesNot(s) => Self::MatchesNot(s.into_owned()),
+            From::Prefix(s) => Self::Prefix(s.into_owned()),
+            From::Equals(s) => Self::Equals(s.into_owned()),
+            From::EqualsNot(s) => Self::EqualsNot(s.into_owned()),
         }
     }
 }
@@ -180,14 +180,14 @@ pub type NumericPredicate = ScalarPredicate<_inner::NumericValue>;
 #[cfg(feature = "backend")]
 impl From<NumericPredicate> for _inner::NumericPredicate {
     fn from(from: NumericPredicate) -> Self {
-        use ScalarPredicate::*;
+        use ScalarPredicate as From;
         match from {
-            LessThan(val) => Self::LessThan(val),
-            LessOrEqual(val) => Self::LessOrEqual(val),
-            GreaterThan(val) => Self::GreaterThan(val),
-            GreaterOrEqual(val) => Self::GreaterOrEqual(val),
-            Equal(val) => Self::Equal(val),
-            NotEqual(val) => Self::NotEqual(val),
+            From::LessThan(val) => Self::LessThan(val),
+            From::LessOrEqual(val) => Self::LessOrEqual(val),
+            From::GreaterThan(val) => Self::GreaterThan(val),
+            From::GreaterOrEqual(val) => Self::GreaterOrEqual(val),
+            From::Equal(val) => Self::Equal(val),
+            From::NotEqual(val) => Self::NotEqual(val),
         }
     }
 }
@@ -195,14 +195,14 @@ impl From<NumericPredicate> for _inner::NumericPredicate {
 #[cfg(feature = "frontend")]
 impl From<_inner::NumericPredicate> for NumericPredicate {
     fn from(from: _inner::NumericPredicate) -> Self {
-        use _inner::ScalarPredicate::*;
+        use _inner::ScalarPredicate as From;
         match from {
-            LessThan(val) => Self::LessThan(val),
-            LessOrEqual(val) => Self::LessOrEqual(val),
-            GreaterThan(val) => Self::GreaterThan(val),
-            GreaterOrEqual(val) => Self::GreaterOrEqual(val),
-            Equal(val) => Self::Equal(val),
-            NotEqual(val) => Self::NotEqual(val),
+            From::LessThan(val) => Self::LessThan(val),
+            From::LessOrEqual(val) => Self::LessOrEqual(val),
+            From::GreaterThan(val) => Self::GreaterThan(val),
+            From::GreaterOrEqual(val) => Self::GreaterOrEqual(val),
+            From::Equal(val) => Self::Equal(val),
+            From::NotEqual(val) => Self::NotEqual(val),
         }
     }
 }
@@ -212,14 +212,14 @@ pub type DateTimePredicate = ScalarPredicate<DateTime>;
 #[cfg(feature = "backend")]
 impl From<DateTimePredicate> for _inner::DateTimePredicate {
     fn from(from: DateTimePredicate) -> Self {
-        use ScalarPredicate::*;
+        use ScalarPredicate as From;
         match from {
-            LessThan(val) => Self::LessThan(val.into()),
-            LessOrEqual(val) => Self::LessOrEqual(val.into()),
-            GreaterThan(val) => Self::GreaterThan(val.into()),
-            GreaterOrEqual(val) => Self::GreaterOrEqual(val.into()),
-            Equal(val) => Self::Equal(val.map(Into::into)),
-            NotEqual(val) => Self::NotEqual(val.map(Into::into)),
+            From::LessThan(val) => Self::LessThan(val.into()),
+            From::LessOrEqual(val) => Self::LessOrEqual(val.into()),
+            From::GreaterThan(val) => Self::GreaterThan(val.into()),
+            From::GreaterOrEqual(val) => Self::GreaterOrEqual(val.into()),
+            From::Equal(val) => Self::Equal(val.map(Into::into)),
+            From::NotEqual(val) => Self::NotEqual(val.map(Into::into)),
         }
     }
 }
@@ -227,14 +227,14 @@ impl From<DateTimePredicate> for _inner::DateTimePredicate {
 #[cfg(feature = "frontend")]
 impl From<_inner::DateTimePredicate> for DateTimePredicate {
     fn from(from: _inner::DateTimePredicate) -> Self {
-        use _inner::ScalarPredicate::*;
+        use _inner::ScalarPredicate as From;
         match from {
-            LessThan(val) => Self::LessThan(val.into()),
-            LessOrEqual(val) => Self::LessOrEqual(val.into()),
-            GreaterThan(val) => Self::GreaterThan(val.into()),
-            GreaterOrEqual(val) => Self::GreaterOrEqual(val.into()),
-            Equal(val) => Self::Equal(val.map(Into::into)),
-            NotEqual(val) => Self::NotEqual(val.map(Into::into)),
+            From::LessThan(val) => Self::LessThan(val.into()),
+            From::LessOrEqual(val) => Self::LessOrEqual(val.into()),
+            From::GreaterThan(val) => Self::GreaterThan(val.into()),
+            From::GreaterOrEqual(val) => Self::GreaterOrEqual(val.into()),
+            From::Equal(val) => Self::Equal(val.map(Into::into)),
+            From::NotEqual(val) => Self::NotEqual(val.map(Into::into)),
         }
     }
 }

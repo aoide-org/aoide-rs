@@ -248,25 +248,25 @@ pub enum PlainTag {
 impl From<PlainTag> for _core::PlainTag<'static> {
     #[allow(clippy::cast_precision_loss)]
     fn from(from: PlainTag) -> Self {
-        use PlainTag::*;
+        use PlainTag as From;
         match from {
-            Label(label) => _core::PlainTag {
+            From::Label(label) => Self {
                 label: Some(label.into()),
                 ..Default::default()
             },
-            Score(score) => _core::PlainTag {
+            From::Score(score) => Self {
                 score: score.into(),
                 ..Default::default()
             },
-            IntScoreFallback(iscore) => _core::PlainTag {
+            From::IntScoreFallback(iscore) => Self {
                 score: _core::Score::new_unchecked(iscore as f64),
                 ..Default::default()
             },
-            LabelIntScoreFallback(label, iscore) => _core::PlainTag {
+            From::LabelIntScoreFallback(label, iscore) => Self {
                 label: Some(label.into()),
                 score: _core::Score::new_unchecked(iscore as f64),
             },
-            LabelScore(label, score) => _core::PlainTag {
+            From::LabelScore(label, score) => Self {
                 label: Some(label.into()),
                 score: score.into(),
             },

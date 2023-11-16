@@ -24,11 +24,11 @@ pub enum ReplaceMode {
 
 impl From<ReplaceMode> for uc::ReplaceMode {
     fn from(from: ReplaceMode) -> Self {
-        use ReplaceMode::*;
+        use ReplaceMode as From;
         match from {
-            CreateOnly => Self::CreateOnly,
-            UpdateOnly => Self::UpdateOnly,
-            UpdateOrCreate => Self::UpdateOrCreate,
+            From::CreateOnly => Self::CreateOnly,
+            From::UpdateOnly => Self::UpdateOnly,
+            From::UpdateOrCreate => Self::UpdateOrCreate,
         }
     }
 }

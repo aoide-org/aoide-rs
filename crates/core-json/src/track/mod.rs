@@ -31,22 +31,22 @@ pub enum AdvisoryRating {
 
 impl From<_core::AdvisoryRating> for AdvisoryRating {
     fn from(from: _core::AdvisoryRating) -> Self {
-        use _core::AdvisoryRating::*;
+        use _core::AdvisoryRating as From;
         match from {
-            Unrated => Self::Unrated,
-            Explicit => Self::Explicit,
-            Clean => Self::Clean,
+            From::Unrated => Self::Unrated,
+            From::Explicit => Self::Explicit,
+            From::Clean => Self::Clean,
         }
     }
 }
 
 impl From<AdvisoryRating> for _core::AdvisoryRating {
     fn from(from: AdvisoryRating) -> Self {
-        use AdvisoryRating::*;
+        use AdvisoryRating as From;
         match from {
-            Unrated => Self::Unrated,
-            Explicit => Self::Explicit,
-            Clean => Self::Clean,
+            From::Unrated => Self::Unrated,
+            From::Explicit => Self::Explicit,
+            From::Clean => Self::Clean,
         }
     }
 }

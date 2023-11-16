@@ -60,24 +60,24 @@ pub enum ContentPathKind {
 
 impl From<_core::ContentPathKind> for ContentPathKind {
     fn from(from: _core::ContentPathKind) -> Self {
-        use _core::ContentPathKind::*;
+        use _core::ContentPathKind as From;
         match from {
-            Uri => Self::Uri,
-            Url => Self::Url,
-            FileUrl => Self::FileUrl,
-            VirtualFilePath => Self::VirtualFilePath,
+            From::Uri => Self::Uri,
+            From::Url => Self::Url,
+            From::FileUrl => Self::FileUrl,
+            From::VirtualFilePath => Self::VirtualFilePath,
         }
     }
 }
 
 impl From<ContentPathKind> for _core::ContentPathKind {
     fn from(from: ContentPathKind) -> Self {
-        use ContentPathKind::*;
+        use ContentPathKind as From;
         match from {
-            Uri => Self::Uri,
-            Url => Self::Url,
-            FileUrl => Self::FileUrl,
-            VirtualFilePath => Self::VirtualFilePath,
+            From::Uri => Self::Uri,
+            From::Url => Self::Url,
+            From::FileUrl => Self::FileUrl,
+            From::VirtualFilePath => Self::VirtualFilePath,
         }
     }
 }
@@ -143,18 +143,18 @@ pub enum ContentMetadata {
 
 impl From<ContentMetadata> for _core::ContentMetadata {
     fn from(from: ContentMetadata) -> Self {
-        use _core::ContentMetadata::*;
+        use ContentMetadata as From;
         match from {
-            ContentMetadata::Audio(audio_content) => Audio(audio_content.into()),
+            From::Audio(audio_content) => Self::Audio(audio_content.into()),
         }
     }
 }
 
 impl From<_core::ContentMetadata> for ContentMetadata {
     fn from(from: _core::ContentMetadata) -> Self {
-        use _core::ContentMetadata::*;
+        use _core::ContentMetadata as From;
         match from {
-            Audio(audio_content) => ContentMetadata::Audio(audio_content.into()),
+            From::Audio(audio_content) => Self::Audio(audio_content.into()),
         }
     }
 }

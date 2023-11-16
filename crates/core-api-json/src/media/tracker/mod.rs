@@ -76,12 +76,12 @@ pub enum Progress {
 #[cfg(feature = "frontend")]
 impl From<Progress> for _core::Progress {
     fn from(from: Progress) -> Self {
-        use Progress::*;
+        use Progress as From;
         match from {
-            Idle => Self::Idle,
-            Scanning(progress) => Self::Scanning(progress.into()),
-            Importing(progress) => Self::Importing(progress.into()),
-            FindingUntracked(progress) => Self::FindingUntracked(progress.into()),
+            From::Idle => Self::Idle,
+            From::Scanning(progress) => Self::Scanning(progress.into()),
+            From::Importing(progress) => Self::Importing(progress.into()),
+            From::FindingUntracked(progress) => Self::FindingUntracked(progress.into()),
         }
     }
 }
@@ -89,12 +89,12 @@ impl From<Progress> for _core::Progress {
 #[cfg(feature = "backend")]
 impl From<_core::Progress> for Progress {
     fn from(from: _core::Progress) -> Self {
-        use _core::Progress::*;
+        use _core::Progress as From;
         match from {
-            Idle => Self::Idle,
-            Scanning(progress) => Self::Scanning(progress.into()),
-            Importing(progress) => Self::Importing(progress.into()),
-            FindingUntracked(progress) => Self::FindingUntracked(progress.into()),
+            From::Idle => Self::Idle,
+            From::Scanning(progress) => Self::Scanning(progress.into()),
+            From::Importing(progress) => Self::Importing(progress.into()),
+            From::FindingUntracked(progress) => Self::FindingUntracked(progress.into()),
         }
     }
 }
@@ -203,10 +203,10 @@ pub enum Completion {
 #[cfg(feature = "frontend")]
 impl From<Completion> for _core::Completion {
     fn from(from: Completion) -> Self {
-        use Completion::*;
+        use Completion as From;
         match from {
-            Finished => Self::Finished,
-            Aborted => Self::Aborted,
+            From::Finished => Self::Finished,
+            From::Aborted => Self::Aborted,
         }
     }
 }
@@ -214,10 +214,10 @@ impl From<Completion> for _core::Completion {
 #[cfg(feature = "backend")]
 impl From<_core::Completion> for Completion {
     fn from(from: _core::Completion) -> Self {
-        use _core::Completion::*;
+        use _core::Completion as From;
         match from {
-            Finished => Self::Finished,
-            Aborted => Self::Aborted,
+            From::Finished => Self::Finished,
+            From::Aborted => Self::Aborted,
         }
     }
 }
@@ -317,26 +317,26 @@ pub enum DirTrackingStatus {
 
 impl From<DirTrackingStatus> for _core::DirTrackingStatus {
     fn from(from: DirTrackingStatus) -> Self {
-        use DirTrackingStatus::*;
+        use DirTrackingStatus as From;
         match from {
-            Current => Self::Current,
-            Outdated => Self::Outdated,
-            Added => Self::Added,
-            Modified => Self::Modified,
-            Orphaned => Self::Orphaned,
+            From::Current => Self::Current,
+            From::Outdated => Self::Outdated,
+            From::Added => Self::Added,
+            From::Modified => Self::Modified,
+            From::Orphaned => Self::Orphaned,
         }
     }
 }
 
 impl From<_core::DirTrackingStatus> for DirTrackingStatus {
     fn from(from: _core::DirTrackingStatus) -> Self {
-        use _core::DirTrackingStatus::*;
+        use _core::DirTrackingStatus as From;
         match from {
-            Current => Self::Current,
-            Outdated => Self::Outdated,
-            Added => Self::Added,
-            Modified => Self::Modified,
-            Orphaned => Self::Orphaned,
+            From::Current => Self::Current,
+            From::Outdated => Self::Outdated,
+            From::Added => Self::Added,
+            From::Modified => Self::Modified,
+            From::Orphaned => Self::Orphaned,
         }
     }
 }

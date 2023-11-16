@@ -22,13 +22,13 @@ pub enum TimeSignature {
 
 impl From<TimeSignature> for _core::TimeSignature {
     fn from(from: TimeSignature) -> Self {
-        use TimeSignature::*;
+        use TimeSignature as From;
         match from {
-            Top(beats_per_measure) => _core::TimeSignature {
+            From::Top(beats_per_measure) => Self {
                 beats_per_measure,
                 beat_unit: None,
             },
-            TopBottom(beats_per_measure, beat_unit) => _core::TimeSignature {
+            From::TopBottom(beats_per_measure, beat_unit) => Self {
                 beats_per_measure,
                 beat_unit: Some(beat_unit),
             },
@@ -43,9 +43,9 @@ impl From<_core::TimeSignature> for TimeSignature {
             beat_unit,
         } = from;
         if let Some(beat_unit) = beat_unit {
-            TimeSignature::TopBottom(beats_per_measure, beat_unit)
+            Self::TopBottom(beats_per_measure, beat_unit)
         } else {
-            TimeSignature::Top(beats_per_measure)
+            Self::Top(beats_per_measure)
         }
     }
 }

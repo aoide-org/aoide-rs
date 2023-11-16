@@ -1,20 +1,36 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-pub mod actor;
-pub mod album;
-pub mod cue;
-pub mod index;
-pub mod metric;
-pub mod tag;
-pub mod title;
-
 use ::url::Url;
 use nonicle::{Canonical, IsCanonical};
 use strum::FromRepr;
 
-use self::{actor::*, album::*, cue::*, index::*, metric::*, title::*};
-use crate::{media::*, prelude::*, tag::*};
+pub mod actor;
+pub use self::actor::{
+    Actor, ActorInvalidity, ActorNamesSummarySplitter, Actors, ActorsInvalidity,
+};
+
+pub mod album;
+pub use self::album::{Album, AlbumInvalidity};
+
+pub mod cue;
+pub use self::cue::{Cue, CueInvalidity};
+
+pub mod index;
+pub use self::index::{Indexes, IndexesInvalidity};
+
+pub mod metric;
+pub use self::metric::{Metrics, MetricsInvalidity};
+
+pub mod tag;
+
+pub mod title;
+pub use self::title::{Title, TitleInvalidity, Titles, TitlesInvalidity};
+use crate::{
+    media::{Source, SourceInvalidity},
+    prelude::*,
+    tag::{Tags, TagsInvalidity},
+};
 
 /// Advisory rating code for content(s)
 ///

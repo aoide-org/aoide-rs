@@ -24,7 +24,7 @@ pub enum Kind {
 }
 
 impl Kind {
-    fn is_default(&self) -> bool {
+    const fn is_default(&self) -> bool {
         matches!(self, Kind::Main)
     }
 }
@@ -37,26 +37,26 @@ impl Default for Kind {
 
 impl From<Kind> for _core::Kind {
     fn from(from: Kind) -> Self {
-        use _core::Kind::*;
+        use Kind as From;
         match from {
-            Kind::Main => Main,
-            Kind::Sub => Sub,
-            Kind::Sorting => Sorting,
-            Kind::Work => Work,
-            Kind::Movement => Movement,
+            From::Main => Self::Main,
+            From::Sub => Self::Sub,
+            From::Sorting => Self::Sorting,
+            From::Work => Self::Work,
+            From::Movement => Self::Movement,
         }
     }
 }
 
 impl From<_core::Kind> for Kind {
     fn from(from: _core::Kind) -> Self {
-        use _core::Kind::*;
+        use _core::Kind as From;
         match from {
-            Main => Kind::Main,
-            Sub => Kind::Sub,
-            Sorting => Kind::Sorting,
-            Work => Kind::Work,
-            Movement => Kind::Movement,
+            From::Main => Self::Main,
+            From::Sub => Self::Sub,
+            From::Sorting => Self::Sorting,
+            From::Work => Self::Work,
+            From::Movement => Self::Movement,
         }
     }
 }
@@ -119,17 +119,17 @@ impl From<_core::Title> for Title {
 
 impl From<Title> for _core::Title {
     fn from(from: Title) -> Self {
-        use Title::*;
+        use Title as From;
         match from {
-            Name(name) => Self {
+            From::Name(name) => Self {
                 name,
                 kind: _core::Kind::Main,
             },
-            NameAndKind(name, kind) => Self {
+            From::NameAndKind(name, kind) => Self {
                 name,
                 kind: kind.into(),
             },
-            FullTitle(actor) => actor.into(),
+            From::FullTitle(actor) => actor.into(),
         }
     }
 }

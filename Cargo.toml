@@ -19,6 +19,53 @@ license = "AGPL-3.0-or-later"
 edition = "2021"
 rust-version = "1.74"
 
+[workspace.lints.rust]
+# Opt-in for allowed-by-default lints (in alphabetical order)
+# See also: <https://doc.rust-lang.org/rustc/lints>
+future_incompatible = "warn"
+let_underscore = "warn"
+missing_debug_implementations = "warn"
+rust_2018_idioms = "warn"
+rust_2021_compatibility = "warn"
+unreachable_pub = "warn"
+unsafe_code = "warn"
+unused = "warn"
+
+[workspace.lints.clippy]
+pedantic = "warn"
+
+# Use unified function syntax to avoid confusion with referenced type.
+clone_on_ref_ptr = "warn"
+
+# Declare as `const` whenever possible.
+missing_const_for_fn = "warn"
+
+# Prefer mod.rs style for self-contained module directories.
+self_named_module_files = "warn"
+
+# Repetitions of module/type names occur frequently when using many
+# modules for keeping the size of the source files handy. Often
+# types have the same name as their parent module.
+module_name_repetitions = "allow"
+
+# Repeating the type name in `Default::default()` expressions
+# is not needed as long as the context is obvious.
+default_trait_access = "allow"
+
+# The error types returned should be self-explanatory.
+missing_errors_doc = "allow"
+
+# Using wildcard imports intentionally is acceptable.
+wildcard_imports = "allow"
+
+# Often inevitable, e.g. `collection_uid` and `collection_id` often appear within the same context.
+similar_names = "allow"
+
+# TODO: Review each occurrence and allow them one by one.
+cast_possible_truncation = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+
 [package]
 name = "aoide"
 description = "aoide - Music library management"
@@ -47,6 +94,9 @@ include = [
   "LICENSES",
   "README.md",
 ]
+
+[lints]
+workspace = true
 
 [dependencies]
 aoide-backend-embedded = { version = "0.8.0", path = "crates/backend-embedded", optional = true }
@@ -86,6 +136,7 @@ frontend-js = ["frontend", "js", "json-api"]
 [profile.dev]
 opt-level = 2
 split-debuginfo = "unpacked"
+panic = "abort"
 
 [profile.test]
 inherits = "dev"
@@ -94,6 +145,7 @@ inherits = "dev"
 opt-level = 3
 lto = "thin"
 strip = "debuginfo"
+panic = "abort"
 
 [profile.profiling]
 inherits = "release"
@@ -105,4 +157,3 @@ inherits = "release"
 lto = true
 codegen-units = 1
 strip = true
-panic = "abort"

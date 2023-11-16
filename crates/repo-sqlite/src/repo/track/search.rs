@@ -359,7 +359,9 @@ fn build_phrase_field_filter_expression(
 fn build_numeric_field_filter_expression(
     filter: &NumericFieldFilter,
 ) -> TrackSearchExpressionBoxed<'_> {
+    #[allow(clippy::enum_glob_use)]
     use NumericField::*;
+    #[allow(clippy::enum_glob_use)]
     use ScalarPredicate::*;
     match filter.field {
         AudioDurationMs => {
@@ -761,10 +763,13 @@ fn build_numeric_field_filter_expression(
     }
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 fn build_datetime_field_filter_expression(
     filter: &DateTimeFieldFilter,
 ) -> TrackSearchExpressionBoxed<'_> {
+    #[allow(clippy::enum_glob_use)]
     use DateTimeField::*;
+    #[allow(clippy::enum_glob_use)]
     use ScalarPredicate::*;
     match filter.field {
         CollectedAt => {
@@ -873,13 +878,12 @@ fn build_datetime_field_filter_expression(
 fn build_condition_filter_expression(
     filter: ConditionFilter,
 ) -> TrackSearchExpressionBoxed<'static> {
-    use ConditionFilter::*;
     match filter {
-        SourceTracked => Box::new(
+        ConditionFilter::SourceTracked => Box::new(
             view_track_search::media_source_id
                 .eq_any(media_tracker_source::table.select(media_tracker_source::source_id)),
         ),
-        SourceUntracked => Box::new(
+        ConditionFilter::SourceUntracked => Box::new(
             view_track_search::media_source_id
                 .ne_all(media_tracker_source::table.select(media_tracker_source::source_id)),
         ),
@@ -1201,6 +1205,7 @@ fn build_title_filter_expression(filter: &TitlePhraseFilter) -> TrackSearchExpre
 
 impl TrackSearchExpressionBoxedBuilder for Filter {
     fn build_expression(&self) -> TrackSearchExpressionBoxed<'_> {
+        #[allow(clippy::enum_glob_use)]
         use Filter::*;
         match self {
             Phrase(filter) => build_phrase_field_filter_expression(filter),
@@ -1232,6 +1237,7 @@ impl TrackSearchExpressionBoxedBuilder for Filter {
 
 /// (Value, Comparison, Include(true)/Exclude(false))
 fn decompose_string_predicate<'a>(p: &'a StringPredicate<'a>) -> (&'a str, StringCompare, bool) {
+    #[allow(clippy::enum_glob_use)]
     use StringPredicate::*;
     match p {
         StartsWith(s) => (s, StringCompare::StartsWith, true),

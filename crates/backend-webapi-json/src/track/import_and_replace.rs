@@ -64,10 +64,10 @@ pub enum Completion {
 
 impl From<uc::Completion> for Completion {
     fn from(from: uc::Completion) -> Self {
-        use uc::Completion::*;
+        use uc::Completion as From;
         match from {
-            Finished => Self::Finished,
-            Aborted => Self::Aborted,
+            From::Finished => Self::Finished,
+            From::Aborted => Self::Aborted,
         }
     }
 }

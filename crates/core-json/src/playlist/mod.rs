@@ -71,19 +71,20 @@ pub enum Item {
 
 impl From<Item> for _core::Item {
     fn from(from: Item) -> Self {
+        use Item as From;
         match from {
-            Item::Separator(item) => Self::Separator(item.into()),
-            Item::Track(item) => Self::Track(item.into()),
+            From::Separator(item) => Self::Separator(item.into()),
+            From::Track(item) => Self::Track(item.into()),
         }
     }
 }
 
 impl From<_core::Item> for Item {
     fn from(from: _core::Item) -> Self {
-        use _core::Item::*;
+        use _core::Item as From;
         match from {
-            Separator(item) => Self::Separator(item.into()),
-            Track(item) => Self::Track(item.into()),
+            From::Separator(item) => Self::Separator(item.into()),
+            From::Track(item) => Self::Track(item.into()),
         }
     }
 }

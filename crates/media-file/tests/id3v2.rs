@@ -46,6 +46,7 @@ fn import_new_track_from_file_path<T: AsRef<Path>>(
 }
 
 #[test]
+#[allow(clippy::float_cmp)]
 fn integer_bpm_roundtrip() {
     let mut file = copy_named_temp_file("tests/assets/empty.mp3");
 
@@ -71,7 +72,7 @@ fn integer_bpm_roundtrip() {
         .metrics
         .flags
         .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_NON_FRACTIONAL));
-    assert_eq!(bpm as f64, track.metrics.tempo_bpm.unwrap().value());
+    assert_eq!(f64::from(bpm), track.metrics.tempo_bpm.unwrap().value());
 
     // Write the unmodified track metadata back to the file.
     export_track_to_file(
@@ -86,7 +87,7 @@ fn integer_bpm_roundtrip() {
         .metrics
         .flags
         .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_NON_FRACTIONAL));
-    assert_eq!(bpm as f64, track.metrics.tempo_bpm.unwrap().value());
+    assert_eq!(f64::from(bpm), track.metrics.tempo_bpm.unwrap().value());
 
     // Verify that the bpm didn't change
     let mut track =
@@ -95,7 +96,7 @@ fn integer_bpm_roundtrip() {
         .metrics
         .flags
         .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_NON_FRACTIONAL));
-    assert_eq!(bpm as f64, track.metrics.tempo_bpm.unwrap().value());
+    assert_eq!(f64::from(bpm), track.metrics.tempo_bpm.unwrap().value());
 
     // Modify and write the track metadata back to the file.
     let fractional_bpm = TempoBpm::new(123.5);

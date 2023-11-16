@@ -25,12 +25,12 @@ pub enum SyncMode {
 #[cfg(feature = "backend")]
 impl From<SyncMode> for _core::SyncMode {
     fn from(from: SyncMode) -> Self {
-        use SyncMode::*;
+        use SyncMode as From;
         match from {
-            Once => Self::Once,
-            Modified => Self::Modified,
-            ModifiedResync => Self::ModifiedResync,
-            Always => Self::Always,
+            From::Once => Self::Once,
+            From::Modified => Self::Modified,
+            From::ModifiedResync => Self::ModifiedResync,
+            From::Always => Self::Always,
         }
     }
 }
@@ -38,12 +38,12 @@ impl From<SyncMode> for _core::SyncMode {
 #[cfg(feature = "frontend")]
 impl From<_core::SyncMode> for SyncMode {
     fn from(from: _core::SyncMode) -> Self {
-        use _core::SyncMode::*;
+        use _core::SyncMode as From;
         match from {
-            Once => Self::Once,
-            Modified => Self::Modified,
-            ModifiedResync => Self::ModifiedResync,
-            Always => Self::Always,
+            From::Once => Self::Once,
+            From::Modified => Self::Modified,
+            From::ModifiedResync => Self::ModifiedResync,
+            From::Always => Self::Always,
         }
     }
 }

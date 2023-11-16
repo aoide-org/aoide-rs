@@ -162,12 +162,12 @@ impl TryFrom<(ContentPathKind, Option<BaseUrl>)> for ContentPathConfig {
     type Error = anyhow::Error;
 
     fn try_from((path_kind, root_url): (ContentPathKind, Option<BaseUrl>)) -> anyhow::Result<Self> {
-        use ContentPathKind::*;
+        use ContentPathKind as From;
         let into = match path_kind {
-            Uri => Self::Uri,
-            Url => Self::Url,
-            FileUrl => Self::FileUrl,
-            VirtualFilePath => {
+            From::Uri => Self::Uri,
+            From::Url => Self::Url,
+            From::FileUrl => Self::FileUrl,
+            From::VirtualFilePath => {
                 if let Some(root_url) = root_url {
                     Self::VirtualFilePath { root_url }
                 } else {
@@ -182,12 +182,14 @@ impl TryFrom<(ContentPathKind, Option<BaseUrl>)> for ContentPathConfig {
 /// Decomposition
 impl From<ContentPathConfig> for (ContentPathKind, Option<BaseUrl>) {
     fn from(from: ContentPathConfig) -> Self {
-        use ContentPathConfig::*;
+        use ContentPathConfig as From;
         match from {
-            Uri => (ContentPathKind::Uri, None),
-            Url => (ContentPathKind::Url, None),
-            FileUrl => (ContentPathKind::FileUrl, None),
-            VirtualFilePath { root_url } => (ContentPathKind::VirtualFilePath, Some(root_url)),
+            From::Uri => (ContentPathKind::Uri, None),
+            From::Url => (ContentPathKind::Url, None),
+            From::FileUrl => (ContentPathKind::FileUrl, None),
+            From::VirtualFilePath { root_url } => {
+                (ContentPathKind::VirtualFilePath, Some(root_url))
+            }
         }
     }
 }

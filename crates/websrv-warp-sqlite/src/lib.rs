@@ -1,37 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// Opt-in for allowed-by-default lints (in alphabetical order)
-// See also: <https://doc.rust-lang.org/rustc/lints>
-#![warn(future_incompatible)]
-#![warn(let_underscore)]
-#![warn(missing_debug_implementations)]
-//#![warn(missing_docs)] // TODO
-#![warn(rust_2018_idioms)]
-#![warn(rust_2021_compatibility)]
-#![warn(unreachable_pub)]
-#![warn(unsafe_code)]
-#![warn(unused)]
-// Clippy lints
-#![warn(clippy::pedantic)]
-// Additional restrictions
-#![warn(clippy::clone_on_ref_ptr)]
-#![warn(clippy::missing_const_for_fn)]
-#![warn(clippy::self_named_module_files)]
-// Repetitions of module/type names occur frequently when using many
-// modules for keeping the size of the source files handy. Often
-// types have the same name as their parent module.
-#![allow(clippy::module_name_repetitions)]
-// Repeating the type name in `..Default::default()` expressions
-// is not needed since the context is obvious.
-#![allow(clippy::default_trait_access)]
-// Using wildcard imports consciously is acceptable.
-#![allow(clippy::wildcard_imports)]
-// Importing all enum variants into a narrow, local scope is acceptable.
-#![allow(clippy::enum_glob_use)]
-// TODO: Add missing docs
-#![allow(clippy::missing_errors_doc)]
-
 use std::{
     convert::Infallible,
     error::Error as StdError,
@@ -78,45 +47,45 @@ pub enum Error {
 
 impl From<api::Error> for Error {
     fn from(err: api::Error) -> Self {
-        use api::Error::*;
+        use api::Error as From;
         match err {
-            BadRequest(err) => Self::BadRequest(err),
-            UseCase(err) => err.into(),
-            DatabaseTransaction(err) => Self::Other(err.into()),
-            Other(err) => Self::Other(err),
+            From::BadRequest(err) => Self::BadRequest(err),
+            From::UseCase(err) => err.into(),
+            From::DatabaseTransaction(err) => Self::Other(err.into()),
+            From::Other(err) => Self::Other(err),
         }
     }
 }
 
 impl From<uc::Error> for Error {
     fn from(err: uc::Error) -> Self {
-        use uc::Error::*;
+        use uc::Error as From;
         match err {
-            Input(err) => Self::BadRequest(err),
-            Io(err) => Self::Other(err.into()),
-            MediaFile(err) => Self::Other(err.into()),
-            Storage(err) => err.into(),
-            Repository(err) => match err {
+            From::Input(err) => Self::BadRequest(err),
+            From::Io(err) => Self::Other(err.into()),
+            From::MediaFile(err) => Self::Other(err.into()),
+            From::Storage(err) => err.into(),
+            From::Repository(err) => match err {
                 RepoError::NotFound => Self::NotFound,
                 RepoError::Conflict => Self::Conflict,
                 RepoError::Aborted => Self::ServiceUnavailable,
                 RepoError::Other(err) => Self::Other(err),
             },
-            DatabaseMigration(err) | Other(err) => Self::Other(err),
+            From::DatabaseMigration(err) | From::Other(err) => Self::Other(err),
         }
     }
 }
 
 impl From<db::Error> for Error {
     fn from(err: db::Error) -> Self {
-        use db::Error::*;
+        use db::Error as From;
         match err {
-            Database(err) => Self::Other(err.into()),
-            DatabaseConnection(err) => Self::Other(err.into()),
-            DatabaseConnectionPool(err) => Self::Other(err.into()),
-            TaskScheduling(err) => Self::Other(err.into()),
-            TaskTimeout { reason } => Self::Timeout { reason },
-            Other(err) => Self::Other(err),
+            From::Database(err) => Self::Other(err.into()),
+            From::DatabaseConnection(err) => Self::Other(err.into()),
+            From::DatabaseConnectionPool(err) => Self::Other(err.into()),
+            From::TaskScheduling(err) => Self::Other(err.into()),
+            From::TaskTimeout { reason } => Self::Timeout { reason },
+            From::Other(err) => Self::Other(err),
         }
     }
 }

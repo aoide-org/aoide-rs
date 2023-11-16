@@ -10,6 +10,9 @@ license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
 
+[lints]
+workspace = true
+
 [dependencies]
 anyhow = "1.0.75"
 discro = { version = "0.27.0", features = ["tokio"] }

@@ -40,21 +40,21 @@ const SERATO_MARKERS2_IDENT: AtomIdent<'_> = AtomIdent::Freeform {
     name: Cow::Borrowed(<triseratops::tag::Markers2 as triseratops::tag::format::mp4::MP4Tag>::MP4_ATOM_FREEFORM_NAME),
 };
 
-fn import_advisory_rating(advisory_rating: lofty::mp4::AdvisoryRating) -> AdvisoryRating {
-    use lofty::mp4::AdvisoryRating::*;
+const fn import_advisory_rating(advisory_rating: lofty::mp4::AdvisoryRating) -> AdvisoryRating {
+    use lofty::mp4::AdvisoryRating as From;
     match advisory_rating {
-        Inoffensive => AdvisoryRating::Unrated,
-        Clean => AdvisoryRating::Clean,
-        Explicit => AdvisoryRating::Explicit,
+        From::Inoffensive => AdvisoryRating::Unrated,
+        From::Clean => AdvisoryRating::Clean,
+        From::Explicit => AdvisoryRating::Explicit,
     }
 }
 
-fn export_advisory_rating(advisory_rating: AdvisoryRating) -> lofty::mp4::AdvisoryRating {
-    use AdvisoryRating::*;
+const fn export_advisory_rating(advisory_rating: AdvisoryRating) -> lofty::mp4::AdvisoryRating {
+    use AdvisoryRating as From;
     match advisory_rating {
-        Unrated => lofty::mp4::AdvisoryRating::Inoffensive,
-        Clean => lofty::mp4::AdvisoryRating::Clean,
-        Explicit => lofty::mp4::AdvisoryRating::Explicit,
+        From::Unrated => lofty::mp4::AdvisoryRating::Inoffensive,
+        From::Clean => lofty::mp4::AdvisoryRating::Clean,
+        From::Explicit => lofty::mp4::AdvisoryRating::Explicit,
     }
 }
 

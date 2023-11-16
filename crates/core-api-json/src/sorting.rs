@@ -22,10 +22,10 @@ pub enum SortDirection {
 #[cfg(feature = "backend")]
 impl From<SortDirection> for _inner::SortDirection {
     fn from(from: SortDirection) -> Self {
-        use SortDirection::*;
+        use SortDirection as From;
         match from {
-            Ascending => Self::Ascending,
-            Descending => Self::Descending,
+            From::Ascending => Self::Ascending,
+            From::Descending => Self::Descending,
         }
     }
 }
@@ -33,10 +33,10 @@ impl From<SortDirection> for _inner::SortDirection {
 #[cfg(feature = "frontend")]
 impl From<_inner::SortDirection> for SortDirection {
     fn from(from: _inner::SortDirection) -> Self {
-        use _inner::SortDirection::*;
+        use _inner::SortDirection as From;
         match from {
-            Ascending => Self::Ascending,
-            Descending => Self::Descending,
+            From::Ascending => Self::Ascending,
+            From::Descending => Self::Descending,
         }
     }
 }
