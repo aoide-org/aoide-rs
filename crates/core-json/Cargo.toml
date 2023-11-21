@@ -17,7 +17,7 @@ workspace = true
 anyhow = "1.0.75"
 data-encoding = "2.4.0"
 mime = "0.3.17"
-serde = { version = "1.0.192", features = ["derive"] }
+serde = { version = "1.0.193", features = ["derive"] }
 serde_repr = "0.1.17"
 time = { version = "0.3.30", features = ["serde-human-readable"] }
 url = { version = "2.4.1", features = ["serde"] }
