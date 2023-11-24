@@ -14,7 +14,7 @@ use std::{
 
 use aoide_storage_sqlite::connection::Storage as SqliteDatabaseStorage;
 use eframe::{egui::Context, Frame};
-use egui::{Button, CentralPanel, TextEdit, TopBottomPanel};
+use egui::{Button, CentralPanel, TextEdit, TopBottomPanel, ViewportCommand};
 use parking_lot::Mutex;
 use rfd::FileDialog;
 
@@ -384,7 +384,7 @@ impl eframe::App for App {
         }
     }
 
-    fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         if matches!(self.state, State::Setup) {
             if let Some(rt_handle) = self.launcher.lock().runtime_handle() {
                 rt_handle.spawn({
@@ -403,7 +403,7 @@ impl eframe::App for App {
         }
         self.resync_state_on_update(ctx);
         if self.exit_flag.load(Ordering::Acquire) {
-            frame.close();
+            ctx.send_viewport_cmd(ViewportCommand::Close);
         }
         TopBottomPanel::top("config_panel").show(ctx, |ui| {
             egui::Grid::new("config_grid")

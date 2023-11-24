@@ -17,7 +17,7 @@ workspace = true
 anyhow = "1.0.75"
 aho-corasick = "1.1.2"
 bitflags = "2.4.1"
-data-encoding = "2.4.0"
+data-encoding = "2.5.0"
 image = { version = "0.24.7", default-features = false, features = ["png"] }
 mime = "0.3.17"
 nonicle = "0.1.0"
@@ -33,7 +33,7 @@ time = { version = "0.3.30", features = [
 ] }
 thiserror = "1.0.50"
 ulid = "1.1.0"
-url = "2.4.1"
+url = "2.5.0"
 
 # Serialization of selected, primitive types
 serde = { version = "1.0.193", optional = true, features = ["derive"] }
@@ -48,7 +48,7 @@ getrandom = "0.2.11"
 path-slash = "0.2.1"
 
 [dev-dependencies]
-data-url = "0.3.0"
+data-url = "0.3.1"
 
 [features]
 default = []

@@ -16,7 +16,7 @@ workspace = true
 [dependencies]
 anyhow = "1.0.75"
 serde = { version = "1.0.193", features = ["derive"] }
-url = { version = "2.4.1", features = ["serde"] }
+url = { version = "2.5.0", features = ["serde"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.16", optional = true, features = ["url"] }
