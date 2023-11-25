@@ -24,7 +24,7 @@ pub fn import_files<InterceptImportedTrackFn, ReportProgressFn>(
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome>
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
     ReportProgressFn: FnMut(uc::ProgressEvent),
 {
     let mut repo = RepoConnection::new(connection);

@@ -114,7 +114,7 @@ pub async fn synchronize_collection_vfs<InterceptImportedTrackFn, ReportProgress
     mut report_progress_fn: ReportProgressFn,
 ) -> Result
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Clone + Send + 'static,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Clone + Send + Sync + 'static,
     ReportProgressFn: FnMut(Progress) + Clone + Send + 'static,
 {
     let Params {

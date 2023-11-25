@@ -246,7 +246,7 @@ pub fn import_and_replace_by_local_file_path_from_directory<Repo, InterceptImpor
 ) -> Result<Outcome>
 where
     Repo: CollectionRepo + TrackCollectionRepo,
-    InterceptImportedTrackFn: FnMut(Track) -> Track,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
@@ -277,7 +277,7 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_re
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
 {
     let dir_path = content_path_resolver.build_file_path(source_dir_path);
     log::debug!("Importing files from directory: {}", dir_path.display());
@@ -286,6 +286,7 @@ where
     let mut visited_media_source_ids = Vec::with_capacity(EXPECTED_NUMBER_OF_DIR_ENTRIES);
     let mut imported_media_sources_with_issues =
         Vec::with_capacity(EXPECTED_NUMBER_OF_DIR_ENTRIES / 4);
+    // TODO: Import multiple directory entries in parallel.
     for dir_entry in dir_entries {
         let dir_entry = match dir_entry {
             Ok(dir_entry) => dir_entry,

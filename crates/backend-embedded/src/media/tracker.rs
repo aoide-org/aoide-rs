@@ -87,7 +87,7 @@ pub async fn import_files<InterceptImportedTrackFn, ReportProgressFn>(
     report_progress_fn: ReportProgressFn,
 ) -> Result<aoide_core_api::media::tracker::import_files::Outcome>
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + 'static,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync + 'static,
     ReportProgressFn:
         FnMut(aoide_usecases::media::tracker::import_files::ProgressEvent) + Send + 'static,
 {

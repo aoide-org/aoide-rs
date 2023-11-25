@@ -49,7 +49,7 @@ pub fn import_and_replace_by_local_file_path_from_directory<InterceptImportedTra
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome>
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
 {
     let mut repo = RepoConnection::new(connection);
     uc::import_and_replace_by_local_file_path_from_directory(

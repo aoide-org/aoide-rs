@@ -8,13 +8,16 @@ use std::{
 };
 
 use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
-use aoide_core_api::media::tracker::{
-    import_files::{ImportedSourceWithIssues, Outcome, Params, Summary},
-    Completion,
+use aoide_core_api::{
+    media::tracker::{
+        import_files::{ImportedSourceWithIssues, Outcome, Params, Summary},
+        Completion,
+    },
+    track::replace::Summary as TracksSummary,
 };
 use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_repo::{
-    collection::EntityRepo as CollectionRepo,
+    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::tracker::{Repo as MediaTrackerRepo, TrackedDirectory},
     prelude::{Pagination, PaginationOffset},
     track::{CollectionRepo as TrackCollectionRepo, ReplaceMode},
@@ -51,7 +54,7 @@ pub fn import_files<Repo, InterceptImportedTrackFn, ReportProgressFn>(
 ) -> Result<Outcome>
 where
     Repo: CollectionRepo + MediaTrackerRepo + TrackCollectionRepo,
-    InterceptImportedTrackFn: FnMut(Track) -> Track,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
     ReportProgressFn: FnMut(ProgressEvent),
 {
     let Params {
@@ -118,127 +121,75 @@ where
                 };
                 break 'outcome outcome;
             }
+            let import_pending_directory_res = import_pending_directory(
+                repo,
+                collection_id,
+                resolver,
+                &import_and_replace_params,
+                intercept_imported_track_fn,
+                abort_flag,
+                &pending_directory,
+            );
             let TrackedDirectory {
                 content_path: content_dir_path,
-                status,
-                digest,
+                ..
             } = pending_directory;
-            debug_assert!(status.is_pending());
-            let outcome =
-                match import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
-                    repo,
-                    collection_id,
-                    resolver.canonical_resolver(),
-                    &content_dir_path,
-                    &import_and_replace_params,
-                    intercept_imported_track_fn,
-                    abort_flag,
-                ) {
-                    Ok(outcome) => outcome,
-                    Err(err) => {
-                        let err = if let Error::Io(io_err) = err {
-                            if io_err.kind() == io::ErrorKind::NotFound {
-                                log::info!("Untracking missing directory '{content_dir_path}'");
-                                summary.directories.untracked += repo
-                                    .media_tracker_untrack_directories(
-                                        collection_id,
-                                        &content_dir_path,
-                                        None,
-                                    )?;
+            match import_pending_directory_res {
+                Ok(outcome) => match outcome {
+                    ImportPendingDirectoryOutcome::Untracked(untracked) => {
+                        summary.directories.untracked += untracked;
+                        continue;
+                    }
+                    ImportPendingDirectoryOutcome::Finished {
+                        completion,
+                        tracks_summary,
+                        imported_sources_with_issues: mut more_imported_sources_with_issues,
+                    } => {
+                        summary.tracks += &tracks_summary;
+                        imported_sources_with_issues.append(&mut more_imported_sources_with_issues);
+                        match completion {
+                            ImportPendingDirectoryCompletion::Aborted => {
+                                log::debug!("Aborting import of pending directories: {summary:?}");
+                                let (root_url, root_path) = collection_ctx
+                                    .content_path
+                                    .resolver
+                                    .map(RemappingVfsResolver::dismantle)
+                                    .expect("collection with path kind VFS");
+                                let outcome = Outcome {
+                                    root_url,
+                                    root_path,
+                                    completion: Completion::Aborted,
+                                    summary,
+                                    imported_sources_with_issues,
+                                };
+                                break 'outcome outcome;
+                            }
+                            ImportPendingDirectoryCompletion::Rejected => {
+                                // Might be rejected if the digest has been updated meanwhile
+                                log::info!(
+                                    "Confirmation of imported directory '{content_dir_path}' was \
+                                     rejected",
+                                );
+                                // Keep going and retry to import this directory later
                                 continue;
                             }
-                            // Restore error
-                            Error::Io(io_err)
-                        } else {
-                            // Pass-through error
-                            err
-                        };
-                        log::warn!("Failed to import pending directory '{content_dir_path}': {err}");
-                        // Skip this directory and keep going
-                        summary.directories.skipped += 1;
-                        continue;
+                            ImportPendingDirectoryCompletion::NotConfirmed => {
+                                // Warnings why the confirmation didn't complete have already been logged.
+                                summary.directories.skipped += 1;
+                            }
+                            ImportPendingDirectoryCompletion::Confirmed => {
+                                log::debug!("Confirmed pending directory '{content_dir_path}'");
+                                summary.directories.confirmed += 1;
+                            }
+                        }
                     }
-                };
-            let ImportAndReplaceOutcome {
-                completion,
-                summary: tracks_summary,
-                visited_media_source_ids,
-                imported_media_sources_with_issues,
-            } = outcome;
-            summary.tracks += &tracks_summary;
-            imported_sources_with_issues.reserve(imported_media_sources_with_issues.len());
-            for (_, path, issues) in imported_media_sources_with_issues {
-                imported_sources_with_issues.push(ImportedSourceWithIssues {
-                    path,
-                    messages: issues.into_messages(),
-                });
-            }
-            match completion {
-                ReplaceCompletion::Finished => {}
-                ReplaceCompletion::Aborted => {
-                    log::debug!("Aborting import of pending directories: {summary:?}");
-                    let (root_url, root_path) = collection_ctx
-                        .content_path
-                        .resolver
-                        .map(RemappingVfsResolver::dismantle)
-                        .expect("collection with path kind VFS");
-                    let outcome = Outcome {
-                        root_url,
-                        root_path,
-                        completion: Completion::Aborted,
-                        summary,
-                        imported_sources_with_issues,
-                    };
-                    break 'outcome outcome;
+                },
+                Err(err) => {
+                    log::warn!("Failed to import pending directory '{content_dir_path}': {err}");
+                    // Skip this directory and keep going
+                    summary.directories.skipped += 1;
+                    continue;
                 }
-            }
-            let updated_at = OffsetDateTimeMs::now_utc();
-            if tracks_summary.failed.is_empty() {
-                match repo.media_tracker_confirm_directory(
-                    updated_at,
-                    collection_id,
-                    &content_dir_path,
-                    &digest,
-                ) {
-                    Ok(true) => {
-                        log::debug!("Confirmed pending directory '{content_dir_path}'");
-                        summary.directories.confirmed += 1;
-                    }
-                    Ok(false) => {
-                        // Might be rejected if the digest has been updated meanwhile
-                        log::info!(
-                            "Confirmation of imported directory '{content_dir_path}' was rejected",
-                        );
-                        // Keep going and retry to import this directory later
-                        continue;
-                    }
-                    Err(err) => {
-                        log::warn!(
-                            "Failed to confirm pending directory '{content_dir_path}': {err}"
-                        );
-                        // Skip this directory, but remember the sources imported from
-                        // this directory (see below)
-                        summary.directories.skipped += 1;
-                    }
-                }
-            } else {
-                log::warn!(
-                    "Postponing confirmation of pending directory '{content_dir_path}' after \
-                     {num_failures} import failure(s)",
-                    num_failures = tracks_summary.failed.len(),
-                );
-                // Skip this directory, but remember the sources imported from
-                // this directory (see below)
-                summary.directories.skipped += 1;
-            }
-            if let Err(err) = repo.media_tracker_replace_directory_sources(
-                collection_id,
-                &content_dir_path,
-                &visited_media_source_ids,
-            ) {
-                log::warn!(
-                    "Failed replace imported sources in directory '{content_dir_path}': {err}"
-                );
             }
         }
     };
@@ -247,4 +198,141 @@ where
         summary: outcome.summary.clone(),
     });
     Ok(outcome)
+}
+
+enum ImportPendingDirectoryOutcome {
+    Untracked(usize),
+    Finished {
+        completion: ImportPendingDirectoryCompletion,
+        tracks_summary: TracksSummary,
+        imported_sources_with_issues: Vec<ImportedSourceWithIssues>,
+    },
+}
+
+enum ImportPendingDirectoryCompletion {
+    Aborted,
+    Rejected,
+    Confirmed,
+    /// Maybe imported some media sources from files, but couldn't confirm the directory.
+    NotConfirmed,
+}
+
+fn import_pending_directory<Repo, InterceptImportedTrackFn>(
+    repo: &mut Repo,
+    collection_id: CollectionId,
+    resolver: &RemappingVfsResolver,
+    import_and_replace_params: &import_and_replace::Params,
+    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
+    abort_flag: &AtomicBool,
+    pending_directory: &TrackedDirectory,
+) -> Result<ImportPendingDirectoryOutcome>
+where
+    Repo: CollectionRepo + MediaTrackerRepo + TrackCollectionRepo,
+    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
+{
+    let TrackedDirectory {
+        content_path,
+        status,
+        digest,
+    } = pending_directory;
+    debug_assert!(status.is_pending());
+    let outcome =
+        match import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(
+            repo,
+            collection_id,
+            resolver.canonical_resolver(),
+            content_path,
+            import_and_replace_params,
+            intercept_imported_track_fn,
+            abort_flag,
+        ) {
+            Ok(outcome) => outcome,
+            Err(err) => {
+                let err = if let Error::Io(io_err) = err {
+                    if io_err.kind() == io::ErrorKind::NotFound {
+                        log::info!("Untracking missing directory '{content_path}'");
+                        let untracked = repo.media_tracker_untrack_directories(
+                            collection_id,
+                            content_path,
+                            None,
+                        )?;
+                        return Ok(ImportPendingDirectoryOutcome::Untracked(untracked));
+                    }
+                    // Restore error
+                    Error::Io(io_err)
+                } else {
+                    // Pass-through error
+                    err
+                };
+                return Err(err);
+            }
+        };
+    let ImportAndReplaceOutcome {
+        completion,
+        summary: tracks_summary,
+        visited_media_source_ids,
+        imported_media_sources_with_issues,
+    } = outcome;
+    let imported_sources_with_issues = imported_media_sources_with_issues
+        .into_iter()
+        .map(|(_, path, issues)| ImportedSourceWithIssues {
+            path,
+            messages: issues.into_messages(),
+        })
+        .collect();
+    match completion {
+        ReplaceCompletion::Finished => {}
+        ReplaceCompletion::Aborted => {
+            return Ok(ImportPendingDirectoryOutcome::Finished {
+                completion: ImportPendingDirectoryCompletion::Aborted,
+                tracks_summary,
+                imported_sources_with_issues,
+            });
+        }
+    }
+    let updated_at: OffsetDateTimeMs = OffsetDateTimeMs::now_utc();
+    let completion;
+    if tracks_summary.failed.is_empty() {
+        match repo.media_tracker_confirm_directory(updated_at, collection_id, content_path, digest)
+        {
+            Ok(true) => {
+                completion = ImportPendingDirectoryCompletion::Confirmed;
+            }
+            Ok(false) => {
+                // Might be rejected if the digest has been updated meanwhile
+                return Ok(ImportPendingDirectoryOutcome::Finished {
+                    completion: ImportPendingDirectoryCompletion::Rejected,
+                    tracks_summary,
+                    imported_sources_with_issues,
+                });
+            }
+            Err(err) => {
+                log::warn!("Failed to confirm pending directory '{content_path}': {err}");
+                // Skip this directory, but remember the sources imported from
+                // this directory (see below).
+                completion = ImportPendingDirectoryCompletion::NotConfirmed;
+            }
+        }
+    } else {
+        log::warn!(
+            "Postponing confirmation of pending directory '{content_path}' after \
+             {num_failures} import failure(s)",
+            num_failures = tracks_summary.failed.len(),
+        );
+        // Skip this directory, but remember the sources imported from
+        // this directory (see below).
+        completion = ImportPendingDirectoryCompletion::NotConfirmed;
+    }
+    if let Err(err) = repo.media_tracker_replace_directory_sources(
+        collection_id,
+        content_path,
+        &visited_media_source_ids,
+    ) {
+        log::warn!("Failed to replace imported sources in directory '{content_path}': {err}");
+    }
+    Ok(ImportPendingDirectoryOutcome::Finished {
+        completion,
+        tracks_summary,
+        imported_sources_with_issues,
+    })
 }
