@@ -124,9 +124,9 @@ json-schema = ["aoide-core/json-schema", "aoide-core-api-json?/json-schema"]
 frontend = ["aoide-core-api-json?/frontend"]
 backend = ["aoide-core-api-json?/backend"]
 media-file = ["dep:aoide-media-file", "aoide-usecases?/media-file"]
-sqlite = ["media-file", "usecases", "dep:aoide-repo-sqlite", "dep:aoide-storage-sqlite", "dep:aoide-usecases-sqlite"]
+sqlite = ["usecases", "dep:aoide-repo-sqlite", "dep:aoide-storage-sqlite", "dep:aoide-usecases-sqlite"]
 tantivy = ["dep:aoide-search-index-tantivy", "aoide-backend-embedded?/tantivy"]
-backend-embedded = ["backend", "sqlite", "dep:aoide-backend-embedded"]
+backend-embedded = ["backend", "media-file", "sqlite", "dep:aoide-backend-embedded"]
 desktop-app = ["frontend", "backend-embedded", "dep:aoide-desktop-app"]
 
 # JavaScript/WASM features
