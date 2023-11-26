@@ -99,19 +99,24 @@ pub enum ImportAndReplaceOutcome {
     Failed(ContentPath<'static>),
 }
 
+#[derive(Debug)]
+pub struct ImportAndReplaceFromFilePathOutcome {
+    pub content_path: ContentPath<'static>,
+    pub import_issues: Issues,
+    pub media_source_id: Option<MediaSourceId>,
+}
+
 #[allow(clippy::too_many_arguments)] // TODO
 #[allow(clippy::too_many_lines)] // TODO
 #[allow(clippy::missing_panics_doc)] // Never panics
 pub fn import_and_replace_from_file_path<Repo, InterceptImportedTrackFn>(
     context: ImportAndReplaceFromFilePathContext,
     summary: &mut Summary,
-    visited_media_source_ids: &mut Vec<MediaSourceId>,
-    imported_media_sources_with_issues: &mut Vec<(MediaSourceId, ContentPath<'static>, Issues)>,
     repo: &mut Repo,
     content_path_resolver: &VfsResolver,
     params: &Params,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,
-) -> Result<Vec<TrackInvalidity>>
+) -> Result<ImportAndReplaceFromFilePathOutcome>
 where
     Repo: TrackCollectionRepo,
     InterceptImportedTrackFn: FnMut(Track) -> Track,
@@ -134,7 +139,8 @@ where
         preserve_collected_at: true,
         update_last_synchronized_rev: true,
     };
-    let mut invalidities = Default::default();
+    let mut import_issues = Default::default();
+    let mut visited_media_source_id = None;
     match import_track_from_file_path(
         import_track,
         content_path_resolver,
@@ -142,46 +148,39 @@ where
         &SyncModeParams::new(*sync_mode, external_rev, synchronized_rev),
         import_config,
     ) {
-        Ok(ImportTrackFromFileOutcome::Imported {
-            track,
-            issues: import_issues,
-        }) => {
+        Ok(ImportTrackFromFileOutcome::Imported { track, issues }) => {
             debug_assert_eq!(track.media_source.content.link.path, content_path);
+            import_issues = issues;
             let track = intercept_imported_track_fn(track);
-            let (track, invalidities_from_input_validation) = validate_input(track)?;
-            invalidities = invalidities_from_input_validation;
-            if !invalidities.is_empty() {
-                log::debug!("{:?} has invalidities: {invalidities:?}", track.0);
+            let (track, invalidities) = validate_input(track)?;
+            // Merge low-level import issues with high-level invalidities.
+            for invalidity in invalidities {
+                import_issues.add_message(format!("{invalidity:?}"));
             }
-            if let Some(media_source_id) =
+            visited_media_source_id =
                 super::replace::replace_collected_track_by_media_source_content_path(
                     repo,
                     collection_id,
                     replace_params,
                     track,
                 )?
-                .update_summary(summary)
-            {
-                visited_media_source_ids.push(media_source_id);
-                if !import_issues.is_empty() {
-                    imported_media_sources_with_issues.push((
-                        media_source_id,
-                        content_path,
-                        import_issues,
-                    ));
-                }
-            }
+                .update_summary(summary);
+            debug_assert!(
+                media_source_id.is_none()
+                    || visited_media_source_id.is_none()
+                    || media_source_id == visited_media_source_id
+            );
         }
         Ok(ImportTrackFromFileOutcome::SkippedSynchronized { content_rev: _ }) => {
             debug_assert!(media_source_id.is_some());
-            summary.unchanged.push(content_path);
-            visited_media_source_ids.push(media_source_id.expect("skipped media source"));
+            summary.unchanged.push(content_path.clone());
+            visited_media_source_id = media_source_id;
         }
         Ok(ImportTrackFromFileOutcome::SkippedUnsynchronized { content_rev: _ }) => {
             debug_assert!(media_source_id.is_some());
             debug_assert_eq!(Some(false), synchronized_rev);
-            summary.not_imported.push(content_path);
-            visited_media_source_ids.push(media_source_id.expect("unsynchronized media source"));
+            summary.not_imported.push(content_path.clone());
+            visited_media_source_id = media_source_id;
         }
         Ok(ImportTrackFromFileOutcome::SkippedDirectory) => {
             // Nothing to do
@@ -196,7 +195,7 @@ where
                         .build_file_path(&content_path)
                         .display()
                 );
-                summary.skipped.push(content_path);
+                summary.skipped.push(content_path.clone());
             }
             err => {
                 log::warn!(
@@ -205,11 +204,15 @@ where
                         .build_file_path(&content_path)
                         .display()
                 );
-                summary.failed.push(content_path);
+                summary.failed.push(content_path.clone());
             }
         },
     };
-    Ok(invalidities)
+    Ok(ImportAndReplaceFromFilePathOutcome {
+        content_path,
+        import_issues,
+        media_source_id: visited_media_source_id,
+    })
 }
 
 const DEFAULT_MEDIA_SOURCE_COUNT: usize = 1024;
@@ -260,22 +263,21 @@ where
         let context =
             ImportAndReplaceFromFilePathContext::load_from_repo(repo, collection_id, content_path)?;
 
-        let invalidities = import_and_replace_from_file_path(
+        let ImportAndReplaceFromFilePathOutcome {
+            content_path,
+            import_issues,
+            media_source_id,
+        } = import_and_replace_from_file_path(
             context,
             &mut summary,
-            &mut visited_media_source_ids,
-            &mut imported_media_sources_with_issues,
             repo,
             resolver.canonical_resolver(),
             params,
             intercept_imported_track_fn,
         )?;
-        if !invalidities.is_empty() {
-            imported_media_sources_with_issues
-                .last_mut()
-                .expect("last imported media source")
-                .2
-                .add_message(format!("Track invalidities: {invalidities:?}"));
+        if let Some(media_source_id) = media_source_id {
+            visited_media_source_ids.push(media_source_id);
+            imported_media_sources_with_issues.push((media_source_id, content_path, import_issues));
         }
     }
     Ok(Outcome {
@@ -375,16 +377,22 @@ where
         };
         let context =
             ImportAndReplaceFromFilePathContext::load_from_repo(repo, collection_id, content_path)?;
-        import_and_replace_from_file_path(
+        let ImportAndReplaceFromFilePathOutcome {
+            content_path,
+            import_issues,
+            media_source_id,
+        } = import_and_replace_from_file_path(
             context,
             &mut summary,
-            &mut visited_media_source_ids,
-            &mut imported_media_sources_with_issues,
             repo,
             content_path_resolver,
             params,
             intercept_imported_track_fn,
         )?;
+        if let Some(media_source_id) = media_source_id {
+            visited_media_source_ids.push(media_source_id);
+            imported_media_sources_with_issues.push((media_source_id, content_path, import_issues));
+        }
     }
     Ok(Outcome {
         completion: Completion::Finished,
