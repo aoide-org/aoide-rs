@@ -11,7 +11,6 @@ use aoide_core::{
         resolver::{vfs::VfsResolver, ContentPathResolver as _},
         ContentPath, ContentRevision,
     },
-    track::Entity as TrackEntity,
     util::clock::OffsetDateTimeMs,
 };
 use aoide_core_api::{
@@ -41,7 +40,7 @@ pub struct Outcome {
 }
 
 #[derive(Debug)]
-pub struct ImportAndReplaceFromFilePathContext {
+struct ImportReplacementFromFilePathContext {
     collection_id: CollectionId,
     content_path: ContentPath<'static>,
     media_source_id: Option<MediaSourceId>,
@@ -50,8 +49,8 @@ pub struct ImportAndReplaceFromFilePathContext {
     import_track: ImportTrack,
 }
 
-impl ImportAndReplaceFromFilePathContext {
-    pub fn load_from_repo<Repo>(
+impl ImportReplacementFromFilePathContext {
+    fn load_from_repo<Repo>(
         repo: &mut Repo,
         collection_id: CollectionId,
         content_path: ContentPath<'static>,
@@ -91,37 +90,37 @@ impl ImportAndReplaceFromFilePathContext {
 }
 
 #[derive(Debug)]
-pub enum ImportAndReplaceOutcome {
-    Created(TrackEntity),
-    Updated(TrackEntity),
-    Unchanged(ContentPath<'static>),
-    NotImported(ContentPath<'static>),
-    Failed(ContentPath<'static>),
+struct ImportReplacementFromFilePathOutcome {
+    collection_id: CollectionId,
+    content_path: ContentPath<'static>,
+    import_issues: Issues,
+    media_source_id: Option<MediaSourceId>,
+    replacement: Replacement,
 }
 
 #[derive(Debug)]
-pub struct ImportAndReplaceFromFilePathOutcome {
-    pub content_path: ContentPath<'static>,
-    pub import_issues: Issues,
-    pub media_source_id: Option<MediaSourceId>,
+enum Replacement {
+    SkippedDirectory,
+    SkippedFile(MediaFileError),
+    Unchanged,
+    NotImported,
+    ImportFailed(Error),
+    Replace {
+        params: ReplaceParams,
+        validated_input: ValidatedInput,
+    },
 }
 
-#[allow(clippy::too_many_arguments)] // TODO
-#[allow(clippy::too_many_lines)] // TODO
-#[allow(clippy::missing_panics_doc)] // Never panics
-pub fn import_and_replace_from_file_path<Repo, InterceptImportedTrackFn>(
-    context: ImportAndReplaceFromFilePathContext,
-    summary: &mut Summary,
-    repo: &mut Repo,
+fn import_replacement_from_file_path<InterceptImportedTrackFn>(
+    context: ImportReplacementFromFilePathContext,
     content_path_resolver: &VfsResolver,
     params: &Params,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,
-) -> Result<ImportAndReplaceFromFilePathOutcome>
+) -> Result<ImportReplacementFromFilePathOutcome>
 where
-    Repo: TrackCollectionRepo,
     InterceptImportedTrackFn: FnMut(Track) -> Track,
 {
-    let ImportAndReplaceFromFilePathContext {
+    let ImportReplacementFromFilePathContext {
         collection_id,
         content_path,
         external_rev,
@@ -134,14 +133,8 @@ where
         import_config,
         replace_mode,
     } = params;
-    let replace_params = ReplaceParams {
-        mode: *replace_mode,
-        preserve_collected_at: true,
-        update_last_synchronized_rev: true,
-    };
     let mut import_issues = Default::default();
-    let mut visited_media_source_id = None;
-    match import_track_from_file_path(
+    let replacement = match import_track_from_file_path(
         import_track,
         content_path_resolver,
         &content_path,
@@ -152,66 +145,129 @@ where
             debug_assert_eq!(track.media_source.content.link.path, content_path);
             import_issues = issues;
             let track = intercept_imported_track_fn(track);
-            let (track, invalidities) = validate_input(track)?;
+            let (validated_input, invalidities) = validate_input(track)?;
             // Merge low-level import issues with high-level invalidities.
             for invalidity in invalidities {
                 import_issues.add_message(format!("{invalidity:?}"));
             }
-            visited_media_source_id =
-                super::replace::replace_collected_track_by_media_source_content_path(
-                    repo,
-                    collection_id,
-                    replace_params,
-                    track,
-                )?
-                .update_summary(summary);
-            debug_assert!(
-                media_source_id.is_none()
-                    || visited_media_source_id.is_none()
-                    || media_source_id == visited_media_source_id
-            );
+            let params = ReplaceParams {
+                mode: *replace_mode,
+                preserve_collected_at: true,
+                update_last_synchronized_rev: true,
+            };
+            Replacement::Replace {
+                params,
+                validated_input,
+            }
         }
         Ok(ImportTrackFromFileOutcome::SkippedSynchronized { content_rev: _ }) => {
             debug_assert!(media_source_id.is_some());
-            summary.unchanged.push(content_path.clone());
-            visited_media_source_id = media_source_id;
+            Replacement::Unchanged
         }
         Ok(ImportTrackFromFileOutcome::SkippedUnsynchronized { content_rev: _ }) => {
             debug_assert!(media_source_id.is_some());
             debug_assert_eq!(Some(false), synchronized_rev);
-            summary.not_imported.push(content_path.clone());
-            visited_media_source_id = media_source_id;
+            Replacement::NotImported
         }
-        Ok(ImportTrackFromFileOutcome::SkippedDirectory) => {
-            // Nothing to do
-        }
+        Ok(ImportTrackFromFileOutcome::SkippedDirectory) => Replacement::SkippedDirectory,
         Err(err) => match err {
             Error::MediaFile(
-                MediaFileError::UnknownContentType(_) | MediaFileError::UnsupportedContentType(_),
-            ) => {
-                log::info!(
-                    "Skipped import of track from local file path {}: {err}",
-                    content_path_resolver
-                        .build_file_path(&content_path)
-                        .display()
-                );
-                summary.skipped.push(content_path.clone());
-            }
-            err => {
-                log::warn!(
-                    "Failed to import track from local file path {}: {err}",
-                    content_path_resolver
-                        .build_file_path(&content_path)
-                        .display()
-                );
-                summary.failed.push(content_path.clone());
-            }
+                err @ (MediaFileError::UnknownContentType(_)
+                | MediaFileError::UnsupportedContentType(_)),
+            ) => Replacement::SkippedFile(err),
+            err => Replacement::ImportFailed(err),
         },
+    };
+    Ok(ImportReplacementFromFilePathOutcome {
+        collection_id,
+        content_path,
+        import_issues,
+        media_source_id,
+        replacement,
+    })
+}
+
+#[derive(Debug)]
+struct ImportAndReplaceFromFilePathOutcome {
+    content_path: ContentPath<'static>,
+    import_issues: Issues,
+    media_source_id: Option<MediaSourceId>,
+}
+
+fn replace_after_imported_from_file_path<Repo>(
+    outcome: ImportReplacementFromFilePathOutcome,
+    summary: &mut Summary,
+    repo: &mut Repo,
+    content_path_resolver: &VfsResolver,
+) -> Result<ImportAndReplaceFromFilePathOutcome>
+where
+    Repo: TrackCollectionRepo,
+{
+    let ImportReplacementFromFilePathOutcome {
+        collection_id,
+        content_path,
+        import_issues,
+        mut media_source_id,
+        replacement,
+    } = outcome;
+    match replacement {
+        Replacement::Replace {
+            validated_input,
+            params,
+        } => {
+            debug_assert_eq!(
+                validated_input.0.media_source.content.link.path,
+                content_path
+            );
+            let replaced_media_source_id =
+                super::replace::replace_collected_track_by_media_source_content_path(
+                    repo,
+                    collection_id,
+                    params,
+                    validated_input,
+                )?
+                .update_summary(summary);
+            debug_assert!(
+                media_source_id.is_none()
+                    || replaced_media_source_id.is_none()
+                    || media_source_id == replaced_media_source_id
+            );
+            media_source_id = replaced_media_source_id;
+        }
+        Replacement::Unchanged => {
+            debug_assert!(media_source_id.is_some());
+            summary.unchanged.push(content_path.clone());
+        }
+        Replacement::NotImported => {
+            debug_assert!(media_source_id.is_some());
+            summary.not_imported.push(content_path.clone());
+        }
+        Replacement::SkippedFile(err) => {
+            log::info!(
+                "Skipped import of track from local file path {}: {err}",
+                content_path_resolver
+                    .build_file_path(&content_path)
+                    .display()
+            );
+            summary.skipped.push(content_path.clone());
+        }
+        Replacement::ImportFailed(err) => {
+            log::warn!(
+                "Failed to import track from local file path {}: {err}",
+                content_path_resolver
+                    .build_file_path(&content_path)
+                    .display()
+            );
+            summary.failed.push(content_path.clone());
+        }
+        Replacement::SkippedDirectory => {
+            // Nothing to do
+        }
     };
     Ok(ImportAndReplaceFromFilePathOutcome {
         content_path,
         import_issues,
-        media_source_id: visited_media_source_id,
+        media_source_id,
     })
 }
 
@@ -224,7 +280,6 @@ pub struct Params {
     pub replace_mode: ReplaceMode,
 }
 
-#[allow(clippy::missing_panics_doc)] // Never panics
 pub fn import_and_replace_many_by_local_file_path<Repo, InterceptImportedTrackFn>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,
@@ -260,20 +315,30 @@ where
             });
         }
 
-        let context =
-            ImportAndReplaceFromFilePathContext::load_from_repo(repo, collection_id, content_path)?;
+        let context = ImportReplacementFromFilePathContext::load_from_repo(
+            repo,
+            collection_id,
+            content_path,
+        )?;
+        let content_path_resolver = resolver.canonical_resolver();
+
+        // TODO: Import multiple tracks from different files in parallel.
+        let outcome = import_replacement_from_file_path(
+            context,
+            content_path_resolver,
+            params,
+            intercept_imported_track_fn,
+        )?;
 
         let ImportAndReplaceFromFilePathOutcome {
             content_path,
             import_issues,
             media_source_id,
-        } = import_and_replace_from_file_path(
-            context,
+        } = replace_after_imported_from_file_path(
+            outcome,
             &mut summary,
             repo,
-            resolver.canonical_resolver(),
-            params,
-            intercept_imported_track_fn,
+            content_path_resolver,
         )?;
         if let Some(media_source_id) = media_source_id {
             visited_media_source_ids.push(media_source_id);
@@ -375,19 +440,26 @@ where
             // Skip entry and keep going
             continue;
         };
-        let context =
-            ImportAndReplaceFromFilePathContext::load_from_repo(repo, collection_id, content_path)?;
+        let context = ImportReplacementFromFilePathContext::load_from_repo(
+            repo,
+            collection_id,
+            content_path,
+        )?;
+        let outcome = import_replacement_from_file_path(
+            context,
+            content_path_resolver,
+            params,
+            intercept_imported_track_fn,
+        )?;
         let ImportAndReplaceFromFilePathOutcome {
             content_path,
             import_issues,
             media_source_id,
-        } = import_and_replace_from_file_path(
-            context,
+        } = replace_after_imported_from_file_path(
+            outcome,
             &mut summary,
             repo,
             content_path_resolver,
-            params,
-            intercept_imported_track_fn,
         )?;
         if let Some(media_source_id) = media_source_id {
             visited_media_source_ids.push(media_source_id);
