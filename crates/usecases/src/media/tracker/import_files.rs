@@ -26,12 +26,9 @@ use aoide_repo::{
 use super::*;
 use crate::{
     collection::vfs::RepoContext,
-    track::{
-        import_and_replace::{
-            self, import_and_replace_by_local_file_path_from_directory_with_content_path_resolver,
-            Outcome as ImportAndReplaceOutcome,
-        },
-        replace::Completion as ReplaceCompletion,
+    track::import_and_replace::{
+        self, import_and_replace_by_local_file_path_from_directory_with_content_path_resolver,
+        Outcome as ImportAndReplaceOutcome,
     },
 };
 
@@ -72,6 +69,7 @@ where
         replace_mode: ReplaceMode::UpdateOrCreate,
     };
     let collection_id = collection_ctx.record_id;
+
     let started_at = Instant::now();
     let mut summary = Summary::default();
     let mut imported_sources_with_issues = Vec::new();
@@ -80,6 +78,7 @@ where
             elapsed: started_at.elapsed(),
             summary: summary.clone(),
         });
+
         let pending_directories = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
             resolver.root_path(),
@@ -88,6 +87,7 @@ where
                 limit: Some(1),
             },
         )?;
+
         if pending_directories.is_empty() {
             log::debug!("Finished import of pending directories: {summary:?}");
             let (root_url, root_path) = collection_ctx
@@ -104,6 +104,7 @@ where
             };
             break 'outcome outcome;
         }
+
         for pending_directory in pending_directories {
             if abort_flag.load(Ordering::Relaxed) {
                 log::debug!("Aborting import of pending directories: {summary:?}");
@@ -121,6 +122,7 @@ where
                 };
                 break 'outcome outcome;
             }
+
             let import_pending_directory_res = import_pending_directory(
                 repo,
                 collection_id,
@@ -193,10 +195,13 @@ where
             }
         }
     };
+
+    // Report final progress.
     report_progress_fn(ProgressEvent {
         elapsed: started_at.elapsed(),
         summary: outcome.summary.clone(),
     });
+
     Ok(outcome)
 }
 
@@ -281,8 +286,8 @@ where
         })
         .collect();
     match completion {
-        ReplaceCompletion::Finished => {}
-        ReplaceCompletion::Aborted => {
+        Completion::Finished => {}
+        Completion::Aborted => {
             return Ok(ImportPendingDirectoryOutcome::Finished {
                 completion: ImportPendingDirectoryCompletion::Aborted,
                 tracks_summary,
@@ -315,8 +320,8 @@ where
         }
     } else {
         log::warn!(
-            "Postponing confirmation of pending directory '{content_path}' after \
-             {num_failures} import failure(s)",
+            "Postponing confirmation of pending directory '{content_path}' after {num_failures} \
+             import failure(s)",
             num_failures = tracks_summary.failed.len(),
         );
         // Skip this directory, but remember the sources imported from

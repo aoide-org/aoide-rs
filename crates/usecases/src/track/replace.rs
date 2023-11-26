@@ -3,6 +3,7 @@
 
 #[cfg(not(target_family = "wasm"))]
 use aoide_core::media::content::resolver::ContentPathResolver as _;
+use aoide_core::track::Entity as TrackEntity;
 use aoide_core_api::track::replace::Summary;
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -42,19 +43,64 @@ pub struct Params {
     pub decode_gigtags: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Completion {
-    Finished,
-    Aborted,
+#[derive(Debug)]
+pub enum Outcome {
+    NotCreated(Track),
+    NotUpdated(MediaSourceId, Track),
+    Unchanged(MediaSourceId, TrackEntity),
+    Created(MediaSourceId, TrackEntity),
+    Updated(MediaSourceId, TrackEntity),
+}
+
+impl Outcome {
+    pub fn update_summary(self, summary: &mut Summary) -> Option<MediaSourceId> {
+        match self {
+            Self::Unchanged(media_source_id, entity) => {
+                log::trace!("Unchanged: {entity:?}");
+                let (_, body) = entity.into();
+                summary
+                    .unchanged
+                    .push(body.track.media_source.content.link.path);
+                Some(media_source_id)
+            }
+            Self::Created(media_source_id, entity) => {
+                log::trace!(
+                    "Created {}: {:?}",
+                    entity.body.track.media_source.content.link.path,
+                    entity.hdr
+                );
+                summary.created.push(entity);
+                Some(media_source_id)
+            }
+            Self::Updated(media_source_id, entity) => {
+                log::trace!(
+                    "Updated {}: {:?}",
+                    entity.body.track.media_source.content.link.path,
+                    entity.hdr
+                );
+                summary.updated.push(entity);
+                Some(media_source_id)
+            }
+            Self::NotCreated(track) => {
+                log::trace!("Not created: {track:?}");
+                summary.not_created.push(track);
+                None
+            }
+            Self::NotUpdated(media_source_id, track) => {
+                log::trace!("Not updated: {track:?}");
+                summary.not_updated.push(track);
+                Some(media_source_id)
+            }
+        }
+    }
 }
 
 pub fn replace_collected_track_by_media_source_content_path<Repo>(
-    summary: &mut Summary,
     repo: &mut Repo,
     collection_id: CollectionId,
     params: ReplaceParams,
     track: ValidatedInput,
-) -> Result<Option<MediaSourceId>>
+) -> Result<Outcome>
 where
     Repo: TrackCollectionRepo,
 {
@@ -66,48 +112,28 @@ where
             log::warn!("Failed to replace track by URI '{media_content_path}': {err}");
             err
         })?;
-    let media_source_id = match outcome {
+    let completion = match outcome {
+        ReplaceOutcome::Unchanged(media_source_id, _, entity) => {
+            Outcome::Unchanged(media_source_id, entity)
+        }
         ReplaceOutcome::Created(media_source_id, _, entity) => {
             debug_assert_ne!(ReplaceMode::UpdateOnly, params.mode);
-            log::trace!(
-                "Created {}: {:?}",
-                entity.body.track.media_source.content.link.path,
-                entity.hdr
-            );
-            summary.created.push(entity);
-            media_source_id
+            Outcome::Created(media_source_id, entity)
         }
         ReplaceOutcome::Updated(media_source_id, _, entity) => {
             debug_assert_ne!(ReplaceMode::CreateOnly, params.mode);
-            log::trace!(
-                "Updated {}: {:?}",
-                entity.body.track.media_source.content.link.path,
-                entity.hdr
-            );
-            summary.updated.push(entity);
-            media_source_id
-        }
-        ReplaceOutcome::Unchanged(media_source_id, _, entity) => {
-            log::trace!("Unchanged: {entity:?}");
-            summary
-                .unchanged
-                .push(entity.raw.body.track.media_source.content.link.path);
-            media_source_id
+            Outcome::Updated(media_source_id, entity)
         }
         ReplaceOutcome::NotCreated(track) => {
             debug_assert_eq!(ReplaceMode::UpdateOnly, params.mode);
-            log::trace!("Not created: {track:?}");
-            summary.not_created.push(track);
-            return Ok(None);
+            Outcome::NotCreated(track)
         }
         ReplaceOutcome::NotUpdated(media_source_id, _, track) => {
             debug_assert_eq!(ReplaceMode::CreateOnly, params.mode);
-            log::trace!("Not updated: {track:?}");
-            summary.not_updated.push(track);
-            media_source_id
+            Outcome::NotUpdated(media_source_id, track)
         }
     };
-    Ok(Some(media_source_id))
+    Ok(completion)
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -173,8 +199,7 @@ where
             }
             track.tags = tags_map.canonicalize_into();
         }
-        replace_collected_track_by_media_source_content_path(
-            &mut summary,
+        let outcome = replace_collected_track_by_media_source_content_path(
             repo,
             collection_id,
             ReplaceParams {
@@ -184,6 +209,7 @@ where
             },
             ValidatedInput(track),
         )?;
+        outcome.update_summary(&mut summary);
     }
     Ok(summary)
 }

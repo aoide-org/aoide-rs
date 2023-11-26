@@ -9,11 +9,15 @@ use std::{
 use aoide_core::{
     media::content::{
         resolver::{vfs::VfsResolver, ContentPathResolver as _},
-        ContentPath,
+        ContentPath, ContentRevision,
     },
+    track::Entity as TrackEntity,
     util::clock::OffsetDateTimeMs,
 };
-use aoide_core_api::{media::SyncMode, track::replace::Summary};
+use aoide_core_api::{
+    media::{tracker::Completion, SyncMode},
+    track::replace::Summary,
+};
 use aoide_media_file::io::import::{ImportTrack, ImportTrackConfig, Issues};
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
@@ -22,7 +26,6 @@ use aoide_repo::{
 };
 use url::Url;
 
-pub use super::replace::Completion;
 use super::*;
 use crate::{
     collection::vfs::RepoContext,
@@ -37,17 +40,75 @@ pub struct Outcome {
     pub imported_media_sources_with_issues: Vec<(MediaSourceId, ContentPath<'static>, Issues)>,
 }
 
+#[derive(Debug)]
+pub struct ImportAndReplaceFromFilePathContext {
+    collection_id: CollectionId,
+    content_path: ContentPath<'static>,
+    media_source_id: Option<MediaSourceId>,
+    external_rev: Option<ContentRevision>,
+    synchronized_rev: Option<bool>,
+    import_track: ImportTrack,
+}
+
+impl ImportAndReplaceFromFilePathContext {
+    pub fn load_from_repo<Repo>(
+        repo: &mut Repo,
+        collection_id: CollectionId,
+        content_path: ContentPath<'static>,
+    ) -> RepoResult<Self>
+    where
+        Repo: TrackCollectionRepo,
+    {
+        let (media_source_id, external_rev, synchronized_rev, entity_body) = repo
+            .load_track_entity_by_media_source_content_path(collection_id, &content_path)
+            .optional()?
+            .map_or((None, None, None, None), |(media_source_id, _, entity)| {
+                (
+                    Some(media_source_id),
+                    entity.body.track.media_source.content.link.rev,
+                    entity.body.last_synchronized_rev.map(|rev| {
+                        debug_assert!(rev <= entity.hdr.rev);
+                        rev == entity.hdr.rev
+                    }),
+                    Some(entity.raw.body),
+                )
+            });
+        let import_track = entity_body.map_or_else(
+            || ImportTrack::NewTrack {
+                collected_at: OffsetDateTimeMs::now_local_or_utc(),
+            },
+            |entity_body| ImportTrack::UpdateTrack(entity_body.track),
+        );
+        Ok(Self {
+            collection_id,
+            content_path,
+            media_source_id,
+            external_rev,
+            synchronized_rev,
+            import_track,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub enum ImportAndReplaceOutcome {
+    Created(TrackEntity),
+    Updated(TrackEntity),
+    Unchanged(ContentPath<'static>),
+    NotImported(ContentPath<'static>),
+    Failed(ContentPath<'static>),
+}
+
 #[allow(clippy::too_many_arguments)] // TODO
 #[allow(clippy::too_many_lines)] // TODO
 #[allow(clippy::missing_panics_doc)] // Never panics
 pub fn import_and_replace_from_file_path<Repo, InterceptImportedTrackFn>(
+    context: ImportAndReplaceFromFilePathContext,
     summary: &mut Summary,
     visited_media_source_ids: &mut Vec<MediaSourceId>,
     imported_media_sources_with_issues: &mut Vec<(MediaSourceId, ContentPath<'static>, Issues)>,
     repo: &mut Repo,
-    collection_id: CollectionId,
     content_path_resolver: &VfsResolver,
-    content_path: ContentPath<'static>,
     params: &Params,
     intercept_imported_track_fn: &mut InterceptImportedTrackFn,
 ) -> Result<Vec<TrackInvalidity>>
@@ -55,26 +116,14 @@ where
     Repo: TrackCollectionRepo,
     InterceptImportedTrackFn: FnMut(Track) -> Track,
 {
-    let (media_source_id, external_rev, synchronized_rev, entity_body) = repo
-        .load_track_entity_by_media_source_content_path(collection_id, &content_path)
-        .optional()?
-        .map_or((None, None, None, None), |(media_source_id, _, entity)| {
-            (
-                Some(media_source_id),
-                entity.body.track.media_source.content.link.rev,
-                entity.body.last_synchronized_rev.map(|rev| {
-                    debug_assert!(rev <= entity.hdr.rev);
-                    rev == entity.hdr.rev
-                }),
-                Some(entity.raw.body),
-            )
-        });
-    let import_track = entity_body.map_or_else(
-        || ImportTrack::NewTrack {
-            collected_at: OffsetDateTimeMs::now_local_or_utc(),
-        },
-        |entity_body| ImportTrack::UpdateTrack(entity_body.track),
-    );
+    let ImportAndReplaceFromFilePathContext {
+        collection_id,
+        content_path,
+        external_rev,
+        import_track,
+        media_source_id,
+        synchronized_rev,
+    } = context;
     let Params {
         sync_mode,
         import_config,
@@ -106,12 +155,12 @@ where
             }
             if let Some(media_source_id) =
                 super::replace::replace_collected_track_by_media_source_content_path(
-                    summary,
                     repo,
                     collection_id,
                     replace_params,
                     track,
                 )?
+                .update_summary(summary)
             {
                 visited_media_source_ids.push(media_source_id);
                 if !import_issues.is_empty() {
@@ -207,14 +256,17 @@ where
                 imported_media_sources_with_issues,
             });
         }
+
+        let context =
+            ImportAndReplaceFromFilePathContext::load_from_repo(repo, collection_id, content_path)?;
+
         let invalidities = import_and_replace_from_file_path(
+            context,
             &mut summary,
             &mut visited_media_source_ids,
             &mut imported_media_sources_with_issues,
             repo,
-            collection_id,
             resolver.canonical_resolver(),
-            content_path,
             params,
             intercept_imported_track_fn,
         )?;
@@ -321,14 +373,15 @@ where
             // Skip entry and keep going
             continue;
         };
+        let context =
+            ImportAndReplaceFromFilePathContext::load_from_repo(repo, collection_id, content_path)?;
         import_and_replace_from_file_path(
+            context,
             &mut summary,
             &mut visited_media_source_ids,
             &mut imported_media_sources_with_issues,
             repo,
-            collection_id,
             content_path_resolver,
-            content_path,
             params,
             intercept_imported_track_fn,
         )?;

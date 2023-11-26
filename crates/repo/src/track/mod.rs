@@ -31,9 +31,9 @@ pub enum ReplaceMode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ReplaceOutcome {
+    Unchanged(MediaSourceId, RecordId, TrackEntity),
     Created(MediaSourceId, RecordId, TrackEntity),
     Updated(MediaSourceId, RecordId, TrackEntity),
-    Unchanged(MediaSourceId, RecordId, TrackEntity),
     NotCreated(Track),
     NotUpdated(MediaSourceId, RecordId, Track),
 }

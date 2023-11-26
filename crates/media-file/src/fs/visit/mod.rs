@@ -198,6 +198,7 @@ pub fn visit_directories<
     if let Some(max_depth) = max_depth {
         walkdir = walkdir.max_depth(max_depth);
     }
+
     for dir_entry in walkdir
         .into_iter()
         .filter_entry(|e| is_hidden_dir_entry(e).not())
@@ -208,7 +209,9 @@ pub fn visit_directories<
             report_progress_fn(&progress_event);
             return Ok(progress_event);
         }
+
         report_progress_fn(&progress_event);
+
         let dir_entry = match dir_entry {
             Ok(dir_entry) => dir_entry,
             Err(err) => {
@@ -312,6 +315,7 @@ pub fn visit_directories<
             progress_event.progress.entries.finished += 1;
         }
     }
+
     // Stack unwinding of remaining ancestors
     while let Some((ancestor_path, ancestor_visitor)) = ancestor_visitors.pop() {
         let ancestor_data = ancestor_visitor.finalize();

@@ -4,7 +4,10 @@
 use std::sync::atomic::AtomicBool;
 
 use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
-use aoide_core_api_json::media::{tracker::import_files::ImportedSourceWithIssues, SyncMode};
+use aoide_core_api_json::media::{
+    tracker::{import_files::ImportedSourceWithIssues, Completion},
+    SyncMode,
+};
 use aoide_core_json::track::{Entity, Track};
 use aoide_media_file::io::import::{ImportTrackConfig, ImportTrackFlags};
 
@@ -12,7 +15,7 @@ use super::{replace::ReplaceMode, *};
 
 mod uc {
     pub(super) use aoide_core_api::track::replace::Summary;
-    pub(super) use aoide_usecases::track::import_and_replace::{Completion, Outcome, Params};
+    pub(super) use aoide_usecases::track::import_and_replace::{Outcome, Params};
     pub(super) use aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path;
 }
 
@@ -51,23 +54,6 @@ impl From<uc::Summary> for Summary {
             not_imported: not_imported.into_iter().map(Into::into).collect(),
             not_created: not_created.into_iter().map(Into::into).collect(),
             not_updated: not_updated.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Completion {
-    Finished,
-    Aborted,
-}
-
-impl From<uc::Completion> for Completion {
-    fn from(from: uc::Completion) -> Self {
-        use uc::Completion as From;
-        match from {
-            From::Finished => Self::Finished,
-            From::Aborted => Self::Aborted,
         }
     }
 }
