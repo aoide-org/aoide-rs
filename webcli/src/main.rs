@@ -262,7 +262,7 @@ impl ModelRender for RenderCliModel {
                 );
                 for imported_source_with_issues in &outcome.value.imported_sources_with_issues {
                     let ImportedSourceWithIssues { path, messages } = imported_source_with_issues;
-                    debug_assert!(messages.is_empty());
+                    debug_assert!(!messages.is_empty());
                     log::warn!("{}: {}", path, messages.join(" | "));
                 }
             }

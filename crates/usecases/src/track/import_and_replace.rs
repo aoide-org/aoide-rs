@@ -469,7 +469,13 @@ where
         )?;
         if let Some(media_source_id) = media_source_id {
             visited_media_source_ids.push(media_source_id);
-            imported_media_sources_with_issues.push((media_source_id, content_path, import_issues));
+            if !import_issues.is_empty() {
+                imported_media_sources_with_issues.push((
+                    media_source_id,
+                    content_path,
+                    import_issues,
+                ));
+            }
         }
     }
     Ok(Outcome {
