@@ -17,7 +17,10 @@ use aoide_core::{
     CollectionUid,
 };
 use aoide_core_api::{
-    media::{tracker::DirTrackingStatus, SyncMode},
+    media::{
+        tracker::{import_files::ImportedSourceWithIssues, DirTrackingStatus},
+        SyncMode,
+    },
     track::search::{SortField, SortOrder},
 };
 use clap::{builder::StyledStr, Arg, ArgMatches, Command};
@@ -258,11 +261,9 @@ impl ModelRender for RenderCliModel {
                     outcome.value.summary
                 );
                 for imported_source_with_issues in &outcome.value.imported_sources_with_issues {
-                    log::warn!(
-                        "{}: {}",
-                        imported_source_with_issues.path,
-                        imported_source_with_issues.messages.join(" | ")
-                    );
+                    let ImportedSourceWithIssues { path, messages } = imported_source_with_issues;
+                    debug_assert!(messages.is_empty());
+                    log::warn!("{}: {}", path, messages.join(" | "));
                 }
             }
         }
