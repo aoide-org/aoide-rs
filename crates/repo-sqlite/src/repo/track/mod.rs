@@ -671,7 +671,10 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
     ) -> RepoResult<usize> {
         let mut query = view_track_search::table
             .select(view_track_search::all_columns)
-            .filter(view_track_search::collection_id.eq(RowId::from(collection_id)))
+            // TODO: Filtering by collection_id from the view is SLOOWWWWWWW!?!
+            //.filter(view_track_search::collection_id.eq(RowId::from(collection_id)))
+            // Filtering the collection_id by subselect through media_source (with an index) is much faster.
+            .filter(view_track_search::media_source_id.eq_any(media_source::table.select(media_source::row_id).filter(media_source::collection_id.eq(RowId::from(collection_id)))))
             .into_boxed();
 
         if let Some(ref filter) = filter {
