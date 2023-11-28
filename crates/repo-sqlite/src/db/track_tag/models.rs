@@ -4,9 +4,9 @@
 use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
-#[diesel(table_name = track_tag)]
+#[diesel(table_name = track_tag, primary_key(row_id))]
 pub struct QueryableRecord {
-    pub id: RowId,
+    pub row_id: RowId,
     pub track_id: RowId,
     pub facet: Option<String>,
     pub label: Option<String>,
@@ -16,7 +16,7 @@ pub struct QueryableRecord {
 impl From<QueryableRecord> for (RecordId, Record) {
     fn from(from: QueryableRecord) -> Self {
         let QueryableRecord {
-            id,
+            row_id,
             track_id,
             facet,
             label,
@@ -34,7 +34,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
             label,
             score,
         };
-        (id.into(), record)
+        (row_id.into(), record)
     }
 }
 

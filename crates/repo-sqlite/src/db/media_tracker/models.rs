@@ -11,9 +11,9 @@ use aoide_repo::{
 use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
-#[diesel(table_name = media_tracker_directory)]
+#[diesel(table_name = media_tracker_directory, primary_key(row_id))]
 pub struct QueryableRecord {
-    pub id: RowId,
+    pub row_id: RowId,
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
     pub collection_id: RowId,
@@ -27,7 +27,7 @@ impl TryFrom<QueryableRecord> for TrackedDirectory {
 
     fn try_from(from: QueryableRecord) -> anyhow::Result<Self> {
         let QueryableRecord {
-            id: _,
+            row_id: _,
             row_created_ms: _,
             row_updated_ms: _,
             collection_id: _,

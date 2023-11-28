@@ -12,9 +12,9 @@ use super::schema::*;
 use crate::prelude::*;
 
 #[derive(Debug, Queryable, Identifiable)]
-#[diesel(table_name = playlist)]
+#[diesel(table_name = playlist, primary_key(row_id))]
 pub struct QueryableRecord {
-    pub id: RowId,
+    pub row_id: RowId,
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
     pub entity_uid: String,
@@ -31,7 +31,7 @@ pub struct QueryableRecord {
 impl From<QueryableRecord> for (RecordHeader, Option<CollectionId>, PlaylistEntity) {
     fn from(from: QueryableRecord) -> Self {
         let QueryableRecord {
-            id,
+            row_id,
             row_created_ms,
             row_updated_ms,
             entity_uid,
@@ -45,7 +45,7 @@ impl From<QueryableRecord> for (RecordHeader, Option<CollectionId>, PlaylistEnti
             flags,
         } = from;
         let header = RecordHeader {
-            id: id.into(),
+            id: row_id.into(),
             created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
             updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
         };

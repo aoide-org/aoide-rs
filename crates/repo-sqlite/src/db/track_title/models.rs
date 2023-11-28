@@ -5,9 +5,9 @@ use super::{schema::*, *};
 use crate::db::track::{decode_search_scope, encode_search_scope};
 
 #[derive(Debug, Queryable, Identifiable)]
-#[diesel(table_name = track_title)]
+#[diesel(table_name = track_title, primary_key(row_id))]
 pub struct QueryableRecord {
-    pub id: RowId,
+    pub row_id: RowId,
     pub track_id: RowId,
     pub scope: i16,
     pub kind: i16,
@@ -19,7 +19,7 @@ impl TryFrom<QueryableRecord> for (RecordId, Record) {
 
     fn try_from(from: QueryableRecord) -> anyhow::Result<Self> {
         let QueryableRecord {
-            id,
+            row_id,
             track_id,
             scope,
             kind,
@@ -32,7 +32,7 @@ impl TryFrom<QueryableRecord> for (RecordId, Record) {
             scope,
             title: Title { kind, name },
         };
-        Ok((id.into(), record))
+        Ok((row_id.into(), record))
     }
 }
 

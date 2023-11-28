@@ -33,9 +33,9 @@ use crate::prelude::*;
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable, Identifiable)]
-#[diesel(table_name = media_source)]
+#[diesel(table_name = media_source, primary_key(row_id))]
 pub struct QueryableRecord {
-    pub id: RowId,
+    pub row_id: RowId,
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
     pub collection_id: RowId,
@@ -70,7 +70,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
     #[allow(clippy::too_many_lines)] // TODO
     fn try_from(from: self::QueryableRecord) -> anyhow::Result<Self> {
         let self::QueryableRecord {
-            id,
+            row_id,
             row_created_ms,
             row_updated_ms,
             collection_id: _,
@@ -171,7 +171,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
         debug_assert!(artwork_size_width.is_some() == artwork_size_height.is_some());
 
         let header = RecordHeader {
-            id: id.into(),
+            id: row_id.into(),
             created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
             updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
         };

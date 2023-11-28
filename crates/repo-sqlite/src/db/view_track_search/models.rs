@@ -22,9 +22,9 @@ use crate::{
 };
 
 #[derive(Debug, Queryable, Identifiable)]
-#[diesel(table_name = view_track_search)]
+#[diesel(table_name = view_track_search, primary_key(row_id))]
 pub struct QueryableRecord {
-    pub id: RowId,
+    pub row_id: RowId,
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
     pub entity_uid: String,
@@ -72,7 +72,7 @@ pub struct QueryableRecord {
 impl From<QueryableRecord> for (MediaSourceId, RecordHeader, TrackHeader) {
     fn from(from: QueryableRecord) -> Self {
         let QueryableRecord {
-            id,
+            row_id,
             row_created_ms,
             row_updated_ms,
             entity_uid,
@@ -81,7 +81,7 @@ impl From<QueryableRecord> for (MediaSourceId, RecordHeader, TrackHeader) {
             ..
         } = from;
         let record_header = RecordHeader {
-            id: id.into(),
+            id: row_id.into(),
             created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
             updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
         };
@@ -109,7 +109,7 @@ pub(crate) fn load_repo_entity(
         cues,
     } = preload;
     let QueryableRecord {
-        id,
+        row_id,
         row_created_ms,
         row_updated_ms,
         entity_uid,
@@ -145,7 +145,7 @@ pub(crate) fn load_repo_entity(
         ..
     } = queryable;
     let header = RecordHeader {
-        id: id.into(),
+        id: row_id.into(),
         created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
         updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
     };

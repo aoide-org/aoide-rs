@@ -13,9 +13,9 @@ use super::{schema::*, *};
 use crate::db::media_source::{decode_content_path_kind, encode_content_path_kind};
 
 #[derive(Debug, Queryable, Identifiable)]
-#[diesel(table_name = collection)]
+#[diesel(table_name = collection, primary_key(row_id))]
 pub struct QueryableRecord {
-    pub id: RowId,
+    pub row_id: RowId,
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
     pub entity_uid: String,
@@ -34,7 +34,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, CollectionEntity) {
 
     fn try_from(from: QueryableRecord) -> anyhow::Result<Self> {
         let QueryableRecord {
-            id,
+            row_id,
             row_created_ms,
             row_updated_ms,
             entity_uid,
@@ -48,7 +48,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, CollectionEntity) {
             media_source_root_url,
         } = from;
         let header = RecordHeader {
-            id: id.into(),
+            id: row_id.into(),
             created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
             updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
         };

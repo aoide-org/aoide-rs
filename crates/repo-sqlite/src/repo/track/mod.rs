@@ -505,7 +505,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .first::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
-        let preload = preload_entity(self, queryable.id.into(), media_source)?;
+        let preload = preload_entity(self, queryable.row_id.into(), media_source)?;
         load_repo_entity(preload, queryable)
     }
 
@@ -537,7 +537,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             .map_err(repo_error)?;
         let media_source_id = queryable.media_source_id.into();
         let (_, media_source) = self.load_media_source(media_source_id)?;
-        let preload = preload_entity(self, queryable.id.into(), media_source)?;
+        let preload = preload_entity(self, queryable.row_id.into(), media_source)?;
         let (record_header, entity) = load_repo_entity(preload, queryable)?;
         Ok((media_source_id, record_header, entity))
     }
@@ -695,12 +695,11 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             query = query.offset(offset);
         }
 
-        let timed = Instant::now();
-
-        log::trace!(
-            "Loading results of SQL search query: {}",
-            diesel::debug_query(&query)
+        log::debug!(
+            "Loading results of SQL search query: {debug_query}",
+            debug_query = diesel::debug_query(&query)
         );
+        let timed = Instant::now();
         let records = query
             .load::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
@@ -715,7 +714,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         for record in records {
             let media_source_id = record.media_source_id.into();
             let (_, media_source) = self.load_media_source(media_source_id)?;
-            let preload = preload_entity(self, record.id.into(), media_source)?;
+            let preload = preload_entity(self, record.row_id.into(), media_source)?;
             let (record_header, entity) = load_repo_entity(preload, record)?;
             collector.collect(record_header, entity);
         }
