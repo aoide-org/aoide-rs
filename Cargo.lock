@@ -408,6 +408,7 @@ dependencies = [
  "bitflags 2.4.1",
  "blake3",
  "log",
+ "static_assertions",
  "thiserror",
  "url",
  "walkdir",

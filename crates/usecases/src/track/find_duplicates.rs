@@ -15,6 +15,7 @@ use aoide_repo::{
     track::{CollectionRepo as TrackCollectionRepo, RecordHeader, RecordId as TrackId},
 };
 use bitflags::bitflags;
+use static_assertions::const_assert_eq;
 
 use super::*;
 
@@ -43,15 +44,17 @@ pub struct Params {
     pub search_flags: SearchFlags,
 }
 
+/// More than one result is necessary to decide if it is unambiguous.
+pub const MIN_MAX_RESULTS: NonZeroUsize = NonZeroUsize::MIN.saturating_add(1);
+
+const_assert_eq!(2, MIN_MAX_RESULTS.get());
+
 impl Params {
-    #[allow(unsafe_code)]
     #[must_use]
     pub const fn new() -> Params {
-        // More than one result is necessary to decide if it is unambiguous
-        let max_results = unsafe { NonZeroUsize::new_unchecked(2) };
         Self {
             audio_duration_tolerance: DurationMs::new(500.0), // +/- 500 ms
-            max_results,
+            max_results: MIN_MAX_RESULTS,
             search_flags: SearchFlags::ALL,
         }
     }
