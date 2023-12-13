@@ -88,10 +88,9 @@ pub fn thumbnail_image(thumbnail: &Thumbnail4x4Rgb8) -> image::RgbImage {
 /// Create an ICO [data URI](<https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs>)
 /// from thumbnail data
 #[must_use]
-#[allow(unsafe_code)]
 #[allow(clippy::missing_panics_doc)] // Never panics
 pub fn thumbnail_png_data_uri(thumbnail: &Thumbnail4x4Rgb8) -> String {
-    const DATA_URI_PREFIX_BYTES: &[u8] = b"data:image/png;base64,";
+    const DATA_URI_PREFIX: &str = "data:image/png;base64,";
     let mut png_data = Vec::with_capacity(192);
     let png_encoder = PngEncoder::new(&mut png_data);
     png_encoder
@@ -104,16 +103,13 @@ pub fn thumbnail_png_data_uri(thumbnail: &Thumbnail4x4Rgb8) -> String {
         .expect("infallible");
     debug_assert!(png_data.len() <= 192);
     let encoded_len = BASE64_NOPAD.encode_len(png_data.len());
-    let mut data_uri_bytes = DATA_URI_PREFIX_BYTES
-        .iter()
-        .copied()
-        .chain(std::iter::repeat(0).take(encoded_len))
-        .collect::<Vec<_>>();
-    BASE64_NOPAD.encode_mut(
-        &png_data,
-        &mut data_uri_bytes[DATA_URI_PREFIX_BYTES.len()..],
-    );
-    unsafe { String::from_utf8_unchecked(data_uri_bytes) }
+    let data_uri_len = DATA_URI_PREFIX.len() + encoded_len;
+    let mut data_uri = String::with_capacity(data_uri_len);
+    data_uri.push_str(DATA_URI_PREFIX);
+    BASE64_NOPAD
+        .encode_write(&png_data, &mut data_uri)
+        .expect("infallible");
+    data_uri
 }
 
 /// Artwork image properties
