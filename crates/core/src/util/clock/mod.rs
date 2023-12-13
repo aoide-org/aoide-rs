@@ -359,8 +359,8 @@ impl PartialOrd for DateOrDateTime {
 impl fmt::Display for DateOrDateTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Date(date) => write!(f, "{date}"),
-            Self::DateTime(datetime) => write!(f, "{datetime}"),
+            Self::Date(date) => date.fmt(f),
+            Self::DateTime(datetime) => datetime.fmt(f),
         }
     }
 }

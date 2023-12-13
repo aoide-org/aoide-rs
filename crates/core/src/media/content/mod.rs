@@ -301,7 +301,7 @@ impl From<ContentRevision> for ContentRevisionValue {
 
 impl fmt::Display for ContentRevision {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("{}", self.to_value()))
+        self.to_value().fmt(f)
     }
 }
 

@@ -121,10 +121,8 @@ struct YyyyMmDdDateDeserializeVisitor;
 impl<'de> SerdeDeserializeVisitor<'de> for YyyyMmDdDateDeserializeVisitor {
     type Value = YyyyMmDdDate;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_fmt(format_args!(
-            "4-digit YYYY or 8-digit YyyyMmDdDateValue integer"
-        ))
+    fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "4-digit YYYY or 8-digit YyyyMmDdDateValue integer")
     }
 
     #[allow(clippy::cast_possible_truncation)]
