@@ -924,7 +924,7 @@ fn select_track_ids_matching_tag_filter(
                 }
             }
             Some(FilterModifier::Complement) => {
-                if any_of.is_empty() {
+                if !any_of.is_empty() {
                     // Tags with none of the given facets.
                     select =
                         select.filter(track_tag::facet.ne_all(any_of.iter().map(FacetKey::as_str)));
