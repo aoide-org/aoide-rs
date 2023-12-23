@@ -9,6 +9,8 @@ use super::State;
 use crate::fs::DirPath;
 
 /// Save the settings after changed.
+///
+/// The current settings at the time of invocation are not saved.
 pub fn on_state_changed_save_to_file(
     mut subscriber: Subscriber<State>,
     settings_dir: PathBuf,
@@ -51,7 +53,7 @@ pub fn on_music_dir_changed(
     mut on_changed: impl FnMut(Option<&DirPath<'_>>) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     // Read the initial value immediately before spawning the async task
-    let mut value = subscriber.read().music_dir.clone();
+    let mut value = subscriber.read_ack().music_dir.clone();
     async move {
         log::debug!("Starting on_music_dir_changed");
         // Enforce initial update

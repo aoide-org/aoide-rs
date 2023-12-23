@@ -14,7 +14,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.75"
+anyhow = "1.0.76"
 aho-corasick = "1.1.2"
 bitflags = "2.4.1"
 data-encoding = "2.5.0"
@@ -25,13 +25,13 @@ rand = "0.8.5"
 regex = "1.10.2"
 semval = "0.5.1"
 strum = { version = "0.25.0", features = ["derive"] }
-time = { version = "0.3.30", features = [
+time = { version = "0.3.31", features = [
     "macros",
     "local-offset",
     "parsing",
     "formatting",
 ] }
-thiserror = "1.0.50"
+thiserror = "1.0.51"
 ulid = "1.1.0"
 url = "2.5.0"
 

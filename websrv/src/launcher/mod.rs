@@ -85,9 +85,10 @@ impl Launcher {
         let runtime = tokio::runtime::Runtime::new()?;
 
         let current_state_tx = discro::Publisher::new(State::Idle);
-        let current_state_rx = current_state_tx.subscribe();
         runtime.spawn({
             let mut current_state_rx = current_state_tx.subscribe();
+            // Enforce initial update.
+            current_state_rx.mark_changed();
             async move {
                 while current_state_rx.changed().await.is_ok() {
                     let state = *current_state_rx.read_ack();
@@ -100,11 +101,11 @@ impl Launcher {
         let (runtime_command_tx, runtime_command_rx) = mpsc::unbounded_channel();
         let current_runtime_state_tx = discro::Publisher::new(None);
 
+        let current_state_rx = current_state_tx.subscribe();
         runtime.spawn({
-            let current_state_rx = current_state_tx.subscribe();
-            let current_runtime_state_rx = current_runtime_state_tx.subscribe();
-            debug_assert!(matches!(*current_state_rx.read(), State::Idle));
-            let mut current_runtime_state_rx = current_runtime_state_rx;
+            debug_assert!(matches!(*current_state_tx.read(), State::Idle));
+            let mut current_runtime_state_rx = current_runtime_state_tx.subscribe();
+            current_runtime_state_rx.mark_changed();
             async move {
                 while current_runtime_state_rx.changed().await.is_ok() {
                     if let Some(runtime_state) = *current_runtime_state_rx.read_ack() {
