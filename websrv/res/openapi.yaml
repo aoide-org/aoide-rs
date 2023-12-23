@@ -3213,12 +3213,12 @@ components:
         are restricted to the following alphabet:
 
         `+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz`
-    TagFilter:
+    TagFacetsFilter:
       type: object
       properties:
         modifier:
           $ref: "#/components/schemas/FilterModifier"
-        facets:
+        ids:
           type: array
           items:
             $ref: "#/components/schemas/TagFacetId"
@@ -3229,6 +3229,17 @@ components:
 
             A missing/null array will match any tags, both with or
             without a facet.
+
+            The optional modifier allows to invert the filter condition.
+    TagFilter:
+      type: object
+      properties:
+        modifier:
+          $ref: "#/components/schemas/FilterModifier"
+        facets:
+          type: array
+          items:
+            $ref: "#/components/schemas/TagFacetsFilter"
         label:
           $ref: "#/components/schemas/StringPredicate"
         score:

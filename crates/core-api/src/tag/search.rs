@@ -6,7 +6,7 @@ use aoide_core::tag::FacetKey;
 use crate::{filtering::*, sorting::*};
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct Filter {
+pub struct FacetsFilter {
     pub modifier: Option<FilterModifier>,
 
     /// Filter by facets.
@@ -15,7 +15,14 @@ pub struct Filter {
     ///
     /// Both an empty vector or a default element inside a non-empty
     /// vector match all unfaceted tags, i.e. tags without a facet.
-    pub facets: Option<Vec<FacetKey<'static>>>,
+    pub keys: Vec<FacetKey<'static>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Filter {
+    pub modifier: Option<FilterModifier>,
+
+    pub facets: Option<FacetsFilter>,
 
     pub label: Option<StringPredicate<'static>>,
 

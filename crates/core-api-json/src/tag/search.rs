@@ -17,12 +17,47 @@ mod _inner {
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct FacetsFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
+
+    #[serde(rename = "ids")]
+    pub keys: Vec<FacetKey>,
+}
+
+#[cfg(feature = "backend")]
+impl From<FacetsFilter> for _inner::FacetsFilter {
+    fn from(from: FacetsFilter) -> Self {
+        let FacetsFilter { modifier, keys } = from;
+        Self {
+            modifier: modifier.map(Into::into),
+            keys: keys.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[cfg(feature = "frontend")]
+impl From<_inner::FacetsFilter> for FacetsFilter {
+    fn from(from: _inner::FacetsFilter) -> Self {
+        let _inner::FacetsFilter { modifier, keys } = from;
+        Self {
+            modifier: modifier.map(Into::into),
+            keys: keys.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Filter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub facets: Option<Vec<FacetKey>>,
+    pub facets: Option<FacetsFilter>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<StringPredicate>,
@@ -42,7 +77,7 @@ impl From<Filter> for _inner::Filter {
         } = from;
         Self {
             modifier: modifier.map(Into::into),
-            facets: facets.map(|facets| facets.into_iter().map(Into::into).collect()),
+            facets: facets.map(Into::into),
             label: label.map(Into::into),
             score: score.map(Into::into),
         }
@@ -60,7 +95,7 @@ impl From<_inner::Filter> for Filter {
         } = from;
         Self {
             modifier: modifier.map(Into::into),
-            facets: facets.map(|facets| facets.into_iter().map(Into::into).collect()),
+            facets: facets.map(Into::into),
             label: label.map(Into::into),
             score: score.map(Into::into),
         }

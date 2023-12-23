@@ -11,7 +11,10 @@ use aoide_core::{
     util::clock::YyyyMmDdDateValue,
     PlaylistUid, TrackUid,
 };
-use aoide_core_api::{tag::search::Filter as TagFilter, track::search::*};
+use aoide_core_api::{
+    tag::search::{FacetsFilter, Filter as TagFilter},
+    track::search::*,
+};
 use diesel::{
     sql_types, BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods,
 };
@@ -907,13 +910,32 @@ fn select_track_ids_matching_tag_filter(
 
     // Filter facet(s)
     if let Some(ref facets) = facets {
-        if !facets.is_empty() {
-            // tags with any of the given facets
-            select = select.filter(track_tag::facet.eq_any(facets.iter().map(FacetKey::as_str)));
-        }
-        if facets.is_empty() || facets.contains(&FacetKey::default()) {
-            // unfaceted tags without a facet
-            select = select.or_filter(track_tag::facet.is_null());
+        let FacetsFilter { modifier, keys } = facets;
+        if !keys.is_empty() {
+            match modifier {
+                None => {
+                    if !keys.is_empty() {
+                        // Tags with any of the given facets.
+                        select = select
+                            .filter(track_tag::facet.eq_any(keys.iter().map(FacetKey::as_str)));
+                    }
+                    if keys.is_empty() || keys.contains(&FacetKey::default()) {
+                        // Unfaceted tags without a facet.
+                        select = select.or_filter(track_tag::facet.is_null());
+                    }
+                }
+                Some(FilterModifier::Complement) => {
+                    if keys.is_empty() {
+                        // Tags with none of the given facets.
+                        select = select
+                            .filter(track_tag::facet.ne_all(keys.iter().map(FacetKey::as_str)));
+                    }
+                    if keys.is_empty() || keys.contains(&FacetKey::default()) {
+                        // No unfaceted tags without a facet.
+                        select = select.filter(diesel::dsl::not(track_tag::facet.is_null()));
+                    }
+                }
+            }
         }
     }
 
