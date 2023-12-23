@@ -21,17 +21,16 @@ pub struct FacetsFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
 
-    #[serde(rename = "ids")]
-    pub keys: Vec<FacetKey>,
+    pub any_of: Vec<FacetKey>,
 }
 
 #[cfg(feature = "backend")]
 impl From<FacetsFilter> for _inner::FacetsFilter {
     fn from(from: FacetsFilter) -> Self {
-        let FacetsFilter { modifier, keys } = from;
+        let FacetsFilter { modifier, any_of } = from;
         Self {
             modifier: modifier.map(Into::into),
-            keys: keys.into_iter().map(Into::into).collect(),
+            any_of: any_of.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -39,10 +38,10 @@ impl From<FacetsFilter> for _inner::FacetsFilter {
 #[cfg(feature = "frontend")]
 impl From<_inner::FacetsFilter> for FacetsFilter {
     fn from(from: _inner::FacetsFilter) -> Self {
-        let _inner::FacetsFilter { modifier, keys } = from;
+        let _inner::FacetsFilter { modifier, any_of } = from;
         Self {
             modifier: modifier.map(Into::into),
-            keys: keys.into_iter().map(Into::into).collect(),
+            any_of: any_of.into_iter().map(Into::into).collect(),
         }
     }
 }

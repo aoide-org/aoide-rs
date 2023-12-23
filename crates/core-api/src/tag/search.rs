@@ -15,7 +15,7 @@ pub struct FacetsFilter {
     ///
     /// Both an empty vector or a default element inside a non-empty
     /// vector match all unfaceted tags, i.e. tags without a facet.
-    pub keys: Vec<FacetKey<'static>>,
+    pub any_of: Vec<FacetKey<'static>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

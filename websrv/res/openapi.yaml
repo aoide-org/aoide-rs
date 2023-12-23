@@ -3218,7 +3218,7 @@ components:
       properties:
         modifier:
           $ref: "#/components/schemas/FilterModifier"
-        ids:
+        anyOf:
           type: array
           items:
             $ref: "#/components/schemas/TagFacetId"
@@ -3227,9 +3227,6 @@ components:
             An empty array or an empty string in the array matches
             all unfaceted tags, i.e. tags without a facet.
 
-            A missing/null array will match any tags, both with or
-            without a facet.
-
             The optional modifier allows to invert the filter condition.
     TagFilter:
       type: object
@@ -3237,9 +3234,7 @@ components:
         modifier:
           $ref: "#/components/schemas/FilterModifier"
         facets:
-          type: array
-          items:
-            $ref: "#/components/schemas/TagFacetsFilter"
+          $ref: "#/components/schemas/TagFacetsFilter"
         label:
           $ref: "#/components/schemas/StringPredicate"
         score:
