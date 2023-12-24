@@ -117,3 +117,24 @@ pub(crate) fn sql_column_substr_prefix_ne(
 ) -> SqlLiteral<sql_types::Bool> {
     sql_column_substr_prefix(column, prefix, "<>")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn escape_character_and_replacements() {
+        assert_eq!(
+            LIKE_ESCAPE_CHARACTER_REPLACEMENT,
+            format!("{LIKE_ESCAPE_CHARACTER}{LIKE_ESCAPE_CHARACTER}",)
+        );
+        assert_eq!(
+            LIKE_WILDCARD_CHARACTER_REPLACEMENT,
+            format!("{LIKE_ESCAPE_CHARACTER}{LIKE_WILDCARD_CHARACTER}",)
+        );
+        assert_eq!(
+            LIKE_PLACEHOLDER_CHARACTER_REPLACEMENT,
+            format!("{LIKE_ESCAPE_CHARACTER}{LIKE_PLACEHOLDER_CHARACTER}",)
+        );
+    }
+}
