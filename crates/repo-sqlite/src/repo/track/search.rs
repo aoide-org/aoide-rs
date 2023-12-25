@@ -7,7 +7,7 @@ use aoide_core::{
         signal::{BitrateBps, LoudnessLufs, SampleRateHz},
         ChannelFlags, DurationMs,
     },
-    tag::FacetKey,
+    tag::{FacetKey, Label},
     util::clock::YyyyMmDdDateValue,
     PlaylistUid, TrackUid,
 };
@@ -893,6 +893,7 @@ fn build_condition_filter_expression(
     }
 }
 
+#[allow(clippy::too_many_lines)] // TODO
 fn select_track_ids_matching_tag_filter(
     filter: &TagFilter,
 ) -> (
@@ -945,45 +946,61 @@ fn select_track_ids_matching_tag_filter(
 
     // Filter tag labels
     if let Some(ref label) = label {
-        let (val, cmp, dir) = decompose_string_predicate(label);
-        let string_cmp_op = match cmp {
-            // Equal comparison without escape characters
-            StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
-            StringCompare::Prefix => StringCmpOp::Prefix(escape_single_quotes(val), val.len()),
-            // Like comparisons with escaped wildcard character
-            StringCompare::StartsWith => StringCmpOp::Like(escape_like_starts_with(val)),
-            StringCompare::EndsWith => StringCmpOp::Like(escape_like_ends_with(val)),
-            StringCompare::Contains => StringCmpOp::Like(escape_like_contains(val)),
-            StringCompare::Matches => StringCmpOp::Like(escape_like_matches(val)),
-        };
-        select = match string_cmp_op {
-            StringCmpOp::Equal(eq) => {
-                if dir {
-                    select.filter(track_tag::label.eq(eq))
-                } else {
-                    select.filter(track_tag::label.ne(eq))
+        if let Some((val, cmp, dir)) = decompose_string_predicate(label) {
+            let string_cmp_op = match cmp {
+                // Equal comparison without escape characters
+                StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
+                StringCompare::Prefix => StringCmpOp::Prefix(escape_single_quotes(val), val.len()),
+                // Like comparisons with escaped wildcard character
+                StringCompare::StartsWith => StringCmpOp::Like(escape_like_starts_with(val)),
+                StringCompare::EndsWith => StringCmpOp::Like(escape_like_ends_with(val)),
+                StringCompare::Contains => StringCmpOp::Like(escape_like_contains(val)),
+                StringCompare::Matches => StringCmpOp::Like(escape_like_matches(val)),
+            };
+            match string_cmp_op {
+                StringCmpOp::Equal(eq) => {
+                    let eq = Label::clamp_from(eq);
+                    if let Some(eq) = eq {
+                        debug_assert!(!eq.as_str().is_empty());
+                        if dir {
+                            select = select.filter(track_tag::label.eq(eq.to_string()));
+                            // Exclude tags without a label.
+                            select = select.filter(diesel::dsl::not(track_tag::label.is_null()));
+                        } else {
+                            select = select.filter(track_tag::label.ne(eq.to_string()));
+                            // Include tags without a label.
+                            select = select.or_filter(track_tag::label.is_null());
+                        }
+                    } else if dir {
+                        // Include tags without a label.
+                        select = select.or_filter(track_tag::label.is_null());
+                    } else {
+                        // Exclude tags without a label.
+                        select = select.filter(diesel::dsl::not(track_tag::label.is_null()));
+                    }
                 }
-            }
-            StringCmpOp::Prefix(prefix, len) => {
-                let sql_prefix_filter = if dir {
-                    sql_column_substr_prefix_eq("track_tag.label", &prefix[..len])
-                } else {
-                    sql_column_substr_prefix_ne("track_tag.label", &prefix[..len])
-                };
-                select.filter(sql_prefix_filter)
-            }
-            StringCmpOp::Like(like) => {
-                if dir {
-                    select.filter(track_tag::label.like(like).escape(LIKE_ESCAPE_CHARACTER))
-                } else {
-                    select.filter(
-                        track_tag::label
-                            .not_like(like)
-                            .escape(LIKE_ESCAPE_CHARACTER),
-                    )
+                StringCmpOp::Prefix(prefix, len) => {
+                    let sql_prefix_filter = if dir {
+                        sql_column_substr_prefix_eq("track_tag.label", &prefix[..len])
+                    } else {
+                        sql_column_substr_prefix_ne("track_tag.label", &prefix[..len])
+                    };
+                    select = select.filter(sql_prefix_filter);
                 }
-            }
-        };
+                StringCmpOp::Like(like) => {
+                    if dir {
+                        select = select
+                            .filter(track_tag::label.like(like).escape(LIKE_ESCAPE_CHARACTER));
+                    } else {
+                        select = select.filter(
+                            track_tag::label
+                                .not_like(like)
+                                .escape(LIKE_ESCAPE_CHARACTER),
+                        );
+                    }
+                }
+            };
+        }
     }
 
     // Filter tag score
@@ -1041,45 +1058,46 @@ fn select_track_ids_matching_cue_filter<'db>(
 
     // Filter cue labels
     if let Some(label) = &filter.value {
-        let (val, cmp, dir) = decompose_string_predicate(label);
-        let string_cmp_op = match cmp {
-            // Equal comparison without escape characters
-            StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
-            StringCompare::Prefix => StringCmpOp::Prefix(escape_single_quotes(val), val.len()),
-            // Like comparisons with escaped wildcard character
-            StringCompare::StartsWith => StringCmpOp::Like(escape_like_starts_with(val)),
-            StringCompare::EndsWith => StringCmpOp::Like(escape_like_ends_with(val)),
-            StringCompare::Contains => StringCmpOp::Like(escape_like_contains(val)),
-            StringCompare::Matches => StringCmpOp::Like(escape_like_matches(val)),
-        };
-        select = match string_cmp_op {
-            StringCmpOp::Equal(eq) => {
-                if dir {
-                    select.filter(track_cue::label.eq(eq))
-                } else {
-                    select.filter(track_cue::label.ne(eq))
+        if let Some((val, cmp, dir)) = decompose_string_predicate(label) {
+            let string_cmp_op = match cmp {
+                // Equal comparison without escape characters
+                StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
+                StringCompare::Prefix => StringCmpOp::Prefix(escape_single_quotes(val), val.len()),
+                // Like comparisons with escaped wildcard character
+                StringCompare::StartsWith => StringCmpOp::Like(escape_like_starts_with(val)),
+                StringCompare::EndsWith => StringCmpOp::Like(escape_like_ends_with(val)),
+                StringCompare::Contains => StringCmpOp::Like(escape_like_contains(val)),
+                StringCompare::Matches => StringCmpOp::Like(escape_like_matches(val)),
+            };
+            select = match string_cmp_op {
+                StringCmpOp::Equal(eq) => {
+                    if dir {
+                        select.filter(track_cue::label.eq(eq))
+                    } else {
+                        select.filter(track_cue::label.ne(eq))
+                    }
                 }
-            }
-            StringCmpOp::Prefix(prefix, len) => {
-                let sql_prefix_filter = if dir {
-                    sql_column_substr_prefix_eq("track_cue.label", &prefix[..len])
-                } else {
-                    sql_column_substr_prefix_ne("track_cue.label", &prefix[..len])
-                };
-                select.filter(sql_prefix_filter)
-            }
-            StringCmpOp::Like(like) => {
-                if dir {
-                    select.filter(track_cue::label.like(like).escape(LIKE_ESCAPE_CHARACTER))
-                } else {
-                    select.filter(
-                        track_cue::label
-                            .not_like(like)
-                            .escape(LIKE_ESCAPE_CHARACTER),
-                    )
+                StringCmpOp::Prefix(prefix, len) => {
+                    let sql_prefix_filter = if dir {
+                        sql_column_substr_prefix_eq("track_cue.label", &prefix[..len])
+                    } else {
+                        sql_column_substr_prefix_ne("track_cue.label", &prefix[..len])
+                    };
+                    select.filter(sql_prefix_filter)
                 }
-            }
-        };
+                StringCmpOp::Like(like) => {
+                    if dir {
+                        select.filter(track_cue::label.like(like).escape(LIKE_ESCAPE_CHARACTER))
+                    } else {
+                        select.filter(
+                            track_cue::label
+                                .not_like(like)
+                                .escape(LIKE_ESCAPE_CHARACTER),
+                        )
+                    }
+                }
+            };
+        }
     }
 
     (select, filter.modifier)
@@ -1261,23 +1279,49 @@ impl TrackSearchExpressionBoxedBuilder for Filter {
     }
 }
 
-/// (Value, Comparison, Include(true)/Exclude(false))
-fn decompose_string_predicate<'a>(p: &'a StringPredicate<'a>) -> (&'a str, StringCompare, bool) {
+fn decompose_string_predicate<'a>(
+    p: &'a StringPredicate<'a>,
+) -> Option<(&'a str, StringCompare, bool)> {
     #[allow(clippy::enum_glob_use)]
     use StringPredicate::*;
-    match p {
-        StartsWith(s) => (s, StringCompare::StartsWith, true),
+    let (s, cmp, dir) = match p {
+        StartsWith(s) => {
+            if s.is_empty() {
+                // Include all
+                return None;
+            }
+            (s, StringCompare::StartsWith, true)
+        }
         StartsNotWith(s) => (s, StringCompare::StartsWith, false),
-        EndsWith(s) => (s, StringCompare::EndsWith, true),
+        EndsWith(s) => {
+            if s.is_empty() {
+                // Include all
+                return None;
+            }
+            (s, StringCompare::EndsWith, true)
+        }
         EndsNotWith(s) => (s, StringCompare::EndsWith, false),
-        Contains(s) => (s, StringCompare::Contains, true),
+        Contains(s) => {
+            if s.is_empty() {
+                // Include all
+                return None;
+            }
+            (s, StringCompare::Contains, true)
+        }
         ContainsNot(s) => (s, StringCompare::Contains, false),
         Matches(s) => (s, StringCompare::Matches, true),
         MatchesNot(s) => (s, StringCompare::Matches, false),
-        Prefix(s) => (s, StringCompare::Prefix, true),
+        Prefix(s) => {
+            if s.is_empty() {
+                // Include all
+                return None;
+            }
+            (s, StringCompare::Prefix, true)
+        }
         Equals(s) => (s, StringCompare::Equals, true),
         EqualsNot(s) => (s, StringCompare::Equals, false),
-    }
+    };
+    Some((s, cmp, dir))
 }
 
 #[cfg(test)]
