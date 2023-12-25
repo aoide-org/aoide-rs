@@ -921,6 +921,8 @@ fn select_track_ids_matching_tag_filter(
                 if any_of.is_empty() || any_of.contains(&FacetKey::default()) {
                     // Unfaceted tags without a facet.
                     select = select.or_filter(track_tag::facet.is_null());
+                } else {
+                    select = select.filter(diesel::dsl::not(track_tag::facet.is_null()));
                 }
             }
             Some(FilterModifier::Complement) => {
@@ -930,8 +932,10 @@ fn select_track_ids_matching_tag_filter(
                         select.filter(track_tag::facet.ne_all(any_of.iter().map(FacetKey::as_str)));
                 }
                 if any_of.is_empty() || any_of.contains(&FacetKey::default()) {
-                    // No unfaceted tags without a facet.
                     select = select.filter(diesel::dsl::not(track_tag::facet.is_null()));
+                } else {
+                    // Unfaceted tags without a facet.
+                    select = select.or_filter(track_tag::facet.is_null());
                 }
             }
         }
