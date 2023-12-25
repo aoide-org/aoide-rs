@@ -908,7 +908,7 @@ fn select_track_ids_matching_tag_filter(
         score,
     } = filter;
 
-    // Filter facet(s)
+    // Filter tag facet(s)
     if let Some(ref facets) = facets {
         let FacetsFilter { modifier, any_of } = facets;
         match modifier {
@@ -919,9 +919,10 @@ fn select_track_ids_matching_tag_filter(
                         select.filter(track_tag::facet.eq_any(any_of.iter().map(FacetKey::as_str)));
                 }
                 if any_of.is_empty() || any_of.contains(&FacetKey::default()) {
-                    // Unfaceted tags without a facet.
+                    // Include unfaceted tags without a facet.
                     select = select.or_filter(track_tag::facet.is_null());
                 } else {
+                    // Exclude unfaceted tags without a facet.
                     select = select.filter(diesel::dsl::not(track_tag::facet.is_null()));
                 }
             }
@@ -932,16 +933,17 @@ fn select_track_ids_matching_tag_filter(
                         select.filter(track_tag::facet.ne_all(any_of.iter().map(FacetKey::as_str)));
                 }
                 if any_of.is_empty() || any_of.contains(&FacetKey::default()) {
+                    // Exclude unfaceted tags without a facet.
                     select = select.filter(diesel::dsl::not(track_tag::facet.is_null()));
                 } else {
-                    // Unfaceted tags without a facet.
+                    // Include unfaceted tags without a facet.
                     select = select.or_filter(track_tag::facet.is_null());
                 }
             }
         }
     }
 
-    // Filter labels
+    // Filter tag labels
     if let Some(ref label) = label {
         let (val, cmp, dir) = decompose_string_predicate(label);
         let string_cmp_op = match cmp {
@@ -1037,7 +1039,7 @@ fn select_track_ids_matching_cue_filter<'db>(
 ) {
     let mut select = track_cue::table.select(track_cue::track_id).into_boxed();
 
-    // Filter labels
+    // Filter cue labels
     if let Some(label) = &filter.value {
         let (val, cmp, dir) = decompose_string_predicate(label);
         let string_cmp_op = match cmp {
@@ -1360,7 +1362,7 @@ mod tests {
             collected_at: created_at,
             content: media::Content {
                 link: ContentLink {
-                    path: format!("/home/test/file.mp3").into(),
+                    path: "/home/test/file.mp3".into(),
                     rev: None,
                 },
                 r#type: "audio/mpeg".parse().unwrap(),
@@ -1379,7 +1381,6 @@ mod tests {
             .id;
         let mut track = Track::new_from_media_source(media_source);
         let plain_tags = (1..10)
-            .into_iter()
             .flat_map(|i| {
                 [
                     PlainTag {
