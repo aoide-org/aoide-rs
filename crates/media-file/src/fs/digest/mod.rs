@@ -77,7 +77,7 @@ struct AncestorDigest<D> {
 }
 
 impl<D: Digest> AncestorVisitor<(), digest::Output<D>, Error> for AncestorDigest<D> {
-    fn visit_dir_entry(&mut self, _: &mut (), dir_entry: &walkdir::DirEntry) -> Result<()> {
+    fn visit_dir_entry(&mut self, (): &mut (), dir_entry: &walkdir::DirEntry) -> Result<()> {
         digest_walkdir_entry_for_detecting_changes(&mut self.digest, dir_entry).map_err(Into::into)
     }
     fn finalize(self) -> digest::Output<D> {

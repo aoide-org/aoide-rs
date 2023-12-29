@@ -14,7 +14,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.76"
+anyhow = "1.0.77"
 data-encoding = "2.5.0"
 mime = "0.3.17"
 serde = { version = "1.0.193", features = ["derive"] }

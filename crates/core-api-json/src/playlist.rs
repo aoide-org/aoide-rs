@@ -29,13 +29,14 @@ pub fn export_entity_with_entries_summary(
 }
 
 #[cfg(feature = "frontend")]
+#[must_use]
 pub fn import_entity_with_entries_summary(
     entity_with_entries_summary: EntityWithEntriesSummary,
-) -> anyhow::Result<_inner::EntityWithEntriesSummary> {
+) -> _inner::EntityWithEntriesSummary {
     let Entity(hdr, body) = entity_with_entries_summary;
     let PlaylistWithEntriesSummary { playlist, entries } = body;
-    let playlist: _core::Playlist = playlist.try_into()?;
+    let playlist: _core::Playlist = playlist.into();
     let entity = _core::Entity::new(hdr, playlist);
     let entries = entries.into();
-    Ok(_inner::EntityWithEntriesSummary { entity, entries })
+    _inner::EntityWithEntriesSummary { entity, entries }
 }

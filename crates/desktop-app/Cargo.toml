@@ -14,7 +14,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.76"
+anyhow = "1.0.77"
 discro = { version = "0.27.1", features = ["tokio"] }
 highway = { version = "1.1.0" }
 log = "0.4.20"

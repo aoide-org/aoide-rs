@@ -14,12 +14,12 @@ publish = false
 workspace = true
 
 [dependencies]
-anyhow = "1.0.76"
+anyhow = "1.0.77"
 diesel = { version = "2.1.4", default-features = false, features = ["sqlite"] }
 log = "0.4.20"
 nonicle = "0.1.0"
 serde = { version = "1.0.193" }
-thiserror = "1.0.51"
+thiserror = "1.0.52"
 url = "2.5.0"
 
 # tracing

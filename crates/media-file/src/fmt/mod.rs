@@ -305,10 +305,10 @@ pub(crate) fn import_tagged_file_into_track(
 // Compatibility hacks for mapping ItemKey::ContentGroup and ItemKey::Work
 #[derive(Debug)]
 struct Compatibility {
-    primary_content_group_item_key: ItemKey,
-    secondary_content_group_item_key: Option<ItemKey>,
-    primary_work_item_key: ItemKey,
-    secondary_work_item_key: Option<ItemKey>,
+    primary_content_group: ItemKey,
+    secondary_content_group: Option<ItemKey>,
+    primary_work: ItemKey,
+    secondary_work: Option<ItemKey>,
 }
 
 impl Compatibility {
@@ -327,31 +327,31 @@ impl Compatibility {
     }
 
     const fn new(tage_type: TagType, apple_grp1: bool) -> Self {
-        let primary_content_group_item_key;
-        let secondary_content_group_item_key;
-        let primary_work_item_key;
-        let secondary_work_item_key;
+        let primary_content_group;
+        let secondary_content_group;
+        let primary_work;
+        let secondary_work;
         if matches!(tage_type, TagType::Id3v2) {
-            primary_content_group_item_key = ItemKey::AppleId3v2ContentGroup; // GRP1
-            primary_work_item_key = ItemKey::Work; // TXXX:WORK
+            primary_content_group = ItemKey::AppleId3v2ContentGroup; // GRP1
+            primary_work = ItemKey::Work; // TXXX:WORK
             if apple_grp1 {
-                secondary_content_group_item_key = None;
-                secondary_work_item_key = Some(ItemKey::ContentGroup); // TIT1
+                secondary_content_group = None;
+                secondary_work = Some(ItemKey::ContentGroup); // TIT1
             } else {
-                secondary_content_group_item_key = Some(ItemKey::ContentGroup); // TIT1
-                secondary_work_item_key = None;
+                secondary_content_group = Some(ItemKey::ContentGroup); // TIT1
+                secondary_work = None;
             }
         } else {
-            primary_content_group_item_key = ItemKey::ContentGroup;
-            secondary_content_group_item_key = None;
-            primary_work_item_key = ItemKey::Work;
-            secondary_work_item_key = None;
+            primary_content_group = ItemKey::ContentGroup;
+            secondary_content_group = None;
+            primary_work = ItemKey::Work;
+            secondary_work = None;
         }
         Self {
-            primary_content_group_item_key,
-            secondary_content_group_item_key,
-            primary_work_item_key,
-            secondary_work_item_key,
+            primary_content_group,
+            secondary_content_group,
+            primary_work,
+            secondary_work,
         }
     }
 }
@@ -498,15 +498,13 @@ pub(crate) fn import_file_tag_into_track(
         track_titles.push(title);
     }
     let primary_work_title = tag
-        .take_strings(&compatibility.primary_work_item_key)
+        .take_strings(&compatibility.primary_work)
         .find_map(|name| ingest_title_from(name, TitleKind::Work));
     if let Some(work_title) = primary_work_title.or_else(|| {
-        compatibility
-            .secondary_work_item_key
-            .and_then(|secondary_work_item_key| {
-                tag.take_strings(&secondary_work_item_key)
-                    .find_map(|name| ingest_title_from(name, TitleKind::Work))
-            })
+        compatibility.secondary_work.and_then(|secondary_work| {
+            tag.take_strings(&secondary_work)
+                .find_map(|name| ingest_title_from(name, TitleKind::Work))
+        })
     }) {
         track_titles.push(work_title);
     }
@@ -865,17 +863,16 @@ pub(crate) fn import_file_tag_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_GROUPING,
-        tag.take_strings(&compatibility.primary_content_group_item_key)
+        tag.take_strings(&compatibility.primary_content_group)
             .map(Into::into),
     );
-    if let Some(secondary_content_group_item_key) = compatibility.secondary_content_group_item_key {
+    if let Some(secondary_content_group) = compatibility.secondary_content_group {
         if tags_map.get_faceted_plain_tags(FACET_ID_GROUPING).is_none() {
             importer.import_faceted_tags_from_label_values(
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 FACET_ID_GROUPING,
-                tag.take_strings(&secondary_content_group_item_key)
-                    .map(Into::into),
+                tag.take_strings(&secondary_content_group).map(Into::into),
             );
         }
     }
@@ -1122,11 +1119,11 @@ pub(crate) fn export_track_to_tag(
 
     let compatibility = Compatibility::export(tag.tag_type(), config.flags);
     // Prevent inconsistencies by removing ambiguous keys.
-    if let Some(secondary_content_group_item_key) = compatibility.secondary_content_group_item_key {
-        tag.remove_key(&secondary_content_group_item_key);
+    if let Some(secondary_content_group) = compatibility.secondary_content_group {
+        tag.remove_key(&secondary_content_group);
     }
-    if let Some(secondary_work_item_key) = compatibility.secondary_work_item_key {
-        tag.remove_key(&secondary_work_item_key);
+    if let Some(secondary_work) = compatibility.secondary_work {
+        tag.remove_key(&secondary_work);
     }
 
     // Music: Tempo/Bpm
@@ -1175,10 +1172,7 @@ pub(crate) fn export_track_to_tag(
     }
     for work_title in Titles::filter_kind(track.titles.iter(), TitleKind::Work).peekable() {
         let item_val = ItemValue::Text(work_title.name.clone());
-        let pushed = tag.push(TagItem::new(
-            compatibility.primary_work_item_key.clone(),
-            item_val,
-        ));
+        let pushed = tag.push(TagItem::new(compatibility.primary_work.clone(), item_val));
         debug_assert!(pushed);
     }
 
@@ -1570,11 +1564,11 @@ pub(crate) fn export_track_to_tag(
             }
         }
         if tags.is_empty() {
-            tag.remove_key(&compatibility.primary_content_group_item_key);
+            tag.remove_key(&compatibility.primary_content_group);
         } else {
             export_faceted_tags(
                 tag,
-                compatibility.primary_content_group_item_key,
+                compatibility.primary_content_group,
                 config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
                 tags,
             );

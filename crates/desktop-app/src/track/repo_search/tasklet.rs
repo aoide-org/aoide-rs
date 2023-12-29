@@ -34,7 +34,7 @@ where
     discro::tasklet::capture_changes_async(
         subscriber,
         (),
-        |_, state| {
+        |(), state| {
             // Keep nagging the listener until should_prefetch() returns false
             state.should_prefetch().then_some(())
         },
