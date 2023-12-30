@@ -13,18 +13,29 @@ use crate::prelude::*;
 
 pub type NumberOfChannels = u16;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, derive_more::Display)]
 #[repr(transparent)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct ChannelCount(pub NumberOfChannels);
+pub struct ChannelCount(NumberOfChannels);
 
 impl ChannelCount {
     pub const ZERO: Self = Self(0);
     pub const MIN: Self = Self(1);
     pub const MAX: Self = Self(u16::MAX);
+
+    #[must_use]
+    pub const fn new(value: NumberOfChannels) -> Self {
+        Self(value)
+    }
+
+    #[must_use]
+    pub const fn value(self) -> NumberOfChannels {
+        let Self(value) = self;
+        value
+    }
 
     #[must_use]
     pub fn is_valid(&self) -> bool {
@@ -46,18 +57,6 @@ impl Validate for ChannelCount {
             .invalidate_if(*self < Self::MIN, Self::Invalidity::Min(Self::MIN))
             .invalidate_if(*self > Self::MAX, Self::Invalidity::Max(Self::MAX))
             .into()
-    }
-}
-
-impl From<NumberOfChannels> for ChannelCount {
-    fn from(from: NumberOfChannels) -> Self {
-        Self(from)
-    }
-}
-
-impl From<ChannelCount> for NumberOfChannels {
-    fn from(from: ChannelCount) -> Self {
-        from.0
     }
 }
 

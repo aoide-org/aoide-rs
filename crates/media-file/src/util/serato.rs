@@ -29,7 +29,7 @@ fn import_cue(serato_cue: SeratoCue) -> Cue {
         out_marker: None,
         kind: None,
         label: trimmed_non_empty_from_owned(serato_cue.label).map(Into::into),
-        color: Some(Color::Rgb(RgbColor(
+        color: Some(Color::Rgb(RgbColor::new(
             serato_cue.color.into_pro_hotcue_color().into(),
         ))),
         flags: CueFlags::empty(),
@@ -76,6 +76,6 @@ pub fn import_track_color(serato_tags: &TagContainer) -> Option<Color> {
         .track_color()
         .and_then(SeratoColor::into_displayed_track_color)
         .map(Into::into)
-        .map(RgbColor)
+        .map(RgbColor::new)
         .map(Color::Rgb)
 }

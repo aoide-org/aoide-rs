@@ -441,7 +441,7 @@ fn build_numeric_field_filter_expression(
         }
         AudioChannelCount => {
             let expr = view_track_search::audio_channel_count;
-            let expr_not_null = ifnull(expr, ChannelCount::default().0 as i16);
+            let expr_not_null = ifnull(expr, ChannelCount::default().value() as i16);
             // TODO: Check and limit/clamp value range when converting from f64 to i16
             match filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value as i16)),

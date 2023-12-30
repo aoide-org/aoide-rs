@@ -68,7 +68,12 @@ impl Validate for BitrateBps {
 
 impl fmt::Display for BitrateBps {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.value(), Self::UNIT_OF_MEASURE)
+        write!(
+            f,
+            "{value} {unit}",
+            value = self.value(),
+            unit = Self::UNIT_OF_MEASURE
+        )
     }
 }
 
@@ -129,7 +134,12 @@ impl Validate for SampleRateHz {
 
 impl fmt::Display for SampleRateHz {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.value(), Self::UNIT_OF_MEASURE)
+        write!(
+            f,
+            "{value} {unit}",
+            value = self.value(),
+            unit = Self::UNIT_OF_MEASURE
+        )
     }
 }
 
@@ -150,7 +160,7 @@ impl PcmSignal {
     #[must_use]
     pub fn bitrate(self, bits_per_sample: BitsPerSample) -> BitrateBps {
         debug_assert!(self.is_valid());
-        let bps = BitrateBpsValue::from(self.channel_layout.channel_count().0)
+        let bps = BitrateBpsValue::from(self.channel_layout.channel_count().value())
             * self.sample_rate.0.round()
             * BitrateBpsValue::from(bits_per_sample);
         BitrateBps(bps)
@@ -251,7 +261,12 @@ impl Validate for LatencyMs {
 
 impl fmt::Display for LatencyMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.0, Self::UNIT_OF_MEASURE)
+        write!(
+            f,
+            "{value} {unit}",
+            value = self.value(),
+            unit = Self::UNIT_OF_MEASURE
+        )
     }
 }
 
@@ -311,7 +326,12 @@ impl Validate for LoudnessLufs {
 
 impl fmt::Display for LoudnessLufs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.0, Self::UNIT_OF_MEASURE)
+        write!(
+            f,
+            "{value} {unit}",
+            value = self.value(),
+            unit = Self::UNIT_OF_MEASURE
+        )
     }
 }
 

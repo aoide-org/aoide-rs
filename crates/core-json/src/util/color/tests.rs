@@ -37,7 +37,7 @@ fn deserialize_json() {
         serde_json::from_str("\"#0000fF\"").unwrap()
     );
     assert_eq!(
-        RgbColor::from(CoreRgbColor(0x00ab_cdef)),
+        RgbColor(CoreRgbColor::rgb(0xab, 0xcd, 0xef)),
         serde_json::from_str("\"#aBcDeF\"").unwrap()
     );
 }

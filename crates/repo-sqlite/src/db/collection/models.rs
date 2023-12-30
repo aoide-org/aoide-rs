@@ -69,7 +69,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, CollectionEntity) {
             notes,
             color: if let Some(color_rgb) = color_rgb {
                 debug_assert!(color_idx.is_none());
-                let rgb_color = RgbColor(color_rgb as RgbColorCode);
+                let rgb_color = RgbColor::new(color_rgb as RgbColorCode);
                 debug_assert!(rgb_color.is_valid());
                 Some(Color::Rgb(rgb_color))
             } else {

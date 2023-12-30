@@ -1,15 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::fmt;
-
 use crate::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 // SampleLayout
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, derive_more::Display)]
 pub enum SampleLayout {
     // Samples grouped by channel
     // Example for stereo signal with channels L+R: [LLLL|RRRR]
@@ -30,27 +28,15 @@ impl Validate for SampleLayout {
     }
 }
 
-impl fmt::Display for SampleLayout {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", *self)
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////
 // SampleFormat
 ///////////////////////////////////////////////////////////////////////
 
 pub type BitsPerSample = u8;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, derive_more::Display)]
 pub enum SampleFormat {
     Float32,
-}
-
-impl fmt::Display for SampleFormat {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", *self)
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -63,15 +49,33 @@ pub type SampleType = f32;
 // SamplePosition
 ///////////////////////////////////////////////////////////////////////
 
-pub type SamplePositionType = f64;
+pub type SamplePositionValue = f64;
 
-#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, derive_more::Display)]
 #[repr(transparent)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "json-schema", schemars(transparent))]
-pub struct SamplePosition(pub SamplePositionType);
+pub struct SamplePosition(SamplePositionValue);
+
+impl SamplePosition {
+    #[must_use]
+    pub const fn new(value: SamplePositionValue) -> Self {
+        Self(value)
+    }
+
+    #[must_use]
+    pub const fn value(self) -> SamplePositionValue {
+        let Self(value) = self;
+        value
+    }
+
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        <Self as IsValid>::is_valid(self)
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 pub enum SamplePositionInvalidity {
@@ -85,18 +89,6 @@ impl Validate for SamplePosition {
         ValidationContext::new()
             .invalidate_if(!self.0.is_finite(), Self::Invalidity::OutOfRange)
             .into()
-    }
-}
-
-impl From<SamplePositionType> for SamplePosition {
-    fn from(from: SamplePositionType) -> Self {
-        Self(from)
-    }
-}
-
-impl From<SamplePosition> for SamplePositionType {
-    fn from(from: SamplePosition) -> Self {
-        from.0
     }
 }
 

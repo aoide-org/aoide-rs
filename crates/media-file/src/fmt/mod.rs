@@ -122,7 +122,7 @@ fn import_audio_content_from_file_properties(properties: &FileProperties) -> Aud
         .filter(IsValid::is_valid);
     let channel_count = properties
         .channels()
-        .map(|count| ChannelCount(count.into()));
+        .map(|count| ChannelCount::new(count.into()));
     let channel_flags = properties
         .channel_mask()
         .map(|mask| ChannelFlags::from_bits_truncate(mask.bits()));

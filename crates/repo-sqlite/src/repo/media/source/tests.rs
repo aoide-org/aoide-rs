@@ -93,7 +93,7 @@ fn insert_media_source() -> anyhow::Result<()> {
                     height: 600,
                 }),
                 digest: Some([128; 32]),
-                color: Some(RgbColor::new(0xf0, 0xf0, 0xf0)),
+                color: Some(RgbColor::rgb(0xf0, 0xf0, 0xf0)),
                 thumbnail: Some([127; THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3]),
             },
         })),

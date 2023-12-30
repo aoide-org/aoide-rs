@@ -168,7 +168,7 @@ fn ingest_artwork_image(
             .ok()
         })
         .and_then(|palette| palette.first().copied())
-        .map(|rgb| RgbColor::new(rgb.r, rgb.g, rgb.b));
+        .map(|rgb| RgbColor::rgb(rgb.r, rgb.g, rgb.b));
     let thumbnail_picture = picture.resize_exact(
         THUMBNAIL_WIDTH.try_into().expect("infallible"),
         THUMBNAIL_HEIGHT.try_into().expect("infallible"),

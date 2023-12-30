@@ -100,7 +100,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
         } = from;
         let channel_flags =
             audio_channel_mask.map(|val| ChannelFlags::from_bits_truncate(val as _));
-        let channel_count = audio_channel_count.map(|val| ChannelCount(val as _));
+        let channel_count = audio_channel_count.map(|val| ChannelCount::new(val as _));
         let channels = Channels::try_from_flags_or_count(channel_flags, channel_count);
         let audio_metadata = AudioContentMetadata {
             duration: audio_duration_ms.map(DurationMs::new),
@@ -140,7 +140,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                     };
                     let digest = artwork_digest.and_then(|bytes| bytes.try_into().ok());
                     let color = artwork_color.map(|code| {
-                        let color = RgbColor(code as RgbColorCode);
+                        let color = RgbColor::new(code as RgbColorCode);
                         debug_assert!(color.is_valid());
                         color
                     });
@@ -322,7 +322,7 @@ impl<'a> InsertableRecord<'a> {
                 .map(DurationMs::value),
             audio_channel_count: audio_metadata
                 .and_then(|audio| audio.channels)
-                .map(|channels| channels.count().0 as i16),
+                .map(|channels| channels.count().value() as i16),
             audio_samplerate_hz: audio_metadata
                 .and_then(|audio| audio.sample_rate)
                 .map(SampleRateHz::value),
@@ -459,7 +459,7 @@ impl<'a> UpdatableRecord<'a> {
                 .map(DurationMs::value),
             audio_channel_count: audio_metadata
                 .and_then(|audio| audio.channels)
-                .map(|channels| channels.count().0 as _),
+                .map(|channels| channels.count().value() as _),
             audio_channel_mask: audio_metadata
                 .and_then(|audio| audio.channels)
                 .and_then(Channels::flags)

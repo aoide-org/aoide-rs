@@ -22,7 +22,7 @@ fn track_index_smoke_test_to_verify_dynamic_schema_against_static_types() {
     let audio_metadata = AudioContentMetadata {
         bitrate: Some(BitrateBps::new(320_000.0)),
         duration: Some(DurationMs::new(240_000.0)),
-        channels: Some(Channels::Count(ChannelCount(2))),
+        channels: Some(Channels::Count(ChannelCount::new(2))),
         encoder: Some("encoder".to_owned()),
         loudness: Some(LoudnessLufs::new(1.234)),
         sample_rate: Some(SampleRateHz::new(44_100.0)),
