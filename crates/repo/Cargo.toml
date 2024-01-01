@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 [package]
@@ -14,10 +14,10 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.77"
+anyhow = "1.0.78"
 paste = "1.0.14"
 rand = "0.8.5"
-thiserror = "1.0.52"
+thiserror = "1.0.53"
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core" }

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 [package]
@@ -13,7 +13,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.77"
+anyhow = "1.0.78"
 blake3 = { version = "1.5.0", features = ["traits-preview"] }
 bitflags = "2.4.1"
 bytes = "1.5.0"
@@ -29,7 +29,7 @@ mime = "0.3.17"
 mime_guess = "2.0.4"
 nom = "7.1.3"
 num-traits = "0.2.17"
-thiserror = "1.0.52"
+thiserror = "1.0.53"
 time = { version = "0.3.31", features = ["parsing"] }
 url = "2.5.0"
 walkdir = "2.4.0"

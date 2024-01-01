@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 [package]
@@ -14,7 +14,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.77"
+anyhow = "1.0.78"
 serde = { version = "1.0.193", features = ["derive"] }
 url = { version = "2.5.0", features = ["serde"] }
 

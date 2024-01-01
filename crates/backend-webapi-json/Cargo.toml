@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (C) 2018-2023 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 [package]
@@ -14,12 +14,12 @@ publish = false
 workspace = true
 
 [dependencies]
-anyhow = "1.0.77"
+anyhow = "1.0.78"
 diesel = { version = "2.1.4", default-features = false, features = ["sqlite"] }
 log = "0.4.20"
 nonicle = "0.1.0"
 serde = { version = "1.0.193" }
-thiserror = "1.0.52"
+thiserror = "1.0.53"
 url = "2.5.0"
 
 # tracing
