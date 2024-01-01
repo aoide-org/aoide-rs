@@ -95,7 +95,7 @@ jobs:
           cd -
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.build_package }}-${{ matrix.target }}${{ matrix.artifact_suffix }}
           path: ${{ matrix.build_package }}-${{ matrix.target }}${{ matrix.artifact_suffix }}
