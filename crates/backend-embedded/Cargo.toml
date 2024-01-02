@@ -14,11 +14,11 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.78"
+anyhow = "1.0.79"
 diesel = { version = "2.1.4", default-features = false, features = ["sqlite"] }
 log = "0.4.20"
-serde = { version = "1.0.193", features = ["derive"] }
-thiserror = "1.0.53"
+serde = { version = "1.0.194", features = ["derive"] }
+thiserror = "1.0.56"
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core" }

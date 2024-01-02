@@ -15,10 +15,10 @@ publish = false
 workspace = true
 
 [dependencies]
-anyhow = "1.0.78"
+anyhow = "1.0.79"
 log = "0.4.20"
-serde = "1.0.193"
-thiserror = "1.0.53"
+serde = "1.0.194"
+thiserror = "1.0.56"
 warp = { version = "0.3.6", default-features = false }
 
 # Workspace dependencies
