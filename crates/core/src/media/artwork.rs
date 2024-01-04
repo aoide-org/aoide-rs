@@ -67,19 +67,19 @@ impl Validate for ImageSize {
 
 pub type Digest = [u8; 32];
 
-pub const THUMBNAIL_WIDTH: usize = 4;
+pub const THUMBNAIL_WIDTH: ImageDimension = 4;
 
-pub const THUMBNAIL_HEIGHT: usize = 4;
+pub const THUMBNAIL_HEIGHT: ImageDimension = 4;
 
-pub type Thumbnail4x4Rgb8 = [u8; THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3];
+pub type Thumbnail4x4Rgb8 = [u8; (THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3) as _];
 
 /// Create an image from thumbnail data
 #[must_use]
 #[allow(clippy::missing_panics_doc)] // Never panics
 pub fn thumbnail_image(thumbnail: &Thumbnail4x4Rgb8) -> image::RgbImage {
     image::RgbImage::from_raw(
-        THUMBNAIL_WIDTH.try_into().expect("infallible"),
-        THUMBNAIL_HEIGHT.try_into().expect("infallible"),
+        THUMBNAIL_WIDTH.into(),
+        THUMBNAIL_HEIGHT.into(),
         thumbnail.to_vec(),
     )
     .expect("Some")
@@ -96,8 +96,8 @@ pub fn thumbnail_png_data_uri(thumbnail: &Thumbnail4x4Rgb8) -> String {
     png_encoder
         .write_image(
             thumbnail,
-            THUMBNAIL_WIDTH.try_into().expect("infallible"),
-            THUMBNAIL_HEIGHT.try_into().expect("infallible"),
+            THUMBNAIL_WIDTH.into(),
+            THUMBNAIL_HEIGHT.into(),
             image::ColorType::Rgb8,
         )
         .expect("infallible");
@@ -228,7 +228,7 @@ mod tests {
                 for b in [0x00u8, 0xffu8] {
                     let pixel = [r, g, b];
                     let thumbnail_data = std::iter::repeat(pixel)
-                        .take(THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT)
+                        .take((THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT) as _)
                         .flatten()
                         .collect::<Vec<_>>();
                     let thumbnail = thumbnail_data.clone().try_into().unwrap();
@@ -243,7 +243,7 @@ mod tests {
                     assert!(fragment_identifier.is_none());
                     let png_data_cursor = Cursor::new(png_data);
                     let png_decoder = PngDecoder::new(png_data_cursor).unwrap();
-                    let mut decoded_data = [0; THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3];
+                    let mut decoded_data = [0; (THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3) as _];
                     png_decoder.read_image(&mut decoded_data).unwrap();
                     assert_eq!(thumbnail_data, decoded_data);
                 }

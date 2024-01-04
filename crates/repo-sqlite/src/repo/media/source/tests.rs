@@ -94,7 +94,7 @@ fn insert_media_source() -> anyhow::Result<()> {
                 }),
                 digest: Some([128; 32]),
                 color: Some(RgbColor::rgb(0xf0, 0xf0, 0xf0)),
-                thumbnail: Some([127; THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3]),
+                thumbnail: Some([127; (THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3) as _]),
             },
         })),
     };
