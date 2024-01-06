@@ -253,8 +253,7 @@ pub(crate) fn find_embedded_artwork_image(tag: &Tag) -> Option<(ApicType, &str, 
                 p,
             )
         }))
-        .map(|(apic_type, p)| (apic_type, p.mime_type().as_str(), p.data()))
-        .next()
+        .find_map(|(apic_type, p)| Some((apic_type, p.mime_type()?.as_str(), p.data())))
 }
 
 pub(crate) fn import_embedded_artwork(
@@ -837,8 +836,8 @@ pub(crate) fn import_file_tag_into_track(
 
     let old_released_at = &mut track.released_at;
     let new_released_at = tag
-        .take_strings(&ItemKey::PodcastReleaseDate)
-        .find_map(|input| importer.import_year_tag_from_field("PodcastReleaseDate", &input));
+        .take_strings(&ItemKey::ReleaseDate)
+        .find_map(|input| importer.import_year_tag_from_field("ReleaseDate", &input));
     if old_released_at.is_some() && *old_released_at != new_released_at {
         log::debug!("Replacing released at: {old_released_at:?} -> {new_released_at:?}");
     }
@@ -1372,9 +1371,9 @@ pub(crate) fn export_track_to_tag(
     }
     if let Some(released_at) = track.released_at {
         let released_at_text = released_at.to_string();
-        tag.insert_text(ItemKey::PodcastReleaseDate, released_at_text);
+        tag.insert_text(ItemKey::ReleaseDate, released_at_text);
     } else {
-        tag.remove_key(&ItemKey::PodcastReleaseDate);
+        tag.remove_key(&ItemKey::ReleaseDate);
     }
     if let Some(released_orig_at) = track.released_orig_at {
         let released_orig_at_text = released_orig_at.to_string();
@@ -1600,7 +1599,7 @@ pub(crate) fn export_track_to_tag(
                 track.media_source.artwork = Some(Artwork::Embedded(EmbeddedArtwork {
                     image: artwork_image,
                 }));
-                let picture = Picture::new_unchecked(pic_type, mime_type, None, image_data);
+                let picture = Picture::new_unchecked(pic_type, Some(mime_type), None, image_data);
                 match others {
                     EditOtherEmbeddedArtworkImages::Keep => {
                         tag.remove_picture_type(pic_type);
