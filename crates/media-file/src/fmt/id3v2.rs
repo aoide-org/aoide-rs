@@ -5,15 +5,17 @@ use aoide_core::{
     music::tempo::TempoBpm,
     track::{metric::MetricsFlags, Track},
 };
-use lofty::id3::v2::{ExtendedTextFrame, FrameValue, Id3v2Tag};
+use lofty::id3::v2::Id3v2Tag;
 
 use crate::{
     io::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, ImportedTempoBpm, Importer},
     },
-    util::{artwork::EditEmbeddedArtworkImage, format_validated_tempo_bpm, FormattedTempoBpm},
+    util::{artwork::EditEmbeddedArtworkImage, format_validated_tempo_bpm},
 };
+
+const TXXX_BPM_DESCRIPTION: &str = "BPM";
 
 #[derive(Debug, Default)]
 pub(super) struct Import {
@@ -32,7 +34,7 @@ impl Import {
         debug_assert!(config.flags.contains(ImportTrackFlags::METADATA));
 
         let float_bpm = tag
-            .get_user_text("BPM")
+            .get_user_text(TXXX_BPM_DESCRIPTION)
             .and_then(|content| importer.import_tempo_bpm(content));
 
         #[cfg(feature = "serato-markers")]
@@ -141,42 +143,14 @@ pub(crate) fn export_track_to_tag(
 
     // Post-processing: Export custom metadata
 
-    // Music: Precise tempo BPM as a float value
-    let mut remove_float_bpm_frame = true;
-    // TODO: Make use of <https://github.com/Serial-ATA/lofty-rs/pull/232>
-    tag.retain(|frame| {
-        if frame.id_str() != "TXXX" {
-            return true;
-        }
-        let FrameValue::UserText(ExtendedTextFrame { description, .. }) = frame.content() else {
-            return true;
-        };
-        if description != "BPM" {
-            return true;
-        }
-        // Drop the custom BPM frame
-        false
-    });
+    // Write custom frame with fractional BPM value
     if let Some(formatted) = format_validated_tempo_bpm(
         &mut track.metrics.tempo_bpm,
         crate::util::TempoBpmFormat::Float,
     ) {
-        if !track
-            .metrics
-            .flags
-            .contains(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL)
-            || matches!(formatted, FormattedTempoBpm::Fractional(_))
-        {
-            track
-                .metrics
-                .flags
-                .remove(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL);
-            tag.insert_user_text("BPM".into(), formatted.into());
-            remove_float_bpm_frame = false;
-        }
-    }
-    if remove_float_bpm_frame {
-        tag.remove_user_text("BPM");
+        tag.insert_user_text(TXXX_BPM_DESCRIPTION.into(), formatted.into());
+    } else {
+        tag.remove_user_text(TXXX_BPM_DESCRIPTION);
     }
 
     #[cfg(feature = "serato-markers")]

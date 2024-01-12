@@ -3,9 +3,9 @@
 
 use std::{borrow::Cow, fs::File};
 
-use aoide_core::track::{metric::MetricsFlags, AdvisoryRating, Track};
+use aoide_core::track::{AdvisoryRating, Track};
 use lofty::{
-    mp4::{Atom, AtomData, AtomIdent, Ilst, Mp4File},
+    mp4::{AtomData, AtomIdent, Ilst, Mp4File},
     AudioFile,
 };
 
@@ -15,18 +15,11 @@ use crate::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
-    util::{artwork::EditEmbeddedArtworkImage, format_validated_tempo_bpm, FormattedTempoBpm},
+    util::artwork::EditEmbeddedArtworkImage,
     Result,
 };
 
 const ADVISORY_RATING_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"rtng");
-
-const COM_APPLE_ITUNES_FREEFORM_MEAN: &str = "com.apple.iTunes";
-
-const FLOAT_BPM_IDENT: AtomIdent<'_> = AtomIdent::Freeform {
-    mean: Cow::Borrowed(COM_APPLE_ITUNES_FREEFORM_MEAN),
-    name: Cow::Borrowed("BPM"),
-};
 
 #[cfg(feature = "serato-markers")]
 const SERATO_MARKERS_IDENT: AtomIdent<'_> = AtomIdent::Freeform {
@@ -231,30 +224,6 @@ pub(crate) fn export_track_to_tag(
         ilst.set_advisory_rating(advisory_rating);
     } else {
         drop(ilst.remove(&ADVISORY_RATING_IDENT));
-    }
-
-    // Music: Precise tempo BPM as a float value
-    if let Some(formatted) = format_validated_tempo_bpm(
-        &mut track.metrics.tempo_bpm,
-        crate::util::TempoBpmFormat::Float,
-    ) {
-        if !track
-            .metrics
-            .flags
-            .contains(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL)
-            || matches!(formatted, FormattedTempoBpm::Fractional(_))
-        {
-            track
-                .metrics
-                .flags
-                .remove(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL);
-            let atom = Atom::new(FLOAT_BPM_IDENT, AtomData::UTF8(formatted.into()));
-            ilst.replace_atom(atom);
-        } else {
-            drop(ilst.remove(&FLOAT_BPM_IDENT));
-        }
-    } else {
-        drop(ilst.remove(&FLOAT_BPM_IDENT));
     }
 
     #[cfg(feature = "serato-markers")]

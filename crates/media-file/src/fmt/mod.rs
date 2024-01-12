@@ -52,7 +52,7 @@ use crate::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
         key_signature_as_str, push_next_actor,
         tag::TagMappingConfig,
-        TempoBpmFormat,
+        FormattedTempoBpm, TempoBpmFormat,
     },
 };
 
@@ -420,8 +420,10 @@ pub(crate) fn import_file_tag_into_track(
     let compatibility = Compatibility::import(tag.tag_type(), config.flags);
 
     // Musical metrics: tempo (bpm)
-    for imported_tempo_bpm in tag
-        .take_strings(&ItemKey::Bpm)
+    let mut tempo_bpm_strings = tag.take_strings(&ItemKey::Bpm).collect::<Vec<_>>();
+    tempo_bpm_strings.extend(tag.take_strings(&ItemKey::IntegerBpm));
+    for imported_tempo_bpm in tempo_bpm_strings
+        .into_iter()
         .filter_map(|input| importer.import_tempo_bpm(&input))
     {
         let is_non_fractional = imported_tempo_bpm.is_non_fractional();
@@ -1126,11 +1128,26 @@ pub(crate) fn export_track_to_tag(
     }
 
     // Music: Tempo/Bpm
-    // Write the Bpm rounded to an integer value as the least common denominator.
-    // The precise Bpm could be written into custom tag fields during post-processing.
+    // Write both the non-fractional and the fractional Bpm value. Depending on the tag
+    // format either one or both of them will be written.
     if let Some(formatted) =
         format_validated_tempo_bpm(&mut track.metrics.tempo_bpm, TempoBpmFormat::Integer)
     {
+        tag.insert_text(ItemKey::IntegerBpm, formatted.into());
+    } else {
+        tag.remove_key(&ItemKey::IntegerBpm);
+    }
+    if let Some(formatted) = format_validated_tempo_bpm(
+        &mut track.metrics.tempo_bpm,
+        crate::util::TempoBpmFormat::Float,
+    ) {
+        if matches!(formatted, FormattedTempoBpm::Fractional(_)) {
+            // Reset non-fractional flag if the actual bpm is fractional.
+            track
+                .metrics
+                .flags
+                .remove(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL);
+        }
         tag.insert_text(ItemKey::Bpm, formatted.into());
     } else {
         tag.remove_key(&ItemKey::Bpm);
