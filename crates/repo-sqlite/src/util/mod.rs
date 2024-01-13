@@ -47,8 +47,8 @@ pub(crate) fn pagination_to_limit_offset(pagination: &Pagination) -> (Option<i64
 
 pub(crate) enum StringCmpOp {
     Equal(String),
-    Prefix(String, usize),
-    Like(String),
+    Prefix(String),
+    Like { escaped: String },
 }
 
 pub(crate) const LIKE_ESCAPE_CHARACTER: char = '\\';
