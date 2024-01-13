@@ -5,24 +5,23 @@ use aoide_core::tag::FacetKey;
 
 use crate::{filtering::*, sorting::*};
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct FacetsFilter {
-    pub modifier: Option<FilterModifier>,
-
-    /// Filter by facets.
-    ///
-    /// Matches any of the given facets.
-    ///
-    /// Both an empty vector or a default element inside a non-empty
-    /// vector match all unfaceted tags, i.e. tags without a facet.
-    pub any_of: Vec<FacetKey<'static>>,
+/// Filter by facets.
+///
+/// Both an empty vector or a default element inside a non-empty
+/// vector match all unfaceted tags, i.e. tags without a facet.
+#[derive(Clone, Debug, PartialEq)]
+pub enum FacetsFilter<'a> {
+    Prefix(FacetKey<'a>),
+    AnyOf(Vec<FacetKey<'a>>),
+    /// Not [`AnyOf`](Self::AnyOf).
+    NoneOf(Vec<FacetKey<'a>>),
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Filter {
     pub modifier: Option<FilterModifier>,
 
-    pub facets: Option<FacetsFilter>,
+    pub facets: Option<FacetsFilter<'static>>,
 
     pub label: Option<StringPredicate<'static>>,
 

@@ -910,35 +910,61 @@ fn select_track_ids_matching_tag_filter(
     } = filter;
 
     // Filter tag facet(s)
-    if let Some(ref facets) = facets {
-        let FacetsFilter { modifier, any_of } = facets;
-        match modifier {
-            None => {
-                if !any_of.is_empty() {
-                    // Tags with any of the given facets.
-                    select =
-                        select.filter(track_tag::facet.eq_any(any_of.iter().map(FacetKey::as_str)));
-                }
-                if any_of.is_empty() || any_of.contains(&FacetKey::default()) {
-                    // Include unfaceted tags without a facet.
-                    select = select.or_filter(track_tag::facet.is_null());
-                } else {
-                    // Exclude unfaceted tags without a facet.
-                    select = select.filter(diesel::dsl::not(track_tag::facet.is_null()));
+    if let Some(ref filter) = facets {
+        match filter {
+            FacetsFilter::Prefix(prefix) => {
+                let prefix = prefix.as_str();
+                if !prefix.is_empty() {
+                    let sql_prefix_filter = sql_column_substr_prefix_eq("track_tag.facet", prefix);
+                    select = select.filter(sql_prefix_filter);
                 }
             }
-            Some(FilterModifier::Complement) => {
-                if !any_of.is_empty() {
-                    // Tags with none of the given facets.
-                    select =
-                        select.filter(track_tag::facet.ne_all(any_of.iter().map(FacetKey::as_str)));
-                }
-                if any_of.is_empty() || any_of.contains(&FacetKey::default()) {
-                    // Exclude unfaceted tags without a facet.
-                    select = select.filter(diesel::dsl::not(track_tag::facet.is_null()));
+            FacetsFilter::AnyOf(any_of) => {
+                if any_of.is_empty() {
+                    select = select.filter(track_tag::facet.is_null());
                 } else {
-                    // Include unfaceted tags without a facet.
-                    select = select.or_filter(track_tag::facet.is_null());
+                    // Tags with any of the given facets.
+                    let mut count_non_default = 0;
+                    let any_of_non_default =
+                        any_of.iter().filter(|&key| *key != FacetKey::default());
+                    select =
+                        select.filter(track_tag::facet.eq_any(any_of_non_default.map(|key| {
+                            count_non_default += 1;
+                            key.as_str()
+                        })));
+                    debug_assert!(count_non_default <= any_of.len());
+                    if count_non_default < any_of.len() {
+                        // Include unfaceted tags without a facet.
+                        select = select.or_filter(track_tag::facet.is_null());
+                    } else {
+                        // Explicitly exclude unfaceted tags without a facet.
+                        // This additional condition is required because the nullable column!
+                        select = select.filter(diesel::dsl::not(track_tag::facet.is_null()));
+                    }
+                }
+            }
+            FacetsFilter::NoneOf(none_of) => {
+                if none_of.is_empty() {
+                    select = select.filter(track_tag::facet.is_not_null());
+                } else {
+                    // Tags with none of the given facets.
+                    let mut count_non_default = 0;
+                    let none_of_non_default =
+                        none_of.iter().filter(|&key| *key != FacetKey::default());
+                    select =
+                        select.filter(track_tag::facet.ne_all(none_of_non_default.map(|key| {
+                            count_non_default += 1;
+                            key.as_str()
+                        })));
+                    debug_assert!(count_non_default <= none_of.len());
+                    if count_non_default < none_of.len() {
+                        // Explicitly exclude unfaceted tags without a facet.
+                        // This additional condition is required because the nullable column!
+                        select = select.filter(track_tag::facet.is_not_null());
+                    } else {
+                        // Include unfaceted tags without a facet.
+                        select = select.or_filter(track_tag::facet.is_null());
+                    }
                 }
             }
         }
@@ -1476,10 +1502,7 @@ mod tests {
         let collection_id = create_single_track_collection_with_tags(&mut db)?;
         let filter = TrackFilter::Tag(TagFilter {
             modifier: None,
-            facets: Some(FacetsFilter {
-                modifier: None,
-                any_of: vec![FacetKey::default()],
-            }),
+            facets: Some(FacetsFilter::AnyOf(vec![FacetKey::default()])),
             label: Some(StringPredicate::StartsWith("Tag\\".into())),
             score: None,
         });
@@ -1495,10 +1518,7 @@ mod tests {
         );
         let filter = TrackFilter::Tag(TagFilter {
             modifier: None,
-            facets: Some(FacetsFilter {
-                modifier: Some(FilterModifier::Complement),
-                any_of: vec![FacetKey::from(FACET_ID_COMMENT)],
-            }),
+            facets: Some(FacetsFilter::NoneOf(vec![FacetKey::from(FACET_ID_COMMENT)])),
             label: Some(StringPredicate::StartsWith("tag\\".into())),
             score: None,
         });

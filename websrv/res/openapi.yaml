@@ -3214,20 +3214,33 @@ components:
 
         `+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz`
     TagFacetsFilter:
+      oneOf:
+        - $ref: "#/components/schemas/TagFacetsFilterPrefix"
+        - $ref: "#/components/schemas/TagFacetsFilterAnyOf"
+        - $ref: "#/components/schemas/TagFacetsFilterNoneOf"
+    TagFacetsFilterPrefix:
       type: object
       properties:
-        modifier:
-          $ref: "#/components/schemas/FilterModifier"
+        prefix:
+          $ref: "#/components/schemas/TagFacetId"
+    TagFacetsFilterAnyOf:
+      type: object
+      properties:
         anyOf:
-          type: array
-          items:
-            $ref: "#/components/schemas/TagFacetId"
-          description: |
-            A non-empty array will match any of the given facets.
-            An empty array or an empty string in the array matches
-            all unfaceted tags, i.e. tags without a facet.
-
-            The optional modifier allows to invert the filter condition.
+          $ref: "#/components/schemas/TagFacetIdArray"
+    TagFacetsFilterNoneOf:
+      type: object
+      properties:
+        noneOf:
+          $ref: "#/components/schemas/TagFacetIdArray"
+      description: The complement of *anyOf*, i.e. *notAnyOf*.
+    TagFacetIdArray:
+      type: array
+      items:
+        $ref: "#/components/schemas/TagFacetId"
+      description: |
+        An empty array or an empty string in the array matches
+        all unfaceted tags, i.e. tags without a facet.
     TagFilter:
       type: object
       properties:

@@ -17,31 +17,32 @@ mod _inner {
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct FacetsFilter {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
-
-    pub any_of: Vec<FacetKey>,
+pub enum FacetsFilter {
+    Prefix(FacetKey),
+    AnyOf(Vec<FacetKey>),
+    NoneOf(Vec<FacetKey>),
 }
 
 #[cfg(feature = "backend")]
-impl From<FacetsFilter> for _inner::FacetsFilter {
+impl From<FacetsFilter> for _inner::FacetsFilter<'static> {
     fn from(from: FacetsFilter) -> Self {
-        let FacetsFilter { modifier, any_of } = from;
-        Self {
-            modifier: modifier.map(Into::into),
-            any_of: any_of.into_iter().map(Into::into).collect(),
+        use FacetsFilter as From;
+        match from {
+            From::Prefix(prefix) => Self::Prefix(prefix.into()),
+            From::AnyOf(any_of) => Self::AnyOf(any_of.into_iter().map(Into::into).collect()),
+            From::NoneOf(any_of) => Self::NoneOf(any_of.into_iter().map(Into::into).collect()),
         }
     }
 }
 
 #[cfg(feature = "frontend")]
-impl From<_inner::FacetsFilter> for FacetsFilter {
-    fn from(from: _inner::FacetsFilter) -> Self {
-        let _inner::FacetsFilter { modifier, any_of } = from;
-        Self {
-            modifier: modifier.map(Into::into),
-            any_of: any_of.into_iter().map(Into::into).collect(),
+impl From<_inner::FacetsFilter<'static>> for FacetsFilter {
+    fn from(from: _inner::FacetsFilter<'static>) -> Self {
+        use _inner::FacetsFilter as From;
+        match from {
+            From::Prefix(prefix) => Self::Prefix(prefix.into()),
+            From::AnyOf(any_of) => Self::AnyOf(any_of.into_iter().map(Into::into).collect()),
+            From::NoneOf(any_of) => Self::NoneOf(any_of.into_iter().map(Into::into).collect()),
         }
     }
 }
