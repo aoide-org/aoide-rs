@@ -457,10 +457,10 @@ pub(crate) fn import_file_tag_into_track(
             }
         }
         *old_tempo_bpm = Some(new_tempo_bpm);
-        track.metrics.flags.set(
-            MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
-            is_non_fractional,
-        );
+        track
+            .metrics
+            .flags
+            .set(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL, is_non_fractional);
         if !is_non_fractional {
             // Abort after importing the first fractional bpm
             break;
@@ -779,7 +779,7 @@ pub(crate) fn import_file_tag_into_track(
         }
         *old_track_index = Default::default();
     }
-    let old_disc_index = &mut track.indexes.track;
+    let old_disc_index = &mut track.indexes.disc;
     let disc_number = tag.disk().map(TryFrom::try_from).transpose().ok().flatten();
     let disc_total = tag
         .disk_total()
