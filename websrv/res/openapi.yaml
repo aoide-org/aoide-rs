@@ -1303,9 +1303,9 @@ components:
           $ref: "#/components/schemas/AlbumKind"
     ApicType:
       type: integer
-      minimum: 0x00
-      maximum: 0x14
-      example: 0x03
+      minimum: 0
+      maximum: 20
+      example: 3
       description: |
         The APIC picture type code as defined by ID3v2.
 
@@ -1428,9 +1428,9 @@ components:
       example: 2
     ChannelMask:
       type: integer
-      minimum: 0x00000001
-      maximum: 0x0003ffff
-      example: 0x00000003
+      minimum: 0
+      maximum: 262143
+      example: 3
       description: |
         Channel mask
 
@@ -1948,9 +1948,9 @@ components:
     MetricsFlags:
       type: integer
       format: i32
-      minimum: 0x01
-      maximum: 0xff
-      example: 0x05
+      minimum: 0
+      maximum: 255
+      example: 5
       description: |
         A bitmask for locking selected musical metrics properties and for
         indicating special cases.
