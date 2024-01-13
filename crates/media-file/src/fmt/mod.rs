@@ -420,13 +420,24 @@ pub(crate) fn import_file_tag_into_track(
     let compatibility = Compatibility::import(tag.tag_type(), config.flags);
 
     // Musical metrics: tempo (bpm)
-    let mut tempo_bpm_strings = tag.take_strings(&ItemKey::Bpm).collect::<Vec<_>>();
-    tempo_bpm_strings.extend(tag.take_strings(&ItemKey::IntegerBpm));
-    for imported_tempo_bpm in tempo_bpm_strings
-        .into_iter()
-        .filter_map(|input| importer.import_tempo_bpm(&input))
+    let mut tempo_bpm_strings = tag
+        .take_strings(&ItemKey::Bpm)
+        .map(|input| (false, input))
+        .collect::<Vec<_>>();
+    tempo_bpm_strings.extend(
+        tag.take_strings(&ItemKey::IntegerBpm)
+            .map(|input| (true, input)),
+    );
+    for (non_fractional, imported_tempo_bpm) in
+        tempo_bpm_strings
+            .into_iter()
+            .filter_map(|(non_fractional, input)| {
+                importer
+                    .import_tempo_bpm(&input)
+                    .map(|bpm| (non_fractional, bpm))
+            })
     {
-        let is_non_fractional = imported_tempo_bpm.is_non_fractional();
+        let is_non_fractional = non_fractional && imported_tempo_bpm.is_non_fractional();
         if is_non_fractional
             && track.metrics.tempo_bpm.is_some()
             && !track
@@ -446,10 +457,10 @@ pub(crate) fn import_file_tag_into_track(
             }
         }
         *old_tempo_bpm = Some(new_tempo_bpm);
-        track
-            .metrics
-            .flags
-            .set(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL, is_non_fractional);
+        track.metrics.flags.set(
+            MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
+            is_non_fractional,
+        );
         if !is_non_fractional {
             // Abort after importing the first fractional bpm
             break;
