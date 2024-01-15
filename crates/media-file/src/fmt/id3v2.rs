@@ -63,7 +63,7 @@ impl Import {
             track
                 .metrics
                 .flags
-                .set(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL, false);
+                .set(MetricsFlags::TEMPO_BPM_INTEGER, false);
             let old_tempo_bpm = &mut track.metrics.tempo_bpm;
             let new_tempo_bpm = TempoBpm::from(float_bpm);
             if let Some(old_tempo_bpm) = old_tempo_bpm {

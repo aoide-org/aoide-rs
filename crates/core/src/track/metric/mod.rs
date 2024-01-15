@@ -15,12 +15,18 @@ use crate::{
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct MetricsFlags: u8 {
-        const TEMPO_BPM_LOCKED            = 0b0000_0001;
-        const KEY_SIGNATURE_LOCKED        = 0b0000_0010;
-        const TIME_SIGNATURE_LOCKED       = 0b0000_0100;
+        const TEMPO_BPM_LOCKED      = 0b0000_0001;
+        const KEY_SIGNATURE_LOCKED  = 0b0000_0010;
+        const TIME_SIGNATURE_LOCKED = 0b0000_0100;
 
-        /// Some file tags only store imprecise integer values
-        const TEMPO_BPM_NON_FRACTIONAL    = 0b0001_0000;
+        /// Non-fractional integer BPM
+        ///
+        /// Some file tags only store integer values. On re-import such an imprecise
+        /// value should be ignored to prevent overwriting the more precise internal
+        /// value that is stored in the database.
+        ///
+        /// Imprecise integer BPM values are only re-imported if this flag is set.
+        const TEMPO_BPM_INTEGER     = 0b0001_0000;
     }
 }
 

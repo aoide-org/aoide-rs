@@ -428,25 +428,28 @@ pub(crate) fn import_file_tag_into_track(
         tag.take_strings(&ItemKey::IntegerBpm)
             .map(|input| (true, input)),
     );
-    for (non_fractional, imported_tempo_bpm) in
+    for (is_integer, imported_tempo_bpm) in
         tempo_bpm_strings
             .into_iter()
-            .filter_map(|(non_fractional, input)| {
-                importer
-                    .import_tempo_bpm(&input)
-                    .map(|bpm| (non_fractional, bpm))
+            .filter_map(|(is_integer, input)| {
+                importer.import_tempo_bpm(&input).map(|bpm| {
+                    // The file might still contain a fractional value even if the tag
+                    // is supposed to contain only an integer value!
+                    let is_integer = is_integer && bpm.is_integer();
+                    (is_integer, bpm)
+                })
             })
     {
-        let is_non_fractional = non_fractional && imported_tempo_bpm.is_non_fractional();
-        if is_non_fractional
+        if is_integer
             && track.metrics.tempo_bpm.is_some()
             && !track
                 .metrics
                 .flags
-                .contains(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL)
+                .contains(MetricsFlags::TEMPO_BPM_INTEGER)
         {
-            // Preserve the existing fractional bpm and continue, trying
-            // to import a more precise, fractional bpm.
+            // Preserve the existing fractional bpm and do not overwrite it with
+            // the imprecise integer value. Instead continue and try to import
+            // a more precise, fractional bpm from another tag field.
             continue;
         }
         let old_tempo_bpm = &mut track.metrics.tempo_bpm;
@@ -460,8 +463,8 @@ pub(crate) fn import_file_tag_into_track(
         track
             .metrics
             .flags
-            .set(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL, is_non_fractional);
-        if !is_non_fractional {
+            .set(MetricsFlags::TEMPO_BPM_INTEGER, is_integer);
+        if !is_integer {
             // Abort after importing the first fractional bpm
             break;
         }
@@ -1154,10 +1157,7 @@ pub(crate) fn export_track_to_tag(
     ) {
         if matches!(formatted, FormattedTempoBpm::Fractional(_)) {
             // Reset non-fractional flag if the actual bpm is fractional.
-            track
-                .metrics
-                .flags
-                .remove(MetricsFlags::TEMPO_BPM_NON_FRACTIONAL);
+            track.metrics.flags.remove(MetricsFlags::TEMPO_BPM_INTEGER);
         }
         tag.insert_text(ItemKey::Bpm, formatted.into());
     } else {

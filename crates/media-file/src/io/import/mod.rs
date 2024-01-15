@@ -424,20 +424,20 @@ pub(crate) enum ImportedTempoBpm {
     /// Field contained a decimal point
     Fractional(TempoBpm),
     /// Field didn't contain a decimal point and is an integer value
-    NonFractional(TempoBpm),
+    Integer(TempoBpm),
 }
 
 impl ImportedTempoBpm {
     #[must_use]
-    pub(crate) const fn is_non_fractional(&self) -> bool {
-        matches!(self, Self::NonFractional(_))
+    pub(crate) const fn is_integer(&self) -> bool {
+        matches!(self, Self::Integer(_))
     }
 }
 
 impl From<ImportedTempoBpm> for TempoBpm {
     fn from(from: ImportedTempoBpm) -> Self {
         match from {
-            ImportedTempoBpm::Fractional(into) | ImportedTempoBpm::NonFractional(into) => into,
+            ImportedTempoBpm::Fractional(into) | ImportedTempoBpm::Integer(into) => into,
         }
     }
 }
@@ -539,7 +539,7 @@ impl Importer {
                 let imported = if input.contains('.') {
                     ImportedTempoBpm::Fractional(tempo_bpm)
                 } else {
-                    ImportedTempoBpm::NonFractional(tempo_bpm)
+                    ImportedTempoBpm::Integer(tempo_bpm)
                 };
                 Some(imported)
             }

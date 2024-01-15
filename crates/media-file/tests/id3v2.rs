@@ -71,7 +71,7 @@ fn integer_bpm_roundtrip() {
     assert!(track
         .metrics
         .flags
-        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_NON_FRACTIONAL));
+        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER));
     assert_eq!(f64::from(bpm), track.metrics.tempo_bpm.unwrap().value());
 
     // Write the unmodified track metadata back to the file.
@@ -86,7 +86,7 @@ fn integer_bpm_roundtrip() {
     assert!(track
         .metrics
         .flags
-        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_NON_FRACTIONAL));
+        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER));
     assert_eq!(f64::from(bpm), track.metrics.tempo_bpm.unwrap().value());
 
     // Verify that the bpm didn't change
@@ -95,7 +95,7 @@ fn integer_bpm_roundtrip() {
     assert!(track
         .metrics
         .flags
-        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_NON_FRACTIONAL));
+        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER));
     assert_eq!(f64::from(bpm), track.metrics.tempo_bpm.unwrap().value());
 
     // Modify and write the track metadata back to the file.
@@ -115,6 +115,6 @@ fn integer_bpm_roundtrip() {
     assert!(!track
         .metrics
         .flags
-        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_NON_FRACTIONAL));
+        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER));
     assert_eq!(fractional_bpm, track.metrics.tempo_bpm.unwrap());
 }
