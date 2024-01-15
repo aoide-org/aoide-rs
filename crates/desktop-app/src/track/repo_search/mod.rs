@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::hash::Hash as _;
+use std::{hash::Hash as _, num::NonZeroUsize};
 
 use aoide_backend_embedded::track::search;
 use aoide_core::{
@@ -23,8 +23,9 @@ pub struct Context {
 }
 
 /// A light-weight tag that denotes the [`State`] variant.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FetchStateTag {
+    #[default]
     Initial,
     Ready,
     Pending,
@@ -32,6 +33,7 @@ pub enum FetchStateTag {
 }
 
 impl FetchStateTag {
+    /// Check whether the state is stable.
     #[must_use]
     pub const fn is_idle(&self) -> bool {
         match self {
@@ -297,11 +299,13 @@ impl State {
         // the state would actually change or not.
         let reset = Self::new(self.default_params.clone());
         if self.context == reset.context && self.fetch.state_tag() == reset.fetch.state_tag() {
-            // No effect
+            // No effect.
+            log::debug!("State doesn't need to be reset");
             return false;
         }
         *self = reset;
         debug_assert!(!self.should_prefetch());
+        log::debug!("State has been reset");
         true
     }
 
@@ -310,7 +314,8 @@ impl State {
     /// Consumed the argument when returning `true`.
     pub fn update_collection_uid(&mut self, collection_uid: &mut Option<CollectionUid>) -> bool {
         if collection_uid.as_ref() == self.context.collection_uid.as_ref() {
-            // No effect
+            // No effect.
+            log::debug!("Collection UID unchanged: {collection_uid:?}");
             return false;
         }
         self.context.collection_uid = collection_uid.take();
@@ -327,7 +332,8 @@ impl State {
     /// Consumed the argument when returning `true`.
     pub fn update_params(&mut self, params: &mut Params) -> bool {
         if params == &self.context.params {
-            // No effect
+            // No effect.
+            log::debug!("Params unchanged: {params:?}");
             return false;
         }
         self.context.params = std::mem::take(params);
@@ -355,7 +361,7 @@ impl State {
                  actual = {context:?}",
                 expected_context = self.context
             );
-            // No effect
+            // No effect.
             return false;
         }
         self.fetch
@@ -414,6 +420,30 @@ pub async fn fetch_more(
     })
 }
 
+#[derive(Debug)]
+struct FetchMore {
+    context: Context,
+    offset_hash: u64,
+    pagination: Pagination,
+}
+
+fn on_fetch_more(state: &mut State, fetch_limit: Option<NonZeroUsize>) -> Option<FetchMore> {
+    if state.can_fetch_more() != Some(true) || !state.try_fetch_more() {
+        // Not modified.
+        return None;
+    }
+    let context = state.context().clone();
+    let offset_hash = last_offset_hash_of_fetched_entities(state.fetched_entities());
+    let offset = state.fetched_entities().map(|slice| slice.len() as u64);
+    let limit = fetch_limit.map(|limit| limit.get() as u64);
+    let pagination = Pagination { limit, offset };
+    Some(FetchMore {
+        context,
+        offset_hash,
+        pagination,
+    })
+}
+
 /// Manages the mutable, observable state
 #[derive(Debug)]
 pub struct ObservableState {
@@ -455,29 +485,27 @@ impl ObservableState {
         self.modify(|state| state.update_params(params))
     }
 
-    pub async fn fetch_more(&self, handle: &Handle, fetch_limit: Option<usize>) -> bool {
-        // TODO: How to fix this complex code?
-        #[allow(clippy::blocks_in_if_conditions)]
-        let (context, offset_hash, pagination) = {
-            let mut context = Default::default();
-            let mut offset_hash = Default::default();
-            let mut pagination = Default::default();
-            if !self.modify(|state| {
-                if state.can_fetch_more() != Some(true) || !state.try_fetch_more() {
-                    // Not modified
-                    return false;
-                }
-                context = state.context().clone();
-                offset_hash = last_offset_hash_of_fetched_entities(state.fetched_entities());
-                let offset = state.fetched_entities().map(|slice| slice.len() as u64);
-                let limit = fetch_limit.map(|limit| limit as u64);
-                pagination = Pagination { limit, offset };
-                true
-            }) {
-                // No effect
+    fn on_fetch_more(&self, fetch_limit: Option<NonZeroUsize>) -> Option<FetchMore> {
+        let mut maybe_fetch_more = None;
+        self.modify(|state| {
+            let Some(fetch_more) = on_fetch_more(state, fetch_limit) else {
                 return false;
-            }
-            (context, offset_hash, pagination)
+            };
+            maybe_fetch_more = Some(fetch_more);
+            true
+        });
+        maybe_fetch_more
+    }
+
+    pub async fn fetch_more(&self, handle: &Handle, fetch_limit: Option<NonZeroUsize>) -> bool {
+        let Some(FetchMore {
+            context,
+            offset_hash,
+            pagination,
+        }) = self.on_fetch_more(fetch_limit)
+        else {
+            // No effect.
+            return false;
         };
         let res = self::fetch_more(handle, context, offset_hash, pagination).await;
         self.modify(|state| match res {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{future::Future, sync::Weak};
+use std::{future::Future, num::NonZeroUsize, sync::Weak};
 
 use discro::{tasklet::OnChanged, Subscriber};
 use unnest::{some_or_return, some_or_return_with};
@@ -45,7 +45,7 @@ where
 pub fn on_should_prefetch(
     observable_state: Weak<ObservableState>,
     handle: WeakHandle,
-    prefetch_limit: Option<usize>,
+    prefetch_limit: Option<NonZeroUsize>,
 ) -> impl Future<Output = ()> + Send + 'static {
     let observable_state_sub = observable_state.upgrade().map(|observable| {
         let mut subscriber = observable.subscribe();
