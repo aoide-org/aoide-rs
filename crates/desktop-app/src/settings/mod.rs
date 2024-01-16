@@ -191,8 +191,8 @@ impl ObservableState {
     }
 
     #[must_use]
-    pub fn subscribe(&self) -> Subscriber<State> {
-        self.state_pub.subscribe()
+    pub fn subscribe_changed(&self) -> Subscriber<State> {
+        self.state_pub.subscribe_changed()
     }
 
     #[allow(clippy::must_use_candidate)]

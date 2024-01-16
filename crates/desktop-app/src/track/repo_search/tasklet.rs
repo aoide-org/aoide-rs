@@ -48,10 +48,7 @@ pub fn on_should_prefetch(
     prefetch_limit: Option<NonZeroUsize>,
 ) -> impl Future<Output = ()> + Send + 'static {
     let observable_state_sub = observable_state.upgrade().map(|observable| {
-        let mut subscriber = observable.subscribe();
-        // Enforce initial update.
-        subscriber.mark_changed();
-        subscriber
+        observable.subscribe_changed()
     });
     async move {
         let observable_state_sub = some_or_return!(observable_state_sub);
@@ -114,10 +111,7 @@ pub fn on_collection_changed(
     observable_state: Weak<ObservableState>,
 ) -> impl Future<Output = ()> + Send + 'static {
     let collection_state_sub = collection_state.upgrade().map(|observable| {
-        let mut subscriber = observable.subscribe();
-        // Enforce initial update.
-        subscriber.mark_changed();
-        subscriber
+        observable.subscribe_changed()
     });
     async move {
         let collection_state_sub = some_or_return!(collection_state_sub);

@@ -47,10 +47,7 @@ pub fn on_settings_changed(
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     let settings_state_sub = settings_state.upgrade().map(|observable| {
-        let mut subscriber = observable.subscribe();
-        // Enforce initial update.
-        subscriber.mark_changed();
-        subscriber
+        observable.subscribe_changed()
     });
     async move {
         let mut settings_state_sub = some_or_return!(settings_state_sub);
