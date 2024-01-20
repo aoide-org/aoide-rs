@@ -28,5 +28,5 @@ aoide-core-api = { version = "=0.8.0", path = "../core-api" }
 aoide-repo = { version = "=0.8.0", path = "../repo" }
 
 [dev-dependencies]
-env_logger = "0.10.1"
+env_logger = "0.11.0"
 test-log = "0.2.14"

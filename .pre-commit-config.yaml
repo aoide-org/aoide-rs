@@ -78,7 +78,7 @@ repos:
           - markdown
   # https://reuse.software
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v2.1.0
+    rev: v3.0.1
     hooks:
       - id: reuse
   - repo: https://github.com/doublify/pre-commit-rust
