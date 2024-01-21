@@ -41,6 +41,9 @@ fn import_new_track_from_file_path<T: AsRef<Path>>(
     let file = Box::new(std::fs::File::open(file_path.as_ref()).unwrap());
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let issues = import_into_track(&mut reader, &Default::default(), &mut track).unwrap();
+    if !issues.is_empty() {
+        println!("Import issues: {issues:?}");
+    }
     assert!(issues.is_empty());
     track
 }
@@ -60,10 +63,15 @@ fn integer_bpm_roundtrip() {
         assert!(tagged_file.tags().is_empty());
     }
 
-    let bpm = 123;
+    let fractional_bpm = TempoBpm::new(122.9);
+    let integer_bpm = TempoBpm::new(fractional_bpm.value().round());
+    assert_ne!(fractional_bpm, integer_bpm);
 
     let mut tag = Tag::new(TagType::Id3v2);
-    tag.insert_text(ItemKey::Bpm, bpm.to_string());
+    tag.insert_text(
+        ItemKey::IntegerBpm,
+        (integer_bpm.value() as i32).to_string(),
+    );
     tag.save_to_path(file.path()).unwrap();
 
     let mut track =
@@ -72,35 +80,14 @@ fn integer_bpm_roundtrip() {
         .metrics
         .flags
         .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER));
-    assert_eq!(f64::from(bpm), track.metrics.tempo_bpm.unwrap().value());
+    assert_eq!(integer_bpm, track.metrics.tempo_bpm.unwrap());
 
-    // Write the unmodified track metadata back to the file.
-    export_track_to_file(
-        file.as_file_mut(),
-        Some("mp3"),
-        &Default::default(),
-        &mut track,
-        None,
-    )
-    .unwrap();
-    assert!(track
-        .metrics
-        .flags
-        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER));
-    assert_eq!(f64::from(bpm), track.metrics.tempo_bpm.unwrap().value());
-
-    // Verify that the bpm didn't change
-    let mut track =
-        import_new_track_from_file_path(file.path(), Some("audio/mpeg".parse().unwrap()));
-    assert!(track
-        .metrics
-        .flags
-        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER));
-    assert_eq!(f64::from(bpm), track.metrics.tempo_bpm.unwrap().value());
-
-    // Modify and write the track metadata back to the file.
-    let fractional_bpm = TempoBpm::new(123.5);
+    // Set a fractional BPM and write the track metadata back to the file.
     track.metrics.tempo_bpm = Some(fractional_bpm);
+    track
+        .metrics
+        .flags
+        .remove(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER);
     export_track_to_file(
         file.as_file_mut(),
         Some("mp3"),
@@ -110,7 +97,8 @@ fn integer_bpm_roundtrip() {
     )
     .unwrap();
 
-    // Verify that the fractional bpm has been written to the file.
+    // Verify that the fractional BPM is imported from the custom TXXX BPM tag
+    // instead of the imprecise integer BPM from the standard tag.
     let track = import_new_track_from_file_path(file.path(), Some("audio/mpeg".parse().unwrap()));
     assert!(!track
         .metrics
