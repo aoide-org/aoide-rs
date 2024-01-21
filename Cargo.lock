@@ -2505,9 +2505,9 @@ dependencies = [
 
 [[package]]
 name = "lofty"
-version = "0.18.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6114f45a8ad4ac2f16698e628585f67b45f38b747c39e66a540f5744a49ee31f"
+checksum = "f4c7b592b0deed44e1633b140464af992a15c4045c83e28f2e558c3cc06f50b6"
 dependencies = [
  "byteorder",
  "data-encoding",
@@ -3190,9 +3190,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.76"
+version = "1.0.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95fc56cda0b5c3325f5fbbd7ff9fda9e02bb00bb3dac51252d2f1bfa1cb8cc8c"
+checksum = "9f9b1511a24c627ab3e92b48be4b32f8d0ea91ee351edd87fbf650aadd336340"
 dependencies = [
  "unicode-ident",
 ]
