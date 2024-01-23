@@ -23,7 +23,7 @@ image = { version = "0.24.8", default-features = false, features = ["png"] }
 mime = "0.3.17"
 nonicle = "0.1.0"
 rand = "0.8.5"
-regex = "1.10.2"
+regex = "1.10.3"
 semval = "0.5.1"
 strum = { version = "0.25.0", features = ["derive"] }
 time = { version = "0.3.31", features = [
