@@ -21,11 +21,11 @@ data-encoding = "2.5.0"
 derive_more = "0.99.17"
 image = { version = "0.24.8", default-features = false, features = ["png"] }
 mime = "0.3.17"
-nonicle = "0.1.0"
+nonicle = "0.1.1"
 rand = "0.8.5"
 regex = "1.10.3"
-semval = "0.5.1"
-strum = { version = "0.25.0", features = ["derive"] }
+semval = "0.5.2"
+strum = { version = "0.26.0", features = ["derive"] }
 time = { version = "0.3.31", features = [
     "macros",
     "local-offset",
@@ -37,7 +37,7 @@ ulid = "1.1.0"
 url = "2.5.0"
 
 # Serialization of selected, primitive types
-serde = { version = "1.0.195", optional = true, features = ["derive"] }
+serde = { version = "1.0.196", optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.16", optional = true, features = ["url"] }

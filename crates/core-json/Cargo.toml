@@ -17,14 +17,14 @@ workspace = true
 anyhow = "1.0.79"
 data-encoding = "2.5.0"
 mime = "0.3.17"
-serde = { version = "1.0.195", features = ["derive"] }
+serde = { version = "1.0.196", features = ["derive"] }
 serde_repr = "0.1.18"
 time = { version = "0.3.31", features = ["serde-human-readable"] }
 url = { version = "2.5.0", features = ["serde"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.16", optional = true, features = ["chrono", "url"] }
-chrono = { version = "0.4.32", optional = true, default-features = false }
+chrono = { version = "0.4.33", optional = true, default-features = false }
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core", features = ["serde"] }
@@ -36,4 +36,4 @@ json-schema = ["dep:schemars", "dep:chrono", "aoide-core/json-schema"]
 js = ["aoide-core/js"]
 
 [dev-dependencies]
-serde_json = "1.0.111"
+serde_json = "1.0.112"

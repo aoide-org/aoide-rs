@@ -21,7 +21,7 @@ r2d2 = "0.8.10"
 thiserror = "1.0.56"
 
 # Feature "serde"
-serde = { version = "1.0.195", optional = true, features = ["derive"] }
+serde = { version = "1.0.196", optional = true, features = ["derive"] }
 
 # Feature "sqlite-bundled"
 # Bundle SQLite code to prevent dynamic linking.
