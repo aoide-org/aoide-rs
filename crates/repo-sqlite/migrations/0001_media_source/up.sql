@@ -32,9 +32,10 @@ CREATE TABLE IF NOT EXISTS media_source (
     artwork_uri            TEXT,             -- RFC 3986, absolute or relative to the media_source URI
     artwork_apic_type      INTEGER,          -- APIC picture type
     artwork_media_type     TEXT,             -- RFC 6838 media type
+    artwork_data_size      INTEGER,
     artwork_digest         BLOB,             -- cryptographic artwork content hash
-    artwork_size_width     INTEGER,
-    artwork_size_height    INTEGER,
+    artwork_image_width    INTEGER,
+    artwork_image_height   INTEGER,
     artwork_color          INTEGER,          -- 0xRRGGBB (hex)
     artwork_thumbnail      BLOB,
     --

@@ -25,7 +25,7 @@ nonicle = "0.1.1"
 rand = "0.8.5"
 regex = "1.10.3"
 semval = "0.5.2"
-strum = { version = "0.26.0", features = ["derive"] }
+strum = { version = "0.26.1", features = ["derive"] }
 time = { version = "0.3.31", features = [
     "macros",
     "local-offset",

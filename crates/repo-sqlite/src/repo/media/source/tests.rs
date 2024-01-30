@@ -86,14 +86,15 @@ fn insert_media_source() -> anyhow::Result<()> {
         artwork: Some(Artwork::Linked(LinkedArtwork {
             uri: "file://folder.jpg".to_owned(),
             image: ArtworkImage {
-                apic_type: ApicType::CoverFront,
                 media_type: IMAGE_JPEG,
-                size: Some(ImageSize {
+                apic_type: ApicType::CoverFront,
+                data_size: 65535,
+                image_size: Some(ImageSize {
                     width: 500,
                     height: 600,
                 }),
-                digest: Some([128; 32]),
                 color: Some(RgbColor::rgb(0xf0, 0xf0, 0xf0)),
+                digest: Some([128; 32]),
                 thumbnail: Some([127; (THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3) as _]),
             },
         })),

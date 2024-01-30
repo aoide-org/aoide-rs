@@ -1342,10 +1342,12 @@ components:
           $ref: "#/components/schemas/ApicType"
         mediaType:
           $ref: "#/components/schemas/MediaType"
-        size:
-          $ref: "#/components/schemas/ImageSize"
+        dataSize:
+          $ref: "#/components/schemas/DataSize"
         digest:
           $ref: "#/components/schemas/ImageDigest"
+        imageSize:
+          $ref: "#/components/schemas/ImageSize"
         color:
           $ref: "#/components/schemas/RgbColor"
         thumbnail:
@@ -1712,6 +1714,12 @@ components:
       format: base64url
       minLength: 64
       maxLength: 64
+    DataSize:
+      description: |
+        Data size in bytes
+        type: integer
+      minimum: 0
+      example: 65535
     ImageSize:
       description: |
         Width and height of an image in pixels

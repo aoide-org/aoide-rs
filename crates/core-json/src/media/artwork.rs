@@ -19,15 +19,17 @@ pub struct ImageSize(u16, u16);
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArtworkImage {
-    media_type: String,
-
     apic_type: u8,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    size: Option<ImageSize>,
+    media_type: String,
+
+    data_size: u64,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     digest: Option<Digest>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image_size: Option<ImageSize>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     color: Option<RgbColor>,
@@ -39,24 +41,30 @@ pub struct ArtworkImage {
 impl From<_core::ArtworkImage> for ArtworkImage {
     fn from(from: _core::ArtworkImage) -> Self {
         let _core::ArtworkImage {
-            media_type,
             apic_type,
-            size,
+            media_type,
+            data_size,
             digest,
+            image_size,
             color,
             thumbnail,
         } = from;
-        let size = size.map(|size| {
+        let media_type = media_type.to_string();
+        let digest = digest.as_ref().map(Into::into);
+        let image_size = image_size.map(|size| {
             let _core::ImageSize { width, height } = size;
             ImageSize(width, height)
         });
+        let color = color.map(Into::into);
+        let thumbnail = thumbnail.as_ref().map(Into::into);
         Self {
-            media_type: media_type.to_string(),
             apic_type: apic_type as _,
-            size,
-            digest: digest.as_ref().map(Into::into),
-            color: color.map(Into::into),
-            thumbnail: thumbnail.as_ref().map(Into::into),
+            media_type,
+            data_size,
+            digest,
+            image_size,
+            color,
+            thumbnail,
         }
     }
 }
@@ -66,36 +74,38 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
 
     fn try_from(from: ArtworkImage) -> anyhow::Result<Self> {
         let ArtworkImage {
-            media_type,
             apic_type,
-            size,
+            media_type,
+            data_size,
             digest,
+            image_size,
             color,
             thumbnail,
         } = from;
-        let media_type = media_type.parse()?;
         let apic_type = _core::ApicType::from_repr(apic_type)
             .ok_or_else(|| anyhow::anyhow!("invalid APIC type: {apic_type}"))?;
-        let size = size.map(|size| {
-            let ImageSize(width, height) = size;
-            _core::ImageSize { width, height }
-        });
+        let media_type = media_type.parse()?;
         let digest_data = digest.as_ref().map(Vec::try_from).transpose()?;
         let digest = digest_data
             .map(TryFrom::try_from)
             .transpose()
             .map_err(|_| anyhow::anyhow!("failed to deserialize artwork digest"))?;
-        let thumbnail_data = thumbnail.as_ref().map(Vec::try_from).transpose()?;
+        let image_size = image_size.map(|size| {
+            let ImageSize(width, height) = size;
+            _core::ImageSize { width, height }
+        });
         let color = color.map(Into::into);
+        let thumbnail_data = thumbnail.as_ref().map(Vec::try_from).transpose()?;
         let thumbnail = thumbnail_data
             .map(TryFrom::try_from)
             .transpose()
             .map_err(|_| anyhow::anyhow!("failed to deserialize artwork thumbnail"))?;
         let into = Self {
-            media_type,
             apic_type,
-            size,
+            media_type,
+            data_size,
             digest,
+            image_size,
             color,
             thumbnail,
         };

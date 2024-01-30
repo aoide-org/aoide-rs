@@ -29,9 +29,10 @@ diesel::table! {
         artwork_uri -> Nullable<Text>,
         artwork_apic_type -> Nullable<SmallInt>,
         artwork_media_type -> Nullable<Text>,
+        artwork_data_size -> Nullable<BigInt>,
         artwork_digest -> Nullable<Binary>,
-        artwork_size_width -> Nullable<SmallInt>,
-        artwork_size_height -> Nullable<SmallInt>,
+        artwork_image_width -> Nullable<SmallInt>,
+        artwork_image_height -> Nullable<SmallInt>,
         artwork_color -> Nullable<Integer>,
         artwork_thumbnail -> Nullable<Binary>,
     }

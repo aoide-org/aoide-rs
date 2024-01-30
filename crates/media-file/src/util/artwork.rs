@@ -146,7 +146,8 @@ fn ingest_artwork_image(
         .map_err(|_| anyhow::anyhow!("unsupported image size: {width}x{height}"))?;
     let height = ImageDimension::try_from(height)
         .map_err(|_| anyhow::anyhow!("unsupported image size: {width}x{height}"))?;
-    let size = ImageSize { width, height };
+    let data_size = image_data.len() as u64;
+    let image_size = ImageSize { width, height };
     let digest = image_digest.digest_content(image_data).finalize_reset();
     let picture = Rc::new(picture);
     let scaled_picture = if width > KMEANS_COLORS_MAX_SIZE || height > KMEANS_COLORS_MAX_SIZE {
@@ -213,7 +214,8 @@ fn ingest_artwork_image(
     let artwork_image = ArtworkImage {
         media_type,
         apic_type,
-        size: Some(size),
+        data_size,
+        image_size: Some(image_size),
         digest,
         color,
         thumbnail,
@@ -320,10 +322,11 @@ impl ReplaceEmbeddedArtworkImage {
 
     pub fn reingest_artwork_image(&self, image_digest: &mut MediaDigest) -> Result<ArtworkImage> {
         let ArtworkImage {
-            apic_type,
-            digest: _,
             media_type,
-            size: _,
+            apic_type,
+            data_size: _,
+            digest: _,
+            image_size: _,
             color: _,
             thumbnail: _,
         } = &self.artwork_image;

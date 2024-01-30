@@ -57,9 +57,10 @@ pub struct QueryableRecord {
     pub artwork_uri: Option<String>,
     pub artwork_apic_type: Option<i16>,
     pub artwork_media_type: Option<String>,
+    pub artwork_data_size: Option<i64>,
     pub artwork_digest: Option<Vec<u8>>,
-    pub artwork_size_width: Option<i16>,
-    pub artwork_size_height: Option<i16>,
+    pub artwork_image_width: Option<i16>,
+    pub artwork_image_height: Option<i16>,
     pub artwork_color: Option<i32>,
     pub artwork_thumbnail: Option<Vec<u8>>,
 }
@@ -92,9 +93,10 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             artwork_uri,
             artwork_apic_type,
             artwork_media_type,
+            artwork_data_size,
             artwork_digest,
-            artwork_size_width,
-            artwork_size_height,
+            artwork_image_width,
+            artwork_image_height,
             artwork_color,
             artwork_thumbnail,
         } = from;
@@ -128,8 +130,10 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                         .transpose()?
                         .unwrap_or(ApicType::Other);
                     let media_type = Mime::from_str(&artwork_media_type.unwrap_or_default())?;
-                    let size = if let (Some(width), Some(height)) =
-                        (artwork_size_width, artwork_size_height)
+                    let data_size = artwork_data_size.map_or(0, |size| size as _);
+                    let digest = artwork_digest.and_then(|bytes| bytes.try_into().ok());
+                    let image_size = if let (Some(width), Some(height)) =
+                        (artwork_image_width, artwork_image_height)
                     {
                         Some(ImageSize {
                             width: width as ImageDimension,
@@ -138,7 +142,6 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                     } else {
                         None
                     };
-                    let digest = artwork_digest.and_then(|bytes| bytes.try_into().ok());
                     let color = artwork_color.map(|code| {
                         let color = RgbColor::new(code as RgbColorCode);
                         debug_assert!(color.is_valid());
@@ -146,10 +149,11 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                     });
                     let thumbnail = artwork_thumbnail.and_then(|bytes| bytes.try_into().ok());
                     let image = ArtworkImage {
-                        media_type,
                         apic_type,
-                        size,
+                        media_type,
+                        data_size,
                         digest,
+                        image_size,
                         color,
                         thumbnail,
                     };
@@ -168,7 +172,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
         } else {
             None
         };
-        debug_assert!(artwork_size_width.is_some() == artwork_size_height.is_some());
+        debug_assert!(artwork_image_width.is_some() == artwork_image_height.is_some());
 
         let header = RecordHeader {
             id: row_id.into(),
@@ -224,9 +228,10 @@ pub struct InsertableRecord<'a> {
     pub artwork_uri: Option<&'a str>,
     pub artwork_apic_type: Option<i16>,
     pub artwork_media_type: Option<String>,
+    pub artwork_data_size: Option<i64>,
     pub artwork_digest: Option<&'a [u8]>,
-    pub artwork_size_width: Option<i16>,
-    pub artwork_size_height: Option<i16>,
+    pub artwork_image_width: Option<i16>,
+    pub artwork_image_height: Option<i16>,
     pub artwork_color: Option<i32>,
     pub artwork_thumbnail: Option<&'a [u8]>,
 }
@@ -275,33 +280,37 @@ impl<'a> InsertableRecord<'a> {
                 });
         let artwork_apic_type;
         let artwork_media_type;
-        let artwork_size_width;
-        let artwork_size_height;
+        let artwork_data_size;
         let artwork_digest;
+        let artwork_image_width;
+        let artwork_image_height;
         let artwork_color;
         let artwork_thumbnail;
         if let Some(image) = artwork_image {
             let ArtworkImage {
                 apic_type,
                 media_type,
-                size,
+                data_size,
                 digest,
+                image_size,
                 color,
                 thumbnail,
             } = image;
             artwork_apic_type = Some(encode_apic_type(*apic_type));
             artwork_media_type = Some(media_type.to_string());
-            artwork_size_width = size.map(|size| size.width as _);
-            artwork_size_height = size.map(|size| size.height as _);
+            artwork_data_size = Some(*data_size as _);
             artwork_digest = digest.as_ref().map(|x| &x[..]);
+            artwork_image_width = image_size.map(|size| size.width as _);
+            artwork_image_height = image_size.map(|size| size.height as _);
             artwork_color = color.map(|color| color.code() as _);
             artwork_thumbnail = thumbnail.as_ref().map(|x| &x[..]);
         } else {
             artwork_apic_type = None;
             artwork_media_type = None;
-            artwork_size_width = None;
-            artwork_size_height = None;
+            artwork_data_size = None;
             artwork_digest = None;
+            artwork_image_width = None;
+            artwork_image_height = None;
             artwork_color = None;
             artwork_thumbnail = None;
         }
@@ -337,9 +346,10 @@ impl<'a> InsertableRecord<'a> {
             artwork_uri,
             artwork_apic_type,
             artwork_media_type,
-            artwork_size_width,
-            artwork_size_height,
+            artwork_data_size,
             artwork_digest,
+            artwork_image_width,
+            artwork_image_height,
             artwork_color,
             artwork_thumbnail,
         }
@@ -369,8 +379,9 @@ pub struct UpdatableRecord<'a> {
     pub artwork_apic_type: Option<i16>,
     pub artwork_media_type: Option<String>,
     pub artwork_digest: Option<&'a [u8]>,
-    pub artwork_size_width: Option<i16>,
-    pub artwork_size_height: Option<i16>,
+    pub artwork_data_size: Option<i64>,
+    pub artwork_image_width: Option<i16>,
+    pub artwork_image_height: Option<i16>,
     pub artwork_color: Option<i32>,
     pub artwork_thumbnail: Option<&'a [u8]>,
 }
@@ -415,33 +426,37 @@ impl<'a> UpdatableRecord<'a> {
                 });
         let artwork_apic_type;
         let artwork_media_type;
-        let artwork_size_width;
-        let artwork_size_height;
+        let artwork_data_size;
         let artwork_digest;
+        let artwork_image_width;
+        let artwork_image_height;
         let artwork_color;
         let artwork_thumbnail;
         if let Some(image) = artwork_image {
             let ArtworkImage {
                 apic_type,
                 media_type,
-                size,
+                data_size,
                 digest,
+                image_size,
                 color,
                 thumbnail,
             } = image;
             artwork_apic_type = Some(*apic_type as _);
             artwork_media_type = Some(media_type.to_string());
-            artwork_size_width = size.map(|size| size.width as _);
-            artwork_size_height = size.map(|size| size.height as _);
+            artwork_data_size = Some(*data_size as _);
             artwork_digest = digest.as_ref().map(|x| &x[..]);
+            artwork_image_width = image_size.map(|size| size.width as _);
+            artwork_image_height = image_size.map(|size| size.height as _);
             artwork_color = color.map(|color| color.code() as _);
             artwork_thumbnail = thumbnail.as_ref().map(|x| &x[..]);
         } else {
             artwork_apic_type = None;
             artwork_media_type = None;
-            artwork_size_width = None;
-            artwork_size_height = None;
+            artwork_data_size = None;
             artwork_digest = None;
+            artwork_image_width = None;
+            artwork_image_height = None;
             artwork_color = None;
             artwork_thumbnail = None;
         }
@@ -478,9 +493,10 @@ impl<'a> UpdatableRecord<'a> {
             artwork_uri,
             artwork_apic_type,
             artwork_media_type,
-            artwork_size_width,
-            artwork_size_height,
+            artwork_data_size,
             artwork_digest,
+            artwork_image_width,
+            artwork_image_height,
             artwork_color,
             artwork_thumbnail,
         }

@@ -119,16 +119,18 @@ pub fn thumbnail_png_data_uri(thumbnail: &Thumbnail4x4Rgb8) -> String {
 /// in time.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtworkImage {
-    pub media_type: Mime,
-
     pub apic_type: ApicType,
 
-    /// The dimensions of the image (if known).
-    pub size: Option<ImageSize>,
+    pub media_type: Mime,
+
+    pub data_size: u64,
 
     /// Identifies the actual content, e.g. for cache lookup or to detect
     /// modifications.
     pub digest: Option<Digest>,
+
+    /// The dimensions of the image (if known).
+    pub image_size: Option<ImageSize>,
 
     /// The predominant color in the image.
     pub color: Option<RgbColor>,
@@ -140,7 +142,7 @@ pub struct ArtworkImage {
 #[derive(Copy, Clone, Debug)]
 pub enum ArtworkImageInvalidity {
     MediaTypeEmpty,
-    Size(ImageSizeInvalidity),
+    ImageSize(ImageSizeInvalidity),
 }
 
 impl Validate for ArtworkImage {
@@ -152,7 +154,7 @@ impl Validate for ArtworkImage {
                 self.media_type.essence_str().is_empty(),
                 Self::Invalidity::MediaTypeEmpty,
             )
-            .validate_with(&self.size, Self::Invalidity::Size)
+            .validate_with(&self.image_size, Self::Invalidity::ImageSize)
             .into()
     }
 }
