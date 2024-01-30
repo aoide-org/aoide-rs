@@ -367,6 +367,106 @@ fn build_numeric_field_filter_expression(
     #[allow(clippy::enum_glob_use)]
     use ScalarPredicate::*;
     match filter.field {
+        AdvisoryRating => {
+            let expr = view_track_search::advisory_rating;
+            let expr_not_null = ifnull(expr, encode_advisory_rating(Default::default()));
+            // TODO: Check and limit/clamp value range when converting from f64 to i16
+            match filter.predicate {
+                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
+                Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(expr_not_null.eq(value as i16))
+                    } else {
+                        Box::new(expr.is_null())
+                    }
+                }
+                NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(expr_not_null.ne(value as i16))
+                    } else {
+                        Box::new(expr.is_not_null())
+                    }
+                }
+            }
+        }
+        ArtworkDataSize => {
+            let expr = view_track_search::artwork_data_size;
+            let expr_not_null = ifnull(expr, 0);
+            // TODO: Check and limit/clamp value range when converting from f64 to i64
+            match filter.predicate {
+                LessThan(value) => Box::new(expr_not_null.lt(value as i64)),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value as i64)),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value as i64)),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i64)),
+                Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(expr_not_null.eq(value as i64))
+                    } else {
+                        Box::new(expr.is_null())
+                    }
+                }
+                NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(expr_not_null.ne(value as i64))
+                    } else {
+                        Box::new(expr.is_not_null())
+                    }
+                }
+            }
+        }
+        ArtworkImageHeight => {
+            let expr = view_track_search::artwork_image_height;
+            let expr_not_null = ifnull(expr, 0);
+            // TODO: Check and limit/clamp value range when converting from f64 to i16
+            match filter.predicate {
+                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
+                Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(expr_not_null.eq(value as i16))
+                    } else {
+                        Box::new(expr.is_null())
+                    }
+                }
+                NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(expr_not_null.ne(value as i16))
+                    } else {
+                        Box::new(expr.is_not_null())
+                    }
+                }
+            }
+        }
+        ArtworkImageWidth => {
+            let expr = view_track_search::artwork_image_width;
+            let expr_not_null = ifnull(expr, 0);
+            // TODO: Check and limit/clamp value range when converting from f64 to i16
+            match filter.predicate {
+                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
+                Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(expr_not_null.eq(value as i16))
+                    } else {
+                        Box::new(expr.is_null())
+                    }
+                }
+                NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(expr_not_null.ne(value as i16))
+                    } else {
+                        Box::new(expr.is_not_null())
+                    }
+                }
+            }
+        }
         AudioDurationMs => {
             let expr = view_track_search::audio_duration_ms;
             let expr_not_null = ifnull(expr, DurationMs::empty().value());
@@ -507,31 +607,6 @@ fn build_numeric_field_filter_expression(
                 NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(expr_not_null.ne(value))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
-        }
-        AdvisoryRating => {
-            let expr = view_track_search::advisory_rating;
-            let expr_not_null = ifnull(expr, encode_advisory_rating(Default::default()));
-            // TODO: Check and limit/clamp value range when converting from f64 to i16
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i16))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i16))
                     } else {
                         Box::new(expr.is_not_null())
                     }

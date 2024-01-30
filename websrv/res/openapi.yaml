@@ -2034,13 +2034,16 @@ components:
     NumericField:
       type: string
       enum:
+        - advisoryRating
+        - artworkDataSize
+        - artworkImageHeight
+        - artworkImageWidth
         - audioBitrateBps
         - audioChannelCount
         - audioChannelMask
         - audioDurationMs
         - audioLoudnessLufs
         - audioSampleRateHz
-        - advisoryRating
         - discNumber
         - discTotal
         - musicTempoBpm

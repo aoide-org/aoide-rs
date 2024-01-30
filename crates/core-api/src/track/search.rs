@@ -24,13 +24,16 @@ pub enum StringField {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum NumericField {
+    AdvisoryRating,
+    ArtworkDataSize,
+    ArtworkImageHeight,
+    ArtworkImageWidth,
     AudioBitrateBps,
     AudioChannelCount,
     AudioChannelMask,
     AudioDurationMs,
     AudioLoudnessLufs,
     AudioSampleRateHz,
-    AdvisoryRating,
     DiscNumber,
     DiscTotal,
     MusicTempoBpm,

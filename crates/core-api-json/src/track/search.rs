@@ -190,6 +190,9 @@ impl From<_inner::StringField> for StringField {
 #[serde(rename_all = "camelCase")]
 pub enum NumericField {
     AdvisoryRating,
+    ArtworkDataSize,
+    ArtworkImageHeight,
+    ArtworkImageWidth,
     AudioBitrateBps,
     AudioChannelCount,
     AudioChannelMask,
@@ -212,13 +215,16 @@ impl From<NumericField> for _inner::NumericField {
     fn from(from: NumericField) -> Self {
         use NumericField as From;
         match from {
+            From::AdvisoryRating => Self::AdvisoryRating,
+            From::ArtworkDataSize => Self::ArtworkDataSize,
+            From::ArtworkImageHeight => Self::ArtworkImageHeight,
+            From::ArtworkImageWidth => Self::ArtworkImageWidth,
             From::AudioBitrateBps => Self::AudioBitrateBps,
             From::AudioChannelCount => Self::AudioChannelCount,
             From::AudioChannelMask => Self::AudioChannelMask,
             From::AudioDurationMs => Self::AudioDurationMs,
             From::AudioSampleRateHz => Self::AudioSampleRateHz,
             From::AudioLoudnessLufs => Self::AudioLoudnessLufs,
-            From::AdvisoryRating => Self::AdvisoryRating,
             From::DiscNumber => Self::DiscNumber,
             From::DiscTotal => Self::DiscTotal,
             From::MusicTempoBpm => Self::MusicTempoBpm,
@@ -237,13 +243,16 @@ impl From<_inner::NumericField> for NumericField {
     fn from(from: _inner::NumericField) -> Self {
         use _inner::NumericField as From;
         match from {
+            From::AdvisoryRating => Self::AdvisoryRating,
+            From::ArtworkDataSize => Self::ArtworkDataSize,
+            From::ArtworkImageHeight => Self::ArtworkImageHeight,
+            From::ArtworkImageWidth => Self::ArtworkImageWidth,
             From::AudioBitrateBps => Self::AudioBitrateBps,
             From::AudioChannelCount => Self::AudioChannelCount,
             From::AudioChannelMask => Self::AudioChannelMask,
             From::AudioDurationMs => Self::AudioDurationMs,
             From::AudioSampleRateHz => Self::AudioSampleRateHz,
             From::AudioLoudnessLufs => Self::AudioLoudnessLufs,
-            From::AdvisoryRating => Self::AdvisoryRating,
             From::DiscNumber => Self::DiscNumber,
             From::DiscTotal => Self::DiscTotal,
             From::MusicTempoBpm => Self::MusicTempoBpm,
