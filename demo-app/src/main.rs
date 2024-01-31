@@ -129,10 +129,21 @@ async fn main() {
             cx,
             AppModel::config_dir.map(|config_dir| {
                 format!(
-                    "Config dir: {config_dir}",
+                    "Config directory: {config_dir}",
                     config_dir = config_dir.display()
                 )
             }),
+        );
+
+        Label::new(
+            cx,
+            AppModel::music_dir.map(|music_dir| format!("Music directory: {music_dir:?}")),
+        );
+
+        Label::new(
+            cx,
+            AppModel::collection_entity
+                .map(|collection_entity| format!("Collection entity: {collection_entity:?}")),
         );
     })
     .title(app_name())
