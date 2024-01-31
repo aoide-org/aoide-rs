@@ -28,9 +28,11 @@ jobs:
       matrix:
         include:
           - target: aarch64-apple-darwin
+            runner_os: macos-14
+            run_tests: true
+          - target: x86_64-apple-darwin
             runner_os: macos-latest
-            # Runner (x86-64) and target are not compatible.
-            run_tests: false
+            run_tests: true
           - target: x86_64-pc-windows-msvc
             runner_os: windows-latest
             run_tests: true
