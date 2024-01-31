@@ -7,6 +7,7 @@ use aoide::{
     api::media::source::ResolveUrlFromContentPath,
     desktop_app::{collection, settings, track, Handle},
 };
+use discro::tasklet::OnChanged;
 
 const CREATE_NEW_COLLECTION_ENTITY_IF_NOT_FOUND: bool = true;
 
@@ -27,6 +28,16 @@ fn default_track_search_params() -> aoide::api::track::search::Params {
 const TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE: usize = 100;
 const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
     NonZeroUsize::MIN.saturating_add(TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE - 1);
+
+#[derive(Debug, Clone)]
+pub enum LibraryNotification {
+    MusicDirChanged(Option<PathBuf>),
+    CollectionChanged(Option<aoide::collection::Entity>),
+}
+
+pub trait LibraryEventEmitter: Send + Sync + 'static {
+    fn emit_notification(&self, notification: LibraryNotification);
+}
 
 /// Stateful library frontend.
 ///
@@ -127,5 +138,47 @@ impl Library {
             Handle::downgrade(&self.handle),
             Some(TRACK_REPO_SEARCH_PREFETCH_LIMIT),
         ));
+    }
+
+    pub fn spawn_notification_tasks<E>(
+        &self,
+        tokio_rt: &tokio::runtime::Handle,
+        event_emitter: &Arc<E>,
+    ) where
+        E: LibraryEventEmitter,
+    {
+        tokio_rt.spawn({
+            let event_emitter = Arc::downgrade(event_emitter);
+            let subscriber = self.state().settings().subscribe_changed();
+            settings::tasklet::on_music_dir_changed(subscriber, move |music_dir| {
+                let Some(event_emitter) = event_emitter.upgrade() else {
+                    return OnChanged::Abort;
+                };
+                let music_dir = music_dir.map(|dir_path| dir_path.clone().into_owned().into());
+                event_emitter.emit_notification(LibraryNotification::MusicDirChanged(music_dir));
+                OnChanged::Continue
+            })
+        });
+        tokio_rt.spawn({
+            let event_emitter = Arc::downgrade(event_emitter);
+            let initial_state_tag = self.state().collection().read().state_tag();
+            let observable_state = Arc::downgrade(self.state().collection());
+            let subscriber = self.state().collection().subscribe_changed();
+            let on_changed = move |_: collection::StateTag| {
+                let Some(event_emitter) = event_emitter.upgrade() else {
+                    return OnChanged::Abort;
+                };
+                let Some(observable_state) = observable_state.upgrade() else {
+                    return OnChanged::Abort;
+                };
+                let collection = observable_state.read().entity().cloned();
+                event_emitter.emit_notification(LibraryNotification::CollectionChanged(collection));
+                OnChanged::Continue
+            };
+            // Invoke `on_changed()` with the initial state tag to emit an initial notification.
+            on_changed(initial_state_tag);
+            collection::tasklet::on_state_tag_changed(subscriber, on_changed)
+        });
+        // ...TODO...
     }
 }

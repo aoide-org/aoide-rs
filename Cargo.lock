@@ -407,6 +407,7 @@ version = "0.8.0"
 dependencies = [
  "aoide",
  "directories",
+ "discro",
  "log",
  "pretty_env_logger",
  "tokio",

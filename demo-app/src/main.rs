@@ -10,6 +10,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
 };
 
 use directories::ProjectDirs;
@@ -17,7 +18,34 @@ use vizia::prelude::*;
 
 mod library;
 #[allow(unused_imports)]
-use self::library::{Library, LibraryState};
+use self::library::{Library, LibraryEventEmitter, LibraryNotification, LibraryState};
+
+#[allow(missing_debug_implementations)]
+struct AppEventEmitter {
+    cx: Mutex<ContextProxy>,
+}
+
+impl AppEventEmitter {
+    fn new(cx: &Context) -> Self {
+        let cx = cx.get_proxy();
+        Self { cx: Mutex::new(cx) }
+    }
+
+    fn emit(&self, event: AppEvent) {
+        let mut cx = self.cx.lock().unwrap();
+        log::debug!("Emitting {event:?}");
+        if let Err(err) = cx.emit(event) {
+            log::warn!("Failed to emit event: {err}");
+        }
+    }
+}
+
+impl LibraryEventEmitter for AppEventEmitter {
+    fn emit_notification(&self, notification: LibraryNotification) {
+        let event = AppEvent::Notification(AppNotification::Library(notification));
+        self.emit(event);
+    }
+}
 
 #[tokio::main]
 async fn main() {
@@ -82,20 +110,24 @@ async fn main() {
         }
     };
 
-    let library = Library::new(aoide_handle, aoide_initial_settings);
-    library.spawn_background_tasks(
-        &tokio::runtime::Handle::try_current().unwrap(),
-        config_dir.clone(),
-    );
-    // library::spawn_ui_tasks(&main_window, &tokio_rt, &library);
-    // library::connect_ui_callbacks(&main_window, &tokio_rt, &library);
-
-    Application::new(|cx| {
-        AppData {
-            config_dir,
-            library,
+    let tokio_rt = match tokio::runtime::Handle::try_current() {
+        Ok(handle) => handle,
+        Err(err) => {
+            log::error!("No Tokio runtime: {err}");
+            return;
         }
-        .build(cx);
+    };
+
+    let library = Library::new(aoide_handle, aoide_initial_settings);
+    library.spawn_background_tasks(&tokio_rt, config_dir.clone());
+
+    Application::new(move |cx| {
+        let event_emitter = Arc::new(AppEventEmitter {
+            cx: Mutex::new(cx.get_proxy()),
+        });
+        library.spawn_notification_tasks(&tokio_rt, &event_emitter);
+
+        AppData::new(config_dir).build(cx);
 
         Label::new(
             cx,
@@ -140,11 +172,81 @@ fn app_config_dir() -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
+#[allow(missing_debug_implementations)]
+struct App {
+    library: Library,
+}
+
+#[derive(Debug, Clone)]
+enum AppEvent {
+    Command(AppCommand),
+    Notification(AppNotification),
+}
+
+#[derive(Debug, Clone)]
+enum AppCommand {
+    Quit,
+}
+
+#[derive(Debug, Clone)]
+enum AppNotification {
+    Library(LibraryNotification),
+}
+
 #[derive(Lens)]
 #[allow(missing_debug_implementations)]
 struct AppData {
     config_dir: PathBuf,
-    library: Library,
+    music_dir: Option<PathBuf>,
+    collection: Option<aoide::collection::Entity>,
 }
 
-impl Model for AppData {}
+impl AppData {
+    pub const fn new(config_dir: PathBuf) -> Self {
+        Self {
+            config_dir,
+            music_dir: None,
+            collection: None,
+        }
+    }
+}
+
+impl Model for AppData {
+    fn event(&mut self, _cx: &mut EventContext<'_>, event: &mut Event) {
+        event.map(|event, _meta| match event {
+            AppEvent::Command(command) => match command {
+                AppCommand::Quit => {
+                    log::warn!("TODO: Quit");
+                }
+            },
+            AppEvent::Notification(notification) => match notification {
+                AppNotification::Library(library) => match library {
+                    LibraryNotification::MusicDirChanged(music_dir) => {
+                        if *music_dir == self.music_dir {
+                            log::info!("Music directory unchanged: {music_dir:?}");
+                            return;
+                        }
+                        let old_music_dir = self.music_dir.take();
+                        self.music_dir = music_dir.clone();
+                        log::info!(
+                            "Music directory changed: {old_music_dir:?} -> {new_music_dir:?}",
+                            new_music_dir = self.music_dir
+                        );
+                    }
+                    LibraryNotification::CollectionChanged(collection) => {
+                        if *collection == self.collection {
+                            log::info!("Collection unchanged: {collection:?}");
+                            return;
+                        }
+                        let old_collection = self.collection.take();
+                        self.collection = collection.clone();
+                        log::info!(
+                            "Collection changed: {old_collection:?} -> {new_collection:?}",
+                            new_collection = self.collection
+                        );
+                    }
+                },
+            },
+        });
+    }
+}
