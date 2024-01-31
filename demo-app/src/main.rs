@@ -51,6 +51,14 @@ impl LibraryEventEmitter for AppEventEmitter {
 async fn main() {
     pretty_env_logger::init();
 
+    let rt = match tokio::runtime::Handle::try_current() {
+        Ok(handle) => handle,
+        Err(err) => {
+            log::error!("No Tokio runtime: {err}");
+            return;
+        }
+    };
+
     let Some(config_dir) = app_config_dir() else {
         log::error!("Config directory is unavailable");
         return;
@@ -110,28 +118,16 @@ async fn main() {
         }
     };
 
-    let tokio_rt = match tokio::runtime::Handle::try_current() {
-        Ok(handle) => handle,
-        Err(err) => {
-            log::error!("No Tokio runtime: {err}");
-            return;
-        }
-    };
-
-    let library = Library::new(aoide_handle, aoide_initial_settings);
-    library.spawn_background_tasks(&tokio_rt, config_dir.clone());
-
-    Application::new(move |cx| {
-        let event_emitter = Arc::new(AppEventEmitter {
-            cx: Mutex::new(cx.get_proxy()),
-        });
-        library.spawn_notification_tasks(&tokio_rt, &event_emitter);
-
-        AppData::new(config_dir).build(cx);
+    Application::new(move |cx: &mut Context| {
+        let app = App {
+            library: Library::new(aoide_handle, aoide_initial_settings),
+        };
+        let mdl = AppModel::new(app, config_dir);
+        mdl.build(&rt, cx);
 
         Label::new(
             cx,
-            AppData::config_dir.map(|config_dir| {
+            AppModel::config_dir.map(|config_dir| {
                 format!(
                     "Config dir: {config_dir}",
                     config_dir = config_dir.display()
@@ -172,11 +168,6 @@ fn app_config_dir() -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
-#[allow(missing_debug_implementations)]
-struct App {
-    library: Library,
-}
-
 #[derive(Debug, Clone)]
 enum AppEvent {
     Command(AppCommand),
@@ -193,25 +184,45 @@ enum AppNotification {
     Library(LibraryNotification),
 }
 
-#[derive(Lens)]
 #[allow(missing_debug_implementations)]
-struct AppData {
-    config_dir: PathBuf,
-    music_dir: Option<PathBuf>,
-    collection: Option<aoide::collection::Entity>,
+struct App {
+    library: Library,
 }
 
-impl AppData {
-    pub const fn new(config_dir: PathBuf) -> Self {
+#[derive(Lens)]
+#[allow(missing_debug_implementations)]
+struct AppModel {
+    app: App,
+    config_dir: PathBuf,
+    music_dir: Option<PathBuf>,
+    collection_entity: Option<aoide::collection::Entity>,
+}
+
+impl AppModel {
+    const fn new(app: App, config_dir: PathBuf) -> Self {
         Self {
+            app,
             config_dir,
             music_dir: None,
-            collection: None,
+            collection_entity: None,
         }
+    }
+
+    fn build(self, rt: &tokio::runtime::Handle, cx: &mut Context) {
+        self.app
+            .library
+            .spawn_background_tasks(rt, self.config_dir.clone());
+        let event_emitter = Arc::new(AppEventEmitter {
+            cx: Mutex::new(cx.get_proxy()),
+        });
+        self.app
+            .library
+            .spawn_notification_tasks(rt, &event_emitter);
+        <Self as Model>::build(self, cx);
     }
 }
 
-impl Model for AppData {
+impl Model for AppModel {
     fn event(&mut self, _cx: &mut EventContext<'_>, event: &mut Event) {
         event.map(|event, _meta| match event {
             AppEvent::Command(command) => match command {
@@ -234,15 +245,16 @@ impl Model for AppData {
                         );
                     }
                     LibraryNotification::CollectionEntityChanged(collection) => {
-                        if *collection == self.collection {
+                        if *collection == self.collection_entity {
                             log::info!("Collection unchanged: {collection:?}");
                             return;
                         }
-                        let old_collection = self.collection.take();
-                        self.collection = collection.clone();
+                        let old_collection_entity = self.collection_entity.take();
+                        self.collection_entity = collection.clone();
                         log::info!(
-                            "Collection changed: {old_collection:?} -> {new_collection:?}",
-                            new_collection = self.collection
+                            "Collection changed: {old_collection_entity:?} -> \
+                             {new_collection_entity:?}",
+                            new_collection_entity = self.collection_entity
                         );
                     }
                 },

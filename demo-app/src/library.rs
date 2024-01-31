@@ -155,7 +155,7 @@ impl Library {
             let event_emitter = Arc::downgrade(event_emitter);
             let subscriber = self.state().settings().subscribe_changed();
             async move {
-                watch_music_dir(subscriber, event_emitter).await;
+                watch_music_directory(subscriber, event_emitter).await;
             }
         });
         tokio_rt.spawn({
@@ -169,10 +169,13 @@ impl Library {
     }
 }
 
-async fn watch_music_dir<E>(mut subscriber: Subscriber<settings::State>, event_emitter: Weak<E>)
-where
+async fn watch_music_directory<E>(
+    mut subscriber: Subscriber<settings::State>,
+    event_emitter: Weak<E>,
+) where
     E: LibraryEventEmitter,
 {
+    // The first event is always emitted immediately.
     let mut music_dir = subscriber.read_ack().music_dir.clone();
     'outer: loop {
         {
@@ -206,6 +209,7 @@ async fn watch_collection_entity<E>(
 ) where
     E: LibraryEventEmitter,
 {
+    // The first event is always emitted immediately.
     let mut entity = subscriber.read_ack().entity().cloned();
     'outer: loop {
         {
