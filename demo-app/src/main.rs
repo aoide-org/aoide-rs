@@ -221,7 +221,7 @@ impl Model for AppData {
             },
             AppEvent::Notification(notification) => match notification {
                 AppNotification::Library(library) => match library {
-                    LibraryNotification::MusicDirChanged(music_dir) => {
+                    LibraryNotification::MusicDirectoryChanged(music_dir) => {
                         if *music_dir == self.music_dir {
                             log::info!("Music directory unchanged: {music_dir:?}");
                             return;
@@ -233,7 +233,7 @@ impl Model for AppData {
                             new_music_dir = self.music_dir
                         );
                     }
-                    LibraryNotification::CollectionChanged(collection) => {
+                    LibraryNotification::CollectionEntityChanged(collection) => {
                         if *collection == self.collection {
                             log::info!("Collection unchanged: {collection:?}");
                             return;

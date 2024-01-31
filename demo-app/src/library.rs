@@ -1,13 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{num::NonZeroUsize, path::PathBuf, sync::Arc};
+use std::{
+    num::NonZeroUsize,
+    path::PathBuf,
+    sync::{Arc, Weak},
+};
 
 use aoide::{
     api::media::source::ResolveUrlFromContentPath,
     desktop_app::{collection, settings, track, Handle},
 };
-use discro::tasklet::OnChanged;
+use discro::Subscriber;
 
 const CREATE_NEW_COLLECTION_ENTITY_IF_NOT_FOUND: bool = true;
 
@@ -31,8 +35,8 @@ const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
 
 #[derive(Debug, Clone)]
 pub enum LibraryNotification {
-    MusicDirChanged(Option<PathBuf>),
-    CollectionChanged(Option<aoide::collection::Entity>),
+    MusicDirectoryChanged(Option<PathBuf>),
+    CollectionEntityChanged(Option<aoide::collection::Entity>),
 }
 
 pub trait LibraryEventEmitter: Send + Sync + 'static {
@@ -150,35 +154,81 @@ impl Library {
         tokio_rt.spawn({
             let event_emitter = Arc::downgrade(event_emitter);
             let subscriber = self.state().settings().subscribe_changed();
-            settings::tasklet::on_music_dir_changed(subscriber, move |music_dir| {
-                let Some(event_emitter) = event_emitter.upgrade() else {
-                    return OnChanged::Abort;
-                };
-                let music_dir = music_dir.map(|dir_path| dir_path.clone().into_owned().into());
-                event_emitter.emit_notification(LibraryNotification::MusicDirChanged(music_dir));
-                OnChanged::Continue
-            })
+            async move {
+                watch_music_dir(subscriber, event_emitter).await;
+            }
         });
         tokio_rt.spawn({
             let event_emitter = Arc::downgrade(event_emitter);
-            let initial_state_tag = self.state().collection().read().state_tag();
-            let observable_state = Arc::downgrade(self.state().collection());
             let subscriber = self.state().collection().subscribe_changed();
-            let on_changed = move |_: collection::StateTag| {
-                let Some(event_emitter) = event_emitter.upgrade() else {
-                    return OnChanged::Abort;
-                };
-                let Some(observable_state) = observable_state.upgrade() else {
-                    return OnChanged::Abort;
-                };
-                let collection = observable_state.read().entity().cloned();
-                event_emitter.emit_notification(LibraryNotification::CollectionChanged(collection));
-                OnChanged::Continue
-            };
-            // Invoke `on_changed()` with the initial state tag to emit an initial notification.
-            on_changed(initial_state_tag);
-            collection::tasklet::on_state_tag_changed(subscriber, on_changed)
+            async move {
+                watch_collection_entity(subscriber, event_emitter).await;
+            }
         });
         // ...TODO...
+    }
+}
+
+async fn watch_music_dir<E>(mut subscriber: Subscriber<settings::State>, event_emitter: Weak<E>)
+where
+    E: LibraryEventEmitter,
+{
+    let mut music_dir = subscriber.read_ack().music_dir.clone();
+    'outer: loop {
+        {
+            let Some(event_emitter) = event_emitter.upgrade() else {
+                // Event emitter has been dropped.
+                break 'outer;
+            };
+            // No locks are held here, so we can safely call `emit_notification()`.
+            event_emitter.emit_notification(LibraryNotification::MusicDirectoryChanged(
+                music_dir.clone().map(Into::into),
+            ));
+        }
+        'inner: loop {
+            if subscriber.changed().await.is_err() {
+                // Publisher has been dropped.
+                break 'outer;
+            }
+            let new_music_dir = &subscriber.read_ack().music_dir;
+            if music_dir != *new_music_dir {
+                music_dir = new_music_dir.clone().map(Into::into);
+                // Break out of the inner loop to emit a notification AFTER releasing the lock.
+                break 'inner;
+            }
+        }
+    }
+}
+
+async fn watch_collection_entity<E>(
+    mut subscriber: Subscriber<collection::State>,
+    event_emitter: Weak<E>,
+) where
+    E: LibraryEventEmitter,
+{
+    let mut entity = subscriber.read_ack().entity().cloned();
+    'outer: loop {
+        {
+            let Some(event_emitter) = event_emitter.upgrade() else {
+                // Event emitter has been dropped.
+                break 'outer;
+            };
+            // No locks are held here, so we can safely call `emit_notification()`.
+            event_emitter
+                .emit_notification(LibraryNotification::CollectionEntityChanged(entity.clone()));
+        }
+        'inner: loop {
+            if subscriber.changed().await.is_err() {
+                // Publisher has been dropped.
+                break 'outer;
+            }
+            let state = subscriber.read_ack();
+            let new_entity = state.entity();
+            if entity.as_ref() != new_entity {
+                entity = new_entity.cloned();
+                // Break out of the inner loop to emit a notification AFTER releasing the lock.
+                break 'inner;
+            }
+        }
     }
 }
