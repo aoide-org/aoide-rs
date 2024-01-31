@@ -122,18 +122,8 @@ async fn main() {
         let app = App {
             library: Library::new(aoide_handle, aoide_initial_settings),
         };
-        let mdl = AppModel::new(app, config_dir);
-        mdl.build(&rt, cx);
-
-        Label::new(
-            cx,
-            AppModel::config_dir.map(|config_dir| {
-                format!(
-                    "Config directory: {config_dir}",
-                    config_dir = config_dir.display()
-                )
-            }),
-        );
+        let mdl = AppModel::new(app);
+        mdl.build(config_dir, &rt, cx);
 
         Label::new(
             cx,
@@ -204,25 +194,21 @@ struct App {
 #[allow(missing_debug_implementations)]
 struct AppModel {
     app: App,
-    config_dir: PathBuf,
     music_dir: Option<PathBuf>,
     collection_entity: Option<aoide::collection::Entity>,
 }
 
 impl AppModel {
-    const fn new(app: App, config_dir: PathBuf) -> Self {
+    const fn new(app: App) -> Self {
         Self {
             app,
-            config_dir,
             music_dir: None,
             collection_entity: None,
         }
     }
 
-    fn build(self, rt: &tokio::runtime::Handle, cx: &mut Context) {
-        self.app
-            .library
-            .spawn_background_tasks(rt, self.config_dir.clone());
+    fn build(self, settings_dir: PathBuf, rt: &tokio::runtime::Handle, cx: &mut Context) {
+        self.app.library.spawn_background_tasks(rt, settings_dir);
         let event_emitter = Arc::new(AppEventEmitter {
             cx: Mutex::new(cx.get_proxy()),
         });
@@ -234,6 +220,10 @@ impl AppModel {
 }
 
 impl Model for AppModel {
+    fn name(&self) -> Option<&'static str> {
+        Some(app_name())
+    }
+
     fn event(&mut self, _cx: &mut EventContext<'_>, event: &mut Event) {
         event.map(|event, _meta| match event {
             AppEvent::Command(command) => match command {

@@ -73,7 +73,7 @@ pub fn on_settings_changed(
                     )
                     .await
                 {
-                    log::debug!("Resetting music directory in settings after error: {err}");
+                    log::warn!("Resetting music directory in settings after error: {err}");
                     report_error(err);
                     // Reset the music directory in the settings state. This will reset
                     // the collection state subsequently to recover from the error.
@@ -84,12 +84,12 @@ pub fn on_settings_changed(
                     let new_music_dir =
                         observable_state.read().music_dir().map(DirPath::into_owned);
                     if let Some(new_music_dir) = &new_music_dir {
-                        log::debug!(
+                        log::info!(
                             "Updating music directory in settings: {new_music_dir}",
                             new_music_dir = new_music_dir.display()
                         );
                     } else {
-                        log::debug!("Resetting music directory in settings");
+                        log::info!("Resetting music directory in settings");
                     }
                     new_music_dir
                 };

@@ -149,6 +149,7 @@ fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
 
 impl RestoreOrCreateState {
     #[allow(clippy::missing_panics_doc)]
+    #[allow(clippy::too_many_lines)] // TODO
     pub async fn restore_or_create(self, environment: &Environment) -> anyhow::Result<State> {
         let Self {
             kind,
@@ -201,13 +202,18 @@ impl RestoreOrCreateState {
                 }
             }
             log::info!(
-                "Skipping collection {uid}: {collection:?}",
+                "Skipping collection {uid}: {title}",
                 uid = candidate.entity.hdr.uid,
-                collection = candidate.entity.body
+                title = candidate.entity.body.title,
             );
         }
-        if let Some(selected_candidate) = selected_candidate {
-            return Ok(State::Ready(selected_candidate));
+        if let Some(collection) = selected_candidate {
+            log::info!(
+                "Selected collection {uid}: {title}",
+                uid = collection.entity.hdr.uid,
+                title = collection.entity.body.title,
+            );
+            return Ok(State::Ready(collection));
         }
         if !matches!(nested_music_dirs, NestedMusicDirectoriesStrategy::Permit) {
             // Search for an existing collection with a root directory
@@ -245,14 +251,18 @@ impl RestoreOrCreateState {
                 .hdr
                 .uid;
         // Reload the newly created entity with its summary
-        aoide_backend_embedded::collection::load_one(
+        let collection = aoide_backend_embedded::collection::load_one(
             environment.db_gatekeeper(),
             entity_uid,
             ENTITY_LOAD_SCOPE,
         )
-        .await
-        .map(State::Ready)
-        .map_err(Into::into)
+        .await?;
+        log::info!(
+            "Created collection {uid}: {title}",
+            uid = collection.entity.hdr.uid,
+            title = collection.entity.body.title,
+        );
+        Ok(State::Ready(collection))
     }
 }
 
