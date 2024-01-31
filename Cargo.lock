@@ -63,9 +63,9 @@ checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
 
 [[package]]
 name = "android-activity"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39b801912a977c3fd52d80511fe1c0c8480c6f957f21ae2ce1b92ffe970cf4b9"
+checksum = "ee91c0c2905bae44f84bfa4e044536541df26b7703fd0888deeb9060fcc44289"
 dependencies = [
  "android-properties",
  "bitflags 2.4.2",
@@ -1931,9 +1931,9 @@ dependencies = [
 
 [[package]]
 name = "gigtag"
-version = "0.1.9"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16749558e5af433fd5bb1ec6b74688ef302a9bfc7a379e7fd8671a7bd63635c8"
+checksum = "97e346789a616c0e3ac94987e96ac11814456687c4f37703ebcd0eb9aa6726e0"
 dependencies = [
  "anyhow",
  "compact_str",

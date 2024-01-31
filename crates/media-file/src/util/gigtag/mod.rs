@@ -8,15 +8,15 @@ use aoide_core::{
     tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, ScoreValue, Tags, TagsMap},
 };
 use compact_str::{format_compact, CompactString};
-use gigtag::facet::{has_date_like_suffix, Facet as _};
+use gigtag::{facet::has_date_like_suffix, Facet as _};
 
-pub type Facet = gigtag::facet::CompactFacet;
+pub type Facet = gigtag::CompactFacet;
 
-pub type Label = gigtag::label::CompactLabel;
+pub type Label = gigtag::CompactLabel;
 
-pub type PropName = gigtag::props::CompactName;
+pub type PropName = gigtag::CompactName;
 pub type PropValue = CompactString;
-pub type Property = gigtag::props::Property<PropName, PropValue>;
+pub type Property = gigtag::Property<PropName, PropValue>;
 
 pub type Tag = gigtag::Tag<Facet, Label, PropName, PropValue>;
 pub type DecodedTags = gigtag::DecodedTags<Facet, Label, PropName, PropValue>;
@@ -25,7 +25,7 @@ pub(crate) const SCORE_PROP_NAME: &str = "s";
 
 fn export_valid_label(label: &aoide_core::tag::Label<'_>) -> Option<Label> {
     let label = label.as_str();
-    (gigtag::label::is_valid(label)).then(|| gigtag::label::Label::from_str(label))
+    (gigtag::label::is_valid(label)).then(|| gigtag::Label::from_str(label))
 }
 
 fn export_facet(facet_id: &FacetId<'_>) -> Facet {
@@ -46,7 +46,7 @@ fn try_export_plain_tag(facet: Facet, plain_tag: &PlainTag<'_>) -> Option<Tag> {
     let score = (plain_tag.score != Default::default()
         || (label.is_empty() && !has_date_like_suffix(&facet)))
     .then(|| Property {
-        name: gigtag::props::Name::from_str(SCORE_PROP_NAME),
+        name: gigtag::Name::from_str(SCORE_PROP_NAME),
         value: format_compact!("{score}", score = plain_tag.score.value()),
     });
     let tag = Tag {
