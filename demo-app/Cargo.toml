@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "aoide-demo-app"
+description = "aoide - Desktop demo application"
+keywords = ["music", "collection"]
+repository = { workspace = true }
+version = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+directories = "5.0.1"
+pretty_env_logger = "0.5.0"
+
+[dependencies.aoide]
+path = ".."
+features = ["desktop-app"]
+
+[dependencies.log]
+version = "0.4.20"
+features = ["release_max_level_debug"]
+
+[dependencies.tokio]
+version = "1.35.1"
+default-features = false
+features = ["macros", "rt-multi-thread"]
+
+[dependencies.vizia]
+git = "https://github.com/vizia/vizia.git"
+branch = "main"
