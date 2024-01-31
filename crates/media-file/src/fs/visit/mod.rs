@@ -194,7 +194,7 @@ pub fn visit_directories<
     root_path: &Path,
     max_depth: Option<usize>,
     abort_flag: &AtomicBool,
-    directory_visitor: &mut dyn DirectoryVisitor<
+    directory_visitor: &mut impl DirectoryVisitor<
         AncestorVisitor = V,
         AncestorFinished = T,
         AfterAncestorFinishedError = E2,
