@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{marker::PhantomData, sync::atomic::AtomicBool, time::Duration};
+use std::{marker::PhantomData, path::Path, sync::atomic::AtomicBool, time::Duration};
 
 use aoide_core::media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _};
 use aoide_core_api::media::tracker::{
@@ -106,18 +106,50 @@ where
         }
     }
 
-    fn finalize(self) -> Vec<ContentPath<'static>> {
+    fn finish(self) -> Vec<ContentPath<'static>> {
         self.content_paths
     }
 }
 
-#[allow(clippy::unnecessary_wraps)]
-fn ancestor_finished(
-    all_content_paths: &mut Vec<ContentPath<'static>>,
-    mut content_paths: Vec<ContentPath<'static>>,
-) -> anyhow::Result<visit::AfterAncestorFinished> {
-    all_content_paths.append(&mut content_paths);
-    Ok(visit::AfterAncestorFinished::Continue)
+struct DirectoryVisitor<'a, Repo> {
+    collection_id: CollectionId,
+    resolver: &'a RemappingVfsResolver,
+    content_paths: Vec<ContentPath<'static>>,
+    repo: PhantomData<Repo>,
+}
+
+impl<'a, Repo> DirectoryVisitor<'a, Repo> {
+    fn new(collection_id: CollectionId, resolver: &'a RemappingVfsResolver) -> Self {
+        Self {
+            collection_id,
+            resolver,
+            content_paths: Default::default(),
+            repo: PhantomData,
+        }
+    }
+
+    fn finish(self) -> Vec<ContentPath<'static>> {
+        self.content_paths
+    }
+}
+
+impl<'a, Repo> aoide_media_file::fs::visit::DirectoryVisitor for DirectoryVisitor<'a, Repo> {
+    type AncestorVisitor = AncestorVisitor<'a, Repo>;
+    type AncestorFinished = Vec<ContentPath<'static>>;
+    type AfterAncestorFinishedError = anyhow::Error;
+
+    fn new_ancestor_visitor(&mut self, _dir_entry: &walkdir::DirEntry) -> Self::AncestorVisitor {
+        AncestorVisitor::new(self.collection_id, self.resolver.canonical_resolver())
+    }
+
+    fn after_ancestor_finished(
+        &mut self,
+        _path: &Path,
+        mut content_paths: Vec<ContentPath<'static>>,
+    ) -> anyhow::Result<visit::AfterAncestorFinished> {
+        self.content_paths.append(&mut content_paths);
+        Ok(visit::AfterAncestorFinished::Continue)
+    }
 }
 
 #[allow(clippy::missing_panics_doc)] // Never panics
@@ -140,18 +172,14 @@ pub fn visit_directories<
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
     };
-    let collection_id = collection_ctx.record_id;
+    let mut directory_visitor = DirectoryVisitor::new(collection_ctx.record_id, resolver);
     let root_file_path = resolver.build_file_path(resolver.root_path());
-    let mut content_paths = Vec::new();
     let completion = visit::visit_directories(
         repo,
         &root_file_path,
         *max_depth,
         abort_flag,
-        &mut move |_| AncestorVisitor::new(collection_id, resolver.canonical_resolver()),
-        &mut |_path, untracked_content_paths| {
-            ancestor_finished(&mut content_paths, untracked_content_paths)
-        },
+        &mut directory_visitor,
         &mut |progress_event| {
             log::trace!("{progress_event:?}");
             report_progress_fn(progress_event.clone().into());
@@ -165,7 +193,7 @@ pub fn visit_directories<
         log::info!(
             "Finding {num_untracked_dir_entries} untracked directory entries in \
              '{root_file_path}' took {elapsed_secs} s",
-            num_untracked_dir_entries = content_paths.len(),
+            num_untracked_dir_entries = directory_visitor.content_paths.len(),
             root_file_path = root_file_path.display(),
             elapsed_secs = elapsed.as_secs_f64(),
         );
@@ -181,6 +209,7 @@ pub fn visit_directories<
             visit::Completion::Aborted => Completion::Aborted,
         }
     })?;
+    let content_paths = directory_visitor.finish();
     let (root_url, root_path) = collection_ctx
         .content_path
         .resolver

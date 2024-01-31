@@ -413,6 +413,7 @@ dependencies = [
  "aoide-repo",
  "bitflags 2.4.2",
  "blake3",
+ "digest",
  "log",
  "static_assertions",
  "thiserror",

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{sync::atomic::AtomicBool, time::Duration};
+use std::{path::Path, sync::atomic::AtomicBool, time::Duration};
 
 use aoide_core::{
     media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _},
@@ -12,7 +12,10 @@ use aoide_core_api::media::tracker::{
     Completion, FsTraversalDirectoriesProgress, FsTraversalEntriesProgress, FsTraversalParams,
     FsTraversalProgress,
 };
-use aoide_media_file::fs::{digest, visit};
+use aoide_media_file::fs::{
+    digest::{hash_directories, HashDirectoriesVisitor},
+    visit,
+};
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     media::tracker::{DirUpdateOutcome, Repo as MediaTrackerRepo},
@@ -96,56 +99,59 @@ pub fn scan_directories<
         outdated_count
     );
     let mut summary = Summary::default();
-    let completion = digest::hash_directories::<_, anyhow::Error, _, _, _>(
+    let digest_finished_fn = |dir_path: &Path, digest: digest::Output<blake3::Hasher>| {
+        log::debug!(
+            "Finishing directory: {dir_path}",
+            dir_path = dir_path.display()
+        );
+        debug_assert!(dir_path.is_relative());
+        let full_path = root_file_path.join(dir_path);
+        debug_assert!(full_path.is_absolute());
+        let url = Url::from_directory_path(&full_path).expect("URL");
+        debug_assert!(url
+            .as_str()
+            .starts_with(resolver.canonical_root_url().as_str()));
+        let content_path = resolver.resolve_path_from_url(&url)?;
+        log::debug!("Updating digest of content path: {content_path}");
+        match repo
+            .media_tracker_update_directory_digest(
+                OffsetDateTimeMs::now_utc(),
+                collection_id,
+                &content_path,
+                &digest.into(),
+            )
+            .map_err(anyhow::Error::from)?
+        {
+            DirUpdateOutcome::Current => {
+                summary.current += 1;
+            }
+            DirUpdateOutcome::Inserted => {
+                log::debug!("Found added directory: {}", full_path.display());
+                summary.added += 1;
+            }
+            DirUpdateOutcome::Updated => {
+                log::debug!("Found modified directory: {}", full_path.display());
+                summary.modified += 1;
+            }
+            DirUpdateOutcome::Skipped => {
+                log::debug!("Skipped directory: {}", full_path.display());
+                summary.skipped += 1;
+            }
+        }
+        Ok(visit::AfterAncestorFinished::Continue)
+    };
+    let mut directory_visitor =
+        HashDirectoriesVisitor::new(blake3::Hasher::new, digest_finished_fn);
+    let mut report_progress_fn = |progress_event: &visit::ProgressEvent| {
+        log::trace!("{progress_event:?}");
+        report_progress_fn(progress_event.clone().into());
+    };
+    let completion = hash_directories::<_, anyhow::Error, _, _, _>(
         &root_file_path,
         *max_depth,
         abort_flag,
-        &mut blake3::Hasher::new,
-        &mut |dir_path, digest| {
-            log::debug!(
-                "Finishing directory: {dir_path}",
-                dir_path = dir_path.display()
-            );
-            debug_assert!(dir_path.is_relative());
-            let full_path = root_file_path.join(dir_path);
-            debug_assert!(full_path.is_absolute());
-            let url = Url::from_directory_path(&full_path).expect("URL");
-            debug_assert!(url
-                .as_str()
-                .starts_with(resolver.canonical_root_url().as_str()));
-            let content_path = resolver.resolve_path_from_url(&url)?;
-            log::debug!("Updating digest of content path: {content_path}");
-            match repo
-                .media_tracker_update_directory_digest(
-                    OffsetDateTimeMs::now_utc(),
-                    collection_id,
-                    &content_path,
-                    &digest.into(),
-                )
-                .map_err(anyhow::Error::from)?
-            {
-                DirUpdateOutcome::Current => {
-                    summary.current += 1;
-                }
-                DirUpdateOutcome::Inserted => {
-                    log::debug!("Found added directory: {}", full_path.display());
-                    summary.added += 1;
-                }
-                DirUpdateOutcome::Updated => {
-                    log::debug!("Found modified directory: {}", full_path.display());
-                    summary.modified += 1;
-                }
-                DirUpdateOutcome::Skipped => {
-                    log::debug!("Skipped directory: {}", full_path.display());
-                    summary.skipped += 1;
-                }
-            }
-            Ok(visit::AfterAncestorFinished::Continue)
-        },
-        &mut |progress_event| {
-            log::trace!("{progress_event:?}");
-            report_progress_fn(progress_event.clone().into());
-        },
+        &mut directory_visitor,
+        &mut report_progress_fn,
     )
     .map_err(anyhow::Error::from)
     .map_err(RepoError::from)
