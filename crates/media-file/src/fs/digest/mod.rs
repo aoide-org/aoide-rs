@@ -91,14 +91,14 @@ impl<D: Digest> AncestorVisitor<(), digest::Output<D>, Error> for AncestorDigest
 }
 
 #[derive(Debug)]
-pub struct HashDirectoriesVisitor<D, E, F1, F2> {
+pub struct HashDirectoryVisitor<D, E, F1, F2> {
     new_digest_fn: F1,
     digest_finished_fn: F2,
     digest: PhantomData<D>,
     error: PhantomData<E>,
 }
 
-impl<D, E, F1, F2> HashDirectoriesVisitor<D, E, F1, F2> {
+impl<D, E, F1, F2> HashDirectoryVisitor<D, E, F1, F2> {
     #[must_use]
     pub const fn new(new_digest_fn: F1, digest_finished_fn: F2) -> Self {
         Self {
@@ -110,7 +110,7 @@ impl<D, E, F1, F2> HashDirectoriesVisitor<D, E, F1, F2> {
     }
 }
 
-impl<D, E, F1, F2> DirectoryVisitor for HashDirectoriesVisitor<D, E, F1, F2>
+impl<D, E, F1, F2> DirectoryVisitor for HashDirectoryVisitor<D, E, F1, F2>
 where
     D: Digest,
     E: Into<Error>,
@@ -145,7 +145,7 @@ pub fn hash_directories<
     root_path: &Path,
     max_depth: Option<usize>,
     abort_flag: &AtomicBool,
-    directory_visitor: &mut HashDirectoriesVisitor<D, E, NewDigestFn, DigestFinishedFn>,
+    directory_visitor: &mut HashDirectoryVisitor<D, E, NewDigestFn, DigestFinishedFn>,
     report_progress_fn: &mut ReportProgressFn,
 ) -> Result<Outcome> {
     log::info!("Digesting all directories in '{}'", root_path.display());

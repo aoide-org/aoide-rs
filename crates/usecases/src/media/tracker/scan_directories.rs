@@ -13,7 +13,7 @@ use aoide_core_api::media::tracker::{
     FsTraversalProgress,
 };
 use aoide_media_file::fs::{
-    digest::{hash_directories, HashDirectoriesVisitor},
+    digest::{hash_directories, HashDirectoryVisitor},
     visit,
 };
 use aoide_repo::{
@@ -140,8 +140,7 @@ pub fn scan_directories<
         }
         Ok(visit::AfterAncestorFinished::Continue)
     };
-    let mut directory_visitor =
-        HashDirectoriesVisitor::new(blake3::Hasher::new, digest_finished_fn);
+    let mut directory_visitor = HashDirectoryVisitor::new(blake3::Hasher::new, digest_finished_fn);
     let mut report_progress_fn = |progress_event: &visit::ProgressEvent| {
         log::trace!("{progress_event:?}");
         report_progress_fn(progress_event.clone().into());
