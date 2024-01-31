@@ -3,6 +3,9 @@
 
 // Required for `#[derive(Lens)]`!?
 #![allow(clippy::expl_impl_clone_on_copy)]
+// Remove later.
+#![allow(dead_code)]
+#![allow(unreachable_pub)]
 
 use std::{
     fs,
@@ -11,6 +14,10 @@ use std::{
 
 use directories::ProjectDirs;
 use vizia::prelude::*;
+
+mod library;
+#[allow(unused_imports)]
+use self::library::{Library, LibraryState};
 
 #[tokio::main]
 async fn main() {
@@ -75,10 +82,18 @@ async fn main() {
         }
     };
 
+    let library = Library::new(aoide_handle, aoide_initial_settings);
+    library.spawn_background_tasks(
+        &tokio::runtime::Handle::try_current().unwrap(),
+        config_dir.clone(),
+    );
+    // library::spawn_ui_tasks(&main_window, &tokio_rt, &library);
+    // library::connect_ui_callbacks(&main_window, &tokio_rt, &library);
+
     Application::new(|cx| {
         AppData {
             config_dir,
-            aoide_handle,
+            library,
         }
         .build(cx);
 
@@ -129,7 +144,7 @@ fn app_config_dir() -> Option<PathBuf> {
 #[allow(missing_debug_implementations)]
 struct AppData {
     config_dir: PathBuf,
-    aoide_handle: aoide::desktop_app::Handle,
+    library: Library,
 }
 
 impl Model for AppData {}
