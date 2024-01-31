@@ -9,6 +9,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "async-file-dialog")]
 pub async fn choose_directory(dir_path: impl Into<Option<&Path>>) -> Option<DirPath<'static>> {
     log::debug!("Open rfd::AsyncFileDialog");
     let mut file_dialog = rfd::AsyncFileDialog::new();
