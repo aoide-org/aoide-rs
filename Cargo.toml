@@ -129,6 +129,7 @@ sqlite = ["usecases", "dep:aoide-repo-sqlite", "dep:aoide-storage-sqlite", "dep:
 tantivy = ["dep:aoide-search-index-tantivy", "aoide-backend-embedded?/tantivy"]
 backend-embedded = ["backend", "media-file", "sqlite", "dep:aoide-backend-embedded"]
 desktop-app = ["frontend", "backend-embedded", "dep:aoide-desktop-app"]
+async-file-dialog = ["aoide-desktop-app?/async-file-dialog"]
 
 # JavaScript/WASM features
 js = ["aoide-core/js", "aoide-core-api?/js", "aoide-core-api-json?/js", "aoide-core-json?/js", "aoide-repo?/js", "aoide-usecases?/js"]
