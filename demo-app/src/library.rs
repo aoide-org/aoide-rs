@@ -36,7 +36,7 @@ const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
 #[derive(Debug, Clone)]
 pub enum LibraryNotification {
     MusicDirectoryChanged(Option<PathBuf>),
-    CollectionEntityChanged(Option<aoide::collection::Entity>),
+    CollectionEntityChanged(Option<aoide::api::collection::EntityWithSummary>),
 }
 
 pub trait LibraryEventEmitter: Send + Sync + 'static {

@@ -48,6 +48,7 @@ impl LibraryEventEmitter for AppEventEmitter {
 }
 
 #[tokio::main]
+#[allow(clippy::too_many_lines)] // TODO
 async fn main() {
     pretty_env_logger::init();
 
@@ -124,13 +125,42 @@ async fn main() {
 
         Label::new(
             cx,
-            AppModel::music_dir.map(|music_dir| format!("Music directory: {music_dir:?}")),
+            AppModel::music_dir.map(|music_dir| {
+                if let Some(music_dir) = &music_dir {
+                    format!(
+                        "Music directory: {music_dir}",
+                        music_dir = music_dir.display()
+                    )
+                } else {
+                    "Music directory: <none>".to_owned()
+                }
+            }),
         );
 
         Label::new(
             cx,
-            AppModel::collection_entity
-                .map(|collection_entity| format!("Collection entity: {collection_entity:?}")),
+            AppModel::collection_entity.map(|entity_with_summary| {
+                if let Some(entity_with_summary) = &entity_with_summary {
+                    if let Some(summary) = &entity_with_summary.summary {
+                        format!(
+                            "Collection: uid = {uid}, title = \"{title}\", #tracks = {tracks_count}, \
+                             #playlists = {playlists_count}",
+                            uid = entity_with_summary.entity.hdr.uid,
+                            title = entity_with_summary.entity.body.title,
+                            tracks_count = summary.tracks.total_count,
+                            playlists_count = summary.playlists.total_count,
+                        )
+                    } else {
+                        format!(
+                            "Collection: uid = {uid}, title = \"{title}\"",
+                            uid = entity_with_summary.entity.hdr.uid,
+                            title = entity_with_summary.entity.body.title,
+                        )
+                    }
+                } else {
+                    "Collection: <none>".to_owned()
+                }
+            }),
         );
     })
     .title(app_name())
@@ -167,6 +197,7 @@ fn app_config_dir() -> Option<PathBuf> {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 enum AppEvent {
     Command(AppCommand),
     Notification(AppNotification),
@@ -203,7 +234,7 @@ impl App {
 struct AppModel {
     app: App,
     music_dir: Option<PathBuf>,
-    collection_entity: Option<aoide::collection::Entity>,
+    collection_entity: Option<aoide::api::collection::EntityWithSummary>,
 }
 
 impl AppModel {

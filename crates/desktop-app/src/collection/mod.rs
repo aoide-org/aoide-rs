@@ -14,7 +14,7 @@ use aoide_backend_embedded::batch::{
     },
 };
 use aoide_core::{
-    collection::{Collection, Entity, EntityUid, MediaSourceConfig},
+    collection::{Collection, EntityUid, MediaSourceConfig},
     media::content::ContentPathConfig,
     util::url::BaseUrl,
 };
@@ -452,13 +452,13 @@ impl State {
     }
 
     #[must_use]
-    pub const fn entity(&self) -> Option<&Entity> {
+    pub const fn entity(&self) -> Option<&EntityWithSummary> {
         match self {
             Self::Initial
             | Self::Loading { .. }
             | Self::RestoringOrCreating { .. }
             | Self::NestedMusicDirectoriesConflict { .. } => None,
-            Self::Ready(ready) => Some(&ready.entity),
+            Self::Ready(ready) => Some(ready),
         }
     }
 
