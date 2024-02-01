@@ -180,7 +180,7 @@ async fn watch_music_directory<E>(
     'outer: loop {
         {
             let Some(event_emitter) = event_emitter.upgrade() else {
-                // Event emitter has been dropped.
+                log::info!("Stop watching music directory after event emitter has been dropped");
                 break 'outer;
             };
             // No locks are held here, so we can safely call `emit_notification()`.
@@ -190,7 +190,7 @@ async fn watch_music_directory<E>(
         }
         'inner: loop {
             if subscriber.changed().await.is_err() {
-                // Publisher has been dropped.
+                log::info!("Stop watching music directory after publisher has been dropped");
                 break 'outer;
             }
             let new_music_dir = &subscriber.read_ack().music_dir;
@@ -214,7 +214,7 @@ async fn watch_collection_entity<E>(
     'outer: loop {
         {
             let Some(event_emitter) = event_emitter.upgrade() else {
-                // Event emitter has been dropped.
+                log::info!("Stop watching collection entity after event emitter has been dropped");
                 break 'outer;
             };
             // No locks are held here, so we can safely call `emit_notification()`.
@@ -223,7 +223,7 @@ async fn watch_collection_entity<E>(
         }
         'inner: loop {
             if subscriber.changed().await.is_err() {
-                // Publisher has been dropped.
+                log::info!("Stop watching collection entity after publisher has been dropped");
                 break 'outer;
             }
             let state = subscriber.read_ack();

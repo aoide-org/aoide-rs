@@ -119,10 +119,7 @@ async fn main() {
     };
 
     Application::new(move |cx: &mut Context| {
-        let app = App {
-            library: Library::new(aoide_handle, aoide_initial_settings),
-        };
-        let mdl = AppModel::new(app);
+        let mdl = AppModel::new(App::new(Library::new(aoide_handle, aoide_initial_settings)));
         mdl.build(config_dir, &rt, cx);
 
         Label::new(
@@ -188,6 +185,17 @@ enum AppNotification {
 #[allow(missing_debug_implementations)]
 struct App {
     library: Library,
+    event_emitter_keepalive: Option<Arc<AppEventEmitter>>,
+}
+
+impl App {
+    #[must_use]
+    const fn new(library: Library) -> Self {
+        Self {
+            library,
+            event_emitter_keepalive: None,
+        }
+    }
 }
 
 #[derive(Lens)]
@@ -207,7 +215,7 @@ impl AppModel {
         }
     }
 
-    fn build(self, settings_dir: PathBuf, rt: &tokio::runtime::Handle, cx: &mut Context) {
+    fn build(mut self, settings_dir: PathBuf, rt: &tokio::runtime::Handle, cx: &mut Context) {
         self.app.library.spawn_background_tasks(rt, settings_dir);
         let event_emitter = Arc::new(AppEventEmitter {
             cx: Mutex::new(cx.get_proxy()),
@@ -215,6 +223,8 @@ impl AppModel {
         self.app
             .library
             .spawn_notification_tasks(rt, &event_emitter);
+        // Keep the event emitter alive while the application is running.
+        self.app.event_emitter_keepalive = Some(event_emitter);
         <Self as Model>::build(self, cx);
     }
 }
