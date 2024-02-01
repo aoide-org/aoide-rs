@@ -26,14 +26,14 @@ rand = "0.8.5"
 regex = "1.10.3"
 semval = "0.5.2"
 strum = { version = "0.26.1", features = ["derive"] }
-time = { version = "0.3.31", features = [
+time = { version = "0.3.32", features = [
     "macros",
     "local-offset",
     "parsing",
     "formatting",
 ] }
 thiserror = "1.0.56"
-ulid = "1.1.0"
+ulid = "1.1.1"
 url = "2.5.0"
 
 # Serialization of selected, primitive types

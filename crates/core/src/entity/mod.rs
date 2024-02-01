@@ -57,9 +57,9 @@ impl EntityUid {
             .map_err(anyhow::Error::from)
     }
 
-    pub fn encode_into<'buf>(&self, buf: &'buf mut [u8]) -> anyhow::Result<&'buf mut str> {
+    pub fn encode_into(&self, buf: &mut [u8; EntityUid::STR_LEN]) {
         let Self { ulid } = self;
-        ulid.to_str(buf).map_err(anyhow::Error::from)
+        ulid.array_to_str(buf);
     }
 }
 
@@ -237,7 +237,7 @@ impl Default for EncodedEntityUid {
 impl From<&EntityUid> for EncodedEntityUid {
     fn from(from: &EntityUid) -> Self {
         let mut encoded = [0; EntityUid::STR_LEN];
-        from.encode_into(&mut encoded).unwrap();
+        from.encode_into(&mut encoded);
         Self(encoded)
     }
 }
