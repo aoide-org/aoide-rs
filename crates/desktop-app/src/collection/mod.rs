@@ -92,8 +92,9 @@ async fn try_refresh_entity_from_db(
 }
 
 /// A light-weight tag that denotes the [`State`] variant.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum StateTag {
+    #[default]
     Initial,
     Ready,
     Loading,

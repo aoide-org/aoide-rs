@@ -142,6 +142,33 @@ impl Library {
         &self.state
     }
 
+    pub fn update_music_directory(&self, music_dir: Option<PathBuf>) {
+        let music_dir = music_dir.map(Into::into);
+        self.state.settings().modify(|state| {
+            if music_dir == state.music_dir {
+                log::debug!("Music directory unchanged: {music_dir:?}");
+                return false;
+            }
+            let old_music_dir = state.music_dir.take();
+            log::debug!("Updating music directory: {old_music_dir:?} -> {music_dir:?}");
+            state.music_dir = music_dir;
+            true
+        });
+    }
+
+    pub fn reset_music_directory(&self) {
+        self.update_music_directory(None);
+    }
+
+    pub fn reset_collection(&self) {
+        self.state.collection().modify(collection::State::reset);
+    }
+
+    #[allow(clippy::unused_self)] // TODO
+    pub fn rescan_collection(&self) {
+        log::warn!("Rescanning collection is not yet implemented");
+    }
+
     /// Spawn reactive background tasks
     pub fn spawn_background_tasks(&self, tokio_rt: &tokio::runtime::Handle, settings_dir: PathBuf) {
         tokio_rt.spawn(settings::tasklet::on_state_changed_save_to_file(

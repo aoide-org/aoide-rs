@@ -137,6 +137,16 @@ async fn main() {
                 }
             }),
         );
+        Button::new(
+            cx,
+            |ex| ex.emit(AppEvent::Command(AppCommand::SelectMusicDirectory)),
+            |cx| Label::new(cx, "Select music directory..."),
+        );
+        Button::new(
+            cx,
+            |ex| ex.emit(AppEvent::Command(AppCommand::ResetMusicDirectory)),
+            |cx| Label::new(cx, "Reset music directory"),
+        );
 
         Label::new(
             cx,
@@ -145,7 +155,7 @@ async fn main() {
                     if let Some(summary) = &collection_with_summary.summary {
                         format!(
                             "Collection: uid = {uid}, title = \"{title}\", #tracks = \
-                             {tracks_count}, #playlists = {playlists_count}",
+                                {tracks_count}, #playlists = {playlists_count}",
                             uid = collection_with_summary.entity.hdr.uid,
                             title = collection_with_summary.entity.body.title,
                             tracks_count = summary.tracks.total_count,
@@ -162,6 +172,16 @@ async fn main() {
                     "Collection: <none>".to_owned()
                 }
             }),
+        );
+        Button::new(
+            cx,
+            |ex| ex.emit(AppEvent::Command(AppCommand::ResetCollection)),
+            |cx| Label::new(cx, "Reset collection"),
+        );
+        Button::new(
+            cx,
+            |ex| ex.emit(AppEvent::Command(AppCommand::RescanCollection)),
+            |cx: &mut Context| Label::new(cx, "Rescan collection"),
         );
     })
     .title(app_name())
@@ -207,7 +227,10 @@ enum AppEvent {
 
 #[derive(Debug, Clone)]
 enum AppCommand {
-    Quit,
+    SelectMusicDirectory,
+    ResetMusicDirectory,
+    ResetCollection,
+    RescanCollection,
 }
 
 /// App-level notification
@@ -240,14 +263,16 @@ impl App {
 struct AppModel {
     app: App,
     music_dir: Option<DirPath<'static>>,
+    collection_state_tag: aoide::desktop_app::collection::StateTag,
     collection_with_summary: Option<aoide::api::collection::EntityWithSummary>,
 }
 
 impl AppModel {
-    const fn new(app: App) -> Self {
+    fn new(app: App) -> Self {
         Self {
             app,
             music_dir: None,
+            collection_state_tag: Default::default(),
             collection_with_summary: None,
         }
     }
@@ -264,6 +289,21 @@ impl AppModel {
         self.app.event_emitter_keepalive = Some(event_emitter);
         <Self as Model>::build(self, cx);
     }
+
+    /// Open a file dialog to choose a directory path
+    ///
+    /// Start with the given path if available.
+    ///
+    /// Returns `Some` if a path has been chosen and `None` otherwise.
+    #[allow(clippy::unused_self)] // TODO
+    fn choose_directory_path<P>(&self, dir_path: &Option<P>) -> Option<PathBuf>
+    where
+        P: AsRef<Path>,
+    {
+        let dir_path = dir_path.as_ref().map(AsRef::as_ref);
+        log::warn!("TODO: Open file dialog to choose directory path: {dir_path:?}",);
+        None
+    }
 }
 
 impl Model for AppModel {
@@ -274,8 +314,20 @@ impl Model for AppModel {
     fn event(&mut self, _cx: &mut EventContext<'_>, event: &mut Event) {
         event.map(|event, _meta| match event {
             AppEvent::Command(command) => match command {
-                AppCommand::Quit => {
-                    log::warn!("TODO: Quit");
+                AppCommand::SelectMusicDirectory => {
+                    if let Some(music_dir) = self.choose_directory_path(&self.music_dir.as_deref())
+                    {
+                        self.app.library.update_music_directory(Some(music_dir));
+                    }
+                }
+                AppCommand::ResetMusicDirectory => {
+                    self.app.library.reset_music_directory();
+                }
+                AppCommand::ResetCollection => {
+                    self.app.library.reset_collection();
+                }
+                AppCommand::RescanCollection => {
+                    self.app.library.rescan_collection();
                 }
             },
             AppEvent::Notification(notification) => match notification {
@@ -296,6 +348,7 @@ impl Model for AppModel {
                         );
                     }
                     LibraryNotification::CollectionStateChanged(state) => {
+                        self.collection_state_tag = state.state_tag();
                         let new_collection_with_summary = state.entity_with_summary();
                         if new_collection_with_summary == self.collection_with_summary.as_ref() {
                             log::info!(
