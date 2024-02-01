@@ -5,14 +5,18 @@ use std::{
     fmt,
     num::NonZeroUsize,
     path::PathBuf,
-    sync::{Arc, Weak},
+    sync::{Arc, Mutex, Weak},
+    time::Instant,
 };
 
 use aoide::{
     api::media::source::ResolveUrlFromContentPath,
-    desktop_app::{collection, settings, track, Handle},
+    desktop_app::{settings, track, Handle},
 };
-use discro::Subscriber;
+use discro::{Publisher, Subscriber};
+
+mod collection;
+mod track_search;
 
 const CREATE_NEW_COLLECTION_ENTITY_IF_NOT_FOUND: bool = true;
 
@@ -34,7 +38,7 @@ const TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE: usize = 100;
 const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
     NonZeroUsize::MIN.saturating_add(TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE - 1);
 
-pub type TrackSearchStateRef<'r> = discro::Ref<'r, track::repo_search::State>;
+pub type TrackSearchStateRef<'r> = discro::Ref<'r, track_search::State>;
 
 #[derive(Clone)]
 pub struct TrackSearchStateReader {
@@ -116,11 +120,11 @@ impl LibraryState {
 }
 
 /// Library state with a handle to the runtime environment
-#[derive(Clone)]
 #[allow(missing_debug_implementations)]
 pub struct Library {
     handle: Handle,
     state: LibraryState,
+    pending_rescan_collection_task: Option<RescanCollectionTask>,
 }
 
 impl Library {
@@ -129,6 +133,7 @@ impl Library {
         Self {
             handle,
             state: LibraryState::new(initial_settings),
+            pending_rescan_collection_task: None,
         }
     }
 
@@ -164,9 +169,85 @@ impl Library {
         self.state.collection().modify(collection::State::reset);
     }
 
-    #[allow(clippy::unused_self)] // TODO
-    pub fn rescan_collection(&self) {
-        log::warn!("Rescanning collection is not yet implemented");
+    pub fn spawn_rescan_collection_task(&mut self, rt: &tokio::runtime::Handle) -> bool {
+        if let Some(rescan_collection_task) = self.pending_rescan_collection_task.as_ref() {
+            if rescan_collection_task.join_handle.is_finished() {
+                log::info!("Resetting finished rescan collection task");
+                self.pending_rescan_collection_task = None;
+            } else {
+                log::info!("Rescan collection still pending");
+                return false;
+            }
+        }
+        log::info!("Spawning rescan collection task");
+        let started_at = Instant::now();
+        let progress_pub = Publisher::new(None);
+        let progress = progress_pub.subscribe();
+        let report_progress_fn = {
+            // TODO: How to avoid wrapping the publisher?
+            let progress_pub = Arc::new(Mutex::new(progress_pub));
+            move |progress: Option<
+                aoide::backend_embedded::batch::synchronize_collection_vfs::Progress,
+            >| {
+                progress_pub.lock().unwrap().write(progress);
+            }
+        };
+        let handle = self.handle.clone();
+        let collection_state = Arc::clone(self.state.collection());
+        let task =
+            collection::synchronize_music_dir_task(handle, collection_state, report_progress_fn);
+        let track_search_state = Arc::downgrade(self.state.track_search());
+        let join_handle = rt.spawn(async move {
+            let outcome = task.await?;
+            // Discard any cached search results.
+            let Some(track_search_state) = track_search_state.upgrade() else {
+                return Ok(outcome);
+            };
+            track_search_state.reset_fetched();
+            Ok(outcome)
+        });
+        self.pending_rescan_collection_task = Some(RescanCollectionTask {
+            started_at,
+            progress,
+            join_handle,
+        });
+        true
+    }
+
+    pub const fn pending_rescan_collection_task(&self) -> Option<&RescanCollectionTask> {
+        self.pending_rescan_collection_task.as_ref()
+    }
+
+    pub fn abort_pending_rescan_collection_task(&mut self) -> Option<RescanCollectionTask> {
+        let pending_rescan_collection_task = self.pending_rescan_collection_task.take();
+        let Some(rescan_collection_task) = pending_rescan_collection_task else {
+            return None;
+        };
+        log::info!("Aborting rescan collection task");
+        rescan_collection_task.abort();
+        Some(rescan_collection_task)
+    }
+
+    pub fn search_tracks(&self, input: &str) {
+        let filter = track_search::parse_filter_from_input(input);
+        let resolve_url_from_content_path = self
+            .state
+            .track_search()
+            .read()
+            .default_params()
+            .resolve_url_from_content_path
+            .clone();
+        let mut params = aoide::api::track::search::Params {
+            filter,
+            ordering: vec![], // TODO
+            resolve_url_from_content_path,
+        };
+        // Argument is consumed when updating succeeds
+        if self.state.track_search().update_params(&mut params) {
+            log::debug!("Track search params updated: {params:?}");
+        } else {
+            log::debug!("Track search params not updated: {params:?}");
+        }
     }
 
     /// Spawn reactive background tasks
@@ -294,5 +375,41 @@ async fn watch_track_search_state<E>(
             log::info!("Stop watching track search state after publisher has been dropped");
             break;
         }
+    }
+}
+
+pub struct RescanCollectionTask {
+    started_at: Instant,
+    progress:
+        Subscriber<Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>>,
+    join_handle: tokio::task::JoinHandle<
+        anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>,
+    >,
+}
+
+impl RescanCollectionTask {
+    pub const fn started_at(&self) -> Instant {
+        self.started_at
+    }
+
+    pub const fn progress(
+        &self,
+    ) -> &Subscriber<Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>>
+    {
+        &self.progress
+    }
+
+    pub fn abort(&self) {
+        self.join_handle.abort();
+    }
+
+    pub fn is_finished(&self) -> bool {
+        self.join_handle.is_finished()
+    }
+
+    pub async fn join(
+        self,
+    ) -> anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome> {
+        self.join_handle.await?
     }
 }
