@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::{
+    fmt,
     num::NonZeroUsize,
     path::PathBuf,
     sync::{Arc, Weak},
@@ -33,12 +34,39 @@ const TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE: usize = 100;
 const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
     NonZeroUsize::MIN.saturating_add(TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE - 1);
 
-#[derive(Debug, Clone)]
-pub enum LibraryNotification {
-    MusicDirectoryChanged(Option<PathBuf>),
-    CollectionEntityChanged(Option<aoide::api::collection::EntityWithSummary>),
+pub type TrackSearchStateRef<'r> = discro::Ref<'r, track::repo_search::State>;
+
+#[derive(Clone)]
+pub struct TrackSearchStateReader {
+    subscriber: discro::Subscriber<track::repo_search::State>,
 }
 
+impl TrackSearchStateReader {
+    /// Read the current state
+    ///
+    /// Holds a read lock until the returned reference is dropped.
+    pub fn read(&self) -> TrackSearchStateRef<'_> {
+        self.subscriber.read()
+    }
+}
+
+impl fmt::Debug for TrackSearchStateReader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TrackSearchStateReader").finish()
+    }
+}
+
+#[derive(Debug)]
+#[allow(clippy::enum_variant_names)] // common `...Changed` suffix
+pub enum LibraryNotification {
+    SettingsStateChanged(settings::State),
+    CollectionStateChanged(collection::State),
+    TrackSearchStateChanged(TrackSearchStateReader),
+}
+
+/// Library event emitter.
+///
+/// No locks must be held when calling `emit_notification()`!
 pub trait LibraryEventEmitter: Send + Sync + 'static {
     fn emit_notification(&self, notification: LibraryNotification);
 }
@@ -130,7 +158,7 @@ impl Library {
             CREATE_NEW_COLLECTION_ENTITY_IF_NOT_FOUND,
             NESTED_MUSIC_DIRS,
             |err| {
-                log::error!("Failed to update collection after music directory changed: {err}");
+                log::error!("Failed to update collection after settings state changed: {err}");
             },
         ));
         tokio_rt.spawn(track::repo_search::tasklet::on_collection_changed(
@@ -155,84 +183,89 @@ impl Library {
             let event_emitter = Arc::downgrade(event_emitter);
             let subscriber = self.state().settings().subscribe_changed();
             async move {
-                watch_music_directory(subscriber, event_emitter).await;
+                watch_settings_state(subscriber, event_emitter).await;
             }
         });
         tokio_rt.spawn({
             let event_emitter = Arc::downgrade(event_emitter);
             let subscriber = self.state().collection().subscribe_changed();
             async move {
-                watch_collection_entity(subscriber, event_emitter).await;
+                watch_collection_state(subscriber, event_emitter).await;
             }
         });
-        // ...TODO...
+        tokio_rt.spawn({
+            let event_emitter = Arc::downgrade(event_emitter);
+            let subscriber = self.state().track_search().subscribe_changed();
+            async move {
+                watch_track_search_state(subscriber, event_emitter).await;
+            }
+        });
     }
 }
 
-async fn watch_music_directory<E>(
+async fn watch_settings_state<E>(
     mut subscriber: Subscriber<settings::State>,
     event_emitter: Weak<E>,
 ) where
     E: LibraryEventEmitter,
 {
     // The first event is always emitted immediately.
-    let mut music_dir = subscriber.read_ack().music_dir.clone();
-    'outer: loop {
-        {
-            let Some(event_emitter) = event_emitter.upgrade() else {
-                log::info!("Stop watching music directory after event emitter has been dropped");
-                break 'outer;
-            };
-            // No locks are held here, so we can safely call `emit_notification()`.
-            event_emitter.emit_notification(LibraryNotification::MusicDirectoryChanged(
-                music_dir.clone().map(Into::into),
-            ));
-        }
-        'inner: loop {
-            if subscriber.changed().await.is_err() {
-                log::info!("Stop watching music directory after publisher has been dropped");
-                break 'outer;
-            }
-            let new_music_dir = &subscriber.read_ack().music_dir;
-            if music_dir != *new_music_dir {
-                music_dir = new_music_dir.clone().map(Into::into);
-                // Break out of the inner loop to emit a notification AFTER releasing the lock.
-                break 'inner;
-            }
+    loop {
+        let Some(event_emitter) = event_emitter.upgrade() else {
+            log::info!("Stop watching settings state after event emitter has been dropped");
+            break;
+        };
+        // The lock is released immediately after cloning the state.
+        let state = subscriber.read_ack().clone();
+        event_emitter.emit_notification(LibraryNotification::SettingsStateChanged(state.clone()));
+        if subscriber.changed().await.is_err() {
+            log::info!("Stop watching settings state after publisher has been dropped");
+            break;
         }
     }
 }
 
-async fn watch_collection_entity<E>(
+async fn watch_collection_state<E>(
     mut subscriber: Subscriber<collection::State>,
     event_emitter: Weak<E>,
 ) where
     E: LibraryEventEmitter,
 {
     // The first event is always emitted immediately.
-    let mut entity = subscriber.read_ack().entity().cloned();
-    'outer: loop {
-        {
-            let Some(event_emitter) = event_emitter.upgrade() else {
-                log::info!("Stop watching collection entity after event emitter has been dropped");
-                break 'outer;
-            };
-            // No locks are held here, so we can safely call `emit_notification()`.
-            event_emitter
-                .emit_notification(LibraryNotification::CollectionEntityChanged(entity.clone()));
+    loop {
+        let Some(event_emitter) = event_emitter.upgrade() else {
+            log::info!("Stop watching collection state after event emitter has been dropped");
+            break;
+        };
+        // The lock is released immediately after cloning the state.
+        let state = subscriber.read_ack().clone();
+        event_emitter.emit_notification(LibraryNotification::CollectionStateChanged(state.clone()));
+        if subscriber.changed().await.is_err() {
+            log::info!("Stop watching collection state after publisher has been dropped");
+            break;
         }
-        'inner: loop {
-            if subscriber.changed().await.is_err() {
-                log::info!("Stop watching collection entity after publisher has been dropped");
-                break 'outer;
-            }
-            let state = subscriber.read_ack();
-            let new_entity = state.entity();
-            if entity.as_ref() != new_entity {
-                entity = new_entity.cloned();
-                // Break out of the inner loop to emit a notification AFTER releasing the lock.
-                break 'inner;
-            }
+    }
+}
+
+async fn watch_track_search_state<E>(
+    mut subscriber: Subscriber<track::repo_search::State>,
+    event_emitter: Weak<E>,
+) where
+    E: LibraryEventEmitter,
+{
+    // The first event is always emitted immediately.
+    loop {
+        let Some(event_emitter) = event_emitter.upgrade() else {
+            log::info!("Stop watching track search state after event emitter has been dropped");
+            break;
+        };
+        let reader = TrackSearchStateReader {
+            subscriber: subscriber.clone(),
+        };
+        event_emitter.emit_notification(LibraryNotification::TrackSearchStateChanged(reader));
+        if subscriber.changed().await.is_err() {
+            log::info!("Stop watching track search state after publisher has been dropped");
+            break;
         }
     }
 }

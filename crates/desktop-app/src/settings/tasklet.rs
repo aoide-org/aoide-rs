@@ -38,7 +38,7 @@ pub fn on_state_changed_save_to_file(
                 }
                 old_settings = new_settings.clone();
             }
-            log::debug!("Saving changed settings: {old_settings:?}");
+            log::info!("Saving changed settings: {old_settings:?}");
             let new_settings = old_settings.clone();
             if let Err(err) = new_settings.save_spawn_blocking(settings_dir.clone()).await {
                 report_error(err);

@@ -180,7 +180,7 @@ impl RestoreOrCreateState {
         )
         .await?;
         log::info!(
-            "Found {num_candidates} existing collection candidate(s)",
+            "Found {num_candidates} existing collection candidate(s) for selection",
             num_candidates = candidates.len()
         );
         let mut selected_candidate: Option<EntityWithSummary> = None;
@@ -209,7 +209,7 @@ impl RestoreOrCreateState {
         }
         if let Some(collection) = selected_candidate {
             log::info!(
-                "Selected collection {uid}: {title}",
+                "Selected collection {uid} titled \"{title}\"",
                 uid = collection.entity.hdr.uid,
                 title = collection.entity.body.title,
             );
@@ -452,7 +452,7 @@ impl State {
     }
 
     #[must_use]
-    pub const fn entity(&self) -> Option<&EntityWithSummary> {
+    pub const fn entity_with_summary(&self) -> Option<&EntityWithSummary> {
         match self {
             Self::Initial
             | Self::Loading { .. }

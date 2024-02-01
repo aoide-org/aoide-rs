@@ -305,7 +305,7 @@ impl State {
         }
         *self = reset;
         debug_assert!(!self.should_prefetch());
-        log::debug!("State has been reset");
+        log::info!("State has been reset");
         true
     }
 
@@ -320,10 +320,11 @@ impl State {
         }
         self.context.collection_uid = collection_uid.take();
         self.fetch.reset();
-        log::debug!(
-            "Collection UID updated: {collection_uid:?}",
-            collection_uid = self.context.collection_uid
-        );
+        if let Some(uid) = &self.context.collection_uid {
+            log::info!("Collection UID updated: {uid}");
+        } else {
+            log::info!("Collection UID updated: <none>");
+        }
         true
     }
 
@@ -338,7 +339,7 @@ impl State {
         }
         self.context.params = std::mem::take(params);
         self.fetch.reset();
-        log::debug!("Params updated: {params:?}", params = self.context.params);
+        log::info!("Params updated: {params:?}", params = self.context.params);
         true
     }
 

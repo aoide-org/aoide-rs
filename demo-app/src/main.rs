@@ -13,6 +13,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use aoide::desktop_app::fs::DirPath;
 use directories::ProjectDirs;
 use vizia::prelude::*;
 
@@ -139,22 +140,22 @@ async fn main() {
 
         Label::new(
             cx,
-            AppModel::collection_entity.map(|entity_with_summary| {
-                if let Some(entity_with_summary) = &entity_with_summary {
-                    if let Some(summary) = &entity_with_summary.summary {
+            AppModel::collection_with_summary.map(|collection_with_summary| {
+                if let Some(collection_with_summary) = &collection_with_summary {
+                    if let Some(summary) = &collection_with_summary.summary {
                         format!(
-                            "Collection: uid = {uid}, title = \"{title}\", #tracks = {tracks_count}, \
-                             #playlists = {playlists_count}",
-                            uid = entity_with_summary.entity.hdr.uid,
-                            title = entity_with_summary.entity.body.title,
+                            "Collection: uid = {uid}, title = \"{title}\", #tracks = \
+                             {tracks_count}, #playlists = {playlists_count}",
+                            uid = collection_with_summary.entity.hdr.uid,
+                            title = collection_with_summary.entity.body.title,
                             tracks_count = summary.tracks.total_count,
                             playlists_count = summary.playlists.total_count,
                         )
                     } else {
                         format!(
                             "Collection: uid = {uid}, title = \"{title}\"",
-                            uid = entity_with_summary.entity.hdr.uid,
-                            title = entity_with_summary.entity.body.title,
+                            uid = collection_with_summary.entity.hdr.uid,
+                            title = collection_with_summary.entity.body.title,
                         )
                     }
                 } else {
@@ -196,7 +197,8 @@ fn app_config_dir() -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
+// Not cloneable so large enum variants should be fine.
 #[allow(clippy::large_enum_variant)]
 enum AppEvent {
     Command(AppCommand),
@@ -208,7 +210,11 @@ enum AppCommand {
     Quit,
 }
 
-#[derive(Debug, Clone)]
+/// App-level notification
+///
+/// Not cloneable to prevent unintended storage. Notifications are
+/// supposed to be ephemeral and should disappear after being processed.
+#[derive(Debug)]
 enum AppNotification {
     Library(LibraryNotification),
 }
@@ -233,8 +239,8 @@ impl App {
 #[allow(missing_debug_implementations)]
 struct AppModel {
     app: App,
-    music_dir: Option<PathBuf>,
-    collection_entity: Option<aoide::api::collection::EntityWithSummary>,
+    music_dir: Option<DirPath<'static>>,
+    collection_with_summary: Option<aoide::api::collection::EntityWithSummary>,
 }
 
 impl AppModel {
@@ -242,7 +248,7 @@ impl AppModel {
         Self {
             app,
             music_dir: None,
-            collection_entity: None,
+            collection_with_summary: None,
         }
     }
 
@@ -274,30 +280,40 @@ impl Model for AppModel {
             },
             AppEvent::Notification(notification) => match notification {
                 AppNotification::Library(library) => match library {
-                    LibraryNotification::MusicDirectoryChanged(music_dir) => {
-                        if *music_dir == self.music_dir {
-                            log::info!("Music directory unchanged: {music_dir:?}");
+                    LibraryNotification::SettingsStateChanged(state) => {
+                        if state.music_dir == self.music_dir {
+                            log::info!(
+                                "Music directory unchanged: {music_dir:?}",
+                                music_dir = self.music_dir
+                            );
                             return;
                         }
                         let old_music_dir = self.music_dir.take();
-                        self.music_dir = music_dir.clone();
+                        self.music_dir = state.music_dir.clone();
                         log::info!(
                             "Music directory changed: {old_music_dir:?} -> {new_music_dir:?}",
                             new_music_dir = self.music_dir
                         );
                     }
-                    LibraryNotification::CollectionEntityChanged(collection) => {
-                        if *collection == self.collection_entity {
-                            log::info!("Collection unchanged: {collection:?}");
+                    LibraryNotification::CollectionStateChanged(state) => {
+                        let new_collection_with_summary = state.entity_with_summary();
+                        if new_collection_with_summary == self.collection_with_summary.as_ref() {
+                            log::info!(
+                                "Collection unchanged: {collection_with_summary:?}",
+                                collection_with_summary = self.collection_with_summary
+                            );
                             return;
                         }
-                        let old_collection_entity = self.collection_entity.take();
-                        self.collection_entity = collection.clone();
+                        let old_collection_with_summary = self.collection_with_summary.take();
+                        self.collection_with_summary = new_collection_with_summary.cloned();
                         log::info!(
-                            "Collection changed: {old_collection_entity:?} -> \
-                             {new_collection_entity:?}",
-                            new_collection_entity = self.collection_entity
+                            "Collection changed: {old_collection_with_summary:?} -> \
+                             {new_collection_with_summary:?}",
+                            new_collection_with_summary = self.collection_with_summary
                         );
+                    }
+                    LibraryNotification::TrackSearchStateChanged(reader) => {
+                        log::warn!("TODO: Track search state changed: {reader:?}");
                     }
                 },
             },
