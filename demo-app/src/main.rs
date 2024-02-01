@@ -146,7 +146,8 @@ async fn main() {
             cx,
             |ex| ex.emit(AppEvent::Command(AppCommand::ResetMusicDirectory)),
             |cx| Label::new(cx, "Reset music directory"),
-        );
+        )
+        .disabled(AppModel::music_dir.map(Option::is_none));
 
         Label::new(
             cx,
@@ -155,7 +156,7 @@ async fn main() {
                     if let Some(summary) = &collection_with_summary.summary {
                         format!(
                             "Collection: uid = {uid}, title = \"{title}\", #tracks = \
-                                {tracks_count}, #playlists = {playlists_count}",
+                             {tracks_count}, #playlists = {playlists_count}",
                             uid = collection_with_summary.entity.hdr.uid,
                             title = collection_with_summary.entity.body.title,
                             tracks_count = summary.tracks.total_count,
@@ -177,12 +178,14 @@ async fn main() {
             cx,
             |ex| ex.emit(AppEvent::Command(AppCommand::ResetCollection)),
             |cx| Label::new(cx, "Reset collection"),
-        );
+        )
+        .disabled(AppModel::collection_state_tag.map(|state_tag| !state_tag.is_ready()));
         Button::new(
             cx,
             |ex| ex.emit(AppEvent::Command(AppCommand::RescanCollection)),
             |cx: &mut Context| Label::new(cx, "Rescan collection"),
-        );
+        )
+        .disabled(AppModel::collection_state_tag.map(|state_tag| !state_tag.is_ready()));
     })
     .title(app_name())
     .run();
