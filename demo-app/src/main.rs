@@ -50,17 +50,8 @@ impl LibraryEventEmitter for AppEventEmitter {
 }
 
 #[tokio::main]
-#[allow(clippy::too_many_lines)] // TODO
 async fn main() {
     pretty_env_logger::init();
-
-    let rt = match tokio::runtime::Handle::try_current() {
-        Ok(handle) => handle,
-        Err(err) => {
-            log::error!("No Tokio runtime: {err}");
-            return;
-        }
-    };
 
     let Some(config_dir) = app_config_dir() else {
         log::error!("Config directory is unavailable");
@@ -120,12 +111,22 @@ async fn main() {
             return;
         }
     };
+    let library = Library::new(aoide_handle, aoide_initial_settings);
 
+    let rt = match tokio::runtime::Handle::try_current() {
+        Ok(handle) => handle,
+        Err(err) => {
+            log::error!("No Tokio runtime: {err}");
+            return;
+        }
+    };
+
+    run_app(rt, config_dir, library);
+}
+
+fn run_app(rt: tokio::runtime::Handle, config_dir: PathBuf, library: Library) {
     Application::new(move |cx: &mut Context| {
-        let mdl = AppModel::new(App::new(
-            rt,
-            Library::new(aoide_handle, aoide_initial_settings),
-        ));
+        let mdl = AppModel::new(App::new(rt, library));
         mdl.build(config_dir, cx);
 
         // Music directory
