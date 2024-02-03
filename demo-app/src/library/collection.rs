@@ -55,7 +55,6 @@ impl RescanTask {
         rt: &tokio::runtime::Handle,
         handle: Handle,
         collection: Arc<collection::ObservableState>,
-        track_search: Weak<super::track_search::ObservableState>,
     ) -> Self {
         let started_at = Instant::now();
         let progress_pub = Publisher::new(None);
@@ -70,15 +69,7 @@ impl RescanTask {
             }
         };
         let task = synchronize_music_dir_task(handle, collection, report_progress_fn);
-        let join_handle = rt.spawn(async move {
-            let outcome = task.await?;
-            // Discard any cached search results.
-            let Some(track_search) = track_search.upgrade() else {
-                return Ok(outcome);
-            };
-            track_search.reset_fetched();
-            Ok(outcome)
-        });
+        let join_handle = rt.spawn(task);
         Self {
             started_at,
             progress,

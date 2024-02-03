@@ -147,9 +147,7 @@ impl Library {
         log::info!("Spawning rescan collection task");
         let handle = self.handle.clone();
         let collection = Arc::clone(&self.state.collection);
-        let track_search = Arc::downgrade(&self.state.track_search);
-        let rescan_collection_task =
-            collection::RescanTask::spawn(rt, handle, collection, track_search);
+        let rescan_collection_task = collection::RescanTask::spawn(rt, handle, collection);
         self.pending_rescan_collection_task = Some(rescan_collection_task);
         true
     }

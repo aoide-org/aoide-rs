@@ -131,6 +131,8 @@ pub fn on_collection_changed(
                 if !observable_state.update_collection_uid(&mut collection_uid) {
                     log::debug!("Collection not updated: {collection_uid:?}");
                 }
+                log::debug!("Resetting fetched results after collection state tag changed");
+                observable_state.reset_fetched();
                 OnChanged::Continue
             }
         })
