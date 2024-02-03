@@ -5,7 +5,7 @@ use std::{num::NonZeroUsize, path::PathBuf, sync::Arc};
 
 use aoide::{
     api::media::source::ResolveUrlFromContentPath,
-    desktop_app::{Handle, ObservableReader},
+    desktop_app::{fs::DirPath, Handle, ObservableReader},
 };
 
 pub mod collection;
@@ -117,9 +117,8 @@ impl Library {
         &self.state
     }
 
-    pub fn update_music_directory(&self, music_dir: Option<PathBuf>) {
-        let music_dir = music_dir.map(Into::into);
-        if self.state.settings.update_music_dir(music_dir.as_ref()) {
+    pub fn update_music_directory(&self, music_dir: Option<&DirPath<'_>>) {
+        if self.state.settings.update_music_dir(music_dir) {
             log::info!("Music directory updated: {music_dir:?}");
         } else {
             log::debug!("Music directory unchanged: {music_dir:?}");

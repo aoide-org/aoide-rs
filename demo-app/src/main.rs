@@ -121,13 +121,14 @@ async fn main() {
         }
     };
 
-    run_app(rt, config_dir, library);
+    run_app(rt, library, config_dir);
 }
 
-fn run_app(rt: tokio::runtime::Handle, config_dir: PathBuf, library: Library) {
+fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
     Application::new(move |cx: &mut Context| {
-        let mdl = AppModel::new(App::new(rt, library));
-        mdl.build(config_dir, cx);
+        let app = App::new(rt, library, config_dir, cx.get_proxy());
+        let mdl = AppModel::new(app);
+        mdl.build(cx);
 
         // Music directory
         VStack::new(cx, |cx| {
@@ -270,6 +271,7 @@ enum AppInput {
 #[derive(Debug, Clone)]
 enum AppCommand {
     SelectMusicDirectory,
+    UpdateMusicDirectory(DirPath<'static>),
     ResetMusicDirectory,
     ResetCollection,
     RescanCollection,
@@ -289,16 +291,24 @@ enum AppNotification {
 struct App {
     rt: tokio::runtime::Handle,
     library: Library,
-    event_emitter_keepalive: Option<Arc<AppEventEmitter>>,
+    event_emitter: Arc<AppEventEmitter>,
 }
 
 impl App {
     #[must_use]
-    const fn new(rt: tokio::runtime::Handle, library: Library) -> Self {
+    fn new(
+        rt: tokio::runtime::Handle,
+        library: Library,
+        settings_dir: PathBuf,
+        cx: ContextProxy,
+    ) -> Self {
+        let event_emitter = Arc::new(AppEventEmitter { cx: Mutex::new(cx) });
+        library.spawn_background_tasks(&rt, settings_dir);
+        library.spawn_notification_tasks(&rt, &event_emitter);
         Self {
             rt,
             library,
-            event_emitter_keepalive: None,
+            event_emitter,
         }
     }
 }
@@ -324,33 +334,29 @@ impl AppModel {
         }
     }
 
-    fn build(mut self, settings_dir: PathBuf, cx: &mut Context) {
-        self.app
-            .library
-            .spawn_background_tasks(&self.app.rt, settings_dir);
-        let event_emitter = Arc::new(AppEventEmitter {
-            cx: Mutex::new(cx.get_proxy()),
-        });
-        self.app
-            .library
-            .spawn_notification_tasks(&self.app.rt, &event_emitter);
-        // Keep the event emitter alive while the application is running.
-        self.app.event_emitter_keepalive = Some(event_emitter);
-        <Self as Model>::build(self, cx);
-    }
-
     /// Open a file dialog to choose a directory path
     ///
     /// Start with the given path if available.
     ///
     /// Returns `Some` if a path has been chosen and `None` otherwise.
     #[allow(clippy::unused_self)] // TODO
-    fn choose_directory_path<P>(&self, dir_path: &Option<P>) -> Option<PathBuf>
+    fn choose_directory_path<P>(
+        &self,
+        rt: tokio::runtime::Handle,
+        dir_path: &Option<P>,
+        on_dir_path_chosen: impl FnOnce(DirPath<'static>) + Send + Sync + 'static,
+    ) -> Option<PathBuf>
     where
         P: AsRef<Path>,
     {
-        let dir_path = dir_path.as_ref().map(AsRef::as_ref);
-        log::warn!("TODO: Open file dialog to choose directory path: {dir_path:?}",);
+        let dir_path = dir_path.as_ref().map(AsRef::as_ref).map(PathBuf::from);
+        rt.spawn(async move {
+            let dir_path = aoide::desktop_app::fs::choose_directory(dir_path.as_deref()).await;
+            let Some(dir_path) = dir_path else {
+                return;
+            };
+            on_dir_path_chosen(dir_path)
+        });
         None
     }
 }
@@ -369,10 +375,28 @@ impl Model for AppModel {
             },
             AppEvent::Command(command) => match command {
                 AppCommand::SelectMusicDirectory => {
-                    if let Some(music_dir) = self.choose_directory_path(&self.music_dir.as_deref())
-                    {
-                        self.app.library.update_music_directory(Some(music_dir));
-                    }
+                    let on_dir_path_chosen = {
+                        // TODO: Obtain an `EmitContext` from `cx` once it is available.
+                        let event_emitter = Arc::downgrade(&self.app.event_emitter);
+                        move |dir_path: DirPath<'static>| {
+                            let Some(event_emitter) = event_emitter.upgrade() else {
+                                log::error!("No event emitter available after choosing music directory {dir_path}",
+                                dir_path = dir_path.display());
+                                return;
+                            };
+                            event_emitter.emit(AppEvent::Command(
+                                AppCommand::UpdateMusicDirectory(dir_path),
+                            ));
+                        }
+                    };
+                    self.choose_directory_path(
+                        self.app.rt.clone(),
+                        &self.music_dir.as_deref(),
+                        on_dir_path_chosen,
+                    );
+                }
+                AppCommand::UpdateMusicDirectory(music_dir) => {
+                    self.app.library.update_music_directory(Some(music_dir));
                 }
                 AppCommand::ResetMusicDirectory => {
                     self.app.library.reset_music_directory();

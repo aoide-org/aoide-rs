@@ -23,7 +23,7 @@ pretty_env_logger = "0.5.0"
 
 [dependencies.aoide]
 path = ".."
-features = ["desktop-app"]
+features = ["desktop-app", "async-file-dialog"]
 
 [dependencies.log]
 version = "0.4.20"
@@ -35,5 +35,14 @@ default-features = false
 features = ["macros", "rt-multi-thread"]
 
 [dependencies.vizia]
-git = "https://github.com/vizia/vizia.git"
-branch = "main"
+#git = "https://github.com/vizia/vizia.git"
+#branch = "main"
+# See also: <https://github.com/vizia/vizia/pull/457>
+git = "https://github.com/uklotzde/vizia.git"
+branch = "accesskit-disable-default-features"
+
+[dependencies.nix]
+# Missing feature in zbus 3.14.1
+version = "0.26.4"
+default-features = false
+features = ["user"]
