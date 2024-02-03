@@ -1,11 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{
-    hash::Hash as _,
-    num::NonZeroUsize,
-    ops::{Deref, DerefMut},
-};
+use std::{hash::Hash as _, num::NonZeroUsize};
 
 use highway::{HighwayHash, HighwayHasher, Key};
 
@@ -465,6 +461,8 @@ fn on_fetch_more(state: &mut State, fetch_limit: Option<NonZeroUsize>) -> Option
     })
 }
 
+pub type Subscriber = discro::Subscriber<State>;
+
 /// Manages the mutable, observable state
 #[derive(Debug)]
 pub struct ObservableState(Observable<State>);
@@ -475,22 +473,33 @@ impl ObservableState {
         Self(Observable::new(initial_state))
     }
 
+    #[must_use]
+    pub fn read(&self) -> ObservableStateRef<'_> {
+        self.0.read()
+    }
+
+    #[must_use]
+    pub fn subscribe_changed(&self) -> Subscriber {
+        self.0.subscribe_changed()
+    }
+
     #[allow(clippy::must_use_candidate)]
     pub fn reset(&self) -> bool {
-        self.modify(State::reset)
+        self.0.modify(State::reset)
     }
 
     pub fn update_collection_uid(&self, collection_uid: &mut Option<CollectionUid>) -> bool {
-        self.modify(|state| state.update_collection_uid(collection_uid))
+        self.0
+            .modify(|state| state.update_collection_uid(collection_uid))
     }
 
     pub fn update_params(&self, params: &mut Params) -> bool {
-        self.modify(|state| state.update_params(params))
+        self.0.modify(|state| state.update_params(params))
     }
 
     fn on_fetch_more(&self, fetch_limit: Option<NonZeroUsize>) -> Option<FetchMore> {
         let mut maybe_fetch_more = None;
-        self.modify(|state| {
+        self.0.modify(|state| {
             let Some(fetch_more) = on_fetch_more(state, fetch_limit) else {
                 return false;
             };
@@ -511,7 +520,7 @@ impl ObservableState {
             return false;
         };
         let res = self::fetch_more(handle, context, offset_hash, pagination).await;
-        self.modify(|state| match res {
+        self.0.modify(|state| match res {
             Ok(succeeded) => state.fetch_more_succeeded(succeeded),
             Err(err) => state.fetch_more_failed(err),
         })
@@ -519,21 +528,7 @@ impl ObservableState {
 
     #[allow(clippy::must_use_candidate)]
     pub fn reset_fetched(&self) -> bool {
-        self.modify(State::reset_fetched)
-    }
-}
-
-impl Deref for ObservableState {
-    type Target = Observable<State>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for ObservableState {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        self.0.modify(State::reset_fetched)
     }
 }
 

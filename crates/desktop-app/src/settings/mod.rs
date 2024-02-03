@@ -3,7 +3,6 @@
 
 use std::{
     fs,
-    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
 };
 
@@ -173,6 +172,8 @@ fn default_database_file_path(parent_dir: PathBuf) -> PathBuf {
     path_buf
 }
 
+pub type Subscriber = discro::Subscriber<State>;
+
 /// Manages the mutable, observable state
 #[derive(Debug)]
 pub struct ObservableState(Observable<State>);
@@ -183,34 +184,25 @@ impl ObservableState {
         Self(Observable::new(initial_state))
     }
 
-    #[allow(clippy::must_use_candidate)]
-    pub fn update_music_dir(&self, new_music_dir: &DirPath<'_>) -> bool {
-        self.modify(|state| state.update_music_dir(Some(new_music_dir)))
+    #[must_use]
+    pub fn read(&self) -> ObservableStateRef<'_> {
+        self.0.read()
+    }
+
+    #[must_use]
+    pub fn subscribe_changed(&self) -> Subscriber {
+        self.0.subscribe_changed()
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn reset_music_dir(&self) -> bool {
-        self.modify(|state| state.update_music_dir(None))
+    pub fn update_music_dir(&self, new_music_dir: Option<&DirPath<'_>>) -> bool {
+        self.0.modify(|state| state.update_music_dir(new_music_dir))
     }
 }
 
 impl Default for ObservableState {
     fn default() -> Self {
         Self::new(Default::default())
-    }
-}
-
-impl Deref for ObservableState {
-    type Target = Observable<State>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for ObservableState {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
 

@@ -123,11 +123,7 @@ fn synchronize_music_dir_task(
     Output = anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>,
 > + Send
        + 'static {
-    let mut uid = None;
-    state.modify(|state| {
-        uid = state.entity_uid().map(ToOwned::to_owned);
-        uid.is_some() && state.reset_to_pending()
-    });
+    let uid = state.reset_to_loading().map(|(_, uid)| uid);
     async move {
         let Some(uid) = uid else {
             anyhow::bail!("No collection");

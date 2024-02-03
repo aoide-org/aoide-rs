@@ -40,14 +40,14 @@ impl<T> Observable<T> {
         self.publisher.read()
     }
 
-    #[allow(clippy::must_use_candidate)]
-    pub fn modify(&self, modify: impl FnOnce(&mut T) -> bool) -> bool {
-        self.publisher.modify(modify)
-    }
-
     #[must_use]
     pub fn subscribe_changed(&self) -> Subscriber<T> {
         self.publisher.subscribe_changed()
+    }
+
+    #[allow(clippy::must_use_candidate)]
+    pub fn modify(&self, modify: impl FnOnce(&mut T) -> bool) -> bool {
+        self.publisher.modify(modify)
     }
 }
 

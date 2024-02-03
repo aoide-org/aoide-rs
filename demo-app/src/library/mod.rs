@@ -119,16 +119,11 @@ impl Library {
 
     pub fn update_music_directory(&self, music_dir: Option<PathBuf>) {
         let music_dir = music_dir.map(Into::into);
-        self.state.settings.modify(|state| {
-            if music_dir == state.music_dir {
-                log::debug!("Music directory unchanged: {music_dir:?}");
-                return false;
-            }
-            let old_music_dir = state.music_dir.take();
-            log::debug!("Updating music directory: {old_music_dir:?} -> {music_dir:?}");
-            state.music_dir = music_dir;
-            true
-        });
+        if self.state.settings.update_music_dir(music_dir.as_ref()) {
+            log::info!("Music directory updated: {music_dir:?}");
+        } else {
+            log::debug!("Music directory unchanged: {music_dir:?}");
+        }
     }
 
     pub fn reset_music_directory(&self) {
@@ -136,7 +131,7 @@ impl Library {
     }
 
     pub fn reset_collection(&self) {
-        self.state.collection.modify(collection::State::reset);
+        self.state.collection.reset();
     }
 
     pub fn spawn_rescan_collection_task(&mut self, rt: &tokio::runtime::Handle) -> bool {

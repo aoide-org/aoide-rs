@@ -101,7 +101,7 @@ pub fn on_settings_changed(
                     }
                     new_music_dir
                 };
-                settings_state.modify(|settings| settings.update_music_dir(new_music_dir.as_ref()));
+                settings_state.update_music_dir(new_music_dir.as_ref());
             }
             if settings_state_sub.changed().await.is_err() {
                 // Publisher disappeared

@@ -3,7 +3,6 @@
 
 use std::{
     borrow::Cow,
-    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     time::Instant,
 };
@@ -414,32 +413,30 @@ impl State {
         true
     }
 
-    pub fn reset_to_pending(&mut self) -> bool {
-        let pending_state = match self {
-            Self::Initial | Self::Loading { .. } | Self::RestoringOrCreating { .. } => {
-                // Not applicable / No effect
-                debug_assert!(!self.is_pending());
-                return false;
+    pub fn reset_to_loading(&mut self) -> Option<(bool, EntityUid)> {
+        match self {
+            Self::Initial
+            | Self::RestoringOrCreating { .. }
+            | Self::NestedMusicDirectoriesConflict { .. } => {
+                // Not applicable
+                debug_assert!(self.entity_uid().is_none());
+                None
+            }
+            Self::Loading { entity_uid, .. } => {
+                // No effect
+                Some((false, entity_uid.clone()))
             }
             Self::Ready(EntityWithSummary { entity, .. }) => {
                 let entity_uid = entity.hdr.uid.clone();
-                Self::Loading {
-                    entity_uid,
+                let loading_state = Self::Loading {
+                    entity_uid: entity_uid.clone(),
                     pending_since: Instant::now(),
-                }
+                };
+                log::debug!("Resetting state to loading: {self:?} -> {loading_state:?}");
+                *self = loading_state;
+                Some((true, entity_uid))
             }
-            Self::NestedMusicDirectoriesConflict { state, .. } => {
-                let state = std::mem::take(state);
-                Self::RestoringOrCreating {
-                    state,
-                    pending_since: Instant::now(),
-                }
-            }
-        };
-        log::debug!("Resetting state to pending: {self:?} -> {pending_state:?}");
-        *self = pending_state;
-        debug_assert!(self.is_pending());
-        true
+        }
     }
 
     #[must_use]
@@ -502,6 +499,8 @@ impl State {
     }
 }
 
+pub type Subscriber = discro::Subscriber<State>;
+
 /// Manages the mutable, observable state
 #[derive(Debug)]
 pub struct ObservableState(Observable<State>);
@@ -510,6 +509,33 @@ impl ObservableState {
     #[must_use]
     pub fn new(initial_state: State) -> Self {
         Self(Observable::new(initial_state))
+    }
+
+    #[must_use]
+    pub fn read(&self) -> ObservableStateRef<'_> {
+        self.0.read()
+    }
+
+    #[must_use]
+    pub fn subscribe_changed(&self) -> Subscriber {
+        self.0.subscribe_changed()
+    }
+
+    pub fn reset(&self) -> bool {
+        self.0.modify(State::reset)
+    }
+
+    #[allow(clippy::must_use_candidate)]
+    pub fn reset_to_loading(&self) -> Option<(bool, EntityUid)> {
+        let mut loading_entity_uid = None;
+        let modified = self.0.modify(|stats| {
+            let Some((modified, entity_uid)) = stats.reset_to_loading() else {
+                return false;
+            };
+            loading_entity_uid = Some(entity_uid);
+            modified
+        });
+        loading_entity_uid.map(|entity_uid| (modified, entity_uid))
     }
 
     pub async fn update_music_dir<'a>(
@@ -522,7 +548,7 @@ impl ObservableState {
     ) -> anyhow::Result<bool> {
         let modified = if let Some(new_music_dir) = new_music_dir {
             log::debug!("Updating music directory: {}", new_music_dir.display());
-            if !self.modify(|state| {
+            if !self.0.modify(|state| {
                 state.update_music_dir(
                     kind,
                     new_music_dir,
@@ -536,7 +562,7 @@ impl ObservableState {
             self.refresh_from_db(handle).await?
         } else {
             log::debug!("Resetting music directory");
-            self.modify(State::reset)
+            self.0.modify(State::reset)
         };
         Ok(modified)
     }
@@ -545,7 +571,7 @@ impl ObservableState {
         let refresh_params = self.read().prepare_refresh_from_db()?;
         let refreshed_state = refresh_state_from_db(environment, refresh_params).await?;
         log::debug!("Refreshed state: {refreshed_state:?}");
-        let modified = self.modify(|state| state.replace(refreshed_state));
+        let modified = self.0.modify(|state| state.replace(refreshed_state));
         Ok(modified)
     }
 }
@@ -553,20 +579,6 @@ impl ObservableState {
 impl Default for ObservableState {
     fn default() -> Self {
         Self::new(Default::default())
-    }
-}
-
-impl Deref for ObservableState {
-    type Target = Observable<State>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for ObservableState {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
 
