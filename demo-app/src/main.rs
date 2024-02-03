@@ -128,68 +128,79 @@ async fn main() {
         ));
         mdl.build(config_dir, cx);
 
-        Label::new(
-            cx,
-            AppModel::music_dir.map(|music_dir| {
-                if let Some(music_dir) = &music_dir {
-                    format!(
-                        "Music directory: {music_dir}",
-                        music_dir = music_dir.display()
-                    )
-                } else {
-                    "Music directory: <none>".to_owned()
-                }
-            }),
-        );
-        Button::new(
-            cx,
-            |ex| ex.emit(AppEvent::Command(AppCommand::SelectMusicDirectory)),
-            |cx| Label::new(cx, "Select music directory..."),
-        );
-        Button::new(
-            cx,
-            |ex| ex.emit(AppEvent::Command(AppCommand::ResetMusicDirectory)),
-            |cx| Label::new(cx, "Reset music directory"),
-        )
-        .disabled(AppModel::music_dir.map(Option::is_none));
-
-        Label::new(
-            cx,
-            AppModel::collection_with_summary.map(|collection_with_summary| {
-                if let Some(collection_with_summary) = &collection_with_summary {
-                    if let Some(summary) = &collection_with_summary.summary {
+        // Music directory
+        VStack::new(cx, |cx| {
+            Label::new(
+                cx,
+                AppModel::music_dir.map(|music_dir| {
+                    if let Some(music_dir) = &music_dir {
                         format!(
-                            "Collection: uid = {uid}, title = \"{title}\", #tracks = \
-                             {tracks_count}, #playlists = {playlists_count}",
-                            uid = collection_with_summary.entity.hdr.uid,
-                            title = collection_with_summary.entity.body.title,
-                            tracks_count = summary.tracks.total_count,
-                            playlists_count = summary.playlists.total_count,
+                            "Music directory: {music_dir}",
+                            music_dir = music_dir.display()
                         )
                     } else {
-                        format!(
-                            "Collection: uid = {uid}, title = \"{title}\"",
-                            uid = collection_with_summary.entity.hdr.uid,
-                            title = collection_with_summary.entity.body.title,
-                        )
+                        "Music directory: <none>".to_owned()
                     }
-                } else {
-                    "Collection: <none>".to_owned()
-                }
-            }),
-        );
-        Button::new(
-            cx,
-            |ex| ex.emit(AppEvent::Command(AppCommand::ResetCollection)),
-            |cx| Label::new(cx, "Reset collection"),
-        )
-        .disabled(AppModel::collection_state_tag.map(|state_tag| !state_tag.is_ready()));
-        Button::new(
-            cx,
-            |ex| ex.emit(AppEvent::Command(AppCommand::RescanCollection)),
-            |cx: &mut Context| Label::new(cx, "Rescan collection"),
-        )
-        .disabled(AppModel::collection_state_tag.map(|state_tag| !state_tag.is_ready()));
+                }),
+            );
+            HStack::new(cx, |cx| {
+                Button::new(
+                    cx,
+                    |ex| ex.emit(AppEvent::Command(AppCommand::SelectMusicDirectory)),
+                    |cx| Label::new(cx, "Select music directory..."),
+                );
+                Button::new(
+                    cx,
+                    |ex| ex.emit(AppEvent::Command(AppCommand::ResetMusicDirectory)),
+                    |cx| Label::new(cx, "Reset music directory"),
+                )
+                .disabled(AppModel::music_dir.map(Option::is_none));
+            });
+        });
+
+        // Collection
+        VStack::new(cx, |cx| {
+            Label::new(
+                cx,
+                AppModel::collection_with_summary.map(|collection_with_summary| {
+                    if let Some(collection_with_summary) = &collection_with_summary {
+                        if let Some(summary) = &collection_with_summary.summary {
+                            format!(
+                                "Collection: uid = {uid}, title = \"{title}\", #tracks = \
+                             {tracks_count}, #playlists = {playlists_count}",
+                                uid = collection_with_summary.entity.hdr.uid,
+                                title = collection_with_summary.entity.body.title,
+                                tracks_count = summary.tracks.total_count,
+                                playlists_count = summary.playlists.total_count,
+                            )
+                        } else {
+                            format!(
+                                "Collection: uid = {uid}, title = \"{title}\"",
+                                uid = collection_with_summary.entity.hdr.uid,
+                                title = collection_with_summary.entity.body.title,
+                            )
+                        }
+                    } else {
+                        "Collection: <none>".to_owned()
+                    }
+                }),
+            );
+
+            HStack::new(cx, |cx| {
+                Button::new(
+                    cx,
+                    |ex| ex.emit(AppEvent::Command(AppCommand::RescanCollection)),
+                    |cx: &mut Context| Label::new(cx, "Rescan collection"),
+                )
+                .disabled(AppModel::collection_state_tag.map(|state_tag| !state_tag.is_ready()));
+                Button::new(
+                    cx,
+                    |ex| ex.emit(AppEvent::Command(AppCommand::ResetCollection)),
+                    |cx| Label::new(cx, "Reset collection"),
+                )
+                .disabled(AppModel::collection_state_tag.map(|state_tag| !state_tag.is_ready()));
+            });
+        });
     })
     .title(app_name())
     .run();
