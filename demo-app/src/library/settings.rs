@@ -3,11 +3,12 @@
 
 use std::sync::Weak;
 
-// Re-exports
-pub use aoide::desktop_app::settings::*;
 use discro::Subscriber;
 
 use super::{LibraryEventEmitter, LibraryNotification};
+
+// Re-exports
+pub use aoide::desktop_app::settings::*;
 
 pub(super) async fn watch_state<E>(mut subscriber: Subscriber<State>, event_emitter: Weak<E>)
 where

@@ -7,16 +7,18 @@ use std::{
     time::Instant,
 };
 
+use discro::{Publisher, Subscriber};
+
 use aoide::{
     backend_embedded::media::predefined_faceted_tag_mapping_config,
     desktop_app::{collection, Handle},
     media_file::io::import::ImportTrackConfig,
 };
-// Re-exports
-pub use collection::*;
-use discro::{Publisher, Subscriber};
 
 use super::{LibraryEventEmitter, LibraryNotification};
+
+// Re-exports
+pub use collection::*;
 
 pub(super) async fn watch_state<E>(mut subscriber: Subscriber<State>, event_emitter: Weak<E>)
 where

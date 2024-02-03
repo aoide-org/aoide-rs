@@ -3,6 +3,8 @@
 
 use std::{fmt, sync::Weak};
 
+use discro::Subscriber;
+
 use aoide::{
     api::{
         filtering::StringPredicate,
@@ -16,11 +18,11 @@ use aoide::{
         FACET_ID_MOOD, FACET_ID_STYLE, FACET_ID_VIBE, FACET_ID_XID,
     },
 };
-use discro::Subscriber;
-// Re-exports
-pub use track::repo_search::*;
 
 use super::{LibraryEventEmitter, LibraryNotification};
+
+// Re-exports
+pub use track::repo_search::*;
 
 pub type StateRef<'r> = discro::Ref<'r, State>;
 

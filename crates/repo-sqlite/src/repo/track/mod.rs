@@ -674,7 +674,13 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             // TODO: Filtering by collection_id from the view is SLOOWWWWWWW!?!
             //.filter(view_track_search::collection_id.eq(RowId::from(collection_id)))
             // Filtering the collection_id by subselect through media_source (with an index) is much faster.
-            .filter(view_track_search::media_source_id.eq_any(media_source::table.select(media_source::row_id).filter(media_source::collection_id.eq(RowId::from(collection_id)))))
+            .filter(
+                view_track_search::media_source_id.eq_any(
+                    media_source::table
+                        .select(media_source::row_id)
+                        .filter(media_source::collection_id.eq(RowId::from(collection_id))),
+                ),
+            )
             .into_boxed();
 
         if let Some(ref filter) = filter {

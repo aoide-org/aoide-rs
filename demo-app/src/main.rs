@@ -13,9 +13,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use aoide::desktop_app::fs::DirPath;
 use directories::ProjectDirs;
 use vizia::prelude::*;
+
+use aoide::desktop_app::fs::DirPath;
 
 mod library;
 #[allow(unused_imports)]
