@@ -79,7 +79,7 @@ enum FetchState {
     },
     Failed {
         fetched_entities_before: Option<Vec<FetchedEntity>>,
-        _err_msg: String,
+        err: anyhow::Error,
     },
 }
 
@@ -128,6 +128,14 @@ impl FetchState {
             Self::Initial => Some(true),                                 // always
             Self::Pending { .. } | Self::Failed { .. } => None,          // undefined
             Self::Ready { can_fetch_more, .. } => Some(*can_fetch_more), // maybe
+        }
+    }
+
+    #[must_use]
+    const fn last_error(&self) -> Option<&anyhow::Error> {
+        match self {
+            Self::Initial | Self::Pending { .. } | Self::Ready { .. } => None,
+            Self::Failed { err, .. } => Some(err),
         }
     }
 
@@ -227,7 +235,7 @@ impl FetchState {
         let fetched_entities_before = std::mem::take(fetched_entities_before);
         *self = Self::Failed {
             fetched_entities_before,
-            _err_msg: err.to_string(),
+            err,
         };
         true
     }
@@ -286,6 +294,14 @@ impl State {
             return Some(false);
         }
         self.fetch.can_fetch_more()
+    }
+
+    /// The error of the last fetch operation.
+    ///
+    /// Only set if the last fetch operation failed, i.e. if the state tag is `Failed`.
+    #[must_use]
+    pub const fn last_fetch_error(&self) -> Option<&anyhow::Error> {
+        self.fetch.last_error()
     }
 
     #[must_use]
