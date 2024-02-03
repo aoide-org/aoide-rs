@@ -198,7 +198,7 @@ impl Library {
             },
         ));
         tokio_rt.spawn(collection::tasklet::on_settings_changed(
-            Arc::downgrade(&self.state.settings),
+            &self.state.settings,
             Arc::downgrade(&self.state.collection),
             Handle::downgrade(&self.handle),
             CREATE_NEW_COLLECTION_ENTITY_IF_NOT_FOUND,
@@ -208,11 +208,11 @@ impl Library {
             },
         ));
         tokio_rt.spawn(track_search::tasklet::on_collection_changed(
-            Arc::downgrade(&self.state.collection),
+            &self.state.collection,
             Arc::downgrade(&self.state.track_search),
         ));
         tokio_rt.spawn(track_search::tasklet::on_should_prefetch(
-            Arc::downgrade(&self.state.track_search),
+            &self.state.track_search,
             Handle::downgrade(&self.handle),
             Some(TRACK_REPO_SEARCH_PREFETCH_LIMIT),
         ));

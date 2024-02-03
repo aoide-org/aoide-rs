@@ -1,10 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{future::Future, sync::Weak};
+use std::{
+    future::Future,
+    sync::{Arc, Weak},
+};
 
 use discro::{tasklet::OnChanged, Subscriber};
-use unnest::{some_or_break, some_or_return};
+use unnest::some_or_break;
 
 use super::{NestedMusicDirectoriesStrategy, ObservableState, State, StateTag};
 use crate::{fs::DirPath, settings, WeakHandle};
@@ -47,18 +50,16 @@ where
 }
 
 pub fn on_settings_changed(
-    settings_state: Weak<settings::ObservableState>,
+    settings_state: &Arc<settings::ObservableState>,
     observable_state: Weak<ObservableState>,
     handle: WeakHandle,
     create_new_entity_if_not_found: bool,
     nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
     mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
-    let settings_state_sub = settings_state
-        .upgrade()
-        .map(|observable| observable.subscribe_changed());
+    let mut settings_state_sub = settings_state.subscribe_changed();
+    let settings_state = Arc::downgrade(settings_state);
     async move {
-        let mut settings_state_sub = some_or_return!(settings_state_sub);
         log::debug!("Starting on_settings_changed");
         loop {
             {

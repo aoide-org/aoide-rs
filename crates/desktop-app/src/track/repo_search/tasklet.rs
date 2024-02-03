@@ -1,13 +1,18 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{future::Future, num::NonZeroUsize, sync::Weak};
+use std::{
+    future::Future,
+    num::NonZeroUsize,
+    sync::{Arc, Weak},
+};
 
 use discro::{tasklet::OnChanged, Subscriber};
-use unnest::{some_or_return, some_or_return_with};
+use unnest::some_or_return_with;
+
+use crate::{collection, WeakHandle};
 
 use super::{FetchStateTag, ObservableState, State};
-use crate::{collection, WeakHandle};
 
 pub fn on_should_prefetch_trigger(
     subscriber: Subscriber<State>,
@@ -43,15 +48,13 @@ where
 }
 
 pub fn on_should_prefetch(
-    observable_state: Weak<ObservableState>,
+    observable_state: &Arc<ObservableState>,
     handle: WeakHandle,
     prefetch_limit: Option<NonZeroUsize>,
 ) -> impl Future<Output = ()> + Send + 'static {
-    let observable_state_sub = observable_state
-        .upgrade()
-        .map(|observable| observable.subscribe_changed());
+    let observable_state_sub = observable_state.subscribe_changed();
+    let observable_state = Arc::downgrade(observable_state);
     async move {
-        let observable_state_sub = some_or_return!(observable_state_sub);
         log::debug!("Starting on_should_prefetch");
         on_should_prefetch_trigger_async(observable_state_sub, move || {
             let observable_state = Weak::clone(&observable_state);
@@ -111,32 +114,33 @@ where
 }
 
 pub fn on_collection_changed(
-    collection_state: Weak<collection::ObservableState>,
+    collection_state: &Arc<collection::ObservableState>,
     observable_state: Weak<ObservableState>,
 ) -> impl Future<Output = ()> + Send + 'static {
-    let collection_state_sub = collection_state
-        .upgrade()
-        .map(|observable| observable.subscribe_changed());
+    let mut collection_state_sub = collection_state.subscribe_changed();
     async move {
-        let collection_state_sub = some_or_return!(collection_state_sub);
         log::debug!("Starting on_collection_changed");
-        collection::tasklet::on_state_tag_changed(collection_state_sub, {
-            move |_| {
-                let collection_state =
-                    some_or_return_with!(collection_state.upgrade(), OnChanged::Abort);
-                let observable_state =
-                    some_or_return_with!(observable_state.upgrade(), OnChanged::Abort);
-                let mut collection_uid = collection_state.read().entity_uid().map(Clone::clone);
-                // Argument is consumed when updating succeeds
-                if !observable_state.update_collection_uid(&mut collection_uid) {
-                    log::debug!("Collection not updated: {collection_uid:?}");
+        loop {
+            {
+                let Some(observable_state) = observable_state.upgrade() else {
+                    // Observable has been dropped.
+                    break;
+                };
+                let collection_uid;
+                {
+                    let state = collection_state_sub.read_ack();
+                    collection_uid = state.entity_uid().cloned();
                 }
-                log::debug!("Resetting fetched results after collection state tag changed");
-                observable_state.reset_fetched();
-                OnChanged::Continue
+                observable_state.update_collection_uid(&mut collection_uid.clone());
+                if observable_state.reset_fetched() {
+                    log::debug!("Fetched results have been reset");
+                }
             }
-        })
-        .await;
+            if collection_state_sub.changed().await.is_err() {
+                // Publisher has been dropped.
+                break;
+            }
+        }
         log::debug!("Stopping on_collection_changed");
     }
 }
