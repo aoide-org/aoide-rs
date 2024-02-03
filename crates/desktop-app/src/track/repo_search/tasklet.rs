@@ -17,8 +17,8 @@ pub fn on_should_prefetch_trigger(
         subscriber,
         (),
         |(), state| {
-            // Keep nagging the listener until should_prefetch() returns false
-            state.should_prefetch().then_some(())
+            // Keep nagging the listener until should_prefetch() returns false.
+            state.should_prefetch()
         },
         move |()| on_trigger(),
     )
@@ -35,8 +35,8 @@ where
         subscriber,
         (),
         |(), state| {
-            // Keep nagging the listener until should_prefetch() returns false
-            state.should_prefetch().then_some(())
+            // Keep nagging the listener until should_prefetch() returns false.
+            state.should_prefetch()
         },
         move |()| on_trigger(),
     )
@@ -73,6 +73,14 @@ pub fn on_should_prefetch(
     }
 }
 
+fn capture_fetch_state_tag_changes(state_tag: &mut FetchStateTag, new_state: &State) -> bool {
+    if *state_tag == new_state.fetch_state_tag() {
+        return false;
+    }
+    *state_tag = new_state.fetch_state_tag();
+    true
+}
+
 pub fn on_fetch_state_tag_changed(
     mut subscriber: Subscriber<State>,
     mut on_changed: impl FnMut(FetchStateTag) -> OnChanged + Send + 'static,
@@ -81,9 +89,7 @@ pub fn on_fetch_state_tag_changed(
     discro::tasklet::capture_changes(
         subscriber,
         initial_value,
-        |fetch_state_tag, state| {
-            (*fetch_state_tag != state.fetch_state_tag()).then(|| state.fetch_state_tag())
-        },
+        capture_fetch_state_tag_changes,
         move |fetch_state_tag| on_changed(*fetch_state_tag),
     )
 }
@@ -99,9 +105,7 @@ where
     discro::tasklet::capture_changes_async(
         subscriber,
         initial_value,
-        |fetch_state_tag, state| {
-            (*fetch_state_tag != state.fetch_state_tag()).then(|| state.fetch_state_tag())
-        },
+        capture_fetch_state_tag_changes,
         move |fetch_state_tag| on_changed(*fetch_state_tag),
     )
 }

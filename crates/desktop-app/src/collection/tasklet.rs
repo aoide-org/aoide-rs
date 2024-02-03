@@ -9,6 +9,14 @@ use unnest::{some_or_break, some_or_return};
 use super::{NestedMusicDirectoriesStrategy, ObservableState, State, StateTag};
 use crate::{fs::DirPath, settings, WeakHandle};
 
+fn capture_state_tag_changes(state_tag: &mut StateTag, new_state: &State) -> bool {
+    if *state_tag == new_state.state_tag() {
+        return false;
+    }
+    *state_tag = new_state.state_tag();
+    true
+}
+
 pub fn on_state_tag_changed(
     mut subscriber: Subscriber<State>,
     mut on_changed: impl FnMut(StateTag) -> OnChanged + Send + 'static,
@@ -17,7 +25,7 @@ pub fn on_state_tag_changed(
     discro::tasklet::capture_changes(
         subscriber,
         initial_value,
-        |state_tag, state| (*state_tag != state.state_tag()).then(|| state.state_tag()),
+        capture_state_tag_changes,
         move |state_tag| on_changed(*state_tag),
     )
 }
@@ -33,7 +41,7 @@ where
     discro::tasklet::capture_changes_async(
         subscriber,
         initial_value,
-        |state_tag, state| (*state_tag != state.state_tag()).then(|| state.state_tag()),
+        capture_state_tag_changes,
         move |state_tag| on_changed(*state_tag),
     )
 }

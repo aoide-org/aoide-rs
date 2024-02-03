@@ -1691,9 +1691,9 @@ dependencies = [
 
 [[package]]
 name = "discro"
-version = "0.28.2"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66306e7a6c65b739ab9b2d44f9e9330b6997ff04f470142a29eda48b4de9567f"
+checksum = "a8f06e2323b14ed4c8104a49a1893cdfddf14db737040609a2fcb4abe6728564"
 dependencies = [
  "async-stream",
  "futures-core",
@@ -4645,7 +4645,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.23.0"
-source = "git+https://github.com/vizia/vizia.git?branch=main#aaf091d9b4ab8ad7cc52e1b1ee1a6a06eaa77675"
+source = "git+https://github.com/vizia/vizia.git?branch=main#37ad557dd2f4c39ca0593674e6aaf83c7f14bc6c"
 dependencies = [
  "bitflags 1.3.2",
  "cssparser",
@@ -4999,9 +4999,9 @@ checksum = "81cdd64d312baedb58e21336b31bc043b77e01cc99033ce76ef539f78e965ebc"
 
 [[package]]
 name = "swash"
-version = "0.1.10"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53dab2b2dc9257aead8a24ef0481b253f4c73479ce4d3b4266792dce6870d4f3"
+checksum = "d06ff4664af8923625604261c645f5c4cc610cc83c84bec74b50d76237089de7"
 dependencies = [
  "read-fonts",
  "yazi",
@@ -5292,9 +5292,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.32"
+version = "0.3.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe80ced77cbfb4cb91a94bf72b378b4b6791a0d9b7f09d0be747d1bdff4e68bd"
+checksum = "00b24b79b7a07f10209f19e683ca1e289d80b1e76ffa8c2b779718566a083679"
 dependencies = [
  "deranged",
  "itoa",
@@ -5375,9 +5375,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.35.1"
+version = "1.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c89b4efa943be685f629b149f53829423f8f5531ea21249408e8e2f8671ec104"
+checksum = "61285f6515fa018fb2d1e46eb21223fff441ee8db5d0f1435e8ab4f5cdb80931"
 dependencies = [
  "backtrace",
  "bytes",
@@ -5614,9 +5614,9 @@ dependencies = [
 
 [[package]]
 name = "ulid"
-version = "1.1.1"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e3c3b4dcec1e4729aab50688a1a0631483d79e65b194851425e7748287715a6"
+checksum = "34778c17965aa2a08913b57e1f34db9b4a63f5de31768b55bf20d2795f921259"
 dependencies = [
  "getrandom 0.2.12",
  "rand 0.8.5",
@@ -5812,7 +5812,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "vizia"
 version = "0.1.0"
-source = "git+https://github.com/vizia/vizia.git?branch=main#aaf091d9b4ab8ad7cc52e1b1ee1a6a06eaa77675"
+source = "git+https://github.com/vizia/vizia.git?branch=main#37ad557dd2f4c39ca0593674e6aaf83c7f14bc6c"
 dependencies = [
  "vizia_core",
  "vizia_winit",
@@ -5821,7 +5821,7 @@ dependencies = [
 [[package]]
 name = "vizia_core"
 version = "0.1.0"
-source = "git+https://github.com/vizia/vizia.git?branch=main#aaf091d9b4ab8ad7cc52e1b1ee1a6a06eaa77675"
+source = "git+https://github.com/vizia/vizia.git?branch=main#37ad557dd2f4c39ca0593674e6aaf83c7f14bc6c"
 dependencies = [
  "accesskit",
  "bitflags 2.4.2",
@@ -5852,7 +5852,7 @@ dependencies = [
 [[package]]
 name = "vizia_derive"
 version = "0.1.0"
-source = "git+https://github.com/vizia/vizia.git?branch=main#aaf091d9b4ab8ad7cc52e1b1ee1a6a06eaa77675"
+source = "git+https://github.com/vizia/vizia.git?branch=main#37ad557dd2f4c39ca0593674e6aaf83c7f14bc6c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5862,12 +5862,12 @@ dependencies = [
 [[package]]
 name = "vizia_id"
 version = "0.1.0"
-source = "git+https://github.com/vizia/vizia.git?branch=main#aaf091d9b4ab8ad7cc52e1b1ee1a6a06eaa77675"
+source = "git+https://github.com/vizia/vizia.git?branch=main#37ad557dd2f4c39ca0593674e6aaf83c7f14bc6c"
 
 [[package]]
 name = "vizia_input"
 version = "0.1.0"
-source = "git+https://github.com/vizia/vizia.git?branch=main#aaf091d9b4ab8ad7cc52e1b1ee1a6a06eaa77675"
+source = "git+https://github.com/vizia/vizia.git?branch=main#37ad557dd2f4c39ca0593674e6aaf83c7f14bc6c"
 dependencies = [
  "bitflags 1.3.2",
  "keyboard-types",
@@ -5877,7 +5877,7 @@ dependencies = [
 [[package]]
 name = "vizia_storage"
 version = "0.1.0"
-source = "git+https://github.com/vizia/vizia.git?branch=main#aaf091d9b4ab8ad7cc52e1b1ee1a6a06eaa77675"
+source = "git+https://github.com/vizia/vizia.git?branch=main#37ad557dd2f4c39ca0593674e6aaf83c7f14bc6c"
 dependencies = [
  "morphorm",
  "vizia_id",
@@ -5886,7 +5886,7 @@ dependencies = [
 [[package]]
 name = "vizia_style"
 version = "0.1.0"
-source = "git+https://github.com/vizia/vizia.git?branch=main#aaf091d9b4ab8ad7cc52e1b1ee1a6a06eaa77675"
+source = "git+https://github.com/vizia/vizia.git?branch=main#37ad557dd2f4c39ca0593674e6aaf83c7f14bc6c"
 dependencies = [
  "bitflags 2.4.2",
  "cssparser",
@@ -5899,7 +5899,7 @@ dependencies = [
 [[package]]
 name = "vizia_window"
 version = "0.1.0"
-source = "git+https://github.com/vizia/vizia.git?branch=main#aaf091d9b4ab8ad7cc52e1b1ee1a6a06eaa77675"
+source = "git+https://github.com/vizia/vizia.git?branch=main#37ad557dd2f4c39ca0593674e6aaf83c7f14bc6c"
 dependencies = [
  "accesskit",
  "morphorm",
@@ -5910,7 +5910,7 @@ dependencies = [
 [[package]]
 name = "vizia_winit"
 version = "0.1.0"
-source = "git+https://github.com/vizia/vizia.git?branch=main#aaf091d9b4ab8ad7cc52e1b1ee1a6a06eaa77675"
+source = "git+https://github.com/vizia/vizia.git?branch=main#37ad557dd2f4c39ca0593674e6aaf83c7f14bc6c"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -6305,9 +6305,9 @@ dependencies = [
 
 [[package]]
 name = "webpki-roots"
-version = "0.25.3"
+version = "0.25.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1778a42e8b3b90bff8d0f5032bf22250792889a5cdc752aa0020c84abe3aaf10"
+checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
 
 [[package]]
 name = "weezl"
@@ -6679,9 +6679,9 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "0.5.36"
+version = "0.5.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "818ce546a11a9986bc24f93d0cdf38a8a1a400f1473ea8c82e59f6e0ffab9249"
+checksum = "a7cad8365489051ae9f054164e459304af2e7e9bb407c958076c8bf4aef52da5"
 dependencies = [
  "memchr",
 ]
