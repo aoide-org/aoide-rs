@@ -3,9 +3,12 @@
 
 use std::{
     borrow::Cow,
+    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     time::Instant,
 };
+
+use url::Url;
 
 use aoide_backend_embedded::batch::{
     self,
@@ -24,10 +27,8 @@ use aoide_core_api::{
 };
 use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
-use discro::{Publisher, Ref, Subscriber};
-use url::Url;
 
-use crate::{fs::DirPath, Environment, Handle};
+use crate::{fs::DirPath, Environment, Handle, Observable, ObservableReader, ObservableRef};
 
 pub mod tasklet;
 
@@ -503,30 +504,12 @@ impl State {
 
 /// Manages the mutable, observable state
 #[derive(Debug)]
-pub struct ObservableState {
-    state_pub: Publisher<State>,
-}
+pub struct ObservableState(Observable<State>);
 
 impl ObservableState {
     #[must_use]
     pub fn new(initial_state: State) -> Self {
-        let state_pub = Publisher::new(initial_state);
-        Self { state_pub }
-    }
-
-    #[must_use]
-    pub fn read(&self) -> Ref<'_, State> {
-        self.state_pub.read()
-    }
-
-    #[must_use]
-    pub fn subscribe_changed(&self) -> Subscriber<State> {
-        self.state_pub.subscribe_changed()
-    }
-
-    #[allow(clippy::must_use_candidate)]
-    pub fn modify(&self, modify_state: impl FnOnce(&mut State) -> bool) -> bool {
-        self.state_pub.modify(modify_state)
+        Self(Observable::new(initial_state))
     }
 
     pub async fn update_music_dir<'a>(
@@ -570,6 +553,28 @@ impl ObservableState {
 impl Default for ObservableState {
     fn default() -> Self {
         Self::new(Default::default())
+    }
+}
+
+impl Deref for ObservableState {
+    type Target = Observable<State>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ObservableState {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+pub type ObservableStateRef<'a> = ObservableRef<'a, State>;
+
+impl ObservableReader<State> for ObservableState {
+    fn read_observable(&self) -> ObservableStateRef<'_> {
+        self.0.read_observable()
     }
 }
 

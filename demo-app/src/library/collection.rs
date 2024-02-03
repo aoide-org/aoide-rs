@@ -20,7 +20,9 @@ use super::{LibraryEventEmitter, LibraryNotification};
 // Re-exports
 pub use collection::*;
 
-pub(super) async fn watch_state<E>(mut subscriber: Subscriber<State>, event_emitter: Weak<E>)
+pub type StateSubscriber = Subscriber<State>;
+
+pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitter: Weak<E>)
 where
     E: LibraryEventEmitter,
 {
@@ -30,9 +32,8 @@ where
             log::info!("Stop watching collection state after event emitter has been dropped");
             break;
         };
-        // The lock is released immediately after cloning the state.
-        let state = subscriber.read_ack().clone();
-        event_emitter.emit_notification(LibraryNotification::CollectionStateChanged(state.clone()));
+        drop(subscriber.read_ack());
+        event_emitter.emit_notification(LibraryNotification::CollectionStateChanged);
         if subscriber.changed().await.is_err() {
             log::info!("Stop watching collection state after publisher has been dropped");
             break;

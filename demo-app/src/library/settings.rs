@@ -10,7 +10,9 @@ use super::{LibraryEventEmitter, LibraryNotification};
 // Re-exports
 pub use aoide::desktop_app::settings::*;
 
-pub(super) async fn watch_state<E>(mut subscriber: Subscriber<State>, event_emitter: Weak<E>)
+pub type StateSubscriber = Subscriber<State>;
+
+pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitter: Weak<E>)
 where
     E: LibraryEventEmitter,
 {

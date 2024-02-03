@@ -16,7 +16,7 @@ use std::{
 use directories::ProjectDirs;
 use vizia::prelude::*;
 
-use aoide::desktop_app::fs::DirPath;
+use aoide::desktop_app::{fs::DirPath, ObservableReader as _};
 
 mod library;
 #[allow(unused_imports)]
@@ -202,6 +202,23 @@ fn run_app(rt: tokio::runtime::Handle, config_dir: PathBuf, library: Library) {
                 .disabled(AppModel::collection_state_tag.map(|state_tag| !state_tag.is_ready()));
             });
         });
+
+        // Track search
+        VStack::new(cx, |cx| {
+            HStack::new(cx, |cx| {
+                Label::new(cx, "Search tracks:");
+                Textbox::new(cx, AppModel::track_search_input)
+                    .on_edit(move |cx, text| {
+                        cx.emit(AppEvent::Input(AppInput::TrackSearch(text.clone())));
+                    })
+                    .on_submit(|cx, text, enter_key_pressed| {
+                        if enter_key_pressed {
+                            cx.emit(AppEvent::Command(AppCommand::SearchTracks(text.clone())));
+                        }
+                    })
+                    .width(Pixels(200.0));
+            });
+        });
     })
     .title(app_name())
     .run();
@@ -240,8 +257,14 @@ fn app_config_dir() -> Option<PathBuf> {
 // Not cloneable so large enum variants should be fine.
 #[allow(clippy::large_enum_variant)]
 enum AppEvent {
+    Input(AppInput),
     Command(AppCommand),
     Notification(AppNotification),
+}
+
+#[derive(Debug, Clone)]
+enum AppInput {
+    TrackSearch(String),
 }
 
 #[derive(Debug, Clone)]
@@ -287,6 +310,7 @@ struct AppModel {
     music_dir: Option<DirPath<'static>>,
     collection_state_tag: aoide::desktop_app::collection::StateTag,
     collection_with_summary: Option<aoide::api::collection::EntityWithSummary>,
+    track_search_input: String,
 }
 
 impl AppModel {
@@ -296,6 +320,7 @@ impl AppModel {
             music_dir: None,
             collection_state_tag: Default::default(),
             collection_with_summary: None,
+            track_search_input: Default::default(),
         }
     }
 
@@ -337,6 +362,11 @@ impl Model for AppModel {
 
     fn event(&mut self, _cx: &mut EventContext<'_>, event: &mut Event) {
         event.map(|event, _meta| match event {
+            AppEvent::Input(input) => match input {
+                AppInput::TrackSearch(input) => {
+                    self.track_search_input = input.clone();
+                }
+            },
             AppEvent::Command(command) => match command {
                 AppCommand::SelectMusicDirectory => {
                     if let Some(music_dir) = self.choose_directory_path(&self.music_dir.as_deref())
@@ -374,7 +404,8 @@ impl Model for AppModel {
                             new_music_dir = self.music_dir
                         );
                     }
-                    LibraryNotification::CollectionStateChanged(state) => {
+                    LibraryNotification::CollectionStateChanged => {
+                        let state = self.app.library.state().collection().read_observable();
                         self.collection_state_tag = state.state_tag();
                         let new_collection_with_summary = state.entity_with_summary();
                         if new_collection_with_summary == self.collection_with_summary.as_ref() {
@@ -392,8 +423,11 @@ impl Model for AppModel {
                             new_collection_with_summary = self.collection_with_summary
                         );
                     }
-                    LibraryNotification::TrackSearchStateChanged(reader) => {
-                        log::warn!("TODO: Track search state changed: {reader:?}");
+                    LibraryNotification::TrackSearchStateChanged => {
+                        log::warn!(
+                            "TODO: Track search state changed: {state:?}",
+                            state = self.app.library.state().track_search().read_observable()
+                        );
                     }
                 },
             },

@@ -1,7 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{hash::Hash as _, num::NonZeroUsize};
+use std::{
+    hash::Hash as _,
+    num::NonZeroUsize,
+    ops::{Deref, DerefMut},
+};
+
+use highway::{HighwayHash, HighwayHasher, Key};
 
 use aoide_backend_embedded::track::search;
 use aoide_core::{
@@ -9,10 +15,8 @@ use aoide_core::{
     CollectionUid,
 };
 use aoide_core_api::{track::search::Params, Pagination};
-use discro::{Publisher, Ref, Subscriber};
-use highway::{HighwayHash, HighwayHasher, Key};
 
-use crate::environment::Handle;
+use crate::{environment::Handle, Observable, ObservableReader, ObservableRef};
 
 pub mod tasklet;
 
@@ -463,30 +467,12 @@ fn on_fetch_more(state: &mut State, fetch_limit: Option<NonZeroUsize>) -> Option
 
 /// Manages the mutable, observable state
 #[derive(Debug)]
-pub struct ObservableState {
-    state_pub: Publisher<State>,
-}
+pub struct ObservableState(Observable<State>);
 
 impl ObservableState {
     #[must_use]
     pub fn new(initial_state: State) -> Self {
-        let state_pub = Publisher::new(initial_state);
-        Self { state_pub }
-    }
-
-    #[must_use]
-    pub fn read(&self) -> Ref<'_, State> {
-        self.state_pub.read()
-    }
-
-    #[must_use]
-    pub fn subscribe_changed(&self) -> Subscriber<State> {
-        self.state_pub.subscribe_changed()
-    }
-
-    #[allow(clippy::must_use_candidate)]
-    pub fn modify(&self, modify_state: impl FnOnce(&mut State) -> bool) -> bool {
-        self.state_pub.modify(modify_state)
+        Self(Observable::new(initial_state))
     }
 
     #[allow(clippy::must_use_candidate)]
@@ -534,6 +520,28 @@ impl ObservableState {
     #[allow(clippy::must_use_candidate)]
     pub fn reset_fetched(&self) -> bool {
         self.modify(State::reset_fetched)
+    }
+}
+
+impl Deref for ObservableState {
+    type Target = Observable<State>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ObservableState {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+pub type ObservableStateRef<'a> = ObservableRef<'a, State>;
+
+impl ObservableReader<State> for ObservableState {
+    fn read_observable(&self) -> ObservableStateRef<'_> {
+        self.0.read_observable()
     }
 }
 

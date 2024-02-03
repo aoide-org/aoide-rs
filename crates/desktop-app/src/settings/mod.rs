@@ -3,15 +3,16 @@
 
 use std::{
     fs,
+    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
 };
 
-use aoide_backend_embedded::storage::DatabaseConfig;
-use discro::{Publisher, Ref, Subscriber};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::fs::DirPath;
+use aoide_backend_embedded::storage::DatabaseConfig;
+
+use crate::{fs::DirPath, Observable, ObservableReader, ObservableRef};
 
 pub const FILE_NAME: &str = "aoide_desktop_settings";
 
@@ -174,30 +175,12 @@ fn default_database_file_path(parent_dir: PathBuf) -> PathBuf {
 
 /// Manages the mutable, observable state
 #[derive(Debug)]
-pub struct ObservableState {
-    state_pub: Publisher<State>,
-}
+pub struct ObservableState(Observable<State>);
 
 impl ObservableState {
     #[must_use]
     pub fn new(initial_state: State) -> Self {
-        let state_pub = Publisher::new(initial_state);
-        Self { state_pub }
-    }
-
-    #[must_use]
-    pub fn read(&self) -> Ref<'_, State> {
-        self.state_pub.read()
-    }
-
-    #[must_use]
-    pub fn subscribe_changed(&self) -> Subscriber<State> {
-        self.state_pub.subscribe_changed()
-    }
-
-    #[allow(clippy::must_use_candidate)]
-    pub fn modify(&self, modify_state: impl FnOnce(&mut State) -> bool) -> bool {
-        self.state_pub.modify(modify_state)
+        Self(Observable::new(initial_state))
     }
 
     #[allow(clippy::must_use_candidate)]
@@ -214,5 +197,27 @@ impl ObservableState {
 impl Default for ObservableState {
     fn default() -> Self {
         Self::new(Default::default())
+    }
+}
+
+impl Deref for ObservableState {
+    type Target = Observable<State>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ObservableState {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+pub type ObservableStateRef<'a> = ObservableRef<'a, State>;
+
+impl ObservableReader<State> for ObservableState {
+    fn read_observable(&self) -> ObservableStateRef<'_> {
+        self.0.read_observable()
     }
 }

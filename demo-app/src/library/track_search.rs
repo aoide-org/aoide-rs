@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{fmt, sync::Weak};
+use std::sync::Weak;
 
 use discro::Subscriber;
 
@@ -24,25 +24,23 @@ use super::{LibraryEventEmitter, LibraryNotification};
 // Re-exports
 pub use track::repo_search::*;
 
-pub type StateRef<'r> = discro::Ref<'r, State>;
+pub type StateSubscriber = Subscriber<State>;
 
-#[derive(Clone)]
-pub struct StateReader {
-    subscriber: discro::Subscriber<State>,
-}
-
-impl StateReader {
-    /// Read the current state
-    ///
-    /// Holds a read lock until the returned reference is dropped.
-    pub fn read(&self) -> StateRef<'_> {
-        self.subscriber.read()
-    }
-}
-
-impl fmt::Debug for StateReader {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("StateReader").finish()
+pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitter: Weak<E>)
+where
+    E: LibraryEventEmitter,
+{
+    // The first event is always emitted immediately.
+    loop {
+        let Some(event_emitter) = event_emitter.upgrade() else {
+            log::info!("Stop watching track search state after event emitter has been dropped");
+            break;
+        };
+        event_emitter.emit_notification(LibraryNotification::TrackSearchStateChanged);
+        if subscriber.changed().await.is_err() {
+            log::info!("Stop watching track search state after publisher has been dropped");
+            break;
+        }
     }
 }
 
@@ -105,25 +103,4 @@ pub(super) fn parse_filter_from_input(input: &str) -> Option<Filter> {
         .collect();
     debug_assert!(!all_filters.is_empty());
     Some(Filter::All(all_filters))
-}
-
-pub(super) async fn watch_state<E>(mut subscriber: Subscriber<State>, event_emitter: Weak<E>)
-where
-    E: LibraryEventEmitter,
-{
-    // The first event is always emitted immediately.
-    loop {
-        let Some(event_emitter) = event_emitter.upgrade() else {
-            log::info!("Stop watching track search state after event emitter has been dropped");
-            break;
-        };
-        let reader = StateReader {
-            subscriber: subscriber.clone(),
-        };
-        event_emitter.emit_notification(LibraryNotification::TrackSearchStateChanged(reader));
-        if subscriber.changed().await.is_err() {
-            log::info!("Stop watching track search state after publisher has been dropped");
-            break;
-        }
-    }
 }

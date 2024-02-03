@@ -3,7 +3,10 @@
 
 use std::{num::NonZeroUsize, path::PathBuf, sync::Arc};
 
-use aoide::{api::media::source::ResolveUrlFromContentPath, desktop_app::Handle};
+use aoide::{
+    api::media::source::ResolveUrlFromContentPath,
+    desktop_app::{Handle, ObservableReader},
+};
 
 pub mod collection;
 pub mod settings;
@@ -33,8 +36,8 @@ const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
 #[allow(clippy::enum_variant_names)] // common `...Changed` suffix
 pub enum LibraryNotification {
     SettingsStateChanged(settings::State),
-    CollectionStateChanged(collection::State),
-    TrackSearchStateChanged(track_search::StateReader),
+    CollectionStateChanged,
+    TrackSearchStateChanged,
 }
 
 /// Library event emitter.
@@ -67,22 +70,22 @@ impl LibraryState {
         }
     }
 
-    /// Observable settings state.
+    /// Readable settings state.
     #[must_use]
-    pub const fn settings(&self) -> &Arc<settings::ObservableState> {
-        &self.settings
+    pub fn settings(&self) -> &impl ObservableReader<settings::State> {
+        self.settings.as_ref()
     }
 
     /// Observable collection state.
     #[must_use]
-    pub const fn collection(&self) -> &Arc<collection::ObservableState> {
-        &self.collection
+    pub fn collection(&self) -> &impl ObservableReader<collection::State> {
+        self.collection.as_ref()
     }
 
     /// Observable track (repo) search state.
     #[must_use]
-    pub const fn track_search(&self) -> &Arc<track_search::ObservableState> {
-        &self.track_search
+    pub fn track_search(&self) -> &impl ObservableReader<track_search::State> {
+        self.track_search.as_ref()
     }
 }
 
@@ -116,7 +119,7 @@ impl Library {
 
     pub fn update_music_directory(&self, music_dir: Option<PathBuf>) {
         let music_dir = music_dir.map(Into::into);
-        self.state.settings().modify(|state| {
+        self.state.settings.modify(|state| {
             if music_dir == state.music_dir {
                 log::debug!("Music directory unchanged: {music_dir:?}");
                 return false;
@@ -133,7 +136,7 @@ impl Library {
     }
 
     pub fn reset_collection(&self) {
-        self.state.collection().modify(collection::State::reset);
+        self.state.collection.modify(collection::State::reset);
     }
 
     pub fn spawn_rescan_collection_task(&mut self, rt: &tokio::runtime::Handle) -> bool {
@@ -148,8 +151,8 @@ impl Library {
         }
         log::info!("Spawning rescan collection task");
         let handle = self.handle.clone();
-        let collection = Arc::clone(self.state.collection());
-        let track_search = Arc::downgrade(self.state.track_search());
+        let collection = Arc::clone(&self.state.collection);
+        let track_search = Arc::downgrade(&self.state.track_search);
         let rescan_collection_task =
             collection::RescanTask::spawn(rt, handle, collection, track_search);
         self.pending_rescan_collection_task = Some(rescan_collection_task);
@@ -175,7 +178,7 @@ impl Library {
         let resolve_url_from_content_path = self
             .state
             .track_search()
-            .read()
+            .read_observable()
             .default_params()
             .resolve_url_from_content_path
             .clone();
@@ -185,7 +188,7 @@ impl Library {
             resolve_url_from_content_path,
         };
         // Argument is consumed when updating succeeds
-        if self.state.track_search().update_params(&mut params) {
+        if self.state.track_search.update_params(&mut params) {
             log::debug!("Track search params updated: {params:?}");
         } else {
             log::debug!("Track search params not updated: {params:?}");
@@ -231,21 +234,21 @@ impl Library {
     {
         tokio_rt.spawn({
             let event_emitter = Arc::downgrade(event_emitter);
-            let subscriber = self.state().settings().subscribe_changed();
+            let subscriber = self.state().settings.subscribe_changed();
             async move {
                 settings::watch_state(subscriber, event_emitter).await;
             }
         });
         tokio_rt.spawn({
             let event_emitter = Arc::downgrade(event_emitter);
-            let subscriber = self.state().collection().subscribe_changed();
+            let subscriber = self.state().collection.subscribe_changed();
             async move {
                 collection::watch_state(subscriber, event_emitter).await;
             }
         });
         tokio_rt.spawn({
             let event_emitter = Arc::downgrade(event_emitter);
-            let subscriber = self.state().track_search().subscribe_changed();
+            let subscriber = self.state().track_search.subscribe_changed();
             async move {
                 track_search::watch_state(subscriber, event_emitter).await;
             }
