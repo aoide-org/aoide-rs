@@ -47,7 +47,7 @@ aoide-core = { version = "=0.8.0", path = "../core" }
 
 [dev-dependencies]
 aoide-media-file = { version = "=0.8.0", path = "../media-file" }
-tempfile = "3.9.0"
+tempfile = "3.10.0"
 
 [features]
 default = ["all"]

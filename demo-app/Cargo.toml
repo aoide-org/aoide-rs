@@ -40,9 +40,3 @@ features = ["macros", "rt-multi-thread"]
 # See also: <https://github.com/vizia/vizia/pull/457>
 git = "https://github.com/uklotzde/vizia.git"
 branch = "accesskit-disable-default-features"
-
-[dependencies.nix]
-# Missing feature in zbus 3.14.1
-version = "0.26.4"
-default-features = false
-features = ["user"]
