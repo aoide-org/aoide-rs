@@ -16,7 +16,7 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.79"
-clap = "4.4.18"
+clap = "4.5.0"
 env_logger = "0.11.1"
 infect = "0.0.30"
 #infect = { git = "https://github.com/uklotzde/infect.git" }

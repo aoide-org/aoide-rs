@@ -286,6 +286,7 @@ impl App {
         }
         let mut launcher = self.launcher.lock();
         *self.last_error.lock() = None;
+        #[allow(clippy::blocks_in_conditions)] // TODO
         match launcher.launch_runtime(next_config.clone(), {
             let ctx = ctx.clone();
             move |state| {
