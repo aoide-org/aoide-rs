@@ -4,8 +4,9 @@
 # aoide
 
 [![GitLab CI](https://gitlab.com/uklotzde/aoide-rs/badges/dev/pipeline.svg)](https://gitlab.com/uklotzde/aoide-rs/pipelines?scope=branches)
-[![GitHub CI](https://github.com/aoide-org/aoide-rs/actions/workflows/continuous-integration.yaml/badge.svg?branch=dev)](https://github.com/aoide-org/aoide-rs/actions/workflows/continuous-integration.yaml)
-[![Security audit](https://github.com/aoide-org/aoide-rs/actions/workflows/security-audit.yaml/badge.svg?branch=dev)](https://github.com/aoide-org/aoide-rs/actions/workflows/security-audit.yaml)
+[![GitHub CI](https://github.com/aoide-org/aoide-rs/actions/workflows/build-and-test.yaml/badge.svg?branch=dev)](https://github.com/aoide-org/aoide-rs/actions/workflows/build-and-test.yaml)
+[![Dependency status](https://deps.rs/repo/gitlab/uklotzde/aoide-rs/status.svg)](https://deps.rs/repo/gitlab/uklotzde/aoide-rs)
+[![Dependency audit](https://github.com/aoide-org/aoide-rs/actions/workflows/dependency-audit.yaml/badge.svg?branch=dev)](https://github.com/aoide-org/aoide-rs/actions/workflows/dependency-audit.yaml)
 [![License](https://img.shields.io/badge/license-AGPLv3-blue.svg)](https://gitlab.com/uklotzde/aoide-rs/blob/main/LICENSE.md)
 
 Pronounced /eɪˈiːdiː/ or _ay-ee-dee_ in English.
