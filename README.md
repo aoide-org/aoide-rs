@@ -7,7 +7,7 @@
 [![GitHub CI](https://github.com/aoide-org/aoide-rs/actions/workflows/build-and-test.yaml/badge.svg?branch=dev)](https://github.com/aoide-org/aoide-rs/actions/workflows/build-and-test.yaml)
 [![Dependency status](https://deps.rs/repo/gitlab/uklotzde/aoide-rs/status.svg)](https://deps.rs/repo/gitlab/uklotzde/aoide-rs)
 [![Dependency audit](https://github.com/aoide-org/aoide-rs/actions/workflows/dependency-audit.yaml/badge.svg?branch=dev)](https://github.com/aoide-org/aoide-rs/actions/workflows/dependency-audit.yaml)
-[![License](https://img.shields.io/badge/license-AGPLv3-blue.svg)](https://gitlab.com/uklotzde/aoide-rs/blob/main/LICENSE.md)
+[![License: GNU Affero General Public License version 3](https://img.shields.io/badge/license-AGPLv3-blue.svg)](https://opensource.org/license/agpl-v3-or-later)
 
 Pronounced /eɪˈiːdiː/ or _ay-ee-dee_ in English.
 
