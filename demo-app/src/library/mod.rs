@@ -35,7 +35,7 @@ const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names)] // common `...Changed` suffix
 pub enum LibraryNotification {
-    SettingsStateChanged(settings::State),
+    SettingsStateChanged,
     CollectionStateChanged,
     TrackSearchStateChanged,
 }

@@ -28,11 +28,11 @@ where
 {
     // The first event is always emitted immediately.
     loop {
+        drop(subscriber.read_ack());
         let Some(event_emitter) = event_emitter.upgrade() else {
             log::info!("Stop watching collection state after event emitter has been dropped");
             break;
         };
-        drop(subscriber.read_ack());
         event_emitter.emit_notification(LibraryNotification::CollectionStateChanged);
         if subscriber.changed().await.is_err() {
             log::info!("Stop watching collection state after publisher has been dropped");

@@ -18,13 +18,12 @@ where
 {
     // The first event is always emitted immediately.
     loop {
+        drop(subscriber.read_ack());
         let Some(event_emitter) = event_emitter.upgrade() else {
             log::info!("Stop watching settings state after event emitter has been dropped");
             break;
         };
-        // The lock is released immediately after cloning the state.
-        let state = subscriber.read_ack().clone();
-        event_emitter.emit_notification(LibraryNotification::SettingsStateChanged(state.clone()));
+        event_emitter.emit_notification(LibraryNotification::SettingsStateChanged);
         if subscriber.changed().await.is_err() {
             log::info!("Stop watching settings state after publisher has been dropped");
             break;

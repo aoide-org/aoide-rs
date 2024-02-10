@@ -28,6 +28,12 @@ pub struct FetchedEntity {
     pub entity: Entity,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FetchedEntitiesFingerprint {
+    pub len: usize,
+    pub last_offset_hash: u64,
+}
+
 #[must_use]
 pub fn last_offset_hash_of_fetched_entities<'a>(
     fetched_entities: impl Into<Option<&'a [FetchedEntity]>>,
@@ -38,6 +44,32 @@ pub fn last_offset_hash_of_fetched_entities<'a>(
         .map_or(INITIAL_OFFSET_HASH_SEED, |fetched_entity| {
             fetched_entity.offset_hash
         })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FetchStateTag {
+    #[default]
+    Initial,
+    Ready,
+    Pending,
+    Failed,
+}
+
+impl FetchStateTag {
+    /// Check whether the state is stable.
+    #[must_use]
+    pub const fn is_idle(&self) -> bool {
+        match self {
+            Self::Initial | Self::Ready | Self::Failed => true,
+            Self::Pending => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct FetchStateLite {
+    pub tag: FetchStateTag,
+    pub fetched_entities_fingerprint: Option<FetchedEntitiesFingerprint>,
 }
 
 #[derive(Debug, Default)]
@@ -53,17 +85,40 @@ enum FetchState {
     },
     Failed {
         fetched_entities_before: Option<Vec<FetchedEntity>>,
-        err: anyhow::Error,
+        error: anyhow::Error,
     },
 }
 
 impl FetchState {
     #[must_use]
-    const fn is_idle(&self) -> bool {
+    const fn state_tag(&self) -> FetchStateTag {
         match self {
-            Self::Initial | Self::Ready { .. } | Self::Failed { .. } => true,
-            Self::Pending { .. } => false,
+            Self::Initial => FetchStateTag::Initial,
+            Self::Ready { .. } => FetchStateTag::Ready,
+            Self::Failed { .. } => FetchStateTag::Failed,
+            Self::Pending { .. } => FetchStateTag::Pending,
         }
+    }
+
+    #[must_use]
+    fn clone_lite(&self) -> FetchStateLite {
+        let tag = self.state_tag();
+        let fetched_entities_fingerprint = self.fetched_entities_fingerprint();
+        FetchStateLite {
+            tag,
+            fetched_entities_fingerprint,
+        }
+    }
+
+    #[must_use]
+    fn equals_lite(&self, other: &FetchStateLite) -> bool {
+        self.clone_lite() == *other
+    }
+
+    /// Check whether the state is stable.
+    #[must_use]
+    const fn is_idle(&self) -> bool {
+        self.state_tag().is_idle()
     }
 
     #[must_use]
@@ -85,6 +140,17 @@ impl FetchState {
     }
 
     #[must_use]
+    fn fetched_entities_fingerprint(&self) -> Option<FetchedEntitiesFingerprint> {
+        let fetched_entities = self.fetched_entities()?;
+        let len = fetched_entities.len();
+        let last_offset_hash = last_offset_hash_of_fetched_entities(fetched_entities);
+        Some(FetchedEntitiesFingerprint {
+            len,
+            last_offset_hash,
+        })
+    }
+
+    #[must_use]
     const fn should_prefetch(&self) -> bool {
         matches!(self, Self::Initial)
     }
@@ -92,8 +158,8 @@ impl FetchState {
     #[must_use]
     const fn can_fetch_more(&self) -> Option<bool> {
         match self {
-            Self::Initial => Some(true),                                 // always
-            Self::Pending { .. } | Self::Failed { .. } => None,          // undefined
+            Self::Initial => Some(true), // always, i.e. try at least once
+            Self::Pending { .. } | Self::Failed { .. } => None, // undefined
             Self::Ready { can_fetch_more, .. } => Some(*can_fetch_more), // maybe
         }
     }
@@ -102,7 +168,7 @@ impl FetchState {
     const fn last_error(&self) -> Option<&anyhow::Error> {
         match self {
             Self::Initial | Self::Pending { .. } | Self::Ready { .. } => None,
-            Self::Failed { err, .. } => Some(err),
+            Self::Failed { error, .. } => Some(error),
         }
     }
 
@@ -189,8 +255,8 @@ impl FetchState {
     }
 
     #[allow(clippy::needless_pass_by_value)]
-    fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
-        log::warn!("Fetching failed: {err}");
+    fn fetch_more_failed(&mut self, error: anyhow::Error) -> bool {
+        log::warn!("Fetching failed: {error}");
         let Self::Pending {
             fetched_entities_before,
         } = self
@@ -202,10 +268,17 @@ impl FetchState {
         let fetched_entities_before = std::mem::take(fetched_entities_before);
         *self = Self::Failed {
             fetched_entities_before,
-            err,
+            error,
         };
         true
     }
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct StateLite {
+    pub default_params: Params,
+    pub context: Context,
+    pub fetch: FetchStateLite,
 }
 
 #[derive(Debug)]
@@ -269,6 +342,45 @@ impl State {
     #[must_use]
     pub fn fetched_entities(&self) -> Option<&[FetchedEntity]> {
         self.fetch.fetched_entities()
+    }
+
+    #[must_use]
+    pub fn fetched_entities_fingerprint(&self) -> Option<FetchedEntitiesFingerprint> {
+        self.fetch.fetched_entities_fingerprint()
+    }
+
+    #[must_use]
+    pub fn clone_lite(&self) -> StateLite {
+        let Self {
+            default_params,
+            context,
+            fetch,
+        } = self;
+        let default_params = default_params.clone();
+        let context = context.clone();
+        let fetch = fetch.clone_lite();
+        StateLite {
+            default_params,
+            context,
+            fetch,
+        }
+    }
+
+    #[must_use]
+    pub fn equals_lite(&self, other: &StateLite) -> bool {
+        let Self {
+            default_params,
+            context,
+            fetch,
+        } = self;
+        let StateLite {
+            default_params: other_default_params,
+            context: other_context,
+            fetch: other_fetch,
+        } = other;
+        default_params == other_default_params
+            && context == other_context
+            && fetch.equals_lite(other_fetch)
     }
 
     pub fn reset(&mut self) -> bool {

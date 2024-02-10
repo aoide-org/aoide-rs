@@ -32,6 +32,7 @@ where
 {
     // The first event is always emitted immediately.
     loop {
+        drop(subscriber.read_ack());
         let Some(event_emitter) = event_emitter.upgrade() else {
             log::info!("Stop watching track search state after event emitter has been dropped");
             break;

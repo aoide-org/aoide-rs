@@ -328,6 +328,7 @@ struct AppModel {
     music_dir: Option<DirPath<'static>>,
     collection_state: CollectionState,
     track_search_input: String,
+    track_search_state: aoide::desktop_app::track::repo_search::StateLite,
 }
 
 impl AppModel {
@@ -337,6 +338,7 @@ impl AppModel {
             music_dir: Default::default(),
             collection_state: Default::default(),
             track_search_input: Default::default(),
+            track_search_state: Default::default(),
         }
     }
 }
@@ -390,41 +392,60 @@ impl Model for AppModel {
             },
             AppEvent::Notification(notification) => match notification {
                 AppNotification::Library(library) => match library {
-                    LibraryNotification::SettingsStateChanged(state) => {
-                        if state.music_dir == self.music_dir {
-                            log::info!(
-                                "Music directory unchanged: {music_dir:?}",
-                                music_dir = self.music_dir
-                            );
-                            return;
-                        }
-                        let new_music_dir = state.music_dir.clone();
-                        log::info!(
+                    LibraryNotification::SettingsStateChanged => {
+                        let new_music_dir = {
+                            let settings_state = self.app.library.state().settings().read_observable();
+                            if settings_state.music_dir == self.music_dir {
+                                log::debug!(
+                                    "Music directory unchanged: {music_dir:?}",
+                                    music_dir = self.music_dir,
+                                );
+                                return;
+                            }
+                            settings_state.music_dir.clone()
+                        };
+                        log::debug!(
                             "Music directory changed: {old_music_dir:?} -> {new_music_dir:?}",
                             old_music_dir = self.music_dir,
                         );
                         self.music_dir = new_music_dir;
                     }
                     LibraryNotification::CollectionStateChanged => {
-                        let new_collection_state = {
-                            let new_collection_state = self.app.library.state().collection().read_observable();
-                            if *new_collection_state == self.collection_state {
-                                log::info!(
-                                    "Collection state unchanged: {old_collection_state:?}",
-                                    old_collection_state = self.collection_state,
+                        let new_state = {
+                            let new_state = self.app.library.state().collection().read_observable();
+                            if *new_state == self.collection_state {
+                                log::debug!(
+                                    "Collection state unchanged: {old_state:?}",
+                                    old_state = self.collection_state,
                                 );
                                 return;
                             }
-                            new_collection_state.clone()
+                            new_state.clone()
                         };
-                        log::info!(
-                            "Collection state changed: {old_collection_state:?} -> {new_collection_state:?}",
-                            old_collection_state = self.collection_state,
+                        log::debug!(
+                            "Collection state changed: {old_state:?} -> {new_state:?}",
+                            old_state = self.collection_state,
                         );
-                        self.collection_state = new_collection_state;
+                        self.collection_state = new_state;
                     }
                     LibraryNotification::TrackSearchStateChanged => {
-                        log::warn!("TODO: Track search state changed");
+                        let new_state = {
+                            let new_state = self.app.library.state().track_search().read_observable();
+                            if new_state.equals_lite(&self.track_search_state) {
+                                log::debug!(
+                                    "Track search state unchanged: {old_state:?}",
+                                    old_state = self.track_search_state,
+                                );
+                                return;
+                            }
+                            new_state.clone_lite()
+                        };
+                        log::debug!(
+                            "Track search state changed: {old_state:?} -> {new_state:?}",
+                            old_state = self.track_search_state,
+                        );
+                        self.track_search_state = new_state;
+                        log::warn!("TODO: Show fetched entities");
                     }
                 },
             },
