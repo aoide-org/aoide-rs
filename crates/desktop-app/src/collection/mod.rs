@@ -91,44 +91,6 @@ async fn try_refresh_entity_from_db(
     .map_err(Into::into)
 }
 
-/// A light-weight tag that denotes the [`State`] variant.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum StateTag {
-    #[default]
-    Void,
-    RestoringOrCreatingFromMusicDirectory,
-    RestoringOrCreatingFromMusicDirectoryFailed,
-    NestedMusicDirectoriesConflict,
-    Loading,
-    LoadingFailed,
-    Synchronizing,
-    SynchronizingFailed,
-    Ready,
-}
-
-impl StateTag {
-    /// Indicates if this is a transitional state while an effect is running.
-    #[must_use]
-    pub const fn is_pending(&self) -> bool {
-        match self {
-            Self::Void
-            | Self::RestoringOrCreatingFromMusicDirectoryFailed
-            | Self::NestedMusicDirectoriesConflict
-            | Self::LoadingFailed
-            | Self::SynchronizingFailed
-            | Self::Ready => false,
-            Self::RestoringOrCreatingFromMusicDirectory | Self::Loading | Self::Synchronizing => {
-                true
-            }
-        }
-    }
-
-    #[must_use]
-    pub const fn is_ready(&self) -> bool {
-        matches!(self, Self::Ready)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RestoreOrCreateState {
     kind: Option<String>,
@@ -326,25 +288,6 @@ pub enum State {
 
 impl State {
     #[must_use]
-    pub const fn state_tag(&self) -> StateTag {
-        match self {
-            Self::Void => StateTag::Void,
-            Self::RestoringOrCreatingFromMusicDirectory { .. } => {
-                StateTag::RestoringOrCreatingFromMusicDirectory
-            }
-            Self::RestoringOrCreatingFromMusicDirectoryFailed { .. } => {
-                StateTag::RestoringOrCreatingFromMusicDirectoryFailed
-            }
-            Self::NestedMusicDirectoriesConflict { .. } => StateTag::NestedMusicDirectoriesConflict,
-            Self::Loading { .. } => StateTag::Loading,
-            Self::LoadingFailed { .. } => StateTag::LoadingFailed,
-            Self::Synchronizing { .. } => StateTag::Synchronizing,
-            Self::SynchronizingFailed { .. } => StateTag::SynchronizingFailed,
-            Self::Ready { .. } => StateTag::Ready,
-        }
-    }
-
-    #[must_use]
     pub const fn pending_since(&self) -> Option<Instant> {
         match self {
             Self::Void
@@ -360,15 +303,13 @@ impl State {
     }
 
     #[must_use]
-    pub fn is_pending(&self) -> bool {
-        let is_pending = self.state_tag().is_pending();
-        debug_assert_eq!(is_pending, self.pending_since().is_some());
-        is_pending
+    pub const fn is_pending(&self) -> bool {
+        self.pending_since().is_some()
     }
 
     #[must_use]
     pub const fn is_ready(&self) -> bool {
-        self.state_tag().is_ready()
+        matches!(self, State::Ready { .. })
     }
 
     pub fn reset(&mut self) -> bool {

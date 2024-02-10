@@ -6,48 +6,10 @@ use std::{
     sync::{Arc, Weak},
 };
 
-use discro::{tasklet::OnChanged, Subscriber};
 use unnest::some_or_break;
 
-use super::{NestedMusicDirectoriesStrategy, ObservableState, State, StateTag};
+use super::{NestedMusicDirectoriesStrategy, ObservableState};
 use crate::{fs::DirPath, settings, Handle, WeakHandle};
-
-fn capture_state_tag_changes(state_tag: &mut StateTag, new_state: &State) -> bool {
-    if *state_tag == new_state.state_tag() {
-        return false;
-    }
-    *state_tag = new_state.state_tag();
-    true
-}
-
-pub fn on_state_tag_changed(
-    mut subscriber: Subscriber<State>,
-    mut on_changed: impl FnMut(StateTag) -> OnChanged + Send + 'static,
-) -> impl Future<Output = ()> + Send + 'static {
-    let initial_value = subscriber.read_ack().state_tag();
-    discro::tasklet::capture_changes(
-        subscriber,
-        initial_value,
-        capture_state_tag_changes,
-        move |state_tag| on_changed(*state_tag),
-    )
-}
-
-pub fn on_state_tag_changed_async<T>(
-    mut subscriber: Subscriber<State>,
-    mut on_changed: impl FnMut(StateTag) -> T + Send + 'static,
-) -> impl Future<Output = ()> + Send + 'static
-where
-    T: Future<Output = OnChanged> + Send + 'static,
-{
-    let initial_value = subscriber.read_ack().state_tag();
-    discro::tasklet::capture_changes_async(
-        subscriber,
-        initial_value,
-        capture_state_tag_changes,
-        move |state_tag| on_changed(*state_tag),
-    )
-}
 
 async fn update_music_dir(
     settings_state: &settings::ObservableState,

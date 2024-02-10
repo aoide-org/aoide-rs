@@ -231,7 +231,7 @@ fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
 }
 
 #[must_use]
-fn disable_select_music_dir(state: &CollectionState) -> bool {
+const fn disable_select_music_dir(state: &CollectionState) -> bool {
     state.is_pending()
 }
 
