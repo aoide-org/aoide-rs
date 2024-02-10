@@ -200,12 +200,6 @@ fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
                     |cx: &mut Context| Label::new(cx, "Rescan collection"),
                 )
                 .disabled(AppModel::collection_state.map(disable_rescan_collection));
-                Button::new(
-                    cx,
-                    |ex| ex.emit(AppEvent::Command(AppCommand::ResetCollection)),
-                    |cx| Label::new(cx, "Reset collection"),
-                )
-                .disabled(AppModel::collection_state.map(disable_rescan_collection));
             });
         });
 
@@ -233,11 +227,6 @@ fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
 #[must_use]
 const fn disable_select_music_dir(state: &CollectionState) -> bool {
     state.is_pending()
-}
-
-#[must_use]
-fn disable_reset_collection(state: &CollectionState) -> bool {
-    state.is_pending() || *state == CollectionState::Void
 }
 
 #[must_use]
@@ -293,7 +282,6 @@ enum AppCommand {
     SelectMusicDirectory,
     UpdateMusicDirectory(DirPath<'static>),
     ResetMusicDirectory,
-    ResetCollection,
     RescanCollection,
     SearchTracks(String),
 }
@@ -392,9 +380,6 @@ impl Model for AppModel {
                 }
                 AppCommand::ResetMusicDirectory => {
                     self.app.library.reset_music_dir();
-                }
-                AppCommand::ResetCollection => {
-                    self.app.library.reset_collection();
                 }
                 AppCommand::RescanCollection => {
                     self.app.library.spawn_rescan_collection_task(&self.app.rt);

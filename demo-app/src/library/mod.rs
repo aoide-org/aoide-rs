@@ -129,12 +129,6 @@ impl Library {
         self.update_music_dir(None);
     }
 
-    pub fn reset_collection(&self) {
-        self.state.collection.reset();
-        // Enforce restoring the collection from the selected music directory.
-        self.state.settings.set_modified();
-    }
-
     pub fn spawn_rescan_collection_task(&mut self, rt: &tokio::runtime::Handle) -> bool {
         if let Some(rescan_collection_task) = self.pending_rescan_collection_task.as_ref() {
             if rescan_collection_task.is_finished() {
