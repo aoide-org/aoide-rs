@@ -12,7 +12,7 @@ use unnest::some_or_return_with;
 
 use crate::{collection, WeakHandle};
 
-use super::{FetchStateTag, ObservableState, State};
+use super::{ObservableState, State};
 
 pub fn on_should_prefetch_trigger(
     subscriber: Subscriber<State>,
@@ -74,43 +74,6 @@ pub fn on_should_prefetch(
         .await;
         log::debug!("Stopping on_should_prefetch");
     }
-}
-
-fn capture_fetch_state_tag_changes(state_tag: &mut FetchStateTag, new_state: &State) -> bool {
-    if *state_tag == new_state.fetch_state_tag() {
-        return false;
-    }
-    *state_tag = new_state.fetch_state_tag();
-    true
-}
-
-pub fn on_fetch_state_tag_changed(
-    mut subscriber: Subscriber<State>,
-    mut on_changed: impl FnMut(FetchStateTag) -> OnChanged + Send + 'static,
-) -> impl Future<Output = ()> + Send + 'static {
-    let initial_value = subscriber.read_ack().fetch_state_tag();
-    discro::tasklet::capture_changes(
-        subscriber,
-        initial_value,
-        capture_fetch_state_tag_changes,
-        move |fetch_state_tag| on_changed(*fetch_state_tag),
-    )
-}
-
-pub fn on_fetch_state_tag_changed_async<T>(
-    mut subscriber: Subscriber<State>,
-    mut on_changed: impl FnMut(FetchStateTag) -> T + Send + 'static,
-) -> impl Future<Output = ()> + Send + 'static
-where
-    T: Future<Output = OnChanged> + Send + 'static,
-{
-    let initial_value = subscriber.read_ack().fetch_state_tag();
-    discro::tasklet::capture_changes_async(
-        subscriber,
-        initial_value,
-        capture_fetch_state_tag_changes,
-        move |fetch_state_tag| on_changed(*fetch_state_tag),
-    )
 }
 
 pub fn on_collection_state_changed(

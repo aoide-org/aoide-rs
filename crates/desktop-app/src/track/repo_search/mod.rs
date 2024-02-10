@@ -22,32 +22,6 @@ pub struct Context {
     pub params: Params,
 }
 
-/// A light-weight tag that denotes the [`State`] variant.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum FetchStateTag {
-    #[default]
-    Initial,
-    Ready,
-    Pending,
-    Failed,
-}
-
-impl FetchStateTag {
-    /// Check whether the state is stable.
-    #[must_use]
-    pub const fn is_idle(&self) -> bool {
-        match self {
-            Self::Initial | Self::Ready | Self::Failed => true,
-            Self::Pending => false,
-        }
-    }
-
-    #[must_use]
-    pub const fn should_prefetch(&self) -> bool {
-        matches!(self, Self::Initial)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct FetchedEntity {
     pub offset_hash: u64,
@@ -85,18 +59,11 @@ enum FetchState {
 
 impl FetchState {
     #[must_use]
-    const fn state_tag(&self) -> FetchStateTag {
-        match self {
-            Self::Initial => FetchStateTag::Initial,
-            Self::Ready { .. } => FetchStateTag::Ready,
-            Self::Failed { .. } => FetchStateTag::Failed,
-            Self::Pending { .. } => FetchStateTag::Pending,
-        }
-    }
-
-    #[must_use]
     const fn is_idle(&self) -> bool {
-        self.state_tag().is_idle()
+        match self {
+            Self::Initial | Self::Ready { .. } | Self::Failed { .. } => true,
+            Self::Pending { .. } => false,
+        }
     }
 
     #[must_use]
@@ -119,7 +86,7 @@ impl FetchState {
 
     #[must_use]
     const fn should_prefetch(&self) -> bool {
-        self.state_tag().should_prefetch()
+        matches!(self, Self::Initial)
     }
 
     #[must_use]
@@ -273,11 +240,6 @@ impl State {
     }
 
     #[must_use]
-    pub const fn fetch_state_tag(&self) -> FetchStateTag {
-        self.fetch.state_tag()
-    }
-
-    #[must_use]
     pub const fn is_idle(&self) -> bool {
         self.fetch.is_idle()
     }
@@ -314,7 +276,8 @@ impl State {
         // is required to avoid redundant code for determining in advance if
         // the state would actually change or not.
         let reset = Self::new(self.default_params.clone());
-        if self.context == reset.context && self.fetch.state_tag() == reset.fetch.state_tag() {
+        if self.context == reset.context && matches!(self.fetch, FetchState::Initial) {
+            debug_assert!(matches!(reset.fetch, FetchState::Initial));
             // No effect.
             log::debug!("State doesn't need to be reset");
             return false;

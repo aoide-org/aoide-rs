@@ -424,16 +424,7 @@ impl Model for AppModel {
                         self.collection_state = new_collection_state;
                     }
                     LibraryNotification::TrackSearchStateChanged => {
-                        log::warn!(
-                            "TODO: Track search state changed: {fetch_state_tag:?}",
-                            fetch_state_tag = self
-                                .app
-                                .library
-                                .state()
-                                .track_search()
-                                .read_observable()
-                                .fetch_state_tag()
-                        );
+                        log::warn!("TODO: Track search state changed");
                     }
                 },
             },
