@@ -6,6 +6,8 @@
 #![allow(clippy::wildcard_imports)]
 
 pub mod collection;
+pub use collection::Summary as CollectionSummary;
+
 pub mod filtering;
 pub mod media;
 pub mod playlist;

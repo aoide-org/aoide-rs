@@ -1611,9 +1611,9 @@ dependencies = [
 
 [[package]]
 name = "discro"
-version = "0.29.0"
+version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8f06e2323b14ed4c8104a49a1893cdfddf14db737040609a2fcb4abe6728564"
+checksum = "fa48ee1b94738d72c05e0bcd73f386d4dde5b2fb48cb0b7cadafb2e5ce83ccac"
 dependencies = [
  "async-stream",
  "futures-core",
@@ -1777,9 +1777,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.9.0"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
+checksum = "11157ac094ffbdde99aa67b23417ebdd801842852b500e395a45a9c0aac03e4a"
 
 [[package]]
 name = "emath"
@@ -2361,9 +2361,9 @@ dependencies = [
 
 [[package]]
 name = "gigtag"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97e346789a616c0e3ac94987e96ac11814456687c4f37703ebcd0eb9aa6726e0"
+checksum = "9b138af6b9f6c97458e9935a773d1f23e9e56b52f6b5c7c3b301be72801b416b"
 dependencies = [
  "anyhow",
  "compact_str",
@@ -2864,9 +2864,9 @@ checksum = "8f518f335dce6725a761382244631d86cf0ccb2863413590b31338feb467f9c3"
 
 [[package]]
 name = "is-terminal"
-version = "0.4.11"
+version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe8f25ce1159c7740ff0b9b2f5cdf4a8428742ba7c112b9f20f22cd5219c7dab"
+checksum = "f23ff5ef2b80d608d61efee834934d862cd92461afc0560dedf493e4c033738b"
 dependencies = [
  "hermit-abi",
  "libc",
@@ -4190,9 +4190,9 @@ dependencies = [
 
 [[package]]
 name = "rangemap"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "977b1e897f9d764566891689e642653e5ed90c6895106acd005eb4c1d0203991"
+checksum = "795915a3930a5d6bafd9053d37602fea3e61be2e5d4d788983a8ba9654c1c6f2"
 
 [[package]]
 name = "raw-window-handle"

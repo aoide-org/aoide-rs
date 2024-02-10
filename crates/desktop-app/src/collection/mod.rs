@@ -16,12 +16,12 @@ use aoide_backend_embedded::batch::{
     },
 };
 use aoide_core::{
-    collection::{Collection, EntityUid, MediaSourceConfig},
+    collection::{Collection, Entity, EntityUid, MediaSourceConfig},
     media::content::ContentPathConfig,
     util::url::BaseUrl,
 };
 use aoide_core_api::{
-    collection::{EntityWithSummary, LoadScope},
+    collection::{EntityWithSummary, LoadScope, Summary},
     media::SyncMode,
 };
 use aoide_media_file::io::import::ImportTrackConfig;
@@ -55,7 +55,7 @@ pub fn vfs_music_dir(collection: &Collection) -> Option<DirPath<'static>> {
     })
 }
 
-// Load collections with their summary
+// Always load a collection with the summary.
 const ENTITY_LOAD_SCOPE: LoadScope = LoadScope::EntityWithSummary;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -71,11 +71,11 @@ pub enum NestedMusicDirectoriesStrategy {
 }
 
 async fn try_refresh_entity_from_db(
-    environment: &Environment,
+    env: &Environment,
     entity_uid: EntityUid,
 ) -> anyhow::Result<Option<EntityWithSummary>> {
     aoide_backend_embedded::collection::try_load_one(
-        environment.db_gatekeeper(),
+        env.db_gatekeeper(),
         entity_uid.clone(),
         ENTITY_LOAD_SCOPE,
     )
@@ -95,11 +95,15 @@ async fn try_refresh_entity_from_db(
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum StateTag {
     #[default]
-    Initial,
-    Ready,
-    Loading,
-    RestoringOrCreating,
+    Void,
+    RestoringOrCreatingFromMusicDirectory,
+    RestoringOrCreatingFromMusicDirectoryFailed,
     NestedMusicDirectoriesConflict,
+    Loading,
+    LoadingFailed,
+    Synchronizing,
+    SynchronizingFailed,
+    Ready,
 }
 
 impl StateTag {
@@ -107,8 +111,15 @@ impl StateTag {
     #[must_use]
     pub const fn is_pending(&self) -> bool {
         match self {
-            Self::Initial | Self::Ready | Self::NestedMusicDirectoriesConflict => false,
-            Self::Loading | Self::RestoringOrCreating => true,
+            Self::Void
+            | Self::RestoringOrCreatingFromMusicDirectoryFailed
+            | Self::NestedMusicDirectoriesConflict
+            | Self::LoadingFailed
+            | Self::SynchronizingFailed
+            | Self::Ready => false,
+            Self::RestoringOrCreatingFromMusicDirectory | Self::Loading | Self::Synchronizing => {
+                true
+            }
         }
     }
 
@@ -151,7 +162,7 @@ fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
 impl RestoreOrCreateState {
     #[allow(clippy::missing_panics_doc)]
     #[allow(clippy::too_many_lines)] // TODO
-    pub async fn restore_or_create(self, environment: &Environment) -> anyhow::Result<State> {
+    pub async fn restore_or_create(self, env: &Environment) -> anyhow::Result<State> {
         let Self {
             kind,
             music_dir,
@@ -173,7 +184,7 @@ impl RestoreOrCreateState {
             kind: Some(kind.clone().into()),
         });
         let candidates = aoide_backend_embedded::collection::load_all(
-            environment.db_gatekeeper(),
+            env.db_gatekeeper(),
             kind_filter.clone(),
             Some(media_source_root_url_filter),
             ENTITY_LOAD_SCOPE,
@@ -203,24 +214,25 @@ impl RestoreOrCreateState {
                 }
             }
             log::info!(
-                "Skipping collection {uid}: {title}",
+                "Skipping collection {uid} \"{title}\"",
                 uid = candidate.entity.hdr.uid,
                 title = candidate.entity.body.title,
             );
         }
-        if let Some(collection) = selected_candidate {
+        if let Some(entity_with_summary) = selected_candidate {
             log::info!(
-                "Selected collection {uid} titled \"{title}\"",
-                uid = collection.entity.hdr.uid,
-                title = collection.entity.body.title,
+                "Restored collection {uid} \"{title}\"",
+                uid = entity_with_summary.entity.hdr.uid,
+                title = entity_with_summary.entity.body.title,
             );
-            return Ok(State::Ready(collection));
+            let state = State::loading_succeeded(entity_with_summary);
+            return Ok(state);
         }
         if !matches!(nested_music_dirs, NestedMusicDirectoriesStrategy::Permit) {
             // Search for an existing collection with a root directory
             // that is a child of the music directory.
             let candidates = aoide_backend_embedded::collection::load_all(
-                environment.db_gatekeeper(),
+                env.db_gatekeeper(),
                 kind_filter,
                 Some(MediaSourceRootUrlFilter::Prefix(root_url.clone())),
                 ENTITY_LOAD_SCOPE,
@@ -246,24 +258,25 @@ impl RestoreOrCreateState {
             color: None,
         };
         let entity_uid =
-            aoide_backend_embedded::collection::create(environment.db_gatekeeper(), new_collection)
+            aoide_backend_embedded::collection::create(env.db_gatekeeper(), new_collection)
                 .await?
                 .raw
                 .hdr
                 .uid;
         // Reload the newly created entity with its summary
-        let collection = aoide_backend_embedded::collection::load_one(
-            environment.db_gatekeeper(),
+        let entity_with_summary = aoide_backend_embedded::collection::load_one(
+            env.db_gatekeeper(),
             entity_uid,
             ENTITY_LOAD_SCOPE,
         )
         .await?;
         log::info!(
-            "Created collection {uid}: {title}",
-            uid = collection.entity.hdr.uid,
-            title = collection.entity.body.title,
+            "Created collection {uid} \"{title}\"",
+            uid = entity_with_summary.entity.hdr.uid,
+            title = entity_with_summary.entity.body.title,
         );
-        Ok(State::Ready(collection))
+        let state = State::loading_succeeded(entity_with_summary);
+        Ok(state)
     }
 }
 
@@ -273,19 +286,41 @@ impl RestoreOrCreateState {
 #[allow(clippy::large_enum_variant)]
 pub enum State {
     #[default]
-    Initial,
-    Ready(EntityWithSummary),
-    Loading {
-        entity_uid: EntityUid,
-        pending_since: Instant,
-    },
-    RestoringOrCreating {
+    Void,
+    RestoringOrCreatingFromMusicDirectory {
         state: RestoreOrCreateState,
         pending_since: Instant,
+    },
+    RestoringOrCreatingFromMusicDirectoryFailed {
+        state: RestoreOrCreateState,
+        error: String,
     },
     NestedMusicDirectoriesConflict {
         state: RestoreOrCreateState,
         candidates: Vec<EntityWithSummary>,
+    },
+    Loading {
+        entity_uid: EntityUid,
+        loaded_before: Option<Collection>,
+        pending_since: Instant,
+    },
+    LoadingFailed {
+        entity_uid: EntityUid,
+        loaded_before: Option<Collection>,
+        error: String,
+    },
+    Synchronizing {
+        entity: Entity,
+        pending_since: Instant,
+    },
+    SynchronizingFailed {
+        entity: Entity,
+        pending_since: Instant,
+        error: String,
+    },
+    Ready {
+        entity: Entity,
+        summary: Summary,
     },
 }
 
@@ -293,20 +328,34 @@ impl State {
     #[must_use]
     pub const fn state_tag(&self) -> StateTag {
         match self {
-            Self::Initial => StateTag::Initial,
-            Self::Ready(_) => StateTag::Ready,
-            Self::Loading { .. } => StateTag::Loading,
-            Self::RestoringOrCreating { .. } => StateTag::RestoringOrCreating,
+            Self::Void => StateTag::Void,
+            Self::RestoringOrCreatingFromMusicDirectory { .. } => {
+                StateTag::RestoringOrCreatingFromMusicDirectory
+            }
+            Self::RestoringOrCreatingFromMusicDirectoryFailed { .. } => {
+                StateTag::RestoringOrCreatingFromMusicDirectoryFailed
+            }
             Self::NestedMusicDirectoriesConflict { .. } => StateTag::NestedMusicDirectoriesConflict,
+            Self::Loading { .. } => StateTag::Loading,
+            Self::LoadingFailed { .. } => StateTag::LoadingFailed,
+            Self::Synchronizing { .. } => StateTag::Synchronizing,
+            Self::SynchronizingFailed { .. } => StateTag::SynchronizingFailed,
+            Self::Ready { .. } => StateTag::Ready,
         }
     }
 
     #[must_use]
     pub const fn pending_since(&self) -> Option<Instant> {
         match self {
-            Self::Initial | Self::Ready(_) | Self::NestedMusicDirectoriesConflict { .. } => None,
-            Self::Loading { pending_since, .. }
-            | Self::RestoringOrCreating { pending_since, .. } => Some(*pending_since),
+            Self::Void
+            | Self::NestedMusicDirectoriesConflict { .. }
+            | Self::RestoringOrCreatingFromMusicDirectoryFailed { .. }
+            | Self::LoadingFailed { .. }
+            | Self::SynchronizingFailed { .. }
+            | Self::Ready { .. } => None,
+            Self::RestoringOrCreatingFromMusicDirectory { pending_since, .. }
+            | Self::Loading { pending_since, .. }
+            | Self::Synchronizing { pending_since, .. } => Some(*pending_since),
         }
     }
 
@@ -323,11 +372,11 @@ impl State {
     }
 
     pub fn reset(&mut self) -> bool {
-        if matches!(self, Self::Initial) {
+        if matches!(self, Self::Void) {
             // No effect
             return false;
         }
-        let reset = Self::Initial;
+        let reset = Self::Void;
         log::debug!("Resetting state: {self:?} -> {reset:?}");
         *self = reset;
         true
@@ -336,9 +385,31 @@ impl State {
     #[must_use]
     pub fn music_dir(&self) -> Option<DirPath<'_>> {
         match self {
-            Self::Initial | Self::Loading { .. } => None,
-            Self::Ready(entity_with_summary) => vfs_music_dir(&entity_with_summary.entity.body),
-            Self::RestoringOrCreating {
+            Self::Void
+            | Self::Loading {
+                loaded_before: None,
+                ..
+            }
+            | Self::LoadingFailed {
+                loaded_before: None,
+                ..
+            } => None,
+            Self::Loading {
+                loaded_before: Some(loaded_before),
+                ..
+            }
+            | Self::LoadingFailed {
+                loaded_before: Some(loaded_before),
+                ..
+            } => vfs_music_dir(loaded_before),
+            Self::Synchronizing { entity, .. }
+            | Self::SynchronizingFailed { entity, .. }
+            | Self::Ready { entity, .. } => vfs_music_dir(&entity.body),
+            Self::RestoringOrCreatingFromMusicDirectory {
+                state: RestoreOrCreateState { music_dir, .. },
+                ..
+            }
+            | Self::RestoringOrCreatingFromMusicDirectoryFailed {
                 state: RestoreOrCreateState { music_dir, .. },
                 ..
             }
@@ -349,6 +420,57 @@ impl State {
         }
     }
 
+    #[must_use]
+    pub fn entity_uid(&self) -> Option<&EntityUid> {
+        self.entity_brief().map(|(entity_uid, _)| entity_uid)
+    }
+
+    #[must_use]
+    pub fn entity_brief(&self) -> Option<(&EntityUid, Option<&Collection>)> {
+        match self {
+            Self::Void
+            | Self::RestoringOrCreatingFromMusicDirectory { .. }
+            | Self::RestoringOrCreatingFromMusicDirectoryFailed { .. }
+            | Self::NestedMusicDirectoriesConflict { .. } => None,
+            Self::Loading {
+                entity_uid,
+                loaded_before,
+                ..
+            }
+            | Self::LoadingFailed {
+                entity_uid,
+                loaded_before,
+                ..
+            } => Some((entity_uid, loaded_before.as_ref())),
+            Self::Synchronizing { entity, .. }
+            | Self::SynchronizingFailed { entity, .. }
+            | Self::Ready { entity, .. } => Some((&entity.hdr.uid, Some(&entity.body))),
+        }
+    }
+
+    #[must_use]
+    pub const fn entity_with_summary(&self) -> Option<(&Entity, &Summary)> {
+        match self {
+            Self::Ready { entity, summary } => Some((entity, summary)),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub fn last_error(&self) -> Option<&str> {
+        match self {
+            Self::RestoringOrCreatingFromMusicDirectoryFailed { error, .. }
+            | Self::LoadingFailed { error, .. }
+            | Self::SynchronizingFailed { error, .. } => Some(error.as_str()),
+            Self::Void
+            | Self::RestoringOrCreatingFromMusicDirectory { .. }
+            | Self::NestedMusicDirectoriesConflict { .. }
+            | Self::Loading { .. }
+            | Self::Synchronizing { .. }
+            | Self::Ready { .. } => None,
+        }
+    }
+
     pub fn update_music_dir(
         &mut self,
         new_kind: Option<Cow<'_, str>>,
@@ -356,28 +478,24 @@ impl State {
         create_new_entity_if_not_found: bool,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> bool {
+        if self.is_pending() {
+            log::warn!("Illegal state for updating directory: {self:?}");
+            return false;
+        }
         match self {
-            Self::Initial => (),
-            Self::Ready(entity_with_summary) => {
+            Self::Ready { entity, .. } => {
                 // When set the `kind` controls the selection of collections by music directory.
-                if new_kind.is_none()
-                    || new_kind.as_deref() == entity_with_summary.entity.body.kind.as_deref()
-                {
-                    let vfs_music_dir = vfs_music_dir(&entity_with_summary.entity.body);
+                if new_kind.is_none() || new_kind.as_deref() == entity.body.kind.as_deref() {
+                    let vfs_music_dir = vfs_music_dir(&entity.body);
                     if vfs_music_dir.as_ref() == Some(&new_music_dir) {
                         // Unchanged
                         log::debug!(
-                            "Music directory unchanged and not updated: {}",
-                            new_music_dir.display()
+                            "Music directory unchanged and not updated: {music_dir}",
+                            music_dir = new_music_dir.display()
                         );
                         return false;
                     }
                 }
-            }
-            Self::Loading { .. } | Self::RestoringOrCreating { .. } => {
-                // Updating the music directory again while already pending is not allowed
-                log::error!("Illegal state when updating music directory: {self:?}");
-                return false;
             }
             Self::NestedMusicDirectoriesConflict {
                 state:
@@ -392,11 +510,14 @@ impl State {
                 {
                     // No effect
                     log::debug!(
-                        "Music directory unchanged and not updated: {}",
-                        new_music_dir.display()
+                        "Music directory unchanged and not updated: {music_dir}",
+                        music_dir = new_music_dir.display()
                     );
                     return false;
                 }
+            }
+            _ => {
+                // Proceed without any checks.
             }
         }
         let state = RestoreOrCreateState {
@@ -405,101 +526,93 @@ impl State {
             create_new_entity_if_not_found,
             nested_music_dirs,
         };
-        log::debug!("Updating state: {self:?} -> {state:?}");
-        *self = Self::RestoringOrCreating {
+        let new_self = Self::RestoringOrCreatingFromMusicDirectory {
             state,
             pending_since: Instant::now(),
         };
+        *self = new_self;
         true
     }
 
-    pub fn reset_to_loading(&mut self) -> Option<(bool, EntityUid)> {
-        match self {
-            Self::Initial
-            | Self::RestoringOrCreating { .. }
-            | Self::NestedMusicDirectoriesConflict { .. } => {
-                // Not applicable
-                debug_assert!(self.entity_uid().is_none());
-                None
+    #[must_use]
+    fn refresh_from_db(&mut self) -> Option<RefreshStateFromDbParams> {
+        let old_self = std::mem::replace(self, Self::Void);
+        let (entity_uid, loaded_before) = match old_self {
+            Self::Void => {
+                return None;
             }
-            Self::Loading { entity_uid, .. } => {
-                // No effect
-                Some((false, entity_uid.clone()))
-            }
-            Self::Ready(EntityWithSummary { entity, .. }) => {
-                let entity_uid = entity.hdr.uid.clone();
-                let loading_state = Self::Loading {
-                    entity_uid: entity_uid.clone(),
+            Self::NestedMusicDirectoriesConflict { state, .. }
+            | Self::RestoringOrCreatingFromMusicDirectory { state, .. }
+            | Self::RestoringOrCreatingFromMusicDirectoryFailed { state, .. } => {
+                let params = RefreshStateFromDbParams {
+                    entity_uid: None,
+                    restore_or_create: Some(state.clone()),
+                };
+                *self = Self::RestoringOrCreatingFromMusicDirectory {
+                    state,
                     pending_since: Instant::now(),
                 };
-                log::debug!("Resetting state to loading: {self:?} -> {loading_state:?}");
-                *self = loading_state;
-                Some((true, entity_uid))
+                return Some(params);
             }
-        }
+            Self::LoadingFailed {
+                entity_uid,
+                loaded_before,
+                ..
+            } => (entity_uid, loaded_before),
+            Self::Ready { entity, .. } => (entity.raw.hdr.uid, Some(entity.raw.body)),
+            _ => {
+                log::warn!("Illegal state for refreshing from database: {old_self:?}");
+                *self = old_self;
+                return None;
+            }
+        };
+        let params = RefreshStateFromDbParams {
+            entity_uid: Some(entity_uid.clone()),
+            restore_or_create: None,
+        };
+        let new_self = Self::Loading {
+            entity_uid,
+            loaded_before,
+            pending_since: Instant::now(),
+        };
+        *self = new_self;
+        Some(params)
     }
 
-    #[must_use]
-    pub fn entity_uid(&self) -> Option<&EntityUid> {
-        match self {
-            Self::Initial
-            | Self::RestoringOrCreating { .. }
-            | Self::NestedMusicDirectoriesConflict { .. } => None,
-            Self::Ready(ready) => Some(&ready.entity.hdr.uid),
-            Self::Loading { entity_uid, .. } => Some(entity_uid),
-        }
-    }
-
-    #[must_use]
-    pub const fn entity_with_summary(&self) -> Option<&EntityWithSummary> {
-        match self {
-            Self::Initial
-            | Self::Loading { .. }
-            | Self::RestoringOrCreating { .. }
-            | Self::NestedMusicDirectoriesConflict { .. } => None,
-            Self::Ready(ready) => Some(ready),
-        }
-    }
-
-    #[must_use]
-    fn replace(&mut self, replacement: State) -> bool {
-        // Only invoked while pending
-        debug_assert!(self.is_pending());
-        if self == &replacement {
-            // No effect
+    pub fn synchronize(&mut self) -> bool {
+        let old_self = std::mem::replace(self, Self::Void);
+        let Self::Ready { entity, .. } = old_self else {
+            log::warn!("Illegal state for synchronizing: {old_self:?}");
+            *self = old_self;
             return false;
-        }
-        log::debug!("Replacing state: {self:?} -> {replacement:?}");
-        let _replaced = std::mem::replace(self, replacement);
+        };
+        let new_self = Self::Synchronizing {
+            entity,
+            pending_since: Instant::now(),
+        };
+        *self = new_self;
         true
     }
 
-    fn prepare_refresh_from_db(&self) -> anyhow::Result<RefreshStateFromDbParams> {
-        match self {
-            State::Ready(entity_with_summary) => {
-                let entity_uid = entity_with_summary.entity.hdr.uid.clone();
-                Ok(RefreshStateFromDbParams {
-                    entity_uid: Some(entity_uid),
-                    restore_or_create: None,
-                })
-            }
-            State::Loading { entity_uid, .. } => Ok(RefreshStateFromDbParams {
-                entity_uid: Some(entity_uid.clone()),
-                restore_or_create: None,
-            }),
-            State::RestoringOrCreating { state, .. }
-            | State::NestedMusicDirectoriesConflict { state, .. } => Ok(RefreshStateFromDbParams {
-                entity_uid: None,
-                restore_or_create: Some(state.clone()),
-            }),
-            State::Initial => {
-                anyhow::bail!("illegal state when refreshing from database: {self:?}");
+    #[must_use]
+    fn loading_succeeded(entity_with_summary: EntityWithSummary) -> Self {
+        let EntityWithSummary { entity, summary } = entity_with_summary;
+        if let Some(summary) = summary {
+            State::Ready { entity, summary }
+        } else {
+            // Should never happen
+            let entity_uid = entity.raw.hdr.uid;
+            let loaded_before = Some(entity.raw.body);
+            State::LoadingFailed {
+                entity_uid,
+                loaded_before,
+                error: "no summary".to_owned(),
             }
         }
     }
 }
 
-pub type Subscriber = discro::Subscriber<State>;
+pub type StateSubscriber = discro::Subscriber<State>;
 
 /// Manages the mutable, observable state
 #[derive(Debug)]
@@ -517,25 +630,16 @@ impl ObservableState {
     }
 
     #[must_use]
-    pub fn subscribe_changed(&self) -> Subscriber {
+    pub fn subscribe_changed(&self) -> StateSubscriber {
         self.0.subscribe_changed()
+    }
+
+    pub fn set_modified(&self) {
+        self.0.set_modified();
     }
 
     pub fn reset(&self) -> bool {
         self.0.modify(State::reset)
-    }
-
-    #[allow(clippy::must_use_candidate)]
-    pub fn reset_to_loading(&self) -> Option<(bool, EntityUid)> {
-        let mut loading_entity_uid = None;
-        let modified = self.0.modify(|stats| {
-            let Some((modified, entity_uid)) = stats.reset_to_loading() else {
-                return false;
-            };
-            loading_entity_uid = Some(entity_uid);
-            modified
-        });
-        loading_entity_uid.map(|entity_uid| (modified, entity_uid))
     }
 
     pub async fn update_music_dir<'a>(
@@ -545,34 +649,83 @@ impl ObservableState {
         new_music_dir: Option<DirPath<'static>>,
         create_new_entity_if_not_found: bool,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
-    ) -> anyhow::Result<bool> {
-        let modified = if let Some(new_music_dir) = new_music_dir {
-            log::debug!("Updating music directory: {}", new_music_dir.display());
-            if !self.0.modify(|state| {
-                state.update_music_dir(
-                    kind,
-                    new_music_dir,
-                    create_new_entity_if_not_found,
-                    nested_music_dirs,
-                )
-            }) {
-                // No effect
-                return Ok(false);
-            }
-            self.refresh_from_db(handle).await?
-        } else {
+    ) -> bool {
+        let Some(new_music_dir) = new_music_dir else {
             log::debug!("Resetting music directory");
-            self.0.modify(State::reset)
+            return self.0.modify(State::reset);
         };
-        Ok(modified)
+        log::debug!(
+            "Updating music directory: {new_music_dir}",
+            new_music_dir = new_music_dir.display()
+        );
+        if !self.0.modify(|state| {
+            state.update_music_dir(
+                kind,
+                new_music_dir,
+                create_new_entity_if_not_found,
+                nested_music_dirs,
+            )
+        }) {
+            log::debug!("Music directory unchanged");
+            return false;
+        }
+        log::debug!("Refreshing from database after music directory changed");
+        self.refresh_from_db(handle).await;
+        true
     }
 
-    pub async fn refresh_from_db(&self, environment: &Environment) -> anyhow::Result<bool> {
-        let refresh_params = self.read().prepare_refresh_from_db()?;
-        let refreshed_state = refresh_state_from_db(environment, refresh_params).await?;
-        log::debug!("Refreshed state: {refreshed_state:?}");
-        let modified = self.0.modify(|state| state.replace(refreshed_state));
-        Ok(modified)
+    pub async fn refresh_from_db(&self, env: &Environment) -> bool {
+        let mut pending_state_params = None;
+        let modified = self.0.modify(|state| {
+            let Some(params) = state.refresh_from_db() else {
+                return false;
+            };
+            debug_assert!(state.is_pending());
+            let pending_state = state.clone();
+            pending_state_params = Some((pending_state, params));
+            true
+        });
+        let Some((pending_state, params)) = pending_state_params else {
+            return modified;
+        };
+        let refreshed_state_result = refresh_state_from_db(env, params).await;
+        self.0.modify(|state| {
+            if pending_state != *state {
+                log::warn!(
+                    "State changed while refreshing from database: expected {pending_state:?}, actual {state:?} - discarding {refreshed_state_result:?}",
+                );
+                return false;
+            }
+            match refreshed_state_result {
+                Ok(refreshed_state) => {
+                    if *state == refreshed_state {
+                        return false;
+                    }
+                    log::debug!("Refreshed state from database: {refreshed_state:?}");
+                    *state = refreshed_state;
+                    true
+                }
+                Err(err) => {
+                    let error = err.to_string();
+                    let failed_state = match state {
+                        State::RestoringOrCreatingFromMusicDirectory { state, .. } => {
+                            State::RestoringOrCreatingFromMusicDirectoryFailed { state: std::mem::take(state), error }
+                        }
+                        State::Loading { entity_uid, loaded_before, .. } => {
+                            State::LoadingFailed {
+                                entity_uid: std::mem::take(entity_uid),
+                                loaded_before: loaded_before.take(),
+                                error,
+                            }
+                        }
+                        _ => unreachable!(),
+                    };
+                    debug_assert_ne!(*state, failed_state);
+                    *state = failed_state;
+                    true
+                }
+            }
+        })
     }
 }
 
@@ -597,7 +750,7 @@ struct RefreshStateFromDbParams {
 }
 
 async fn refresh_state_from_db<'a>(
-    environment: &Environment,
+    env: &Environment,
     params: RefreshStateFromDbParams,
 ) -> anyhow::Result<State> {
     let RefreshStateFromDbParams {
@@ -605,13 +758,25 @@ async fn refresh_state_from_db<'a>(
         restore_or_create,
     } = params;
     let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
-        try_refresh_entity_from_db(environment, entity_uid.clone()).await?
+        try_refresh_entity_from_db(env, entity_uid.clone()).await?
     } else {
         None
     };
     let Some(restore_or_create) = restore_or_create else {
-        let state = entity_with_summary.map(State::Ready).unwrap_or_default();
-        return Ok(state);
+        return Ok(entity_with_summary.map_or_else(
+            || {
+                if let Some(entity_uid) = entity_uid {
+                    State::LoadingFailed {
+                        entity_uid,
+                        loaded_before: None,
+                        error: "not found".to_owned(),
+                    }
+                } else {
+                    State::Void
+                }
+            },
+            State::loading_succeeded,
+        ));
     };
     if let Some(entity_with_summary) = entity_with_summary {
         let RestoreOrCreateState {
@@ -620,7 +785,7 @@ async fn refresh_state_from_db<'a>(
         if kind.is_none() || kind == &entity_with_summary.entity.body.kind {
             let entity_music_dir = vfs_music_dir(&entity_with_summary.entity.body);
             if entity_music_dir.as_ref() == Some(music_dir) {
-                return Ok(State::Ready(entity_with_summary));
+                return Ok(State::loading_succeeded(entity_with_summary));
             }
         }
         log::debug!(
@@ -628,11 +793,11 @@ async fn refresh_state_from_db<'a>(
             uid = entity_with_summary.entity.hdr.uid
         );
     }
-    restore_or_create.restore_or_create(environment).await
+    restore_or_create.restore_or_create(env).await
 }
 
 pub async fn synchronize_vfs<ReportProgressFn>(
-    environment: &Environment,
+    env: &Environment,
     entity_uid: EntityUid,
     import_track_config: ImportTrackConfig,
     report_progress_fn: ReportProgressFn,
@@ -651,7 +816,7 @@ where
         unsynchronized_tracks: UnsynchronizedTracks::Find,
     };
     batch::synchronize_collection_vfs::synchronize_collection_vfs(
-        environment.db_gatekeeper(),
+        env.db_gatekeeper(),
         entity_uid,
         params,
         std::convert::identity,

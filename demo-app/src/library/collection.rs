@@ -114,9 +114,9 @@ fn synchronize_music_dir_task(
     Output = anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>,
 > + Send
        + 'static {
-    let uid = state.reset_to_loading().map(|(_, uid)| uid);
+    let entity_uid = state.read().entity_uid().cloned();
     async move {
-        let Some(uid) = uid else {
+        let Some(entity_uid) = entity_uid else {
             anyhow::bail!("No collection");
         };
         log::debug!("Synchronizing collection with music directory...");
@@ -130,16 +130,14 @@ fn synchronize_music_dir_task(
             let report_progress_fn = move |progress| {
                 report_progress_fn(Some(progress));
             };
-            synchronize_vfs(&handle, uid, import_track_config, report_progress_fn).await
+            synchronize_vfs(&handle, entity_uid, import_track_config, report_progress_fn).await
         };
         report_progress_fn(None);
         log::debug!(
             "Synchronizing collection with music directory finished: {:?}",
             res
         );
-        if let Err(err) = state.refresh_from_db(&handle).await {
-            log::warn!("Failed to refresh collection: {err}");
-        }
+        state.refresh_from_db(&handle).await;
         res
     }
 }

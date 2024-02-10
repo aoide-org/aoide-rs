@@ -117,7 +117,7 @@ impl Library {
         &self.state
     }
 
-    pub fn update_music_directory(&self, music_dir: Option<&DirPath<'_>>) {
+    pub fn update_music_dir(&self, music_dir: Option<&DirPath<'_>>) {
         if self.state.settings.update_music_dir(music_dir) {
             log::info!("Music directory updated: {music_dir:?}");
         } else {
@@ -125,12 +125,14 @@ impl Library {
         }
     }
 
-    pub fn reset_music_directory(&self) {
-        self.update_music_directory(None);
+    pub fn reset_music_dir(&self) {
+        self.update_music_dir(None);
     }
 
     pub fn reset_collection(&self) {
         self.state.collection.reset();
+        // Enforce restoring the collection from the selected music directory.
+        self.state.settings.set_modified();
     }
 
     pub fn spawn_rescan_collection_task(&mut self, rt: &tokio::runtime::Handle) -> bool {
@@ -196,17 +198,14 @@ impl Library {
                 log::error!("Failed to save settings to file: {err}");
             },
         ));
-        tokio_rt.spawn(collection::tasklet::on_settings_changed(
+        tokio_rt.spawn(collection::tasklet::on_settings_state_changed(
             &self.state.settings,
             Arc::downgrade(&self.state.collection),
             Handle::downgrade(&self.handle),
             CREATE_NEW_COLLECTION_ENTITY_IF_NOT_FOUND,
             NESTED_MUSIC_DIRS,
-            |err| {
-                log::error!("Failed to update collection after settings state changed: {err}");
-            },
         ));
-        tokio_rt.spawn(track_search::tasklet::on_collection_changed(
+        tokio_rt.spawn(track_search::tasklet::on_collection_state_changed(
             &self.state.collection,
             Arc::downgrade(&self.state.track_search),
         ));

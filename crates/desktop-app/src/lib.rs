@@ -49,6 +49,10 @@ impl<T> Observable<T> {
     pub fn modify(&self, modify: impl FnOnce(&mut T) -> bool) -> bool {
         self.publisher.modify(modify)
     }
+
+    pub fn set_modified(&self) {
+        self.publisher.set_modified();
+    }
 }
 
 /// Read-only access to an observable.

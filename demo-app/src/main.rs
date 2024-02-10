@@ -16,7 +16,9 @@ use std::{
 use directories::ProjectDirs;
 use vizia::prelude::*;
 
-use aoide::desktop_app::{fs::DirPath, ObservableReader as _};
+use aoide::desktop_app::{
+    collection::State as CollectionState, fs::DirPath, ObservableReader as _,
+};
 
 mod library;
 #[allow(unused_imports)]
@@ -150,7 +152,8 @@ fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
                     cx,
                     |ex| ex.emit(AppEvent::Command(AppCommand::SelectMusicDirectory)),
                     |cx| Label::new(cx, "Select music directory..."),
-                );
+                )
+                .disabled(AppModel::collection_state.map(disable_select_music_dir));
                 Button::new(
                     cx,
                     |ex| ex.emit(AppEvent::Command(AppCommand::ResetMusicDirectory)),
@@ -164,23 +167,25 @@ fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
         VStack::new(cx, |cx| {
             Label::new(
                 cx,
-                AppModel::collection_with_summary.map(|collection_with_summary| {
-                    if let Some(collection_with_summary) = &collection_with_summary {
-                        if let Some(summary) = &collection_with_summary.summary {
+                AppModel::collection_state.map(|collection_state| {
+                    if let Some((entity, summary)) = collection_state.entity_with_summary() {
+                        format!(
+                            "Collection: uid = {uid}, title = \"{title}\", #tracks = \
+                                    {tracks_count}, #playlists = {playlists_count}",
+                            uid = entity.hdr.uid,
+                            title = entity.body.title,
+                            tracks_count = summary.tracks.total_count,
+                            playlists_count = summary.playlists.total_count,
+                        )
+                    } else if let Some((entity_uid, collection)) = collection_state.entity_brief() {
+                        if let Some(collection) = collection {
                             format!(
-                                "Collection: uid = {uid}, title = \"{title}\", #tracks = \
-                             {tracks_count}, #playlists = {playlists_count}",
-                                uid = collection_with_summary.entity.hdr.uid,
-                                title = collection_with_summary.entity.body.title,
-                                tracks_count = summary.tracks.total_count,
-                                playlists_count = summary.playlists.total_count,
+                                "Collection: uid = {entity_uid}, title = \"{title}\"",
+                                entity_uid = entity_uid,
+                                title = collection.title,
                             )
                         } else {
-                            format!(
-                                "Collection: uid = {uid}, title = \"{title}\"",
-                                uid = collection_with_summary.entity.hdr.uid,
-                                title = collection_with_summary.entity.body.title,
-                            )
+                            format!("Collection: uid = {entity_uid}")
                         }
                     } else {
                         "Collection: <none>".to_owned()
@@ -194,13 +199,13 @@ fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
                     |ex| ex.emit(AppEvent::Command(AppCommand::RescanCollection)),
                     |cx: &mut Context| Label::new(cx, "Rescan collection"),
                 )
-                .disabled(AppModel::collection_state_tag.map(|state_tag| !state_tag.is_ready()));
+                .disabled(AppModel::collection_state.map(disable_rescan_collection));
                 Button::new(
                     cx,
                     |ex| ex.emit(AppEvent::Command(AppCommand::ResetCollection)),
                     |cx| Label::new(cx, "Reset collection"),
                 )
-                .disabled(AppModel::collection_state_tag.map(|state_tag| !state_tag.is_ready()));
+                .disabled(AppModel::collection_state.map(disable_rescan_collection));
             });
         });
 
@@ -223,6 +228,21 @@ fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
     })
     .title(app_name())
     .run();
+}
+
+#[must_use]
+fn disable_select_music_dir(state: &CollectionState) -> bool {
+    state.is_pending()
+}
+
+#[must_use]
+fn disable_reset_collection(state: &CollectionState) -> bool {
+    state.is_pending() || *state == CollectionState::Void
+}
+
+#[must_use]
+const fn disable_rescan_collection(state: &CollectionState) -> bool {
+    !state.is_ready()
 }
 
 #[must_use]
@@ -318,8 +338,7 @@ impl App {
 struct AppModel {
     app: App,
     music_dir: Option<DirPath<'static>>,
-    collection_state_tag: aoide::desktop_app::collection::StateTag,
-    collection_with_summary: Option<aoide::api::collection::EntityWithSummary>,
+    collection_state: CollectionState,
     track_search_input: String,
 }
 
@@ -327,9 +346,8 @@ impl AppModel {
     fn new(app: App) -> Self {
         Self {
             app,
-            music_dir: None,
-            collection_state_tag: Default::default(),
-            collection_with_summary: None,
+            music_dir: Default::default(),
+            collection_state: Default::default(),
             track_search_input: Default::default(),
         }
     }
@@ -370,10 +388,10 @@ impl Model for AppModel {
                     );
                 }
                 AppCommand::UpdateMusicDirectory(music_dir) => {
-                    self.app.library.update_music_directory(Some(music_dir));
+                    self.app.library.update_music_dir(Some(music_dir));
                 }
                 AppCommand::ResetMusicDirectory => {
-                    self.app.library.reset_music_directory();
+                    self.app.library.reset_music_dir();
                 }
                 AppCommand::ResetCollection => {
                     self.app.library.reset_collection();
@@ -395,31 +413,30 @@ impl Model for AppModel {
                             );
                             return;
                         }
-                        let old_music_dir = self.music_dir.take();
-                        self.music_dir = state.music_dir.clone();
+                        let new_music_dir = state.music_dir.clone();
                         log::info!(
                             "Music directory changed: {old_music_dir:?} -> {new_music_dir:?}",
-                            new_music_dir = self.music_dir
+                            old_music_dir = self.music_dir,
                         );
+                        self.music_dir = new_music_dir;
                     }
                     LibraryNotification::CollectionStateChanged => {
-                        let state = self.app.library.state().collection().read_observable();
-                        self.collection_state_tag = state.state_tag();
-                        let new_collection_with_summary = state.entity_with_summary();
-                        if new_collection_with_summary == self.collection_with_summary.as_ref() {
-                            log::info!(
-                                "Collection unchanged: {collection_with_summary:?}",
-                                collection_with_summary = self.collection_with_summary
-                            );
-                            return;
-                        }
-                        let old_collection_with_summary = self.collection_with_summary.take();
-                        self.collection_with_summary = new_collection_with_summary.cloned();
+                        let new_collection_state = {
+                            let new_collection_state = self.app.library.state().collection().read_observable();
+                            if *new_collection_state == self.collection_state {
+                                log::info!(
+                                    "Collection state unchanged: {old_collection_state:?}",
+                                    old_collection_state = self.collection_state,
+                                );
+                                return;
+                            }
+                            new_collection_state.clone()
+                        };
                         log::info!(
-                            "Collection changed: {old_collection_with_summary:?} -> \
-                             {new_collection_with_summary:?}",
-                            new_collection_with_summary = self.collection_with_summary
+                            "Collection state changed: {old_collection_state:?} -> {new_collection_state:?}",
+                            old_collection_state = self.collection_state,
                         );
+                        self.collection_state = new_collection_state;
                     }
                     LibraryNotification::TrackSearchStateChanged => {
                         log::warn!(

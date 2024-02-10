@@ -461,7 +461,7 @@ fn on_fetch_more(state: &mut State, fetch_limit: Option<NonZeroUsize>) -> Option
     })
 }
 
-pub type Subscriber = discro::Subscriber<State>;
+pub type StateSubscriber = discro::Subscriber<State>;
 
 /// Manages the mutable, observable state
 #[derive(Debug)]
@@ -479,8 +479,12 @@ impl ObservableState {
     }
 
     #[must_use]
-    pub fn subscribe_changed(&self) -> Subscriber {
+    pub fn subscribe_changed(&self) -> StateSubscriber {
         self.0.subscribe_changed()
+    }
+
+    pub fn set_modified(&self) {
+        self.0.set_modified();
     }
 
     #[allow(clippy::must_use_candidate)]

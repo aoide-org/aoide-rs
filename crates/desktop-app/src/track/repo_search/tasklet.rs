@@ -113,25 +113,27 @@ where
     )
 }
 
-pub fn on_collection_changed(
+pub fn on_collection_state_changed(
     collection_state: &Arc<collection::ObservableState>,
     observable_state: Weak<ObservableState>,
 ) -> impl Future<Output = ()> + Send + 'static {
     let mut collection_state_sub = collection_state.subscribe_changed();
     async move {
-        log::debug!("Starting on_collection_changed");
+        log::debug!("Starting on_collection_state_changed");
         loop {
             {
                 let Some(observable_state) = observable_state.upgrade() else {
                     // Observable has been dropped.
                     break;
                 };
-                let collection_uid;
-                {
+                let mut collection_uid = {
                     let state = collection_state_sub.read_ack();
-                    collection_uid = state.entity_uid().cloned();
-                }
-                observable_state.update_collection_uid(&mut collection_uid.clone());
+                    match &*state {
+                        collection::State::Ready { entity, .. } => Some(entity.hdr.uid.clone()),
+                        _ => None,
+                    }
+                };
+                observable_state.update_collection_uid(&mut collection_uid);
                 if observable_state.reset_fetched() {
                     log::debug!("Fetched results have been reset");
                 }
@@ -141,6 +143,6 @@ pub fn on_collection_changed(
                 break;
             }
         }
-        log::debug!("Stopping on_collection_changed");
+        log::debug!("Stopping on_collection_state_changed");
     }
 }
