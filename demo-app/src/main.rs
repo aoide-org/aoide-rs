@@ -152,8 +152,7 @@ fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
                     cx,
                     |ex| ex.emit(AppEvent::Command(AppCommand::SelectMusicDirectory)),
                     |cx| Label::new(cx, "Select music directory..."),
-                )
-                .disabled(AppModel::collection_state.map(disable_select_music_dir));
+                );
                 Button::new(
                     cx,
                     |ex| ex.emit(AppEvent::Command(AppCommand::ResetMusicDirectory)),
@@ -222,11 +221,6 @@ fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
     })
     .title(app_name())
     .run();
-}
-
-#[must_use]
-const fn disable_select_music_dir(state: &CollectionState) -> bool {
-    state.is_pending()
 }
 
 #[must_use]
