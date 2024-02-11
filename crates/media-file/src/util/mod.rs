@@ -250,7 +250,10 @@ pub fn lufs2db(loudness: LoudnessLufs) -> f64 {
 pub fn format_valid_replay_gain(loudness: LoudnessLufs) -> Option<String> {
     LoudnessLufs::validated_from(loudness).ok().map(|loudness| {
         let mut replay_gain_db = lufs2db(*loudness);
-        let formatted = format!("{}, dB", format_parseable_value(&mut replay_gain_db));
+        let formatted = format!(
+            "{replay_gain_db} dB",
+            replay_gain_db = format_parseable_value(&mut replay_gain_db)
+        );
         let mut importer = Importer::new();
         debug_assert_eq!(
             Some(db2lufs(replay_gain_db)),
