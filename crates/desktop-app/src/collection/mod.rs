@@ -312,17 +312,6 @@ impl State {
         matches!(self, State::Ready { .. })
     }
 
-    pub fn reset(&mut self) -> bool {
-        if matches!(self, Self::Void) {
-            // No effect
-            return false;
-        }
-        let reset = Self::Void;
-        log::debug!("Resetting state: {self:?} -> {reset:?}");
-        *self = reset;
-        true
-    }
-
     #[must_use]
     pub fn music_dir(&self) -> Option<DirPath<'_>> {
         match self {
@@ -412,7 +401,18 @@ impl State {
         }
     }
 
-    pub fn update_music_dir(
+    fn reset(&mut self) -> bool {
+        if matches!(self, Self::Void) {
+            // No effect
+            return false;
+        }
+        let reset = Self::Void;
+        log::debug!("Resetting state: {self:?} -> {reset:?}");
+        *self = reset;
+        true
+    }
+
+    fn update_music_dir(
         &mut self,
         new_kind: Option<Cow<'_, str>>,
         new_music_dir: DirPath<'_>,
@@ -520,7 +520,8 @@ impl State {
         Some(params)
     }
 
-    pub fn synchronize(&mut self) -> bool {
+    #[allow(dead_code)] // FIXME: Reconnect to `synchronize_vfs()`
+    fn synchronize(&mut self) -> bool {
         let old_self = std::mem::replace(self, Self::Void);
         let Self::Ready { entity, .. } = old_self else {
             log::warn!("Illegal state for synchronizing: {old_self:?}");

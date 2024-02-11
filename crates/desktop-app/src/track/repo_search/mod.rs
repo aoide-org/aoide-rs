@@ -29,8 +29,8 @@ pub struct FetchedEntity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FetchedEntitiesFingerprint {
-    pub len: usize,
+pub struct FetchedEntitiesMemo {
+    pub offset: usize,
     pub last_offset_hash: u64,
 }
 
@@ -67,9 +67,9 @@ impl FetchStateTag {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct FetchStateLite {
-    pub tag: FetchStateTag,
-    pub fetched_entities_fingerprint: Option<FetchedEntitiesFingerprint>,
+pub struct FetchMemo {
+    pub state_tag: FetchStateTag,
+    pub fetched_entities: Option<FetchedEntitiesMemo>,
 }
 
 #[derive(Debug, Default)]
@@ -100,21 +100,6 @@ impl FetchState {
         }
     }
 
-    #[must_use]
-    fn clone_lite(&self) -> FetchStateLite {
-        let tag = self.state_tag();
-        let fetched_entities_fingerprint = self.fetched_entities_fingerprint();
-        FetchStateLite {
-            tag,
-            fetched_entities_fingerprint,
-        }
-    }
-
-    #[must_use]
-    fn equals_lite(&self, other: &FetchStateLite) -> bool {
-        self.clone_lite() == *other
-    }
-
     /// Check whether the state is stable.
     #[must_use]
     const fn is_idle(&self) -> bool {
@@ -140,14 +125,24 @@ impl FetchState {
     }
 
     #[must_use]
-    fn fetched_entities_fingerprint(&self) -> Option<FetchedEntitiesFingerprint> {
+    fn fetched_entities_memo(&self) -> Option<FetchedEntitiesMemo> {
         let fetched_entities = self.fetched_entities()?;
-        let len = fetched_entities.len();
+        let offset = fetched_entities.len();
         let last_offset_hash = last_offset_hash_of_fetched_entities(fetched_entities);
-        Some(FetchedEntitiesFingerprint {
-            len,
+        Some(FetchedEntitiesMemo {
+            offset,
             last_offset_hash,
         })
+    }
+
+    #[must_use]
+    fn memo(&self) -> FetchMemo {
+        let state_tag = self.state_tag();
+        let fetched_entities = self.fetched_entities_memo();
+        FetchMemo {
+            state_tag,
+            fetched_entities,
+        }
     }
 
     #[must_use]
@@ -207,10 +202,9 @@ impl FetchState {
         fetched_entities: Vec<Entity>,
         can_fetch_more: bool,
     ) -> bool {
-        log::debug!(
-            "Fetching succeeded with {num_fetched_entities} newly fetched entities",
-            num_fetched_entities = fetched_entities.len()
-        );
+        let num_fetched_entities = fetched_entities.len();
+        log::debug!("Fetching succeeded with {num_fetched_entities} newly fetched entities");
+
         let Self::Pending {
             fetched_entities_before,
         } = self
@@ -244,13 +238,24 @@ impl FetchState {
                 entity,
             }
         }));
+
         let fetched_entities = fetched_entities_before;
-        let num_fetched_entities = fetched_entities.len();
+        let num_cached_entities = fetched_entities.len();
+
         *self = Self::Ready {
             fetched_entities,
             can_fetch_more,
         };
-        log::debug!("Caching {num_fetched_entities} fetched entities");
+
+        debug_assert!(num_fetched_entities <= num_cached_entities);
+        if num_fetched_entities < num_cached_entities {
+            log::debug!(
+                "Caching {num_cached_entities_before} + {num_fetched_entities} fetched entities",
+                num_cached_entities_before = num_cached_entities - num_fetched_entities
+            );
+        } else {
+            log::debug!("Caching {num_fetched_entities} fetched entities");
+        }
         true
     }
 
@@ -274,11 +279,34 @@ impl FetchState {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum FetchedEntitiesDiff {
+    /// Replace all fetched entities.
+    ///
+    /// This is the fallback and safe default.
+    #[default]
+    Replace,
+    /// Append entities after more have been fetched.
+    ///
+    /// This is a common case that enables optimizations. It allows
+    /// consumers to avoid rebuilding and re-rendering the entire
+    /// list of fetched entities.
+    Append,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MemoUpdated {
+    Unchanged,
+    Changed {
+        fetched_entities_diff: FetchedEntitiesDiff,
+    },
+}
+
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct StateLite {
+pub struct Memo {
     pub default_params: Params,
     pub context: Context,
-    pub fetch: FetchStateLite,
+    pub fetch: FetchMemo,
 }
 
 #[derive(Debug)]
@@ -345,45 +373,91 @@ impl State {
     }
 
     #[must_use]
-    pub fn fetched_entities_fingerprint(&self) -> Option<FetchedEntitiesFingerprint> {
-        self.fetch.fetched_entities_fingerprint()
+    pub fn fetched_entities_memo(&self) -> Option<FetchedEntitiesMemo> {
+        self.fetch.fetched_entities_memo()
     }
 
-    #[must_use]
-    pub fn clone_lite(&self) -> StateLite {
+    fn clone_memo(&self) -> Memo {
         let Self {
             default_params,
             context,
             fetch,
         } = self;
-        let default_params = default_params.clone();
-        let context = context.clone();
-        let fetch = fetch.clone_lite();
-        StateLite {
-            default_params,
-            context,
-            fetch,
+        Memo {
+            default_params: default_params.clone(),
+            context: context.clone(),
+            fetch: fetch.memo(),
         }
     }
 
     #[must_use]
-    pub fn equals_lite(&self, other: &StateLite) -> bool {
+    #[allow(clippy::missing_panics_doc)] // Never panics
+    pub fn update_memo(&self, memo: &mut Memo) -> MemoUpdated {
         let Self {
             default_params,
             context,
             fetch,
         } = self;
-        let StateLite {
-            default_params: other_default_params,
-            context: other_context,
-            fetch: other_fetch,
-        } = other;
-        default_params == other_default_params
-            && context == other_context
-            && fetch.equals_lite(other_fetch)
+        let Memo {
+            default_params: memo_default_params,
+            context: memo_context,
+            fetch: memo_fetch,
+        } = memo;
+        let mut changed = false;
+        if memo_default_params != default_params {
+            *memo_default_params = default_params.clone();
+            changed = true;
+        }
+        if memo_context != context {
+            *memo_context = context.clone();
+            changed = true;
+        }
+        let fetch = fetch.memo();
+        if changed {
+            *memo_fetch = fetch;
+            debug_assert_eq!(*memo, self.clone_memo());
+            return MemoUpdated::Changed {
+                fetched_entities_diff: Default::default(),
+            };
+        }
+        if *memo_fetch == fetch {
+            debug_assert_eq!(*memo, self.clone_memo());
+            return MemoUpdated::Unchanged;
+        }
+        let mut fetched_entities_diff = Default::default();
+        if let (Some(fetched_entities), Some(memo_fetched_entities)) =
+            (&fetch.fetched_entities, &memo_fetch.fetched_entities)
+        {
+            let FetchedEntitiesMemo {
+                offset,
+                last_offset_hash: _,
+            } = fetched_entities;
+            let FetchedEntitiesMemo {
+                offset: memo_offset,
+                last_offset_hash: memo_last_offset_hash,
+            } = memo_fetched_entities;
+            debug_assert_eq!(*offset, self.fetched_entities().unwrap().len());
+            if *memo_offset > 0
+                && memo_offset < offset
+                && *memo_last_offset_hash
+                    == self
+                        .fetched_entities()
+                        .unwrap()
+                        .get(*memo_offset - 1)
+                        .unwrap()
+                        .offset_hash
+            {
+                fetched_entities_diff = FetchedEntitiesDiff::Append;
+            }
+        }
+        *memo_fetch = fetch;
+        debug_assert_eq!(*memo, self.clone_memo());
+        MemoUpdated::Changed {
+            fetched_entities_diff,
+        }
     }
 
-    pub fn reset(&mut self) -> bool {
+    fn reset(&mut self) -> bool {
         // Cloning the default params once for pre-creating the target state
         // is required to avoid redundant code for determining in advance if
         // the state would actually change or not.
@@ -403,7 +477,7 @@ impl State {
     /// Update the collection UID
     ///
     /// Consumed the argument when returning `true`.
-    pub fn update_collection_uid(&mut self, collection_uid: &mut Option<CollectionUid>) -> bool {
+    fn update_collection_uid(&mut self, collection_uid: &mut Option<CollectionUid>) -> bool {
         if collection_uid.as_ref() == self.context.collection_uid.as_ref() {
             // No effect.
             log::debug!("Collection UID unchanged: {collection_uid:?}");
@@ -422,7 +496,7 @@ impl State {
     /// Update the search parameters
     ///
     /// Consumed the argument when returning `true`.
-    pub fn update_params(&mut self, params: &mut Params) -> bool {
+    fn update_params(&mut self, params: &mut Params) -> bool {
         if params == &self.context.params {
             // No effect.
             log::debug!("Params unchanged: {params:?}");
@@ -434,12 +508,12 @@ impl State {
         true
     }
 
-    pub fn try_fetch_more(&mut self) -> bool {
+    fn try_fetch_more(&mut self) -> bool {
         debug_assert_eq!(Some(true), self.can_fetch_more());
         self.fetch.try_fetch_more()
     }
 
-    pub fn fetch_more_succeeded(&mut self, succeeded: FetchMoreSucceeded) -> bool {
+    fn fetch_more_succeeded(&mut self, succeeded: FetchMoreSucceeded) -> bool {
         let FetchMoreSucceeded {
             context,
             offset,
@@ -460,11 +534,11 @@ impl State {
             .fetch_more_succeeded(offset, offset_hash, fetched, can_fetch_more)
     }
 
-    pub fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
+    fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
         self.fetch.fetch_more_failed(err)
     }
 
-    pub fn reset_fetched(&mut self) -> bool {
+    fn reset_fetched(&mut self) -> bool {
         self.fetch.reset()
     }
 }

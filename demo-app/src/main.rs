@@ -328,7 +328,9 @@ struct AppModel {
     music_dir: Option<DirPath<'static>>,
     collection_state: CollectionState,
     track_search_input: String,
-    track_search_state: aoide::desktop_app::track::repo_search::StateLite,
+    track_search_memo: aoide::desktop_app::track::repo_search::Memo,
+    // TODO: Replace string with "renderable" track item.
+    track_search_list: Option<Vec<String>>,
 }
 
 impl AppModel {
@@ -338,7 +340,8 @@ impl AppModel {
             music_dir: Default::default(),
             collection_state: Default::default(),
             track_search_input: Default::default(),
-            track_search_state: Default::default(),
+            track_search_memo: Default::default(),
+            track_search_list: Default::default(),
         }
     }
 }
@@ -348,6 +351,7 @@ impl Model for AppModel {
         Some(app_name())
     }
 
+    #[allow(clippy::too_many_lines)] // TODO
     fn event(&mut self, _cx: &mut EventContext<'_>, event: &mut Event) {
         event.map(|event, _meta| match event {
             AppEvent::Input(input) => match input {
@@ -429,23 +433,44 @@ impl Model for AppModel {
                         self.collection_state = new_state;
                     }
                     LibraryNotification::TrackSearchStateChanged => {
-                        let new_state = {
-                            let new_state = self.app.library.state().track_search().read_observable();
-                            if new_state.equals_lite(&self.track_search_state) {
+                        debug_assert_eq!(self.track_search_list.as_ref().map(Vec::len),
+                            self.track_search_memo.fetch.fetched_entities.as_ref().map(|memo| memo.offset));
+                        let state = self.app.library.state().track_search().read_observable();
+                        let memo_updated = state.update_memo(&mut self.track_search_memo);
+                        match memo_updated {
+                            aoide::desktop_app::track::repo_search::MemoUpdated::Unchanged => {
                                 log::debug!(
-                                    "Track search state unchanged: {old_state:?}",
-                                    old_state = self.track_search_state,
+                                    "Track search memo unchanged",
                                 );
-                                return;
                             }
-                            new_state.clone_lite()
+                            aoide::desktop_app::track::repo_search::MemoUpdated::Changed { fetched_entities_diff } => {
+                                match fetched_entities_diff {
+                                    aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
+                                        log::debug!(
+                                            "Track search memo changed: Replacing all fetched entities",
+                                        );
+                                        if let Some(fetched_entities) = state.fetched_entities() {
+                                            let mut track_search_list = self.track_search_list.take().unwrap_or_default();
+                                            track_search_list.extend((0..fetched_entities.len()).map(|i| format!("TODO: Track {i}")));
+                                            self.track_search_list = Some(track_search_list);
+                                        } else {
+                                            self.track_search_list = None;
+                                        }
+                                    }
+                                    aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
+                                        let Some(fetched_entities) = state.fetched_entities() else {
+                                            unreachable!();
+                                        };
+                                        let track_search_list = self.track_search_list.as_mut().unwrap();
+                                        debug_assert!(track_search_list.len() <= fetched_entities.len());
+                                        let num_append_entities = fetched_entities.len() - track_search_list.len();
+                                        log::debug!(
+                                            "Track search memo changed: Appending {num_append_entities} fetched entities");
+                                            track_search_list.extend((track_search_list.len()..fetched_entities.len()).map(|i| format!("TODO: Track {i}")));
+                                    }
+                                }
+                            }
                         };
-                        log::debug!(
-                            "Track search state changed: {old_state:?} -> {new_state:?}",
-                            old_state = self.track_search_state,
-                        );
-                        self.track_search_state = new_state;
-                        log::warn!("TODO: Show fetched entities");
                     }
                 },
             },
