@@ -65,18 +65,18 @@ impl Outcome {
             }
             Self::Created(media_source_id, entity) => {
                 log::trace!(
-                    "Created {}: {:?}",
-                    entity.body.track.media_source.content.link.path,
-                    entity.hdr
+                    "Created {path}: {hdr:?}",
+                    path = entity.body.track.media_source.content.link.path,
+                    hdr = entity.hdr
                 );
                 summary.created.push(entity);
                 Some(media_source_id)
             }
             Self::Updated(media_source_id, entity) => {
                 log::trace!(
-                    "Updated {}: {:?}",
-                    entity.body.track.media_source.content.link.path,
-                    entity.hdr
+                    "Updated {path}: {hdr:?}",
+                    path = entity.body.track.media_source.content.link.path,
+                    hdr = entity.hdr
                 );
                 summary.updated.push(entity);
                 Some(media_source_id)
@@ -178,8 +178,8 @@ where
                 .parse()
                 .map_err(|err| {
                     anyhow::anyhow!(
-                        "failed to parse URL from path '{}': {err}",
-                        track.media_source.content.link.path,
+                        "failed to parse URL from path '{path}': {err}",
+                        path = track.media_source.content.link.path,
                     )
                 })
                 .map_err(Error::from)?;

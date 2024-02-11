@@ -47,8 +47,8 @@ pub(crate) enum Command {
 
 fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnectionGatekeeper> {
     log::info!(
-        "Commissioning SQLite database: {}",
-        config.connection.storage,
+        "Commissioning SQLite database: {storage}",
+        storage = config.connection.storage,
     );
 
     // The maximum size of the pool defines the maximum number of

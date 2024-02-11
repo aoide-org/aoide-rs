@@ -76,17 +76,23 @@ pub(crate) fn escape_single_quotes(arg: &str) -> String {
 }
 
 pub(crate) fn escape_like_starts_with(arg: &str) -> String {
-    format!("{}{LIKE_WILDCARD_CHARACTER}", escape_like_matches(arg))
+    format!(
+        "{escaped}{LIKE_WILDCARD_CHARACTER}",
+        escaped = escape_like_matches(arg)
+    )
 }
 
 pub(crate) fn escape_like_ends_with(arg: &str) -> String {
-    format!("{LIKE_WILDCARD_CHARACTER}{}", escape_like_matches(arg))
+    format!(
+        "{LIKE_WILDCARD_CHARACTER}{escaped}",
+        escaped = escape_like_matches(arg)
+    )
 }
 
 pub(crate) fn escape_like_contains(arg: &str) -> String {
     format!(
-        "{LIKE_WILDCARD_CHARACTER}{}{LIKE_WILDCARD_CHARACTER}",
-        escape_like_matches(arg),
+        "{LIKE_WILDCARD_CHARACTER}{escaped}{LIKE_WILDCARD_CHARACTER}",
+        escaped = escape_like_matches(arg),
     )
 }
 

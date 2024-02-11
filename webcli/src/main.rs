@@ -254,16 +254,16 @@ impl ModelRender for RenderCliModel {
                 .map(ToOwned::to_owned);
             if let Some(outcome) = &last_media_tracker_import_files_outcome {
                 log::info!(
-                    "Importing media files from '{}' ({}) succeeded with {:?}: {:?}",
-                    outcome.value.root_path,
-                    outcome.value.root_url,
-                    outcome.value.completion,
-                    outcome.value.summary
+                    "Importing media files from '{root_path}' ({root_url}) succeeded with {completion:?}: {outcome:?}",
+                    root_path = outcome.value.root_path,
+                    root_url= outcome.value.root_url,
+                    completion = outcome.value.completion,
+                    outcome = outcome.value.summary
                 );
                 for imported_source_with_issues in &outcome.value.imported_sources_with_issues {
                     let ImportedSourceWithIssues { path, messages } = imported_source_with_issues;
                     debug_assert!(!messages.is_empty());
-                    log::warn!("{}: {}", path, messages.join(" | "));
+                    log::warn!("{path}: {messages}", messages = messages.join(" | "));
                 }
             }
         }
@@ -875,9 +875,9 @@ fn require_active_collection<'s>(
     if let Some(entity) = model.active_collection.active_entity() {
         debug_assert!(!model.is_pending());
         log::info!(
-            "Active collection: '{}' ({})",
-            entity.body.title,
-            entity.hdr.uid
+            "Active collection: '{title}' ({uid})",
+            title = entity.body.title,
+            uid = entity.hdr.uid,
         );
         return Ok(entity);
     }
@@ -900,9 +900,9 @@ fn require_active_collection<'s>(
                 .find_entity_by_title(collection_title)
             {
                 log::info!(
-                    "Activating collection '{}' ({})",
-                    entity.body.title,
-                    entity.hdr.uid,
+                    "Activating collection '{title}' ({uid})",
+                    title = entity.body.title,
+                    uid = entity.hdr.uid,
                 );
                 let entity_uid = Some(entity.hdr.uid.clone());
                 *collection_uid = entity_uid.clone();

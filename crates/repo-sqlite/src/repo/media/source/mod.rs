@@ -110,9 +110,9 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
             .set((
                 media_source::row_updated_ms.eq(updated_at.timestamp_millis()),
                 media_source::content_link_path.eq(diesel::dsl::sql(&format!(
-                    "'{}' || substr(content_link_path,{})",
-                    escape_single_quotes(new_content_path_prefix.as_ref()),
-                    old_content_path_prefix.len() + 1
+                    "'{escaped}' || substr(content_link_path,{len})",
+                    escaped = escape_single_quotes(new_content_path_prefix.as_ref()),
+                    len = old_content_path_prefix.len() + 1
                 ))),
             ))
             .execute(self.as_mut())

@@ -94,10 +94,7 @@ pub fn scan_directories<
         collection_id,
         resolver.root_path(),
     )?;
-    log::debug!(
-        "Marked {} current cache entries as outdated",
-        outdated_count
-    );
+    log::debug!("Marked {outdated_count} current cache entries as outdated");
     let mut summary = Summary::default();
     let digest_finished_fn = |dir_path: &Path, digest: digest::Output<blake3::Hasher>| {
         log::debug!(
@@ -126,15 +123,18 @@ pub fn scan_directories<
                 summary.current += 1;
             }
             DirUpdateOutcome::Inserted => {
-                log::debug!("Found added directory: {}", full_path.display());
+                log::debug!("Found added directory: {path}", path = full_path.display());
                 summary.added += 1;
             }
             DirUpdateOutcome::Updated => {
-                log::debug!("Found modified directory: {}", full_path.display());
+                log::debug!(
+                    "Found modified directory: {path}",
+                    path = full_path.display()
+                );
                 summary.modified += 1;
             }
             DirUpdateOutcome::Skipped => {
-                log::debug!("Skipped directory: {}", full_path.display());
+                log::debug!("Skipped directory: {path}", path = full_path.display());
                 summary.skipped += 1;
             }
         }

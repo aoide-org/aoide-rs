@@ -20,8 +20,8 @@ fn validate() {
 
 #[test]
 fn display() {
-    assert_eq!("0.0%", format!("{}", Score::MIN));
-    assert_eq!("100.0%", format!("{}", Score::MAX));
-    assert_eq!("90.1%", format!("{}", Score(0.901_234_5)));
-    assert_eq!("90.2%", format!("{}", Score(0.901_5)));
+    assert_eq!("0.0%", Score::MIN.to_string());
+    assert_eq!("100.0%", Score::MAX.to_string());
+    assert_eq!("90.1%", Score(0.901_234_5).to_string());
+    assert_eq!("90.2%", Score(0.901_5).to_string());
 }

@@ -86,7 +86,10 @@ pub fn import_track_from_file_path(
 ) -> Result<ImportTrackFromFileOutcome> {
     let file_path = content_path_resolver.build_file_path(source_path);
     let Some((canonical_path, file)) = open_file_for_reading(&file_path)? else {
-        log::debug!("{} is a directory", file_path.display());
+        log::debug!(
+            "{file_path} is a directory",
+            file_path = file_path.display()
+        );
         return Ok(ImportTrackFromFileOutcome::SkippedDirectory);
     };
     let new_content_rev = ContentRevision::try_from_file(&file)?;
@@ -96,8 +99,8 @@ pub fn import_track_from_file_path(
         } => {
             if *synchronized_before {
                 log::debug!(
-                    "Skipping reimport of file {} that as already been imported once",
-                    canonical_path.display(),
+                    "Skipping reimport of file {path} that as already been imported once",
+                    path = canonical_path.display(),
                 );
                 return Ok(ImportTrackFromFileOutcome::SkippedSynchronized {
                     content_rev: new_content_rev,
@@ -112,8 +115,8 @@ pub fn import_track_from_file_path(
                 if let Some(old_content_rev) = old_content_rev {
                     if new_content_rev <= *old_content_rev {
                         log::debug!(
-                            "Skipping reimport of synchronized file {}",
-                            canonical_path.display(),
+                            "Skipping reimport of synchronized file {path}",
+                            path = canonical_path.display(),
                         );
                         return Ok(ImportTrackFromFileOutcome::SkippedSynchronized {
                             content_rev: Some(new_content_rev),
@@ -133,16 +136,16 @@ pub fn import_track_from_file_path(
                     // This happens upon the initial import or after resetting the content
                     // revision manually to selectively enforce a re-import.
                     log::info!(
-                        "Importing file {} with no prior content revision available",
-                        canonical_path.display()
+                        "Importing file {path} with no prior content revision available",
+                        path = canonical_path.display()
                     );
                 }
             }
             (_, None) => {
                 log::debug!(
-                    "Skipping reimport of file {} for which no content revision could be \
+                    "Skipping reimport of file {path} for which no content revision could be \
                      determined",
-                    canonical_path.display(),
+                    path = canonical_path.display(),
                 );
                 return Ok(ImportTrackFromFileOutcome::SkippedSynchronized { content_rev: None });
             }

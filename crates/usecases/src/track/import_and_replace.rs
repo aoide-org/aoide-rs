@@ -244,8 +244,8 @@ where
         }
         Replacement::SkippedFile(err) => {
             log::info!(
-                "Skipped import of track from local file path {}: {err}",
-                content_path_resolver
+                "Skipped import of track from local file path {path}: {err}",
+                path = content_path_resolver
                     .build_file_path(&content_path)
                     .display()
             );
@@ -253,8 +253,8 @@ where
         }
         Replacement::ImportFailed(err) => {
             log::warn!(
-                "Failed to import track from local file path {}: {err}",
-                content_path_resolver
+                "Failed to import track from local file path {path}: {err}",
+                path = content_path_resolver
                     .build_file_path(&content_path)
                     .display()
             );
@@ -405,7 +405,10 @@ where
     InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
 {
     let dir_path = content_path_resolver.build_file_path(source_dir_path);
-    log::debug!("Importing files from directory: {}", dir_path.display());
+    log::debug!(
+        "Importing files from directory: {dir_path}",
+        dir_path = dir_path.display()
+    );
     let dir_entries = read_dir(dir_path)?;
     let mut summary = Summary::default();
     let mut visited_media_source_ids = Vec::with_capacity(EXPECTED_NUMBER_OF_DIR_ENTRIES);
@@ -423,8 +426,8 @@ where
         };
         if abort_flag.load(Ordering::Relaxed) {
             log::debug!(
-                "Aborting import before visiting {}",
-                dir_entry.path().display()
+                "Aborting import before visiting {path}",
+                path = dir_entry.path().display()
             );
             return Ok(Outcome {
                 completion: Completion::Aborted,
@@ -440,8 +443,8 @@ where
             content_path.clone()
         } else {
             log::warn!(
-                "Skipping invalid/unsupported directory entry: {}",
-                dir_entry.path().display()
+                "Skipping invalid/unsupported directory entry: {path}",
+                path = dir_entry.path().display()
             );
             // Skip entry and keep going
             continue;

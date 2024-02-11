@@ -148,7 +148,10 @@ pub fn hash_directories<
     directory_visitor: &mut HashDirectoryVisitor<D, E, NewDigestFn, DigestFinishedFn>,
     report_progress_fn: &mut ReportProgressFn,
 ) -> Result<Outcome> {
-    log::info!("Digesting all directories in '{}'", root_path.display());
+    log::info!(
+        "Digesting all directories in '{root_path}'",
+        root_path = root_path.display()
+    );
     visit_directories(
         &mut (),
         root_path,
@@ -163,10 +166,10 @@ pub fn hash_directories<
         let elapsed = progress_event.elapsed_since_started();
         let outcome = progress_event.finalize();
         log::info!(
-            "Digesting {} directories in '{}' took {} s",
-            outcome.progress.directories.finished,
-            root_path.display(),
-            elapsed.as_secs_f64(),
+            "Digesting {finished} directories in '{root_path}' took {elapsed} s",
+            finished = outcome.progress.directories.finished,
+            root_path = root_path.display(),
+            elapsed = elapsed.as_secs_f64(),
         );
         outcome
     })

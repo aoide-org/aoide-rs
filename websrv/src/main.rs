@@ -54,7 +54,10 @@ pub fn new_config_file_path(app_dirs: &ProjectDirs, file_suffix: &str) -> PathBu
 #[must_use]
 pub fn load_app_config(app_dirs: &ProjectDirs) -> Config {
     let file_path = new_config_file_path(app_dirs, "ron");
-    log::info!("Loading configuration from file: {}", file_path.display());
+    log::info!(
+        "Loading configuration from file: {file_path}",
+        file_path = file_path.display()
+    );
     match fs::read(&file_path) {
         Ok(bytes) => ron::de::from_bytes(&bytes)
             .map_err(|err| {
@@ -72,8 +75,8 @@ pub fn load_app_config(app_dirs: &ProjectDirs) -> Config {
 pub fn save_app_config(app_dirs: &ProjectDirs, config: &Config) {
     let file_path = new_config_file_path(app_dirs, "ron");
     log::info!(
-        "Saving current configuration into file: {}",
-        file_path.display()
+        "Saving current configuration into file: {file_path}",
+        file_path = file_path.display()
     );
     let mut bytes = vec![];
     if let Err(err) = ron::ser::to_writer_pretty(&mut bytes, &config, Default::default()) {
@@ -120,9 +123,9 @@ fn main() {
     }
 
     if let Ok(exe_path) = current_exe() {
-        log::info!("Executable: {}", exe_path.display());
+        log::info!("Executable: {exe_path}", exe_path = exe_path.display());
     }
-    log::info!("Version: {}", env!("CARGO_PKG_VERSION"));
+    log::info!("Version: {version}", version = env!("CARGO_PKG_VERSION"));
 
     let initial_config: Config = if env::parse_default_config().unwrap_or(false) {
         log::info!("Using initial default configuration");
@@ -240,8 +243,8 @@ async fn shutdown_signal() {
 
     log::info!("Listening for shutdown signals");
     tokio::select! {
-        () = ctrl_c => {},
-        () = terminate => {},
+        () = ctrl_c => (),
+        () = terminate => (),
     }
     log::info!("Received shutdown signal");
 }

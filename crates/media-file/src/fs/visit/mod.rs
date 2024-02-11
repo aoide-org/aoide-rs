@@ -298,7 +298,10 @@ pub fn visit_directories<
                 let (ancestor_path, ancestor_visitor) =
                     ancestor_visitors.pop().expect("last ancestor visitor");
                 let ancestor_finished = ancestor_visitor.finish();
-                log::debug!("Finalized parent directory: {}", ancestor_path.display());
+                log::debug!(
+                    "Finalized parent directory: {ancestor_path}",
+                    ancestor_path = ancestor_path.display()
+                );
                 #[allow(clippy::blocks_in_conditions)] // TODO
                 match directory_visitor
                     .after_ancestor_finished(&ancestor_path, ancestor_finished)

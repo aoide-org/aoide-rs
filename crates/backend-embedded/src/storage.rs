@@ -28,13 +28,16 @@ pub fn provision_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper>
         migrate_schema,
     } = config;
 
-    log::info!("Provisioning SQLite database: {}", connection.storage,);
+    log::info!(
+        "Provisioning SQLite database: {storage}",
+        storage = connection.storage,
+    );
 
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
     log::info!(
-        "Creating connection pool of max. size {}",
-        connection.pool.max_size
+        "Creating connection pool of max. size {max_size}",
+        max_size = connection.pool.max_size
     );
     let connection_pool = create_connection_pool(&connection.storage, connection.pool.max_size)?;
 

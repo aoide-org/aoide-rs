@@ -60,16 +60,16 @@ impl RequestCounterScope {
                 let pending_read_requests_before =
                     shared_state.read_count.fetch_add(1, Ordering::Relaxed);
                 log::debug!(
-                    "Starting read request: {} pending read request(s)",
-                    pending_read_requests_before + 1
+                    "Starting read request: {pending_read_requests} pending read request(s)",
+                    pending_read_requests = pending_read_requests_before + 1
                 );
             }
             RequestCounterMode::Write => {
                 let pending_write_requests_before =
                     shared_state.write_count.fetch_add(1, Ordering::Relaxed);
                 log::debug!(
-                    "Starting write request: {} pending write request(s)",
-                    pending_write_requests_before + 1
+                    "Starting write request: {pending_write_requests} pending write request(s)",
+                    pending_write_requests = pending_write_requests_before + 1
                 );
             }
         }
@@ -85,8 +85,8 @@ impl Drop for RequestCounterScope {
                     self.shared_state.read_count.fetch_sub(1, Ordering::Relaxed);
                 debug_assert!(pending_read_requests_before > 0);
                 log::debug!(
-                    "Finished read request: {} pending read request(s)",
-                    pending_read_requests_before - 1
+                    "Finished read request: {pending_read_requests} pending read request(s)",
+                    pending_read_requests = pending_read_requests_before - 1
                 );
             }
             RequestCounterMode::Write => {
@@ -96,8 +96,8 @@ impl Drop for RequestCounterScope {
                     .fetch_sub(1, Ordering::Relaxed);
                 debug_assert!(pending_write_requests_before > 0);
                 log::debug!(
-                    "Finished write request: {} pending write request(s)",
-                    pending_write_requests_before - 1
+                    "Finished write request: {pending_write_requests} pending write request(s)",
+                    pending_write_requests = pending_write_requests_before - 1
                 );
             }
         }

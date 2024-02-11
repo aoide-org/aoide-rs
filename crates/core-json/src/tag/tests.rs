@@ -47,7 +47,7 @@ fn deserialize_plain_tag_score_integer_zero() {
 fn deserialize_plain_tag_label_score() {
     let label = _core::Label::from_unchecked("label");
     let score = _core::Score::new_unchecked(0.5);
-    let json = format!("[\"{label}\",{}]", score.value());
+    let json = format!("[\"{label}\",{score_value}]", score_value = score.value());
     let tag: PlainTag = serde_json::from_str(&json).unwrap();
     assert_eq!(PlainTag::LabelScore(label.into(), score.into()), tag);
     assert_eq!(json, serde_json::to_string(&tag).unwrap());
@@ -60,7 +60,10 @@ fn deserialize_plain_tag_label_score_integer_zero() {
         score: _core::Score::new_unchecked(0.0),
     };
     // Ensure to parse score from literal 0, not 0.0!
-    let json = format!("[\"{}\",0]", expected_tag.label.as_ref().unwrap());
+    let json = format!(
+        "[\"{label}\",0]",
+        label = expected_tag.label.as_ref().unwrap()
+    );
     let parsed_tag: PlainTag = serde_json::from_str(&json).unwrap();
     assert_eq!(json, serde_json::to_string(&parsed_tag).unwrap());
     assert_eq!(expected_tag, parsed_tag.into());
@@ -73,7 +76,10 @@ fn deserialize_plain_tag_label_score_integer_one() {
         score: _core::Score::new_unchecked(1.0),
     };
     // Ensure to parse score from literal 1, not 1.0!
-    let json = format!("[\"{}\",1]", expected_tag.label.as_ref().unwrap());
+    let json = format!(
+        "[\"{label}\",1]",
+        label = expected_tag.label.as_ref().unwrap()
+    );
     let parsed_tag: PlainTag = serde_json::from_str(&json).unwrap();
     assert_eq!(json, serde_json::to_string(&parsed_tag).unwrap());
     assert_eq!(expected_tag, parsed_tag.into());

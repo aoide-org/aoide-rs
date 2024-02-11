@@ -46,17 +46,20 @@ pub struct State {
 
 impl State {
     pub fn restore_from_parent_dir(parent_dir: &Path) -> anyhow::Result<Self> {
-        log::info!("Loading saved settings from: {}", parent_dir.display());
+        log::info!(
+            "Loading saved settings from: {parent_dir}",
+            parent_dir = parent_dir.display()
+        );
         let mut settings = Self::load(parent_dir)
             .map_err(|err| {
-                log::warn!("Failed to load saved settings: {}", err);
+                log::warn!("Failed to load saved settings: {err}");
             })
             .unwrap_or_default();
         if settings.database_url.is_none() {
             let database_file_path = default_database_file_path(parent_dir.to_path_buf());
             log::info!(
-                "Using default SQLite database: {}",
-                database_file_path.display()
+                "Using default SQLite database: {database_file_path}",
+                database_file_path = database_file_path.display()
             );
             settings.database_url = Url::from_file_path(&database_file_path).ok();
         }
@@ -66,7 +69,10 @@ impl State {
 
     pub fn load(parent_dir: &Path) -> anyhow::Result<State> {
         let file_path = new_settings_file_path(parent_dir.to_path_buf());
-        log::info!("Loading settings from file: {}", file_path.display());
+        log::info!(
+            "Loading settings from file: {file_path}",
+            file_path = file_path.display()
+        );
         match fs::read(&file_path) {
             Ok(bytes) => ron::de::from_bytes(&bytes).map_err(Into::into),
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(Default::default()),
@@ -76,7 +82,10 @@ impl State {
 
     pub fn save(&self, parent_dir: &Path) -> anyhow::Result<()> {
         let file_path = new_settings_file_path(parent_dir.to_path_buf());
-        log::info!("Saving current settings into file: {}", file_path.display());
+        log::info!(
+            "Saving current settings into file: {file_path}",
+            file_path = file_path.display()
+        );
         let mut bytes = vec![];
         ron::ser::to_writer_pretty(&mut bytes, self, Default::default())?;
         if let Some(parent_path) = file_path.parent() {
@@ -122,7 +131,7 @@ impl State {
             .ok_or_else(|| anyhow::anyhow!("missing database URL"))?;
         let file_path = url
             .to_file_path()
-            .map_err(|()| anyhow::anyhow!("unsupported database URL: {}", url))?;
+            .map_err(|()| anyhow::anyhow!("unsupported database URL: {url}"))?;
         let config = DatabaseConfig {
             connection: aoide_storage_sqlite::connection::Config {
                 storage: aoide_storage_sqlite::connection::Storage::File { path: file_path },
@@ -139,19 +148,20 @@ impl State {
         Ok(config)
     }
 
-    pub fn update_music_dir(&mut self, new_music_dir: Option<&DirPath<'_>>) -> bool {
-        if self.music_dir.as_ref() == new_music_dir {
-            log::debug!("Unchanged music directory: {new_music_dir:?}");
+    pub fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> bool {
+        if self.music_dir.as_ref() == music_dir {
+            log::debug!("Unchanged music directory: {music_dir:?}");
             return false;
         }
-        if let Some(new_music_dir) = new_music_dir {
-            log::info!("Updating music directory: {}", new_music_dir.display());
+        if let Some(music_dir) = music_dir {
+            log::info!(
+                "Updating music directory: {music_dir}",
+                music_dir = music_dir.display()
+            );
         } else {
             log::info!("Resetting music directory");
         }
-        self.music_dir = new_music_dir
-            .map(ToOwned::to_owned)
-            .map(DirPath::into_owned);
+        self.music_dir = music_dir.map(ToOwned::to_owned).map(DirPath::into_owned);
         true
     }
 }
@@ -199,8 +209,8 @@ impl ObservableState {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn update_music_dir(&self, new_music_dir: Option<&DirPath<'_>>) -> bool {
-        self.0.modify(|state| state.update_music_dir(new_music_dir))
+    pub fn update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> bool {
+        self.0.modify(|state| state.update_music_dir(music_dir))
     }
 }
 

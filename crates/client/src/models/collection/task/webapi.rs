@@ -49,7 +49,7 @@ async fn fetch_all_kinds<E: ClientEnvironment>(env: &E) -> anyhow::Result<Vec<St
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let kinds = serde_json::from_slice::<Vec<String>>(&response_body)?;
-    log::debug!("Fetched {} kind(s)", kinds.len(),);
+    log::debug!("Fetched {num_kinds} kind(s)", num_kinds = kinds.len());
     Ok(kinds)
 }
 
@@ -75,7 +75,10 @@ async fn fetch_filtered_entities<E: ClientEnvironment>(
         return Err(err);
     }
     let entities: Vec<_> = entities.into_iter().map(Result::unwrap).collect();
-    log::debug!("Fetched {} filtered entities(s)", entities.len());
+    log::debug!(
+        "Fetched {num_entities} filtered entities(s)",
+        num_entities = entities.len()
+    );
     Ok(entities)
 }
 
@@ -101,8 +104,9 @@ async fn update_entity<E: ClientEnvironment>(
     modified_collection: impl Into<aoide_core_json::collection::Collection>,
 ) -> anyhow::Result<CollectionEntity> {
     let url = env.join_api_url(&format!(
-        "c/{}?rev={}",
-        entity_header.uid, entity_header.rev
+        "c/{uid}?rev={rev}",
+        uid = entity_header.uid,
+        rev = entity_header.rev,
     ))?;
     let body = serde_json::to_vec(&modified_collection.into())?;
     let request = env.client().put(url).body(body);

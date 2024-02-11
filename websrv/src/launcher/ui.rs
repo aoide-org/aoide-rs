@@ -188,8 +188,8 @@ impl App {
             ui.add_enabled(
                 editing_enabled,
                 TextEdit::singleline(&mut self.config.database.sqlite_storage).hint_text(format!(
-                    ".sqlite file or {}",
-                    SqliteDatabaseStorage::InMemory
+                    ".sqlite file or {storage}",
+                    storage = SqliteDatabaseStorage::InMemory
                 )),
             );
             if ui

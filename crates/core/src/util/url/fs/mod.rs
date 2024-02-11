@@ -17,8 +17,8 @@ pub fn url_from_path(path: &Path) -> Result<Url, ()> {
     } else {
         debug_assert!(
             false,
-            "file type of path {} cannot be determined",
-            path.display()
+            "file type of path {path} cannot be determined",
+            path = path.display()
         );
         Err(())
     }

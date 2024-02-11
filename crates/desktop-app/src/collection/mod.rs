@@ -111,10 +111,13 @@ impl Default for RestoreOrCreateState {
 }
 
 fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
-    let root_url = BaseUrl::try_autocomplete_from(
-        Url::from_directory_path(path)
-            .map_err(|()| anyhow::anyhow!("unrecognized music directory: {}", path.display()))?,
-    )?;
+    let root_url =
+        BaseUrl::try_autocomplete_from(Url::from_directory_path(path).map_err(|()| {
+            anyhow::anyhow!(
+                "unrecognized music directory: {path}",
+                path = path.display()
+            )
+        })?)?;
     let root_path = root_url
         .to_file_path()
         .map_err(|()| anyhow::anyhow!("invalid music directory"))?;

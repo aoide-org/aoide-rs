@@ -102,7 +102,12 @@ impl RgbColor {
 impl fmt::Display for RgbColor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // "#RRGGBB"
-        write!(f, "{}{:06X}", Self::STRING_PREFIX, self.code())
+        write!(
+            f,
+            "{prefix}{code:06X}",
+            prefix = Self::STRING_PREFIX,
+            code = self.code()
+        )
     }
 }
 
@@ -118,13 +123,13 @@ impl fmt::Display for ParseError {
         match self {
             Self::InputLen => write!(
                 f,
-                "Invalid input length: expected = {}",
-                RgbColor::STRING_LEN
+                "Invalid input length: expected = {expected}",
+                expected = RgbColor::STRING_LEN,
             ),
             Self::InputPrefix => write!(
                 f,
-                "Invalid input prefix: expected = {}",
-                RgbColor::STRING_PREFIX
+                "Invalid input prefix: expected = {expected}",
+                expected = RgbColor::STRING_PREFIX,
             ),
             Self::ParseIntError(err) => f.write_str(&err.to_string()),
         }

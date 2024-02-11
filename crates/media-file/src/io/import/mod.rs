@@ -490,9 +490,9 @@ impl Importer {
         let titles = titles.canonicalize_into();
         if titles.len() < titles_len {
             self.issues.add_message(format!(
-                "Discarded {} duplicate {} titles",
-                titles_len - titles.len(),
-                scope.message_str(),
+                "Discarded {num_duplicates} duplicate {scope} titles",
+                num_duplicates = titles_len - titles.len(),
+                scope = scope.message_str(),
             ));
         }
         titles
@@ -508,9 +508,9 @@ impl Importer {
         let actors = actors.canonicalize_into();
         if actors.len() < actors_len {
             self.issues.add_message(format!(
-                "Discarded {} duplicate {} actors",
-                actors_len - actors.len(),
-                scope.message_str(),
+                "Discarded {duplicate_count} duplicate {scope} actors",
+                duplicate_count = actors_len - actors.len(),
+                scope = scope.message_str(),
             ));
         }
         actors
@@ -624,8 +624,8 @@ impl Importer {
         let count = plain_tags.len();
         if count < total_import_count {
             self.issues.add_message(format!(
-                "Discarded {} duplicate tag labels for facet '{facet_id}'",
-                total_import_count - count,
+                "Discarded {duplicate_count} duplicate tag labels for facet '{facet_id}'",
+                duplicate_count = total_import_count - count,
             ));
         }
         tags_map.update_faceted_plain_tags_by_label_ordering(facet_id, plain_tags);
