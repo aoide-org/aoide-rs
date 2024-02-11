@@ -438,7 +438,7 @@ impl State {
             } = memo_fetched_entities;
             debug_assert_eq!(*offset, self.fetched_entities().unwrap().len());
             if *memo_offset > 0
-                && memo_offset < offset
+                && memo_offset <= offset
                 && *memo_last_offset_hash
                     == self
                         .fetched_entities()
