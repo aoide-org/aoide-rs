@@ -277,8 +277,10 @@ pub enum State {
     },
     SynchronizingFailed {
         entity: Entity,
-        pending_since: Instant,
         error: String,
+    },
+    SynchronizingSucceeded {
+        entity: Entity,
     },
     Ready {
         entity: Entity,
@@ -295,6 +297,7 @@ impl State {
             | Self::RestoringOrCreatingFromMusicDirectoryFailed { .. }
             | Self::LoadingFailed { .. }
             | Self::SynchronizingFailed { .. }
+            | Self::SynchronizingSucceeded { .. }
             | Self::Ready { .. } => None,
             Self::RestoringOrCreatingFromMusicDirectory { pending_since, .. }
             | Self::Loading { pending_since, .. }
@@ -334,6 +337,7 @@ impl State {
             } => vfs_music_dir(loaded_before),
             Self::Synchronizing { entity, .. }
             | Self::SynchronizingFailed { entity, .. }
+            | Self::SynchronizingSucceeded { entity, .. }
             | Self::Ready { entity, .. } => vfs_music_dir(&entity.body),
             Self::RestoringOrCreatingFromMusicDirectory {
                 state: RestoreOrCreateState { music_dir, .. },
@@ -374,6 +378,7 @@ impl State {
             } => Some((entity_uid, loaded_before.as_ref())),
             Self::Synchronizing { entity, .. }
             | Self::SynchronizingFailed { entity, .. }
+            | Self::SynchronizingSucceeded { entity, .. }
             | Self::Ready { entity, .. } => Some((&entity.hdr.uid, Some(&entity.body))),
         }
     }
@@ -397,6 +402,7 @@ impl State {
             | Self::NestedMusicDirectoriesConflict { .. }
             | Self::Loading { .. }
             | Self::Synchronizing { .. }
+            | Self::SynchronizingSucceeded { .. }
             | Self::Ready { .. } => None,
         }
     }
@@ -500,13 +506,27 @@ impl State {
                 loaded_before,
                 ..
             } => (entity_uid, loaded_before),
-            Self::Ready { entity, .. } => (entity.raw.hdr.uid, Some(entity.raw.body)),
+            Self::Ready { entity, .. }
+            | Self::SynchronizingFailed { entity, .. }
+            | Self::SynchronizingSucceeded { entity, .. } => {
+                (entity.raw.hdr.uid, Some(entity.raw.body))
+            }
             _ => {
                 log::warn!("Illegal state for refreshing from database: {old_self:?}");
                 *self = old_self;
                 return None;
             }
         };
+        Some(self.refresh_from_db_unchecked(entity_uid, loaded_before))
+    }
+
+    #[must_use]
+    fn refresh_from_db_unchecked(
+        &mut self,
+        entity_uid: EntityUid,
+        loaded_before: Option<Collection>,
+    ) -> RefreshStateFromDbParams {
+        debug_assert!(matches!(self, Self::Void));
         let params = RefreshStateFromDbParams {
             entity_uid: Some(entity_uid.clone()),
             restore_or_create: None,
@@ -517,23 +537,23 @@ impl State {
             pending_since: Instant::now(),
         };
         *self = new_self;
-        Some(params)
+        params
     }
 
-    #[allow(dead_code)] // FIXME: Reconnect to `synchronize_vfs()`
-    fn synchronize(&mut self) -> bool {
+    fn synchronize(&mut self) -> Option<EntityUid> {
         let old_self = std::mem::replace(self, Self::Void);
         let Self::Ready { entity, .. } = old_self else {
             log::warn!("Illegal state for synchronizing: {old_self:?}");
             *self = old_self;
-            return false;
+            return None;
         };
+        let entity_uid = entity.hdr.uid.clone();
         let new_self = Self::Synchronizing {
             entity,
             pending_since: Instant::now(),
         };
         *self = new_self;
-        true
+        Some(entity_uid)
     }
 
     #[must_use]
@@ -638,18 +658,18 @@ impl ObservableState {
                 );
                 return false;
             }
-            match refreshed_state_result {
-                Ok(refreshed_state) => {
-                    if *state == refreshed_state {
+            let next_state = match refreshed_state_result {
+                Ok(next_state) => {
+                    if *state == next_state {
+                        // Unchanged.
                         return false;
                     }
-                    log::debug!("Refreshed state from database: {refreshed_state:?}");
-                    *state = refreshed_state;
-                    true
+                    log::debug!("Refreshed state from database: {next_state:?}");
+                    next_state
                 }
                 Err(err) => {
                     let error = err.to_string();
-                    let failed_state = match state {
+                    match state {
                         State::RestoringOrCreatingFromMusicDirectory { state, .. } => {
                             State::RestoringOrCreatingFromMusicDirectoryFailed { state: std::mem::take(state), error }
                         }
@@ -661,13 +681,68 @@ impl ObservableState {
                             }
                         }
                         _ => unreachable!(),
-                    };
-                    debug_assert_ne!(*state, failed_state);
-                    *state = failed_state;
-                    true
+                    }
                 }
-            }
+            };
+            debug_assert_ne!(*state, next_state);
+            *state = next_state;
+            true
+
         })
+    }
+
+    pub async fn synchronize_vfs<ReportProgressFn>(
+        &self,
+        env: &Environment,
+        import_track_config: ImportTrackConfig,
+        report_progress_fn: ReportProgressFn,
+    ) -> Option<batch::synchronize_collection_vfs::Outcome>
+    where
+        ReportProgressFn:
+            FnMut(batch::synchronize_collection_vfs::Progress) + Clone + Send + 'static,
+    {
+        let mut pending_state_entity_uid = None;
+        self.0.modify(|state| {
+            let Some(entity_uid) = state.synchronize() else {
+                return false;
+            };
+            debug_assert!(state.is_pending());
+            let pending_state = state.clone();
+            pending_state_entity_uid = Some((pending_state, entity_uid));
+            true
+        });
+        let Some((pending_state, entity_uid)) = pending_state_entity_uid else {
+            return None;
+        };
+        debug_assert!(matches!(pending_state, State::Synchronizing { .. }));
+        let synchronize_vfs_result =
+            synchronize_vfs(env, entity_uid, import_track_config, report_progress_fn).await;
+        let mut outcome = None;
+        self.0.modify(|state| {
+            if pending_state != *state {
+                log::warn!(
+                    "State changed while synchronizing: expected {pending_state:?}, actual {state:?}",
+                );
+                return false;
+            }
+            let State::Synchronizing { entity, pending_since: _ } = pending_state else {
+                unreachable!("illegal state");
+            };
+            let next_state = match synchronize_vfs_result {
+                Ok(ok) => {
+                    outcome = Some(ok);
+                    State::SynchronizingSucceeded { entity }
+                }
+                Err(err) => {
+                    let error = err.to_string();
+                    State::SynchronizingFailed { entity, error }
+                }
+            };
+            debug_assert_ne!(*state, next_state);
+            *state = next_state;
+            true
+        });
+        outcome
     }
 }
 
@@ -738,7 +813,7 @@ async fn refresh_state_from_db<'a>(
     restore_or_create.restore_or_create(env).await
 }
 
-pub async fn synchronize_vfs<ReportProgressFn>(
+async fn synchronize_vfs<ReportProgressFn>(
     env: &Environment,
     entity_uid: EntityUid,
     import_track_config: ImportTrackConfig,

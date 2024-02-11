@@ -46,7 +46,7 @@ pub struct RescanTask {
     progress:
         Subscriber<Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>>,
     join_handle: tokio::task::JoinHandle<
-        anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>,
+        Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>,
     >,
 }
 
@@ -98,11 +98,13 @@ impl RescanTask {
 
     pub async fn join(
         self,
-    ) -> anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome> {
-        self.join_handle.await?
+    ) -> anyhow::Result<Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>>
+    {
+        self.join_handle.await.map_err(Into::into)
     }
 }
 
+#[allow(clippy::manual_async_fn)] // Required to specify the trait bounds of the returned `Future` explicitly.
 fn synchronize_music_dir_task(
     handle: Handle,
     state: Arc<ObservableState>,
@@ -110,34 +112,29 @@ fn synchronize_music_dir_task(
         + Clone
         + Send
         + 'static,
-) -> impl Future<
-    Output = anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>,
-> + Send
+) -> impl Future<Output = Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>>
+       + Send
        + 'static {
-    let entity_uid = state.read().entity_uid().cloned();
     async move {
-        let Some(entity_uid) = entity_uid else {
-            anyhow::bail!("No collection");
-        };
         log::debug!("Synchronizing collection with music directory...");
         let import_track_config = ImportTrackConfig {
             // TODO: Customize faceted tag mapping
             faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
             ..Default::default()
         };
-        let res = {
+        let outcome = {
             let mut report_progress_fn = report_progress_fn.clone();
             let report_progress_fn = move |progress| {
                 report_progress_fn(Some(progress));
             };
-            synchronize_vfs(&handle, entity_uid, import_track_config, report_progress_fn).await
+            state
+                .synchronize_vfs(&handle, import_track_config, report_progress_fn)
+                .await
         };
         report_progress_fn(None);
-        log::debug!(
-            "Synchronizing collection with music directory finished: {:?}",
-            res
-        );
+        log::debug!("Synchronizing collection with music directory finished: {outcome:?}");
+        // Implicitly refresh the state from the database to reflect the changes.
         state.refresh_from_db(&handle).await;
-        res
+        outcome
     }
 }

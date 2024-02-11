@@ -451,6 +451,7 @@ impl Model for AppModel {
                                         );
                                         if let Some(fetched_entities) = state.fetched_entities() {
                                             let mut track_search_list = self.track_search_list.take().unwrap_or_default();
+                                            track_search_list.clear();
                                             track_search_list.extend((0..fetched_entities.len()).map(|i| format!("TODO: Track {i}")));
                                             self.track_search_list = Some(track_search_list);
                                         } else {
