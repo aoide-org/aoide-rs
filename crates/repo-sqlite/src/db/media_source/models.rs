@@ -125,47 +125,62 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                     anyhow::bail!("missing URI for linked artwork");
                 }
                 _ => {
-                    let apic_type = artwork_apic_type
-                        .map(decode_apic_type)
-                        .transpose()?
-                        .unwrap_or(ApicType::Other);
-                    let media_type = Mime::from_str(&artwork_media_type.unwrap_or_default())?;
-                    let data_size = artwork_data_size.map_or(0, |size| size as _);
-                    let digest = artwork_digest.and_then(|bytes| bytes.try_into().ok());
-                    let image_size = if let (Some(width), Some(height)) =
-                        (artwork_image_width, artwork_image_height)
-                    {
-                        Some(ImageSize {
-                            width: width as ImageDimension,
-                            height: height as ImageDimension,
-                        })
-                    } else {
-                        None
-                    };
-                    let color = artwork_color.map(|code| {
-                        let color = RgbColor::new(code as RgbColorCode);
-                        debug_assert!(color.is_valid());
-                        color
-                    });
-                    let thumbnail = artwork_thumbnail.and_then(|bytes| bytes.try_into().ok());
-                    let image = ArtworkImage {
-                        apic_type,
-                        media_type,
-                        data_size,
-                        digest,
-                        image_size,
-                        color,
-                        thumbnail,
-                    };
-                    if source == ArtworkSource::Embedded {
-                        let embedded = EmbeddedArtwork { image };
-                        Some(Artwork::Embedded(embedded))
-                    } else {
-                        let linked = LinkedArtwork {
-                            uri: artwork_uri.unwrap(),
-                            image,
+                    let media_type = artwork_media_type
+                        .as_deref()
+                        .map(Mime::from_str)
+                        .transpose()?;
+                    if let Some(media_type) = media_type {
+                        let apic_type = artwork_apic_type
+                            .map(decode_apic_type)
+                            .transpose()?
+                            .unwrap_or(ApicType::Other);
+                        let data_size = artwork_data_size.map_or(0, |size| size as _);
+                        let digest = artwork_digest.and_then(|bytes| bytes.try_into().ok());
+                        let image_size = if let (Some(width), Some(height)) =
+                            (artwork_image_width, artwork_image_height)
+                        {
+                            Some(ImageSize {
+                                width: width as ImageDimension,
+                                height: height as ImageDimension,
+                            })
+                        } else {
+                            None
                         };
-                        Some(Artwork::Linked(linked))
+                        let color = artwork_color.map(|code| {
+                            let color = RgbColor::new(code as RgbColorCode);
+                            debug_assert!(color.is_valid());
+                            color
+                        });
+                        let thumbnail = artwork_thumbnail.and_then(|bytes| bytes.try_into().ok());
+                        let image = ArtworkImage {
+                            apic_type,
+                            media_type,
+                            data_size,
+                            digest,
+                            image_size,
+                            color,
+                            thumbnail,
+                        };
+                        if source == ArtworkSource::Embedded {
+                            let embedded = EmbeddedArtwork { image };
+                            Some(Artwork::Embedded(embedded))
+                        } else {
+                            let linked = LinkedArtwork {
+                                uri: artwork_uri.unwrap(),
+                                image,
+                            };
+                            Some(Artwork::Linked(linked))
+                        }
+                    } else {
+                        debug_assert!(artwork_apic_type.is_none());
+                        debug_assert!(artwork_color.is_none());
+                        debug_assert!(artwork_data_size.is_none());
+                        debug_assert!(artwork_digest.is_none());
+                        debug_assert!(artwork_image_height.is_none());
+                        debug_assert!(artwork_image_width.is_none());
+                        debug_assert!(artwork_thumbnail.is_none());
+                        debug_assert!(artwork_uri.is_none());
+                        None
                     }
                 }
             }
