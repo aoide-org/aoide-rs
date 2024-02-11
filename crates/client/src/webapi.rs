@@ -13,11 +13,12 @@ pub async fn receive_response_body(response: Response) -> anyhow::Result<Bytes> 
     let response_status = response.status();
     let bytes = response.bytes().await?;
     if !response_status.is_success() {
+        let err = anyhow::anyhow!("{response_status}");
         let json = serde_json::from_slice::<serde_json::Value>(&bytes).unwrap_or_default();
         let err = if json.is_null() {
-            anyhow::anyhow!("{}", response_status)
+            err
         } else {
-            anyhow::anyhow!("{}", response_status).context(json)
+            err.context(json)
         };
         return Err(err);
     }
