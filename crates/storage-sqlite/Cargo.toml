@@ -18,7 +18,7 @@ anyhow = "1.0.79"
 diesel = { version = "2.1.4", default-features = false, features = ["r2d2", "sqlite"] }
 log = "0.4.20"
 r2d2 = "0.8.10"
-thiserror = "1.0.56"
+thiserror = "1.0.57"
 
 # Feature "serde"
 serde = { version = "1.0.196", optional = true, features = ["derive"] }

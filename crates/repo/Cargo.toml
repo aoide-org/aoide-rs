@@ -17,7 +17,7 @@ workspace = true
 anyhow = "1.0.79"
 paste = "1.0.14"
 rand = "0.8.5"
-thiserror = "1.0.56"
+thiserror = "1.0.57"
 
 # Workspace dependencies
 aoide-core = { version = "=0.8.0", path = "../core" }

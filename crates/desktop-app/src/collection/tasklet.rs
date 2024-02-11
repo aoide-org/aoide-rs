@@ -86,10 +86,12 @@ pub fn on_settings_state_changed(
                 )
                 .await;
             }
+            log::debug!("Suspending on_settings_state_changed");
             if settings_state_sub.changed().await.is_err() {
                 // Publisher disappeared
                 break;
             }
+            log::debug!("Resuming on_settings_state_changed");
         }
         log::debug!("Stopping on_settings_state_changed");
     }
