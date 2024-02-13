@@ -3,7 +3,7 @@
 
 use std::{
     future::Future,
-    sync::{Arc, Mutex, Weak},
+    sync::{Arc, Mutex},
     time::Instant,
 };
 
@@ -15,25 +15,28 @@ use aoide::{
     media_file::io::import::ImportTrackConfig,
 };
 
-use super::{LibraryEventEmitter, LibraryNotification};
+use crate::NoReceiverForEvent;
+
+use super::{LibraryEvent, LibraryEventEmitter};
 
 // Re-exports
 pub use collection::*;
 
 pub type StateSubscriber = Subscriber<State>;
 
-pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitter: Weak<E>)
+pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitter: E)
 where
     E: LibraryEventEmitter,
 {
     // The first event is always emitted immediately.
     loop {
         drop(subscriber.read_ack());
-        let Some(event_emitter) = event_emitter.upgrade() else {
-            log::info!("Stop watching collection state after event emitter has been dropped");
+        if let Err(NoReceiverForEvent) =
+            event_emitter.emit_event(LibraryEvent::CollectionStateChanged)
+        {
+            log::info!("Stop watching collection state after event receiver has been dropped");
             break;
         };
-        event_emitter.emit_notification(LibraryNotification::CollectionStateChanged);
         if subscriber.changed().await.is_err() {
             log::info!("Stop watching collection state after publisher has been dropped");
             break;

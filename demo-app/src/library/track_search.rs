@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::sync::Weak;
-
 use discro::Subscriber;
 
 use aoide::{
@@ -19,25 +17,28 @@ use aoide::{
     },
 };
 
-use super::{LibraryEventEmitter, LibraryNotification};
+use crate::NoReceiverForEvent;
+
+use super::{LibraryEvent, LibraryEventEmitter};
 
 // Re-exports
 pub use track::repo_search::*;
 
 pub type StateSubscriber = Subscriber<State>;
 
-pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitter: Weak<E>)
+pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitter: E)
 where
     E: LibraryEventEmitter,
 {
     // The first event is always emitted immediately.
     loop {
         drop(subscriber.read_ack());
-        let Some(event_emitter) = event_emitter.upgrade() else {
-            log::info!("Stop watching track search state after event emitter has been dropped");
+        if let Err(NoReceiverForEvent) =
+            event_emitter.emit_event(LibraryEvent::TrackSearchStateChanged)
+        {
+            log::info!("Stop watching track search state after event receiver has been dropped");
             break;
         };
-        event_emitter.emit_notification(LibraryNotification::TrackSearchStateChanged);
         if subscriber.changed().await.is_err() {
             log::info!("Stop watching track search state after publisher has been dropped");
             break;

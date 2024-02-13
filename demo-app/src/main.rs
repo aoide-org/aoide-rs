@@ -10,11 +10,12 @@
 use std::{
     fs,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::mpsc,
 };
 
 use directories::ProjectDirs;
-use vizia::prelude::*;
+use eframe::{CreationContext, Frame};
+use egui::{CentralPanel, Context, TopBottomPanel};
 
 use aoide::desktop_app::{
     collection::State as CollectionState, fs::DirPath, ObservableReader as _,
@@ -22,32 +23,63 @@ use aoide::desktop_app::{
 
 mod library;
 #[allow(unused_imports)]
-use self::library::{Library, LibraryEventEmitter, LibraryNotification, LibraryState};
+use self::library::{Library, LibraryEvent, LibraryEventEmitter, LibraryState};
+
+#[derive(Debug)]
+struct NoReceiverForEvent;
+
+#[derive(Debug)]
+struct NoReceiverForAppMessage(pub AppMessage);
 
 #[allow(missing_debug_implementations)]
-struct AppEventEmitter {
-    cx: Mutex<ContextProxy>,
+#[derive(Clone)]
+struct AppMessageSender {
+    ctx: Context,
+    message_tx: mpsc::Sender<AppMessage>,
 }
 
-impl AppEventEmitter {
-    fn new(cx: &Context) -> Self {
-        let cx = cx.get_proxy();
-        Self { cx: Mutex::new(cx) }
+impl AppMessageSender {
+    const fn new(ctx: Context, message_tx: mpsc::Sender<AppMessage>) -> Self {
+        Self { ctx, message_tx }
     }
 
-    fn emit(&self, event: AppEvent) {
-        let mut cx = self.cx.lock().unwrap();
-        log::debug!("Emitting {event:?}");
-        if let Err(err) = cx.emit(event) {
-            log::warn!("Failed to emit event: {err}");
+    fn on_action(&self, action: AppAction) {
+        if let Err(NoReceiverForAppMessage(msg)) = self.send_message(AppMessage::Action(action)) {
+            let AppMessage::Action(action) = msg else {
+                unreachable!()
+            };
+            log::warn!("No receiver for action: {action:?}");
         }
     }
+
+    fn emit_event(&self, event: AppEvent) -> Result<(), NoReceiverForEvent> {
+        if let Err(NoReceiverForAppMessage(msg)) = self.send_message(AppMessage::Event(event)) {
+            let AppMessage::Event(event) = msg else {
+                unreachable!()
+            };
+            log::warn!("No receiver for event: {event:?}");
+            return Err(NoReceiverForEvent);
+        }
+        Ok(())
+    }
+
+    fn send_message(&self, msg: AppMessage) -> Result<(), NoReceiverForAppMessage> {
+        log::debug!("Sending message {msg:?}");
+        self.message_tx.send(msg).map_err(|err| {
+            log::warn!("Failed to send message: {err}");
+            NoReceiverForAppMessage(err.0)
+        })?;
+        // Queued messages are consumed before rendering the next frame.
+        self.ctx.request_repaint();
+        Ok(())
+    }
 }
 
-impl LibraryEventEmitter for AppEventEmitter {
-    fn emit_notification(&self, notification: LibraryNotification) {
-        let event = AppEvent::Notification(AppNotification::Library(notification));
-        self.emit(event);
+impl LibraryEventEmitter for AppMessageSender {
+    fn emit_event(&self, event: LibraryEvent) -> Result<(), NoReceiverForEvent> {
+        let event: AppEvent = AppEvent::Library(event);
+        self.send_message(AppMessage::Event(event))
+            .map_err(|NoReceiverForAppMessage(_)| NoReceiverForEvent)
     }
 }
 
@@ -123,104 +155,15 @@ async fn main() {
         }
     };
 
-    run_app(rt, library, config_dir);
-}
-
-fn run_app(rt: tokio::runtime::Handle, library: Library, config_dir: PathBuf) {
-    Application::new(move |cx: &mut Context| {
-        let app = App::new(rt, library, config_dir, cx.get_proxy());
-        let mdl = AppModel::new(app);
-        mdl.build(cx);
-
-        // Music directory
-        VStack::new(cx, |cx| {
-            Label::new(
-                cx,
-                AppModel::music_dir.map(|music_dir| {
-                    if let Some(music_dir) = &music_dir {
-                        format!(
-                            "Music directory: {music_dir}",
-                            music_dir = music_dir.display()
-                        )
-                    } else {
-                        "Music directory: <none>".to_owned()
-                    }
-                }),
-            );
-            HStack::new(cx, |cx| {
-                Button::new(
-                    cx,
-                    |ex| ex.emit(AppEvent::Command(AppCommand::SelectMusicDirectory)),
-                    |cx| Label::new(cx, "Select music directory..."),
-                );
-                Button::new(
-                    cx,
-                    |ex| ex.emit(AppEvent::Command(AppCommand::ResetMusicDirectory)),
-                    |cx| Label::new(cx, "Reset music directory"),
-                )
-                .disabled(AppModel::music_dir.map(Option::is_none));
-            });
-        });
-
-        // Collection
-        VStack::new(cx, |cx| {
-            Label::new(
-                cx,
-                AppModel::collection_state.map(|collection_state| {
-                    if let Some((entity, summary)) = collection_state.entity_with_summary() {
-                        format!(
-                            "Collection: uid = {uid}, title = \"{title}\", #tracks = \
-                                    {tracks_count}, #playlists = {playlists_count}",
-                            uid = entity.hdr.uid,
-                            title = entity.body.title,
-                            tracks_count = summary.tracks.total_count,
-                            playlists_count = summary.playlists.total_count,
-                        )
-                    } else if let Some((entity_uid, collection)) = collection_state.entity_brief() {
-                        if let Some(collection) = collection {
-                            format!(
-                                "Collection: uid = {entity_uid}, title = \"{title}\"",
-                                entity_uid = entity_uid,
-                                title = collection.title,
-                            )
-                        } else {
-                            format!("Collection: uid = {entity_uid}")
-                        }
-                    } else {
-                        "Collection: <none>".to_owned()
-                    }
-                }),
-            );
-
-            HStack::new(cx, |cx| {
-                Button::new(
-                    cx,
-                    |ex| ex.emit(AppEvent::Command(AppCommand::RescanCollection)),
-                    |cx: &mut Context| Label::new(cx, "Rescan collection"),
-                )
-                .disabled(AppModel::collection_state.map(disable_rescan_collection));
-            });
-        });
-
-        // Track search
-        VStack::new(cx, |cx| {
-            HStack::new(cx, |cx| {
-                Label::new(cx, "Search tracks:");
-                Textbox::new(cx, AppModel::track_search_input)
-                    .on_edit(move |cx, text| {
-                        cx.emit(AppEvent::Input(AppInput::TrackSearch(text.clone())));
-                    })
-                    .on_submit(|cx, text, enter_key_pressed| {
-                        if enter_key_pressed {
-                            cx.emit(AppEvent::Command(AppCommand::SearchTracks(text.clone())));
-                        }
-                    })
-                    .width(Pixels(200.0));
-            });
-        });
-    })
-    .title(app_name())
-    .run();
+    eframe::run_native(
+        app_name(),
+        eframe::NativeOptions::default(),
+        Box::new(move |ctx| {
+            let app = App::new(ctx, rt, library, config_dir);
+            Box::new(app)
+        }),
+    )
+    .unwrap();
 }
 
 #[must_use]
@@ -260,65 +203,44 @@ fn app_config_dir() -> Option<PathBuf> {
 #[derive(Debug)]
 // Not cloneable so large enum variants should be fine.
 #[allow(clippy::large_enum_variant)]
-enum AppEvent {
-    Input(AppInput),
-    Command(AppCommand),
-    Notification(AppNotification),
+enum AppMessage {
+    Action(AppAction),
+    Event(AppEvent),
 }
 
 #[derive(Debug, Clone)]
-enum AppInput {
+enum AppInputEvent {
     TrackSearch(String),
 }
 
 #[derive(Debug, Clone)]
-enum AppCommand {
+enum AppAction {
     SelectMusicDirectory,
     UpdateMusicDirectory(DirPath<'static>),
     ResetMusicDirectory,
     RescanCollection,
-    SearchTracks(String),
+    SearchTracks,
 }
 
-/// App-level notification
+/// App-level event
 ///
 /// Not cloneable to prevent unintended storage. Notifications are
 /// supposed to be ephemeral and should disappear after being processed.
 #[derive(Debug)]
-enum AppNotification {
-    Library(LibraryNotification),
+enum AppEvent {
+    Input(AppInputEvent),
+    Library(LibraryEvent),
 }
 
 #[allow(missing_debug_implementations)]
 struct App {
     rt: tokio::runtime::Handle,
+
+    message_rx: mpsc::Receiver<AppMessage>,
+    message_sender: AppMessageSender,
+
     library: Library,
-    event_emitter: Arc<AppEventEmitter>,
-}
 
-impl App {
-    #[must_use]
-    fn new(
-        rt: tokio::runtime::Handle,
-        library: Library,
-        settings_dir: PathBuf,
-        cx: ContextProxy,
-    ) -> Self {
-        let event_emitter = Arc::new(AppEventEmitter { cx: Mutex::new(cx) });
-        library.spawn_background_tasks(&rt, settings_dir);
-        library.spawn_notification_tasks(&rt, &event_emitter);
-        Self {
-            rt,
-            library,
-            event_emitter,
-        }
-    }
-}
-
-#[derive(Lens)]
-#[allow(missing_debug_implementations)]
-struct AppModel {
-    app: App,
     music_dir: Option<DirPath<'static>>,
     collection_state: CollectionState,
     track_search_input: String,
@@ -327,10 +249,23 @@ struct AppModel {
     track_search_list: Option<Vec<String>>,
 }
 
-impl AppModel {
-    fn new(app: App) -> Self {
+impl App {
+    #[must_use]
+    fn new(
+        ctx: &CreationContext<'_>,
+        rt: tokio::runtime::Handle,
+        library: Library,
+        settings_dir: PathBuf,
+    ) -> Self {
+        let (message_tx, message_rx) = mpsc::channel();
+        let message_sender = AppMessageSender::new(ctx.egui_ctx.clone(), message_tx);
+        library.spawn_background_tasks(&rt, settings_dir);
+        library.spawn_event_tasks(&rt, &message_sender);
         Self {
-            app,
+            rt,
+            message_sender,
+            message_rx,
+            library,
             music_dir: Default::default(),
             collection_state: Default::default(),
             track_search_input: Default::default(),
@@ -338,138 +273,366 @@ impl AppModel {
             track_search_list: Default::default(),
         }
     }
-}
 
-impl Model for AppModel {
-    fn name(&self) -> Option<&'static str> {
-        Some(app_name())
+    fn on_action(&mut self, action: AppAction) {
+        match action {
+            AppAction::SelectMusicDirectory => {
+                let on_dir_path_chosen = {
+                    let message_sender = self.message_sender.clone();
+                    move |dir_path: DirPath<'static>| {
+                        message_sender.on_action(AppAction::UpdateMusicDirectory(dir_path));
+                    }
+                };
+                choose_directory_path(&self.rt, &self.music_dir.as_deref(), on_dir_path_chosen);
+            }
+            AppAction::UpdateMusicDirectory(music_dir) => {
+                self.library.update_music_dir(Some(&music_dir));
+            }
+            AppAction::ResetMusicDirectory => {
+                self.library.reset_music_dir();
+            }
+            AppAction::RescanCollection => {
+                self.library.spawn_rescan_collection_task(&self.rt);
+            }
+            AppAction::SearchTracks => {
+                self.library.search_tracks(&self.track_search_input);
+            }
+        }
+    }
+
+    fn on_input_event(&mut self, input: AppInputEvent) {
+        match input {
+            AppInputEvent::TrackSearch(input) => {
+                self.track_search_input = input.clone();
+            }
+        }
     }
 
     #[allow(clippy::too_many_lines)] // TODO
-    fn event(&mut self, _cx: &mut EventContext<'_>, event: &mut Event) {
-        event.map(|event, _meta| match event {
-            AppEvent::Input(input) => match input {
-                AppInput::TrackSearch(input) => {
-                    self.track_search_input = input.clone();
-                }
-            },
-            AppEvent::Command(command) => match command {
-                AppCommand::SelectMusicDirectory => {
-                    let on_dir_path_chosen = {
-                        // TODO: Obtain an `EmitContext` from `cx` once it is available.
-                        let event_emitter = Arc::downgrade(&self.app.event_emitter);
-                        move |dir_path: DirPath<'static>| {
-                            let Some(event_emitter) = event_emitter.upgrade() else {
-                                log::error!("No event emitter available after choosing music directory {dir_path}",
-                                dir_path = dir_path.display());
-                                return;
-                            };
-                            event_emitter.emit(AppEvent::Command(
-                                AppCommand::UpdateMusicDirectory(dir_path),
-                            ));
-                        }
-                    };
-                    choose_directory_path(
-                        &self.app.rt,
-                        &self.music_dir.as_deref(),
-                        on_dir_path_chosen,
-                    );
-                }
-                AppCommand::UpdateMusicDirectory(music_dir) => {
-                    self.app.library.update_music_dir(Some(music_dir));
-                }
-                AppCommand::ResetMusicDirectory => {
-                    self.app.library.reset_music_dir();
-                }
-                AppCommand::RescanCollection => {
-                    self.app.library.spawn_rescan_collection_task(&self.app.rt);
-                }
-                AppCommand::SearchTracks(input) => {
-                    self.app.library.search_tracks(input);
-                }
-            },
-            AppEvent::Notification(notification) => match notification {
-                AppNotification::Library(library) => match library {
-                    LibraryNotification::SettingsStateChanged => {
-                        let new_music_dir = {
-                            let settings_state = self.app.library.state().settings().read_observable();
-                            if settings_state.music_dir == self.music_dir {
-                                log::debug!(
-                                    "Music directory unchanged: {music_dir:?}",
-                                    music_dir = self.music_dir,
-                                );
-                                return;
-                            }
-                            settings_state.music_dir.clone()
-                        };
+    fn on_library_event(&mut self, event: &LibraryEvent) {
+        match event {
+            LibraryEvent::SettingsStateChanged => {
+                let new_music_dir = {
+                    let settings_state = self.library.state().settings().read_observable();
+                    if settings_state.music_dir == self.music_dir {
                         log::debug!(
-                            "Music directory changed: {old_music_dir:?} -> {new_music_dir:?}",
-                            old_music_dir = self.music_dir,
+                            "Music directory unchanged: {music_dir:?}",
+                            music_dir = self.music_dir,
                         );
-                        self.music_dir = new_music_dir;
+                        return;
                     }
-                    LibraryNotification::CollectionStateChanged => {
-                        let new_state = {
-                            let new_state = self.app.library.state().collection().read_observable();
-                            if *new_state == self.collection_state {
-                                log::debug!(
-                                    "Collection state unchanged: {old_state:?}",
-                                    old_state = self.collection_state,
-                                );
-                                return;
-                            }
-                            new_state.clone()
-                        };
+                    settings_state.music_dir.clone()
+                };
+                log::debug!(
+                    "Music directory changed: {old_music_dir:?} -> {new_music_dir:?}",
+                    old_music_dir = self.music_dir,
+                );
+                self.music_dir = new_music_dir;
+            }
+            LibraryEvent::CollectionStateChanged => {
+                let new_state = {
+                    let new_state = self.library.state().collection().read_observable();
+                    if *new_state == self.collection_state {
                         log::debug!(
-                            "Collection state changed: {old_state:?} -> {new_state:?}",
+                            "Collection state unchanged: {old_state:?}",
                             old_state = self.collection_state,
                         );
-                        self.collection_state = new_state;
+                        return;
                     }
-                    LibraryNotification::TrackSearchStateChanged => {
-                        debug_assert_eq!(self.track_search_list.as_ref().map(Vec::len),
-                            self.track_search_memo.fetch.fetched_entities.as_ref().map(|memo| memo.offset));
-                        let state = self.app.library.state().track_search().read_observable();
-                        let memo_updated = state.update_memo(&mut self.track_search_memo);
-                        match memo_updated {
-                            aoide::desktop_app::track::repo_search::MemoUpdated::Unchanged => {
-                                log::debug!(
-                                    "Track search memo unchanged",
+                    new_state.clone()
+                };
+                log::debug!(
+                    "Collection state changed: {old_state:?} -> {new_state:?}",
+                    old_state = self.collection_state,
+                );
+                self.collection_state = new_state;
+            }
+            LibraryEvent::TrackSearchStateChanged => {
+                debug_assert_eq!(
+                    self.track_search_list.as_ref().map(Vec::len),
+                    self.track_search_memo
+                        .fetch
+                        .fetched_entities
+                        .as_ref()
+                        .map(|memo| memo.offset)
+                );
+                let state = self.library.state().track_search().read_observable();
+                let memo_updated = state.update_memo(&mut self.track_search_memo);
+                match memo_updated {
+                    aoide::desktop_app::track::repo_search::MemoUpdated::Unchanged => {
+                        log::debug!("Track search memo unchanged",);
+                    }
+                    aoide::desktop_app::track::repo_search::MemoUpdated::Changed {
+                        fetched_entities_diff,
+                    } => match fetched_entities_diff {
+                        aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
+                            log::debug!(
+                                "Track search memo changed: Replacing all fetched entities",
+                            );
+                            if let Some(fetched_entities) = state.fetched_entities() {
+                                let mut track_search_list =
+                                    self.track_search_list.take().unwrap_or_default();
+                                track_search_list.clear();
+                                track_search_list.extend(
+                                    (0..fetched_entities.len()).map(|i| format!("TODO: Track {i}")),
                                 );
+                                self.track_search_list = Some(track_search_list);
+                            } else {
+                                self.track_search_list = None;
                             }
-                            aoide::desktop_app::track::repo_search::MemoUpdated::Changed { fetched_entities_diff } => {
-                                match fetched_entities_diff {
-                                    aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
-                                        log::debug!(
-                                            "Track search memo changed: Replacing all fetched entities",
-                                        );
-                                        if let Some(fetched_entities) = state.fetched_entities() {
-                                            let mut track_search_list = self.track_search_list.take().unwrap_or_default();
-                                            track_search_list.clear();
-                                            track_search_list.extend((0..fetched_entities.len()).map(|i| format!("TODO: Track {i}")));
-                                            self.track_search_list = Some(track_search_list);
-                                        } else {
-                                            self.track_search_list = None;
-                                        }
-                                    }
-                                    aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
-                                        let Some(fetched_entities) = state.fetched_entities() else {
-                                            unreachable!();
-                                        };
-                                        let track_search_list = self.track_search_list.as_mut().unwrap();
-                                        debug_assert!(track_search_list.len() <= fetched_entities.len());
-                                        let num_append_entities = fetched_entities.len() - track_search_list.len();
-                                        log::debug!(
-                                            "Track search memo changed: Appending {num_append_entities} fetched entities");
-                                            track_search_list.extend((track_search_list.len()..fetched_entities.len()).map(|i| format!("TODO: Track {i}")));
-                                    }
-                                }
+                        }
+                        aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
+                            let Some(fetched_entities) = state.fetched_entities() else {
+                                unreachable!();
+                            };
+                            let track_search_list = self.track_search_list.as_mut().unwrap();
+                            debug_assert!(track_search_list.len() <= fetched_entities.len());
+                            let num_append_entities =
+                                fetched_entities.len() - track_search_list.len();
+                            log::debug!(
+                                        "Track search memo changed: Appending {num_append_entities} fetched entities");
+                            track_search_list.extend(
+                                (track_search_list.len()..fetched_entities.len())
+                                    .map(|i| format!("TODO: Track {i}")),
+                            );
+                        }
+                    },
+                };
+            }
+        }
+    }
+}
+
+impl eframe::App for App {
+    #[allow(clippy::too_many_lines)] // TODO
+    fn update(&mut self, ctx: &Context, _frm: &mut Frame) {
+        loop {
+            match self.message_rx.try_recv() {
+                Ok(msg) => {
+                    log::debug!("Received message: {msg:?}");
+                    match msg {
+                        AppMessage::Action(action) => {
+                            self.on_action(action);
+                        }
+                        AppMessage::Event(event) => match event {
+                            AppEvent::Input(input) => {
+                                self.on_input_event(input.clone());
                             }
-                        };
+                            AppEvent::Library(event) => {
+                                self.on_library_event(&event);
+                            }
+                        },
                     }
-                },
-            },
+                }
+                Err(mpsc::TryRecvError::Empty) => {
+                    break;
+                }
+                Err(mpsc::TryRecvError::Disconnected) => unreachable!(),
+            }
+        }
+
+        let message_sender = self.message_sender.clone();
+        let settings_state = self.library.state().settings().read_observable();
+        let collection_state = self.library.state().collection().read_observable();
+        let track_search_state = self.library.state().track_search().read_observable();
+
+        TopBottomPanel::top("config_panel").show(ctx, |ui| {
+            egui::Grid::new("config_grid")
+                .num_columns(2)
+                .spacing([40.0, 4.0])
+                .striped(true)
+                .show(ui, |ui| {
+                    let music_dir = settings_state.music_dir.as_ref();
+                    ui.label("Music directory:");
+                    ui.label(
+                        music_dir
+                            .map(|path| path.display().to_string())
+                            .unwrap_or_default(),
+                    );
+                    ui.end_row();
+
+                    ui.label("");
+                    if ui.button("Select music directory...").clicked() {
+                        message_sender.on_action(AppAction::SelectMusicDirectory);
+                    }
+                    ui.label("");
+                    if ui.button("Reset music directory").clicked() {
+                        message_sender.on_action(AppAction::ResetMusicDirectory);
+                    }
+                    ui.end_row();
+
+                    let collection_uid = collection_state
+                        .entity_brief()
+                        .map(|(entity_uid, _)| entity_uid);
+                    ui.label("Collection UID:");
+                    ui.label(
+                        collection_uid
+                            .as_ref()
+                            .map(ToString::to_string)
+                            .unwrap_or_default(),
+                    );
+                    ui.end_row();
+
+                    let collection_title =
+                        collection_state.entity_brief().and_then(|(_, collection)| {
+                            collection.map(|collection| collection.title.as_str())
+                        });
+                    ui.label("Collection title:");
+                    ui.label(collection_title.unwrap_or_default());
+                    ui.end_row();
+
+                    let collection_summary = collection_state
+                        .entity_with_summary()
+                        .map(|(_, summary)| summary);
+                    ui.label("Collection summary:");
+                    ui.label(collection_summary.map_or("<none>".to_owned(), |summary| {
+                        format!(
+                            "#tracks = {num_tracks}, #playlists = {num_playlists}",
+                            num_tracks = summary.tracks.total_count,
+                            num_playlists = summary.playlists.total_count
+                        )
+                    }));
+                    ui.end_row();
+
+                    ui.label("");
+                    if ui.button("Rescan collection").clicked() {
+                        message_sender.on_action(AppAction::RescanCollection);
+                    }
+                    ui.end_row();
+
+                    ui.label("Search tracks:");
+                    if ui
+                        .text_edit_singleline(&mut self.track_search_input)
+                        .lost_focus()
+                    {
+                        message_sender.on_action(AppAction::SearchTracks);
+                    }
+                    ui.end_row();
+                });
         });
+
+        CentralPanel::default().show(ctx, |ui| {
+            for track in self.track_search_list.as_deref().unwrap_or_default() {
+                ui.label(track);
+            }
+        });
+
+        TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
+            egui::Grid::new("config_grid")
+                .num_columns(2)
+                .spacing([40.0, 4.0])
+                .striped(true)
+                .show(ui, |ui| {
+                    ui.label("Last error:");
+                    let last_error = collection_state
+                        .last_error()
+                        .map(ToOwned::to_owned)
+                        .or_else(|| {
+                            track_search_state
+                                .last_fetch_error()
+                                .map(ToString::to_string)
+                        });
+                    if let Some(last_error) = last_error.as_deref() {
+                        ui.label(last_error);
+                    }
+                    ui.end_row();
+                });
+        });
+
+        // Application::new(move |ctx: &mut Context| {
+        //     let app = App::new(rt, library, config_dir, ctx.get_proxy());
+        //     let mdl = AppModel::new(app);
+        //     mdl.build(ctx);
+
+        //     // Music directory
+        //     VStack::new(ctx, |ctx| {
+        //         Label::new(
+        //             ctx,
+        //             AppModel::music_dir.map(|music_dir| {
+        //                 if let Some(music_dir) = &music_dir {
+        //                     format!(
+        //                         "Music directory: {music_dir}",
+        //                         music_dir = music_dir.display()
+        //                     )
+        //                 } else {
+        //                     "Music directory: <none>".to_owned()
+        //                 }
+        //             }),
+        //         );
+        //         HStack::new(ctx, |ctx| {
+        //             Button::new(
+        //                 ctx,
+        //                 |ex| ex.emit(AppEvent::Command(AppAction::SelectMusicDirectory)),
+        //                 |ctx| Label::new(ctx, "Select music directory..."),
+        //             );
+        //             Button::new(
+        //                 ctx,
+        //                 |ex| ex.emit(AppEvent::Command(AppAction::ResetMusicDirectory)),
+        //                 |ctx| Label::new(ctx, "Reset music directory"),
+        //             )
+        //             .disabled(AppModel::music_dir.map(Option::is_none));
+        //         });
+        //     });
+
+        //     // Collection
+        //     VStack::new(ctx, |ctx| {
+        //         Label::new(
+        //             ctx,
+        //             AppModel::collection_state.map(|collection_state| {
+        //                 if let Some((entity, summary)) = collection_state.entity_with_summary() {
+        //                     format!(
+        //                         "Collection: uid = {uid}, title = \"{title}\", #tracks = \
+        //                                 {tracks_count}, #playlists = {playlists_count}",
+        //                         uid = entity.hdr.uid,
+        //                         title = entity.body.title,
+        //                         tracks_count = summary.tracks.total_count,
+        //                         playlists_count = summary.playlists.total_count,
+        //                     )
+        //                 } else if let Some((entity_uid, collection)) = collection_state.entity_brief() {
+        //                     if let Some(collection) = collection {
+        //                         format!(
+        //                             "Collection: uid = {entity_uid}, title = \"{title}\"",
+        //                             entity_uid = entity_uid,
+        //                             title = collection.title,
+        //                         )
+        //                     } else {
+        //                         format!("Collection: uid = {entity_uid}")
+        //                     }
+        //                 } else {
+        //                     "Collection: <none>".to_owned()
+        //                 }
+        //             }),
+        //         );
+
+        //         HStack::new(ctx, |ctx| {
+        //             Button::new(
+        //                 ctx,
+        //                 |ex| ex.emit(AppEvent::Command(AppAction::RescanCollection)),
+        //                 |ctx: &mut Context| Label::new(ctx, "Rescan collection"),
+        //             )
+        //             .disabled(AppModel::collection_state.map(disable_rescan_collection));
+        //         });
+        //     });
+
+        //     // Track search
+        //     VStack::new(ctx, |ctx| {
+        //         HStack::new(ctx, |ctx| {
+        //             Label::new(ctx, "Search tracks:");
+        //             Textbox::new(ctx, AppModel::track_search_input)
+        //                 .on_edit(move |ctx, text| {
+        //                     ctx.emit(AppEvent::Input(AppInput::TrackSearch(text.clone())));
+        //                 })
+        //                 .on_submit(|ctx, text, enter_key_pressed| {
+        //                     if enter_key_pressed {
+        //                         ctx.emit(AppEvent::Command(AppAction::SearchTracks(text.clone())));
+        //                     }
+        //                 })
+        //                 .width(Pixels(200.0));
+        //         });
+        //     });
+        // })
+        // .title(app_name())
+        // .run();
     }
 }
 

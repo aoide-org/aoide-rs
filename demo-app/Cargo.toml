@@ -34,6 +34,11 @@ version = "1.36.0"
 default-features = false
 features = ["macros", "rt-multi-thread"]
 
-[dependencies.vizia]
-git = "https://github.com/vizia/vizia.git"
-branch = "main"
+[dependencies.eframe]
+version = "0.26.1"
+default-features = false
+features = ["default_fonts", "glow"]
+
+[dependencies.egui]
+version = "0.26.1"
+default-features = false

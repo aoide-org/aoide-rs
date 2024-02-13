@@ -8,6 +8,8 @@ use aoide::{
     desktop_app::{fs::DirPath, Handle, ObservableReader},
 };
 
+use crate::NoReceiverForEvent;
+
 pub mod collection;
 pub mod settings;
 pub mod track_search;
@@ -34,7 +36,7 @@ const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
 
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names)] // common `...Changed` suffix
-pub enum LibraryNotification {
+pub enum LibraryEvent {
     SettingsStateChanged,
     CollectionStateChanged,
     TrackSearchStateChanged,
@@ -42,9 +44,9 @@ pub enum LibraryNotification {
 
 /// Library event emitter.
 ///
-/// No locks must be held when calling `emit_notification()`!
+/// No locks must be held when calling `emit_event()`!
 pub trait LibraryEventEmitter: Send + Sync + 'static {
-    fn emit_notification(&self, notification: LibraryNotification);
+    fn emit_event(&self, event: LibraryEvent) -> Result<(), NoReceiverForEvent>;
 }
 
 /// Stateful library frontend.
@@ -210,30 +212,27 @@ impl Library {
         ));
     }
 
-    pub fn spawn_notification_tasks<E>(
-        &self,
-        tokio_rt: &tokio::runtime::Handle,
-        event_emitter: &Arc<E>,
-    ) where
-        E: LibraryEventEmitter,
+    pub fn spawn_event_tasks<E>(&self, tokio_rt: &tokio::runtime::Handle, event_emitter: &E)
+    where
+        E: LibraryEventEmitter + Clone + 'static,
     {
         tokio_rt.spawn({
-            let event_emitter = Arc::downgrade(event_emitter);
             let subscriber = self.state().settings.subscribe_changed();
+            let event_emitter = event_emitter.clone();
             async move {
                 settings::watch_state(subscriber, event_emitter).await;
             }
         });
         tokio_rt.spawn({
-            let event_emitter = Arc::downgrade(event_emitter);
             let subscriber = self.state().collection.subscribe_changed();
+            let event_emitter = event_emitter.clone();
             async move {
                 collection::watch_state(subscriber, event_emitter).await;
             }
         });
         tokio_rt.spawn({
-            let event_emitter = Arc::downgrade(event_emitter);
             let subscriber = self.state().track_search.subscribe_changed();
+            let event_emitter = event_emitter.clone();
             async move {
                 track_search::watch_state(subscriber, event_emitter).await;
             }
