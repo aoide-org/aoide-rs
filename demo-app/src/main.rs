@@ -15,7 +15,7 @@ use std::{
 
 use directories::ProjectDirs;
 use eframe::{CreationContext, Frame};
-use egui::{CentralPanel, Context, TopBottomPanel};
+use egui::{Button, CentralPanel, Context, TopBottomPanel};
 
 use aoide::desktop_app::{
     collection::State as CollectionState, fs::DirPath, ObservableReader as _,
@@ -220,6 +220,7 @@ enum AppAction {
     ResetMusicDirectory,
     RescanCollection,
     SearchTracks,
+    FetchMoreTrackSearchResults,
 }
 
 /// App-level event
@@ -297,6 +298,10 @@ impl App {
             AppAction::SearchTracks => {
                 self.library.search_tracks(&self.track_search_input);
             }
+            AppAction::FetchMoreTrackSearchResults => {
+                self.library
+                    .spawn_fetch_more_track_search_results(&self.rt, &self.message_sender);
+            }
         }
     }
 
@@ -309,7 +314,7 @@ impl App {
     }
 
     #[allow(clippy::too_many_lines)] // TODO
-    fn on_library_event(&mut self, event: &LibraryEvent) {
+    fn on_library_event(&mut self, ctx: &Context, event: LibraryEvent) {
         match event {
             LibraryEvent::SettingsStateChanged => {
                 let new_music_dir = {
@@ -345,6 +350,9 @@ impl App {
                     "Collection state changed: {old_state:?} -> {new_state:?}",
                     old_state = self.collection_state,
                 );
+                if self.library.on_collection_state_changed(&new_state) {
+                    ctx.request_repaint();
+                }
                 self.collection_state = new_state;
             }
             LibraryEvent::TrackSearchStateChanged => {
@@ -401,6 +409,14 @@ impl App {
                     },
                 };
             }
+            LibraryEvent::FetchMoreTrackSearchResultsFinished(result) => {
+                log::debug!(
+                    "Fetching more track search results finished: {result:?}",
+                    result = result,
+                );
+                self.library
+                    .fetch_more_track_search_results_finished(result);
+            }
         }
     }
 }
@@ -421,7 +437,7 @@ impl eframe::App for App {
                                 self.on_input_event(input.clone());
                             }
                             AppEvent::Library(event) => {
-                                self.on_library_event(&event);
+                                self.on_library_event(ctx, event);
                             }
                         },
                     }
@@ -458,7 +474,13 @@ impl eframe::App for App {
                         message_sender.on_action(AppAction::SelectMusicDirectory);
                     }
                     ui.label("");
-                    if ui.button("Reset music directory").clicked() {
+                    if ui
+                        .add_enabled(
+                            settings_state.music_dir.is_some(),
+                            Button::new("Reset music directory"),
+                        )
+                        .clicked()
+                    {
                         message_sender.on_action(AppAction::ResetMusicDirectory);
                     }
                     ui.end_row();
@@ -497,7 +519,14 @@ impl eframe::App for App {
                     ui.end_row();
 
                     ui.label("");
-                    if ui.button("Rescan collection").clicked() {
+                    if ui
+                        .add_enabled(
+                            collection_state.is_ready()
+                                && self.library.pending_rescan_collection_task().is_none(),
+                            Button::new("Rescan collection"),
+                        )
+                        .clicked()
+                    {
                         message_sender.on_action(AppAction::RescanCollection);
                     }
                     ui.end_row();
@@ -525,6 +554,17 @@ impl eframe::App for App {
                 .spacing([40.0, 4.0])
                 .striped(true)
                 .show(ui, |ui| {
+                    if ui
+                        .add_enabled(
+                            track_search_state.can_fetch_more().unwrap_or(false),
+                            Button::new("Fetch more"),
+                        )
+                        .clicked()
+                    {
+                        message_sender.on_action(AppAction::FetchMoreTrackSearchResults);
+                    }
+                    ui.end_row();
+
                     ui.label("Last error:");
                     let last_error = collection_state
                         .last_error()

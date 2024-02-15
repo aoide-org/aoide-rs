@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{hash::Hash as _, num::NonZeroUsize};
+use std::{future::Future, hash::Hash as _, num::NonZeroUsize};
 
 use highway::{HighwayHash, HighwayHasher, Key};
 
@@ -662,7 +662,12 @@ impl ObservableState {
         maybe_fetch_more
     }
 
-    pub async fn fetch_more(&self, handle: &Handle, fetch_limit: Option<NonZeroUsize>) -> bool {
+    #[must_use]
+    pub fn fetch_more_task(
+        &self,
+        handle: &Handle,
+        fetch_limit: Option<NonZeroUsize>,
+    ) -> Option<impl Future<Output = anyhow::Result<FetchMoreSucceeded>> + Send + 'static> {
         let Some(FetchMore {
             context,
             offset_hash,
@@ -670,10 +675,16 @@ impl ObservableState {
         }) = self.on_fetch_more(fetch_limit)
         else {
             // No effect.
-            return false;
+            return None;
         };
-        let res = self::fetch_more(handle, context, offset_hash, pagination).await;
-        self.0.modify(|state| match res {
+        let handle = handle.clone();
+        let task = async move { self::fetch_more(&handle, context, offset_hash, pagination).await };
+        Some(task)
+    }
+
+    #[allow(clippy::must_use_candidate)]
+    pub fn fetch_more_task_finished(&self, result: anyhow::Result<FetchMoreSucceeded>) -> bool {
+        self.0.modify(|state| match result {
             Ok(succeeded) => state.fetch_more_succeeded(succeeded),
             Err(err) => state.fetch_more_failed(err),
         })

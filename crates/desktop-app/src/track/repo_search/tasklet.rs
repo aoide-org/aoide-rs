@@ -65,8 +65,12 @@ pub fn on_should_prefetch(
                 let handle = some_or_return_with!(handle.upgrade(), OnChanged::Abort);
                 let should_prefetch = observable_state.read().should_prefetch();
                 if should_prefetch {
-                    log::debug!("Prefetching...");
-                    observable_state.fetch_more(&handle, prefetch_limit).await;
+                    if let Some(prefetch_task) =
+                        observable_state.fetch_more_task(&handle, prefetch_limit)
+                    {
+                        log::debug!("Prefetching");
+                        observable_state.fetch_more_task_finished(prefetch_task.await);
+                    }
                 }
                 OnChanged::Continue
             }

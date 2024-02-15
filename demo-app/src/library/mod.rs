@@ -5,7 +5,7 @@ use std::{num::NonZeroUsize, path::PathBuf, sync::Arc};
 
 use aoide::{
     api::media::source::ResolveUrlFromContentPath,
-    desktop_app::{fs::DirPath, Handle, ObservableReader},
+    desktop_app::{fs::DirPath, track::repo_search::FetchMoreSucceeded, Handle, ObservableReader},
 };
 
 use crate::NoReceiverForEvent;
@@ -40,6 +40,7 @@ pub enum LibraryEvent {
     SettingsStateChanged,
     CollectionStateChanged,
     TrackSearchStateChanged,
+    FetchMoreTrackSearchResultsFinished(anyhow::Result<FetchMoreSucceeded>),
 }
 
 /// Library event emitter.
@@ -149,6 +150,18 @@ impl Library {
         true
     }
 
+    pub fn on_collection_state_changed(&mut self, collection_state: &collection::State) -> bool {
+        let mut changed = false;
+        if self.pending_rescan_collection_task.is_some()
+            && matches!(collection_state, collection::State::Synchronizing { .. })
+        {
+            log::debug!("Resetting pending rescan collection task");
+            self.pending_rescan_collection_task = None;
+            changed = true;
+        }
+        changed
+    }
+
     pub const fn pending_rescan_collection_task(&self) -> Option<&collection::RescanTask> {
         self.pending_rescan_collection_task.as_ref()
     }
@@ -183,6 +196,39 @@ impl Library {
         } else {
             log::debug!("Track search params not updated: {params:?}");
         }
+    }
+
+    pub fn spawn_fetch_more_track_search_results<E>(
+        &self,
+        tokio_rt: &tokio::runtime::Handle,
+        event_emitter: &E,
+    ) where
+        E: LibraryEventEmitter + Clone + 'static,
+    {
+        let Some(fetch_more_task) = self
+            .state
+            .track_search
+            .fetch_more_task(&self.handle, Some(TRACK_REPO_SEARCH_PREFETCH_LIMIT))
+        else {
+            return;
+        };
+        let event_emitter = event_emitter.clone();
+        tokio_rt.spawn(async move {
+            log::debug!("Fetching more track search results");
+            let result = fetch_more_task.await;
+            if let Err(err) =
+                event_emitter.emit_event(LibraryEvent::FetchMoreTrackSearchResultsFinished(result))
+            {
+                log::warn!("Failed to emit event after Fetching more track search results finished: {err:?}");
+            }
+        });
+    }
+
+    pub fn fetch_more_track_search_results_finished(
+        &self,
+        result: anyhow::Result<FetchMoreSucceeded>,
+    ) {
+        self.state.track_search.fetch_more_task_finished(result);
     }
 
     /// Spawn reactive background tasks
