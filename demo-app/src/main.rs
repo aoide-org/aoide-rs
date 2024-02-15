@@ -373,9 +373,11 @@ impl App {
                                 let mut track_search_list =
                                     self.track_search_list.take().unwrap_or_default();
                                 track_search_list.clear();
-                                track_search_list.extend(
-                                    (0..fetched_entities.len()).map(|i| format!("TODO: Track {i}")),
-                                );
+                                track_search_list.extend(fetched_entities.iter().map(
+                                    |fetched_entity| {
+                                        track_to_string(&fetched_entity.entity.body.track)
+                                    },
+                                ));
                                 self.track_search_list = Some(track_search_list);
                             } else {
                                 self.track_search_list = None;
@@ -538,101 +540,35 @@ impl eframe::App for App {
                     ui.end_row();
                 });
         });
+    }
+}
 
-        // Application::new(move |ctx: &mut Context| {
-        //     let app = App::new(rt, library, config_dir, ctx.get_proxy());
-        //     let mdl = AppModel::new(app);
-        //     mdl.build(ctx);
-
-        //     // Music directory
-        //     VStack::new(ctx, |ctx| {
-        //         Label::new(
-        //             ctx,
-        //             AppModel::music_dir.map(|music_dir| {
-        //                 if let Some(music_dir) = &music_dir {
-        //                     format!(
-        //                         "Music directory: {music_dir}",
-        //                         music_dir = music_dir.display()
-        //                     )
-        //                 } else {
-        //                     "Music directory: <none>".to_owned()
-        //                 }
-        //             }),
-        //         );
-        //         HStack::new(ctx, |ctx| {
-        //             Button::new(
-        //                 ctx,
-        //                 |ex| ex.emit(AppEvent::Command(AppAction::SelectMusicDirectory)),
-        //                 |ctx| Label::new(ctx, "Select music directory..."),
-        //             );
-        //             Button::new(
-        //                 ctx,
-        //                 |ex| ex.emit(AppEvent::Command(AppAction::ResetMusicDirectory)),
-        //                 |ctx| Label::new(ctx, "Reset music directory"),
-        //             )
-        //             .disabled(AppModel::music_dir.map(Option::is_none));
-        //         });
-        //     });
-
-        //     // Collection
-        //     VStack::new(ctx, |ctx| {
-        //         Label::new(
-        //             ctx,
-        //             AppModel::collection_state.map(|collection_state| {
-        //                 if let Some((entity, summary)) = collection_state.entity_with_summary() {
-        //                     format!(
-        //                         "Collection: uid = {uid}, title = \"{title}\", #tracks = \
-        //                                 {tracks_count}, #playlists = {playlists_count}",
-        //                         uid = entity.hdr.uid,
-        //                         title = entity.body.title,
-        //                         tracks_count = summary.tracks.total_count,
-        //                         playlists_count = summary.playlists.total_count,
-        //                     )
-        //                 } else if let Some((entity_uid, collection)) = collection_state.entity_brief() {
-        //                     if let Some(collection) = collection {
-        //                         format!(
-        //                             "Collection: uid = {entity_uid}, title = \"{title}\"",
-        //                             entity_uid = entity_uid,
-        //                             title = collection.title,
-        //                         )
-        //                     } else {
-        //                         format!("Collection: uid = {entity_uid}")
-        //                     }
-        //                 } else {
-        //                     "Collection: <none>".to_owned()
-        //                 }
-        //             }),
-        //         );
-
-        //         HStack::new(ctx, |ctx| {
-        //             Button::new(
-        //                 ctx,
-        //                 |ex| ex.emit(AppEvent::Command(AppAction::RescanCollection)),
-        //                 |ctx: &mut Context| Label::new(ctx, "Rescan collection"),
-        //             )
-        //             .disabled(AppModel::collection_state.map(disable_rescan_collection));
-        //         });
-        //     });
-
-        //     // Track search
-        //     VStack::new(ctx, |ctx| {
-        //         HStack::new(ctx, |ctx| {
-        //             Label::new(ctx, "Search tracks:");
-        //             Textbox::new(ctx, AppModel::track_search_input)
-        //                 .on_edit(move |ctx, text| {
-        //                     ctx.emit(AppEvent::Input(AppInput::TrackSearch(text.clone())));
-        //                 })
-        //                 .on_submit(|ctx, text, enter_key_pressed| {
-        //                     if enter_key_pressed {
-        //                         ctx.emit(AppEvent::Command(AppAction::SearchTracks(text.clone())));
-        //                     }
-        //                 })
-        //                 .width(Pixels(200.0));
-        //         });
-        //     });
-        // })
-        // .title(app_name())
-        // .run();
+fn track_to_string(track: &aoide::Track) -> String {
+    let track_artist = track.track_artist();
+    let track_title = track.track_title().unwrap_or("Untitled");
+    let album_title = track.album_title();
+    let album_artist = track.album_artist();
+    match (track_artist, album_title, album_artist) {
+        (Some(track_artist), Some(album_title), Some(album_artist)) => {
+            if track_artist == album_artist {
+                format!("{track_artist} - {track_title} [{album_title}]")
+            } else {
+                format!("{track_artist} - {track_title} [{album_title} by {album_artist}]")
+            }
+        }
+        (None, Some(album_title), Some(album_artist)) => {
+            format!("{track_title} [{album_title} by {album_artist}]")
+        }
+        (Some(track_artist), Some(album_title), None) => {
+            format!("{track_artist} - {track_title} [{album_title}]")
+        }
+        (Some(track_artist), None, _) => {
+            format!("{track_artist} - {track_title}")
+        }
+        (None, Some(album_title), None) => {
+            format!("{track_title} [{album_title}]")
+        }
+        (None, None, _) => track_title.to_string(),
     }
 }
 
