@@ -15,7 +15,7 @@ use std::{
 
 use directories::ProjectDirs;
 use eframe::{CreationContext, Frame};
-use egui::{Button, CentralPanel, Context, TopBottomPanel};
+use egui::{Button, CentralPanel, Context, TextEdit, TopBottomPanel};
 
 use aoide::desktop_app::{
     collection::State as CollectionState, fs::DirPath, ObservableReader as _,
@@ -450,9 +450,8 @@ impl eframe::App for App {
         }
 
         let message_sender = self.message_sender.clone();
-        let settings_state = self.library.state().settings().read_observable();
-        let collection_state = self.library.state().collection().read_observable();
-        let track_search_state = self.library.state().track_search().read_observable();
+
+        let current_library_state = self.library.state().current();
 
         TopBottomPanel::top("config_panel").show(ctx, |ui| {
             egui::Grid::new("config_grid")
@@ -460,7 +459,7 @@ impl eframe::App for App {
                 .spacing([40.0, 4.0])
                 .striped(true)
                 .show(ui, |ui| {
-                    let music_dir = settings_state.music_dir.as_ref();
+                    let music_dir = current_library_state.settings().music_dir.as_ref();
                     ui.label("Music directory:");
                     ui.label(
                         music_dir
@@ -476,7 +475,7 @@ impl eframe::App for App {
                     ui.label("");
                     if ui
                         .add_enabled(
-                            self.library.could_reset_music_dir(),
+                            current_library_state.could_reset_music_dir(),
                             Button::new("Reset music directory"),
                         )
                         .clicked()
@@ -485,7 +484,8 @@ impl eframe::App for App {
                     }
                     ui.end_row();
 
-                    let collection_uid = collection_state
+                    let collection_uid = current_library_state
+                        .collection()
                         .entity_brief()
                         .map(|(entity_uid, _)| entity_uid);
                     ui.label("Collection UID:");
@@ -497,15 +497,18 @@ impl eframe::App for App {
                     );
                     ui.end_row();
 
-                    let collection_title =
-                        collection_state.entity_brief().and_then(|(_, collection)| {
+                    let collection_title = current_library_state
+                        .collection()
+                        .entity_brief()
+                        .and_then(|(_, collection)| {
                             collection.map(|collection| collection.title.as_str())
                         });
                     ui.label("Collection title:");
                     ui.label(collection_title.unwrap_or_default());
                     ui.end_row();
 
-                    let collection_summary = collection_state
+                    let collection_summary = current_library_state
+                        .collection()
                         .entity_with_summary()
                         .map(|(_, summary)| summary);
                     ui.label("Collection summary:");
@@ -521,7 +524,7 @@ impl eframe::App for App {
                     ui.label("");
                     if ui
                         .add_enabled(
-                            self.library.could_spawn_rescan_collection_task(),
+                            current_library_state.could_spawn_rescan_collection_task(),
                             Button::new("Rescan collection"),
                         )
                         .clicked()
@@ -532,7 +535,10 @@ impl eframe::App for App {
 
                     ui.label("Search tracks:");
                     if ui
-                        .text_edit_singleline(&mut self.track_search_input)
+                        .add_enabled(
+                            current_library_state.could_search_tracks(),
+                            TextEdit::singleline(&mut self.track_search_input),
+                        )
                         .lost_focus()
                     {
                         message_sender.on_action(AppAction::SearchTracks);
@@ -555,7 +561,7 @@ impl eframe::App for App {
                 .show(ui, |ui| {
                     if ui
                         .add_enabled(
-                            self.library.could_spawn_fetch_more_track_search_results(),
+                            current_library_state.could_spawn_fetch_more_track_search_results(),
                             Button::new("Fetch more"),
                         )
                         .clicked()
@@ -565,11 +571,13 @@ impl eframe::App for App {
                     ui.end_row();
 
                     ui.label("Last error:");
-                    let last_error = collection_state
+                    let last_error = current_library_state
+                        .collection()
                         .last_error()
                         .map(ToOwned::to_owned)
                         .or_else(|| {
-                            track_search_state
+                            current_library_state
+                                .track_search()
                                 .last_fetch_error()
                                 .map(ToString::to_string)
                         });

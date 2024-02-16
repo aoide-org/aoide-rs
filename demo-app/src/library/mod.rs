@@ -10,6 +10,7 @@ use aoide::{
         Handle, ObservableReader,
     },
 };
+use discro::Ref;
 
 use crate::NoReceiverForEvent;
 
@@ -57,12 +58,12 @@ pub trait LibraryEventEmitter: Send + Sync + 'static {
 ///
 /// Manages the application state that should not depend on any
 /// particular UI technology.
-#[derive(Clone)]
 #[allow(missing_debug_implementations)]
 pub struct LibraryState {
     settings: Arc<settings::ObservableState>,
     collection: Arc<collection::ObservableState>,
     track_search: Arc<track_search::ObservableState>,
+    pending_rescan_collection_task: Option<SynchronizeVfsTask>,
 }
 
 impl LibraryState {
@@ -73,6 +74,7 @@ impl LibraryState {
             settings: Arc::new(settings::ObservableState::new(initial_settings)),
             collection: Arc::default(),
             track_search: Arc::new(track_search::ObservableState::new(initial_track_search)),
+            pending_rescan_collection_task: None,
         }
     }
 
@@ -93,6 +95,62 @@ impl LibraryState {
     pub fn track_search(&self) -> &impl ObservableReader<track_search::State> {
         self.track_search.as_ref()
     }
+
+    #[must_use]
+    pub fn current(&self) -> CurrentLibraryState<'_> {
+        let Self {
+            settings,
+            collection,
+            track_search,
+            pending_rescan_collection_task,
+        } = self;
+        CurrentLibraryState {
+            settings: settings.read(),
+            collection: collection.read(),
+            track_search: track_search.read(),
+            pending_rescan_collection_task: pending_rescan_collection_task.is_some(),
+        }
+    }
+}
+
+pub struct CurrentLibraryState<'a> {
+    settings: Ref<'a, settings::State>,
+    collection: Ref<'a, collection::State>,
+    track_search: Ref<'a, track_search::State>,
+    pending_rescan_collection_task: bool,
+}
+
+impl CurrentLibraryState<'_> {
+    #[must_use]
+    pub fn settings(&self) -> &settings::State {
+        &self.settings
+    }
+
+    #[must_use]
+    pub fn collection(&self) -> &collection::State {
+        &self.collection
+    }
+
+    #[must_use]
+    pub fn track_search(&self) -> &track_search::State {
+        &self.track_search
+    }
+
+    pub fn could_reset_music_dir(&self) -> bool {
+        self.settings().music_dir.is_some()
+    }
+
+    pub fn could_spawn_rescan_collection_task(&self) -> bool {
+        !self.pending_rescan_collection_task && self.collection().is_ready()
+    }
+
+    pub fn could_search_tracks(&self) -> bool {
+        self.collection().is_ready() && self.track_search().is_idle()
+    }
+
+    pub fn could_spawn_fetch_more_track_search_results(&self) -> bool {
+        self.track_search().can_fetch_more().unwrap_or(false)
+    }
 }
 
 /// Library state with a handle to the runtime environment
@@ -100,7 +158,6 @@ impl LibraryState {
 pub struct Library {
     handle: Handle,
     state: LibraryState,
-    pending_rescan_collection_task: Option<SynchronizeVfsTask>,
 }
 
 impl Library {
@@ -109,7 +166,6 @@ impl Library {
         Self {
             handle,
             state: LibraryState::new(initial_settings),
-            pending_rescan_collection_task: None,
         }
     }
 
@@ -131,28 +187,15 @@ impl Library {
         }
     }
 
-    pub fn could_reset_music_dir(&self) -> bool {
-        self.state()
-            .settings()
-            .read_observable()
-            .music_dir
-            .is_some()
-    }
-
     pub fn reset_music_dir(&self) {
         self.update_music_dir(None);
     }
 
-    pub fn could_spawn_rescan_collection_task(&self) -> bool {
-        self.pending_rescan_collection_task.is_none()
-            && self.state().collection().read_observable().is_ready()
-    }
-
     pub fn spawn_rescan_collection_task(&mut self, rt: &tokio::runtime::Handle) -> bool {
-        if let Some(rescan_collection_task) = self.pending_rescan_collection_task.as_ref() {
+        if let Some(rescan_collection_task) = self.state.pending_rescan_collection_task.as_ref() {
             if rescan_collection_task.is_finished() {
                 log::info!("Resetting finished rescan collection task");
-                self.pending_rescan_collection_task = None;
+                self.state.pending_rescan_collection_task = None;
             } else {
                 log::info!("Rescan collection still pending");
                 return false;
@@ -162,24 +205,24 @@ impl Library {
         let handle = self.handle.clone();
         let collection = Arc::clone(&self.state.collection);
         let rescan_collection_task = SynchronizeVfsTask::spawn(rt, handle, collection);
-        self.pending_rescan_collection_task = Some(rescan_collection_task);
+        self.state.pending_rescan_collection_task = Some(rescan_collection_task);
         true
     }
 
     pub fn on_collection_state_changed(&mut self, collection_state: &collection::State) -> bool {
         let mut changed = false;
-        if self.pending_rescan_collection_task.is_some()
+        if self.state.pending_rescan_collection_task.is_some()
             && matches!(collection_state, collection::State::Synchronizing { .. })
         {
             log::debug!("Resetting pending rescan collection task");
-            self.pending_rescan_collection_task = None;
+            self.state.pending_rescan_collection_task = None;
             changed = true;
         }
         changed
     }
 
     pub fn abort_pending_rescan_collection_task(&mut self) -> Option<SynchronizeVfsTask> {
-        let pending_rescan_collection_task = self.pending_rescan_collection_task.take();
+        let pending_rescan_collection_task = self.state.pending_rescan_collection_task.take();
         let Some(rescan_collection_task) = pending_rescan_collection_task else {
             return None;
         };
@@ -207,14 +250,6 @@ impl Library {
         if !self.state.track_search.update_params(&mut params) {
             log::debug!("Track search params not updated: {params:?}");
         }
-    }
-
-    pub fn could_spawn_fetch_more_track_search_results(&self) -> bool {
-        self.state
-            .track_search()
-            .read_observable()
-            .can_fetch_more()
-            .unwrap_or(false)
     }
 
     pub fn spawn_fetch_more_track_search_results<E>(
