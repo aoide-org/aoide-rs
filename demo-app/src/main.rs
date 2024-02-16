@@ -167,7 +167,7 @@ async fn main() {
 }
 
 #[must_use]
-const fn disable_rescan_collection(state: &CollectionState) -> bool {
+const fn disable_synchronize_collection(state: &CollectionState) -> bool {
     !state.is_ready()
 }
 
@@ -215,12 +215,28 @@ enum AppInputEvent {
 
 #[derive(Debug, Clone)]
 enum AppAction {
-    SelectMusicDirectory,
-    UpdateMusicDirectory(DirPath<'static>),
-    ResetMusicDirectory,
-    RescanCollection,
-    SearchTracks,
-    FetchMoreTrackSearchResults,
+    MusicDirectory(MusicDirectoryAction),
+    SynchronizeCollection(SynchronizeCollectionAction),
+    SearchTracks(SearchTracksAction),
+}
+
+#[derive(Debug, Clone)]
+enum MusicDirectoryAction {
+    Reset,
+    Select,
+    Selected(Option<DirPath<'static>>),
+}
+
+#[derive(Debug, Clone)]
+enum SynchronizeCollectionAction {
+    SpawnTask,
+    AbortPendingTask,
+}
+
+#[derive(Debug, Clone)]
+enum SearchTracksAction {
+    Search(String),
+    FetchMore,
 }
 
 /// App-level event
@@ -243,6 +259,8 @@ struct App {
     library: Library,
 
     music_dir: Option<DirPath<'static>>,
+    selecting_music_dir: bool,
+
     collection_state: CollectionState,
     track_search_input: String,
     track_search_memo: aoide::desktop_app::track::repo_search::Memo,
@@ -268,6 +286,7 @@ impl App {
             message_rx,
             library,
             music_dir: Default::default(),
+            selecting_music_dir: false,
             collection_state: Default::default(),
             track_search_input: Default::default(),
             track_search_memo: Default::default(),
@@ -275,33 +294,66 @@ impl App {
         }
     }
 
-    fn on_action(&mut self, action: AppAction) {
+    fn on_action(&mut self, ctx: &Context, action: AppAction) {
         match action {
-            AppAction::SelectMusicDirectory => {
-                let on_dir_path_chosen = {
-                    let message_sender = self.message_sender.clone();
-                    move |dir_path: DirPath<'static>| {
-                        message_sender.on_action(AppAction::UpdateMusicDirectory(dir_path));
+            AppAction::MusicDirectory(action) => match action {
+                MusicDirectoryAction::Reset => {
+                    self.library.reset_music_dir();
+                }
+                MusicDirectoryAction::Select => {
+                    if self.selecting_music_dir {
+                        log::debug!("Already selecting music directory");
+                        return;
                     }
-                };
-                choose_directory_path(&self.rt, &self.music_dir.as_deref(), on_dir_path_chosen);
-            }
-            AppAction::UpdateMusicDirectory(music_dir) => {
-                self.library.update_music_dir(Some(&music_dir));
-            }
-            AppAction::ResetMusicDirectory => {
-                self.library.reset_music_dir();
-            }
-            AppAction::RescanCollection => {
-                self.library.spawn_rescan_collection_task(&self.rt);
-            }
-            AppAction::SearchTracks => {
-                self.library.search_tracks(&self.track_search_input);
-            }
-            AppAction::FetchMoreTrackSearchResults => {
-                self.library
-                    .spawn_fetch_more_track_search_results(&self.rt, &self.message_sender);
-            }
+                    let on_dir_path_chosen = {
+                        let message_sender = self.message_sender.clone();
+                        move |dir_path| {
+                            message_sender.on_action(AppAction::MusicDirectory(
+                                MusicDirectoryAction::Selected(dir_path),
+                            ));
+                        }
+                    };
+                    choose_directory_path(&self.rt, &self.music_dir.as_deref(), on_dir_path_chosen);
+                    self.selecting_music_dir = true;
+                    // Reflect the state change in the UI.
+                    ctx.request_repaint();
+                }
+                MusicDirectoryAction::Selected(music_dir) => {
+                    self.selecting_music_dir = false;
+                    if let Some(music_dir) = music_dir {
+                        self.library.update_music_dir(Some(&music_dir));
+                    }
+                    // Reflect the state change in the UI.
+                    ctx.request_repaint();
+                }
+            },
+            AppAction::SynchronizeCollection(action) => match action {
+                SynchronizeCollectionAction::SpawnTask => {
+                    if self.library.spawn_synchronize_collection_task(&self.rt) {
+                        // Reflect the state change in the UI.
+                        ctx.request_repaint();
+                    }
+                }
+                SynchronizeCollectionAction::AbortPendingTask => {
+                    if self
+                        .library
+                        .abort_pending_synchronize_collection_task()
+                        .is_some()
+                    {
+                        // Reflect the state change in the UI.
+                        ctx.request_repaint();
+                    }
+                }
+            },
+            AppAction::SearchTracks(action) => match action {
+                SearchTracksAction::Search(input) => {
+                    self.library.search_tracks(&input);
+                }
+                SearchTracksAction::FetchMore => {
+                    self.library
+                        .spawn_fetch_more_track_search_results(&self.rt, &self.message_sender);
+                }
+            },
         }
     }
 
@@ -351,6 +403,7 @@ impl App {
                     old_state = self.collection_state,
                 );
                 if self.library.on_collection_state_changed(&new_state) {
+                    // Reflect the state change in the UI.
                     ctx.request_repaint();
                 }
                 self.collection_state = new_state;
@@ -430,7 +483,7 @@ impl eframe::App for App {
                     log::debug!("Received message: {msg:?}");
                     match msg {
                         AppMessage::Action(action) => {
-                            self.on_action(action);
+                            self.on_action(ctx, action);
                         }
                         AppMessage::Event(event) => match event {
                             AppEvent::Input(input) => {
@@ -449,12 +502,11 @@ impl eframe::App for App {
             }
         }
 
-        let message_sender = self.message_sender.clone();
+        let message_sender = &self.message_sender;
+        let current_library_state = self.library.state().read_current();
 
-        let current_library_state = self.library.state().current();
-
-        TopBottomPanel::top("config_panel").show(ctx, |ui| {
-            egui::Grid::new("config_grid")
+        TopBottomPanel::top("top-panel").show(ctx, |ui| {
+            egui::Grid::new("grid")
                 .num_columns(2)
                 .spacing([40.0, 4.0])
                 .striped(true)
@@ -469,18 +521,29 @@ impl eframe::App for App {
                     ui.end_row();
 
                     ui.label("");
-                    if ui.button("Select music directory...").clicked() {
-                        message_sender.on_action(AppAction::SelectMusicDirectory);
+                    if ui
+                        .add_enabled(
+                            !self.selecting_music_dir,
+                            Button::new("Select music directory..."),
+                        )
+                        .on_hover_text("Switch collections or create a new one.")
+                        .clicked()
+                    {
+                        message_sender
+                            .on_action(AppAction::MusicDirectory(MusicDirectoryAction::Select));
                     }
                     ui.label("");
                     if ui
                         .add_enabled(
-                            current_library_state.could_reset_music_dir(),
+                            !self.selecting_music_dir
+                                && current_library_state.could_reset_music_dir(),
                             Button::new("Reset music directory"),
                         )
+                        .on_hover_text("Disconnect from the corresponding collection.")
                         .clicked()
                     {
-                        message_sender.on_action(AppAction::ResetMusicDirectory);
+                        message_sender
+                            .on_action(AppAction::MusicDirectory(MusicDirectoryAction::Reset));
                     }
                     ui.end_row();
 
@@ -522,14 +585,32 @@ impl eframe::App for App {
                     ui.end_row();
 
                     ui.label("");
-                    if ui
+                    if current_library_state.could_abort_synchronize_collection_task() {
+                        debug_assert!(
+                            !current_library_state.could_spawn_synchronize_collection_task()
+                        );
+                        if ui
+                            .button("Abort synchronize music directory")
+                            .on_hover_text("Stop the current synchronization task.")
+                            .clicked()
+                        {
+                            message_sender.on_action(AppAction::SynchronizeCollection(
+                                SynchronizeCollectionAction::AbortPendingTask,
+                            ));
+                        }
+                    } else if ui
                         .add_enabled(
-                            current_library_state.could_spawn_rescan_collection_task(),
-                            Button::new("Rescan collection"),
+                            current_library_state.could_spawn_synchronize_collection_task(),
+                            Button::new("Synchronize music directory..."),
+                        )
+                        .on_hover_text(
+                            "Rescan the music directory for changes and update the collection.",
                         )
                         .clicked()
                     {
-                        message_sender.on_action(AppAction::RescanCollection);
+                        message_sender.on_action(AppAction::SynchronizeCollection(
+                            SynchronizeCollectionAction::SpawnTask,
+                        ));
                     }
                     ui.end_row();
 
@@ -541,7 +622,9 @@ impl eframe::App for App {
                         )
                         .lost_focus()
                     {
-                        message_sender.on_action(AppAction::SearchTracks);
+                        message_sender.on_action(AppAction::SearchTracks(
+                            SearchTracksAction::Search(self.track_search_input.clone()),
+                        ));
                     }
                     ui.end_row();
                 });
@@ -553,8 +636,8 @@ impl eframe::App for App {
             }
         });
 
-        TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
-            egui::Grid::new("config_grid")
+        TopBottomPanel::bottom("bottem-panel").show(ctx, |ui| {
+            egui::Grid::new("grid")
                 .num_columns(2)
                 .spacing([40.0, 4.0])
                 .striped(true)
@@ -566,7 +649,8 @@ impl eframe::App for App {
                         )
                         .clicked()
                     {
-                        message_sender.on_action(AppAction::FetchMoreTrackSearchResults);
+                        message_sender
+                            .on_action(AppAction::SearchTracks(SearchTracksAction::FetchMore));
                     }
                     ui.end_row();
 
@@ -628,7 +712,7 @@ fn track_to_string(track: &aoide::Track) -> String {
 fn choose_directory_path<P>(
     rt: &tokio::runtime::Handle,
     dir_path: &Option<P>,
-    on_dir_path_chosen: impl FnOnce(DirPath<'static>) + Send + Sync + 'static,
+    on_dir_path_chosen: impl FnOnce(Option<DirPath<'static>>) + Send + Sync + 'static,
 ) -> Option<PathBuf>
 where
     P: AsRef<Path>,
@@ -636,9 +720,6 @@ where
     let dir_path = dir_path.as_ref().map(AsRef::as_ref).map(PathBuf::from);
     rt.spawn(async move {
         let dir_path = aoide::desktop_app::fs::choose_directory(dir_path.as_deref()).await;
-        let Some(dir_path) = dir_path else {
-            return;
-        };
         on_dir_path_chosen(dir_path);
     });
     None

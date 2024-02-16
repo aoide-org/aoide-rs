@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{future::Future, hash::Hash as _, num::NonZeroUsize};
+use std::{future::Future, hash::Hash as _, num::NonZeroUsize, time::Instant};
 
 use highway::{HighwayHash, HighwayHasher, Key};
 
@@ -47,28 +47,30 @@ pub fn last_offset_hash_of_fetched_entities<'a>(
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum FetchStateTag {
+pub enum FetchStateMemo {
     #[default]
     Initial,
     Ready,
-    Pending,
+    Pending {
+        pending_since: Instant,
+    },
     Failed,
 }
 
-impl FetchStateTag {
-    /// Check whether the state is stable.
+impl FetchStateMemo {
+    /// Check whether the state is pending.
     #[must_use]
-    pub const fn is_idle(&self) -> bool {
+    const fn pending_since(&self) -> Option<Instant> {
         match self {
-            Self::Initial | Self::Ready | Self::Failed => true,
-            Self::Pending => false,
+            Self::Initial | Self::Ready { .. } | Self::Failed { .. } => None,
+            Self::Pending { pending_since, .. } => Some(*pending_since),
         }
     }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FetchMemo {
-    pub state_tag: FetchStateTag,
+    pub state: FetchStateMemo,
     pub fetched_entities: Option<FetchedEntitiesMemo>,
 }
 
@@ -82,6 +84,7 @@ enum FetchState {
     },
     Pending {
         fetched_entities_before: Option<Vec<FetchedEntity>>,
+        pending_since: Instant,
     },
     Failed {
         fetched_entities_before: Option<Vec<FetchedEntity>>,
@@ -91,19 +94,20 @@ enum FetchState {
 
 impl FetchState {
     #[must_use]
-    const fn state_tag(&self) -> FetchStateTag {
+    const fn fetch_state_memo(&self) -> FetchStateMemo {
         match self {
-            Self::Initial => FetchStateTag::Initial,
-            Self::Ready { .. } => FetchStateTag::Ready,
-            Self::Failed { .. } => FetchStateTag::Failed,
-            Self::Pending { .. } => FetchStateTag::Pending,
+            Self::Initial => FetchStateMemo::Initial,
+            Self::Ready { .. } => FetchStateMemo::Ready,
+            Self::Failed { .. } => FetchStateMemo::Failed,
+            Self::Pending { pending_since, .. } => FetchStateMemo::Pending {
+                pending_since: *pending_since,
+            },
         }
     }
 
-    /// Check whether the state is stable.
     #[must_use]
-    const fn is_idle(&self) -> bool {
-        self.state_tag().is_idle()
+    const fn pending_since(&self) -> Option<Instant> {
+        self.fetch_state_memo().pending_since()
     }
 
     #[must_use]
@@ -137,10 +141,10 @@ impl FetchState {
 
     #[must_use]
     fn memo(&self) -> FetchMemo {
-        let state_tag = self.state_tag();
+        let state = self.fetch_state_memo();
         let fetched_entities = self.fetched_entities_memo();
         FetchMemo {
-            state_tag,
+            state,
             fetched_entities,
         }
     }
@@ -191,6 +195,7 @@ impl FetchState {
         };
         *self = Self::Pending {
             fetched_entities_before,
+            pending_since: Instant::now(),
         };
         true
     }
@@ -207,6 +212,7 @@ impl FetchState {
 
         let Self::Pending {
             fetched_entities_before,
+            pending_since: _,
         } = self
         else {
             // Not applicable
@@ -264,6 +270,7 @@ impl FetchState {
         log::warn!("Fetching failed: {error}");
         let Self::Pending {
             fetched_entities_before,
+            pending_since: _,
         } = self
         else {
             // No effect
@@ -286,6 +293,7 @@ pub enum FetchedEntitiesDiff {
     /// This is the fallback and safe default.
     #[default]
     Replace,
+
     /// Append entities after more have been fetched.
     ///
     /// This is a common case that enables optimizations. It allows
@@ -341,8 +349,8 @@ impl State {
     }
 
     #[must_use]
-    pub const fn is_idle(&self) -> bool {
-        self.fetch.is_idle()
+    pub const fn pending_since(&self) -> Option<Instant> {
+        self.fetch.pending_since()
     }
 
     #[must_use]
