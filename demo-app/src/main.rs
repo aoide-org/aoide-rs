@@ -216,7 +216,6 @@ enum AppInputEvent {
 #[derive(Debug, Clone)]
 enum AppAction {
     MusicDirectory(MusicDirectoryAction),
-    SynchronizeCollection(SynchronizeCollectionAction),
     SearchTracks(SearchTracksAction),
 }
 
@@ -225,12 +224,8 @@ enum MusicDirectoryAction {
     Reset,
     Select,
     Selected(Option<DirPath<'static>>),
-}
-
-#[derive(Debug, Clone)]
-enum SynchronizeCollectionAction {
-    SpawnTask,
-    AbortPendingTask,
+    SpawnSyncTask,
+    AbortPendingSyncTask,
 }
 
 #[derive(Debug, Clone)]
@@ -326,18 +321,16 @@ impl App {
                     // Reflect the state change in the UI.
                     ctx.request_repaint();
                 }
-            },
-            AppAction::SynchronizeCollection(action) => match action {
-                SynchronizeCollectionAction::SpawnTask => {
-                    if self.library.spawn_synchronize_collection_task(&self.rt) {
+                MusicDirectoryAction::SpawnSyncTask => {
+                    if self.library.spawn_synchronize_music_dir_task(&self.rt) {
                         // Reflect the state change in the UI.
                         ctx.request_repaint();
                     }
                 }
-                SynchronizeCollectionAction::AbortPendingTask => {
+                MusicDirectoryAction::AbortPendingSyncTask => {
                     if self
                         .library
-                        .abort_pending_synchronize_collection_task()
+                        .abort_pending_synchronize_music_dir_task()
                         .is_some()
                     {
                         // Reflect the state change in the UI.
@@ -585,31 +578,31 @@ impl eframe::App for App {
                     ui.end_row();
 
                     ui.label("");
-                    if current_library_state.could_abort_synchronize_collection_task() {
+                    if current_library_state.could_abort_synchronize_music_dir_task() {
                         debug_assert!(
-                            !current_library_state.could_spawn_synchronize_collection_task()
+                            !current_library_state.could_spawn_synchronize_music_dir_task()
                         );
                         if ui
                             .button("Abort synchronize music directory")
                             .on_hover_text("Stop the current synchronization task.")
                             .clicked()
                         {
-                            message_sender.on_action(AppAction::SynchronizeCollection(
-                                SynchronizeCollectionAction::AbortPendingTask,
+                            message_sender.on_action(AppAction::MusicDirectory(
+                                MusicDirectoryAction::AbortPendingSyncTask,
                             ));
                         }
                     } else if ui
                         .add_enabled(
-                            current_library_state.could_spawn_synchronize_collection_task(),
+                            current_library_state.could_spawn_synchronize_music_dir_task(),
                             Button::new("Synchronize music directory..."),
                         )
                         .on_hover_text(
-                            "Rescan the music directory for changes and update the collection.",
+                            "Rescan the music directory for added/modified/deleted files and update the collection.",
                         )
                         .clicked()
                     {
-                        message_sender.on_action(AppAction::SynchronizeCollection(
-                            SynchronizeCollectionAction::SpawnTask,
+                        message_sender.on_action(AppAction::MusicDirectory(
+                            MusicDirectoryAction::SpawnSyncTask,
                         ));
                     }
                     ui.end_row();

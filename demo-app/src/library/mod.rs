@@ -63,7 +63,7 @@ pub struct LibraryState {
     settings: Arc<settings::ObservableState>,
     collection: Arc<collection::ObservableState>,
     track_search: Arc<track_search::ObservableState>,
-    pending_synchronize_collection_task: Option<SynchronizeVfsTask>,
+    pending_synchronize_music_dir_task: Option<SynchronizeVfsTask>,
 }
 
 impl LibraryState {
@@ -74,7 +74,7 @@ impl LibraryState {
             settings: Arc::new(settings::ObservableState::new(initial_settings)),
             collection: Arc::default(),
             track_search: Arc::new(track_search::ObservableState::new(initial_track_search)),
-            pending_synchronize_collection_task: None,
+            pending_synchronize_music_dir_task: None,
         }
     }
 
@@ -103,13 +103,13 @@ impl LibraryState {
             settings,
             collection,
             track_search,
-            pending_synchronize_collection_task,
+            pending_synchronize_music_dir_task,
         } = self;
         CurrentLibraryState {
             settings: settings.read(),
             collection: collection.read(),
             track_search: track_search.read(),
-            pending_synchronize_collection_task: pending_synchronize_collection_task.as_ref(),
+            pending_synchronize_music_dir_task: pending_synchronize_music_dir_task.as_ref(),
         }
     }
 }
@@ -118,7 +118,7 @@ pub struct CurrentLibraryState<'a> {
     settings: Ref<'a, settings::State>,
     collection: Ref<'a, collection::State>,
     track_search: Ref<'a, track_search::State>,
-    pending_synchronize_collection_task: Option<&'a SynchronizeVfsTask>,
+    pending_synchronize_music_dir_task: Option<&'a SynchronizeVfsTask>,
 }
 
 impl CurrentLibraryState<'_> {
@@ -141,18 +141,18 @@ impl CurrentLibraryState<'_> {
         self.settings().music_dir.is_some()
     }
 
-    pub fn could_spawn_synchronize_collection_task(&self) -> bool {
+    pub fn could_spawn_synchronize_music_dir_task(&self) -> bool {
         if !self.collection().is_ready() {
             return false;
         }
-        let Some(pending_task) = self.pending_synchronize_collection_task else {
+        let Some(pending_task) = self.pending_synchronize_music_dir_task else {
             return true;
         };
         pending_task.is_finished()
     }
 
-    pub fn could_abort_synchronize_collection_task(&self) -> bool {
-        let Some(pending_task) = self.pending_synchronize_collection_task else {
+    pub fn could_abort_synchronize_music_dir_task(&self) -> bool {
+        let Some(pending_task) = self.pending_synchronize_music_dir_task else {
             return false;
         };
         !pending_task.is_finished()
@@ -205,48 +205,48 @@ impl Library {
         self.update_music_dir(None);
     }
 
-    pub fn spawn_synchronize_collection_task(&mut self, rt: &tokio::runtime::Handle) -> bool {
-        if let Some(synchronize_collection_task) =
-            self.state.pending_synchronize_collection_task.as_ref()
+    pub fn spawn_synchronize_music_dir_task(&mut self, rt: &tokio::runtime::Handle) -> bool {
+        if let Some(synchronize_music_dir_task) =
+            self.state.pending_synchronize_music_dir_task.as_ref()
         {
-            if synchronize_collection_task.is_finished() {
-                log::info!("Resetting synchronize collection task after finished");
-                self.state.pending_synchronize_collection_task = None;
+            if synchronize_music_dir_task.is_finished() {
+                log::info!("Resetting synchronize music directory task after finished");
+                self.state.pending_synchronize_music_dir_task = None;
             } else {
-                log::info!("Synchronize collection task still pending");
+                log::info!("Synchronize music directory task still pending");
                 return false;
             }
         }
-        log::info!("Spawning synchronize collection task");
+        log::info!("Spawning synchronize music directory task");
         let handle = self.handle.clone();
         let collection = Arc::clone(&self.state.collection);
-        let synchronize_collection_task = SynchronizeVfsTask::spawn(rt, handle, collection);
-        self.state.pending_synchronize_collection_task = Some(synchronize_collection_task);
+        let synchronize_music_dir_task = SynchronizeVfsTask::spawn(rt, handle, collection);
+        self.state.pending_synchronize_music_dir_task = Some(synchronize_music_dir_task);
         true
     }
 
     pub fn on_collection_state_changed(&mut self, collection_state: &collection::State) -> bool {
         let mut changed = false;
-        if self.state.pending_synchronize_collection_task.is_some()
-            && matches!(collection_state, collection::State::Synchronizing { .. })
+        if self.state.pending_synchronize_music_dir_task.is_some()
+            && !matches!(collection_state, collection::State::Synchronizing { .. })
         {
             // The task will eventually finish.
-            log::debug!("Resetting pending synchronize collection task");
-            self.state.pending_synchronize_collection_task = None;
+            log::debug!("Resetting pending synchronize music directory task");
+            self.state.pending_synchronize_music_dir_task = None;
             changed = true;
         }
         changed
     }
 
-    pub fn abort_pending_synchronize_collection_task(&mut self) -> Option<SynchronizeVfsTask> {
-        let pending_synchronize_collection_task =
-            self.state.pending_synchronize_collection_task.take();
-        let Some(synchronize_collection_task) = pending_synchronize_collection_task else {
+    pub fn abort_pending_synchronize_music_dir_task(&mut self) -> Option<SynchronizeVfsTask> {
+        let pending_synchronize_music_dir_task =
+            self.state.pending_synchronize_music_dir_task.take();
+        let Some(synchronize_music_dir_task) = pending_synchronize_music_dir_task else {
             return None;
         };
-        log::info!("Aborting synchronize collection task");
-        synchronize_collection_task.abort();
-        Some(synchronize_collection_task)
+        log::info!("Aborting synchronize music directory task");
+        synchronize_music_dir_task.abort();
+        Some(synchronize_music_dir_task)
     }
 
     pub fn search_tracks(&self, input: &str) {
