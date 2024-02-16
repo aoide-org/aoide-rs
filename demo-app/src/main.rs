@@ -522,7 +522,7 @@ impl eframe::App for App {
                     if ui
                         .add_enabled(
                             collection_state.is_ready()
-                                && self.library.pending_rescan_collection_task().is_none(),
+                                && !self.library.has_pending_rescan_collection_task(),
                             Button::new("Rescan collection"),
                         )
                         .clicked()

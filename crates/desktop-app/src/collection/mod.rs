@@ -3,17 +3,24 @@
 
 use std::{
     borrow::Cow,
+    future::Future,
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
     time::Instant,
 };
 
+use discro::{Publisher, Subscriber};
 use url::Url;
 
-use aoide_backend_embedded::batch::{
-    self,
-    synchronize_collection_vfs::{
-        OrphanedMediaSources, UnsynchronizedTracks, UntrackedFiles, UntrackedMediaSources,
+use aoide_backend_embedded::{
+    batch::{
+        self,
+        synchronize_collection_vfs::{
+            OrphanedMediaSources, Outcome, Progress, UnsynchronizedTracks, UntrackedFiles,
+            UntrackedMediaSources,
+        },
     },
+    media::predefined_faceted_tag_mapping_config,
 };
 use aoide_core::{
     collection::{Collection, Entity, EntityUid, MediaSourceConfig},
@@ -844,4 +851,92 @@ where
     )
     .await
     .map_err(Into::into)
+}
+
+#[derive(Debug)]
+pub struct SynchronizeVfsTask {
+    started_at: Instant,
+    progress: Subscriber<Option<Progress>>,
+    join_handle: tokio::task::JoinHandle<Option<Outcome>>,
+}
+
+impl SynchronizeVfsTask {
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
+    pub fn spawn(
+        rt: &tokio::runtime::Handle,
+        handle: Handle,
+        collection: Arc<ObservableState>,
+    ) -> Self {
+        let started_at = Instant::now();
+        let progress_pub = Publisher::new(None);
+        let progress = progress_pub.subscribe();
+        let report_progress_fn = {
+            // TODO: How to avoid wrapping the publisher?
+            let progress_pub = Arc::new(Mutex::new(progress_pub));
+            move |progress: Option<Progress>| {
+                progress_pub.lock().unwrap().write(progress);
+            }
+        };
+        let task = synchronize_vfs_task(handle, collection, report_progress_fn);
+        let join_handle = rt.spawn(task);
+        Self {
+            started_at,
+            progress,
+            join_handle,
+        }
+    }
+
+    #[must_use]
+    pub const fn started_at(&self) -> Instant {
+        self.started_at
+    }
+
+    #[must_use]
+    pub const fn progress(&self) -> &Subscriber<Option<Progress>> {
+        &self.progress
+    }
+
+    pub fn abort(&self) {
+        self.join_handle.abort();
+    }
+
+    #[must_use]
+    pub fn is_finished(&self) -> bool {
+        self.join_handle.is_finished()
+    }
+
+    pub async fn join(self) -> anyhow::Result<Option<Outcome>> {
+        self.join_handle.await.map_err(Into::into)
+    }
+}
+
+#[allow(clippy::manual_async_fn)] // Required to specify the trait bounds of the returned `Future` explicitly.
+fn synchronize_vfs_task(
+    handle: Handle,
+    state: Arc<ObservableState>,
+    mut report_progress_fn: impl FnMut(Option<Progress>) + Clone + Send + 'static,
+) -> impl Future<Output = Option<Outcome>> + Send + 'static {
+    async move {
+        log::debug!("Synchronizing collection...");
+        let import_track_config = ImportTrackConfig {
+            // TODO: Customize faceted tag mapping
+            faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
+            ..Default::default()
+        };
+        let outcome = {
+            let mut report_progress_fn = report_progress_fn.clone();
+            let report_progress_fn = move |progress| {
+                report_progress_fn(Some(progress));
+            };
+            state
+                .synchronize_vfs(&handle, import_track_config, report_progress_fn)
+                .await
+        };
+        report_progress_fn(None);
+        log::debug!("Synchronizing collection finished: {outcome:?}");
+        // Implicitly refresh the state from the database to reflect the changes.
+        state.refresh_from_db(&handle).await;
+        outcome
+    }
 }

@@ -5,7 +5,10 @@ use std::{num::NonZeroUsize, path::PathBuf, sync::Arc};
 
 use aoide::{
     api::media::source::ResolveUrlFromContentPath,
-    desktop_app::{fs::DirPath, track::repo_search::FetchMoreSucceeded, Handle, ObservableReader},
+    desktop_app::{
+        collection::SynchronizeVfsTask, fs::DirPath, track::repo_search::FetchMoreSucceeded,
+        Handle, ObservableReader,
+    },
 };
 
 use crate::NoReceiverForEvent;
@@ -97,7 +100,7 @@ impl LibraryState {
 pub struct Library {
     handle: Handle,
     state: LibraryState,
-    pending_rescan_collection_task: Option<collection::RescanTask>,
+    pending_rescan_collection_task: Option<SynchronizeVfsTask>,
 }
 
 impl Library {
@@ -145,7 +148,7 @@ impl Library {
         log::info!("Spawning rescan collection task");
         let handle = self.handle.clone();
         let collection = Arc::clone(&self.state.collection);
-        let rescan_collection_task = collection::RescanTask::spawn(rt, handle, collection);
+        let rescan_collection_task = SynchronizeVfsTask::spawn(rt, handle, collection);
         self.pending_rescan_collection_task = Some(rescan_collection_task);
         true
     }
@@ -162,11 +165,11 @@ impl Library {
         changed
     }
 
-    pub const fn pending_rescan_collection_task(&self) -> Option<&collection::RescanTask> {
-        self.pending_rescan_collection_task.as_ref()
+    pub const fn has_pending_rescan_collection_task(&self) -> bool {
+        self.pending_rescan_collection_task.is_some()
     }
 
-    pub fn abort_pending_rescan_collection_task(&mut self) -> Option<collection::RescanTask> {
+    pub fn abort_pending_rescan_collection_task(&mut self) -> Option<SynchronizeVfsTask> {
         let pending_rescan_collection_task = self.pending_rescan_collection_task.take();
         let Some(rescan_collection_task) = pending_rescan_collection_task else {
             return None;
@@ -191,9 +194,8 @@ impl Library {
             resolve_url_from_content_path,
         };
         // Argument is consumed when updating succeeds
-        if self.state.track_search.update_params(&mut params) {
-            log::debug!("Track search params updated: {params:?}");
-        } else {
+        log::debug!("Updating track search params: {params:?}");
+        if !self.state.track_search.update_params(&mut params) {
             log::debug!("Track search params not updated: {params:?}");
         }
     }
