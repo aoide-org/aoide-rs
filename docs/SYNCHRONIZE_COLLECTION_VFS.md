@@ -1,7 +1,7 @@
 <!-- SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al. -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
-# Rescan collection CFS
+# Synchronize collection VFS
 
 _aoide_ is built to import metadata from audio files and store it in an internal database that could
 be queried. _aoide_ is also able to detect modifications of files and re-import the affected
