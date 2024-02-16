@@ -476,7 +476,7 @@ impl eframe::App for App {
                     ui.label("");
                     if ui
                         .add_enabled(
-                            settings_state.music_dir.is_some(),
+                            self.library.could_reset_music_dir(),
                             Button::new("Reset music directory"),
                         )
                         .clicked()
@@ -521,8 +521,7 @@ impl eframe::App for App {
                     ui.label("");
                     if ui
                         .add_enabled(
-                            collection_state.is_ready()
-                                && !self.library.has_pending_rescan_collection_task(),
+                            self.library.could_spawn_rescan_collection_task(),
                             Button::new("Rescan collection"),
                         )
                         .clicked()
@@ -556,7 +555,7 @@ impl eframe::App for App {
                 .show(ui, |ui| {
                     if ui
                         .add_enabled(
-                            track_search_state.can_fetch_more().unwrap_or(false),
+                            self.library.could_spawn_fetch_more_track_search_results(),
                             Button::new("Fetch more"),
                         )
                         .clicked()

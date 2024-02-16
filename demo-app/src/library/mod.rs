@@ -131,8 +131,21 @@ impl Library {
         }
     }
 
+    pub fn could_reset_music_dir(&self) -> bool {
+        self.state()
+            .settings()
+            .read_observable()
+            .music_dir
+            .is_some()
+    }
+
     pub fn reset_music_dir(&self) {
         self.update_music_dir(None);
+    }
+
+    pub fn could_spawn_rescan_collection_task(&self) -> bool {
+        self.pending_rescan_collection_task.is_none()
+            && self.state().collection().read_observable().is_ready()
     }
 
     pub fn spawn_rescan_collection_task(&mut self, rt: &tokio::runtime::Handle) -> bool {
@@ -165,10 +178,6 @@ impl Library {
         changed
     }
 
-    pub const fn has_pending_rescan_collection_task(&self) -> bool {
-        self.pending_rescan_collection_task.is_some()
-    }
-
     pub fn abort_pending_rescan_collection_task(&mut self) -> Option<SynchronizeVfsTask> {
         let pending_rescan_collection_task = self.pending_rescan_collection_task.take();
         let Some(rescan_collection_task) = pending_rescan_collection_task else {
@@ -198,6 +207,14 @@ impl Library {
         if !self.state.track_search.update_params(&mut params) {
             log::debug!("Track search params not updated: {params:?}");
         }
+    }
+
+    pub fn could_spawn_fetch_more_track_search_results(&self) -> bool {
+        self.state
+            .track_search()
+            .read_observable()
+            .can_fetch_more()
+            .unwrap_or(false)
     }
 
     pub fn spawn_fetch_more_track_search_results<E>(
