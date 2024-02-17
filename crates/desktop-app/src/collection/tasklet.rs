@@ -29,10 +29,10 @@ async fn update_music_dir(
         // Unchanged
         return;
     }
-    if let Some((memo, task)) = observable_state.refresh_from_db_task(handle) {
+    if let Some((task, continuation)) = observable_state.try_refresh_from_db_task(&handle) {
         log::debug!("Refreshing from DB after updating music directory");
         let result = task.await;
-        observable_state.refresh_from_db_task_finished(memo, result);
+        observable_state.refresh_from_db_task_completed(result, continuation);
     }
     // After succeeded read the actual music directory from the collection state
     // and feed it back into the settings state.

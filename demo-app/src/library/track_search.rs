@@ -24,6 +24,21 @@ use super::{LibraryEvent, LibraryEventEmitter};
 // Re-exports
 pub use track::repo_search::*;
 
+#[derive(Debug)]
+pub enum Event {
+    StateChanged,
+    FetchMoreTaskCompleted {
+        result: FetchMoreResult,
+        continuation: FetchMoreTaskContinuation,
+    },
+}
+
+impl From<Event> for LibraryEvent {
+    fn from(event: Event) -> Self {
+        Self::TrackSearch(event)
+    }
+}
+
 pub type StateSubscriber = Subscriber<State>;
 
 pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitter: E)
@@ -33,9 +48,7 @@ where
     // The first event is always emitted immediately.
     loop {
         drop(subscriber.read_ack());
-        if let Err(NoReceiverForEvent) =
-            event_emitter.emit_event(LibraryEvent::TrackSearchStateChanged)
-        {
+        if let Err(NoReceiverForEvent) = event_emitter.emit_event(Event::StateChanged.into()) {
             log::info!("Stop watching track search state after event receiver has been dropped");
             break;
         };

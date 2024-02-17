@@ -41,8 +41,13 @@ impl AppMessageSender {
         Self { ctx, message_tx }
     }
 
-    fn on_action(&self, action: AppAction) {
-        if let Err(NoReceiverForAppMessage(msg)) = self.send_message(AppMessage::Action(action)) {
+    fn on_action<T>(&self, action: T)
+    where
+        T: Into<AppAction>,
+    {
+        if let Err(NoReceiverForAppMessage(msg)) =
+            self.send_message(AppMessage::Action(action.into()))
+        {
             let AppMessage::Action(action) = msg else {
                 unreachable!()
             };
@@ -50,8 +55,13 @@ impl AppMessageSender {
         }
     }
 
-    fn emit_event(&self, event: AppEvent) -> Result<(), NoReceiverForEvent> {
-        if let Err(NoReceiverForAppMessage(msg)) = self.send_message(AppMessage::Event(event)) {
+    fn emit_event<T>(&self, event: T) -> Result<(), NoReceiverForEvent>
+    where
+        T: Into<AppEvent>,
+    {
+        if let Err(NoReceiverForAppMessage(msg)) =
+            self.send_message(AppMessage::Event(event.into()))
+        {
             let AppMessage::Event(event) = msg else {
                 unreachable!()
             };
@@ -211,11 +221,37 @@ enum AppInputEvent {
     TrackSearch(String),
 }
 
+impl From<AppInputEvent> for AppEvent {
+    fn from(event: AppInputEvent) -> Self {
+        Self::Input(event)
+    }
+}
+
 #[derive(Debug, Clone)]
 enum AppAction {
+    Library(LibraryAction),
+}
+
+impl From<AppAction> for AppMessage {
+    fn from(action: AppAction) -> Self {
+        Self::Action(action)
+    }
+}
+
+#[derive(Debug, Clone)]
+enum LibraryAction {
     MusicDirectory(MusicDirectoryAction),
     Collection(CollectionAction),
-    SearchTracks(SearchTracksAction),
+    TrackSearch(TrackSearchAction),
+}
+
+impl<T> From<T> for AppAction
+where
+    T: Into<LibraryAction>,
+{
+    fn from(action: T) -> Self {
+        Self::Library(action.into())
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -227,15 +263,33 @@ enum MusicDirectoryAction {
     AbortPendingSyncTask,
 }
 
+impl From<MusicDirectoryAction> for LibraryAction {
+    fn from(action: MusicDirectoryAction) -> Self {
+        Self::MusicDirectory(action)
+    }
+}
+
 #[derive(Debug, Clone)]
 enum CollectionAction {
     RefreshFromDb,
 }
 
+impl From<CollectionAction> for LibraryAction {
+    fn from(action: CollectionAction) -> Self {
+        Self::Collection(action)
+    }
+}
+
 #[derive(Debug, Clone)]
-enum SearchTracksAction {
+enum TrackSearchAction {
     Search(String),
     FetchMore,
+}
+
+impl From<TrackSearchAction> for LibraryAction {
+    fn from(action: TrackSearchAction) -> Self {
+        Self::TrackSearch(action)
+    }
 }
 
 /// App-level event
@@ -246,6 +300,12 @@ enum SearchTracksAction {
 enum AppEvent {
     Input(AppInputEvent),
     Library(LibraryEvent),
+}
+
+impl From<AppEvent> for AppMessage {
+    fn from(event: AppEvent) -> Self {
+        Self::Event(event)
+    }
 }
 
 #[allow(missing_debug_implementations)]
@@ -295,62 +355,66 @@ impl App {
 
     fn on_action(&mut self, ctx: &Context, action: AppAction) {
         match action {
-            AppAction::MusicDirectory(action) => match action {
-                MusicDirectoryAction::Reset => {
-                    self.library.reset_music_dir();
-                }
-                MusicDirectoryAction::Select => {
-                    if self.selecting_music_dir {
-                        log::debug!("Already selecting music directory");
-                        return;
+            AppAction::Library(action) => match action {
+                LibraryAction::MusicDirectory(action) => match action {
+                    MusicDirectoryAction::Reset => {
+                        self.library.reset_music_dir();
                     }
-                    let on_dir_path_chosen = {
-                        let message_sender = self.message_sender.clone();
-                        move |dir_path| {
-                            message_sender.on_action(AppAction::MusicDirectory(
-                                MusicDirectoryAction::Selected(dir_path),
-                            ));
+                    MusicDirectoryAction::Select => {
+                        if self.selecting_music_dir {
+                            log::debug!("Already selecting music directory");
+                            return;
                         }
-                    };
-                    choose_directory_path(&self.rt, &self.music_dir.as_deref(), on_dir_path_chosen);
-                    self.selecting_music_dir = true;
-                    // Reflect the state change in the UI.
-                    ctx.request_repaint();
-                }
-                MusicDirectoryAction::Selected(music_dir) => {
-                    self.selecting_music_dir = false;
-                    if let Some(music_dir) = music_dir {
-                        self.library.update_music_dir(Some(&music_dir));
-                    }
-                    // Reflect the state change in the UI.
-                    ctx.request_repaint();
-                }
-                MusicDirectoryAction::SpawnSyncTask => {
-                    if self.library.spawn_synchronize_music_dir_task(&self.rt) {
+                        let on_dir_path_chosen = {
+                            let message_sender = self.message_sender.clone();
+                            move |dir_path| {
+                                message_sender.on_action(MusicDirectoryAction::Selected(dir_path));
+                            }
+                        };
+                        choose_directory_path(
+                            &self.rt,
+                            &self.music_dir.as_deref(),
+                            on_dir_path_chosen,
+                        );
+                        self.selecting_music_dir = true;
                         // Reflect the state change in the UI.
                         ctx.request_repaint();
                     }
-                }
-                MusicDirectoryAction::AbortPendingSyncTask => {
-                    if self.library.abort_pending_synchronize_music_dir_task() {
+                    MusicDirectoryAction::Selected(music_dir) => {
+                        self.selecting_music_dir = false;
+                        if let Some(music_dir) = music_dir {
+                            self.library.update_music_dir(Some(&music_dir));
+                        }
                         // Reflect the state change in the UI.
                         ctx.request_repaint();
                     }
-                }
-            },
-            AppAction::Collection(action) => match action {
-                CollectionAction::RefreshFromDb => {
-                    self.library.refresh_collection_from_db(&self.rt);
-                }
-            },
-            AppAction::SearchTracks(action) => match action {
-                SearchTracksAction::Search(input) => {
-                    self.library.search_tracks(&input);
-                }
-                SearchTracksAction::FetchMore => {
-                    self.library
-                        .fetch_more_track_search_results(&self.rt, &self.message_sender);
-                }
+                    MusicDirectoryAction::SpawnSyncTask => {
+                        if self.library.spawn_synchronize_music_dir_task(&self.rt) {
+                            // Reflect the state change in the UI.
+                            ctx.request_repaint();
+                        }
+                    }
+                    MusicDirectoryAction::AbortPendingSyncTask => {
+                        if self.library.abort_pending_synchronize_music_dir_task() {
+                            // Reflect the state change in the UI.
+                            ctx.request_repaint();
+                        }
+                    }
+                },
+                LibraryAction::Collection(action) => match action {
+                    CollectionAction::RefreshFromDb => {
+                        self.library.refresh_collection_from_db(&self.rt);
+                    }
+                },
+                LibraryAction::TrackSearch(action) => match action {
+                    TrackSearchAction::Search(input) => {
+                        self.library.search_tracks(&input);
+                    }
+                    TrackSearchAction::FetchMore => {
+                        self.library
+                            .fetch_more_track_search_results(&self.rt, &self.message_sender);
+                    }
+                },
             },
         }
     }
@@ -409,64 +473,69 @@ impl App {
                 }
                 self.collection_state = new_state;
             }
-            LibraryEvent::TrackSearchStateChanged => {
-                debug_assert_eq!(
-                    self.track_search_list.as_ref().map(Vec::len),
-                    self.track_search_memo
-                        .fetch
-                        .fetched_entities
-                        .as_ref()
-                        .map(|memo| memo.offset)
-                );
-                let state = self.library.state().track_search().read_observable();
-                let memo_updated = state.update_memo(&mut self.track_search_memo);
-                match memo_updated {
-                    aoide::desktop_app::track::repo_search::MemoUpdated::Unchanged => {
-                        log::debug!("Track search memo unchanged",);
-                    }
-                    aoide::desktop_app::track::repo_search::MemoUpdated::Changed {
-                        fetched_entities_diff,
-                    } => match fetched_entities_diff {
-                        aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
-                            log::debug!(
-                                "Track search memo changed: Replacing all fetched entities",
-                            );
-                            if let Some(fetched_entities) = state.fetched_entities() {
-                                let mut track_search_list =
-                                    self.track_search_list.take().unwrap_or_default();
-                                track_search_list.clear();
-                                track_search_list.extend(fetched_entities.iter().map(
-                                    |fetched_entity| {
-                                        track_to_string(&fetched_entity.entity.body.track)
-                                    },
-                                ));
-                                self.track_search_list = Some(track_search_list);
-                            } else {
-                                self.track_search_list = None;
+            LibraryEvent::TrackSearch(event) => match event {
+                library::track_search::Event::StateChanged => {
+                    debug_assert_eq!(
+                        self.track_search_list.as_ref().map(Vec::len),
+                        self.track_search_memo
+                            .fetch
+                            .fetched_entities
+                            .as_ref()
+                            .map(|memo| memo.offset)
+                    );
+                    let state = self.library.state().track_search().read_observable();
+                    let memo_updated = state.update_memo(&mut self.track_search_memo);
+                    match memo_updated {
+                        aoide::desktop_app::track::repo_search::MemoUpdated::Unchanged => {
+                            log::debug!("Track search memo unchanged",);
+                        }
+                        aoide::desktop_app::track::repo_search::MemoUpdated::Changed {
+                            fetched_entities_diff,
+                        } => match fetched_entities_diff {
+                            aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
+                                log::debug!(
+                                    "Track search memo changed: Replacing all fetched entities",
+                                );
+                                if let Some(fetched_entities) = state.fetched_entities() {
+                                    let mut track_search_list =
+                                        self.track_search_list.take().unwrap_or_default();
+                                    track_search_list.clear();
+                                    track_search_list.extend(fetched_entities.iter().map(
+                                        |fetched_entity| {
+                                            track_to_string(&fetched_entity.entity.body.track)
+                                        },
+                                    ));
+                                    self.track_search_list = Some(track_search_list);
+                                } else {
+                                    self.track_search_list = None;
+                                }
                             }
-                        }
-                        aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
-                            let Some(fetched_entities) = state.fetched_entities() else {
-                                unreachable!();
-                            };
-                            let track_search_list = self.track_search_list.as_mut().unwrap();
-                            debug_assert!(track_search_list.len() <= fetched_entities.len());
-                            let num_append_entities =
-                                fetched_entities.len() - track_search_list.len();
-                            log::debug!(
-                                        "Track search memo changed: Appending {num_append_entities} fetched entities");
-                            track_search_list.extend(
-                                (track_search_list.len()..fetched_entities.len())
-                                    .map(|i| format!("TODO: Track {i}")),
-                            );
-                        }
-                    },
-                };
-            }
-            LibraryEvent::FetchMoreTrackSearchResultsFinished(event) => {
-                log::debug!("Fetching more track search results finished: {event:?}");
-                self.library.fetch_more_track_search_results_finished(event);
-            }
+                            aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
+                                let Some(fetched_entities) = state.fetched_entities() else {
+                                    unreachable!();
+                                };
+                                let track_search_list = self.track_search_list.as_mut().unwrap();
+                                debug_assert!(track_search_list.len() <= fetched_entities.len());
+                                let num_append_entities =
+                                    fetched_entities.len() - track_search_list.len();
+                                log::debug!(
+                                            "Track search memo changed: Appending {num_append_entities} fetched entities");
+                                track_search_list.extend(
+                                    (track_search_list.len()..fetched_entities.len())
+                                        .map(|i| format!("TODO: Track {i}")),
+                                );
+                            }
+                        },
+                    }
+                }
+                library::track_search::Event::FetchMoreTaskCompleted {
+                    result,
+                    continuation,
+                } => {
+                    self.library
+                        .track_search_fetch_more_task_completed(result, continuation);
+                }
+            },
         }
     }
 }
@@ -527,7 +596,7 @@ impl eframe::App for App {
                         .clicked()
                     {
                         message_sender
-                            .on_action(AppAction::MusicDirectory(MusicDirectoryAction::Select));
+                            .on_action(MusicDirectoryAction::Select);
                     }
                     ui.label("");
                     if ui
@@ -540,7 +609,7 @@ impl eframe::App for App {
                         .clicked()
                     {
                         message_sender
-                            .on_action(AppAction::MusicDirectory(MusicDirectoryAction::Reset));
+                            .on_action(MusicDirectoryAction::Reset);
                     }
                     ui.end_row();
 
@@ -591,9 +660,7 @@ impl eframe::App for App {
                             .on_hover_text("Stop the current synchronization task.")
                             .clicked()
                         {
-                            message_sender.on_action(AppAction::MusicDirectory(
-                                MusicDirectoryAction::AbortPendingSyncTask,
-                            ));
+                            message_sender.on_action(MusicDirectoryAction::AbortPendingSyncTask);
                         }
                     } else if ui
                         .add_enabled(
@@ -605,9 +672,7 @@ impl eframe::App for App {
                         )
                         .clicked()
                     {
-                        message_sender.on_action(AppAction::MusicDirectory(
-                            MusicDirectoryAction::SpawnSyncTask,
-                        ));
+                        message_sender.on_action(MusicDirectoryAction::SpawnSyncTask);
                     }
                     ui.end_row();
 
@@ -619,9 +684,8 @@ impl eframe::App for App {
                         )
                         .lost_focus()
                     {
-                        message_sender.on_action(AppAction::SearchTracks(
-                            SearchTracksAction::Search(self.track_search_input.clone()),
-                        ));
+                        message_sender.on_action(TrackSearchAction::Search(self.track_search_input.clone()),
+                        );
                     }
                     ui.end_row();
                 });
@@ -646,8 +710,7 @@ impl eframe::App for App {
                         )
                         .clicked()
                     {
-                        message_sender
-                            .on_action(AppAction::SearchTracks(SearchTracksAction::FetchMore));
+                        message_sender.on_action(TrackSearchAction::FetchMore);
                     }
                     ui.end_row();
 

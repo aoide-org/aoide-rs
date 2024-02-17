@@ -5,6 +5,7 @@ mod environment;
 use std::ops::Deref;
 
 use discro::{Publisher, Ref, Subscriber};
+use tokio::task::JoinHandle;
 
 pub use self::environment::{Environment, Handle, WeakHandle};
 
@@ -75,5 +76,34 @@ where
 {
     fn read_observable(&self) -> ObservableRef<'_, T> {
         self.read()
+    }
+}
+
+#[derive(Debug)]
+pub enum JoinedTask<T> {
+    Completed(T),
+    Cancelled,
+    Panicked(anyhow::Error),
+}
+
+impl<T> JoinedTask<T> {
+    pub async fn join(handle: JoinHandle<T>) -> Self {
+        match handle.await {
+            Ok(output) => Self::Completed(output),
+            Err(err) => {
+                if err.is_cancelled() {
+                    Self::Cancelled
+                } else {
+                    debug_assert!(err.is_panic());
+                    Self::Panicked(err.into())
+                }
+            }
+        }
+    }
+}
+
+impl<T> From<T> for JoinedTask<T> {
+    fn from(completed: T) -> Self {
+        Self::Completed(completed)
     }
 }

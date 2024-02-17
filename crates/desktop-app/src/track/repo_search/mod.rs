@@ -12,7 +12,7 @@ use aoide_core::{
 };
 use aoide_core_api::{track::search::Params, Pagination};
 
-use crate::{environment::Handle, Observable, ObservableReader, ObservableRef};
+use crate::{environment::Handle, JoinedTask, Observable, ObservableReader, ObservableRef};
 
 pub mod tasklet;
 
@@ -544,14 +544,17 @@ impl State {
         self.fetch.try_fetch_more()
     }
 
-    fn fetch_more_succeeded(&mut self, succeeded: FetchMoreSucceeded) -> bool {
-        let FetchMoreSucceeded {
+    fn fetch_more_task_joined(
+        &mut self,
+        joined_tasked: JoinedTask<FetchMoreResult>,
+        continuation: FetchMoreTaskContinuation,
+    ) -> bool {
+        let FetchMoreTaskContinuation {
             context,
             offset,
             offset_hash,
-            fetched,
-            can_fetch_more,
-        } = succeeded;
+            limit,
+        } = continuation;
         if context != self.context {
             log::warn!(
                 "Mismatching context after fetching succeeded: expected = {expected_context:?}, \
@@ -561,16 +564,24 @@ impl State {
             // No effect.
             return false;
         }
-        self.fetch
-            .fetch_more_succeeded(offset, offset_hash, fetched, can_fetch_more)
-    }
-
-    fn fetch_more_failed(&mut self, err: anyhow::Error) -> bool {
-        self.fetch.fetch_more_failed(err)
-    }
-
-    fn fetch_more_aborted(&mut self) -> bool {
-        self.fetch.fetch_more_aborted()
+        match joined_tasked {
+            JoinedTask::Cancelled => self.fetch.fetch_more_aborted(),
+            JoinedTask::Completed(Ok(fetched_entities)) => {
+                let can_fetch_more = if let Some(limit) = limit {
+                    limit.get() <= fetched_entities.len()
+                } else {
+                    false
+                };
+                self.fetch.fetch_more_succeeded(
+                    offset,
+                    offset_hash,
+                    fetched_entities,
+                    can_fetch_more,
+                )
+            }
+            JoinedTask::Completed(Err(err)) => self.fetch.fetch_more_failed(err.into()),
+            JoinedTask::Panicked(err) => self.fetch.fetch_more_failed(err),
+        }
     }
 
     fn reset_fetched(&mut self) -> bool {
@@ -579,70 +590,55 @@ impl State {
 }
 
 #[derive(Debug)]
-pub struct FetchMoreSucceeded {
+pub struct FetchMoreTaskContinuation {
     context: Context,
     offset: usize,
     offset_hash: u64,
-    fetched: Vec<Entity>,
-    can_fetch_more: bool,
+    limit: Option<NonZeroUsize>,
 }
 
-#[allow(clippy::cast_possible_truncation)]
-pub async fn fetch_more(
+pub type FetchMoreResult = aoide_backend_embedded::Result<Vec<Entity>>;
+
+fn try_fetch_more_task(
     handle: &Handle,
-    context: Context,
-    offset_hash: u64,
-    pagination: Pagination,
-) -> anyhow::Result<FetchMoreSucceeded> {
-    let Context {
-        collection_uid,
-        params,
-    } = &context;
-    let collection_uid = if let Some(collection_uid) = collection_uid {
-        collection_uid.clone()
-    } else {
-        anyhow::bail!("cannot fetch more without collection");
-    };
-    let params = params.clone();
-    let offset = pagination.offset.unwrap_or(0) as usize;
-    let limit = pagination.limit;
-    let fetched = search(handle.db_gatekeeper(), collection_uid, params, pagination).await?;
-    let can_fetch_more = if let Some(limit) = limit {
-        limit <= fetched.len() as u64
-    } else {
-        false
-    };
-    Ok(FetchMoreSucceeded {
-        context,
-        offset,
-        offset_hash,
-        fetched,
-        can_fetch_more,
-    })
-}
-
-#[derive(Debug)]
-struct FetchMore {
-    context: Context,
-    offset_hash: u64,
-    pagination: Pagination,
-}
-
-fn on_fetch_more(state: &mut State, fetch_limit: Option<NonZeroUsize>) -> Option<FetchMore> {
+    state: &mut State,
+    fetch_limit: Option<NonZeroUsize>,
+) -> Option<(
+    impl Future<Output = FetchMoreResult> + Send + 'static,
+    FetchMoreTaskContinuation,
+)> {
     if state.can_fetch_more() != Some(true) || !state.try_fetch_more() {
         // Not modified.
         return None;
     }
-    let context = state.context().clone();
-    let offset_hash = last_offset_hash_of_fetched_entities(state.fetched_entities());
-    let offset = state.fetched_entities().map(|slice| slice.len() as u64);
-    let limit = fetch_limit.map(|limit| limit.get() as u64);
+
+    let Context {
+        collection_uid,
+        params,
+    } = &state.context;
+    let collection_uid = collection_uid.clone()?;
+    let params = params.clone();
+    let offset = state
+        .fetched_entities()
+        .and_then(|slice| slice.len().try_into().ok());
+    let limit = fetch_limit.and_then(|limit| limit.get().try_into().ok());
     let pagination = Pagination { limit, offset };
-    Some(FetchMore {
+    let handle = handle.clone();
+    let task =
+        async move { search(handle.db_gatekeeper(), collection_uid, params, pagination).await };
+
+    let context = state.context.clone();
+    let offset = offset.unwrap_or(0) as usize;
+    let offset_hash = last_offset_hash_of_fetched_entities(state.fetched_entities());
+    let limit = fetch_limit;
+    let continuation = FetchMoreTaskContinuation {
         context,
+        offset,
         offset_hash,
-        pagination,
-    })
+        limit,
+    };
+
+    Some((task, continuation))
 }
 
 pub type StateSubscriber = discro::Subscriber<State>;
@@ -685,10 +681,18 @@ impl ObservableState {
         self.0.modify(|state| state.update_params(params))
     }
 
-    fn on_fetch_more(&self, fetch_limit: Option<NonZeroUsize>) -> Option<FetchMore> {
+    #[must_use]
+    pub fn try_fetch_more_task(
+        &self,
+        handle: &Handle,
+        fetch_limit: Option<NonZeroUsize>,
+    ) -> Option<(
+        impl Future<Output = FetchMoreResult> + Send + 'static,
+        FetchMoreTaskContinuation,
+    )> {
         let mut maybe_fetch_more = None;
         self.0.modify(|state| {
-            let Some(fetch_more) = on_fetch_more(state, fetch_limit) else {
+            let Some(fetch_more) = try_fetch_more_task(handle, state, fetch_limit) else {
                 return false;
             };
             maybe_fetch_more = Some(fetch_more);
@@ -697,36 +701,14 @@ impl ObservableState {
         maybe_fetch_more
     }
 
-    #[must_use]
-    pub fn fetch_more_task(
-        &self,
-        handle: &Handle,
-        fetch_limit: Option<NonZeroUsize>,
-    ) -> Option<impl Future<Output = anyhow::Result<FetchMoreSucceeded>> + Send + 'static> {
-        let Some(FetchMore {
-            context,
-            offset_hash,
-            pagination,
-        }) = self.on_fetch_more(fetch_limit)
-        else {
-            // No effect.
-            return None;
-        };
-        let handle = handle.clone();
-        let task = async move { self::fetch_more(&handle, context, offset_hash, pagination).await };
-        Some(task)
-    }
-
     #[allow(clippy::must_use_candidate)]
-    pub fn fetch_more_task_finished(
+    pub fn fetch_more_task_joined(
         &self,
-        result: Option<anyhow::Result<FetchMoreSucceeded>>,
+        joined_task: JoinedTask<FetchMoreResult>,
+        continuation: FetchMoreTaskContinuation,
     ) -> bool {
-        self.0.modify(|state| match result {
-            None => state.fetch_more_aborted(),
-            Some(Ok(succeeded)) => state.fetch_more_succeeded(succeeded),
-            Some(Err(err)) => state.fetch_more_failed(err),
-        })
+        self.0
+            .modify(|state| state.fetch_more_task_joined(joined_task, continuation))
     }
 
     #[allow(clippy::must_use_candidate)]

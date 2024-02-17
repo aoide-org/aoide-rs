@@ -5,10 +5,7 @@ use std::{num::NonZeroUsize, path::PathBuf, sync::Arc};
 
 use aoide::{
     api::media::source::ResolveUrlFromContentPath,
-    desktop_app::{
-        collection::SynchronizeVfsTask, fs::DirPath, track::repo_search::FetchMoreSucceeded,
-        Handle, ObservableReader,
-    },
+    desktop_app::{collection::SynchronizeVfsTask, fs::DirPath, Handle, ObservableReader},
 };
 use discro::Ref;
 
@@ -39,24 +36,17 @@ const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
     NonZeroUsize::MIN.saturating_add(TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE - 1);
 
 #[derive(Debug)]
-struct SynchronizeMusicDirFinished {
-    memo: collection::SynchronizeVfsMemo,
+struct SynchronizeMusicDirCompleted {
+    continuation: collection::SynchronizeVfsTaskContinuation,
     result:
         Option<anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>>,
 }
 
 #[derive(Debug)]
-pub struct FetchMoreTrackSearchResultsFinished {
-    result: Option<anyhow::Result<FetchMoreSucceeded>>,
-}
-
-#[derive(Debug)]
-#[allow(clippy::enum_variant_names)] // common `...Changed` suffix
 pub enum LibraryEvent {
     SettingsStateChanged,
     CollectionStateChanged,
-    TrackSearchStateChanged,
-    FetchMoreTrackSearchResultsFinished(FetchMoreTrackSearchResultsFinished),
+    TrackSearch(track_search::Event),
 }
 
 /// Library event emitter.
@@ -230,11 +220,9 @@ impl Library {
             }
         }
         log::info!("Spawning synchronize music directory task");
-        let handle = self.handle.clone();
-        let collection = Arc::clone(&self.state.collection);
         self.state.pending_synchronize_music_dir_task =
-            SynchronizeVfsTask::spawn(rt, handle, collection);
-        true
+            SynchronizeVfsTask::try_spawn(rt, &self.handle, &self.state.collection);
+        self.state.pending_synchronize_music_dir_task.is_some()
     }
 
     pub fn abort_pending_synchronize_music_dir_task(&mut self) -> bool {
@@ -282,10 +270,8 @@ impl Library {
     }
 
     pub fn refresh_collection_from_db(&self, rt: &tokio::runtime::Handle) -> bool {
-        let Some((pending_state, task)) = self
-            .state
-            .collection
-            .refresh_from_db_task(self.handle.clone())
+        let Some((task, continuation)) =
+            self.state.collection.try_refresh_from_db_task(&self.handle)
         else {
             return false;
         };
@@ -294,7 +280,7 @@ impl Library {
             let collection_state = Arc::clone(&self.state.collection);
             async move {
                 let result = task.await;
-                collection_state.refresh_from_db_task_finished(pending_state, result);
+                collection_state.refresh_from_db_task_completed(result, continuation);
             }
         });
         true
@@ -325,37 +311,41 @@ impl Library {
         &self,
         tokio_rt: &tokio::runtime::Handle,
         event_emitter: &E,
-    ) where
+    ) -> bool
+    where
         E: LibraryEventEmitter + Clone + 'static,
     {
-        let Some(fetch_more_task) = self
+        let Some((task, continuation)) = self
             .state
             .track_search
-            .fetch_more_task(&self.handle, Some(TRACK_REPO_SEARCH_PREFETCH_LIMIT))
+            .try_fetch_more_task(&self.handle, Some(TRACK_REPO_SEARCH_PREFETCH_LIMIT))
         else {
-            return;
+            return false;
         };
         log::debug!("Fetching more track search results");
         let event_emitter = event_emitter.clone();
         tokio_rt.spawn(async move {
-            let result = fetch_more_task.await;
-            let event = FetchMoreTrackSearchResultsFinished {
-                result: Some(result),
-            };
+            let result = task.await;
             if let Err(err) =
-                event_emitter.emit_event(LibraryEvent::FetchMoreTrackSearchResultsFinished(event))
+                event_emitter.emit_event(track_search::Event::FetchMoreTaskCompleted {
+                    result,
+                    continuation,
+            }.into())
             {
                 log::warn!("Failed to emit event after fetching more track search results finished: {err:?}");
             }
         });
+        true
     }
 
-    pub fn fetch_more_track_search_results_finished(
+    pub fn track_search_fetch_more_task_completed(
         &self,
-        event: FetchMoreTrackSearchResultsFinished,
+        result: track_search::FetchMoreResult,
+        continuation: track_search::FetchMoreTaskContinuation,
     ) {
-        let FetchMoreTrackSearchResultsFinished { result } = event;
-        self.state.track_search.fetch_more_task_finished(result);
+        self.state
+            .track_search
+            .fetch_more_task_joined(result.into(), continuation);
     }
 
     /// Spawn reactive background tasks

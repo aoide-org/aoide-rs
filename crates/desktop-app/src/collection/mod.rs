@@ -34,7 +34,9 @@ use aoide_core_api::{
 use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 
-use crate::{fs::DirPath, Environment, Handle, Observable, ObservableReader, ObservableRef};
+use crate::{
+    fs::DirPath, Environment, Handle, JoinedTask, Observable, ObservableReader, ObservableRef,
+};
 
 pub mod tasklet;
 
@@ -499,7 +501,7 @@ impl State {
     }
 
     #[must_use]
-    fn refresh_from_db(&mut self) -> Option<RefreshStateFromDbParams> {
+    fn try_refresh_from_db(&mut self) -> Option<RefreshStateFromDbParams> {
         let old_self = std::mem::replace(self, Self::Void);
         let (entity_uid, loaded_before) = match old_self {
             Self::Void => {
@@ -595,14 +597,16 @@ impl State {
 pub type StateSubscriber = discro::Subscriber<State>;
 
 #[derive(Debug)]
-pub struct RefreshFromDbMemo {
+pub struct RefreshFromDbTaskContinuation {
     pending_state: State,
 }
 
 #[derive(Debug)]
-pub struct SynchronizeVfsMemo {
+pub struct SynchronizeVfsTaskContinuation {
     pending_state: State,
 }
+
+pub type SynchronizeVfsResult = anyhow::Result<batch::synchronize_collection_vfs::Outcome>;
 
 /// Manages the mutable, observable state
 #[derive(Debug)]
@@ -662,19 +666,16 @@ impl ObservableState {
     }
 
     #[must_use]
-    pub fn refresh_from_db_task<E>(
+    pub fn try_refresh_from_db_task(
         &self,
-        env: E,
+        handle: &Handle,
     ) -> Option<(
-        RefreshFromDbMemo,
         impl Future<Output = anyhow::Result<State>> + Send + 'static,
-    )>
-    where
-        E: AsRef<Environment> + Send + 'static,
-    {
+        RefreshFromDbTaskContinuation,
+    )> {
         let mut pending_state_params = None;
         self.0.modify(|state| {
-            let Some(params) = state.refresh_from_db() else {
+            let Some(params) = state.try_refresh_from_db() else {
                 return false;
             };
             debug_assert!(state.is_pending());
@@ -685,18 +686,19 @@ impl ObservableState {
         let Some((pending_state, params)) = pending_state_params else {
             return None;
         };
-        let memo = RefreshFromDbMemo { pending_state };
-        let task = refresh_state_from_db(env, params);
-        Some((memo, task))
+        let handle = handle.clone();
+        let task = async move { refresh_state_from_db(handle, params).await };
+        let continuation = RefreshFromDbTaskContinuation { pending_state };
+        Some((task, continuation))
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn refresh_from_db_task_finished(
+    pub fn refresh_from_db_task_completed(
         &self,
-        memo: RefreshFromDbMemo,
         result: anyhow::Result<State>,
+        continuation: RefreshFromDbTaskContinuation,
     ) -> bool {
-        let RefreshFromDbMemo { pending_state } = memo;
+        let RefreshFromDbTaskContinuation { pending_state } = continuation;
         self.0.modify(|state| {
             if pending_state != *state {
                 log::warn!(
@@ -737,19 +739,16 @@ impl ObservableState {
     }
 
     #[must_use]
-    pub fn synchronize_vfs_task<E, ReportProgressFn>(
+    pub fn try_synchronize_vfs_task<ReportProgressFn>(
         &self,
-        env: E,
+        handle: &Handle,
         import_track_config: ImportTrackConfig,
         report_progress_fn: ReportProgressFn,
     ) -> Option<(
-        SynchronizeVfsMemo,
-        impl Future<Output = anyhow::Result<batch::synchronize_collection_vfs::Outcome>>
-            + Send
-            + 'static,
+        impl Future<Output = SynchronizeVfsResult> + Send + 'static,
+        SynchronizeVfsTaskContinuation,
     )>
     where
-        E: AsRef<Environment> + Send + 'static,
         ReportProgressFn:
             FnMut(batch::synchronize_collection_vfs::Progress) + Clone + Send + 'static,
     {
@@ -767,18 +766,21 @@ impl ObservableState {
             return None;
         };
         debug_assert!(matches!(pending_state, State::Synchronizing { .. }));
-        let memo = SynchronizeVfsMemo { pending_state };
-        let task = synchronize_vfs(env, entity_uid, import_track_config, report_progress_fn);
-        Some((memo, task))
+        let handle = handle.clone();
+        let task = async move {
+            synchronize_vfs(handle, entity_uid, import_track_config, report_progress_fn).await
+        };
+        let continuation = SynchronizeVfsTaskContinuation { pending_state };
+        Some((task, continuation))
     }
 
     #[must_use]
-    pub fn synchronize_vfs_task_finished(
+    pub fn synchronize_vfs_task_joined(
         &self,
-        memo: SynchronizeVfsMemo,
-        result: Option<anyhow::Result<batch::synchronize_collection_vfs::Outcome>>,
+        joined_task: JoinedTask<SynchronizeVfsResult>,
+        continuation: SynchronizeVfsTaskContinuation,
     ) -> Option<batch::synchronize_collection_vfs::Outcome> {
-        let SynchronizeVfsMemo { pending_state } = memo;
+        let SynchronizeVfsTaskContinuation { pending_state } = continuation;
         let mut outcome = None;
         self.0.modify(|state| {
             if pending_state != *state {
@@ -790,16 +792,15 @@ impl ObservableState {
             let State::Synchronizing { entity, pending_since: _ } = pending_state else {
                 unreachable!("illegal state");
             };
-            let next_state = match result {
-                None => {
-                    outcome = None;
+            let next_state = match joined_task {
+                JoinedTask::Cancelled => {
                     State::SynchronizingAborted { entity }
                 }
-                Some(Ok(ok)) => {
+                JoinedTask::Completed(Ok(ok)) => {
                     outcome = Some(ok);
                     State::SynchronizingSucceeded { entity }
                 }
-                Some(Err(err)) => {
+                JoinedTask::Completed(Err(err)) | JoinedTask::Panicked(err) => {
                     let error = err.to_string();
                     State::SynchronizingFailed { entity, error }
                 }
@@ -884,7 +885,7 @@ async fn synchronize_vfs<E, ReportProgressFn>(
     entity_uid: EntityUid,
     import_track_config: ImportTrackConfig,
     report_progress_fn: ReportProgressFn,
-) -> anyhow::Result<batch::synchronize_collection_vfs::Outcome>
+) -> SynchronizeVfsResult
 where
     E: AsRef<Environment> + Send + 'static,
     ReportProgressFn: FnMut(batch::synchronize_collection_vfs::Progress) + Clone + Send + 'static,
@@ -920,10 +921,10 @@ pub struct SynchronizeVfsTask {
 impl SynchronizeVfsTask {
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn spawn(
+    pub fn try_spawn(
         rt: &tokio::runtime::Handle,
-        handle: Handle,
-        state: Arc<ObservableState>,
+        handle: &Handle,
+        state: &Arc<ObservableState>,
     ) -> Option<Self> {
         let started_at = Instant::now();
         let progress_pub = Publisher::new(None);
@@ -935,18 +936,17 @@ impl SynchronizeVfsTask {
                 progress_pub.lock().unwrap().write(progress);
             }
         };
-        let (memo, task) = synchronize_vfs_task(handle, &state, report_progress_fn)?;
+        let (task, continuation) = try_synchronize_vfs_task(state, handle, report_progress_fn)?;
         let join_handle = rt.spawn(task);
         let abort_handle = join_handle.abort_handle();
+        let state = Arc::clone(state);
         // The join task is responsible for updating the state eventually and
         // cannot be aborted! It completes after the main task completed.
         let join_task = async move {
-            let result = join_handle.await.ok();
-            // TODO: Forward the outcome to the application by emitting an event.
-            let outcome = state.synchronize_vfs_task_finished(memo, result);
-            if let Some(outcome) = outcome {
-                log::debug!("Synchronize music directory task finished: {outcome:?}");
-            }
+            let joined_task = JoinedTask::join(join_handle).await;
+            log::debug!("Synchronize music directory task joined: {joined_task:?}");
+            let _outcome = state.synchronize_vfs_task_joined(joined_task, continuation);
+            // TODO: Forward the outcome to the application by emitting an event?
         };
         rt.spawn(join_task);
         Some(Self {
@@ -976,13 +976,13 @@ impl SynchronizeVfsTask {
     }
 }
 
-fn synchronize_vfs_task(
-    handle: Handle,
+fn try_synchronize_vfs_task(
     state: &ObservableState,
+    handle: &Handle,
     report_progress_fn: impl FnMut(Option<Progress>) + Clone + Send + 'static,
 ) -> Option<(
-    SynchronizeVfsMemo,
     impl Future<Output = anyhow::Result<Outcome>> + Send + 'static,
+    SynchronizeVfsTaskContinuation,
 )> {
     log::debug!("Synchronizing collection...");
     let import_track_config = ImportTrackConfig {
@@ -994,5 +994,5 @@ fn synchronize_vfs_task(
     let report_progress_fn = move |progress| {
         report_progress_fn(Some(progress));
     };
-    state.synchronize_vfs_task(handle, import_track_config, report_progress_fn)
+    state.try_synchronize_vfs_task(handle, import_track_config, report_progress_fn)
 }
