@@ -161,7 +161,7 @@ impl CurrentLibraryState<'_> {
     }
 
     pub fn could_search_tracks(&self) -> bool {
-        !self.collection().is_ready() && self.track_search().pending_since().is_none()
+        self.collection().is_ready() && self.track_search().pending_since().is_none()
     }
 
     pub fn could_spawn_fetch_more_track_search_results(&self) -> bool {
