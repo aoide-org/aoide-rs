@@ -69,7 +69,8 @@ pub fn on_should_prefetch(
                         observable_state.fetch_more_task(&handle, prefetch_limit)
                     {
                         log::debug!("Prefetching");
-                        observable_state.fetch_more_task_finished(prefetch_task.await);
+                        let result = prefetch_task.await;
+                        observable_state.fetch_more_task_finished(Some(result));
                     }
                 }
                 OnChanged::Continue

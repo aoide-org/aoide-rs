@@ -20,18 +20,19 @@ async fn update_music_dir(
     create_new_entity_if_not_found: bool,
     nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
 ) {
-    if !observable_state
-        .update_music_dir(
-            &handle,
-            collection_kind.map(Into::into),
-            music_dir,
-            create_new_entity_if_not_found,
-            nested_music_directories_strategy,
-        )
-        .await
-    {
+    if !observable_state.update_music_dir(
+        collection_kind.map(Into::into),
+        music_dir,
+        create_new_entity_if_not_found,
+        nested_music_directories_strategy,
+    ) {
         // Unchanged
         return;
+    }
+    if let Some((memo, task)) = observable_state.refresh_from_db_task(handle) {
+        log::debug!("Refreshing from DB after updating music directory");
+        let result = task.await;
+        observable_state.refresh_from_db_task_finished(memo, result);
     }
     // After succeeded read the actual music directory from the collection state
     // and feed it back into the settings state.

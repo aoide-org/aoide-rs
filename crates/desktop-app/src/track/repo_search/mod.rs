@@ -284,6 +284,29 @@ impl FetchState {
         };
         true
     }
+
+    fn fetch_more_aborted(&mut self) -> bool {
+        log::debug!("Fetching aborted");
+        let Self::Pending {
+            fetched_entities_before,
+            pending_since: _,
+        } = self
+        else {
+            // No effect
+            log::error!("Not pending when fetching aborted");
+            return false;
+        };
+        let fetched_entities_before = std::mem::take(fetched_entities_before);
+        if let Some(fetched_entities) = fetched_entities_before {
+            *self = Self::Ready {
+                fetched_entities,
+                can_fetch_more: true,
+            };
+        } else {
+            *self = Self::Initial;
+        }
+        true
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -546,6 +569,10 @@ impl State {
         self.fetch.fetch_more_failed(err)
     }
 
+    fn fetch_more_aborted(&mut self) -> bool {
+        self.fetch.fetch_more_aborted()
+    }
+
     fn reset_fetched(&mut self) -> bool {
         self.fetch.reset()
     }
@@ -691,10 +718,14 @@ impl ObservableState {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn fetch_more_task_finished(&self, result: anyhow::Result<FetchMoreSucceeded>) -> bool {
+    pub fn fetch_more_task_finished(
+        &self,
+        result: Option<anyhow::Result<FetchMoreSucceeded>>,
+    ) -> bool {
         self.0.modify(|state| match result {
-            Ok(succeeded) => state.fetch_more_succeeded(succeeded),
-            Err(err) => state.fetch_more_failed(err),
+            None => state.fetch_more_aborted(),
+            Some(Ok(succeeded)) => state.fetch_more_succeeded(succeeded),
+            Some(Err(err)) => state.fetch_more_failed(err),
         })
     }
 

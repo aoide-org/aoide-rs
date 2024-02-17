@@ -17,9 +17,7 @@ use directories::ProjectDirs;
 use eframe::{CreationContext, Frame};
 use egui::{Button, CentralPanel, Context, TextEdit, TopBottomPanel};
 
-use aoide::desktop_app::{
-    collection::State as CollectionState, fs::DirPath, ObservableReader as _,
-};
+use aoide::desktop_app::{collection, fs::DirPath, ObservableReader as _};
 
 mod library;
 #[allow(unused_imports)]
@@ -167,7 +165,7 @@ async fn main() {
 }
 
 #[must_use]
-const fn disable_synchronize_collection(state: &CollectionState) -> bool {
+const fn disable_synchronize_collection(state: &collection::State) -> bool {
     !state.is_ready()
 }
 
@@ -216,6 +214,7 @@ enum AppInputEvent {
 #[derive(Debug, Clone)]
 enum AppAction {
     MusicDirectory(MusicDirectoryAction),
+    Collection(CollectionAction),
     SearchTracks(SearchTracksAction),
 }
 
@@ -226,6 +225,11 @@ enum MusicDirectoryAction {
     Selected(Option<DirPath<'static>>),
     SpawnSyncTask,
     AbortPendingSyncTask,
+}
+
+#[derive(Debug, Clone)]
+enum CollectionAction {
+    RefreshFromDb,
 }
 
 #[derive(Debug, Clone)]
@@ -256,7 +260,7 @@ struct App {
     music_dir: Option<DirPath<'static>>,
     selecting_music_dir: bool,
 
-    collection_state: CollectionState,
+    collection_state: collection::State,
     track_search_input: String,
     track_search_memo: aoide::desktop_app::track::repo_search::Memo,
     // TODO: Replace string with "renderable" track item.
@@ -328,14 +332,15 @@ impl App {
                     }
                 }
                 MusicDirectoryAction::AbortPendingSyncTask => {
-                    if self
-                        .library
-                        .abort_pending_synchronize_music_dir_task()
-                        .is_some()
-                    {
+                    if self.library.abort_pending_synchronize_music_dir_task() {
                         // Reflect the state change in the UI.
                         ctx.request_repaint();
                     }
+                }
+            },
+            AppAction::Collection(action) => match action {
+                CollectionAction::RefreshFromDb => {
+                    self.library.refresh_collection_from_db(&self.rt);
                 }
             },
             AppAction::SearchTracks(action) => match action {
@@ -344,7 +349,7 @@ impl App {
                 }
                 SearchTracksAction::FetchMore => {
                     self.library
-                        .spawn_fetch_more_track_search_results(&self.rt, &self.message_sender);
+                        .fetch_more_track_search_results(&self.rt, &self.message_sender);
                 }
             },
         }
@@ -395,7 +400,10 @@ impl App {
                     "Collection state changed: {old_state:?} -> {new_state:?}",
                     old_state = self.collection_state,
                 );
-                if self.library.on_collection_state_changed(&new_state) {
+                if self
+                    .library
+                    .on_collection_state_changed(&self.rt, &new_state)
+                {
                     // Reflect the state change in the UI.
                     ctx.request_repaint();
                 }
@@ -455,13 +463,9 @@ impl App {
                     },
                 };
             }
-            LibraryEvent::FetchMoreTrackSearchResultsFinished(result) => {
-                log::debug!(
-                    "Fetching more track search results finished: {result:?}",
-                    result = result,
-                );
-                self.library
-                    .fetch_more_track_search_results_finished(result);
+            LibraryEvent::FetchMoreTrackSearchResultsFinished(event) => {
+                log::debug!("Fetching more track search results finished: {event:?}");
+                self.library.fetch_more_track_search_results_finished(event);
             }
         }
     }

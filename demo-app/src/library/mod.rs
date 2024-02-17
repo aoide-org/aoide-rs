@@ -39,12 +39,24 @@ const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
     NonZeroUsize::MIN.saturating_add(TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE - 1);
 
 #[derive(Debug)]
+struct SynchronizeMusicDirFinished {
+    memo: collection::SynchronizeVfsMemo,
+    result:
+        Option<anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>>,
+}
+
+#[derive(Debug)]
+pub struct FetchMoreTrackSearchResultsFinished {
+    result: Option<anyhow::Result<FetchMoreSucceeded>>,
+}
+
+#[derive(Debug)]
 #[allow(clippy::enum_variant_names)] // common `...Changed` suffix
 pub enum LibraryEvent {
     SettingsStateChanged,
     CollectionStateChanged,
     TrackSearchStateChanged,
-    FetchMoreTrackSearchResultsFinished(anyhow::Result<FetchMoreSucceeded>),
+    FetchMoreTrackSearchResultsFinished(FetchMoreTrackSearchResultsFinished),
 }
 
 /// Library event emitter.
@@ -220,12 +232,27 @@ impl Library {
         log::info!("Spawning synchronize music directory task");
         let handle = self.handle.clone();
         let collection = Arc::clone(&self.state.collection);
-        let synchronize_music_dir_task = SynchronizeVfsTask::spawn(rt, handle, collection);
-        self.state.pending_synchronize_music_dir_task = Some(synchronize_music_dir_task);
+        self.state.pending_synchronize_music_dir_task =
+            SynchronizeVfsTask::spawn(rt, handle, collection);
         true
     }
 
-    pub fn on_collection_state_changed(&mut self, collection_state: &collection::State) -> bool {
+    pub fn abort_pending_synchronize_music_dir_task(&mut self) -> bool {
+        let pending_synchronize_music_dir_task =
+            self.state.pending_synchronize_music_dir_task.take();
+        let Some(synchronize_music_dir_task) = pending_synchronize_music_dir_task else {
+            return false;
+        };
+        log::info!("Aborting synchronize music directory task");
+        synchronize_music_dir_task.abort();
+        true
+    }
+
+    pub fn on_collection_state_changed(
+        &mut self,
+        rt: &tokio::runtime::Handle,
+        collection_state: &collection::State,
+    ) -> bool {
         let mut changed = false;
         if self.state.pending_synchronize_music_dir_task.is_some()
             && !matches!(collection_state, collection::State::Synchronizing { .. })
@@ -235,18 +262,42 @@ impl Library {
             self.state.pending_synchronize_music_dir_task = None;
             changed = true;
         }
+        // Determine a follow-up action and execute it implicitly when reaching
+        // a dead end state.
+        // TODO: Store or report outcomes and errors from these dead end states.
+        match collection_state {
+            collection::State::LoadingFailed { .. }
+            | collection::State::RestoringOrCreatingFromMusicDirectoryFailed { .. }
+            | collection::State::NestedMusicDirectoriesConflict { .. } => {
+                self.reset_music_dir();
+            }
+            collection::State::SynchronizingAborted { .. }
+            | collection::State::SynchronizingSucceeded { .. }
+            | collection::State::SynchronizingFailed { .. } => {
+                self.refresh_collection_from_db(rt);
+            }
+            _ => {}
+        }
         changed
     }
 
-    pub fn abort_pending_synchronize_music_dir_task(&mut self) -> Option<SynchronizeVfsTask> {
-        let pending_synchronize_music_dir_task =
-            self.state.pending_synchronize_music_dir_task.take();
-        let Some(synchronize_music_dir_task) = pending_synchronize_music_dir_task else {
-            return None;
+    pub fn refresh_collection_from_db(&self, rt: &tokio::runtime::Handle) -> bool {
+        let Some((pending_state, task)) = self
+            .state
+            .collection
+            .refresh_from_db_task(self.handle.clone())
+        else {
+            return false;
         };
-        log::info!("Aborting synchronize music directory task");
-        synchronize_music_dir_task.abort();
-        Some(synchronize_music_dir_task)
+        log::debug!("Refreshing collection from DB");
+        rt.spawn({
+            let collection_state = Arc::clone(&self.state.collection);
+            async move {
+                let result = task.await;
+                collection_state.refresh_from_db_task_finished(pending_state, result);
+            }
+        });
+        true
     }
 
     pub fn search_tracks(&self, input: &str) {
@@ -270,7 +321,7 @@ impl Library {
         }
     }
 
-    pub fn spawn_fetch_more_track_search_results<E>(
+    pub fn fetch_more_track_search_results<E>(
         &self,
         tokio_rt: &tokio::runtime::Handle,
         event_emitter: &E,
@@ -284,22 +335,26 @@ impl Library {
         else {
             return;
         };
+        log::debug!("Fetching more track search results");
         let event_emitter = event_emitter.clone();
         tokio_rt.spawn(async move {
-            log::debug!("Fetching more track search results");
             let result = fetch_more_task.await;
+            let event = FetchMoreTrackSearchResultsFinished {
+                result: Some(result),
+            };
             if let Err(err) =
-                event_emitter.emit_event(LibraryEvent::FetchMoreTrackSearchResultsFinished(result))
+                event_emitter.emit_event(LibraryEvent::FetchMoreTrackSearchResultsFinished(event))
             {
-                log::warn!("Failed to emit event after Fetching more track search results finished: {err:?}");
+                log::warn!("Failed to emit event after fetching more track search results finished: {err:?}");
             }
         });
     }
 
     pub fn fetch_more_track_search_results_finished(
         &self,
-        result: anyhow::Result<FetchMoreSucceeded>,
+        event: FetchMoreTrackSearchResultsFinished,
     ) {
+        let FetchMoreTrackSearchResultsFinished { result } = event;
         self.state.track_search.fetch_more_task_finished(result);
     }
 

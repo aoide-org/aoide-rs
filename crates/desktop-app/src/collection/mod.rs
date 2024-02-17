@@ -292,6 +292,9 @@ pub enum State {
     SynchronizingSucceeded {
         entity: Entity,
     },
+    SynchronizingAborted {
+        entity: Entity,
+    },
     Ready {
         entity: Entity,
         summary: Summary,
@@ -308,6 +311,7 @@ impl State {
             | Self::LoadingFailed { .. }
             | Self::SynchronizingFailed { .. }
             | Self::SynchronizingSucceeded { .. }
+            | Self::SynchronizingAborted { .. }
             | Self::Ready { .. } => None,
             Self::RestoringOrCreatingFromMusicDirectory { pending_since, .. }
             | Self::Loading { pending_since, .. }
@@ -348,6 +352,7 @@ impl State {
             Self::Synchronizing { entity, .. }
             | Self::SynchronizingFailed { entity, .. }
             | Self::SynchronizingSucceeded { entity, .. }
+            | Self::SynchronizingAborted { entity, .. }
             | Self::Ready { entity, .. } => vfs_music_dir(&entity.body),
             Self::RestoringOrCreatingFromMusicDirectory {
                 state: RestoreOrCreateState { music_dir, .. },
@@ -389,6 +394,7 @@ impl State {
             Self::Synchronizing { entity, .. }
             | Self::SynchronizingFailed { entity, .. }
             | Self::SynchronizingSucceeded { entity, .. }
+            | Self::SynchronizingAborted { entity, .. }
             | Self::Ready { entity, .. } => Some((&entity.hdr.uid, Some(&entity.body))),
         }
     }
@@ -413,6 +419,7 @@ impl State {
             | Self::Loading { .. }
             | Self::Synchronizing { .. }
             | Self::SynchronizingSucceeded { .. }
+            | Self::SynchronizingAborted { .. }
             | Self::Ready { .. } => None,
         }
     }
@@ -518,7 +525,8 @@ impl State {
             } => (entity_uid, loaded_before),
             Self::Ready { entity, .. }
             | Self::SynchronizingFailed { entity, .. }
-            | Self::SynchronizingSucceeded { entity, .. } => {
+            | Self::SynchronizingSucceeded { entity, .. }
+            | Self::SynchronizingAborted { entity, .. } => {
                 (entity.raw.hdr.uid, Some(entity.raw.body))
             }
             _ => {
@@ -586,6 +594,16 @@ impl State {
 
 pub type StateSubscriber = discro::Subscriber<State>;
 
+#[derive(Debug)]
+pub struct RefreshFromDbMemo {
+    pending_state: State,
+}
+
+#[derive(Debug)]
+pub struct SynchronizeVfsMemo {
+    pending_state: State,
+}
+
 /// Manages the mutable, observable state
 #[derive(Debug)]
 pub struct ObservableState(Observable<State>);
@@ -614,9 +632,8 @@ impl ObservableState {
         self.0.modify(State::reset)
     }
 
-    pub async fn update_music_dir<'a>(
-        &'a self,
-        handle: &'a Handle,
+    pub fn update_music_dir(
+        &self,
         kind: Option<Cow<'static, str>>,
         new_music_dir: Option<DirPath<'static>>,
         create_new_entity_if_not_found: bool,
@@ -641,14 +658,22 @@ impl ObservableState {
             log::debug!("Music directory unchanged");
             return false;
         }
-        log::debug!("Refreshing from database after music directory changed");
-        self.refresh_from_db(handle).await;
         true
     }
 
-    pub async fn refresh_from_db(&self, env: &Environment) -> bool {
+    #[must_use]
+    pub fn refresh_from_db_task<E>(
+        &self,
+        env: E,
+    ) -> Option<(
+        RefreshFromDbMemo,
+        impl Future<Output = anyhow::Result<State>> + Send + 'static,
+    )>
+    where
+        E: AsRef<Environment> + Send + 'static,
+    {
         let mut pending_state_params = None;
-        let modified = self.0.modify(|state| {
+        self.0.modify(|state| {
             let Some(params) = state.refresh_from_db() else {
                 return false;
             };
@@ -658,17 +683,28 @@ impl ObservableState {
             true
         });
         let Some((pending_state, params)) = pending_state_params else {
-            return modified;
+            return None;
         };
-        let refreshed_state_result = refresh_state_from_db(env, params).await;
+        let memo = RefreshFromDbMemo { pending_state };
+        let task = refresh_state_from_db(env, params);
+        Some((memo, task))
+    }
+
+    #[allow(clippy::must_use_candidate)]
+    pub fn refresh_from_db_task_finished(
+        &self,
+        memo: RefreshFromDbMemo,
+        result: anyhow::Result<State>,
+    ) -> bool {
+        let RefreshFromDbMemo { pending_state } = memo;
         self.0.modify(|state| {
             if pending_state != *state {
                 log::warn!(
-                    "State changed while refreshing from database: expected {pending_state:?}, actual {state:?} - discarding {refreshed_state_result:?}",
+                    "State changed while refreshing from database: expected {pending_state:?}, actual {state:?} - discarding {result:?}",
                 );
                 return false;
             }
-            let next_state = match refreshed_state_result {
+            let next_state = match result {
                 Ok(next_state) => {
                     if *state == next_state {
                         // Unchanged.
@@ -697,17 +733,23 @@ impl ObservableState {
             debug_assert_ne!(*state, next_state);
             *state = next_state;
             true
-
         })
     }
 
-    pub async fn synchronize_vfs<ReportProgressFn>(
+    #[must_use]
+    pub fn synchronize_vfs_task<E, ReportProgressFn>(
         &self,
-        env: &Environment,
+        env: E,
         import_track_config: ImportTrackConfig,
         report_progress_fn: ReportProgressFn,
-    ) -> Option<batch::synchronize_collection_vfs::Outcome>
+    ) -> Option<(
+        SynchronizeVfsMemo,
+        impl Future<Output = anyhow::Result<batch::synchronize_collection_vfs::Outcome>>
+            + Send
+            + 'static,
+    )>
     where
+        E: AsRef<Environment> + Send + 'static,
         ReportProgressFn:
             FnMut(batch::synchronize_collection_vfs::Progress) + Clone + Send + 'static,
     {
@@ -725,8 +767,18 @@ impl ObservableState {
             return None;
         };
         debug_assert!(matches!(pending_state, State::Synchronizing { .. }));
-        let synchronize_vfs_result =
-            synchronize_vfs(env, entity_uid, import_track_config, report_progress_fn).await;
+        let memo = SynchronizeVfsMemo { pending_state };
+        let task = synchronize_vfs(env, entity_uid, import_track_config, report_progress_fn);
+        Some((memo, task))
+    }
+
+    #[must_use]
+    pub fn synchronize_vfs_task_finished(
+        &self,
+        memo: SynchronizeVfsMemo,
+        result: Option<anyhow::Result<batch::synchronize_collection_vfs::Outcome>>,
+    ) -> Option<batch::synchronize_collection_vfs::Outcome> {
+        let SynchronizeVfsMemo { pending_state } = memo;
         let mut outcome = None;
         self.0.modify(|state| {
             if pending_state != *state {
@@ -738,12 +790,16 @@ impl ObservableState {
             let State::Synchronizing { entity, pending_since: _ } = pending_state else {
                 unreachable!("illegal state");
             };
-            let next_state = match synchronize_vfs_result {
-                Ok(ok) => {
+            let next_state = match result {
+                None => {
+                    outcome = None;
+                    State::SynchronizingAborted { entity }
+                }
+                Some(Ok(ok)) => {
                     outcome = Some(ok);
                     State::SynchronizingSucceeded { entity }
                 }
-                Err(err) => {
+                Some(Err(err)) => {
                     let error = err.to_string();
                     State::SynchronizingFailed { entity, error }
                 }
@@ -776,16 +832,16 @@ struct RefreshStateFromDbParams {
     restore_or_create: Option<RestoreOrCreateState>,
 }
 
-async fn refresh_state_from_db<'a>(
-    env: &Environment,
-    params: RefreshStateFromDbParams,
-) -> anyhow::Result<State> {
+async fn refresh_state_from_db<E>(env: E, params: RefreshStateFromDbParams) -> anyhow::Result<State>
+where
+    E: AsRef<Environment> + Send + 'static,
+{
     let RefreshStateFromDbParams {
         entity_uid,
         restore_or_create,
     } = params;
     let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
-        try_refresh_entity_from_db(env, entity_uid.clone()).await?
+        try_refresh_entity_from_db(env.as_ref(), entity_uid.clone()).await?
     } else {
         None
     };
@@ -820,16 +876,17 @@ async fn refresh_state_from_db<'a>(
             uid = entity_with_summary.entity.hdr.uid
         );
     }
-    restore_or_create.restore_or_create(env).await
+    restore_or_create.restore_or_create(env.as_ref()).await
 }
 
-async fn synchronize_vfs<ReportProgressFn>(
-    env: &Environment,
+async fn synchronize_vfs<E, ReportProgressFn>(
+    env: E,
     entity_uid: EntityUid,
     import_track_config: ImportTrackConfig,
     report_progress_fn: ReportProgressFn,
 ) -> anyhow::Result<batch::synchronize_collection_vfs::Outcome>
 where
+    E: AsRef<Environment> + Send + 'static,
     ReportProgressFn: FnMut(batch::synchronize_collection_vfs::Progress) + Clone + Send + 'static,
 {
     let params = batch::synchronize_collection_vfs::Params {
@@ -843,7 +900,7 @@ where
         unsynchronized_tracks: UnsynchronizedTracks::Find,
     };
     batch::synchronize_collection_vfs::synchronize_collection_vfs(
-        env.db_gatekeeper(),
+        env.as_ref().db_gatekeeper(),
         entity_uid,
         params,
         std::convert::identity,
@@ -857,7 +914,7 @@ where
 pub struct SynchronizeVfsTask {
     started_at: Instant,
     progress: Subscriber<Option<Progress>>,
-    join_handle: tokio::task::JoinHandle<Option<Outcome>>,
+    abort_handle: tokio::task::AbortHandle,
 }
 
 impl SynchronizeVfsTask {
@@ -866,8 +923,8 @@ impl SynchronizeVfsTask {
     pub fn spawn(
         rt: &tokio::runtime::Handle,
         handle: Handle,
-        collection: Arc<ObservableState>,
-    ) -> Self {
+        state: Arc<ObservableState>,
+    ) -> Option<Self> {
         let started_at = Instant::now();
         let progress_pub = Publisher::new(None);
         let progress = progress_pub.subscribe();
@@ -878,13 +935,25 @@ impl SynchronizeVfsTask {
                 progress_pub.lock().unwrap().write(progress);
             }
         };
-        let task = synchronize_vfs_task(handle, collection, report_progress_fn);
+        let (memo, task) = synchronize_vfs_task(handle, &state, report_progress_fn)?;
         let join_handle = rt.spawn(task);
-        Self {
+        let abort_handle = join_handle.abort_handle();
+        // The join task is responsible for updating the state eventually and
+        // cannot be aborted! It completes after the main task completed.
+        let join_task = async move {
+            let result = join_handle.await.ok();
+            // TODO: Forward the outcome to the application by emitting an event.
+            let outcome = state.synchronize_vfs_task_finished(memo, result);
+            if let Some(outcome) = outcome {
+                log::debug!("Synchronize music directory task finished: {outcome:?}");
+            }
+        };
+        rt.spawn(join_task);
+        Some(Self {
             started_at,
             progress,
-            join_handle,
-        }
+            abort_handle,
+        })
     }
 
     #[must_use]
@@ -897,46 +966,33 @@ impl SynchronizeVfsTask {
         &self.progress
     }
 
-    pub fn abort(&self) {
-        self.join_handle.abort();
-    }
-
     #[must_use]
     pub fn is_finished(&self) -> bool {
-        self.join_handle.is_finished()
+        self.abort_handle.is_finished()
     }
 
-    pub async fn join(self) -> anyhow::Result<Option<Outcome>> {
-        self.join_handle.await.map_err(Into::into)
+    pub fn abort(&self) {
+        self.abort_handle.abort();
     }
 }
 
-#[allow(clippy::manual_async_fn)] // Required to specify the trait bounds of the returned `Future` explicitly.
 fn synchronize_vfs_task(
     handle: Handle,
-    state: Arc<ObservableState>,
-    mut report_progress_fn: impl FnMut(Option<Progress>) + Clone + Send + 'static,
-) -> impl Future<Output = Option<Outcome>> + Send + 'static {
-    async move {
-        log::debug!("Synchronizing collection...");
-        let import_track_config = ImportTrackConfig {
-            // TODO: Customize faceted tag mapping
-            faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
-            ..Default::default()
-        };
-        let outcome = {
-            let mut report_progress_fn = report_progress_fn.clone();
-            let report_progress_fn = move |progress| {
-                report_progress_fn(Some(progress));
-            };
-            state
-                .synchronize_vfs(&handle, import_track_config, report_progress_fn)
-                .await
-        };
-        report_progress_fn(None);
-        log::debug!("Synchronizing collection finished: {outcome:?}");
-        // Implicitly refresh the state from the database to reflect the changes.
-        state.refresh_from_db(&handle).await;
-        outcome
-    }
+    state: &ObservableState,
+    report_progress_fn: impl FnMut(Option<Progress>) + Clone + Send + 'static,
+) -> Option<(
+    SynchronizeVfsMemo,
+    impl Future<Output = anyhow::Result<Outcome>> + Send + 'static,
+)> {
+    log::debug!("Synchronizing collection...");
+    let import_track_config = ImportTrackConfig {
+        // TODO: Customize faceted tag mapping
+        faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
+        ..Default::default()
+    };
+    let mut report_progress_fn = report_progress_fn.clone();
+    let report_progress_fn = move |progress| {
+        report_progress_fn(Some(progress));
+    };
+    state.synchronize_vfs_task(handle, import_track_config, report_progress_fn)
 }
