@@ -13,6 +13,21 @@ Pronounced /eɪˈiːdiː/ or _ay-ee-dee_ in English.
 
 Aimed at DJs who need to organize and search their music collections.
 
+## Quickstart
+
+Populate a database from your local music files and submit search queries.
+
+- [Install Rust](https://www.rust-lang.org/tools/install)
+
+- Run the `aoide-demo-app`:
+
+  ```sh
+  RUST_LOG=info cargo run -p aoide-demo-app
+  ```
+
+The SQLite database and settings file can be found in the corresponding config directory of your
+platform. The log messages will mention this location.
+
 ## Features
 
 - Designed for large _collections_ of _tracks_ and _playlists_
