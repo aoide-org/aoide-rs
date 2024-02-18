@@ -148,7 +148,7 @@ impl State {
         Ok(config)
     }
 
-    pub fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> bool {
+    pub fn try_update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> bool {
         if self.music_dir.as_ref() == music_dir {
             log::debug!("Unchanged music directory: {music_dir:?}");
             return false;
@@ -209,8 +209,8 @@ impl ObservableState {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> bool {
-        self.0.modify(|state| state.update_music_dir(music_dir))
+    pub fn try_update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> bool {
+        self.0.modify(|state| state.try_update_music_dir(music_dir))
     }
 }
 

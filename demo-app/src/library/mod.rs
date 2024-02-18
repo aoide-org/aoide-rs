@@ -95,7 +95,7 @@ pub struct State {
     pub last_observed_music_dir: Option<DirPath<'static>>,
     pub last_observed_collection: collection::State,
     pub last_observed_track_search_memo: track_search::Memo,
-    pub pending_synchronize_music_dir_task: Option<SynchronizeVfsTask>,
+    pub pending_music_dir_sync_task: Option<SynchronizeVfsTask>,
 }
 
 impl State {
@@ -105,19 +105,19 @@ impl State {
             last_observed_music_dir,
             last_observed_collection,
             last_observed_track_search_memo,
-            pending_synchronize_music_dir_task,
+            pending_music_dir_sync_task,
         } = self;
         let StateObservables { track_search, .. } = observables;
         let music_dir = last_observed_music_dir.as_ref();
         let collection = &last_observed_collection;
         let track_search_memo = &last_observed_track_search_memo;
-        let pending_synchronize_music_dir_task = pending_synchronize_music_dir_task.as_ref();
+        let pending_music_dir_sync_task = pending_music_dir_sync_task.as_ref();
         let track_search = track_search.read_lock();
         CurrentState {
             music_dir,
             collection,
             track_search_memo,
-            pending_synchronize_music_dir_task,
+            pending_music_dir_sync_task,
             track_search,
         }
     }
@@ -127,7 +127,7 @@ pub struct CurrentState<'a> {
     music_dir: Option<&'a DirPath<'static>>,
     collection: &'a collection::State,
     track_search_memo: &'a track_search::Memo,
-    pending_synchronize_music_dir_task: Option<&'a SynchronizeVfsTask>,
+    pending_music_dir_sync_task: Option<&'a SynchronizeVfsTask>,
     track_search: Ref<'a, track_search::State>,
 }
 
@@ -162,7 +162,7 @@ impl CurrentState<'_> {
         if !self.collection().is_ready() {
             return false;
         }
-        let Some(pending_task) = self.pending_synchronize_music_dir_task else {
+        let Some(pending_task) = self.pending_music_dir_sync_task else {
             return true;
         };
         pending_task.is_finished()
@@ -170,7 +170,7 @@ impl CurrentState<'_> {
 
     #[must_use]
     pub fn could_abort_synchronize_music_dir_task(&self) -> bool {
-        let Some(pending_task) = self.pending_synchronize_music_dir_task else {
+        let Some(pending_task) = self.pending_music_dir_sync_task else {
             return false;
         };
         !pending_task.is_finished()
@@ -246,7 +246,6 @@ impl Library {
     }
 
     pub fn on_collection_state_changed(&mut self) -> bool {
-        let mut changed = false;
         let new_state = {
             let new_state = self.state_observables.collection.read_lock();
             if *new_state == self.state.last_observed_collection {
@@ -262,16 +261,15 @@ impl Library {
             "Collection state changed: {old_state:?} -> {new_state:?}",
             old_state = self.state.last_observed_collection,
         );
-        if self.state.pending_synchronize_music_dir_task.is_some()
+        if self.state.pending_music_dir_sync_task.is_some()
             && !matches!(new_state, collection::State::Synchronizing { .. })
         {
             // The task will eventually finish.
             log::debug!("Resetting pending synchronize music directory task");
-            self.state.pending_synchronize_music_dir_task = None;
-            changed = true;
+            self.state.pending_music_dir_sync_task = None;
         }
         self.state.last_observed_collection = new_state;
-        changed
+        true
     }
 
     pub fn on_track_search_state_changed(&mut self) -> track_search::MemoUpdated {
@@ -280,7 +278,11 @@ impl Library {
     }
 
     pub fn try_update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> bool {
-        if self.state_observables.settings.update_music_dir(music_dir) {
+        if self
+            .state_observables
+            .settings
+            .try_update_music_dir(music_dir)
+        {
             log::info!("Music directory updated: {music_dir:?}");
             true
         } else {
@@ -293,7 +295,11 @@ impl Library {
         self.try_update_music_dir(None)
     }
 
-    pub fn try_spawn_synchronize_music_dir_task<E>(
+    pub fn try_reset_collection(&self) -> bool {
+        self.state_observables.collection.try_reset()
+    }
+
+    pub fn try_spawn_music_dir_sync_task<E>(
         &mut self,
         rt: &tokio::runtime::Handle,
         event_emitter: &E,
@@ -301,21 +307,19 @@ impl Library {
     where
         E: EventEmitter + Clone + 'static,
     {
-        if let Some(synchronize_music_dir_task) =
-            self.state.pending_synchronize_music_dir_task.as_ref()
-        {
-            if synchronize_music_dir_task.is_finished() {
+        if let Some(sync_task) = self.state.pending_music_dir_sync_task.as_ref() {
+            if sync_task.is_finished() {
                 log::info!("Resetting synchronize music directory task after finished");
-                self.state.pending_synchronize_music_dir_task = None;
+                self.state.pending_music_dir_sync_task = None;
             } else {
                 log::info!("Synchronize music directory task still pending");
                 return false;
             }
         }
         log::info!("Spawning synchronize music directory task");
-        self.state.pending_synchronize_music_dir_task =
+        self.state.pending_music_dir_sync_task =
             SynchronizeVfsTask::try_spawn(rt, &self.handle, &self.state_observables.collection);
-        let Some(task) = &self.state.pending_synchronize_music_dir_task else {
+        let Some(task) = &self.state.pending_music_dir_sync_task else {
             return false;
         };
         rt.spawn({
@@ -339,10 +343,9 @@ impl Library {
         true
     }
 
-    pub fn try_abort_pending_synchronize_music_dir_task(&mut self) -> bool {
-        let pending_synchronize_music_dir_task =
-            self.state.pending_synchronize_music_dir_task.take();
-        let Some(synchronize_music_dir_task) = pending_synchronize_music_dir_task else {
+    pub fn try_abort_pending_music_dir_sync_task(&mut self) -> bool {
+        let pending_music_dir_sync_task = self.state.pending_music_dir_sync_task.take();
+        let Some(synchronize_music_dir_task) = pending_music_dir_sync_task else {
             return false;
         };
         log::info!("Aborting synchronize music directory task");
@@ -369,7 +372,7 @@ impl Library {
         true
     }
 
-    pub fn search_tracks(&self, input: &str) -> bool {
+    pub fn try_search_tracks(&self, input: &str) -> bool {
         let filter = track_search::parse_filter_from_input(input);
         let resolve_url_from_content_path = self
             .state_observables
@@ -385,19 +388,18 @@ impl Library {
         };
         // Argument is consumed when updating succeeds
         log::debug!("Updating track search params: {params:?}");
-        if self
+        if !self
             .state_observables
             .track_search
-            .update_params(&mut params)
+            .try_update_params(&mut params)
         {
-            true
-        } else {
             log::debug!("Track search params not updated: {params:?}");
-            false
+            return false;
         }
+        true
     }
 
-    pub fn try_fetch_more_track_search_results<E>(
+    pub fn try_spawn_fetch_more_track_search_results_task<E>(
         &self,
         tokio_rt: &tokio::runtime::Handle,
         event_emitter: &E,
@@ -428,7 +430,7 @@ impl Library {
         true
     }
 
-    pub fn track_search_fetch_more_task_completed(
+    pub fn on_fetch_more_track_search_results_task_completed(
         &self,
         result: track_search::FetchMoreResult,
         continuation: track_search::FetchMoreTaskContinuation,

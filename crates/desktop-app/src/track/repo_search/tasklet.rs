@@ -101,8 +101,8 @@ pub fn on_collection_state_changed(
                         _ => None,
                     }
                 };
-                observable_state.update_collection_uid(&mut collection_uid);
-                if observable_state.reset_fetched() {
+                observable_state.try_update_collection_uid(&mut collection_uid);
+                if observable_state.try_reset_fetched() {
                     log::debug!("Fetched results have been reset");
                 }
             }

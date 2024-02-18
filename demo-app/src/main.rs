@@ -328,7 +328,7 @@ struct App {
 enum CentralPanelData {
     TrackSearch {
         // TODO: Replace string with "renderable" track item.
-        track_list: Option<Vec<String>>,
+        track_list: Vec<String>,
     },
     MusicDirSync {
         progress_log: Vec<String>,
@@ -393,7 +393,7 @@ impl App {
                     MusicDirectoryAction::SpawnSyncTask => {
                         if self
                             .library
-                            .try_spawn_synchronize_music_dir_task(&self.rt, &self.message_sender)
+                            .try_spawn_music_dir_sync_task(&self.rt, &self.message_sender)
                         {
                             // Switch to synchronization progress view.
                             log::debug!("Switching to music dir sync progress view");
@@ -403,7 +403,7 @@ impl App {
                         }
                     }
                     MusicDirectoryAction::AbortPendingSyncTask => {
-                        self.library.try_abort_pending_synchronize_music_dir_task();
+                        self.library.try_abort_pending_music_dir_sync_task();
                     }
                 },
                 LibraryAction::Collection(action) => match action {
@@ -413,11 +413,13 @@ impl App {
                 },
                 LibraryAction::TrackSearch(action) => match action {
                     TrackSearchAction::Search(input) => {
-                        self.library.search_tracks(&input);
+                        self.library.try_search_tracks(&input);
                     }
                     TrackSearchAction::FetchMore => {
-                        self.library
-                            .try_fetch_more_track_search_results(&self.rt, &self.message_sender);
+                        self.library.try_spawn_fetch_more_track_search_results_task(
+                            &self.rt,
+                            &self.message_sender,
+                        );
                     }
                 },
             },
@@ -440,10 +442,17 @@ impl App {
             }
             library::Event::Collection(library::collection::Event::StateChanged) => {
                 if self.library.on_collection_state_changed() {
-                    // Determine a follow-up action and execute it implicitly when reaching
-                    // a dead end state.
+                    // Determine a follow-up effect or action dependent on the new state.
                     // TODO: Store or report outcomes and errors from these dead end states.
                     match &self.library.state().last_observed_collection {
+                        collection::State::Void => {
+                            // Nothing to show with no collection available. This prevents to
+                            // show stale data after the collection has been reset.
+                            if self.central_panel_data.is_some() {
+                                log::debug!("Resetting central panel view");
+                                self.central_panel_data = None;
+                            }
+                        }
                         collection::State::LoadingFailed { .. }
                         | collection::State::RestoringOrCreatingFromMusicDirectoryFailed {
                             ..
@@ -482,11 +491,7 @@ impl App {
                                 if matches!(
                                     self.central_panel_data,
                                     Some(CentralPanelData::MusicDirSync { .. })
-                                ) && self
-                                    .library
-                                    .state()
-                                    .pending_synchronize_music_dir_task
-                                    .is_some()
+                                ) && self.library.state().pending_music_dir_sync_task.is_some()
                                 {
                                     log::debug!("Ignoring track search memo change: Music directory synchronization in progress");
                                     return;
@@ -509,8 +514,6 @@ impl App {
                                             "Track search memo changed: Replacing all fetched entities",
                                         );
                                         if let Some(fetched_entities) = state.fetched_entities() {
-                                            let track_search_list =
-                                                track_search_list.get_or_insert_with(|| Vec::with_capacity(fetched_entities.len()));
                                             track_search_list.clear();
                                             track_search_list.extend(fetched_entities.iter().map(
                                                 |fetched_entity| {
@@ -518,14 +521,13 @@ impl App {
                                                 },
                                             ));
                                         } else {
-                                            *track_search_list = None;
+                                            self.central_panel_data = None;
                                         }
                                     }
                                     aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
                                         let Some(fetched_entities) = state.fetched_entities() else {
                                             unreachable!();
                                         };
-                                        let track_search_list = track_search_list.as_mut().unwrap();
                                         debug_assert_eq!(
                                             Some(track_search_list.len()),
                                             last_memo_offset,
@@ -549,7 +551,7 @@ impl App {
                     continuation,
                 } => {
                     self.library
-                        .track_search_fetch_more_task_completed(result, continuation);
+                        .on_fetch_more_track_search_results_task_completed(result, continuation);
                 }
             },
             library::Event::MusicDirSyncProgress(progress) => {
@@ -708,8 +710,7 @@ impl eframe::App for App {
         if let Some(central_panel_data) = &self.central_panel_data {
             CentralPanel::default().show(ctx, |ui| match central_panel_data {
                 CentralPanelData::TrackSearch { track_list } => {
-                    let track_search_list = track_list.as_deref().unwrap_or_default();
-                    for track in track_search_list {
+                    for track in track_list {
                         ui.label(track);
                     }
                 }

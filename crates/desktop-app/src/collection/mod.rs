@@ -79,7 +79,7 @@ pub enum NestedMusicDirectoriesStrategy {
     Deny,
 }
 
-async fn try_refresh_entity_from_db(
+async fn refresh_entity_from_db(
     env: &Environment,
     entity_uid: EntityUid,
 ) -> anyhow::Result<Option<EntityWithSummary>> {
@@ -426,7 +426,7 @@ impl State {
         }
     }
 
-    fn reset(&mut self) -> bool {
+    fn try_reset(&mut self) -> bool {
         if matches!(self, Self::Void) {
             // No effect
             return false;
@@ -437,7 +437,7 @@ impl State {
         true
     }
 
-    fn update_music_dir(
+    fn try_update_music_dir(
         &mut self,
         new_kind: Option<Cow<'_, str>>,
         new_music_dir: DirPath<'_>,
@@ -537,7 +537,8 @@ impl State {
                 return None;
             }
         };
-        Some(self.refresh_from_db_unchecked(entity_uid, loaded_before))
+        let params = self.refresh_from_db_unchecked(entity_uid, loaded_before);
+        Some(params)
     }
 
     #[must_use]
@@ -560,7 +561,7 @@ impl State {
         params
     }
 
-    fn synchronize(&mut self) -> Option<EntityUid> {
+    fn try_synchronize(&mut self) -> Option<EntityUid> {
         let old_self = std::mem::replace(self, Self::Void);
         let Self::Ready { entity, .. } = old_self else {
             log::warn!("Illegal state for synchronizing: {old_self:?}");
@@ -632,11 +633,11 @@ impl ObservableState {
         self.0.set_modified();
     }
 
-    pub fn reset(&self) -> bool {
-        self.0.modify(State::reset)
+    pub fn try_reset(&self) -> bool {
+        self.0.modify(State::try_reset)
     }
 
-    pub fn update_music_dir(
+    pub fn try_update_music_dir(
         &self,
         kind: Option<Cow<'static, str>>,
         new_music_dir: Option<DirPath<'static>>,
@@ -645,14 +646,14 @@ impl ObservableState {
     ) -> bool {
         let Some(new_music_dir) = new_music_dir else {
             log::debug!("Resetting music directory");
-            return self.0.modify(State::reset);
+            return self.0.modify(State::try_reset);
         };
         log::debug!(
             "Updating music directory: {new_music_dir}",
             new_music_dir = new_music_dir.display()
         );
         if !self.0.modify(|state| {
-            state.update_music_dir(
+            state.try_update_music_dir(
                 kind,
                 new_music_dir,
                 create_new_entity_if_not_found,
@@ -674,7 +675,7 @@ impl ObservableState {
         RefreshFromDbTaskContinuation,
     )> {
         let mut pending_state_params = None;
-        self.0.modify(|state| {
+        self.0.modify(|state: &mut State| {
             let Some(params) = state.try_refresh_from_db() else {
                 return false;
             };
@@ -754,7 +755,7 @@ impl ObservableState {
     {
         let mut pending_state_entity_uid = None;
         self.0.modify(|state| {
-            let Some(entity_uid) = state.synchronize() else {
+            let Some(entity_uid) = state.try_synchronize() else {
                 return false;
             };
             debug_assert!(state.is_pending());
@@ -842,7 +843,7 @@ where
         restore_or_create,
     } = params;
     let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
-        try_refresh_entity_from_db(env.as_ref(), entity_uid.clone()).await?
+        refresh_entity_from_db(env.as_ref(), entity_uid.clone()).await?
     } else {
         None
     };

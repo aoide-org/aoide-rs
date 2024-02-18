@@ -11,7 +11,7 @@ use unnest::some_or_break;
 use super::{NestedMusicDirectoriesStrategy, ObservableState};
 use crate::{fs::DirPath, settings, Handle, WeakHandle};
 
-async fn update_music_dir(
+async fn try_update_music_dir(
     settings_state: &settings::ObservableState,
     observable_state: &ObservableState,
     handle: Handle,
@@ -19,15 +19,15 @@ async fn update_music_dir(
     collection_kind: Option<String>,
     create_new_entity_if_not_found: bool,
     nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
-) {
-    if !observable_state.update_music_dir(
+) -> bool {
+    if !observable_state.try_update_music_dir(
         collection_kind.map(Into::into),
         music_dir,
         create_new_entity_if_not_found,
         nested_music_directories_strategy,
     ) {
         // Unchanged
-        return;
+        return false;
     }
     if let Some((task, continuation)) = observable_state.try_refresh_from_db_task(&handle) {
         log::debug!("Refreshing from DB after updating music directory");
@@ -39,7 +39,7 @@ async fn update_music_dir(
     let new_music_dir = {
         let state = observable_state.read();
         if !state.is_ready() {
-            return;
+            return false;
         }
         state.music_dir().map(DirPath::into_owned)
     };
@@ -51,7 +51,7 @@ async fn update_music_dir(
     } else {
         log::info!("Resetting music directory in settings",);
     }
-    settings_state.update_music_dir(new_music_dir.as_ref());
+    settings_state.try_update_music_dir(new_music_dir.as_ref())
 }
 
 pub fn on_settings_state_changed(
@@ -76,7 +76,7 @@ pub fn on_settings_state_changed(
                     let collection_kind = settings_state.collection_kind.clone();
                     (music_dir, collection_kind)
                 };
-                update_music_dir(
+                try_update_music_dir(
                     &settings_state,
                     &observable_state,
                     handle,

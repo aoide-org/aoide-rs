@@ -171,7 +171,7 @@ impl FetchState {
         }
     }
 
-    fn reset(&mut self) -> bool {
+    fn try_reset(&mut self) -> bool {
         if matches!(self, Self::Initial) {
             // No effect
             return false;
@@ -488,7 +488,7 @@ impl State {
         }
     }
 
-    fn reset(&mut self) -> bool {
+    fn try_reset(&mut self) -> bool {
         // Cloning the default params once for pre-creating the target state
         // is required to avoid redundant code for determining in advance if
         // the state would actually change or not.
@@ -508,14 +508,14 @@ impl State {
     /// Update the collection UID
     ///
     /// Consumed the argument when returning `true`.
-    fn update_collection_uid(&mut self, collection_uid: &mut Option<CollectionUid>) -> bool {
+    fn try_update_collection_uid(&mut self, collection_uid: &mut Option<CollectionUid>) -> bool {
         if collection_uid.as_ref() == self.context.collection_uid.as_ref() {
             // No effect.
             log::debug!("Collection UID unchanged: {collection_uid:?}");
             return false;
         }
         self.context.collection_uid = collection_uid.take();
-        self.fetch.reset();
+        self.fetch.try_reset();
         if let Some(uid) = &self.context.collection_uid {
             log::info!("Collection UID updated: {uid}");
         } else {
@@ -527,14 +527,14 @@ impl State {
     /// Update the search parameters
     ///
     /// Consumed the argument when returning `true`.
-    fn update_params(&mut self, params: &mut Params) -> bool {
+    fn try_update_params(&mut self, params: &mut Params) -> bool {
         if params == &self.context.params {
             // No effect.
             log::debug!("Params unchanged: {params:?}");
             return false;
         }
         self.context.params = std::mem::take(params);
-        self.fetch.reset();
+        self.fetch.try_reset();
         log::info!("Params updated: {params:?}", params = self.context.params);
         true
     }
@@ -584,8 +584,8 @@ impl State {
         }
     }
 
-    fn reset_fetched(&mut self) -> bool {
-        self.fetch.reset()
+    fn try_reset_fetched(&mut self) -> bool {
+        self.fetch.try_reset()
     }
 }
 
@@ -668,17 +668,17 @@ impl ObservableState {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn reset(&self) -> bool {
-        self.0.modify(State::reset)
+    pub fn try_reset(&self) -> bool {
+        self.0.modify(State::try_reset)
     }
 
-    pub fn update_collection_uid(&self, collection_uid: &mut Option<CollectionUid>) -> bool {
+    pub fn try_update_collection_uid(&self, collection_uid: &mut Option<CollectionUid>) -> bool {
         self.0
-            .modify(|state| state.update_collection_uid(collection_uid))
+            .modify(|state| state.try_update_collection_uid(collection_uid))
     }
 
-    pub fn update_params(&self, params: &mut Params) -> bool {
-        self.0.modify(|state| state.update_params(params))
+    pub fn try_update_params(&self, params: &mut Params) -> bool {
+        self.0.modify(|state| state.try_update_params(params))
     }
 
     #[must_use]
@@ -712,8 +712,8 @@ impl ObservableState {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn reset_fetched(&self) -> bool {
-        self.0.modify(State::reset_fetched)
+    pub fn try_reset_fetched(&self) -> bool {
+        self.0.modify(State::try_reset_fetched)
     }
 }
 
