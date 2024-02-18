@@ -614,30 +614,47 @@ impl eframe::App for App {
                     ui.end_row();
 
                     ui.label("");
-                    if ui
-                        .add_enabled(
-                            !self.selecting_music_dir,
-                            Button::new("Select music directory..."),
-                        )
-                        .on_hover_text("Switch collections or create a new one.")
-                        .clicked()
-                    {
-                        message_sender
-                            .send_action(MusicDirectoryAction::Select);
-                    }
-                    ui.label("");
-                    if ui
-                        .add_enabled(
-                            !self.selecting_music_dir
-                                && current_library_state.could_reset_music_dir(),
-                            Button::new("Reset music directory"),
-                        )
-                        .on_hover_text("Disconnect from the corresponding collection.")
-                        .clicked()
-                    {
-                        message_sender
-                            .send_action(MusicDirectoryAction::Reset);
-                    }
+                    egui::Grid::new("grid")
+                        .num_columns(3)
+                        .spacing([40.0, 4.0])
+                        .show(ui, |ui| {
+                        if ui
+                            .add_enabled(
+                                !self.selecting_music_dir,
+                                Button::new("Select music directory..."),
+                            )
+                            .on_hover_text("Switch collections or create a new one.")
+                            .clicked()
+                        {
+                            message_sender
+                                .send_action(MusicDirectoryAction::Select);
+                        }
+                        if ui
+                            .add_enabled(
+                                current_library_state.could_synchronize_music_dir_task(),
+                                Button::new("Synchronize music directory"),
+                            )
+                            .on_hover_text(
+                                "Rescan the music directory for added/modified/deleted files and update the collection.",
+                            )
+                            .clicked()
+                        {
+                            message_sender.send_action(MusicDirectoryAction::SpawnSyncTask);
+                        }
+                        if ui
+                            .add_enabled(
+                                !self.selecting_music_dir
+                                    && current_library_state.could_reset_music_dir(),
+                                Button::new("Reset music directory"),
+                            )
+                            .on_hover_text("Disconnect from the corresponding collection.")
+                            .clicked()
+                        {
+                            message_sender
+                                .send_action(MusicDirectoryAction::Reset);
+                        }
+                        ui.end_row();
+                    });
                     ui.end_row();
 
                     let collection_uid = current_library_state
@@ -675,21 +692,6 @@ impl eframe::App for App {
                             num_playlists = summary.playlists.total_count
                         )
                     }));
-                    ui.end_row();
-
-                    ui.label("");
-                    if ui
-                        .add_enabled(
-                            current_library_state.could_synchronize_music_dir_task(),
-                            Button::new("Synchronize music directory..."),
-                        )
-                        .on_hover_text(
-                            "Rescan the music directory for added/modified/deleted files and update the collection.",
-                        )
-                        .clicked()
-                    {
-                        message_sender.send_action(MusicDirectoryAction::SpawnSyncTask);
-                    }
                     ui.end_row();
 
                     ui.label("Search tracks:");
