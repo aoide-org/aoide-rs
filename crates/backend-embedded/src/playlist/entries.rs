@@ -16,7 +16,7 @@ pub async fn patch(
         + 'static,
 ) -> Result<EntityWithEntriesSummary> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::playlist::entries::patch(

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::sync::{atomic::AtomicBool, Arc};
+
 use aoide_core::{
     media::content::ContentPath,
     track::{Entity, EntityUid, Track},
@@ -57,7 +59,7 @@ impl ReservableRecordCollector for EntityCollector {
 
 pub async fn load_one(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::track::load::load_one(connection, &entity_uid)
@@ -78,7 +80,7 @@ where
     C: ReservableRecordCollector<Header = RecordHeader, Record = Entity> + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 let mut collector = collector;
@@ -132,7 +134,7 @@ where
     C: ReservableRecordCollector<Header = RecordHeader, Record = Entity> + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 let mut collector = collector;
@@ -158,7 +160,7 @@ pub async fn find_unsynchronized(
     pagination: Pagination,
 ) -> Result<Vec<UnsynchronizedTrackEntity>> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::track::find_unsynchronized::find_unsynchronized(
@@ -184,7 +186,7 @@ where
     I: IntoIterator<Item = aoide_usecases::track::ValidatedInput> + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::track::replace::replace_many_by_media_source_content_path(
@@ -207,13 +209,14 @@ pub async fn import_and_replace_many_by_local_file_path<ContentPathIter, Interce
     content_path_iter: ContentPathIter,
     expected_content_path_count: Option<usize>,
     intercept_imported_track_fn: InterceptImportedTrackFn,
+    abort_flag: Arc<AtomicBool>,
 ) -> Result<aoide_usecases::track::import_and_replace::Outcome>
 where
     ContentPathIter: IntoIterator<Item = ContentPath<'static>> + Send + 'static,
     InterceptImportedTrackFn: FnMut(Track) -> Track + Send + 'static,
 {
     db_gatekeeper
-    .spawn_blocking_write_task(move |mut pooled_connection, abort_flag| {
+    .spawn_blocking_write_task(move |mut pooled_connection| {
         let connection = &mut *pooled_connection;
         connection.transaction::<_, Error, _>(|connection| {
             let mut intercept_imported_track_fn = intercept_imported_track_fn;

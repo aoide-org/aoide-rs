@@ -13,7 +13,7 @@ pub async fn purge_orphaned(
     params: aoide_core_api::media::source::purge_orphaned::Params,
 ) -> Result<aoide_core_api::media::source::purge_orphaned::Outcome> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::media::source::purge_orphaned::purge_orphaned(
@@ -34,7 +34,7 @@ pub async fn purge_untracked(
     params: aoide_core_api::media::source::purge_untracked::Params,
 ) -> Result<aoide_core_api::media::source::purge_untracked::Outcome> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::media::source::purge_untracked::purge_untracked(
@@ -56,7 +56,7 @@ pub async fn relocate(
     new_path_prefix: ContentPath<'static>,
 ) -> Result<usize> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::media::source::relocate::relocate(

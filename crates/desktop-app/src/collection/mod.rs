@@ -5,7 +5,10 @@ use std::{
     borrow::Cow,
     future::Future,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     time::Instant,
 };
 
@@ -745,6 +748,7 @@ impl ObservableState {
         handle: &Handle,
         import_track_config: ImportTrackConfig,
         report_progress_fn: ReportProgressFn,
+        abort_flag: Arc<AtomicBool>,
     ) -> Option<(
         impl Future<Output = SynchronizeVfsResult> + Send + 'static,
         SynchronizeVfsTaskContinuation,
@@ -769,7 +773,14 @@ impl ObservableState {
         debug_assert!(matches!(pending_state, State::Synchronizing { .. }));
         let handle = handle.clone();
         let task = async move {
-            synchronize_vfs(handle, entity_uid, import_track_config, report_progress_fn).await
+            synchronize_vfs(
+                handle,
+                entity_uid,
+                import_track_config,
+                report_progress_fn,
+                abort_flag,
+            )
+            .await
         };
         let continuation = SynchronizeVfsTaskContinuation { pending_state };
         Some((task, continuation))
@@ -886,6 +897,7 @@ async fn synchronize_vfs<E, ReportProgressFn>(
     entity_uid: EntityUid,
     import_track_config: ImportTrackConfig,
     report_progress_fn: ReportProgressFn,
+    abort_flag: Arc<AtomicBool>,
 ) -> SynchronizeVfsResult
 where
     E: AsRef<Environment> + Send + 'static,
@@ -907,6 +919,7 @@ where
         params,
         std::convert::identity,
         report_progress_fn,
+        abort_flag,
     )
     .await
     .map_err(Into::into)
@@ -916,6 +929,7 @@ where
 pub struct SynchronizeVfsTask {
     started_at: Instant,
     progress: Subscriber<Option<Progress>>,
+    abort_flag: Arc<AtomicBool>,
     abort_handle: tokio::task::AbortHandle,
 }
 
@@ -937,7 +951,9 @@ impl SynchronizeVfsTask {
                 progress_pub.lock().unwrap().write(progress);
             }
         };
-        let (task, continuation) = try_synchronize_vfs_task(state, handle, report_progress_fn)?;
+        let abort_flag = Arc::new(AtomicBool::new(false));
+        let (task, continuation) =
+            try_synchronize_vfs_task(state, handle, report_progress_fn, Arc::clone(&abort_flag))?;
         let join_handle = rt.spawn(task);
         let abort_handle = join_handle.abort_handle();
         let state = Arc::clone(state);
@@ -953,6 +969,7 @@ impl SynchronizeVfsTask {
         Some(Self {
             started_at,
             progress,
+            abort_flag,
             abort_handle,
         })
     }
@@ -973,6 +990,7 @@ impl SynchronizeVfsTask {
     }
 
     pub fn abort(&self) {
+        self.abort_flag.store(true, Ordering::Relaxed);
         self.abort_handle.abort();
     }
 }
@@ -981,6 +999,7 @@ fn try_synchronize_vfs_task(
     state: &ObservableState,
     handle: &Handle,
     report_progress_fn: impl FnMut(Option<Progress>) + Clone + Send + 'static,
+    abort_flag: Arc<AtomicBool>,
 ) -> Option<(
     impl Future<Output = anyhow::Result<Outcome>> + Send + 'static,
     SynchronizeVfsTaskContinuation,
@@ -995,5 +1014,5 @@ fn try_synchronize_vfs_task(
     let report_progress_fn = move |progress| {
         report_progress_fn(Some(progress));
     };
-    state.try_synchronize_vfs_task(handle, import_track_config, report_progress_fn)
+    state.try_synchronize_vfs_task(handle, import_track_config, report_progress_fn, abort_flag)
 }

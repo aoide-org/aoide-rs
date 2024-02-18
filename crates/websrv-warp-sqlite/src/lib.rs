@@ -1,12 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{
-    convert::Infallible,
-    error::Error as StdError,
-    result::Result as StdResult,
-    sync::{atomic::AtomicBool, Arc},
-};
+use std::{convert::Infallible, error::Error as StdError, result::Result as StdResult};
 
 use aoide_backend_webapi_json as api;
 use aoide_repo::prelude::RepoError;
@@ -114,7 +109,7 @@ pub async fn spawn_blocking_write_task<H, T, E>(
     handler: H,
 ) -> std::result::Result<T, Rejection>
 where
-    H: FnOnce(PooledConnection, Arc<AtomicBool>) -> std::result::Result<T, E> + Send + 'static,
+    H: FnOnce(PooledConnection) -> std::result::Result<T, E> + Send + 'static,
     T: Send + 'static,
     E: Into<Error> + Send + 'static,
 {
@@ -126,7 +121,7 @@ pub async fn spawn_blocking_read_task<H, T, E>(
     handler: H,
 ) -> std::result::Result<T, Rejection>
 where
-    H: FnOnce(PooledConnection, Arc<AtomicBool>) -> std::result::Result<T, E> + Send + 'static,
+    H: FnOnce(PooledConnection) -> std::result::Result<T, E> + Send + 'static,
     T: Send + 'static,
     E: Into<Error> + Send + 'static,
 {

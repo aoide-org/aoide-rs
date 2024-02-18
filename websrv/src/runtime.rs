@@ -127,9 +127,11 @@ pub(crate) async fn run(
         .and(warp::path::end())
         .map(move || warp::reply::json(&about_json));
 
-    let api_filters = warp::path("api").and(self::routing::api::create_filters(Arc::clone(
-        &shared_connection_pool,
-    )));
+    let abort_flag = Arc::new(AtomicBool::new(false));
+    let api_filters = warp::path("api").and(self::routing::api::create_filters(
+        Arc::clone(&shared_connection_pool),
+        abort_flag,
+    ));
 
     // Static content
     let openapi_yaml = warp::path("openapi.yaml").map(|| {
@@ -196,12 +198,6 @@ pub(crate) async fn run(
     current_state_tx.write(Some(State::Stopping));
 
     shared_connection_pool.decommission();
-    // Abort the current task after decommissioning to prevent
-    // that any new tasks are spawned after aborting the current
-    // task!
-    if abort_pending_tasks_on_termination.load(Ordering::Acquire) {
-        shared_connection_pool.abort_current_task();
-    }
 
     log::info!("Terminating");
     current_state_tx.write(Some(State::Terminating));

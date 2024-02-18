@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::sync::{atomic::AtomicBool, Arc};
+
 use aoide_core::track::Track;
 use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
@@ -14,7 +16,7 @@ pub async fn query_status(
     params: aoide_core_api::media::tracker::query_status::Params,
 ) -> Result<aoide_core_api::media::tracker::Status> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::media::tracker::query_status::query_status(
@@ -34,12 +36,13 @@ pub async fn scan_directories<P>(
     collection_uid: CollectionUid,
     params: aoide_core_api::media::tracker::scan_directories::Params,
     report_progress_fn: P,
+    abort_flag: Arc<AtomicBool>,
 ) -> Result<aoide_core_api::media::tracker::scan_directories::Outcome>
 where
     P: FnMut(aoide_usecases::media::tracker::scan_directories::ProgressEvent) + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let mut report_progress_fn = report_progress_fn;
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
@@ -63,7 +66,7 @@ pub async fn untrack_directories(
     params: aoide_core_api::media::tracker::untrack_directories::Params,
 ) -> Result<aoide_core_api::media::tracker::untrack_directories::Outcome> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::media::tracker::untrack_directories::untrack_directories(
@@ -85,6 +88,7 @@ pub async fn import_files<InterceptImportedTrackFn, ReportProgressFn>(
     import_config: ImportTrackConfig,
     intercept_imported_track_fn: InterceptImportedTrackFn,
     report_progress_fn: ReportProgressFn,
+    abort_flag: Arc<AtomicBool>,
 ) -> Result<aoide_core_api::media::tracker::import_files::Outcome>
 where
     InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync + 'static,
@@ -92,7 +96,7 @@ where
         FnMut(aoide_usecases::media::tracker::import_files::ProgressEvent) + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let mut intercept_imported_track_fn = intercept_imported_track_fn;
             let mut report_progress_fn = report_progress_fn;
             let connection = &mut *pooled_connection;
@@ -118,12 +122,13 @@ pub async fn find_untracked_files<P>(
     collection_uid: CollectionUid,
     params: aoide_core_api::media::tracker::find_untracked_files::Params,
     report_progress_fn: P,
+    abort_flag: Arc<AtomicBool>,
 ) -> Result<aoide_core_api::media::tracker::find_untracked_files::Outcome>
 where
     P: FnMut(aoide_usecases::media::tracker::find_untracked_files::ProgressEvent) + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let mut report_progress_fn = report_progress_fn;
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {

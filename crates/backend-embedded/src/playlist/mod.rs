@@ -21,7 +21,7 @@ pub async fn create(
     new_playlist: Playlist,
 ) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::playlist::create(
@@ -42,7 +42,7 @@ pub async fn update(
     modified_playlist: Playlist,
 ) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::playlist::update(
@@ -59,7 +59,7 @@ pub async fn update(
 
 pub async fn purge(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<()> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::playlist::purge(connection, &entity_uid)
@@ -76,7 +76,7 @@ pub async fn load_one(
     entity_uid: EntityUid,
 ) -> Result<EntityWithEntries> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::playlist::load_one_with_entries(connection, &entity_uid)
@@ -119,7 +119,7 @@ where
         + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 let mut collector = collector;

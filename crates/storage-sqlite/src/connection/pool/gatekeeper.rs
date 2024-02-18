@@ -31,7 +31,6 @@ pub struct Gatekeeper {
     acquire_read_timeout: Duration,
     acquire_write_timeout: Duration,
     request_counter_state: Arc<RequestCounterState>,
-    abort_current_task_flag: Arc<AtomicBool>,
     decommisioned: AtomicBool,
 }
 
@@ -124,7 +123,6 @@ impl Gatekeeper {
             acquire_read_timeout,
             acquire_write_timeout,
             request_counter_state: Default::default(),
-            abort_current_task_flag: Default::default(),
             decommisioned: AtomicBool::new(false),
         }
     }
@@ -148,7 +146,7 @@ impl Gatekeeper {
         acquire_read_timeout: Duration,
     ) -> Result<R>
     where
-        H: FnOnce(PooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
+        H: FnOnce(PooledConnection) -> R + Send + 'static,
         R: Send + 'static,
     {
         self.check_not_decommissioned()?;
@@ -156,7 +154,6 @@ impl Gatekeeper {
             Arc::clone(&self.request_counter_state),
             RequestCounterMode::Read,
         );
-        let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
         let mut timeout = pin!(sleep(acquire_read_timeout));
         tokio::select! {
             () = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
@@ -164,9 +161,7 @@ impl Gatekeeper {
                 self.check_not_decommissioned()?;
                 let connection = get_pooled_connection(&guard)?;
                 self.check_not_decommissioned()?;
-                // Every tasks gets the chance to run when ready
-                abort_current_task_flag.store(false, Ordering::Release);
-                spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await
+                spawn_blocking(move || connection_handler(connection)).await
                     .map_err(Error::TaskScheduling)
             },
             else => Err(Error::TaskTimeout {reason: "task got stuck".to_string() } )
@@ -175,7 +170,7 @@ impl Gatekeeper {
 
     pub async fn spawn_blocking_read_task<H, R>(&self, connection_handler: H) -> Result<R>
     where
-        H: FnOnce(PooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
+        H: FnOnce(PooledConnection) -> R + Send + 'static,
         R: Send + 'static,
     {
         self.spawn_blocking_read_task_with_timeout(connection_handler, self.acquire_read_timeout)
@@ -188,7 +183,7 @@ impl Gatekeeper {
         acquire_write_timeout: Duration,
     ) -> Result<R>
     where
-        H: FnOnce(PooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
+        H: FnOnce(PooledConnection) -> R + Send + 'static,
         R: Send + 'static,
     {
         self.check_not_decommissioned()?;
@@ -196,7 +191,6 @@ impl Gatekeeper {
             Arc::clone(&self.request_counter_state),
             RequestCounterMode::Write,
         );
-        let abort_current_task_flag = Arc::clone(&self.abort_current_task_flag);
         let mut timeout = pin!(sleep(acquire_write_timeout));
         tokio::select! {
             () = &mut timeout => Err(Error::TaskTimeout {reason: "database is locked".to_string() }),
@@ -204,9 +198,7 @@ impl Gatekeeper {
                 self.check_not_decommissioned()?;
                 let connection = get_pooled_connection(&guard)?;
                 self.check_not_decommissioned()?;
-                // Every tasks gets the chance to run when ready
-                abort_current_task_flag.store(false, Ordering::Release);
-                spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await
+                spawn_blocking(move || connection_handler(connection)).await
                 .map_err(Error::TaskScheduling)
             },
             else => Err(Error::TaskTimeout {reason: "task got stuck".to_string() } )
@@ -215,7 +207,7 @@ impl Gatekeeper {
 
     pub async fn spawn_blocking_write_task<H, R>(&self, connection_handler: H) -> Result<R>
     where
-        H: FnOnce(PooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
+        H: FnOnce(PooledConnection) -> R + Send + 'static,
         R: Send + 'static,
     {
         self.spawn_blocking_write_task_with_timeout(connection_handler, self.acquire_write_timeout)
@@ -233,10 +225,6 @@ impl Gatekeeper {
                 .write_count
                 .load(Ordering::Relaxed),
         }
-    }
-
-    pub fn abort_current_task(&self) {
-        self.abort_current_task_flag.store(true, Ordering::Release);
     }
 }
 

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::sync::{atomic::AtomicBool, Arc};
+
 use aoide_core::{track::Track, util::url::BaseUrl};
 use aoide_core_api::{
     filtering::StringPredicate,
@@ -112,6 +114,7 @@ pub async fn synchronize_collection_vfs<InterceptImportedTrackFn, ReportProgress
     params: Params,
     intercept_imported_track_fn: InterceptImportedTrackFn,
     mut report_progress_fn: ReportProgressFn,
+    abort_flag: Arc<AtomicBool>,
 ) -> Result
 where
     InterceptImportedTrackFn: FnMut(Track) -> Track + Clone + Send + Sync + 'static,
@@ -140,6 +143,7 @@ where
             collection_uid.clone(),
             scan_directories_params,
             move |event| report_progress_fn(Progress::Step1ScanDirectories(event)),
+            Arc::clone(&abort_flag),
         )
         .await?;
         if matches!(
@@ -185,6 +189,7 @@ where
             import_track_config,
             intercept_imported_track_fn,
             move |event| report_progress_fn(Progress::Step3ImportFiles(event)),
+            Arc::clone(&abort_flag),
         )
         .await?;
         if matches!(
@@ -251,6 +256,7 @@ where
                     collection_uid.clone(),
                     params,
                     move |event| report_progress_fn(Progress::Step6FindUntrackedFiles(event)),
+                    abort_flag,
                 )
                 .await?;
                 if matches!(

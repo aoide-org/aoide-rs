@@ -51,7 +51,7 @@ pub async fn reindex_tracks(
     // write although we only read. The connection is locked
     // for the whole operation!
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             let search_params = aoide_core_api::track::search::Params {
                 ordering: vec![SortOrder {

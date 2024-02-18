@@ -17,7 +17,7 @@ use crate::prelude::*;
 
 pub async fn load_all_kinds(db_gatekeeper: &Gatekeeper) -> Result<Vec<String>> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::collection::load_all_kinds(connection)
@@ -61,7 +61,7 @@ where
         + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 let mut collector = collector;
@@ -87,7 +87,7 @@ pub async fn load_one(
     load_scope: LoadScope,
 ) -> Result<EntityWithSummary> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_read_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::collection::load_one(connection, &entity_uid, load_scope)
@@ -112,7 +112,7 @@ pub async fn try_load_one(
 
 pub async fn create(db_gatekeeper: &Gatekeeper, new_collection: Collection) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::collection::create(connection, new_collection)
@@ -129,7 +129,7 @@ pub async fn update(
     modified_collection: Collection,
 ) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::collection::update(
@@ -146,7 +146,7 @@ pub async fn update(
 
 pub async fn purge(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<()> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection, _abort_flag| {
+        .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::collection::purge(connection, &entity_uid)
