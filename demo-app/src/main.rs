@@ -631,7 +631,7 @@ impl eframe::App for App {
                         }
                         if ui
                             .add_enabled(
-                                current_library_state.could_synchronize_music_dir_task(),
+                                !self.selecting_music_dir && current_library_state.could_synchronize_music_dir_task(),
                                 Button::new("Synchronize music directory"),
                             )
                             .on_hover_text(
