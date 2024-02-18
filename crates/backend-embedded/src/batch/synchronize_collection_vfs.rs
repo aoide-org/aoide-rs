@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
 use aoide_core::{track::Track, util::url::BaseUrl};
 use aoide_core_api::{
@@ -157,6 +160,10 @@ where
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
+    if abort_flag.load(Ordering::Relaxed) {
+        outcome.completion = Completion::Aborted;
+        return Ok(outcome);
+    }
     #[cfg(feature = "tokio")]
     tokio::task::yield_now().await;
     // 2nd step: Untrack orphaned directories
@@ -175,6 +182,10 @@ where
         .await?,
     );
     if matches!(outcome.completion, Completion::Aborted) {
+        return Ok(outcome);
+    }
+    if abort_flag.load(Ordering::Relaxed) {
+        outcome.completion = Completion::Aborted;
         return Ok(outcome);
     }
     #[cfg(feature = "tokio")]
@@ -207,6 +218,10 @@ where
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
+    if abort_flag.load(Ordering::Relaxed) {
+        outcome.completion = Completion::Aborted;
+        return Ok(outcome);
+    }
     #[cfg(feature = "tokio")]
     tokio::task::yield_now().await;
     // 4th step: Purge untracked media sources (optional)
@@ -230,6 +245,10 @@ where
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
+    if abort_flag.load(Ordering::Relaxed) {
+        outcome.completion = Completion::Aborted;
+        return Ok(outcome);
+    }
     #[cfg(feature = "tokio")]
     tokio::task::yield_now().await;
     // 5th step: Purge orphaned media sources (optional)
@@ -249,6 +268,10 @@ where
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
+    if abort_flag.load(Ordering::Relaxed) {
+        outcome.completion = Completion::Aborted;
+        return Ok(outcome);
+    }
     #[cfg(feature = "tokio")]
     tokio::task::yield_now().await;
     // 6th step: Find untracked files (optional/informational)
@@ -266,7 +289,7 @@ where
                     collection_uid.clone(),
                     params,
                     move |event| report_progress_fn(Progress::Step6FindUntrackedFiles(event)),
-                    abort_flag,
+                    Arc::clone(&abort_flag),
                 )
                 .await?;
                 if matches!(
@@ -280,6 +303,10 @@ where
         }
     }
     if matches!(outcome.completion, Completion::Aborted) {
+        return Ok(outcome);
+    }
+    if abort_flag.load(Ordering::Relaxed) {
+        outcome.completion = Completion::Aborted;
         return Ok(outcome);
     }
     #[cfg(feature = "tokio")]
