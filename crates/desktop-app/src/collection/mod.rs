@@ -822,8 +822,8 @@ impl Default for ObservableState {
 pub type ObservableStateRef<'a> = ObservableRef<'a, State>;
 
 impl ObservableReader<State> for ObservableState {
-    fn read_observable(&self) -> ObservableStateRef<'_> {
-        self.0.read_observable()
+    fn read_lock(&self) -> ObservableStateRef<'_> {
+        self.0.read_lock()
     }
 }
 

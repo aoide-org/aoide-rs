@@ -58,6 +58,12 @@ impl<'p> DirPath<'p> {
     }
 }
 
+impl AsRef<Path> for DirPath<'_> {
+    fn as_ref(&self) -> &Path {
+        &self.0
+    }
+}
+
 impl From<PathBuf> for DirPath<'static> {
     fn from(from: PathBuf) -> Self {
         Self::from_owned(from)

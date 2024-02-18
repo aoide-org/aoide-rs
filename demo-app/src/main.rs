@@ -17,11 +17,12 @@ use directories::ProjectDirs;
 use eframe::{CreationContext, Frame};
 use egui::{Button, CentralPanel, Context, TextEdit, TopBottomPanel};
 
-use aoide::desktop_app::{collection, fs::DirPath, ObservableReader as _};
+use aoide::desktop_app::{collection, fs::DirPath};
 
 mod library;
-#[allow(unused_imports)]
-use self::library::{Library, LibraryEvent, LibraryEventEmitter, LibraryState};
+use self::library::Library;
+
+const MUSIC_DIR_SYNC_PROGRESS_LOG_MAX_LINES: usize = 100;
 
 #[derive(Debug)]
 struct NoReceiverForEvent;
@@ -41,7 +42,7 @@ impl AppMessageSender {
         Self { ctx, message_tx }
     }
 
-    fn on_action<T>(&self, action: T)
+    fn send_action<T>(&self, action: T)
     where
         T: Into<AppAction>,
     {
@@ -83,8 +84,8 @@ impl AppMessageSender {
     }
 }
 
-impl LibraryEventEmitter for AppMessageSender {
-    fn emit_event(&self, event: LibraryEvent) -> Result<(), NoReceiverForEvent> {
+impl library::EventEmitter for AppMessageSender {
+    fn emit_event(&self, event: library::Event) -> Result<(), NoReceiverForEvent> {
         let event: AppEvent = AppEvent::Library(event);
         self.send_message(AppMessage::Event(event))
             .map_err(|NoReceiverForAppMessage(_)| NoReceiverForEvent)
@@ -299,7 +300,7 @@ impl From<TrackSearchAction> for LibraryAction {
 #[derive(Debug)]
 enum AppEvent {
     Input(AppInputEvent),
-    Library(LibraryEvent),
+    Library(library::Event),
 }
 
 impl From<AppEvent> for AppMessage {
@@ -317,14 +318,21 @@ struct App {
 
     library: Library,
 
-    music_dir: Option<DirPath<'static>>,
     selecting_music_dir: bool,
 
-    collection_state: collection::State,
     track_search_input: String,
-    track_search_memo: aoide::desktop_app::track::repo_search::Memo,
-    // TODO: Replace string with "renderable" track item.
-    track_search_list: Option<Vec<String>>,
+
+    central_panel_data: Option<CentralPanelData>,
+}
+
+enum CentralPanelData {
+    TrackSearch {
+        // TODO: Replace string with "renderable" track item.
+        track_list: Option<Vec<String>>,
+    },
+    MusicDirSync {
+        progress_log: Vec<String>,
+    },
 }
 
 impl App {
@@ -344,21 +352,18 @@ impl App {
             message_sender,
             message_rx,
             library,
-            music_dir: Default::default(),
             selecting_music_dir: false,
-            collection_state: Default::default(),
             track_search_input: Default::default(),
-            track_search_memo: Default::default(),
-            track_search_list: Default::default(),
+            central_panel_data: None,
         }
     }
 
-    fn on_action(&mut self, ctx: &Context, action: AppAction) {
+    fn on_action(&mut self, action: AppAction) {
         match action {
             AppAction::Library(action) => match action {
                 LibraryAction::MusicDirectory(action) => match action {
                     MusicDirectoryAction::Reset => {
-                        self.library.reset_music_dir();
+                        self.library.try_reset_music_dir();
                     }
                     MusicDirectoryAction::Select => {
                         if self.selecting_music_dir {
@@ -368,42 +373,42 @@ impl App {
                         let on_dir_path_chosen = {
                             let message_sender = self.message_sender.clone();
                             move |dir_path| {
-                                message_sender.on_action(MusicDirectoryAction::Selected(dir_path));
+                                message_sender
+                                    .send_action(MusicDirectoryAction::Selected(dir_path));
                             }
                         };
                         choose_directory_path(
                             &self.rt,
-                            &self.music_dir.as_deref(),
+                            self.library.state().last_observed_music_dir.as_ref(),
                             on_dir_path_chosen,
                         );
                         self.selecting_music_dir = true;
-                        // Reflect the state change in the UI.
-                        ctx.request_repaint();
                     }
                     MusicDirectoryAction::Selected(music_dir) => {
                         self.selecting_music_dir = false;
                         if let Some(music_dir) = music_dir {
-                            self.library.update_music_dir(Some(&music_dir));
+                            self.library.try_update_music_dir(Some(&music_dir));
                         }
-                        // Reflect the state change in the UI.
-                        ctx.request_repaint();
                     }
                     MusicDirectoryAction::SpawnSyncTask => {
-                        if self.library.spawn_synchronize_music_dir_task(&self.rt) {
-                            // Reflect the state change in the UI.
-                            ctx.request_repaint();
+                        if self
+                            .library
+                            .try_spawn_synchronize_music_dir_task(&self.rt, &self.message_sender)
+                        {
+                            // Switch to synchronization progress view.
+                            log::debug!("Switching to music dir sync progress view");
+                            self.central_panel_data = Some(CentralPanelData::MusicDirSync {
+                                progress_log: vec![],
+                            });
                         }
                     }
                     MusicDirectoryAction::AbortPendingSyncTask => {
-                        if self.library.abort_pending_synchronize_music_dir_task() {
-                            // Reflect the state change in the UI.
-                            ctx.request_repaint();
-                        }
+                        self.library.try_abort_pending_synchronize_music_dir_task();
                     }
                 },
                 LibraryAction::Collection(action) => match action {
                     CollectionAction::RefreshFromDb => {
-                        self.library.refresh_collection_from_db(&self.rt);
+                        self.library.try_refresh_collection_from_db(&self.rt);
                     }
                 },
                 LibraryAction::TrackSearch(action) => match action {
@@ -412,7 +417,7 @@ impl App {
                     }
                     TrackSearchAction::FetchMore => {
                         self.library
-                            .fetch_more_track_search_results(&self.rt, &self.message_sender);
+                            .try_fetch_more_track_search_results(&self.rt, &self.message_sender);
                     }
                 },
             },
@@ -422,110 +427,121 @@ impl App {
     fn on_input_event(&mut self, input: AppInputEvent) {
         match input {
             AppInputEvent::TrackSearch(input) => {
-                self.track_search_input = input.clone();
+                self.track_search_input = input;
             }
         }
     }
 
     #[allow(clippy::too_many_lines)] // TODO
-    fn on_library_event(&mut self, ctx: &Context, event: LibraryEvent) {
+    fn on_library_event(&mut self, event: library::Event) {
         match event {
-            LibraryEvent::SettingsStateChanged => {
-                let new_music_dir = {
-                    let settings_state = self.library.state().settings().read_observable();
-                    if settings_state.music_dir == self.music_dir {
-                        log::debug!(
-                            "Music directory unchanged: {music_dir:?}",
-                            music_dir = self.music_dir,
-                        );
-                        return;
-                    }
-                    settings_state.music_dir.clone()
-                };
-                log::debug!(
-                    "Music directory changed: {old_music_dir:?} -> {new_music_dir:?}",
-                    old_music_dir = self.music_dir,
-                );
-                self.music_dir = new_music_dir;
+            library::Event::Settings(library::settings::Event::StateChanged) => {
+                self.library.on_settings_state_changed();
             }
-            LibraryEvent::CollectionStateChanged => {
-                let new_state = {
-                    let new_state = self.library.state().collection().read_observable();
-                    if *new_state == self.collection_state {
-                        log::debug!(
-                            "Collection state unchanged: {old_state:?}",
-                            old_state = self.collection_state,
-                        );
-                        return;
+            library::Event::Collection(library::collection::Event::StateChanged) => {
+                if self.library.on_collection_state_changed() {
+                    // Determine a follow-up action and execute it implicitly when reaching
+                    // a dead end state.
+                    // TODO: Store or report outcomes and errors from these dead end states.
+                    match &self.library.state().last_observed_collection {
+                        collection::State::LoadingFailed { .. }
+                        | collection::State::RestoringOrCreatingFromMusicDirectoryFailed {
+                            ..
+                        }
+                        | collection::State::NestedMusicDirectoriesConflict { .. } => {
+                            self.library.try_reset_music_dir();
+                        }
+                        _ => {}
                     }
-                    new_state.clone()
-                };
-                log::debug!(
-                    "Collection state changed: {old_state:?} -> {new_state:?}",
-                    old_state = self.collection_state,
-                );
-                if self
-                    .library
-                    .on_collection_state_changed(&self.rt, &new_state)
-                {
-                    // Reflect the state change in the UI.
-                    ctx.request_repaint();
                 }
-                self.collection_state = new_state;
             }
-            LibraryEvent::TrackSearch(event) => match event {
+            library::Event::TrackSearch(event) => match event {
                 library::track_search::Event::StateChanged => {
-                    debug_assert_eq!(
-                        self.track_search_list.as_ref().map(Vec::len),
-                        self.track_search_memo
-                            .fetch
-                            .fetched_entities
-                            .as_ref()
-                            .map(|memo| memo.offset)
-                    );
-                    let state = self.library.state().track_search().read_observable();
-                    let memo_updated = state.update_memo(&mut self.track_search_memo);
+                    let last_memo_offset = self
+                        .library
+                        .state()
+                        .last_observed_track_search_memo
+                        .fetch
+                        .fetched_entities
+                        .as_ref()
+                        .map(|memo| memo.offset);
+                    let memo_updated = self.library.on_track_search_state_changed();
                     match memo_updated {
                         aoide::desktop_app::track::repo_search::MemoUpdated::Unchanged => {
-                            log::debug!("Track search memo unchanged",);
+                            log::debug!("Track search memo unchanged");
                         }
                         aoide::desktop_app::track::repo_search::MemoUpdated::Changed {
                             fetched_entities_diff,
-                        } => match fetched_entities_diff {
-                            aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
-                                log::debug!(
-                                    "Track search memo changed: Replacing all fetched entities",
-                                );
-                                if let Some(fetched_entities) = state.fetched_entities() {
-                                    let mut track_search_list =
-                                        self.track_search_list.take().unwrap_or_default();
-                                    track_search_list.clear();
-                                    track_search_list.extend(fetched_entities.iter().map(
-                                        |fetched_entity| {
-                                            track_to_string(&fetched_entity.entity.body.track)
-                                        },
-                                    ));
-                                    self.track_search_list = Some(track_search_list);
-                                } else {
-                                    self.track_search_list = None;
+                        } => {
+                            let track_search_list = if let Some(CentralPanelData::TrackSearch {
+                                track_list,
+                            }) = &mut self.central_panel_data
+                            {
+                                track_list
+                            } else {
+                                if matches!(
+                                    self.central_panel_data,
+                                    Some(CentralPanelData::MusicDirSync { .. })
+                                ) && self
+                                    .library
+                                    .state()
+                                    .pending_synchronize_music_dir_task
+                                    .is_some()
+                                {
+                                    log::debug!("Ignoring track search memo change: Music directory synchronization in progress");
+                                    return;
                                 }
-                            }
-                            aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
-                                let Some(fetched_entities) = state.fetched_entities() else {
-                                    unreachable!();
+                                log::debug!("Switching to track search view");
+                                self.central_panel_data = Some(CentralPanelData::TrackSearch {
+                                    track_list: Default::default(),
+                                });
+                                let Some(CentralPanelData::TrackSearch { track_list }) =
+                                    self.central_panel_data.as_mut()
+                                else {
+                                    unreachable!()
                                 };
-                                let track_search_list = self.track_search_list.as_mut().unwrap();
-                                debug_assert!(track_search_list.len() <= fetched_entities.len());
-                                let num_append_entities =
-                                    fetched_entities.len() - track_search_list.len();
-                                log::debug!(
-                                            "Track search memo changed: Appending {num_append_entities} fetched entities");
-                                track_search_list.extend(
-                                    (track_search_list.len()..fetched_entities.len())
-                                        .map(|i| format!("TODO: Track {i}")),
-                                );
-                            }
-                        },
+                                track_list
+                            };
+                            let state = self.library.read_lock_track_search_state();
+                            match fetched_entities_diff {
+                                    aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
+                                        log::debug!(
+                                            "Track search memo changed: Replacing all fetched entities",
+                                        );
+                                        if let Some(fetched_entities) = state.fetched_entities() {
+                                            let track_search_list =
+                                                track_search_list.get_or_insert_with(|| Vec::with_capacity(fetched_entities.len()));
+                                            track_search_list.clear();
+                                            track_search_list.extend(fetched_entities.iter().map(
+                                                |fetched_entity| {
+                                                    track_to_string(&fetched_entity.entity.body.track)
+                                                },
+                                            ));
+                                        } else {
+                                            *track_search_list = None;
+                                        }
+                                    }
+                                    aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
+                                        let Some(fetched_entities) = state.fetched_entities() else {
+                                            unreachable!();
+                                        };
+                                        let track_search_list = track_search_list.as_mut().unwrap();
+                                        debug_assert_eq!(
+                                            Some(track_search_list.len()),
+                                            last_memo_offset,
+                                        );
+                                        debug_assert!(track_search_list.len() <= fetched_entities.len());
+                                        let num_append_entities =
+                                            fetched_entities.len() - track_search_list.len();
+                                        log::debug!(
+                                                    "Track search memo changed: Appending {num_append_entities} fetched entities");
+                                        track_search_list.extend(
+                                            (track_search_list.len()..fetched_entities.len())
+                                                .map(|i| format!("TODO: Track {i}")),
+                                        );
+                                    }
+                                }
+                        }
                     }
                 }
                 library::track_search::Event::FetchMoreTaskCompleted {
@@ -536,6 +552,21 @@ impl App {
                         .track_search_fetch_more_task_completed(result, continuation);
                 }
             },
+            library::Event::MusicDirSyncProgress(progress) => {
+                if let Some(CentralPanelData::MusicDirSync { progress_log }) =
+                    &mut self.central_panel_data
+                {
+                    if progress_log.len() >= MUSIC_DIR_SYNC_PROGRESS_LOG_MAX_LINES {
+                        // Shrink the log to avoid excessive memory usage.
+                        progress_log.drain(..progress_log.len() / 2);
+                    }
+                    if let Some(progress) = progress {
+                        progress_log.push(format!("{progress:?}"));
+                    }
+                } else {
+                    log::debug!("Discarding unexpected music directory synchronization progress: {progress:?}");
+                }
+            }
         }
     }
 }
@@ -548,18 +579,12 @@ impl eframe::App for App {
                 Ok(msg) => {
                     log::debug!("Received message: {msg:?}");
                     match msg {
-                        AppMessage::Action(action) => {
-                            self.on_action(ctx, action);
-                        }
+                        AppMessage::Action(action) => self.on_action(action),
                         AppMessage::Event(event) => match event {
-                            AppEvent::Input(input) => {
-                                self.on_input_event(input.clone());
-                            }
-                            AppEvent::Library(event) => {
-                                self.on_library_event(ctx, event);
-                            }
+                            AppEvent::Input(input) => self.on_input_event(input),
+                            AppEvent::Library(event) => self.on_library_event(event),
                         },
-                    }
+                    };
                 }
                 Err(mpsc::TryRecvError::Empty) => {
                     break;
@@ -569,7 +594,7 @@ impl eframe::App for App {
         }
 
         let message_sender = &self.message_sender;
-        let current_library_state = self.library.state().read_current();
+        let current_library_state = self.library.read_lock_current_state();
 
         TopBottomPanel::top("top-panel").show(ctx, |ui| {
             egui::Grid::new("grid")
@@ -577,7 +602,7 @@ impl eframe::App for App {
                 .spacing([40.0, 4.0])
                 .striped(true)
                 .show(ui, |ui| {
-                    let music_dir = current_library_state.settings().music_dir.as_ref();
+                    let music_dir = current_library_state.music_dir();
                     ui.label("Music directory:");
                     ui.label(
                         music_dir
@@ -596,7 +621,7 @@ impl eframe::App for App {
                         .clicked()
                     {
                         message_sender
-                            .on_action(MusicDirectoryAction::Select);
+                            .send_action(MusicDirectoryAction::Select);
                     }
                     ui.label("");
                     if ui
@@ -609,7 +634,7 @@ impl eframe::App for App {
                         .clicked()
                     {
                         message_sender
-                            .on_action(MusicDirectoryAction::Reset);
+                            .send_action(MusicDirectoryAction::Reset);
                     }
                     ui.end_row();
 
@@ -651,20 +676,9 @@ impl eframe::App for App {
                     ui.end_row();
 
                     ui.label("");
-                    if current_library_state.could_abort_synchronize_music_dir_task() {
-                        debug_assert!(
-                            !current_library_state.could_spawn_synchronize_music_dir_task()
-                        );
-                        if ui
-                            .button("Abort synchronize music directory")
-                            .on_hover_text("Stop the current synchronization task.")
-                            .clicked()
-                        {
-                            message_sender.on_action(MusicDirectoryAction::AbortPendingSyncTask);
-                        }
-                    } else if ui
+                    if ui
                         .add_enabled(
-                            current_library_state.could_spawn_synchronize_music_dir_task(),
+                            current_library_state.could_synchronize_music_dir_task(),
                             Button::new("Synchronize music directory..."),
                         )
                         .on_hover_text(
@@ -672,7 +686,7 @@ impl eframe::App for App {
                         )
                         .clicked()
                     {
-                        message_sender.on_action(MusicDirectoryAction::SpawnSyncTask);
+                        message_sender.send_action(MusicDirectoryAction::SpawnSyncTask);
                     }
                     ui.end_row();
 
@@ -684,18 +698,28 @@ impl eframe::App for App {
                         )
                         .lost_focus()
                     {
-                        message_sender.on_action(TrackSearchAction::Search(self.track_search_input.clone()),
+                        message_sender.send_action(TrackSearchAction::Search(self.track_search_input.clone()),
                         );
                     }
                     ui.end_row();
                 });
         });
 
-        CentralPanel::default().show(ctx, |ui| {
-            for track in self.track_search_list.as_deref().unwrap_or_default() {
-                ui.label(track);
-            }
-        });
+        if let Some(central_panel_data) = &self.central_panel_data {
+            CentralPanel::default().show(ctx, |ui| match central_panel_data {
+                CentralPanelData::TrackSearch { track_list } => {
+                    let track_search_list = track_list.as_deref().unwrap_or_default();
+                    for track in track_search_list {
+                        ui.label(track);
+                    }
+                }
+                CentralPanelData::MusicDirSync { progress_log } => {
+                    for line in progress_log.iter().rev() {
+                        ui.label(line);
+                    }
+                }
+            });
+        }
 
         TopBottomPanel::bottom("bottem-panel").show(ctx, |ui| {
             egui::Grid::new("grid")
@@ -703,16 +727,42 @@ impl eframe::App for App {
                 .spacing([40.0, 4.0])
                 .striped(true)
                 .show(ui, |ui| {
-                    if ui
-                        .add_enabled(
-                            current_library_state.could_spawn_fetch_more_track_search_results(),
-                            Button::new("Fetch more"),
-                        )
-                        .clicked()
-                    {
-                        message_sender.on_action(TrackSearchAction::FetchMore);
+                    if let Some(central_panel_data) = &self.central_panel_data {
+                        let text;
+                        let hover_text;
+                        let enabled;
+                        let action: AppAction;
+                        match central_panel_data {
+                            CentralPanelData::TrackSearch { .. } => {
+                                text = "Fetch more";
+                                hover_text = "Fetch the next page of search results.";
+                                enabled =
+                                    current_library_state.could_fetch_more_track_search_results();
+                                action = TrackSearchAction::FetchMore.into();
+                            }
+                            CentralPanelData::MusicDirSync { .. } => {
+                                if current_library_state.could_abort_synchronize_music_dir_task() {
+                                    text = "Abort";
+                                    hover_text = "Stop the current synchronization task.";
+                                    enabled = true;
+                                    action = MusicDirectoryAction::AbortPendingSyncTask.into();
+                                } else {
+                                    text = "Dismiss";
+                                    hover_text = "Clear output and return to track search.";
+                                    enabled = true;
+                                    action = CollectionAction::RefreshFromDb.into();
+                                }
+                            }
+                        }
+                        if ui
+                            .add_enabled(enabled, Button::new(text))
+                            .on_hover_text(hover_text)
+                            .clicked()
+                        {
+                            message_sender.send_action(action);
+                        }
+                        ui.end_row();
                     }
-                    ui.end_row();
 
                     ui.label("Last error:");
                     let last_error = current_library_state
@@ -771,7 +821,7 @@ fn track_to_string(track: &aoide::Track) -> String {
 #[allow(clippy::unused_self)] // TODO
 fn choose_directory_path<P>(
     rt: &tokio::runtime::Handle,
-    dir_path: &Option<P>,
+    dir_path: Option<&P>,
     on_dir_path_chosen: impl FnOnce(Option<DirPath<'static>>) + Send + Sync + 'static,
 ) -> Option<PathBuf>
 where

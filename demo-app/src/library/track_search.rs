@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use discro::Subscriber;
+use discro::{Ref, Subscriber};
 
 use aoide::{
     api::{
@@ -19,7 +19,7 @@ use aoide::{
 
 use crate::NoReceiverForEvent;
 
-use super::{LibraryEvent, LibraryEventEmitter};
+use super::EventEmitter;
 
 // Re-exports
 pub use track::repo_search::*;
@@ -33,17 +33,18 @@ pub enum Event {
     },
 }
 
-impl From<Event> for LibraryEvent {
+impl From<Event> for super::Event {
     fn from(event: Event) -> Self {
         Self::TrackSearch(event)
     }
 }
 
+pub type StateRef<'a> = Ref<'a, State>;
 pub type StateSubscriber = Subscriber<State>;
 
 pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitter: E)
 where
-    E: LibraryEventEmitter,
+    E: EventEmitter,
 {
     // The first event is always emitted immediately.
     loop {

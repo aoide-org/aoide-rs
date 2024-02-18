@@ -43,17 +43,20 @@ struct SynchronizeMusicDirCompleted {
 }
 
 #[derive(Debug)]
-pub enum LibraryEvent {
-    SettingsStateChanged,
-    CollectionStateChanged,
+pub enum Event {
+    Settings(settings::Event),
+    Collection(collection::Event),
     TrackSearch(track_search::Event),
+    MusicDirSyncProgress(
+        Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>,
+    ),
 }
 
-/// Library event emitter.
+/// Event emitter.
 ///
 /// No locks must be held when calling `emit_event()`!
-pub trait LibraryEventEmitter: Send + Sync + 'static {
-    fn emit_event(&self, event: LibraryEvent) -> Result<(), NoReceiverForEvent>;
+pub trait EventEmitter: Send + Sync + 'static {
+    fn emit_event(&self, event: Event) -> Result<(), NoReceiverForEvent>;
 }
 
 /// Stateful library frontend.
@@ -61,77 +64,87 @@ pub trait LibraryEventEmitter: Send + Sync + 'static {
 /// Manages the application state that should not depend on any
 /// particular UI technology.
 #[allow(missing_debug_implementations)]
-pub struct LibraryState {
-    settings: Arc<settings::ObservableState>,
-    collection: Arc<collection::ObservableState>,
-    track_search: Arc<track_search::ObservableState>,
-    pending_synchronize_music_dir_task: Option<SynchronizeVfsTask>,
+pub struct StateObservables {
+    pub settings: Arc<settings::ObservableState>,
+    pub collection: Arc<collection::ObservableState>,
+    pub track_search: Arc<track_search::ObservableState>,
 }
 
-impl LibraryState {
+impl StateObservables {
     #[must_use]
-    pub fn new(initial_settings: settings::State) -> Self {
-        let initial_track_search = track_search::State::new(default_track_search_params());
+    fn new(initial_settings: settings::State) -> Self {
+        let settings = Arc::new(settings::ObservableState::new(initial_settings));
+        let collection = Arc::new(collection::ObservableState::default());
+        let track_search = Arc::new(track_search::ObservableState::new(
+            track_search::State::new(default_track_search_params()),
+        ));
         Self {
-            settings: Arc::new(settings::ObservableState::new(initial_settings)),
-            collection: Arc::default(),
-            track_search: Arc::new(track_search::ObservableState::new(initial_track_search)),
-            pending_synchronize_music_dir_task: None,
-        }
-    }
-
-    /// Readable settings state.
-    #[must_use]
-    pub fn settings(&self) -> &impl ObservableReader<settings::State> {
-        self.settings.as_ref()
-    }
-
-    /// Observable collection state.
-    #[must_use]
-    pub fn collection(&self) -> &impl ObservableReader<collection::State> {
-        self.collection.as_ref()
-    }
-
-    /// Observable track (repo) search state.
-    #[must_use]
-    pub fn track_search(&self) -> &impl ObservableReader<track_search::State> {
-        self.track_search.as_ref()
-    }
-
-    /// Read-lock the current state.
-    #[must_use]
-    pub fn read_current(&self) -> CurrentLibraryState<'_> {
-        let Self {
             settings,
             collection,
             track_search,
-            pending_synchronize_music_dir_task,
-        } = self;
-        CurrentLibraryState {
-            settings: settings.read(),
-            collection: collection.read(),
-            track_search: track_search.read(),
-            pending_synchronize_music_dir_task: pending_synchronize_music_dir_task.as_ref(),
         }
     }
 }
 
-pub struct CurrentLibraryState<'a> {
-    settings: Ref<'a, settings::State>,
-    collection: Ref<'a, collection::State>,
-    track_search: Ref<'a, track_search::State>,
-    pending_synchronize_music_dir_task: Option<&'a SynchronizeVfsTask>,
+/// Stateful library frontend.
+///
+/// Manages the application state that should not depend on any
+/// particular UI technology.
+#[derive(Debug, Default)]
+pub struct State {
+    pub last_observed_music_dir: Option<DirPath<'static>>,
+    pub last_observed_collection: collection::State,
+    pub last_observed_track_search_memo: track_search::Memo,
+    pub pending_synchronize_music_dir_task: Option<SynchronizeVfsTask>,
 }
 
-impl CurrentLibraryState<'_> {
+impl State {
     #[must_use]
-    pub fn settings(&self) -> &settings::State {
-        &self.settings
+    fn read_lock_current<'a>(&'a self, observables: &'a StateObservables) -> CurrentState<'a> {
+        let Self {
+            last_observed_music_dir,
+            last_observed_collection,
+            last_observed_track_search_memo,
+            pending_synchronize_music_dir_task,
+        } = self;
+        let StateObservables { track_search, .. } = observables;
+        let music_dir = last_observed_music_dir.as_ref();
+        let collection = &last_observed_collection;
+        let track_search_memo = &last_observed_track_search_memo;
+        let pending_synchronize_music_dir_task = pending_synchronize_music_dir_task.as_ref();
+        let track_search = track_search.read_lock();
+        CurrentState {
+            music_dir,
+            collection,
+            track_search_memo,
+            pending_synchronize_music_dir_task,
+            track_search,
+        }
+    }
+}
+
+pub struct CurrentState<'a> {
+    music_dir: Option<&'a DirPath<'static>>,
+    collection: &'a collection::State,
+    track_search_memo: &'a track_search::Memo,
+    pending_synchronize_music_dir_task: Option<&'a SynchronizeVfsTask>,
+    track_search: Ref<'a, track_search::State>,
+}
+
+impl CurrentState<'_> {
+    #[must_use]
+    pub const fn music_dir(&self) -> Option<&'_ DirPath<'static>> {
+        self.music_dir
     }
 
     #[must_use]
-    pub fn collection(&self) -> &collection::State {
-        &self.collection
+    pub const fn collection(&self) -> &collection::State {
+        self.collection
+    }
+
+    #[must_use]
+    pub const fn track_search_memo(&self) -> &track_search::Memo {
+        self.track_search_memo
     }
 
     #[must_use]
@@ -139,11 +152,13 @@ impl CurrentLibraryState<'_> {
         &self.track_search
     }
 
-    pub fn could_reset_music_dir(&self) -> bool {
-        self.settings().music_dir.is_some()
+    #[must_use]
+    pub const fn could_reset_music_dir(&self) -> bool {
+        self.music_dir.is_some()
     }
 
-    pub fn could_spawn_synchronize_music_dir_task(&self) -> bool {
+    #[must_use]
+    pub fn could_synchronize_music_dir_task(&self) -> bool {
         if !self.collection().is_ready() {
             return false;
         }
@@ -153,6 +168,7 @@ impl CurrentLibraryState<'_> {
         pending_task.is_finished()
     }
 
+    #[must_use]
     pub fn could_abort_synchronize_music_dir_task(&self) -> bool {
         let Some(pending_task) = self.pending_synchronize_music_dir_task else {
             return false;
@@ -160,11 +176,13 @@ impl CurrentLibraryState<'_> {
         !pending_task.is_finished()
     }
 
+    #[must_use]
     pub fn could_search_tracks(&self) -> bool {
         self.collection().is_ready() && self.track_search().pending_since().is_none()
     }
 
-    pub fn could_spawn_fetch_more_track_search_results(&self) -> bool {
+    #[must_use]
+    pub fn could_fetch_more_track_search_results(&self) -> bool {
         self.track_search().can_fetch_more().unwrap_or(false)
     }
 }
@@ -173,7 +191,8 @@ impl CurrentLibraryState<'_> {
 #[allow(missing_debug_implementations)]
 pub struct Library {
     handle: Handle,
-    state: LibraryState,
+    state_observables: StateObservables,
+    state: State,
 }
 
 impl Library {
@@ -181,7 +200,8 @@ impl Library {
     pub fn new(handle: Handle, initial_settings: settings::State) -> Self {
         Self {
             handle,
-            state: LibraryState::new(initial_settings),
+            state_observables: StateObservables::new(initial_settings),
+            state: Default::default(),
         }
     }
 
@@ -191,23 +211,96 @@ impl Library {
     }
 
     #[must_use]
-    pub const fn state(&self) -> &LibraryState {
+    pub const fn state(&self) -> &State {
         &self.state
     }
 
-    pub fn update_music_dir(&self, music_dir: Option<&DirPath<'_>>) {
-        if self.state.settings.update_music_dir(music_dir) {
+    #[must_use]
+    pub fn read_lock_current_state(&self) -> CurrentState<'_> {
+        self.state.read_lock_current(&self.state_observables)
+    }
+
+    #[must_use]
+    pub fn read_lock_track_search_state(&self) -> track_search::StateRef<'_> {
+        self.state_observables.track_search.read_lock()
+    }
+
+    pub fn on_settings_state_changed(&mut self) -> bool {
+        let new_music_dir = {
+            let settings_state = self.state_observables.settings.read_lock();
+            if settings_state.music_dir == self.state.last_observed_music_dir {
+                log::debug!(
+                    "Music directory unchanged: {music_dir:?}",
+                    music_dir = self.state.last_observed_music_dir,
+                );
+                return false;
+            }
+            settings_state.music_dir.clone()
+        };
+        log::debug!(
+            "Music directory changed: {old_music_dir:?} -> {new_music_dir:?}",
+            old_music_dir = self.state.last_observed_music_dir,
+        );
+        self.state.last_observed_music_dir = new_music_dir;
+        true
+    }
+
+    pub fn on_collection_state_changed(&mut self) -> bool {
+        let mut changed = false;
+        let new_state = {
+            let new_state = self.state_observables.collection.read_lock();
+            if *new_state == self.state.last_observed_collection {
+                log::debug!(
+                    "Collection state unchanged: {old_state:?}",
+                    old_state = self.state.last_observed_collection,
+                );
+                return false;
+            }
+            new_state.clone()
+        };
+        log::debug!(
+            "Collection state changed: {old_state:?} -> {new_state:?}",
+            old_state = self.state.last_observed_collection,
+        );
+        if self.state.pending_synchronize_music_dir_task.is_some()
+            && !matches!(new_state, collection::State::Synchronizing { .. })
+        {
+            // The task will eventually finish.
+            log::debug!("Resetting pending synchronize music directory task");
+            self.state.pending_synchronize_music_dir_task = None;
+            changed = true;
+        }
+        self.state.last_observed_collection = new_state;
+        changed
+    }
+
+    pub fn on_track_search_state_changed(&mut self) -> track_search::MemoUpdated {
+        let state = self.state_observables.track_search.read_lock();
+        state.update_memo(&mut self.state.last_observed_track_search_memo)
+    }
+
+    pub fn try_update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> bool {
+        if self.state_observables.settings.update_music_dir(music_dir) {
             log::info!("Music directory updated: {music_dir:?}");
+            true
         } else {
             log::debug!("Music directory unchanged: {music_dir:?}");
+            false
         }
     }
 
-    pub fn reset_music_dir(&self) {
-        self.update_music_dir(None);
+    pub fn try_reset_music_dir(&self) -> bool {
+        self.try_update_music_dir(None)
     }
 
-    pub fn spawn_synchronize_music_dir_task(&mut self, rt: &tokio::runtime::Handle) -> bool {
+    pub fn try_spawn_synchronize_music_dir_task<E>(
+        &mut self,
+        rt: &tokio::runtime::Handle,
+        event_emitter: &E,
+    ) -> bool
+    where
+        E: EventEmitter + Clone + 'static,
+    {
         if let Some(synchronize_music_dir_task) =
             self.state.pending_synchronize_music_dir_task.as_ref()
         {
@@ -221,11 +314,32 @@ impl Library {
         }
         log::info!("Spawning synchronize music directory task");
         self.state.pending_synchronize_music_dir_task =
-            SynchronizeVfsTask::try_spawn(rt, &self.handle, &self.state.collection);
-        self.state.pending_synchronize_music_dir_task.is_some()
+            SynchronizeVfsTask::try_spawn(rt, &self.handle, &self.state_observables.collection);
+        let Some(task) = &self.state.pending_synchronize_music_dir_task else {
+            return false;
+        };
+        rt.spawn({
+            let event_emitter = event_emitter.clone();
+            let mut subscriber = task.progress().clone();
+            async move {
+                loop {
+                    let progress = subscriber.read_ack().clone();
+                    if event_emitter
+                        .emit_event(Event::MusicDirSyncProgress(progress))
+                        .is_err()
+                    {
+                        break;
+                    }
+                    if subscriber.changed().await.is_err() {
+                        break;
+                    }
+                }
+            }
+        });
+        true
     }
 
-    pub fn abort_pending_synchronize_music_dir_task(&mut self) -> bool {
+    pub fn try_abort_pending_synchronize_music_dir_task(&mut self) -> bool {
         let pending_synchronize_music_dir_task =
             self.state.pending_synchronize_music_dir_task.take();
         let Some(synchronize_music_dir_task) = pending_synchronize_music_dir_task else {
@@ -236,48 +350,17 @@ impl Library {
         true
     }
 
-    pub fn on_collection_state_changed(
-        &mut self,
-        rt: &tokio::runtime::Handle,
-        collection_state: &collection::State,
-    ) -> bool {
-        let mut changed = false;
-        if self.state.pending_synchronize_music_dir_task.is_some()
-            && !matches!(collection_state, collection::State::Synchronizing { .. })
-        {
-            // The task will eventually finish.
-            log::debug!("Resetting pending synchronize music directory task");
-            self.state.pending_synchronize_music_dir_task = None;
-            changed = true;
-        }
-        // Determine a follow-up action and execute it implicitly when reaching
-        // a dead end state.
-        // TODO: Store or report outcomes and errors from these dead end states.
-        match collection_state {
-            collection::State::LoadingFailed { .. }
-            | collection::State::RestoringOrCreatingFromMusicDirectoryFailed { .. }
-            | collection::State::NestedMusicDirectoriesConflict { .. } => {
-                self.reset_music_dir();
-            }
-            collection::State::SynchronizingAborted { .. }
-            | collection::State::SynchronizingSucceeded { .. }
-            | collection::State::SynchronizingFailed { .. } => {
-                self.refresh_collection_from_db(rt);
-            }
-            _ => {}
-        }
-        changed
-    }
-
-    pub fn refresh_collection_from_db(&self, rt: &tokio::runtime::Handle) -> bool {
-        let Some((task, continuation)) =
-            self.state.collection.try_refresh_from_db_task(&self.handle)
+    pub fn try_refresh_collection_from_db(&self, rt: &tokio::runtime::Handle) -> bool {
+        let Some((task, continuation)) = self
+            .state_observables
+            .collection
+            .try_refresh_from_db_task(&self.handle)
         else {
             return false;
         };
         log::debug!("Refreshing collection from DB");
         rt.spawn({
-            let collection_state = Arc::clone(&self.state.collection);
+            let collection_state = Arc::clone(&self.state_observables.collection);
             async move {
                 let result = task.await;
                 collection_state.refresh_from_db_task_completed(result, continuation);
@@ -286,12 +369,12 @@ impl Library {
         true
     }
 
-    pub fn search_tracks(&self, input: &str) {
+    pub fn search_tracks(&self, input: &str) -> bool {
         let filter = track_search::parse_filter_from_input(input);
         let resolve_url_from_content_path = self
-            .state
-            .track_search()
-            .read_observable()
+            .state_observables
+            .track_search
+            .read_lock()
             .default_params()
             .resolve_url_from_content_path
             .clone();
@@ -302,21 +385,28 @@ impl Library {
         };
         // Argument is consumed when updating succeeds
         log::debug!("Updating track search params: {params:?}");
-        if !self.state.track_search.update_params(&mut params) {
+        if self
+            .state_observables
+            .track_search
+            .update_params(&mut params)
+        {
+            true
+        } else {
             log::debug!("Track search params not updated: {params:?}");
+            false
         }
     }
 
-    pub fn fetch_more_track_search_results<E>(
+    pub fn try_fetch_more_track_search_results<E>(
         &self,
         tokio_rt: &tokio::runtime::Handle,
         event_emitter: &E,
     ) -> bool
     where
-        E: LibraryEventEmitter + Clone + 'static,
+        E: EventEmitter + Clone + 'static,
     {
         let Some((task, continuation)) = self
-            .state
+            .state_observables
             .track_search
             .try_fetch_more_task(&self.handle, Some(TRACK_REPO_SEARCH_PREFETCH_LIMIT))
         else {
@@ -342,34 +432,34 @@ impl Library {
         &self,
         result: track_search::FetchMoreResult,
         continuation: track_search::FetchMoreTaskContinuation,
-    ) {
-        self.state
+    ) -> bool {
+        self.state_observables
             .track_search
-            .fetch_more_task_joined(result.into(), continuation);
+            .fetch_more_task_joined(result.into(), continuation)
     }
 
     /// Spawn reactive background tasks
     pub fn spawn_background_tasks(&self, tokio_rt: &tokio::runtime::Handle, settings_dir: PathBuf) {
         tokio_rt.spawn(settings::tasklet::on_state_changed_save_to_file(
-            self.state.settings.subscribe_changed(),
+            self.state_observables.settings.subscribe_changed(),
             settings_dir,
             |err| {
                 log::error!("Failed to save settings to file: {err}");
             },
         ));
         tokio_rt.spawn(collection::tasklet::on_settings_state_changed(
-            &self.state.settings,
-            Arc::downgrade(&self.state.collection),
+            &self.state_observables.settings,
+            Arc::downgrade(&self.state_observables.collection),
             Handle::downgrade(&self.handle),
             CREATE_NEW_COLLECTION_ENTITY_IF_NOT_FOUND,
             NESTED_MUSIC_DIRS,
         ));
         tokio_rt.spawn(track_search::tasklet::on_collection_state_changed(
-            &self.state.collection,
-            Arc::downgrade(&self.state.track_search),
+            &self.state_observables.collection,
+            Arc::downgrade(&self.state_observables.track_search),
         ));
         tokio_rt.spawn(track_search::tasklet::on_should_prefetch(
-            &self.state.track_search,
+            &self.state_observables.track_search,
             Handle::downgrade(&self.handle),
             Some(TRACK_REPO_SEARCH_PREFETCH_LIMIT),
         ));
@@ -377,24 +467,24 @@ impl Library {
 
     pub fn spawn_event_tasks<E>(&self, tokio_rt: &tokio::runtime::Handle, event_emitter: &E)
     where
-        E: LibraryEventEmitter + Clone + 'static,
+        E: EventEmitter + Clone + 'static,
     {
         tokio_rt.spawn({
-            let subscriber = self.state().settings.subscribe_changed();
+            let subscriber = self.state_observables.settings.subscribe_changed();
             let event_emitter = event_emitter.clone();
             async move {
                 settings::watch_state(subscriber, event_emitter).await;
             }
         });
         tokio_rt.spawn({
-            let subscriber = self.state().collection.subscribe_changed();
+            let subscriber = self.state_observables.collection.subscribe_changed();
             let event_emitter = event_emitter.clone();
             async move {
                 collection::watch_state(subscriber, event_emitter).await;
             }
         });
         tokio_rt.spawn({
-            let subscriber = self.state().track_search.subscribe_changed();
+            let subscriber = self.state_observables.track_search.subscribe_changed();
             let event_emitter = event_emitter.clone();
             async move {
                 track_search::watch_state(subscriber, event_emitter).await;

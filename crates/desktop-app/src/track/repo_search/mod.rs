@@ -340,7 +340,7 @@ pub struct Memo {
     pub fetch: FetchMemo,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct State {
     default_params: Params,
     context: Context,
@@ -644,7 +644,7 @@ fn try_fetch_more_task(
 pub type StateSubscriber = discro::Subscriber<State>;
 
 /// Manages the mutable, observable state
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ObservableState(Observable<State>);
 
 impl ObservableState {
@@ -720,8 +720,8 @@ impl ObservableState {
 pub type ObservableStateRef<'a> = ObservableRef<'a, State>;
 
 impl ObservableReader<State> for ObservableState {
-    fn read_observable(&self) -> ObservableStateRef<'_> {
-        self.0.read_observable()
+    fn read_lock(&self) -> ObservableStateRef<'_> {
+        self.0.read_lock()
     }
 }
 

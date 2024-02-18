@@ -24,7 +24,7 @@ pub mod track;
 pub type ObservableRef<'a, T> = Ref<'a, T>;
 
 /// Manages the mutable, observable state
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Observable<T> {
     publisher: Publisher<T>,
 }
@@ -61,11 +61,11 @@ pub trait ObservableReader<T> {
     /// Read the current value of the observable.
     ///
     /// Holds a read lock until the returned reference is dropped.
-    fn read_observable(&self) -> ObservableRef<'_, T>;
+    fn read_lock(&self) -> ObservableRef<'_, T>;
 }
 
 impl<T> ObservableReader<T> for Observable<T> {
-    fn read_observable(&self) -> ObservableRef<'_, T> {
+    fn read_lock(&self) -> ObservableRef<'_, T> {
         self.read()
     }
 }
@@ -74,7 +74,7 @@ impl<T> ObservableReader<T> for T
 where
     T: Deref<Target = Observable<T>>,
 {
-    fn read_observable(&self) -> ObservableRef<'_, T> {
+    fn read_lock(&self) -> ObservableRef<'_, T> {
         self.read()
     }
 }
