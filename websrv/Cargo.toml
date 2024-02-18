@@ -38,7 +38,9 @@ url = { version = "2.5.0", features = ["serde"] }
 warp = { version = "0.3.6", default-features = false }
 
 # Workspace dependencies
-aoide-backend-webapi-json = { path = "../crates/backend-webapi-json" }
+aoide-backend-webapi-json = { path = "../crates/backend-webapi-json", features = [
+    "tokio",
+] }
 aoide-core = { path = "../crates/core", features = ["serde"] }
 aoide-repo-sqlite = { path = "../crates/repo-sqlite" }
 aoide-storage-sqlite = { path = "../crates/storage-sqlite", features = [

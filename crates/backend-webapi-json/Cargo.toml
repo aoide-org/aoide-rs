@@ -43,6 +43,7 @@ aoide-usecases-sqlite = { path = "../usecases-sqlite" }
 
 [features]
 default = []
+tokio = ["aoide-backend-embedded/tokio"]
 json-schema = [
     "dep:schemars",
     "aoide-core/json-schema",

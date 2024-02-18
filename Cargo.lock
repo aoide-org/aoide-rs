@@ -180,6 +180,7 @@ dependencies = [
  "serde",
  "tantivy",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

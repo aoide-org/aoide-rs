@@ -25,7 +25,9 @@ unnest = "0.3.1"
 url = { version = "2.5.0", features = ["serde"] }
 
 # Workspace dependencies
-aoide-backend-embedded = { version = "=0.8.0", path = "../backend-embedded" }
+aoide-backend-embedded = { version = "=0.8.0", path = "../backend-embedded", features = [
+    "tokio",
+] }
 aoide-core = { version = "=0.8.0", path = "../core" }
 aoide-core-api = { version = "=0.8.0", path = "../core-api" }
 aoide-media-file = { version = "=0.8.0", path = "../media-file" }

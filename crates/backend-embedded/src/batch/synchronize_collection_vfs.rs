@@ -157,6 +157,8 @@ where
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
+    #[cfg(feature = "tokio")]
+    tokio::task::yield_now().await;
     // 2nd step: Untrack orphaned directories
     report_progress_fn(Progress::Step2UntrackOrphanedDirectories);
     let untrack_orphaned_directories_params =
@@ -175,6 +177,8 @@ where
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
+    #[cfg(feature = "tokio")]
+    tokio::task::yield_now().await;
     // 3rd step: Import files
     let import_files_params = aoide_core_api::media::tracker::import_files::Params {
         root_url: root_url.clone(),
@@ -203,6 +207,8 @@ where
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
+    #[cfg(feature = "tokio")]
+    tokio::task::yield_now().await;
     // 4th step: Purge untracked media sources (optional)
     report_progress_fn(Progress::Step4PurgeUntrackedMediaSources);
     match untracked_media_sources {
@@ -224,6 +230,8 @@ where
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
+    #[cfg(feature = "tokio")]
+    tokio::task::yield_now().await;
     // 5th step: Purge orphaned media sources (optional)
     report_progress_fn(Progress::Step5PurgeOrphanedMediaSources);
     match orphaned_media_sources {
@@ -241,6 +249,8 @@ where
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
+    #[cfg(feature = "tokio")]
+    tokio::task::yield_now().await;
     // 6th step: Find untracked files (optional/informational)
     match untracked_files {
         UntrackedFiles::Skip => (),
@@ -272,6 +282,8 @@ where
     if matches!(outcome.completion, Completion::Aborted) {
         return Ok(outcome);
     }
+    #[cfg(feature = "tokio")]
+    tokio::task::yield_now().await;
     // 7th step: Find unsynchronized tracks (optional/informational)
     report_progress_fn(Progress::Step7FindUnsynchronizedTracks);
     match unsynchronized_tracks {
