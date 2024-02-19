@@ -25,8 +25,11 @@ Populate a database from your local music files and submit search queries.
   RUST_LOG=info cargo run -p aoide-demo-app
   ```
 
-The SQLite database and settings file can be found in the corresponding config directory of your
-platform. The log messages will mention this location.
+The application creates one collection for each selected music directory and sets the title
+accordingly.
+
+Both the default SQLite database and the application settings can be found in the corresponding
+config directory of your platform. See the log messages for the file path.
 
 ## Features
 
