@@ -15,7 +15,7 @@ publish = false
 workspace = true
 
 [dependencies]
-anyhow = "1.0.79"
+anyhow = "1.0.80"
 bytes = "1.5.0"
 infect = "0.0.30"
 #infect = { git = "https://github.com/uklotzde/infect.git" }

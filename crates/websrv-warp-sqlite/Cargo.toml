@@ -15,7 +15,7 @@ publish = false
 workspace = true
 
 [dependencies]
-anyhow = "1.0.79"
+anyhow = "1.0.80"
 log = "0.4.20"
 serde = "1.0.196"
 thiserror = "1.0.57"
