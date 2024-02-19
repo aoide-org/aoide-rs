@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use directories::ProjectDirs;
 
 pub mod app;
-use self::app::{App, AppModel};
+use self::app::App;
 
 pub mod fs;
 
@@ -97,7 +97,7 @@ async fn main() {
         app_name(),
         eframe::NativeOptions::default(),
         Box::new(move |ctx| {
-            let mdl = AppModel::new(library);
+            let mdl = app::Model::new(library);
             let app = App::new(ctx, rt, mdl, config_dir);
             Box::new(app)
         }),
