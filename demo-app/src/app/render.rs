@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use eframe::Frame;
-use egui::{Button, CentralPanel, Context, TextEdit, TopBottomPanel};
+use egui::{Button, CentralPanel, Context, Grid, ScrollArea, TextEdit, TopBottomPanel};
 
 use super::{
     Action, CentralPanelData, CollectionAction, MessageSender, Model, MusicDirectoryAction,
@@ -28,7 +28,7 @@ impl<'a> RenderContext<'a> {
         let current_library_state = mdl.library.read_lock_current_state();
 
         TopBottomPanel::top("top-panel").show(ctx, |ui| {
-        egui::Grid::new("grid")
+        Grid::new("grid")
             .num_columns(2)
             .spacing([40.0, 4.0])
             .striped(true)
@@ -43,7 +43,7 @@ impl<'a> RenderContext<'a> {
                 ui.end_row();
 
                 ui.label("");
-                egui::Grid::new("grid")
+                Grid::new("grid")
                     .num_columns(3)
                     .spacing([40.0, 4.0])
                     .show(ui, |ui| {
@@ -139,22 +139,24 @@ impl<'a> RenderContext<'a> {
     });
 
         if let Some(central_panel_data) = &mdl.central_panel_data {
-            CentralPanel::default().show(ctx, |ui| match central_panel_data {
-                CentralPanelData::TrackSearch { track_list } => {
-                    for track in track_list {
-                        ui.label(track);
+            CentralPanel::default().show(ctx, |ui| {
+                ScrollArea::both().show(ui, |ui| match central_panel_data {
+                    CentralPanelData::TrackSearch { track_list } => {
+                        for track in track_list {
+                            ui.label(track);
+                        }
                     }
-                }
-                CentralPanelData::MusicDirSync { progress_log } => {
-                    for line in progress_log.iter().rev() {
-                        ui.label(line);
+                    CentralPanelData::MusicDirSync { progress_log } => {
+                        for line in progress_log.iter().rev() {
+                            ui.label(line);
+                        }
                     }
-                }
+                })
             });
         }
 
         TopBottomPanel::bottom("bottem-panel").show(ctx, |ui| {
-            egui::Grid::new("grid")
+            Grid::new("grid")
                 .num_columns(2)
                 .spacing([40.0, 4.0])
                 .striped(true)
