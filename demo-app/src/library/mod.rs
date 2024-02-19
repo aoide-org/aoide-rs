@@ -36,6 +36,7 @@ const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
     NonZeroUsize::MIN.saturating_add(TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE - 1);
 
 #[derive(Debug)]
+#[allow(dead_code)] // TODO
 struct SynchronizeMusicDirCompleted {
     continuation: collection::SynchronizeVfsTaskContinuation,
     result:
@@ -123,6 +124,7 @@ impl State {
     }
 }
 
+#[allow(missing_debug_implementations)]
 pub struct CurrentState<'a> {
     music_dir: Option<&'a DirPath<'static>>,
     collection: &'a collection::State,
@@ -225,6 +227,7 @@ impl Library {
         self.state_observables.track_search.read_lock()
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn on_settings_state_changed(&mut self) -> bool {
         let new_music_dir = {
             let settings_state = self.state_observables.settings.read_lock();
@@ -245,6 +248,7 @@ impl Library {
         true
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn on_collection_state_changed(&mut self) -> bool {
         let new_state = {
             let new_state = self.state_observables.collection.read_lock();
@@ -272,11 +276,13 @@ impl Library {
         true
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn on_track_search_state_changed(&mut self) -> track_search::MemoUpdated {
         let state = self.state_observables.track_search.read_lock();
         state.update_memo(&mut self.state.last_observed_track_search_memo)
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn try_update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> bool {
         if self
             .state_observables
@@ -291,14 +297,17 @@ impl Library {
         }
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn try_reset_music_dir(&self) -> bool {
         self.try_update_music_dir(None)
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn try_reset_collection(&self) -> bool {
         self.state_observables.collection.try_reset()
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn try_spawn_music_dir_sync_task<E>(
         &mut self,
         rt: &tokio::runtime::Handle,
@@ -343,6 +352,7 @@ impl Library {
         true
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn try_abort_pending_music_dir_sync_task(&mut self) -> bool {
         let pending_music_dir_sync_task = self.state.pending_music_dir_sync_task.take();
         let Some(synchronize_music_dir_task) = pending_music_dir_sync_task else {
@@ -353,6 +363,7 @@ impl Library {
         true
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn try_refresh_collection_from_db(&self, rt: &tokio::runtime::Handle) -> bool {
         let Some((task, continuation)) = self
             .state_observables
@@ -372,6 +383,7 @@ impl Library {
         true
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn try_search_tracks(&self, input: &str) -> bool {
         let filter = track_search::parse_filter_from_input(input);
         let resolve_url_from_content_path = self
@@ -399,6 +411,7 @@ impl Library {
         true
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn try_spawn_fetch_more_track_search_results_task<E>(
         &self,
         tokio_rt: &tokio::runtime::Handle,
@@ -430,6 +443,7 @@ impl Library {
         true
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn on_fetch_more_track_search_results_task_completed(
         &self,
         result: track_search::FetchMoreResult,
