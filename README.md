@@ -31,6 +31,23 @@ accordingly.
 Both the default SQLite database and the application settings can be found in the corresponding
 config directory of your platform. See the log messages for the file path.
 
+### Metadata, tags, and searching
+
+Supports _hashtags_ in the
+[Content Group](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#grouping-3)
+field, URL-encoded and delimited by whitespace:
+
+`#Afterhour #Main%20Floor`
+
+The simple search input tokenizer of the app doesn't support spaces in tag labels yet, i.e. prefer
+`#MainFloor` instead of `#Main%20Floor`.
+
+Searching is case-insensitive and for tag labels only the prefix is matched, e.g. searching `#main`
+finds `#MainFloor`.
+
+Search tokens that don't start with `#` will match various other fields like _title_, _artist_, or
+_album_.
+
 ## Features
 
 - Designed for large _collections_ of _tracks_ and _playlists_
