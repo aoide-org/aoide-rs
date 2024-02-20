@@ -5,13 +5,7 @@
 # <https://users.rust-lang.org/t/psa-please-specify-precise-dependency-versions-in-cargo-toml/71277>
 
 [workspace]
-members = [
-  ".",
-  "crates/*",
-  "demo-app",
-  "webcli",
-  "websrv",
-]
+members = [".", "crates/*", "demo-app", "webcli", "websrv"]
 
 [workspace.package]
 repository = "https://gitlab.com/uklotzde/aoide-rs"
@@ -115,26 +109,51 @@ aoide-usecases = { version = "0.8.0", path = "crates/usecases", optional = true 
 aoide-usecases-sqlite = { version = "0.8.0", path = "crates/usecases-sqlite", optional = true }
 
 [features]
+# Portable features
 default = ["api"]
 api = ["dep:aoide-core-api"]
+
+# Portable backend features
 repo = ["api", "dep:aoide-repo"]
 usecases = ["api", "repo", "dep:aoide-usecases"]
-json = ["aoide-core/serde", "dep:aoide-core-json"]
-json-api = ["api", "json", "dep:aoide-core-api-json"]
-json-schema = ["aoide-core/json-schema", "aoide-core-api-json?/json-schema"]
-frontend = ["aoide-core-api-json?/frontend"]
-backend = ["aoide-core-api-json?/backend"]
+
+# Native features (for embedded backends)
 media-file = ["dep:aoide-media-file", "aoide-usecases?/media-file"]
-sqlite = ["usecases", "dep:aoide-repo-sqlite", "dep:aoide-storage-sqlite", "dep:aoide-usecases-sqlite"]
-tantivy = ["dep:aoide-search-index-tantivy", "aoide-backend-embedded?/tantivy"]
+sqlite = [
+  "usecases",
+  "dep:aoide-repo-sqlite",
+  "dep:aoide-storage-sqlite",
+  "dep:aoide-usecases-sqlite",
+]
 tokio = ["aoide-backend-embedded?/tokio"]
-backend-embedded = ["backend", "media-file", "sqlite", "dep:aoide-backend-embedded"]
-desktop-app = ["frontend", "backend-embedded", "dep:aoide-desktop-app"]
+backend-embedded = ["media-file", "sqlite", "dep:aoide-backend-embedded"]
+desktop-app = ["backend-embedded", "dep:aoide-desktop-app"]
 async-file-dialog = ["aoide-desktop-app?/async-file-dialog"]
 
+# JSON features
+json = ["aoide-core/serde", "dep:aoide-core-json"]
+json-api = ["api", "json", "dep:aoide-core-api-json"]
+json-frontend = ["json-api", "aoide-core-api-json/frontend"]
+json-backend = ["json-api", "aoide-core-api-json/backend"]
+json-schema = [
+  "json",
+  "aoide-core/json-schema",
+  "aoide-core-api-json?/json-schema",
+]
+
 # JavaScript/WASM features
-js = ["aoide-core/js", "aoide-core-api?/js", "aoide-core-api-json?/js", "aoide-core-json?/js", "aoide-repo?/js", "aoide-usecases?/js"]
-frontend-js = ["frontend", "js", "json-api"]
+js = [
+  "aoide-core/js",
+  "aoide-core-api?/js",
+  "aoide-core-api-json?/js",
+  "aoide-core-json?/js",
+  "aoide-repo?/js",
+  "aoide-usecases?/js",
+]
+frontend-js = ["json-frontend", "js"]
+
+# Tantivy (experimental)
+tantivy = ["dep:aoide-search-index-tantivy", "aoide-backend-embedded?/tantivy"]
 
 [profile.dev]
 opt-level = 2

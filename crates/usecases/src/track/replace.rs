@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-#[cfg(not(target_family = "wasm"))]
-use aoide_core::media::content::resolver::ContentPathResolver as _;
 use aoide_core::track::Entity as TrackEntity;
 use aoide_core_api::track::replace::Summary;
 use aoide_repo::{
@@ -12,8 +10,6 @@ use aoide_repo::{
 };
 
 use super::*;
-#[cfg(not(target_family = "wasm"))]
-use crate::collection::vfs::{ContentPathContext, RepoContext};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(clippy::struct_excessive_bools)]
@@ -136,7 +132,7 @@ where
     Ok(completion)
 }
 
-#[cfg(not(target_family = "wasm"))]
+#[cfg(all(feature = "media-file", not(target_family = "wasm")))]
 pub fn replace_many_by_media_source_content_path<Repo>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,
@@ -146,7 +142,12 @@ pub fn replace_many_by_media_source_content_path<Repo>(
 where
     Repo: aoide_repo::collection::EntityRepo + TrackCollectionRepo,
 {
-    use aoide_core::{tag::TagsMap, track::tag::FACET_ID_GROUPING};
+    use aoide_core::{
+        media::content::resolver::ContentPathResolver as _,
+        {tag::TagsMap, track::tag::FACET_ID_GROUPING},
+    };
+
+    use crate::collection::vfs::{ContentPathContext, RepoContext};
 
     let Params {
         mode: replace_mode,

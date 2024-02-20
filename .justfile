@@ -38,6 +38,7 @@ pre-commit:
 
 # Check all lib/bin projects individually with selected features (takes a long time)
 check-crates:
+    cargo hack --each-feature --exclude-features js,json-api check --locked --all-targets -p aoide
     cargo hack --feature-powerset --exclude-features js check --locked --all-targets -p aoide-core
     cargo hack --feature-powerset --exclude-features js check --locked --all-targets -p aoide-core-json
     cargo hack --feature-powerset --exclude-features js check --locked --all-targets -p aoide-core-api
