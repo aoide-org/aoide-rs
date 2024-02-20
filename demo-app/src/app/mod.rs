@@ -202,7 +202,7 @@ impl Model {
     }
 }
 
-/// UI state
+/// UI data bindings
 ///
 /// Stores user input and other mutable UI state that needs to be preserved
 /// between frames.
@@ -250,15 +250,24 @@ impl App {
             msg_rx,
             msg_tx,
             mdl,
-            ui_data,
+            ..
         } = self;
-        let ctx = UpdateContext {
-            rt,
+        let ctx = UpdateContext { rt, msg_tx, mdl };
+        (msg_rx, ctx)
+    }
+
+    fn render(&mut self) -> RenderContext<'_> {
+        let Self {
             msg_tx,
             mdl,
             ui_data,
-        };
-        (msg_rx, ctx)
+            ..
+        } = self;
+        RenderContext {
+            msg_tx,
+            mdl,
+            ui_data,
+        }
     }
 }
 
@@ -276,7 +285,7 @@ impl eframe::App for App {
             log::debug!("Processed {msg_count} message(s) before rendering frame");
         }
 
-        let mut render_ctx = update_ctx.into_render();
+        let mut render_ctx = self.render();
         render_ctx.render_ui(ctx, frm);
     }
 }

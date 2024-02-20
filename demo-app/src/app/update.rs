@@ -7,7 +7,7 @@ use crate::{fs::choose_directory_path, library};
 
 use super::{
     Action, CentralPanelData, CollectionAction, Event, LibraryAction, Message, MessageSender,
-    Model, MusicDirectoryAction, RenderContext, TrackSearchAction, UiData,
+    Model, MusicDirectoryAction, TrackSearchAction,
 };
 
 const MUSIC_DIR_SYNC_PROGRESS_LOG_MAX_LINES: usize = 100;
@@ -16,7 +16,6 @@ pub(super) struct UpdateContext<'a> {
     pub(super) rt: &'a tokio::runtime::Handle,
     pub(super) msg_tx: &'a MessageSender,
     pub(super) mdl: &'a mut Model,
-    pub(super) ui_data: &'a mut UiData,
 }
 
 impl<'a> UpdateContext<'a> {
@@ -28,12 +27,7 @@ impl<'a> UpdateContext<'a> {
     }
 
     fn on_action(&mut self, action: Action) {
-        let Self {
-            rt,
-            msg_tx,
-            mdl,
-            ui_data: _,
-        } = self;
+        let Self { rt, msg_tx, mdl } = self;
         match action {
             Action::Library(action) => match action {
                 LibraryAction::MusicDirectory(action) => match action {
@@ -245,20 +239,6 @@ impl<'a> UpdateContext<'a> {
                     );
                 }
             }
-        }
-    }
-
-    pub(super) fn into_render(self) -> RenderContext<'a> {
-        let Self {
-            msg_tx,
-            mdl,
-            ui_data,
-            ..
-        } = self;
-        RenderContext {
-            msg_tx,
-            mdl,
-            ui_data,
         }
     }
 }
