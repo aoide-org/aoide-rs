@@ -33,6 +33,17 @@ config directory of your platform. See the log messages for the file path.
 
 ### Metadata, tags, and searching
 
+#### Multiple genres
+
+Supports multiple [genres](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#id11)
+separated by semicolons as a single field:
+
+`Pop;Hip-Hop/Rap;Nu Metal`
+
+No multi-valued file tags needed for this purpose.
+
+#### Hashtags
+
 Supports _hashtags_ in the
 [Content Group](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#grouping-3)
 field, URL-encoded and delimited by whitespace:
