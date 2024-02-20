@@ -5,8 +5,8 @@ use eframe::Frame;
 use egui::{Button, CentralPanel, Context, Grid, ScrollArea, TextEdit, TopBottomPanel};
 
 use super::{
-    Action, CentralPanelData, CollectionAction, MessageSender, Model, MusicDirectoryAction,
-    TrackSearchAction, UiData,
+    Action, CentralPanelData, CollectionAction, MessageSender, Model, MusicDirSelection,
+    MusicDirectoryAction, TrackSearchAction, UiData,
 };
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.
@@ -49,7 +49,7 @@ impl<'a> RenderContext<'a> {
                     .show(ui, |ui| {
                     if ui
                         .add_enabled(
-                            !mdl.selecting_music_dir,
+                            !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting)),
                             Button::new("Select music directory..."),
                         )
                         .on_hover_text("Switch collections or create a new one.")
@@ -60,7 +60,7 @@ impl<'a> RenderContext<'a> {
                     }
                     if ui
                         .add_enabled(
-                            !mdl.selecting_music_dir && current_library_state.could_synchronize_music_dir_task(),
+                            !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting)) && current_library_state.could_synchronize_music_dir_task(),
                             Button::new("Synchronize music directory"),
                         )
                         .on_hover_text(
@@ -72,7 +72,7 @@ impl<'a> RenderContext<'a> {
                     }
                     if ui
                         .add_enabled(
-                            !mdl.selecting_music_dir
+                            !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting))
                                 && current_library_state.could_reset_music_dir(),
                             Button::new("Reset music directory"),
                         )

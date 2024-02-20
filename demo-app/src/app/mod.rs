@@ -179,6 +179,12 @@ enum CentralPanelData {
     },
 }
 
+#[derive(Debug)]
+enum MusicDirSelection {
+    Selecting,
+    Selected,
+}
+
 /// Application model
 ///
 /// Immutable during rendering.
@@ -186,7 +192,7 @@ enum CentralPanelData {
 pub struct Model {
     library: Library,
 
-    selecting_music_dir: bool,
+    music_dir_selection: Option<MusicDirSelection>,
 
     central_panel_data: Option<CentralPanelData>,
 }
@@ -196,7 +202,7 @@ impl Model {
     pub const fn new(library: Library) -> Self {
         Self {
             library,
-            selecting_music_dir: false,
+            music_dir_selection: None,
             central_panel_data: None,
         }
     }

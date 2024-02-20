@@ -7,7 +7,7 @@ use crate::{fs::choose_directory_path, library};
 
 use super::{
     Action, CentralPanelData, CollectionAction, Event, LibraryAction, Message, MessageSender,
-    Model, MusicDirectoryAction, TrackSearchAction,
+    Model, MusicDirSelection, MusicDirectoryAction, TrackSearchAction,
 };
 
 const MUSIC_DIR_SYNC_PROGRESS_LOG_MAX_LINES: usize = 100;
@@ -35,7 +35,7 @@ impl<'a> UpdateContext<'a> {
                         mdl.library.try_reset_music_dir();
                     }
                     MusicDirectoryAction::Select => {
-                        if mdl.selecting_music_dir {
+                        if matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting)) {
                             log::debug!("Already selecting music directory");
                             return;
                         }
@@ -50,10 +50,10 @@ impl<'a> UpdateContext<'a> {
                             mdl.library.state().last_observed_music_dir.as_ref(),
                             on_dir_path_chosen,
                         );
-                        mdl.selecting_music_dir = true;
+                        mdl.music_dir_selection = Some(MusicDirSelection::Selecting);
                     }
                     MusicDirectoryAction::Selected(music_dir) => {
-                        mdl.selecting_music_dir = false;
+                        mdl.music_dir_selection = Some(MusicDirSelection::Selected);
                         if let Some(music_dir) = music_dir {
                             mdl.library.try_update_music_dir(Some(&music_dir));
                         }
@@ -97,7 +97,7 @@ impl<'a> UpdateContext<'a> {
 
     #[allow(clippy::too_many_lines)] // TODO
     fn on_library_event(&mut self, event: library::Event) {
-        let Self { mdl, .. } = self;
+        let Self { msg_tx, mdl, .. } = self;
         match event {
             library::Event::Settings(library::settings::Event::StateChanged) => {
                 mdl.library.on_settings_state_changed();
@@ -121,6 +121,16 @@ impl<'a> UpdateContext<'a> {
                         }
                         | collection::State::NestedMusicDirectoriesConflict { .. } => {
                             mdl.library.try_reset_music_dir();
+                        }
+                        collection::State::Ready { summary, .. } => {
+                            if matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selected))
+                            {
+                                mdl.music_dir_selection = None;
+                                if summary.media_sources.total_count == 0 {
+                                    log::info!("Synchronizing music directory after empty collection has been selected");
+                                    msg_tx.send_action(MusicDirectoryAction::SpawnSyncTask);
+                                }
+                            }
                         }
                         _ => {}
                     }
