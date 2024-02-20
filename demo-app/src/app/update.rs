@@ -6,8 +6,8 @@ use aoide::desktop_app::collection;
 use crate::{fs::choose_directory_path, library};
 
 use super::{
-    Action, CentralPanelData, CollectionAction, LibraryAction, MessageSender, Model,
-    MusicDirectoryAction, RenderContext, TrackSearchAction, UiData,
+    Action, CentralPanelData, CollectionAction, Event, LibraryAction, Message, MessageSender,
+    Model, MusicDirectoryAction, RenderContext, TrackSearchAction, UiData,
 };
 
 const MUSIC_DIR_SYNC_PROGRESS_LOG_MAX_LINES: usize = 100;
@@ -20,7 +20,14 @@ pub(super) struct UpdateContext<'a> {
 }
 
 impl<'a> UpdateContext<'a> {
-    pub(super) fn on_action(&mut self, action: Action) {
+    pub(super) fn on_message(&mut self, msg: Message) {
+        match msg {
+            Message::Action(action) => self.on_action(action),
+            Message::Event(event) => self.on_event(event),
+        }
+    }
+
+    fn on_action(&mut self, action: Action) {
         let Self {
             rt,
             msg_tx,
@@ -88,8 +95,14 @@ impl<'a> UpdateContext<'a> {
         }
     }
 
+    fn on_event(&mut self, event: Event) {
+        match event {
+            Event::Library(event) => self.on_library_event(event),
+        }
+    }
+
     #[allow(clippy::too_many_lines)] // TODO
-    pub(super) fn on_library_event(&mut self, event: library::Event) {
+    fn on_library_event(&mut self, event: library::Event) {
         let Self { mdl, .. } = self;
         match event {
             library::Event::Settings(library::settings::Event::StateChanged) => {

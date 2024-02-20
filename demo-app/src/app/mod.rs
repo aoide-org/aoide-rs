@@ -244,7 +244,7 @@ impl App {
         }
     }
 
-    fn update(&mut self) -> (&mut mpsc::Receiver<Message>, UpdateContext<'_>) {
+    fn update(&mut self) -> (&mpsc::Receiver<Message>, UpdateContext<'_>) {
         let Self {
             rt,
             msg_rx,
@@ -265,22 +265,15 @@ impl App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &Context, frm: &mut Frame) {
         let (msg_rx, mut update_ctx) = self.update();
-        loop {
-            match msg_rx.try_recv() {
-                Ok(msg) => {
-                    log::debug!("Received message: {msg:?}");
-                    match msg {
-                        Message::Action(action) => update_ctx.on_action(action),
-                        Message::Event(event) => match event {
-                            Event::Library(event) => update_ctx.on_library_event(event),
-                        },
-                    };
-                }
-                Err(mpsc::TryRecvError::Empty) => {
-                    break;
-                }
-                Err(mpsc::TryRecvError::Disconnected) => unreachable!(),
-            }
+        let msg_count = msg_rx
+            .try_iter()
+            .map(|msg| {
+                log::debug!("Received message: {msg:?}");
+                update_ctx.on_message(msg);
+            })
+            .count();
+        if msg_count > 0 {
+            log::debug!("Processed {msg_count} message(s) before rendering frame");
         }
 
         let mut render_ctx = update_ctx.into_render();
