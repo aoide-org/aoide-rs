@@ -4,8 +4,9 @@
 [package]
 name = "aoide-usecases"
 description = "aoide - Storage-agnostic use case implementations for the backend"
+publish = false
+version = "0.0.0"
 repository = { workspace = true }
-version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
@@ -22,12 +23,12 @@ static_assertions = "1.1.0"
 thiserror = "1.0.57"
 
 # Workspace dependencies
-aoide-core = { version = "=0.8.0", path = "../core" }
-aoide-core-api = { version = "=0.8.0", path = "../core-api" }
-aoide-repo = { version = "=0.8.0", path = "../repo" }
+aoide-core = { version = "=0.0.0", path = "../core" }
+aoide-core-api = { version = "=0.0.0", path = "../core-api" }
+aoide-repo = { version = "=0.0.0", path = "../repo" }
 
-# Workspace dependencies (optional): media
-aoide-media-file = { version = "=0.8.0", path = "../media-file", optional = true }
+# Workspace dependencies (optional): media-file
+aoide-media-file = { version = "=0.0.0", path = "../media-file", optional = true }
 blake3 = { version = "1.5.0", optional = true }
 url = { version = "2.5.0", optional = true }
 walkdir = { version = "2.4.0", optional = true }

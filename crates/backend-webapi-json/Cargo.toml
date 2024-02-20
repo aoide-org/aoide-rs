@@ -4,11 +4,11 @@
 [package]
 name = "aoide-backend-webapi-json"
 description = "aoide - Asynchronous API for a standalone web server (JSON/HTTP)"
-version = { workspace = true }
+publish = false
+version = "0.0.0"
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
 
 [lints]
 workspace = true

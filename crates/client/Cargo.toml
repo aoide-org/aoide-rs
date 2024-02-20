@@ -4,12 +4,12 @@
 [package]
 name = "aoide-client"
 description = "aoide - [experimental] Unidirectional dataflow client components"
+publish = false
+version = "0.0.0"
 repository = { workspace = true }
-version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
 
 [lints]
 workspace = true

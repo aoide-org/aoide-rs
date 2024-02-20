@@ -4,8 +4,9 @@
 [package]
 name = "aoide-core-api"
 description = "aoide - Shared boundary types for repositories and usecases"
+publish = false
+version = "0.0.0"
 repository = { workspace = true }
-version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
@@ -18,7 +19,7 @@ strum = { version = "0.26.1", features = ["derive"] }
 url = "2.5.0"
 
 # Workspace dependencies
-aoide-core = { version = "=0.8.0", path = "../core" }
+aoide-core = { version = "=0.0.0", path = "../core" }
 
 [features]
 default = []

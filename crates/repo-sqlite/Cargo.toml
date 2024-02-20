@@ -4,8 +4,9 @@
 [package]
 name = "aoide-repo-sqlite"
 description = "aoide - SQLite schema and trait implementations of aoide-repo"
+publish = false
+version = "0.0.0"
 repository = { workspace = true }
-version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
@@ -23,9 +24,9 @@ strum = { version = "0.26.1", features = ["derive"] }
 url = "2.5.0"
 
 # Workspace dependencies
-aoide-core = { version = "=0.8.0", path = "../core" }
-aoide-core-api = { version = "=0.8.0", path = "../core-api" }
-aoide-repo = { version = "=0.8.0", path = "../repo" }
+aoide-core = { version = "=0.0.0", path = "../core" }
+aoide-core-api = { version = "=0.0.0", path = "../core-api" }
+aoide-repo = { version = "=0.0.0", path = "../repo" }
 
 [dev-dependencies]
 env_logger = "0.11.2"

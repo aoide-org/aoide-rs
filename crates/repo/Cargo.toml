@@ -4,8 +4,9 @@
 [package]
 name = "aoide-repo"
 description = "aoide - Storage-agnostic repository types and traits for the backend"
+publish = false
+version = "0.0.0"
 repository = { workspace = true }
-version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
@@ -20,8 +21,8 @@ rand = "0.8.5"
 thiserror = "1.0.57"
 
 # Workspace dependencies
-aoide-core = { version = "=0.8.0", path = "../core" }
-aoide-core-api = { version = "=0.8.0", path = "../core-api" }
+aoide-core = { version = "=0.0.0", path = "../core" }
+aoide-core-api = { version = "=0.0.0", path = "../core-api" }
 
 [features]
 # Feature to enable JavaScript bindings on wasm32-unknown-unknown

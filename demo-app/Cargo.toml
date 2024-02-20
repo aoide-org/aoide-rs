@@ -5,12 +5,12 @@
 name = "aoide-demo-app"
 description = "aoide - Desktop demo application"
 keywords = ["music", "collection"]
-repository = { workspace = true }
+publish = false
 version = { workspace = true }
+repository = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
-publish = false
 
 [lints]
 workspace = true

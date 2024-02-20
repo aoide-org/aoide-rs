@@ -163,7 +163,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-backend-embedded"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
@@ -185,7 +185,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-backend-webapi-json"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-backend-embedded",
@@ -211,7 +211,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-client"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
@@ -230,7 +230,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-core"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "aho-corasick",
  "anyhow",
@@ -257,7 +257,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-core-api"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "aoide-core",
  "strum",
@@ -266,7 +266,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-core-api-json"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
@@ -279,7 +279,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-core-json"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
@@ -311,7 +311,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-desktop-app"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-backend-embedded",
@@ -333,7 +333,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-media-file"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
@@ -364,7 +364,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-repo"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
@@ -376,7 +376,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-repo-sqlite"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
@@ -394,7 +394,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-search-index-tantivy"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
@@ -406,7 +406,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-storage-sqlite"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "diesel",
@@ -420,7 +420,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-usecases"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
@@ -439,7 +439,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-usecases-sqlite"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
@@ -511,7 +511,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-websrv-warp-sqlite"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-backend-webapi-json",

@@ -4,7 +4,8 @@
 [package]
 name = "aoide-media-file"
 description = "aoide - File-based import/export of metadata for media sources and tracks"
-version = { workspace = true }
+publish = false
+version = "0.0.0"
 license = { workspace = true }
 edition = { workspace = true }
 rust-version = { workspace = true }
@@ -43,10 +44,10 @@ compact_str = { version = "0.7.1", optional = true }
 triseratops = { version = "0.0.3", optional = true }
 
 # Workspace dependencies
-aoide-core = { version = "=0.8.0", path = "../core" }
+aoide-core = { version = "=0.0.0", path = "../core" }
 
 [dev-dependencies]
-aoide-media-file = { version = "=0.8.0", path = "../media-file" }
+aoide-media-file = { version = "=0.0.0", path = "../media-file" }
 tempfile = "3.10.0"
 
 [features]
