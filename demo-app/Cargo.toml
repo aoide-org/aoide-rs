@@ -23,7 +23,7 @@ pretty_env_logger = "0.5.0"
 
 [dependencies.aoide]
 path = ".."
-features = ["desktop-app", "async-file-dialog"]
+features = ["desktop-app", "async-file-dialog", "sqlite-bundled"]
 
 [dependencies.log]
 version = "0.4.20"
