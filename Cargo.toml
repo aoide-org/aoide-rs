@@ -110,7 +110,7 @@ aoide-usecases-sqlite = { version = "0.8.0", path = "crates/usecases-sqlite", op
 
 [features]
 # Portable features
-default = ["api"]
+default = []
 api = ["dep:aoide-core-api"]
 
 # Portable backend features
