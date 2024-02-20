@@ -51,7 +51,7 @@ check-crates:
     cargo hack --feature-powerset check --locked --all-targets -p aoide-backend-webapi-json
     cargo hack --feature-powerset check --locked --all-targets -p aoide-client
     cargo hack --feature-powerset check --locked --all-targets -p aoide-desktop-app
-    cargo hack --feature-powerset check --locked --all-targets -p aoide-media
+    cargo hack --feature-powerset check --locked --all-targets -p aoide-media-file
     cargo hack --feature-powerset check --locked --all-targets -p aoide-repo-sqlite
     cargo hack --feature-powerset check --locked --all-targets -p aoide-search-index-tantivy
     cargo hack --feature-powerset check --locked --all-targets -p aoide-storage-sqlite
