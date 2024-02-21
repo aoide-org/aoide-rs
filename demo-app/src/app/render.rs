@@ -6,7 +6,7 @@ use egui::{Button, CentralPanel, Context, Grid, ScrollArea, TextEdit, TopBottomP
 
 use super::{
     Action, CentralPanelData, CollectionAction, MessageSender, Model, MusicDirSelection,
-    MusicDirectoryAction, TrackSearchAction, UiData,
+    MusicDirectoryAction, Track, TrackSearchAction, UiData,
 };
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.
@@ -152,7 +152,13 @@ impl<'a> RenderContext<'a> {
                 ScrollArea::both().show(ui, |ui| match central_panel_data {
                     CentralPanelData::TrackSearch { track_list } => {
                         for track in track_list {
-                            ui.label(track);
+                            let Track {
+                                artwork_thumbnail: _,
+                                label,
+                            } = track;
+                            // TODO: Display artwork thumbnail if available.
+                            ui.label(label);
+                            ui.end_row();
                         }
                     }
                     CentralPanelData::MusicDirSync { progress_log } => {

@@ -4,9 +4,16 @@
 use std::{path::PathBuf, sync::mpsc};
 
 use eframe::{CreationContext, Frame};
-use egui::Context;
+use egui::{Color32, ColorImage, Context};
 
-use aoide::{desktop_app::fs::DirPath, media::content::ContentPath};
+use aoide::{
+    desktop_app::fs::DirPath,
+    media::{
+        artwork::{Artwork, ArtworkImage, EmbeddedArtwork},
+        content::ContentPath,
+    },
+    util::color::RgbColor,
+};
 
 use crate::{
     library::{self, Library},
@@ -172,8 +179,7 @@ impl From<Event> for Message {
 
 enum CentralPanelData {
     TrackSearch {
-        // TODO: Replace string with "renderable" track item.
-        track_list: Vec<String>,
+        track_list: Vec<Track>,
     },
     MusicDirSync {
         progress_log: Vec<String>,
@@ -298,4 +304,149 @@ impl eframe::App for App {
         let mut render_ctx = self.render();
         render_ctx.render_frame(ctx, frm);
     }
+}
+
+#[derive(Debug)]
+pub struct Track {
+    pub artwork_thumbnail: Option<ColorImage>,
+    // TODO: Split into artist, album, and title, ...
+    pub label: String,
+}
+
+impl Track {
+    #[must_use]
+    pub fn new(track: &aoide::Track) -> Self {
+        let artwork_thumbnail = track
+            .media_source
+            .artwork
+            .as_ref()
+            .and_then(|artwork| artwork_thumbnail_image(artwork, true))
+            .or_else(|| {
+                // Fallback: Use the track color if no artwork is available.
+                track.color.and_then(|color| {
+                    let aoide::util::color::Color::Rgb(rgb_color) = color else {
+                        return None;
+                    };
+                    Some(artwork_thumbnail_image_with_solid_color(
+                        solid_rgb_color(rgb_color),
+                        true,
+                    ))
+                })
+            });
+        let label = track_label(track);
+        Self {
+            artwork_thumbnail,
+            label,
+        }
+    }
+}
+
+#[must_use]
+fn track_label(track: &aoide::Track) -> String {
+    let track_artist = track.track_artist();
+    let track_title = track.track_title().unwrap_or("Untitled");
+    let album_title = track.album_title();
+    let album_artist = track.album_artist();
+    match (track_artist, album_title, album_artist) {
+        (Some(track_artist), Some(album_title), Some(album_artist)) => {
+            if track_artist == album_artist {
+                format!("{track_artist} - {track_title} [{album_title}]")
+            } else {
+                format!("{track_artist} - {track_title} [{album_title} by {album_artist}]")
+            }
+        }
+        (None, Some(album_title), Some(album_artist)) => {
+            format!("{track_title} [{album_title} by {album_artist}]")
+        }
+        (Some(track_artist), Some(album_title), None) => {
+            format!("{track_artist} - {track_title} [{album_title}]")
+        }
+        (Some(track_artist), None, _) => {
+            format!("{track_artist} - {track_title}")
+        }
+        (None, Some(album_title), None) => {
+            format!("{track_title} [{album_title}]")
+        }
+        (None, None, _) => track_title.to_string(),
+    }
+}
+
+#[must_use]
+const fn solid_rgb_color(color: RgbColor) -> Color32 {
+    Color32::from_rgb(color.red(), color.green(), color.blue())
+}
+
+#[must_use]
+fn artwork_thumbnail_image_with_solid_color(color: Color32, with_border: bool) -> ColorImage {
+    if with_border {
+        let pixels = [color; 6 * 6].to_vec();
+        ColorImage {
+            size: [6; 2],
+            pixels,
+        }
+    } else {
+        let pixels = [color; 4 * 4].to_vec();
+        ColorImage {
+            size: [4; 2],
+            pixels,
+        }
+    }
+}
+
+#[must_use]
+#[allow(clippy::similar_names)]
+fn artwork_thumbnail_image(artwork: &Artwork, with_border: bool) -> Option<ColorImage> {
+    let Artwork::Embedded(EmbeddedArtwork {
+        image:
+            ArtworkImage {
+                thumbnail: rgb_4x4,
+                color,
+                ..
+            },
+        ..
+    }) = artwork
+    else {
+        return None;
+    };
+    let color = color.map(solid_rgb_color);
+    let Some(rgb_4x4) = rgb_4x4 else {
+        return color.map(|color| artwork_thumbnail_image_with_solid_color(color, with_border));
+    };
+    let thumbnail_pixels = rgb_4x4
+        .chunks_exact(3)
+        .map(|rgb| Color32::from_rgb(rgb[0], rgb[1], rgb[2]));
+    let image = if with_border && color.is_some() {
+        let color = color.unwrap();
+        // TODO: Avoid temporary allocation.
+        let thumbnail_pixels = thumbnail_pixels.collect::<Vec<_>>();
+        let mut thumbnail_pixels_rows = thumbnail_pixels.chunks_exact(4);
+        let thumbnail_pixels_row0 = thumbnail_pixels_rows.next().unwrap();
+        let thumbnail_pixels_row1 = thumbnail_pixels_rows.next().unwrap();
+        let thumbnail_pixels_row2 = thumbnail_pixels_rows.next().unwrap();
+        let thumbnail_pixels_row3 = thumbnail_pixels_rows.next().unwrap();
+        let pixels_6x6 = [color; 7]
+            .into_iter()
+            .chain(thumbnail_pixels_row0.iter().copied())
+            .chain([color; 2])
+            .chain(thumbnail_pixels_row1.iter().copied())
+            .chain([color; 2])
+            .chain(thumbnail_pixels_row2.iter().copied())
+            .chain([color; 2])
+            .chain(thumbnail_pixels_row3.iter().copied())
+            .chain([color; 7])
+            .collect::<Vec<_>>();
+        debug_assert_eq!(pixels_6x6.len(), 6 * 6);
+        ColorImage {
+            size: [6, 6],
+            pixels: pixels_6x6,
+        }
+    } else {
+        let pixels_4x4 = thumbnail_pixels.collect::<Vec<_>>();
+        debug_assert_eq!(pixels_4x4.len(), 4 * 4);
+        ColorImage {
+            size: [4, 4],
+            pixels: pixels_4x4,
+        }
+    };
+    Some(image)
 }

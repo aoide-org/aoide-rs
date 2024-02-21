@@ -7,7 +7,7 @@ use crate::{fs::choose_directory_path, library};
 
 use super::{
     Action, CentralPanelData, CollectionAction, Event, LibraryAction, Message, MessageSender,
-    Model, MusicDirSelection, MusicDirectoryAction, TrackSearchAction,
+    Model, MusicDirSelection, MusicDirectoryAction, Track, TrackSearchAction,
 };
 
 const MUSIC_DIR_SYNC_PROGRESS_LOG_MAX_LINES: usize = 100;
@@ -204,7 +204,7 @@ impl<'a> UpdateContext<'a> {
                                             track_search_list.clear();
                                             track_search_list.extend(fetched_entities.iter().map(
                                                 |fetched_entity| {
-                                                    track_to_string(&fetched_entity.entity.body.track)
+                                                    Track::new(&fetched_entity.entity.body.track)
                                                 },
                                             ));
                                         } else {
@@ -229,7 +229,7 @@ impl<'a> UpdateContext<'a> {
                                                     count = fetched_entities.len() - offset);
                                         track_search_list.extend(fetched_entities[offset..].iter().map(
                                             |fetched_entity| {
-                                                track_to_string(&fetched_entity.entity.body.track)
+                                                Track::new(&fetched_entity.entity.body.track)
                                             },
                                         ));
                                     }
@@ -297,34 +297,5 @@ impl<'a> UpdateContext<'a> {
                 }
             }
         }
-    }
-}
-
-fn track_to_string(track: &aoide::Track) -> String {
-    let track_artist = track.track_artist();
-    let track_title = track.track_title().unwrap_or("Untitled");
-    let album_title = track.album_title();
-    let album_artist = track.album_artist();
-    match (track_artist, album_title, album_artist) {
-        (Some(track_artist), Some(album_title), Some(album_artist)) => {
-            if track_artist == album_artist {
-                format!("{track_artist} - {track_title} [{album_title}]")
-            } else {
-                format!("{track_artist} - {track_title} [{album_title} by {album_artist}]")
-            }
-        }
-        (None, Some(album_title), Some(album_artist)) => {
-            format!("{track_title} [{album_title} by {album_artist}]")
-        }
-        (Some(track_artist), Some(album_title), None) => {
-            format!("{track_artist} - {track_title} [{album_title}]")
-        }
-        (Some(track_artist), None, _) => {
-            format!("{track_artist} - {track_title}")
-        }
-        (None, Some(album_title), None) => {
-            format!("{track_title} [{album_title}]")
-        }
-        (None, None, _) => track_title.to_string(),
     }
 }
