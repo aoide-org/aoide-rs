@@ -179,6 +179,7 @@ pub trait Repo {
         &mut self,
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
+        filtering: &count_sources_in_directories::Filtering,
         ordering: Option<count_sources_in_directories::Ordering>,
         pagination: &Pagination,
     ) -> RepoResult<Vec<(ContentPath<'static>, usize)>>;

@@ -283,6 +283,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &mut self,
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
+        filtering: &count_sources_in_directories::Filtering,
         ordering: Option<count_sources_in_directories::Ordering>,
         pagination: &Pagination,
     ) -> RepoResult<Vec<(ContentPath<'static>, usize)>> {
@@ -299,6 +300,18 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 path_prefix.as_str(),
             ))
             .into_boxed();
+
+        // Filtering
+        let count_sources_in_directories::Filtering {
+            min_count,
+            max_count,
+        } = filtering;
+        if let Some(Ok(min_count)) = min_count.map(i64::try_from) {
+            query = query.having(diesel::dsl::count_star().ge(min_count));
+        }
+        if let Some(Ok(max_count)) = max_count.map(i64::try_from) {
+            query = query.having(diesel::dsl::count_star().le(max_count));
+        }
 
         // Ordering
         if let Some(ordering) = ordering {

@@ -19,6 +19,7 @@ where
 {
     let Params {
         root_url,
+        filtering,
         ordering,
         pagination,
     } = params;
@@ -31,6 +32,7 @@ where
     repo.media_tracker_count_sources_in_directories(
         collection_id,
         resolver.root_path(),
+        filtering,
         *ordering,
         pagination,
     )
