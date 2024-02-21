@@ -4,6 +4,7 @@
 use aoide_core::util::url::BaseUrl;
 use strum::FromRepr;
 
+pub mod count_sources_in_directories;
 pub mod find_untracked_files;
 pub mod import_files;
 pub mod query_status;

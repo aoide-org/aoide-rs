@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{media::content::ContentPath, util::clock::OffsetDateTimeMs};
-use aoide_core_api::media::tracker::{DirTrackingStatus, DirectoriesStatus};
+use aoide_core_api::media::tracker::{
+    count_sources_in_directories, DirTrackingStatus, DirectoriesStatus,
+};
 
 use super::*;
 use crate::{
@@ -172,6 +174,14 @@ pub trait Repo {
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
     ) -> RepoResult<DirectoriesStatus>;
+
+    fn media_tracker_count_sources_in_directories(
+        &mut self,
+        collection_id: CollectionId,
+        path_prefix: &ContentPath<'_>,
+        ordering: Option<count_sources_in_directories::Ordering>,
+        pagination: &Pagination,
+    ) -> RepoResult<Vec<(ContentPath<'static>, usize)>>;
 
     fn media_tracker_find_untracked_sources(
         &mut self,

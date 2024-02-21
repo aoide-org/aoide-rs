@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{media::content::ContentPath, util::clock::OffsetDateTimeMs};
-use aoide_core_api::media::tracker::{DirTrackingStatus, DirectoriesStatus};
+use aoide_core_api::media::tracker::{
+    count_sources_in_directories, DirTrackingStatus, DirectoriesStatus,
+};
 use aoide_repo::{
     collection::RecordId as CollectionId,
     media::{source::RecordId as MediaSourceId, tracker::*, DigestBytes},
@@ -225,7 +227,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_aggregate_directories_tracking_status(
         &mut self,
         collection_id: CollectionId,
-        content_path_prefix: &ContentPath<'_>,
+        path_prefix: &ContentPath<'_>,
     ) -> RepoResult<DirectoriesStatus> {
         media_tracker_directory::table
             .group_by(media_tracker_directory::status)
@@ -233,7 +235,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(sql_column_substr_prefix_eq(
                 "content_path",
-                content_path_prefix.as_str(),
+                path_prefix.as_str(),
             ))
             .load::<(i16, i64)>(self.as_mut())
             .map_err(repo_error)
@@ -277,14 +279,81 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             })
     }
 
+    fn media_tracker_count_sources_in_directories(
+        &mut self,
+        collection_id: CollectionId,
+        path_prefix: &ContentPath<'_>,
+        ordering: Option<count_sources_in_directories::Ordering>,
+        pagination: &Pagination,
+    ) -> RepoResult<Vec<(ContentPath<'static>, usize)>> {
+        let mut query = media_tracker_directory::table
+            .inner_join(media_tracker_source::table)
+            .group_by(media_tracker_directory::row_id)
+            .select((
+                media_tracker_directory::content_path,
+                diesel::dsl::count_star(),
+            ))
+            .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
+            .filter(sql_column_substr_prefix_eq(
+                "content_path",
+                path_prefix.as_str(),
+            ))
+            .into_boxed();
+
+        // Ordering
+        if let Some(ordering) = ordering {
+            query = match ordering {
+                count_sources_in_directories::Ordering::CountAscending => {
+                    query.order_by(diesel::dsl::count_star())
+                }
+                count_sources_in_directories::Ordering::CountDescending => {
+                    query.order_by(diesel::dsl::count_star().desc())
+                }
+                count_sources_in_directories::Ordering::ContentPathAscending => {
+                    query.order_by(media_tracker_directory::content_path)
+                }
+                count_sources_in_directories::Ordering::ContentPathDescending => {
+                    query.order_by(media_tracker_directory::content_path.desc())
+                }
+            }
+        }
+
+        // Pagination
+        //FIXME: Extract into generic function crate::util::apply_pagination()
+        let (limit, offset) = pagination_to_limit_offset(pagination);
+        if let Some(limit) = limit {
+            query = query.limit(limit);
+        }
+        if let Some(offset) = offset {
+            query = query.offset(offset);
+        }
+
+        query
+            .load::<(String, i64)>(self.as_mut())
+            .map_err(repo_error)
+            .map(|v| {
+                v.into_iter()
+                    .map(|(content_path, count)| {
+                        let content_path = content_path.into();
+                        let count = usize::try_from(count).unwrap_or(usize::MAX);
+                        (content_path, count)
+                    })
+                    .collect()
+            })
+    }
+
     fn media_tracker_load_directories_requiring_confirmation(
         &mut self,
         collection_id: CollectionId,
-        content_path_prefix: &ContentPath<'_>,
+        path_prefix: &ContentPath<'_>,
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>> {
         let mut query = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
+            .filter(sql_column_substr_prefix_eq(
+                "content_path",
+                path_prefix.as_str(),
+            ))
             // Status is pending
             .filter(
                 media_tracker_directory::status
@@ -297,12 +366,6 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             // then order by URI for disambiguation
             .then_order_by(media_tracker_directory::content_path)
             .into_boxed();
-        if !content_path_prefix.is_empty() {
-            query = query.filter(sql_column_substr_prefix_eq(
-                "content_path",
-                content_path_prefix.as_str(),
-            ));
-        }
 
         // Pagination
         //FIXME: Extract into generic function crate::util::apply_pagination()
@@ -357,7 +420,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
     ) -> RepoResult<Vec<MediaSourceId>> {
-        let untracked_sources_query = media_source::table
+        let query = media_source::table
             .select(media_source::row_id)
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
             .filter(sql_column_substr_prefix_eq(
@@ -368,7 +431,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 media_source::row_id
                     .ne_all(media_tracker_source::table.select(media_tracker_source::source_id)),
             );
-        untracked_sources_query
+        query
             .load::<RowId>(self.as_mut())
             .map_err(repo_error)
             .map(|v| v.into_iter().map(MediaSourceId::new).collect())
