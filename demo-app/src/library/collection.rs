@@ -3,14 +3,13 @@
 
 use discro::{Ref, Subscriber};
 
-use aoide::desktop_app::collection;
-
 use crate::NoReceiverForEvent;
 
 use super::EventEmitter;
 
 // Re-exports
-pub use collection::*;
+pub use aoide::collection::*;
+pub use aoide::desktop_app::collection::*;
 
 #[derive(Debug)]
 pub enum Event {

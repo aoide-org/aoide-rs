@@ -42,7 +42,7 @@ impl<'a> UpdateContext<'a> {
                         let on_dir_path_chosen = {
                             let msg_tx = msg_tx.clone();
                             move |dir_path| {
-                                msg_tx.send_action(MusicDirectoryAction::Selected(dir_path));
+                                msg_tx.send_action(MusicDirectoryAction::Update(dir_path));
                             }
                         };
                         choose_directory_path(
@@ -52,7 +52,7 @@ impl<'a> UpdateContext<'a> {
                         );
                         mdl.music_dir_selection = Some(MusicDirSelection::Selecting);
                     }
-                    MusicDirectoryAction::Selected(music_dir) => {
+                    MusicDirectoryAction::Update(music_dir) => {
                         mdl.music_dir_selection = Some(MusicDirSelection::Selected);
                         if let Some(music_dir) = music_dir {
                             mdl.library.try_update_music_dir(Some(&music_dir));
@@ -60,7 +60,6 @@ impl<'a> UpdateContext<'a> {
                     }
                     MusicDirectoryAction::SpawnSyncTask => {
                         if mdl.library.try_spawn_music_dir_sync_task(rt, *msg_tx) {
-                            // Switch to synchronization progress view.
                             log::debug!("Switching to music dir sync progress view");
                             mdl.central_panel_data = Some(CentralPanelData::MusicDirSync {
                                 progress_log: vec![],
@@ -69,6 +68,20 @@ impl<'a> UpdateContext<'a> {
                     }
                     MusicDirectoryAction::AbortPendingSyncTask => {
                         mdl.library.try_abort_pending_music_dir_sync_task();
+                    }
+                    MusicDirectoryAction::ViewList => {
+                        let params = aoide::api::media::tracker::count_sources_in_directories::Params {
+                            ordering: Some(
+                                aoide::api::media::tracker::count_sources_in_directories::Ordering::CountDescending,
+                            ),
+                            ..Default::default()
+                        };
+                        if mdl.library.try_view_music_dir_list(rt, *msg_tx, params) {
+                            log::debug!("Switching to music dir list view");
+                            mdl.central_panel_data = Some(CentralPanelData::MusicDirList {
+                                content_paths_with_count: vec![],
+                            });
+                        }
                     }
                 },
                 LibraryAction::Collection(action) => match action {
@@ -246,6 +259,40 @@ impl<'a> UpdateContext<'a> {
                 } else {
                     log::debug!(
                         "Discarding unexpected music directory synchronization progress: {progress:?}"
+                    );
+                }
+            }
+            library::Event::MusicDirListResult {
+                collection_uid,
+                params: _,
+                result,
+            } => {
+                let new_content_paths_with_count = match result {
+                    Ok(content_paths_with_count) => content_paths_with_count,
+                    Err(err) => {
+                        log::warn!("Failed to view music directory list: {err}");
+                        // TODO: Set last error.
+                        return;
+                    }
+                };
+                if Some(&collection_uid)
+                    != mdl.library.state().last_observed_collection.entity_uid()
+                {
+                    log::debug!(
+                        "Discarding unexpected music directory list with {num_items} item(s) for collection {collection_uid}",
+                        num_items = new_content_paths_with_count.len()
+                    );
+                    return;
+                }
+                if let Some(CentralPanelData::MusicDirList {
+                    content_paths_with_count,
+                }) = &mut mdl.central_panel_data
+                {
+                    *content_paths_with_count = new_content_paths_with_count;
+                } else {
+                    log::debug!(
+                        "Discarding unexpected music directory list with {num_items} item(s)",
+                        num_items = new_content_paths_with_count.len()
                     );
                 }
             }

@@ -72,6 +72,15 @@ impl<'a> RenderContext<'a> {
                     }
                     if ui
                         .add_enabled(
+                            !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting)) && current_library_state.could_view_music_dir_list(),
+                            Button::new("View music directory list"),
+                        )
+                        .clicked()
+                    {
+                        msg_tx.send_action(MusicDirectoryAction::ViewList);
+                    }
+                    if ui
+                        .add_enabled(
                             !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting))
                                 && current_library_state.could_reset_music_dir(),
                             Button::new("Reset music directory"),
@@ -151,6 +160,14 @@ impl<'a> RenderContext<'a> {
                             ui.label(line);
                         }
                     }
+                    CentralPanelData::MusicDirList {
+                        content_paths_with_count,
+                    } => {
+                        for (content_path, count) in content_paths_with_count {
+                            // Display absolute paths. Otherwise the root folder would become an empty string.
+                            ui.label(format!("/{content_path} ({count})"));
+                        }
+                    }
                 })
             });
         }
@@ -186,6 +203,12 @@ impl<'a> RenderContext<'a> {
                                     enabled = true;
                                     action = CollectionAction::RefreshFromDb.into();
                                 }
+                            }
+                            CentralPanelData::MusicDirList { .. } => {
+                                text = "Dismiss";
+                                hover_text = "Clear output and return to track search.";
+                                enabled = true;
+                                action = CollectionAction::RefreshFromDb.into();
                             }
                         }
                         if ui

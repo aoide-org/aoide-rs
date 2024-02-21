@@ -6,6 +6,7 @@ use std::{num::NonZeroUsize, path::PathBuf, sync::Arc};
 use aoide::{
     api::media::source::ResolveUrlFromContentPath,
     desktop_app::{collection::SynchronizeVfsTask, fs::DirPath, Handle, ObservableReader},
+    media::content::ContentPath,
 };
 use discro::Ref;
 
@@ -51,6 +52,11 @@ pub enum Event {
     MusicDirSyncProgress(
         Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>,
     ),
+    MusicDirListResult {
+        collection_uid: collection::EntityUid,
+        params: aoide::api::media::tracker::count_sources_in_directories::Params,
+        result: anyhow::Result<Vec<(ContentPath<'static>, usize)>>,
+    },
 }
 
 /// Event emitter.
@@ -176,6 +182,11 @@ impl CurrentState<'_> {
             return false;
         };
         !pending_task.is_finished()
+    }
+
+    #[must_use]
+    pub fn could_view_music_dir_list(&self) -> bool {
+        self.collection().is_ready() && !self.could_abort_synchronize_music_dir_task()
     }
 
     #[must_use]
@@ -360,6 +371,51 @@ impl Library {
         };
         log::info!("Aborting synchronize music directory task");
         synchronize_music_dir_task.abort();
+        true
+    }
+
+    #[allow(clippy::must_use_candidate)]
+    #[allow(clippy::missing_panics_doc)] // Never panics
+    pub fn try_view_music_dir_list<E>(
+        &mut self,
+        rt: &tokio::runtime::Handle,
+        event_emitter: &E,
+        params: aoide::api::media::tracker::count_sources_in_directories::Params,
+    ) -> bool
+    where
+        E: EventEmitter + Clone + 'static,
+    {
+        if !self.state.last_observed_collection.is_ready() {
+            log::debug!("Collection not ready");
+            return false;
+        }
+        let collection_uid = self
+            .state
+            .last_observed_collection
+            .entity_uid()
+            .expect("Some")
+            .clone();
+        let handle = self.handle.clone();
+        let event_emitter = event_emitter.clone();
+        rt.spawn(async move {
+            let result = aoide::backend_embedded::media::tracker::count_sources_in_directories(
+                handle.db_gatekeeper(),
+                collection_uid.clone(),
+                params.clone(),
+            )
+            .await
+            .map_err(Into::into);
+            let event = Event::MusicDirListResult {
+                collection_uid,
+                params,
+                result,
+            };
+            if let Err(err) = event_emitter.emit_event(event) {
+                log::warn!(
+                    "Failed to emit event after music directory list result received: {err:?}"
+                );
+            }
+        });
         true
     }
 

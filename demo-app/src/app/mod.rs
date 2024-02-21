@@ -6,7 +6,7 @@ use std::{path::PathBuf, sync::mpsc};
 use eframe::{CreationContext, Frame};
 use egui::Context;
 
-use aoide::desktop_app::fs::DirPath;
+use aoide::{desktop_app::fs::DirPath, media::content::ContentPath};
 
 use crate::{
     library::{self, Library},
@@ -89,7 +89,7 @@ enum Message {
     Event(Event),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum Action {
     Library(LibraryAction),
 }
@@ -100,7 +100,7 @@ impl From<Action> for Message {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum LibraryAction {
     MusicDirectory(MusicDirectoryAction),
     Collection(CollectionAction),
@@ -116,13 +116,14 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum MusicDirectoryAction {
     Reset,
     Select,
-    Selected(Option<DirPath<'static>>),
+    Update(Option<DirPath<'static>>),
     SpawnSyncTask,
     AbortPendingSyncTask,
+    ViewList,
 }
 
 impl From<MusicDirectoryAction> for LibraryAction {
@@ -176,6 +177,9 @@ enum CentralPanelData {
     },
     MusicDirSync {
         progress_log: Vec<String>,
+    },
+    MusicDirList {
+        content_paths_with_count: Vec<(ContentPath<'static>, usize)>,
     },
 }
 

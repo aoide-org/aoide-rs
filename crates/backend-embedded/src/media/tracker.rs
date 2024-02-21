@@ -3,12 +3,33 @@
 
 use std::sync::{atomic::AtomicBool, Arc};
 
-use aoide_core::track::Track;
+use aoide_core::{media::content::ContentPath, track::Track};
 use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use diesel::Connection as _;
 
 use crate::prelude::*;
+
+pub async fn count_sources_in_directories(
+    db_gatekeeper: &Gatekeeper,
+    collection_uid: CollectionUid,
+    params: aoide_core_api::media::tracker::count_sources_in_directories::Params,
+) -> Result<Vec<(ContentPath<'static>, usize)>> {
+    db_gatekeeper
+        .spawn_blocking_read_task(move |mut pooled_connection| {
+            let connection = &mut *pooled_connection;
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::media::tracker::count_sources_in_directories::count_sources_in_directories(
+                    connection,
+                    &collection_uid,
+                    &params,
+                )
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
 
 pub async fn query_status(
     db_gatekeeper: &Gatekeeper,
