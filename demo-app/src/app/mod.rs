@@ -12,6 +12,8 @@ use aoide::{
         artwork::{Artwork, ArtworkImage, EmbeddedArtwork},
         content::ContentPath,
     },
+    tag::FacetId,
+    track::tag::{FACET_ID_COMMENT, FACET_ID_GENRE},
     util::color::RgbColor,
 };
 
@@ -313,6 +315,8 @@ pub struct Track {
     pub artist: Option<String>,
     pub album_title: Option<String>,
     pub album_artist: Option<String>,
+    pub genres: Vec<String>,
+    pub comments: Vec<String>,
 }
 
 impl Track {
@@ -339,14 +343,41 @@ impl Track {
         let title = track.track_title().map(ToOwned::to_owned);
         let album_title = track.album_title().map(ToOwned::to_owned);
         let album_artist = track.album_artist().map(ToOwned::to_owned);
+        let genres = filter_faceted_tag_labels(track, FACET_ID_GENRE)
+            .map(ToString::to_string)
+            .collect();
+        let comments = filter_faceted_tag_labels(track, FACET_ID_COMMENT)
+            .map(ToString::to_string)
+            .collect();
         Self {
             artwork_thumbnail,
             title,
             artist,
             album_title,
             album_artist,
+            genres,
+            comments,
         }
     }
+}
+
+fn filter_faceted_tag_labels<'a>(
+    track: &'a aoide::Track,
+    facet_id: &'a FacetId<'a>,
+) -> impl Iterator<Item = &'a aoide::tag::Label<'a>> {
+    track
+        .tags
+        .facets
+        .iter()
+        .filter_map(|faceted_tags| {
+            if faceted_tags.facet_id == *facet_id {
+                Some(faceted_tags.tags.iter())
+            } else {
+                None
+            }
+        })
+        .flatten()
+        .filter_map(|tag| tag.label.as_ref())
 }
 
 #[must_use]
