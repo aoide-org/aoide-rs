@@ -292,6 +292,6 @@ impl eframe::App for App {
         }
 
         let mut render_ctx = self.render();
-        render_ctx.render_ui(ctx, frm);
+        render_ctx.render_frame(ctx, frm);
     }
 }

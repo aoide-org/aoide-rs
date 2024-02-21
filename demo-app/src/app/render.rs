@@ -19,7 +19,7 @@ pub(super) struct RenderContext<'a> {
 
 impl<'a> RenderContext<'a> {
     #[allow(clippy::too_many_lines)] // TODO
-    pub(super) fn render_ui(&mut self, ctx: &Context, _frm: &mut Frame) {
+    pub(super) fn render_frame(&mut self, ctx: &Context, _frm: &mut Frame) {
         let Self {
             msg_tx,
             mdl,
