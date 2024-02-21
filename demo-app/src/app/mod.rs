@@ -309,8 +309,10 @@ impl eframe::App for App {
 #[derive(Debug)]
 pub struct Track {
     pub artwork_thumbnail: Option<ColorImage>,
-    // TODO: Split into artist, album, and title, ...
-    pub label: String,
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album_title: Option<String>,
+    pub album_artist: Option<String>,
 }
 
 impl Track {
@@ -333,41 +335,17 @@ impl Track {
                     ))
                 })
             });
-        let label = track_label(track);
+        let artist = track.track_artist().map(ToOwned::to_owned);
+        let title = track.track_title().map(ToOwned::to_owned);
+        let album_title = track.album_title().map(ToOwned::to_owned);
+        let album_artist = track.album_artist().map(ToOwned::to_owned);
         Self {
             artwork_thumbnail,
-            label,
+            title,
+            artist,
+            album_title,
+            album_artist,
         }
-    }
-}
-
-#[must_use]
-fn track_label(track: &aoide::Track) -> String {
-    let track_artist = track.track_artist();
-    let track_title = track.track_title().unwrap_or("Untitled");
-    let album_title = track.album_title();
-    let album_artist = track.album_artist();
-    match (track_artist, album_title, album_artist) {
-        (Some(track_artist), Some(album_title), Some(album_artist)) => {
-            if track_artist == album_artist {
-                format!("{track_artist} - {track_title} [{album_title}]")
-            } else {
-                format!("{track_artist} - {track_title} [{album_title} by {album_artist}]")
-            }
-        }
-        (None, Some(album_title), Some(album_artist)) => {
-            format!("{track_title} [{album_title} by {album_artist}]")
-        }
-        (Some(track_artist), Some(album_title), None) => {
-            format!("{track_artist} - {track_title} [{album_title}]")
-        }
-        (Some(track_artist), None, _) => {
-            format!("{track_artist} - {track_title}")
-        }
-        (None, Some(album_title), None) => {
-            format!("{track_title} [{album_title}]")
-        }
-        (None, None, _) => track_title.to_string(),
     }
 }
 

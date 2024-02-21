@@ -151,12 +151,8 @@ impl<'a> RenderContext<'a> {
                 ScrollArea::both().show(ui, |ui| match central_panel_data {
                     CentralPanelData::TrackSearch { track_list } => {
                         for track in track_list {
-                            let Track {
-                                artwork_thumbnail: _,
-                                label,
-                            } = track;
                             // TODO: Display artwork thumbnail if available.
-                            ui.label(label);
+                            ui.label(track_label(track));
                             ui.end_row();
                         }
                     }
@@ -243,5 +239,35 @@ impl<'a> RenderContext<'a> {
                     ui.end_row();
                 });
         });
+    }
+}
+
+#[must_use]
+fn track_label(track: &Track) -> String {
+    let track_title = track.title.as_deref().unwrap_or("Untitled");
+    let track_artist = &track.artist;
+    let album_title = &track.album_title;
+    let album_artist = &track.album_artist;
+    match (track_artist, album_title, album_artist) {
+        (Some(track_artist), Some(album_title), Some(album_artist)) => {
+            if track_artist == album_artist {
+                format!("{track_artist} - {track_title} [{album_title}]")
+            } else {
+                format!("{track_artist} - {track_title} [{album_title} by {album_artist}]")
+            }
+        }
+        (None, Some(album_title), Some(album_artist)) => {
+            format!("{track_title} [{album_title} by {album_artist}]")
+        }
+        (Some(track_artist), Some(album_title), None) => {
+            format!("{track_artist} - {track_title} [{album_title}]")
+        }
+        (Some(track_artist), None, _) => {
+            format!("{track_artist} - {track_title}")
+        }
+        (None, Some(album_title), None) => {
+            format!("{track_title} [{album_title}]")
+        }
+        (None, None, _) => track_title.to_string(),
     }
 }
