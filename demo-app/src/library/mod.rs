@@ -1,10 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{num::NonZeroUsize, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use aoide::{
-    api::media::source::ResolveUrlFromContentPath,
     desktop_app::{collection::SynchronizeVfsTask, fs::DirPath, Handle, ObservableReader},
     media::content::ContentPath,
 };
@@ -15,34 +14,6 @@ use crate::NoReceiverForEvent;
 pub mod collection;
 pub mod settings;
 pub mod track_search;
-
-const CREATE_NEW_COLLECTION_ENTITY_IF_NOT_FOUND: bool = true;
-
-const NESTED_MUSIC_DIRS: collection::NestedMusicDirectoriesStrategy =
-    collection::NestedMusicDirectoriesStrategy::Permit;
-
-// We always need the URL in addition to the virtual file path
-const RESOLVE_TRACK_URL_FROM_CONTENT_PATH: Option<ResolveUrlFromContentPath> =
-    Some(ResolveUrlFromContentPath::CanonicalRootUrl);
-
-fn default_track_search_params() -> aoide::api::track::search::Params {
-    aoide::api::track::search::Params {
-        resolve_url_from_content_path: RESOLVE_TRACK_URL_FROM_CONTENT_PATH.clone(),
-        ..Default::default()
-    }
-}
-
-const TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE: usize = 100;
-const TRACK_REPO_SEARCH_PREFETCH_LIMIT: NonZeroUsize =
-    NonZeroUsize::MIN.saturating_add(TRACK_REPO_SEARCH_PREFETCH_LIMIT_USIZE - 1);
-
-#[derive(Debug)]
-#[allow(dead_code)] // TODO
-struct SynchronizeMusicDirCompleted {
-    continuation: collection::SynchronizeVfsTaskContinuation,
-    result:
-        Option<anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>>,
-}
 
 #[derive(Debug)]
 pub enum Event {
@@ -83,7 +54,7 @@ impl StateObservables {
         let settings = Arc::new(settings::ObservableState::new(initial_settings));
         let collection = Arc::new(collection::ObservableState::default());
         let track_search = Arc::new(track_search::ObservableState::new(
-            track_search::State::new(default_track_search_params()),
+            track_search::State::new(track_search::default_params()),
         ));
         Self {
             settings,
@@ -442,17 +413,9 @@ impl Library {
     #[allow(clippy::must_use_candidate)]
     pub fn try_search_tracks(&self, input: &str) -> bool {
         let filter = track_search::parse_filter_from_input(input);
-        let resolve_url_from_content_path = self
-            .state_observables
-            .track_search
-            .read_lock()
-            .default_params()
-            .resolve_url_from_content_path
-            .clone();
         let mut params = aoide::api::track::search::Params {
             filter,
-            ordering: vec![], // TODO
-            resolve_url_from_content_path,
+            ..track_search::default_params()
         };
         // Argument is consumed when updating succeeds
         log::debug!("Updating track search params: {params:?}");
@@ -479,7 +442,7 @@ impl Library {
         let Some((task, continuation)) = self
             .state_observables
             .track_search
-            .try_fetch_more_task(&self.handle, Some(TRACK_REPO_SEARCH_PREFETCH_LIMIT))
+            .try_fetch_more_task(&self.handle, Some(track_search::DEFAULT_PREFETCH_LIMIT))
         else {
             return false;
         };
@@ -523,8 +486,8 @@ impl Library {
             &self.state_observables.settings,
             Arc::downgrade(&self.state_observables.collection),
             Handle::downgrade(&self.handle),
-            CREATE_NEW_COLLECTION_ENTITY_IF_NOT_FOUND,
-            NESTED_MUSIC_DIRS,
+            collection::CREATE_NEW_ENTITY_IF_NOT_FOUND,
+            collection::NESTED_MUSIC_DIRS_STRATEGY,
         ));
         tokio_rt.spawn(track_search::tasklet::on_collection_state_changed(
             &self.state_observables.collection,
@@ -533,7 +496,7 @@ impl Library {
         tokio_rt.spawn(track_search::tasklet::on_should_prefetch(
             &self.state_observables.track_search,
             Handle::downgrade(&self.handle),
-            Some(TRACK_REPO_SEARCH_PREFETCH_LIMIT),
+            Some(track_search::DEFAULT_PREFETCH_LIMIT),
         ));
     }
 

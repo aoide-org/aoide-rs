@@ -140,8 +140,7 @@ impl<'a> RenderContext<'a> {
                     )
                     .lost_focus()
                 {
-                    msg_tx.send_action(TrackSearchAction::Search(ui_data.track_search_input.clone()),
-                    );
+                    msg_tx.send_action(TrackSearchAction::Search(ui_data.track_search_input.clone()));
                 }
                 ui.end_row();
             });

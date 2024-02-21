@@ -1,15 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::num::NonZeroUsize;
+
 use discro::{Ref, Subscriber};
 
 use aoide::{
     api::{
         filtering::StringPredicate,
+        media::source::ResolveUrlFromContentPath,
+        sorting::SortDirection,
         tag::search::{FacetsFilter, Filter as TagFilter},
-        track::search::{Filter, PhraseFieldFilter, StringField},
+        track::search::{Filter, PhraseFieldFilter, SortOrder, StringField},
     },
-    desktop_app::track,
+    desktop_app::{collection::SynchronizeVfsTaskContinuation, track},
     tag::FacetKey,
     track::tag::{
         FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC,
@@ -23,6 +27,36 @@ use super::EventEmitter;
 
 // Re-exports
 pub use track::repo_search::*;
+
+// We always need the URL in addition to the virtual file path
+const RESOLVE_TRACK_URL_FROM_CONTENT_PATH: Option<ResolveUrlFromContentPath> =
+    Some(ResolveUrlFromContentPath::CanonicalRootUrl);
+
+pub(super) fn default_params() -> aoide::api::track::search::Params {
+    aoide::api::track::search::Params {
+        resolve_url_from_content_path: RESOLVE_TRACK_URL_FROM_CONTENT_PATH.clone(),
+        ordering: DEFAULT_SORT_ORDER.to_vec(),
+        ..Default::default()
+    }
+}
+
+// Show recently updated tracks first.
+const DEFAULT_SORT_ORDER: &[SortOrder] = &[SortOrder {
+    field: aoide::api::track::search::SortField::UpdatedAt,
+    direction: SortDirection::Descending,
+}];
+
+const DEFAULT_PREFETCH_LIMIT_USIZE: usize = 100;
+pub(super) const DEFAULT_PREFETCH_LIMIT: NonZeroUsize =
+    NonZeroUsize::MIN.saturating_add(DEFAULT_PREFETCH_LIMIT_USIZE - 1);
+
+#[derive(Debug)]
+#[allow(dead_code)] // TODO
+struct SynchronizeMusicDirCompleted {
+    continuation: SynchronizeVfsTaskContinuation,
+    result:
+        Option<anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>>,
+}
 
 #[derive(Debug)]
 pub enum Event {
