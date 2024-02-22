@@ -662,6 +662,12 @@ pub(crate) fn import_file_tag_into_track(
         album_titles.push(title);
     }
     if let Some(title) = tag
+        .take_strings(&ItemKey::SetSubtitle)
+        .find_map(|name| ingest_title_from(name, TitleKind::Sub))
+    {
+        album_titles.push(title);
+    }
+    if let Some(title) = tag
         .take_strings(&ItemKey::AlbumTitleSortOrder)
         .find_map(|name| ingest_title_from(name, TitleKind::Sorting))
     {
@@ -1297,6 +1303,12 @@ pub(crate) fn export_track_to_tag(
         tag.set_album(album_title.name.clone());
     } else {
         tag.remove_album();
+    }
+    for album_subtitle in Titles::filter_kind(track.album.titles.iter(), TitleKind::Sub).peekable()
+    {
+        let item_val = ItemValue::Text(album_subtitle.name.clone());
+        let pushed = tag.push(TagItem::new(ItemKey::SetSubtitle, item_val));
+        debug_assert!(pushed);
     }
     if let Some(album_title_sorting) = Titles::title_sorting(track.album.titles.iter()) {
         tag.insert_text(
