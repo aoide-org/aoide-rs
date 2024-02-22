@@ -12,9 +12,10 @@ use aoide::{
         artwork::{Artwork, ArtworkImage, EmbeddedArtwork},
         content::ContentPath,
     },
+    music::{key::KeySignature, tempo::TempoBpm},
     tag::FacetId,
     track::tag::{FACET_ID_COMMENT, FACET_ID_GENRE},
-    util::color::RgbColor,
+    util::{clock::DateOrDateTime, color::RgbColor},
 };
 
 use crate::{
@@ -308,6 +309,7 @@ impl eframe::App for App {
     }
 }
 
+/// Simplified, pre-rendered track data
 #[derive(Debug)]
 pub struct Track {
     pub artwork_thumbnail: Option<ColorImage>,
@@ -317,6 +319,10 @@ pub struct Track {
     pub album_artist: Option<String>,
     pub genres: Vec<String>,
     pub comments: Vec<String>,
+    pub year_min: Option<i16>,
+    pub year_max: Option<i16>,
+    pub bpm: Option<TempoBpm>,
+    pub key: Option<KeySignature>,
 }
 
 impl Track {
@@ -349,6 +355,15 @@ impl Track {
         let comments = filter_faceted_tag_labels(track, FACET_ID_COMMENT)
             .map(ToString::to_string)
             .collect();
+        let dates = track
+            .recorded_at
+            .into_iter()
+            .chain(track.released_at)
+            .chain(track.released_orig_at);
+        let year_min = dates.clone().map(DateOrDateTime::year).min();
+        let year_max = dates.map(DateOrDateTime::year).max();
+        let bpm = track.metrics.tempo_bpm;
+        let key = track.metrics.key_signature;
         Self {
             artwork_thumbnail,
             title,
@@ -357,6 +372,10 @@ impl Track {
             album_artist,
             genres,
             comments,
+            year_min,
+            year_max,
+            bpm,
+            key,
         }
     }
 }
