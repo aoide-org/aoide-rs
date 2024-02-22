@@ -16,6 +16,7 @@ use aoide::{
     tag::FacetId,
     track::tag::{FACET_ID_COMMENT, FACET_ID_GENRE},
     util::{clock::DateOrDateTime, color::RgbColor},
+    TrackUid,
 };
 
 use crate::{
@@ -312,6 +313,7 @@ impl eframe::App for App {
 /// Simplified, pre-rendered track data
 #[derive(Debug)]
 pub struct Track {
+    pub entity_uid: TrackUid,
     pub artwork_thumbnail: Option<ColorImage>,
     pub title: Option<String>,
     pub artist: Option<String>,
@@ -327,7 +329,7 @@ pub struct Track {
 
 impl Track {
     #[must_use]
-    pub fn new(track: &aoide::Track) -> Self {
+    pub fn new(entity_uid: aoide::TrackUid, track: &aoide::Track) -> Self {
         let artwork_thumbnail = track
             .media_source
             .artwork
@@ -365,6 +367,7 @@ impl Track {
         let bpm = track.metrics.tempo_bpm;
         let key = track.metrics.key_signature;
         Self {
+            entity_uid,
             artwork_thumbnail,
             title,
             artist,

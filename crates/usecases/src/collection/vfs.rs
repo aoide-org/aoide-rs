@@ -5,7 +5,7 @@ use std::ops::Not as _;
 
 #[cfg(not(target_family = "wasm"))]
 use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
-use aoide_core::{collection::EntityUid, media::content::ContentPathKind, util::url::BaseUrl};
+use aoide_core::{media::content::ContentPathKind, util::url::BaseUrl, CollectionUid};
 use aoide_repo::collection::{EntityRepo, RecordId};
 
 use super::*;
@@ -18,7 +18,7 @@ struct RepoContextProps {
 }
 
 impl RepoContextProps {
-    fn load_from_repo<Repo>(repo: &mut Repo, uid: &EntityUid) -> Result<Self>
+    fn load_from_repo<Repo>(repo: &mut Repo, uid: &CollectionUid) -> Result<Self>
     where
         Repo: EntityRepo,
     {
@@ -55,7 +55,7 @@ impl RepoContext {
 
     pub fn resolve(
         repo: &mut impl EntityRepo,
-        uid: &EntityUid,
+        uid: &CollectionUid,
         root_url: Option<&BaseUrl>,
     ) -> Result<Self> {
         Self::resolve_override(repo, uid, root_url, None)
@@ -63,7 +63,7 @@ impl RepoContext {
 
     pub fn resolve_override(
         repo: &mut impl EntityRepo,
-        uid: &EntityUid,
+        uid: &CollectionUid,
         root_url: Option<&BaseUrl>,
         override_root_url: Option<BaseUrl>,
     ) -> Result<Self> {

@@ -7,7 +7,7 @@ use super::*;
 
 pub type ResponseBody = ();
 
-pub fn handle_request(connection: &mut DbConnection, uid: &EntityUid) -> Result<ResponseBody> {
+pub fn handle_request(connection: &mut DbConnection, uid: &CollectionUid) -> Result<ResponseBody> {
     connection
         .transaction::<_, Error, _>(|connection| uc::purge(connection, uid).map_err(Into::into))
 }

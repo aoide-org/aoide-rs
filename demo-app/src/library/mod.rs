@@ -6,6 +6,7 @@ use std::{path::PathBuf, sync::Arc};
 use aoide::{
     desktop_app::{collection::SynchronizeVfsTask, fs::DirPath, Handle, ObservableReader},
     media::content::ContentPath,
+    CollectionUid,
 };
 use discro::Ref;
 
@@ -24,7 +25,7 @@ pub enum Event {
         Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>,
     ),
     MusicDirListResult {
-        collection_uid: collection::EntityUid,
+        collection_uid: CollectionUid,
         params: aoide::api::media::tracker::count_sources_in_directories::Params,
         result: anyhow::Result<Vec<(ContentPath<'static>, usize)>>,
     },

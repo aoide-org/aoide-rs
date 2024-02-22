@@ -12,7 +12,7 @@ pub type ResponseBody = EntityWithSummary;
 #[allow(clippy::needless_pass_by_value)] // consume arguments
 pub fn handle_request(
     connection: &mut DbConnection,
-    entity_uid: &EntityUid,
+    entity_uid: &CollectionUid,
 ) -> Result<EntityWithSummary> {
     connection
         .transaction::<_, Error, _>(|connection| {

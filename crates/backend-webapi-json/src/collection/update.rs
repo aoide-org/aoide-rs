@@ -14,7 +14,7 @@ pub type ResponseBody = Entity;
 #[allow(clippy::needless_pass_by_value)] // consume arguments
 pub fn handle_request(
     connection: &mut DbConnection,
-    uid: EntityUid,
+    uid: CollectionUid,
     query_params: QueryParams,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {

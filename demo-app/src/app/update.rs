@@ -204,7 +204,7 @@ impl<'a> UpdateContext<'a> {
                                             track_search_list.clear();
                                             track_search_list.extend(fetched_entities.iter().map(
                                                 |fetched_entity| {
-                                                    Track::new(&fetched_entity.entity.body.track)
+                                                    Track::new(fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
                                                 },
                                             ));
                                         } else {
@@ -229,7 +229,7 @@ impl<'a> UpdateContext<'a> {
                                                     count = fetched_entities.len() - offset);
                                         track_search_list.extend(fetched_entities[offset..].iter().map(
                                             |fetched_entity| {
-                                                Track::new(&fetched_entity.entity.body.track)
+                                                Track::new(fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
                                             },
                                         ));
                                     }
