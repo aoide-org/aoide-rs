@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide::desktop_app::collection;
+use egui::Context;
 
 use crate::{fs::choose_directory_path, library};
 
@@ -19,10 +20,10 @@ pub(super) struct UpdateContext<'a> {
 }
 
 impl<'a> UpdateContext<'a> {
-    pub(super) fn on_message(&mut self, msg: Message) {
+    pub(super) fn on_message(&mut self, ctx: &Context, msg: Message) {
         match msg {
             Message::Action(action) => self.on_action(action),
-            Message::Event(event) => self.on_event(event),
+            Message::Event(event) => self.on_event(ctx, event),
         }
     }
 
@@ -102,14 +103,14 @@ impl<'a> UpdateContext<'a> {
         }
     }
 
-    fn on_event(&mut self, event: Event) {
+    fn on_event(&mut self, ctx: &Context, event: Event) {
         match event {
-            Event::Library(event) => self.on_library_event(event),
+            Event::Library(event) => self.on_library_event(ctx, event),
         }
     }
 
     #[allow(clippy::too_many_lines)] // TODO
-    fn on_library_event(&mut self, event: library::Event) {
+    fn on_library_event(&mut self, ctx: &Context, event: library::Event) {
         let Self { msg_tx, mdl, .. } = self;
         match event {
             library::Event::Settings(library::settings::Event::StateChanged) => {
@@ -204,7 +205,7 @@ impl<'a> UpdateContext<'a> {
                                             track_search_list.clear();
                                             track_search_list.extend(fetched_entities.iter().map(
                                                 |fetched_entity| {
-                                                    Track::new(fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
+                                                    Track::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
                                                 },
                                             ));
                                         } else {
@@ -229,7 +230,7 @@ impl<'a> UpdateContext<'a> {
                                                     count = fetched_entities.len() - offset);
                                         track_search_list.extend(fetched_entities[offset..].iter().map(
                                             |fetched_entity| {
-                                                Track::new(fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
+                                                Track::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
                                             },
                                         ));
                                     }

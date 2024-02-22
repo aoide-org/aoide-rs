@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use eframe::Frame;
-use egui::{Button, CentralPanel, Context, Grid, ScrollArea, TextEdit, TopBottomPanel};
+use egui::{
+    load::SizedTexture, Button, CentralPanel, Context, Grid, ScrollArea, TextEdit, TopBottomPanel,
+};
 
 use super::{
     Action, CentralPanelData, CollectionAction, MessageSender, Model, MusicDirSelection,
@@ -18,6 +20,7 @@ pub(super) struct RenderContext<'a> {
 }
 
 impl<'a> RenderContext<'a> {
+    #[allow(clippy::float_cmp)] // Texture size (x/y) comparison.
     #[allow(clippy::too_many_lines)] // TODO
     pub(super) fn render_frame(&mut self, ctx: &Context, _frm: &mut Frame) {
         let Self {
@@ -150,11 +153,28 @@ impl<'a> RenderContext<'a> {
             CentralPanel::default().show(ctx, |ui| {
                 ScrollArea::both().show(ui, |ui| match central_panel_data {
                     CentralPanelData::TrackSearch { track_list } => {
-                        for track in track_list {
-                            // TODO: Display artwork thumbnail if available.
-                            ui.label(track_label(track));
-                            ui.end_row();
-                        }
+                        Grid::new("track_list")
+                            .num_columns(2)
+                            .spacing([40.0, 4.0])
+                            .striped(true)
+                            .show(ui, |ui| {
+                                for track in track_list {
+                                    debug_assert_eq!(
+                                        track.artwork_thumbnail_texture.size_vec2().x,
+                                        track.artwork_thumbnail_texture.size_vec2().y
+                                    );
+                                    let size = ui
+                                        .available_height()
+                                        .max(track.artwork_thumbnail_texture.size_vec2().y);
+                                    let texture = SizedTexture {
+                                        id: track.artwork_thumbnail_texture.id(),
+                                        size: egui::Vec2::new(size, size),
+                                    };
+                                    ui.image(texture);
+                                    ui.label(track_label(track));
+                                    ui.end_row();
+                                }
+                            });
                     }
                     CentralPanelData::MusicDirSync { progress_log } => {
                         for line in progress_log.iter().rev() {
