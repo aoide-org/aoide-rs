@@ -20,7 +20,7 @@ use aoide::{
 };
 
 use crate::{
-    library::{self, Library},
+    library::{self, track_search, Library},
     NoReceiverForEvent,
 };
 
@@ -30,7 +30,7 @@ use self::update::UpdateContext;
 mod render;
 use self::render::RenderContext;
 
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 struct NoReceiverForMessage(Message);
 
 #[allow(missing_debug_implementations)]
@@ -50,10 +50,10 @@ impl MessageSender {
         T: Into<Action>,
     {
         if let Err(NoReceiverForMessage(msg)) = self.send_message(Message::Action(action.into())) {
-            let Message::Action(action) = msg else {
+            let Message::Action(_) = msg else {
                 unreachable!()
             };
-            log::warn!("No receiver for action: {action:?}");
+            log::warn!("No receiver for action");
         }
     }
 
@@ -73,7 +73,6 @@ impl MessageSender {
     }
 
     fn send_message(&self, msg: Message) -> Result<(), NoReceiverForMessage> {
-        log::debug!("Sending message {msg:?}");
         self.msg_tx.send(msg).map_err(|err| {
             log::warn!("Failed to send message: {err}");
             NoReceiverForMessage(err.0)
@@ -92,15 +91,15 @@ impl library::EventEmitter for MessageSender {
     }
 }
 
-#[derive(Debug)]
 // Not cloneable so large enum variants should be fine.
 #[allow(clippy::large_enum_variant)]
+#[allow(missing_debug_implementations)]
 enum Message {
     Action(Action),
     Event(Event),
 }
 
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 enum Action {
     Library(LibraryAction),
 }
@@ -111,7 +110,7 @@ impl From<Action> for Message {
     }
 }
 
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 enum LibraryAction {
     MusicDirectory(MusicDirectoryAction),
     Collection(CollectionAction),
@@ -154,10 +153,16 @@ impl From<CollectionAction> for LibraryAction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[allow(missing_debug_implementations)]
 enum TrackSearchAction {
     Search(String),
     FetchMore,
+    UpdateStateAndList {
+        memo: track_search::Memo,
+        memo_delta: track_search::MemoDelta,
+        fetched_entities_diff: track_search::FetchedEntitiesDiff,
+        fetched_items: Option<Vec<TrackListItem>>,
+    },
 }
 
 impl From<TrackSearchAction> for LibraryAction {
@@ -297,7 +302,6 @@ impl eframe::App for App {
         let msg_count = msg_rx
             .try_iter()
             .map(|msg| {
-                log::debug!("Received message: {msg:?}");
                 update_ctx.on_message(ctx, msg);
             })
             .count();

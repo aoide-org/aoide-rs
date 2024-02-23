@@ -27,6 +27,7 @@ impl<'a> UpdateContext<'a> {
         }
     }
 
+    #[allow(clippy::too_many_lines)] // TODO
     fn on_action(&mut self, action: Action) {
         let Self { rt, msg_tx, mdl } = self;
         match action {
@@ -98,6 +99,82 @@ impl<'a> UpdateContext<'a> {
                         mdl.library
                             .try_spawn_fetch_more_track_search_results_task(rt, *msg_tx);
                     }
+                    TrackSearchAction::UpdateStateAndList {
+                        memo,
+                        memo_delta,
+                        fetched_entities_diff,
+                        fetched_items,
+                    } => {
+                        if !mdl.library.on_track_search_state_changed_part2(&memo) {
+                            // Not applicable.
+                            log::debug!("Discarding track search memo change: {memo:?} {memo_delta:?} {fetched_entities_diff:?}");
+                            return;
+                        }
+                        log::debug!("Finalizing track search memo change: {memo:?} {memo_delta:?} {fetched_entities_diff:?}");
+                        let track_search_list = if let Some(CentralPanelData::TrackSearch {
+                            track_list,
+                        }) = &mut mdl.central_panel_data
+                        {
+                            track_list
+                        } else {
+                            if matches!(
+                                mdl.central_panel_data,
+                                Some(CentralPanelData::MusicDirSync { .. })
+                            ) && mdl.library.state().pending_music_dir_sync_task.is_some()
+                            {
+                                log::debug!("Ignoring track search memo change: Music directory synchronization in progress");
+                                return;
+                            }
+                            log::debug!("Switching to track search view");
+                            mdl.central_panel_data = Some(CentralPanelData::TrackSearch {
+                                track_list: Default::default(),
+                            });
+                            let Some(CentralPanelData::TrackSearch { track_list }) =
+                                &mut mdl.central_panel_data
+                            else {
+                                unreachable!()
+                            };
+                            track_list
+                        };
+                        match fetched_entities_diff {
+                            aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
+                                if let Some(fetched_items) = fetched_items {
+                                    log::debug!(
+                                        "Track search list changed: Replacing all {count_before} with {count_after} items",
+                                        count_before = track_search_list.len(),
+                                        count_after = fetched_items.len()
+                                    );
+                                    track_search_list.clear();
+                                    track_search_list.extend(fetched_items);
+                                } else {
+                                    log::debug!(
+                                        "Track search list changed: No fetched items available",
+                                    );
+                                    mdl.central_panel_data = None;
+                                }
+                            }
+                            aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
+                                let Some(fetched_items) = fetched_items else {
+                                    unreachable!();
+                                };
+                                let offset = track_search_list.len();
+                                debug_assert_eq!(
+                                    Some(offset),
+                                    memo.fetch
+                                        .fetched_entities
+                                        .as_ref()
+                                        .map(|memo| memo.offset),
+                                );
+                                log::debug!(
+                                            "Track search list changed: Appending {count_append} fetched items to {count_before} existing items",
+                                            count_before = track_search_list.len(),
+                                            count_append = fetched_items.len());
+                                track_search_list.extend(fetched_items);
+                            }
+                        };
+                        mdl.library
+                            .on_track_search_state_changed_part3(&memo, memo_delta);
+                    }
                 },
             },
         }
@@ -111,7 +188,9 @@ impl<'a> UpdateContext<'a> {
 
     #[allow(clippy::too_many_lines)] // TODO
     fn on_library_event(&mut self, ctx: &Context, event: library::Event) {
-        let Self { msg_tx, mdl, .. } = self;
+        let Self {
+            rt, msg_tx, mdl, ..
+        } = self;
         match event {
             library::Event::Settings(library::settings::Event::StateChanged) => {
                 mdl.library.on_settings_state_changed();
@@ -152,15 +231,8 @@ impl<'a> UpdateContext<'a> {
             }
             library::Event::TrackSearch(event) => match event {
                 library::track_search::Event::StateChanged => {
-                    let last_memo_offset = mdl
-                        .library
-                        .state()
-                        .last_observed_track_search_memo
-                        .fetch
-                        .fetched_entities
-                        .as_ref()
-                        .map(|memo| memo.offset);
-                    let memo_diff = mdl.library.on_track_search_state_changed();
+                    let (memo, memo_delta, memo_diff) =
+                        mdl.library.on_track_search_state_changed_part1();
                     match memo_diff {
                         aoide::desktop_app::track::repo_search::MemoDiff::Unchanged => {
                             log::debug!("Track search memo unchanged");
@@ -168,75 +240,46 @@ impl<'a> UpdateContext<'a> {
                         aoide::desktop_app::track::repo_search::MemoDiff::Changed {
                             fetched_entities: fetched_entities_diff,
                         } => {
-                            let track_search_list = if let Some(CentralPanelData::TrackSearch {
-                                track_list,
-                            }) = &mut mdl.central_panel_data
-                            {
-                                track_list
-                            } else {
-                                if matches!(
-                                    mdl.central_panel_data,
-                                    Some(CentralPanelData::MusicDirSync { .. })
-                                ) && mdl.library.state().pending_music_dir_sync_task.is_some()
-                                {
-                                    log::debug!("Ignoring track search memo change: Music directory synchronization in progress");
+                            let memo = memo.clone();
+                            let ctx = ctx.clone();
+                            let msg_tx = msg_tx.clone();
+                            let subscriber = mdl.library.subscribe_track_search_state_changed();
+                            rt.spawn_blocking(move || {
+                                let offset = match fetched_entities_diff {
+                                    aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => 0,
+                                    aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
+                                        memo
+                                            .fetch
+                                            .fetched_entities
+                                            .as_ref()
+                                            .map_or(0, |memo| memo.offset)
+                                    }
+                                };
+                                let mut discard = false;
+                                let state = subscriber.read();
+                                let fetched_items = state.fetched_entities().and_then(|fetched_entities| {
+                                    if offset > fetched_entities.len() {
+                                        discard = true;
+                                        return None;
+                                    }
+                                    let fetched_items = fetched_entities[offset..].iter().map(
+                                        |fetched_entity| {
+                                            TrackListItem::new(&ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
+                                        },
+                                    ).collect();
+                                    Some(fetched_items)
+                                });
+                                if discard {
+                                    log::debug!("Discarding inapplicable track search state and memo update: {memo:?} {memo_delta:?} {memo_diff:?}");
                                     return;
                                 }
-                                log::debug!("Switching to track search view");
-                                mdl.central_panel_data = Some(CentralPanelData::TrackSearch {
-                                    track_list: Default::default(),
+                                msg_tx.send_action(TrackSearchAction::UpdateStateAndList {
+                                    memo,
+                                    memo_delta,
+                                    fetched_entities_diff,
+                                    fetched_items,
                                 });
-                                let Some(CentralPanelData::TrackSearch { track_list }) =
-                                    mdl.central_panel_data.as_mut()
-                                else {
-                                    unreachable!()
-                                };
-                                track_list
-                            };
-                            // TODO: Convert newly fetched entities into track list items in an
-                            // asynchronous task and not on the main UI thread.
-                            let state = mdl.library.read_lock_track_search_state();
-                            match fetched_entities_diff {
-                                aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
-                                    if let Some(fetched_entities) = state.fetched_entities() {
-                                        log::debug!(
-                                            "Track search memo changed: Replacing all {count_before} with {count_after} fetched entities",
-                                            count_before = track_search_list.len(),
-                                            count_after = fetched_entities.len()
-                                        );
-                                        track_search_list.clear();
-                                        track_search_list.extend(fetched_entities.iter().map(
-                                            |fetched_entity| {
-                                                TrackListItem::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
-                                            },
-                                        ));
-                                    } else {
-                                        log::debug!(
-                                            "Track search memo changed: No fetched entities available",
-                                        );
-                                        mdl.central_panel_data = None;
-                                    }
-                                }
-                                aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
-                                    let Some(fetched_entities) = state.fetched_entities() else {
-                                        unreachable!();
-                                    };
-                                    let offset = track_search_list.len();
-                                    debug_assert_eq!(
-                                        Some(offset),
-                                        last_memo_offset,
-                                    );
-                                    debug_assert!(offset <= fetched_entities.len());
-                                    log::debug!(
-                                                "Track search memo changed: Appending {count} fetched entities",
-                                                count = fetched_entities.len() - offset);
-                                    track_search_list.extend(fetched_entities[offset..].iter().map(
-                                        |fetched_entity| {
-                                            TrackListItem::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
-                                        },
-                                    ));
-                                }
-                            }
+                            });
                         }
                     }
                 }

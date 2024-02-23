@@ -472,18 +472,15 @@ impl State {
             fetch: memo_fetch,
         } = memo;
         let mut delta = MemoDelta::default();
-        let mut changed = false;
         if memo_default_params != default_params {
             delta.default_params = Some(default_params.clone());
-            changed = true;
         }
         if memo_context != context {
             delta.context = Some(context.clone());
-            changed = true;
         }
         let fetch = fetch.memo();
-        if changed {
-            delta.fetch = Some(fetch.clone());
+        if delta != Default::default() {
+            delta.fetch = Some(fetch);
             debug_assert_eq!(memo.clone().apply_delta(delta.clone()), &self.clone_memo());
             return (
                 delta,
@@ -493,7 +490,6 @@ impl State {
             );
         }
         if *memo_fetch == fetch {
-            debug_assert_eq!(delta, Default::default());
             debug_assert_eq!(memo.clone().apply_delta(delta.clone()), &self.clone_memo());
             return (delta, MemoDiff::Unchanged);
         }
@@ -536,9 +532,9 @@ impl State {
 
     #[must_use]
     pub fn update_memo(&self, memo: &mut Memo) -> MemoDiff {
-        let (delta, updated) = self.update_memo_delta(memo);
+        let (delta, diff) = self.update_memo_delta(memo);
         memo.apply_delta(delta);
-        updated
+        diff
     }
 
     fn try_reset(&mut self) -> bool {

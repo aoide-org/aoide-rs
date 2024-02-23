@@ -88,8 +88,8 @@ impl State {
         } = self;
         let StateObservables { track_search, .. } = observables;
         let music_dir = last_observed_music_dir.as_ref();
-        let collection = &last_observed_collection;
-        let track_search_memo = &last_observed_track_search_memo;
+        let collection = last_observed_collection;
+        let track_search_memo = last_observed_track_search_memo;
         let pending_music_dir_sync_task = pending_music_dir_sync_task.as_ref();
         let track_search = track_search.read_lock();
         CurrentState {
@@ -210,6 +210,11 @@ impl Library {
         self.state_observables.track_search.read_lock()
     }
 
+    #[must_use]
+    pub fn subscribe_track_search_state_changed(&self) -> track_search::StateSubscriber {
+        self.state_observables.track_search.subscribe_changed()
+    }
+
     #[allow(clippy::must_use_candidate)]
     pub fn on_settings_state_changed(&mut self) -> bool {
         let new_music_dir = {
@@ -260,9 +265,34 @@ impl Library {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn on_track_search_state_changed(&mut self) -> track_search::MemoDiff {
+    pub fn on_track_search_state_changed_part1(
+        &self,
+    ) -> (
+        &track_search::Memo,
+        track_search::MemoDelta,
+        track_search::MemoDiff,
+    ) {
         let state = self.state_observables.track_search.read_lock();
-        state.update_memo(&mut self.state.last_observed_track_search_memo)
+        let memo = &self.state.last_observed_track_search_memo;
+        let (delta, diff) = state.update_memo_delta(memo);
+        (memo, delta, diff)
+    }
+
+    #[allow(clippy::must_use_candidate)]
+    pub fn on_track_search_state_changed_part2(&self, memo: &track_search::Memo) -> bool {
+        self.state.last_observed_track_search_memo == *memo
+    }
+
+    #[allow(clippy::must_use_candidate)]
+    pub fn on_track_search_state_changed_part3(
+        &mut self,
+        memo: &track_search::Memo,
+        delta: track_search::MemoDelta,
+    ) {
+        debug_assert_eq!(self.state.last_observed_track_search_memo, *memo);
+        self.state
+            .last_observed_track_search_memo
+            .apply_delta(delta);
     }
 
     #[allow(clippy::must_use_candidate)]
