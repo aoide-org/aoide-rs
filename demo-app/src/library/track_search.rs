@@ -46,7 +46,7 @@ const DEFAULT_SORT_ORDER: &[SortOrder] = &[SortOrder {
     direction: SortDirection::Descending,
 }];
 
-const DEFAULT_PREFETCH_LIMIT_USIZE: usize = 100;
+const DEFAULT_PREFETCH_LIMIT_USIZE: usize = 1_000;
 pub(super) const DEFAULT_PREFETCH_LIMIT: NonZeroUsize =
     NonZeroUsize::MIN.saturating_add(DEFAULT_PREFETCH_LIMIT_USIZE - 1);
 
