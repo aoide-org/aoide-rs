@@ -3,12 +3,13 @@
 
 use eframe::Frame;
 use egui::{
-    load::SizedTexture, Button, CentralPanel, Context, Grid, ScrollArea, TextEdit, TopBottomPanel,
+    load::SizedTexture, Align, Button, CentralPanel, Context, Grid, Layout, ScrollArea, TextEdit,
+    TopBottomPanel,
 };
 
 use super::{
     Action, CentralPanelData, CollectionAction, MessageSender, Model, MusicDirSelection,
-    MusicDirectoryAction, TrackListItem, TrackSearchAction, UiData,
+    MusicDirectoryAction, TrackListItem, TrackSearchAction, UiData, ARTWORK_THUMBNAIL_IMAGE_SIZE,
 };
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.
@@ -150,46 +151,60 @@ impl<'a> RenderContext<'a> {
     });
 
         if let Some(central_panel_data) = &mdl.central_panel_data {
-            CentralPanel::default().show(ctx, |ui| {
-                ScrollArea::both().show(ui, |ui| match central_panel_data {
-                    CentralPanelData::TrackSearch { track_list } => {
-                        Grid::new("track_list")
-                            .num_columns(2)
-                            .spacing([40.0, 4.0])
-                            .striped(true)
-                            .show(ui, |ui| {
-                                for item in track_list {
+            CentralPanel::default().show(ctx, |ui| match central_panel_data {
+                CentralPanelData::TrackSearch { track_list } => {
+                    let text_style = egui::TextStyle::Body;
+                    let row_height = ui
+                        .text_style_height(&text_style)
+                        .max(ARTWORK_THUMBNAIL_IMAGE_SIZE as _);
+                    let total_rows = track_list.len();
+                    ScrollArea::both().drag_to_scroll(true).show_rows(
+                        ui,
+                        row_height,
+                        total_rows,
+                        |ui, row_range| {
+                            if row_range.end == total_rows
+                                && current_library_state.could_fetch_more_track_search_results()
+                            {
+                                log::debug!("Trying to fetch more track search results");
+                                msg_tx.send_action(TrackSearchAction::FetchMore);
+                            }
+                            ui.with_layout(Layout::top_down(Align::Max), |ui| {
+                                for item in &track_list[row_range] {
                                     debug_assert_eq!(
                                         item.artwork_thumbnail_texture.size_vec2().x,
                                         item.artwork_thumbnail_texture.size_vec2().y
                                     );
-                                    let size = ui
-                                        .available_height()
-                                        .max(item.artwork_thumbnail_texture.size_vec2().y);
                                     let texture = SizedTexture {
                                         id: item.artwork_thumbnail_texture.id(),
-                                        size: egui::Vec2::new(size, size),
+                                        size: egui::Vec2::new(row_height, row_height),
                                     };
-                                    ui.image(texture);
-                                    ui.label(track_list_item_label(item));
-                                    ui.end_row();
+                                    ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
+                                        ui.image(texture);
+                                        ui.label(track_list_item_label(item));
+                                    });
                                 }
-                            });
-                    }
-                    CentralPanelData::MusicDirSync { progress_log } => {
+                            })
+                        },
+                    );
+                }
+                CentralPanelData::MusicDirSync { progress_log } => {
+                    ScrollArea::both().drag_to_scroll(true).show(ui, |ui| {
                         for line in progress_log.iter().rev() {
                             ui.label(line);
                         }
-                    }
-                    CentralPanelData::MusicDirList {
-                        content_paths_with_count,
-                    } => {
+                    });
+                }
+                CentralPanelData::MusicDirList {
+                    content_paths_with_count,
+                } => {
+                    ScrollArea::both().drag_to_scroll(true).show(ui, |ui| {
                         for (content_path, count) in content_paths_with_count {
                             // Display absolute paths. Otherwise the root folder would become an empty string.
                             ui.label(format!("/{content_path} ({count})"));
                         }
-                    }
-                })
+                    });
+                }
             });
         }
 
