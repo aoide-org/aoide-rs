@@ -4,7 +4,7 @@
 use aoide::desktop_app::collection;
 use egui::Context;
 
-use crate::{fs::choose_directory_path, library};
+use crate::{app::TrackSearchFetchedItems, fs::choose_directory_path, library};
 
 use super::{
     Action, CentralPanelData, CollectionAction, Event, LibraryAction, Message, MessageSender,
@@ -102,15 +102,16 @@ impl<'a> UpdateContext<'a> {
                     TrackSearchAction::UpdateStateAndList {
                         memo,
                         memo_delta,
-                        fetched_entities_diff,
                         fetched_items,
                     } => {
                         if !mdl.library.on_track_search_state_changed_part2(&memo) {
                             // Not applicable.
-                            log::debug!("Discarding track search memo change: {memo:?} {memo_delta:?} {fetched_entities_diff:?}");
+                            log::debug!(
+                                "Discarding track search memo change: {memo:?} {memo_delta:?}"
+                            );
                             return;
                         }
-                        log::debug!("Finalizing track search memo change: {memo:?} {memo_delta:?} {fetched_entities_diff:?}");
+                        log::debug!("Finalizing track search memo change: {memo:?} {memo_delta:?}");
                         let track_search_list = if let Some(CentralPanelData::TrackSearch {
                             track_list,
                         }) = &mut mdl.central_panel_data
@@ -136,36 +137,29 @@ impl<'a> UpdateContext<'a> {
                             };
                             track_list
                         };
-                        let new_offset = match fetched_entities_diff {
-                            aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
-                                if let Some(fetched_items) = fetched_items {
-                                    log::debug!(
-                                        "Track search list changed: Replacing all {count_before} with {count_after} items",
-                                        count_before = track_search_list.len(),
-                                        count_after = fetched_items.len()
-                                    );
-                                    track_search_list.clear();
-                                    track_search_list.extend(fetched_items);
-                                    Some(track_search_list.len())
-                                } else {
-                                    log::debug!(
-                                        "Track search list changed: No fetched items available",
-                                    );
-                                    mdl.central_panel_data = None;
-                                    None
-                                }
+                        let new_offset = match fetched_items {
+                            TrackSearchFetchedItems::Reset => {
+                                log::debug!(
+                                    "Track search list changed: No fetched items available",
+                                );
+                                mdl.central_panel_data = None;
+                                None
                             }
-                            aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
-                                let Some(fetched_items) = fetched_items else {
-                                    unreachable!();
-                                };
+                            TrackSearchFetchedItems::Replace(fetched_items) => {
+                                log::debug!(
+                                    "Track search list changed: Replacing all {count_before} with {count_after} items",
+                                    count_before = track_search_list.len(),
+                                    count_after = fetched_items.len()
+                                );
+                                track_search_list.clear();
+                                track_search_list.extend(fetched_items);
+                                Some(track_search_list.len())
+                            }
+                            TrackSearchFetchedItems::Append(fetched_items) => {
                                 let offset = track_search_list.len();
                                 debug_assert_eq!(
                                     Some(offset),
-                                    memo.fetch
-                                        .fetched_entities
-                                        .as_ref()
-                                        .map(|memo| memo.offset),
+                                    memo.fetch.fetched_entities.as_ref().map(|memo| memo.offset),
                                 );
                                 log::debug!(
                                             "Track search list changed: Appending {count_append} fetched items to {count_before} existing items",
@@ -283,10 +277,21 @@ impl<'a> UpdateContext<'a> {
                                     log::debug!("Discarding inapplicable track search state and memo update: {memo:?} {memo_delta:?} {memo_diff:?}");
                                     return;
                                 }
+                                let fetched_items = if let Some(fetched_items) = fetched_items {
+                                    match fetched_entities_diff {
+                                        aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
+                                            TrackSearchFetchedItems::Replace(fetched_items)
+                                        }
+                                        aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
+                                            TrackSearchFetchedItems::Append(fetched_items)
+                                        }
+                                    }
+                                } else {
+                                    TrackSearchFetchedItems::Reset
+                                };
                                 msg_tx.send_action(TrackSearchAction::UpdateStateAndList {
                                     memo,
                                     memo_delta,
-                                    fetched_entities_diff,
                                     fetched_items,
                                 });
                             });

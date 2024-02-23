@@ -160,9 +160,15 @@ enum TrackSearchAction {
     UpdateStateAndList {
         memo: track_search::Memo,
         memo_delta: track_search::MemoDelta,
-        fetched_entities_diff: track_search::FetchedEntitiesDiff,
-        fetched_items: Option<Vec<TrackListItem>>,
+        fetched_items: TrackSearchFetchedItems,
     },
+}
+
+#[allow(missing_debug_implementations)]
+enum TrackSearchFetchedItems {
+    Reset,
+    Replace(Vec<TrackListItem>),
+    Append(Vec<TrackListItem>),
 }
 
 impl From<TrackSearchAction> for LibraryAction {
