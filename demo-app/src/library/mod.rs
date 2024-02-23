@@ -260,7 +260,7 @@ impl Library {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn on_track_search_state_changed(&mut self) -> track_search::MemoUpdated {
+    pub fn on_track_search_state_changed(&mut self) -> track_search::MemoDiff {
         let state = self.state_observables.track_search.read_lock();
         state.update_memo(&mut self.state.last_observed_track_search_memo)
     }

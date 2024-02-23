@@ -160,13 +160,13 @@ impl<'a> UpdateContext<'a> {
                         .fetched_entities
                         .as_ref()
                         .map(|memo| memo.offset);
-                    let memo_updated = mdl.library.on_track_search_state_changed();
-                    match memo_updated {
-                        aoide::desktop_app::track::repo_search::MemoUpdated::Unchanged => {
+                    let memo_diff = mdl.library.on_track_search_state_changed();
+                    match memo_diff {
+                        aoide::desktop_app::track::repo_search::MemoDiff::Unchanged => {
                             log::debug!("Track search memo unchanged");
                         }
-                        aoide::desktop_app::track::repo_search::MemoUpdated::Changed {
-                            fetched_entities_diff,
+                        aoide::desktop_app::track::repo_search::MemoDiff::Changed {
+                            fetched_entities: fetched_entities_diff,
                         } => {
                             let track_search_list = if let Some(CentralPanelData::TrackSearch {
                                 track_list,
@@ -193,48 +193,50 @@ impl<'a> UpdateContext<'a> {
                                 };
                                 track_list
                             };
+                            // TODO: Convert newly fetched entities into track list items in an
+                            // asynchronous task and not on the main UI thread.
                             let state = mdl.library.read_lock_track_search_state();
                             match fetched_entities_diff {
-                                    aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
-                                        if let Some(fetched_entities) = state.fetched_entities() {
-                                            log::debug!(
-                                                "Track search memo changed: Replacing all {count_before} with {count_after} fetched entities",
-                                                count_before = track_search_list.len(),
-                                                count_after = fetched_entities.len()
-                                            );
-                                            track_search_list.clear();
-                                            track_search_list.extend(fetched_entities.iter().map(
-                                                |fetched_entity| {
-                                                    TrackListItem::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
-                                                },
-                                            ));
-                                        } else {
-                                            log::debug!(
-                                                "Track search memo changed: No fetched entities available",
-                                            );
-                                            mdl.central_panel_data = None;
-                                        }
-                                    }
-                                    aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
-                                        let Some(fetched_entities) = state.fetched_entities() else {
-                                            unreachable!();
-                                        };
-                                        let offset = track_search_list.len();
-                                        debug_assert_eq!(
-                                            Some(offset),
-                                            last_memo_offset,
-                                        );
-                                        debug_assert!(offset <= fetched_entities.len());
+                                aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
+                                    if let Some(fetched_entities) = state.fetched_entities() {
                                         log::debug!(
-                                                    "Track search memo changed: Appending {count} fetched entities",
-                                                    count = fetched_entities.len() - offset);
-                                        track_search_list.extend(fetched_entities[offset..].iter().map(
+                                            "Track search memo changed: Replacing all {count_before} with {count_after} fetched entities",
+                                            count_before = track_search_list.len(),
+                                            count_after = fetched_entities.len()
+                                        );
+                                        track_search_list.clear();
+                                        track_search_list.extend(fetched_entities.iter().map(
                                             |fetched_entity| {
                                                 TrackListItem::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
                                             },
                                         ));
+                                    } else {
+                                        log::debug!(
+                                            "Track search memo changed: No fetched entities available",
+                                        );
+                                        mdl.central_panel_data = None;
                                     }
                                 }
+                                aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
+                                    let Some(fetched_entities) = state.fetched_entities() else {
+                                        unreachable!();
+                                    };
+                                    let offset = track_search_list.len();
+                                    debug_assert_eq!(
+                                        Some(offset),
+                                        last_memo_offset,
+                                    );
+                                    debug_assert!(offset <= fetched_entities.len());
+                                    log::debug!(
+                                                "Track search memo changed: Appending {count} fetched entities",
+                                                count = fetched_entities.len() - offset);
+                                    track_search_list.extend(fetched_entities[offset..].iter().map(
+                                        |fetched_entity| {
+                                            TrackListItem::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
+                                        },
+                                    ));
+                                }
+                            }
                         }
                     }
                 }

@@ -326,10 +326,10 @@ pub enum FetchedEntitiesDiff {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MemoUpdated {
+pub enum MemoDiff {
     Unchanged,
     Changed {
-        fetched_entities_diff: FetchedEntitiesDiff,
+        fetched_entities: FetchedEntitiesDiff,
     },
 }
 
@@ -338,6 +338,38 @@ pub struct Memo {
     pub default_params: Params,
     pub context: Context,
     pub fetch: FetchMemo,
+}
+
+impl Memo {
+    pub fn apply_delta(&mut self, delta: MemoDelta) -> &mut Self {
+        let Self {
+            default_params,
+            context,
+            fetch,
+        } = self;
+        let MemoDelta {
+            default_params: new_default_params,
+            context: new_context,
+            fetch: new_fetch,
+        } = delta;
+        if let Some(new_default_params) = new_default_params {
+            *default_params = new_default_params;
+        }
+        if let Some(new_context) = new_context {
+            *context = new_context;
+        }
+        if let Some(new_fetch) = new_fetch {
+            *fetch = new_fetch;
+        }
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct MemoDelta {
+    pub default_params: Option<Params>,
+    pub context: Option<Context>,
+    pub fetch: Option<FetchMemo>,
 }
 
 #[derive(Debug, Default)]
@@ -428,7 +460,7 @@ impl State {
 
     #[must_use]
     #[allow(clippy::missing_panics_doc)] // Never panics
-    pub fn update_memo(&self, memo: &mut Memo) -> MemoUpdated {
+    pub fn update_memo_delta(&self, memo: &Memo) -> (MemoDelta, MemoDiff) {
         let Self {
             default_params,
             context,
@@ -439,28 +471,33 @@ impl State {
             context: memo_context,
             fetch: memo_fetch,
         } = memo;
+        let mut delta = MemoDelta::default();
         let mut changed = false;
         if memo_default_params != default_params {
-            *memo_default_params = default_params.clone();
+            delta.default_params = Some(default_params.clone());
             changed = true;
         }
         if memo_context != context {
-            *memo_context = context.clone();
+            delta.context = Some(context.clone());
             changed = true;
         }
         let fetch = fetch.memo();
         if changed {
-            *memo_fetch = fetch;
-            debug_assert_eq!(*memo, self.clone_memo());
-            return MemoUpdated::Changed {
-                fetched_entities_diff: Default::default(),
-            };
+            delta.fetch = Some(fetch.clone());
+            debug_assert_eq!(memo.clone().apply_delta(delta.clone()), &self.clone_memo());
+            return (
+                delta,
+                MemoDiff::Changed {
+                    fetched_entities: FetchedEntitiesDiff::Replace,
+                },
+            );
         }
         if *memo_fetch == fetch {
-            debug_assert_eq!(*memo, self.clone_memo());
-            return MemoUpdated::Unchanged;
+            debug_assert_eq!(delta, Default::default());
+            debug_assert_eq!(memo.clone().apply_delta(delta.clone()), &self.clone_memo());
+            return (delta, MemoDiff::Unchanged);
         }
-        let mut fetched_entities_diff = Default::default();
+        let mut fetched_entities_diff = FetchedEntitiesDiff::Replace;
         if let (Some(fetched_entities), Some(memo_fetched_entities)) =
             (&fetch.fetched_entities, &memo_fetch.fetched_entities)
         {
@@ -483,14 +520,25 @@ impl State {
                         .unwrap()
                         .offset_hash
             {
+                // Optimize update by only appending the newly fetched entities.
                 fetched_entities_diff = FetchedEntitiesDiff::Append;
             }
         }
-        *memo_fetch = fetch;
-        debug_assert_eq!(*memo, self.clone_memo());
-        MemoUpdated::Changed {
-            fetched_entities_diff,
-        }
+        delta.fetch = Some(fetch);
+        debug_assert_eq!(memo.clone().apply_delta(delta.clone()), &self.clone_memo());
+        (
+            delta,
+            MemoDiff::Changed {
+                fetched_entities: fetched_entities_diff,
+            },
+        )
+    }
+
+    #[must_use]
+    pub fn update_memo(&self, memo: &mut Memo) -> MemoDiff {
+        let (delta, updated) = self.update_memo_delta(memo);
+        memo.apply_delta(delta);
+        updated
     }
 
     fn try_reset(&mut self) -> bool {
