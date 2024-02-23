@@ -8,7 +8,7 @@ use egui::{
 
 use super::{
     Action, CentralPanelData, CollectionAction, MessageSender, Model, MusicDirSelection,
-    MusicDirectoryAction, Track, TrackSearchAction, UiData,
+    MusicDirectoryAction, TrackListItem, TrackSearchAction, UiData,
 };
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.
@@ -158,20 +158,20 @@ impl<'a> RenderContext<'a> {
                             .spacing([40.0, 4.0])
                             .striped(true)
                             .show(ui, |ui| {
-                                for track in track_list {
+                                for item in track_list {
                                     debug_assert_eq!(
-                                        track.artwork_thumbnail_texture.size_vec2().x,
-                                        track.artwork_thumbnail_texture.size_vec2().y
+                                        item.artwork_thumbnail_texture.size_vec2().x,
+                                        item.artwork_thumbnail_texture.size_vec2().y
                                     );
                                     let size = ui
                                         .available_height()
-                                        .max(track.artwork_thumbnail_texture.size_vec2().y);
+                                        .max(item.artwork_thumbnail_texture.size_vec2().y);
                                     let texture = SizedTexture {
-                                        id: track.artwork_thumbnail_texture.id(),
+                                        id: item.artwork_thumbnail_texture.id(),
                                         size: egui::Vec2::new(size, size),
                                     };
                                     ui.image(texture);
-                                    ui.label(track_label(track));
+                                    ui.label(track_list_item_label(item));
                                     ui.end_row();
                                 }
                             });
@@ -263,7 +263,7 @@ impl<'a> RenderContext<'a> {
 }
 
 #[must_use]
-fn track_label(track: &Track) -> String {
+fn track_list_item_label(track: &TrackListItem) -> String {
     let track_title = track.title.as_deref().unwrap_or("Untitled");
     let track_artist = &track.artist;
     let album_title = &track.album_title;

@@ -183,7 +183,7 @@ impl From<Event> for Message {
 
 enum CentralPanelData {
     TrackSearch {
-        track_list: Vec<Track>,
+        track_list: Vec<TrackListItem>,
     },
     MusicDirSync {
         progress_log: Vec<String>,
@@ -312,7 +312,7 @@ impl eframe::App for App {
 
 /// Simplified, pre-rendered track data
 #[allow(missing_debug_implementations)]
-pub struct Track {
+pub struct TrackListItem {
     pub entity_uid: TrackUid,
     pub artwork_thumbnail_texture: TextureHandle,
 
@@ -328,32 +328,27 @@ pub struct Track {
     pub key: Option<KeySignature>,
 }
 
-impl Track {
+impl TrackListItem {
     #[must_use]
     pub fn new(ctx: &Context, entity_uid: aoide::TrackUid, track: &aoide::Track) -> Self {
         let artwork_thumbnail_image = track
             .media_source
             .artwork
             .as_ref()
-            .and_then(artwork_thumbnail_image)
+            .and_then(|artwork| {
+                let default_color = match track.color {
+                    Some(aoide::util::color::Color::Rgb(rgb_color)) => Some(rgb_color),
+                    _ => None,
+                };
+                artwork_thumbnail_image(artwork, default_color)
+            })
             .unwrap_or_else(|| {
-                // Fallback: Use the track color if no artwork is available.
-                let color = track
-                    .color
-                    .and_then(|color| {
-                        let aoide::util::color::Color::Rgb(rgb_color) = color else {
-                            return None;
-                        };
-                        Some(solid_rgb_color(rgb_color))
-                    })
-                    .unwrap_or(
-                        // TODO: Use a single, shared, transparent texture for all tracks without artwork.
-                        Color32::TRANSPARENT,
-                    );
-                artwork_thumbnail_image_with_solid_color(color)
+                // TODO: Use a single, shared, transparent texture for all tracks without artwork.
+                artwork_thumbnail_image_placeholder()
             });
+        // TODO: Only load the texture once for each distinct image -> hash the image data.
         let artwork_thumbnail_texture = ctx.load_texture(
-            format!("track:{entity_uid}"),
+            "", // anonymous
             artwork_thumbnail_image,
             TextureOptions::LINEAR,
         );
@@ -412,6 +407,10 @@ fn filter_faceted_tag_labels<'a>(
         .filter_map(|tag| tag.label.as_ref())
 }
 
+const ARTWORK_THUMBNAIL_SIZE: usize = 4;
+const ARTWORK_THUMBNAIL_IMAGE_SIZE: usize = 6;
+const ARTWORK_THUMBNAIL_BORDER_SIZE: usize = 1;
+
 #[must_use]
 const fn solid_rgb_color(color: RgbColor) -> Color32 {
     Color32::from_rgb(color.red(), color.green(), color.blue())
@@ -419,58 +418,93 @@ const fn solid_rgb_color(color: RgbColor) -> Color32 {
 
 #[must_use]
 fn artwork_thumbnail_image_with_solid_color(color: Color32) -> ColorImage {
-    let pixels = [color; 6 * 6].to_vec();
     ColorImage {
-        size: [6; 2],
+        size: [ARTWORK_THUMBNAIL_IMAGE_SIZE, ARTWORK_THUMBNAIL_IMAGE_SIZE],
+        pixels: [color; ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_IMAGE_SIZE].to_vec(),
+    }
+}
+
+#[must_use]
+fn artwork_thumbnail_image_placeholder() -> ColorImage {
+    artwork_thumbnail_image_with_solid_color(Color32::TRANSPARENT)
+}
+
+#[must_use]
+fn artwork_thumbnail_image_from_rgb_pixels(
+    thumbnail: &[u8; ARTWORK_THUMBNAIL_SIZE * ARTWORK_THUMBNAIL_SIZE * 3],
+    border_color: Color32,
+) -> ColorImage {
+    let pixels = thumbnail
+        .chunks_exact(3)
+        .map(|rgb| Color32::from_rgb(rgb[0], rgb[1], rgb[2]));
+    artwork_thumbnail_image_from_pixels(pixels, border_color)
+}
+
+#[must_use]
+#[allow(clippy::similar_names)]
+fn artwork_thumbnail_image_from_pixels(
+    pixels: impl IntoIterator<Item = Color32>,
+    border_color: Color32,
+) -> ColorImage {
+    // TODO: Avoid temporary allocation.
+    let pixels = pixels.into_iter().collect::<Vec<_>>();
+    let mut pixels_rows = pixels.chunks_exact(4);
+    let pixels_row0 = pixels_rows.next().unwrap();
+    let pixels_row1 = pixels_rows.next().unwrap();
+    let pixels_row2 = pixels_rows.next().unwrap();
+    let pixels_row3 = pixels_rows.next().unwrap();
+    let pixels = std::iter::repeat(border_color)
+        .take(
+            ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_BORDER_SIZE
+                + ARTWORK_THUMBNAIL_BORDER_SIZE,
+        )
+        .chain(pixels_row0.iter().copied())
+        .chain(std::iter::repeat(border_color).take(ARTWORK_THUMBNAIL_BORDER_SIZE * 2))
+        .chain(pixels_row1.iter().copied())
+        .chain(std::iter::repeat(border_color).take(ARTWORK_THUMBNAIL_BORDER_SIZE * 2))
+        .chain(pixels_row2.iter().copied())
+        .chain(std::iter::repeat(border_color).take(ARTWORK_THUMBNAIL_BORDER_SIZE * 2))
+        .chain(pixels_row3.iter().copied())
+        .chain(std::iter::repeat(border_color).take(
+            ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_BORDER_SIZE
+                + ARTWORK_THUMBNAIL_BORDER_SIZE,
+        ))
+        .collect::<Vec<_>>();
+    debug_assert_eq!(
+        pixels.len(),
+        ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_IMAGE_SIZE
+    );
+    ColorImage {
+        size: [ARTWORK_THUMBNAIL_IMAGE_SIZE, ARTWORK_THUMBNAIL_IMAGE_SIZE],
         pixels,
     }
 }
 
 #[must_use]
 #[allow(clippy::similar_names)]
-fn artwork_thumbnail_image(artwork: &Artwork) -> Option<ColorImage> {
+fn artwork_thumbnail_image(
+    artwork: &Artwork,
+    default_color: Option<RgbColor>,
+) -> Option<ColorImage> {
     let Artwork::Embedded(EmbeddedArtwork {
-        image:
-            ArtworkImage {
-                thumbnail: rgb_4x4,
-                color,
-                ..
-            },
+        image: ArtworkImage {
+            thumbnail, color, ..
+        },
         ..
     }) = artwork
     else {
         return None;
     };
+    let color = color.or(default_color);
+    let Some(thumbnail) = thumbnail else {
+        return color
+            .map(solid_rgb_color)
+            .map(artwork_thumbnail_image_with_solid_color);
+    };
     let color = color.map(solid_rgb_color);
-    let Some(rgb_4x4) = rgb_4x4 else {
-        return color.map(artwork_thumbnail_image_with_solid_color);
-    };
-    let thumbnail_pixels = rgb_4x4
-        .chunks_exact(3)
-        .map(|rgb| Color32::from_rgb(rgb[0], rgb[1], rgb[2]));
-    let color = color.unwrap_or(Color32::TRANSPARENT);
-    // TODO: Avoid temporary allocation.
-    let thumbnail_pixels = thumbnail_pixels.collect::<Vec<_>>();
-    let mut thumbnail_pixels_rows = thumbnail_pixels.chunks_exact(4);
-    let thumbnail_pixels_row0 = thumbnail_pixels_rows.next().unwrap();
-    let thumbnail_pixels_row1 = thumbnail_pixels_rows.next().unwrap();
-    let thumbnail_pixels_row2 = thumbnail_pixels_rows.next().unwrap();
-    let thumbnail_pixels_row3 = thumbnail_pixels_rows.next().unwrap();
-    let pixels_6x6 = [color; 7]
-        .into_iter()
-        .chain(thumbnail_pixels_row0.iter().copied())
-        .chain([color; 2])
-        .chain(thumbnail_pixels_row1.iter().copied())
-        .chain([color; 2])
-        .chain(thumbnail_pixels_row2.iter().copied())
-        .chain([color; 2])
-        .chain(thumbnail_pixels_row3.iter().copied())
-        .chain([color; 7])
-        .collect::<Vec<_>>();
-    debug_assert_eq!(pixels_6x6.len(), 6 * 6);
-    let image = ColorImage {
-        size: [6, 6],
-        pixels: pixels_6x6,
-    };
-    Some(image)
+    let border_color = color.unwrap_or(Color32::TRANSPARENT);
+    Some(artwork_thumbnail_image_from_rgb_pixels(
+        thumbnail,
+        border_color,
+    ))
 }

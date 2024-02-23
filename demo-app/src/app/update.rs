@@ -8,7 +8,7 @@ use crate::{fs::choose_directory_path, library};
 
 use super::{
     Action, CentralPanelData, CollectionAction, Event, LibraryAction, Message, MessageSender,
-    Model, MusicDirSelection, MusicDirectoryAction, Track, TrackSearchAction,
+    Model, MusicDirSelection, MusicDirectoryAction, TrackListItem, TrackSearchAction,
 };
 
 const MUSIC_DIR_SYNC_PROGRESS_LOG_MAX_LINES: usize = 100;
@@ -205,7 +205,7 @@ impl<'a> UpdateContext<'a> {
                                             track_search_list.clear();
                                             track_search_list.extend(fetched_entities.iter().map(
                                                 |fetched_entity| {
-                                                    Track::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
+                                                    TrackListItem::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
                                                 },
                                             ));
                                         } else {
@@ -230,7 +230,7 @@ impl<'a> UpdateContext<'a> {
                                                     count = fetched_entities.len() - offset);
                                         track_search_list.extend(fetched_entities[offset..].iter().map(
                                             |fetched_entity| {
-                                                Track::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
+                                                TrackListItem::new(ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
                                             },
                                         ));
                                     }
