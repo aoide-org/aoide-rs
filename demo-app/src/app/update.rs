@@ -136,7 +136,7 @@ impl<'a> UpdateContext<'a> {
                             };
                             track_list
                         };
-                        match fetched_entities_diff {
+                        let new_offset = match fetched_entities_diff {
                             aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
                                 if let Some(fetched_items) = fetched_items {
                                     log::debug!(
@@ -146,11 +146,13 @@ impl<'a> UpdateContext<'a> {
                                     );
                                     track_search_list.clear();
                                     track_search_list.extend(fetched_items);
+                                    Some(track_search_list.len())
                                 } else {
                                     log::debug!(
                                         "Track search list changed: No fetched items available",
                                     );
                                     mdl.central_panel_data = None;
+                                    None
                                 }
                             }
                             aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
@@ -170,8 +172,16 @@ impl<'a> UpdateContext<'a> {
                                             count_before = track_search_list.len(),
                                             count_append = fetched_items.len());
                                 track_search_list.extend(fetched_items);
+                                Some(track_search_list.len())
                             }
                         };
+                        debug_assert_eq!(
+                            new_offset,
+                            memo_delta.fetch.as_ref().and_then(|fetch| fetch
+                                .fetched_entities
+                                .as_ref()
+                                .map(|memo| memo.offset))
+                        );
                         mdl.library
                             .on_track_search_state_changed_part3(&memo, memo_delta);
                     }
