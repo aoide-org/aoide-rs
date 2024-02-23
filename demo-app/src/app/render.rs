@@ -164,6 +164,8 @@ impl<'a> RenderContext<'a> {
                         total_rows,
                         |ui, row_range| {
                             if row_range.end == total_rows
+                                // Prevent eagerly fetching more results repeatedly.
+                                && Some(total_rows) == current_library_state.track_search().fetched_entities_len()
                                 && current_library_state.could_fetch_more_track_search_results()
                             {
                                 log::debug!("Trying to fetch more track search results");

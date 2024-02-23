@@ -404,6 +404,11 @@ impl State {
     }
 
     #[must_use]
+    pub fn fetched_entities_len(&self) -> Option<usize> {
+        self.fetch.fetched_entities().map(<[_]>::len)
+    }
+
+    #[must_use]
     pub fn fetched_entities_memo(&self) -> Option<FetchedEntitiesMemo> {
         self.fetch.fetched_entities_memo()
     }
