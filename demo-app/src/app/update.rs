@@ -53,7 +53,7 @@ impl<'a> UpdateContext<'a> {
                         };
                         choose_directory_path(
                             rt,
-                            mdl.library.state().last_observed_music_dir.as_ref(),
+                            mdl.library.state().music_dir.as_ref(),
                             on_dir_path_chosen,
                         );
                         mdl.music_dir_selection = Some(MusicDirSelection::Selecting);
@@ -224,7 +224,7 @@ impl<'a> UpdateContext<'a> {
                 if mdl.library.on_collection_state_changed() {
                     // Determine a follow-up effect or action dependent on the new state.
                     // TODO: Store or report outcomes and errors from these dead end states.
-                    match &mdl.library.state().last_observed_collection {
+                    match &mdl.library.state().collection {
                         collection::State::Void => {
                             // Nothing to show with no collection available. This prevents to
                             // show stale data after the collection has been reset.
@@ -358,9 +358,7 @@ impl<'a> UpdateContext<'a> {
                         return;
                     }
                 };
-                if Some(&collection_uid)
-                    != mdl.library.state().last_observed_collection.entity_uid()
-                {
+                if Some(&collection_uid) != mdl.library.state().collection.entity_uid() {
                     log::debug!(
                         "Discarding unexpected music directory list with {num_items} item(s) for collection {collection_uid}",
                         num_items = new_content_paths_with_count.len()
