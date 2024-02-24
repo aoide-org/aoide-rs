@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use aoide::{
     desktop_app::{collection::SynchronizeVfsTask, fs::DirPath, Handle, ObservableReader},
@@ -102,7 +102,28 @@ pub enum TrackSearchMemoState {
         memo: track_search::Memo,
         memo_delta: track_search::MemoDelta,
         state_changed_again: bool,
+        pending_since: Instant,
     },
+}
+
+impl TrackSearchMemoState {
+    #[must_use]
+    pub fn new_pending(memo: track_search::Memo, memo_delta: track_search::MemoDelta) -> Self {
+        Self::Pending {
+            memo,
+            memo_delta,
+            state_changed_again: false,
+            pending_since: Instant::now(),
+        }
+    }
+
+    #[must_use]
+    pub const fn pending_since(&self) -> Option<Instant> {
+        match self {
+            Self::Ready(_) => None,
+            Self::Pending { pending_since, .. } => Some(*pending_since),
+        }
+    }
 }
 
 impl Default for TrackSearchMemoState {
@@ -323,18 +344,14 @@ impl Library {
             let memo = std::mem::take(memo);
             (memo, memo_delta, memo_diff)
         };
-        self.state.track_search_memo = TrackSearchMemoState::Pending {
-            memo,
-            memo_delta,
-            state_changed_again: false,
-        };
+        self.state.track_search_memo = TrackSearchMemoState::new_pending(memo, memo_delta);
         let TrackSearchMemoState::Pending { memo, .. } = &self.state.track_search_memo else {
             unreachable!();
         };
         Some((memo, memo_diff))
     }
 
-    pub const fn on_track_search_state_changed_complete_pending(
+    pub fn on_track_search_state_changed_complete_pending(
         &self,
     ) -> Result<
         (&track_search::Memo, &track_search::MemoDelta),
@@ -348,8 +365,12 @@ impl Library {
                 memo,
                 memo_delta,
                 state_changed_again,
-                ..
+                pending_since,
             } => {
+                log::debug!(
+                    "Track search state changed pending completed after {elapsed_ms} ms",
+                    elapsed_ms = pending_since.elapsed().as_secs_f64() * 1000.0
+                );
                 if *state_changed_again {
                     Err(OnTrackSearchStateChangedCompletionError::AbortPendingAndRetry)
                 } else {
@@ -373,6 +394,7 @@ impl Library {
             memo,
             memo_delta,
             state_changed_again,
+            pending_since: _,
         } = &mut self.state.track_search_memo
         else {
             unreachable!();
