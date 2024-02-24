@@ -107,7 +107,7 @@ impl<'a> UpdateContext<'a> {
                             match mdl.library.on_track_search_state_changed_complete_pending() {
                                 Ok((memo, memo_delta)) => (memo, memo_delta),
                                 Err(err) => {
-                                    on_track_search_state_changed_completion_error(
+                                    on_library_track_search_state_changed_completion_error(
                                         &mut mdl.library,
                                         err,
                                         msg_tx,
@@ -123,7 +123,7 @@ impl<'a> UpdateContext<'a> {
                             match mdl.library.on_track_search_state_changed_complete_pending() {
                                 Ok((memo, memo_delta)) => (memo, memo_delta),
                                 Err(err) => {
-                                    on_track_search_state_changed_completion_error(
+                                    on_library_track_search_state_changed_completion_error(
                                         &mut mdl.library,
                                         err,
                                         msg_tx,
@@ -255,69 +255,7 @@ impl<'a> UpdateContext<'a> {
             }
             library::Event::TrackSearch(event) => match event {
                 library::track_search::Event::StateChanged => {
-                    let Some((memo, memo_diff)) = mdl.library.on_track_search_state_changed()
-                    else {
-                        return;
-                    };
-                    match memo_diff {
-                        aoide::desktop_app::track::repo_search::MemoDiff::Unchanged => {
-                            log::debug!("Track search memo unchanged");
-                        }
-                        aoide::desktop_app::track::repo_search::MemoDiff::Changed {
-                            fetched_entities: fetched_entities_diff,
-                        } => {
-                            let offset = match fetched_entities_diff {
-                                aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => 0,
-                                aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
-                                    memo
-                                        .fetch
-                                        .fetched_entities
-                                        .as_ref()
-                                        .map_or(0, |memo| memo.offset)
-                                }
-                            };
-                            let ctx = ctx.clone();
-                            let msg_tx = msg_tx.clone();
-                            let subscriber = mdl.library.subscribe_track_search_state_changed();
-                            rt.spawn_blocking(move || {
-                                let mut discard = false;
-                                let state = subscriber.read();
-                                let fetched_items = state.fetched_entities().and_then(|fetched_entities| {
-                                    if offset > fetched_entities.len() {
-                                        // Race condition after the observable state has changed (again) in the meantime.
-                                        discard = true;
-                                        return None;
-                                    }
-                                    let fetched_items = fetched_entities[offset..].iter().map(
-                                        |fetched_entity| {
-                                            TrackListItem::new(&ctx, fetched_entity.entity.hdr.uid.clone(), &fetched_entity.entity.body.track)
-                                        },
-                                    ).collect();
-                                    Some(fetched_items)
-                                });
-                                if discard {
-                                    log::debug!("Discarding inapplicable track search state and memo update: {memo_diff:?}");
-                                    msg_tx.send_action(TrackSearchAction::AbortPendingStateChange);
-                                    return;
-                                }
-                                let fetched_items = if let Some(fetched_items) = fetched_items {
-                                    match fetched_entities_diff {
-                                        aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
-                                            TrackSearchFetchedItems::Replace(fetched_items)
-                                        }
-                                        aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
-                                            TrackSearchFetchedItems::Append(fetched_items)
-                                        }
-                                    }
-                                } else {
-                                    TrackSearchFetchedItems::Reset
-                                };
-                                msg_tx.send_action(TrackSearchAction::ApplyPendingStateChange {
-                                    fetched_items
-                                });
-                            });
-                        }
-                    }
+                    on_library_track_search_state_changed(&mut mdl.library, ctx, rt, msg_tx);
                 }
                 library::track_search::Event::FetchMoreTaskCompleted {
                     result,
@@ -389,7 +327,80 @@ impl<'a> UpdateContext<'a> {
     }
 }
 
-fn on_track_search_state_changed_completion_error(
+fn on_library_track_search_state_changed(
+    library: &mut Library,
+    ctx: &Context,
+    rt: &tokio::runtime::Handle,
+    msg_tx: &MessageSender,
+) {
+    let Some((memo, memo_diff)) = library.on_track_search_state_changed() else {
+        return;
+    };
+    match memo_diff {
+        aoide::desktop_app::track::repo_search::MemoDiff::Unchanged => {
+            log::debug!("Track search memo unchanged");
+        }
+        aoide::desktop_app::track::repo_search::MemoDiff::Changed {
+            fetched_entities: fetched_entities_diff,
+        } => {
+            let offset = match fetched_entities_diff {
+                aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => 0,
+                aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => memo
+                    .fetch
+                    .fetched_entities
+                    .as_ref()
+                    .map_or(0, |memo| memo.offset),
+            };
+            let ctx = ctx.clone();
+            let msg_tx = msg_tx.clone();
+            let subscriber = library.subscribe_track_search_state_changed();
+            rt.spawn_blocking(move || {
+                let mut discard = false;
+                let state = subscriber.read();
+                let fetched_items = state.fetched_entities().and_then(|fetched_entities| {
+                    if offset > fetched_entities.len() {
+                        // Race condition after the observable state has changed (again) in the meantime.
+                        discard = true;
+                        return None;
+                    }
+                    let fetched_items = fetched_entities[offset..]
+                        .iter()
+                        .map(|fetched_entity| {
+                            TrackListItem::new(
+                                &ctx,
+                                fetched_entity.entity.hdr.uid.clone(),
+                                &fetched_entity.entity.body.track,
+                            )
+                        })
+                        .collect();
+                    Some(fetched_items)
+                });
+                if discard {
+                    log::debug!(
+                        "Discarding inapplicable track search state and memo update: {memo_diff:?}"
+                    );
+                    msg_tx.send_action(TrackSearchAction::AbortPendingStateChange);
+                    return;
+                }
+                let fetched_items = if let Some(fetched_items) = fetched_items {
+                    match fetched_entities_diff {
+                        aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Replace => {
+                            TrackSearchFetchedItems::Replace(fetched_items)
+                        }
+                        aoide::desktop_app::track::repo_search::FetchedEntitiesDiff::Append => {
+                            TrackSearchFetchedItems::Append(fetched_items)
+                        }
+                    }
+                } else {
+                    TrackSearchFetchedItems::Reset
+                };
+                msg_tx.send_action(TrackSearchAction::ApplyPendingStateChange { fetched_items });
+            });
+        }
+    }
+}
+
+fn on_library_track_search_state_changed_completion_error(
     library: &mut Library,
     err: OnTrackSearchStateChangedCompletionError,
     msg_tx: &MessageSender,
