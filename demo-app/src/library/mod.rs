@@ -24,6 +24,9 @@ pub enum Event {
     MusicDirSyncProgress(
         Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>,
     ),
+    MusicDirSyncOutcome(
+        Option<Box<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>>,
+    ),
     MusicDirListResult {
         collection_uid: CollectionUid,
         params: aoide::api::media::tracker::count_sources_in_directories::Params,
@@ -462,6 +465,24 @@ impl Library {
                     let progress = subscriber.read_ack().clone();
                     if event_emitter
                         .emit_event(Event::MusicDirSyncProgress(progress))
+                        .is_err()
+                    {
+                        break;
+                    }
+                    if subscriber.changed().await.is_err() {
+                        break;
+                    }
+                }
+            }
+        });
+        rt.spawn({
+            let event_emitter = event_emitter.clone();
+            let mut subscriber = task.outcome().clone();
+            async move {
+                loop {
+                    let outcome = subscriber.read_ack().clone();
+                    if event_emitter
+                        .emit_event(Event::MusicDirSyncOutcome(outcome.map(Box::new)))
                         .is_err()
                     {
                         break;

@@ -202,7 +202,9 @@ enum CentralPanelData {
         track_list: Vec<TrackListItem>,
     },
     MusicDirSync {
-        progress_log: Vec<String>,
+        last_progress: Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>,
+        final_outcome:
+            Option<Box<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>>,
     },
     MusicDirList {
         content_paths_with_count: Vec<(ContentPath<'static>, usize)>,

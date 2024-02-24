@@ -15,8 +15,6 @@ use super::{
     Model, MusicDirSelection, MusicDirectoryAction, TrackListItem, TrackSearchAction,
 };
 
-const MUSIC_DIR_SYNC_PROGRESS_LOG_MAX_LINES: usize = 100;
-
 pub(super) struct UpdateContext<'a> {
     pub(super) rt: &'a tokio::runtime::Handle,
     pub(super) msg_tx: &'a MessageSender,
@@ -68,7 +66,8 @@ impl<'a> UpdateContext<'a> {
                         if mdl.library.try_spawn_music_dir_sync_task(rt, *msg_tx) {
                             log::debug!("Switching to music dir sync progress view");
                             mdl.central_panel_data = Some(CentralPanelData::MusicDirSync {
-                                progress_log: vec![],
+                                last_progress: None,
+                                final_outcome: None,
                             });
                         }
                     }
@@ -329,19 +328,28 @@ impl<'a> UpdateContext<'a> {
                 }
             },
             library::Event::MusicDirSyncProgress(progress) => {
-                if let Some(CentralPanelData::MusicDirSync { progress_log }) =
-                    &mut mdl.central_panel_data
+                if let Some(CentralPanelData::MusicDirSync {
+                    last_progress,
+                    final_outcome,
+                }) = &mut mdl.central_panel_data
                 {
-                    if progress_log.len() >= MUSIC_DIR_SYNC_PROGRESS_LOG_MAX_LINES {
-                        // Shrink the log to avoid excessive memory usage.
-                        progress_log.drain(..progress_log.len() / 2);
-                    }
-                    if let Some(progress) = progress {
-                        progress_log.push(format!("{progress:?}"));
-                    }
+                    debug_assert!(final_outcome.is_none());
+                    *last_progress = progress;
                 } else {
                     log::debug!(
                         "Discarding unexpected music directory synchronization progress: {progress:?}"
+                    );
+                }
+            }
+            library::Event::MusicDirSyncOutcome(outcome) => {
+                if let Some(CentralPanelData::MusicDirSync { final_outcome, .. }) =
+                    &mut mdl.central_panel_data
+                {
+                    debug_assert!(final_outcome.is_none());
+                    *final_outcome = outcome;
+                } else {
+                    log::debug!(
+                        "Discarding unexpected music directory synchronization outcome: {outcome:?}"
                     );
                 }
             }

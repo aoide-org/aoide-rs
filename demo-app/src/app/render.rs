@@ -190,9 +190,13 @@ impl<'a> RenderContext<'a> {
                         },
                     );
                 }
-                CentralPanelData::MusicDirSync { progress_log } => {
+                CentralPanelData::MusicDirSync { last_progress, final_outcome } => {
                     ScrollArea::both().drag_to_scroll(true).show(ui, |ui| {
-                        for line in progress_log.iter().rev() {
+                        if let Some(final_outcome) = final_outcome {
+                            let line =format!("{final_outcome:#?}");
+                            ui.label(line);
+                        } else if let Some(progress) = last_progress {
+                            let line = format!("{progress:#?}");
                             ui.label(line);
                         }
                     });

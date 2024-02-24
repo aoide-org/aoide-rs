@@ -791,7 +791,7 @@ impl ObservableState {
         &self,
         joined_task: JoinedTask<SynchronizeVfsResult>,
         continuation: SynchronizeVfsTaskContinuation,
-    ) -> Option<batch::synchronize_collection_vfs::Outcome> {
+    ) -> Option<Outcome> {
         let SynchronizeVfsTaskContinuation { pending_state } = continuation;
         let mut outcome = None;
         self.0.modify(|state| {
@@ -929,6 +929,7 @@ where
 pub struct SynchronizeVfsTask {
     started_at: Instant,
     progress: Subscriber<Option<Progress>>,
+    outcome: Subscriber<Option<Outcome>>,
     abort_flag: Arc<AtomicBool>,
     abort_handle: tokio::task::AbortHandle,
 }
@@ -944,6 +945,8 @@ impl SynchronizeVfsTask {
         let started_at = Instant::now();
         let progress_pub = Publisher::new(None);
         let progress = progress_pub.subscribe();
+        let outcome_pub = Publisher::new(None);
+        let outcome = outcome_pub.subscribe();
         let report_progress_fn = {
             // TODO: How to avoid wrapping the publisher?
             let progress_pub = Arc::new(Mutex::new(progress_pub));
@@ -962,13 +965,14 @@ impl SynchronizeVfsTask {
         let join_task = async move {
             let joined_task = JoinedTask::join(join_handle).await;
             log::debug!("Synchronize music directory task joined: {joined_task:?}");
-            let _outcome = state.synchronize_vfs_task_joined(joined_task, continuation);
-            // TODO: Forward the outcome to the application by emitting an event?
+            let outcome = state.synchronize_vfs_task_joined(joined_task, continuation);
+            outcome_pub.write(outcome);
         };
         rt.spawn(join_task);
         Some(Self {
             started_at,
             progress,
+            outcome,
             abort_flag,
             abort_handle,
         })
@@ -982,6 +986,11 @@ impl SynchronizeVfsTask {
     #[must_use]
     pub const fn progress(&self) -> &Subscriber<Option<Progress>> {
         &self.progress
+    }
+
+    #[must_use]
+    pub const fn outcome(&self) -> &Subscriber<Option<Outcome>> {
+        &self.outcome
     }
 
     #[must_use]

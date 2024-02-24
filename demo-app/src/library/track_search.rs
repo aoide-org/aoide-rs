@@ -13,7 +13,7 @@ use aoide::{
         tag::search::{FacetsFilter, Filter as TagFilter},
         track::search::{Filter, PhraseFieldFilter, SortOrder, StringField},
     },
-    desktop_app::{collection::SynchronizeVfsTaskContinuation, track},
+    desktop_app::track,
     tag::FacetKey,
     track::tag::{
         FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC,
@@ -49,14 +49,6 @@ const DEFAULT_SORT_ORDER: &[SortOrder] = &[SortOrder {
 const DEFAULT_PREFETCH_LIMIT_USIZE: usize = 250;
 pub(super) const DEFAULT_PREFETCH_LIMIT: NonZeroUsize =
     NonZeroUsize::MIN.saturating_add(DEFAULT_PREFETCH_LIMIT_USIZE - 1);
-
-#[derive(Debug)]
-#[allow(dead_code)] // TODO
-struct SynchronizeMusicDirCompleted {
-    continuation: SynchronizeVfsTaskContinuation,
-    result:
-        Option<anyhow::Result<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>>,
-}
 
 #[derive(Debug)]
 pub enum Event {
