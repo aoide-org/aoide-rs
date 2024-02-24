@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{path::PathBuf, sync::mpsc};
+use std::{fmt, path::PathBuf, sync::mpsc};
 
 use eframe::{CreationContext, Frame};
 use egui::{Color32, ColorImage, Context, TextureHandle, TextureOptions};
@@ -20,7 +20,7 @@ use aoide::{
 };
 
 use crate::{
-    library::{self, track_search, Library},
+    library::{self, Library},
     NoReceiverForEvent,
 };
 
@@ -50,10 +50,10 @@ impl MessageSender {
         T: Into<Action>,
     {
         if let Err(NoReceiverForMessage(msg)) = self.send_message(Message::Action(action.into())) {
-            let Message::Action(_) = msg else {
+            let Message::Action(action) = msg else {
                 unreachable!()
             };
-            log::warn!("No receiver for action");
+            log::warn!("No receiver for action {action:?}");
         }
     }
 
@@ -92,16 +92,11 @@ impl library::EventEmitter for MessageSender {
 }
 
 // Not cloneable so large enum variants should be fine.
+#[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
-#[allow(missing_debug_implementations)]
 enum Message {
     Action(Action),
     Event(Event),
-}
-
-#[allow(missing_debug_implementations)]
-enum Action {
-    Library(LibraryAction),
 }
 
 impl From<Action> for Message {
@@ -110,7 +105,18 @@ impl From<Action> for Message {
     }
 }
 
-#[allow(missing_debug_implementations)]
+impl From<Event> for Message {
+    fn from(event: Event) -> Self {
+        Self::Event(event)
+    }
+}
+
+#[derive(Debug)]
+enum Action {
+    Library(LibraryAction),
+}
+
+#[derive(Debug)]
 enum LibraryAction {
     MusicDirectory(MusicDirectoryAction),
     Collection(CollectionAction),
@@ -153,18 +159,17 @@ impl From<CollectionAction> for LibraryAction {
     }
 }
 
-#[allow(missing_debug_implementations)]
+#[derive(Debug)]
 enum TrackSearchAction {
     Search(String),
     FetchMore,
-    UpdateStateAndList {
-        memo: track_search::Memo,
-        memo_delta: track_search::MemoDelta,
+    AbortPendingStateChange,
+    ApplyPendingStateChange {
         fetched_items: TrackSearchFetchedItems,
     },
 }
 
-#[allow(missing_debug_implementations)]
+#[derive(Debug)]
 enum TrackSearchFetchedItems {
     Reset,
     Replace(Vec<TrackListItem>),
@@ -186,9 +191,9 @@ enum Event {
     Library(library::Event),
 }
 
-impl From<Event> for Message {
-    fn from(event: Event) -> Self {
-        Self::Event(event)
+impl From<library::Event> for Event {
+    fn from(event: library::Event) -> Self {
+        Self::Library(event)
     }
 }
 
@@ -321,7 +326,6 @@ impl eframe::App for App {
 }
 
 /// Simplified, pre-rendered track data
-#[allow(missing_debug_implementations)]
 pub struct TrackListItem {
     pub entity_uid: TrackUid,
     pub artwork_thumbnail_texture: TextureHandle,
@@ -395,6 +399,19 @@ impl TrackListItem {
             bpm,
             key,
         }
+    }
+}
+
+#[allow(clippy::missing_fields_in_debug)]
+impl fmt::Debug for TrackListItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TrackListItem")
+            .field("entity_uid", &self.entity_uid)
+            .field(
+                "artwork_thumbnail_texture",
+                &self.artwork_thumbnail_texture.id(),
+            )
+            .finish()
     }
 }
 

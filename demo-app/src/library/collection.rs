@@ -21,12 +21,6 @@ pub enum Event {
     StateChanged,
 }
 
-impl From<Event> for super::Event {
-    fn from(event: Event) -> Self {
-        Self::Collection(event)
-    }
-}
-
 pub type StateRef<'a> = Ref<'a, State>;
 pub type StateSubscriber = Subscriber<State>;
 

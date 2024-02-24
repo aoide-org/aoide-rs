@@ -67,12 +67,6 @@ pub enum Event {
     },
 }
 
-impl From<Event> for super::Event {
-    fn from(event: Event) -> Self {
-        Self::TrackSearch(event)
-    }
-}
-
 pub type StateRef<'a> = Ref<'a, State>;
 pub type StateSubscriber = Subscriber<State>;
 

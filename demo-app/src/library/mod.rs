@@ -31,6 +31,24 @@ pub enum Event {
     },
 }
 
+impl From<settings::Event> for Event {
+    fn from(event: settings::Event) -> Self {
+        Self::Settings(event)
+    }
+}
+
+impl From<collection::Event> for Event {
+    fn from(event: collection::Event) -> Self {
+        Self::Collection(event)
+    }
+}
+
+impl From<track_search::Event> for Event {
+    fn from(event: track_search::Event) -> Self {
+        Self::TrackSearch(event)
+    }
+}
+
 /// Event emitter.
 ///
 /// No locks must be held when calling `emit_event()`!
@@ -73,8 +91,24 @@ impl StateObservables {
 pub struct State {
     pub last_observed_music_dir: Option<DirPath<'static>>,
     pub last_observed_collection: collection::State,
-    pub last_observed_track_search_memo: track_search::Memo,
+    pub track_search_memo_state: TrackSearchMemoState,
     pub pending_music_dir_sync_task: Option<SynchronizeVfsTask>,
+}
+
+#[derive(Debug)]
+pub enum TrackSearchMemoState {
+    Ready(track_search::Memo),
+    Pending {
+        memo: track_search::Memo,
+        memo_delta: track_search::MemoDelta,
+        state_changed_again: bool,
+    },
+}
+
+impl Default for TrackSearchMemoState {
+    fn default() -> Self {
+        Self::Ready(Default::default())
+    }
 }
 
 impl State {
@@ -83,19 +117,18 @@ impl State {
         let Self {
             last_observed_music_dir,
             last_observed_collection,
-            last_observed_track_search_memo,
+            track_search_memo_state,
             pending_music_dir_sync_task,
         } = self;
         let StateObservables { track_search, .. } = observables;
         let music_dir = last_observed_music_dir.as_ref();
         let collection = last_observed_collection;
-        let track_search_memo = last_observed_track_search_memo;
         let pending_music_dir_sync_task = pending_music_dir_sync_task.as_ref();
         let track_search = track_search.read_lock();
         CurrentState {
             music_dir,
             collection,
-            track_search_memo,
+            track_search_memo_state,
             pending_music_dir_sync_task,
             track_search,
         }
@@ -106,7 +139,7 @@ impl State {
 pub struct CurrentState<'a> {
     music_dir: Option<&'a DirPath<'static>>,
     collection: &'a collection::State,
-    track_search_memo: &'a track_search::Memo,
+    track_search_memo_state: &'a TrackSearchMemoState,
     pending_music_dir_sync_task: Option<&'a SynchronizeVfsTask>,
     track_search: Ref<'a, track_search::State>,
 }
@@ -123,8 +156,8 @@ impl CurrentState<'_> {
     }
 
     #[must_use]
-    pub const fn track_search_memo(&self) -> &track_search::Memo {
-        self.track_search_memo
+    pub const fn track_search_memo_state(&self) -> &TrackSearchMemoState {
+        self.track_search_memo_state
     }
 
     #[must_use]
@@ -178,6 +211,12 @@ pub struct Library {
     handle: Handle,
     state_observables: StateObservables,
     state: State,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum OnTrackSearchStateChangedCompletionError {
+    NotPending,
+    AbortPendingAndRetry,
 }
 
 impl Library {
@@ -264,35 +303,85 @@ impl Library {
         true
     }
 
-    #[allow(clippy::must_use_candidate)]
-    pub fn on_track_search_state_changed_part1(
-        &self,
-    ) -> (
-        &track_search::Memo,
-        track_search::MemoDelta,
-        track_search::MemoDiff,
-    ) {
-        let state = self.state_observables.track_search.read_lock();
-        let memo = &self.state.last_observed_track_search_memo;
-        let (delta, diff) = state.update_memo_delta(memo);
-        (memo, delta, diff)
-    }
-
-    #[allow(clippy::must_use_candidate)]
-    pub fn on_track_search_state_changed_part2(&self, memo: &track_search::Memo) -> bool {
-        self.state.last_observed_track_search_memo == *memo
-    }
-
-    #[allow(clippy::must_use_candidate)]
-    pub fn on_track_search_state_changed_part3(
+    pub fn on_track_search_state_changed(
         &mut self,
-        memo: &track_search::Memo,
-        delta: track_search::MemoDelta,
-    ) {
-        debug_assert_eq!(self.state.last_observed_track_search_memo, *memo);
-        self.state
-            .last_observed_track_search_memo
-            .apply_delta(delta);
+    ) -> Option<(&track_search::Memo, track_search::MemoDiff)> {
+        let (memo, memo_delta, memo_diff) = {
+            let memo = match &mut self.state.track_search_memo_state {
+                TrackSearchMemoState::Ready(memo) => memo,
+                TrackSearchMemoState::Pending {
+                    state_changed_again,
+                    ..
+                } => {
+                    *state_changed_again = true;
+                    return None;
+                }
+            };
+            let (memo_delta, memo_diff) = {
+                let state = self.state_observables.track_search.read_lock();
+                state.update_memo_delta(memo)
+            };
+            let memo = std::mem::take(memo);
+            (memo, memo_delta, memo_diff)
+        };
+        self.state.track_search_memo_state = TrackSearchMemoState::Pending {
+            memo,
+            memo_delta,
+            state_changed_again: false,
+        };
+        let TrackSearchMemoState::Pending { memo, .. } = &self.state.track_search_memo_state else {
+            unreachable!();
+        };
+        Some((memo, memo_diff))
+    }
+
+    pub const fn on_track_search_state_changed_complete_pending(
+        &self,
+    ) -> Result<
+        (&track_search::Memo, &track_search::MemoDelta),
+        OnTrackSearchStateChangedCompletionError,
+    > {
+        match &self.state.track_search_memo_state {
+            TrackSearchMemoState::Ready(_) => {
+                Err(OnTrackSearchStateChangedCompletionError::NotPending)
+            }
+            TrackSearchMemoState::Pending {
+                memo,
+                memo_delta,
+                state_changed_again,
+                ..
+            } => {
+                if *state_changed_again {
+                    Err(OnTrackSearchStateChangedCompletionError::AbortPendingAndRetry)
+                } else {
+                    Ok((memo, memo_delta))
+                }
+            }
+        }
+    }
+
+    #[allow(clippy::must_use_candidate)]
+    pub fn on_track_search_state_changed_abort(&mut self) {
+        let TrackSearchMemoState::Pending { memo, .. } = &mut self.state.track_search_memo_state
+        else {
+            unreachable!();
+        };
+        self.state.track_search_memo_state = TrackSearchMemoState::Ready(std::mem::take(memo));
+    }
+
+    #[allow(clippy::must_use_candidate)]
+    pub fn on_track_search_state_changed_apply(&mut self) {
+        let TrackSearchMemoState::Pending {
+            memo,
+            memo_delta,
+            state_changed_again,
+        } = &mut self.state.track_search_memo_state
+        else {
+            unreachable!();
+        };
+        debug_assert!(!*state_changed_again);
+        memo.apply_delta(std::mem::take(memo_delta));
+        self.state.track_search_memo_state = TrackSearchMemoState::Ready(std::mem::take(memo));
     }
 
     #[allow(clippy::must_use_candidate)]
@@ -412,11 +501,7 @@ impl Library {
                 params,
                 result,
             };
-            if let Err(err) = event_emitter.emit_event(event) {
-                log::warn!(
-                    "Failed to emit event after music directory list result received: {err:?}"
-                );
-            }
+            event_emitter.emit_event(event).ok();
         });
         true
     }
@@ -481,14 +566,15 @@ impl Library {
         let event_emitter = event_emitter.clone();
         tokio_rt.spawn(async move {
             let result = task.await;
-            if let Err(err) =
-                event_emitter.emit_event(track_search::Event::FetchMoreTaskCompleted {
-                    result,
-                    continuation,
-            }.into())
-            {
-                log::warn!("Failed to emit event after fetching more track search results finished: {err:?}");
-            }
+            event_emitter
+                .emit_event(
+                    track_search::Event::FetchMoreTaskCompleted {
+                        result,
+                        continuation,
+                    }
+                    .into(),
+                )
+                .ok();
         });
         true
     }
