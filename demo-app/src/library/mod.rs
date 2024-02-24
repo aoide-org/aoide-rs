@@ -221,7 +221,8 @@ impl CurrentState<'_> {
 
     #[must_use]
     pub fn could_fetch_more_track_search_results(&self) -> bool {
-        self.track_search().can_fetch_more().unwrap_or(false)
+        matches!(self.track_search_memo, TrackSearchMemoState::Ready(_))
+            && self.track_search().can_fetch_more().unwrap_or(false)
     }
 }
 
