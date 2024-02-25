@@ -11,8 +11,8 @@ use crate::{
 };
 
 use super::{
-    Action, CentralPanelData, CollectionAction, Event, LibraryAction, Message, MessageSender,
-    Model, MusicDirSelection, MusicDirectoryAction, TrackListItem, TrackSearchAction,
+    Action, CollectionAction, Event, LibraryAction, Message, MessageSender, Model, ModelMode,
+    MusicDirSelection, MusicDirectoryAction, TrackListItem, TrackSearchAction,
 };
 
 pub(super) struct UpdateContext<'a> {
@@ -65,7 +65,7 @@ impl<'a> UpdateContext<'a> {
                     MusicDirectoryAction::SpawnSyncTask => {
                         if mdl.library.try_spawn_music_dir_sync_task(rt, *msg_tx) {
                             log::debug!("Switching to music dir sync progress view");
-                            mdl.central_panel_data = Some(CentralPanelData::MusicDirSync {
+                            mdl.mode = Some(ModelMode::MusicDirSync {
                                 last_progress: None,
                                 final_outcome: None,
                             });
@@ -83,7 +83,7 @@ impl<'a> UpdateContext<'a> {
                         };
                         if mdl.library.try_view_music_dir_list(rt, *msg_tx, params) {
                             log::debug!("Switching to music dir list view");
-                            mdl.central_panel_data = Some(CentralPanelData::MusicDirList {
+                            mdl.mode = Some(ModelMode::MusicDirList {
                                 content_paths_with_count: vec![],
                             });
                         }
@@ -132,28 +132,23 @@ impl<'a> UpdateContext<'a> {
                                 }
                             };
                         log::debug!("Applying track search memo change");
-                        let track_search_list = if let Some(CentralPanelData::TrackSearch {
-                            track_list,
-                        }) = &mut mdl.central_panel_data
+                        let track_search_list = if let Some(ModelMode::TrackSearch { track_list }) =
+                            &mut mdl.mode
                         {
                             track_list
                         } else {
-                            if matches!(
-                                mdl.central_panel_data,
-                                Some(CentralPanelData::MusicDirSync { .. })
-                            ) && mdl.library.state().pending_music_dir_sync_task.is_some()
+                            if matches!(mdl.mode, Some(ModelMode::MusicDirSync { .. }))
+                                && mdl.library.state().pending_music_dir_sync_task.is_some()
                             {
                                 log::debug!("Ignoring track search memo change: Music directory synchronization in progress");
                                 mdl.library.on_track_search_state_changed_abort();
                                 return;
                             }
                             log::debug!("Switching to track search view");
-                            mdl.central_panel_data = Some(CentralPanelData::TrackSearch {
+                            mdl.mode = Some(ModelMode::TrackSearch {
                                 track_list: Default::default(),
                             });
-                            let Some(CentralPanelData::TrackSearch { track_list }) =
-                                &mut mdl.central_panel_data
-                            else {
+                            let Some(ModelMode::TrackSearch { track_list }) = &mut mdl.mode else {
                                 unreachable!()
                             };
                             track_list
@@ -163,7 +158,7 @@ impl<'a> UpdateContext<'a> {
                                 log::debug!(
                                     "Track search list changed: No fetched items available",
                                 );
-                                mdl.central_panel_data = None;
+                                mdl.mode = None;
                                 None
                             }
                             TrackSearchFetchedItems::Replace(fetched_items) => {
@@ -227,9 +222,9 @@ impl<'a> UpdateContext<'a> {
                         collection::State::Void => {
                             // Nothing to show with no collection available. This prevents to
                             // show stale data after the collection has been reset.
-                            if mdl.central_panel_data.is_some() {
+                            if mdl.mode.is_some() {
                                 log::debug!("Resetting central panel view");
-                                mdl.central_panel_data = None;
+                                mdl.mode = None;
                             }
                         }
                         collection::State::LoadingFailed { .. }
@@ -266,10 +261,10 @@ impl<'a> UpdateContext<'a> {
                 }
             },
             library::Event::MusicDirSyncProgress(progress) => {
-                if let Some(CentralPanelData::MusicDirSync {
+                if let Some(ModelMode::MusicDirSync {
                     last_progress,
                     final_outcome,
-                }) = &mut mdl.central_panel_data
+                }) = &mut mdl.mode
                 {
                     debug_assert!(final_outcome.is_none());
                     *last_progress = progress;
@@ -280,9 +275,7 @@ impl<'a> UpdateContext<'a> {
                 }
             }
             library::Event::MusicDirSyncOutcome(outcome) => {
-                if let Some(CentralPanelData::MusicDirSync { final_outcome, .. }) =
-                    &mut mdl.central_panel_data
-                {
+                if let Some(ModelMode::MusicDirSync { final_outcome, .. }) = &mut mdl.mode {
                     debug_assert!(final_outcome.is_none());
                     *final_outcome = outcome;
                 } else {
@@ -311,9 +304,9 @@ impl<'a> UpdateContext<'a> {
                     );
                     return;
                 }
-                if let Some(CentralPanelData::MusicDirList {
+                if let Some(ModelMode::MusicDirList {
                     content_paths_with_count,
-                }) = &mut mdl.central_panel_data
+                }) = &mut mdl.mode
                 {
                     *content_paths_with_count = new_content_paths_with_count;
                 } else {

@@ -8,7 +8,7 @@ use egui::{
 };
 
 use super::{
-    Action, CentralPanelData, CollectionAction, MessageSender, Model, MusicDirSelection,
+    Action, CollectionAction, MessageSender, Model, ModelMode, MusicDirSelection,
     MusicDirectoryAction, TrackListItem, TrackSearchAction, UiData, ARTWORK_THUMBNAIL_IMAGE_SIZE,
 };
 
@@ -150,9 +150,9 @@ impl<'a> RenderContext<'a> {
             });
     });
 
-        if let Some(central_panel_data) = &mdl.central_panel_data {
-            CentralPanel::default().show(ctx, |ui| match central_panel_data {
-                CentralPanelData::TrackSearch { track_list } => {
+        if let Some(mdl_mode) = &mdl.mode {
+            CentralPanel::default().show(ctx, |ui| match mdl_mode {
+                ModelMode::TrackSearch { track_list } => {
                     let text_style = egui::TextStyle::Body;
                     let row_height = ui
                         .text_style_height(&text_style)
@@ -190,7 +190,7 @@ impl<'a> RenderContext<'a> {
                         },
                     );
                 }
-                CentralPanelData::MusicDirSync { last_progress, final_outcome } => {
+                ModelMode::MusicDirSync { last_progress, final_outcome } => {
                     ScrollArea::both().drag_to_scroll(true).show(ui, |ui| {
                         if let Some(final_outcome) = final_outcome {
                             let line =format!("{final_outcome:#?}");
@@ -201,7 +201,7 @@ impl<'a> RenderContext<'a> {
                         }
                     });
                 }
-                CentralPanelData::MusicDirList {
+                ModelMode::MusicDirList {
                     content_paths_with_count,
                 } => {
                     ScrollArea::both().drag_to_scroll(true).show(ui, |ui| {
@@ -220,20 +220,20 @@ impl<'a> RenderContext<'a> {
                 .spacing([40.0, 4.0])
                 .striped(true)
                 .show(ui, |ui| {
-                    if let Some(central_panel_data) = &mdl.central_panel_data {
+                    if let Some(mdl_mode) = &mdl.mode {
                         let text;
                         let hover_text;
                         let enabled;
                         let action: Action;
-                        match central_panel_data {
-                            CentralPanelData::TrackSearch { .. } => {
+                        match mdl_mode {
+                            ModelMode::TrackSearch { .. } => {
                                 text = "Fetch more";
                                 hover_text = "Fetch the next page of search results.";
                                 enabled =
                                     current_library_state.could_fetch_more_track_search_results();
                                 action = TrackSearchAction::FetchMore.into();
                             }
-                            CentralPanelData::MusicDirSync { .. } => {
+                            ModelMode::MusicDirSync { .. } => {
                                 if current_library_state.could_abort_synchronize_music_dir_task() {
                                     text = "Abort";
                                     hover_text = "Stop the current synchronization task.";
@@ -246,7 +246,7 @@ impl<'a> RenderContext<'a> {
                                     action = CollectionAction::RefreshFromDb.into();
                                 }
                             }
-                            CentralPanelData::MusicDirList { .. } => {
+                            ModelMode::MusicDirList { .. } => {
                                 text = "Dismiss";
                                 hover_text = "Clear output and return to track search.";
                                 enabled = true;

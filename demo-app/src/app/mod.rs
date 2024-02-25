@@ -197,7 +197,8 @@ impl From<library::Event> for Event {
     }
 }
 
-enum CentralPanelData {
+// Mutually exclusive modes of operation.
+enum ModelMode {
     TrackSearch {
         track_list: Vec<TrackListItem>,
     },
@@ -226,7 +227,7 @@ pub struct Model {
 
     music_dir_selection: Option<MusicDirSelection>,
 
-    central_panel_data: Option<CentralPanelData>,
+    mode: Option<ModelMode>,
 }
 
 impl Model {
@@ -235,7 +236,7 @@ impl Model {
         Self {
             library,
             music_dir_selection: None,
-            central_panel_data: None,
+            mode: None,
         }
     }
 }
