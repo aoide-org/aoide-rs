@@ -75,7 +75,11 @@ impl RgbColor {
 
     #[must_use]
     pub const fn rgb(red: u8, green: u8, blue: u8) -> Self {
-        Self(((red as u32) << 16) | (green as u32) << 8 | blue as u32)
+        Self(
+            ((red as u32) << Self::RED_MASK.trailing_zeros())
+                | ((green as u32) << Self::GREEN_MASK.trailing_zeros())
+                | ((blue as u32) << Self::BLUE_MASK.trailing_zeros()),
+        )
     }
 
     #[must_use]
@@ -85,17 +89,17 @@ impl RgbColor {
 
     #[must_use]
     pub const fn red(self) -> u8 {
-        (self.0 & Self::RED_MASK >> Self::RED_MASK.trailing_zeros()) as u8
+        ((self.0 >> Self::RED_MASK.trailing_zeros()) & 0xff) as u8
     }
 
     #[must_use]
     pub const fn green(self) -> u8 {
-        (self.0 & Self::GREEN_MASK >> Self::GREEN_MASK.trailing_zeros()) as u8
+        ((self.0 >> Self::GREEN_MASK.trailing_zeros()) & 0xff) as u8
     }
 
     #[must_use]
     pub const fn blue(self) -> u8 {
-        (self.0 & Self::BLUE_MASK >> Self::BLUE_MASK.trailing_zeros()) as u8
+        ((self.0 >> Self::BLUE_MASK.trailing_zeros()) & 0xff) as u8
     }
 }
 
