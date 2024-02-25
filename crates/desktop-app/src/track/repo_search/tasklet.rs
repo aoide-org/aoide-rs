@@ -96,6 +96,8 @@ pub fn on_collection_state_changed(
                 };
                 let mut collection_uid = {
                     let state = collection_state_sub.read_ack();
+                    // We are only interested in the collection UID if the collection is ready,
+                    // even though it is available in other states as well.
                     match &*state {
                         collection::State::Ready { entity, .. } => Some(entity.hdr.uid.clone()),
                         _ => None,
