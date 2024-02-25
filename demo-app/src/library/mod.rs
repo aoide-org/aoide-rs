@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{path::PathBuf, sync::Arc, time::Instant};
+use std::{path::PathBuf, sync::Arc};
 
 use aoide::{
     desktop_app::{collection::SynchronizeVfsTask, fs::DirPath, Handle, ObservableReader},
@@ -97,43 +97,6 @@ pub struct State {
     pub pending_music_dir_sync_task: Option<SynchronizeVfsTask>,
 }
 
-#[derive(Debug)]
-pub enum TrackSearchMemoState {
-    Ready(track_search::Memo),
-    Pending {
-        memo: track_search::Memo,
-        memo_delta: track_search::MemoDelta,
-        state_changed_again: bool,
-        pending_since: Instant,
-    },
-}
-
-impl TrackSearchMemoState {
-    #[must_use]
-    pub fn new_pending(memo: track_search::Memo, memo_delta: track_search::MemoDelta) -> Self {
-        Self::Pending {
-            memo,
-            memo_delta,
-            state_changed_again: false,
-            pending_since: Instant::now(),
-        }
-    }
-
-    #[must_use]
-    pub const fn pending_since(&self) -> Option<Instant> {
-        match self {
-            Self::Ready(_) => None,
-            Self::Pending { pending_since, .. } => Some(*pending_since),
-        }
-    }
-}
-
-impl Default for TrackSearchMemoState {
-    fn default() -> Self {
-        Self::Ready(Default::default())
-    }
-}
-
 impl State {
     #[must_use]
     fn read_lock_current<'a>(&'a self, observables: &'a StateObservables) -> CurrentState<'a> {
@@ -227,12 +190,6 @@ pub struct Library {
     state: State,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum OnTrackSearchStateChangedCompletionError {
-    NotPending,
-    AbortPendingAndRetry,
-}
-
 impl Library {
     #[must_use]
     pub fn new(handle: Handle, initial_settings: settings::State) -> Self {
@@ -318,85 +275,18 @@ impl Library {
     }
 
     pub fn on_track_search_state_changed<'a>(
-        &'a mut self,
-        memo_state: &'a mut TrackSearchMemoState,
-    ) -> Option<(&'a track_search::Memo, track_search::MemoDiff)> {
-        let (memo, memo_delta, memo_diff) = {
-            let memo = match memo_state {
-                TrackSearchMemoState::Ready(memo) => memo,
-                TrackSearchMemoState::Pending {
-                    state_changed_again,
-                    ..
-                } => {
-                    log::debug!("Track search state changed again");
-                    *state_changed_again = true;
-                    return None;
-                }
-            };
-            let (memo_delta, memo_diff) = {
-                let state = self.state_observables.track_search.read_lock();
-                state.update_memo_delta(memo)
-            };
-            let memo = std::mem::take(memo);
-            (memo, memo_delta, memo_diff)
-        };
-        *memo_state = TrackSearchMemoState::new_pending(memo, memo_delta);
-        let TrackSearchMemoState::Pending { memo, .. } = memo_state else {
-            unreachable!();
-        };
-        Some((memo, memo_diff))
-    }
-
-    pub fn on_track_search_state_changed_pending_complete<'a>(
         &'a self,
-        memo_state: &'a TrackSearchMemoState,
-    ) -> Result<
-        (&'a track_search::Memo, &'a track_search::MemoDelta),
-        OnTrackSearchStateChangedCompletionError,
-    > {
-        match memo_state {
-            TrackSearchMemoState::Ready(_) => {
-                Err(OnTrackSearchStateChangedCompletionError::NotPending)
-            }
-            TrackSearchMemoState::Pending {
-                memo,
-                memo_delta,
-                state_changed_again,
-                pending_since,
-            } => {
-                log::debug!(
-                    "Track search state changed pending completed after {elapsed_ms} ms",
-                    elapsed_ms = pending_since.elapsed().as_secs_f64() * 1000.0
-                );
-                if *state_changed_again {
-                    Err(OnTrackSearchStateChangedCompletionError::AbortPendingAndRetry)
-                } else {
-                    Ok((memo, memo_delta))
-                }
-            }
-        }
-    }
-
-    #[allow(clippy::must_use_candidate)]
-    pub fn on_track_search_state_changed_pending_abort(
-        &mut self,
-        memo_state: &mut TrackSearchMemoState,
-    ) -> bool {
-        match memo_state {
-            TrackSearchMemoState::Ready(_) => false,
-            TrackSearchMemoState::Pending { memo, .. } => {
-                *memo_state = TrackSearchMemoState::Ready(std::mem::take(memo));
-                true
-            }
-        }
+        memo_state: &'a mut track_search::MemoState,
+    ) -> Option<(&'a track_search::Memo, track_search::MemoDiff)> {
+        memo_state.try_start_pending(&self.state_observables.track_search)
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn on_track_search_state_changed_pending_apply(
         &mut self,
-        memo_state: &mut TrackSearchMemoState,
+        memo_state: &mut track_search::MemoState,
     ) {
-        let TrackSearchMemoState::Pending {
+        let track_search::MemoState::Pending {
             memo,
             memo_delta,
             state_changed_again,
@@ -407,7 +297,7 @@ impl Library {
         };
         debug_assert!(!*state_changed_again);
         memo.apply_delta(std::mem::take(memo_delta));
-        *memo_state = TrackSearchMemoState::Ready(std::mem::take(memo));
+        *memo_state = track_search::MemoState::Ready(std::mem::take(memo));
     }
 
     #[allow(clippy::must_use_candidate)]

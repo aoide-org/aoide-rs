@@ -7,7 +7,7 @@ use egui::{
     TopBottomPanel,
 };
 
-use crate::library::TrackSearchMemoState;
+use crate::library::track_search;
 
 use super::{
     Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
@@ -209,7 +209,7 @@ fn render_central_panel(
                 if row_range.end == total_rows
                     // Prevent eagerly fetching more results repeatedly.
                     && Some(total_rows) == current_library_state.track_search().fetched_entities_len()
-                    && matches!(memo_state, TrackSearchMemoState::Ready(_))
+                    && matches!(memo_state, track_search::MemoState::Ready(_))
                     && current_library_state.could_fetch_more_track_search_results()
                 {
                     log::debug!("Trying to fetch more track search results");

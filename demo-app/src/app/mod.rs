@@ -20,7 +20,7 @@ use aoide::{
 };
 
 use crate::{
-    library::{self, Library, TrackSearchMemoState},
+    library::{self, track_search, Library},
     NoReceiverForEvent,
 };
 
@@ -215,7 +215,7 @@ enum ModelMode {
 
 #[derive(Debug, Default)]
 struct TrackSearchMode {
-    memo_state: TrackSearchMemoState,
+    memo_state: track_search::MemoState,
     track_list: Option<Vec<TrackListItem>>,
 }
 

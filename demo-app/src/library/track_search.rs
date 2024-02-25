@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::num::NonZeroUsize;
+use std::{num::NonZeroUsize, time::Instant};
 
 use discro::{Ref, Subscriber};
 
@@ -13,7 +13,7 @@ use aoide::{
         tag::search::{FacetsFilter, Filter as TagFilter},
         track::search::{Filter, PhraseFieldFilter, SortOrder, StringField},
     },
-    desktop_app::track,
+    desktop_app::{track, ObservableReader as _},
     tag::FacetKey,
     track::tag::{
         FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC,
@@ -78,6 +78,115 @@ where
             break;
         }
     }
+}
+
+#[derive(Debug)]
+pub enum MemoState {
+    Ready(Memo),
+    Pending {
+        memo: Memo,
+        memo_delta: MemoDelta,
+        state_changed_again: bool,
+        pending_since: Instant,
+    },
+}
+
+impl MemoState {
+    #[must_use]
+    fn new_pending(memo: Memo, memo_delta: MemoDelta) -> Self {
+        Self::Pending {
+            memo,
+            memo_delta,
+            state_changed_again: false,
+            pending_since: Instant::now(),
+        }
+    }
+
+    pub fn try_start_pending<'a>(
+        &'a mut self,
+        observable_state: &ObservableState,
+    ) -> Option<(&'a Memo, MemoDiff)> {
+        let (memo, memo_delta, memo_diff) = {
+            let memo = match self {
+                Self::Ready(memo) => memo,
+                Self::Pending {
+                    state_changed_again,
+                    ..
+                } => {
+                    log::debug!("State changed again");
+                    *state_changed_again = true;
+                    return None;
+                }
+            };
+            let (memo_delta, memo_diff) = {
+                let state = observable_state.read_lock();
+                state.update_memo_delta(memo)
+            };
+            let memo = std::mem::take(memo);
+            (memo, memo_delta, memo_diff)
+        };
+        *self = Self::new_pending(memo, memo_delta);
+        let Self::Pending { memo, .. } = self else {
+            unreachable!();
+        };
+        Some((memo, memo_diff))
+    }
+
+    #[must_use]
+    pub const fn pending_since(&self) -> Option<Instant> {
+        match self {
+            Self::Ready(_) => None,
+            Self::Pending { pending_since, .. } => Some(*pending_since),
+        }
+    }
+
+    #[allow(clippy::must_use_candidate)]
+    pub fn abort(&mut self) -> bool {
+        match self {
+            Self::Ready(_) => {
+                // Unchanged.
+                false
+            }
+            MemoState::Pending { memo, .. } => {
+                *self = Self::Ready(std::mem::take(memo));
+                true
+            }
+        }
+    }
+
+    pub fn complete(&self) -> Result<(&Memo, &MemoDelta), MemoStateCompletionError> {
+        match self {
+            MemoState::Ready(_) => Err(MemoStateCompletionError::NotPending),
+            MemoState::Pending {
+                memo,
+                memo_delta,
+                state_changed_again,
+                pending_since,
+            } => {
+                log::debug!(
+                    "Memo state pending completed after {elapsed_ms} ms",
+                    elapsed_ms = pending_since.elapsed().as_secs_f64() * 1000.0
+                );
+                if *state_changed_again {
+                    Err(MemoStateCompletionError::AbortPendingAndRetry)
+                } else {
+                    Ok((memo, memo_delta))
+                }
+            }
+        }
+    }
+}
+
+impl Default for MemoState {
+    fn default() -> Self {
+        Self::Ready(Default::default())
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum MemoStateCompletionError {
+    NotPending,
+    AbortPendingAndRetry,
 }
 
 const HASHTAG_LABEL_PREFIX: &str = "#";
