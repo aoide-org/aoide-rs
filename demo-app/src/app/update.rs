@@ -29,7 +29,6 @@ impl<'a> UpdateContext<'a> {
         }
     }
 
-    #[allow(clippy::too_many_lines)] // TODO
     fn on_action(&mut self, action: Action) {
         let Self { rt, msg_tx, mdl } = self;
         match action {
@@ -94,228 +93,240 @@ impl<'a> UpdateContext<'a> {
                         mdl.library.try_refresh_collection_from_db(rt);
                     }
                 },
-                LibraryAction::TrackSearch(action) => match action {
-                    TrackSearchAction::Search(input) => {
-                        mdl.library.try_search_tracks(&input);
-                    }
-                    TrackSearchAction::FetchMore => {
-                        mdl.library
-                            .try_spawn_fetch_more_track_search_results_task(rt, *msg_tx);
-                    }
-                    TrackSearchAction::AbortPendingStateChange => {
-                        let (memo, memo_delta) =
-                            match mdl.library.on_track_search_state_changed_complete_pending() {
-                                Ok((memo, memo_delta)) => (memo, memo_delta),
-                                Err(err) => {
-                                    on_library_track_search_state_changed_completion_error(
-                                        &mut mdl.library,
-                                        err,
-                                        msg_tx,
-                                    );
-                                    return;
-                                }
-                            };
-                        log::debug!("Aborting track search memo change: {memo:?} {memo_delta:?}");
-                        mdl.library.on_track_search_state_changed_abort();
-                    }
-                    TrackSearchAction::ApplyPendingStateChange { fetched_items } => {
-                        let (memo, memo_delta) =
-                            match mdl.library.on_track_search_state_changed_complete_pending() {
-                                Ok((memo, memo_delta)) => (memo, memo_delta),
-                                Err(err) => {
-                                    on_library_track_search_state_changed_completion_error(
-                                        &mut mdl.library,
-                                        err,
-                                        msg_tx,
-                                    );
-                                    return;
-                                }
-                            };
-                        log::debug!("Applying track search memo change");
-                        let track_search_list = if let Some(ModelMode::TrackSearch { track_list }) =
-                            &mut mdl.mode
-                        {
-                            track_list
-                        } else {
-                            if matches!(mdl.mode, Some(ModelMode::MusicDirSync { .. }))
-                                && mdl.library.state().pending_music_dir_sync_task.is_some()
-                            {
-                                log::debug!("Ignoring track search memo change: Music directory synchronization in progress");
-                                mdl.library.on_track_search_state_changed_abort();
-                                return;
-                            }
-                            log::debug!("Switching to track search view");
-                            mdl.mode = Some(ModelMode::TrackSearch {
-                                track_list: Default::default(),
-                            });
-                            let Some(ModelMode::TrackSearch { track_list }) = &mut mdl.mode else {
-                                unreachable!()
-                            };
-                            track_list
-                        };
-                        let new_offset = match fetched_items {
-                            TrackSearchFetchedItems::Reset => {
-                                log::debug!(
-                                    "Track search list changed: No fetched items available",
-                                );
-                                mdl.mode = None;
-                                None
-                            }
-                            TrackSearchFetchedItems::Replace(fetched_items) => {
-                                log::debug!(
-                                    "Track search list changed: Replacing all {count_before} with {count_after} items",
-                                    count_before = track_search_list.len(),
-                                    count_after = fetched_items.len()
-                                );
-                                track_search_list.clear();
-                                track_search_list.extend(fetched_items);
-                                Some(track_search_list.len())
-                            }
-                            TrackSearchFetchedItems::Append(fetched_items) => {
-                                let offset = track_search_list.len();
-                                debug_assert_eq!(
-                                    Some(offset),
-                                    memo.fetch.fetched_entities.as_ref().map(|memo| memo.offset),
-                                );
-                                log::debug!(
-                                            "Track search list changed: Appending {count_append} fetched items to {count_before} existing items",
-                                            count_before = track_search_list.len(),
-                                            count_append = fetched_items.len());
-                                track_search_list.extend(fetched_items);
-                                Some(track_search_list.len())
-                            }
-                        };
-                        debug_assert_eq!(
-                            new_offset,
-                            memo_delta.fetch.as_ref().and_then(|fetch| fetch
-                                .fetched_entities
-                                .as_ref()
-                                .map(|memo| memo.offset))
-                        );
-                        mdl.library.on_track_search_state_changed_apply();
-                    }
-                },
+                LibraryAction::TrackSearch(action) => {
+                    on_library_track_search_action(mdl, rt, msg_tx, action);
+                }
             },
         }
     }
 
     fn on_event(&mut self, ctx: &Context, event: Event) {
         match event {
-            Event::Library(event) => self.on_library_event(ctx, event),
+            Event::Library(event) => {
+                let Self {
+                    rt, msg_tx, mdl, ..
+                } = self;
+                on_library_event(mdl, ctx, rt, msg_tx, event);
+            }
         }
     }
+}
 
-    #[allow(clippy::too_many_lines)] // TODO
-    fn on_library_event(&mut self, ctx: &Context, event: library::Event) {
-        let Self {
-            rt, msg_tx, mdl, ..
-        } = self;
-        match event {
-            library::Event::Settings(library::settings::Event::StateChanged) => {
-                mdl.library.on_settings_state_changed();
+fn on_library_event(
+    mdl: &mut Model,
+    ctx: &Context,
+    rt: &tokio::runtime::Handle,
+    msg_tx: &MessageSender,
+    event: library::Event,
+) {
+    match event {
+        library::Event::Settings(library::settings::Event::StateChanged) => {
+            mdl.library.on_settings_state_changed();
+        }
+        library::Event::Collection(library::collection::Event::StateChanged) => {
+            on_library_collection_state_changed(mdl, msg_tx);
+        }
+        library::Event::TrackSearch(event) => match event {
+            library::track_search::Event::StateChanged => {
+                on_library_track_search_state_changed(&mut mdl.library, ctx, rt, msg_tx);
             }
-            library::Event::Collection(library::collection::Event::StateChanged) => {
-                if mdl.library.on_collection_state_changed() {
-                    // Determine a follow-up effect or action dependent on the new state.
-                    // TODO: Store or report outcomes and errors from these dead end states.
-                    match &mdl.library.state().collection {
-                        collection::State::Void => {
-                            // Nothing to show with no collection available. This prevents to
-                            // show stale data after the collection has been reset.
-                            if mdl.mode.is_some() {
-                                log::debug!("Resetting central panel view");
-                                mdl.mode = None;
-                            }
-                        }
-                        collection::State::LoadingFailed { .. }
-                        | collection::State::RestoringOrCreatingFromMusicDirectoryFailed {
-                            ..
-                        }
-                        | collection::State::NestedMusicDirectoriesConflict { .. } => {
-                            mdl.library.try_reset_music_dir();
-                        }
-                        collection::State::Ready { summary, .. } => {
-                            if matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selected))
-                            {
-                                mdl.music_dir_selection = None;
-                                if summary.media_sources.total_count == 0 {
-                                    log::info!("Synchronizing music directory after empty collection has been selected");
-                                    msg_tx.send_action(MusicDirectoryAction::SpawnSyncTask);
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            library::Event::TrackSearch(event) => match event {
-                library::track_search::Event::StateChanged => {
-                    on_library_track_search_state_changed(&mut mdl.library, ctx, rt, msg_tx);
-                }
-                library::track_search::Event::FetchMoreTaskCompleted {
-                    result,
-                    continuation,
-                } => {
-                    mdl.library
-                        .on_fetch_more_track_search_results_task_completed(result, continuation);
-                }
-            },
-            library::Event::MusicDirSyncProgress(progress) => {
-                if let Some(ModelMode::MusicDirSync {
-                    last_progress,
-                    final_outcome,
-                }) = &mut mdl.mode
-                {
-                    debug_assert!(final_outcome.is_none());
-                    *last_progress = progress;
-                } else {
-                    log::debug!(
-                        "Discarding unexpected music directory synchronization progress: {progress:?}"
-                    );
-                }
-            }
-            library::Event::MusicDirSyncOutcome(outcome) => {
-                if let Some(ModelMode::MusicDirSync { final_outcome, .. }) = &mut mdl.mode {
-                    debug_assert!(final_outcome.is_none());
-                    *final_outcome = outcome;
-                } else {
-                    log::debug!(
-                        "Discarding unexpected music directory synchronization outcome: {outcome:?}"
-                    );
-                }
-            }
-            library::Event::MusicDirListResult {
-                collection_uid,
-                params: _,
+            library::track_search::Event::FetchMoreTaskCompleted {
                 result,
+                continuation,
             } => {
-                let new_content_paths_with_count = match result {
-                    Ok(content_paths_with_count) => content_paths_with_count,
-                    Err(err) => {
-                        log::warn!("Failed to view music directory list: {err}");
-                        // TODO: Set last error.
-                        return;
-                    }
-                };
-                if Some(&collection_uid) != mdl.library.state().collection.entity_uid() {
-                    log::debug!(
-                        "Discarding unexpected music directory list with {num_items} item(s) for collection {collection_uid}",
-                        num_items = new_content_paths_with_count.len()
-                    );
+                mdl.library
+                    .on_fetch_more_track_search_results_task_completed(result, continuation);
+            }
+        },
+        library::Event::MusicDirSyncProgress(progress) => {
+            if let Some(ModelMode::MusicDirSync {
+                last_progress,
+                final_outcome,
+            }) = &mut mdl.mode
+            {
+                debug_assert!(final_outcome.is_none());
+                *last_progress = progress;
+            } else {
+                log::debug!(
+                    "Discarding unexpected music directory synchronization progress: {progress:?}"
+                );
+            }
+        }
+        library::Event::MusicDirSyncOutcome(outcome) => {
+            if let Some(ModelMode::MusicDirSync { final_outcome, .. }) = &mut mdl.mode {
+                debug_assert!(final_outcome.is_none());
+                *final_outcome = outcome;
+            } else {
+                log::debug!(
+                    "Discarding unexpected music directory synchronization outcome: {outcome:?}"
+                );
+            }
+        }
+        library::Event::MusicDirListResult {
+            collection_uid,
+            params: _,
+            result,
+        } => {
+            let new_content_paths_with_count = match result {
+                Ok(content_paths_with_count) => content_paths_with_count,
+                Err(err) => {
+                    log::warn!("Failed to view music directory list: {err}");
+                    // TODO: Set last error.
                     return;
                 }
-                if let Some(ModelMode::MusicDirList {
-                    content_paths_with_count,
-                }) = &mut mdl.mode
+            };
+            if Some(&collection_uid) != mdl.library.state().collection.entity_uid() {
+                log::debug!(
+                    "Discarding unexpected music directory list with {num_items} item(s) for collection {collection_uid}",
+                    num_items = new_content_paths_with_count.len()
+                );
+                return;
+            }
+            if let Some(ModelMode::MusicDirList {
+                content_paths_with_count,
+            }) = &mut mdl.mode
+            {
+                *content_paths_with_count = new_content_paths_with_count;
+            } else {
+                log::debug!(
+                    "Discarding unexpected music directory list with {num_items} item(s)",
+                    num_items = new_content_paths_with_count.len()
+                );
+            }
+        }
+    }
+}
+
+fn on_library_track_search_action(
+    mdl: &mut Model,
+    rt: &tokio::runtime::Handle,
+    msg_tx: &MessageSender,
+    action: TrackSearchAction,
+) {
+    let Model { library, mode, .. } = mdl;
+    match action {
+        TrackSearchAction::Search(input) => {
+            library.try_search_tracks(&input);
+        }
+        TrackSearchAction::FetchMore => {
+            library.try_spawn_fetch_more_track_search_results_task(rt, msg_tx);
+        }
+        TrackSearchAction::AbortPendingStateChange => {
+            let (memo, memo_delta) = match library.on_track_search_state_changed_complete_pending()
+            {
+                Ok((memo, memo_delta)) => (memo, memo_delta),
+                Err(err) => {
+                    on_library_track_search_state_changed_completion_error(library, err, msg_tx);
+                    return;
+                }
+            };
+            log::debug!("Aborting track search memo change: {memo:?} {memo_delta:?}");
+            library.on_track_search_state_changed_abort();
+        }
+        TrackSearchAction::ApplyPendingStateChange { fetched_items } => {
+            let (memo, memo_delta) = match library.on_track_search_state_changed_complete_pending()
+            {
+                Ok((memo, memo_delta)) => (memo, memo_delta),
+                Err(err) => {
+                    on_library_track_search_state_changed_completion_error(library, err, msg_tx);
+                    return;
+                }
+            };
+            log::debug!("Applying track search memo change");
+            let track_search_list = if let Some(ModelMode::TrackSearch { track_list }) = mode {
+                track_list
+            } else {
+                if matches!(mode, Some(ModelMode::MusicDirSync { .. }))
+                    && library.state().pending_music_dir_sync_task.is_some()
                 {
-                    *content_paths_with_count = new_content_paths_with_count;
-                } else {
+                    log::debug!("Ignoring track search memo change: Music directory synchronization in progress");
+                    library.on_track_search_state_changed_abort();
+                    return;
+                }
+                log::debug!("Switching to track search view");
+                *mode = Some(ModelMode::TrackSearch {
+                    track_list: Default::default(),
+                });
+                let Some(ModelMode::TrackSearch { track_list }) = mode else {
+                    unreachable!()
+                };
+                track_list
+            };
+            let new_offset = match fetched_items {
+                TrackSearchFetchedItems::Reset => {
+                    log::debug!("Track search list changed: No fetched items available",);
+                    *mode = None;
+                    None
+                }
+                TrackSearchFetchedItems::Replace(fetched_items) => {
                     log::debug!(
-                        "Discarding unexpected music directory list with {num_items} item(s)",
-                        num_items = new_content_paths_with_count.len()
+                        "Track search list changed: Replacing all {count_before} with {count_after} items",
+                        count_before = track_search_list.len(),
+                        count_after = fetched_items.len()
                     );
+                    track_search_list.clear();
+                    track_search_list.extend(fetched_items);
+                    Some(track_search_list.len())
+                }
+                TrackSearchFetchedItems::Append(fetched_items) => {
+                    let offset = track_search_list.len();
+                    debug_assert_eq!(
+                        Some(offset),
+                        memo.fetch.fetched_entities.as_ref().map(|memo| memo.offset),
+                    );
+                    log::debug!(
+                                "Track search list changed: Appending {count_append} fetched items to {count_before} existing items",
+                                count_before = track_search_list.len(),
+                                count_append = fetched_items.len());
+                    track_search_list.extend(fetched_items);
+                    Some(track_search_list.len())
+                }
+            };
+            debug_assert_eq!(
+                new_offset,
+                memo_delta
+                    .fetch
+                    .as_ref()
+                    .and_then(|fetch| fetch.fetched_entities.as_ref().map(|memo| memo.offset))
+            );
+            library.on_track_search_state_changed_apply();
+        }
+    }
+}
+
+fn on_library_collection_state_changed(mdl: &mut Model, msg_tx: &MessageSender) {
+    let Model {
+        library,
+        music_dir_selection,
+        mode,
+    } = mdl;
+    if library.on_collection_state_changed() {
+        // Determine a follow-up effect or action dependent on the new state.
+        // TODO: Store or report outcomes and errors from these dead end states.
+        match &library.state().collection {
+            collection::State::Void => {
+                // Nothing to show with no collection available. This prevents to
+                // show stale data after the collection has been reset.
+                if mode.is_some() {
+                    log::debug!("Resetting central panel view");
+                    *mode = None;
                 }
             }
+            collection::State::LoadingFailed { .. }
+            | collection::State::RestoringOrCreatingFromMusicDirectoryFailed { .. }
+            | collection::State::NestedMusicDirectoriesConflict { .. } => {
+                library.try_reset_music_dir();
+            }
+            collection::State::Ready { summary, .. } => {
+                if matches!(music_dir_selection, Some(MusicDirSelection::Selected)) {
+                    *music_dir_selection = None;
+                    if summary.media_sources.total_count == 0 {
+                        log::info!("Synchronizing music directory after empty collection has been selected");
+                        msg_tx.send_action(MusicDirectoryAction::SpawnSyncTask);
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }
