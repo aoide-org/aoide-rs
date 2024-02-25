@@ -542,13 +542,19 @@ impl State {
         // is required to avoid redundant code for determining in advance if
         // the state would actually change or not.
         let reset = Self::new(self.default_params.clone());
-        if self.context == reset.context && matches!(self.fetch, FetchState::Initial) {
-            debug_assert!(matches!(reset.fetch, FetchState::Initial));
+        let Self {
+            default_params: _,
+            context: reset_context,
+            fetch: reset_fetch,
+        } = reset;
+        debug_assert!(matches!(reset_fetch, FetchState::Initial));
+        if self.context == reset_context && matches!(self.fetch, FetchState::Initial) {
             // No effect.
             log::debug!("State doesn't need to be reset");
             return false;
         }
-        *self = reset;
+        self.context = reset_context;
+        self.fetch = reset_fetch;
         debug_assert!(!self.should_prefetch());
         log::info!("State has been reset");
         true

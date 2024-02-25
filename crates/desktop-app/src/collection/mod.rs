@@ -330,6 +330,23 @@ impl State {
     }
 
     #[must_use]
+    pub const fn is_synchronizing(&self) -> bool {
+        match self {
+            Self::Synchronizing { .. }
+            | Self::SynchronizingFailed { .. }
+            | Self::SynchronizingSucceeded { .. }
+            | Self::SynchronizingAborted { .. } => true,
+            Self::Void
+            | Self::NestedMusicDirectoriesConflict { .. }
+            | Self::RestoringOrCreatingFromMusicDirectoryFailed { .. }
+            | Self::LoadingFailed { .. }
+            | Self::RestoringOrCreatingFromMusicDirectory { .. }
+            | Self::Loading { .. }
+            | Self::Ready { .. } => false,
+        }
+    }
+
+    #[must_use]
     pub const fn is_ready(&self) -> bool {
         matches!(self, State::Ready { .. })
     }

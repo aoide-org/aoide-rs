@@ -94,7 +94,6 @@ impl StateObservables {
 pub struct State {
     pub music_dir: Option<DirPath<'static>>,
     pub collection: collection::State,
-    pub track_search_memo: TrackSearchMemoState,
     pub pending_music_dir_sync_task: Option<SynchronizeVfsTask>,
 }
 
@@ -141,7 +140,6 @@ impl State {
         let Self {
             music_dir,
             collection,
-            track_search_memo,
             pending_music_dir_sync_task,
         } = self;
         let StateObservables { track_search, .. } = observables;
@@ -151,7 +149,6 @@ impl State {
         CurrentState {
             music_dir,
             collection,
-            track_search_memo,
             pending_music_dir_sync_task,
             track_search,
         }
@@ -162,7 +159,6 @@ impl State {
 pub struct CurrentState<'a> {
     music_dir: Option<&'a DirPath<'static>>,
     collection: &'a collection::State,
-    track_search_memo: &'a TrackSearchMemoState,
     pending_music_dir_sync_task: Option<&'a SynchronizeVfsTask>,
     track_search: Ref<'a, track_search::State>,
 }
@@ -176,11 +172,6 @@ impl CurrentState<'_> {
     #[must_use]
     pub const fn collection(&self) -> &collection::State {
         self.collection
-    }
-
-    #[must_use]
-    pub const fn track_search_memo(&self) -> &TrackSearchMemoState {
-        self.track_search_memo
     }
 
     #[must_use]
@@ -224,8 +215,7 @@ impl CurrentState<'_> {
 
     #[must_use]
     pub fn could_fetch_more_track_search_results(&self) -> bool {
-        matches!(self.track_search_memo, TrackSearchMemoState::Ready(_))
-            && self.track_search().can_fetch_more().unwrap_or(false)
+        self.track_search().can_fetch_more().unwrap_or(false)
     }
 }
 
@@ -327,16 +317,18 @@ impl Library {
         true
     }
 
-    pub fn on_track_search_state_changed(
-        &mut self,
-    ) -> Option<(&track_search::Memo, track_search::MemoDiff)> {
+    pub fn on_track_search_state_changed<'a>(
+        &'a mut self,
+        memo_state: &'a mut TrackSearchMemoState,
+    ) -> Option<(&'a track_search::Memo, track_search::MemoDiff)> {
         let (memo, memo_delta, memo_diff) = {
-            let memo = match &mut self.state.track_search_memo {
+            let memo = match memo_state {
                 TrackSearchMemoState::Ready(memo) => memo,
                 TrackSearchMemoState::Pending {
                     state_changed_again,
                     ..
                 } => {
+                    log::debug!("Track search state changed again");
                     *state_changed_again = true;
                     return None;
                 }
@@ -348,20 +340,21 @@ impl Library {
             let memo = std::mem::take(memo);
             (memo, memo_delta, memo_diff)
         };
-        self.state.track_search_memo = TrackSearchMemoState::new_pending(memo, memo_delta);
-        let TrackSearchMemoState::Pending { memo, .. } = &self.state.track_search_memo else {
+        *memo_state = TrackSearchMemoState::new_pending(memo, memo_delta);
+        let TrackSearchMemoState::Pending { memo, .. } = memo_state else {
             unreachable!();
         };
         Some((memo, memo_diff))
     }
 
-    pub fn on_track_search_state_changed_complete_pending(
-        &self,
+    pub fn on_track_search_state_changed_pending_complete<'a>(
+        &'a self,
+        memo_state: &'a TrackSearchMemoState,
     ) -> Result<
-        (&track_search::Memo, &track_search::MemoDelta),
+        (&'a track_search::Memo, &'a track_search::MemoDelta),
         OnTrackSearchStateChangedCompletionError,
     > {
-        match &self.state.track_search_memo {
+        match memo_state {
             TrackSearchMemoState::Ready(_) => {
                 Err(OnTrackSearchStateChangedCompletionError::NotPending)
             }
@@ -385,31 +378,44 @@ impl Library {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn on_track_search_state_changed_abort(&mut self) {
-        let TrackSearchMemoState::Pending { memo, .. } = &mut self.state.track_search_memo else {
-            unreachable!();
-        };
-        self.state.track_search_memo = TrackSearchMemoState::Ready(std::mem::take(memo));
+    pub fn on_track_search_state_changed_pending_abort(
+        &mut self,
+        memo_state: &mut TrackSearchMemoState,
+    ) -> bool {
+        match memo_state {
+            TrackSearchMemoState::Ready(_) => false,
+            TrackSearchMemoState::Pending { memo, .. } => {
+                *memo_state = TrackSearchMemoState::Ready(std::mem::take(memo));
+                true
+            }
+        }
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn on_track_search_state_changed_apply(&mut self) {
+    pub fn on_track_search_state_changed_pending_apply(
+        &mut self,
+        memo_state: &mut TrackSearchMemoState,
+    ) {
         let TrackSearchMemoState::Pending {
             memo,
             memo_delta,
             state_changed_again,
             pending_since: _,
-        } = &mut self.state.track_search_memo
+        } = memo_state
         else {
             unreachable!();
         };
         debug_assert!(!*state_changed_again);
         memo.apply_delta(std::mem::take(memo_delta));
-        self.state.track_search_memo = TrackSearchMemoState::Ready(std::mem::take(memo));
+        *memo_state = TrackSearchMemoState::Ready(std::mem::take(memo));
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn try_update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> bool {
+        if self.state.collection.is_synchronizing() {
+            log::debug!("Collection is synchronizing");
+            return false;
+        }
         if self
             .state_observables
             .settings
@@ -430,6 +436,10 @@ impl Library {
 
     #[allow(clippy::must_use_candidate)]
     pub fn try_reset_collection(&self) -> bool {
+        if self.state.collection.is_synchronizing() {
+            log::debug!("Collection is synchronizing");
+            return false;
+        }
         self.state_observables.collection.try_reset()
     }
 
@@ -442,6 +452,10 @@ impl Library {
     where
         E: EventEmitter + Clone + 'static,
     {
+        if !self.state.collection.is_ready() {
+            log::debug!("Collection not ready");
+            return false;
+        }
         if let Some(sync_task) = self.state.pending_music_dir_sync_task.as_ref() {
             if sync_task.is_finished() {
                 log::info!("Resetting synchronize music directory task after finished");

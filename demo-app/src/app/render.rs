@@ -7,9 +7,11 @@ use egui::{
     TopBottomPanel,
 };
 
+use crate::library::TrackSearchMemoState;
+
 use super::{
-    Action, CollectionAction, MessageSender, Model, ModelMode, MusicDirSelection,
-    MusicDirectoryAction, TrackListItem, TrackSearchAction, UiData, ARTWORK_THUMBNAIL_IMAGE_SIZE,
+    Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
+    TrackListItem, TrackSearchAction, TrackSearchMode, UiData, ARTWORK_THUMBNAIL_IMAGE_SIZE,
 };
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.
@@ -181,11 +183,19 @@ fn render_top_panel(
 fn render_central_panel(
     ui: &mut egui::Ui,
     msg_tx: &MessageSender,
-    mdl_mode: &ModelMode,
+    mode: &ModelMode,
     current_library_state: &crate::library::CurrentState<'_>,
 ) {
-    match mdl_mode {
-        ModelMode::TrackSearch { track_list } => {
+    match mode {
+        ModelMode::TrackSearch(TrackSearchMode {
+            track_list: None, ..
+        }) => {
+            ui.label("...loading...");
+        }
+        ModelMode::TrackSearch(TrackSearchMode {
+            track_list: Some(track_list),
+            memo_state,
+        }) => {
             let text_style = egui::TextStyle::Body;
             let row_height = ui
                 .text_style_height(&text_style)
@@ -199,6 +209,7 @@ fn render_central_panel(
                 if row_range.end == total_rows
                     // Prevent eagerly fetching more results repeatedly.
                     && Some(total_rows) == current_library_state.track_search().fetched_entities_len()
+                    && matches!(memo_state, TrackSearchMemoState::Ready(_))
                     && current_library_state.could_fetch_more_track_search_results()
                 {
                     log::debug!("Trying to fetch more track search results");
@@ -253,7 +264,7 @@ fn render_central_panel(
 fn render_bottom_panel(
     ui: &mut egui::Ui,
     msg_tx: &MessageSender,
-    mdl_mode: Option<&ModelMode>,
+    mode: Option<&ModelMode>,
     current_library_state: &crate::library::CurrentState<'_>,
 ) {
     Grid::new("grid")
@@ -261,13 +272,13 @@ fn render_bottom_panel(
         .spacing([40.0, 4.0])
         .striped(true)
         .show(ui, |ui| {
-            if let Some(mdl_mode) = mdl_mode {
+            if let Some(mode) = mode {
                 let text;
                 let hover_text;
                 let enabled;
                 let action: Action;
-                match mdl_mode {
-                    ModelMode::TrackSearch { .. } => {
+                match mode {
+                    ModelMode::TrackSearch(_) => {
                         text = "Fetch more";
                         hover_text = "Fetch the next page of search results.";
                         enabled = current_library_state.could_fetch_more_track_search_results();
@@ -283,14 +294,14 @@ fn render_bottom_panel(
                             text = "Dismiss";
                             hover_text = "Clear output and return to track search.";
                             enabled = true;
-                            action = CollectionAction::RefreshFromDb.into();
+                            action = MusicDirectoryAction::FinishSync.into();
                         }
                     }
                     ModelMode::MusicDirList { .. } => {
                         text = "Dismiss";
                         hover_text = "Clear output and return to track search.";
                         enabled = true;
-                        action = CollectionAction::RefreshFromDb.into();
+                        action = MusicDirectoryAction::FinishViewList.into();
                     }
                 }
                 if ui

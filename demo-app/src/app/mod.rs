@@ -20,7 +20,7 @@ use aoide::{
 };
 
 use crate::{
-    library::{self, Library},
+    library::{self, Library, TrackSearchMemoState},
     NoReceiverForEvent,
 };
 
@@ -139,7 +139,9 @@ enum MusicDirectoryAction {
     Update(Option<DirPath<'static>>),
     SpawnSyncTask,
     AbortPendingSyncTask,
+    FinishSync,
     ViewList,
+    FinishViewList,
 }
 
 impl From<MusicDirectoryAction> for LibraryAction {
@@ -198,10 +200,9 @@ impl From<library::Event> for Event {
 }
 
 // Mutually exclusive modes of operation.
+#[derive(Debug)]
 enum ModelMode {
-    TrackSearch {
-        track_list: Vec<TrackListItem>,
-    },
+    TrackSearch(TrackSearchMode),
     MusicDirSync {
         last_progress: Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>,
         final_outcome:
@@ -210,6 +211,12 @@ enum ModelMode {
     MusicDirList {
         content_paths_with_count: Vec<(ContentPath<'static>, usize)>,
     },
+}
+
+#[derive(Debug, Default)]
+struct TrackSearchMode {
+    memo_state: TrackSearchMemoState,
+    track_list: Option<Vec<TrackListItem>>,
 }
 
 #[derive(Debug)]
