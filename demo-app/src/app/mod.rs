@@ -225,9 +225,9 @@ enum MusicDirSelection {
 pub struct Model {
     library: Library,
 
-    music_dir_selection: Option<MusicDirSelection>,
-
     mode: Option<ModelMode>,
+
+    music_dir_selection: Option<MusicDirSelection>,
 }
 
 impl Model {
@@ -235,8 +235,8 @@ impl Model {
     pub const fn new(library: Library) -> Self {
         Self {
             library,
-            music_dir_selection: None,
             mode: None,
+            music_dir_selection: None,
         }
     }
 }
