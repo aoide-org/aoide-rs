@@ -14,10 +14,14 @@ use aoide::{
     },
     music::{key::KeySignature, tempo::TempoBpm},
     tag::FacetId,
-    track::tag::{FACET_ID_COMMENT, FACET_ID_GENRE},
+    track::{
+        tag::{FACET_ID_COMMENT, FACET_ID_GENRE, FACET_ID_GROUPING},
+        AdvisoryRating,
+    },
     util::{clock::DateOrDateTime, color::RgbColor},
     TrackUid,
 };
+use itertools::Itertools as _;
 
 use crate::{
     library::{self, track_search, Library},
@@ -335,22 +339,33 @@ impl eframe::App for App {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TrackYear {
+    pub min: i16,
+    pub max: i16,
+}
+
 /// Simplified, pre-rendered track data
 pub struct TrackListItem {
     pub entity_uid: TrackUid,
     pub artwork_thumbnail_texture: TextureHandle,
 
-    pub title: Option<String>,
     pub artist: Option<String>,
-    pub album_title: Option<String>,
+    pub title: Option<String>,
     pub album_artist: Option<String>,
+    pub album_title: Option<String>,
+    pub album_subtitle: Option<String>,
+    pub copyright: Option<String>,
+    pub advisory_rating: Option<AdvisoryRating>,
+    pub grouping: Option<String>,
+    pub comment: Option<String>,
     pub genres: Vec<String>,
-    pub comments: Vec<String>,
-    pub year_min: Option<i16>,
-    pub year_max: Option<i16>,
+    pub year: Option<TrackYear>,
     pub bpm: Option<TempoBpm>,
     pub key: Option<KeySignature>,
 }
+
+const MULTI_VALUED_TAG_LABEL_SEPARATOR: &str = "\n";
 
 impl TrackListItem {
     #[must_use]
@@ -378,14 +393,24 @@ impl TrackListItem {
         );
         let artist = track.track_artist().map(ToOwned::to_owned);
         let title = track.track_title().map(ToOwned::to_owned);
-        let album_title = track.album_title().map(ToOwned::to_owned);
         let album_artist = track.album_artist().map(ToOwned::to_owned);
-        let genres = filter_faceted_tag_labels(track, FACET_ID_GENRE)
+        let album_title = track.album_title().map(ToOwned::to_owned);
+        let album_subtitle = track.album_subtitle().map(ToOwned::to_owned);
+        let copyright = track.copyright.clone();
+        let advisory_rating = track.advisory_rating;
+        let genres = filter_faceted_track_tag_labels(track, FACET_ID_GENRE)
             .map(ToString::to_string)
             .collect();
-        let comments = filter_faceted_tag_labels(track, FACET_ID_COMMENT)
-            .map(ToString::to_string)
-            .collect();
+        let grouping = concat_faceted_track_tag_labels(
+            track,
+            FACET_ID_GROUPING,
+            MULTI_VALUED_TAG_LABEL_SEPARATOR,
+        );
+        let comment = concat_faceted_track_tag_labels(
+            track,
+            FACET_ID_COMMENT,
+            MULTI_VALUED_TAG_LABEL_SEPARATOR,
+        );
         let dates = track
             .recorded_at
             .into_iter()
@@ -393,19 +418,27 @@ impl TrackListItem {
             .chain(track.released_orig_at);
         let year_min = dates.clone().map(DateOrDateTime::year).min();
         let year_max = dates.map(DateOrDateTime::year).max();
+        let year = match (year_min, year_max) {
+            (Some(min), Some(max)) => Some(TrackYear { min, max }),
+            (None, None) => None,
+            _ => unreachable!(),
+        };
         let bpm = track.metrics.tempo_bpm;
         let key = track.metrics.key_signature;
         Self {
             entity_uid,
             artwork_thumbnail_texture,
-            title,
             artist,
-            album_title,
+            title,
             album_artist,
+            album_title,
+            album_subtitle,
+            copyright,
+            advisory_rating,
+            grouping,
+            comment,
             genres,
-            comments,
-            year_min,
-            year_max,
+            year,
             bpm,
             key,
         }
@@ -425,7 +458,7 @@ impl fmt::Debug for TrackListItem {
     }
 }
 
-fn filter_faceted_tag_labels<'a>(
+fn filter_faceted_track_tag_labels<'a>(
     track: &'a aoide::Track,
     facet_id: &'a FacetId<'a>,
 ) -> impl Iterator<Item = &'a aoide::tag::Label<'a>> {
@@ -442,6 +475,28 @@ fn filter_faceted_tag_labels<'a>(
         })
         .flatten()
         .filter_map(|tag| tag.label.as_ref())
+}
+
+#[must_use]
+#[allow(unstable_name_collisions)] // Itertools::intersperse()
+fn concat_faceted_track_tag_labels(
+    track: &aoide::Track,
+    facet_id: &FacetId<'_>,
+    separator: &str,
+) -> Option<String> {
+    let concat = filter_faceted_track_tag_labels(track, facet_id)
+        .map(aoide::tag::Label::as_str)
+        .intersperse(separator)
+        .collect::<String>();
+    if concat.is_empty()
+        && filter_faceted_track_tag_labels(track, facet_id)
+            .next()
+            .is_none()
+    {
+        None
+    } else {
+        Some(concat)
+    }
 }
 
 const ARTWORK_THUMBNAIL_SIZE: usize = 4;

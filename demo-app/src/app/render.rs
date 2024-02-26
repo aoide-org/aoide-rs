@@ -338,7 +338,15 @@ fn track_list_item_label(track: &TrackListItem) -> String {
     let track_artist = &track.artist;
     let album_title = &track.album_title;
     let album_artist = &track.album_artist;
-    match (track_artist, album_title, album_artist) {
+    let bpm = track.bpm.and_then(|bpm| {
+        let value = bpm.value().round();
+        if value > 0.0 && value < f64::from(u16::MAX) {
+            Some(value as u16)
+        } else {
+            None
+        }
+    });
+    let label = match (track_artist, album_title, album_artist) {
         (Some(track_artist), Some(album_title), Some(album_artist)) => {
             if track_artist == album_artist {
                 format!("{track_artist} - {track_title} [{album_title}]")
@@ -359,5 +367,20 @@ fn track_list_item_label(track: &TrackListItem) -> String {
             format!("{track_title} [{album_title}]")
         }
         (None, None, _) => track_title.to_string(),
+    };
+    let key = track
+        .key
+        .map(|key| key.code().as_lancelot_str())
+        .unwrap_or_default();
+    if let Some(bpm) = bpm {
+        if key.is_empty() {
+            format!("{label} {{{bpm}}}")
+        } else {
+            format!("{label} {{{bpm} {key}}}")
+        }
+    } else if key.is_empty() {
+        label
+    } else {
+        format!("{label} {{{key}}}")
     }
 }
