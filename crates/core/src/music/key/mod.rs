@@ -400,7 +400,7 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub const fn as_camelot_str(self) -> &'static str {
+    pub const fn as_lancelot_str(self) -> &'static str {
         #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         match self {
@@ -872,7 +872,7 @@ impl From<LancelotKeySignature> for KeySignature {
 
 impl fmt::Display for LancelotKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.0.code().as_camelot_str())
+        f.write_str(self.0.code().as_lancelot_str())
     }
 }
 
