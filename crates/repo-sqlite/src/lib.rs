@@ -121,6 +121,7 @@ mod db;
 mod util;
 
 use prelude::Connection;
+use unicase::UniCase;
 
 const INIT_DB_PRAGMAS: &str = r"
 PRAGMA journal_mode = WAL;        -- better write-concurrency
@@ -135,6 +136,8 @@ PRAGMA recursive_triggers = 1;    -- for recursive ON CASCADE DELETE actions
 PRAGMA encoding = 'UTF-8';
 ";
 
+pub const UNICASE_COLLATION_NAME: &str = "UNICASE";
+
 /// Configure the database engine
 ///
 /// The implementation of the repositories and use cases relies on a proper
@@ -145,6 +148,15 @@ PRAGMA encoding = 'UTF-8';
 /// database has initially been created.
 pub fn initialize_database(connection: &mut DbConnection) -> QueryResult<()> {
     diesel::sql_query(INIT_DB_PRAGMAS).execute(connection)?;
+
+    // FIXME: How to use this collation for all LIKE queries instead of
+    // the default NOCASE comparison?
+    //
+    // Currently, "Beyonce" doesn't match "Beyoncé" and "Ä" doesn't match "ä".
+    connection.register_collation(UNICASE_COLLATION_NAME, |lhs, rhs| {
+        UniCase::new(lhs).cmp(&UniCase::new(rhs))
+    })?;
+
     Ok(())
 }
 

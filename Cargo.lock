@@ -389,6 +389,7 @@ dependencies = [
  "mime",
  "strum",
  "test-log",
+ "unicase",
  "url",
 ]
 
