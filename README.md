@@ -33,16 +33,16 @@ config directory of your platform. See the log messages for the file path.
 
 ### Metadata, tags, and searching
 
-#### Multiple genres
+### BPM filter
 
-Supports multiple [genres](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#id11)
-separated by semicolons as a single field:
+Tracks can be filtered by BPM using `+<digits>` (_greater-or-equal_) and `-<digits>`
+(_less-or-equal_).
 
-`Pop;Hip-Hop/Rap;Nu Metal`
+`+80 -120`
 
-No multi-valued file tags needed for this purpose.
+This filter matches all tracks with a BPM between 80.0 and 120.0 (inclusive).
 
-#### Hashtags
+#### Hashtag filter
 
 Supports _hashtags_ in the
 [Content Group](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#grouping-3)
@@ -58,6 +58,15 @@ finds `#MainFloor`.
 
 Search tokens that don't start with `#` will match various other fields like _title_, _artist_, or
 _album_.
+
+#### Multiple genres
+
+Supports multiple [genres](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#id11)
+separated by semicolons as a single field:
+
+`Pop;Hip-Hop/Rap;Nu Metal`
+
+No multi-valued file tags needed for this purpose.
 
 ## Features
 

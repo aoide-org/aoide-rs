@@ -7,11 +7,11 @@ use discro::{Ref, Subscriber};
 
 use aoide::{
     api::{
-        filtering::StringPredicate,
+        filtering::{NumericPredicate, ScalarFieldFilter, StringPredicate},
         media::source::ResolveUrlFromContentPath,
         sorting::SortDirection,
         tag::search::{FacetsFilter, Filter as TagFilter},
-        track::search::{Filter, PhraseFieldFilter, SortOrder, StringField},
+        track::search::{Filter, NumericField, PhraseFieldFilter, SortOrder, StringField},
     },
     desktop_app::{track, ObservableReader as _},
     tag::FacetKey,
@@ -191,6 +191,15 @@ pub enum MemoStateCompletionError {
 
 const HASHTAG_LABEL_PREFIX: &str = "#";
 
+const BPM_GREATER_OR_EQUAL_PREFIX: char = '+';
+const BPM_LESS_OR_EQUAL_PREFIX: char = '-';
+
+#[derive(Debug)]
+enum BpmFilter {
+    GreaterOrEqual,
+    LessOrEqual,
+}
+
 pub(super) fn parse_filter_from_input(input: &str) -> Option<Filter> {
     debug_assert_eq!(input, input.trim());
     if input.is_empty() {
@@ -225,6 +234,24 @@ pub(super) fn parse_filter_from_input(input: &str) -> Option<Filter> {
                         ..Default::default()
                     });
                 }
+            }
+            let mut bpm_filter = BpmFilter::GreaterOrEqual;
+            if let Some(bpm) = term
+                .strip_prefix(BPM_GREATER_OR_EQUAL_PREFIX)
+                .or_else(|| {
+                    bpm_filter = BpmFilter::LessOrEqual;
+                    term.strip_prefix(BPM_LESS_OR_EQUAL_PREFIX)
+                })
+                .and_then(|bpm_digits| bpm_digits.parse::<u16>().ok())
+            {
+                let predicate = match bpm_filter {
+                    BpmFilter::GreaterOrEqual => NumericPredicate::GreaterOrEqual(bpm.into()),
+                    BpmFilter::LessOrEqual => NumericPredicate::LessOrEqual(bpm.into()),
+                };
+                return Filter::Numeric(ScalarFieldFilter {
+                    field: NumericField::MusicTempoBpm,
+                    predicate,
+                });
             }
             let title_phrase = Filter::TitlePhrase(aoide::api::track::search::TitlePhraseFilter {
                 name_terms: vec![term.to_owned()],
