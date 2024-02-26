@@ -184,6 +184,12 @@ impl Track {
         Titles::main_title(self.album.titles.as_ref()).map(|title| title.name.as_str())
     }
 
+    #[must_use]
+    pub fn album_subtitle(&self) -> Option<&str> {
+        Titles::kind_title(self.album.titles.as_ref(), title::Kind::Sub)
+            .map(|title| title.name.as_str())
+    }
+
     pub fn set_album_title(&mut self, album_title: impl Into<String>) -> bool {
         let mut album = std::mem::take(&mut self.album).untie();
         let mut titles = album.titles.untie();

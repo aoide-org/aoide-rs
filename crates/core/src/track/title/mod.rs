@@ -138,6 +138,13 @@ impl Titles {
             .filter(move |title| kind == ANY_KIND_FILTER || kind == Some(title.kind))
     }
 
+    pub fn first_non_empty_name<'a, I>(titles: I) -> Option<&'a Title>
+    where
+        I: IntoIterator<Item = &'a Title>,
+    {
+        titles.into_iter().find(|title| !title.name.is_empty())
+    }
+
     pub fn main_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title>
     where
         I: IntoIterator<Item = &'a Title>,
@@ -149,7 +156,14 @@ impl Titles {
     where
         I: IntoIterator<Item = &'a Title>,
     {
-        Self::main_titles(titles).next()
+        Self::kind_title(titles, Kind::Main)
+    }
+
+    pub fn kind_title<'a, I>(titles: I, kind: Kind) -> Option<&'a Title>
+    where
+        I: IntoIterator<Item = &'a Title>,
+    {
+        Self::first_non_empty_name(Self::filter_kind(titles, kind))
     }
 
     pub fn sorting_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title>
@@ -163,7 +177,7 @@ impl Titles {
     where
         I: IntoIterator<Item = &'a Title>,
     {
-        Self::sorting_titles(titles).next()
+        Self::first_non_empty_name(Self::sorting_titles(titles))
     }
 
     pub fn set_main_title(titles: &mut Vec<Title>, name: impl Into<String>) -> bool {
