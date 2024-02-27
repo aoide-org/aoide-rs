@@ -173,9 +173,10 @@ pub fn run_migrations(connection: &mut DbConnection) -> MigrationResult<Vec<Migr
 
 #[cfg(test)]
 pub mod tests {
+    use anyhow::anyhow;
     use diesel::Connection as _;
 
-    use super::DbConnection;
+    use super::{initialize_database, prelude::*, run_migrations, DbConnection};
 
     pub type TestResult<T> = anyhow::Result<T>;
 
@@ -183,7 +184,8 @@ pub mod tests {
     pub fn establish_connection() -> TestResult<DbConnection> {
         let mut connection =
             DbConnection::establish(":memory:").expect("in-memory database connection");
-        crate::run_migrations(&mut connection).map_err(|err| anyhow::anyhow!(err.to_string()))?;
+        initialize_database(&mut connection).map_err(repo_error)?;
+        run_migrations(&mut connection).map_err(|err| anyhow!(err))?;
         Ok(connection)
     }
 }
