@@ -136,7 +136,7 @@ PRAGMA recursive_triggers = 1;    -- for recursive ON CASCADE DELETE actions
 PRAGMA encoding = 'UTF-8';
 ";
 
-pub const UNICASE_COLLATION_NAME: &str = "UNICASE";
+pub(crate) const UNICASE_COLLATION_NAME: &str = "UNICASE";
 
 /// Configure the database engine
 ///
@@ -151,6 +151,11 @@ pub fn initialize_database(connection: &mut DbConnection) -> QueryResult<()> {
 
     // FIXME: How to use this collation for all LIKE queries instead of
     // the default NOCASE comparison?
+    //
+    // The built-in LIKE operator doesn't support case-insensitive matching with
+    // custom collations beyond ASCII. You need to overload it separately using
+    // sqlite3_create_function(). Both the 2-arg and 3-arg (escaped) versions of
+    // LIKE are affected and need to be overloaded separately!
     //
     // Currently, "Beyonce" doesn't match "Beyoncé" and "Ä" doesn't match "ä".
     connection.register_collation(UNICASE_COLLATION_NAME, |lhs, rhs| {
