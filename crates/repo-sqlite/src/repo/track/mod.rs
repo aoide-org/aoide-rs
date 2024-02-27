@@ -61,10 +61,8 @@ fn load_track_and_album_titles(
         .then_order_by(track_title::name)
         .load::<QueryableRecord>(db.as_mut())
         .map_err(repo_error)?;
-    let (mut track_titles, mut album_titles) = (
-        Vec::with_capacity(queryables.len()),
-        Vec::with_capacity(queryables.len()),
-    );
+    let mut track_titles = Vec::with_capacity(queryables.len());
+    let mut album_titles = Vec::with_capacity(queryables.len());
     for queryable in queryables {
         let (_, record) = queryable.try_into()?;
         let Record {
@@ -81,7 +79,11 @@ fn load_track_and_album_titles(
             }
         }
     }
-    Ok((Canonical::tie(track_titles), Canonical::tie(album_titles)))
+    // The ordering returned by the SQL database might differ from the
+    // canonical ordering due to custom text column collations!
+    let track_titles = track_titles.canonicalize_into();
+    let album_titles = album_titles.canonicalize_into();
+    Ok((track_titles, album_titles))
 }
 
 fn delete_track_and_album_titles(
@@ -174,7 +176,11 @@ fn load_track_and_album_actors(
             }
         }
     }
-    Ok((Canonical::tie(track_actors), Canonical::tie(album_actors)))
+    // The ordering returned by the SQL database might differ from the
+    // canonical ordering due to custom text column collations!
+    let track_actors = track_actors.canonicalize_into();
+    let album_actors = album_actors.canonicalize_into();
+    Ok((track_actors, album_actors))
 }
 
 fn delete_track_and_album_actors(
@@ -332,7 +338,9 @@ fn load_track_tags(
                 plain: plain_tags,
                 facets,
             };
-            Canonical::tie(tags)
+            // The ordering returned by the SQL database might differ from the
+            // canonical ordering due to custom text column collations!
+            tags.canonicalize_into()
         })
 }
 
