@@ -155,7 +155,7 @@ fn render_top_panel(
                 .entity_with_summary()
                 .map(|(_, summary)| summary);
             ui.label("Collection summary:");
-            ui.label(collection_summary.map_or("<none>".to_owned(), |summary| {
+            ui.label(collection_summary.map_or(String::new(), |summary| {
                 format!(
                     "#tracks = {num_tracks}, #playlists = {num_playlists}",
                     num_tracks = summary.tracks.total_count,
@@ -190,7 +190,10 @@ fn render_central_panel(
         ModelMode::TrackSearch(TrackSearchMode {
             track_list: None, ..
         }) => {
-            ui.label("...loading...");
+            if current_library_state.collection().is_ready() {
+                // The track list should become available soon.
+                ui.label("...loading...");
+            }
         }
         ModelMode::TrackSearch(TrackSearchMode {
             track_list: Some(track_list),
