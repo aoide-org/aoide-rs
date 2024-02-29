@@ -27,7 +27,7 @@ path = ".."
 features = ["desktop-app", "async-file-dialog", "sqlite-bundled"]
 
 [dependencies.log]
-version = "0.4.20"
+version = "0.4.21"
 features = ["release_max_level_debug"]
 
 [dependencies.tokio]
