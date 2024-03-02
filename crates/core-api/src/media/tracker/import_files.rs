@@ -39,7 +39,6 @@ pub struct Summary {
 pub struct TrackSummary {
     pub created: usize,
     pub updated: usize,
-    pub missing: usize,
     pub unchanged: usize,
     pub skipped: usize,
     pub failed: usize,
@@ -54,14 +53,12 @@ impl AddAssign<&TrackReplaceSummary> for TrackSummary {
             created,
             updated,
             unchanged,
-            missing,
             skipped,
             failed,
             not_imported,
             not_created,
             not_updated,
         } = self;
-        debug_assert_eq!(0, *missing);
         let TrackReplaceSummary {
             created: rhs_created,
             updated: rhs_updated,

@@ -2764,10 +2764,6 @@ components:
               type: number
               format: int
               minimum: 0
-            missing:
-              type: number
-              format: int
-              minimum: 0
             unchanged:
               type: number
               format: int
@@ -2795,7 +2791,6 @@ components:
           required:
             - created
             - updated
-            - missing
             - unchanged
             - skipped
             - failed

@@ -158,7 +158,6 @@ impl From<_inner::Outcome> for Outcome {
 pub struct TrackSummary {
     pub created: usize,
     pub updated: usize,
-    pub missing: usize,
     pub unchanged: usize,
     pub skipped: usize,
     pub failed: usize,
@@ -173,7 +172,6 @@ impl From<TrackSummary> for _inner::TrackSummary {
         let TrackSummary {
             created,
             updated,
-            missing,
             unchanged,
             skipped,
             failed,
@@ -184,7 +182,6 @@ impl From<TrackSummary> for _inner::TrackSummary {
         Self {
             created,
             updated,
-            missing,
             unchanged,
             skipped,
             failed,
@@ -201,7 +198,6 @@ impl From<_inner::TrackSummary> for TrackSummary {
         let _inner::TrackSummary {
             created,
             updated,
-            missing,
             unchanged,
             skipped,
             failed,
@@ -212,7 +208,6 @@ impl From<_inner::TrackSummary> for TrackSummary {
         Self {
             created,
             updated,
-            missing,
             unchanged,
             skipped,
             failed,
