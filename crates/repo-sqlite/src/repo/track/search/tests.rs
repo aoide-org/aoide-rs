@@ -20,7 +20,7 @@ use aoide_core::{
 use aoide_core_api::{
     filtering::StringPredicate,
     tag::search::{FacetsFilter, Filter as TagFilter},
-    track::search::Filter as TrackFilter,
+    track::search::{Filter as TrackFilter, Scope, TitlePhraseFilter},
 };
 use aoide_repo::{
     collection::{EntityRepo as _, RecordId as CollectionId},
@@ -96,6 +96,10 @@ fn create_single_track_collection_with_tags(
         .insert_media_source(collection_id, OffsetDateTimeMs::now_utc(), &media_source)?
         .id;
     let mut track = Track::new_from_media_source(media_source);
+    // Track title with Unicode characters.
+    track.set_track_title("ÄäÖöÜüÉéÈè");
+    // Album title with ASCII characters.
+    track.set_album_title("AaOoUuEeEe");
     let plain_tags = (1..10)
         .flat_map(|i| {
             [
@@ -212,5 +216,62 @@ fn filter_plain_tags() -> TestResult<()> {
             )?
         );
     }
+    Ok(())
+}
+
+#[test]
+fn search_title_phrase() -> TestResult<()> {
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let collection_id = create_single_track_collection_with_tags(&mut db)?;
+    // Case-insensitive ASCII search.
+    assert_eq!(
+        1,
+        db.search_tracks(
+            collection_id,
+            &Default::default(),
+            Some(TrackFilter::TitlePhrase(TitlePhraseFilter {
+                modifier: None,
+                scope: Some(Scope::Album),
+                kinds: Default::default(),
+                name_terms: vec!["aA".into(), "EEee".into()],
+            })),
+            Default::default(),
+            &mut DummyCollector::new(),
+        )?
+    );
+    // Case-sensitive Unicode search.
+    assert_eq!(
+        1,
+        db.search_tracks(
+            collection_id,
+            &Default::default(),
+            Some(TrackFilter::TitlePhrase(TitlePhraseFilter {
+                modifier: None,
+                scope: Some(Scope::Track),
+                kinds: Default::default(),
+                name_terms: vec!["Ää".into(), "ÉéÈè".into()],
+            })),
+            Default::default(),
+            &mut DummyCollector::new(),
+        )?
+    );
+    // Case-insensitive/folding Unicode search.
+    // FIXME: Add Unicode-aware LIKE support to SQLite to fix this test.
+    // assert_eq!(
+    //     1,
+    //     db.search_tracks(
+    //         collection_id,
+    //         &Default::default(),
+    //         Some(TrackFilter::TitlePhrase(TitlePhraseFilter {
+    //             modifier: None,
+    //             scope: Some(Scope::Track),
+    //             kinds: Default::default(),
+    //             name_terms: vec!["aA".into(), "EEee".into()],
+    //         })),
+    //         Default::default(),
+    //         &mut DummyCollector::new(),
+    //     )?
+    // );
     Ok(())
 }
