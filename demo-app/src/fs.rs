@@ -13,7 +13,7 @@ use aoide::desktop_app::fs::DirPath;
 pub fn choose_directory_path<P>(
     rt: &tokio::runtime::Handle,
     dir_path: Option<&P>,
-    on_dir_path_chosen: impl FnOnce(Option<DirPath<'static>>) + Send + Sync + 'static,
+    on_dir_path_chosen: impl FnOnce(Option<DirPath<'static>>) + Send + 'static,
 ) -> Option<PathBuf>
 where
     P: AsRef<Path>,
