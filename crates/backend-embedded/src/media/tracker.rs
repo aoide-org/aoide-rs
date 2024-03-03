@@ -112,13 +112,12 @@ pub async fn import_files<InterceptImportedTrackFn, ReportProgressFn>(
     abort_flag: Arc<AtomicBool>,
 ) -> Result<aoide_core_api::media::tracker::import_files::Outcome>
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync + 'static,
+    InterceptImportedTrackFn: Fn(Track) -> Track + Send + 'static,
     ReportProgressFn:
         FnMut(aoide_usecases::media::tracker::import_files::ProgressEvent) + Send + 'static,
 {
     db_gatekeeper
         .spawn_blocking_write_task(move |mut pooled_connection| {
-            let mut intercept_imported_track_fn = intercept_imported_track_fn;
             let mut report_progress_fn = report_progress_fn;
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
@@ -127,7 +126,7 @@ where
                     &collection_uid,
                     &params,
                     import_config,
-                    &mut intercept_imported_track_fn,
+                    &intercept_imported_track_fn,
                     &mut report_progress_fn,
                     &abort_flag,
                 )

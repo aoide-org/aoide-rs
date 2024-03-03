@@ -156,7 +156,7 @@ pub fn handle_request(
                 request_body.into_iter().map(Into::into),
                 Some(expected_content_path_count),
                 &params,
-                &mut std::convert::identity,
+                &std::convert::identity,
                 abort_flag,
             )
             .map_err(Into::into)

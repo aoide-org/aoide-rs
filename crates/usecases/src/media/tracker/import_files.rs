@@ -45,13 +45,13 @@ pub fn import_files<Repo, InterceptImportedTrackFn, ReportProgressFn>(
     collection_uid: &CollectionUid,
     params: &Params,
     import_config: ImportTrackConfig,
-    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
+    intercept_imported_track_fn: &InterceptImportedTrackFn,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: CollectionRepo + MediaTrackerRepo + TrackCollectionRepo,
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
+    InterceptImportedTrackFn: Fn(Track) -> Track + Send,
     ReportProgressFn: FnMut(ProgressEvent),
 {
     let Params {
@@ -227,13 +227,13 @@ fn import_pending_directory<Repo, InterceptImportedTrackFn>(
     collection_id: CollectionId,
     resolver: &RemappingVfsResolver,
     import_and_replace_params: &import_and_replace::Params,
-    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
+    intercept_imported_track_fn: &InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
     pending_directory: &TrackedDirectory,
 ) -> Result<ImportPendingDirectoryOutcome>
 where
     Repo: CollectionRepo + MediaTrackerRepo + TrackCollectionRepo,
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
+    InterceptImportedTrackFn: Fn(Track) -> Track + Send,
 {
     let TrackedDirectory {
         content_path,

@@ -213,20 +213,19 @@ pub async fn import_and_replace_many_by_local_file_path<ContentPathIter, Interce
 ) -> Result<aoide_usecases::track::import_and_replace::Outcome>
 where
     ContentPathIter: IntoIterator<Item = ContentPath<'static>> + Send + 'static,
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + 'static,
+    InterceptImportedTrackFn: Fn(Track) -> Track + Send + 'static,
 {
     db_gatekeeper
     .spawn_blocking_write_task(move |mut pooled_connection| {
         let connection = &mut *pooled_connection;
         connection.transaction::<_, Error, _>(|connection| {
-            let mut intercept_imported_track_fn = intercept_imported_track_fn;
         aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path(
             connection,
             &collection_uid,
             content_path_iter,
             expected_content_path_count,
             &params,
-            &mut intercept_imported_track_fn,
+            &intercept_imported_track_fn,
             &abort_flag,
         )
         })

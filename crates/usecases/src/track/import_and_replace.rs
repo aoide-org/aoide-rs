@@ -115,10 +115,10 @@ fn import_replacement_from_file_path<InterceptImportedTrackFn>(
     context: ImportReplacementFromFilePathContext,
     content_path_resolver: &VfsResolver,
     params: &Params,
-    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
+    intercept_imported_track_fn: &InterceptImportedTrackFn,
 ) -> Result<ImportReplacementFromFilePathOutcome>
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track,
+    InterceptImportedTrackFn: Fn(Track) -> Track,
 {
     let ImportReplacementFromFilePathContext {
         collection_id,
@@ -286,12 +286,12 @@ pub fn import_and_replace_many_by_local_file_path<Repo, InterceptImportedTrackFn
     params: &Params,
     content_paths: impl IntoIterator<Item = ContentPath<'static>>,
     expected_content_path_count: Option<usize>,
-    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
+    intercept_imported_track_fn: &InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: CollectionRepo + TrackCollectionRepo,
-    InterceptImportedTrackFn: FnMut(Track) -> Track,
+    InterceptImportedTrackFn: Fn(Track) -> Track,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
@@ -366,12 +366,12 @@ pub fn import_and_replace_by_local_file_path_from_directory<Repo, InterceptImpor
     collection_uid: &CollectionUid,
     source_dir_path: &ContentPath<'_>,
     params: &Params,
-    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
+    intercept_imported_track_fn: &InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: CollectionRepo + TrackCollectionRepo,
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
+    InterceptImportedTrackFn: Fn(Track) -> Track + Send,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
@@ -398,11 +398,11 @@ pub fn import_and_replace_by_local_file_path_from_directory_with_content_path_re
     content_path_resolver: &VfsResolver,
     source_dir_path: &ContentPath<'_>,
     params: &Params,
-    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
+    intercept_imported_track_fn: &InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
+    InterceptImportedTrackFn: Fn(Track) -> Track + Send,
 {
     let dir_path = content_path_resolver.build_file_path(source_dir_path);
     log::debug!(

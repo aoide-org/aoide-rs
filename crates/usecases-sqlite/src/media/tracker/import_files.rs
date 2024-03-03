@@ -19,12 +19,12 @@ pub fn import_files<InterceptImportedTrackFn, ReportProgressFn>(
     collection_uid: &CollectionUid,
     params: &Params,
     import_config: ImportTrackConfig,
-    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
+    intercept_imported_track_fn: &InterceptImportedTrackFn,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome>
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
+    InterceptImportedTrackFn: Fn(Track) -> Track + Send,
     ReportProgressFn: FnMut(uc::ProgressEvent),
 {
     let mut repo = RepoConnection::new(connection);

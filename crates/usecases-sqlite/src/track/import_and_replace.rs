@@ -21,11 +21,11 @@ pub fn import_and_replace_many_by_local_file_path<InterceptImportedTrackFn>(
     content_path_iter: impl IntoIterator<Item = ContentPath<'static>>,
     expected_content_path_count: impl Into<Option<usize>>,
     params: &uc::Params,
-    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
+    intercept_imported_track_fn: &InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome>
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track,
+    InterceptImportedTrackFn: Fn(Track) -> Track,
 {
     let mut repo = RepoConnection::new(connection);
     uc::import_and_replace_many_by_local_file_path(
@@ -45,11 +45,11 @@ pub fn import_and_replace_by_local_file_path_from_directory<InterceptImportedTra
     collection_uid: &CollectionUid,
     params: &uc::Params,
     source_dir_path: &ContentPath<'_>,
-    intercept_imported_track_fn: &mut InterceptImportedTrackFn,
+    intercept_imported_track_fn: &InterceptImportedTrackFn,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome>
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Send + Sync,
+    InterceptImportedTrackFn: Fn(Track) -> Track + Send,
 {
     let mut repo = RepoConnection::new(connection);
     uc::import_and_replace_by_local_file_path_from_directory(

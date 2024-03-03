@@ -120,7 +120,7 @@ pub async fn synchronize_collection_vfs<InterceptImportedTrackFn, ReportProgress
     abort_flag: Arc<AtomicBool>,
 ) -> Result
 where
-    InterceptImportedTrackFn: FnMut(Track) -> Track + Clone + Send + Sync + 'static,
+    InterceptImportedTrackFn: Fn(Track) -> Track + Clone + Send + 'static,
     ReportProgressFn: FnMut(Progress) + Clone + Send + 'static,
 {
     let Params {
