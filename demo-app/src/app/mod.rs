@@ -144,8 +144,8 @@ enum MusicDirectoryAction {
     SpawnSyncTask,
     AbortPendingSyncTask,
     FinishSync,
-    ViewList,
-    FinishViewList,
+    OpenListView,
+    CloseListView,
 }
 
 impl From<MusicDirectoryAction> for LibraryAction {

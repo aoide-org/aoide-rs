@@ -129,7 +129,7 @@ fn on_library_music_directory_action(
                 msg_tx.send_action(CollectionAction::RefreshFromDb);
             }
         }
-        MusicDirectoryAction::ViewList => {
+        MusicDirectoryAction::OpenListView => {
             let params = aoide::api::media::tracker::count_sources_in_directories::Params {
                 ordering: Some(
                     aoide::api::media::tracker::count_sources_in_directories::Ordering::CountDescending,
@@ -144,7 +144,7 @@ fn on_library_music_directory_action(
                 ctx.request_repaint();
             }
         }
-        MusicDirectoryAction::FinishViewList => {
+        MusicDirectoryAction::CloseListView => {
             if let Some(ModelMode::MusicDirList { .. }) = mode {
                 *mode = None;
                 msg_tx.send_action(CollectionAction::RefreshFromDb);

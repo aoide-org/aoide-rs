@@ -109,7 +109,7 @@ fn render_top_panel(
                     )
                     .clicked()
                 {
-                    msg_tx.send_action(MusicDirectoryAction::ViewList);
+                    msg_tx.send_action(MusicDirectoryAction::OpenListView);
                 }
                 if ui
                     .add_enabled(
@@ -304,7 +304,7 @@ fn render_bottom_panel(
                         text = "Dismiss";
                         hover_text = "Clear output and return to track search.";
                         enabled = true;
-                        action = MusicDirectoryAction::FinishViewList.into();
+                        action = MusicDirectoryAction::CloseListView.into();
                     }
                 }
                 if ui
