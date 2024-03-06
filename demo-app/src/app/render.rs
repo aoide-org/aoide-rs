@@ -3,8 +3,8 @@
 
 use eframe::Frame;
 use egui::{
-    load::SizedTexture, Align, Button, CentralPanel, Context, Grid, Layout, ScrollArea, TextEdit,
-    TopBottomPanel,
+    load::SizedTexture, Align, Button, CentralPanel, Context, Grid, Hyperlink, Layout, ScrollArea,
+    TextEdit, TopBottomPanel,
 };
 
 use crate::library::track_search;
@@ -230,7 +230,13 @@ fn render_central_panel(
                         };
                         ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
                             ui.image(texture);
-                            ui.label(track_list_item_label(item));
+                            let label = track_list_item_label(item);
+                            if let Some(content_url) = &item.content_url {
+                                let hyperlink = Hyperlink::from_label_and_url(label, content_url).open_in_new_tab(true);
+                                ui.add(hyperlink);
+                            } else {
+                                ui.label(label);
+                            }
                         });
                     }
                 })

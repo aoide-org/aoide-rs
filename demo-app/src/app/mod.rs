@@ -22,6 +22,7 @@ use aoide::{
     TrackUid,
 };
 use itertools::Itertools as _;
+use url::Url;
 
 use crate::{
     library::{self, track_search, Library},
@@ -348,7 +349,7 @@ pub struct TrackYear {
 /// Simplified, pre-rendered track data
 pub struct TrackListItem {
     pub entity_uid: TrackUid,
-    pub artwork_thumbnail_texture: TextureHandle,
+    pub content_url: Option<Url>,
 
     pub artist: Option<String>,
     pub title: Option<String>,
@@ -363,34 +364,20 @@ pub struct TrackListItem {
     pub year: Option<TrackYear>,
     pub bpm: Option<TempoBpm>,
     pub key: Option<KeySignature>,
+
+    pub artwork_thumbnail_texture: TextureHandle,
 }
 
 const MULTI_VALUED_TAG_LABEL_SEPARATOR: &str = "\n";
 
 impl TrackListItem {
     #[must_use]
-    pub fn new(ctx: &Context, entity_uid: aoide::TrackUid, track: &aoide::Track) -> Self {
-        let artwork_thumbnail_image = track
-            .media_source
-            .artwork
-            .as_ref()
-            .and_then(|artwork| {
-                let default_color = match track.color {
-                    Some(aoide::util::color::Color::Rgb(rgb_color)) => Some(rgb_color),
-                    _ => None,
-                };
-                artwork_thumbnail_image(artwork, default_color)
-            })
-            .unwrap_or_else(|| {
-                // TODO: Use a single, shared, transparent texture for all tracks without artwork.
-                artwork_thumbnail_image_placeholder()
-            });
-        // TODO: Only load the texture once for each distinct image -> hash the image data.
-        let artwork_thumbnail_texture = ctx.load_texture(
-            "", // anonymous
-            artwork_thumbnail_image,
-            TextureOptions::LINEAR,
-        );
+    pub fn new(
+        ctx: &Context,
+        entity_uid: aoide::TrackUid,
+        content_url: Option<Url>,
+        track: &aoide::Track,
+    ) -> Self {
         let artist = track.track_artist().map(ToOwned::to_owned);
         let title = track.track_title().map(ToOwned::to_owned);
         let album_artist = track.album_artist().map(ToOwned::to_owned);
@@ -425,9 +412,30 @@ impl TrackListItem {
         };
         let bpm = track.metrics.tempo_bpm;
         let key = track.metrics.key_signature;
+        let artwork_thumbnail_image = track
+            .media_source
+            .artwork
+            .as_ref()
+            .and_then(|artwork| {
+                let default_color = match track.color {
+                    Some(aoide::util::color::Color::Rgb(rgb_color)) => Some(rgb_color),
+                    _ => None,
+                };
+                artwork_thumbnail_image(artwork, default_color)
+            })
+            .unwrap_or_else(|| {
+                // TODO: Use a single, shared, transparent texture for all tracks without artwork.
+                artwork_thumbnail_image_placeholder()
+            });
+        // TODO: Only load the texture once for each distinct image -> hash the image data.
+        let artwork_thumbnail_texture = ctx.load_texture(
+            "", // anonymous
+            artwork_thumbnail_image,
+            TextureOptions::LINEAR,
+        );
         Self {
             entity_uid,
-            artwork_thumbnail_texture,
+            content_url,
             artist,
             title,
             album_artist,
@@ -441,6 +449,7 @@ impl TrackListItem {
             year,
             bpm,
             key,
+            artwork_thumbnail_texture,
         }
     }
 }

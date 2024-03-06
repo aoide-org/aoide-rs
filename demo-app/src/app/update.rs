@@ -470,9 +470,12 @@ fn collect_and_forward_fetched_track_list_items(
             let fetched_items = fetched_entities[offset..]
                 .iter()
                 .map(|fetched_entity| {
+                    let entity_uid = fetched_entity.entity.hdr.uid.clone();
+                    let content_url = fetched_entity.entity.body.content_url.clone();
                     TrackListItem::new(
                         ctx,
-                        fetched_entity.entity.hdr.uid.clone(),
+                        entity_uid,
+                        content_url,
                         &fetched_entity.entity.body.track,
                     )
                 })
