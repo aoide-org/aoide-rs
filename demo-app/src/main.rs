@@ -22,12 +22,18 @@ use self::library::Library;
 #[derive(Debug)]
 pub struct NoReceiverForEvent;
 
+/// Default log level for debug builds.
+#[cfg(debug_assertions)]
+const DEFAULT_LOG_FILTER_LEVEL: LevelFilter = LevelFilter::Info;
+
+/// Reduce log verbosity for release builds.
+#[cfg(not(debug_assertions))]
+const DEFAULT_LOG_FILTER_LEVEL: LevelFilter = LevelFilter::Warn;
+
 #[tokio::main]
 async fn main() {
     env_logger::Builder::new()
-        // If no log level filter is specified, use a sensible default.
-        // Otherwise, only errors would be logged.
-        .filter_level(LevelFilter::Info)
+        .filter_level(DEFAULT_LOG_FILTER_LEVEL)
         // Parse environment variables after configuring all default option(s).
         .parse_default_env()
         .init();
