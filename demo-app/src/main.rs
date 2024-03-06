@@ -9,6 +9,7 @@ use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 
 use directories::ProjectDirs;
+use log::LevelFilter;
 
 pub mod app;
 use self::app::App;
@@ -23,7 +24,13 @@ pub struct NoReceiverForEvent;
 
 #[tokio::main]
 async fn main() {
-    pretty_env_logger::init();
+    env_logger::Builder::new()
+        // If no log level filter is specified, use a sensible default.
+        // Otherwise, only errors would be logged.
+        .filter_level(LevelFilter::Info)
+        // Parse environment variables after configuring all default option(s).
+        .parse_default_env()
+        .init();
 
     let Some(config_dir) = app_config_dir() else {
         log::error!("Config directory is unavailable");

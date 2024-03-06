@@ -28,14 +28,13 @@ use infect::{
     consume_messages, message_channel, MessagePort, MessagesConsumed, ModelChanged, ModelRender,
     TaskContext,
 };
+use log::LevelFilter;
 use model::{EffectApplied, IntentHandled};
 use tokio::signal;
 
 mod model;
 use self::model::{Effect, Environment, Intent, Model, Task};
 use crate::model::ExportTracksParams;
-
-const DEFAULT_LOG_FILTER: &str = "info";
 
 const DEFAULT_WEBSRV_URL: &str = "http://[::1]:8080";
 
@@ -632,7 +631,12 @@ impl ModelRender for RenderCliModel {
 #[tokio::main]
 #[allow(clippy::too_many_lines)] // TODO
 async fn main() -> anyhow::Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(DEFAULT_LOG_FILTER))
+    env_logger::Builder::new()
+        // If no log level filter is specified, use a sensible default.
+        // Otherwise, only errors would be logged.
+        .filter_level(LevelFilter::Info)
+        // Parse environment variables after configuring all default option(s).
+        .parse_default_env()
         .init();
 
     let default_websrv_url =
