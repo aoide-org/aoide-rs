@@ -7,11 +7,14 @@ use egui::{
     TextEdit, TopBottomPanel,
 };
 
-use crate::library::track_search;
+use crate::library::{
+    track_search,
+    ui::{TrackListItem, ARTWORK_THUMBNAIL_IMAGE_SIZE},
+};
 
 use super::{
     Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
-    TrackListItem, TrackSearchAction, TrackSearchMode, UiData, ARTWORK_THUMBNAIL_IMAGE_SIZE,
+    TrackSearchAction, TrackSearchMode, UiData,
 };
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.

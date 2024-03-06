@@ -6,12 +6,12 @@ use egui::Context;
 use crate::{
     app::TrackSearchFetchedItems,
     fs::choose_directory_path,
-    library::{self, collection, track_search, Library},
+    library::{self, collection, track_search, ui::TrackListItem, Library},
 };
 
 use super::{
     Action, CollectionAction, Event, LibraryAction, Message, MessageSender, Model, ModelMode,
-    MusicDirSelection, MusicDirectoryAction, TrackListItem, TrackSearchAction, TrackSearchMode,
+    MusicDirSelection, MusicDirectoryAction, TrackSearchAction, TrackSearchMode,
 };
 
 pub(super) struct UpdateContext<'a> {

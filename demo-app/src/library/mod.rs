@@ -15,6 +15,7 @@ use crate::NoReceiverForEvent;
 pub mod collection;
 pub mod settings;
 pub mod track_search;
+pub mod ui;
 
 #[derive(Debug)]
 pub enum Event {
