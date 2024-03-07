@@ -16,6 +16,8 @@ use diesel::{
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness as _};
 
+use aoide_storage_sqlite::VacuumMode;
+
 pub type DbBackend = diesel::sqlite::Sqlite;
 pub type DbConnection = diesel::sqlite::SqliteConnection;
 
@@ -126,6 +128,8 @@ use unicase::UniCase;
 const INIT_DB_SQL: &str = include_str!("init_db.sql");
 
 pub(crate) const UNICASE_COLLATION_NAME: &str = "UNICASE";
+
+pub const DEFAULT_VACUUM_MODE: VacuumMode = VacuumMode::Incremental;
 
 /// Configure the database engine
 ///

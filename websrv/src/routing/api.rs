@@ -12,6 +12,7 @@ use std::{
 
 use aoide_backend_webapi_json as api;
 use aoide_core::{CollectionUid, PlaylistUid, TrackUid};
+use aoide_repo_sqlite::DEFAULT_VACUUM_MODE;
 use aoide_storage_sqlite::{
     cleanse_database,
     connection::pool::gatekeeper::{Gatekeeper as DatabaseConnectionGatekeeper, PendingTasks},
@@ -1098,9 +1099,14 @@ pub(crate) fn create_filters(
         .and_then(
             move |query_params, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
                 let CleanseDatabaseQueryParams { vacuum } = query_params;
+                let vacuum_mode = if vacuum {
+                    Some(DEFAULT_VACUUM_MODE)
+                } else {
+                    None
+                };
                 websrv::spawn_blocking_write_task(&shared_connection_gatekeeper,
                     move |mut pooled_connection| {
-                        cleanse_database(&mut pooled_connection, vacuum)
+                        cleanse_database(&mut pooled_connection, vacuum_mode)
                     })
                     .await
                     .map(|()| StatusCode::NO_CONTENT)

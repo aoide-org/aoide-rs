@@ -31,8 +31,18 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub fn vacuum_database(connection: &mut SqliteConnection) -> Result<()> {
-    diesel::dsl::sql_query("VACUUM")
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VacuumMode {
+    Full,
+    Incremental,
+}
+
+pub fn vacuum_database(connection: &mut SqliteConnection, mode: VacuumMode) -> Result<()> {
+    let sql = match mode {
+        VacuumMode::Full => "VACUUM",
+        VacuumMode::Incremental => "PRAGMA incremental_vacuum",
+    };
+    diesel::dsl::sql_query(sql)
         .execute(connection)
         .map(|count| {
             debug_assert_eq!(0, count);
@@ -56,12 +66,15 @@ pub fn analyze_and_optimize_database_stats(connection: &mut SqliteConnection) ->
         .map_err(Into::into)
 }
 
-pub fn cleanse_database(connection: &mut SqliteConnection, vacuum: bool) -> Result<()> {
+pub fn cleanse_database(
+    connection: &mut SqliteConnection,
+    vacuum_mode: Option<VacuumMode>,
+) -> Result<()> {
     // According to Richard Hipp himself executing VACUUM before ANALYZE is the
     // recommended order: https://sqlite.org/forum/forumpost/62fb63a29c5f7810?t=h
-    if vacuum {
+    if let Some(vacuum_mode) = vacuum_mode {
         log::info!("Rebuilding database storage before analysis & optimization");
-        vacuum_database(connection)?;
+        vacuum_database(connection, vacuum_mode)?;
     }
 
     log::info!("Analyzing and optimizing database statistics");

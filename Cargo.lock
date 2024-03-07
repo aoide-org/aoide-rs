@@ -383,6 +383,7 @@ dependencies = [
  "aoide-core",
  "aoide-core-api",
  "aoide-repo",
+ "aoide-storage-sqlite",
  "diesel",
  "diesel_migrations",
  "env_logger",

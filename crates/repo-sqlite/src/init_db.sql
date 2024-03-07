@@ -14,3 +14,4 @@ PRAGMA journal_mode = WAL;        -- better write-concurrency
 PRAGMA synchronous = NORMAL;      -- fsync only in critical moments, safe for journal_mode = WAL
 PRAGMA wal_checkpoint(TRUNCATE);  -- free some space by truncating possibly massive WAL files from the last run
 PRAGMA secure_delete = 0;         -- avoid some disk I/O
+PRAGMA auto_vacuum = INCREMENTAL; -- prevents cloning the entire database file on VACUUM

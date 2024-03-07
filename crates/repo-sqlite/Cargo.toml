@@ -28,6 +28,7 @@ url = "2.5.0"
 aoide-core = { version = "=0.0.0", path = "../core" }
 aoide-core-api = { version = "=0.0.0", path = "../core-api" }
 aoide-repo = { version = "=0.0.0", path = "../repo" }
+aoide-storage-sqlite = { version = "=0.0.0", path = "../storage-sqlite" }
 
 [dev-dependencies]
 env_logger = "0.11.3"
