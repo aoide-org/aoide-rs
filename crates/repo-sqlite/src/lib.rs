@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// Recursion_limit was required for diesel
-#![recursion_limit = "256"]
 // Suppress warnings for diesel AsChangeset
 #![allow(clippy::ref_option_ref)]
 // TODO: Remove temporary workaround.
