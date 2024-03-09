@@ -9,9 +9,9 @@ PRAGMA defer_foreign_keys = 1;    -- delay enforcement of foreign key constraint
 PRAGMA recursive_triggers = 1;    -- for recursive ON CASCADE DELETE actions
 PRAGMA encoding = 'UTF-8';
 
--- Schema options
+-- Schema options (implicit default schema: main)
 PRAGMA journal_mode = WAL;        -- better write-concurrency
-PRAGMA synchronous = NORMAL;      -- fsync only in critical moments, safe for journal_mode = WAL
+PRAGMA synchronous = NORMAL;      -- fsync only in critical moments, safe for `journal_mode = WAL`
 PRAGMA wal_checkpoint(TRUNCATE);  -- free some space by truncating possibly massive WAL files from the last run
 PRAGMA secure_delete = 0;         -- avoid some disk I/O
-PRAGMA auto_vacuum = INCREMENTAL; -- prevents cloning the entire database file on VACUUM
+PRAGMA auto_vacuum = INCREMENTAL; -- allows to use `PRAGMA incremental_vacuum` instead of `VACUUM`
