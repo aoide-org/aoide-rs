@@ -7,7 +7,7 @@ all-features = true
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-yanked = "warn"
+yanked = "deny"
 
 [licenses]
 allow = [
@@ -25,7 +25,4 @@ allow = [
 
 [bans]
 multiple-versions = "allow"
-wildcards = "allow"
 highlight = "all"
-workspace-default-features = "allow"
-external-default-features = "allow"
