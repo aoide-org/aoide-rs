@@ -13,6 +13,7 @@ use crate::library::{
 };
 
 use super::{
+    message::{MediaTrackerDirListAction, MediaTrackerSyncAction},
     Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
     TrackSearchAction, TrackSearchMode, UiData,
 };
@@ -103,7 +104,7 @@ fn render_top_panel(
                     )
                     .clicked()
                 {
-                    msg_tx.send_action(MusicDirectoryAction::SpawnSyncTask);
+                    msg_tx.send_action(MediaTrackerSyncAction::SpawnTask);
                 }
                 if ui
                     .add_enabled(
@@ -112,7 +113,7 @@ fn render_top_panel(
                     )
                     .clicked()
                 {
-                    msg_tx.send_action(MusicDirectoryAction::OpenListView);
+                    msg_tx.send_action(MediaTrackerDirListAction::OpenView);
                 }
                 if ui
                     .add_enabled(
@@ -301,19 +302,19 @@ fn render_bottom_panel(
                             text = "Abort";
                             hover_text = "Stop the current synchronization task.";
                             enabled = true;
-                            action = MusicDirectoryAction::AbortPendingSyncTask.into();
+                            action = MediaTrackerSyncAction::AbortPendingTask.into();
                         } else {
                             text = "Dismiss";
                             hover_text = "Clear output and return to track search.";
                             enabled = true;
-                            action = MusicDirectoryAction::FinishSync.into();
+                            action = MediaTrackerSyncAction::Finish.into();
                         }
                     }
                     ModelMode::MusicDirList { .. } => {
                         text = "Dismiss";
                         hover_text = "Clear output and return to track search.";
                         enabled = true;
-                        action = MusicDirectoryAction::CloseListView.into();
+                        action = MediaTrackerDirListAction::CloseView.into();
                     }
                 }
                 if ui

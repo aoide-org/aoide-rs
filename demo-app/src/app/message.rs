@@ -101,6 +101,7 @@ pub(crate) enum Action {
 #[derive(Debug)]
 pub(crate) enum LibraryAction {
     MusicDirectory(MusicDirectoryAction),
+    MediaTracker(MediaTrackerAction),
     Collection(CollectionAction),
     TrackSearch(TrackSearchAction),
 }
@@ -119,16 +120,48 @@ pub(crate) enum MusicDirectoryAction {
     Reset,
     Select,
     Update(Option<DirPath<'static>>),
-    SpawnSyncTask,
-    AbortPendingSyncTask,
-    FinishSync,
-    OpenListView,
-    CloseListView,
 }
 
 impl From<MusicDirectoryAction> for LibraryAction {
     fn from(action: MusicDirectoryAction) -> Self {
         Self::MusicDirectory(action)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum MediaTrackerAction {
+    Sync(MediaTrackerSyncAction),
+    DirList(MediaTrackerDirListAction),
+}
+
+impl From<MediaTrackerAction> for LibraryAction {
+    fn from(action: MediaTrackerAction) -> Self {
+        Self::MediaTracker(action)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum MediaTrackerSyncAction {
+    SpawnTask,
+    AbortPendingTask,
+    Finish,
+}
+
+impl From<MediaTrackerSyncAction> for LibraryAction {
+    fn from(action: MediaTrackerSyncAction) -> Self {
+        MediaTrackerAction::Sync(action).into()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum MediaTrackerDirListAction {
+    OpenView,
+    CloseView,
+}
+
+impl From<MediaTrackerDirListAction> for LibraryAction {
+    fn from(action: MediaTrackerDirListAction) -> Self {
+        MediaTrackerAction::DirList(action).into()
     }
 }
 

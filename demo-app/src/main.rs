@@ -22,6 +22,28 @@ use self::library::Library;
 #[derive(Debug)]
 pub struct NoReceiverForEvent;
 
+/// Outcome of dispatching an action.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[must_use]
+pub enum ActionResponse {
+    /// Rejected (and unchanged) or no effect.
+    Rejected,
+    /// Rejected and maybe changed.
+    RejectedMaybeChanged,
+    /// Accepted (and maybe changed).
+    Accepted,
+}
+
+impl ActionResponse {
+    #[must_use]
+    pub const fn maybe_changed(self) -> bool {
+        match self {
+            Self::Rejected => false,
+            Self::RejectedMaybeChanged | Self::Accepted => true,
+        }
+    }
+}
+
 /// Default log level for debug builds.
 #[cfg(debug_assertions)]
 const DEFAULT_LOG_FILTER_LEVEL: LevelFilter = LevelFilter::Info;
@@ -132,7 +154,7 @@ fn app_dirs() -> Option<ProjectDirs> {
 fn init_config_dir(app_dirs: &ProjectDirs) -> &Path {
     let app_config_dir = app_dirs.config_dir();
     if let Err(err) = create_dir_all(app_config_dir) {
-        log::warn!(
+        log::error!(
             "Failed to create config directory '{dir}': {err}",
             dir = app_config_dir.display(),
         );

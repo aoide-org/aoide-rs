@@ -10,7 +10,7 @@ use aoide::{
 };
 use discro::Ref;
 
-use crate::NoReceiverForEvent;
+use crate::{ActionResponse, NoReceiverForEvent};
 
 pub mod collection;
 pub mod settings;
@@ -302,65 +302,69 @@ impl Library {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn try_update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> bool {
+    pub fn update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> ActionResponse {
         if self.state.collection.is_synchronizing() {
             log::debug!("Collection is synchronizing");
-            return false;
+            return ActionResponse::Rejected;
         }
-        if self
+        if !self
             .state_observables
             .settings
             .try_update_music_dir(music_dir)
         {
-            log::info!("Music directory updated: {music_dir:?}");
-            true
-        } else {
             log::debug!("Music directory unchanged: {music_dir:?}");
-            false
+            return ActionResponse::Rejected;
         }
+        log::info!("Music directory updated: {music_dir:?}");
+        ActionResponse::Accepted
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn try_reset_music_dir(&self) -> bool {
-        self.try_update_music_dir(None)
+    pub fn reset_music_dir(&self) -> ActionResponse {
+        self.update_music_dir(None)
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn try_reset_collection(&self) -> bool {
+    pub fn reset_collection(&self) -> ActionResponse {
         if self.state.collection.is_synchronizing() {
             log::debug!("Collection is synchronizing");
-            return false;
+            return ActionResponse::Rejected;
         }
-        self.state_observables.collection.try_reset()
+        if !self.state_observables.collection.try_reset() {
+            return ActionResponse::Rejected;
+        }
+        ActionResponse::Accepted
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn try_spawn_music_dir_sync_task<E>(
+    pub fn spawn_music_dir_sync_task<E>(
         &mut self,
         rt: &tokio::runtime::Handle,
         event_emitter: &E,
-    ) -> bool
+    ) -> ActionResponse
     where
         E: EventEmitter + Clone + 'static,
     {
         if !self.state.collection.is_ready() {
             log::debug!("Collection not ready");
-            return false;
+            return ActionResponse::Rejected;
         }
+        let mut rejected = ActionResponse::Rejected;
         if let Some(sync_task) = self.state.pending_music_dir_sync_task.as_ref() {
-            if sync_task.is_finished() {
-                log::info!("Resetting synchronize music directory task after finished");
-                self.state.pending_music_dir_sync_task = None;
-            } else {
+            if !sync_task.is_finished() {
                 log::info!("Synchronize music directory task still pending");
-                return false;
+                return ActionResponse::Rejected;
             }
+            // Discard the finished finished task before spawning a new one.
+            log::info!("Resetting synchronize music directory task after finished");
+            self.state.pending_music_dir_sync_task = None;
+            rejected = ActionResponse::RejectedMaybeChanged;
         }
         log::info!("Spawning synchronize music directory task");
         self.state.pending_music_dir_sync_task =
             SynchronizeVfsTask::try_spawn(rt, &self.handle, &self.state_observables.collection);
         let Some(task) = &self.state.pending_music_dir_sync_task else {
-            return false;
+            return rejected;
         };
         rt.spawn({
             let event_emitter = event_emitter.clone();
@@ -398,34 +402,33 @@ impl Library {
                 }
             }
         });
-        true
+        ActionResponse::Accepted
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn try_abort_pending_music_dir_sync_task(&mut self) -> bool {
-        let pending_music_dir_sync_task = self.state.pending_music_dir_sync_task.take();
-        let Some(synchronize_music_dir_task) = pending_music_dir_sync_task else {
-            return false;
+    pub fn abort_pending_music_dir_sync_task(&mut self) -> ActionResponse {
+        let Some(synchronize_music_dir_task) = self.state.pending_music_dir_sync_task.take() else {
+            return ActionResponse::Rejected;
         };
         log::info!("Aborting synchronize music directory task");
         synchronize_music_dir_task.abort();
-        true
+        ActionResponse::Accepted
     }
 
     #[allow(clippy::must_use_candidate)]
     #[allow(clippy::missing_panics_doc)] // Never panics
-    pub fn try_view_music_dir_list<E>(
+    pub fn view_music_dir_list<E>(
         &mut self,
         rt: &tokio::runtime::Handle,
         event_emitter: &E,
         params: aoide::api::media::tracker::count_sources_in_directories::Params,
-    ) -> bool
+    ) -> ActionResponse
     where
         E: EventEmitter + Clone + 'static,
     {
         if !self.state.collection.is_ready() {
             log::debug!("Collection not ready");
-            return false;
+            return ActionResponse::Rejected;
         }
         let collection_uid = self.state.collection.entity_uid().expect("Some").clone();
         let handle = self.handle.clone();
@@ -445,17 +448,17 @@ impl Library {
             };
             event_emitter.emit_event(event).ok();
         });
-        true
+        ActionResponse::Accepted
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn try_refresh_collection_from_db(&self, rt: &tokio::runtime::Handle) -> bool {
+    pub fn refresh_collection_from_db(&self, rt: &tokio::runtime::Handle) -> ActionResponse {
         let Some((task, continuation)) = self
             .state_observables
             .collection
             .try_refresh_from_db_task(&self.handle)
         else {
-            return false;
+            return ActionResponse::Rejected;
         };
         log::debug!("Refreshing collection from DB");
         rt.spawn({
@@ -465,11 +468,11 @@ impl Library {
                 collection_state.refresh_from_db_task_completed(result, continuation);
             }
         });
-        true
+        ActionResponse::Accepted
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn try_search_tracks(&self, input: &str) -> bool {
+    pub fn search_tracks(&self, input: &str) -> ActionResponse {
         let filter = track_search::parse_filter_from_input(input);
         let mut params = aoide::api::track::search::Params {
             filter,
@@ -483,17 +486,17 @@ impl Library {
             .try_update_params(&mut params)
         {
             log::debug!("Track search params not updated: {params:?}");
-            return false;
+            return ActionResponse::Rejected;
         }
-        true
+        ActionResponse::Accepted
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn try_spawn_fetch_more_track_search_results_task<E>(
+    pub fn spawn_fetch_more_track_search_results_task<E>(
         &self,
         tokio_rt: &tokio::runtime::Handle,
         event_emitter: &E,
-    ) -> bool
+    ) -> ActionResponse
     where
         E: EventEmitter + Clone + 'static,
     {
@@ -502,7 +505,7 @@ impl Library {
             .track_search
             .try_fetch_more_task(&self.handle, Some(track_search::DEFAULT_PREFETCH_LIMIT))
         else {
-            return false;
+            return ActionResponse::Rejected;
         };
         log::debug!("Fetching more track search results");
         let event_emitter = event_emitter.clone();
@@ -518,7 +521,7 @@ impl Library {
                 )
                 .ok();
         });
-        true
+        ActionResponse::Accepted
     }
 
     #[allow(clippy::must_use_candidate)]
