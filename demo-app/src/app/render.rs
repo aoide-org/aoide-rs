@@ -234,8 +234,10 @@ fn render_central_panel(
                         };
                         ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
                             let artwork_button = ImageButton::new(artwork_texture).frame(false);
-                            let artwork_response = ui.add(artwork_button);
+                            let mut artwork_response = ui.add(artwork_button);
                             if let Some(content_url) = &item.content_url {
+                                let file_location = content_url.to_file_path().map_or_else(|()| content_url.to_string(), |path| path.display().to_string());
+                                artwork_response = artwork_response.on_hover_text_at_pointer(file_location);
                                 // Demo interaction handler that simply opens the content URL in a new (browser) tab.
                                 if artwork_response.clicked() || artwork_response.middle_clicked() {
                                     ui.ctx().open_url(OpenUrl {
