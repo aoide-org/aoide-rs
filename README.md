@@ -33,7 +33,9 @@ config directory of your platform. See the log messages for the file path.
 
 ### Metadata, tags, and searching
 
-### BPM filter
+Click on the artwork thumbnail for opening the file URL.
+
+#### BPM filter
 
 Tracks can be filtered by BPM using `+<digits>` (_greater-or-equal_) and `-<digits>`
 (_less-or-equal_).

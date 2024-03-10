@@ -3,8 +3,8 @@
 
 use eframe::Frame;
 use egui::{
-    load::SizedTexture, Align, Button, CentralPanel, Context, Grid, Hyperlink, Layout, ScrollArea,
-    TextEdit, TopBottomPanel,
+    load::SizedTexture, Align, Button, CentralPanel, Context, Grid, ImageButton, Layout, OpenUrl,
+    ScrollArea, TextEdit, TopBottomPanel,
 };
 
 use crate::library::{
@@ -208,7 +208,7 @@ fn render_central_panel(
                 .text_style_height(&text_style)
                 .max(ARTWORK_THUMBNAIL_IMAGE_SIZE as _);
             let total_rows = track_list.len();
-            ScrollArea::both().drag_to_scroll(true).show_rows(
+            ScrollArea::both().show_rows(
             ui,
             row_height,
             total_rows,
@@ -228,19 +228,24 @@ fn render_central_panel(
                             item.artwork_thumbnail_texture.size_vec2().x,
                             item.artwork_thumbnail_texture.size_vec2().y
                         );
-                        let texture = SizedTexture {
+                        let artwork_texture = SizedTexture {
                             id: item.artwork_thumbnail_texture.id(),
                             size: egui::Vec2::new(row_height, row_height),
                         };
                         ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-                            ui.image(texture);
-                            let label = track_list_item_label(item);
+                            let artwork_button = ImageButton::new(artwork_texture).frame(false);
+                            let artwork_response = ui.add(artwork_button);
                             if let Some(content_url) = &item.content_url {
-                                let hyperlink = Hyperlink::from_label_and_url(label, content_url).open_in_new_tab(true);
-                                ui.add(hyperlink);
-                            } else {
-                                ui.label(label);
+                                // Demo interaction handler that simply opens the content URL in a new (browser) tab.
+                                if artwork_response.clicked() || artwork_response.middle_clicked() {
+                                    ui.ctx().open_url(OpenUrl {
+                                        url: content_url.to_string(),
+                                        new_tab: true,
+                                    });
+                                }
                             }
+                            let label = track_list_item_label(item);
+                            ui.label(label);
                         });
                     }
                 })
