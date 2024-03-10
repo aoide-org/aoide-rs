@@ -98,7 +98,7 @@ pub fn thumbnail_png_data_uri(thumbnail: &Thumbnail4x4Rgb8) -> String {
             thumbnail,
             THUMBNAIL_WIDTH.into(),
             THUMBNAIL_HEIGHT.into(),
-            image::ColorType::Rgb8,
+            image::ExtendedColorType::Rgb8,
         )
         .expect("infallible");
     debug_assert!(png_data.len() <= 192);
