@@ -126,7 +126,7 @@ jobs:
         run: cat CHANGELOG.md | tail -n +7 | head -n 25 > RELEASE_NOTES.md
 
       - name: Create release draft
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.build_package }}-*/${{ matrix.build_package }}-*
           body_path: RELEASE_NOTES.md
