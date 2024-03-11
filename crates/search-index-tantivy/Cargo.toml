@@ -16,7 +16,7 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.80"
-strum = "0.26.1"
+strum = "0.26.2"
 log = "0.4.21"
 tantivy = "0.21.1"
 thiserror = "1.0.57"

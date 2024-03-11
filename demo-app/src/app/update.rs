@@ -41,7 +41,7 @@ impl<'a> UpdateContext<'a> {
                 LibraryAction::TrackSearch(action) => self.on_library_track_search_action(action),
             },
         };
-        if response.maybe_changed() {
+        if !response.is_unchanged() {
             ctx.request_repaint();
         }
     }
@@ -123,18 +123,14 @@ impl<'a> UpdateContext<'a> {
                         ),
                         ..Default::default()
                     };
-                    if library
-                        .view_music_dir_list(rt, *msg_tx, params)
-                        .maybe_changed()
-                    {
+                    let response = library.view_music_dir_list(rt, *msg_tx, params);
+                    if matches!(response, ActionResponse::Accepted) {
                         log::debug!("Switching to music dir list view");
                         *mode = Some(ModelMode::MusicDirList {
                             content_paths_with_count: vec![],
                         });
-                        ActionResponse::Accepted
-                    } else {
-                        ActionResponse::Rejected
                     }
+                    response
                 }
                 MediaTrackerDirListAction::CloseView => {
                     if let Some(ModelMode::MusicDirList { .. }) = mode {
@@ -168,21 +164,20 @@ impl<'a> UpdateContext<'a> {
     fn on_library_track_search_action(&mut self, action: TrackSearchAction) -> ActionResponse {
         let Self { rt, msg_tx, mdl } = self;
         let Model { library, mode, .. } = mdl;
-        let mut changed = false;
+        let mut mode_response = ActionResponse::Rejected;
         let mode = mode.get_or_insert_with(|| {
-            changed = true;
+            mode_response = mode_response.upgrade(ActionResponse::RejectedMaybeChanged);
             ModelMode::TrackSearch(Default::default())
         });
         let ModelMode::TrackSearch(track_search) = mode else {
             log::debug!("Rejecting track search action (invalid mode): {action:?}");
-            debug_assert!(!changed);
-            return ActionResponse::Rejected;
+            return mode_response;
         };
         let TrackSearchMode {
             track_list,
             memo_state,
         } = track_search;
-        let response = match action {
+        let action_response = match action {
             TrackSearchAction::Search(input) => {
                 memo_state.abort();
                 debug_assert!(matches!(memo_state, track_search::MemoState::Ready(_)));
@@ -286,11 +281,7 @@ impl<'a> UpdateContext<'a> {
                 }
             }
         };
-        if matches!(response, ActionResponse::Rejected) && changed {
-            ActionResponse::RejectedMaybeChanged
-        } else {
-            response
-        }
+        mode_response.upgrade(action_response)
     }
 
     fn on_event(&mut self, ctx: &Context, event: Event) {

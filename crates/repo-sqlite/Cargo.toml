@@ -20,7 +20,7 @@ diesel = { version = "2.1.4", default-features = false, features = ["sqlite", "6
 diesel_migrations =  { version = "2.1.0", default-features = false, features = ["sqlite"] }
 log = "0.4.21"
 mime = "0.3.17"
-strum = { version = "0.26.1", features = ["derive"] }
+strum = { version = "0.26.2", features = ["derive"] }
 unicase = "2.7.0"
 url = "2.5.0"
 

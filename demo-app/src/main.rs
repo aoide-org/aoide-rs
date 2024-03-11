@@ -5,8 +5,10 @@
 // #![allow(dead_code)]
 // #![allow(unreachable_pub)]
 
-use std::fs::create_dir_all;
-use std::path::{Path, PathBuf};
+use std::{
+    fs::create_dir_all,
+    path::{Path, PathBuf},
+};
 
 use directories::ProjectDirs;
 use log::LevelFilter;
@@ -26,9 +28,9 @@ pub struct NoReceiverForEvent;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[must_use]
 pub enum ActionResponse {
-    /// Rejected (and unchanged) or no effect.
+    /// Rejected (and unchanged), i.e. no effect.
     Rejected,
-    /// Rejected and maybe changed.
+    /// Rejected but maybe changed.
     RejectedMaybeChanged,
     /// Accepted (and maybe changed).
     Accepted,
@@ -36,10 +38,23 @@ pub enum ActionResponse {
 
 impl ActionResponse {
     #[must_use]
-    pub const fn maybe_changed(self) -> bool {
+    pub const fn is_unchanged(self) -> bool {
         match self {
-            Self::Rejected => false,
-            Self::RejectedMaybeChanged | Self::Accepted => true,
+            Self::Rejected => true,
+            Self::RejectedMaybeChanged | Self::Accepted => false,
+        }
+    }
+
+    pub fn upgrade(self, upgrade: Self) -> Self {
+        match (self, upgrade) {
+            (Self::Rejected, Self::Rejected) => Self::Rejected,
+            (_, Self::Accepted) => Self::Accepted,
+            (Self::Accepted, Self::Rejected | Self::RejectedMaybeChanged) => {
+                unreachable!("downgrade is not allowed");
+            }
+            (Self::RejectedMaybeChanged, _) | (_, Self::RejectedMaybeChanged) => {
+                Self::RejectedMaybeChanged
+            }
         }
     }
 }
