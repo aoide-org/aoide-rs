@@ -15,7 +15,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.80"
+anyhow = "1.0.81"
 aho-corasick = "1.1.2"
 bitflags = "2.4.2"
 data-encoding = "2.5.0"
@@ -33,7 +33,7 @@ time = { version = "0.3.34", features = [
     "parsing",
     "formatting",
 ] }
-thiserror = "1.0.57"
+thiserror = "1.0.58"
 ulid = "1.1.2"
 url = "2.5.0"
 

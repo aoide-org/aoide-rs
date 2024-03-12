@@ -16,7 +16,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.80"
+anyhow = "1.0.81"
 directories = "5.0.1"
 discro = "0.29.1"
 itertools = "0.12.1"

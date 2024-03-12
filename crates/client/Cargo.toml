@@ -15,7 +15,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.80"
+anyhow = "1.0.81"
 bytes = "1.5.0"
 infect = "0.0.30"
 #infect = { git = "https://github.com/uklotzde/infect.git" }
@@ -26,7 +26,7 @@ serde_urlencoded = "0.7.1"
 static_assertions = "1.1.0"
 
 # Optional dependencies for feature webapi-backend
-reqwest = { version = "0.11.25", optional = true, default-features = false, features = [
+reqwest = { version = "0.11.26", optional = true, default-features = false, features = [
     "rustls-tls",
 ] }
 
