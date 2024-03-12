@@ -22,7 +22,7 @@ Populate a database from your local music files and submit search queries.
 - Run the `aoide-demo-app`:
 
   ```sh
-  RUST_LOG=info cargo run -p aoide-demo-app
+  cargo run -p aoide-demo-app
   ```
 
 The application creates one collection for each selected music directory and sets the title
