@@ -20,8 +20,8 @@ mod uc {
 }
 
 #[derive(Debug, Default, Serialize)]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct Summary {
     pub created: Vec<Entity>,
     pub updated: Vec<Entity>,

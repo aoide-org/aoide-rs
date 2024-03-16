@@ -20,8 +20,8 @@ pub mod untrack_directories;
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct FsTraversalParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub root_url: Option<Url>,
@@ -225,8 +225,8 @@ impl From<_core::Completion> for Completion {
 #[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct Status {
     pub directories: DirectoriesStatus,
 }
@@ -254,8 +254,8 @@ impl From<Status> for _core::Status {
 #[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct DirectoriesStatus {
     pub current: usize,
     pub outdated: usize,
@@ -306,8 +306,8 @@ impl From<DirectoriesStatus> for _core::DirectoriesStatus {
 
 // Used both in requests and responses.
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub enum DirTrackingStatus {
     Current,
     Outdated,

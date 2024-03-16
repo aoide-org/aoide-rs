@@ -12,8 +12,8 @@ mod uc {
 }
 
 #[derive(Debug, Deserialize)]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct QueryParams {
     // TODO: Add export options
 }

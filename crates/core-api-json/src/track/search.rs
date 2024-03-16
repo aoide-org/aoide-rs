@@ -122,8 +122,8 @@ impl From<_inner::SortField> for SortField {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct SortOrder(SortField, SortDirection);
 
 #[cfg(feature = "backend")]
@@ -628,8 +628,8 @@ impl From<_inner::Filter> for Filter {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolve_url_from_content_path: Option<bool>,
@@ -655,8 +655,8 @@ pub struct QueryParams {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct SearchParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub filter: Option<Filter>,
