@@ -5,20 +5,21 @@ use aoide_storage_sqlite::connection::{
     pool::{create_connection_pool, gatekeeper::Gatekeeper, get_pooled_connection},
     Config as ConnectionConfig,
 };
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum DatabaseSchemaMigrationMode {
     DontTouch,
     #[default]
     ApplyPending,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DatabaseConfig {
     pub connection: ConnectionConfig,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub migrate_schema: Option<DatabaseSchemaMigrationMode>,
 }
 

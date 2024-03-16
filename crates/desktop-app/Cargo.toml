@@ -28,15 +28,13 @@ url = { version = "2.5.0", features = ["serde"] }
 # Workspace dependencies
 aoide-backend-embedded = { version = "=0.0.0", path = "../backend-embedded", features = [
     "tokio",
+    "serde",
 ] }
 aoide-core = { version = "=0.0.0", path = "../core" }
 aoide-core-api = { version = "=0.0.0", path = "../core-api" }
 aoide-media-file = { version = "=0.0.0", path = "../media-file" }
 aoide-repo = { version = "=0.0.0", path = "../repo" }
-aoide-storage-sqlite = { version = "=0.0.0", path = "../storage-sqlite", features = [
-    "serde",
-    "tokio",
-] }
+aoide-storage-sqlite = { version = "=0.0.0", path = "../storage-sqlite" }
 
 [dependencies.rfd]
 version = "0.14.0"

@@ -18,7 +18,6 @@ workspace = true
 anyhow = "1.0.81"
 diesel = { version = "2.1.5", default-features = false, features = ["sqlite"] }
 log = "0.4.21"
-serde = { version = "1.0.197", features = ["derive"] }
 thiserror = "1.0.58"
 
 # Workspace dependencies
@@ -27,9 +26,12 @@ aoide-core-api = { version = "=0.0.0", path = "../core-api" }
 aoide-media-file = { version = "=0.0.0", path = "../media-file" }
 aoide-repo = { version = "=0.0.0", path = "../repo" }
 aoide-repo-sqlite = { version = "=0.0.0", path = "../repo-sqlite" }
-aoide-storage-sqlite = { version = "=0.0.0", path = "../storage-sqlite", features = ["serde", "tokio"] }
+aoide-storage-sqlite = { version = "=0.0.0", path = "../storage-sqlite" }
 aoide-usecases = { version = "=0.0.0", path = "../usecases" }
 aoide-usecases-sqlite = { version = "=0.0.0", path = "../usecases-sqlite" }
+
+# Optional: Serde for serialization of config files.
+serde = { version = "1.0.197", features = ["derive"], optional = true }
 
 # Optional: Tokio runtime to abort long-running, asynchronous tasks
 tokio = { version = "1.36.0", optional = true }
@@ -40,5 +42,6 @@ tantivy = { version = "0.21.1", optional = true }
 
 [features]
 default = []
+serde = ["dep:serde", "aoide-storage-sqlite/serde"]
 tantivy = ["dep:aoide-search-index-tantivy", "dep:tantivy"]
-tokio = ["dep:tokio"]
+tokio = ["dep:tokio", "aoide-storage-sqlite/tokio"]
