@@ -38,12 +38,12 @@ pre-commit:
 
 # Check all lib/bin projects individually with selected features (takes a long time)
 check-crates:
-    cargo hack --each-feature --exclude-features js,json-api check --locked --all-targets -p aoide
+    cargo hack --each-feature --exclude-features json-api check --locked --all-targets -p aoide
     cargo hack --feature-powerset --exclude-features js check --locked --all-targets -p aoide-core
-    cargo hack --feature-powerset --exclude-features js check --locked --all-targets -p aoide-core-json
-    cargo hack --feature-powerset --exclude-features js check --locked --all-targets -p aoide-core-api
-    cargo hack --feature-powerset --exclude-features js check --locked --all-targets -p aoide-repo
-    cargo hack --feature-powerset --exclude-features js check --locked --all-targets -p aoide-usecases
+    cargo hack --feature-powerset check --locked --all-targets -p aoide-core-json
+    cargo hack --feature-powerset check --locked --all-targets -p aoide-core-api
+    cargo hack --feature-powerset check --locked --all-targets -p aoide-repo
+    cargo hack --feature-powerset check --locked --all-targets -p aoide-usecases
     cargo check --locked --all-targets --features frontend -p aoide-core-api-json
     cargo check --locked --all-targets --features backend -p aoide-core-api-json
     cargo check --locked --all-targets --features backend,frontend,json-schema -p aoide-core-api-json
@@ -63,13 +63,13 @@ check-crates:
 check-crates-wasm:
     cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core
     cargo check --locked --all-targets --features js,serde --target wasm32-unknown-unknown -p aoide-core
-    cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core-json
-    cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core-api
-    cargo check --locked --all-targets --features js,frontend --target wasm32-unknown-unknown -p aoide-core-api-json
-    cargo check --locked --all-targets --features js,backend --target wasm32-unknown-unknown -p aoide-core-api-json
-    cargo check --locked --all-targets --features js,backend,frontend --target wasm32-unknown-unknown -p aoide-core-api-json
-    cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-repo
-    cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-usecases
+    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-json
+    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-api
+    cargo check --locked --all-targets --features frontend --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets --features backend --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets --features backend,frontend --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-repo
+    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-usecases
 
 # Run clippy on the workspace (both dev and release profile)
 clippy:
