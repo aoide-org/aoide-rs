@@ -15,12 +15,28 @@ pub type TimestampMillis = i64;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(transparent)
-)]
 pub struct OffsetDateTimeMs(OffsetDateTime);
+
+// Serialize (and deserialize) as string for maximum compatibility and portability
+#[cfg(feature = "serde")]
+impl serde::Serialize for OffsetDateTimeMs {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        time::serde::rfc3339::serialize(&self.0, serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for OffsetDateTimeMs {
+    fn deserialize<D>(deserializer: D) -> Result<OffsetDateTimeMs, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        time::serde::rfc3339::deserialize(deserializer).map(OffsetDateTimeMs::clamp_from)
+    }
+}
 
 const NANOS_PER_MILLISECOND: i128 = 1_000_000;
 

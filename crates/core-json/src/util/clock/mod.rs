@@ -22,7 +22,7 @@ mod _core {
 // DateTime
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(transparent)]
 #[cfg_attr(
     feature = "json-schema",
@@ -47,27 +47,6 @@ impl From<DateTime> for _core::OffsetDateTimeMs {
     fn from(from: DateTime) -> Self {
         let DateTime { inner } = from;
         inner
-    }
-}
-
-// Serialize (and deserialize) as string for maximum compatibility and portability
-impl Serialize for DateTime {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        time::serde::rfc3339::serialize(self.inner.as_ref(), serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for DateTime {
-    fn deserialize<D>(deserializer: D) -> Result<DateTime, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        time::serde::rfc3339::deserialize(deserializer)
-            .map(_core::OffsetDateTimeMs::clamp_from)
-            .map(Into::into)
     }
 }
 
