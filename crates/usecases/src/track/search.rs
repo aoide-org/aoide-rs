@@ -4,14 +4,13 @@
 use std::time::Instant;
 
 use aoide_core::track::Entity;
-use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::search::*};
+use aoide_core_api::track::search::*;
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     track::{CollectionRepo as TrackCollectionRepo, RecordHeader},
 };
 
 use super::*;
-use crate::collection::vfs::RepoContext;
 
 pub fn search<Repo>(
     repo: &mut Repo,
@@ -33,6 +32,7 @@ where
     Ok(num_tracks)
 }
 
+#[cfg(not(target_family = "wasm"))]
 pub fn search_with_params<Repo>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,
@@ -48,42 +48,60 @@ where
         filter,
         ordering,
     } = params;
-    let collection_ctx = RepoContext::resolve_override(
+    let collection_ctx = crate::collection::vfs::RepoContext::resolve_override(
         repo,
         collection_uid,
         None,
         resolve_url_from_content_path
             .as_ref()
-            .and_then(ResolveUrlFromContentPath::override_root_url)
+            .and_then(aoide_core_api::media::source::ResolveUrlFromContentPath::override_root_url)
             .map(ToOwned::to_owned),
     )?;
     let collection_id = collection_ctx.record_id;
     if resolve_url_from_content_path.is_some() {
-        #[cfg(not(target_family = "wasm"))]
-        {
-            let Some(resolver) = collection_ctx.content_path.resolver else {
-                let path_kind = collection_ctx.content_path.kind;
-                return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
-            };
-            let mut collector = super::vfs::ResolveUrlFromVirtualFilePathCollector {
-                resolver,
-                collector,
-            };
-            search(
-                repo,
-                collection_id,
-                pagination,
-                filter,
-                ordering,
-                &mut collector,
-            )
-        }
-        #[cfg(target_family = "wasm")]
-        {
-            // TODO: Support relative paths for URLs?
-            log::warn!("Ignoring unsupported parameter {resolve_url_from_content_path:?}");
-            search(repo, collection_id, pagination, filter, ordering, collector)
-        }
+        let Some(resolver) = collection_ctx.content_path.resolver else {
+            let path_kind = collection_ctx.content_path.kind;
+            return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
+        };
+        let mut collector = super::vfs::ResolveUrlFromVirtualFilePathCollector {
+            resolver,
+            collector,
+        };
+        search(
+            repo,
+            collection_id,
+            pagination,
+            filter,
+            ordering,
+            &mut collector,
+        )
+    } else {
+        search(repo, collection_id, pagination, filter, ordering, collector)
+    }
+    .map_err(Into::into)
+}
+
+#[cfg(target_family = "wasm")]
+pub fn search_with_params<Repo>(
+    repo: &mut Repo,
+    collection_uid: &CollectionUid,
+    params: Params,
+    pagination: &Pagination,
+    collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
+) -> Result<usize>
+where
+    Repo: CollectionRepo + TrackCollectionRepo,
+{
+    let Params {
+        resolve_url_from_content_path,
+        filter,
+        ordering,
+    } = params;
+    let collection_id = repo.resolve_collection_id(collection_uid)?;
+    if resolve_url_from_content_path.is_some() {
+        // TODO: Support relative paths for URLs?
+        log::warn!("Ignoring unsupported parameter {resolve_url_from_content_path:?}");
+        search(repo, collection_id, pagination, filter, ordering, collector)
     } else {
         search(repo, collection_id, pagination, filter, ordering, collector)
     }

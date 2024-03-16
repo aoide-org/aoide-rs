@@ -10,6 +10,7 @@ use aoide_repo::collection::EntityRepo;
 
 use super::*;
 
+#[cfg(not(target_family = "wasm"))]
 pub mod vfs;
 
 #[derive(Debug)]
