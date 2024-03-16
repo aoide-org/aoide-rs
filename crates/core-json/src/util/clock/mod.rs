@@ -24,6 +24,7 @@ mod _core {
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(transparent)]
+#[serde(transparent)]
 #[cfg_attr(
     feature = "json-schema",
     derive(schemars::JsonSchema),
@@ -149,6 +150,12 @@ impl<'de> Deserialize<'de> for YyyyMmDdDate {
 pub enum DateOrDateTime {
     Date(YyyyMmDdDate),
     DateTime(DateTime),
+}
+
+impl From<DateTime> for DateOrDateTime {
+    fn from(from: DateTime) -> Self {
+        Self::DateTime(from)
+    }
 }
 
 impl From<_core::DateOrDateTime> for DateOrDateTime {

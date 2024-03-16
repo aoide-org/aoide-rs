@@ -28,7 +28,7 @@ fn deserialize_audio_source() {
     let now = OffsetDateTimeMs::now_local_or_utc();
     let content_rev = ContentRevision::new(345);
     let json = serde_json::json!({
-        "collectedAt": now.to_string(),
+        "collectedAt": now,
         "content": {
             "link": {
                 "path": "/home/test file.mp3",

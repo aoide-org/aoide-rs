@@ -88,3 +88,17 @@ fn validate_date() {
     assert!(!YyyyMmDdDate::new_unchecked(1_996_000).is_valid());
     assert!(!YyyyMmDdDate::new_unchecked(119_960_001).is_valid());
 }
+
+#[cfg(feature = "serde")]
+#[test]
+fn deserialize_date_time() {
+    use time::macros::datetime;
+
+    assert_eq!(
+        OffsetDateTimeMs::new_unchecked(datetime!(2020-12-18 21:27:15.123 UTC)),
+        serde_json::from_value::<OffsetDateTimeMs>(serde_json::json!(
+            "2020-12-18T21:27:15.123456Z"
+        ))
+        .unwrap()
+    );
+}

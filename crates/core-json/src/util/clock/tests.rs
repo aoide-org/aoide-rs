@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::util::clock::{YyyyMmDdDate, YEAR_MAX, YEAR_MIN};
+use aoide_core::util::clock::{OffsetDateTimeMs, YyyyMmDdDate, YEAR_MAX, YEAR_MIN};
 use serde_json::json;
 
 use super::*;
@@ -148,4 +148,15 @@ fn deserialize_year_month_day() {
     assert!(serde_json::from_value::<DateOrDateTime>(json!(19_961_301)).is_err());
     assert!(serde_json::from_value::<DateOrDateTime>(json!(19_960_631)).is_err());
     assert!(serde_json::from_value::<DateOrDateTime>(json!(19_960_001)).is_err());
+}
+
+#[test]
+fn deserialize_date_time() {
+    assert_eq!(
+        DateTime::from(
+            serde_json::from_value::<OffsetDateTimeMs>(json!("2020-12-18T21:27:15.123456Z"))
+                .unwrap()
+        ),
+        serde_json::from_value::<DateTime>(json!("2020-12-18T21:27:15.123456Z")).unwrap(),
+    );
 }

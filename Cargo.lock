@@ -254,6 +254,7 @@ dependencies = [
  "schemars",
  "semval",
  "serde",
+ "serde_json",
  "strum",
  "thiserror",
  "time",
