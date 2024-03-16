@@ -131,6 +131,7 @@ json-schema = [
   "json",
   "aoide-core/json-schema",
   "aoide-core-api-json?/json-schema",
+  "aoide-core-json?/json-schema",
 ]
 
 # JavaScript/WASM features
