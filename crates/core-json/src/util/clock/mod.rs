@@ -24,8 +24,11 @@ mod _core {
 
 #[derive(Debug, PartialEq, Eq)]
 #[repr(transparent)]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
-#[cfg_attr(feature = "json-schema", schemars(transparent))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(transparent)
+)]
 pub struct DateTime {
     #[cfg_attr(
         feature = "json-schema",

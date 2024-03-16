@@ -15,6 +15,11 @@ pub type TimestampMillis = i64;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(transparent)
+)]
 pub struct OffsetDateTimeMs(OffsetDateTime);
 
 const NANOS_PER_MILLISECOND: i128 = 1_000_000;

@@ -17,8 +17,11 @@ mod _core {
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 #[cfg_attr(test, derive(Clone))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
-#[cfg_attr(feature = "json-schema", schemars(transparent))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(transparent)
+)]
 pub struct FacetKey {
     #[cfg_attr(feature = "json-schema", schemars(with = "String"))]
     inner: _core::FacetKey<'static>,
@@ -96,8 +99,11 @@ impl<'de> Deserialize<'de> for FacetKey {
 #[derive(Debug)]
 #[repr(transparent)]
 #[cfg_attr(test, derive(Clone, PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
-#[cfg_attr(feature = "json-schema", schemars(transparent))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(transparent)
+)]
 pub struct Label {
     #[cfg_attr(feature = "json-schema", schemars(with = "String"))]
     inner: _core::Label<'static>,

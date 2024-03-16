@@ -304,6 +304,7 @@ impl From<DirectoriesStatus> for _core::DirectoriesStatus {
     }
 }
 
+// Used both in requests and responses.
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
