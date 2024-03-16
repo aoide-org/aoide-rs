@@ -12,7 +12,7 @@ use aoide_core::{
 };
 use aoide_core_api::{track::search::Params, Pagination};
 
-use crate::{environment::Handle, JoinedTask, Observable, ObservableReader, ObservableRef};
+use crate::{Handle, JoinedTask, Observable, ObservableReader, ObservableRef};
 
 pub mod tasklet;
 

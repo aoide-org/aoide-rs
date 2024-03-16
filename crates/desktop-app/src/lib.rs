@@ -1,13 +1,16 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-mod environment;
 use std::ops::Deref;
 
 use discro::{Publisher, Ref, Subscriber};
 use tokio::task::JoinHandle;
 
-pub use self::environment::{Environment, Handle, WeakHandle};
+mod handle;
+pub use self::handle::{Handle, WeakHandle};
+
+// Re-export the embedded backend environment that is referenced by [`Handle`].
+pub use aoide_backend_embedded::Environment;
 
 /// File system utilities
 pub mod fs;

@@ -7,48 +7,8 @@ use std::{
 };
 
 use aoide_backend_embedded::storage::DatabaseConfig;
-use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
-/// Runtime environment for invoking operations
-///
-/// Holds the database connection.
-#[allow(missing_debug_implementations)]
-pub struct Environment {
-    db_gatekeeper: Gatekeeper,
-}
-
-impl Environment {
-    /// Set up the runtime environment
-    ///
-    /// Modifying the database configuration at runtime is not supported.
-    pub fn commission(db_config: &DatabaseConfig) -> anyhow::Result<Self> {
-        log::info!("Commissioning context");
-        let db_gatekeeper = aoide_backend_embedded::storage::provision_database(db_config)?;
-        Ok(Self { db_gatekeeper })
-    }
-
-    /// Prepare for shutting down
-    ///
-    /// Rejects new database requests. Pending requests could still proceed
-    /// until finished.
-    ///
-    /// It is safe to invoke this operation repeatedly.
-    pub fn decommission(&self) {
-        log::info!("Decommissioning context");
-        self.db_gatekeeper.decommission();
-    }
-
-    /// The [`Gatekeeper`] for accessing the database
-    pub const fn db_gatekeeper(&self) -> &Gatekeeper {
-        &self.db_gatekeeper
-    }
-}
-
-impl AsRef<Gatekeeper> for Environment {
-    fn as_ref(&self) -> &Gatekeeper {
-        self.db_gatekeeper()
-    }
-}
+use crate::Environment;
 
 /// Shared runtime environment handle
 ///
