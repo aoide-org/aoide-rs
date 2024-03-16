@@ -23,5 +23,3 @@ aoide-core = { version = "=0.0.0", path = "../core" }
 
 [features]
 default = []
-# Feature to enable JavaScript bindings on wasm32-unknown-unknown
-js = ["aoide-core/js"]

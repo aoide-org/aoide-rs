@@ -33,8 +33,6 @@ aoide-core = { version = "=0.0.0", path = "../core", features = ["serde"] }
 [features]
 default = []
 json-schema = ["dep:schemars", "dep:chrono", "aoide-core/json-schema"]
-# Feature to enable JavaScript bindings on wasm32-unknown-unknown
-js = ["aoide-core/js"]
 
 [dev-dependencies]
 serde_json = "1.0.114"

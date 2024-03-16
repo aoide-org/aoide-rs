@@ -37,4 +37,3 @@ walkdir = { version = "2.5.0", optional = true }
 [features]
 default = []
 media-file = ["dep:aoide-media-file", "dep:blake3", "dep:url", "dep:walkdir"]
-js = ["aoide-core/js", "aoide-core-api/js", "aoide-repo/js"]

@@ -116,10 +116,7 @@ sqlite = [
   "dep:aoide-storage-sqlite",
   "dep:aoide-usecases-sqlite",
 ]
-sqlite-bundled = [
-  "sqlite",
-  "aoide-storage-sqlite/sqlite-bundled",
-]
+sqlite-bundled = ["sqlite", "aoide-storage-sqlite/sqlite-bundled"]
 tokio = ["aoide-backend-embedded?/tokio"]
 backend-embedded = ["media-file", "sqlite", "dep:aoide-backend-embedded"]
 desktop-app = ["backend-embedded", "dep:aoide-desktop-app"]
@@ -137,14 +134,7 @@ json-schema = [
 ]
 
 # JavaScript/WASM features
-js = [
-  "aoide-core/js",
-  "aoide-core-api?/js",
-  "aoide-core-api-json?/js",
-  "aoide-core-json?/js",
-  "aoide-repo?/js",
-  "aoide-usecases?/js",
-]
+js = ["aoide-core/js"]
 frontend-js = ["json-frontend", "js"]
 
 # Tantivy (experimental)
