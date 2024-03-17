@@ -5,11 +5,9 @@
 // #![allow(dead_code)]
 // #![allow(unreachable_pub)]
 
-use std::{
-    fs::create_dir_all,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
+use anyhow::{bail, Context as _};
 use directories::ProjectDirs;
 use log::LevelFilter;
 
@@ -67,6 +65,24 @@ const DEFAULT_LOG_FILTER_LEVEL: LevelFilter = LevelFilter::Info;
 #[cfg(not(debug_assertions))]
 const DEFAULT_LOG_FILTER_LEVEL: LevelFilter = LevelFilter::Warn;
 
+fn default_data_dir() -> anyhow::Result<PathBuf> {
+    let Some(dir_path) = app_data_dir() else {
+        bail!("default data directory is unavailable");
+    };
+    debug_assert!(dir_path.exists());
+    let readonly = dir_path
+        .metadata()
+        .map(|metadata| metadata.permissions().readonly())
+        .context("metadata")?;
+    if readonly {
+        log::warn!(
+            "Default data directory (read-only): {dir_path}",
+            dir_path = dir_path.display()
+        );
+    }
+    Ok(dir_path)
+}
+
 #[tokio::main]
 async fn main() {
     env_logger::Builder::new()
@@ -79,15 +95,7 @@ async fn main() {
         log::error!("Config directory is unavailable");
         return;
     };
-
-    if !config_dir.exists() {
-        log::error!(
-            "Config directory '{dir_path}' does not exist",
-            dir_path = config_dir.display()
-        );
-        return;
-    }
-
+    debug_assert!(config_dir.exists());
     match config_dir
         .metadata()
         .map(|metadata| metadata.permissions().readonly())
@@ -111,7 +119,7 @@ async fn main() {
     };
 
     let aoide_initial_settings =
-        match aoide::desktop_app::settings::State::restore_from_parent_dir(&config_dir) {
+        match aoide::desktop_app::settings::State::restore(&config_dir, default_data_dir) {
             Ok(settings) => settings,
             Err(err) => {
                 log::error!("Failed to restore aoide settings: {err}");
@@ -165,21 +173,43 @@ fn app_dirs() -> Option<ProjectDirs> {
     ProjectDirs::from("", "", app_name())
 }
 
+fn init_app_dir(app_dir: &Path) {
+    if let Err(err) = std::fs::create_dir_all(app_dir) {
+        log::error!(
+            "Failed to create app directory '{dir}': {err}",
+            dir = app_dir.display(),
+        );
+    } else {
+        debug_assert!(app_dir.exists());
+    }
+}
+
 #[must_use]
 fn init_config_dir(app_dirs: &ProjectDirs) -> &Path {
-    let app_config_dir = app_dirs.config_dir();
-    if let Err(err) = create_dir_all(app_config_dir) {
-        log::error!(
-            "Failed to create config directory '{dir}': {err}",
-            dir = app_config_dir.display(),
-        );
-    }
+    let app_config_dir = app_dirs.config_local_dir();
+    init_app_dir(app_config_dir);
     app_config_dir
 }
 
+#[must_use]
+fn init_data_dir(app_dirs: &ProjectDirs) -> &Path {
+    let app_data_dir = app_dirs.data_local_dir();
+    init_app_dir(app_data_dir);
+    app_data_dir
+}
+
+#[must_use]
 fn app_config_dir() -> Option<PathBuf> {
     app_dirs()
         .as_ref()
         .map(init_config_dir)
+        .map(Path::to_path_buf)
+}
+
+#[must_use]
+fn app_data_dir() -> Option<PathBuf> {
+    app_dirs()
+        .as_ref()
+        .map(init_data_dir)
         .map(Path::to_path_buf)
 }

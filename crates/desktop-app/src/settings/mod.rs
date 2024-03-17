@@ -45,18 +45,21 @@ pub struct State {
 }
 
 impl State {
-    pub fn restore_from_parent_dir(parent_dir: &Path) -> anyhow::Result<Self> {
+    pub fn restore(
+        config_dir: &Path,
+        default_data_dir: impl FnOnce() -> anyhow::Result<PathBuf>,
+    ) -> anyhow::Result<Self> {
         log::info!(
-            "Loading saved settings from: {parent_dir}",
-            parent_dir = parent_dir.display()
+            "Loading saved settings from: {config_dir}",
+            config_dir = config_dir.display()
         );
-        let mut settings = Self::load(parent_dir)
+        let mut settings = Self::load(config_dir)
             .map_err(|err| {
                 log::warn!("Failed to load saved settings: {err}");
             })
             .unwrap_or_default();
         if settings.database_url.is_none() {
-            let database_file_path = default_database_file_path(parent_dir.to_path_buf());
+            let database_file_path = default_database_file_path(default_data_dir()?);
             log::info!(
                 "Using default SQLite database: {database_file_path}",
                 database_file_path = database_file_path.display()
