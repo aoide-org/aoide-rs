@@ -351,10 +351,25 @@ pub struct EntriesSummary {
     pub tracks: TracksSummary,
 }
 
+impl EntriesSummary {
+    pub const EMPTY: Self = Self {
+        total_count: 0,
+        added_at_minmax: None,
+        tracks: TracksSummary::EMPTY,
+    };
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TracksSummary {
     pub total_count: usize,
     pub distinct_count: usize,
+}
+
+impl TracksSummary {
+    pub const EMPTY: Self = Self {
+        total_count: 0,
+        distinct_count: 0,
+    };
 }
 
 impl PlaylistWithEntries {
