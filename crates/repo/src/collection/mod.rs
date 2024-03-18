@@ -17,7 +17,9 @@ pub type RecordHeader = crate::RecordHeader<RecordId>;
 
 #[derive(Debug, Clone)]
 pub enum MediaSourceRootUrlFilter {
-    Equal(Option<BaseUrl>),
+    IsNone,
+    Equal(BaseUrl),
+    NotEqual(BaseUrl),
     Prefix(BaseUrl),
     PrefixOf(BaseUrl),
 }

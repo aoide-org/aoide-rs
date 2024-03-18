@@ -115,6 +115,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .and_then(|record| record.try_into().map_err(Into::into))
     }
 
+    #[allow(clippy::too_many_lines)] // TODO
     fn load_collection_entities(
         &mut self,
         kind_filter: Option<KindFilter<'_>>,
@@ -151,13 +152,16 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             // Media source root URL
             if let Some(media_source_root_url) = media_source_root_url {
                 match media_source_root_url {
+                    MediaSourceRootUrlFilter::IsNone => {
+                        target = target.filter(collection::media_source_root_url.is_null());
+                    }
                     MediaSourceRootUrlFilter::Equal(root_url) => {
-                        if let Some(root_url) = root_url {
-                            target = target
-                                .filter(collection::media_source_root_url.eq(root_url.as_str()));
-                        } else {
-                            target = target.filter(collection::media_source_root_url.is_null());
-                        }
+                        target =
+                            target.filter(collection::media_source_root_url.eq(root_url.as_str()));
+                    }
+                    MediaSourceRootUrlFilter::NotEqual(root_url) => {
+                        target =
+                            target.filter(collection::media_source_root_url.ne(root_url.as_str()));
                     }
                     MediaSourceRootUrlFilter::Prefix(prefix_url) => {
                         target = target.filter(sql_column_substr_prefix_eq(
@@ -196,9 +200,23 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             let (record_header, entity) = record.try_into()?;
             if let Some(media_source_root_url) = media_source_root_url {
                 match media_source_root_url {
+                    MediaSourceRootUrlFilter::IsNone => {
+                        debug_assert!(entity
+                            .body
+                            .media_source_config
+                            .content_path
+                            .root_url()
+                            .is_none());
+                    }
                     MediaSourceRootUrlFilter::Equal(root_url) => {
                         debug_assert_eq!(
-                            root_url.as_ref(),
+                            Some(root_url),
+                            entity.body.media_source_config.content_path.root_url()
+                        );
+                    }
+                    MediaSourceRootUrlFilter::NotEqual(root_url) => {
+                        debug_assert_ne!(
+                            Some(root_url),
                             entity.body.media_source_config.content_path.root_url()
                         );
                     }

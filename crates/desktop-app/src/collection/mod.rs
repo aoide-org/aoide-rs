@@ -151,7 +151,7 @@ impl RestoreOrCreateState {
         // that contains the music directory.
         let media_source_root_url_filter = match nested_music_dirs {
             NestedMusicDirectoriesStrategy::Permit => {
-                MediaSourceRootUrlFilter::Equal(Some(root_url.clone()))
+                MediaSourceRootUrlFilter::Equal(root_url.clone())
             }
             NestedMusicDirectoriesStrategy::Deny => {
                 MediaSourceRootUrlFilter::PrefixOf(root_url.clone())
