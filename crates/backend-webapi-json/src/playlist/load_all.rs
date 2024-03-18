@@ -38,9 +38,7 @@ pub fn handle_request(
         limit,
         offset,
     } = query_params;
-    let kind_filter = kind.map(|kind| KindFilter {
-        kind: Some(kind.into()),
-    });
+    let kind_filter = kind.map(|kind| KindFilter::Equal(kind.into()));
     let pagination = Pagination { limit, offset };
     let pagination: Option<_> = pagination.into();
     let mut collector = EntityWithEntriesSummaryCollector::default();

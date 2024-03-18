@@ -43,9 +43,7 @@ pub fn handle_request(
     } = query_params;
     // TODO: Optionally filter by media source root URL
     let media_source_root_url = None;
-    let kind_filter = kind.map(|kind| KindFilter {
-        kind: Some(kind.into()),
-    });
+    let kind_filter = kind.map(|kind| KindFilter::Equal(kind.into()));
     let load_scope = if summary.unwrap_or(false) {
         LoadScope::EntityWithSummary
     } else {

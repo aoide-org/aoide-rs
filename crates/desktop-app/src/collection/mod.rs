@@ -157,9 +157,7 @@ impl RestoreOrCreateState {
                 MediaSourceRootUrlFilter::PrefixOf(root_url.clone())
             }
         };
-        let kind_filter = kind.as_ref().map(|kind| KindFilter {
-            kind: Some(kind.clone().into()),
-        });
+        let kind_filter = kind.clone().map(|kind| KindFilter::Equal(kind.into()));
         let candidates = aoide_backend_embedded::collection::load_all(
             env.db_gatekeeper(),
             kind_filter.clone(),

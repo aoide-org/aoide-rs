@@ -165,13 +165,18 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         }
 
         if let Some(kind_filter) = kind_filter {
-            let KindFilter { kind } = kind_filter;
-            if let Some(kind) = kind {
-                target = target.filter(playlist::kind.eq(kind));
-            } else {
-                // Note: playlist::kind.eq(None) does not match NULL!
-                // <https://github.com/diesel-rs/diesel/issues/1306>
-                target = target.filter(playlist::kind.is_null());
+            match kind_filter {
+                KindFilter::IsNone => {
+                    // Note: playlist::kind.eq(None) does not match NULL!
+                    // <https://github.com/diesel-rs/diesel/issues/1306>
+                    target = target.filter(playlist::kind.is_null());
+                }
+                KindFilter::Equal(kind) => {
+                    target = target.filter(playlist::kind.eq(kind));
+                }
+                KindFilter::NotEqual(kind) => {
+                    target = target.filter(playlist::kind.ne(kind));
+                }
             }
         }
 

@@ -24,8 +24,10 @@ pub struct CollectionFilter {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KindFilter<'a> {
-    pub kind: Option<Cow<'a, str>>,
+pub enum KindFilter<'a> {
+    IsNone,
+    Equal(Cow<'a, str>),
+    NotEqual(Cow<'a, str>),
 }
 
 pub trait EntityRepo: EntryRepo {
