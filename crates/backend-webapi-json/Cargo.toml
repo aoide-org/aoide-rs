@@ -24,7 +24,7 @@ url = "2.5.0"
 
 # tracing
 tracing = { version = "0.1.40", features = ["log"] }
-uuid = { version = "1.7.0", features = ["v4"] }
+uuid = { version = "1.8.0", features = ["v4"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.16", optional = true }

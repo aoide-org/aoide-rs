@@ -78,7 +78,7 @@ optional = true
 default-features = false
 
 [dependencies.rfd]
-version = "0.14.0"
+version = "0.14.1"
 optional = true
 default-features = false
 features = ["tokio", "xdg-portal"]
