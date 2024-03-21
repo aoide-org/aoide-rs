@@ -702,9 +702,7 @@ impl ObservableState {
             pending_state_params = Some((pending_state, params));
             true
         });
-        let Some((pending_state, params)) = pending_state_params else {
-            return None;
-        };
+        let (pending_state, params) = pending_state_params?;
         let handle = handle.clone();
         let task = async move { refresh_state_from_db(handle, params).await };
         let continuation = RefreshFromDbTaskContinuation { pending_state };
@@ -782,9 +780,7 @@ impl ObservableState {
             pending_state_entity_uid = Some((pending_state, entity_uid));
             true
         });
-        let Some((pending_state, entity_uid)) = pending_state_entity_uid else {
-            return None;
-        };
+        let (pending_state, entity_uid) = pending_state_entity_uid?;
         debug_assert!(matches!(pending_state, State::Synchronizing { .. }));
         let handle = handle.clone();
         let task = async move {

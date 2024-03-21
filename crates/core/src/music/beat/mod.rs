@@ -106,8 +106,7 @@ impl Validate for TimeSignature {
             )
             .invalidate_if(
                 self.beat_unit
-                    .map(|beat_unit| is_valid_beat_unit(beat_unit).not())
-                    .unwrap_or_default(),
+                    .is_some_and(|beat_unit| is_valid_beat_unit(beat_unit).not()),
                 Self::Invalidity::BeatUnit,
             )
             .into()

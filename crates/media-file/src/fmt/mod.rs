@@ -147,9 +147,7 @@ pub(crate) fn take_primary_or_first_tag(tagged_file: &mut TaggedFile) -> Option<
     if let Some(tag) = tagged_file.remove(tagged_file.primary_tag_type()) {
         return Some(tag);
     }
-    let Some(first_tag_type) = tagged_file.first_tag().map(Tag::tag_type) else {
-        return None;
-    };
+    let first_tag_type = tagged_file.first_tag().map(Tag::tag_type)?;
     tagged_file.remove(first_tag_type)
 }
 
