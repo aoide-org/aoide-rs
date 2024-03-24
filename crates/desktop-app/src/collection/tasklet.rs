@@ -8,7 +8,7 @@ use std::{
 
 use unnest::some_or_break;
 
-use super::{NestedMusicDirectoriesStrategy, ObservableState};
+use super::{NestedMusicDirectoriesStrategy, ObservableState, RestoreEntityStrategy};
 use crate::{fs::DirPath, settings, Handle, WeakHandle};
 
 async fn try_update_music_dir(
@@ -17,14 +17,14 @@ async fn try_update_music_dir(
     handle: Handle,
     music_dir: Option<DirPath<'static>>,
     collection_kind: Option<String>,
-    create_new_entity_if_not_found: bool,
-    nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
+    restore_entity: RestoreEntityStrategy,
+    nested_music_directories: NestedMusicDirectoriesStrategy,
 ) -> bool {
     if !observable_state.try_update_music_dir(
         collection_kind.map(Into::into),
         music_dir,
-        create_new_entity_if_not_found,
-        nested_music_directories_strategy,
+        restore_entity,
+        nested_music_directories,
     ) {
         // Unchanged
         return false;
@@ -58,8 +58,8 @@ pub fn on_settings_state_changed(
     settings_state: &Arc<settings::ObservableState>,
     observable_state: Weak<ObservableState>,
     handle: WeakHandle,
-    create_new_entity_if_not_found: bool,
-    nested_music_directories_strategy: NestedMusicDirectoriesStrategy,
+    restore_entity: RestoreEntityStrategy,
+    nested_music_directories: NestedMusicDirectoriesStrategy,
 ) -> impl Future<Output = ()> + Send + 'static {
     let mut settings_state_sub = settings_state.subscribe_changed();
     let settings_state = Arc::downgrade(settings_state);
@@ -82,8 +82,8 @@ pub fn on_settings_state_changed(
                     handle,
                     music_dir,
                     collection_kind,
-                    create_new_entity_if_not_found,
-                    nested_music_directories_strategy,
+                    restore_entity,
+                    nested_music_directories,
                 )
                 .await;
             }

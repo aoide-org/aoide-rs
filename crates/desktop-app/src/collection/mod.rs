@@ -70,16 +70,27 @@ pub fn vfs_music_dir(collection: &Collection) -> Option<DirPath<'static>> {
 // Always load a collection with the summary.
 const ENTITY_LOAD_SCOPE: LoadScope = LoadScope::EntityWithSummary;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NestedMusicDirectoriesStrategy {
-    /// Allow one collection per music directory without restrictions
-    /// on nesting.
-    Permit,
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum RestoreEntityStrategy {
+    /// Only try to load an existing collection.
+    #[default]
+    Load,
 
+    /// Create a new collection if no existing collection is found.
+    LoadOrCreateNew,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum NestedMusicDirectoriesStrategy {
     /// Prevent the creation of new collections for a music directory
     /// if collections for sub-directories already exist. Instead
     /// select an existing collection with the closest match.
+    #[default]
     Deny,
+
+    /// Allow one collection per music directory without restrictions
+    /// on nesting.
+    Permit,
 }
 
 async fn refresh_entity_from_db(
@@ -103,23 +114,12 @@ async fn refresh_entity_from_db(
     .map_err(Into::into)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RestoreOrCreateState {
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct RestoreState {
     kind: Option<String>,
     music_dir: DirPath<'static>,
-    create_new_entity_if_not_found: bool,
+    restore_entity: RestoreEntityStrategy,
     nested_music_dirs: NestedMusicDirectoriesStrategy,
-}
-
-impl Default for RestoreOrCreateState {
-    fn default() -> Self {
-        Self {
-            kind: None,
-            music_dir: Default::default(),
-            create_new_entity_if_not_found: false,
-            nested_music_dirs: NestedMusicDirectoriesStrategy::Deny,
-        }
-    }
 }
 
 fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
@@ -136,14 +136,14 @@ fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
     Ok((root_url, root_path))
 }
 
-impl RestoreOrCreateState {
+impl RestoreState {
     #[allow(clippy::missing_panics_doc)]
     #[allow(clippy::too_many_lines)] // TODO
-    pub async fn restore_or_create(self, env: &Environment) -> anyhow::Result<State> {
+    pub async fn restore(self, env: &Environment) -> anyhow::Result<State> {
         let Self {
             kind,
             music_dir,
-            create_new_entity_if_not_found,
+            restore_entity,
             nested_music_dirs,
         } = self;
         let (root_url, music_dir) = parse_music_dir_path(&music_dir)?;
@@ -214,44 +214,77 @@ impl RestoreOrCreateState {
                 None,
             )
             .await?;
-            let state = RestoreOrCreateState {
+            let state = RestoreState {
                 kind,
                 music_dir: music_dir.into(),
-                create_new_entity_if_not_found,
+                restore_entity,
                 nested_music_dirs,
             };
             return Ok(State::NestedMusicDirectoriesConflict { state, candidates });
         }
-        // Create a new collection
-        let new_collection = Collection {
-            title: music_dir.display().to_string(),
-            media_source_config: MediaSourceConfig {
-                content_path: ContentPathConfig::VirtualFilePath { root_url },
-            },
-            kind,
-            notes: None,
-            color: None,
-        };
-        let entity_uid =
-            aoide_backend_embedded::collection::create(env.db_gatekeeper(), new_collection)
-                .await?
-                .raw
-                .hdr
-                .uid;
-        // Reload the newly created entity with its summary
-        let entity_with_summary = aoide_backend_embedded::collection::load_one(
-            env.db_gatekeeper(),
-            entity_uid,
-            ENTITY_LOAD_SCOPE,
-        )
-        .await?;
-        log::info!(
-            "Created collection {uid} \"{title}\"",
-            uid = entity_with_summary.entity.hdr.uid,
-            title = entity_with_summary.entity.body.title,
-        );
-        let state = State::loading_succeeded(entity_with_summary);
-        Ok(state)
+        // No matching entity found.
+        match restore_entity {
+            RestoreEntityStrategy::Load => {
+                let state = RestoreState {
+                    kind,
+                    music_dir: music_dir.into(),
+                    restore_entity,
+                    nested_music_dirs,
+                };
+                Ok(State::RestoringFromMusicDirectoryFailed {
+                    state,
+                    error: RestoreFromMusicDirectoryError::EntityNotFound,
+                })
+            }
+            RestoreEntityStrategy::LoadOrCreateNew => {
+                // Create a new collection
+                let new_collection = Collection {
+                    title: music_dir.display().to_string(),
+                    media_source_config: MediaSourceConfig {
+                        content_path: ContentPathConfig::VirtualFilePath { root_url },
+                    },
+                    kind,
+                    notes: None,
+                    color: None,
+                };
+                let entity_uid =
+                    aoide_backend_embedded::collection::create(env.db_gatekeeper(), new_collection)
+                        .await?
+                        .raw
+                        .hdr
+                        .uid;
+                // Reload the newly created entity with its summary
+                let entity_with_summary = aoide_backend_embedded::collection::load_one(
+                    env.db_gatekeeper(),
+                    entity_uid,
+                    ENTITY_LOAD_SCOPE,
+                )
+                .await?;
+                log::info!(
+                    "Created collection {uid} \"{title}\"",
+                    uid = entity_with_summary.entity.hdr.uid,
+                    title = entity_with_summary.entity.body.title,
+                );
+                let state = State::loading_succeeded(entity_with_summary);
+                Ok(state)
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RestoreFromMusicDirectoryError {
+    EntityNotFound,
+    Other(String),
+}
+
+impl RestoreFromMusicDirectoryError {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::EntityNotFound => "entity not found",
+            Self::Other(error) => error,
+        }
     }
 }
 
@@ -262,16 +295,16 @@ impl RestoreOrCreateState {
 pub enum State {
     #[default]
     Void,
-    RestoringOrCreatingFromMusicDirectory {
-        state: RestoreOrCreateState,
+    RestoringFromMusicDirectory {
+        state: RestoreState,
         pending_since: Instant,
     },
-    RestoringOrCreatingFromMusicDirectoryFailed {
-        state: RestoreOrCreateState,
-        error: String,
+    RestoringFromMusicDirectoryFailed {
+        state: RestoreState,
+        error: RestoreFromMusicDirectoryError,
     },
     NestedMusicDirectoriesConflict {
-        state: RestoreOrCreateState,
+        state: RestoreState,
         candidates: Vec<EntityWithSummary>,
     },
     Loading {
@@ -310,13 +343,13 @@ impl State {
         match self {
             Self::Void
             | Self::NestedMusicDirectoriesConflict { .. }
-            | Self::RestoringOrCreatingFromMusicDirectoryFailed { .. }
+            | Self::RestoringFromMusicDirectoryFailed { .. }
             | Self::LoadingFailed { .. }
             | Self::SynchronizingFailed { .. }
             | Self::SynchronizingSucceeded { .. }
             | Self::SynchronizingAborted { .. }
             | Self::Ready { .. } => None,
-            Self::RestoringOrCreatingFromMusicDirectory { pending_since, .. }
+            Self::RestoringFromMusicDirectory { pending_since, .. }
             | Self::Loading { pending_since, .. }
             | Self::Synchronizing { pending_since, .. } => Some(*pending_since),
         }
@@ -336,9 +369,9 @@ impl State {
             | Self::SynchronizingAborted { .. } => true,
             Self::Void
             | Self::NestedMusicDirectoriesConflict { .. }
-            | Self::RestoringOrCreatingFromMusicDirectoryFailed { .. }
+            | Self::RestoringFromMusicDirectoryFailed { .. }
             | Self::LoadingFailed { .. }
-            | Self::RestoringOrCreatingFromMusicDirectory { .. }
+            | Self::RestoringFromMusicDirectory { .. }
             | Self::Loading { .. }
             | Self::Ready { .. } => false,
         }
@@ -374,16 +407,16 @@ impl State {
             | Self::SynchronizingSucceeded { entity, .. }
             | Self::SynchronizingAborted { entity, .. }
             | Self::Ready { entity, .. } => vfs_music_dir(&entity.body),
-            Self::RestoringOrCreatingFromMusicDirectory {
-                state: RestoreOrCreateState { music_dir, .. },
+            Self::RestoringFromMusicDirectory {
+                state: RestoreState { music_dir, .. },
                 ..
             }
-            | Self::RestoringOrCreatingFromMusicDirectoryFailed {
-                state: RestoreOrCreateState { music_dir, .. },
+            | Self::RestoringFromMusicDirectoryFailed {
+                state: RestoreState { music_dir, .. },
                 ..
             }
             | Self::NestedMusicDirectoriesConflict {
-                state: RestoreOrCreateState { music_dir, .. },
+                state: RestoreState { music_dir, .. },
                 ..
             } => Some(music_dir.borrowed()),
         }
@@ -398,8 +431,8 @@ impl State {
     pub fn entity_brief(&self) -> Option<(&EntityUid, Option<&Collection>)> {
         match self {
             Self::Void
-            | Self::RestoringOrCreatingFromMusicDirectory { .. }
-            | Self::RestoringOrCreatingFromMusicDirectoryFailed { .. }
+            | Self::RestoringFromMusicDirectory { .. }
+            | Self::RestoringFromMusicDirectoryFailed { .. }
             | Self::NestedMusicDirectoriesConflict { .. } => None,
             Self::Loading {
                 entity_uid,
@@ -430,11 +463,12 @@ impl State {
     #[must_use]
     pub fn last_error(&self) -> Option<&str> {
         match self {
-            Self::RestoringOrCreatingFromMusicDirectoryFailed { error, .. }
-            | Self::LoadingFailed { error, .. }
-            | Self::SynchronizingFailed { error, .. } => Some(error.as_str()),
+            Self::RestoringFromMusicDirectoryFailed { error, .. } => Some(error.as_str()),
+            Self::LoadingFailed { error, .. } | Self::SynchronizingFailed { error, .. } => {
+                Some(error.as_str())
+            }
             Self::Void
-            | Self::RestoringOrCreatingFromMusicDirectory { .. }
+            | Self::RestoringFromMusicDirectory { .. }
             | Self::NestedMusicDirectoriesConflict { .. }
             | Self::Loading { .. }
             | Self::Synchronizing { .. }
@@ -459,7 +493,7 @@ impl State {
         &mut self,
         new_kind: Option<Cow<'_, str>>,
         new_music_dir: DirPath<'_>,
-        create_new_entity_if_not_found: bool,
+        restore_entity: RestoreEntityStrategy,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> bool {
         if self.is_pending() {
@@ -482,10 +516,9 @@ impl State {
                 }
             }
             Self::NestedMusicDirectoriesConflict {
-                state:
-                    RestoreOrCreateState {
-                        kind, music_dir, ..
-                    },
+                state: RestoreState {
+                    kind, music_dir, ..
+                },
                 ..
             } => {
                 // When set the `kind` controls the selection of collections by music directory.
@@ -504,13 +537,13 @@ impl State {
                 // Proceed without any checks.
             }
         }
-        let state = RestoreOrCreateState {
+        let state = RestoreState {
             kind: new_kind.map(Into::into),
             music_dir: new_music_dir.into_owned(),
-            create_new_entity_if_not_found,
+            restore_entity,
             nested_music_dirs,
         };
-        let new_self = Self::RestoringOrCreatingFromMusicDirectory {
+        let new_self = Self::RestoringFromMusicDirectory {
             state,
             pending_since: Instant::now(),
         };
@@ -526,13 +559,13 @@ impl State {
                 return None;
             }
             Self::NestedMusicDirectoriesConflict { state, .. }
-            | Self::RestoringOrCreatingFromMusicDirectory { state, .. }
-            | Self::RestoringOrCreatingFromMusicDirectoryFailed { state, .. } => {
+            | Self::RestoringFromMusicDirectory { state, .. }
+            | Self::RestoringFromMusicDirectoryFailed { state, .. } => {
                 let params = RefreshStateFromDbParams {
                     entity_uid: None,
-                    restore_or_create: Some(state.clone()),
+                    restore: Some(state.clone()),
                 };
-                *self = Self::RestoringOrCreatingFromMusicDirectory {
+                *self = Self::RestoringFromMusicDirectory {
                     state,
                     pending_since: Instant::now(),
                 };
@@ -568,7 +601,7 @@ impl State {
         debug_assert!(matches!(self, Self::Void));
         let params = RefreshStateFromDbParams {
             entity_uid: Some(entity_uid.clone()),
-            restore_or_create: None,
+            restore: None,
         };
         let new_self = Self::Loading {
             entity_uid,
@@ -659,7 +692,7 @@ impl ObservableState {
         &self,
         kind: Option<Cow<'static, str>>,
         new_music_dir: Option<DirPath<'static>>,
-        create_new_entity_if_not_found: bool,
+        restore_entity: RestoreEntityStrategy,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> bool {
         let Some(new_music_dir) = new_music_dir else {
@@ -671,12 +704,7 @@ impl ObservableState {
             new_music_dir = new_music_dir.display()
         );
         if !self.0.modify(|state| {
-            state.try_update_music_dir(
-                kind,
-                new_music_dir,
-                create_new_entity_if_not_found,
-                nested_music_dirs,
-            )
+            state.try_update_music_dir(kind, new_music_dir, restore_entity, nested_music_dirs)
         }) {
             log::debug!("Music directory unchanged");
             return false;
@@ -735,8 +763,9 @@ impl ObservableState {
                 Err(err) => {
                     let error = err.to_string();
                     match state {
-                        State::RestoringOrCreatingFromMusicDirectory { state, .. } => {
-                            State::RestoringOrCreatingFromMusicDirectoryFailed { state: std::mem::take(state), error }
+                        State::RestoringFromMusicDirectory { state, .. } => {
+                            let error = RestoreFromMusicDirectoryError::Other(error);
+                            State::RestoringFromMusicDirectoryFailed { state: std::mem::take(state), error }
                         }
                         State::Loading { entity_uid, loaded_before, .. } => {
                             State::LoadingFailed {
@@ -853,7 +882,7 @@ impl ObservableReader<State> for ObservableState {
 #[derive(Debug, Clone)]
 struct RefreshStateFromDbParams {
     entity_uid: Option<EntityUid>,
-    restore_or_create: Option<RestoreOrCreateState>,
+    restore: Option<RestoreState>,
 }
 
 async fn refresh_state_from_db<E>(env: E, params: RefreshStateFromDbParams) -> anyhow::Result<State>
@@ -862,14 +891,14 @@ where
 {
     let RefreshStateFromDbParams {
         entity_uid,
-        restore_or_create,
+        restore,
     } = params;
     let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
         refresh_entity_from_db(env.as_ref(), entity_uid.clone()).await?
     } else {
         None
     };
-    let Some(restore_or_create) = restore_or_create else {
+    let Some(restore) = restore else {
         return Ok(entity_with_summary.map_or_else(
             || {
                 if let Some(entity_uid) = entity_uid {
@@ -886,9 +915,9 @@ where
         ));
     };
     if let Some(entity_with_summary) = entity_with_summary {
-        let RestoreOrCreateState {
+        let RestoreState {
             kind, music_dir, ..
-        } = &restore_or_create;
+        } = &restore;
         if kind.is_none() || kind == &entity_with_summary.entity.body.kind {
             let entity_music_dir = vfs_music_dir(&entity_with_summary.entity.body);
             if entity_music_dir.as_ref() == Some(music_dir) {
@@ -900,7 +929,7 @@ where
             uid = entity_with_summary.entity.hdr.uid
         );
     }
-    restore_or_create.restore_or_create(env.as_ref()).await
+    restore.restore(env.as_ref()).await
 }
 
 async fn synchronize_vfs<E, ReportProgressFn>(

@@ -11,7 +11,8 @@ use super::EventEmitter;
 pub use aoide::collection::*;
 pub use aoide::desktop_app::collection::*;
 
-pub(super) const CREATE_NEW_ENTITY_IF_NOT_FOUND: bool = true;
+pub(super) const RESTORE_ENTITY_STRATEGY: RestoreEntityStrategy =
+    RestoreEntityStrategy::LoadOrCreateNew;
 
 pub(super) const NESTED_MUSIC_DIRS_STRATEGY: NestedMusicDirectoriesStrategy =
     NestedMusicDirectoriesStrategy::Permit;

@@ -8,11 +8,12 @@ pub mod purge_untracked;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ResolveUrlFromContentPath {
+    /// Use the root URL from the collection.
     #[default]
     CanonicalRootUrl,
-    OverrideRootUrl {
-        root_url: BaseUrl,
-    },
+
+    /// Use a custom root URL that overrides the collection's root URL.
+    OverrideRootUrl { root_url: BaseUrl },
 }
 
 impl ResolveUrlFromContentPath {

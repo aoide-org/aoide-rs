@@ -414,7 +414,7 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
             }
         }
         collection::State::LoadingFailed { .. }
-        | collection::State::RestoringOrCreatingFromMusicDirectoryFailed { .. }
+        | collection::State::RestoringFromMusicDirectoryFailed { .. }
         | collection::State::NestedMusicDirectoriesConflict { .. } => {
             // The UI will be repainted in any case (see above).
             let _ = library.reset_music_dir();

@@ -548,7 +548,7 @@ impl Library {
             &self.state_observables.settings,
             Arc::downgrade(&self.state_observables.collection),
             Handle::downgrade(&self.handle),
-            collection::CREATE_NEW_ENTITY_IF_NOT_FOUND,
+            collection::RESTORE_ENTITY_STRATEGY,
             collection::NESTED_MUSIC_DIRS_STRATEGY,
         ));
         tokio_rt.spawn(track_search::tasklet::on_collection_state_changed(

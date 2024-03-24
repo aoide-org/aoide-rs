@@ -24,7 +24,7 @@ image = { version = "0.25.0", default-features = false, features = ["png"] }
 mime = "0.3.17"
 nonicle = "0.1.1"
 rand = "0.8.5"
-regex = "1.10.3"
+regex = "1.10.4"
 semval = "0.5.2"
 strum = { version = "0.26.2", features = ["derive"] }
 time = { version = "0.3.34", features = [
