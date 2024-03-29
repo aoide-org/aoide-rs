@@ -35,7 +35,7 @@ libsqlite3-sys = { version = "=0.28.0", optional = true, features = [
 ] }
 
 # Feature "tokio"
-tokio = { version = "1.36.0", optional = true, default-features = false, features = [
+tokio = { version = "1.37.0", optional = true, default-features = false, features = [
     "macros",
     "rt",
     "sync",

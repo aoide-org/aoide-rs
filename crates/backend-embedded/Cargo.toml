@@ -34,7 +34,7 @@ aoide-usecases-sqlite = { version = "=0.0.0", path = "../usecases-sqlite" }
 serde = { version = "1.0.197", features = ["derive"], optional = true }
 
 # Optional: Tokio runtime to abort long-running, asynchronous tasks
-tokio = { version = "1.36.0", optional = true }
+tokio = { version = "1.37.0", optional = true }
 
 # Optional: Tantivy search index
 aoide-search-index-tantivy = { version = "=0.0.0", path = "../search-index-tantivy", optional = true }
