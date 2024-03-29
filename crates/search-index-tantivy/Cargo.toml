@@ -20,6 +20,9 @@ strum = "0.26.2"
 log = "0.4.21"
 tantivy = "0.21.1"
 thiserror = "1.0.58"
+# TODO: Remove this workaround when the upstream issue has been resolved.
+# <https://github.com/Ralith/hypermine/issues/370>
+zstd-sys = "=2.0.9"
 
 # Workspace dependencies
 aoide-core = { version = "=0.0.0", path = "../core" }
