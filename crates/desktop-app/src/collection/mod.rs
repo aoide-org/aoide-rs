@@ -39,6 +39,7 @@ use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 
 use crate::{
     fs::DirPath, Environment, Handle, JoinedTask, Observable, ObservableReader, ObservableRef,
+    StateUnchanged,
 };
 
 pub mod tasklet;
@@ -478,7 +479,8 @@ impl State {
         }
     }
 
-    fn try_reset(&mut self) -> bool {
+    #[must_use]
+    pub fn try_reset(&mut self) -> bool {
         if matches!(self, Self::Void) {
             // No effect
             return false;
@@ -489,7 +491,8 @@ impl State {
         true
     }
 
-    fn try_update_music_dir(
+    #[must_use]
+    pub fn try_update_music_dir(
         &mut self,
         new_kind: Option<Cow<'_, str>>,
         new_music_dir: DirPath<'_>,
@@ -612,6 +615,7 @@ impl State {
         params
     }
 
+    #[must_use]
     fn try_synchronize(&mut self) -> Option<EntityUid> {
         let old_self = std::mem::replace(self, Self::Void);
         let Self::Ready { entity, .. } = old_self else {
@@ -643,6 +647,92 @@ impl State {
                 error: "no summary".to_owned(),
             }
         }
+    }
+
+    #[must_use]
+    fn refresh_from_db_task_completed(
+        &mut self,
+        result: anyhow::Result<State>,
+        continuation: RefreshFromDbTaskContinuation,
+    ) -> bool {
+        let RefreshFromDbTaskContinuation { pending_state } = continuation;
+        if pending_state != *self {
+            log::warn!(
+                "State changed while refreshing from database: expected {pending_state:?}, actual {self:?} - discarding {result:?}",
+            );
+            return false;
+        }
+        let next_state = match result {
+            Ok(next_state) => {
+                if *self == next_state {
+                    // Unchanged.
+                    return false;
+                }
+                log::debug!("Refreshed state from database: {next_state:?}");
+                next_state
+            }
+            Err(err) => {
+                let error = err.to_string();
+                match self {
+                    State::RestoringFromMusicDirectory { state, .. } => {
+                        let error = RestoreFromMusicDirectoryError::Other(error);
+                        State::RestoringFromMusicDirectoryFailed {
+                            state: std::mem::take(state),
+                            error,
+                        }
+                    }
+                    State::Loading {
+                        entity_uid,
+                        loaded_before,
+                        ..
+                    } => State::LoadingFailed {
+                        entity_uid: std::mem::take(entity_uid),
+                        loaded_before: loaded_before.take(),
+                        error,
+                    },
+                    _ => unreachable!(),
+                }
+            }
+        };
+        debug_assert_ne!(*self, next_state);
+        *self = next_state;
+        true
+    }
+
+    fn synchronize_vfs_task_joined(
+        &mut self,
+        joined_task: JoinedTask<SynchronizeVfsResult>,
+        continuation: SynchronizeVfsTaskContinuation,
+    ) -> Result<Option<Outcome>, StateUnchanged> {
+        let SynchronizeVfsTaskContinuation { pending_state } = continuation;
+        if pending_state != *self {
+            log::warn!(
+                "State changed while synchronizing: expected {pending_state:?}, actual {self:?}",
+            );
+            return Err(StateUnchanged);
+        }
+        let State::Synchronizing {
+            entity,
+            pending_since: _,
+        } = pending_state
+        else {
+            unreachable!("illegal state");
+        };
+        let mut outcome = None;
+        let next_state = match joined_task {
+            JoinedTask::Cancelled => State::SynchronizingAborted { entity },
+            JoinedTask::Completed(Ok(ok)) => {
+                outcome = Some(ok);
+                State::SynchronizingSucceeded { entity }
+            }
+            JoinedTask::Completed(Err(err)) | JoinedTask::Panicked(err) => {
+                let error = err.to_string();
+                State::SynchronizingFailed { entity, error }
+            }
+        };
+        debug_assert_ne!(*self, next_state);
+        *self = next_state;
+        Ok(outcome)
     }
 }
 
@@ -743,45 +833,8 @@ impl ObservableState {
         result: anyhow::Result<State>,
         continuation: RefreshFromDbTaskContinuation,
     ) -> bool {
-        let RefreshFromDbTaskContinuation { pending_state } = continuation;
-        self.0.modify(|state| {
-            if pending_state != *state {
-                log::warn!(
-                    "State changed while refreshing from database: expected {pending_state:?}, actual {state:?} - discarding {result:?}",
-                );
-                return false;
-            }
-            let next_state = match result {
-                Ok(next_state) => {
-                    if *state == next_state {
-                        // Unchanged.
-                        return false;
-                    }
-                    log::debug!("Refreshed state from database: {next_state:?}");
-                    next_state
-                }
-                Err(err) => {
-                    let error = err.to_string();
-                    match state {
-                        State::RestoringFromMusicDirectory { state, .. } => {
-                            let error = RestoreFromMusicDirectoryError::Other(error);
-                            State::RestoringFromMusicDirectoryFailed { state: std::mem::take(state), error }
-                        }
-                        State::Loading { entity_uid, loaded_before, .. } => {
-                            State::LoadingFailed {
-                                entity_uid: std::mem::take(entity_uid),
-                                loaded_before: loaded_before.take(),
-                                error,
-                            }
-                        }
-                        _ => unreachable!(),
-                    }
-                }
-            };
-            debug_assert_ne!(*state, next_state);
-            *state = next_state;
-            true
-        })
+        self.0
+            .modify(|state| state.refresh_from_db_task_completed(result, continuation))
     }
 
     #[must_use]
@@ -832,33 +885,12 @@ impl ObservableState {
         joined_task: JoinedTask<SynchronizeVfsResult>,
         continuation: SynchronizeVfsTaskContinuation,
     ) -> Option<Outcome> {
-        let SynchronizeVfsTaskContinuation { pending_state } = continuation;
         let mut outcome = None;
         self.0.modify(|state| {
-            if pending_state != *state {
-                log::warn!(
-                    "State changed while synchronizing: expected {pending_state:?}, actual {state:?}",
-                );
-                return false;
-            }
-            let State::Synchronizing { entity, pending_since: _ } = pending_state else {
-                unreachable!("illegal state");
+            outcome = match state.synchronize_vfs_task_joined(joined_task, continuation) {
+                Ok(outcome) => outcome,
+                Err(StateUnchanged) => return false,
             };
-            let next_state = match joined_task {
-                JoinedTask::Cancelled => {
-                    State::SynchronizingAborted { entity }
-                }
-                JoinedTask::Completed(Ok(ok)) => {
-                    outcome = Some(ok);
-                    State::SynchronizingSucceeded { entity }
-                }
-                JoinedTask::Completed(Err(err)) | JoinedTask::Panicked(err) => {
-                    let error = err.to_string();
-                    State::SynchronizingFailed { entity, error }
-                }
-            };
-            debug_assert_ne!(*state, next_state);
-            *state = next_state;
             true
         });
         outcome

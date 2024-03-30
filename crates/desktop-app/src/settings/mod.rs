@@ -151,7 +151,8 @@ impl State {
         Ok(config)
     }
 
-    pub fn try_update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> bool {
+    #[must_use]
+    fn try_update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> bool {
         if self.music_dir.as_ref() == music_dir {
             log::debug!("Unchanged music directory: {music_dir:?}");
             return false;

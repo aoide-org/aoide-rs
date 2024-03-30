@@ -171,6 +171,7 @@ impl FetchState {
         }
     }
 
+    #[must_use]
     fn try_reset(&mut self) -> bool {
         if matches!(self, Self::Initial) {
             // No effect
@@ -181,6 +182,7 @@ impl FetchState {
         true
     }
 
+    #[must_use]
     fn try_fetch_more(&mut self) -> bool {
         debug_assert_eq!(Some(true), self.can_fetch_more());
         let fetched_entities_before = match self {
@@ -200,6 +202,7 @@ impl FetchState {
         true
     }
 
+    #[must_use]
     fn fetch_more_succeeded(
         &mut self,
         offset: usize,
@@ -265,6 +268,7 @@ impl FetchState {
         true
     }
 
+    #[must_use]
     #[allow(clippy::needless_pass_by_value)]
     fn fetch_more_failed(&mut self, error: anyhow::Error) -> bool {
         log::warn!("Fetching failed: {error}");
@@ -285,6 +289,7 @@ impl FetchState {
         true
     }
 
+    #[must_use]
     fn fetch_more_aborted(&mut self) -> bool {
         log::debug!("Fetching aborted");
         let Self::Pending {
@@ -570,7 +575,7 @@ impl State {
             return false;
         }
         self.context.collection_uid = collection_uid.take();
-        self.fetch.try_reset();
+        let _ = self.fetch.try_reset();
         if let Some(uid) = &self.context.collection_uid {
             log::info!("Collection UID updated: {uid}");
         } else {
@@ -589,7 +594,7 @@ impl State {
             return false;
         }
         self.context.params = std::mem::take(params);
-        self.fetch.try_reset();
+        let _ = self.fetch.try_reset();
         log::info!("Params updated: {params:?}", params = self.context.params);
         true
     }

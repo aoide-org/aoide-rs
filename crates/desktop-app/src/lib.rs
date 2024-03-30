@@ -110,3 +110,6 @@ impl<T> From<T> for JoinedTask<T> {
         Self::Completed(completed)
     }
 }
+
+#[derive(Debug)]
+pub(crate) struct StateUnchanged;
