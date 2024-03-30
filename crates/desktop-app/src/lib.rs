@@ -112,4 +112,16 @@ impl<T> From<T> for JoinedTask<T> {
 }
 
 #[derive(Debug)]
-pub(crate) struct StateUnchanged;
+pub struct StateUnchanged;
+
+pub(crate) fn modify_observable_state<S, T>(
+    observable: &Observable<S>,
+    modify: impl FnOnce(&mut S) -> Result<T, StateUnchanged>,
+) -> Result<T, StateUnchanged> {
+    let mut result = Err(StateUnchanged);
+    observable.modify(|state| {
+        result = modify(state);
+        result.is_ok()
+    });
+    result
+}

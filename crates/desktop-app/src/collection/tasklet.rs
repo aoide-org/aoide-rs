@@ -9,9 +9,9 @@ use std::{
 use unnest::some_or_break;
 
 use super::{NestedMusicDirectoriesStrategy, ObservableState, RestoreEntityStrategy};
-use crate::{fs::DirPath, settings, Handle, WeakHandle};
+use crate::{fs::DirPath, settings, Handle, StateUnchanged, WeakHandle};
 
-async fn try_update_music_dir(
+async fn update_music_dir(
     settings_state: &settings::ObservableState,
     observable_state: &ObservableState,
     handle: Handle,
@@ -19,27 +19,26 @@ async fn try_update_music_dir(
     collection_kind: Option<String>,
     restore_entity: RestoreEntityStrategy,
     nested_music_directories: NestedMusicDirectoriesStrategy,
-) -> bool {
-    if !observable_state.try_update_music_dir(
+) {
+    if let Err(StateUnchanged) = observable_state.update_music_dir(
         collection_kind.map(Into::into),
         music_dir,
         restore_entity,
         nested_music_directories,
     ) {
-        // Unchanged
-        return false;
+        return;
     }
-    if let Some((task, continuation)) = observable_state.try_refresh_from_db_task(&handle) {
+    if let Ok((task, continuation)) = observable_state.refresh_from_db_task(&handle) {
         log::debug!("Refreshing from DB after updating music directory");
         let result = task.await;
-        observable_state.refresh_from_db_task_completed(result, continuation);
+        let _ = observable_state.refresh_from_db_task_completed(result, continuation);
     }
     // After succeeded read the actual music directory from the collection state
     // and feed it back into the settings state.
     let new_music_dir = {
         let state = observable_state.read();
         if !state.is_ready() {
-            return false;
+            return;
         }
         state.music_dir().map(DirPath::into_owned)
     };
@@ -51,7 +50,7 @@ async fn try_update_music_dir(
     } else {
         log::info!("Resetting music directory in settings",);
     }
-    settings_state.try_update_music_dir(new_music_dir.as_ref())
+    let _ = settings_state.update_music_dir(new_music_dir.as_ref());
 }
 
 pub fn on_settings_state_changed(
@@ -76,7 +75,7 @@ pub fn on_settings_state_changed(
                     let collection_kind = settings_state.collection_kind.clone();
                     (music_dir, collection_kind)
                 };
-                try_update_music_dir(
+                update_music_dir(
                     &settings_state,
                     &observable_state,
                     handle,

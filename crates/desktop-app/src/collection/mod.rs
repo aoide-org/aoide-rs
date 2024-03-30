@@ -38,8 +38,8 @@ use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 
 use crate::{
-    fs::DirPath, Environment, Handle, JoinedTask, Observable, ObservableReader, ObservableRef,
-    StateUnchanged,
+    fs::DirPath, modify_observable_state, Environment, Handle, JoinedTask, Observable,
+    ObservableReader, ObservableRef, StateUnchanged,
 };
 
 pub mod tasklet;
@@ -479,29 +479,26 @@ impl State {
         }
     }
 
-    #[must_use]
-    pub fn try_reset(&mut self) -> bool {
+    pub fn reset(&mut self) -> Result<(), StateUnchanged> {
         if matches!(self, Self::Void) {
-            // No effect
-            return false;
+            return Err(StateUnchanged);
         }
         let reset = Self::Void;
         log::debug!("Resetting state: {self:?} -> {reset:?}");
         *self = reset;
-        true
+        Ok(())
     }
 
-    #[must_use]
-    pub fn try_update_music_dir(
+    pub fn update_music_dir(
         &mut self,
         new_kind: Option<Cow<'_, str>>,
         new_music_dir: DirPath<'_>,
         restore_entity: RestoreEntityStrategy,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
-    ) -> bool {
+    ) -> Result<(), StateUnchanged> {
         if self.is_pending() {
             log::warn!("Illegal state for updating directory: {self:?}");
-            return false;
+            return Err(StateUnchanged);
         }
         match self {
             Self::Ready { entity, .. } => {
@@ -514,7 +511,7 @@ impl State {
                             "Music directory unchanged and not updated: {music_dir}",
                             music_dir = new_music_dir.display()
                         );
-                        return false;
+                        return Err(StateUnchanged);
                     }
                 }
             }
@@ -533,7 +530,7 @@ impl State {
                         "Music directory unchanged and not updated: {music_dir}",
                         music_dir = new_music_dir.display()
                     );
-                    return false;
+                    return Err(StateUnchanged);
                 }
             }
             _ => {
@@ -551,15 +548,14 @@ impl State {
             pending_since: Instant::now(),
         };
         *self = new_self;
-        true
+        Ok(())
     }
 
-    #[must_use]
-    fn try_refresh_from_db(&mut self) -> Option<RefreshStateFromDbParams> {
+    fn refresh_from_db(&mut self) -> Result<RefreshStateFromDbParams, StateUnchanged> {
         let old_self = std::mem::replace(self, Self::Void);
         let (entity_uid, loaded_before) = match old_self {
             Self::Void => {
-                return None;
+                return Err(StateUnchanged);
             }
             Self::NestedMusicDirectoriesConflict { state, .. }
             | Self::RestoringFromMusicDirectory { state, .. }
@@ -572,7 +568,7 @@ impl State {
                     state,
                     pending_since: Instant::now(),
                 };
-                return Some(params);
+                return Ok(params);
             }
             Self::LoadingFailed {
                 entity_uid,
@@ -588,11 +584,11 @@ impl State {
             _ => {
                 log::warn!("Illegal state for refreshing from database: {old_self:?}");
                 *self = old_self;
-                return None;
+                return Err(StateUnchanged);
             }
         };
         let params = self.refresh_from_db_unchecked(entity_uid, loaded_before);
-        Some(params)
+        Ok(params)
     }
 
     #[must_use]
@@ -615,13 +611,12 @@ impl State {
         params
     }
 
-    #[must_use]
-    fn try_synchronize(&mut self) -> Option<EntityUid> {
+    fn synchronize(&mut self) -> Result<EntityUid, StateUnchanged> {
         let old_self = std::mem::replace(self, Self::Void);
         let Self::Ready { entity, .. } = old_self else {
             log::warn!("Illegal state for synchronizing: {old_self:?}");
             *self = old_self;
-            return None;
+            return Err(StateUnchanged);
         };
         let entity_uid = entity.hdr.uid.clone();
         let new_self = Self::Synchronizing {
@@ -629,7 +624,7 @@ impl State {
             pending_since: Instant::now(),
         };
         *self = new_self;
-        Some(entity_uid)
+        Ok(entity_uid)
     }
 
     #[must_use]
@@ -649,24 +644,22 @@ impl State {
         }
     }
 
-    #[must_use]
     fn refresh_from_db_task_completed(
         &mut self,
         result: anyhow::Result<State>,
         continuation: RefreshFromDbTaskContinuation,
-    ) -> bool {
+    ) -> Result<(), StateUnchanged> {
         let RefreshFromDbTaskContinuation { pending_state } = continuation;
         if pending_state != *self {
             log::warn!(
                 "State changed while refreshing from database: expected {pending_state:?}, actual {self:?} - discarding {result:?}",
             );
-            return false;
+            return Err(StateUnchanged);
         }
         let next_state = match result {
             Ok(next_state) => {
                 if *self == next_state {
-                    // Unchanged.
-                    return false;
+                    return Err(StateUnchanged);
                 }
                 log::debug!("Refreshed state from database: {next_state:?}");
                 next_state
@@ -696,7 +689,7 @@ impl State {
         };
         debug_assert_ne!(*self, next_state);
         *self = next_state;
-        true
+        Ok(())
     }
 
     fn synchronize_vfs_task_joined(
@@ -774,95 +767,85 @@ impl ObservableState {
         self.0.set_modified();
     }
 
-    pub fn try_reset(&self) -> bool {
-        self.0.modify(State::try_reset)
+    pub fn reset(&self) -> Result<(), StateUnchanged> {
+        modify_observable_state(&self.0, State::reset)
     }
 
-    pub fn try_update_music_dir(
+    pub fn update_music_dir(
         &self,
         kind: Option<Cow<'static, str>>,
         new_music_dir: Option<DirPath<'static>>,
         restore_entity: RestoreEntityStrategy,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
-    ) -> bool {
+    ) -> Result<(), StateUnchanged> {
         let Some(new_music_dir) = new_music_dir else {
             log::debug!("Resetting music directory");
-            return self.0.modify(State::try_reset);
+            return self.reset();
         };
         log::debug!(
             "Updating music directory: {new_music_dir}",
             new_music_dir = new_music_dir.display()
         );
-        if !self.0.modify(|state| {
-            state.try_update_music_dir(kind, new_music_dir, restore_entity, nested_music_dirs)
-        }) {
-            log::debug!("Music directory unchanged");
-            return false;
-        }
-        true
+        modify_observable_state(&self.0, |state| {
+            state.update_music_dir(kind, new_music_dir, restore_entity, nested_music_dirs)
+        })
     }
 
-    #[must_use]
-    pub fn try_refresh_from_db_task(
+    pub fn refresh_from_db_task(
         &self,
         handle: &Handle,
-    ) -> Option<(
-        impl Future<Output = anyhow::Result<State>> + Send + 'static,
-        RefreshFromDbTaskContinuation,
-    )> {
-        let mut pending_state_params = None;
-        self.0.modify(|state: &mut State| {
-            let Some(params) = state.try_refresh_from_db() else {
-                return false;
-            };
+    ) -> Result<
+        (
+            impl Future<Output = anyhow::Result<State>> + Send + 'static,
+            RefreshFromDbTaskContinuation,
+        ),
+        StateUnchanged,
+    > {
+        let (pending_state, params) = modify_observable_state(&self.0, |state: &mut State| {
+            let params = state.refresh_from_db()?;
             debug_assert!(state.is_pending());
             let pending_state = state.clone();
-            pending_state_params = Some((pending_state, params));
-            true
-        });
-        let (pending_state, params) = pending_state_params?;
+            Ok((pending_state, params))
+        })?;
         let handle = handle.clone();
         let task = async move { refresh_state_from_db(handle, params).await };
         let continuation = RefreshFromDbTaskContinuation { pending_state };
-        Some((task, continuation))
+        Ok((task, continuation))
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn refresh_from_db_task_completed(
         &self,
         result: anyhow::Result<State>,
         continuation: RefreshFromDbTaskContinuation,
-    ) -> bool {
-        self.0
-            .modify(|state| state.refresh_from_db_task_completed(result, continuation))
+    ) -> Result<(), StateUnchanged> {
+        modify_observable_state(&self.0, |state| {
+            state.refresh_from_db_task_completed(result, continuation)
+        })
     }
 
-    #[must_use]
-    pub fn try_synchronize_vfs_task<ReportProgressFn>(
+    fn synchronize_vfs_task<ReportProgressFn>(
         &self,
         handle: &Handle,
         import_track_config: ImportTrackConfig,
         report_progress_fn: ReportProgressFn,
         abort_flag: Arc<AtomicBool>,
-    ) -> Option<(
-        impl Future<Output = SynchronizeVfsResult> + Send + 'static,
-        SynchronizeVfsTaskContinuation,
-    )>
+    ) -> Result<
+        (
+            impl Future<Output = SynchronizeVfsResult> + Send + 'static,
+            SynchronizeVfsTaskContinuation,
+        ),
+        StateUnchanged,
+    >
     where
         ReportProgressFn:
             FnMut(batch::synchronize_collection_vfs::Progress) + Clone + Send + 'static,
     {
-        let mut pending_state_entity_uid = None;
-        self.0.modify(|state| {
-            let Some(entity_uid) = state.try_synchronize() else {
-                return false;
-            };
+        let (pending_state, entity_uid) = modify_observable_state(&self.0, |state| {
+            let entity_uid = state.synchronize()?;
             debug_assert!(state.is_pending());
             let pending_state = state.clone();
-            pending_state_entity_uid = Some((pending_state, entity_uid));
-            true
-        });
-        let (pending_state, entity_uid) = pending_state_entity_uid?;
+            Ok((pending_state, entity_uid))
+        })?;
         debug_assert!(matches!(pending_state, State::Synchronizing { .. }));
         let handle = handle.clone();
         let task = async move {
@@ -876,24 +859,17 @@ impl ObservableState {
             .await
         };
         let continuation = SynchronizeVfsTaskContinuation { pending_state };
-        Some((task, continuation))
+        Ok((task, continuation))
     }
 
-    #[must_use]
-    pub fn synchronize_vfs_task_joined(
+    fn synchronize_vfs_task_joined(
         &self,
         joined_task: JoinedTask<SynchronizeVfsResult>,
         continuation: SynchronizeVfsTaskContinuation,
-    ) -> Option<Outcome> {
-        let mut outcome = None;
-        self.0.modify(|state| {
-            outcome = match state.synchronize_vfs_task_joined(joined_task, continuation) {
-                Ok(outcome) => outcome,
-                Err(StateUnchanged) => return false,
-            };
-            true
-        });
-        outcome
+    ) -> Result<Option<Outcome>, StateUnchanged> {
+        modify_observable_state(&self.0, |state| {
+            state.synchronize_vfs_task_joined(joined_task, continuation)
+        })
     }
 }
 
@@ -1007,13 +983,12 @@ pub struct SynchronizeVfsTask {
 }
 
 impl SynchronizeVfsTask {
-    #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn try_spawn(
+    pub fn spawn(
         rt: &tokio::runtime::Handle,
         handle: &Handle,
         state: &Arc<ObservableState>,
-    ) -> Option<Self> {
+    ) -> Result<Self, StateUnchanged> {
         let started_at = Instant::now();
         let progress_pub = Publisher::new(None);
         let progress = progress_pub.subscribe();
@@ -1028,7 +1003,7 @@ impl SynchronizeVfsTask {
         };
         let abort_flag = Arc::new(AtomicBool::new(false));
         let (task, continuation) =
-            try_synchronize_vfs_task(state, handle, report_progress_fn, Arc::clone(&abort_flag))?;
+            synchronize_vfs_task(state, handle, report_progress_fn, Arc::clone(&abort_flag))?;
         let join_handle = rt.spawn(task);
         let abort_handle = join_handle.abort_handle();
         let state = Arc::clone(state);
@@ -1037,11 +1012,13 @@ impl SynchronizeVfsTask {
         let join_task = async move {
             let joined_task = JoinedTask::join(join_handle).await;
             log::debug!("Synchronize music directory task joined: {joined_task:?}");
-            let outcome = state.synchronize_vfs_task_joined(joined_task, continuation);
-            outcome_pub.write(outcome);
+            let result = state.synchronize_vfs_task_joined(joined_task, continuation);
+            if let Ok(outcome) = result {
+                outcome_pub.write(outcome);
+            }
         };
         rt.spawn(join_task);
-        Some(Self {
+        Ok(Self {
             started_at,
             progress,
             outcome,
@@ -1076,15 +1053,18 @@ impl SynchronizeVfsTask {
     }
 }
 
-fn try_synchronize_vfs_task(
+fn synchronize_vfs_task(
     state: &ObservableState,
     handle: &Handle,
     report_progress_fn: impl FnMut(Option<Progress>) + Clone + Send + 'static,
     abort_flag: Arc<AtomicBool>,
-) -> Option<(
-    impl Future<Output = anyhow::Result<Outcome>> + Send + 'static,
-    SynchronizeVfsTaskContinuation,
-)> {
+) -> Result<
+    (
+        impl Future<Output = anyhow::Result<Outcome>> + Send + 'static,
+        SynchronizeVfsTaskContinuation,
+    ),
+    StateUnchanged,
+> {
     log::debug!("Synchronizing collection...");
     let import_track_config = ImportTrackConfig {
         // TODO: Customize faceted tag mapping
@@ -1095,5 +1075,5 @@ fn try_synchronize_vfs_task(
     let report_progress_fn = move |progress| {
         report_progress_fn(Some(progress));
     };
-    state.try_synchronize_vfs_task(handle, import_track_config, report_progress_fn, abort_flag)
+    state.synchronize_vfs_task(handle, import_track_config, report_progress_fn, abort_flag)
 }

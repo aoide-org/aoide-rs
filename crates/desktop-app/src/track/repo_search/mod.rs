@@ -12,7 +12,10 @@ use aoide_core::{
 };
 use aoide_core_api::{track::search::Params, Pagination};
 
-use crate::{Handle, JoinedTask, Observable, ObservableReader, ObservableRef};
+use crate::{
+    modify_observable_state, Handle, JoinedTask, Observable, ObservableReader, ObservableRef,
+    StateUnchanged,
+};
 
 pub mod tasklet;
 
@@ -171,25 +174,23 @@ impl FetchState {
         }
     }
 
-    #[must_use]
-    fn try_reset(&mut self) -> bool {
+    fn reset(&mut self) -> Result<(), StateUnchanged> {
         if matches!(self, Self::Initial) {
             // No effect
-            return false;
+            return Err(StateUnchanged);
         }
         *self = Default::default();
         debug_assert!(matches!(self, Self::Initial));
-        true
+        Ok(())
     }
 
-    #[must_use]
-    fn try_fetch_more(&mut self) -> bool {
+    fn fetch_more(&mut self) -> Result<(), StateUnchanged> {
         debug_assert_eq!(Some(true), self.can_fetch_more());
         let fetched_entities_before = match self {
             Self::Initial => None,
             Self::Pending { .. } | Self::Failed { .. } => {
                 // Not applicable
-                return false;
+                return Err(StateUnchanged);
             }
             Self::Ready {
                 fetched_entities, ..
@@ -199,17 +200,16 @@ impl FetchState {
             fetched_entities_before,
             pending_since: Instant::now(),
         };
-        true
+        Ok(())
     }
 
-    #[must_use]
     fn fetch_more_succeeded(
         &mut self,
         offset: usize,
         offset_hash: u64,
         fetched_entities: Vec<Entity>,
         can_fetch_more: bool,
-    ) -> bool {
+    ) -> Result<(), StateUnchanged> {
         let num_fetched_entities = fetched_entities.len();
         log::debug!("Fetching succeeded with {num_fetched_entities} newly fetched entities");
 
@@ -220,7 +220,7 @@ impl FetchState {
         else {
             // Not applicable
             log::error!("Not pending when fetching succeeded");
-            return false;
+            return Err(StateUnchanged);
         };
         let expected_offset = fetched_entities_before.as_ref().map_or(0, Vec::len);
         let expected_offset_hash =
@@ -231,7 +231,7 @@ impl FetchState {
                 "Mismatching offset/hash after fetching succeeded: expected = \
                  {expected_offset}/{expected_offset_hash}, actual = {offset}/{offset_hash}"
             );
-            return false;
+            return Err(StateUnchanged);
         }
         let mut offset = offset;
         let mut offset_hash_seed = offset_hash;
@@ -265,12 +265,11 @@ impl FetchState {
         } else {
             log::debug!("Caching {num_fetched_entities} fetched entities");
         }
-        true
+        Ok(())
     }
 
-    #[must_use]
     #[allow(clippy::needless_pass_by_value)]
-    fn fetch_more_failed(&mut self, error: anyhow::Error) -> bool {
+    fn fetch_more_failed(&mut self, error: anyhow::Error) -> Result<(), StateUnchanged> {
         log::warn!("Fetching failed: {error}");
         let Self::Pending {
             fetched_entities_before,
@@ -279,18 +278,17 @@ impl FetchState {
         else {
             // No effect
             log::error!("Not pending when fetching failed");
-            return false;
+            return Err(StateUnchanged);
         };
         let fetched_entities_before = std::mem::take(fetched_entities_before);
         *self = Self::Failed {
             fetched_entities_before,
             error,
         };
-        true
+        Ok(())
     }
 
-    #[must_use]
-    fn fetch_more_aborted(&mut self) -> bool {
+    fn fetch_more_aborted(&mut self) -> Result<(), StateUnchanged> {
         log::debug!("Fetching aborted");
         let Self::Pending {
             fetched_entities_before,
@@ -299,7 +297,7 @@ impl FetchState {
         else {
             // No effect
             log::error!("Not pending when fetching aborted");
-            return false;
+            return Err(StateUnchanged);
         };
         let fetched_entities_before = std::mem::take(fetched_entities_before);
         if let Some(fetched_entities) = fetched_entities_before {
@@ -310,7 +308,7 @@ impl FetchState {
         } else {
             *self = Self::Initial;
         }
-        true
+        Ok(())
     }
 }
 
@@ -542,7 +540,7 @@ impl State {
         diff
     }
 
-    fn try_reset(&mut self) -> bool {
+    fn reset(&mut self) -> Result<(), StateUnchanged> {
         // Cloning the default params once for pre-creating the target state
         // is required to avoid redundant code for determining in advance if
         // the state would actually change or not.
@@ -556,59 +554,62 @@ impl State {
         if self.context == reset_context && matches!(self.fetch, FetchState::Initial) {
             // No effect.
             log::debug!("State doesn't need to be reset");
-            return false;
+            return Err(StateUnchanged);
         }
         self.context = reset_context;
         self.fetch = reset_fetch;
         debug_assert!(!self.should_prefetch());
         log::info!("State has been reset");
-        true
+        Ok(())
     }
 
     /// Update the collection UID
     ///
     /// Consumed the argument when returning `true`.
-    fn try_update_collection_uid(&mut self, collection_uid: &mut Option<CollectionUid>) -> bool {
+    fn update_collection_uid(
+        &mut self,
+        collection_uid: &mut Option<CollectionUid>,
+    ) -> Result<(), StateUnchanged> {
         if collection_uid.as_ref() == self.context.collection_uid.as_ref() {
             // No effect.
             log::debug!("Collection UID unchanged: {collection_uid:?}");
-            return false;
+            return Err(StateUnchanged);
         }
         self.context.collection_uid = collection_uid.take();
-        let _ = self.fetch.try_reset();
+        let _ = self.fetch.reset();
         if let Some(uid) = &self.context.collection_uid {
             log::info!("Collection UID updated: {uid}");
         } else {
             log::info!("Collection UID updated: <none>");
         }
-        true
+        Ok(())
     }
 
     /// Update the search parameters
     ///
     /// Consumed the argument when returning `true`.
-    fn try_update_params(&mut self, params: &mut Params) -> bool {
+    fn update_params(&mut self, params: &mut Params) -> Result<(), StateUnchanged> {
         if params == &self.context.params {
             // No effect.
             log::debug!("Params unchanged: {params:?}");
-            return false;
+            return Err(StateUnchanged);
         }
         self.context.params = std::mem::take(params);
-        let _ = self.fetch.try_reset();
+        let _ = self.fetch.reset();
         log::info!("Params updated: {params:?}", params = self.context.params);
-        true
+        Ok(())
     }
 
-    fn try_fetch_more(&mut self) -> bool {
+    fn fetch_more(&mut self) -> Result<(), StateUnchanged> {
         debug_assert_eq!(Some(true), self.can_fetch_more());
-        self.fetch.try_fetch_more()
+        self.fetch.fetch_more()
     }
 
     fn fetch_more_task_joined(
         &mut self,
         joined_tasked: JoinedTask<FetchMoreResult>,
         continuation: FetchMoreTaskContinuation,
-    ) -> bool {
+    ) -> Result<(), StateUnchanged> {
         let FetchMoreTaskContinuation {
             context,
             offset,
@@ -622,7 +623,7 @@ impl State {
                 expected_context = self.context
             );
             // No effect.
-            return false;
+            return Err(StateUnchanged);
         }
         match joined_tasked {
             JoinedTask::Cancelled => self.fetch.fetch_more_aborted(),
@@ -644,8 +645,55 @@ impl State {
         }
     }
 
-    fn try_reset_fetched(&mut self) -> bool {
-        self.fetch.try_reset()
+    fn reset_fetched(&mut self) -> Result<(), StateUnchanged> {
+        self.fetch.reset()
+    }
+
+    fn fetch_more_task(
+        &mut self,
+        handle: &Handle,
+        fetch_limit: Option<NonZeroUsize>,
+    ) -> Result<
+        (
+            impl Future<Output = FetchMoreResult> + Send + 'static,
+            FetchMoreTaskContinuation,
+        ),
+        StateUnchanged,
+    > {
+        if self.can_fetch_more() != Some(true) {
+            return Err(StateUnchanged);
+        }
+        self.fetch_more()?;
+
+        let Context {
+            collection_uid,
+            params,
+        } = &self.context;
+        let Some(collection_uid) = collection_uid.clone() else {
+            return Err(StateUnchanged);
+        };
+        let params = params.clone();
+        let offset = self
+            .fetched_entities()
+            .and_then(|slice| slice.len().try_into().ok());
+        let limit = fetch_limit.and_then(|limit| limit.get().try_into().ok());
+        let pagination = Pagination { limit, offset };
+        let handle = handle.clone();
+        let task =
+            async move { search(handle.db_gatekeeper(), collection_uid, params, pagination).await };
+
+        let context = self.context.clone();
+        let offset = offset.unwrap_or(0) as usize;
+        let offset_hash = last_offset_hash_of_fetched_entities(self.fetched_entities());
+        let limit = fetch_limit;
+        let continuation = FetchMoreTaskContinuation {
+            context,
+            offset,
+            offset_hash,
+            limit,
+        };
+
+        Ok((task, continuation))
     }
 }
 
@@ -658,48 +706,6 @@ pub struct FetchMoreTaskContinuation {
 }
 
 pub type FetchMoreResult = aoide_backend_embedded::Result<Vec<Entity>>;
-
-fn try_fetch_more_task(
-    handle: &Handle,
-    state: &mut State,
-    fetch_limit: Option<NonZeroUsize>,
-) -> Option<(
-    impl Future<Output = FetchMoreResult> + Send + 'static,
-    FetchMoreTaskContinuation,
-)> {
-    if state.can_fetch_more() != Some(true) || !state.try_fetch_more() {
-        // Not modified.
-        return None;
-    }
-
-    let Context {
-        collection_uid,
-        params,
-    } = &state.context;
-    let collection_uid = collection_uid.clone()?;
-    let params = params.clone();
-    let offset = state
-        .fetched_entities()
-        .and_then(|slice| slice.len().try_into().ok());
-    let limit = fetch_limit.and_then(|limit| limit.get().try_into().ok());
-    let pagination = Pagination { limit, offset };
-    let handle = handle.clone();
-    let task =
-        async move { search(handle.db_gatekeeper(), collection_uid, params, pagination).await };
-
-    let context = state.context.clone();
-    let offset = offset.unwrap_or(0) as usize;
-    let offset_hash = last_offset_hash_of_fetched_entities(state.fetched_entities());
-    let limit = fetch_limit;
-    let continuation = FetchMoreTaskContinuation {
-        context,
-        offset,
-        offset_hash,
-        limit,
-    };
-
-    Some((task, continuation))
-}
 
 pub type StateSubscriber = discro::Subscriber<State>;
 
@@ -727,53 +733,47 @@ impl ObservableState {
         self.0.set_modified();
     }
 
-    #[allow(clippy::must_use_candidate)]
-    pub fn try_reset(&self) -> bool {
-        self.0.modify(State::try_reset)
+    pub fn reset(&self) -> Result<(), StateUnchanged> {
+        modify_observable_state(&self.0, State::reset)
     }
 
-    pub fn try_update_collection_uid(&self, collection_uid: &mut Option<CollectionUid>) -> bool {
-        self.0
-            .modify(|state| state.try_update_collection_uid(collection_uid))
+    pub fn update_collection_uid(
+        &self,
+        collection_uid: &mut Option<CollectionUid>,
+    ) -> Result<(), StateUnchanged> {
+        modify_observable_state(&self.0, |state| state.update_collection_uid(collection_uid))
     }
 
-    pub fn try_update_params(&self, params: &mut Params) -> bool {
-        self.0.modify(|state| state.try_update_params(params))
+    pub fn update_params(&self, params: &mut Params) -> Result<(), StateUnchanged> {
+        modify_observable_state(&self.0, |state| state.update_params(params))
     }
 
-    #[must_use]
-    pub fn try_fetch_more_task(
+    pub fn fetch_more_task(
         &self,
         handle: &Handle,
         fetch_limit: Option<NonZeroUsize>,
-    ) -> Option<(
-        impl Future<Output = FetchMoreResult> + Send + 'static,
-        FetchMoreTaskContinuation,
-    )> {
-        let mut maybe_fetch_more = None;
-        self.0.modify(|state| {
-            let Some(fetch_more) = try_fetch_more_task(handle, state, fetch_limit) else {
-                return false;
-            };
-            maybe_fetch_more = Some(fetch_more);
-            true
-        });
-        maybe_fetch_more
+    ) -> Result<
+        (
+            impl Future<Output = FetchMoreResult> + Send + 'static,
+            FetchMoreTaskContinuation,
+        ),
+        StateUnchanged,
+    > {
+        modify_observable_state(&self.0, |state| state.fetch_more_task(handle, fetch_limit))
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn fetch_more_task_joined(
         &self,
         joined_task: JoinedTask<FetchMoreResult>,
         continuation: FetchMoreTaskContinuation,
-    ) -> bool {
-        self.0
-            .modify(|state| state.fetch_more_task_joined(joined_task, continuation))
+    ) -> Result<(), StateUnchanged> {
+        modify_observable_state(&self.0, |state| {
+            state.fetch_more_task_joined(joined_task, continuation)
+        })
     }
 
-    #[allow(clippy::must_use_candidate)]
-    pub fn try_reset_fetched(&self) -> bool {
-        self.0.modify(State::try_reset_fetched)
+    pub fn reset_fetched(&self) -> Result<(), StateUnchanged> {
+        modify_observable_state(&self.0, State::reset_fetched)
     }
 }
 

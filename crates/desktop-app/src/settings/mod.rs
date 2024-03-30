@@ -11,7 +11,10 @@ use url::Url;
 
 use aoide_backend_embedded::storage::DatabaseConfig;
 
-use crate::{fs::DirPath, Observable, ObservableReader, ObservableRef};
+use crate::{
+    fs::DirPath, modify_observable_state, Observable, ObservableReader, ObservableRef,
+    StateUnchanged,
+};
 
 pub const FILE_NAME: &str = "aoide_desktop_settings";
 
@@ -151,11 +154,10 @@ impl State {
         Ok(config)
     }
 
-    #[must_use]
-    fn try_update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> bool {
+    fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> Result<(), StateUnchanged> {
         if self.music_dir.as_ref() == music_dir {
             log::debug!("Unchanged music directory: {music_dir:?}");
-            return false;
+            return Err(StateUnchanged);
         }
         if let Some(music_dir) = music_dir {
             log::info!(
@@ -166,7 +168,7 @@ impl State {
             log::info!("Resetting music directory");
         }
         self.music_dir = music_dir.map(ToOwned::to_owned).map(DirPath::into_owned);
-        true
+        Ok(())
     }
 }
 
@@ -213,8 +215,8 @@ impl ObservableState {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn try_update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> bool {
-        self.0.modify(|state| state.try_update_music_dir(music_dir))
+    pub fn update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> Result<(), StateUnchanged> {
+        modify_observable_state(&self.0, |state| state.update_music_dir(music_dir))
     }
 }
 

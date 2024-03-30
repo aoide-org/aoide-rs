@@ -4,7 +4,9 @@
 use std::{path::PathBuf, sync::Arc};
 
 use aoide::{
-    desktop_app::{collection::SynchronizeVfsTask, fs::DirPath, Handle, ObservableReader},
+    desktop_app::{
+        collection::SynchronizeVfsTask, fs::DirPath, Handle, ObservableReader, StateUnchanged,
+    },
     media::content::ContentPath,
     CollectionUid,
 };
@@ -307,11 +309,7 @@ impl Library {
             log::debug!("Collection is synchronizing");
             return ActionResponse::Rejected;
         }
-        if !self
-            .state_observables
-            .settings
-            .try_update_music_dir(music_dir)
-        {
+        if let Err(StateUnchanged) = self.state_observables.settings.update_music_dir(music_dir) {
             log::debug!("Music directory unchanged: {music_dir:?}");
             return ActionResponse::Rejected;
         }
@@ -330,7 +328,7 @@ impl Library {
             log::debug!("Collection is synchronizing");
             return ActionResponse::Rejected;
         }
-        if !self.state_observables.collection.try_reset() {
+        if let Err(StateUnchanged) = self.state_observables.collection.reset() {
             return ActionResponse::Rejected;
         }
         ActionResponse::Accepted
@@ -362,7 +360,7 @@ impl Library {
         }
         log::info!("Spawning synchronize music directory task");
         self.state.pending_music_dir_sync_task =
-            SynchronizeVfsTask::try_spawn(rt, &self.handle, &self.state_observables.collection);
+            SynchronizeVfsTask::spawn(rt, &self.handle, &self.state_observables.collection).ok();
         let Some(task) = &self.state.pending_music_dir_sync_task else {
             return rejected;
         };
@@ -453,10 +451,10 @@ impl Library {
 
     #[allow(clippy::must_use_candidate)]
     pub fn refresh_collection_from_db(&self, rt: &tokio::runtime::Handle) -> ActionResponse {
-        let Some((task, continuation)) = self
+        let Ok((task, continuation)) = self
             .state_observables
             .collection
-            .try_refresh_from_db_task(&self.handle)
+            .refresh_from_db_task(&self.handle)
         else {
             return ActionResponse::Rejected;
         };
@@ -465,7 +463,7 @@ impl Library {
             let collection_state = Arc::clone(&self.state_observables.collection);
             async move {
                 let result = task.await;
-                collection_state.refresh_from_db_task_completed(result, continuation);
+                let _ = collection_state.refresh_from_db_task_completed(result, continuation);
             }
         });
         ActionResponse::Accepted
@@ -480,10 +478,10 @@ impl Library {
         };
         // Argument is consumed when updating succeeds
         log::debug!("Updating track search params: {params:?}");
-        if !self
+        if let Err(StateUnchanged) = self
             .state_observables
             .track_search
-            .try_update_params(&mut params)
+            .update_params(&mut params)
         {
             log::debug!("Track search params not updated: {params:?}");
             return ActionResponse::Rejected;
@@ -500,10 +498,10 @@ impl Library {
     where
         E: EventEmitter + Clone + 'static,
     {
-        let Some((task, continuation)) = self
+        let Ok((task, continuation)) = self
             .state_observables
             .track_search
-            .try_fetch_more_task(&self.handle, Some(track_search::DEFAULT_PREFETCH_LIMIT))
+            .fetch_more_task(&self.handle, Some(track_search::DEFAULT_PREFETCH_LIMIT))
         else {
             return ActionResponse::Rejected;
         };
@@ -524,15 +522,15 @@ impl Library {
         ActionResponse::Accepted
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn on_fetch_more_track_search_results_task_completed(
         &self,
         result: track_search::FetchMoreResult,
         continuation: track_search::FetchMoreTaskContinuation,
-    ) -> bool {
-        self.state_observables
+    ) {
+        let _ = self
+            .state_observables
             .track_search
-            .fetch_more_task_joined(result.into(), continuation)
+            .fetch_more_task_joined(result.into(), continuation);
     }
 
     /// Spawn reactive background tasks
