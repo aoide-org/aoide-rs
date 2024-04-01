@@ -361,7 +361,7 @@ impl Library {
             .state_observables
             .settings
             .read_lock()
-            .music_directories
+            .music_dirs
             .as_ref()
             .map(|dirs| {
                 dirs.excluded_paths

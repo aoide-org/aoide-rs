@@ -771,7 +771,7 @@ impl ObservableState {
         modify_observable_state(&self.0, State::reset)
     }
 
-    pub fn update_music_dir(
+    fn update_music_dir(
         &self,
         kind: Option<Cow<'static, str>>,
         new_music_dir: Option<DirPath<'static>>,

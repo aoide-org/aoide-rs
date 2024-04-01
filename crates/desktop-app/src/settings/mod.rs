@@ -52,7 +52,7 @@ pub struct State {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub database_url: Option<Url>,
 
-    pub music_directories: Option<MusicDirectories>,
+    pub music_dirs: Option<MusicDirectories>,
 
     /// Filter for a collection kind.
     ///
@@ -172,7 +172,7 @@ impl State {
 
     #[must_use]
     pub fn music_dir(&self) -> Option<&DirPath<'_>> {
-        self.music_directories.as_ref().map(|dirs| &dirs.root_path)
+        self.music_dirs.as_ref().map(|dirs| &dirs.root_path)
     }
 
     fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> Result<(), StateUnchanged> {
@@ -180,18 +180,16 @@ impl State {
             log::debug!("Unchanged music directory: {music_dir:?}");
             return Err(StateUnchanged);
         }
-        if let Some(music_dir) = music_dir {
+        self.music_dirs = if let Some(music_dir) = music_dir {
             log::info!(
                 "Updating music directory: {music_dir}",
                 music_dir = music_dir.display()
             );
+            Some(MusicDirectories::new(music_dir.clone().into_owned()))
         } else {
             log::info!("Resetting music directory");
-        }
-        self.music_directories = music_dir
-            .map(ToOwned::to_owned)
-            .map(DirPath::into_owned)
-            .map(MusicDirectories::new);
+            None
+        };
         Ok(())
     }
 }
