@@ -10,11 +10,9 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use aoide_backend_embedded::storage::DatabaseConfig;
+use aoide_core::{media::content::ContentPath, util::fs::DirPath};
 
-use crate::{
-    fs::DirPath, modify_observable_state, Observable, ObservableReader, ObservableRef,
-    StateUnchanged,
-};
+use crate::{modify_observable_state, Observable, ObservableReader, ObservableRef, StateUnchanged};
 
 pub const FILE_NAME: &str = "aoide_desktop_settings";
 
@@ -27,16 +25,34 @@ pub const DEFAULT_DATABASE_FILE_SUFFIX: &str = "sqlite";
 pub mod tasklet;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MusicDirectories {
+    /// The root music directory.
+    ///
+    /// Used as to select the corresponding collection.
+    pub root_path: DirPath<'static>,
+
+    /// Excluded paths within the root music directory.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub excluded_paths: Vec<ContentPath<'static>>,
+}
+
+impl MusicDirectories {
+    #[must_use]
+    pub const fn new(root_path: DirPath<'static>) -> Self {
+        Self {
+            root_path,
+            excluded_paths: vec![],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct State {
     /// File path of the SQLite database.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub database_url: Option<Url>,
 
-    /// The root music directory.
-    ///
-    /// Used as to select the corresponding collection.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub music_dir: Option<DirPath<'static>>,
+    pub music_directories: Option<MusicDirectories>,
 
     /// Filter for a collection kind.
     ///
@@ -154,8 +170,13 @@ impl State {
         Ok(config)
     }
 
+    #[must_use]
+    pub fn music_dir(&self) -> Option<&DirPath<'_>> {
+        self.music_directories.as_ref().map(|dirs| &dirs.root_path)
+    }
+
     fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> Result<(), StateUnchanged> {
-        if self.music_dir.as_ref() == music_dir {
+        if self.music_dir() == music_dir {
             log::debug!("Unchanged music directory: {music_dir:?}");
             return Err(StateUnchanged);
         }
@@ -167,7 +188,10 @@ impl State {
         } else {
             log::info!("Resetting music directory");
         }
-        self.music_dir = music_dir.map(ToOwned::to_owned).map(DirPath::into_owned);
+        self.music_directories = music_dir
+            .map(ToOwned::to_owned)
+            .map(DirPath::into_owned)
+            .map(MusicDirectories::new);
         Ok(())
     }
 }

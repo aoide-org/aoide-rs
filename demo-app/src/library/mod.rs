@@ -4,10 +4,9 @@
 use std::{path::PathBuf, sync::Arc};
 
 use aoide::{
-    desktop_app::{
-        collection::SynchronizeVfsTask, fs::DirPath, Handle, ObservableReader, StateUnchanged,
-    },
+    desktop_app::{collection::SynchronizeVfsTask, Handle, ObservableReader, StateUnchanged},
     media::content::ContentPath,
+    util::fs::DirPath,
     CollectionUid,
 };
 use discro::Ref;
@@ -232,14 +231,14 @@ impl Library {
     pub fn on_settings_state_changed(&mut self) -> bool {
         let new_music_dir = {
             let settings_state = self.state_observables.settings.read_lock();
-            if settings_state.music_dir == self.state.music_dir {
+            if settings_state.music_dir() == self.state.music_dir.as_ref() {
                 log::debug!(
                     "Music directory unchanged: {music_dir:?}",
                     music_dir = self.state.music_dir,
                 );
                 return false;
             }
-            settings_state.music_dir.clone()
+            settings_state.music_dir().cloned().map(DirPath::into_owned)
         };
         log::debug!(
             "Music directory changed: {old_music_dir:?} -> {new_music_dir:?}",
@@ -284,7 +283,6 @@ impl Library {
         memo_state.try_start_pending(&self.state_observables.track_search)
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn on_track_search_state_changed_pending_apply(
         &mut self,
         memo_state: &mut track_search::MemoState,
@@ -359,8 +357,26 @@ impl Library {
             rejected = ActionResponse::RejectedMaybeChanged;
         }
         log::info!("Spawning synchronize music directory task");
-        self.state.pending_music_dir_sync_task =
-            SynchronizeVfsTask::spawn(rt, &self.handle, &self.state_observables.collection).ok();
+        let excluded_paths = self
+            .state_observables
+            .settings
+            .read_lock()
+            .music_directories
+            .as_ref()
+            .map(|dirs| {
+                dirs.excluded_paths
+                    .iter()
+                    .map(|p| p.clone().into_owned())
+                    .collect()
+            })
+            .unwrap_or_default();
+        self.state.pending_music_dir_sync_task = SynchronizeVfsTask::spawn(
+            rt,
+            &self.handle,
+            &self.state_observables.collection,
+            excluded_paths,
+        )
+        .ok();
         let Some(task) = &self.state.pending_music_dir_sync_task else {
             return rejected;
         };

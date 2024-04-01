@@ -20,10 +20,30 @@ use crate::{
 
 pub mod resolver;
 
+/// Relative URL path without a leading slash
+///
+/// Paths are always relative to a base URL.
+///
+/// Directories must end with a trailing slash and are considered as non-terminal.
+///
+/// The path is not percent-encoded, i.e. all UTF-8 characters are allowed.
 #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize, serde::Deserialize),
+    serde(transparent)
+)]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(transparent)
+)]
 pub struct ContentPath<'a>(Cow<'a, str>);
 
 impl<'a> ContentPath<'a> {
+    /// Path separator and terminal character of directories.
+    pub const SEPARATOR: char = '/';
+
     #[must_use]
     pub const fn new(inner: Cow<'a, str>) -> Self {
         Self(inner)
@@ -66,8 +86,14 @@ impl<'a> ContentPath<'a> {
     }
 
     #[must_use]
-    pub fn is_terminal(&self) -> bool {
-        !(self.is_empty() || self.0.ends_with('/'))
+    pub fn is_directory(&self) -> bool {
+        self.is_empty() || self.0.ends_with(Self::SEPARATOR)
+    }
+
+    #[must_use]
+    pub fn parse_lazy(input: &'a str) -> Self {
+        let without_leading_slashes = input.trim_start_matches(Self::SEPARATOR);
+        Self(without_leading_slashes.into())
     }
 }
 

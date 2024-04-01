@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
-use aoide_core_api::media::tracker::untrack_directories::{Outcome, Params, Summary};
+use aoide_core_api::media::tracker::untrack_directories::{Outcome, Params, PathsParam, Summary};
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo, media::tracker::Repo as MediaTrackerRepo,
 };
@@ -19,15 +19,33 @@ pub fn untrack_directories<Repo>(
 where
     Repo: CollectionRepo + MediaTrackerRepo,
 {
-    let Params { root_url, status } = params;
+    let Params {
+        root_url,
+        paths,
+        status,
+    } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
         return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
     };
     let collection_id = collection_ctx.record_id;
-    let untracked =
-        repo.media_tracker_untrack_directories(collection_id, resolver.root_path(), *status)?;
+    let mut untracked = 0;
+    match paths {
+        PathsParam::RootDirectory => {
+            untracked += repo.media_tracker_untrack_directories(
+                collection_id,
+                resolver.root_path(),
+                *status,
+            )?;
+        }
+        PathsParam::SubDirectories(paths) => {
+            for path in paths {
+                untracked +=
+                    repo.media_tracker_untrack_directories(collection_id, path, *status)?;
+            }
+        }
+    }
     let (root_url, root_path) = collection_ctx
         .content_path
         .resolver

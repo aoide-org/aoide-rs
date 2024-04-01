@@ -476,6 +476,7 @@ impl ModelRender for RenderCliModel {
                             .expect("required");
                         let params = aoide_core_api::media::tracker::untrack_directories::Params {
                             root_url: Some(media_root_url),
+                            paths: aoide_core_api::media::tracker::untrack_directories::PathsParam::RootDirectory,
                             status: None,
                         };
                         *subcommand_submitted = true;
@@ -496,6 +497,7 @@ impl ModelRender for RenderCliModel {
                             .map(|s| s.parse().expect("URL"));
                         let params = aoide_core_api::media::tracker::untrack_directories::Params {
                             root_url: media_root_url,
+                            paths: aoide_core_api::media::tracker::untrack_directories::PathsParam::RootDirectory,
                             status: Some(DirTrackingStatus::Orphaned),
                         };
                         *subcommand_submitted = true;

@@ -80,6 +80,7 @@ pub fn scan_directories<
 ) -> Result<Outcome> {
     let FsTraversalParams {
         root_url,
+        excluded_paths,
         max_depth,
     } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
@@ -89,6 +90,10 @@ pub fn scan_directories<
     };
     let collection_id = collection_ctx.record_id;
     let root_file_path = resolver.build_file_path(resolver.root_path());
+    let excluded_paths = excluded_paths
+        .iter()
+        .map(|dir_path| resolver.build_file_path(dir_path).into())
+        .collect::<Vec<_>>();
     let outdated_count = repo.media_tracker_mark_current_directories_outdated(
         OffsetDateTimeMs::now_utc(),
         collection_id,
@@ -146,7 +151,8 @@ pub fn scan_directories<
         report_progress_fn(progress_event.clone().into());
     };
     let completion = hash_directories::<_, anyhow::Error, _, _, _>(
-        &root_file_path,
+        &root_file_path.as_path().into(),
+        &excluded_paths,
         *max_depth,
         abort_flag,
         &mut directory_visitor,

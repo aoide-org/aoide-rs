@@ -7,6 +7,8 @@ use std::{
 
 use digest::Digest;
 
+use aoide_core::util::fs::DirPath;
+
 use super::visit::{
     visit_directories, AfterAncestorFinished, AncestorVisitor, DirectoryVisitor, Outcome,
     ProgressEvent,
@@ -142,7 +144,8 @@ pub fn hash_directories<
     DigestFinishedFn: FnMut(&Path, digest::Output<D>) -> StdResult<AfterAncestorFinished, E>,
     ReportProgressFn: FnMut(&ProgressEvent),
 >(
-    root_path: &Path,
+    root_path: &DirPath<'_>,
+    excluded_paths: &[DirPath<'_>],
     max_depth: Option<usize>,
     abort_flag: &AtomicBool,
     directory_visitor: &mut HashDirectoryVisitor<D, E, NewDigestFn, DigestFinishedFn>,
@@ -155,6 +158,7 @@ pub fn hash_directories<
     visit_directories(
         &mut (),
         root_path,
+        excluded_paths,
         max_depth,
         abort_flag,
         directory_visitor,

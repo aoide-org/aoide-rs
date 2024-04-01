@@ -31,7 +31,7 @@ aoide-backend-embedded = { version = "=0.0.0", path = "../backend-embedded", fea
     "tokio",
     "serde",
 ] }
-aoide-core = { version = "=0.0.0", path = "../core" }
+aoide-core = { version = "=0.0.0", path = "../core", features = ["serde"] }
 aoide-core-api = { version = "=0.0.0", path = "../core-api" }
 aoide-media-file = { version = "=0.0.0", path = "../media-file" }
 aoide-repo = { version = "=0.0.0", path = "../repo" }

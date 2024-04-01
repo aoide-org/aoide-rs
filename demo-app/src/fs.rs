@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use aoide::desktop_app::fs::DirPath;
+use aoide::util::fs::DirPath;
 
 /// Open a file dialog to choose a directory path
 ///

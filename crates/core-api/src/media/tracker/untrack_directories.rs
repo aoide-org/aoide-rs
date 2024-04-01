@@ -6,8 +6,15 @@ use aoide_core::{media::content::ContentPath, util::url::BaseUrl};
 use super::DirTrackingStatus;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PathsParam {
+    RootDirectory,
+    SubDirectories(Vec<ContentPath<'static>>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
+    pub paths: PathsParam,
     pub status: Option<DirTrackingStatus>,
 }
 

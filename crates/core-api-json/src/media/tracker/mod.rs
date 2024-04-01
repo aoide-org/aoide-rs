@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::media::content::ContentPath;
 #[cfg(feature = "backend")]
 use aoide_core::util::url::{BaseUrl, BaseUrlError};
 use url::Url;
@@ -26,6 +27,9 @@ pub struct FsTraversalParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub root_url: Option<Url>,
 
+    #[serde(default)]
+    pub excluded_paths: Vec<ContentPath<'static>>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_depth: Option<usize>,
 }
@@ -35,10 +39,13 @@ impl From<_core::FsTraversalParams> for FsTraversalParams {
     fn from(from: _core::FsTraversalParams) -> Self {
         let _core::FsTraversalParams {
             root_url,
+            excluded_paths,
             max_depth,
         } = from;
+        let root_url = root_url.map(Into::into);
         Self {
-            root_url: root_url.map(Into::into),
+            root_url,
+            excluded_paths,
             max_depth,
         }
     }
@@ -51,11 +58,13 @@ impl TryFrom<FsTraversalParams> for _core::FsTraversalParams {
     fn try_from(from: FsTraversalParams) -> Result<Self, Self::Error> {
         let FsTraversalParams {
             root_url,
+            excluded_paths,
             max_depth,
         } = from;
         let root_url = root_url.map(BaseUrl::try_autocomplete_from).transpose()?;
         Ok(Self {
             root_url,
+            excluded_paths,
             max_depth,
         })
     }

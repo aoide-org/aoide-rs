@@ -149,14 +149,16 @@ impl ContentPathResolver for VfsResolver {
         content_path: &ContentPath<'_>,
     ) -> Result<Url, ResolveFromPathError> {
         let file_path = self.build_file_path(content_path);
-        let url = if content_path.is_terminal() {
-            Url::from_file_path(&file_path)
-        } else {
+        let url = if content_path.is_directory() {
             // Preserve the trailing slash
             Url::from_directory_path(&file_path)
+        } else {
+            Url::from_file_path(&file_path)
         }
         .map_err(|()| ResolveFromPathError::InvalidFilePath(file_path))?;
-        debug_assert!(content_path.is_terminal() != url.as_str().ends_with('/'));
+        debug_assert!(
+            content_path.is_directory() == url.as_str().ends_with(ContentPath::SEPARATOR)
+        );
         debug_assert!(!content_path.is_empty() || is_valid_base_url(&url));
         Ok(url)
     }

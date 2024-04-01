@@ -3,6 +3,7 @@
 
 #[cfg(feature = "backend")]
 use aoide_core::util::url::{BaseUrl, BaseUrlError};
+use aoide_core_api::media::tracker::untrack_directories::PathsParam;
 use url::Url;
 
 use super::DirTrackingStatus;
@@ -27,7 +28,12 @@ pub struct Params {
 #[cfg(feature = "frontend")]
 impl From<_inner::Params> for Params {
     fn from(from: _inner::Params) -> Self {
-        let _inner::Params { root_url, status } = from;
+        let _inner::Params {
+            root_url,
+            paths,
+            status,
+        } = from;
+        debug_assert!(matches!(paths, PathsParam::RootDirectory));
         Self {
             root_url: root_url.map(Into::into),
             status: status.map(Into::into),
@@ -44,6 +50,7 @@ impl TryFrom<Params> for _inner::Params {
         let root_url = root_url.map(BaseUrl::try_autocomplete_from).transpose()?;
         Ok(Self {
             root_url,
+            paths: PathsParam::RootDirectory,
             status: status.map(Into::into),
         })
     }

@@ -5,7 +5,7 @@ use std::sync::mpsc;
 
 use egui::Context;
 
-use aoide::desktop_app::fs::DirPath;
+use aoide::util::fs::DirPath;
 
 use crate::{
     library::{self, ui::TrackListItem},

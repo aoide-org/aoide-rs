@@ -94,7 +94,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         content_path: &ContentPath<'_>,
         digest: &DigestBytes,
     ) -> RepoResult<DirUpdateOutcome> {
-        debug_assert!(!content_path.is_terminal());
+        debug_assert!(content_path.is_directory());
         // Try to mark outdated entry as current if digest is unchanged (most likely)
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
@@ -194,7 +194,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         directory_path: &ContentPath<'_>,
         digest: &DigestBytes,
     ) -> RepoResult<bool> {
-        debug_assert!(!directory_path.is_terminal());
+        debug_assert!(directory_path.is_directory());
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(media_tracker_directory::content_path.eq(directory_path.as_str()))
@@ -214,7 +214,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         collection_id: CollectionId,
         content_path: &ContentPath<'_>,
     ) -> RepoResult<DirTrackingStatus> {
-        debug_assert!(!content_path.is_terminal());
+        debug_assert!(content_path.is_directory());
         media_tracker_directory::table
             .select(media_tracker_directory::status)
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
@@ -455,7 +455,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         collection_id: CollectionId,
         content_path: &ContentPath<'_>,
     ) -> RepoResult<(MediaSourceId, Option<u64>)> {
-        debug_assert!(content_path.is_terminal());
+        debug_assert!(!content_path.is_directory());
         let tracked_source_query = media_source::table
             .select((media_source::row_id, media_source::content_link_rev))
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))

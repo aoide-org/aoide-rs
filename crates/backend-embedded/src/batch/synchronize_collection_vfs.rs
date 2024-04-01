@@ -6,7 +6,7 @@ use std::sync::{
     Arc,
 };
 
-use aoide_core::{track::Track, util::url::BaseUrl};
+use aoide_core::{media::content::ContentPath, track::Track, util::url::BaseUrl};
 use aoide_core_api::{
     filtering::StringPredicate,
     media::{tracker::DirTrackingStatus, SyncMode},
@@ -48,6 +48,7 @@ pub enum UnsynchronizedTracks {
 #[derive(Debug, Clone)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
+    pub excluded_paths: Vec<ContentPath<'static>>,
     pub max_depth: Option<usize>,
     pub sync_mode: SyncMode,
     pub import_track_config: ImportTrackConfig,
@@ -69,31 +70,35 @@ pub struct Outcome {
     pub completion: Completion,
 
     /// 1st step
-    pub scan_directories: Option<aoide_core_api::media::tracker::scan_directories::Outcome>,
+    pub untrack_excluded_directories:
+        Option<aoide_core_api::media::tracker::untrack_directories::Outcome>,
 
     /// 2nd step
+    pub scan_directories: Option<aoide_core_api::media::tracker::scan_directories::Outcome>,
+
+    /// 3rd step
     pub untrack_orphaned_directories:
         Option<aoide_core_api::media::tracker::untrack_directories::Outcome>,
 
-    /// 3rd step
+    /// 4th step
     pub import_files: Option<aoide_core_api::media::tracker::import_files::Outcome>,
 
-    /// 4th step (optional)
+    /// 5th step (optional)
     ///
     /// This will also purge the corresponding track entities irreversibly!
     pub purge_untracked_media_sources:
         Option<aoide_core_api::media::source::purge_untracked::Outcome>,
 
-    /// 5th step (optional)
+    /// 6th step (optional)
     ///
     /// This will also purge the corresponding track entities irreversibly!
     pub purge_orphaned_media_sources:
         Option<aoide_core_api::media::source::purge_orphaned::Outcome>,
 
-    /// 6th step (optional/informational)
+    /// 7th step (optional/informational)
     pub find_untracked_files: Option<aoide_core_api::media::tracker::find_untracked_files::Outcome>,
 
-    /// 7th step (optional/informational)
+    /// 8th step (optional/informational)
     pub find_unsynchronized_tracks: Option<Vec<UnsynchronizedTrackEntity>>,
 }
 
@@ -101,13 +106,14 @@ pub type Result = crate::Result<Outcome>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Progress {
-    Step1ScanDirectories(aoide_usecases::media::tracker::scan_directories::ProgressEvent),
-    Step2UntrackOrphanedDirectories,
-    Step3ImportFiles(aoide_usecases::media::tracker::import_files::ProgressEvent),
-    Step4PurgeUntrackedMediaSources,
-    Step5PurgeOrphanedMediaSources,
-    Step6FindUntrackedFiles(aoide_usecases::media::tracker::find_untracked_files::ProgressEvent),
-    Step7FindUnsynchronizedTracks,
+    Step1UntrackExcludedDirectories,
+    Step2ScanDirectories(aoide_usecases::media::tracker::scan_directories::ProgressEvent),
+    Step3UntrackOrphanedDirectories,
+    Step4ImportFiles(aoide_usecases::media::tracker::import_files::ProgressEvent),
+    Step5PurgeUntrackedMediaSources,
+    Step6PurgeOrphanedMediaSources,
+    Step7FindUntrackedFiles(aoide_usecases::media::tracker::find_untracked_files::ProgressEvent),
+    Step8FindUnsynchronizedTracks,
 }
 
 #[allow(clippy::too_many_lines)] // TODO
@@ -125,6 +131,7 @@ where
 {
     let Params {
         root_url,
+        excluded_paths,
         max_depth,
         sync_mode,
         import_track_config,
@@ -134,9 +141,34 @@ where
         unsynchronized_tracks,
     } = params;
     let mut outcome = Outcome::default();
-    // 1st step: Scan directories
+    // 1st step: Untrack excluded directories
+    report_progress_fn(Progress::Step1UntrackExcludedDirectories);
+    if !excluded_paths.is_empty() {
+        let untrack_excluded_directories_params =
+            aoide_core_api::media::tracker::untrack_directories::Params {
+                root_url: root_url.clone(),
+                paths:
+                    aoide_core_api::media::tracker::untrack_directories::PathsParam::SubDirectories(
+                        excluded_paths.clone(),
+                    ),
+                status: None,
+            };
+        outcome.untrack_excluded_directories = Some(
+            crate::media::tracker::untrack_directories(
+                db_gatekeeper,
+                collection_uid.clone(),
+                untrack_excluded_directories_params,
+            )
+            .await?,
+        );
+    }
+    if matches!(outcome.completion, Completion::Aborted) {
+        return Ok(outcome);
+    }
+    // 2nd step: Scan directories
     let scan_directories_params = aoide_core_api::media::tracker::scan_directories::Params {
         root_url: root_url.clone(),
+        excluded_paths: excluded_paths.clone(),
         max_depth,
     };
     outcome.scan_directories = Some({
@@ -145,7 +177,7 @@ where
             db_gatekeeper,
             collection_uid.clone(),
             scan_directories_params,
-            move |event| report_progress_fn(Progress::Step1ScanDirectories(event)),
+            move |event| report_progress_fn(Progress::Step2ScanDirectories(event)),
             Arc::clone(&abort_flag),
         )
         .await?;
@@ -166,11 +198,12 @@ where
     }
     #[cfg(feature = "tokio")]
     tokio::task::yield_now().await;
-    // 2nd step: Untrack orphaned directories
-    report_progress_fn(Progress::Step2UntrackOrphanedDirectories);
+    // 3rd step: Untrack orphaned directories
+    report_progress_fn(Progress::Step3UntrackOrphanedDirectories);
     let untrack_orphaned_directories_params =
         aoide_core_api::media::tracker::untrack_directories::Params {
             root_url: root_url.clone(),
+            paths: aoide_core_api::media::tracker::untrack_directories::PathsParam::RootDirectory,
             status: Some(DirTrackingStatus::Orphaned),
         };
     outcome.untrack_orphaned_directories = Some(
@@ -190,7 +223,7 @@ where
     }
     #[cfg(feature = "tokio")]
     tokio::task::yield_now().await;
-    // 3rd step: Import files
+    // 4th step: Import files
     let import_files_params = aoide_core_api::media::tracker::import_files::Params {
         root_url: root_url.clone(),
         sync_mode,
@@ -203,7 +236,7 @@ where
             import_files_params,
             import_track_config,
             intercept_imported_track_fn,
-            move |event| report_progress_fn(Progress::Step3ImportFiles(event)),
+            move |event| report_progress_fn(Progress::Step4ImportFiles(event)),
             Arc::clone(&abort_flag),
         )
         .await?;
@@ -224,8 +257,8 @@ where
     }
     #[cfg(feature = "tokio")]
     tokio::task::yield_now().await;
-    // 4th step: Purge untracked media sources (optional)
-    report_progress_fn(Progress::Step4PurgeUntrackedMediaSources);
+    // 5th step: Purge untracked media sources (optional)
+    report_progress_fn(Progress::Step5PurgeUntrackedMediaSources);
     match untracked_media_sources {
         UntrackedMediaSources::Keep => (),
         UntrackedMediaSources::Purge => {
@@ -251,8 +284,8 @@ where
     }
     #[cfg(feature = "tokio")]
     tokio::task::yield_now().await;
-    // 5th step: Purge orphaned media sources (optional)
-    report_progress_fn(Progress::Step5PurgeOrphanedMediaSources);
+    // 6th step: Purge orphaned media sources (optional)
+    report_progress_fn(Progress::Step6PurgeOrphanedMediaSources);
     match orphaned_media_sources {
         OrphanedMediaSources::Keep => (),
         OrphanedMediaSources::Purge => {
@@ -274,12 +307,13 @@ where
     }
     #[cfg(feature = "tokio")]
     tokio::task::yield_now().await;
-    // 6th step: Find untracked files (optional/informational)
+    // 7th step: Find untracked files (optional/informational)
     match untracked_files {
         UntrackedFiles::Skip => (),
         UntrackedFiles::Find => {
             let params = aoide_core_api::media::tracker::find_untracked_files::Params {
                 root_url: root_url.clone(),
+                excluded_paths,
                 max_depth,
             };
             outcome.find_untracked_files = Some({
@@ -288,7 +322,7 @@ where
                     db_gatekeeper,
                     collection_uid.clone(),
                     params,
-                    move |event| report_progress_fn(Progress::Step6FindUntrackedFiles(event)),
+                    move |event| report_progress_fn(Progress::Step7FindUntrackedFiles(event)),
                     Arc::clone(&abort_flag),
                 )
                 .await?;
@@ -311,8 +345,8 @@ where
     }
     #[cfg(feature = "tokio")]
     tokio::task::yield_now().await;
-    // 7th step: Find unsynchronized tracks (optional/informational)
-    report_progress_fn(Progress::Step7FindUnsynchronizedTracks);
+    // 8th step: Find unsynchronized tracks (optional/informational)
+    report_progress_fn(Progress::Step8FindUnsynchronizedTracks);
     match unsynchronized_tracks {
         UnsynchronizedTracks::Skip => (),
         UnsynchronizedTracks::Find => {

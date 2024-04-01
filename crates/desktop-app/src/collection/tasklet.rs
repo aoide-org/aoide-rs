@@ -8,8 +8,10 @@ use std::{
 
 use unnest::some_or_break;
 
+use aoide_core::util::fs::DirPath;
+
 use super::{NestedMusicDirectoriesStrategy, ObservableState, RestoreEntityStrategy};
-use crate::{fs::DirPath, settings, Handle, StateUnchanged, WeakHandle};
+use crate::{settings, Handle, StateUnchanged, WeakHandle};
 
 async fn update_music_dir(
     settings_state: &settings::ObservableState,
@@ -71,7 +73,7 @@ pub fn on_settings_state_changed(
                 let handle = some_or_break!(handle.upgrade());
                 let (music_dir, collection_kind) = {
                     let settings_state = settings_state_sub.read_ack();
-                    let music_dir = settings_state.music_dir.clone();
+                    let music_dir = settings_state.music_dir().cloned().map(DirPath::into_owned);
                     let collection_kind = settings_state.collection_kind.clone();
                     (music_dir, collection_kind)
                 };

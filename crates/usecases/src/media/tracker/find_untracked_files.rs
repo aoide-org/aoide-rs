@@ -89,8 +89,8 @@ where
     ) -> anyhow::Result<()> {
         let url = url_from_walkdir_entry(dir_entry)?;
         let content_path = self.content_path_resolver.resolve_path_from_url(&url)?;
-        if !content_path.is_terminal() {
-            // Skip non-terminal paths, i.e. directories
+        if content_path.is_directory() {
+            // Skip directories.
             return Ok(());
         }
         match repo.media_tracker_resolve_source_id_synchronized_at_by_content_path(
@@ -165,6 +165,7 @@ pub fn visit_directories<
 ) -> Result<Outcome> {
     let FsTraversalParams {
         root_url,
+        excluded_paths,
         max_depth,
     } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
@@ -174,9 +175,14 @@ pub fn visit_directories<
     };
     let mut directory_visitor = DirectoryVisitor::new(collection_ctx.record_id, resolver);
     let root_file_path = resolver.build_file_path(resolver.root_path());
+    let excluded_paths = excluded_paths
+        .iter()
+        .map(|dir_path| resolver.build_file_path(dir_path).into())
+        .collect::<Vec<_>>();
     let completion = visit::visit_directories(
         repo,
-        &root_file_path,
+        &root_file_path.as_path().into(),
+        &excluded_paths,
         *max_depth,
         abort_flag,
         &mut directory_visitor,

@@ -3,6 +3,7 @@
 
 pub mod clock;
 pub mod color;
+pub mod fs;
 pub mod random;
 pub mod string;
 pub mod url;

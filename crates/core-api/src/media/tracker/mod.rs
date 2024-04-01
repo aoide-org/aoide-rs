@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core::{media::content::ContentPath, util::url::BaseUrl};
 use strum::FromRepr;
 
 pub mod count_sources_in_directories;
@@ -14,6 +14,7 @@ pub mod untrack_directories;
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FsTraversalParams {
     pub root_url: Option<BaseUrl>,
+    pub excluded_paths: Vec<ContentPath<'static>>,
     pub max_depth: Option<usize>,
 }
 

@@ -12,6 +12,8 @@ use std::{
 use url::Url;
 use walkdir::{DirEntry, WalkDir};
 
+use aoide_core::util::fs::DirPath;
+
 use crate::{Error, Result};
 
 // TODO: Customize the hidden directories filter?
@@ -191,7 +193,8 @@ pub fn visit_directories<
     ReportProgressFn: FnMut(&ProgressEvent),
 >(
     context: &mut C,
-    root_path: &Path,
+    root_path: &DirPath<'_>,
+    excluded_paths: &[DirPath<'_>],
     max_depth: Option<usize>,
     abort_flag: &AtomicBool,
     directory_visitor: &mut impl DirectoryVisitor<
@@ -218,10 +221,9 @@ pub fn visit_directories<
         walkdir = walkdir.max_depth(max_depth);
     }
 
-    for dir_entry in walkdir
-        .into_iter()
-        .filter_entry(|e| is_hidden_dir_entry(e).not())
-    {
+    for dir_entry in walkdir.into_iter().filter_entry(|e| {
+        is_hidden_dir_entry(e).not() && !excluded_paths.iter().any(|p| e.path().starts_with(p))
+    }) {
         if abort_flag.load(Ordering::Relaxed) {
             log::debug!("Aborting directory tree traversal");
             progress_event.abort();

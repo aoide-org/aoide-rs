@@ -5,8 +5,9 @@ use std::{future::Future, path::PathBuf};
 
 use discro::{tasklet::OnChanged, Subscriber};
 
+use aoide_core::util::fs::DirPath;
+
 use super::State;
-use crate::fs::DirPath;
 
 /// Save the settings after changed.
 ///
@@ -57,7 +58,11 @@ pub fn on_music_dir_changed(
     mut on_changed: impl FnMut(Option<&DirPath<'_>>) -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
     // Read the initial value immediately before spawning the async task
-    let mut value = subscriber.read_ack().music_dir.clone();
+    let mut value = subscriber
+        .read_ack()
+        .music_dir()
+        .cloned()
+        .map(DirPath::into_owned);
     async move {
         log::debug!("Starting on_music_dir_changed");
         // Enforce initial update
@@ -81,9 +86,9 @@ pub fn on_music_dir_changed(
                 break;
             }
             let settings = subscriber.read_ack();
-            let new_value = settings.music_dir.as_ref();
+            let new_value = settings.music_dir();
             if value.as_ref() != new_value {
-                value = new_value.cloned();
+                value = new_value.cloned().map(DirPath::into_owned);
                 value_changed = true;
             }
         }
