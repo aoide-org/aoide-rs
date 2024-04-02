@@ -12,6 +12,7 @@ use std::{
     time::Instant,
 };
 
+use anyhow::anyhow;
 use discro::{Publisher, Subscriber};
 use url::Url;
 
@@ -23,6 +24,7 @@ use aoide_backend_embedded::{
             UntrackedMediaSources,
         },
     },
+    collection::resolve_content_path_from_url,
     media::predefined_faceted_tag_mapping_config,
 };
 use aoide_core::{
@@ -611,7 +613,7 @@ impl State {
         params
     }
 
-    fn synchronize(&mut self) -> Result<EntityUid, StateUnchanged> {
+    fn synchronize_vfs(&mut self) -> Result<EntityUid, StateUnchanged> {
         let old_self = std::mem::replace(self, Self::Void);
         let Self::Ready { entity, .. } = old_self else {
             log::warn!("Illegal state for synchronizing: {old_self:?}");
@@ -726,6 +728,59 @@ impl State {
         debug_assert_ne!(*self, next_state);
         *self = next_state;
         Ok(outcome)
+    }
+
+    /// Map an URL to the corresponding content path.
+    ///
+    /// Example: Map a local file path to a content path within the collection
+    /// for excluding it during synchronization. These paths are provided as
+    /// relative, platform-independent paths and not as absolute paths in the
+    /// local file system.
+    ///
+    /// Returns `None` if no collection is available or if the URL
+    /// has no corresponding content path within the collection.
+    ///
+    /// The root URL of the collection can be overridden by `override_root_url`.
+    pub async fn resolve_content_path_from_url(
+        &self,
+        handle: &Handle,
+        content_url: Url,
+        override_root_url: Option<BaseUrl>,
+    ) -> anyhow::Result<Option<ContentPath<'static>>> {
+        let Some(entity_uid) = self.entity_uid() else {
+            return Ok(None);
+        };
+        resolve_content_path_from_url(
+            handle.db_gatekeeper(),
+            entity_uid.clone(),
+            content_url,
+            override_root_url,
+        )
+        .await
+        .map_err(Into::into)
+    }
+
+    pub async fn resolve_content_path_from_file_path(
+        &self,
+        handle: &Handle,
+        file_path: &Path,
+        override_root_path: Option<&Path>,
+    ) -> anyhow::Result<Option<ContentPath<'static>>> {
+        let content_url = Url::from_file_path(file_path).map_err(|()| {
+            anyhow!(
+                "invalid file path \"{file_path}\"",
+                file_path = file_path.display()
+            )
+        })?;
+        let override_root_url = override_root_path
+            .map(|p| {
+                Url::from_file_path(p)
+                    .map_err(|()| anyhow!("invalid file path \"{p}\"", p = p.display()))
+                    .and_then(|url| url.try_into().map_err(Into::into))
+            })
+            .transpose()?;
+        self.resolve_content_path_from_url(handle, content_url, override_root_url)
+            .await
     }
 }
 
@@ -842,7 +897,7 @@ impl ObservableState {
             FnMut(batch::synchronize_collection_vfs::Progress) + Clone + Send + 'static,
     {
         let (pending_state, entity_uid) = modify_observable_state(&self.0, |state| {
-            let entity_uid = state.synchronize()?;
+            let entity_uid = state.synchronize_vfs()?;
             debug_assert!(state.is_pending());
             let pending_state = state.clone();
             Ok((pending_state, entity_uid))

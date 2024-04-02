@@ -1,12 +1,18 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::collection::*;
+use aoide_core::{
+    collection::*,
+    media::content::{resolver::ContentPathResolver as _, ContentPath},
+    util::url::BaseUrl,
+};
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
 use aoide_repo::{
     collection::{EntityRepo as _, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
     prelude::*,
 };
+use uc::collection::vfs::RepoContext;
+use url::Url;
 
 use super::*;
 
@@ -64,4 +70,22 @@ pub fn load_all(
 pub fn load_all_kinds(connection: &mut DbConnection) -> Result<Vec<String>> {
     let mut repo = RepoConnection::new(connection);
     repo.load_all_kinds().map_err(Into::into)
+}
+
+pub fn resolve_content_path_from_url(
+    connection: &mut DbConnection,
+    entity_uid: &EntityUid,
+    content_url: &Url,
+    override_root_url: Option<BaseUrl>,
+) -> Result<Option<ContentPath<'static>>> {
+    let mut repo = RepoConnection::new(connection);
+    let repo_ctx = RepoContext::resolve_override(&mut repo, entity_uid, None, override_root_url)?;
+    let Some(resolver) = &repo_ctx.content_path.resolver else {
+        return Ok(None);
+    };
+    resolver
+        .resolve_path_from_url(content_url)
+        .map(Some)
+        .map_err(anyhow::Error::from)
+        .map_err(Into::into)
 }

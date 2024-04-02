@@ -187,6 +187,7 @@ dependencies = [
  "tantivy",
  "thiserror",
  "tokio",
+ "url",
 ]
 
 [[package]]
@@ -463,6 +464,7 @@ dependencies = [
  "diesel",
  "log",
  "thiserror",
+ "url",
 ]
 
 [[package]]

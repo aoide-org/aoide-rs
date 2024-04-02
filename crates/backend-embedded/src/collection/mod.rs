@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::collection::{Collection, Entity, EntityHeader, EntityUid};
+use aoide_core::{
+    collection::{Collection, Entity, EntityHeader, EntityUid},
+    media::content::ContentPath,
+    util::url::BaseUrl,
+};
 use aoide_core_api::{
     collection::{EntityWithSummary, LoadScope},
     Pagination,
@@ -12,6 +16,7 @@ use aoide_repo::{
 };
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use diesel::Connection as _;
+use url::Url;
 
 use crate::prelude::*;
 
@@ -150,6 +155,29 @@ pub async fn purge(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::collection::purge(connection, &entity_uid)
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
+pub async fn resolve_content_path_from_url(
+    db_gatekeeper: &Gatekeeper,
+    entity_uid: EntityUid,
+    content_url: Url,
+    override_root_url: Option<BaseUrl>,
+) -> Result<Option<ContentPath<'static>>> {
+    db_gatekeeper
+        .spawn_blocking_read_task(move |mut pooled_connection| {
+            let connection = &mut *pooled_connection;
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::collection::resolve_content_path_from_url(
+                    connection,
+                    &entity_uid,
+                    &content_url,
+                    override_root_url,
+                )
             })
         })
         .await
