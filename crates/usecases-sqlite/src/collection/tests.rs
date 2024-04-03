@@ -27,10 +27,16 @@ impl DbFixture {
     }
 }
 
+#[cfg(not(target_family = "windows"))]
+const FILE_URL_PREFIX: &str = "file://";
+
+#[cfg(target_family = "windows")]
+const FILE_URL_PREFIX: &str = "file://C:";
+
 #[test]
 fn resolve_content_path_from_url() -> anyhow::Result<()> {
     let mut fixture = DbFixture::new()?;
-    let root_url = BaseUrl::parse_strict("file:///a/b/")?;
+    let root_url = BaseUrl::parse_strict(&format!("{FILE_URL_PREFIX}/a/b/"))?;
     let collection = Collection {
         title: "Test Collection".into(),
         notes: Some("Some personal notes".into()),
@@ -72,7 +78,7 @@ fn resolve_content_path_from_url() -> anyhow::Result<()> {
         super::resolve_content_path_from_url(
             &mut fixture.connection,
             &collection_uid,
-            &Url::parse("file:///a/b")?,
+            &Url::parse(&format!("{FILE_URL_PREFIX}/a/b"))?,
         )?
     );
     // Other directory with trailing slash
@@ -81,7 +87,7 @@ fn resolve_content_path_from_url() -> anyhow::Result<()> {
         super::resolve_content_path_from_url(
             &mut fixture.connection,
             &collection_uid,
-            &Url::parse("file:///a/c/")?,
+            &Url::parse(&format!("{FILE_URL_PREFIX}/a/c/"))?,
         )?
     );
     assert_eq!(
@@ -89,7 +95,7 @@ fn resolve_content_path_from_url() -> anyhow::Result<()> {
         super::resolve_content_path_from_url(
             &mut fixture.connection,
             &collection_uid,
-            &Url::parse("file:///c/")?,
+            &Url::parse(&format!("{FILE_URL_PREFIX}/c/"))?,
         )?
     );
     // Other directory without trailing slash
@@ -98,7 +104,7 @@ fn resolve_content_path_from_url() -> anyhow::Result<()> {
         super::resolve_content_path_from_url(
             &mut fixture.connection,
             &collection_uid,
-            &Url::parse("file:///a/c")?,
+            &Url::parse(&format!("{FILE_URL_PREFIX}/a/c"))?,
         )?
     );
     assert_eq!(
@@ -106,7 +112,7 @@ fn resolve_content_path_from_url() -> anyhow::Result<()> {
         super::resolve_content_path_from_url(
             &mut fixture.connection,
             &collection_uid,
-            &Url::parse("file:///c")?,
+            &Url::parse(&format!("{FILE_URL_PREFIX}/c"))?,
         )?
     );
     Ok(())
