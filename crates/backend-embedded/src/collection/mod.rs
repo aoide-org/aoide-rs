@@ -166,7 +166,6 @@ pub async fn resolve_content_path_from_url(
     db_gatekeeper: &Gatekeeper,
     entity_uid: EntityUid,
     content_url: Url,
-    override_root_url: Option<BaseUrl>,
 ) -> Result<Option<ContentPath<'static>>> {
     db_gatekeeper
         .spawn_blocking_read_task(move |mut pooled_connection| {
@@ -176,6 +175,28 @@ pub async fn resolve_content_path_from_url(
                     connection,
                     &entity_uid,
                     &content_url,
+                )
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
+pub async fn resolve_url_from_content_path(
+    db_gatekeeper: &Gatekeeper,
+    entity_uid: EntityUid,
+    content_path: ContentPath<'static>,
+    override_root_url: Option<BaseUrl>,
+) -> Result<Option<Url>> {
+    db_gatekeeper
+        .spawn_blocking_read_task(move |mut pooled_connection| {
+            let connection = &mut *pooled_connection;
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::collection::resolve_url_from_content_path(
+                    connection,
+                    &entity_uid,
+                    &content_path,
                     override_root_url,
                 )
             })

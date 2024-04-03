@@ -3,6 +3,8 @@
 
 use std::{marker::PhantomData, path::Path, sync::atomic::AtomicBool, time::Duration};
 
+use anyhow::anyhow;
+
 use aoide_core::media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _};
 use aoide_core_api::media::tracker::{
     find_untracked_files::Outcome, Completion, FsTraversalDirectoriesProgress,
@@ -88,7 +90,10 @@ where
         dir_entry: &walkdir::DirEntry,
     ) -> anyhow::Result<()> {
         let url = url_from_walkdir_entry(dir_entry)?;
-        let content_path = self.content_path_resolver.resolve_path_from_url(&url)?;
+        let content_path = self
+            .content_path_resolver
+            .resolve_path_from_url(&url)?
+            .ok_or_else(|| anyhow!("unresolved URL: {url}"))?;
         if content_path.is_directory() {
             // Skip directories.
             return Ok(());
@@ -171,7 +176,7 @@ pub fn visit_directories<
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
-        return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
+        return Err(anyhow!("unsupported path kind: {path_kind:?}").into());
     };
     let mut directory_visitor = DirectoryVisitor::new(collection_ctx.record_id, resolver);
     let root_file_path = resolver.build_file_path(resolver.root_path());

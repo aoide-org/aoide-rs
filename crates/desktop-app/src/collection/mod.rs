@@ -745,26 +745,19 @@ impl State {
         &self,
         handle: &Handle,
         content_url: Url,
-        override_root_url: Option<BaseUrl>,
     ) -> anyhow::Result<Option<ContentPath<'static>>> {
         let Some(entity_uid) = self.entity_uid() else {
             return Ok(None);
         };
-        resolve_content_path_from_url(
-            handle.db_gatekeeper(),
-            entity_uid.clone(),
-            content_url,
-            override_root_url,
-        )
-        .await
-        .map_err(Into::into)
+        resolve_content_path_from_url(handle.db_gatekeeper(), entity_uid.clone(), content_url)
+            .await
+            .map_err(Into::into)
     }
 
     pub async fn resolve_content_path_from_file_path(
         &self,
         handle: &Handle,
         file_path: &Path,
-        override_root_path: Option<&Path>,
     ) -> anyhow::Result<Option<ContentPath<'static>>> {
         let content_url = Url::from_file_path(file_path).map_err(|()| {
             anyhow!(
@@ -772,14 +765,7 @@ impl State {
                 file_path = file_path.display()
             )
         })?;
-        let override_root_url = override_root_path
-            .map(|p| {
-                Url::from_file_path(p)
-                    .map_err(|()| anyhow!("invalid file path \"{p}\"", p = p.display()))
-                    .and_then(|url| url.try_into().map_err(Into::into))
-            })
-            .transpose()?;
-        self.resolve_content_path_from_url(handle, content_url, override_root_url)
+        self.resolve_content_path_from_url(handle, content_url)
             .await
     }
 }

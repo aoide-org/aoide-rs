@@ -3,6 +3,7 @@
 
 use std::{path::Path, sync::atomic::AtomicBool, time::Duration};
 
+use anyhow::anyhow;
 use aoide_core::{
     media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _},
     util::clock::OffsetDateTimeMs,
@@ -113,7 +114,9 @@ pub fn scan_directories<
         debug_assert!(url
             .as_str()
             .starts_with(resolver.canonical_root_url().as_str()));
-        let content_path = resolver.resolve_path_from_url(&url)?;
+        let content_path = resolver
+            .resolve_path_from_url(&url)?
+            .ok_or_else(|| anyhow!("unresolved URL: {url}"))?;
         log::debug!("Updating digest of content path: {content_path}");
         match repo
             .media_tracker_update_directory_digest(

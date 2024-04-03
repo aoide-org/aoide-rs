@@ -436,10 +436,13 @@ where
                 imported_media_sources_with_issues,
             });
         }
-        let content_path = if let Some(content_path) = Url::from_file_path(dir_entry.path())
-            .ok()
-            .and_then(|url| content_path_resolver.resolve_path_from_url(&url).ok())
-        {
+        let content_path = if let Some(content_path) =
+            Url::from_file_path(dir_entry.path()).ok().and_then(|url| {
+                content_path_resolver
+                    .resolve_path_from_url(&url)
+                    .ok()
+                    .flatten()
+            }) {
             content_path.clone()
         } else {
             log::warn!(

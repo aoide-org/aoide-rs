@@ -76,16 +76,35 @@ pub fn resolve_content_path_from_url(
     connection: &mut DbConnection,
     entity_uid: &EntityUid,
     content_url: &Url,
-    override_root_url: Option<BaseUrl>,
 ) -> Result<Option<ContentPath<'static>>> {
     let mut repo = RepoConnection::new(connection);
-    let repo_ctx = RepoContext::resolve_override(&mut repo, entity_uid, None, override_root_url)?;
-    let Some(resolver) = &repo_ctx.content_path.resolver else {
+    let repo_ctx = RepoContext::resolve_override(&mut repo, entity_uid, None, None)?;
+    let Some(content_path_resolver) = &repo_ctx.content_path.resolver else {
         return Ok(None);
     };
-    resolver
+    content_path_resolver
         .resolve_path_from_url(content_url)
+        .map_err(anyhow::Error::from)
+        .map_err(Into::into)
+}
+
+pub fn resolve_url_from_content_path(
+    connection: &mut DbConnection,
+    entity_uid: &EntityUid,
+    content_path: &ContentPath<'_>,
+    override_root_url: Option<BaseUrl>,
+) -> Result<Option<Url>> {
+    let mut repo = RepoConnection::new(connection);
+    let repo_ctx = RepoContext::resolve_override(&mut repo, entity_uid, None, override_root_url)?;
+    let Some(content_path_resolver) = &repo_ctx.content_path.resolver else {
+        return Ok(None);
+    };
+    content_path_resolver
+        .resolve_url_from_path(content_path)
         .map(Some)
         .map_err(anyhow::Error::from)
         .map_err(Into::into)
 }
+
+#[cfg(test)]
+mod tests;

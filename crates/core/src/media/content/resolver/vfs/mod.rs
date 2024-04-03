@@ -116,10 +116,10 @@ impl ContentPathResolver for VfsResolver {
     fn resolve_path_from_url(
         &self,
         url: &Url,
-    ) -> Result<ContentPath<'static>, ResolveFromUrlError> {
+    ) -> Result<Option<ContentPath<'static>>, ResolveFromUrlError> {
         if let Some(root_url) = &self.root_url {
             if !url.as_str().starts_with(root_url.as_str()) {
-                return Err(ResolveFromUrlError::InvalidUrl);
+                return Ok(None);
             }
         } else if url.scheme() != FILE_URL_SCHEME {
             return Err(ResolveFromUrlError::InvalidUrl);
@@ -131,20 +131,20 @@ impl ContentPathResolver for VfsResolver {
                         if let Some(root_slash_path) = &self.root_slash_path {
                             let stripped_path = slash_path.strip_prefix(root_slash_path);
                             if let Some(stripped_path) = stripped_path {
-                                return Ok(stripped_path.to_owned().into());
+                                return Ok(Some(stripped_path.to_owned().into()));
                             }
                         } else {
-                            return Ok(slash_path.into_owned().into());
+                            return Ok(Some(slash_path.into_owned().into()));
                         }
                     }
                 }
-                Err(ResolveFromUrlError::InvalidUrl)
+                Ok(None)
             }
             Err(()) => Err(ResolveFromUrlError::InvalidUrl),
         }
     }
 
-    fn resolve_url_from_content_path(
+    fn resolve_url_from_path(
         &self,
         content_path: &ContentPath<'_>,
     ) -> Result<Url, ResolveFromPathError> {
@@ -188,6 +188,7 @@ impl RemappingVfsResolver {
         let root_path = root_url
             .map(|root_url| resolve_path_prefix_from_base_url(&canonical_path_resolver, root_url))
             .transpose()?
+            .flatten()
             .unwrap_or_default();
         let vfs_context = if override_root_url == canonical_path_resolver.root_url {
             // Don't override
@@ -279,24 +280,23 @@ impl ContentPathResolver for RemappingVfsResolver {
         self.path_resolver.path_kind()
     }
 
-    fn resolve_url_from_content_path(
+    fn resolve_url_from_path(
         &self,
         content_path: &ContentPath<'_>,
     ) -> Result<url::Url, ResolveFromPathError> {
         if self.root_url.is_none() {
-            self.path_resolver
-                .resolve_url_from_content_path(content_path)
+            self.path_resolver.resolve_url_from_path(content_path)
         } else {
             let remapped_content_path = self.remap_content_path(content_path);
             self.path_resolver
-                .resolve_url_from_content_path(&remapped_content_path)
+                .resolve_url_from_path(&remapped_content_path)
         }
     }
 
     fn resolve_path_from_url(
         &self,
         url: &Url,
-    ) -> Result<ContentPath<'static>, ResolveFromUrlError> {
+    ) -> Result<Option<ContentPath<'static>>, ResolveFromUrlError> {
         if self.root_url.is_none() {
             self.path_resolver.resolve_path_from_url(url)
         } else {
@@ -308,7 +308,7 @@ impl ContentPathResolver for RemappingVfsResolver {
 fn resolve_path_prefix_from_base_url(
     content_path_resolver: &impl ContentPathResolver,
     url_path_prefix: &BaseUrl,
-) -> anyhow::Result<ContentPath<'static>> {
+) -> anyhow::Result<Option<ContentPath<'static>>> {
     content_path_resolver
         .resolve_path_from_url(url_path_prefix)
         .map_err(|err| anyhow!("Invalid URL path prefix: {err}"))

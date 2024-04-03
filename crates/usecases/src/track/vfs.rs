@@ -27,7 +27,7 @@ where
         debug_assert!(record.body.content_url.is_none());
         record.body.content_url = self
             .resolver
-            .resolve_url_from_content_path(content_path)
+            .resolve_url_from_path(content_path)
             .map_err(|err| {
                 log::error!("Failed to convert media source path '{content_path}' to URL: {err}");
             })

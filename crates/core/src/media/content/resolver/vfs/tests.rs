@@ -8,7 +8,7 @@ fn resolve_url_from_empty_path() {
     let empty_path = ContentPath::default();
     assert!(empty_path.is_empty());
     assert!(VfsResolver::default()
-        .resolve_url_from_content_path(&empty_path)
+        .resolve_url_from_path(&empty_path)
         .is_err());
 }
 
@@ -25,10 +25,10 @@ fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathErr
     #[cfg(target_family = "windows")]
     let slash_path = ContentPath::from("C:/Test path/next#path/file.mp3");
 
-    let url = VfsResolver::default().resolve_url_from_content_path(&slash_path)?;
+    let url = VfsResolver::default().resolve_url_from_path(&slash_path)?;
     assert_eq!(file_url, url);
     assert_eq!(
-        slash_path,
+        Some(slash_path),
         VfsResolver::default().resolve_path_from_url(&url).unwrap()
     );
 
@@ -44,18 +44,24 @@ fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathErr
     #[cfg(target_family = "windows")]
     let slash_path = ContentPath::from("next#path/file.mp3");
 
-    let url = resolver.resolve_url_from_content_path(&slash_path)?;
+    let url = resolver.resolve_url_from_path(&slash_path)?;
     assert_eq!(file_url, url);
-    assert_eq!(slash_path, resolver.resolve_path_from_url(&url).unwrap());
+    assert_eq!(
+        Some(slash_path),
+        resolver.resolve_path_from_url(&url).unwrap()
+    );
 
     #[cfg(not(target_family = "windows"))]
     let slash_path = ContentPath::from("next#*?path/file.mp3");
     #[cfg(target_family = "windows")]
     let slash_path = ContentPath::from("next#path/file.mp3");
 
-    let url = resolver.resolve_url_from_content_path(&slash_path)?;
+    let url = resolver.resolve_url_from_path(&slash_path)?;
     assert_eq!(file_url, url);
-    assert_eq!(slash_path, resolver.resolve_path_from_url(&url).unwrap());
+    assert_eq!(
+        Some(slash_path),
+        resolver.resolve_path_from_url(&url).unwrap()
+    );
 
     Ok(())
 }
@@ -73,10 +79,10 @@ fn resolve_url_from_local_directory_path_roundtrip() -> Result<(), ResolveFromPa
     #[cfg(target_family = "windows")]
     let slash_path = ContentPath::from("C:/Test path/next#path/");
 
-    let url = VfsResolver::default().resolve_url_from_content_path(&slash_path)?;
+    let url = VfsResolver::default().resolve_url_from_path(&slash_path)?;
     assert_eq!(file_url, url);
     assert_eq!(
-        slash_path,
+        Some(slash_path),
         VfsResolver::default().resolve_path_from_url(&url).unwrap()
     );
 
@@ -92,18 +98,24 @@ fn resolve_url_from_local_directory_path_roundtrip() -> Result<(), ResolveFromPa
     #[cfg(target_family = "windows")]
     let slash_path = ContentPath::from("next#path/");
 
-    let url = resolver.resolve_url_from_content_path(&slash_path)?;
+    let url = resolver.resolve_url_from_path(&slash_path)?;
     assert_eq!(file_url, url);
-    assert_eq!(slash_path, resolver.resolve_path_from_url(&url).unwrap());
+    assert_eq!(
+        Some(slash_path),
+        resolver.resolve_path_from_url(&url).unwrap()
+    );
 
     #[cfg(not(target_family = "windows"))]
     let slash_path = ContentPath::from("next#*?path/");
     #[cfg(target_family = "windows")]
     let slash_path = ContentPath::from("next#path/");
 
-    let url = resolver.resolve_url_from_content_path(&slash_path)?;
+    let url = resolver.resolve_url_from_path(&slash_path)?;
     assert_eq!(file_url, url);
-    assert_eq!(slash_path, resolver.resolve_path_from_url(&url).unwrap());
+    assert_eq!(
+        Some(slash_path),
+        resolver.resolve_path_from_url(&url).unwrap()
+    );
 
     Ok(())
 }
@@ -119,15 +131,15 @@ fn resolve_url_from_empty_path_with_root_url() -> Result<(), ResolveFromPathErro
 
     assert_eq!(
         root_url,
-        resolver.resolve_url_from_content_path(&ContentPath::from(""))?
+        resolver.resolve_url_from_path(&ContentPath::from(""))?
     );
     assert_eq!(
         root_url,
-        resolver.resolve_url_from_content_path(&ContentPath::from("/"))?
+        resolver.resolve_url_from_path(&ContentPath::from("/"))?
     );
     assert_eq!(
         root_url,
-        resolver.resolve_url_from_content_path(&ContentPath::from("//"))?
+        resolver.resolve_url_from_path(&ContentPath::from("//"))?
     );
 
     Ok(())
@@ -137,7 +149,7 @@ fn resolve_url_from_empty_path_with_root_url() -> Result<(), ResolveFromPathErro
 fn resolve_url_from_relative_path_without_root_url_fails() {
     let slash_path = ContentPath::from("Test path/file.mp3");
     assert!(VfsResolver::default()
-        .resolve_url_from_content_path(&slash_path)
+        .resolve_url_from_path(&slash_path)
         .is_err());
 }
 

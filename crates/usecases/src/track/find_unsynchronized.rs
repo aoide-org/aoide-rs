@@ -37,7 +37,7 @@ where
                     if let Some(content_path_resolver) = content_path_resolver {
                         // FIXME: Handle errors
                         let url = content_path_resolver
-                            .resolve_url_from_content_path(&content_link.path)
+                            .resolve_url_from_path(&content_link.path)
                             .expect("valid content path");
                         content_link.path = url.to_string().into();
                     }

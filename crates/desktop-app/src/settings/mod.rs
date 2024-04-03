@@ -28,7 +28,7 @@ pub mod tasklet;
 pub struct MusicDirectories {
     /// The root music directory.
     ///
-    /// Used as to select the corresponding collection.
+    /// Used to select the corresponding collection.
     pub root_path: DirPath<'static>,
 
     /// Excluded paths within the root music directory.
