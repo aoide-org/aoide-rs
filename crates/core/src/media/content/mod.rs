@@ -160,7 +160,13 @@ pub enum ContentPathConfig {
     Uri,
     Url,
     FileUrl,
-    VirtualFilePath { root_url: BaseUrl },
+    VirtualFilePath(VirtualFilePathConfig),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct VirtualFilePathConfig {
+    pub root_url: BaseUrl,
+    pub excluded_paths: Vec<ContentPath<'static>>,
 }
 
 impl ContentPathConfig {
@@ -177,17 +183,23 @@ impl ContentPathConfig {
     #[must_use]
     pub const fn root_url(&self) -> Option<&BaseUrl> {
         match self {
-            Self::VirtualFilePath { root_url } => Some(root_url),
+            Self::VirtualFilePath(VirtualFilePathConfig { root_url, .. }) => Some(root_url),
             Self::Uri | Self::Url | Self::FileUrl => None,
         }
     }
 }
 
 /// Composition
-impl TryFrom<(ContentPathKind, Option<BaseUrl>)> for ContentPathConfig {
+impl TryFrom<(ContentPathKind, Option<BaseUrl>, Vec<ContentPath<'static>>)> for ContentPathConfig {
     type Error = anyhow::Error;
 
-    fn try_from((path_kind, root_url): (ContentPathKind, Option<BaseUrl>)) -> anyhow::Result<Self> {
+    fn try_from(
+        (path_kind, root_url, excluded_paths): (
+            ContentPathKind,
+            Option<BaseUrl>,
+            Vec<ContentPath<'static>>,
+        ),
+    ) -> anyhow::Result<Self> {
         use ContentPathKind as From;
         let into = match path_kind {
             From::Uri => Self::Uri,
@@ -195,7 +207,10 @@ impl TryFrom<(ContentPathKind, Option<BaseUrl>)> for ContentPathConfig {
             From::FileUrl => Self::FileUrl,
             From::VirtualFilePath => {
                 if let Some(root_url) = root_url {
-                    Self::VirtualFilePath { root_url }
+                    Self::VirtualFilePath(VirtualFilePathConfig {
+                        root_url,
+                        excluded_paths,
+                    })
                 } else {
                     anyhow::bail!("missing root URL");
                 }
@@ -206,16 +221,21 @@ impl TryFrom<(ContentPathKind, Option<BaseUrl>)> for ContentPathConfig {
 }
 
 /// Decomposition
-impl From<ContentPathConfig> for (ContentPathKind, Option<BaseUrl>) {
+impl From<ContentPathConfig> for (ContentPathKind, Option<BaseUrl>, Vec<ContentPath<'static>>) {
     fn from(from: ContentPathConfig) -> Self {
         use ContentPathConfig as From;
         match from {
-            From::Uri => (ContentPathKind::Uri, None),
-            From::Url => (ContentPathKind::Url, None),
-            From::FileUrl => (ContentPathKind::FileUrl, None),
-            From::VirtualFilePath { root_url } => {
-                (ContentPathKind::VirtualFilePath, Some(root_url))
-            }
+            From::Uri => (ContentPathKind::Uri, None, vec![]),
+            From::Url => (ContentPathKind::Url, None, vec![]),
+            From::FileUrl => (ContentPathKind::FileUrl, None, vec![]),
+            From::VirtualFilePath(VirtualFilePathConfig {
+                root_url,
+                excluded_paths,
+            }) => (
+                ContentPathKind::VirtualFilePath,
+                Some(root_url),
+                excluded_paths,
+            ),
         }
     }
 }
@@ -230,7 +250,7 @@ impl Validate for ContentPathConfig {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let mut context = ValidationContext::new();
-        if let Self::VirtualFilePath { root_url } = self {
+        if let Self::VirtualFilePath(VirtualFilePathConfig { root_url, .. }) = self {
             context = context.invalidate_if(!root_url.is_file(), Self::Invalidity::RootUrl);
         }
         context.into()

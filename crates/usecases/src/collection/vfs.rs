@@ -3,8 +3,11 @@
 
 use std::ops::Not as _;
 
-use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
-use aoide_core::{media::content::ContentPathKind, util::url::BaseUrl, CollectionUid};
+use aoide_core::{
+    media::content::{resolver::vfs::RemappingVfsResolver, ContentPath, ContentPathKind},
+    util::url::BaseUrl,
+    CollectionUid,
+};
 use aoide_repo::collection::{EntityRepo, RecordId};
 
 use super::*;
@@ -14,6 +17,7 @@ struct RepoContextProps {
     record_id: RecordId,
     content_path_kind: ContentPathKind,
     root_url: Option<BaseUrl>,
+    excluded_content_paths: Vec<ContentPath<'static>>,
 }
 
 impl RepoContextProps {
@@ -23,11 +27,13 @@ impl RepoContextProps {
     {
         let record_id = repo.resolve_collection_id(uid)?;
         let (_, entity) = repo.load_collection_entity(record_id)?;
-        let (content_path_kind, root_url) = entity.raw.body.media_source_config.content_path.into();
+        let (content_path_kind, root_url, excluded_content_paths) =
+            entity.raw.body.media_source_config.content_path.into();
         Ok(Self {
             record_id,
             content_path_kind,
             root_url,
+            excluded_content_paths,
         })
     }
 }
@@ -91,6 +97,7 @@ impl RepoContext {
 pub struct ContentPathContext {
     pub kind: ContentPathKind,
     pub resolver: Option<RemappingVfsResolver>,
+    pub excluded_paths: Vec<ContentPath<'static>>,
 }
 
 impl ContentPathContext {
@@ -104,6 +111,7 @@ impl ContentPathContext {
             record_id,
             content_path_kind: kind,
             root_url: canonical_root_url,
+            excluded_content_paths: excluded_paths,
         } = repo_props;
         let resolver = match kind {
             ContentPathKind::Url | ContentPathKind::Uri | ContentPathKind::FileUrl => None,
@@ -127,6 +135,10 @@ impl ContentPathContext {
                 return Err(anyhow::anyhow!("unsupported content path kind: {kind:?}").into());
             }
         };
-        Ok(Self { kind, resolver })
+        Ok(Self {
+            kind,
+            resolver,
+            excluded_paths,
+        })
     }
 }

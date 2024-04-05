@@ -4,7 +4,7 @@
 use anyhow::{anyhow, Result};
 use aoide_core::{
     collection::MediaSourceConfig,
-    media::content::{ContentPath, ContentPathConfig},
+    media::content::{ContentPath, ContentPathConfig, VirtualFilePathConfig},
     util::url::BaseUrl,
     Collection,
 };
@@ -43,9 +43,10 @@ fn resolve_content_path_from_url() -> anyhow::Result<()> {
         kind: None,
         color: None,
         media_source_config: MediaSourceConfig {
-            content_path: ContentPathConfig::VirtualFilePath {
+            content_path: ContentPathConfig::VirtualFilePath(VirtualFilePathConfig {
                 root_url: root_url.clone(),
-            },
+                excluded_paths: vec![],
+            }),
         },
     };
     let collection_uid = super::create(&mut fixture.connection, collection)?

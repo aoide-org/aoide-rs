@@ -6,8 +6,13 @@ use std::sync::{
     Arc,
 };
 
-use aoide_core::{media::content::ContentPath, track::Track, util::url::BaseUrl};
+use aoide_core::{
+    media::content::{ContentPathConfig, VirtualFilePathConfig},
+    track::Track,
+    util::url::BaseUrl,
+};
 use aoide_core_api::{
+    collection::LoadScope,
     filtering::StringPredicate,
     media::{tracker::DirTrackingStatus, SyncMode},
     track::find_unsynchronized::UnsynchronizedTrackEntity,
@@ -48,7 +53,6 @@ pub enum UnsynchronizedTracks {
 #[derive(Debug, Clone)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
-    pub excluded_paths: Vec<ContentPath<'static>>,
     pub max_depth: Option<usize>,
     pub sync_mode: SyncMode,
     pub import_track_config: ImportTrackConfig,
@@ -131,7 +135,6 @@ where
 {
     let Params {
         root_url,
-        excluded_paths,
         max_depth,
         sync_mode,
         import_track_config,
@@ -140,16 +143,28 @@ where
         untracked_files,
         unsynchronized_tracks,
     } = params;
+    let collection =
+        crate::collection::load_one(db_gatekeeper, collection_uid.clone(), LoadScope::Entity)
+            .await?
+            .entity
+            .raw
+            .body;
+    let excluded_content_paths = match collection.media_source_config.content_path {
+        ContentPathConfig::VirtualFilePath(VirtualFilePathConfig { excluded_paths, .. }) => {
+            excluded_paths
+        }
+        _ => vec![],
+    };
     let mut outcome = Outcome::default();
     // 1st step: Untrack excluded directories
     report_progress_fn(Progress::Step1UntrackExcludedDirectories);
-    if !excluded_paths.is_empty() {
+    if !excluded_content_paths.is_empty() {
         let untrack_excluded_directories_params =
             aoide_core_api::media::tracker::untrack_directories::Params {
                 root_url: root_url.clone(),
                 paths:
                     aoide_core_api::media::tracker::untrack_directories::PathsParam::SubDirectories(
-                        excluded_paths.clone(),
+                        excluded_content_paths.clone(),
                     ),
                 status: None,
             };
@@ -168,7 +183,7 @@ where
     // 2nd step: Scan directories
     let scan_directories_params = aoide_core_api::media::tracker::scan_directories::Params {
         root_url: root_url.clone(),
-        excluded_paths: excluded_paths.clone(),
+        excluded_paths: excluded_content_paths.clone(),
         max_depth,
     };
     outcome.scan_directories = Some({
@@ -313,7 +328,7 @@ where
         UntrackedFiles::Find => {
             let params = aoide_core_api::media::tracker::find_untracked_files::Params {
                 root_url: root_url.clone(),
-                excluded_paths,
+                excluded_paths: excluded_content_paths,
                 max_depth,
             };
             outcome.find_untracked_files = Some({

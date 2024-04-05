@@ -1,12 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{
-    collection::MediaSourceConfig,
-    media::content::ContentPathConfig,
-    util::{clock::OffsetDateTimeMs, url::BaseUrl},
-    Collection, CollectionEntity, CollectionHeader,
-};
+use aoide_core::{util::clock::OffsetDateTimeMs, Collection, CollectionEntity, CollectionHeader};
 use aoide_repo::{
     collection::{EntityRepo as _, RecordId as CollectionId},
     media::DigestBytes,
@@ -14,7 +9,7 @@ use aoide_repo::{
 use test_log::test;
 
 use super::*;
-use crate::tests::*;
+use crate::{repo::tests::vfs_media_source_config, tests::*};
 
 struct Fixture {
     db: DbConnection,
@@ -28,11 +23,7 @@ impl Fixture {
             notes: None,
             kind: None,
             color: None,
-            media_source_config: MediaSourceConfig {
-                content_path: ContentPathConfig::VirtualFilePath {
-                    root_url: BaseUrl::parse_strict("file:///").unwrap(),
-                },
-            },
+            media_source_config: vfs_media_source_config(),
         };
         let mut db = establish_connection()?;
         let collection_entity =

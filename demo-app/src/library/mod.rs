@@ -357,26 +357,8 @@ impl Library {
             rejected = ActionResponse::RejectedMaybeChanged;
         }
         log::info!("Spawning synchronize music directory task");
-        let excluded_paths = self
-            .state_observables
-            .settings
-            .read_lock()
-            .music_dirs
-            .as_ref()
-            .map(|dirs| {
-                dirs.excluded_paths
-                    .iter()
-                    .map(|p| p.clone().into_owned())
-                    .collect()
-            })
-            .unwrap_or_default();
-        self.state.pending_music_dir_sync_task = SynchronizeVfsTask::spawn(
-            rt,
-            &self.handle,
-            &self.state_observables.collection,
-            excluded_paths,
-        )
-        .ok();
+        self.state.pending_music_dir_sync_task =
+            SynchronizeVfsTask::spawn(rt, &self.handle, &self.state_observables.collection).ok();
         let Some(task) = &self.state.pending_music_dir_sync_task else {
             return rejected;
         };

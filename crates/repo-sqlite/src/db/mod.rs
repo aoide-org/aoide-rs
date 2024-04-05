@@ -23,6 +23,7 @@ mod join {
 
     diesel::allow_tables_to_appear_in_same_query!(
         collection,
+        collection_vfs,
         media_source,
         track,
         track_actor,

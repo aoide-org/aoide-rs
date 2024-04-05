@@ -57,8 +57,12 @@ impl TryFrom<QueryableRecord> for (RecordHeader, CollectionEntity) {
             .as_deref()
             .map(BaseUrl::parse_strict)
             .transpose()?;
-        let content_path_config =
-            ContentPathConfig::try_from((media_source_path_kind, media_source_root_url))?;
+        let excluded_content_paths = vec![];
+        let content_path_config = ContentPathConfig::try_from((
+            media_source_path_kind,
+            media_source_root_url,
+            excluded_content_paths,
+        ))?;
         let media_source_config = MediaSourceConfig {
             content_path: content_path_config,
         };
@@ -224,4 +228,19 @@ impl<'a> UpdatableRecord<'a> {
             media_source_root_url,
         }
     }
+}
+
+#[derive(Debug, Queryable, Identifiable)]
+#[diesel(table_name = collection_vfs, primary_key(row_id))]
+pub struct QueryableVfsExcludedContentPathRecord {
+    pub row_id: RowId,
+    pub collection_id: RowId,
+    pub excluded_content_path: String,
+}
+
+#[derive(Debug, Insertable, AsChangeset)]
+#[diesel(table_name = collection_vfs, treat_none_as_null = true)]
+pub struct UpsertableVfsExcludedContentPathRecord<'a> {
+    pub collection_id: RowId,
+    pub excluded_content_path: &'a str,
 }

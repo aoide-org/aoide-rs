@@ -1,13 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{
-    collection::MediaSourceConfig, media, util::url::BaseUrl, Collection, CollectionHeader,
-};
 use test_log::test;
 
+use aoide_core::{Collection, CollectionHeader};
+
 use super::*;
-use crate::tests::*;
+use crate::{repo::tests::vfs_media_source_config, tests::*};
 
 struct Fixture {
     db: DbConnection,
@@ -41,11 +40,7 @@ fn insert_collection() -> TestResult<()> {
             notes: Some("Some personal notes".into()),
             kind: None,
             color: None,
-            media_source_config: MediaSourceConfig {
-                content_path: media::content::ContentPathConfig::VirtualFilePath {
-                    root_url: BaseUrl::parse_strict("file:///").unwrap(),
-                },
-            },
+            media_source_config: vfs_media_source_config(),
         },
     )
     .unwrap();
@@ -65,11 +60,7 @@ fn update_collection() -> TestResult<()> {
             notes: Some("Description".into()),
             kind: None,
             color: None,
-            media_source_config: MediaSourceConfig {
-                content_path: media::content::ContentPathConfig::VirtualFilePath {
-                    root_url: BaseUrl::parse_strict("file:///").unwrap(),
-                },
-            },
+            media_source_config: vfs_media_source_config(),
         },
     )?;
     let id = db.resolve_collection_id(&entity.hdr.uid)?;
@@ -133,11 +124,7 @@ fn purge_collection() -> TestResult<()> {
             notes: None,
             kind: None,
             color: None,
-            media_source_config: MediaSourceConfig {
-                content_path: media::content::ContentPathConfig::VirtualFilePath {
-                    root_url: BaseUrl::parse_strict("file:///").unwrap(),
-                },
-            },
+            media_source_config: vfs_media_source_config(),
         },
     )
     .unwrap();

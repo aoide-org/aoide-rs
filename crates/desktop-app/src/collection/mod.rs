@@ -29,7 +29,7 @@ use aoide_backend_embedded::{
 };
 use aoide_core::{
     collection::{Collection, Entity, EntityUid, MediaSourceConfig},
-    media::content::{ContentPath, ContentPathConfig},
+    media::content::{ContentPath, ContentPathConfig, VirtualFilePathConfig},
     util::{fs::DirPath, url::BaseUrl},
 };
 use aoide_core_api::{
@@ -48,7 +48,7 @@ pub mod tasklet;
 
 #[must_use]
 pub const fn vfs_root_url(collection: &Collection) -> Option<&BaseUrl> {
-    if let ContentPathConfig::VirtualFilePath { root_url } =
+    if let ContentPathConfig::VirtualFilePath(VirtualFilePathConfig { root_url, .. }) =
         &collection.media_source_config.content_path
     {
         Some(root_url)
@@ -244,7 +244,10 @@ impl RestoreState {
                 let new_collection = Collection {
                     title: music_dir.display().to_string(),
                     media_source_config: MediaSourceConfig {
-                        content_path: ContentPathConfig::VirtualFilePath { root_url },
+                        content_path: ContentPathConfig::VirtualFilePath(VirtualFilePathConfig {
+                            root_url,
+                            excluded_paths: vec![],
+                        }),
                     },
                     kind,
                     notes: None,
@@ -670,6 +673,7 @@ impl State {
                 let error = err.to_string();
                 match self {
                     State::RestoringFromMusicDirectory { state, .. } => {
+                        log::warn!("Restoring from music directory failed: {error}");
                         let error = RestoreFromMusicDirectoryError::Other(error);
                         State::RestoringFromMusicDirectoryFailed {
                             state: std::mem::take(state),
@@ -680,11 +684,14 @@ impl State {
                         entity_uid,
                         loaded_before,
                         ..
-                    } => State::LoadingFailed {
-                        entity_uid: std::mem::take(entity_uid),
-                        loaded_before: loaded_before.take(),
-                        error,
-                    },
+                    } => {
+                        log::warn!("Loading failed: {error}");
+                        State::LoadingFailed {
+                            entity_uid: std::mem::take(entity_uid),
+                            loaded_before: loaded_before.take(),
+                            error,
+                        }
+                    }
                     _ => unreachable!(),
                 }
             }
@@ -867,7 +874,6 @@ impl ObservableState {
     fn synchronize_vfs_task<ReportProgressFn>(
         &self,
         handle: &Handle,
-        excluded_paths: Vec<ContentPath<'static>>,
         import_track_config: ImportTrackConfig,
         report_progress_fn: ReportProgressFn,
         abort_flag: Arc<AtomicBool>,
@@ -894,7 +900,6 @@ impl ObservableState {
             synchronize_vfs(
                 handle,
                 entity_uid,
-                excluded_paths,
                 import_track_config,
                 report_progress_fn,
                 abort_flag,
@@ -986,7 +991,6 @@ where
 async fn synchronize_vfs<E, ReportProgressFn>(
     env: E,
     entity_uid: EntityUid,
-    excluded_paths: Vec<ContentPath<'static>>,
     import_track_config: ImportTrackConfig,
     report_progress_fn: ReportProgressFn,
     abort_flag: Arc<AtomicBool>,
@@ -997,7 +1001,6 @@ where
 {
     let params = batch::synchronize_collection_vfs::Params {
         root_url: None,
-        excluded_paths,
         max_depth: None,
         sync_mode: SyncMode::Modified,
         import_track_config,
@@ -1033,7 +1036,6 @@ impl SynchronizeVfsTask {
         rt: &tokio::runtime::Handle,
         handle: &Handle,
         state: &Arc<ObservableState>,
-        excluded_paths: Vec<ContentPath<'static>>,
     ) -> Result<Self, StateUnchanged> {
         let started_at = Instant::now();
         let progress_pub = Publisher::new(None);
@@ -1048,13 +1050,8 @@ impl SynchronizeVfsTask {
             }
         };
         let abort_flag = Arc::new(AtomicBool::new(false));
-        let (task, continuation) = synchronize_vfs_task(
-            state,
-            handle,
-            excluded_paths,
-            report_progress_fn,
-            Arc::clone(&abort_flag),
-        )?;
+        let (task, continuation) =
+            synchronize_vfs_task(state, handle, report_progress_fn, Arc::clone(&abort_flag))?;
         let join_handle = rt.spawn(task);
         let abort_handle = join_handle.abort_handle();
         let state = Arc::clone(state);
@@ -1107,7 +1104,6 @@ impl SynchronizeVfsTask {
 fn synchronize_vfs_task(
     state: &ObservableState,
     handle: &Handle,
-    excluded_paths: Vec<ContentPath<'static>>,
     report_progress_fn: impl FnMut(Option<Progress>) + Clone + Send + 'static,
     abort_flag: Arc<AtomicBool>,
 ) -> Result<
@@ -1127,11 +1123,5 @@ fn synchronize_vfs_task(
     let report_progress_fn = move |progress| {
         report_progress_fn(Some(progress));
     };
-    state.synchronize_vfs_task(
-        handle,
-        excluded_paths,
-        import_track_config,
-        report_progress_fn,
-        abort_flag,
-    )
+    state.synchronize_vfs_task(handle, import_track_config, report_progress_fn, abort_flag)
 }

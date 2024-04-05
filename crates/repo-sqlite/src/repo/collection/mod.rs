@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{
-    collection::EntityHeader, util::clock::*, CollectionEntity, CollectionUid, EncodedEntityUid,
-    EntityRevision,
+    collection::EntityHeader,
+    media::content::{ContentPath, ContentPathConfig, VirtualFilePathConfig},
+    util::clock::*,
+    Collection, CollectionEntity, CollectionUid, EncodedEntityUid, EntityRevision,
 };
 use aoide_core_api::collection::{
     EntityWithSummary, LoadScope, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
@@ -23,6 +25,68 @@ use crate::{
     },
     prelude::*,
 };
+
+fn load_vfs_excluded_content_paths(
+    db: &mut Connection<'_>,
+    id: RecordId,
+) -> RepoResult<Vec<ContentPath<'static>>> {
+    collection_vfs::table
+        .select(collection_vfs::excluded_content_path)
+        .filter(collection_vfs::collection_id.eq(RowId::from(id)))
+        .load::<String>(db.as_mut())
+        .map(|v| v.into_iter().map(Into::into).collect())
+        .map_err(repo_error)
+}
+
+fn purge_vfs_excluded_content_paths<'a>(
+    db: &mut Connection<'_>,
+    id: RecordId,
+    keep: impl IntoIterator<Item = &'a ContentPath<'a>>,
+) -> RepoResult<()> {
+    let target = collection_vfs::table
+        .filter(collection_vfs::collection_id.eq(RowId::from(id)))
+        .filter(
+            collection_vfs::excluded_content_path.ne_all(keep.into_iter().map(ContentPath::as_str)),
+        );
+    let query = diesel::delete(target);
+    let rows_affected: usize = query.execute(db.as_mut()).map_err(repo_error)?;
+    log::debug!("Purged {rows_affected} VFS record(s) of collection {id:?}");
+    Ok(())
+}
+
+fn restore_vfs(
+    db: &mut Connection<'_>,
+    id: RecordId,
+    collection: &mut Collection,
+) -> RepoResult<()> {
+    let ContentPathConfig::VirtualFilePath(VirtualFilePathConfig { excluded_paths, .. }) =
+        &mut collection.media_source_config.content_path
+    else {
+        return Ok(());
+    };
+    debug_assert!(excluded_paths.is_empty());
+    *excluded_paths = load_vfs_excluded_content_paths(db, id)?;
+    Ok(())
+}
+
+fn store_vfs(db: &mut Connection<'_>, id: RecordId, collection: &Collection) -> RepoResult<()> {
+    let ContentPathConfig::VirtualFilePath(VirtualFilePathConfig { excluded_paths, .. }) =
+        &collection.media_source_config.content_path
+    else {
+        return purge_vfs_excluded_content_paths(db, id, std::iter::empty());
+    };
+    purge_vfs_excluded_content_paths(db, id, excluded_paths)?;
+    for excluded_path in excluded_paths {
+        let record = UpsertableVfsExcludedContentPathRecord {
+            collection_id: RowId::from(id),
+            excluded_content_path: excluded_path.as_str(),
+        };
+        let query = diesel::insert_or_ignore_into(collection_vfs::table).values(&record);
+        let rows_affected = query.execute(db.as_mut()).map_err(repo_error)?;
+        debug_assert!(rows_affected <= 1);
+    }
+    Ok(())
+}
 
 impl<'db> EntityRepo for crate::Connection<'db> {
     fn resolve_collection_entity_revision(
@@ -58,7 +122,9 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let query = diesel::insert_into(collection::table).values(&insertable);
         let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert_eq!(1, rows_affected);
-        self.resolve_collection_id(&created_entity.hdr.uid)
+        let id = self.resolve_collection_id(&created_entity.hdr.uid)?;
+        store_vfs(self, id, &created_entity.body)?;
+        Ok(id)
     }
 
     fn touch_collection_entity_revision(
@@ -101,6 +167,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         if rows_affected < 1 {
             return Err(RepoError::NotFound);
         }
+        store_vfs(self, id, &updated_entity.body)?;
         Ok(())
     }
 
@@ -108,11 +175,13 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         &mut self,
         id: RecordId,
     ) -> RepoResult<(RecordHeader, CollectionEntity)> {
-        collection::table
+        let (record_header, mut entity) = collection::table
             .filter(collection::row_id.eq(RowId::from(id)))
             .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)
-            .and_then(|record| record.try_into().map_err(Into::into))
+            .and_then(|record| record.try_into().map_err(Into::into))?;
+        restore_vfs(self, id, &mut entity.body)?;
+        Ok((record_header, entity))
     }
 
     #[allow(clippy::too_many_lines)] // TODO
@@ -197,7 +266,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         };
 
         let filter_map = move |db: &mut Connection<'_>, record: QueryableRecord| {
-            let (record_header, entity) = record.try_into()?;
+            let (record_header, mut entity) = record.try_into()?;
             if let Some(media_source_root_url) = media_source_root_url {
                 match media_source_root_url {
                     MediaSourceRootUrlFilter::IsNone => {
@@ -246,6 +315,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                     }
                 }
             }
+            restore_vfs(db, record_header.id, &mut entity.body)?;
             let summary = match load_scope {
                 LoadScope::Entity => None,
                 LoadScope::EntityWithSummary => Some(db.load_collection_summary(record_header.id)?),

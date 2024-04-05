@@ -1483,6 +1483,10 @@ components:
           $ref: "#/components/schemas/MediaContentPathKind"
         rootUrl:
           $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
+        excludedPaths:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaContentPath"
       required:
         - pathKind
     CollectionTitle:

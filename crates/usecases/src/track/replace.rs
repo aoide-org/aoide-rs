@@ -160,7 +160,7 @@ where
     let (collection_id, content_path_resolver) = if *resolve_path_from_url {
         let RepoContext {
             record_id,
-            content_path: ContentPathContext { kind: _, resolver },
+            content_path: ContentPathContext { resolver, .. },
         } = RepoContext::resolve(repo, collection_uid, None)?;
         (record_id, resolver)
     } else {

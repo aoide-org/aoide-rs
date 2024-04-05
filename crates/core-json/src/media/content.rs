@@ -3,6 +3,7 @@
 
 use aoide_core::{
     audio::{ChannelFlags, Channels},
+    media::content::{ContentPath, VirtualFilePathConfig},
     util::url::BaseUrl,
 };
 use url::Url;
@@ -91,6 +92,9 @@ pub struct ContentPathConfig {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub root_url: Option<Url>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub excluded_paths: Vec<ContentPath<'static>>,
 }
 
 impl TryFrom<ContentPathConfig> for _core::ContentPathConfig {
@@ -100,6 +104,7 @@ impl TryFrom<ContentPathConfig> for _core::ContentPathConfig {
         let ContentPathConfig {
             path_kind,
             root_url,
+            excluded_paths,
         } = from;
         let into = match path_kind {
             ContentPathKind::Uri => Self::Uri,
@@ -113,7 +118,10 @@ impl TryFrom<ContentPathConfig> for _core::ContentPathConfig {
                             anyhow::bail!("invalid root URL: {err}");
                         }
                     };
-                    Self::VirtualFilePath { root_url }
+                    Self::VirtualFilePath(VirtualFilePathConfig {
+                        root_url,
+                        excluded_paths,
+                    })
                 } else {
                     anyhow::bail!("missing root URL");
                 }
@@ -125,10 +133,11 @@ impl TryFrom<ContentPathConfig> for _core::ContentPathConfig {
 
 impl From<_core::ContentPathConfig> for ContentPathConfig {
     fn from(from: _core::ContentPathConfig) -> Self {
-        let (path_kind, root_url) = from.into();
+        let (path_kind, root_url, excluded_paths) = from.into();
         Self {
             path_kind: path_kind.into(),
             root_url: root_url.map(Into::into),
+            excluded_paths,
         }
     }
 }

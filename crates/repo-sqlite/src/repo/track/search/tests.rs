@@ -3,10 +3,10 @@
 
 use aoide_core::{
     audio::DurationMs,
-    collection::{Entity as CollectionEntity, EntityHeader as CollectionHeader, MediaSourceConfig},
+    collection::{Entity as CollectionEntity, EntityHeader as CollectionHeader},
     media::{
         self,
-        content::{AudioContentMetadata, ContentLink, ContentPathConfig},
+        content::{AudioContentMetadata, ContentLink},
     },
     prelude::*,
     tag::{FacetKey, Label, PlainTag, TagsMap, TagsMapInner},
@@ -14,7 +14,7 @@ use aoide_core::{
         tag::FACET_ID_COMMENT, Entity as TrackEntity, EntityBody as TrackBody,
         EntityHeader as TrackHeader,
     },
-    util::{clock::OffsetDateTimeMs, url::BaseUrl},
+    util::clock::OffsetDateTimeMs,
     Collection, Track,
 };
 use aoide_core_api::{
@@ -29,7 +29,10 @@ use aoide_repo::{
     track::{CollectionRepo, EntityRepo as _},
 };
 
-use crate::tests::{establish_connection, TestResult};
+use crate::{
+    repo::tests::vfs_media_source_config,
+    tests::{establish_connection, TestResult},
+};
 
 struct DummyCollector<H, R> {
     _header: std::marker::PhantomData<H>,
@@ -64,11 +67,7 @@ fn create_single_track_collection_with_tags(
         notes: None,
         kind: None,
         color: None,
-        media_source_config: MediaSourceConfig {
-            content_path: ContentPathConfig::VirtualFilePath {
-                root_url: BaseUrl::parse_strict("file:///").unwrap(),
-            },
-        },
+        media_source_config: vfs_media_source_config(),
     };
     let collection_entity = CollectionEntity::new(CollectionHeader::initial_random(), collection);
     let collection_id =

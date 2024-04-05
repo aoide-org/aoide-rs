@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use aoide_backend_embedded::storage::DatabaseConfig;
-use aoide_core::{media::content::ContentPath, util::fs::DirPath};
+use aoide_core::util::fs::DirPath;
 
 use crate::{modify_observable_state, Observable, ObservableReader, ObservableRef, StateUnchanged};
 
@@ -25,34 +25,15 @@ pub const DEFAULT_DATABASE_FILE_SUFFIX: &str = "sqlite";
 pub mod tasklet;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MusicDirectories {
-    /// The root music directory.
-    ///
-    /// Used to select the corresponding collection.
-    pub root_path: DirPath<'static>,
-
-    /// Excluded paths within the root music directory.
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub excluded_paths: Vec<ContentPath<'static>>,
-}
-
-impl MusicDirectories {
-    #[must_use]
-    pub const fn new(root_path: DirPath<'static>) -> Self {
-        Self {
-            root_path,
-            excluded_paths: vec![],
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct State {
     /// File path of the SQLite database.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub database_url: Option<Url>,
 
-    pub music_dirs: Option<MusicDirectories>,
+    /// The root music directory.
+    ///
+    /// Used to select the corresponding collection.
+    pub music_dir: Option<DirPath<'static>>,
 
     /// Filter for a collection kind.
     ///
@@ -172,7 +153,7 @@ impl State {
 
     #[must_use]
     pub fn music_dir(&self) -> Option<&DirPath<'_>> {
-        self.music_dirs.as_ref().map(|dirs| &dirs.root_path)
+        self.music_dir.as_ref()
     }
 
     fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> Result<(), StateUnchanged> {
@@ -180,12 +161,12 @@ impl State {
             log::debug!("Unchanged music directory: {music_dir:?}");
             return Err(StateUnchanged);
         }
-        self.music_dirs = if let Some(music_dir) = music_dir {
+        self.music_dir = if let Some(music_dir) = music_dir {
             log::info!(
                 "Updating music directory: {music_dir}",
                 music_dir = music_dir.display()
             );
-            Some(MusicDirectories::new(music_dir.clone().into_owned()))
+            Some(music_dir.clone().into_owned())
         } else {
             log::info!("Resetting music directory");
             None

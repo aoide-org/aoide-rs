@@ -3,7 +3,6 @@
 
 use aoide_core::{
     audio::DurationMs,
-    collection::MediaSourceConfig,
     media::{
         self,
         artwork::{
@@ -11,8 +10,7 @@ use aoide_core::{
             THUMBNAIL_WIDTH,
         },
         content::{
-            AudioContentMetadata, ContentLink, ContentMetadataFlags, ContentPath,
-            ContentPathConfig, ContentRevision,
+            AudioContentMetadata, ContentLink, ContentMetadataFlags, ContentPath, ContentRevision,
         },
     },
     util::{clock::OffsetDateTimeMs, color::RgbColor},
@@ -23,7 +21,7 @@ use mime::IMAGE_JPEG;
 use test_log::test;
 
 use super::*;
-use crate::tests::*;
+use crate::{repo::tests::vfs_media_source_config, tests::*};
 
 struct Fixture {
     collection_id: CollectionId,
@@ -36,11 +34,7 @@ impl Fixture {
             notes: None,
             kind: None,
             color: None,
-            media_source_config: MediaSourceConfig {
-                content_path: ContentPathConfig::VirtualFilePath {
-                    root_url: "file::///".parse().unwrap(),
-                },
-            },
+            media_source_config: vfs_media_source_config(),
         };
         let collection_entity =
             CollectionEntity::new(CollectionHeader::initial_random(), collection);

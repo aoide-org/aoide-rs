@@ -17,3 +17,13 @@ diesel::table! {
         media_source_root_url -> Nullable<Text>,
     }
 }
+
+diesel::table! {
+    collection_vfs (row_id) {
+        row_id -> BigInt,
+        collection_id -> BigInt,
+        excluded_content_path -> Text,
+    }
+}
+
+diesel::joinable!(collection_vfs -> collection (collection_id));

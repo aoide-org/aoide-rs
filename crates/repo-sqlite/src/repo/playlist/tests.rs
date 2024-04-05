@@ -3,12 +3,11 @@
 
 use aoide_core::{
     audio::DurationMs,
-    collection::MediaSourceConfig,
     media::{
         self,
-        content::{AudioContentMetadata, ContentLink, ContentPathConfig},
+        content::{AudioContentMetadata, ContentLink},
     },
-    util::{clock::OffsetDateTimeMs, url::BaseUrl},
+    util::clock::OffsetDateTimeMs,
     Collection, CollectionEntity, CollectionHeader, Playlist, PlaylistHeader, Track, TrackBody,
     TrackEntity, TrackHeader, TrackUid,
 };
@@ -20,7 +19,7 @@ use aoide_repo::{
 use test_log::test;
 
 use super::*;
-use crate::tests::*;
+use crate::{repo::tests::vfs_media_source_config, tests::*};
 
 struct Fixture {
     collection_id: CollectionId,
@@ -39,11 +38,7 @@ impl Fixture {
             notes: None,
             kind: None,
             color: None,
-            media_source_config: MediaSourceConfig {
-                content_path: ContentPathConfig::VirtualFilePath {
-                    root_url: BaseUrl::parse_strict("file:///").unwrap(),
-                },
-            },
+            media_source_config: vfs_media_source_config(),
         };
         let collection_entity =
             CollectionEntity::new(CollectionHeader::initial_random(), collection);

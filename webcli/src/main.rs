@@ -13,8 +13,9 @@ use aoide_client::{
     util::remote::DataSnapshot,
 };
 use aoide_core::{
-    collection::MediaSourceConfig, media::content::ContentPath, Collection, CollectionEntity,
-    CollectionUid,
+    collection::MediaSourceConfig,
+    media::content::{ContentPath, ContentPathConfig, VirtualFilePathConfig},
+    Collection, CollectionEntity, CollectionUid,
 };
 use aoide_core_api::{
     media::{
@@ -360,9 +361,10 @@ impl ModelRender for RenderCliModel {
                     color: None,
                     media_source_config: MediaSourceConfig {
                         content_path:
-                            aoide_core::media::content::ContentPathConfig::VirtualFilePath {
+                            ContentPathConfig::VirtualFilePath(VirtualFilePathConfig {
                                 root_url: vfs_root_url,
-                            },
+                                excluded_paths: vec![],
+                            }),
                     },
                 };
                 *subcommand_submitted = true;
