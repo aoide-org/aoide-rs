@@ -739,14 +739,10 @@ impl State {
     /// Map an URL to the corresponding content path.
     ///
     /// Example: Map a local file path to a content path within the collection
-    /// for excluding it during synchronization. These paths are provided as
-    /// relative, platform-independent paths and not as absolute paths in the
-    /// local file system.
+    /// to exclude it from synchronization.
     ///
     /// Returns `None` if no collection is available or if the URL
     /// has no corresponding content path within the collection.
-    ///
-    /// The root URL of the collection can be overridden by `override_root_url`.
     pub fn resolve_content_path_from_url(
         &self,
         content_url: &Url,
