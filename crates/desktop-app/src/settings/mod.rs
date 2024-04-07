@@ -152,7 +152,7 @@ impl State {
     }
 
     #[must_use]
-    pub fn music_dir(&self) -> Option<&DirPath<'_>> {
+    pub const fn music_dir(&self) -> Option<&DirPath<'_>> {
         self.music_dir.as_ref()
     }
 

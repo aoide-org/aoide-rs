@@ -163,12 +163,6 @@ pub enum ContentPathConfig {
     VirtualFilePath(VirtualFilePathConfig),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct VirtualFilePathConfig {
-    pub root_url: BaseUrl,
-    pub excluded_paths: Vec<ContentPath<'static>>,
-}
-
 impl ContentPathConfig {
     #[must_use]
     pub const fn kind(&self) -> ContentPathKind {
@@ -186,6 +180,30 @@ impl ContentPathConfig {
             Self::VirtualFilePath(VirtualFilePathConfig { root_url, .. }) => Some(root_url),
             Self::Uri | Self::Url | Self::FileUrl => None,
         }
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    #[must_use]
+    pub fn resolver(&self) -> Box<dyn self::resolver::ContentPathResolver> {
+        match self {
+            Self::Uri | Self::Url => Box::new(self::resolver::UrlResolver),
+            Self::FileUrl => Box::new(self::resolver::FileUrlResolver),
+            Self::VirtualFilePath(config) => Box::new(config.resolver()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct VirtualFilePathConfig {
+    pub root_url: BaseUrl,
+    pub excluded_paths: Vec<ContentPath<'static>>,
+}
+
+impl VirtualFilePathConfig {
+    #[cfg(not(target_family = "wasm"))]
+    #[must_use]
+    pub fn resolver(&self) -> self::resolver::vfs::VfsResolver {
+        self::resolver::vfs::VfsResolver::with_root_url(self.root_url.clone())
     }
 }
 
@@ -377,8 +395,7 @@ bitflags! {
         /// While locked the stale flag is never set.
         const LOCKED     = 0b0000_0010;
 
-        /// Stale metadata should be re-imported depending on the other
-        /// flags.
+        /// Stale metadata should be re-imported depending on the other flags.
         const STALE      = 0b0000_0100;
     }
 }

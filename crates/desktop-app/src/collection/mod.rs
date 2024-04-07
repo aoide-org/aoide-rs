@@ -24,7 +24,6 @@ use aoide_backend_embedded::{
             UntrackedMediaSources,
         },
     },
-    collection::resolve_content_path_from_url,
     media::predefined_faceted_tag_mapping_config,
 };
 use aoide_core::{
@@ -748,22 +747,21 @@ impl State {
     /// has no corresponding content path within the collection.
     ///
     /// The root URL of the collection can be overridden by `override_root_url`.
-    pub async fn resolve_content_path_from_url(
+    pub fn resolve_content_path_from_url(
         &self,
-        handle: &Handle,
-        content_url: Url,
+        content_url: &Url,
     ) -> anyhow::Result<Option<ContentPath<'static>>> {
-        let Some(entity_uid) = self.entity_uid() else {
+        let Some((_, Some(collection))) = self.entity_brief() else {
             return Ok(None);
         };
-        resolve_content_path_from_url(handle.db_gatekeeper(), entity_uid.clone(), content_url)
-            .await
+        let resolver = collection.media_source_config.content_path.resolver();
+        resolver
+            .resolve_path_from_url(content_url)
             .map_err(Into::into)
     }
 
-    pub async fn resolve_content_path_from_file_path(
+    pub fn resolve_content_path_from_file_path(
         &self,
-        handle: &Handle,
         file_path: &Path,
     ) -> anyhow::Result<Option<ContentPath<'static>>> {
         let content_url = Url::from_file_path(file_path).map_err(|()| {
@@ -772,8 +770,7 @@ impl State {
                 file_path = file_path.display()
             )
         })?;
-        self.resolve_content_path_from_url(handle, content_url)
-            .await
+        self.resolve_content_path_from_url(&content_url)
     }
 }
 

@@ -38,9 +38,12 @@ pub trait ContentPathResolver {
     fn path_kind(&self) -> ContentPathKind;
     fn resolve_path_from_url(
         &self,
-        url: &Url,
+        content_url: &Url,
     ) -> Result<Option<ContentPath<'static>>, ResolveFromUrlError>;
-    fn resolve_url_from_path(&self, path: &ContentPath<'_>) -> Result<Url, ResolveFromPathError>;
+    fn resolve_url_from_path(
+        &self,
+        content_path: &ContentPath<'_>,
+    ) -> Result<Url, ResolveFromPathError>;
 }
 
 #[derive(Debug, Clone)]
@@ -53,9 +56,9 @@ impl ContentPathResolver for UrlResolver {
 
     fn resolve_path_from_url(
         &self,
-        url: &Url,
+        content_url: &Url,
     ) -> Result<Option<ContentPath<'static>>, ResolveFromUrlError> {
-        Ok(Some(url.to_string().into()))
+        Ok(Some(content_url.to_string().into()))
     }
 
     fn resolve_url_from_path(
@@ -79,25 +82,25 @@ impl ContentPathResolver for FileUrlResolver {
 
     fn resolve_path_from_url(
         &self,
-        url: &Url,
+        content_url: &Url,
     ) -> Result<Option<ContentPath<'static>>, ResolveFromUrlError> {
-        if url.scheme() != FILE_URL_SCHEME {
+        if content_url.scheme() != FILE_URL_SCHEME {
             return Err(ResolveFromUrlError::InvalidUrl);
         }
-        UrlResolver.resolve_path_from_url(url)
+        UrlResolver.resolve_path_from_url(content_url)
     }
 
     fn resolve_url_from_path(
         &self,
         content_path: &ContentPath<'_>,
     ) -> Result<Url, ResolveFromPathError> {
-        let url = UrlResolver.resolve_url_from_path(content_path)?;
-        if url.scheme() != FILE_URL_SCHEME {
+        let content_url = UrlResolver.resolve_url_from_path(content_path)?;
+        if content_url.scheme() != FILE_URL_SCHEME {
             return Err(ResolveFromPathError::InvalidPath(
                 content_path.to_borrowed().into_owned().into(),
             ));
         }
-        Ok(url)
+        Ok(content_url)
     }
 }
 

@@ -44,7 +44,7 @@ serde = { version = "1.0.197", optional = true, features = ["derive"] }
 schemars = { version = "0.8.16", optional = true, features = ["url"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = "0.2.12"
+getrandom = "0.2.13"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 path-slash = "0.2.1"

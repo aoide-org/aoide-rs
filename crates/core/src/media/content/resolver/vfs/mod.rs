@@ -115,16 +115,16 @@ impl ContentPathResolver for VfsResolver {
 
     fn resolve_path_from_url(
         &self,
-        url: &Url,
+        content_url: &Url,
     ) -> Result<Option<ContentPath<'static>>, ResolveFromUrlError> {
         if let Some(root_url) = &self.root_url {
-            if !url.as_str().starts_with(root_url.as_str()) {
+            if !content_url.as_str().starts_with(root_url.as_str()) {
                 return Ok(None);
             }
-        } else if url.scheme() != FILE_URL_SCHEME {
+        } else if content_url.scheme() != FILE_URL_SCHEME {
             return Err(ResolveFromUrlError::InvalidUrl);
         }
-        match url.to_file_path() {
+        match content_url.to_file_path() {
             Ok(file_path) => {
                 if file_path.is_absolute() {
                     if let Some(slash_path) = path_to_slash(&file_path) {
@@ -149,7 +149,7 @@ impl ContentPathResolver for VfsResolver {
         content_path: &ContentPath<'_>,
     ) -> Result<Url, ResolveFromPathError> {
         let file_path = self.build_file_path(content_path);
-        let url = if content_path.is_directory() {
+        let content_url = if content_path.is_directory() {
             // Preserve the trailing slash
             Url::from_directory_path(&file_path)
         } else {
@@ -157,10 +157,10 @@ impl ContentPathResolver for VfsResolver {
         }
         .map_err(|()| ResolveFromPathError::InvalidFilePath(file_path))?;
         debug_assert!(
-            content_path.is_directory() == url.as_str().ends_with(ContentPath::SEPARATOR)
+            content_path.is_directory() == content_url.as_str().ends_with(ContentPath::SEPARATOR)
         );
-        debug_assert!(!content_path.is_empty() || is_valid_base_url(&url));
-        Ok(url)
+        debug_assert!(!content_path.is_empty() || is_valid_base_url(&content_url));
+        Ok(content_url)
     }
 }
 
