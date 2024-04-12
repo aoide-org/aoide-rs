@@ -24,7 +24,7 @@ default_stages:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: check-case-conflict
       - id: check-json
@@ -78,7 +78,7 @@ repos:
           - markdown
   # https://reuse.software
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v3.0.1
+    rev: v3.0.2
     hooks:
       - id: reuse
   - repo: https://github.com/doublify/pre-commit-rust

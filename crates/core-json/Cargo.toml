@@ -15,11 +15,11 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.81"
+anyhow = "1.0.82"
 data-encoding = "2.5.0"
 mime = "0.3.17"
 serde = { version = "1.0.197", features = ["derive"] }
-serde_repr = "0.1.18"
+serde_repr = "0.1.19"
 url = { version = "2.5.0", features = ["serde"] }
 
 # JSON Schema (optional)

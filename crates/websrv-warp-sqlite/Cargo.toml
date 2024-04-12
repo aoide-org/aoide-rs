@@ -15,7 +15,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.81"
+anyhow = "1.0.82"
 log = "0.4.21"
 serde = "1.0.197"
 thiserror = "1.0.58"

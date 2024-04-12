@@ -23,7 +23,7 @@ use tantivy::{
     directory::MmapDirectory,
     query::{AllQuery, Query as _, TermQuery},
     schema::{Field, IndexRecordOption, Schema, Value, INDEXED, STORED, STRING, TEXT},
-    Document, Index, Searcher, TantivyError, Term,
+    Index, Searcher, TantivyDocument, TantivyError, Term,
 };
 
 const COLLECTION_UID: &str = "collection_uid";
@@ -95,7 +95,7 @@ pub struct TrackFields {
     pub valence: Field,
 }
 
-fn add_date_field(doc: &mut Document, field: Field, date_time: OffsetDateTimeMs) {
+fn add_date_field(doc: &mut TantivyDocument, field: Field, date_time: OffsetDateTimeMs) {
     doc.add_date(field, tantivy::DateTime::from_utc(date_time.into()));
 }
 
@@ -166,9 +166,9 @@ impl TrackFields {
         collection_uid: Option<&CollectionUid>,
         entity: &TrackEntity,
         play_counter: Option<&PlayCounter>,
-    ) -> Document {
+    ) -> TantivyDocument {
         // TODO (optimization): Consuming the entity would avoid string allocations for text fields
-        let mut doc = Document::new();
+        let mut doc = TantivyDocument::new();
         if let Some(collection_uid) = collection_uid {
             doc.add_text(self.collection_uid, collection_uid);
         }
@@ -292,9 +292,10 @@ impl TrackFields {
     }
 
     #[must_use]
-    pub fn read_collection_uid(&self, doc: &Document) -> Option<CollectionUid> {
+    pub fn read_collection_uid(&self, doc: &TantivyDocument) -> Option<CollectionUid> {
         doc.get_first(self.collection_uid)
-            .and_then(Value::as_text)
+            .as_ref()
+            .and_then(Value::as_str)
             .map(EntityUid::decode_from)
             .transpose()
             .ok()
@@ -313,9 +314,10 @@ impl TrackFields {
     }
 
     #[must_use]
-    pub fn read_uid(&self, doc: &Document) -> Option<TrackUid> {
+    pub fn read_uid(&self, doc: &TantivyDocument) -> Option<TrackUid> {
         doc.get_first(self.uid)
-            .and_then(Value::as_text)
+            .as_ref()
+            .and_then(Value::as_str)
             .map(EntityUid::decode_from)
             .transpose()
             .ok()
@@ -324,9 +326,10 @@ impl TrackFields {
     }
 
     #[must_use]
-    pub fn read_rev(&self, doc: &Document) -> Option<EntityRevision> {
+    pub fn read_rev(&self, doc: &TantivyDocument) -> Option<EntityRevision> {
         let rev = doc
             .get_first(self.rev)
+            .as_ref()
             .and_then(Value::as_u64)
             .map(EntityRevision::new_unchecked)?;
         debug_assert!(rev.is_valid());

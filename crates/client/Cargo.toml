@@ -15,7 +15,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.81"
+anyhow = "1.0.82"
 bytes = "1.6.0"
 infect = "0.0.30"
 #infect = { git = "https://github.com/uklotzde/infect.git" }
