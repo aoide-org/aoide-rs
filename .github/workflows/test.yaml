@@ -168,16 +168,6 @@ jobs:
           cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
           --manifest-path websrv/Cargo.toml
 
-      - name: Check aoide-client
-        run: >-
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
-          --manifest-path crates/client/Cargo.toml
-
-      - name: Check aoide-webcli
-        run: >-
-          cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
-          --manifest-path webcli/Cargo.toml
-
       - name: Check aoide-demo-app
         run: >-
           cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features

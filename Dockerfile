@@ -110,8 +110,6 @@ RUN USER=root \
     mv ${WORKSPACE_NAME}-usecases-sqlite crates/usecases-sqlite && \
     cargo new --vcs none --lib ${WORKSPACE_NAME}-websrv-warp-sqlite && \
     mv ${WORKSPACE_NAME}-websrv-warp-sqlite crates/websrv-warp-sqlite && \
-    cargo new --vcs none --bin ${WORKSPACE_NAME}-webcli && \
-    mv ${WORKSPACE_NAME}-webcli webcli && \
     cargo new --vcs none --bin ${WORKSPACE_NAME}-websrv && \
     mv ${WORKSPACE_NAME}-websrv websrv && \
     tree -a
@@ -171,9 +169,6 @@ COPY [ \
 COPY [ \
     "crates/websrv-warp-sqlite/Cargo.toml", \
     "./crates/websrv-warp-sqlite/" ]
-COPY [ \
-    "webcli/Cargo.toml", \
-    "./webcli/" ]
 COPY [ \
     "websrv/Cargo.toml", \
     "./websrv/" ]
@@ -260,9 +255,6 @@ COPY [ \
 COPY [ \
     "crates/websrv-warp-sqlite/src", \
     "./crates/websrv-warp-sqlite/src/" ]
-COPY [ \
-    "webcli/src", \
-    "./webcli/src/" ]
 COPY [ \
     "websrv/res", \
     "./websrv/res/" ]

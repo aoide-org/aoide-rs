@@ -49,14 +49,12 @@ check-crates:
     cargo check --locked --all-targets --features backend,frontend,json-schema -p aoide-core-api-json
     cargo hack --feature-powerset check --locked --all-targets -p aoide-backend-embedded
     cargo hack --feature-powerset check --locked --all-targets -p aoide-backend-webapi-json
-    cargo hack --feature-powerset check --locked --all-targets -p aoide-client
     cargo hack --feature-powerset check --locked --all-targets -p aoide-desktop-app
     cargo hack --feature-powerset check --locked --all-targets -p aoide-media-file
     cargo hack --feature-powerset check --locked --all-targets -p aoide-repo-sqlite
     cargo hack --feature-powerset check --locked --all-targets -p aoide-search-index-tantivy
     cargo hack --feature-powerset check --locked --all-targets -p aoide-storage-sqlite
     cargo hack --feature-powerset check --locked --all-targets -p aoide-usecases-sqlite
-    cargo hack --feature-powerset check --locked --all-targets -p aoide-webcli
     cargo hack --feature-powerset check --locked --all-targets -p aoide-websrv
     cargo hack --feature-powerset check --locked --all-targets -p aoide-websrv-warp-sqlite
 

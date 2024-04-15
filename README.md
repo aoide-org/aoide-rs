@@ -186,10 +186,9 @@ This is probably the most common and flexible use case for local files. By eithe
 temporarily switching the root directory media sources could be accessed and loaded from a different
 location as long as their relative paths remain unchanged.
 
-## Quickstart
+## Documents
 
 - [Build & run the web service](docs/BUILDING.md)
-- [Ingest your music files](docs/INGEST_COLLECTION.md)
 - [Contributing](docs/CONTRIBUTING.md)
 
 ## License

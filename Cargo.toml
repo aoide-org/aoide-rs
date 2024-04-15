@@ -5,7 +5,7 @@
 # <https://users.rust-lang.org/t/psa-please-specify-precise-dependency-versions-in-cargo-toml/71277>
 
 [workspace]
-members = [".", "crates/*", "demo-app/", "webcli/", "websrv/"]
+members = [".", "crates/*", "demo-app/", "websrv/"]
 
 [workspace.package]
 repository = "https://gitlab.com/uklotzde/aoide-rs"
