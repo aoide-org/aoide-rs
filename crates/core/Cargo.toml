@@ -38,7 +38,7 @@ ulid = "1.1.2"
 url = "2.5.0"
 
 # Serialization of selected, primitive types
-serde = { version = "1.0.197", optional = true, features = ["derive"] }
+serde = { version = "1.0.198", optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.16", optional = true, features = ["url"] }
@@ -51,7 +51,7 @@ path-slash = "0.2.1"
 
 [dev-dependencies]
 data-url = "0.3.1"
-serde_json = "1.0.115"
+serde_json = "1.0.116"
 
 [features]
 default = []
