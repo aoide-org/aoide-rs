@@ -19,7 +19,7 @@ diesel = { version = "2.1.6", default-features = false, features = ["sqlite"] }
 log = "0.4.21"
 nonicle = "0.1.1"
 serde = { version = "1.0.198" }
-thiserror = "1.0.58"
+thiserror = "1.0.59"
 url = "2.5.0"
 
 # tracing

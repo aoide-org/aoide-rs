@@ -4,7 +4,7 @@
 use std::fs::File;
 
 use aoide_core::track::Track;
-use lofty::{mpeg::MpegFile, AudioFile};
+use lofty::{config::WriteOptions, file::AudioFile, mpeg::MpegFile};
 
 use super::{
     id3v2::{export_track_to_tag, Import},
@@ -60,7 +60,7 @@ pub(crate) fn export_track_to_file(
     export_track_to_tag(&mut id3v2, config, track, edit_embedded_artwork_image);
 
     mpeg_file.set_id3v2(id3v2);
-    mpeg_file.save_to(file)?;
+    mpeg_file.save_to(file, WriteOptions::default())?;
 
     Ok(())
 }

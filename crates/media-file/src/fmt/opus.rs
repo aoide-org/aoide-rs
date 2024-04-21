@@ -4,7 +4,7 @@
 use std::fs::File;
 
 use aoide_core::track::Track;
-use lofty::{ogg::OpusFile, AudioFile};
+use lofty::{config::WriteOptions, file::AudioFile, ogg::OpusFile};
 
 use super::{parse_options, vorbis::export_track_to_tag};
 use crate::{
@@ -64,7 +64,7 @@ pub(crate) fn export_track_to_file(
     );
 
     opus_file.set_vorbis_comments(vorbis_comments);
-    opus_file.save_to(file)?;
+    opus_file.save_to(file, WriteOptions::default())?;
 
     Ok(())
 }

@@ -22,7 +22,7 @@ diesel = { version = "2.1.6", default-features = false, features = [
 ] }
 log = "0.4.21"
 r2d2 = "0.8.10"
-thiserror = "1.0.58"
+thiserror = "1.0.59"
 
 # Optional: Serde for serialization of config files.
 serde = { version = "1.0.198", optional = true, features = ["derive"] }

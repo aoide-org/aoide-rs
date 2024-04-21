@@ -33,7 +33,7 @@ time = { version = "0.3.36", features = [
     "parsing",
     "formatting",
 ] }
-thiserror = "1.0.58"
+thiserror = "1.0.59"
 ulid = "1.1.2"
 url = "2.5.0"
 

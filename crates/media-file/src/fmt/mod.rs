@@ -33,8 +33,11 @@ use aoide_core::{
     util::string::trimmed_non_empty_from,
 };
 use lofty::{
-    Accessor, AudioFile, FileProperties, ItemKey, ItemValue, MergeTag, MimeType, ParseOptions,
-    Picture, PictureType, SplitTag, Tag, TagItem, TagType, TaggedFile, TaggedFileExt as _,
+    config::ParseOptions,
+    file::{AudioFile as _, TaggedFile, TaggedFileExt as _},
+    picture::{MimeType, Picture, PictureType},
+    properties::FileProperties,
+    tag::{Accessor as _, ItemKey, ItemValue, MergeTag, SplitTag, Tag, TagItem, TagType},
 };
 
 use crate::{

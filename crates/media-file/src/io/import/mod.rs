@@ -25,7 +25,11 @@ use aoide_core::{
 };
 use bitflags::bitflags;
 use image::{io::Reader as ImageReader, DynamicImage};
-use lofty::{FileType, ParseOptions};
+use lofty::{
+    config::ParseOptions,
+    file::{AudioFile, FileType},
+    probe::Probe,
+};
 use mime::Mime;
 use url::Url;
 
@@ -205,7 +209,7 @@ pub fn import_into_track(
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<Issues> {
-    let probe = lofty::Probe::new(reader)
+    let probe = Probe::new(reader)
         // Workaround for <https://github.com/Serial-ATA/lofty-rs/issues/260>
         .options(ParseOptions::new().max_junk_bytes(usize::MAX))
         .guess_file_type()?;
@@ -222,32 +226,32 @@ pub fn import_into_track(
     match file_type {
         FileType::Aiff => {
             let reader = probe.into_inner();
-            let aiff_file = lofty::AudioFile::read_from(reader, parse_options())?;
+            let aiff_file = AudioFile::read_from(reader, parse_options())?;
             crate::fmt::aiff::import_file_into_track(&mut importer, config, aiff_file, track);
         }
         FileType::Flac => {
             let reader = probe.into_inner();
-            let flac_file = lofty::AudioFile::read_from(reader, parse_options())?;
+            let flac_file = AudioFile::read_from(reader, parse_options())?;
             crate::fmt::flac::import_file_into_track(&mut importer, config, flac_file, track);
         }
         FileType::Mp4 => {
             let reader = probe.into_inner();
-            let mp4_file = lofty::AudioFile::read_from(reader, parse_options())?;
+            let mp4_file = AudioFile::read_from(reader, parse_options())?;
             crate::fmt::mp4::import_file_into_track(&mut importer, config, mp4_file, track);
         }
         FileType::Mpeg => {
             let reader = probe.into_inner();
-            let mpeg_file = lofty::AudioFile::read_from(reader, parse_options())?;
+            let mpeg_file = AudioFile::read_from(reader, parse_options())?;
             crate::fmt::mpeg::import_file_into_track(&mut importer, config, mpeg_file, track);
         }
         FileType::Opus => {
             let reader = probe.into_inner();
-            let opus_file = lofty::AudioFile::read_from(reader, parse_options())?;
+            let opus_file = AudioFile::read_from(reader, parse_options())?;
             crate::fmt::opus::import_file_into_track(&mut importer, config, opus_file, track);
         }
         FileType::Vorbis => {
             let reader = probe.into_inner();
-            let vorbis_file = lofty::AudioFile::read_from(reader, parse_options())?;
+            let vorbis_file = AudioFile::read_from(reader, parse_options())?;
             crate::fmt::ogg::import_file_into_track(&mut importer, config, vorbis_file, track);
         }
         _ => {

@@ -13,7 +13,13 @@ use aoide_media_file::{
     },
     util::guess_mime_from_file_path,
 };
-use lofty::{FileType, ItemKey, Probe, Tag, TagExt as _, TagType, TaggedFileExt as _};
+use lofty::{
+    config::WriteOptions,
+    file::FileType,
+    prelude::TaggedFileExt as _,
+    probe::Probe,
+    tag::{ItemKey, Tag, TagExt as _, TagType},
+};
 use mime::Mime;
 use tempfile::NamedTempFile;
 
@@ -72,7 +78,8 @@ fn integer_bpm_roundtrip() {
         ItemKey::IntegerBpm,
         (integer_bpm.value() as i32).to_string(),
     );
-    tag.save_to_path(file.path()).unwrap();
+    tag.save_to_path(file.path(), WriteOptions::default())
+        .unwrap();
 
     let mut track =
         import_new_track_from_file_path(file.path(), Some("audio/mpeg".parse().unwrap()));

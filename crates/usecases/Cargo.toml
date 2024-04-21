@@ -20,7 +20,7 @@ bitflags = "2.5.0"
 digest = "0.10.7"
 log = "0.4.21"
 static_assertions = "1.1.0"
-thiserror = "1.0.58"
+thiserror = "1.0.59"
 
 # Workspace dependencies
 aoide-core = { version = "=0.0.0", path = "../core" }

@@ -5,7 +5,7 @@ use std::fs::File;
 
 use anyhow::anyhow;
 use aoide_core::track::Track;
-use lofty::{iff::aiff::AiffFile, AudioFile};
+use lofty::{config::WriteOptions, file::AudioFile, iff::aiff::AiffFile};
 
 use super::{id3v2, parse_options};
 use crate::{
@@ -65,7 +65,7 @@ pub(crate) fn export_track_to_file(
     id3v2::export_track_to_tag(&mut id3v2, config, track, edit_embedded_artwork_image);
 
     aiff_file.set_id3v2(id3v2);
-    aiff_file.save_to(file)?;
+    aiff_file.save_to(file, WriteOptions::default())?;
 
     Ok(())
 }

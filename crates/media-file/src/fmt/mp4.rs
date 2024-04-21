@@ -5,8 +5,9 @@ use std::{borrow::Cow, fs::File};
 
 use aoide_core::track::{AdvisoryRating, Track};
 use lofty::{
+    config::WriteOptions,
+    file::AudioFile,
     mp4::{AtomData, AtomIdent, Ilst, Mp4File},
-    AudioFile,
 };
 
 use super::parse_options;
@@ -201,7 +202,7 @@ pub(crate) fn export_track_to_file(
     export_track_to_tag(&mut ilst, config, track, edit_embedded_artwork_image);
 
     mp4_file.set_ilst(ilst);
-    mp4_file.save_to(file)?;
+    mp4_file.save_to(file, WriteOptions::default())?;
 
     Ok(())
 }

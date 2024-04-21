@@ -4,7 +4,7 @@
 use std::fs::File;
 
 use aoide_core::track::Track;
-use lofty::{flac::FlacFile, AudioFile};
+use lofty::{config::WriteOptions, file::AudioFile, flac::FlacFile};
 
 use super::parse_options;
 use crate::{
@@ -68,7 +68,7 @@ pub(crate) fn export_track_to_file(
     );
 
     flac_file.set_vorbis_comments(vorbis_comments);
-    flac_file.save_to(file)?;
+    flac_file.save_to(file, WriteOptions::default())?;
 
     Ok(())
 }

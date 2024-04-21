@@ -13,7 +13,7 @@ use aoide_core::track::{
     Track,
 };
 use bitflags::bitflags;
-use lofty::FileType;
+use lofty::{file::FileType, probe::Probe};
 
 use super::import::ImportTrackFlags;
 use crate::{
@@ -81,7 +81,7 @@ pub fn export_track_to_file(
     let file_type = if let Some(file_type) = file_ext.and_then(FileType::from_ext) {
         file_type
     } else {
-        let probe = lofty::Probe::new(file.try_clone()?).guess_file_type()?;
+        let probe = Probe::new(file.try_clone()?).guess_file_type()?;
         let Some(file_type) = probe.file_type() else {
             log::debug!(
                 "Skipping export of track {media_source_content_link:?}: {config:?}",

@@ -13,7 +13,7 @@ pub mod util;
 use std::{io::Error as IoError, result::Result as StdResult};
 
 use image::ImageError;
-use lofty::LoftyError;
+use lofty::error::LoftyError;
 use mime::Mime;
 use thiserror::Error;
 
