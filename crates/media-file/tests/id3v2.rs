@@ -15,8 +15,7 @@ use aoide_media_file::{
 };
 use lofty::{
     config::WriteOptions,
-    file::FileType,
-    prelude::TaggedFileExt as _,
+    file::{FileType, TaggedFileExt as _},
     probe::Probe,
     tag::{ItemKey, Tag, TagExt as _, TagType},
 };
