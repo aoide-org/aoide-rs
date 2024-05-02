@@ -129,6 +129,7 @@ where
 }
 
 #[derive(Debug)]
+#[allow(dead_code)] // False positive
 struct CustomReject {
     code: StatusCode,
     message: String,

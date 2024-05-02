@@ -86,3 +86,9 @@ impl MediaDigest {
             .map(|hasher| hasher.finalize_reset().into())
     }
 }
+
+impl Default for MediaDigest {
+    fn default() -> Self {
+        Self::new()
+    }
+}
