@@ -25,7 +25,7 @@ r2d2 = "0.8.10"
 thiserror = "1.0.59"
 
 # Optional: Serde for serialization of config files.
-serde = { version = "1.0.198", optional = true, features = ["derive"] }
+serde = { version = "1.0.200", optional = true, features = ["derive"] }
 
 # Feature "sqlite-bundled"
 # Bundle SQLite code to prevent dynamic linking.

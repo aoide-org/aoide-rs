@@ -18,7 +18,7 @@ workspace = true
 anyhow = "1.0.82"
 aho-corasick = "1.1.3"
 bitflags = "2.5.0"
-data-encoding = "2.5.0"
+data-encoding = "2.6.0"
 derive_more = "0.99.17"
 image = { version = "0.25.1", default-features = false, features = ["png"] }
 mime = "0.3.17"
@@ -38,10 +38,10 @@ ulid = "1.1.2"
 url = "2.5.0"
 
 # Serialization of selected, primitive types
-serde = { version = "1.0.198", optional = true, features = ["derive"] }
+serde = { version = "1.0.200", optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.16", optional = true, features = ["url"] }
+schemars = { version = "0.8.17", optional = true, features = ["url"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 getrandom = "0.2.14"
