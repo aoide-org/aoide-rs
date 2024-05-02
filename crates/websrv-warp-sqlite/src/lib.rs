@@ -105,7 +105,7 @@ where
 }
 
 pub async fn spawn_blocking_write_task<H, T, E>(
-    gatekeper: &DatabaseConnectionGatekeeper,
+    gatekeeper: &DatabaseConnectionGatekeeper,
     handler: H,
 ) -> std::result::Result<T, Rejection>
 where
@@ -113,11 +113,11 @@ where
     T: Send + 'static,
     E: Into<Error> + Send + 'static,
 {
-    after_blocking_task_finished(gatekeper.spawn_blocking_write_task(handler).await)
+    after_blocking_task_finished(gatekeeper.spawn_blocking_write_task(handler).await)
 }
 
 pub async fn spawn_blocking_read_task<H, T, E>(
-    gatekeper: &DatabaseConnectionGatekeeper,
+    gatekeeper: &DatabaseConnectionGatekeeper,
     handler: H,
 ) -> std::result::Result<T, Rejection>
 where
@@ -125,7 +125,7 @@ where
     T: Send + 'static,
     E: Into<Error> + Send + 'static,
 {
-    after_blocking_task_finished(gatekeper.spawn_blocking_read_task(handler).await)
+    after_blocking_task_finished(gatekeeper.spawn_blocking_read_task(handler).await)
 }
 
 #[derive(Debug)]
