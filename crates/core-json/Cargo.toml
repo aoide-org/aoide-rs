@@ -15,15 +15,15 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.82"
+anyhow = "1.0.83"
 data-encoding = "2.6.0"
 mime = "0.3.17"
-serde = { version = "1.0.200", features = ["derive"] }
+serde = { version = "1.0.201", features = ["derive"] }
 serde_repr = "0.1.19"
 url = { version = "2.5.0", features = ["serde"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.17", optional = true, features = ["chrono", "url"] }
+schemars = { version = "0.8.19", optional = true, features = ["chrono", "url"] }
 chrono = { version = "0.4.38", optional = true, default-features = false }
 
 # Workspace dependencies
@@ -34,4 +34,4 @@ default = []
 json-schema = ["dep:schemars", "dep:chrono", "aoide-core/json-schema"]
 
 [dev-dependencies]
-serde_json = "1.0.116"
+serde_json = "1.0.117"

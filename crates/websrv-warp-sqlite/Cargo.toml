@@ -15,10 +15,10 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.82"
+anyhow = "1.0.83"
 log = "0.4.21"
-serde = "1.0.200"
-thiserror = "1.0.59"
+serde = "1.0.201"
+thiserror = "1.0.60"
 warp = { version = "0.3.7", default-features = false }
 
 # Workspace dependencies

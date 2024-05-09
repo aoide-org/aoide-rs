@@ -15,10 +15,10 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.82"
+anyhow = "1.0.83"
 diesel = { version = "2.1.6", default-features = false, features = ["sqlite"] }
 log = "0.4.21"
-thiserror = "1.0.59"
+thiserror = "1.0.60"
 url = "2.5.0"
 
 # Workspace dependencies
@@ -32,7 +32,7 @@ aoide-usecases = { version = "=0.0.0", path = "../usecases" }
 aoide-usecases-sqlite = { version = "=0.0.0", path = "../usecases-sqlite" }
 
 # Optional: Serde for serialization of config files.
-serde = { version = "1.0.200", features = ["derive"], optional = true }
+serde = { version = "1.0.201", features = ["derive"], optional = true }
 
 # Optional: Tokio runtime to abort long-running, asynchronous tasks
 tokio = { version = "1.37.0", optional = true }
