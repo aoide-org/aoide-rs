@@ -15,10 +15,10 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.83"
+anyhow = "1.0.85"
 diesel = { version = "2.1.6", default-features = false, features = ["sqlite"] }
 log = "0.4.21"
-thiserror = "1.0.60"
+thiserror = "1.0.61"
 url = "2.5.0"
 
 # Workspace dependencies

@@ -15,14 +15,14 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.83"
+anyhow = "1.0.85"
 discro = { version = "0.29.2", features = ["tokio"] }
 highway = { version = "1.1.0" }
 log = "0.4.21"
 ron = "0.8.1"
-serde = { version = "1.0.201", features = ["derive"] }
+serde = { version = "1.0.202", features = ["derive"] }
 tokio = { version = "1.37.0", default-features = false }
-thiserror = "1.0.60"
+thiserror = "1.0.61"
 unnest = "0.3.1"
 url = { version = "2.5.0", features = ["serde"] }
 
