@@ -15,7 +15,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.85"
+anyhow = "1.0.86"
 strum = "0.26.2"
 log = "0.4.21"
 tantivy = "0.22.0"

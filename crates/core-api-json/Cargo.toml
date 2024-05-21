@@ -15,12 +15,12 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.85"
+anyhow = "1.0.86"
 serde = { version = "1.0.202", features = ["derive"] }
 url = { version = "2.5.0", features = ["serde"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.19", optional = true, features = ["url"] }
+schemars = { version = "0.8.20", optional = true, features = ["url"] }
 
 # Workspace dependencies
 aoide-core = { version = "=0.0.0", path = "../core", features = ["serde"] }

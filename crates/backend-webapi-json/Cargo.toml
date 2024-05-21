@@ -14,7 +14,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.85"
+anyhow = "1.0.86"
 diesel = { version = "2.1.6", default-features = false, features = ["sqlite"] }
 log = "0.4.21"
 nonicle = "0.1.1"
@@ -27,7 +27,7 @@ tracing = { version = "0.1.40", features = ["log"] }
 uuid = { version = "1.8.0", features = ["v4"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.19", optional = true }
+schemars = { version = "0.8.20", optional = true }
 
 # Workspace dependencies
 aoide-backend-embedded = { path = "../backend-embedded" }

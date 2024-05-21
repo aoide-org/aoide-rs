@@ -16,7 +16,7 @@ rust-version = { workspace = true }
 workspace = true
 
 [dependencies]
-anyhow = "1.0.85"
+anyhow = "1.0.86"
 directories = "5.0.1"
 discro = { version = "0.29.2", features = ["tokio"] }
 dotenvy = "0.15.7"
@@ -54,7 +54,7 @@ aoide-websrv-warp-sqlite = { path = "../crates/websrv-warp-sqlite" }
 
 # mimalloc
 [dependencies.mimalloc]
-version = "0.1.41"
+version = "0.1.42"
 optional = true
 # Disable secure mode which is enabled by default and that would
 # otherwise cause a performance penalty of up to 10%.
@@ -62,7 +62,7 @@ default-features = false
 
 # schemars
 [dependencies.schemars]
-version = "0.8.19"
+version = "0.8.20"
 optional = true
 
 # launcher-ui
