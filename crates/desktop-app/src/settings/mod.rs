@@ -28,7 +28,6 @@ pub mod tasklet;
 pub struct State {
     /// File path of the _SQLite_ database.
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[allow(clippy::doc_markdown)] // "SQLite"
     pub database_url: Option<Url>,
 
     /// The root music directory.

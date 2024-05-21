@@ -609,7 +609,6 @@ impl KeyCode {
         Some(code)
     }
 
-    #[allow(clippy::doc_markdown)]
     /// See also `TKEY` in _ID3v2_: <https://id3.org/id3v2.4.0-frames>
     #[must_use]
     pub const fn as_serato_str(self) -> &'static str {
@@ -644,7 +643,6 @@ impl KeyCode {
         }
     }
 
-    #[allow(clippy::doc_markdown)]
     /// See also `TKEY` in _ID3v2_: <https://id3.org/id3v2.4.0-frames>
     #[must_use]
     pub fn try_from_serato_str(s: &str) -> Option<Self> {
