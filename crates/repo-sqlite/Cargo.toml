@@ -16,8 +16,8 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.86"
-diesel = { version = "2.1.6", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
-diesel_migrations =  { version = "2.1.0", default-features = false, features = ["sqlite"] }
+diesel = { version = "2.2.0", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
+diesel_migrations =  { version = "2.2.0", default-features = false, features = ["sqlite"] }
 log = "0.4.21"
 mime = "0.3.17"
 strum = { version = "0.26.2", features = ["derive"] }

@@ -34,7 +34,7 @@ use crate::{
     prelude::*,
 };
 
-sql_function! { fn ifnull<ST: sql_types::SingleValue>(x: sql_types::Nullable<ST>, y: ST) -> ST; }
+define_sql_function! { fn ifnull<ST: sql_types::SingleValue>(x: sql_types::Nullable<ST>, y: ST) -> ST; }
 
 type TrackSearchExpressionBoxed<'db> = Box<
     dyn BoxableExpression<view_track_search::table, DbBackend, SqlType = sql_types::Bool> + 'db,
