@@ -95,8 +95,8 @@ pub(super) fn import_serato_markers(
     if let Some(frame) = tag.get(&FrameId::Valid(
         <triseratops::tag::Markers as triseratops::tag::format::id3::ID3Tag>::ID3_TAG.into(),
     )) {
-        if let lofty::id3::v2::FrameValue::Binary(data) = frame.content() {
-            match serato_tags.parse_markers(data, triseratops::tag::TagFormat::ID3) {
+        if let lofty::id3::v2::Frame::Binary(frame) = frame {
+            match serato_tags.parse_markers(&frame.data, triseratops::tag::TagFormat::ID3) {
                 Ok(()) => {
                     parsed = true;
                 }
@@ -111,8 +111,8 @@ pub(super) fn import_serato_markers(
     if let Some(frame) = tag.get(&FrameId::Valid(
         <triseratops::tag::Markers2 as triseratops::tag::format::id3::ID3Tag>::ID3_TAG.into(),
     )) {
-        if let lofty::id3::v2::FrameValue::Binary(data) = frame.content() {
-            match serato_tags.parse_markers(data, triseratops::tag::TagFormat::ID3) {
+        if let lofty::id3::v2::Frame::Binary(frame) = frame {
+            match serato_tags.parse_markers(&frame.data, triseratops::tag::TagFormat::ID3) {
                 Ok(()) => {
                     parsed = true;
                 }
