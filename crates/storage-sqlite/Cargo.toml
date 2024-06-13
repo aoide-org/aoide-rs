@@ -16,7 +16,7 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.86"
-diesel = { version = "2.2.0", default-features = false, features = [
+diesel = { version = "2.2.1", default-features = false, features = [
     "r2d2",
     "sqlite",
 ] }

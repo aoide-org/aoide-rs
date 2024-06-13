@@ -24,7 +24,7 @@ image = { version = "0.25.1", default-features = false, features = ["png"] }
 mime = "0.3.17"
 nonicle = "0.1.1"
 rand = "0.8.5"
-regex = "1.10.4"
+regex = "1.10.5"
 semval = "0.5.2"
 strum = { version = "0.26.2", features = ["derive"] }
 time = { version = "0.3.36", features = [
@@ -35,7 +35,7 @@ time = { version = "0.3.36", features = [
 ] }
 thiserror = "1.0.61"
 ulid = "1.1.2"
-url = "2.5.0"
+url = "2.5.1"
 
 # Serialization of selected, primitive types
 serde = { version = "1.0.203", optional = true, features = ["derive"] }

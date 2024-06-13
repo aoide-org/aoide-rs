@@ -15,12 +15,12 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.86"
-diesel = { version = "2.2.0", default-features = false, features = ["sqlite"] }
+diesel = { version = "2.2.1", default-features = false, features = ["sqlite"] }
 log = "0.4.21"
 nonicle = "0.1.1"
 serde = { version = "1.0.203" }
 thiserror = "1.0.61"
-url = "2.5.0"
+url = "2.5.1"
 
 # tracing
 tracing = { version = "0.1.40", features = ["log"] }

@@ -33,7 +33,7 @@ num-traits = "0.2.19"
 palette = { version = "0.7.6", default-features = false }
 thiserror = "1.0.61"
 time = { version = "0.3.36", features = ["parsing"] }
-url = "2.5.0"
+url = "2.5.1"
 walkdir = "2.5.0"
 
 # Dependencies (optional): gigtag
