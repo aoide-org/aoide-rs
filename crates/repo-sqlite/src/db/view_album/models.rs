@@ -7,7 +7,7 @@ use crate::prelude::*;
 
 #[derive(Debug, Queryable)]
 #[diesel(table_name = view_album)]
-#[allow(unreachable_pub)] // TODO: Remove when used
+#[allow(dead_code, unreachable_pub)] // TODO: Remove when used
 pub struct QueryableRecord {
     pub phantom_id: RowId,
     pub artist: String,
