@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::i64;
-
 use aoide_core_api::Pagination;
 use diesel::{expression::SqlLiteral, sql_types};
 
