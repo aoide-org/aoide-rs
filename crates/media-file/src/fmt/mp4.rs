@@ -3,7 +3,7 @@
 
 use std::{borrow::Cow, fs::File};
 
-use aoide_core::track::{AdvisoryRating, Track};
+use aoide_core::track::Track;
 use lofty::{
     config::WriteOptions,
     file::AudioFile,
@@ -20,8 +20,6 @@ use crate::{
     Result,
 };
 
-const ADVISORY_RATING_IDENT: AtomIdent<'_> = AtomIdent::Fourcc(*b"rtng");
-
 #[cfg(feature = "serato-markers")]
 const SERATO_MARKERS_IDENT: AtomIdent<'_> = AtomIdent::Freeform {
     mean: Cow::Borrowed(<triseratops::tag::Markers as triseratops::tag::format::mp4::MP4Tag>::MP4_ATOM_FREEFORM_MEAN),
@@ -33,24 +31,6 @@ const SERATO_MARKERS2_IDENT: AtomIdent<'_> = AtomIdent::Freeform {
     mean: Cow::Borrowed(<triseratops::tag::Markers2 as triseratops::tag::format::mp4::MP4Tag>::MP4_ATOM_FREEFORM_MEAN),
     name: Cow::Borrowed(<triseratops::tag::Markers2 as triseratops::tag::format::mp4::MP4Tag>::MP4_ATOM_FREEFORM_NAME),
 };
-
-const fn import_advisory_rating(advisory_rating: lofty::mp4::AdvisoryRating) -> AdvisoryRating {
-    use lofty::mp4::AdvisoryRating as From;
-    match advisory_rating {
-        From::Inoffensive => AdvisoryRating::Unrated,
-        From::Clean => AdvisoryRating::Clean,
-        From::Explicit => AdvisoryRating::Explicit,
-    }
-}
-
-const fn export_advisory_rating(advisory_rating: AdvisoryRating) -> lofty::mp4::AdvisoryRating {
-    use AdvisoryRating as From;
-    match advisory_rating {
-        From::Unrated => lofty::mp4::AdvisoryRating::Inoffensive,
-        From::Clean => lofty::mp4::AdvisoryRating::Clean,
-        From::Explicit => lofty::mp4::AdvisoryRating::Explicit,
-    }
-}
 
 #[cfg(feature = "serato-markers")]
 #[must_use]
@@ -111,8 +91,6 @@ fn import_serato_markers(
 
 #[derive(Debug, Default)]
 struct Import {
-    advisory_rating: Option<AdvisoryRating>,
-
     #[cfg(feature = "serato-markers")]
     serato_tags: Option<triseratops::tag::TagContainer>,
 }
@@ -126,10 +104,6 @@ impl Import {
     ) -> Self {
         debug_assert!(config.flags.contains(ImportTrackFlags::METADATA));
 
-        // TODO: Handle in generic import
-        // See also: <https://github.com/Serial-ATA/lofty-rs/issues/99>
-        let advisory_rating = ilst.advisory_rating().map(import_advisory_rating);
-
         #[cfg(feature = "serato-markers")]
         let serato_tags = config
             .flags
@@ -138,7 +112,6 @@ impl Import {
             .flatten();
 
         Self {
-            advisory_rating,
             #[cfg(feature = "serato-markers")]
             serato_tags,
         }
@@ -146,18 +119,9 @@ impl Import {
 
     fn finish(self, track: &mut Track) {
         let Self {
-            advisory_rating: new_advisory_rating,
             #[cfg(feature = "serato-markers")]
             serato_tags,
         } = self;
-
-        let old_advisory_rating = &mut track.advisory_rating;
-        if old_advisory_rating.is_some() && *old_advisory_rating != new_advisory_rating {
-            log::debug!(
-                "Replacing advisory rating: {old_advisory_rating:?} -> {new_advisory_rating:?}"
-            );
-        }
-        *old_advisory_rating = new_advisory_rating;
 
         #[cfg(feature = "serato-markers")]
         if let Some(serato_tags) = &serato_tags {
@@ -219,13 +183,6 @@ pub(crate) fn export_track_to_tag(
         track,
         edit_embedded_artwork_image,
     );
-
-    // Parental advisory
-    if let Some(advisory_rating) = track.advisory_rating.map(export_advisory_rating) {
-        ilst.set_advisory_rating(advisory_rating);
-    } else {
-        drop(ilst.remove(&ADVISORY_RATING_IDENT));
-    }
 
     #[cfg(feature = "serato-markers")]
     if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {

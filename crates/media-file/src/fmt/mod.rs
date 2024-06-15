@@ -28,7 +28,7 @@ use aoide_core::{
             FACET_ID_MBID_WORK, FACET_ID_MOOD, FACET_ID_XID,
         },
         title::{Kind as TitleKind, Titles},
-        Track,
+        AdvisoryRating, Track,
     },
     util::string::trimmed_non_empty_from,
 };
@@ -877,6 +877,17 @@ pub(crate) fn import_file_tag_into_track(
     }
     *old_released_orig_at = new_released_orig_at;
 
+    let old_advisory_rating = &mut track.advisory_rating;
+    let new_advisory_rating = tag
+        .take_strings(&ItemKey::ParentalAdvisory)
+        .find_map(|input| input.parse::<u8>().ok().and_then(AdvisoryRating::from_repr));
+    if old_advisory_rating.is_some() && *old_advisory_rating != new_advisory_rating {
+        log::debug!(
+            "Replacing advisory rating: {old_advisory_rating:?} -> {new_advisory_rating:?}"
+        );
+    }
+    *old_advisory_rating = new_advisory_rating;
+
     let mut tags_map: TagsMap<'static> = Default::default();
 
     // Grouping tags
@@ -1613,6 +1624,16 @@ pub(crate) fn export_track_to_tag(
                 tags,
             );
         }
+    }
+
+    // Advisory rating
+    if let Some(advisory_rating) = track.advisory_rating {
+        tag.insert_text(
+            ItemKey::ParentalAdvisory,
+            (advisory_rating as u8).to_string(),
+        );
+    } else {
+        tag.remove_key(&ItemKey::ParentalAdvisory);
     }
 
     if let Some(edit_embedded_artwork_image) = edit_embedded_artwork_image {
