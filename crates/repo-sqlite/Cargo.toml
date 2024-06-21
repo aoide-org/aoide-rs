@@ -22,7 +22,7 @@ log = "0.4.21"
 mime = "0.3.17"
 strum = { version = "0.26.2", features = ["derive"] }
 unicase = "2.7.0"
-url = "2.5.1"
+url = "2.5.2"
 
 # Workspace dependencies
 aoide-core = { version = "=0.0.0", path = "../core" }

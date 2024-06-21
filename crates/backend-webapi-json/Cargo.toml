@@ -20,7 +20,7 @@ log = "0.4.21"
 nonicle = "0.1.1"
 serde = { version = "1.0.203" }
 thiserror = "1.0.61"
-url = "2.5.1"
+url = "2.5.2"
 
 # tracing
 tracing = { version = "0.1.40", features = ["log"] }

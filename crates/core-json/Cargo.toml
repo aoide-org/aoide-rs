@@ -20,7 +20,7 @@ data-encoding = "2.6.0"
 mime = "0.3.17"
 serde = { version = "1.0.203", features = ["derive"] }
 serde_repr = "0.1.19"
-url = { version = "2.5.1", features = ["serde"] }
+url = { version = "2.5.2", features = ["serde"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.21", optional = true, features = ["chrono", "url"] }

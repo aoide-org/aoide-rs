@@ -19,7 +19,7 @@ anyhow = "1.0.86"
 diesel = { version = "2.2.1", default-features = false, features = ["sqlite"] }
 log = "0.4.21"
 thiserror = "1.0.61"
-url = "2.5.1"
+url = "2.5.2"
 
 # Workspace dependencies
 aoide-core = { version = "=0.0.0", path = "../core" }
