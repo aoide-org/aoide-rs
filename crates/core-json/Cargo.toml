@@ -34,4 +34,4 @@ default = []
 json-schema = ["dep:schemars", "dep:chrono", "aoide-core/json-schema"]
 
 [dev-dependencies]
-serde_json = "1.0.117"
+serde_json = "1.0.120"

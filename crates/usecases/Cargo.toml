@@ -16,9 +16,9 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.86"
-bitflags = "2.5.0"
+bitflags = "2.6.0"
 digest = "0.10.7"
-log = "0.4.21"
+log = "0.4.22"
 static_assertions = "1.1.0"
 thiserror = "1.0.61"
 

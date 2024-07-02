@@ -17,7 +17,7 @@ workspace = true
 [dependencies]
 anyhow = "1.0.86"
 diesel = { version = "2.2.1", default-features = false, features = ["sqlite"] }
-log = "0.4.21"
+log = "0.4.22"
 thiserror = "1.0.61"
 url = "2.5.2"
 
