@@ -157,7 +157,7 @@ async fn main() {
         Box::new(move |ctx| {
             let mdl = app::Model::new(library);
             let app = App::new(ctx, rt, mdl, config_dir);
-            Box::new(app)
+            Ok(Box::new(app))
         }),
     )
     .unwrap();

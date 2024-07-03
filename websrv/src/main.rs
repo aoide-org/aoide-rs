@@ -158,7 +158,7 @@ fn main() {
             eframe::NativeOptions::default(),
             Box::new({
                 let launcher = Arc::clone(&launcher);
-                move |_creation_context| Box::new(launcher::ui::App::new(launcher, config))
+                move |_creation_context| Ok(Box::new(launcher::ui::App::new(launcher, config)))
             }),
         ) {
             log::error!("Failed to run launcher UI: {err}");
