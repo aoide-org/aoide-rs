@@ -372,6 +372,12 @@ fn try_parse_boolean_flag(input: &str) -> Option<bool> {
         })
 }
 
+fn tag_take_strings<'a>(tag: &'a mut Tag, key: &'a ItemKey) -> impl Iterator<Item = String> + 'a {
+    // Retain all items with a non-empty description.
+    tag.take_filter(key, |item| item.description().is_empty())
+        .filter_map(|item| item.into_value().into_string())
+}
+
 #[allow(clippy::too_many_lines)] // TODO
 pub(crate) fn import_file_tag_into_track(
     importer: &mut Importer,
@@ -421,14 +427,11 @@ pub(crate) fn import_file_tag_into_track(
     let compatibility = Compatibility::import(tag.tag_type(), config.flags);
 
     // Musical metrics: tempo (bpm)
-    let mut tempo_bpm_strings = tag
-        .take_strings(&ItemKey::Bpm)
+    let mut tempo_bpm_strings = tag_take_strings(&mut tag, &ItemKey::Bpm)
         .map(|input| (false, input))
         .collect::<Vec<_>>();
-    tempo_bpm_strings.extend(
-        tag.take_strings(&ItemKey::IntegerBpm)
-            .map(|input| (true, input)),
-    );
+    tempo_bpm_strings
+        .extend(tag_take_strings(&mut tag, &ItemKey::IntegerBpm).map(|input| (true, input)));
     for (is_integer, imported_tempo_bpm) in
         tempo_bpm_strings
             .into_iter()
@@ -473,8 +476,7 @@ pub(crate) fn import_file_tag_into_track(
     }
 
     // Musical metrics: key signature
-    let new_key_signature = tag
-        .take_strings(&ItemKey::InitialKey)
+    let new_key_signature = tag_take_strings(&mut tag, &ItemKey::InitialKey)
         .find_map(|input| importer.import_key_signature(&input));
     if let Some(old_key_signature) = track.metrics.key_signature {
         if let Some(new_key_signature) = new_key_signature {
@@ -489,36 +491,31 @@ pub(crate) fn import_file_tag_into_track(
 
     // Track titles
     let mut track_titles = Vec::with_capacity(4);
-    if let Some(title) = tag
-        .take_strings(&ItemKey::TrackTitle)
+    if let Some(title) = tag_take_strings(&mut tag, &ItemKey::TrackTitle)
         .find_map(|name| ingest_title_from(name, TitleKind::Main))
     {
         track_titles.push(title);
     }
-    if let Some(title) = tag
-        .take_strings(&ItemKey::TrackTitleSortOrder)
+    if let Some(title) = tag_take_strings(&mut tag, &ItemKey::TrackTitleSortOrder)
         .find_map(|name| ingest_title_from(name, TitleKind::Sorting))
     {
         track_titles.push(title);
     }
-    if let Some(title) = tag
-        .take_strings(&ItemKey::TrackSubtitle)
+    if let Some(title) = tag_take_strings(&mut tag, &ItemKey::TrackSubtitle)
         .find_map(|name| ingest_title_from(name, TitleKind::Sub))
     {
         track_titles.push(title);
     }
-    if let Some(title) = tag
-        .take_strings(&ItemKey::Movement)
+    if let Some(title) = tag_take_strings(&mut tag, &ItemKey::Movement)
         .find_map(|name| ingest_title_from(name, TitleKind::Movement))
     {
         track_titles.push(title);
     }
-    let primary_work_title = tag
-        .take_strings(&compatibility.primary_work)
+    let primary_work_title = tag_take_strings(&mut tag, &compatibility.primary_work)
         .find_map(|name| ingest_title_from(name, TitleKind::Work));
     if let Some(work_title) = primary_work_title.or_else(|| {
         compatibility.secondary_work.and_then(|secondary_work| {
-            tag.take_strings(&secondary_work)
+            tag_take_strings(&mut tag, &secondary_work)
                 .find_map(|name| ingest_title_from(name, TitleKind::Work))
         })
     }) {
@@ -533,7 +530,7 @@ pub(crate) fn import_file_tag_into_track(
 
     // Track actors
     let mut track_actors = Vec::with_capacity(8);
-    for name in tag.take_strings(&ItemKey::TrackArtist) {
+    for name in tag_take_strings(&mut tag, &ItemKey::TrackArtist) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -541,7 +538,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Artist,
         );
     }
-    for name in tag.take_strings(&ItemKey::TrackArtistSortOrder) {
+    for name in tag_take_strings(&mut tag, &ItemKey::TrackArtistSortOrder) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -549,7 +546,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Artist,
         );
     }
-    for name in tag.take_strings(&ItemKey::Arranger) {
+    for name in tag_take_strings(&mut tag, &ItemKey::Arranger) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -557,7 +554,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Arranger,
         );
     }
-    for name in tag.take_strings(&ItemKey::Composer) {
+    for name in tag_take_strings(&mut tag, &ItemKey::Composer) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -565,7 +562,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Composer,
         );
     }
-    for name in tag.take_strings(&ItemKey::ComposerSortOrder) {
+    for name in tag_take_strings(&mut tag, &ItemKey::ComposerSortOrder) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -573,7 +570,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Composer,
         );
     }
-    for name in tag.take_strings(&ItemKey::Conductor) {
+    for name in tag_take_strings(&mut tag, &ItemKey::Conductor) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -581,7 +578,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Conductor,
         );
     }
-    for name in tag.take_strings(&ItemKey::Director) {
+    for name in tag_take_strings(&mut tag, &ItemKey::Director) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -589,7 +586,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Director,
         );
     }
-    for name in tag.take_strings(&ItemKey::Engineer) {
+    for name in tag_take_strings(&mut tag, &ItemKey::Engineer) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -597,7 +594,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Engineer,
         );
     }
-    for name in tag.take_strings(&ItemKey::Lyricist) {
+    for name in tag_take_strings(&mut tag, &ItemKey::Lyricist) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -605,7 +602,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Lyricist,
         );
     }
-    for name in tag.take_strings(&ItemKey::MixDj) {
+    for name in tag_take_strings(&mut tag, &ItemKey::MixDj) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -613,7 +610,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::MixDj,
         );
     }
-    for name in tag.take_strings(&ItemKey::MixEngineer) {
+    for name in tag_take_strings(&mut tag, &ItemKey::MixEngineer) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -621,7 +618,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::MixEngineer,
         );
     }
-    for name in tag.take_strings(&ItemKey::Performer) {
+    for name in tag_take_strings(&mut tag, &ItemKey::Performer) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -629,7 +626,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Performer,
         );
     }
-    for name in tag.take_strings(&ItemKey::Producer) {
+    for name in tag_take_strings(&mut tag, &ItemKey::Producer) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -637,7 +634,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Producer,
         );
     }
-    for name in tag.take_strings(&ItemKey::Writer) {
+    for name in tag_take_strings(&mut tag, &ItemKey::Writer) {
         push_next_actor(
             &mut track_actors,
             name,
@@ -656,20 +653,17 @@ pub(crate) fn import_file_tag_into_track(
 
     // Album titles
     let mut album_titles = Vec::with_capacity(1);
-    if let Some(title) = tag
-        .take_strings(&ItemKey::AlbumTitle)
+    if let Some(title) = tag_take_strings(&mut tag, &ItemKey::AlbumTitle)
         .find_map(|name| ingest_title_from(name, TitleKind::Main))
     {
         album_titles.push(title);
     }
-    if let Some(title) = tag
-        .take_strings(&ItemKey::SetSubtitle)
+    if let Some(title) = tag_take_strings(&mut tag, &ItemKey::SetSubtitle)
         .find_map(|name| ingest_title_from(name, TitleKind::Sub))
     {
         album_titles.push(title);
     }
-    if let Some(title) = tag
-        .take_strings(&ItemKey::AlbumTitleSortOrder)
+    if let Some(title) = tag_take_strings(&mut tag, &ItemKey::AlbumTitleSortOrder)
         .find_map(|name| ingest_title_from(name, TitleKind::Sorting))
     {
         album_titles.push(title);
@@ -683,7 +677,7 @@ pub(crate) fn import_file_tag_into_track(
 
     // Album actors
     let mut album_actors = Vec::with_capacity(4);
-    for name in tag.take_strings(&ItemKey::AlbumArtist) {
+    for name in tag_take_strings(&mut tag, &ItemKey::AlbumArtist) {
         push_next_actor(
             &mut album_actors,
             name,
@@ -691,7 +685,7 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Artist,
         );
     }
-    for name in tag.take_strings(&ItemKey::AlbumArtistSortOrder) {
+    for name in tag_take_strings(&mut tag, &ItemKey::AlbumArtistSortOrder) {
         push_next_actor(
             &mut album_actors,
             name,
@@ -732,8 +726,7 @@ pub(crate) fn import_file_tag_into_track(
     }
     *old_album = new_album;
 
-    let new_copyright = tag
-        .take_strings(&ItemKey::CopyrightMessage)
+    let new_copyright = tag_take_strings(&mut tag, &ItemKey::CopyrightMessage)
         .find_map(trimmed_non_empty_from)
         .map(Cow::into_owned);
     let old_copyright = &mut track.copyright;
@@ -743,13 +736,11 @@ pub(crate) fn import_file_tag_into_track(
     *old_copyright = new_copyright;
 
     let old_publisher = &mut track.publisher;
-    let mut new_publisher = tag
-        .take_strings(&ItemKey::Label)
+    let mut new_publisher = tag_take_strings(&mut tag, &ItemKey::Label)
         .find_map(trimmed_non_empty_from)
         .map(Cow::into_owned);
     if new_publisher.is_none() {
-        new_publisher = tag
-            .take_strings(&ItemKey::Publisher)
+        new_publisher = tag_take_strings(&mut tag, &ItemKey::Publisher)
             .find_map(trimmed_non_empty_from)
             .map(Cow::into_owned);
     }
@@ -844,12 +835,10 @@ pub(crate) fn import_file_tag_into_track(
     }
 
     let old_recorded_at = &mut track.recorded_at;
-    let mut new_recorded_at = tag
-        .take_strings(&ItemKey::RecordingDate)
+    let mut new_recorded_at = tag_take_strings(&mut tag, &ItemKey::RecordingDate)
         .find_map(|input| importer.import_year_tag_from_field("RecordingDate", &input));
     if new_recorded_at.is_none() {
-        new_recorded_at = tag
-            .take_strings(&ItemKey::Year)
+        new_recorded_at = tag_take_strings(&mut tag, &ItemKey::Year)
             .find_map(|input| importer.import_year_tag_from_field("Year", &input));
     }
     if old_recorded_at.is_some() && *old_recorded_at != new_recorded_at {
@@ -858,8 +847,7 @@ pub(crate) fn import_file_tag_into_track(
     *old_recorded_at = new_recorded_at;
 
     let old_released_at = &mut track.released_at;
-    let new_released_at = tag
-        .take_strings(&ItemKey::ReleaseDate)
+    let new_released_at = tag_take_strings(&mut tag, &ItemKey::ReleaseDate)
         .find_map(|input| importer.import_year_tag_from_field("ReleaseDate", &input));
     if old_released_at.is_some() && *old_released_at != new_released_at {
         log::debug!("Replacing released at: {old_released_at:?} -> {new_released_at:?}");
@@ -867,8 +855,7 @@ pub(crate) fn import_file_tag_into_track(
     *old_released_at = new_released_at;
 
     let old_released_orig_at = &mut track.released_orig_at;
-    let new_released_orig_at = tag
-        .take_strings(&ItemKey::OriginalReleaseDate)
+    let new_released_orig_at = tag_take_strings(&mut tag, &ItemKey::OriginalReleaseDate)
         .find_map(|input| importer.import_year_tag_from_field("OriginalReleaseDate", &input));
     if old_released_orig_at.is_some() && *old_released_orig_at != new_released_orig_at {
         log::debug!(
@@ -878,8 +865,7 @@ pub(crate) fn import_file_tag_into_track(
     *old_released_orig_at = new_released_orig_at;
 
     let old_advisory_rating = &mut track.advisory_rating;
-    let new_advisory_rating = tag
-        .take_strings(&ItemKey::ParentalAdvisory)
+    let new_advisory_rating = tag_take_strings(&mut tag, &ItemKey::ParentalAdvisory)
         .find_map(|input| input.parse::<u8>().ok().and_then(AdvisoryRating::from_repr));
     if old_advisory_rating.is_some() && *old_advisory_rating != new_advisory_rating {
         log::debug!(
@@ -896,8 +882,7 @@ pub(crate) fn import_file_tag_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_GROUPING,
-        tag.take_strings(&compatibility.primary_content_group)
-            .map(Into::into),
+        tag_take_strings(&mut tag, &compatibility.primary_content_group).map(Into::into),
     );
     if let Some(secondary_content_group) = compatibility.secondary_content_group {
         if tags_map.get_faceted_plain_tags(FACET_ID_GROUPING).is_none() {
@@ -905,7 +890,7 @@ pub(crate) fn import_file_tag_into_track(
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 FACET_ID_GROUPING,
-                tag.take_strings(&secondary_content_group).map(Into::into),
+                tag_take_strings(&mut tag, &secondary_content_group).map(Into::into),
             );
         }
     }
@@ -924,7 +909,7 @@ pub(crate) fn import_file_tag_into_track(
         let tag_mapping_config = config.faceted_tag_mapping.get(FACET_ID_GENRE.as_str());
         let mut next_score_value = PlainTag::DEFAULT_SCORE.value();
         let mut plain_tags = Vec::with_capacity(8);
-        for genre in tag.take_strings(&ItemKey::Genre) {
+        for genre in tag_take_strings(&mut tag, &ItemKey::Genre) {
             importer.import_plain_tags_from_joined_label_value(
                 tag_mapping_config,
                 &mut next_score_value,
@@ -940,7 +925,7 @@ pub(crate) fn import_file_tag_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_MOOD,
-        tag.take_strings(&ItemKey::Mood).map(Into::into),
+        tag_take_strings(&mut tag, &ItemKey::Mood).map(Into::into),
     );
 
     // Comment tag
@@ -948,7 +933,7 @@ pub(crate) fn import_file_tag_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_COMMENT,
-        tag.take_strings(&ItemKey::Comment).map(Into::into),
+        tag_take_strings(&mut tag, &ItemKey::Comment).map(Into::into),
     );
 
     // Description tag
@@ -956,7 +941,7 @@ pub(crate) fn import_file_tag_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_DESCRIPTION,
-        tag.take_strings(&ItemKey::Description).map(Into::into),
+        tag_take_strings(&mut tag, &ItemKey::Description).map(Into::into),
     );
 
     // Isrc tag
@@ -964,7 +949,7 @@ pub(crate) fn import_file_tag_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_ISRC,
-        tag.take_strings(&ItemKey::Isrc).map(Into::into),
+        tag_take_strings(&mut tag, &ItemKey::Isrc).map(Into::into),
     );
 
     // XID tag
@@ -972,7 +957,7 @@ pub(crate) fn import_file_tag_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_XID,
-        tag.take_strings(&ItemKey::AppleXid).map(Into::into),
+        tag_take_strings(&mut tag, &ItemKey::AppleXid).map(Into::into),
     );
 
     // MusicBrainz tags
@@ -980,29 +965,25 @@ pub(crate) fn import_file_tag_into_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_MBID_RECORDING,
-        tag.take_strings(&ItemKey::MusicBrainzRecordingId)
-            .map(Into::into),
+        tag_take_strings(&mut tag, &ItemKey::MusicBrainzRecordingId).map(Into::into),
     );
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_MBID_TRACK,
-        tag.take_strings(&ItemKey::MusicBrainzTrackId)
-            .map(Into::into),
+        tag_take_strings(&mut tag, &ItemKey::MusicBrainzTrackId).map(Into::into),
     );
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_MBID_RELEASE,
-        tag.take_strings(&ItemKey::MusicBrainzReleaseId)
-            .map(Into::into),
+        tag_take_strings(&mut tag, &ItemKey::MusicBrainzReleaseId).map(Into::into),
     );
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
         FACET_ID_MBID_RELEASE_GROUP,
-        tag.take_strings(&ItemKey::MusicBrainzReleaseGroupId)
-            .map(Into::into),
+        tag_take_strings(&mut tag, &ItemKey::MusicBrainzReleaseGroupId).map(Into::into),
     );
 
     let old_tags = &mut track.tags;
