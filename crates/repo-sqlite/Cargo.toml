@@ -5,11 +5,11 @@
 name = "aoide-repo-sqlite"
 description = "aoide - SQLite schema and trait implementations of aoide-repo"
 publish = false
-version = "0.0.0"
-repository = { workspace = true }
-license = { workspace = true }
-edition = { workspace = true }
-rust-version = { workspace = true }
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -25,10 +25,10 @@ unicase = "2.7.0"
 url = "2.5.2"
 
 # Workspace dependencies
-aoide-core = { version = "=0.0.0", path = "../core" }
-aoide-core-api = { version = "=0.0.0", path = "../core-api" }
-aoide-repo = { version = "=0.0.0", path = "../repo" }
-aoide-storage-sqlite = { version = "=0.0.0", path = "../storage-sqlite" }
+aoide-core.workspace = true
+aoide-core-api.workspace = true
+aoide-repo.workspace = true
+aoide-storage-sqlite.workspace = true
 
 [dev-dependencies]
 env_logger = "0.11.3"

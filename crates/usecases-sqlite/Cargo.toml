@@ -5,11 +5,11 @@
 name = "aoide-usecases-sqlite"
 description = "aoide - SQLite wrappers for aoide-usecases"
 publish = false
-version = "0.0.0"
-repository = { workspace = true }
-license = { workspace = true }
-edition = { workspace = true }
-rust-version = { workspace = true }
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -22,13 +22,13 @@ thiserror = "1.0.62"
 url = "2.5.2"
 
 # Workspace dependencies
-aoide-core = { version = "=0.0.0", path = "../core" }
-aoide-core-api = { version = "=0.0.0", path = "../core-api" }
-aoide-media-file = { version = "=0.0.0", path = "../media-file" }
-aoide-repo = { version = "=0.0.0", path = "../repo" }
-aoide-repo-sqlite = { version = "=0.0.0", path = "../repo-sqlite" }
-aoide-storage-sqlite = { version = "=0.0.0", path = "../storage-sqlite" }
-aoide-usecases = { version = "=0.0.0", path = "../usecases", features = ["media-file"] }
+aoide-core.workspace = true
+aoide-core-api.workspace = true
+aoide-media-file.workspace = true
+aoide-repo.workspace = true
+aoide-repo-sqlite.workspace = true
+aoide-storage-sqlite.workspace = true
+aoide-usecases = { "workspace" = true, features = ["media-file"] }
 
 [features]
 default = []

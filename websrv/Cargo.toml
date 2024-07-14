@@ -7,10 +7,10 @@ description = "aoide - Standalone web server with embedded SQLite database"
 keywords = ["music", "collection"]
 publish = false
 version = { workspace = true }
-repository = { workspace = true }
-license = { workspace = true }
-edition = { workspace = true }
-rust-version = { workspace = true }
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -38,19 +38,17 @@ url = { version = "2.5.2", features = ["serde"] }
 warp = { version = "0.3.7", default-features = false }
 
 # Workspace dependencies
-aoide-backend-webapi-json = { path = "../crates/backend-webapi-json", features = [
-    "tokio",
-] }
-aoide-core = { path = "../crates/core", features = ["serde"] }
-aoide-repo-sqlite = { path = "../crates/repo-sqlite" }
-aoide-storage-sqlite = { path = "../crates/storage-sqlite", features = [
+aoide-backend-webapi-json = { "workspace" = true, features = ["tokio"] }
+aoide-core = { "workspace" = true, features = ["serde"] }
+aoide-repo-sqlite.workspace = true
+aoide-storage-sqlite = { "workspace" = true, features = [
     "serde",
     "sqlite-bundled",
     "tokio",
 ] }
-aoide-usecases = { path = "../crates/usecases" }
-aoide-usecases-sqlite = { path = "../crates/usecases-sqlite" }
-aoide-websrv-warp-sqlite = { path = "../crates/websrv-warp-sqlite" }
+aoide-usecases.workspace = true
+aoide-usecases-sqlite.workspace = true
+aoide-websrv-warp-sqlite.workspace = true
 
 # mimalloc
 [dependencies.mimalloc]

@@ -5,11 +5,11 @@
 name = "aoide-core-api-json"
 description = "aoide - JSON mapping for aoide-core-api boundary types"
 publish = false
-version = "0.0.0"
-repository = { workspace = true }
-license = { workspace = true }
-edition = { workspace = true }
-rust-version = { workspace = true }
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -23,9 +23,9 @@ url = { version = "2.5.2", features = ["serde"] }
 schemars = { version = "0.8.21", optional = true, features = ["url"] }
 
 # Workspace dependencies
-aoide-core = { version = "=0.0.0", path = "../core", features = ["serde"] }
-aoide-core-api = { version = "=0.0.0", path = "../core-api" }
-aoide-core-json = { version = "=0.0.0", path = "../core-json" }
+aoide-core = { "workspace" = true, features = ["serde"] }
+aoide-core-api.workspace = true
+aoide-core-json.workspace = true
 
 [features]
 default = []

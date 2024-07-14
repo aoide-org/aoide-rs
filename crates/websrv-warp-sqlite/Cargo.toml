@@ -5,11 +5,11 @@
 name = "aoide-websrv-warp-sqlite"
 description = "aoide - Routes and handlers for a web server (warp/SQLite)"
 publish = false
-version = "0.0.0"
-repository = { workspace = true }
-license = { workspace = true }
-edition = { workspace = true }
-rust-version = { workspace = true }
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -22,7 +22,7 @@ thiserror = "1.0.62"
 warp = { version = "0.3.7", default-features = false }
 
 # Workspace dependencies
-aoide-backend-webapi-json = { path = "../backend-webapi-json" }
-aoide-repo = { path = "../repo" }
-aoide-storage-sqlite = { path = "../storage-sqlite" }
-aoide-usecases-sqlite = { path = "../usecases-sqlite" }
+aoide-backend-webapi-json.workspace = true
+aoide-repo.workspace = true
+aoide-storage-sqlite.workspace = true
+aoide-usecases-sqlite.workspace = true

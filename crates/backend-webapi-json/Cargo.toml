@@ -5,10 +5,10 @@
 name = "aoide-backend-webapi-json"
 description = "aoide - Asynchronous API for a standalone web server (JSON/HTTP)"
 publish = false
-version = "0.0.0"
-license = { workspace = true }
-edition = { workspace = true }
-rust-version = { workspace = true }
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -30,16 +30,16 @@ uuid = { version = "1.10.0", features = ["v4"] }
 schemars = { version = "0.8.21", optional = true }
 
 # Workspace dependencies
-aoide-backend-embedded = { path = "../backend-embedded" }
-aoide-core = { path = "../core", features = ["serde"] }
-aoide-core-api = { path = "../core-api" }
-aoide-core-json = { path = "../core-json" }
-aoide-core-api-json = { path = "../core-api-json", features = ["backend"] }
-aoide-media-file = { path = "../media-file", features = ["gigtag"] }
-aoide-repo = { path = "../repo" }
-aoide-repo-sqlite = { path = "../repo-sqlite" }
-aoide-usecases = { path = "../usecases" }
-aoide-usecases-sqlite = { path = "../usecases-sqlite" }
+aoide-backend-embedded.workspace = true
+aoide-core = { workspace = true, features = ["serde"] }
+aoide-core-api.workspace = true
+aoide-core-json.workspace = true
+aoide-core-api-json = { "workspace" = true, features = ["backend"] }
+aoide-media-file = { "workspace" = true, features = ["gigtag"] }
+aoide-repo.workspace = true
+aoide-repo-sqlite.workspace = true
+aoide-usecases.workspace = true
+aoide-usecases-sqlite.workspace = true
 
 [features]
 default = []

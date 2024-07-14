@@ -5,11 +5,11 @@
 name = "aoide-desktop-app"
 description = "aoide - Desktop app support"
 publish = false
-version = "0.0.0"
-repository = { workspace = true }
-license = { workspace = true }
-edition = { workspace = true }
-rust-version = { workspace = true }
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -27,15 +27,12 @@ unnest = "0.3.1"
 url = { version = "2.5.2", features = ["serde"] }
 
 # Workspace dependencies
-aoide-backend-embedded = { version = "=0.0.0", path = "../backend-embedded", features = [
-    "tokio",
-    "serde",
-] }
-aoide-core = { version = "=0.0.0", path = "../core", features = ["serde"] }
-aoide-core-api = { version = "=0.0.0", path = "../core-api" }
-aoide-media-file = { version = "=0.0.0", path = "../media-file" }
-aoide-repo = { version = "=0.0.0", path = "../repo" }
-aoide-storage-sqlite = { version = "=0.0.0", path = "../storage-sqlite" }
+aoide-backend-embedded = { "workspace" = true, features = ["tokio", "serde"] }
+aoide-core = { "workspace" = true, features = ["serde"] }
+aoide-core-api.workspace = true
+aoide-media-file.workspace = true
+aoide-repo.workspace = true
+aoide-storage-sqlite.workspace = true
 
 [dependencies.rfd]
 version = "0.14.1"

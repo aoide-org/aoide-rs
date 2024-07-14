@@ -14,6 +14,26 @@ license = "AGPL-3.0-or-later"
 edition = "2021"
 rust-version = "1.78"
 
+[workspace.dependencies]
+# Main crate
+aoide = { version = "=0.8.0", path = "." }
+# Local sub-crates
+aoide-backend-embedded = { version = "=0.8.0", path = "crates/backend-embedded" }
+aoide-backend-webapi-json = { version = "=0.8.0", path = "crates/backend-webapi-json" }
+aoide-core = { version = "=0.8.0", path = "crates/core" }
+aoide-core-api = { version = "=0.8.0", path = "crates/core-api" }
+aoide-core-api-json = { version = "=0.8.0", path = "crates/core-api-json" }
+aoide-core-json = { version = "=0.8.0", path = "crates/core-json" }
+aoide-desktop-app = { version = "=0.8.0", path = "crates/desktop-app" }
+aoide-media-file = { version = "=0.8.0", path = "crates/media-file" }
+aoide-repo = { version = "=0.8.0", path = "crates/repo" }
+aoide-repo-sqlite = { version = "=0.8.0", path = "crates/repo-sqlite" }
+aoide-search-index-tantivy = { version = "=0.8.0", path = "crates/search-index-tantivy" }
+aoide-storage-sqlite = { version = "=0.8.0", path = "crates/storage-sqlite" }
+aoide-usecases = { version = "=0.8.0", path = "crates/usecases" }
+aoide-usecases-sqlite = { version = "=0.8.0", path = "crates/usecases-sqlite" }
+aoide-websrv-warp-sqlite = { version = "=0.8.0", path = "crates/websrv-warp-sqlite" }
+
 [workspace.lints.rust]
 # Opt-in for allowed-by-default lints (in alphabetical order)
 # See also: <https://doc.rust-lang.org/rustc/lints>
@@ -65,11 +85,11 @@ cast_sign_loss = "allow"
 name = "aoide"
 description = "aoide - Music library management"
 keywords = ["music"]
-repository = { workspace = true }
-version = { workspace = true }
-license = { workspace = true }
-edition = { workspace = true }
-rust-version = { workspace = true }
+repository.workspace = true
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 include = [
   "assets/logo/",
   "crates/",
@@ -85,19 +105,19 @@ include = [
 workspace = true
 
 [dependencies]
-aoide-backend-embedded = { version = "=0.0.0", path = "crates/backend-embedded", optional = true }
-aoide-core = { version = "=0.0.0", path = "crates/core" }
-aoide-core-api = { version = "=0.0.0", path = "crates/core-api", optional = true }
-aoide-core-api-json = { version = "=0.0.0", path = "crates/core-api-json", optional = true }
-aoide-core-json = { version = "=0.0.0", path = "crates/core-json", optional = true }
-aoide-desktop-app = { version = "=0.0.0", path = "crates/desktop-app", optional = true }
-aoide-media-file = { version = "=0.0.0", path = "crates/media-file", optional = true }
-aoide-repo = { version = "=0.0.0", path = "crates/repo", optional = true }
-aoide-repo-sqlite = { version = "=0.0.0", path = "crates/repo-sqlite", optional = true }
-aoide-search-index-tantivy = { version = "=0.0.0", path = "crates/search-index-tantivy", optional = true }
-aoide-storage-sqlite = { version = "=0.0.0", path = "crates/storage-sqlite", optional = true }
-aoide-usecases = { version = "=0.0.0", path = "crates/usecases", optional = true }
-aoide-usecases-sqlite = { version = "=0.0.0", path = "crates/usecases-sqlite", optional = true }
+aoide-backend-embedded = { workspace = true, optional = true }
+aoide-core.workspace = true
+aoide-core-api = { workspace = true, optional = true }
+aoide-core-api-json = { workspace = true, optional = true }
+aoide-core-json = { workspace = true, optional = true }
+aoide-desktop-app = { workspace = true, optional = true }
+aoide-media-file = { workspace = true, optional = true }
+aoide-repo = { workspace = true, optional = true }
+aoide-repo-sqlite = { workspace = true, optional = true }
+aoide-search-index-tantivy = { workspace = true, optional = true }
+aoide-storage-sqlite = { workspace = true, optional = true }
+aoide-usecases = { workspace = true, optional = true }
+aoide-usecases-sqlite = { workspace = true, optional = true }
 
 [features]
 # Portable features

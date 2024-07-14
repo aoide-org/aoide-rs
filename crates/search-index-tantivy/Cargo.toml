@@ -5,11 +5,11 @@
 name = "aoide-search-index-tantivy"
 description = "aoide - [experimental] Full-text search index based on Tantivy"
 publish = false
-version = "0.0.0"
-repository = { workspace = true }
-license = { workspace = true }
-edition = { workspace = true }
-rust-version = { workspace = true }
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true
@@ -22,4 +22,4 @@ tantivy = "0.22.0"
 thiserror = "1.0.62"
 
 # Workspace dependencies
-aoide-core = { version = "=0.0.0", path = "../core" }
+aoide-core.workspace = true
