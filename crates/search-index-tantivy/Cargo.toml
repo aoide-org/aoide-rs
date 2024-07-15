@@ -19,7 +19,7 @@ anyhow = "1.0.86"
 strum = "0.26.3"
 log = "0.4.22"
 tantivy = "0.22.0"
-thiserror = "1.0.62"
+thiserror = "1.0.63"
 
 # Workspace dependencies
 aoide-core.workspace = true

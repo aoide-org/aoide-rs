@@ -18,7 +18,7 @@ workspace = true
 anyhow = "1.0.86"
 log = "0.4.22"
 serde = "1.0.204"
-thiserror = "1.0.62"
+thiserror = "1.0.63"
 warp = { version = "0.3.7", default-features = false }
 
 # Workspace dependencies
