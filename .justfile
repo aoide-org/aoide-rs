@@ -89,18 +89,19 @@ test:
 depgraph-svg:
     cargo depgraph --all-features --focus aoide-core | dot -T svg -o aoide-depgraph.svg
 
-publish-dry-run:
-    cargo publish --dry-run --allow-dirty -p aoide-core
-    cargo publish --dry-run --allow-dirty -p aoide-core-api
-    cargo publish --dry-run --allow-dirty -p aoide-core-api-json
-    cargo publish --dry-run --allow-dirty -p aoide-core-json
-    cargo publish --dry-run --allow-dirty -p aoide-media
-    cargo publish --dry-run --allow-dirty -p aoide-repo
-    cargo publish --dry-run --allow-dirty -p aoide-usecases
-    cargo publish --dry-run --allow-dirty -p aoide-storage-sqlite
-    cargo publish --dry-run --allow-dirty -p aoide-repo-sqlite
-    cargo publish --dry-run --allow-dirty -p aoide-usecases-sqlite
-    cargo publish --dry-run --allow-dirty -p aoide-search-index-tantivy
-    cargo publish --dry-run --allow-dirty -p aoide-backend-embedded
-    cargo publish --dry-run --allow-dirty -p aoide-desktop-app
-    cargo publish --dry-run --allow-dirty -p aoide
+[confirm]
+publish dryrun='--dry-run':
+    cargo publish '{{dryrun}}' -p aoide-core
+    cargo publish '{{dryrun}}' -p aoide-core-api
+    cargo publish '{{dryrun}}' -p aoide-core-api-json
+    cargo publish '{{dryrun}}' -p aoide-core-json
+    cargo publish '{{dryrun}}' -p aoide-media
+    cargo publish '{{dryrun}}' -p aoide-repo
+    cargo publish '{{dryrun}}' -p aoide-usecases
+    cargo publish '{{dryrun}}' -p aoide-storage-sqlite
+    cargo publish '{{dryrun}}' -p aoide-repo-sqlite
+    cargo publish '{{dryrun}}' -p aoide-usecases-sqlite
+    cargo publish '{{dryrun}}' -p aoide-search-index-tantivy
+    cargo publish '{{dryrun}}' -p aoide-backend-embedded
+    cargo publish '{{dryrun}}' -p aoide-desktop-app
+    cargo publish '{{dryrun}}' -p aoide
