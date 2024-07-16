@@ -132,7 +132,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         created_entity: &PlaylistEntity,
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(collection_id, created_at, created_entity);
-        let query = diesel::insert_into(playlist::table).values(&insertable);
+        let query = insertable.insert_into(playlist::table);
         let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert_eq!(1, rows_affected);
         self.resolve_playlist_id(&created_entity.hdr.uid)
@@ -427,8 +427,8 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
             let insertable = InsertableRecord::bind(id, track_id, ordering, created_at, entry);
-            let rows_affected = diesel::insert_into(playlist_entry::table)
-                .values(&insertable)
+            let rows_affected = insertable
+                .insert_into(playlist_entry::table)
                 .execute(self.as_mut())
                 .map_err(repo_error)?;
             debug_assert_eq!(1, rows_affected);
@@ -452,8 +452,8 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
             let insertable = InsertableRecord::bind(id, track_id, ordering, created_at, entry);
-            let rows_affected = diesel::insert_into(playlist_entry::table)
-                .values(&insertable)
+            let rows_affected = insertable
+                .insert_into(playlist_entry::table)
                 .execute(self.as_mut())
                 .map_err(repo_error)?;
             debug_assert_eq!(1, rows_affected);
@@ -623,8 +623,8 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
             let insertable = InsertableRecord::bind(id, track_id, ordering, created_at, entry);
-            let rows_affected = diesel::insert_into(playlist_entry::table)
-                .values(&insertable)
+            let rows_affected = insertable
+                .insert_into(playlist_entry::table)
                 .execute(self.as_mut())
                 .map_err(repo_error)?;
             debug_assert_eq!(1, rows_affected);
@@ -646,8 +646,8 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             let (_id, ordering, track_id, entry) = record.into();
             let insertable =
                 InsertableRecord::bind(target_id, track_id, ordering, created_at, &entry);
-            let rows_affected = diesel::insert_into(playlist_entry::table)
-                .values(&insertable)
+            let rows_affected = insertable
+                .insert_into(playlist_entry::table)
                 .execute(self.as_mut())
                 .map_err(repo_error)?;
             debug_assert_eq!(1, rows_affected);

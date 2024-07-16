@@ -191,7 +191,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         created_source: &Source,
     ) -> RepoResult<RecordHeader> {
         let insertable = InsertableRecord::bind(created_at, collection_id, created_source);
-        let query = diesel::insert_into(media_source::table).values(&insertable);
+        let query = insertable.insert_into(media_source::table);
         let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert_eq!(1, rows_affected);
         let (id, _) = self.resolve_media_source_id_synchronized_at_by_content_path(

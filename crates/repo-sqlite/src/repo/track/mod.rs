@@ -105,15 +105,15 @@ fn insert_track_and_album_titles(
     use crate::db::track_title::{models::*, schema::*};
     for track_title in *track_titles.as_ref() {
         let insertable = InsertableRecord::bind(track_id, Scope::Track, track_title);
-        diesel::insert_into(track_title::table)
-            .values(&insertable)
+        insertable
+            .insert_into(track_title::table)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
     for album_title in *album_titles.as_ref() {
         let insertable = InsertableRecord::bind(track_id, Scope::Album, album_title);
-        diesel::insert_into(track_title::table)
-            .values(&insertable)
+        insertable
+            .insert_into(track_title::table)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
@@ -202,15 +202,15 @@ fn insert_track_and_album_actors(
     use crate::db::track_actor::{models::*, schema::*};
     for track_actor in *track_actors.as_ref() {
         let insertable = InsertableRecord::bind(track_id, Scope::Track, track_actor);
-        diesel::insert_into(track_actor::table)
-            .values(&insertable)
+        insertable
+            .insert_into(track_actor::table)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
     for album_actor in *album_actors.as_ref() {
         let insertable = InsertableRecord::bind(track_id, Scope::Album, album_actor);
-        diesel::insert_into(track_actor::table)
-            .values(&insertable)
+        insertable
+            .insert_into(track_actor::table)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
@@ -277,8 +277,8 @@ fn insert_track_cues(
     use crate::db::track_cue::{models::*, schema::*};
     for cue in *cues.as_ref() {
         let insertable = InsertableRecord::bind(track_id, cue);
-        diesel::insert_into(track_cue::table)
-            .values(&insertable)
+        insertable
+            .insert_into(track_cue::table)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
@@ -363,8 +363,8 @@ fn insert_track_tags(
     } = tags.as_ref();
     for plain_tag in plain_tags {
         let insertable = InsertableRecord::bind(track_id, None, plain_tag);
-        diesel::insert_into(track_tag::table)
-            .values(&insertable)
+        insertable
+            .insert_into(track_tag::table)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
@@ -372,8 +372,8 @@ fn insert_track_tags(
         let FacetedTags { facet_id, tags } = faceted_tags;
         for tag in tags {
             let insertable = InsertableRecord::bind(track_id, Some(facet_id), tag);
-            diesel::insert_into(track_tag::table)
-                .values(&insertable)
+            insertable
+                .insert_into(track_tag::table)
                 .execute(db.as_mut())
                 .map_err(repo_error)?;
         }
@@ -429,8 +429,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         media_source_id: MediaSourceId,
         created_entity: &TrackEntity,
     ) -> RepoResult<RecordId> {
-        let record = InsertableRecord::bind(media_source_id, created_entity);
-        let query = diesel::insert_into(track::table).values(&record);
+        let insertable = InsertableRecord::bind(media_source_id, created_entity);
+        let query = insertable.insert_into(track::table);
         let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert_eq!(1, rows_affected);
         let id = self.resolve_track_id(&created_entity.hdr.uid)?;
