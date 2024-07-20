@@ -5,7 +5,7 @@
 # <https://users.rust-lang.org/t/psa-please-specify-precise-dependency-versions-in-cargo-toml/71277>
 
 [workspace]
-members = [".", "crates/*", "demo-app/", "websrv/"]
+members = [".", "crates/*", "file-collection-app/", "websrv/"]
 
 [workspace.package]
 version = "0.8.0"

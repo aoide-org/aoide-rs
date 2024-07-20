@@ -19,10 +19,10 @@ Populate a database from your local music files and submit search queries.
 
 - [Install Rust](https://www.rust-lang.org/tools/install)
 
-- Run the `aoide-demo-app`:
+- Run the `aoide-file-collection-app`:
 
   ```sh
-  cargo run -p aoide-demo-app
+  cargo run -p aoide-file-collection-app
   ```
 
 The application creates one collection for each selected music directory and sets the title

@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 [package]
-name = "aoide-demo-app"
-description = "aoide - Desktop demo application"
+name = "aoide-file-collection-app"
+description = "aoide - File collection application"
 keywords = ["music", "collection"]
 publish = false
 version = { workspace = true }

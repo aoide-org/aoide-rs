@@ -47,8 +47,8 @@ check-crates:
     cargo check --locked --all-targets --features backend -p aoide-core-api-json
     cargo check --locked --all-targets --features backend,frontend,json-schema -p aoide-core-api-json
     cargo hack --feature-powerset check --locked --all-targets -p aoide-core-json
-    cargo hack --feature-powerset check --locked --all-targets -p aoide-demo-app
     cargo hack --feature-powerset check --locked --all-targets -p aoide-desktop-app
+    cargo hack --feature-powerset check --locked --all-targets -p aoide-file-collection-app
     cargo hack --feature-powerset check --locked --all-targets -p aoide-media-file
     cargo hack --feature-powerset check --locked --all-targets -p aoide-repo
     cargo hack --feature-powerset check --locked --all-targets -p aoide-repo-sqlite
