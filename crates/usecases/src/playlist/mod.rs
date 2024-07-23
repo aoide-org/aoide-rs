@@ -47,7 +47,7 @@ where
         .map(|uid| repo.resolve_collection_id(uid))
         .transpose()?;
     let created_at = OffsetDateTimeMs::now_utc();
-    repo.insert_playlist_entity(collection_id, created_at, entity)?;
+    repo.insert_playlist_entity(collection_id, &created_at, entity)?;
     Ok(())
 }
 
@@ -71,7 +71,7 @@ where
     Repo: EntityRepo,
 {
     let updated_at = OffsetDateTimeMs::now_utc();
-    repo.update_playlist_entity_revision(updated_at, updated_entity)?;
+    repo.update_playlist_entity_revision(&updated_at, updated_entity)?;
     Ok(())
 }
 

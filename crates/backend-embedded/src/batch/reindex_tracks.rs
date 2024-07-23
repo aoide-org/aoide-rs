@@ -3,6 +3,12 @@
 
 use std::num::NonZeroU64;
 
+use diesel::Connection as _;
+use tantivy::{
+    query::{AllQuery, Query as _},
+    IndexWriter,
+};
+
 use aoide_core::util::clock::OffsetDateTimeMs;
 use aoide_core_api::{
     sorting::SortDirection,
@@ -10,11 +16,6 @@ use aoide_core_api::{
     Pagination,
 };
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
-use diesel::Connection as _;
-use tantivy::{
-    query::{AllQuery, Query as _},
-    IndexWriter,
-};
 
 use crate::{prelude::*, track::EntityCollector};
 
@@ -110,15 +111,15 @@ pub async fn reindex_tracks(
                                         // with an updated_at timestamp strictly less than the current
                                         // one are guaranteed to be unmodified. But we still need to
                                         // consider all entities with the same timestamp to be sure.
-                                        if let Some(last_updated_at) = last_updated_at {
-                                            if entity.body.updated_at < last_updated_at {
+                                        if let Some(last_updated_at) = &last_updated_at {
+                                            if entity.body.updated_at < *last_updated_at {
                                                 // No more updated entities expected to follow
                                                 break 'batch_loop;
                                             }
                                         } else {
                                             // Initialize the high watermark that will eventually
                                             // terminate the loop.
-                                            last_updated_at = Some(entity.body.updated_at);
+                                            last_updated_at = Some(entity.body.updated_at.clone());
                                         }
                                         // Skip and continue with next entity
                                         offset += 1;

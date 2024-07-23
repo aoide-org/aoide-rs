@@ -157,7 +157,9 @@ pub(crate) fn load_repo_entity(
     let recorded_at = if let Some(recorded_at) = recorded_at {
         let recorded_at = parse_datetime_opt(Some(recorded_at.as_str()), recorded_ms);
         debug_assert_eq!(
-            recorded_at.map(Into::into),
+            recorded_at
+                .clone()
+                .map(|recorded_at| YyyyMmDdDate::from_date(recorded_at.date())),
             recorded_at_yyyymmdd.map(YyyyMmDdDate::new_unchecked),
         );
         recorded_at.map(Into::into)
@@ -170,7 +172,9 @@ pub(crate) fn load_repo_entity(
     let released_at = if let Some(released_at) = released_at {
         let released_at = parse_datetime_opt(Some(released_at.as_str()), released_ms);
         debug_assert_eq!(
-            released_at.map(Into::into),
+            released_at
+                .clone()
+                .map(|released_at| YyyyMmDdDate::from_date(released_at.date())),
             released_at_yyyymmdd.map(YyyyMmDdDate::new_unchecked),
         );
         released_at.map(Into::into)
@@ -184,7 +188,9 @@ pub(crate) fn load_repo_entity(
         let released_orig_at =
             parse_datetime_opt(Some(released_orig_at.as_str()), released_orig_ms);
         debug_assert_eq!(
-            released_orig_at.map(Into::into),
+            released_orig_at
+                .clone()
+                .map(|released_orig_at| YyyyMmDdDate::from_date(released_orig_at.date())),
             released_orig_at_yyyymmdd.map(YyyyMmDdDate::new_unchecked),
         );
         released_orig_at.map(Into::into)
@@ -265,7 +271,7 @@ pub(crate) fn load_repo_entity(
     };
     let entity_body = TrackBody {
         track,
-        updated_at: header.updated_at,
+        updated_at: header.updated_at.clone(),
         last_synchronized_rev,
         content_url: None,
     };

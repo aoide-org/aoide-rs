@@ -298,7 +298,7 @@ where
     let updated_at: OffsetDateTimeMs = OffsetDateTimeMs::now_utc();
     let completion;
     if tracks_summary.failed.is_empty() {
-        match repo.media_tracker_confirm_directory(updated_at, collection_id, content_path, digest)
+        match repo.media_tracker_confirm_directory(&updated_at, collection_id, content_path, digest)
         {
             Ok(true) => {
                 completion = ImportPendingDirectoryCompletion::Confirmed;

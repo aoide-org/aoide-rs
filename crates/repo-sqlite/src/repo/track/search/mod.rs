@@ -854,7 +854,7 @@ fn build_datetime_field_filter_expression(
             let expr = view_track_search::collected_ms;
             let expr_not_null = expr;
             // TODO: Check and limit/clamp value range when converting from f64 to i64
-            match filter.predicate {
+            match &filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value.timestamp_millis())),
                 GreaterThan(value) => Box::new(expr_not_null.gt(value.timestamp_millis())),
@@ -879,7 +879,7 @@ fn build_datetime_field_filter_expression(
             let expr = view_track_search::recorded_ms;
             let expr_not_null = ifnull(expr, 0i64);
             // TODO: Check and limit/clamp value range when converting from f64 to i64
-            match filter.predicate {
+            match &filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value.timestamp_millis())),
                 GreaterThan(value) => Box::new(expr_not_null.gt(value.timestamp_millis())),
@@ -904,7 +904,7 @@ fn build_datetime_field_filter_expression(
             let expr = view_track_search::released_ms;
             let expr_not_null = ifnull(expr, 0i64);
             // TODO: Check and limit/clamp value range when converting from f64 to i64
-            match filter.predicate {
+            match &filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value.timestamp_millis())),
                 GreaterThan(value) => Box::new(expr_not_null.gt(value.timestamp_millis())),
@@ -929,7 +929,7 @@ fn build_datetime_field_filter_expression(
             let expr = view_track_search::released_orig_ms;
             let expr_not_null = ifnull(expr, 0i64);
             // TODO: Check and limit/clamp value range when converting from f64 to i64
-            match filter.predicate {
+            match &filter.predicate {
                 LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
                 LessOrEqual(value) => Box::new(expr_not_null.le(value.timestamp_millis())),
                 GreaterThan(value) => Box::new(expr_not_null.gt(value.timestamp_millis())),

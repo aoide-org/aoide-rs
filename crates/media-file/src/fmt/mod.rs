@@ -1404,7 +1404,7 @@ pub(crate) fn export_track_to_tag(
         tag.remove_key(&ItemKey::MovementTotal);
     }
 
-    if let Some(recorded_at) = track.recorded_at {
+    if let Some(recorded_at) = &track.recorded_at {
         // Modify ItemKey::Year before ItemKey::RecordingDate
         // because they may end up in the same tag field. The
         // year number should not overwrite the more specific
@@ -1421,13 +1421,13 @@ pub(crate) fn export_track_to_tag(
         tag.remove_year();
         tag.remove_key(&ItemKey::RecordingDate);
     }
-    if let Some(released_at) = track.released_at {
+    if let Some(released_at) = &track.released_at {
         let released_at_text = released_at.to_string();
         tag.insert_text(ItemKey::ReleaseDate, released_at_text);
     } else {
         tag.remove_key(&ItemKey::ReleaseDate);
     }
-    if let Some(released_orig_at) = track.released_orig_at {
+    if let Some(released_orig_at) = &track.released_orig_at {
         let released_orig_at_text = released_orig_at.to_string();
         tag.insert_text(ItemKey::OriginalReleaseDate, released_orig_at_text);
     } else {

@@ -604,7 +604,8 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                         discarded = track.media_source.collected_at
                     );
                 }
-                track.media_source.collected_at = entity.body.track.media_source.collected_at;
+                track.media_source.collected_at =
+                    entity.body.track.media_source.collected_at.clone();
             }
             if track == entity.body.track {
                 return Ok(ReplaceOutcome::Unchanged(media_source_id, id, entity));
@@ -612,7 +613,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             log::trace!("original = {:?}", entity.body);
             log::trace!("updated = {track:?}");
             if track.media_source != entity.body.track.media_source {
-                self.update_media_source(media_source_id, updated_at, &track.media_source)?;
+                self.update_media_source(media_source_id, &updated_at, &track.media_source)?;
             }
             let entity_hdr = entity
                 .raw
@@ -647,7 +648,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             }
             let created_at = OffsetDateTimeMs::now_utc();
             let media_source_id = self
-                .insert_media_source(collection_id, created_at, &track.media_source)?
+                .insert_media_source(collection_id, created_at.clone(), &track.media_source)?
                 .id;
             let entity_hdr = TrackHeader::initial_random();
             let last_synchronized_rev =
@@ -659,7 +660,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 };
             let entity_body = TrackBody {
                 track,
-                updated_at: created_at,
+                updated_at: created_at.clone(),
                 last_synchronized_rev,
                 content_url: None,
             };

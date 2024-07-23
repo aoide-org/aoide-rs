@@ -23,7 +23,7 @@ use crate::{
 impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_update_directories_status(
         &mut self,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
         old_status: Option<DirTrackingStatus>,
@@ -89,7 +89,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
 
     fn media_tracker_update_directory_digest(
         &mut self,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
         collection_id: CollectionId,
         content_path: &ContentPath<'_>,
         digest: &DigestBytes,
@@ -189,7 +189,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
 
     fn media_tracker_confirm_directory(
         &mut self,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
         collection_id: CollectionId,
         directory_path: &ContentPath<'_>,
         digest: &DigestBytes,

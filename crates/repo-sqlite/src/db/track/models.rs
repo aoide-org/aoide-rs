@@ -81,20 +81,32 @@ impl<'a> InsertableRecord<'a> {
             tags: _,
         } = track;
         let (recorded_at_yyyymmdd, recorded_at) =
-            recorded_at.map_or((None, None), |recorded_at| match recorded_at {
-                DateOrDateTime::Date(date) => (Some(date), None),
-                DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
-            });
+            recorded_at
+                .as_ref()
+                .map_or((None, None), |recorded_at| match recorded_at {
+                    DateOrDateTime::Date(date) => (Some(*date), None),
+                    DateOrDateTime::DateTime(dt) => {
+                        (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt.clone()))
+                    }
+                });
         let (released_at_yyyymmdd, released_at) =
-            released_at.map_or((None, None), |released_at| match released_at {
-                DateOrDateTime::Date(date) => (Some(date), None),
-                DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
-            });
-        let (released_orig_at_yyyymmdd, released_orig_at) =
-            released_orig_at.map_or((None, None), |released_orig_at| match released_orig_at {
-                DateOrDateTime::Date(date) => (Some(date), None),
-                DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
-            });
+            released_at
+                .as_ref()
+                .map_or((None, None), |released_at| match released_at {
+                    DateOrDateTime::Date(date) => (Some(*date), None),
+                    DateOrDateTime::DateTime(dt) => {
+                        (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt.clone()))
+                    }
+                });
+        let (released_orig_at_yyyymmdd, released_orig_at) = released_orig_at.as_ref().map_or(
+            (None, None),
+            |released_orig_at| match released_orig_at {
+                DateOrDateTime::Date(date) => (Some(*date), None),
+                DateOrDateTime::DateTime(dt) => {
+                    (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt.clone()))
+                }
+            },
+        );
         let Album {
             actors: _,
             titles: _,
@@ -119,13 +131,15 @@ impl<'a> InsertableRecord<'a> {
             media_source_id: media_source_id.into(),
             last_synchronized_rev: last_synchronized_rev.map(encode_entity_revision),
             recorded_at: recorded_at.as_ref().map(ToString::to_string),
-            recorded_ms: recorded_at.map(OffsetDateTimeMs::timestamp_millis),
+            recorded_ms: recorded_at.as_ref().map(OffsetDateTimeMs::timestamp_millis),
             recorded_at_yyyymmdd: recorded_at_yyyymmdd.map(YyyyMmDdDate::value),
             released_at: released_at.as_ref().map(ToString::to_string),
-            released_ms: released_at.map(OffsetDateTimeMs::timestamp_millis),
+            released_ms: released_at.as_ref().map(OffsetDateTimeMs::timestamp_millis),
             released_at_yyyymmdd: released_at_yyyymmdd.map(YyyyMmDdDate::value),
             released_orig_at: released_orig_at.as_ref().map(ToString::to_string),
-            released_orig_ms: released_orig_at.map(OffsetDateTimeMs::timestamp_millis),
+            released_orig_ms: released_orig_at
+                .as_ref()
+                .map(OffsetDateTimeMs::timestamp_millis),
             released_orig_at_yyyymmdd: released_orig_at_yyyymmdd.map(YyyyMmDdDate::value),
             publisher: publisher.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),
@@ -227,24 +241,33 @@ impl<'a> UpdatableRecord<'a> {
             cues: _,
             tags: _,
         } = track;
-        let (recorded_at_yyyymmdd, recorded_at) = recorded_at
-            .map(|recorded_at| match recorded_at {
-                DateOrDateTime::Date(date) => (Some(date), None),
-                DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
-            })
-            .unwrap_or((None, None));
-        let (released_at_yyyymmdd, released_at) = released_at
-            .map(|released_at| match released_at {
-                DateOrDateTime::Date(date) => (Some(date), None),
-                DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
-            })
-            .unwrap_or((None, None));
-        let (released_orig_at_yyyymmdd, released_orig_at) = released_orig_at
-            .map(|released_orig_at| match released_orig_at {
-                DateOrDateTime::Date(date) => (Some(date), None),
-                DateOrDateTime::DateTime(dt) => (Some(dt.into()), Some(dt)),
-            })
-            .unwrap_or((None, None));
+        let (recorded_at_yyyymmdd, recorded_at) =
+            recorded_at
+                .as_ref()
+                .map_or((None, None), |recorded_at| match recorded_at {
+                    DateOrDateTime::Date(date) => (Some(*date), None),
+                    DateOrDateTime::DateTime(dt) => {
+                        (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt))
+                    }
+                });
+        let (released_at_yyyymmdd, released_at) =
+            released_at
+                .as_ref()
+                .map_or((None, None), |released_at| match released_at {
+                    DateOrDateTime::Date(date) => (Some(*date), None),
+                    DateOrDateTime::DateTime(dt) => {
+                        (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt))
+                    }
+                });
+        let (released_orig_at_yyyymmdd, released_orig_at) = released_orig_at.as_ref().map_or(
+            (None, None),
+            |released_orig_at| match released_orig_at {
+                DateOrDateTime::Date(date) => (Some(*date), None),
+                DateOrDateTime::DateTime(dt) => {
+                    (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt))
+                }
+            },
+        );
         let Album {
             actors: _,
             titles: _,

@@ -55,7 +55,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn touch_playlist_entity_revision(
         &mut self,
         entity_header: &EntityHeader,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
         let EntityHeader { uid, rev } = entity_header;
         let next_rev = rev
@@ -80,7 +80,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn update_playlist_entity(
         &mut self,
         id: RecordId,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
         updated_entity: &PlaylistEntity,
     ) -> RepoResult<()> {
         let updatable =
@@ -128,7 +128,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn insert_playlist_entity(
         &mut self,
         collection_id: Option<CollectionId>,
-        created_at: OffsetDateTimeMs,
+        created_at: &OffsetDateTimeMs,
         created_entity: &PlaylistEntity,
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(collection_id, created_at, created_entity);
@@ -426,7 +426,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 Item::Separator(_) => None,
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
-            let insertable = InsertableRecord::bind(id, track_id, ordering, created_at, entry);
+            let insertable = InsertableRecord::bind(id, track_id, ordering, &created_at, entry);
             let rows_affected = insertable
                 .insert_into(playlist_entry::table)
                 .execute(self.as_mut())
@@ -451,7 +451,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 Item::Separator(_) => None,
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
-            let insertable = InsertableRecord::bind(id, track_id, ordering, created_at, entry);
+            let insertable = InsertableRecord::bind(id, track_id, ordering, &created_at, entry);
             let rows_affected = insertable
                 .insert_into(playlist_entry::table)
                 .execute(self.as_mut())
@@ -622,7 +622,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 Item::Separator(_) => None,
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
-            let insertable = InsertableRecord::bind(id, track_id, ordering, created_at, entry);
+            let insertable = InsertableRecord::bind(id, track_id, ordering, &created_at, entry);
             let rows_affected = insertable
                 .insert_into(playlist_entry::table)
                 .execute(self.as_mut())
@@ -645,7 +645,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         for record in records {
             let (_id, ordering, track_id, entry) = record.into();
             let insertable =
-                InsertableRecord::bind(target_id, track_id, ordering, created_at, &entry);
+                InsertableRecord::bind(target_id, track_id, ordering, &created_at, &entry);
             let rows_affected = insertable
                 .insert_into(playlist_entry::table)
                 .execute(self.as_mut())

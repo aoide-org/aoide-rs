@@ -48,12 +48,12 @@ macro_rules! entity_repo_trait_common_functions {
             fn [<touch_ $entity_type_name:lower _entity_revision>](
                 &mut self,
                 entity_header: &$entity_header_type,
-                updated_at: aoide_core::util::clock::OffsetDateTimeMs,
+                updated_at: &aoide_core::util::clock::OffsetDateTimeMs,
             ) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, aoide_core::EntityRevision)>;
 
             fn [<update_ $entity_type_name:lower _entity_revision>](
                 &mut self,
-                updated_at: aoide_core::util::clock::OffsetDateTimeMs,
+                updated_at: &aoide_core::util::clock::OffsetDateTimeMs,
                 updated_entity: &$entity_type,
             ) -> $crate::prelude::RepoResult<()> {
                 let (id, rev) =
@@ -67,7 +67,7 @@ macro_rules! entity_repo_trait_common_functions {
             fn [<update_ $entity_type_name:lower _entity>](
                 &mut self,
                 id: $record_id_type,
-                updated_at: aoide_core::util::clock::OffsetDateTimeMs,
+                updated_at: &aoide_core::util::clock::OffsetDateTimeMs,
                 updated_entity: &$entity_type,
             ) -> $crate::prelude::RepoResult<()>;
 

@@ -17,7 +17,10 @@ fn serialize_item_default_separator() {
 fn deserialize_playlist() {
     let uid: EntityUid = "01AN4Z07BY79KA1307SR9X4MV3".parse().unwrap();
     let added_at1 = "2020-12-18T21:27:15Z".parse::<OffsetDateTimeMs>().unwrap();
-    let added_at2 = OffsetDateTimeMs::now_utc();
+    let added_at2 = "2020-12-18T21:27:15-01:00"
+        .parse::<OffsetDateTimeMs>()
+        .unwrap();
+    let added_at3 = OffsetDateTimeMs::now_utc();
     let playlist = PlaylistWithEntries {
         playlist: Playlist {
             title: "Title".to_string(),
@@ -28,19 +31,19 @@ fn deserialize_playlist() {
         },
         entries: vec![
             Entry {
-                added_at: added_at1.into(),
+                added_at: added_at1.clone().into(),
                 item: Item::Track(TrackItem { uid: uid.clone() }),
                 title: None,
                 notes: None,
             },
             Entry {
-                added_at: added_at2.into(),
+                added_at: added_at2.clone().into(),
                 item: Item::Separator(Default::default()),
                 title: None,
                 notes: None,
             },
             Entry {
-                added_at: added_at2.into(),
+                added_at: added_at3.clone().into(),
                 item: Item::Separator(SeparatorItem {
                     kind: Some("Kind".into()),
                 }),
@@ -67,7 +70,7 @@ fn deserialize_playlist() {
                 "separator": {
                     "kind": "Kind"
                 },
-                "addedAt": added_at2.to_string()
+                "addedAt": added_at3.to_string()
             }
         ]
     })

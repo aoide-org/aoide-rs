@@ -43,7 +43,7 @@ impl Fixture {
         let collection_entity =
             CollectionEntity::new(CollectionHeader::initial_random(), collection);
         let collection_id = crate::Connection::new(db)
-            .insert_collection_entity(OffsetDateTimeMs::now_utc(), &collection_entity)?;
+            .insert_collection_entity(&OffsetDateTimeMs::now_utc(), &collection_entity)?;
         Ok(Self { collection_id })
     }
 
@@ -56,7 +56,7 @@ impl Fixture {
         for i in 0..count {
             let created_at = OffsetDateTimeMs::now_local_or_utc();
             let media_source = media::Source {
-                collected_at: created_at,
+                collected_at: created_at.clone(),
                 content: media::Content {
                     link: ContentLink {
                         path: format!("/home/test/file{i}.mp3").into(),
@@ -114,7 +114,7 @@ impl Fixture {
         };
         let playlist_id = db.insert_playlist_entity(
             collection_id,
-            OffsetDateTimeMs::now_utc(),
+            &OffsetDateTimeMs::now_utc(),
             &playlist_entity,
         )?;
         let media_sources_and_tracks = self.create_media_sources_and_tracks(db, track_count)?;

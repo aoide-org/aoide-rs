@@ -81,7 +81,7 @@ impl<'a> InsertableRecord<'a> {
         playlist_id: PlaylistId,
         track_id: Option<TrackId>,
         ordering: i64,
-        created_at: OffsetDateTimeMs,
+        created_at: &'a OffsetDateTimeMs,
         created_entry: &'a Entry,
     ) -> Self {
         let row_created_updated_ms = created_at.timestamp_millis();

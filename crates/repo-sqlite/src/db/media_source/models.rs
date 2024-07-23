@@ -254,7 +254,7 @@ pub struct InsertableRecord<'a> {
 impl<'a> InsertableRecord<'a> {
     #[allow(clippy::too_many_lines)] // TODO
     pub fn bind(
-        created_at: OffsetDateTimeMs,
+        created_at: &'a OffsetDateTimeMs,
         collection_id: CollectionId,
         created_source: &'a Source,
     ) -> Self {
@@ -403,7 +403,7 @@ pub struct UpdatableRecord<'a> {
 
 #[allow(clippy::too_many_lines)] // TODO
 impl<'a> UpdatableRecord<'a> {
-    pub fn bind(updated_at: OffsetDateTimeMs, updated_source: &'a Source) -> Self {
+    pub fn bind(updated_at: &'a OffsetDateTimeMs, updated_source: &'a Source) -> Self {
         let Source {
             collected_at,
             content:

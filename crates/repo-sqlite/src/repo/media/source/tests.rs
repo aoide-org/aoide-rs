@@ -38,8 +38,8 @@ impl Fixture {
         };
         let collection_entity =
             CollectionEntity::new(CollectionHeader::initial_random(), collection);
-        let collection_id =
-            db.insert_collection_entity(OffsetDateTimeMs::now_utc(), &collection_entity)?;
+        let created_at = OffsetDateTimeMs::now_utc();
+        let collection_id = db.insert_collection_entity(&created_at, &collection_entity)?;
         Ok(Self { collection_id })
     }
 
@@ -96,7 +96,7 @@ fn insert_media_source() -> anyhow::Result<()> {
     let created_at = OffsetDateTimeMs::now_local_or_utc();
 
     let created_header =
-        db.insert_media_source(fixture.collection_id, created_at, &created_source)?;
+        db.insert_media_source(fixture.collection_id, created_at.clone(), &created_source)?;
     assert_eq!(created_at, created_header.created_at);
     assert_eq!(created_at, created_header.updated_at);
 
@@ -349,7 +349,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         1,
         db.relocate_media_sources_by_content_path_prefix(
             collection_id,
-            updated_at,
+            &updated_at,
             &old_path_prefix,
             &new_path_prefix
         )?

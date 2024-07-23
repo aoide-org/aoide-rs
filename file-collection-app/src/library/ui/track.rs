@@ -80,9 +80,10 @@ impl TrackListItem {
         );
         let dates = track
             .recorded_at
+            .as_ref()
             .into_iter()
-            .chain(track.released_at)
-            .chain(track.released_orig_at);
+            .chain(track.released_at.as_ref())
+            .chain(track.released_orig_at.as_ref());
         let year_min = dates.clone().map(DateOrDateTime::year).min();
         let year_max = dates.map(DateOrDateTime::year).max();
         let year = match (year_min, year_max) {

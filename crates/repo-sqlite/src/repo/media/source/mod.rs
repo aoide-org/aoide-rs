@@ -20,7 +20,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn update_media_source(
         &mut self,
         id: RecordId,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
         updated_source: &Source,
     ) -> RepoResult<()> {
         let updatable = UpdatableRecord::bind(updated_at, updated_source);
@@ -96,7 +96,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
     fn relocate_media_sources_by_content_path_prefix(
         &mut self,
         collection_id: CollectionId,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
         old_content_path_prefix: &ContentPath<'_>,
         new_content_path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize> {
@@ -190,7 +190,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         created_at: OffsetDateTimeMs,
         created_source: &Source,
     ) -> RepoResult<RecordHeader> {
-        let insertable = InsertableRecord::bind(created_at, collection_id, created_source);
+        let insertable = InsertableRecord::bind(&created_at, collection_id, created_source);
         let query = insertable.insert_into(media_source::table);
         let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
         debug_assert_eq!(1, rows_affected);
@@ -198,10 +198,11 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
             collection_id,
             &created_source.content.link.path,
         )?;
+        let updated_at = created_at.clone();
         Ok(RecordHeader {
             id,
             created_at,
-            updated_at: created_at,
+            updated_at,
         })
     }
 

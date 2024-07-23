@@ -17,7 +17,7 @@ pub fn relocate(
     let updated_at = OffsetDateTimeMs::now_utc();
     repo.relocate_media_sources_by_content_path_prefix(
         collection_id,
-        updated_at,
+        &updated_at,
         old_content_path_prefix,
         new_content_path_prefix,
     )

@@ -95,8 +95,8 @@ pub struct TrackFields {
     pub valence: Field,
 }
 
-fn add_date_field(doc: &mut TantivyDocument, field: Field, date_time: OffsetDateTimeMs) {
-    doc.add_date(field, tantivy::DateTime::from_utc(date_time.into()));
+fn add_date_field(doc: &mut TantivyDocument, field: Field, date_time: &OffsetDateTimeMs) {
+    doc.add_date(field, tantivy::DateTime::from_utc(date_time.date_time()));
 }
 
 const TAG_LABEL_PREFIX: char = '#';
@@ -181,7 +181,7 @@ impl TrackFields {
         add_date_field(
             &mut doc,
             self.collected_at,
-            entity.body.track.media_source.collected_at,
+            &entity.body.track.media_source.collected_at,
         );
         let ContentMetadata::Audio(audio_metadata) =
             &entity.body.track.media_source.content.metadata;
@@ -204,14 +204,30 @@ impl TrackFields {
         {
             doc.add_text(self.album_artist, album_artist);
         }
-        if let Some(recorded_at_yyyymmdd) = entity.body.track.recorded_at.map(YyyyMmDdDate::from) {
+        if let Some(recorded_at_yyyymmdd) = entity
+            .body
+            .track
+            .recorded_at
+            .as_ref()
+            .map(YyyyMmDdDate::from)
+        {
             doc.add_i64(self.album_artist, recorded_at_yyyymmdd.value().into());
         }
-        if let Some(released_at_yyyymmdd) = entity.body.track.released_at.map(YyyyMmDdDate::from) {
+        if let Some(released_at_yyyymmdd) = entity
+            .body
+            .track
+            .released_at
+            .as_ref()
+            .map(YyyyMmDdDate::from)
+        {
             doc.add_i64(self.album_artist, released_at_yyyymmdd.value().into());
         }
-        if let Some(released_orig_at_yyyymmdd) =
-            entity.body.track.released_orig_at.map(YyyyMmDdDate::from)
+        if let Some(released_orig_at_yyyymmdd) = entity
+            .body
+            .track
+            .released_orig_at
+            .as_ref()
+            .map(YyyyMmDdDate::from)
         {
             doc.add_i64(self.album_artist, released_orig_at_yyyymmdd.value().into());
         }
@@ -230,7 +246,7 @@ impl TrackFields {
                 doc.add_u64(self.times_played, *times_played);
             }
             if let Some(last_played_at) = last_played_at {
-                add_date_field(&mut doc, self.last_played_at, *last_played_at);
+                add_date_field(&mut doc, self.last_played_at, last_played_at);
             }
         }
         for tag in &entity.body.track.tags.plain {

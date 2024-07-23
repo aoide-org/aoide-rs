@@ -115,7 +115,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn insert_collection_entity(
         &mut self,
-        created_at: OffsetDateTimeMs,
+        created_at: &OffsetDateTimeMs,
         created_entity: &CollectionEntity,
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(created_at, created_entity);
@@ -130,7 +130,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn touch_collection_entity_revision(
         &mut self,
         entity_header: &EntityHeader,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
         let EntityHeader { uid, rev } = entity_header;
         let next_rev = rev
@@ -155,7 +155,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn update_collection_entity(
         &mut self,
         id: RecordId,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
         updated_entity: &CollectionEntity,
     ) -> RepoResult<()> {
         let updatable =

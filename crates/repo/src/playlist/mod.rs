@@ -50,7 +50,7 @@ pub trait EntityRepo: EntryRepo {
     fn insert_playlist_entity(
         &mut self,
         collection_id: Option<CollectionId>,
-        created_at: OffsetDateTimeMs,
+        created_at: &OffsetDateTimeMs,
         created_entity: &Entity,
     ) -> RepoResult<RecordId>;
 

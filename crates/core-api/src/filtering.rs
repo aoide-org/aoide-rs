@@ -126,7 +126,7 @@ pub enum ScalarPredicate<V> {
     NotEqual(Option<V>), // nullable
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScalarFieldFilter<F, V> {
     pub field: F,
     pub predicate: ScalarPredicate<V>,

@@ -16,7 +16,7 @@ pub trait Repo {
     fn update_media_source(
         &mut self,
         id: RecordId,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
         updated_source: &Source,
     ) -> RepoResult<()>;
 
@@ -54,7 +54,7 @@ pub trait CollectionRepo {
     fn relocate_media_sources_by_content_path_prefix(
         &mut self,
         collection_id: CollectionId,
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
         old_content_path_prefix: &ContentPath<'_>,
         new_content_path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize>;

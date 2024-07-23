@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{fmt, str::FromStr, time::SystemTime};
+use std::{fmt, str::FromStr};
 
 use time::{
     error::{IndeterminateOffset, Parse as ParseError},
@@ -13,7 +13,7 @@ use crate::prelude::*;
 
 pub type TimestampMillis = i64;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct OffsetDateTimeMs(OffsetDateTime);
 
@@ -85,7 +85,7 @@ impl OffsetDateTimeMs {
     }
 
     #[must_use]
-    pub const fn timestamp_millis(self) -> TimestampMillis {
+    pub const fn timestamp_millis(&self) -> TimestampMillis {
         (self.0.unix_timestamp_nanos() / NANOS_PER_MILLISECOND) as TimestampMillis
     }
 
@@ -95,39 +95,18 @@ impl OffsetDateTimeMs {
     }
 
     #[must_use]
+    pub const fn date(&self) -> Date {
+        self.0.date()
+    }
+
+    #[must_use]
+    pub const fn date_time(&self) -> OffsetDateTime {
+        self.0
+    }
+
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         <Self as IsValid>::is_valid(self)
-    }
-}
-
-impl AsRef<OffsetDateTime> for OffsetDateTimeMs {
-    fn as_ref(&self) -> &OffsetDateTime {
-        &self.0
-    }
-}
-
-impl From<OffsetDateTimeMs> for OffsetDateTime {
-    fn from(from: OffsetDateTimeMs) -> Self {
-        let OffsetDateTimeMs(into) = from;
-        into
-    }
-}
-
-impl From<OffsetDateTime> for OffsetDateTimeMs {
-    fn from(from: OffsetDateTime) -> Self {
-        Self::clamp_from(from)
-    }
-}
-
-impl From<SystemTime> for OffsetDateTimeMs {
-    fn from(from: SystemTime) -> Self {
-        OffsetDateTime::from(from).into()
-    }
-}
-
-impl From<OffsetDateTimeMs> for SystemTime {
-    fn from(from: OffsetDateTimeMs) -> Self {
-        OffsetDateTime::from(from).into()
     }
 }
 
@@ -135,7 +114,7 @@ impl FromStr for OffsetDateTimeMs {
     type Err = ParseError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        OffsetDateTime::parse(input, &Rfc3339).map(Into::into)
+        OffsetDateTime::parse(input, &Rfc3339).map(Self::clamp_from)
     }
 }
 
@@ -217,6 +196,16 @@ impl YyyyMmDdDate {
     }
 
     #[must_use]
+    #[allow(clippy::cast_possible_wrap)]
+    pub fn from_date(from: Date) -> Self {
+        Self(
+            from.year() as YyyyMmDdDateValue * 10_000
+                + from.month() as YyyyMmDdDateValue * 100
+                + YyyyMmDdDateValue::from(from.day()),
+        )
+    }
+
+    #[must_use]
     pub fn from_year(year: YearType) -> Self {
         Self(YyyyMmDdDateValue::from(year) * 10_000)
     }
@@ -284,23 +273,6 @@ impl Validate for YyyyMmDdDate {
     }
 }
 
-impl From<OffsetDateTimeMs> for YyyyMmDdDate {
-    fn from(from: OffsetDateTimeMs) -> Self {
-        from.0.date().into()
-    }
-}
-
-impl From<Date> for YyyyMmDdDate {
-    #[allow(clippy::cast_possible_wrap)]
-    fn from(from: Date) -> Self {
-        Self(
-            from.year() as YyyyMmDdDateValue * 10_000
-                + from.month() as YyyyMmDdDateValue * 100
-                + YyyyMmDdDateValue::from(from.day()),
-        )
-    }
-}
-
 impl fmt::Display for YyyyMmDdDate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_year() {
@@ -325,7 +297,7 @@ impl fmt::Display for YyyyMmDdDate {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DateOrDateTime {
     Date(YyyyMmDdDate),
     DateTime(OffsetDateTimeMs),
@@ -333,7 +305,7 @@ pub enum DateOrDateTime {
 
 impl DateOrDateTime {
     #[must_use]
-    pub const fn year(self) -> YearType {
+    pub const fn year(&self) -> YearType {
         match self {
             Self::Date(inner) => inner.year(),
             Self::DateTime(inner) => inner.year(),
@@ -358,11 +330,11 @@ impl From<YyyyMmDdDate> for DateOrDateTime {
     }
 }
 
-impl From<DateOrDateTime> for YyyyMmDdDate {
-    fn from(from: DateOrDateTime) -> Self {
+impl From<&DateOrDateTime> for YyyyMmDdDate {
+    fn from(from: &DateOrDateTime) -> Self {
         match from {
-            DateOrDateTime::Date(date) => date,
-            DateOrDateTime::DateTime(dt) => dt.into(),
+            DateOrDateTime::Date(date) => *date,
+            DateOrDateTime::DateTime(dt) => Self::from_date(dt.date()),
         }
     }
 }

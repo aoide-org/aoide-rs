@@ -96,7 +96,7 @@ pub fn scan_directories<
         .map(|dir_path| resolver.build_file_path(dir_path).into())
         .collect::<Vec<_>>();
     let outdated_count = repo.media_tracker_mark_current_directories_outdated(
-        OffsetDateTimeMs::now_utc(),
+        &OffsetDateTimeMs::now_utc(),
         collection_id,
         resolver.root_path(),
     )?;
@@ -118,9 +118,10 @@ pub fn scan_directories<
             .resolve_path_from_url(&url)?
             .ok_or_else(|| anyhow!("unresolved URL: {url}"))?;
         log::debug!("Updating digest of content path: {content_path}");
+        let updated_at = OffsetDateTimeMs::now_utc();
         match repo
             .media_tracker_update_directory_digest(
-                OffsetDateTimeMs::now_utc(),
+                &updated_at,
                 collection_id,
                 &content_path,
                 &digest.into(),
@@ -172,8 +173,9 @@ pub fn scan_directories<
             visit::Completion::Finished => {
                 // Mark all remaining entries that are unreachable and
                 // have not been visited as orphaned.
+                let updated_at = OffsetDateTimeMs::now_utc();
                 summary.orphaned = repo.media_tracker_mark_outdated_directories_orphaned(
-                    OffsetDateTimeMs::now_utc(),
+                    &updated_at,
                     collection_id,
                     resolver.root_path(),
                 )?;

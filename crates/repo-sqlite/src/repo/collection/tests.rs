@@ -24,7 +24,7 @@ fn create_collection(
     collection: Collection,
 ) -> RepoResult<CollectionEntity> {
     let entity = CollectionEntity::new(CollectionHeader::initial_random(), collection);
-    repo.insert_collection_entity(OffsetDateTimeMs::now_utc(), &entity)
+    repo.insert_collection_entity(&OffsetDateTimeMs::now_utc(), &entity)
         .and(Ok(entity))
 }
 
@@ -68,7 +68,7 @@ fn update_collection() -> TestResult<()> {
     // Bump revision number for testing
     let outdated_rev = entity.hdr.rev;
     entity.hdr.rev = outdated_rev.next().unwrap();
-    db.update_collection_entity(id, OffsetDateTimeMs::now_utc(), &entity)?;
+    db.update_collection_entity(id, &OffsetDateTimeMs::now_utc(), &entity)?;
     assert_eq!(entity, db.load_collection_entity(id)?.1);
 
     // Prepare update
@@ -78,7 +78,7 @@ fn update_collection() -> TestResult<()> {
 
     // Revision not bumped -> Conflict
     assert!(matches!(
-        db.update_collection_entity_revision(OffsetDateTimeMs::now_utc(), &updated_entity),
+        db.update_collection_entity_revision(&OffsetDateTimeMs::now_utc(), &updated_entity),
         Err(RepoError::Conflict),
     ));
     // Unchanged
@@ -93,20 +93,20 @@ fn update_collection() -> TestResult<()> {
         .next_rev()
         .unwrap();
     assert!(matches!(
-        db.update_collection_entity_revision(OffsetDateTimeMs::now_utc(), &updated_entity),
+        db.update_collection_entity_revision(&OffsetDateTimeMs::now_utc(), &updated_entity),
         Err(RepoError::Conflict),
     ));
     // Unchanged
     assert_eq!(entity, db.load_collection_entity(id)?.1);
 
-    // Revision bumped once -> Success
+    // Revision bumped once -> SuccessOffsetDateTimeMs::now_utc()
     updated_entity.raw.hdr = updated_entity.raw.hdr.prev_rev().unwrap();
-    db.update_collection_entity_revision(OffsetDateTimeMs::now_local_or_utc(), &updated_entity)?;
+    db.update_collection_entity_revision(&OffsetDateTimeMs::now_local_or_utc(), &updated_entity)?;
     // Updated
     assert_eq!(updated_entity, db.load_collection_entity(id)?.1);
 
     // Revert update
-    db.update_collection_entity(id, OffsetDateTimeMs::now_utc(), &entity)?;
+    db.update_collection_entity(id, &OffsetDateTimeMs::now_utc(), &entity)?;
     assert_eq!(entity, db.load_collection_entity(id)?.1);
 
     Ok(())

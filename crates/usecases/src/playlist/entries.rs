@@ -36,7 +36,7 @@ where
 {
     let updated_at = OffsetDateTimeMs::now_utc();
     let (record_header, next_rev) =
-        repo.touch_playlist_entity_revision(entity_header, updated_at)?;
+        repo.touch_playlist_entity_revision(entity_header, &updated_at)?;
     for operation in operations {
         #[allow(clippy::enum_glob_use)]
         use PatchOperation::*;

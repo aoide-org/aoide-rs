@@ -15,23 +15,30 @@ fn min_max_date_year() {
 fn into_release_yyyymmdd() {
     assert_eq!(
         YyyyMmDdDate::new_unchecked(19_961_219),
-        YyyyMmDdDate::from("1996-12-19T02:00:57Z".parse::<OffsetDateTimeMs>().unwrap()),
+        YyyyMmDdDate::from_date(
+            "1996-12-19T02:00:57Z"
+                .parse::<OffsetDateTimeMs>()
+                .unwrap()
+                .date()
+        ),
     );
     assert_eq!(
         YyyyMmDdDate::new_unchecked(19_961_219),
-        YyyyMmDdDate::from(
+        YyyyMmDdDate::from_date(
             "1996-12-19T02:00:57-12:00"
                 .parse::<OffsetDateTimeMs>()
                 .unwrap()
-        ),
+                .date()
+        )
     );
     assert_eq!(
         YyyyMmDdDate::new_unchecked(19_961_219),
-        YyyyMmDdDate::from(
+        YyyyMmDdDate::from_date(
             "1996-12-19T02:00:57+12:00"
                 .parse::<OffsetDateTimeMs>()
                 .unwrap()
-        ),
+                .date()
+        )
     );
 }
 

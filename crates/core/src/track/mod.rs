@@ -260,7 +260,7 @@ impl Validate for Track {
                     .into(),
             );
         if let (Some(released_orig_at), Some(released_at)) =
-            (self.released_orig_at, self.released_at)
+            (&self.released_orig_at, &self.released_at)
         {
             context = context.invalidate_if(
                 released_orig_at > released_at,
@@ -337,7 +337,7 @@ pub type Entity = crate::entity::Entity<EntityType, EntityBody, TrackInvalidity>
 
 pub type PlayCount = u64;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PlayCounter {
     pub last_played_at: Option<OffsetDateTimeMs>,
     pub times_played: Option<PlayCount>,

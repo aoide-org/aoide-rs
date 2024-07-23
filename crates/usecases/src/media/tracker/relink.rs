@@ -50,7 +50,7 @@ where
     let updated_track = Track {
         media_source: MediaSource {
             // Preserve the collected_at field from the old source
-            collected_at: old_entity.body.track.media_source.collected_at,
+            collected_at: old_entity.body.track.media_source.collected_at.clone(),
             ..new_entity.raw.body.track.media_source
         },
         ..new_entity.raw.body.track
@@ -68,14 +68,14 @@ where
         let updated_at = OffsetDateTimeMs::now_local_or_utc();
         let updated_entity_body = EntityBody {
             track: updated_track,
-            updated_at,
+            updated_at: updated_at.clone(),
             last_synchronized_rev: old_entity.body.last_synchronized_rev,
             content_url: None,
         };
         if old_entity.body.track.media_source != updated_entity_body.track.media_source {
             repo.update_media_source(
                 old_source_id,
-                updated_at,
+                &updated_at,
                 &updated_entity_body.track.media_source,
             )?;
             debug_assert_eq!(

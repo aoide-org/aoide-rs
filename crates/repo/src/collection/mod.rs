@@ -36,7 +36,7 @@ pub trait EntityRepo {
 
     fn insert_collection_entity(
         &mut self,
-        created_at: OffsetDateTimeMs,
+        created_at: &OffsetDateTimeMs,
         created_entity: &Entity,
     ) -> RepoResult<RecordId>;
 

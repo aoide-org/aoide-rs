@@ -60,7 +60,7 @@ pub struct InsertableRecord<'a> {
 
 impl<'a> InsertableRecord<'a> {
     pub fn bind(
-        created_at: OffsetDateTimeMs,
+        created_at: &OffsetDateTimeMs,
         collection_id: CollectionId,
         content_path: &'a str,
         status: DirTrackingStatus,
@@ -90,7 +90,7 @@ pub struct UpdateDigest<'a> {
 
 impl<'a> UpdateDigest<'a> {
     pub fn bind(
-        updated_at: OffsetDateTimeMs,
+        updated_at: &OffsetDateTimeMs,
         status: DirTrackingStatus,
         digest: &'a DigestBytes,
     ) -> Self {
