@@ -31,5 +31,5 @@ aoide-repo.workspace = true
 aoide-storage-sqlite.workspace = true
 
 [dev-dependencies]
-env_logger = "0.11.3"
+env_logger = "0.11.4"
 test-log = "0.2.16"
