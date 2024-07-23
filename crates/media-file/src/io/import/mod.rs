@@ -24,7 +24,7 @@ use aoide_core::{
     util::clock::{DateOrDateTime, OffsetDateTimeMs},
 };
 use bitflags::bitflags;
-use image::{io::Reader as ImageReader, DynamicImage};
+use image::{DynamicImage, ImageReader};
 use lofty::{
     config::ParseOptions,
     file::{AudioFile, FileType},
