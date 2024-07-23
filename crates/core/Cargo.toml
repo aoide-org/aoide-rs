@@ -20,7 +20,7 @@ aho-corasick = "1.1.3"
 bitflags = "2.6.0"
 data-encoding = "2.6.0"
 derive_more = "0.99.18"
-image = { version = "0.25.1", default-features = false, features = ["png"] }
+image = { version = "0.25.2", default-features = false, features = ["png"] }
 mime = "0.3.17"
 nonicle = "0.1.1"
 rand = "0.8.5"

@@ -20,7 +20,7 @@ bitflags = "2.6.0"
 bytes = "1.6.1"
 data-encoding = "2.6.0"
 digest = "0.10.7"
-image = "0.25.1"
+image = "0.25.2"
 kmeans_colors = { version = "0.6.0", default-features = false, features = ["palette_color"] }
 lofty = "0.20.1"
 # Use main branch of lofty-rs for testing unreleased features.
