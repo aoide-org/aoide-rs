@@ -280,6 +280,7 @@ pub fn visit_directories<
             debug_assert!(relative_path.is_relative());
 
             while let Some((ancestor_path, ancestor_visitor)) = ancestor_visitors.last_mut() {
+                #[allow(clippy::needless_borrows_for_generic_args)] // false positive
                 if relative_path.starts_with(&ancestor_path) {
                     // Visit child entry
                     log::debug!(

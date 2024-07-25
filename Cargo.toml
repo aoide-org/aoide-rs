@@ -49,6 +49,9 @@ unused = "warn"
 [workspace.lints.clippy]
 pedantic = "warn"
 
+# Workaround for <https://github.com/rust-lang/rust-clippy/issues/12270>
+lint_groups_priority = "allow"
+
 # Use unified function syntax to avoid confusion with referenced type.
 clone_on_ref_ptr = "warn"
 
