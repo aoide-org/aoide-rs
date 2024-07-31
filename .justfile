@@ -25,7 +25,8 @@ setup:
 # Upgrade (and update) dependencies
 upgrade: setup
     pre-commit autoupdate
-    cargo upgrade --incompatible --pinned
+    # Add --pinned for also considering pinned dependencies from time to time.
+    cargo upgrade --ignore-rust-version --incompatible
     cargo update
 
 # Format source code
