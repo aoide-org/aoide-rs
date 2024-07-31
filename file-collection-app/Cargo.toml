@@ -4,7 +4,6 @@
 [package]
 name = "aoide-file-collection-app"
 description = "aoide - File collection application"
-keywords = ["music", "collection"]
 publish = false
 version = { workspace = true }
 repository.workspace = true

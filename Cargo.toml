@@ -13,6 +13,8 @@ edition = "2021"
 rust-version = "1.78"
 repository = "https://gitlab.com/uklotzde/aoide-rs"
 license = "AGPL-3.0-or-later"
+categories = ["multimedia::audio"]
+keywords = ["music"]
 
 [workspace.dependencies]
 # Main crate
@@ -87,12 +89,13 @@ cast_sign_loss = "allow"
 [package]
 name = "aoide"
 description = "aoide - Music library management"
-keywords = ["music"]
 repository.workspace = true
 version.workspace = true
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+categories.workspace = true
+keywords.workspace = true
 include = [
   "assets/logo/",
   "crates/",
