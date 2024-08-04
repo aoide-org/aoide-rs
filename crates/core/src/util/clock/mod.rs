@@ -3,10 +3,11 @@
 
 use std::{fmt, str::FromStr};
 
+use jiff::Zoned;
 use time::{
-    error::{IndeterminateOffset, Parse as ParseError},
+    error::Parse as ParseError,
     format_description::{well_known::Rfc3339, FormatItem},
-    Date, Duration, Month, OffsetDateTime,
+    Date, Duration, Month, OffsetDateTime, UtcOffset,
 };
 
 use crate::prelude::*;
@@ -79,9 +80,15 @@ impl OffsetDateTimeMs {
     }
 
     #[must_use]
-    pub fn now_local_or_utc() -> Self {
-        OffsetDateTime::now_local()
-            .map_or_else(|_: IndeterminateOffset| Self::now_utc(), Self::clamp_from)
+    #[allow(clippy::missing_panics_doc)] // Never panics.
+    pub fn now_local() -> Self {
+        let zoned = Zoned::now();
+        let ts_millis = zoned.timestamp().as_millisecond();
+        let this_utc = Self::from_timestamp_millis(ts_millis);
+        let offset_secs = zoned.offset().seconds();
+        let utc_offset =
+            UtcOffset::from_whole_seconds(offset_secs).expect("offset should always be valid");
+        Self(this_utc.0.replace_offset(utc_offset))
     }
 
     #[must_use]

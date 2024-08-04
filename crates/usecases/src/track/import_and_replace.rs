@@ -74,7 +74,7 @@ impl ImportReplacementFromFilePathContext {
             });
         let import_track = entity_body.map_or_else(
             || ImportTrack::NewTrack {
-                collected_at: OffsetDateTimeMs::now_local_or_utc(),
+                collected_at: OffsetDateTimeMs::now_local(),
             },
             |entity_body| ImportTrack::UpdateTrack(entity_body.track),
         );

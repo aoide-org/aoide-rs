@@ -101,7 +101,7 @@ fn update_collection() -> TestResult<()> {
 
     // Revision bumped once -> SuccessOffsetDateTimeMs::now_utc()
     updated_entity.raw.hdr = updated_entity.raw.hdr.prev_rev().unwrap();
-    db.update_collection_entity_revision(&OffsetDateTimeMs::now_local_or_utc(), &updated_entity)?;
+    db.update_collection_entity_revision(&OffsetDateTimeMs::now_local(), &updated_entity)?;
     // Updated
     assert_eq!(updated_entity, db.load_collection_entity(id)?.1);
 

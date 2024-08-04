@@ -65,7 +65,7 @@ where
     ));
     // Finish with updating the old track
     if updated_track != old_entity.body.track {
-        let updated_at = OffsetDateTimeMs::now_local_or_utc();
+        let updated_at = OffsetDateTimeMs::now_local();
         let updated_entity_body = EntityBody {
             track: updated_track,
             updated_at: updated_at.clone(),

@@ -72,7 +72,7 @@ fn create_single_track_collection_with_tags(
     let collection_entity = CollectionEntity::new(CollectionHeader::initial_random(), collection);
     let collection_id =
         db.insert_collection_entity(&OffsetDateTimeMs::now_utc(), &collection_entity)?;
-    let created_at = OffsetDateTimeMs::now_local_or_utc();
+    let created_at = OffsetDateTimeMs::now_local();
     let media_source = media::Source {
         collected_at: created_at.clone(),
         content: media::Content {

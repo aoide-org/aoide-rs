@@ -62,7 +62,7 @@ fn insert_media_source() -> anyhow::Result<()> {
     let fixture = Fixture::new(&mut db)?;
 
     let created_source = media::Source {
-        collected_at: OffsetDateTimeMs::now_local_or_utc(),
+        collected_at: OffsetDateTimeMs::now_local(),
         content: media::Content {
             link: ContentLink {
                 path: ContentPath::from("file:///home/test/file.mp3"),
@@ -93,7 +93,7 @@ fn insert_media_source() -> anyhow::Result<()> {
             },
         })),
     };
-    let created_at = OffsetDateTimeMs::now_local_or_utc();
+    let created_at = OffsetDateTimeMs::now_local();
 
     let created_header =
         db.insert_media_source(fixture.collection_id, created_at.clone(), &created_source)?;
@@ -116,7 +116,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
     let collection_id = fixture.collection_id;
 
     let file_lowercase = media::Source {
-        collected_at: OffsetDateTimeMs::now_local_or_utc(),
+        collected_at: OffsetDateTimeMs::now_local(),
         content: media::Content {
             link: ContentLink {
                 path: ContentPath::from("file:///home/file.mp3"),
@@ -137,7 +137,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         db.insert_media_source(collection_id, OffsetDateTimeMs::now_utc(), &file_lowercase)?;
 
     let file_uppercase = media::Source {
-        collected_at: OffsetDateTimeMs::now_local_or_utc(),
+        collected_at: OffsetDateTimeMs::now_local(),
         content: media::Content {
             link: ContentLink {
                 path: ContentPath::from("file:///Home/File.mp3"),
@@ -300,7 +300,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
     let collection_id = fixture.collection_id;
 
     let file_lowercase = media::Source {
-        collected_at: OffsetDateTimeMs::now_local_or_utc(),
+        collected_at: OffsetDateTimeMs::now_local(),
         content: media::Content {
             link: ContentLink {
                 path: ContentPath::from("file:///ho''me/file.mp3"),
@@ -321,7 +321,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         db.insert_media_source(collection_id, OffsetDateTimeMs::now_utc(), &file_lowercase)?;
 
     let file_uppercase = media::Source {
-        collected_at: OffsetDateTimeMs::now_local_or_utc(),
+        collected_at: OffsetDateTimeMs::now_local(),
         content: media::Content {
             link: ContentLink {
                 path: ContentPath::from("file:///Ho''me/File.mp3"),

@@ -54,7 +54,7 @@ impl Fixture {
     ) -> RepoResult<Vec<(MediaSourceId, TrackId, TrackUid)>> {
         let mut created = Vec::with_capacity(count);
         for i in 0..count {
-            let created_at = OffsetDateTimeMs::now_local_or_utc();
+            let created_at = OffsetDateTimeMs::now_local();
             let media_source = media::Source {
                 collected_at: created_at.clone(),
                 content: media::Content {
@@ -122,7 +122,7 @@ impl Fixture {
             .into_iter()
             .enumerate()
             .map(|(i, (_media_source_id, _track_id, track_uid))| Entry {
-                added_at: OffsetDateTimeMs::now_local_or_utc(),
+                added_at: OffsetDateTimeMs::now_local(),
                 title: Some(format!("Entry {i}")),
                 notes: None,
                 item: Item::Track(TrackItem { uid: track_uid }),
@@ -137,7 +137,7 @@ impl Fixture {
 
 fn new_separator_entry() -> Entry {
     Entry {
-        added_at: OffsetDateTimeMs::now_local_or_utc(),
+        added_at: OffsetDateTimeMs::now_local(),
         title: None,
         notes: None,
         item: Item::Separator(Default::default()),
@@ -146,7 +146,7 @@ fn new_separator_entry() -> Entry {
 
 fn new_separator_entry_with_title(title: String) -> Entry {
     Entry {
-        added_at: OffsetDateTimeMs::now_local_or_utc(),
+        added_at: OffsetDateTimeMs::now_local(),
         title: Some(title),
         notes: None,
         item: Item::Separator(Default::default()),

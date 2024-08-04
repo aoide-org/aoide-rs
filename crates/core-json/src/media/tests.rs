@@ -25,7 +25,7 @@ fn serde_digest() {
 
 #[test]
 fn deserialize_audio_source() {
-    let now = OffsetDateTimeMs::now_local_or_utc();
+    let now = OffsetDateTimeMs::now_local();
     let content_rev = ContentRevision::new(345);
     let json = serde_json::json!({
         "collectedAt": now,
