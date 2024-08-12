@@ -4,7 +4,7 @@
 #[cfg(not(target_family = "wasm"))]
 use std::path::PathBuf;
 
-use thiserror::Error;
+use derive_more::{Display, Error};
 use url::Url;
 
 use super::{ContentPath, ContentPathKind};
@@ -12,26 +12,25 @@ use super::{ContentPath, ContentPathKind};
 #[cfg(not(target_family = "wasm"))]
 pub mod vfs;
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error, Display)]
 pub enum ResolveFromPathError {
-    #[error("invalid path")]
-    InvalidPath(String),
+    #[display("invalid path: {_0}")]
+    InvalidPath(#[error(ignore)] String),
 
     #[cfg(not(target_family = "wasm"))]
-    #[error("invalid file path")]
-    InvalidFilePath(PathBuf),
+    #[display("invalid file path: {}", _0.display())]
+    InvalidFilePath(#[error(ignore)] PathBuf),
 
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    #[error]
+    Other(anyhow::Error),
 }
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error, Display)]
 pub enum ResolveFromUrlError {
-    #[error("invalid URL")]
+    #[display("invalid URL")]
     InvalidUrl,
 
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    Other(anyhow::Error),
 }
 
 pub trait ContentPathResolver {

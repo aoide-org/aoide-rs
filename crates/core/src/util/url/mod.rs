@@ -4,7 +4,7 @@
 use std::{fmt, ops::Deref, str::FromStr};
 
 use ::url::Url;
-use thiserror::Error;
+use derive_more::{Display, Error};
 
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 pub mod fs;
@@ -24,19 +24,19 @@ pub mod fs;
 )]
 pub struct BaseUrl(Url);
 
-#[derive(Error, Debug)]
+#[derive(Debug, Display, Error)]
 pub enum BaseUrlError {
-    #[error("cannot be a base")]
+    #[display("cannot be a base")]
     CannotBeABase,
 
-    #[error("no leading path separator")]
+    #[display("no leading path separator")]
     NoLeadingPathSeparator,
 
-    #[error("no trailing path separator")]
+    #[display("no trailing path separator")]
     NoTrailingPathSeparator,
 
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    #[error]
+    Other(anyhow::Error),
 }
 
 pub fn validate_base_url(url: &Url) -> Result<(), BaseUrlError> {
@@ -102,12 +102,16 @@ impl BaseUrl {
     }
 
     pub fn parse_strict(s: &str) -> Result<Self, BaseUrlError> {
-        let url = Url::parse(s).map_err(anyhow::Error::from)?;
+        let url = Url::parse(s)
+            .map_err(anyhow::Error::from)
+            .map_err(BaseUrlError::Other)?;
         url.try_into()
     }
 
     pub fn parse_lazy(s: &str) -> Result<Self, BaseUrlError> {
-        let url = Url::parse(s).map_err(anyhow::Error::from)?;
+        let url = Url::parse(s)
+            .map_err(anyhow::Error::from)
+            .map_err(BaseUrlError::Other)?;
         Self::try_autocomplete_from(url)
     }
 }
@@ -128,7 +132,8 @@ impl FromStr for BaseUrl {
             // Autocomplete the string before parsing
             format!("{s}/").parse()
         }
-        .map_err(anyhow::Error::from)?;
+        .map_err(anyhow::Error::from)
+        .map_err(BaseUrlError::Other)?;
         Self::try_from(url)
     }
 }
