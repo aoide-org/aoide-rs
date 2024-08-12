@@ -34,7 +34,7 @@ aoide-usecases.workspace = true
 aoide-usecases-sqlite.workspace = true
 
 # Optional: Serde for serialization of config files.
-serde = { version = "1.0.206", features = ["derive"], optional = true }
+serde = { version = "1.0.207", features = ["derive"], optional = true }
 
 # Optional: Tokio runtime to abort long-running, asynchronous tasks
 tokio = { version = "1.39.2", optional = true }

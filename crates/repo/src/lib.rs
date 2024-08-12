@@ -122,7 +122,7 @@ pub mod prelude {
         Aborted,
 
         #[error(transparent)]
-        Other(#[from] anyhow::Error),
+        Other(anyhow::Error),
     }
 
     pub type RepoResult<T> = Result<T, RepoError>;

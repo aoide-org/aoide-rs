@@ -6,6 +6,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+use anyhow::anyhow;
 use aoide_core::{
     media::content::{
         resolver::{vfs::VfsResolver, ContentPathResolver as _},
@@ -296,7 +297,9 @@ where
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
-        return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
+        return Err(Error::Other(anyhow!(
+            "unsupported path kind: {path_kind:?}"
+        )));
     };
     let collection_id = collection_ctx.record_id;
     let mut summary = Summary::default();
@@ -376,7 +379,9 @@ where
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
-        return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
+        return Err(Error::Other(anyhow!(
+            "unsupported path kind: {path_kind:?}"
+        )));
     };
     let collection_id = collection_ctx.record_id;
     import_and_replace_by_local_file_path_from_directory_with_content_path_resolver(

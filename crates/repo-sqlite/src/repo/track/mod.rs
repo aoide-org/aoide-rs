@@ -3,6 +3,7 @@
 
 use std::{collections::HashSet, time::Instant};
 
+use anyhow::anyhow;
 use aoide_core::{
     media::{
         content::{ContentLink, ContentPath, ContentRevision},
@@ -64,7 +65,7 @@ fn load_track_and_album_titles(
     let mut track_titles = Vec::with_capacity(queryables.len());
     let mut album_titles = Vec::with_capacity(queryables.len());
     for queryable in queryables {
-        let (_, record) = queryable.try_into()?;
+        let (_, record) = queryable.try_into().map_err(RepoError::Other)?;
         let Record {
             track_id: _,
             scope,
@@ -161,7 +162,7 @@ fn load_track_and_album_actors(
         Vec::with_capacity(queryables.len()),
     );
     for queryable in queryables {
-        let (_, record) = queryable.try_into()?;
+        let (_, record) = queryable.try_into().map_err(RepoError::Other)?;
         let Record {
             track_id: _,
             scope,
@@ -619,7 +620,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 .raw
                 .hdr
                 .next_rev()
-                .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
+                .ok_or_else(|| RepoError::Other(anyhow!("no next revision")))?;
             let last_synchronized_rev = if update_last_synchronized_rev {
                 if track.media_source.content.link.rev.is_some() {
                     // Mark the track as synchronized with the media source

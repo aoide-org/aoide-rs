@@ -360,11 +360,10 @@ pub fn visit_directories<
         #[allow(clippy::blocks_in_conditions)] // TODO
         match directory_visitor
             .after_ancestor_finished(&ancestor_path, ancestor_data)
-            .map_err(Into::into)
             .map_err(|err| {
                 progress_event.fail();
                 report_progress_fn(&progress_event);
-                err
+                err.into()
             })? {
             AfterAncestorFinished::Continue => {
                 progress_event.progress.directories.finished += 1;

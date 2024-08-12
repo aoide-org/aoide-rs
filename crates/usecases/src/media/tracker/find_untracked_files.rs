@@ -176,7 +176,9 @@ pub fn visit_directories<
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
-        return Err(anyhow!("unsupported path kind: {path_kind:?}").into());
+        return Err(Error::Other(anyhow!(
+            "unsupported path kind: {path_kind:?}"
+        )));
     };
     let mut directory_visitor = DirectoryVisitor::new(collection_ctx.record_id, resolver);
     let root_file_path = resolver.build_file_path(resolver.root_path());

@@ -4,6 +4,7 @@
 pub(crate) mod models;
 pub(crate) mod schema;
 
+use anyhow::anyhow;
 use aoide_core::media::{artwork::ApicType, content::ContentPathKind};
 use aoide_repo::{collection::RecordId as CollectionId, media::source::RecordHeader};
 use diesel::sql_types::BigInt;
@@ -20,7 +21,7 @@ pub(crate) fn decode_content_path_kind(value: i16) -> RepoResult<ContentPathKind
     u8::try_from(value)
         .ok()
         .and_then(ContentPathKind::from_repr)
-        .ok_or_else(|| anyhow::anyhow!("invalid ContentPathKind value: {value}").into())
+        .ok_or_else(|| RepoError::Other(anyhow!("invalid ContentPathKind value: {value}")))
 }
 
 pub(crate) const fn encode_apic_type(value: ApicType) -> i16 {
@@ -31,7 +32,7 @@ pub(crate) fn decode_apic_type(value: i16) -> RepoResult<ApicType> {
     u8::try_from(value)
         .ok()
         .and_then(ApicType::from_repr)
-        .ok_or_else(|| anyhow::anyhow!("invalid ApicType value: {value}").into())
+        .ok_or_else(|| RepoError::Other(anyhow!("invalid ApicType value: {value}")))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromRepr)]
@@ -50,7 +51,7 @@ impl ArtworkSource {
             .try_into()
             .ok()
             .and_then(Self::from_repr)
-            .ok_or_else(|| anyhow::anyhow!("invalid ArtworkSource value: {value}").into())
+            .ok_or_else(|| RepoError::Other(anyhow!("invalid ArtworkSource value: {value}")))
     }
 
     const fn encode(self) -> i16 {

@@ -34,7 +34,7 @@ pub enum Error {
     DatabaseTransaction(#[from] diesel::result::Error),
 
     #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    Other(anyhow::Error),
 }
 
 impl From<uc::Error> for Error {

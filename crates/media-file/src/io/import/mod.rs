@@ -8,6 +8,7 @@ use std::{
     result::Result as StdResult,
 };
 
+use anyhow::anyhow;
 use aoide_core::{
     audio::signal::LoudnessLufs,
     media::{
@@ -353,10 +354,10 @@ pub fn load_artwork_image_data(
         Artwork::Linked(LinkedArtwork { uri, image }) => {
             let url = uri
                 .parse::<Url>()
-                .map_err(|err| anyhow::anyhow!("invalid URL: {err}"))?;
+                .map_err(|err| Error::Other(anyhow!("invalid URL: {err}")))?;
             let file_path = url
                 .to_file_path()
-                .map_err(|()| anyhow::anyhow!("no local file URL"))?;
+                .map_err(|()| Error::Other(anyhow!("no local file URL")))?;
             let image_data = std::fs::read(file_path)?;
             let loaded = LoadedArtworkImageData {
                 apic_type: Some(image.apic_type),
@@ -383,10 +384,10 @@ pub fn load_artwork_image(file_path: &Path, artwork: &Artwork) -> Result<Option<
         Artwork::Linked(LinkedArtwork { uri, image: _ }) => {
             let url = uri
                 .parse::<Url>()
-                .map_err(|err| anyhow::anyhow!("invalid URL: {err}"))?;
+                .map_err(|err| Error::Other(anyhow!("invalid URL: {err}")))?;
             let file_path = url
                 .to_file_path()
-                .map_err(|()| anyhow::anyhow!("no local file URL"))?;
+                .map_err(|()| Error::Other(anyhow!("no local file URL")))?;
             let reader = ImageReader::open(file_path)?;
             reader.decode().map(Some).map_err(Into::into)
         }

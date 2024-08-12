@@ -118,17 +118,15 @@ impl ContentPathContext {
             #[cfg(not(target_family = "wasm"))]
             ContentPathKind::VirtualFilePath => {
                 let Some(canonical_root_url) = canonical_root_url else {
-                    return Err(anyhow::anyhow!(
+                    return Err(Error::Other(anyhow!(
                         "missing root URL for collection {record_id:?} with content path kind \
                          {kind:?}"
-                    )
-                    .into());
+                    )));
                 };
-                Some(RemappingVfsResolver::new(
-                    canonical_root_url,
-                    root_url,
-                    override_root_url,
-                )?)
+                Some(
+                    RemappingVfsResolver::new(canonical_root_url, root_url, override_root_url)
+                        .map_err(Error::Other)?,
+                )
             }
             #[cfg(target_family = "wasm")]
             ContentPathKind::VirtualFilePath => {

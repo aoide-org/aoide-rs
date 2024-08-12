@@ -43,6 +43,8 @@ pub fn search_with_params<Repo>(
 where
     Repo: CollectionRepo + TrackCollectionRepo,
 {
+    use anyhow::anyhow;
+
     let Params {
         resolve_url_from_content_path,
         filter,
@@ -61,7 +63,9 @@ where
     if resolve_url_from_content_path.is_some() {
         let Some(resolver) = collection_ctx.content_path.resolver else {
             let path_kind = collection_ctx.content_path.kind;
-            return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
+            return Err(Error::Other(anyhow!(
+                "unsupported path kind: {path_kind:?}"
+            )));
         };
         let mut collector = super::vfs::ResolveUrlFromVirtualFilePathCollector {
             resolver,

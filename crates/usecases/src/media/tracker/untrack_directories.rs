@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use anyhow::anyhow;
 use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
 use aoide_core_api::media::tracker::untrack_directories::{Outcome, Params, PathsParam, Summary};
 use aoide_repo::{
@@ -27,7 +28,9 @@ where
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
-        return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
+        return Err(Error::Other(anyhow!(
+            "unsupported path kind: {path_kind:?}"
+        )));
     };
     let collection_id = collection_ctx.record_id;
     let mut untracked = 0;

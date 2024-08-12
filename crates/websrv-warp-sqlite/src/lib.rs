@@ -37,7 +37,7 @@ pub enum Error {
     Timeout { reason: String },
 
     #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    Other(anyhow::Error),
 }
 
 impl From<api::Error> for Error {

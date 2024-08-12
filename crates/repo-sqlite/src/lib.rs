@@ -74,7 +74,7 @@ pub mod prelude {
     pub(crate) fn repo_error(err: DieselError) -> RepoError {
         match err {
             DieselError::NotFound => RepoError::NotFound,
-            err => anyhow::Error::from(err).into(),
+            err => RepoError::Other(err.into()),
         }
     }
 

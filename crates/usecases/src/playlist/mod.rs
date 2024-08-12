@@ -3,6 +3,7 @@
 
 use std::borrow::Cow;
 
+use anyhow::anyhow;
 use aoide_core::{
     playlist::{EntityHeader as PlaylistEntityHeader, EntityWithEntries},
     util::clock::OffsetDateTimeMs,
@@ -58,7 +59,7 @@ pub fn update_entity(
     let ValidatedInput(playlist) = validate_input(modified_playlist)?;
     let next_hdr = hdr
         .next_rev()
-        .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
+        .ok_or_else(|| Error::Other(anyhow!("no next revision")))?;
     let updated_entity = PlaylistEntity::new(next_hdr, playlist);
     Ok(updated_entity)
 }

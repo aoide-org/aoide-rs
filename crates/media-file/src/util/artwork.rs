@@ -3,6 +3,7 @@
 
 use std::{convert::TryFrom as _, ops::Not as _, rc::Rc};
 
+use anyhow::anyhow;
 use aoide_core::{
     media::artwork::{
         ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
@@ -31,7 +32,7 @@ pub enum ArtworkImageError {
     Image(#[from] ImageError),
 
     #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    Other(anyhow::Error),
 }
 
 impl From<ArtworkImageError> for crate::Error {
@@ -142,10 +143,12 @@ fn ingest_artwork_image(
         recoverable_errors,
     } = load_artwork_picture(image_data, image_format_hint, media_type_hint)?;
     let (width, height) = picture.dimensions();
-    let width = ImageDimension::try_from(width)
-        .map_err(|_| anyhow::anyhow!("unsupported image size: {width}x{height}"))?;
-    let height = ImageDimension::try_from(height)
-        .map_err(|_| anyhow::anyhow!("unsupported image size: {width}x{height}"))?;
+    let width = ImageDimension::try_from(width).map_err(|_| {
+        ArtworkImageError::Other(anyhow!("unsupported image size: {width}x{height}"))
+    })?;
+    let height = ImageDimension::try_from(height).map_err(|_| {
+        ArtworkImageError::Other(anyhow!("unsupported image size: {width}x{height}"))
+    })?;
     let data_size = image_data.len() as u64;
     let image_size = ImageSize { width, height };
     let digest = image_digest.digest_content(image_data).finalize_reset();

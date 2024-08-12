@@ -35,6 +35,7 @@ pub enum Error {
     Metadata(anyhow::Error),
 
     #[error(transparent)]
+    // TODO: Remove implicit conversion from anyhow::Error.
     Other(#[from] anyhow::Error),
 }
 

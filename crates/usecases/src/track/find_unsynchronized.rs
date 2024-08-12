@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use anyhow::anyhow;
 use aoide_core::media::content::resolver::ContentPathResolver;
 use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::find_unsynchronized::*};
 use aoide_repo::{
@@ -79,7 +80,9 @@ where
             Some(resolver)
         } else {
             let path_kind = collection_ctx.content_path.kind;
-            return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
+            return Err(Error::Other(anyhow!(
+                "unsupported path kind: {path_kind:?}"
+            )));
         }
     } else {
         None

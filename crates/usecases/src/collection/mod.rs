@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use anyhow::anyhow;
 use aoide_core::{
     collection::EntityHeader as CollectionEntityHeader, prelude::*, util::clock::OffsetDateTimeMs,
     Collection, CollectionEntity, CollectionUid,
@@ -43,7 +44,7 @@ pub fn update_entity(
     let ValidatedInput(collection) = validate_input(modified_collection)?;
     let next_hdr = hdr
         .next_rev()
-        .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
+        .ok_or_else(|| Error::Other(anyhow!("no next revision")))?;
     let updated_entity = CollectionEntity::new(next_hdr, collection);
     Ok(updated_entity)
 }

@@ -18,7 +18,7 @@ pub enum Error {
     DatabaseConnectionPool(#[from] r2d2::Error),
 
     #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    Other(anyhow::Error),
 
     #[cfg(feature = "tokio")]
     #[error("timeout: {reason}")]

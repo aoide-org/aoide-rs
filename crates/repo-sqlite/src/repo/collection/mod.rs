@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use anyhow::anyhow;
 use aoide_core::{
     collection::EntityHeader,
     media::content::{ContentPath, ContentPathConfig, VirtualFilePathConfig},
@@ -135,7 +136,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let EntityHeader { uid, rev } = entity_header;
         let next_rev = rev
             .next()
-            .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
+            .ok_or_else(|| RepoError::Other(anyhow!("no next revision")))?;
         let touchable = TouchableRecord::bind(updated_at, next_rev);
         let encoded_uid = EncodedEntityUid::from(uid);
         let target = collection::table
@@ -179,7 +180,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .filter(collection::row_id.eq(RowId::from(id)))
             .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)
-            .and_then(|record| record.try_into().map_err(Into::into))?;
+            .and_then(|record| record.try_into().map_err(RepoError::Other))?;
         restore_vfs(self, id, &mut entity.body)?;
         Ok((record_header, entity))
     }
@@ -266,7 +267,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         };
 
         let filter_map = move |db: &mut Connection<'_>, record: QueryableRecord| {
-            let (record_header, mut entity) = record.try_into()?;
+            let (record_header, mut entity) = record.try_into().map_err(RepoError::Other)?;
             if let Some(media_source_root_url) = media_source_root_url {
                 match media_source_root_url {
                     MediaSourceRootUrlFilter::IsNone => {

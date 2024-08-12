@@ -20,7 +20,7 @@ pub fn handle_request(
 ) -> Result<ResponseBody> {
     let EntityRevQueryParams { rev } = query_params;
     let entity_header = _inner::EntityHeader { uid, rev };
-    let modified_collection = request_body.try_into()?;
+    let modified_collection = request_body.try_into().map_err(Error::Other)?;
     connection
         .transaction::<_, Error, _>(|connection| {
             uc::update(connection, entity_header, modified_collection).map_err(Into::into)

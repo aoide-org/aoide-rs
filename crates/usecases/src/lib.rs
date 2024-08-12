@@ -44,7 +44,7 @@ pub enum Error {
     Repository(#[from] RepoError),
 
     #[error(transparent)]
-    Other(#[from] anyhow::Error),
+    Other(anyhow::Error),
 }
 
 pub type Result<T> = StdResult<T, Error>;

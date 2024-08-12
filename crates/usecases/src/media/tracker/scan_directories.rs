@@ -87,7 +87,9 @@ pub fn scan_directories<
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
-        return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
+        return Err(Error::Other(anyhow!(
+            "unsupported path kind: {path_kind:?}"
+        )));
     };
     let collection_id = collection_ctx.record_id;
     let root_file_path = resolver.build_file_path(resolver.root_path());
@@ -163,7 +165,7 @@ pub fn scan_directories<
         &mut report_progress_fn,
     )
     .map_err(anyhow::Error::from)
-    .map_err(RepoError::from)
+    .map_err(RepoError::Other)
     .and_then(|outcome| {
         let visit::Outcome {
             completion,

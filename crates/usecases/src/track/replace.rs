@@ -179,17 +179,23 @@ where
                 .as_str()
                 .parse()
                 .map_err(|err| {
-                    anyhow!(
+                    Error::Other(anyhow!(
                         "failed to parse URL from path '{path}': {err}",
                         path = track.media_source.content.link.path,
-                    )
-                })
-                .map_err(Error::from)?;
+                    ))
+                })?;
             track.media_source.content.link.path = content_path_resolver
                 .resolve_path_from_url(&url)
-                .map_err(|err| anyhow!("failed to resolve local file path from URL '{url}': {err}"))
-                .map_err(Error::from)?
-                .ok_or_else(|| anyhow!("failed to resolve local file path from URL '{url}'"))?;
+                .map_err(|err| {
+                    Error::Other(anyhow!(
+                        "failed to resolve local file path from URL '{url}': {err}"
+                    ))
+                })?
+                .ok_or_else(|| {
+                    Error::Other(anyhow!(
+                        "failed to resolve local file path from URL '{url}'"
+                    ))
+                })?;
         }
         if *decode_gigtags {
             let mut tags_map: TagsMap<'static> = track.tags.untie().into();

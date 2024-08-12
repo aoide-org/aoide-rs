@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use anyhow::anyhow;
 use aoide_core::{
     media::Source,
     music::key::KeyCode,
@@ -9,7 +10,7 @@ use aoide_core::{
     track::{actor::Actor, album::Kind, cue::Cue, title::Title, AdvisoryRating},
 };
 use aoide_core_api::track::search::Scope;
-use aoide_repo::prelude::RepoResult;
+use aoide_repo::prelude::{RepoError, RepoResult};
 
 pub(crate) mod models;
 pub(crate) mod schema;
@@ -33,7 +34,7 @@ pub(crate) fn decode_album_kind(value: i16) -> RepoResult<Kind> {
     u8::try_from(value)
         .ok()
         .and_then(Kind::from_repr)
-        .ok_or_else(|| anyhow::anyhow!("invalid track album Kind value: {value}").into())
+        .ok_or_else(|| RepoError::Other(anyhow!("invalid track album Kind value: {value}")))
 }
 
 pub(crate) const fn encode_advisory_rating(value: AdvisoryRating) -> i16 {
@@ -44,7 +45,7 @@ pub(crate) fn decode_advisory_rating(value: i16) -> RepoResult<AdvisoryRating> {
     u8::try_from(value)
         .ok()
         .and_then(AdvisoryRating::from_repr)
-        .ok_or_else(|| anyhow::anyhow!("invalid track AdvisoryRating value: {value}").into())
+        .ok_or_else(|| RepoError::Other(anyhow!("invalid track AdvisoryRating value: {value}")))
 }
 
 pub(crate) const fn encode_search_scope(value: Scope) -> i16 {
@@ -55,7 +56,7 @@ pub(crate) fn decode_search_scope(value: i16) -> RepoResult<Scope> {
     u8::try_from(value)
         .ok()
         .and_then(Scope::from_repr)
-        .ok_or_else(|| anyhow::anyhow!("invalid track search Scope value: {value}").into())
+        .ok_or_else(|| RepoError::Other(anyhow!("invalid track search Scope value: {value}")))
 }
 
 pub(crate) fn encode_music_key_code(value: KeyCode) -> i16 {
@@ -67,5 +68,5 @@ pub(crate) fn decode_music_key_code(value: i16) -> RepoResult<KeyCode> {
         .try_into()
         .ok()
         .and_then(KeyCode::try_from_value)
-        .ok_or_else(|| anyhow::anyhow!("invalid musical KeyCode value: {value}").into())
+        .ok_or_else(|| RepoError::Other(anyhow!("invalid musical KeyCode value: {value}")))
 }

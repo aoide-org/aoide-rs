@@ -3,6 +3,7 @@
 
 use std::ops::Range;
 
+use anyhow::anyhow;
 use aoide_core::{
     playlist::{
         EntityHeader, EntityWithEntries, EntriesSummary, Entry, Item, TrackItem, TracksSummary,
@@ -60,7 +61,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let EntityHeader { uid, rev } = entity_header;
         let next_rev = rev
             .next()
-            .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
+            .ok_or_else(|| RepoError::Other(anyhow!("no next revision")))?;
         let touchable = TouchableRecord::bind(updated_at, next_rev);
         let encoded_uid = EncodedEntityUid::from(uid);
         let target = playlist::table

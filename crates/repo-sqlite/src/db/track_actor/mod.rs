@@ -4,6 +4,7 @@
 pub(crate) mod models;
 pub(crate) mod schema;
 
+use anyhow::anyhow;
 use aoide_core::track::actor::*;
 use aoide_core_api::track::search::Scope;
 use aoide_repo::track::RecordId;
@@ -25,7 +26,7 @@ pub(crate) fn decode_role(value: i16) -> RepoResult<Role> {
     u8::try_from(value)
         .ok()
         .and_then(Role::from_repr)
-        .ok_or_else(|| anyhow::anyhow!("invalid track actor Role value: {value}").into())
+        .ok_or_else(|| RepoError::Other(anyhow!("invalid track actor Role value: {value}")))
 }
 
 pub(crate) const fn encode_kind(value: Kind) -> i16 {
@@ -36,5 +37,5 @@ pub(crate) fn decode_kind(value: i16) -> RepoResult<Kind> {
     u8::try_from(value)
         .ok()
         .and_then(Kind::from_repr)
-        .ok_or_else(|| anyhow::anyhow!("invalid track actor Kind value: {value}").into())
+        .ok_or_else(|| RepoError::Other(anyhow!("invalid track actor Kind value: {value}")))
 }

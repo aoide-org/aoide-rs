@@ -7,6 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use anyhow::anyhow;
 use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
 use aoide_core_api::{
     media::tracker::{
@@ -61,7 +62,9 @@ where
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
-        return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
+        return Err(Error::Other(anyhow!(
+            "unsupported path kind: {path_kind:?}"
+        )));
     };
     let import_and_replace_params = import_and_replace::Params {
         sync_mode: *sync_mode,

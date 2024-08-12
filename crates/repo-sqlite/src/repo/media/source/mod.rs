@@ -50,7 +50,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .filter(media_source::row_id.eq(RowId::from(id)))
             .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)
-            .and_then(|record| record.try_into().map_err(Into::into))
+            .and_then(|record| record.try_into().map_err(RepoError::Other))
     }
 }
 
@@ -216,7 +216,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
             .filter(media_source::content_link_path.eq(content_path.as_str()))
             .first::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)
-            .and_then(|record| record.try_into().map_err(Into::into))
+            .and_then(|record| record.try_into().map_err(RepoError::Other))
     }
 
     fn purge_orphaned_media_sources(&mut self, collection_id: CollectionId) -> RepoResult<usize> {
