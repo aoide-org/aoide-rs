@@ -61,7 +61,7 @@ impl EntityUid {
     pub fn decode_from(encoded: &str) -> anyhow::Result<Self> {
         Ulid::from_string(encoded)
             .map(|ulid| Self { ulid })
-            .map_err(anyhow::Error::from)
+            .map_err(Into::into)
     }
 
     pub fn encode_into(&self, buf: &mut [u8; EntityUid::STR_LEN]) {

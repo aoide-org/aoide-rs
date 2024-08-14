@@ -103,14 +103,14 @@ impl BaseUrl {
 
     pub fn parse_strict(s: &str) -> Result<Self, BaseUrlError> {
         let url = Url::parse(s)
-            .map_err(anyhow::Error::from)
+            .map_err(Into::into)
             .map_err(BaseUrlError::Other)?;
         url.try_into()
     }
 
     pub fn parse_lazy(s: &str) -> Result<Self, BaseUrlError> {
         let url = Url::parse(s)
-            .map_err(anyhow::Error::from)
+            .map_err(Into::into)
             .map_err(BaseUrlError::Other)?;
         Self::try_autocomplete_from(url)
     }
@@ -132,7 +132,7 @@ impl FromStr for BaseUrl {
             // Autocomplete the string before parsing
             format!("{s}/").parse()
         }
-        .map_err(anyhow::Error::from)
+        .map_err(Into::into)
         .map_err(BaseUrlError::Other)?;
         Self::try_from(url)
     }

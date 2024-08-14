@@ -45,7 +45,7 @@ pub fn handle_request(
     let override_root_url = override_root_url
         .map(BaseUrl::try_autocomplete_from)
         .transpose()
-        .map_err(anyhow::Error::from)
+        .map_err(Into::into)
         .map_err(Error::BadRequest)?;
     let pagination = Pagination { limit, offset };
     let pagination = if pagination.is_paginated() {

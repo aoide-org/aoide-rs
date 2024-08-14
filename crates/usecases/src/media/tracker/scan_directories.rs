@@ -128,7 +128,8 @@ pub fn scan_directories<
                 &content_path,
                 &digest.into(),
             )
-            .map_err(anyhow::Error::from)?
+            .map_err(Into::into)
+            .map_err(Error::Other)?
         {
             DirUpdateOutcome::Current => {
                 summary.current += 1;
@@ -164,7 +165,7 @@ pub fn scan_directories<
         &mut directory_visitor,
         &mut report_progress_fn,
     )
-    .map_err(anyhow::Error::from)
+    .map_err(Into::into)
     .map_err(RepoError::Other)
     .and_then(|outcome| {
         let visit::Outcome {
