@@ -3,6 +3,7 @@
 
 use std::path::PathBuf;
 
+use anyhow::anyhow;
 use aoide_core::media::content::ContentPath;
 use aoide_repo::collection::RecordId as CollectionId;
 use uc::collection::vfs::RepoContext;
@@ -21,7 +22,9 @@ pub fn resolve_file_path(
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
-        return Err(anyhow::anyhow!("unsupported path kind: {path_kind:?}").into());
+        return Err(Error::Other(anyhow!(
+            "unsupported path kind: {path_kind:?}"
+        )));
     };
     let file_path = resolver.build_file_path(content_path);
     Ok((collection_ctx.record_id, file_path))

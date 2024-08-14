@@ -84,8 +84,8 @@ pub fn resolve_content_path_from_url(
     };
     content_path_resolver
         .resolve_path_from_url(content_url)
-        .map_err(anyhow::Error::from)
         .map_err(Into::into)
+        .map_err(Error::Other)
 }
 
 pub fn resolve_url_from_content_path(
@@ -102,8 +102,8 @@ pub fn resolve_url_from_content_path(
     content_path_resolver
         .resolve_url_from_path(content_path)
         .map(Some)
-        .map_err(anyhow::Error::from)
         .map_err(Into::into)
+        .map_err(Error::Other)
 }
 
 #[cfg(test)]
