@@ -393,7 +393,7 @@ impl eframe::App for App {
                     let exit_flag = Arc::clone(&self.exit_flag);
                     async move {
                         shutdown_signal().await;
-                        exit_flag.store(true, Ordering::Release);
+                        exit_flag.store(true, Ordering::Relaxed);
                         ctx.request_repaint();
                     }
                 });
@@ -403,7 +403,7 @@ impl eframe::App for App {
             ctx.request_repaint();
         }
         self.resync_state_on_update(ctx);
-        if self.exit_flag.load(Ordering::Acquire) {
+        if self.exit_flag.load(Ordering::Relaxed) {
             ctx.send_viewport_cmd(ViewportCommand::Close);
         }
         TopBottomPanel::top("config_panel").show(ctx, |ui| {

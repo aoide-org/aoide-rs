@@ -128,11 +128,11 @@ impl Gatekeeper {
     }
 
     pub fn decommission(&self) {
-        self.decommisioned.store(true, Ordering::Release);
+        self.decommisioned.store(true, Ordering::Relaxed);
     }
 
     fn check_not_decommissioned(&self) -> Result<()> {
-        if self.decommisioned.load(Ordering::Acquire) {
+        if self.decommisioned.load(Ordering::Relaxed) {
             return Err(Error::TaskTimeout {
                 reason: "connection pool has been decommissioned".to_string(),
             });
