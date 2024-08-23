@@ -17,10 +17,10 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.86"
-diesel = { version = "2.2.2", default-features = false, features = ["sqlite"] }
+diesel = { version = "2.2.3", default-features = false, features = ["sqlite"] }
 log = "0.4.22"
 nonicle = "0.1.1"
-serde = { version = "1.0.207" }
+serde = { version = "1.0.208" }
 thiserror = "1.0.63"
 url = "2.5.2"
 
