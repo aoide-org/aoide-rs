@@ -167,7 +167,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .select(media_tracker_directory::row_id)
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(media_tracker_directory::content_path.eq(directory_path.as_str()))
-            .first::<RowId>(self.as_mut())
+            .get_result::<RowId>(self.as_mut())
             .map_err(repo_error)?;
         let target =
             media_tracker_source::table.filter(media_tracker_source::directory_id.eq(directory_id));
@@ -220,7 +220,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .select(media_tracker_directory::status)
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(media_tracker_directory::content_path.eq(content_path.as_str()))
-            .first::<i16>(self.as_mut())
+            .get_result::<i16>(self.as_mut())
             .map_err(repo_error)
             .and_then(decode_dir_tracking_status)
     }
@@ -446,16 +446,15 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         content_path: &ContentPath<'_>,
     ) -> RepoResult<(MediaSourceId, Option<u64>)> {
         debug_assert!(!content_path.is_directory());
-        let tracked_source_query = media_source::table
+        media_source::table
             .select((media_source::row_id, media_source::content_link_rev))
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
             .filter(media_source::content_link_path.eq(content_path.as_str()))
             .filter(
                 media_source::row_id
                     .eq_any(media_tracker_source::table.select(media_tracker_source::source_id)),
-            );
-        tracked_source_query
-            .first::<(RowId, Option<i64>)>(self.as_mut())
+            )
+            .get_result::<(RowId, Option<i64>)>(self.as_mut())
             .map_err(repo_error)
             .map(|(row_id, content_link_rev)| {
                 (row_id.into(), content_link_rev.map(|rev| rev as u64))

@@ -428,7 +428,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         track::table
             .select(track::row_id)
             .filter(track::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
-            .first::<RowId>(self.as_mut())
+            .get_result::<RowId>(self.as_mut())
             .map_err(repo_error)
             .map(Into::into)
     }
@@ -506,7 +506,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, TrackEntity)> {
         let queryable = view_track_search::table
             .filter(view_track_search::row_id.eq(RowId::from(id)))
-            .first::<SearchQueryableRecord>(self.as_mut())
+            .get_result::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
         let preload = preload_entity(self, id, media_source)?;
@@ -519,7 +519,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     ) -> RepoResult<(RecordHeader, TrackEntity)> {
         let queryable = view_track_search::table
             .filter(view_track_search::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
-            .first::<SearchQueryableRecord>(self.as_mut())
+            .get_result::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
         let preload = preload_entity(self, queryable.row_id.into(), media_source)?;
@@ -550,7 +550,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         );
         let queryable = view_track_search::table
             .filter(view_track_search::media_source_id.eq_any(media_source_id_subselect))
-            .first::<SearchQueryableRecord>(self.as_mut())
+            .get_result::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let media_source_id = queryable.media_source_id.into();
         let (_, media_source) = self.load_media_source(media_source_id)?;
@@ -570,7 +570,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         );
         let queryable = view_track_search::table
             .filter(view_track_search::media_source_id.eq_any(media_source_id_subselect))
-            .first::<SearchQueryableRecord>(self.as_mut())
+            .get_result::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         Ok(queryable.into())
     }
@@ -759,7 +759,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             .filter(track::media_source_id.eq_any(
                 select_media_source_id_filtered_by_collection_id(collection_id),
             ))
-            .first::<i64>(self.as_mut())
+            .get_result::<i64>(self.as_mut())
             .map_err(repo_error)
             .map(|count| {
                 debug_assert!(count >= 0);

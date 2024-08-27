@@ -104,7 +104,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 collection::entity_rev,
             ))
             .filter(collection::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
-            .first::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_mut())
+            .get_result::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_mut())
             .map_err(repo_error)
             .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
                 let header = RecordHeader {
@@ -180,7 +180,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     ) -> RepoResult<(RecordHeader, CollectionEntity)> {
         let (record_header, mut entity) = collection::table
             .filter(collection::row_id.eq(RowId::from(id)))
-            .first::<QueryableRecord>(self.as_mut())
+            .get_result::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)
             .and_then(|record| record.try_into().map_err(RepoError::Other))?;
         restore_vfs(self, id, &mut entity.body)?;
@@ -333,7 +333,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let media_source_count = media_source::table
             .select(count_star())
             .filter(media_source::collection_id.eq(RowId::from(id)))
-            .first::<i64>(self.as_mut())
+            .get_result::<i64>(self.as_mut())
             .map_err(repo_error)?;
         debug_assert!(media_source_count >= 0);
         let media_source_summary = MediaSourceSummary {
@@ -343,7 +343,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let track_count = track::table
             .select(count_star())
             .filter(track::media_source_id.eq_any(media_source_id_subselect))
-            .first::<i64>(self.as_mut())
+            .get_result::<i64>(self.as_mut())
             .map_err(repo_error)?;
         debug_assert!(track_count >= 0);
         let track_summary = TrackSummary {
@@ -352,7 +352,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let playlist_count = playlist::table
             .select(count_star())
             .filter(playlist::collection_id.eq(RowId::from(id)))
-            .first::<i64>(self.as_mut())
+            .get_result::<i64>(self.as_mut())
             .map_err(repo_error)?;
         debug_assert!(playlist_count >= 0);
         let playlist_summary = PlaylistSummary {

@@ -41,7 +41,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 playlist::entity_rev,
             ))
             .filter(playlist::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
-            .first::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_mut())
+            .get_result::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_mut())
             .map_err(repo_error)
             .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
                 let header = RecordHeader {
@@ -99,7 +99,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn load_playlist_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, PlaylistEntity)> {
         let record = playlist::table
             .filter(playlist::row_id.eq(RowId::from(id)))
-            .first::<QueryableRecord>(self.as_mut())
+            .get_result::<QueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (record_header, _, entity) = record.into();
         Ok((record_header, entity))
@@ -214,7 +214,7 @@ fn min_playlist_entry_ordering(
     playlist_entry::table
         .select(diesel::dsl::min(playlist_entry::ordering))
         .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-        .first::<Option<i64>>(db.as_mut())
+        .get_result::<Option<i64>>(db.as_mut())
         .map_err(repo_error)
 }
 
@@ -226,7 +226,7 @@ fn max_playlist_entry_ordering(
     playlist_entry::table
         .select(diesel::dsl::max(playlist_entry::ordering))
         .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-        .first::<Option<i64>>(db.as_mut())
+        .get_result::<Option<i64>>(db.as_mut())
         .map_err(repo_error)
 }
 
@@ -335,7 +335,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         playlist_entry::table
             .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
             .select(count_star())
-            .first::<i64>(self.as_mut())
+            .get_result::<i64>(self.as_mut())
             .map(|count| count as usize)
             .map_err(repo_error)
     }
@@ -346,7 +346,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
             .select((count_star(), count_distinct(playlist_entry::track_id)))
             .filter(playlist_entry::track_id.is_not_null())
-            .first::<(i64, i64)>(self.as_mut())
+            .get_result::<(i64, i64)>(self.as_mut())
             .map(|(total_count, distinct_count)| {
                 debug_assert!(total_count >= 0);
                 debug_assert!(distinct_count >= 0);
@@ -369,7 +369,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
             .filter(playlist_entry::track_id.eq(RowId::from(track_id)))
             .select(count_star())
-            .first::<i64>(self.as_mut())
+            .get_result::<i64>(self.as_mut())
             .map(|count| count as usize)
             .map_err(repo_error)
     }
