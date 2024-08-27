@@ -12,7 +12,7 @@ use aoide_core_api::collection::{
     EntityWithSummary, LoadScope, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
 };
 use aoide_repo::collection::*;
-use diesel::dsl::count_star;
+use diesel::{connection::DefaultLoadingMode, dsl::count_star};
 
 use crate::{
     db::{
@@ -31,12 +31,14 @@ fn load_vfs_excluded_content_paths(
     db: &mut Connection<'_>,
     id: RecordId,
 ) -> RepoResult<Vec<ContentPath<'static>>> {
-    collection_vfs::table
+    let query = collection_vfs::table
         .select(collection_vfs::excluded_content_path)
-        .filter(collection_vfs::collection_id.eq(RowId::from(id)))
-        .load::<String>(db.as_mut())
-        .map(|v| v.into_iter().map(Into::into).collect())
-        .map_err(repo_error)
+        .filter(collection_vfs::collection_id.eq(RowId::from(id)));
+    let rows = query
+        .load_iter::<String, DefaultLoadingMode>(db.as_mut())
+        .map_err(repo_error)?;
+    rows.map(|row| row.map_err(repo_error).map(Into::into))
+        .collect::<RepoResult<_>>()
 }
 
 fn purge_vfs_excluded_content_paths<'a>(
@@ -376,11 +378,11 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn load_all_kinds(&mut self) -> RepoResult<Vec<String>> {
         collection::table
-            .select(collection::kind)
+            .select(collection::kind.assume_not_null())
+            .filter(collection::kind.is_not_null())
             .distinct()
-            .load::<Option<String>>(self.as_mut())
+            .load::<String>(self.as_mut())
             .map_err(repo_error)
-            .map(|v| v.into_iter().flatten().collect())
     }
 }
 

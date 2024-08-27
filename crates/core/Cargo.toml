@@ -23,7 +23,7 @@ bitflags = "2.6.0"
 data-encoding = "2.6.0"
 derive_more = { version = "1.0.0", features = ["display", "error"] }
 image = { version = "0.25.2", default-features = false, features = ["png"] }
-jiff = "0.1.8"
+jiff = "0.1.10"
 mime = "0.3.17"
 nonicle = "0.1.1"
 rand = "0.8.5"
@@ -39,7 +39,7 @@ ulid = "1.1.3"
 url = "2.5.2"
 
 # Serialization of selected, primitive types
-serde = { version = "1.0.208", optional = true, features = ["derive"] }
+serde = { version = "1.0.209", optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.21", optional = true, features = ["url"] }

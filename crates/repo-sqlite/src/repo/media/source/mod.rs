@@ -6,6 +6,7 @@ use aoide_core::{
     util::clock::OffsetDateTimeMs,
 };
 use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
+use diesel::connection::DefaultLoadingMode;
 
 use crate::{
     db::{
@@ -77,7 +78,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         collection_id: CollectionId,
         content_path_predicate: StringPredicate<'_>,
     ) -> RepoResult<Vec<RecordId>> {
-        media_source::table
+        let query = media_source::table
             .select(media_source::row_id)
             // Reuse the tested subselect with reliable predicate filtering
             // even if it might be slightly less efficient! The query optimizer
@@ -87,10 +88,12 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
                     collection_id,
                     content_path_predicate,
                 )),
-            )
-            .load::<RowId>(self.as_mut())
-            .map_err(repo_error)
-            .map(|v| v.into_iter().map(RecordId::new).collect())
+            );
+        let rows = query
+            .load_iter::<RowId, DefaultLoadingMode>(self.as_mut())
+            .map_err(repo_error)?;
+        rows.map(|row| row.map_err(repo_error).map(RecordId::new))
+            .collect::<RepoResult<_>>()
     }
 
     fn relocate_media_sources_by_content_path_prefix(

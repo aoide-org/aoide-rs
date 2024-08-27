@@ -18,7 +18,7 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.86"
-serde = { version = "1.0.208", features = ["derive"] }
+serde = { version = "1.0.209", features = ["derive"] }
 url = { version = "2.5.2", features = ["serde"] }
 
 # JSON Schema (optional)

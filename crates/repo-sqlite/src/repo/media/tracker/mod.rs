@@ -9,6 +9,7 @@ use aoide_repo::{
     collection::RecordId as CollectionId,
     media::{source::RecordId as MediaSourceId, tracker::*, DigestBytes},
 };
+use diesel::connection::DefaultLoadingMode;
 
 use crate::{
     db::{
@@ -229,54 +230,46 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
     ) -> RepoResult<DirectoriesStatus> {
-        media_tracker_directory::table
+        let query = media_tracker_directory::table
             .group_by(media_tracker_directory::status)
             .select((media_tracker_directory::status, diesel::dsl::count_star()))
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(sql_column_substr_prefix_eq(
                 "content_path",
                 path_prefix.as_str(),
-            ))
-            .load::<(i16, i64)>(self.as_mut())
-            .map_err(repo_error)
-            .map(|v| {
-                v.into_iter().fold(
-                    DirectoriesStatus::default(),
-                    |mut aggregate_status, (status, count)| {
-                        let status = match decode_dir_tracking_status(status) {
-                            Ok(status) => status,
-                            Err(err) => {
-                                log::error!("{err}");
-                                return aggregate_status;
-                            }
-                        };
-                        let count = (count as u64) as usize;
-                        match status {
-                            DirTrackingStatus::Current => {
-                                debug_assert_eq!(aggregate_status.current, 0);
-                                aggregate_status.current = count;
-                            }
-                            DirTrackingStatus::Outdated => {
-                                debug_assert_eq!(aggregate_status.outdated, 0);
-                                aggregate_status.outdated = count;
-                            }
-                            DirTrackingStatus::Added => {
-                                debug_assert_eq!(aggregate_status.added, 0);
-                                aggregate_status.added = count;
-                            }
-                            DirTrackingStatus::Modified => {
-                                debug_assert_eq!(aggregate_status.modified, 0);
-                                aggregate_status.modified = count;
-                            }
-                            DirTrackingStatus::Orphaned => {
-                                debug_assert_eq!(aggregate_status.orphaned, 0);
-                                aggregate_status.orphaned = count;
-                            }
-                        }
-                        aggregate_status
-                    },
-                )
-            })
+            ));
+        let rows = query
+            .load_iter::<(i16, i64), DefaultLoadingMode>(self.as_mut())
+            .map_err(repo_error)?;
+        let mut aggregate_status = DirectoriesStatus::default();
+        for row in rows {
+            let (status, count) = row.map_err(repo_error)?;
+            debug_assert!(count >= 0);
+            let count = (count as u64) as usize;
+            match decode_dir_tracking_status(status)? {
+                DirTrackingStatus::Current => {
+                    debug_assert_eq!(aggregate_status.current, 0);
+                    aggregate_status.current = count;
+                }
+                DirTrackingStatus::Outdated => {
+                    debug_assert_eq!(aggregate_status.outdated, 0);
+                    aggregate_status.outdated = count;
+                }
+                DirTrackingStatus::Added => {
+                    debug_assert_eq!(aggregate_status.added, 0);
+                    aggregate_status.added = count;
+                }
+                DirTrackingStatus::Modified => {
+                    debug_assert_eq!(aggregate_status.modified, 0);
+                    aggregate_status.modified = count;
+                }
+                DirTrackingStatus::Orphaned => {
+                    debug_assert_eq!(aggregate_status.orphaned, 0);
+                    aggregate_status.orphaned = count;
+                }
+            }
+        }
+        Ok(aggregate_status)
     }
 
     fn media_tracker_count_sources_in_directories(
@@ -341,18 +334,17 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             query = query.offset(offset);
         }
 
-        query
-            .load::<(String, i64)>(self.as_mut())
-            .map_err(repo_error)
-            .map(|v| {
-                v.into_iter()
-                    .map(|(content_path, count)| {
-                        let content_path = content_path.into();
-                        let count = usize::try_from(count).unwrap_or(usize::MAX);
-                        (content_path, count)
-                    })
-                    .collect()
+        let rows = query
+            .load_iter::<(String, i64), DefaultLoadingMode>(self.as_mut())
+            .map_err(repo_error)?;
+        rows.map(|row| {
+            row.map_err(repo_error).map(|(content_path, count)| {
+                let content_path = content_path.into();
+                let count = usize::try_from(count).unwrap_or(usize::MAX);
+                (content_path, count)
             })
+        })
+        .collect::<RepoResult<_>>()
     }
 
     fn media_tracker_load_directories_requiring_confirmation(
@@ -390,18 +382,14 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             query = query.offset(offset);
         }
 
-        let records = query
-            .load::<QueryableRecord>(self.as_mut())
-            .map_err(repo_error)?;
-        let (valid, errors): (Vec<_>, _) = records
-            .into_iter()
-            .map(TryFrom::try_from)
-            .partition(Result::is_ok);
-        if let Some(err) = errors.into_iter().map(Result::unwrap_err).next() {
-            return Err(RepoError::Other(err));
-        }
-        let valid: Vec<_> = valid.into_iter().map(Result::unwrap).collect();
-        Ok(valid)
+        query
+            .load_iter::<QueryableRecord, DefaultLoadingMode>(self.as_mut())
+            .map_err(repo_error)?
+            .map(|row| {
+                row.map_err(repo_error)
+                    .and_then(|ok| ok.try_into().map_err(RepoError::Other))
+            })
+            .collect::<RepoResult<_>>()
     }
 
     fn media_tracker_relink_source(
@@ -444,10 +432,11 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 media_source::row_id
                     .ne_all(media_tracker_source::table.select(media_tracker_source::source_id)),
             );
-        query
-            .load::<RowId>(self.as_mut())
-            .map_err(repo_error)
-            .map(|v| v.into_iter().map(MediaSourceId::new).collect())
+        let rows = query
+            .load_iter::<RowId, DefaultLoadingMode>(self.as_mut())
+            .map_err(repo_error)?;
+        rows.map(|row| row.map_err(repo_error).map(MediaSourceId::new))
+            .collect::<RepoResult<_>>()
     }
 
     fn media_tracker_resolve_source_id_synchronized_at_by_content_path(
