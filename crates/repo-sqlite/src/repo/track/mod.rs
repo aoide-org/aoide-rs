@@ -58,9 +58,7 @@ fn load_track_and_album_titles(
     let query = track_title::table
         .filter(track_title::track_id.eq(RowId::from(id)))
         // Establish canonical ordering on load!
-        .then_order_by(track_title::scope)
-        .then_order_by(track_title::kind)
-        .then_order_by(track_title::name);
+        .order_by((track_title::scope, track_title::kind, track_title::name));
     let rows = query
         .load_iter::<QueryableRecord, DefaultLoadingMode>(db.as_mut())
         .map_err(repo_error)?;
@@ -162,10 +160,12 @@ fn load_track_and_album_actors(
     let query = track_actor::table
         .filter(track_actor::track_id.eq(RowId::from(id)))
         // Establish canonical ordering on load!
-        .then_order_by(track_actor::scope)
-        .then_order_by(track_actor::role)
-        .then_order_by(track_actor::kind)
-        .then_order_by(track_actor::name);
+        .order_by((
+            track_actor::scope,
+            track_actor::role,
+            track_actor::kind,
+            track_actor::name,
+        ));
     let rows = query
         .load_iter::<QueryableRecord, DefaultLoadingMode>(db.as_mut())
         .map_err(repo_error)?;
@@ -258,8 +258,7 @@ fn load_track_cues(
     let cues = track_cue::table
         .filter(track_cue::track_id.eq(RowId::from(track_id)))
         // Establish canonical ordering on load!
-        .then_order_by(track_cue::bank_idx)
-        .then_order_by(track_cue::slot_idx)
+        .order_by((track_cue::bank_idx, track_cue::slot_idx))
         .load_iter::<QueryableRecord, DefaultLoadingMode>(db.as_mut())
         .map_err(repo_error)?
         .map(|row| {
@@ -322,9 +321,7 @@ fn load_track_tags(
     let query = track_tag::table
         .filter(track_tag::track_id.eq(RowId::from(track_id)))
         // Establish canonical ordering on load!
-        .then_order_by(track_tag::facet)
-        .then_order_by(track_tag::label)
-        .then_order_by(track_tag::score.desc());
+        .order_by((track_tag::facet, track_tag::label, track_tag::score.desc()));
     let rows = query
         .load_iter::<QueryableRecord, DefaultLoadingMode>(db.as_mut())
         .map_err(repo_error)?;

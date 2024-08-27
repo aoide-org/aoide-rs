@@ -366,10 +366,11 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                     .or(media_tracker_directory::status
                         .eq(encode_dir_tracking_status(DirTrackingStatus::Modified))),
             )
-            // Oldest first
-            .order_by(media_tracker_directory::row_updated_ms)
-            // then order by URI for disambiguation
-            .then_order_by(media_tracker_directory::content_path)
+            // Oldest first then order by content path for disambiguation
+            .order_by((
+                media_tracker_directory::row_updated_ms,
+                media_tracker_directory::content_path,
+            ))
             .into_boxed();
 
         // Pagination
