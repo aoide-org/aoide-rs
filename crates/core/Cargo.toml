@@ -26,6 +26,7 @@ image = { version = "0.25.2", default-features = false, features = ["png"] }
 jiff = "0.1.10"
 mime = "0.3.17"
 nonicle = "0.1.1"
+num-integer = "0.1.46"
 rand = "0.8.5"
 regex = "1.10.6"
 semval = "0.5.2"

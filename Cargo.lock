@@ -238,6 +238,7 @@ dependencies = [
  "jiff",
  "mime",
  "nonicle",
+ "num-integer",
  "path-slash",
  "rand",
  "regex",

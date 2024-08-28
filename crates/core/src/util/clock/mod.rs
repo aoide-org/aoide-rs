@@ -5,6 +5,7 @@ use std::{fmt, str::FromStr};
 
 use jiff::Zoned;
 use time::{
+    convert::{Millisecond, Nanosecond, Second},
     error::Parse as ParseError,
     format_description::{well_known::Rfc3339, FormatItem},
     Date, Duration, Month, OffsetDateTime, UtcOffset,
@@ -39,8 +40,6 @@ impl<'de> serde::Deserialize<'de> for OffsetDateTimeMs {
     }
 }
 
-const NANOS_PER_MILLISECOND: i128 = 1_000_000;
-
 const YYYY_MM_DD_FORMAT: &[FormatItem<'static>] =
     time::macros::format_description!("[year]-[month]-[day]");
 
@@ -53,11 +52,10 @@ impl OffsetDateTimeMs {
 
     #[must_use]
     pub fn clamp_from(inner: OffsetDateTime) -> Self {
-        let subsec_nanos_since_last_millis_boundary =
-            inner.unix_timestamp_nanos() % NANOS_PER_MILLISECOND;
-        let subsec_duration_since_last_millis_boundary =
-            Duration::nanoseconds(subsec_nanos_since_last_millis_boundary as i64);
-        let truncated = Self::new_unchecked(inner - subsec_duration_since_last_millis_boundary);
+        // Avoid i128 arithmetic operations to maximize performance.
+        let subsec_nanos_mod = inner.nanosecond() % Nanosecond::per(Millisecond);
+        let subsec_duration_mod = Duration::nanoseconds(subsec_nanos_mod.into());
+        let truncated = Self::new_unchecked(inner - subsec_duration_mod);
         debug_assert!(truncated.is_valid());
         truncated
     }
@@ -65,11 +63,19 @@ impl OffsetDateTimeMs {
     #[must_use]
     #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn from_timestamp_millis(timestamp_millis: TimestampMillis) -> Self {
-        let truncated = OffsetDateTime::from_unix_timestamp_nanos(
-            i128::from(timestamp_millis) * NANOS_PER_MILLISECOND,
-        )
-        .map(Self::clamp_from)
-        .expect("valid timestamp");
+        // Avoid i128 arithmetic operations to maximize performance.
+        // TODO: Use https://doc.rust-lang.org/std/primitive.i64.html#method.div_floor when available.
+        let seconds: i64 =
+            num_integer::div_floor(timestamp_millis, i64::from(Millisecond::per(Second)));
+        let milliseconds_floor = seconds * i64::from(Millisecond::per(Second));
+        debug_assert!(milliseconds_floor <= timestamp_millis);
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let subsec_nanos =
+            (timestamp_millis - milliseconds_floor) as u32 * Nanosecond::per(Millisecond);
+        let truncated = Self::clamp_from(
+            OffsetDateTime::from_unix_timestamp(seconds).expect("valid timestamp")
+                + Duration::nanoseconds(subsec_nanos.into()),
+        );
         debug_assert!(truncated.is_valid());
         truncated
     }
@@ -92,8 +98,12 @@ impl OffsetDateTimeMs {
     }
 
     #[must_use]
-    pub const fn timestamp_millis(&self) -> TimestampMillis {
-        (self.0.unix_timestamp_nanos() / NANOS_PER_MILLISECOND) as TimestampMillis
+    pub fn timestamp_millis(&self) -> TimestampMillis {
+        // Avoid i128 arithmetic operations to maximize performance.
+        let seconds = self.0.unix_timestamp();
+        let subsec_millis = self.0.nanosecond() / Nanosecond::per(Millisecond);
+        seconds * TimestampMillis::from(Millisecond::per(Second))
+            + TimestampMillis::from(subsec_millis)
     }
 
     #[must_use]
@@ -145,7 +155,7 @@ impl Validate for OffsetDateTimeMs {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                self.0.unix_timestamp_nanos() % NANOS_PER_MILLISECOND != 0,
+                self.0.nanosecond() % Nanosecond::per(Millisecond) != 0,
                 Self::Invalidity::Unclamped,
             )
             .into()
