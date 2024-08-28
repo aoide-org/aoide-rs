@@ -43,3 +43,14 @@ features = ["default_fonts", "glow"]
 [dependencies.egui]
 version = "0.28.1"
 default-features = false
+
+# mimalloc
+[dependencies.mimalloc]
+version = "0.1.43"
+optional = true
+# No default features, i.e. all features are optional.
+
+[features]
+default = ["mimalloc"]
+# Use mimalloc instead of the default allocator.
+mimalloc = ["dep:mimalloc"]

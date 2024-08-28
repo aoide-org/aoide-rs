@@ -53,9 +53,7 @@ aoide-websrv-warp-sqlite.workspace = true
 [dependencies.mimalloc]
 version = "0.1.43"
 optional = true
-# Disable secure mode which is enabled by default and that would
-# otherwise cause a performance penalty of up to 10%.
-default-features = false
+# No default features, i.e. all features are optional.
 
 # schemars
 [dependencies.schemars]
@@ -90,7 +88,7 @@ json-schema = [
     "aoide-backend-webapi-json/json-schema",
 ]
 
-# Use Microsoft's `mimalloc` as the global allocator.
+# Use mimalloc instead of the default allocator.
 mimalloc = ["dep:mimalloc"]
 
 # Enable the launcher UI.

@@ -26,7 +26,7 @@ mod runtime;
 
 #[cfg(feature = "mimalloc")]
 #[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+static MIMALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[must_use]
 pub const fn app_name() -> &'static str {

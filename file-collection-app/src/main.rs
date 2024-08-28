@@ -19,6 +19,10 @@ pub mod fs;
 pub mod library;
 use self::library::Library;
 
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static MIMALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Debug)]
 pub struct NoReceiverForEvent;
 
