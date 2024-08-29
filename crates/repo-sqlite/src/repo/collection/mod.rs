@@ -12,7 +12,6 @@ use aoide_core_api::collection::{
     EntityWithSummary, LoadScope, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
 };
 use aoide_repo::collection::*;
-use diesel::dsl::count_star;
 
 use crate::{
     db::{
@@ -331,8 +330,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn load_collection_summary(&mut self, id: RecordId) -> RepoResult<Summary> {
         let media_source_count = media_source::table
-            .select(count_star())
             .filter(media_source::collection_id.eq(RowId::from(id)))
+            .count()
             .get_result::<i64>(self.as_mut())
             .map_err(repo_error)?;
         debug_assert!(media_source_count >= 0);
@@ -341,8 +340,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         };
         let media_source_id_subselect = select_media_source_id_filtered_by_collection_id(id);
         let track_count = track::table
-            .select(count_star())
             .filter(track::media_source_id.eq_any(media_source_id_subselect))
+            .count()
             .get_result::<i64>(self.as_mut())
             .map_err(repo_error)?;
         debug_assert!(track_count >= 0);
@@ -350,8 +349,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             total_count: track_count as u64,
         };
         let playlist_count = playlist::table
-            .select(count_star())
             .filter(playlist::collection_id.eq(RowId::from(id)))
+            .count()
             .get_result::<i64>(self.as_mut())
             .map_err(repo_error)?;
         debug_assert!(playlist_count >= 0);

@@ -334,7 +334,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         use playlist_entry_db::schema::*;
         playlist_entry::table
             .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-            .select(count_star())
+            .count()
             .get_result::<i64>(self.as_mut())
             .map(|count| count as usize)
             .map_err(repo_error)
@@ -368,7 +368,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         playlist_entry::table
             .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
             .filter(playlist_entry::track_id.eq(RowId::from(track_id)))
-            .select(count_star())
+            .count()
             .get_result::<i64>(self.as_mut())
             .map(|count| count as usize)
             .map_err(repo_error)

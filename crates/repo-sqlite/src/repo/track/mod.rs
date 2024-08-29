@@ -25,7 +25,6 @@ use aoide_repo::{
     media::source::{CollectionRepo as _, RecordId as MediaSourceId, Repo as _},
     track::*,
 };
-use diesel::dsl::count_star;
 
 use crate::{
     db::{
@@ -758,10 +757,10 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
 
     fn count_tracks(&mut self, collection_id: CollectionId) -> RepoResult<u64> {
         track::table
-            .select(count_star())
             .filter(track::media_source_id.eq_any(
                 select_media_source_id_filtered_by_collection_id(collection_id),
             ))
+            .count()
             .get_result::<i64>(self.as_mut())
             .map_err(repo_error)
             .map(|count| {
