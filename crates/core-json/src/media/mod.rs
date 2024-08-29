@@ -155,7 +155,7 @@ impl TryFrom<Content> for _core::Content {
             metadata_flags,
         } = from;
         let r#type = r#type.parse()?;
-        let digest = digest.as_ref().map(TryFrom::try_from).transpose()?;
+        let digest = digest.as_ref().map(TryInto::try_into).transpose()?;
         let into = Self {
             link: link.into(),
             r#type,
@@ -205,7 +205,7 @@ impl TryFrom<Source> for _core::Source {
             artwork,
         } = from;
         let content = content.try_into()?;
-        let artwork = artwork.map(TryFrom::try_from).transpose()?;
+        let artwork = artwork.map(TryInto::try_into).transpose()?;
         let into = Self {
             collected_at: collected_at.into(),
             content,

@@ -87,7 +87,7 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
         let media_type = media_type.parse()?;
         let digest_data = digest.as_ref().map(Vec::try_from).transpose()?;
         let digest = digest_data
-            .map(TryFrom::try_from)
+            .map(TryInto::try_into)
             .transpose()
             .map_err(|_| anyhow::anyhow!("failed to deserialize artwork digest"))?;
         let image_size = image_size.map(|size| {
@@ -97,7 +97,7 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
         let color = color.map(Into::into);
         let thumbnail_data = thumbnail.as_ref().map(Vec::try_from).transpose()?;
         let thumbnail = thumbnail_data
-            .map(TryFrom::try_from)
+            .map(TryInto::try_into)
             .transpose()
             .map_err(|_| anyhow::anyhow!("failed to deserialize artwork thumbnail"))?;
         let into = Self {

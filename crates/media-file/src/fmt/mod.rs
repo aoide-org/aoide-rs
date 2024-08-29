@@ -755,13 +755,13 @@ pub(crate) fn import_file_tag_into_track(
     let old_track_index = &mut track.indexes.track;
     let track_number = tag
         .track()
-        .map(TryFrom::try_from)
+        .map(TryInto::try_into)
         .transpose()
         .ok()
         .flatten();
     let track_total = tag
         .track_total()
-        .map(TryFrom::try_from)
+        .map(TryInto::try_into)
         .transpose()
         .ok()
         .flatten();
@@ -781,10 +781,10 @@ pub(crate) fn import_file_tag_into_track(
         *old_track_index = Default::default();
     }
     let old_disc_index = &mut track.indexes.disc;
-    let disc_number = tag.disk().map(TryFrom::try_from).transpose().ok().flatten();
+    let disc_number = tag.disk().map(TryInto::try_into).transpose().ok().flatten();
     let disc_total = tag
         .disk_total()
-        .map(TryFrom::try_from)
+        .map(TryInto::try_into)
         .transpose()
         .ok()
         .flatten();
