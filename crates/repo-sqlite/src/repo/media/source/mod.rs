@@ -6,7 +6,6 @@ use aoide_core::{
     util::clock::OffsetDateTimeMs,
 };
 use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
-use diesel::connection::DefaultLoadingMode;
 
 use crate::{
     db::{
@@ -90,7 +89,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
                 )),
             );
         let rows = query
-            .load_iter::<RowId, DefaultLoadingMode>(self.as_mut())
+            .load_iter::<RowId, _>(self.as_mut())
             .map_err(repo_error)?;
         rows.map(|row| row.map_err(repo_error).map(RecordId::new))
             .collect::<RepoResult<_>>()

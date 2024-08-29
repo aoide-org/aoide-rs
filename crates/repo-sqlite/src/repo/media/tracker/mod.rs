@@ -9,7 +9,6 @@ use aoide_repo::{
     collection::RecordId as CollectionId,
     media::{source::RecordId as MediaSourceId, tracker::*, DigestBytes},
 };
-use diesel::connection::DefaultLoadingMode;
 
 use crate::{
     db::{
@@ -239,7 +238,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 path_prefix.as_str(),
             ));
         let rows = query
-            .load_iter::<(i16, i64), DefaultLoadingMode>(self.as_mut())
+            .load_iter::<(i16, i64), _>(self.as_mut())
             .map_err(repo_error)?;
         let mut aggregate_status = DirectoriesStatus::default();
         for row in rows {
@@ -335,7 +334,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         }
 
         let rows = query
-            .load_iter::<(String, i64), DefaultLoadingMode>(self.as_mut())
+            .load_iter::<(String, i64), _>(self.as_mut())
             .map_err(repo_error)?;
         rows.map(|row| {
             row.map_err(repo_error).map(|(content_path, count)| {
@@ -384,7 +383,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         }
 
         query
-            .load_iter::<QueryableRecord, DefaultLoadingMode>(self.as_mut())
+            .load_iter::<QueryableRecord, _>(self.as_mut())
             .map_err(repo_error)?
             .map(|row| {
                 row.map_err(repo_error)
@@ -434,7 +433,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                     .ne_all(media_tracker_source::table.select(media_tracker_source::source_id)),
             );
         let rows = query
-            .load_iter::<RowId, DefaultLoadingMode>(self.as_mut())
+            .load_iter::<RowId, _>(self.as_mut())
             .map_err(repo_error)?;
         rows.map(|row| row.map_err(repo_error).map(MediaSourceId::new))
             .collect::<RepoResult<_>>()

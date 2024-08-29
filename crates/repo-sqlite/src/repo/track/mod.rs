@@ -25,7 +25,7 @@ use aoide_repo::{
     media::source::{CollectionRepo as _, RecordId as MediaSourceId, Repo as _},
     track::*,
 };
-use diesel::{connection::DefaultLoadingMode, dsl::count_star};
+use diesel::dsl::count_star;
 
 use crate::{
     db::{
@@ -60,7 +60,7 @@ fn load_track_and_album_titles(
         // Establish canonical ordering on load!
         .order_by((track_title::scope, track_title::kind, track_title::name));
     let rows = query
-        .load_iter::<QueryableRecord, DefaultLoadingMode>(db.as_mut())
+        .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
 
     let mut track_titles = vec![];
@@ -167,7 +167,7 @@ fn load_track_and_album_actors(
             track_actor::name,
         ));
     let rows = query
-        .load_iter::<QueryableRecord, DefaultLoadingMode>(db.as_mut())
+        .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
     for row in rows {
         let (_, record) = row
@@ -259,7 +259,7 @@ fn load_track_cues(
         .filter(track_cue::track_id.eq(RowId::from(track_id)))
         // Establish canonical ordering on load!
         .order_by((track_cue::bank_idx, track_cue::slot_idx))
-        .load_iter::<QueryableRecord, DefaultLoadingMode>(db.as_mut())
+        .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?
         .map(|row| {
             row.map_err(repo_error).map(|queryable| {
@@ -323,7 +323,7 @@ fn load_track_tags(
         // Establish canonical ordering on load!
         .order_by((track_tag::facet, track_tag::label, track_tag::score.desc()));
     let rows = query
-        .load_iter::<QueryableRecord, DefaultLoadingMode>(db.as_mut())
+        .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
     for row in rows {
         let (_, record) = row.map_err(repo_error)?.into();
@@ -842,7 +842,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
                 String,
                 i64,
                 Option<i64>,
-            ), DefaultLoadingMode>(self.as_mut())
+            ), _>(self.as_mut())
             .map_err(repo_error)?;
 
         rows.map(|row| {
@@ -916,7 +916,7 @@ impl<'db> ActorRepo for crate::Connection<'db> {
         }
 
         let rows = query
-            .load_iter::<(String, i16), DefaultLoadingMode>(self.as_mut())
+            .load_iter::<(String, i16), _>(self.as_mut())
             .map_err(repo_error)?;
 
         let mut actor_names = HashSet::new();

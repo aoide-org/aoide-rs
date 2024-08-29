@@ -12,7 +12,7 @@ use aoide_core_api::collection::{
     EntityWithSummary, LoadScope, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
 };
 use aoide_repo::collection::*;
-use diesel::{connection::DefaultLoadingMode, dsl::count_star};
+use diesel::dsl::count_star;
 
 use crate::{
     db::{
@@ -35,7 +35,7 @@ fn load_vfs_excluded_content_paths(
         .select(collection_vfs::excluded_content_path)
         .filter(collection_vfs::collection_id.eq(RowId::from(id)));
     let rows = query
-        .load_iter::<String, DefaultLoadingMode>(db.as_mut())
+        .load_iter::<String, _>(db.as_mut())
         .map_err(repo_error)?;
     rows.map(|row| row.map_err(repo_error).map(Into::into))
         .collect::<RepoResult<_>>()
