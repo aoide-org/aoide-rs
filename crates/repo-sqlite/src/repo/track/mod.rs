@@ -63,8 +63,8 @@ fn load_track_and_album_titles(
         .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
 
-    let mut track_titles = vec![];
-    let mut album_titles = vec![];
+    let mut track_titles = Vec::with_capacity(rows.size_hint().0);
+    let mut album_titles = Vec::with_capacity(rows.size_hint().0);
     for row in rows {
         let (_, record) = row
             .map_err(repo_error)?
@@ -154,9 +154,6 @@ fn load_track_and_album_actors(
 ) -> RepoResult<(Canonical<Vec<Actor>>, Canonical<Vec<Actor>>)> {
     use crate::db::track_actor::{models::*, schema::*, *};
 
-    let mut track_actors = vec![];
-    let mut album_actors = vec![];
-
     let query = track_actor::table
         .filter(track_actor::track_id.eq(RowId::from(id)))
         // Establish canonical ordering on load!
@@ -166,9 +163,13 @@ fn load_track_and_album_actors(
             track_actor::kind,
             track_actor::name,
         ));
+
     let rows = query
         .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
+
+    let mut track_actors = Vec::with_capacity(rows.size_hint().0);
+    let mut album_actors = Vec::with_capacity(rows.size_hint().0);
     for row in rows {
         let (_, record) = row
             .map_err(repo_error)?
@@ -255,12 +256,14 @@ fn load_track_cues(
     track_id: RecordId,
 ) -> RepoResult<Canonical<Vec<Cue>>> {
     use crate::db::track_cue::{models::*, schema::*, *};
-    let cues = track_cue::table
+    let query = track_cue::table
         .filter(track_cue::track_id.eq(RowId::from(track_id)))
         // Establish canonical ordering on load!
-        .order_by((track_cue::bank_idx, track_cue::slot_idx))
+        .order_by((track_cue::bank_idx, track_cue::slot_idx));
+    let rows = query
         .load_iter::<QueryableRecord, _>(db.as_mut())
-        .map_err(repo_error)?
+        .map_err(repo_error)?;
+    let cues = rows
         .map(|row| {
             row.map_err(repo_error).map(|queryable| {
                 let (_, Record { track_id: _, cue }) = queryable.into();
@@ -315,9 +318,6 @@ fn load_track_tags(
 ) -> RepoResult<Canonical<Tags<'static>>> {
     use crate::db::track_tag::{models::*, schema::*};
 
-    let mut plain_tags = vec![];
-    let mut facets: Vec<FacetedTags<'_>> = vec![];
-
     let query = track_tag::table
         .filter(track_tag::track_id.eq(RowId::from(track_id)))
         // Establish canonical ordering on load!
@@ -325,6 +325,9 @@ fn load_track_tags(
     let rows = query
         .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
+
+    let mut plain_tags = vec![];
+    let mut facets: Vec<FacetedTags<'_>> = vec![];
     for row in rows {
         let (_, record) = row.map_err(repo_error)?.into();
         let (facet_id, tag) = record.into();

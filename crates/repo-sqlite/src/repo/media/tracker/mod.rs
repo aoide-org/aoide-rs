@@ -382,14 +382,14 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             query = query.offset(offset);
         }
 
-        query
+        let rows = query
             .load_iter::<QueryableRecord, _>(self.as_mut())
-            .map_err(repo_error)?
-            .map(|row| {
-                row.map_err(repo_error)
-                    .and_then(|ok| ok.try_into().map_err(RepoError::Other))
-            })
-            .collect::<RepoResult<_>>()
+            .map_err(repo_error)?;
+        rows.map(|row| {
+            row.map_err(repo_error)
+                .and_then(|ok| ok.try_into().map_err(RepoError::Other))
+        })
+        .collect::<RepoResult<_>>()
     }
 
     fn media_tracker_relink_source(
