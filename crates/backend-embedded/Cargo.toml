@@ -18,7 +18,7 @@ workspace = true
 
 [dependencies]
 anyhow = "1.0.86"
-diesel = { version = "2.2.3", default-features = false, features = ["sqlite"] }
+diesel = { version = "2.2.4", default-features = false, features = ["sqlite"] }
 log = "0.4.22"
 thiserror = "1.0.63"
 url = "2.5.2"
@@ -37,7 +37,7 @@ aoide-usecases-sqlite.workspace = true
 serde = { version = "1.0.209", features = ["derive"], optional = true }
 
 # Optional: Tokio runtime to abort long-running, asynchronous tasks
-tokio = { version = "1.39.3", optional = true }
+tokio = { version = "1.40.0", optional = true }
 
 # Optional: Tantivy search index
 aoide-search-index-tantivy = { workspace = true, optional = true }

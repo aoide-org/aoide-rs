@@ -23,7 +23,7 @@ bitflags = "2.6.0"
 data-encoding = "2.6.0"
 derive_more = { version = "1.0.0", features = ["display", "error"] }
 image = { version = "0.25.2", default-features = false, features = ["png"] }
-jiff = "0.1.11"
+jiff = "0.1.12"
 mime = "0.3.17"
 nonicle = "0.1.1"
 num-integer = "0.1.46"
