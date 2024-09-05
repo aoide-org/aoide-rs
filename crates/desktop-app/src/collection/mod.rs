@@ -105,13 +105,12 @@ async fn refresh_entity_from_db(
         ENTITY_LOAD_SCOPE,
     )
     .await
-    .map(|entity_with_summary| {
+    .inspect(|entity_with_summary| {
         if entity_with_summary.is_some() {
             log::info!("Reloaded collection {entity_uid}");
         } else {
             log::warn!("Collection {entity_uid} not found");
         }
-        entity_with_summary
     })
     .map_err(Into::into)
 }
