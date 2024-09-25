@@ -17,7 +17,7 @@ keywords.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.89"
 diesel = { version = "2.2.4", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
 diesel_migrations =  { version = "2.2.0", default-features = false, features = ["sqlite"] }
 log = "0.4.22"

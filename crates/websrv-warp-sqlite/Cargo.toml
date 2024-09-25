@@ -17,10 +17,10 @@ keywords.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.89"
 log = "0.4.22"
-serde = "1.0.209"
-thiserror = "1.0.63"
+serde = "1.0.210"
+thiserror = "1.0.64"
 warp = { version = "0.3.7", default-features = false }
 
 # Workspace dependencies

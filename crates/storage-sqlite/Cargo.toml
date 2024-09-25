@@ -17,17 +17,17 @@ keywords.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.89"
 diesel = { version = "2.2.4", default-features = false, features = [
     "r2d2",
     "sqlite",
 ] }
 log = "0.4.22"
 r2d2 = "0.8.10"
-thiserror = "1.0.63"
+thiserror = "1.0.64"
 
 # Optional: Serde for serialization of config files.
-serde = { version = "1.0.209", optional = true, features = ["derive"] }
+serde = { version = "1.0.210", optional = true, features = ["derive"] }
 
 # Feature "sqlite-bundled"
 # Bundle SQLite code to prevent dynamic linking.
