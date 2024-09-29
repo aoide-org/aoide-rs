@@ -17,8 +17,8 @@ keywords.workspace = true
 workspace = true
 
 [dependencies]
-strum = { version = "0.26.3", features = ["derive"] }
-url = "2.5.2"
+strum = { workspace = true, features = ["derive"] }
+url.workspace = true
 
 # Workspace dependencies
 aoide-core.workspace = true

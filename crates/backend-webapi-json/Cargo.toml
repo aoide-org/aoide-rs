@@ -16,13 +16,13 @@ keywords.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0.89"
-diesel = { version = "2.2.4", default-features = false, features = ["sqlite"] }
-log = "0.4.22"
+anyhow.workspace = true
+diesel.workspace = true
+log.workspace = true
 nonicle = "0.1.1"
-serde = { version = "1.0.210" }
-thiserror = "1.0.64"
-url = "2.5.2"
+serde.workspace = true
+thiserror.workspace = true
+url.workspace = true
 
 # tracing
 tracing = { version = "0.1.40", features = ["log"] }

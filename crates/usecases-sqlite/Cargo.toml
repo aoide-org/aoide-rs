@@ -17,11 +17,11 @@ keywords.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0.89"
-diesel = { version = "2.2.4", default-features = false, features = ["sqlite"] }
-log = "0.4.22"
-thiserror = "1.0.64"
-url = "2.5.2"
+anyhow.workspace = true
+diesel.workspace = true
+log.workspace = true
+thiserror.workspace = true
+url.workspace = true
 
 # Workspace dependencies
 aoide-core.workspace = true

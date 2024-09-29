@@ -17,10 +17,10 @@ keywords.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0.89"
+anyhow.workspace = true
 paste = "1.0.15"
 rand = "0.8.5"
-thiserror = "1.0.64"
+thiserror.workspace = true
 
 # Workspace dependencies
 aoide-core.workspace = true

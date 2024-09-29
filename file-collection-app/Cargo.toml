@@ -15,24 +15,23 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0.89"
+anyhow.workspace = true
 directories = "5.0.1"
 discro = "0.29.3"
 itertools = "0.13.0"
 env_logger = "0.11.5"
-url = "2.5.2"
+url.workspace = true
 
 [dependencies.aoide]
 path = ".."
 features = ["desktop-app", "async-file-dialog", "sqlite-bundled"]
 
 [dependencies.log]
-version = "0.4.22"
+workspace = true
 features = ["release_max_level_debug"]
 
 [dependencies.tokio]
-version = "1.40.0"
-default-features = false
+workspace = true
 features = ["macros", "rt-multi-thread"]
 
 [dependencies.eframe]

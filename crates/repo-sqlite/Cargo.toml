@@ -17,14 +17,16 @@ keywords.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0.89"
-diesel = { version = "2.2.4", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
-diesel_migrations =  { version = "2.2.0", default-features = false, features = ["sqlite"] }
-log = "0.4.22"
-mime = "0.3.17"
-strum = { version = "0.26.3", features = ["derive"] }
+anyhow.workspace = true
+diesel = { workspace = true, features = ["64-column-tables", "numeric"] }
+diesel_migrations = { version = "2.2.0", default-features = false, features = [
+    "sqlite",
+] }
+log.workspace = true
+mime.workspace = true
+strum = { workspace = true, features = ["derive"] }
 unicase = "2.7.0"
-url = "2.5.2"
+url.workspace = true
 
 # Workspace dependencies
 aoide-core.workspace = true
