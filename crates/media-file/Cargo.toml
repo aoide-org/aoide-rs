@@ -24,9 +24,9 @@ data-encoding.workspace = true
 digest.workspace = true
 image.workspace = true
 kmeans_colors = { version = "0.6.0", default-features = false, features = ["palette_color"] }
-lofty = "0.21.1"
+#lofty = "0.22.0"
 # Use main branch of lofty-rs for testing unreleased features.
-#lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
+lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
 log.workspace = true
 mime.workspace = true
 mime_guess = "2.0.5"
