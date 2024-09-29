@@ -109,6 +109,8 @@ jobs:
           --manifest-path crates/core-api-json/Cargo.toml
 
       - name: Check aoide-desktop-app
+        # TODO: Re-enable after cross-compilation issues for wayland-sys have been fixed.
+        if: false
         run: >-
           cargo check --locked --target  ${{ matrix.target }} --all-targets --all-features
           --manifest-path crates/desktop-app/Cargo.toml
