@@ -22,6 +22,7 @@ allow = [
     "Unicode-DFS-2016",
     "Unlicense",
     "zlib-acknowledgement",
+    "Zlib",
 ]
 
 [bans]
