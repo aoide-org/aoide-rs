@@ -70,6 +70,22 @@ separated by semicolons as a single field:
 
 No multi-valued file tags needed for this purpose.
 
+## Integrations
+
+- [Mixxx (Djing)](https://github.com/uklotzde/mixxx/tree/aoide)
+  - State: Proof of concept
+  - Backend: Standalone server executable (`aoide-websrv`)
+  - Frontend: Read-only Qt web client (REST/JSON)
+- [samba (Ballroom Dancing)](https://gitlab.com/ballroom-dancing/samba)
+  - State: It works
+  - Backend: Embedded in web server (Axum), using Tantivy as search engine
+  - Frontend: Web app (Leptos, WASM)
+- [Moiré (Djing)](https://codeberg.org/moire/moire)
+  - State: Proof of concept, currently unmaintained
+  - Backend/Frontend: Native integration (Rust)
+- [Museeks (Music Player)](https://github.com/uklotzde/museeks/tree/aoide)
+  - State: Early proof of concept, branch currently unmaintained
+
 ## Features
 
 - Designed for large _collections_ of _tracks_ and _playlists_
