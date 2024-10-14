@@ -76,6 +76,7 @@ No multi-valued file tags needed for this purpose.
   - State: Proof of concept
   - Backend: Standalone server executable (`aoide-websrv`)
   - Frontend: Read-only Qt web client (REST/JSON)
+  - Standalone library management UI (`aoide-file-collection-app`)
 - [samba (Ballroom Dancing)](https://gitlab.com/ballroom-dancing/samba)
   - State: It works
   - Backend: Embedded in web server (Axum), using Tantivy as search engine
