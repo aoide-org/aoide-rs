@@ -10,7 +10,7 @@ members = [".", "crates/*", "file-collection-app/", "websrv/"]
 [workspace.package]
 version = "0.8.0"
 edition = "2021"
-rust-version = "1.78"
+rust-version = "1.82"
 repository = "https://gitlab.com/uklotzde/aoide-rs"
 license = "AGPL-3.0-or-later"
 categories = ["multimedia::audio"]

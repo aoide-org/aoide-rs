@@ -16,7 +16,7 @@ use std::{
 
 use nonicle::{Canonical, CanonicalOrd, Canonicalize, CanonicalizeInto, IsCanonical};
 
-use crate::{compat::is_sorted_by, prelude::*};
+use crate::prelude::*;
 
 pub mod facet;
 pub use facet::{FacetId, FacetIdInvalidity, Faceted};
@@ -309,9 +309,7 @@ pub enum TagsInvalidity {
 fn check_for_duplicates_in_sorted_plain_tags_slice(
     plain_tags: &[PlainTag<'_>],
 ) -> Option<TagsInvalidity> {
-    debug_assert!(is_sorted_by(plain_tags, |lhs, rhs| lhs
-        .label
-        .cmp(&rhs.label)));
+    debug_assert!(plain_tags.is_sorted_by(|lhs, rhs| lhs.label.cmp(&rhs.label).is_le()));
     let mut iter = plain_tags.iter();
     if let Some(mut prev) = iter.next() {
         for next in iter {
@@ -327,9 +325,7 @@ fn check_for_duplicates_in_sorted_plain_tags_slice(
 fn check_for_duplicates_in_sorted_faceted_tags_slice(
     faceted_tags: &[FacetedTags<'_>],
 ) -> Option<TagsInvalidity> {
-    debug_assert!(is_sorted_by(faceted_tags, |lhs, rhs| lhs
-        .facet_id
-        .cmp(&rhs.facet_id)));
+    debug_assert!(faceted_tags.is_sorted_by(|lhs, rhs| lhs.facet_id.cmp(&rhs.facet_id).is_le()));
     let mut iter = faceted_tags.iter();
     if let Some(mut prev) = iter.next() {
         let duplicate_labels = check_for_duplicates_in_sorted_plain_tags_slice(&prev.tags);
