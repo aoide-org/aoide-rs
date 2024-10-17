@@ -110,8 +110,8 @@ pub fn import_track_from_file_path(
         SyncModeParams::Modified {
             content_rev: old_content_rev,
             is_synchronized,
-        } => match (old_content_rev, new_content_rev) {
-            (old_content_rev, Some(new_content_rev)) => {
+        } => {
+            if let (old_content_rev, Some(new_content_rev)) = (old_content_rev, new_content_rev) {
                 if let Some(old_content_rev) = old_content_rev {
                     if new_content_rev <= *old_content_rev {
                         log::debug!(
@@ -140,8 +140,7 @@ pub fn import_track_from_file_path(
                         path = canonical_path.display()
                     );
                 }
-            }
-            (_, None) => {
+            } else {
                 log::debug!(
                     "Skipping reimport of file {path} for which no content revision could be \
                      determined",
@@ -149,7 +148,7 @@ pub fn import_track_from_file_path(
                 );
                 return Ok(ImportTrackFromFileOutcome::SkippedSynchronized { content_rev: None });
             }
-        },
+        }
         SyncModeParams::Always => {
             // Continue regardless of last_modified_at and synchronized revision
         }

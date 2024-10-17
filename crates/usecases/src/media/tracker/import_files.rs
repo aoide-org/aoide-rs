@@ -208,6 +208,7 @@ where
     Ok(outcome)
 }
 
+#[allow(clippy::large_enum_variant)]
 enum ImportPendingDirectoryOutcome {
     Untracked(usize),
     Finished {
