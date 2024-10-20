@@ -30,9 +30,13 @@ pub struct NoReceiverForEvent;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[must_use]
 pub enum ActionResponse {
-    /// Rejected (and unchanged), i.e. no effect.
+    /// Rejected without any effect.
+    ///
+    /// State is unchanged without any side-effects.
     Rejected,
-    /// Rejected but maybe changed.
+    /// Rejected (but maybe already changed).
+    ///
+    /// Might have caused a state change or side-effects.
     RejectedMaybeChanged,
     /// Accepted (and maybe changed).
     Accepted,

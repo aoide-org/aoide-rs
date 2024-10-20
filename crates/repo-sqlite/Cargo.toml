@@ -25,7 +25,7 @@ diesel_migrations = { version = "2.2.0", default-features = false, features = [
 log.workspace = true
 mime.workspace = true
 strum = { workspace = true, features = ["derive"] }
-unicase = "2.7.0"
+unicase = "2.8.0"
 url.workspace = true
 
 # Workspace dependencies

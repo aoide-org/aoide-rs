@@ -49,6 +49,7 @@ struct CleanseDatabaseQueryParams {
 
 #[allow(clippy::too_many_lines)] // TODO
 pub(crate) fn create_filters(
+    rt: &tokio::runtime::Handle,
     shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
     abort_flag: Arc<AtomicBool>,
 ) -> BoxedFilter<(impl Reply,)> {
@@ -331,61 +332,65 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and(media_tracker_progress.clone())
         .and(abort_flag.clone())
-        .and_then(
+        .and_then({
+            let rt = rt.clone();
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
                   media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
-                  abort_flag: Arc<AtomicBool>| async move {
-                let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
-                let watcher = tokio::spawn(async move {
-                    *media_tracker_progress.lock().await =
-                        MediaTrackerProgress::Scanning(Default::default());
-                    log::debug!("Watching media tracker scanning");
-                    while progress_event_rx.changed().await.is_ok() {
-                        let progress = progress_event_rx
-                            .borrow()
-                            .as_ref()
-                            .map(|event: &ScanProgressEvent| event.progress.clone());
-                        // Borrow has already been released at this point
-                        if let Some(progress) = progress {
-                            *media_tracker_progress.lock().await =
-                                MediaTrackerProgress::Scanning(progress);
+                  abort_flag: Arc<AtomicBool>| {
+                let rt = rt.clone();
+                async move {
+                    let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
+                    let watcher = rt.spawn(async move {
+                        *media_tracker_progress.lock().await =
+                            MediaTrackerProgress::Scanning(Default::default());
+                        log::debug!("Watching media tracker scanning");
+                        while progress_event_rx.changed().await.is_ok() {
+                            let progress = progress_event_rx
+                                .borrow()
+                                .as_ref()
+                                .map(|event: &ScanProgressEvent| event.progress.clone());
+                            // Borrow has already been released at this point
+                            if let Some(progress) = progress {
+                                *media_tracker_progress.lock().await =
+                                    MediaTrackerProgress::Scanning(progress);
+                            }
                         }
-                    }
-                    log::debug!("Unwatching media tracker scanning");
-                    *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
-                });
-                let response = websrv::spawn_blocking_write_task(
-                    &shared_connection_gatekeeper,
-                    move |mut pooled_connection| {
-                        abort_flag.store(false, Ordering::Relaxed);
-                        api::media::tracker::scan_directories::handle_request(
-                            &mut pooled_connection,
-                            &uid,
-                            request_body,
-                            &mut |progress_event: ScanProgressEvent| {
-                                if let Err(err) = progress_event_tx.send(Some(progress_event)) {
-                                    log::error!(
+                        log::debug!("Unwatching media tracker scanning");
+                        *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
+                    });
+                    let response = websrv::spawn_blocking_write_task(
+                        &shared_connection_gatekeeper,
+                        move |mut pooled_connection| {
+                            abort_flag.store(false, Ordering::Relaxed);
+                            api::media::tracker::scan_directories::handle_request(
+                                &mut pooled_connection,
+                                &uid,
+                                request_body,
+                                &mut |progress_event: ScanProgressEvent| {
+                                    if let Err(err) = progress_event_tx.send(Some(progress_event)) {
+                                        log::error!(
                                         "Failed to send media tracker scanning progress event: \
                                          {:?}",
                                         err.0
                                     );
-                                }
-                            },
-                            &abort_flag,
-                        )
-                    },
-                )
-                .await;
-                if let Err(err) = watcher.await {
-                    log::error!(
-                        "Failed to terminate media tracker scanning progress watcher: {err}"
-                    );
+                                    }
+                                },
+                                &abort_flag,
+                            )
+                        },
+                    )
+                    .await;
+                    if let Err(err) = watcher.await {
+                        log::error!(
+                            "Failed to terminate media tracker scanning progress watcher: {err}"
+                        );
+                    }
+                    response.map(|response_body| warp::reply::json(&response_body))
                 }
-                response.map(|response_body| warp::reply::json(&response_body))
-            },
-        );
+            }
+        });
     let media_tracker_post_collection_import = warp::post()
         .and(collections_path)
         .and(path_param_collection_uid)
@@ -396,61 +401,65 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and(media_tracker_progress.clone())
         .and(abort_flag.clone())
-        .and_then(
+        .and_then({
+            let rt = rt.clone();
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
                   media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
-                  abort_flag: Arc<AtomicBool>| async move {
-                let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
-                let watcher = tokio::spawn(async move {
-                    *media_tracker_progress.lock().await =
-                        MediaTrackerProgress::Importing(Default::default());
-                    log::debug!("Watching media tracker importing");
-                    while progress_event_rx.changed().await.is_ok() {
-                        let progress = progress_event_rx
-                            .borrow()
-                            .as_ref()
-                            .map(|event: &ImportProgressEvent| event.summary.clone());
-                        // Borrow has already been released at this point
-                        if let Some(progress) = progress {
-                            *media_tracker_progress.lock().await =
-                                MediaTrackerProgress::Importing(progress);
+                  abort_flag: Arc<AtomicBool>| {
+                let rt = rt.clone();
+                async move {
+                    let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
+                    let watcher = rt.spawn(async move {
+                        *media_tracker_progress.lock().await =
+                            MediaTrackerProgress::Importing(Default::default());
+                        log::debug!("Watching media tracker importing");
+                        while progress_event_rx.changed().await.is_ok() {
+                            let progress = progress_event_rx
+                                .borrow()
+                                .as_ref()
+                                .map(|event: &ImportProgressEvent| event.summary.clone());
+                            // Borrow has already been released at this point
+                            if let Some(progress) = progress {
+                                *media_tracker_progress.lock().await =
+                                    MediaTrackerProgress::Importing(progress);
+                            }
                         }
-                    }
-                    log::debug!("Unwatching media tracker importing");
-                    *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
-                });
-                let response = websrv::spawn_blocking_write_task(
-                    &shared_connection_gatekeeper,
-                    move |mut pooled_connection| {
-                        abort_flag.store(false, Ordering::Relaxed);
-                        api::media::tracker::import_files::handle_request(
-                            &mut pooled_connection,
-                            &uid,
-                            request_body,
-                            &mut |progress_event| {
-                                if let Err(err) = progress_event_tx.send(Some(progress_event)) {
-                                    log::error!(
+                        log::debug!("Unwatching media tracker importing");
+                        *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
+                    });
+                    let response = websrv::spawn_blocking_write_task(
+                        &shared_connection_gatekeeper,
+                        move |mut pooled_connection| {
+                            abort_flag.store(false, Ordering::Relaxed);
+                            api::media::tracker::import_files::handle_request(
+                                &mut pooled_connection,
+                                &uid,
+                                request_body,
+                                &mut |progress_event| {
+                                    if let Err(err) = progress_event_tx.send(Some(progress_event)) {
+                                        log::error!(
                                         "Failed to send media tracker importing progress event: \
                                          {:?}",
                                         err.0
                                     );
-                                }
-                            },
-                            &abort_flag,
-                        )
-                    },
-                )
-                .await;
-                if let Err(err) = watcher.await {
-                    log::error!(
-                        "Failed to terminate media tracker importing progress watcher: {err}"
-                    );
+                                    }
+                                },
+                                &abort_flag,
+                            )
+                        },
+                    )
+                    .await;
+                    if let Err(err) = watcher.await {
+                        log::error!(
+                            "Failed to terminate media tracker importing progress watcher: {err}"
+                        );
+                    }
+                    response.map(|response_body| warp::reply::json(&response_body))
                 }
-                response.map(|response_body| warp::reply::json(&response_body))
-            },
-        );
+            }
+        });
     let media_tracker_post_collection_untrack = warp::post()
         .and(collections_path)
         .and(path_param_collection_uid)
@@ -487,62 +496,66 @@ pub(crate) fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and(media_tracker_progress)
         .and(abort_flag.clone())
-        .and_then(
+        .and_then({
+            let rt = rt.clone();
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
                   media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
-                  abort_flag: Arc<AtomicBool>| async move {
-                let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
-                let watcher = tokio::spawn(async move {
-                    *media_tracker_progress.lock().await =
-                        MediaTrackerProgress::FindingUntracked(Default::default());
-                    log::debug!("Watching media tracker finding untracked");
-                    while progress_event_rx.changed().await.is_ok() {
-                        let progress = progress_event_rx
-                            .borrow()
-                            .as_ref()
-                            .map(|event: &FindUntrackedProgressEvent| event.progress.clone());
-                        // Borrow has already been released at this point
-                        if let Some(progress) = progress {
-                            *media_tracker_progress.lock().await =
-                                MediaTrackerProgress::FindingUntracked(progress);
+                  abort_flag: Arc<AtomicBool>| {
+                let rt = rt.clone();
+                async move {
+                    let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
+                    let watcher = rt.spawn(async move {
+                        *media_tracker_progress.lock().await =
+                            MediaTrackerProgress::FindingUntracked(Default::default());
+                        log::debug!("Watching media tracker finding untracked");
+                        while progress_event_rx.changed().await.is_ok() {
+                            let progress = progress_event_rx
+                                .borrow()
+                                .as_ref()
+                                .map(|event: &FindUntrackedProgressEvent| event.progress.clone());
+                            // Borrow has already been released at this point
+                            if let Some(progress) = progress {
+                                *media_tracker_progress.lock().await =
+                                    MediaTrackerProgress::FindingUntracked(progress);
+                            }
                         }
-                    }
-                    log::debug!("Unwatching media tracker finding untracked");
-                    *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
-                });
-                let response = websrv::spawn_blocking_read_task(
-                    &shared_connection_gatekeeper,
-                    move |mut pooled_connection| {
-                        abort_flag.store(false, Ordering::Relaxed);
-                        api::media::tracker::find_untracked_files::handle_request(
-                            &mut pooled_connection,
-                            &uid,
-                            request_body,
-                            &mut |progress_event: FindUntrackedProgressEvent| {
-                                if let Err(err) = progress_event_tx.send(Some(progress_event)) {
-                                    log::error!(
+                        log::debug!("Unwatching media tracker finding untracked");
+                        *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
+                    });
+                    let response = websrv::spawn_blocking_read_task(
+                        &shared_connection_gatekeeper,
+                        move |mut pooled_connection| {
+                            abort_flag.store(false, Ordering::Relaxed);
+                            api::media::tracker::find_untracked_files::handle_request(
+                                &mut pooled_connection,
+                                &uid,
+                                request_body,
+                                &mut |progress_event: FindUntrackedProgressEvent| {
+                                    if let Err(err) = progress_event_tx.send(Some(progress_event)) {
+                                        log::error!(
                                         "Failed to send media tracker finding untracked progress \
                                          event: {:?}",
                                         err.0
                                     );
-                                }
-                            },
-                            &abort_flag,
-                        )
-                    },
-                )
-                .await;
-                if let Err(err) = watcher.await {
-                    log::error!(
+                                    }
+                                },
+                                &abort_flag,
+                            )
+                        },
+                    )
+                    .await;
+                    if let Err(err) = watcher.await {
+                        log::error!(
                         "Failed to terminate media tracker finding untracked progress watcher: \
                          {err}"
                     );
+                    }
+                    response.map(|response_body| warp::reply::json(&response_body))
                 }
-                response.map(|response_body| warp::reply::json(&response_body))
-            },
-        );
+            }
+        });
     let media_tracker_filters = media_tracker_get_progress
         .or(media_tracker_post_collection_scan)
         .or(media_tracker_post_collection_import)

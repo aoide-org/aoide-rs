@@ -73,6 +73,7 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
 
 #[allow(clippy::too_many_lines)] // TODO
 pub(crate) async fn run(
+    rt: &tokio::runtime::Handle,
     config: Config,
     command_rx: mpsc::UnboundedReceiver<Command>,
     current_state_tx: discro::Publisher<Option<State>>,
@@ -129,6 +130,7 @@ pub(crate) async fn run(
 
     let abort_flag = Arc::new(AtomicBool::new(false));
     let api_filters = warp::path("api").and(self::routing::api::create_filters(
+        rt,
         Arc::clone(&shared_connection_pool),
         abort_flag,
     ));

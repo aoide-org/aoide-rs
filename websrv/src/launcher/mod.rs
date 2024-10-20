@@ -117,7 +117,14 @@ impl Launcher {
         let join_handle = std::thread::spawn({
             let tokio_rt = runtime.handle().clone();
             let config = config.clone();
-            move || tokio_rt.block_on(run(config, runtime_command_rx, current_runtime_state_tx))
+            move || {
+                tokio_rt.block_on(run(
+                    &tokio_rt,
+                    config,
+                    runtime_command_rx,
+                    current_runtime_state_tx,
+                ))
+            }
         });
 
         self.state = InternalState::Running {
