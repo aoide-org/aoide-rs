@@ -117,21 +117,21 @@ async fn refresh_entity_from_db(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RestoringFromMusicDirectoryContext {
-    kind: Option<String>,
-    music_dir: DirPath<'static>,
-    restore_entity: RestoreEntityStrategy,
-    nested_music_dirs: NestedMusicDirectoriesStrategy,
+    pub kind: Option<String>,
+    pub music_dir: DirPath<'static>,
+    pub restore_entity: RestoreEntityStrategy,
+    pub nested_music_dirs: NestedMusicDirectoriesStrategy,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoadingContext {
-    entity_uid: EntityUid,
-    loaded_before: Option<Collection>,
+    pub entity_uid: EntityUid,
+    pub loaded_before: Option<Collection>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SynchronizingContext {
-    entity: Entity,
+    pub entity: Entity,
 }
 
 fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
