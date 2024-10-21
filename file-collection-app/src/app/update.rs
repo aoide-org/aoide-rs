@@ -413,9 +413,16 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
                 *mode = None;
             }
         }
-        collection::State::LoadingFailed { .. }
-        | collection::State::RestoringFromMusicDirectoryFailed { .. }
-        | collection::State::NestedMusicDirectoriesConflict { .. } => {
+        collection::State::Loading {
+            state: collection::LoadingState::Failed { .. },
+            ..
+        }
+        | collection::State::RestoringFromMusicDirectory {
+            state:
+                collection::RestoringFromMusicDirectoryState::Failed { .. }
+                | collection::RestoringFromMusicDirectoryState::NestedMusicDirectoriesConflict { .. },
+            ..
+        } => {
             // The UI will be repainted in any case (see above).
             let _ = library.reset_music_dir();
         }

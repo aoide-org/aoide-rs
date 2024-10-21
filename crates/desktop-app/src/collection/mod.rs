@@ -115,12 +115,23 @@ async fn refresh_entity_from_db(
     .map_err(Into::into)
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct RestoreState {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RestoringFromMusicDirectoryContext {
     kind: Option<String>,
     music_dir: DirPath<'static>,
     restore_entity: RestoreEntityStrategy,
     nested_music_dirs: NestedMusicDirectoriesStrategy,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoadingContext {
+    entity_uid: EntityUid,
+    loaded_before: Option<Collection>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SynchronizingContext {
+    entity: Entity,
 }
 
 fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
@@ -137,7 +148,7 @@ fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
     Ok((root_url, root_path))
 }
 
-impl RestoreState {
+impl RestoringFromMusicDirectoryContext {
     #[allow(clippy::missing_panics_doc)]
     #[allow(clippy::too_many_lines)] // TODO
     pub async fn restore(self, env: &Environment) -> anyhow::Result<State> {
@@ -215,27 +226,29 @@ impl RestoreState {
                 None,
             )
             .await?;
-            let state = RestoreState {
+            let context = RestoringFromMusicDirectoryContext {
                 kind,
                 music_dir: music_dir.into(),
                 restore_entity,
                 nested_music_dirs,
             };
-            return Ok(State::NestedMusicDirectoriesConflict { state, candidates });
+            let state =
+                RestoringFromMusicDirectoryState::NestedMusicDirectoriesConflict { candidates };
+            return Ok(State::RestoringFromMusicDirectory { context, state });
         }
         // No matching entity found.
         match restore_entity {
             RestoreEntityStrategy::Load => {
-                let state = RestoreState {
+                let context = RestoringFromMusicDirectoryContext {
                     kind,
                     music_dir: music_dir.into(),
                     restore_entity,
                     nested_music_dirs,
                 };
-                Ok(State::RestoringFromMusicDirectoryFailed {
-                    state,
+                let state = RestoringFromMusicDirectoryState::Failed {
                     error: RestoreFromMusicDirectoryError::EntityNotFound,
-                })
+                };
+                Ok(State::RestoringFromMusicDirectory { context, state })
             }
             RestoreEntityStrategy::LoadOrCreateNew => {
                 // Create a new collection
@@ -292,6 +305,33 @@ impl RestoreFromMusicDirectoryError {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RestoringFromMusicDirectoryState {
+    Pending {
+        pending_since: Instant,
+    },
+    Failed {
+        error: RestoreFromMusicDirectoryError,
+    },
+    NestedMusicDirectoriesConflict {
+        candidates: Vec<EntityWithSummary>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LoadingState {
+    Pending { pending_since: Instant },
+    Failed { error: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SynchronizingState {
+    Pending { pending_since: Instant },
+    Failed { error: String },
+    Succeeded,
+    Aborted,
+}
+
 /// State of a single collection that is based on directory in the
 /// local directory using a virtual file system (VFS) for content paths.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -300,40 +340,16 @@ pub enum State {
     #[default]
     Void,
     RestoringFromMusicDirectory {
-        state: RestoreState,
-        pending_since: Instant,
-    },
-    RestoringFromMusicDirectoryFailed {
-        state: RestoreState,
-        error: RestoreFromMusicDirectoryError,
-    },
-    NestedMusicDirectoriesConflict {
-        state: RestoreState,
-        candidates: Vec<EntityWithSummary>,
+        context: RestoringFromMusicDirectoryContext,
+        state: RestoringFromMusicDirectoryState,
     },
     Loading {
-        entity_uid: EntityUid,
-        loaded_before: Option<Collection>,
-        pending_since: Instant,
-    },
-    LoadingFailed {
-        entity_uid: EntityUid,
-        loaded_before: Option<Collection>,
-        error: String,
+        context: LoadingContext,
+        state: LoadingState,
     },
     Synchronizing {
-        entity: Entity,
-        pending_since: Instant,
-    },
-    SynchronizingFailed {
-        entity: Entity,
-        error: String,
-    },
-    SynchronizingSucceeded {
-        entity: Entity,
-    },
-    SynchronizingAborted {
-        entity: Entity,
+        context: SynchronizingContext,
+        state: SynchronizingState,
     },
     Ready {
         entity: Entity,
@@ -345,17 +361,19 @@ impl State {
     #[must_use]
     pub const fn pending_since(&self) -> Option<Instant> {
         match self {
-            Self::Void
-            | Self::NestedMusicDirectoriesConflict { .. }
-            | Self::RestoringFromMusicDirectoryFailed { .. }
-            | Self::LoadingFailed { .. }
-            | Self::SynchronizingFailed { .. }
-            | Self::SynchronizingSucceeded { .. }
-            | Self::SynchronizingAborted { .. }
-            | Self::Ready { .. } => None,
-            Self::RestoringFromMusicDirectory { pending_since, .. }
-            | Self::Loading { pending_since, .. }
-            | Self::Synchronizing { pending_since, .. } => Some(*pending_since),
+            Self::RestoringFromMusicDirectory {
+                state: RestoringFromMusicDirectoryState::Pending { pending_since, .. },
+                ..
+            }
+            | Self::Loading {
+                state: LoadingState::Pending { pending_since, .. },
+                ..
+            }
+            | Self::Synchronizing {
+                state: SynchronizingState::Pending { pending_since, .. },
+                ..
+            } => Some(*pending_since),
+            _ => None,
         }
     }
 
@@ -366,19 +384,7 @@ impl State {
 
     #[must_use]
     pub const fn is_synchronizing(&self) -> bool {
-        match self {
-            Self::Synchronizing { .. }
-            | Self::SynchronizingFailed { .. }
-            | Self::SynchronizingSucceeded { .. }
-            | Self::SynchronizingAborted { .. } => true,
-            Self::Void
-            | Self::NestedMusicDirectoriesConflict { .. }
-            | Self::RestoringFromMusicDirectoryFailed { .. }
-            | Self::LoadingFailed { .. }
-            | Self::RestoringFromMusicDirectory { .. }
-            | Self::Loading { .. }
-            | Self::Ready { .. } => false,
-        }
+        matches!(self, Self::Synchronizing { .. })
     }
 
     #[must_use]
@@ -391,36 +397,28 @@ impl State {
         match self {
             Self::Void
             | Self::Loading {
-                loaded_before: None,
-                ..
-            }
-            | Self::LoadingFailed {
-                loaded_before: None,
+                context:
+                    LoadingContext {
+                        loaded_before: None,
+                        ..
+                    },
                 ..
             } => None,
             Self::Loading {
-                loaded_before: Some(loaded_before),
-                ..
-            }
-            | Self::LoadingFailed {
-                loaded_before: Some(loaded_before),
+                context:
+                    LoadingContext {
+                        loaded_before: Some(loaded_before),
+                        ..
+                    },
                 ..
             } => vfs_music_dir(loaded_before),
-            Self::Synchronizing { entity, .. }
-            | Self::SynchronizingFailed { entity, .. }
-            | Self::SynchronizingSucceeded { entity, .. }
-            | Self::SynchronizingAborted { entity, .. }
+            Self::Synchronizing {
+                context: SynchronizingContext { entity },
+                ..
+            }
             | Self::Ready { entity, .. } => vfs_music_dir(&entity.body),
             Self::RestoringFromMusicDirectory {
-                state: RestoreState { music_dir, .. },
-                ..
-            }
-            | Self::RestoringFromMusicDirectoryFailed {
-                state: RestoreState { music_dir, .. },
-                ..
-            }
-            | Self::NestedMusicDirectoriesConflict {
-                state: RestoreState { music_dir, .. },
+                context: RestoringFromMusicDirectoryContext { music_dir, .. },
                 ..
             } => Some(music_dir.borrowed()),
         }
@@ -434,24 +432,19 @@ impl State {
     #[must_use]
     pub fn entity_brief(&self) -> Option<(&EntityUid, Option<&Collection>)> {
         match self {
-            Self::Void
-            | Self::RestoringFromMusicDirectory { .. }
-            | Self::RestoringFromMusicDirectoryFailed { .. }
-            | Self::NestedMusicDirectoriesConflict { .. } => None,
+            Self::Void | Self::RestoringFromMusicDirectory { .. } => None,
             Self::Loading {
-                entity_uid,
-                loaded_before,
-                ..
-            }
-            | Self::LoadingFailed {
-                entity_uid,
-                loaded_before,
+                context:
+                    LoadingContext {
+                        entity_uid,
+                        loaded_before,
+                    },
                 ..
             } => Some((entity_uid, loaded_before.as_ref())),
-            Self::Synchronizing { entity, .. }
-            | Self::SynchronizingFailed { entity, .. }
-            | Self::SynchronizingSucceeded { entity, .. }
-            | Self::SynchronizingAborted { entity, .. }
+            Self::Synchronizing {
+                context: SynchronizingContext { entity },
+                ..
+            }
             | Self::Ready { entity, .. } => Some((&entity.hdr.uid, Some(&entity.body))),
         }
     }
@@ -467,18 +460,15 @@ impl State {
     #[must_use]
     pub fn last_error(&self) -> Option<&str> {
         match self {
-            Self::RestoringFromMusicDirectoryFailed { error, .. } => Some(error.as_str()),
-            Self::LoadingFailed { error, .. } | Self::SynchronizingFailed { error, .. } => {
-                Some(error.as_str())
-            }
-            Self::Void
-            | Self::RestoringFromMusicDirectory { .. }
-            | Self::NestedMusicDirectoriesConflict { .. }
-            | Self::Loading { .. }
-            | Self::Synchronizing { .. }
-            | Self::SynchronizingSucceeded { .. }
-            | Self::SynchronizingAborted { .. }
-            | Self::Ready { .. } => None,
+            Self::RestoringFromMusicDirectory {
+                state: RestoringFromMusicDirectoryState::Failed { error },
+                ..
+            } => Some(error.as_str()),
+            Self::Loading {
+                state: LoadingState::Failed { error },
+                ..
+            } => Some(error.as_str()),
+            _ => None,
         }
     }
 
@@ -518,10 +508,12 @@ impl State {
                     }
                 }
             }
-            Self::NestedMusicDirectoriesConflict {
-                state: RestoreState {
-                    kind, music_dir, ..
-                },
+            Self::RestoringFromMusicDirectory {
+                state: RestoringFromMusicDirectoryState::NestedMusicDirectoriesConflict { .. },
+                context:
+                    RestoringFromMusicDirectoryContext {
+                        kind, music_dir, ..
+                    },
                 ..
             } => {
                 // When set the `kind` controls the selection of collections by music directory.
@@ -540,77 +532,72 @@ impl State {
                 // Proceed without any checks.
             }
         }
-        let state = RestoreState {
+        let context = RestoringFromMusicDirectoryContext {
             kind: new_kind.map(Into::into),
             music_dir: new_music_dir.into_owned(),
             restore_entity,
             nested_music_dirs,
         };
-        let new_self = Self::RestoringFromMusicDirectory {
-            state,
+        let state = RestoringFromMusicDirectoryState::Pending {
             pending_since: Instant::now(),
         };
-        *self = new_self;
+        *self = Self::RestoringFromMusicDirectory { context, state };
         Ok(())
     }
 
     fn refresh_from_db(&mut self) -> Result<RefreshStateFromDbParams, StateUnchanged> {
         let old_self = std::mem::replace(self, Self::Void);
-        let (entity_uid, loaded_before) = match old_self {
+        let context = match old_self {
             Self::Void => {
                 return Err(StateUnchanged);
             }
-            Self::NestedMusicDirectoriesConflict { state, .. }
-            | Self::RestoringFromMusicDirectory { state, .. }
-            | Self::RestoringFromMusicDirectoryFailed { state, .. } => {
+            Self::RestoringFromMusicDirectory { context, .. } => {
                 let params = RefreshStateFromDbParams {
                     entity_uid: None,
-                    restore: Some(state.clone()),
+                    context: Some(context.clone()),
                 };
-                *self = Self::RestoringFromMusicDirectory {
-                    state,
+                let state = RestoringFromMusicDirectoryState::Pending {
                     pending_since: Instant::now(),
                 };
+                *self = Self::RestoringFromMusicDirectory { context, state };
                 return Ok(params);
             }
-            Self::LoadingFailed {
-                entity_uid,
-                loaded_before,
-                ..
-            } => (entity_uid, loaded_before),
+            Self::Loading {
+                state: LoadingState::Failed { .. },
+                context,
+            } => context,
             Self::Ready { entity, .. }
-            | Self::SynchronizingFailed { entity, .. }
-            | Self::SynchronizingSucceeded { entity, .. }
-            | Self::SynchronizingAborted { entity, .. } => {
-                (entity.raw.hdr.uid, Some(entity.raw.body))
-            }
+            | Self::Synchronizing {
+                state:
+                    SynchronizingState::Failed { .. }
+                    | SynchronizingState::Succeeded { .. }
+                    | SynchronizingState::Aborted { .. },
+                context: SynchronizingContext { entity, .. },
+            } => LoadingContext {
+                entity_uid: entity.raw.hdr.uid,
+                loaded_before: Some(entity.raw.body),
+            },
             _ => {
                 log::warn!("Illegal state for refreshing from database: {old_self:?}");
                 *self = old_self;
                 return Err(StateUnchanged);
             }
         };
-        let params = self.refresh_from_db_unchecked(entity_uid, loaded_before);
+        let params = self.refresh_from_db_unchecked(context);
         Ok(params)
     }
 
     #[must_use]
-    fn refresh_from_db_unchecked(
-        &mut self,
-        entity_uid: EntityUid,
-        loaded_before: Option<Collection>,
-    ) -> RefreshStateFromDbParams {
+    fn refresh_from_db_unchecked(&mut self, context: LoadingContext) -> RefreshStateFromDbParams {
         debug_assert!(matches!(self, Self::Void));
         let params = RefreshStateFromDbParams {
-            entity_uid: Some(entity_uid.clone()),
-            restore: None,
+            entity_uid: Some(context.entity_uid.clone()),
+            context: None, // Omit checking the context.
         };
-        let new_self = Self::Loading {
-            entity_uid,
-            loaded_before,
+        let state = LoadingState::Pending {
             pending_since: Instant::now(),
         };
-        *self = new_self;
+        *self = Self::Loading { context, state };
         params
     }
 
@@ -622,11 +609,11 @@ impl State {
             return Err(StateUnchanged);
         };
         let entity_uid = entity.hdr.uid.clone();
-        let new_self = Self::Synchronizing {
-            entity,
+        let context = SynchronizingContext { entity };
+        let state = SynchronizingState::Pending {
             pending_since: Instant::now(),
         };
-        *self = new_self;
+        *self = Self::Synchronizing { context, state };
         Ok(entity_uid)
     }
 
@@ -637,13 +624,14 @@ impl State {
             State::Ready { entity, summary }
         } else {
             // Should never happen
-            let entity_uid = entity.raw.hdr.uid;
-            let loaded_before = Some(entity.raw.body);
-            State::LoadingFailed {
-                entity_uid,
-                loaded_before,
+            let context = LoadingContext {
+                entity_uid: entity.raw.hdr.uid,
+                loaded_before: Some(entity.raw.body),
+            };
+            let state = LoadingState::Failed {
                 error: "no summary".to_owned(),
-            }
+            };
+            Self::Loading { context, state }
         }
     }
 
@@ -659,13 +647,13 @@ impl State {
             );
             return Err(StateUnchanged);
         }
-        let next_state = match result {
+        match result {
             Ok(next_state) => {
                 if *self == next_state {
                     return Err(StateUnchanged);
                 }
                 log::debug!("Refreshed state from database: {next_state:?}");
-                next_state
+                *self = next_state;
             }
             Err(err) => {
                 let error = err.to_string();
@@ -673,29 +661,20 @@ impl State {
                     State::RestoringFromMusicDirectory { state, .. } => {
                         log::warn!("Restoring from music directory failed: {error}");
                         let error = RestoreFromMusicDirectoryError::Other(error);
-                        State::RestoringFromMusicDirectoryFailed {
-                            state: std::mem::take(state),
-                            error,
-                        }
+                        let next_state = RestoringFromMusicDirectoryState::Failed { error };
+                        debug_assert_ne!(*state, next_state);
+                        *state = next_state;
                     }
-                    State::Loading {
-                        entity_uid,
-                        loaded_before,
-                        ..
-                    } => {
+                    State::Loading { state, .. } => {
                         log::warn!("Loading failed: {error}");
-                        State::LoadingFailed {
-                            entity_uid: std::mem::take(entity_uid),
-                            loaded_before: loaded_before.take(),
-                            error,
-                        }
+                        let next_state = LoadingState::Failed { error };
+                        debug_assert_ne!(*state, next_state);
+                        *state = next_state;
                     }
                     _ => unreachable!(),
                 }
             }
         };
-        debug_assert_ne!(*self, next_state);
-        *self = next_state;
         Ok(())
     }
 
@@ -705,33 +684,36 @@ impl State {
         continuation: SynchronizeVfsTaskContinuation,
     ) -> Result<Option<Outcome>, StateUnchanged> {
         let SynchronizeVfsTaskContinuation { pending_state } = continuation;
+        debug_assert!(matches!(
+            pending_state,
+            State::Synchronizing {
+                state: SynchronizingState::Pending { .. },
+                ..
+            }
+        ));
         if pending_state != *self {
             log::warn!(
                 "State changed while synchronizing: expected {pending_state:?}, actual {self:?}",
             );
             return Err(StateUnchanged);
         }
-        let State::Synchronizing {
-            entity,
-            pending_since: _,
-        } = pending_state
-        else {
+        let Self::Synchronizing { state, .. } = self else {
             unreachable!("illegal state");
         };
         let mut outcome = None;
         let next_state = match joined_task {
-            JoinedTask::Cancelled => State::SynchronizingAborted { entity },
+            JoinedTask::Cancelled => SynchronizingState::Aborted,
             JoinedTask::Completed(Ok(ok)) => {
                 outcome = Some(ok);
-                State::SynchronizingSucceeded { entity }
+                SynchronizingState::Succeeded
             }
             JoinedTask::Completed(Err(err)) | JoinedTask::Panicked(err) => {
                 let error = err.to_string();
-                State::SynchronizingFailed { entity, error }
+                SynchronizingState::Failed { error }
             }
         };
-        debug_assert_ne!(*self, next_state);
-        *self = next_state;
+        debug_assert_ne!(*state, next_state);
+        *state = next_state;
         Ok(outcome)
     }
 
@@ -930,7 +912,7 @@ impl ObservableReader<State> for ObservableState {
 #[derive(Debug, Clone)]
 struct RefreshStateFromDbParams {
     entity_uid: Option<EntityUid>,
-    restore: Option<RestoreState>,
+    context: Option<RestoringFromMusicDirectoryContext>,
 }
 
 async fn refresh_state_from_db<E>(env: E, params: RefreshStateFromDbParams) -> anyhow::Result<State>
@@ -939,22 +921,25 @@ where
 {
     let RefreshStateFromDbParams {
         entity_uid,
-        restore,
+        context,
     } = params;
     let entity_with_summary = if let Some(entity_uid) = entity_uid.as_ref() {
         refresh_entity_from_db(env.as_ref(), entity_uid.clone()).await?
     } else {
         None
     };
-    let Some(restore) = restore else {
+    let Some(context) = context else {
         return Ok(entity_with_summary.map_or_else(
             || {
                 if let Some(entity_uid) = entity_uid {
-                    State::LoadingFailed {
+                    let context = LoadingContext {
                         entity_uid,
                         loaded_before: None,
+                    };
+                    let state = LoadingState::Failed {
                         error: "not found".to_owned(),
-                    }
+                    };
+                    State::Loading { context, state }
                 } else {
                     State::Void
                 }
@@ -963,9 +948,9 @@ where
         ));
     };
     if let Some(entity_with_summary) = entity_with_summary {
-        let RestoreState {
+        let RestoringFromMusicDirectoryContext {
             kind, music_dir, ..
-        } = &restore;
+        } = &context;
         if kind.is_none() || kind == &entity_with_summary.entity.body.kind {
             let entity_music_dir = vfs_music_dir(&entity_with_summary.entity.body);
             if entity_music_dir.as_ref() == Some(music_dir) {
@@ -977,7 +962,7 @@ where
             uid = entity_with_summary.entity.hdr.uid
         );
     }
-    restore.restore(env.as_ref()).await
+    context.restore(env.as_ref()).await
 }
 
 async fn synchronize_vfs<E, ReportProgressFn>(
