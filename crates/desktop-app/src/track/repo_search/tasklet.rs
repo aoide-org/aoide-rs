@@ -70,8 +70,7 @@ pub fn on_should_prefetch(
                     {
                         log::debug!("Prefetching");
                         let result = task.await;
-                        let _ =
-                            observable_state.fetch_more_task_joined(result.into(), continuation);
+                        let _ = observable_state.fetch_more_task_completed(result, continuation);
                     }
                 }
                 OnChanged::Continue

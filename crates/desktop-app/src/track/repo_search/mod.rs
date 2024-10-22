@@ -13,8 +13,7 @@ use aoide_core::{
 use aoide_core_api::{track::search::Params, Pagination};
 
 use crate::{
-    modify_observable_state, Handle, JoinedTask, Observable, ObservableReader, ObservableRef,
-    StateUnchanged,
+    modify_observable_state, Handle, Observable, ObservableReader, ObservableRef, StateUnchanged,
 };
 
 pub mod tasklet;
@@ -211,7 +210,7 @@ impl FetchState {
         can_fetch_more: bool,
     ) -> Result<(), StateUnchanged> {
         let num_fetched_entities = fetched_entities.len();
-        log::debug!("Fetching succeeded with {num_fetched_entities} newly fetched entities");
+        log::debug!("Fetching more succeeded with {num_fetched_entities} newly fetched entities");
 
         let Self::Pending {
             fetched_entities_before,
@@ -219,7 +218,7 @@ impl FetchState {
         } = self
         else {
             // Not applicable
-            log::error!("Not pending when fetching succeeded");
+            log::error!("Not pending when fetching more succeeded");
             return Err(StateUnchanged);
         };
         let expected_offset = fetched_entities_before.as_ref().map_or(0, Vec::len);
@@ -270,14 +269,14 @@ impl FetchState {
 
     #[allow(clippy::needless_pass_by_value)]
     fn fetch_more_failed(&mut self, error: anyhow::Error) -> Result<(), StateUnchanged> {
-        log::warn!("Fetching failed: {error}");
+        log::warn!("Fetching more failed: {error}");
         let Self::Pending {
             fetched_entities_before,
             pending_since: _,
         } = self
         else {
             // No effect
-            log::error!("Not pending when fetching failed");
+            log::error!("Not pending when fetching more failed");
             return Err(StateUnchanged);
         };
         let fetched_entities_before = std::mem::take(fetched_entities_before);
@@ -288,15 +287,16 @@ impl FetchState {
         Ok(())
     }
 
-    fn fetch_more_aborted(&mut self) -> Result<(), StateUnchanged> {
-        log::debug!("Fetching aborted");
+    #[allow(dead_code)] // Currently the task cannot be cancelled.
+    fn fetch_more_cancelled(&mut self) -> Result<(), StateUnchanged> {
+        log::debug!("Fetching more cancelled");
         let Self::Pending {
             fetched_entities_before,
             pending_since: _,
         } = self
         else {
             // No effect
-            log::error!("Not pending when fetching aborted");
+            log::error!("Not pending when fetching more cancelled");
             return Err(StateUnchanged);
         };
         let fetched_entities_before = std::mem::take(fetched_entities_before);
@@ -605,9 +605,9 @@ impl State {
         self.fetch.fetch_more()
     }
 
-    fn fetch_more_task_joined(
+    fn fetch_more_task_completed(
         &mut self,
-        joined_tasked: JoinedTask<FetchMoreResult>,
+        result: FetchMoreResult,
         continuation: FetchMoreTaskContinuation,
     ) -> Result<(), StateUnchanged> {
         let FetchMoreTaskContinuation {
@@ -625,9 +625,8 @@ impl State {
             // No effect.
             return Err(StateUnchanged);
         }
-        match joined_tasked {
-            JoinedTask::Cancelled => self.fetch.fetch_more_aborted(),
-            JoinedTask::Completed(Ok(fetched_entities)) => {
+        match result {
+            Ok(fetched_entities) => {
                 let can_fetch_more = if let Some(limit) = limit {
                     limit.get() <= fetched_entities.len()
                 } else {
@@ -640,8 +639,7 @@ impl State {
                     can_fetch_more,
                 )
             }
-            JoinedTask::Completed(Err(err)) => self.fetch.fetch_more_failed(err.into()),
-            JoinedTask::Panicked(err) => self.fetch.fetch_more_failed(err),
+            Err(err) => self.fetch.fetch_more_failed(err.into()),
         }
     }
 
@@ -762,13 +760,13 @@ impl ObservableState {
         modify_observable_state(&self.0, |state| state.fetch_more_task(handle, fetch_limit))
     }
 
-    pub fn fetch_more_task_joined(
+    pub fn fetch_more_task_completed(
         &self,
-        joined_task: JoinedTask<FetchMoreResult>,
+        result: FetchMoreResult,
         continuation: FetchMoreTaskContinuation,
     ) -> Result<(), StateUnchanged> {
         modify_observable_state(&self.0, |state| {
-            state.fetch_more_task_joined(joined_task, continuation)
+            state.fetch_more_task_completed(result, continuation)
         })
     }
 

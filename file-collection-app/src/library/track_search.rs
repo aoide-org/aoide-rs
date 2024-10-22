@@ -53,10 +53,6 @@ pub(super) const DEFAULT_PREFETCH_LIMIT: NonZeroUsize =
 #[derive(Debug)]
 pub enum Event {
     StateChanged,
-    FetchMoreTaskCompleted {
-        result: FetchMoreResult,
-        continuation: FetchMoreTaskContinuation,
-    },
 }
 
 pub type StateRef<'a> = Ref<'a, State>;

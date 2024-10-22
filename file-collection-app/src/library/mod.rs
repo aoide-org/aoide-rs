@@ -364,7 +364,7 @@ impl Library {
         };
         rt.spawn({
             let event_emitter = event_emitter.clone();
-            let mut subscriber = task.progress().clone();
+            let mut subscriber = task.progress().subscribe();
             async move {
                 loop {
                     let progress = subscriber.read_ack().clone();
@@ -382,7 +382,7 @@ impl Library {
         });
         rt.spawn({
             let event_emitter = event_emitter.clone();
-            let mut subscriber = task.outcome().clone();
+            let mut subscriber = task.outcome().subscribe();
             async move {
                 loop {
                     let outcome = subscriber.read_ack().clone();
@@ -488,14 +488,10 @@ impl Library {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn spawn_fetch_more_track_search_results_task<E>(
+    pub fn fetch_more_track_search_results(
         &self,
         tokio_rt: &tokio::runtime::Handle,
-        event_emitter: &E,
-    ) -> ActionResponse
-    where
-        E: EventEmitter + Clone + 'static,
-    {
+    ) -> ActionResponse {
         let Ok((task, continuation)) = self
             .state_observables
             .track_search
@@ -504,31 +500,12 @@ impl Library {
             return ActionResponse::Rejected;
         };
         log::debug!("Fetching more track search results");
-        let event_emitter = event_emitter.clone();
+        let track_search_state = Arc::clone(&self.state_observables.track_search);
         tokio_rt.spawn(async move {
             let result = task.await;
-            event_emitter
-                .emit_event(
-                    track_search::Event::FetchMoreTaskCompleted {
-                        result,
-                        continuation,
-                    }
-                    .into(),
-                )
-                .ok();
+            let _ = track_search_state.fetch_more_task_completed(result, continuation);
         });
         ActionResponse::Accepted
-    }
-
-    pub fn on_fetch_more_track_search_results_task_completed(
-        &self,
-        result: track_search::FetchMoreResult,
-        continuation: track_search::FetchMoreTaskContinuation,
-    ) {
-        let _ = self
-            .state_observables
-            .track_search
-            .fetch_more_task_joined(result.into(), continuation);
     }
 
     /// Spawn reactive background tasks

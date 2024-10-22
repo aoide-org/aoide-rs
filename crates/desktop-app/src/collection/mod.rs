@@ -13,7 +13,8 @@ use std::{
 };
 
 use anyhow::anyhow;
-use discro::{Publisher, Subscriber};
+use discro::{Observer, Publisher};
+use tokio::task::JoinHandle;
 use url::Url;
 
 use aoide_backend_embedded::{
@@ -680,7 +681,7 @@ impl State {
 
     fn synchronize_vfs_task_joined(
         &mut self,
-        joined_task: JoinedTask<SynchronizeVfsResult>,
+        joined_task: SynchronizeVfsTaskJoined,
         continuation: SynchronizeVfsTaskContinuation,
     ) -> Result<Option<Outcome>, StateUnchanged> {
         let SynchronizeVfsTaskContinuation { pending_state } = continuation;
@@ -758,12 +759,15 @@ pub struct RefreshFromDbTaskContinuation {
     pending_state: State,
 }
 
+/// Context for applying the corresponding [`JoinedTask`].
 #[derive(Debug)]
 pub struct SynchronizeVfsTaskContinuation {
     pending_state: State,
 }
 
 pub type SynchronizeVfsResult = anyhow::Result<batch::synchronize_collection_vfs::Outcome>;
+
+pub type SynchronizeVfsTaskJoined = JoinedTask<SynchronizeVfsResult>;
 
 /// Manages the mutable, observable state
 #[derive(Debug)]
@@ -886,7 +890,7 @@ impl ObservableState {
 
     fn synchronize_vfs_task_joined(
         &self,
-        joined_task: JoinedTask<SynchronizeVfsResult>,
+        joined_task: SynchronizeVfsTaskJoined,
         continuation: SynchronizeVfsTaskContinuation,
     ) -> Result<Option<Outcome>, StateUnchanged> {
         modify_observable_state(&self.0, |state| {
@@ -998,13 +1002,16 @@ where
     .map_err(Into::into)
 }
 
+/// Background task.
+///
+/// Both progress and outcome are observable.
 #[derive(Debug)]
 pub struct SynchronizeVfsTask {
     started_at: Instant,
-    progress: Subscriber<Option<Progress>>,
-    outcome: Subscriber<Option<Outcome>>,
+    progress: Observer<Option<Progress>>,
+    outcome: Observer<Option<Outcome>>,
     abort_flag: Arc<AtomicBool>,
-    abort_handle: tokio::task::AbortHandle,
+    supervisor_handle: JoinHandle<()>,
 }
 
 impl SynchronizeVfsTask {
@@ -1016,9 +1023,9 @@ impl SynchronizeVfsTask {
     ) -> Result<Self, StateUnchanged> {
         let started_at = Instant::now();
         let progress_pub = Publisher::new(None);
-        let progress = progress_pub.subscribe();
+        let progress = progress_pub.observe();
         let outcome_pub = Publisher::new(None);
-        let outcome = outcome_pub.subscribe();
+        let outcome = outcome_pub.observe();
         let report_progress_fn = {
             // TODO: How to avoid wrapping the publisher?
             let progress_pub = Arc::new(Mutex::new(progress_pub));
@@ -1030,11 +1037,10 @@ impl SynchronizeVfsTask {
         let (task, continuation) =
             synchronize_vfs_task(state, handle, report_progress_fn, Arc::clone(&abort_flag))?;
         let join_handle = rt.spawn(task);
-        let abort_handle = join_handle.abort_handle();
         let state = Arc::clone(state);
-        // The join task is responsible for updating the state eventually and
-        // cannot be aborted! It completes after the main task completed.
-        let join_task = async move {
+        // The supervisor task is responsible for updating the state eventually.
+        // It finishes after the main task finished.
+        let supervisor_task = async move {
             let joined_task = JoinedTask::join(join_handle).await;
             log::debug!("Synchronize music directory task joined: {joined_task:?}");
             let result = state.synchronize_vfs_task_joined(joined_task, continuation);
@@ -1042,13 +1048,13 @@ impl SynchronizeVfsTask {
                 outcome_pub.write(outcome);
             }
         };
-        rt.spawn(join_task);
+        let supervisor_handle = rt.spawn(supervisor_task);
         Ok(Self {
             started_at,
             progress,
             outcome,
             abort_flag,
-            abort_handle,
+            supervisor_handle,
         })
     }
 
@@ -1058,23 +1064,45 @@ impl SynchronizeVfsTask {
     }
 
     #[must_use]
-    pub const fn progress(&self) -> &Subscriber<Option<Progress>> {
+    pub const fn progress(&self) -> &Observer<Option<Progress>> {
         &self.progress
     }
 
     #[must_use]
-    pub const fn outcome(&self) -> &Subscriber<Option<Outcome>> {
+    pub const fn outcome(&self) -> &Observer<Option<Outcome>> {
         &self.outcome
     }
 
     #[must_use]
     pub fn is_finished(&self) -> bool {
-        self.abort_handle.is_finished()
+        self.supervisor_handle.is_finished()
     }
 
     pub fn abort(&self) {
         self.abort_flag.store(true, Ordering::Relaxed);
-        self.abort_handle.abort();
+        // Both tasks should not be cancelled! The inner task will finish
+        // ASAP after the abort flag has been set.
+    }
+
+    pub async fn join(self) -> anyhow::Result<Option<Outcome>> {
+        let Self {
+            outcome,
+            supervisor_handle,
+            ..
+        } = self;
+        supervisor_handle
+            .await
+            .map(|()| {
+                let outcome = outcome.read().clone();
+                debug_assert!(outcome.is_some());
+                outcome
+            })
+            .map_err(|err| {
+                debug_assert!(outcome.read().is_none());
+                // The supervisor task is never cancelled.
+                debug_assert!(!err.is_cancelled());
+                err.into()
+            })
     }
 }
 

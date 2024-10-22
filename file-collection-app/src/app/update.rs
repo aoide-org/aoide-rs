@@ -186,7 +186,7 @@ impl<'a> UpdateContext<'a> {
             TrackSearchAction::FetchMore => {
                 memo_state.abort();
                 debug_assert!(matches!(memo_state, track_search::MemoState::Ready(_)));
-                library.spawn_fetch_more_track_search_results_task(rt, *msg_tx)
+                library.fetch_more_track_search_results(rt)
             }
             TrackSearchAction::AbortPendingStateChange => {
                 if matches!(memo_state, track_search::MemoState::Pending { .. }) {
@@ -319,15 +319,6 @@ impl<'a> UpdateContext<'a> {
                             // `memo_state` in `mode` has changed.
                             ctx.request_repaint();
                         }
-                    }
-                    library::track_search::Event::FetchMoreTaskCompleted {
-                        result,
-                        continuation,
-                    } => {
-                        library.on_fetch_more_track_search_results_task_completed(
-                            result,
-                            continuation,
-                        );
                     }
                 }
             }
