@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide::desktop_app::{collection::SynchronizingVfsFinishedState, ActionEffect};
 use egui::Context;
 
 use crate::{
     app::TrackSearchFetchedItems,
     fs::choose_directory_path,
     library::{self, collection, track_search, ui::TrackListItem, Library},
-    ActionResponse,
 };
 
 use super::{
@@ -31,7 +31,7 @@ impl<'a> UpdateContext<'a> {
     }
 
     fn on_action(&mut self, ctx: &Context, action: Action) {
-        let response = match action {
+        let action_effect = match action {
             Action::Library(action) => match action {
                 LibraryAction::MusicDirectory(action) => {
                     self.on_library_music_directory_action(action)
@@ -41,15 +41,13 @@ impl<'a> UpdateContext<'a> {
                 LibraryAction::TrackSearch(action) => self.on_library_track_search_action(action),
             },
         };
-        if !response.is_unchanged() {
-            ctx.request_repaint();
+        if matches!(action_effect, ActionEffect::Unchanged) {
+            return;
         }
+        ctx.request_repaint();
     }
 
-    fn on_library_music_directory_action(
-        &mut self,
-        action: MusicDirectoryAction,
-    ) -> ActionResponse {
+    fn on_library_music_directory_action(&mut self, action: MusicDirectoryAction) -> ActionEffect {
         let Self { rt, msg_tx, mdl } = self;
         let Model {
             library,
@@ -61,7 +59,7 @@ impl<'a> UpdateContext<'a> {
             MusicDirectoryAction::Select => {
                 if matches!(music_dir_selection, Some(MusicDirSelection::Selecting)) {
                     log::debug!("Already selecting music directory");
-                    return ActionResponse::Rejected;
+                    return ActionEffect::Unchanged;
                 }
                 let on_dir_path_chosen = {
                     let msg_tx = msg_tx.clone();
@@ -71,7 +69,7 @@ impl<'a> UpdateContext<'a> {
                 };
                 choose_directory_path(rt, library.state().music_dir.as_ref(), on_dir_path_chosen);
                 *music_dir_selection = Some(MusicDirSelection::Selecting);
-                ActionResponse::Accepted
+                ActionEffect::Changed
             }
             MusicDirectoryAction::Update(music_dir) => {
                 *music_dir_selection = Some(MusicDirSelection::Selected);
@@ -79,40 +77,41 @@ impl<'a> UpdateContext<'a> {
                     library.update_music_dir(Some(&music_dir))
                 } else {
                     // No effect.
-                    ActionResponse::Rejected
+                    ActionEffect::Unchanged
                 }
             }
         }
     }
 
     #[allow(clippy::needless_pass_by_value)]
-    fn on_library_media_tracker_action(&mut self, action: MediaTrackerAction) -> ActionResponse {
+    fn on_library_media_tracker_action(&mut self, action: MediaTrackerAction) -> ActionEffect {
         let Self { rt, msg_tx, mdl } = self;
         let Model { library, mode, .. } = mdl;
         match action {
             MediaTrackerAction::Sync(action) => match action {
                 MediaTrackerSyncAction::SpawnTask => {
-                    let response = library.spawn_music_dir_sync_task(rt, *msg_tx);
-                    if matches!(response, ActionResponse::Accepted) {
+                    let (mut effect, result) = library.sync_music_dir(rt, *msg_tx);
+                    if matches!(result, Ok(())) {
                         log::debug!("Switching to music dir sync progress view");
                         *mode = Some(ModelMode::MusicDirSync {
                             last_progress: None,
                             final_outcome: None,
                         });
+                        effect += ActionEffect::MaybeChanged;
                     }
-                    response
+                    effect
                 }
-                MediaTrackerSyncAction::AbortPendingTask => {
-                    library.abort_pending_music_dir_sync_task()
-                }
+                MediaTrackerSyncAction::AbortPendingTask => library.sync_music_dir_abort(),
                 MediaTrackerSyncAction::Finish => {
-                    if let Some(ModelMode::MusicDirSync { .. }) = mode {
-                        *mode = None;
-                        msg_tx.send_action(CollectionAction::RefreshFromDb);
-                        ActionResponse::Accepted
-                    } else {
-                        ActionResponse::Rejected
+                    let Some(some_mode) = mode else {
+                        return ActionEffect::Unchanged;
+                    };
+                    if !matches!(some_mode, ModelMode::MusicDirList { .. }) {
+                        return ActionEffect::Unchanged;
                     }
+                    *mode = None;
+                    msg_tx.send_action(CollectionAction::RefreshFromDb);
+                    return ActionEffect::Changed;
                 }
             },
             MediaTrackerAction::DirList(action) => match action {
@@ -123,61 +122,66 @@ impl<'a> UpdateContext<'a> {
                         ),
                         ..Default::default()
                     };
-                    let response = library.view_music_dir_list(rt, *msg_tx, params);
-                    if matches!(response, ActionResponse::Accepted) {
-                        log::debug!("Switching to music dir list view");
-                        *mode = Some(ModelMode::MusicDirList {
-                            content_paths_with_count: vec![],
-                        });
+                    let mut effect = library.view_music_dir_list(rt, *msg_tx, params);
+                    if matches!(effect, ActionEffect::Unchanged) {
+                        return effect;
                     }
-                    response
+                    log::debug!("Switching to music dir list view");
+                    *mode = Some(ModelMode::MusicDirList {
+                        content_paths_with_count: vec![],
+                    });
+                    effect += ActionEffect::MaybeChanged;
+                    effect
                 }
                 MediaTrackerDirListAction::CloseView => {
-                    if let Some(ModelMode::MusicDirList { .. }) = mode {
-                        *mode = None;
-                        msg_tx.send_action(CollectionAction::RefreshFromDb);
-                        ActionResponse::Accepted
-                    } else {
-                        ActionResponse::Rejected
+                    let Some(some_mode) = mode else {
+                        return ActionEffect::Unchanged;
+                    };
+                    if !matches!(some_mode, ModelMode::MusicDirList { .. }) {
+                        return ActionEffect::Unchanged;
                     }
+                    *mode = None;
+                    msg_tx.send_action(CollectionAction::RefreshFromDb);
+                    ActionEffect::Changed
                 }
             },
         }
     }
 
     #[allow(clippy::needless_pass_by_value)]
-    fn on_library_collection_action(&mut self, action: CollectionAction) -> ActionResponse {
+    fn on_library_collection_action(&mut self, action: CollectionAction) -> ActionEffect {
         let Self { rt, mdl, .. } = self;
         let Model { library, mode, .. } = mdl;
         match action {
             CollectionAction::RefreshFromDb => {
-                let response = library.refresh_collection_from_db(rt);
-                if matches!(response, ActionResponse::Accepted) {
+                let (mut effect, abort_handle) = library.refresh_collection_from_db(rt);
+                if abort_handle.is_some() && mode.is_some() {
                     *mode = None;
+                    effect += ActionEffect::Changed;
                 }
-                response
+                effect
             }
         }
     }
 
     #[allow(clippy::too_many_lines)] // TODO
-    fn on_library_track_search_action(&mut self, action: TrackSearchAction) -> ActionResponse {
+    fn on_library_track_search_action(&mut self, action: TrackSearchAction) -> ActionEffect {
         let Self { rt, msg_tx, mdl } = self;
         let Model { library, mode, .. } = mdl;
-        let mut mode_response = ActionResponse::Rejected;
+        let mut mode_effect = ActionEffect::Unchanged;
         let mode = mode.get_or_insert_with(|| {
-            mode_response = mode_response.upgrade(ActionResponse::RejectedMaybeChanged);
+            mode_effect += ActionEffect::MaybeChanged;
             ModelMode::TrackSearch(Default::default())
         });
         let ModelMode::TrackSearch(track_search) = mode else {
-            log::debug!("Rejecting track search action (invalid mode): {action:?}");
-            return mode_response;
+            log::info!("Discarding track search action: {action:?}");
+            return mode_effect;
         };
         let TrackSearchMode {
             track_list,
             memo_state,
         } = track_search;
-        let action_response = match action {
+        let action_effect = match action {
             TrackSearchAction::Search(input) => {
                 memo_state.abort();
                 debug_assert!(matches!(memo_state, track_search::MemoState::Ready(_)));
@@ -197,7 +201,7 @@ impl<'a> UpdateContext<'a> {
                             );
                             memo_state.abort();
                             debug_assert!(matches!(memo_state, track_search::MemoState::Ready(_)));
-                            ActionResponse::Accepted
+                            ActionEffect::MaybeChanged
                         }
                         Err(err) => {
                             let response = on_library_track_search_state_changed_pending_abort_with_completion_error(
@@ -208,8 +212,8 @@ impl<'a> UpdateContext<'a> {
                         }
                     }
                 } else {
-                    log::debug!("No track search state change pending");
-                    ActionResponse::Rejected
+                    log::info!("No track search state change pending");
+                    ActionEffect::Unchanged
                 }
             }
             TrackSearchAction::ApplyPendingStateChange { fetched_items } => {
@@ -265,7 +269,7 @@ impl<'a> UpdateContext<'a> {
                             );
                             library.on_track_search_state_changed_pending_apply(memo_state);
                             debug_assert!(matches!(memo_state, track_search::MemoState::Ready(_)));
-                            ActionResponse::Accepted
+                            ActionEffect::MaybeChanged
                         }
                         Err(err) => {
                             let response = on_library_track_search_state_changed_pending_abort_with_completion_error(
@@ -276,12 +280,12 @@ impl<'a> UpdateContext<'a> {
                         }
                     }
                 } else {
-                    log::debug!("No track search state change pending");
-                    ActionResponse::Rejected
+                    log::info!("No track search state change pending");
+                    ActionEffect::Unchanged
                 }
             }
         };
-        mode_response.upgrade(action_response)
+        mode_effect + action_effect
     }
 
     fn on_event(&mut self, ctx: &Context, event: Event) {
@@ -336,10 +340,18 @@ impl<'a> UpdateContext<'a> {
                     );
                 }
             }
-            library::Event::MusicDirSyncOutcome(outcome) => {
+            library::Event::MusicDirSyncFinished(finished_state) => {
+                let outcome = match *finished_state {
+                    SynchronizingVfsFinishedState::Succeeded { outcome } => Some(outcome),
+                    SynchronizingVfsFinishedState::Aborted => None,
+                    SynchronizingVfsFinishedState::Failed { error } => {
+                        log::warn!("Synchronizing music directory failed: {error}");
+                        None
+                    }
+                };
                 if let Some(ModelMode::MusicDirSync { final_outcome, .. }) = mode {
                     debug_assert!(final_outcome.is_none());
-                    *final_outcome = outcome;
+                    *final_outcome = outcome.map(Box::new);
                 } else {
                     log::debug!(
                         "Discarding unexpected music directory synchronization outcome: {outcome:?}"
@@ -359,7 +371,7 @@ impl<'a> UpdateContext<'a> {
                         return;
                     }
                 };
-                if Some(&collection_uid) != library.state().collection.entity_uid() {
+                if Some(&collection_uid) != library.read_collection_state().entity_uid() {
                     log::debug!(
                         "Discarding unexpected music directory list with {num_items} item(s) for collection {collection_uid}",
                         num_items = new_content_paths_with_count.len()
@@ -388,53 +400,61 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
         music_dir_selection,
         mode,
     } = mdl;
-    if !library.on_collection_state_changed() {
-        return;
-    }
-    // Update the UI to reflect the new state.
+    // Update the UI unconditionally to reflect the new state.
     ctx.request_repaint();
-    // Determine a follow-up effect or action dependent on the new state.
-    // TODO: Store or report outcomes and errors from these dead end states.
-    match &library.state().collection {
-        collection::State::Void => {
-            // Nothing to show with no collection available. This prevents to
-            // show stale data after the collection has been reset.
-            if mode.is_some() {
-                log::debug!("Resetting central panel view");
-                *mode = None;
-            }
-        }
-        collection::State::Loading {
-            state: collection::LoadingState::Failed { .. },
-            ..
-        }
-        | collection::State::RestoringFromMusicDirectory {
-            state:
-                collection::RestoringFromMusicDirectoryState::Failed { .. }
-                | collection::RestoringFromMusicDirectoryState::NestedMusicDirectoriesConflict { .. },
-            ..
-        } => {
-            // The UI will be repainted in any case (see above).
-            let _ = library.reset_music_dir();
-        }
-        collection::State::Ready { summary, .. } => {
-            if matches!(music_dir_selection, Some(MusicDirSelection::Selected)) {
-                *music_dir_selection = None;
-                if summary.media_sources.total_count == 0 {
-                    log::info!(
-                        "Synchronizing music directory after empty collection has been selected"
-                    );
-                    msg_tx.send_action(MediaTrackerSyncAction::SpawnTask);
+
+    let mut reset_music_dir = false;
+    {
+        let collection_state = library.read_collection_state();
+        // Determine a follow-up effect or action dependent on the new state.
+        // TODO: Store or report outcomes and errors from these dead end states.
+        match &*collection_state {
+            collection::State::Void => {
+                // Nothing to show with no collection available. This prevents to
+                // show stale data after the collection has been reset.
+                if mode.is_some() {
+                    log::debug!("Resetting central panel view");
+                    *mode = None;
                 }
             }
+            collection::State::LoadingFromDatabase {
+                state: collection::LoadingFromDatabaseState::Finished(collection::LoadingFromDatabaseFinishedState::Failed { .. }),
+                ..
+            }
+            | collection::State::RestoringFromMusicDirectory {
+                state:
+                    collection::RestoringFromMusicDirectoryState::Finished(collection::RestoringFromMusicDirectoryFinishedState::Failed { .. })
+                    | collection::RestoringFromMusicDirectoryState::Finished(collection::RestoringFromMusicDirectoryFinishedState::NestedDirectoriesConflict { .. }),
+                ..
+            } => {
+                reset_music_dir = true;
+            }
+            collection::State::Ready { summary, .. } => {
+                if matches!(music_dir_selection, Some(MusicDirSelection::Selected)) {
+                    *music_dir_selection = None;
+                    if summary.media_sources.total_count == 0 {
+                        log::info!(
+                            "Synchronizing music directory after empty collection has been selected"
+                        );
+                        msg_tx.send_action(MediaTrackerSyncAction::SpawnTask);
+                    }
+                }
+            }
+            _ => (),
         }
-        _ => {}
+
+        // Reset mode if the collection is not synchronizing anymore.
+        if matches!(mode, Some(ModelMode::MusicDirSync { .. }))
+            && !collection_state.is_synchronizing()
+        {
+            *mode = None;
+        }
     }
-    // Reset mode if the collection is not synchronizing anymore.
-    if matches!(mode, Some(ModelMode::MusicDirSync { .. }))
-        && !library.state().collection.is_synchronizing()
-    {
-        *mode = None;
+
+    // Reset the music directory after releasing the read-lock.
+    if reset_music_dir {
+        // The UI will be repainted in any case (see above).
+        let _ = library.reset_music_dir();
     }
 }
 
@@ -541,15 +561,15 @@ fn on_library_track_search_state_changed_pending_abort_with_completion_error(
     memo_state: &mut track_search::MemoState,
     err: track_search::MemoStateCompletionError,
     msg_tx: &MessageSender,
-) -> ActionResponse {
+) -> ActionEffect {
     match err {
         track_search::MemoStateCompletionError::NotPending => {
             // Nothing to do.
-            log::debug!("Ignoring track search state change completion: Not pending");
-            ActionResponse::Rejected
+            log::info!("Ignoring track search state change completion: Not pending");
+            ActionEffect::Unchanged
         }
         track_search::MemoStateCompletionError::AbortPendingAndRetry => {
-            log::debug!("Aborting track search state change completion and retrying");
+            log::info!("Aborting track search state change completion and retrying");
             memo_state.abort();
             // Replay the corresponding event.
             msg_tx
@@ -557,7 +577,7 @@ fn on_library_track_search_state_changed_pending_abort_with_completion_error(
                     library::track_search::Event::StateChanged,
                 ))
                 .unwrap();
-            ActionResponse::Accepted
+            ActionEffect::MaybeChanged
         }
     }
 }

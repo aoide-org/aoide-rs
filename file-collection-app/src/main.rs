@@ -26,45 +26,6 @@ static MIMALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 #[derive(Debug)]
 pub struct NoReceiverForEvent;
 
-/// Outcome of dispatching an action.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[must_use]
-pub enum ActionResponse {
-    /// Rejected without any effect.
-    ///
-    /// State is unchanged without any side-effects.
-    Rejected,
-    /// Rejected (but maybe already changed).
-    ///
-    /// Might have caused a state change or side-effects.
-    RejectedMaybeChanged,
-    /// Accepted (and maybe changed).
-    Accepted,
-}
-
-impl ActionResponse {
-    #[must_use]
-    pub const fn is_unchanged(self) -> bool {
-        match self {
-            Self::Rejected => true,
-            Self::RejectedMaybeChanged | Self::Accepted => false,
-        }
-    }
-
-    pub fn upgrade(self, upgrade: Self) -> Self {
-        match (self, upgrade) {
-            (Self::Rejected, Self::Rejected) => Self::Rejected,
-            (_, Self::Accepted) => Self::Accepted,
-            (Self::Accepted, Self::Rejected | Self::RejectedMaybeChanged) => {
-                unreachable!("downgrade is not allowed");
-            }
-            (Self::RejectedMaybeChanged, _) | (_, Self::RejectedMaybeChanged) => {
-                Self::RejectedMaybeChanged
-            }
-        }
-    }
-}
-
 /// Default log level for debug builds.
 #[cfg(debug_assertions)]
 const DEFAULT_LOG_FILTER_LEVEL: LevelFilter = LevelFilter::Info;
@@ -142,14 +103,14 @@ async fn main() {
         }
     };
     log::debug!("Commissioning aoide library backend: {aoide_db_config:?}");
-    let aoide_handle = match aoide::desktop_app::Handle::commission(&aoide_db_config) {
+    let aoide_env = match aoide::desktop_app::Environment::commission(&aoide_db_config) {
         Ok(library_backend) => library_backend,
         Err(err) => {
             log::error!("Failed to commission aoide library backend: {err}");
             return;
         }
     };
-    let library = Library::new(aoide_handle, aoide_initial_settings);
+    let library = Library::new(aoide_env, aoide_initial_settings);
 
     let rt = match tokio::runtime::Handle::try_current() {
         Ok(handle) => handle,

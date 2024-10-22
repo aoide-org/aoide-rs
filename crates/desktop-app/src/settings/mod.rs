@@ -6,13 +6,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use discro::Publisher;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 use aoide_backend_embedded::storage::DatabaseConfig;
 use aoide_core::util::fs::DirPath;
 
-use crate::{modify_observable_state, Observable, ObservableReader, ObservableRef, StateUnchanged};
+use crate::{modify_shared_state_action_effect, ActionEffect};
 
 pub const FILE_NAME: &str = "aoide_desktop_settings";
 
@@ -156,10 +157,10 @@ impl State {
         self.music_dir.as_ref()
     }
 
-    fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> Result<(), StateUnchanged> {
+    fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> ActionEffect {
         if self.music_dir() == music_dir {
             log::debug!("Unchanged music directory: {music_dir:?}");
-            return Err(StateUnchanged);
+            return ActionEffect::Unchanged;
         }
         self.music_dir = if let Some(music_dir) = music_dir {
             log::info!(
@@ -171,7 +172,7 @@ impl State {
             log::info!("Resetting music directory");
             None
         };
-        Ok(())
+        ActionEffect::Changed
     }
 }
 
@@ -191,25 +192,32 @@ fn default_database_file_path(parent_dir: PathBuf) -> PathBuf {
     path_buf
 }
 
-pub type StateSubscriber = discro::Subscriber<State>;
+pub type SharedStateRef<'a> = discro::Ref<'a, State>;
+pub type SharedStateObserver = discro::Observer<State>;
+pub type SharedStateSubscriber = discro::Subscriber<State>;
 
-/// Manages the mutable, observable state
+/// Shared, mutable state.
 #[derive(Debug)]
-pub struct ObservableState(Observable<State>);
+pub struct SharedState(Publisher<State>);
 
-impl ObservableState {
+impl SharedState {
     #[must_use]
     pub fn new(initial_state: State) -> Self {
-        Self(Observable::new(initial_state))
+        Self(Publisher::new(initial_state))
     }
 
     #[must_use]
-    pub fn read(&self) -> ObservableStateRef<'_> {
+    pub fn read(&self) -> SharedStateRef<'_> {
         self.0.read()
     }
 
     #[must_use]
-    pub fn subscribe_changed(&self) -> StateSubscriber {
+    pub fn observe(&self) -> SharedStateObserver {
+        self.0.observe()
+    }
+
+    #[must_use]
+    pub fn subscribe_changed(&self) -> SharedStateSubscriber {
         self.0.subscribe_changed()
     }
 
@@ -218,21 +226,13 @@ impl ObservableState {
     }
 
     #[allow(clippy::must_use_candidate)]
-    pub fn update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> Result<(), StateUnchanged> {
-        modify_observable_state(&self.0, |state| state.update_music_dir(music_dir))
+    pub fn update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> ActionEffect {
+        modify_shared_state_action_effect(&self.0, |state| state.update_music_dir(music_dir))
     }
 }
 
-impl Default for ObservableState {
+impl Default for SharedState {
     fn default() -> Self {
         Self::new(Default::default())
-    }
-}
-
-pub type ObservableStateRef<'a> = ObservableRef<'a, State>;
-
-impl ObservableReader<State> for ObservableState {
-    fn read_lock(&self) -> ObservableStateRef<'_> {
-        self.0.read_lock()
     }
 }

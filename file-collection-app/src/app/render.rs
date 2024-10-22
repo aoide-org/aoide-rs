@@ -34,7 +34,7 @@ impl<'a> RenderContext<'a> {
             ui_data,
         } = self;
 
-        let current_library_state = mdl.library.read_lock_current_state();
+        let current_library_state = mdl.library.read_current_state();
 
         TopBottomPanel::top("top-panel").show(ctx, |ui| {
             render_top_panel(ui, ui_data, msg_tx, mdl, &current_library_state);

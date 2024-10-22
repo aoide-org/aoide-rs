@@ -13,7 +13,7 @@ use aoide::{
         tag::search::{FacetsFilter, Filter as TagFilter},
         track::search::{Filter, NumericField, PhraseFieldFilter, SortOrder, StringField},
     },
-    desktop_app::{track, ObservableReader as _},
+    desktop_app::track,
     tag::FacetKey,
     track::tag::{
         FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC,
@@ -100,7 +100,7 @@ impl MemoState {
 
     pub fn try_start_pending<'a>(
         &'a mut self,
-        observable_state: &ObservableState,
+        shared_state: &SharedState,
     ) -> Option<(&'a Memo, MemoDiff)> {
         let (memo, memo_delta, memo_diff) = {
             let memo = match self {
@@ -115,7 +115,7 @@ impl MemoState {
                 }
             };
             let (memo_delta, memo_diff) = {
-                let state = observable_state.read_lock();
+                let state = shared_state.read();
                 state.update_memo_delta(memo)
             };
             let memo = std::mem::take(memo);

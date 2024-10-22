@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+//! File system utilities.
+
 #[cfg(feature = "async-file-dialog")]
 pub async fn choose_directory(
     dir_path: impl Into<Option<&std::path::Path>>,
