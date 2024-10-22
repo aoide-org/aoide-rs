@@ -50,34 +50,31 @@ where
 pub fn on_should_prefetch(
     observable_state: &Arc<ObservableState>,
     handle: WeakHandle,
+    tokio_rt: tokio::runtime::Handle,
     prefetch_limit: Option<NonZeroUsize>,
 ) -> impl Future<Output = ()> + Send + 'static {
     let observable_state_sub = observable_state.subscribe_changed();
     let observable_state = Arc::downgrade(observable_state);
     async move {
-        log::debug!("Starting on_should_prefetch");
+        log::debug!("on_should_prefetch");
         on_should_prefetch_trigger_async(observable_state_sub, move || {
             let observable_state = Weak::clone(&observable_state);
             let handle = handle.clone();
+            let tokio_rt = tokio_rt.clone();
             async move {
                 let observable_state =
                     some_or_return_with!(observable_state.upgrade(), OnChanged::Abort);
-                let handle = some_or_return_with!(handle.upgrade(), OnChanged::Abort);
                 let should_prefetch = observable_state.read().should_prefetch();
                 if should_prefetch {
-                    if let Ok((task, continuation)) =
-                        observable_state.fetch_more_task(&handle, prefetch_limit)
-                    {
-                        log::debug!("Prefetching");
-                        let result = task.await;
-                        let _ = observable_state.fetch_more_task_completed(result, continuation);
-                    }
+                    let handle = some_or_return_with!(handle.upgrade(), OnChanged::Abort);
+                    log::debug!("Prefetching");
+                    let _ =
+                        observable_state.spawn_fetch_more_task(&handle, &tokio_rt, prefetch_limit);
                 }
                 OnChanged::Continue
             }
         })
         .await;
-        log::debug!("Stopping on_should_prefetch");
     }
 }
 
@@ -87,7 +84,7 @@ pub fn on_collection_state_changed(
 ) -> impl Future<Output = ()> + Send + 'static {
     let mut collection_state_sub = collection_state.subscribe_changed();
     async move {
-        log::debug!("Starting on_collection_state_changed");
+        log::debug!("on_collection_state_changed");
         loop {
             {
                 let Some(observable_state) = observable_state.upgrade() else {
@@ -113,6 +110,5 @@ pub fn on_collection_state_changed(
                 break;
             }
         }
-        log::debug!("Stopping on_collection_state_changed");
     }
 }

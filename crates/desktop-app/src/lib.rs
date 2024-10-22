@@ -32,6 +32,15 @@ pub struct Observable<T> {
     publisher: Publisher<T>,
 }
 
+impl<T> Clone for Observable<T> {
+    fn clone(&self) -> Self {
+        let Self { publisher } = self;
+        Self {
+            publisher: publisher.clone(),
+        }
+    }
+}
+
 impl<T> Observable<T> {
     #[must_use]
     pub fn new(initial_value: T) -> Self {

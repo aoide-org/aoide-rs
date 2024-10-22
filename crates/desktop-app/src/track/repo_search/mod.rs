@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{future::Future, hash::Hash as _, num::NonZeroUsize, time::Instant};
+use std::{hash::Hash as _, num::NonZeroUsize, time::Instant};
 
 use highway::{HighwayHash, HighwayHasher, Key};
 
@@ -11,6 +11,7 @@ use aoide_core::{
     CollectionUid,
 };
 use aoide_core_api::{track::search::Params, Pagination};
+use tokio::task::JoinHandle;
 
 use crate::{
     modify_observable_state, Handle, Observable, ObservableReader, ObservableRef, StateUnchanged,
@@ -87,6 +88,7 @@ enum FetchState {
     Pending {
         fetched_entities_before: Option<Vec<FetchedEntity>>,
         pending_since: Instant,
+        background_task: JoinHandle<()>,
     },
     Failed {
         fetched_entities_before: Option<Vec<FetchedEntity>>,
@@ -183,25 +185,6 @@ impl FetchState {
         Ok(())
     }
 
-    fn fetch_more(&mut self) -> Result<(), StateUnchanged> {
-        debug_assert_eq!(Some(true), self.can_fetch_more());
-        let fetched_entities_before = match self {
-            Self::Initial => None,
-            Self::Pending { .. } | Self::Failed { .. } => {
-                // Not applicable
-                return Err(StateUnchanged);
-            }
-            Self::Ready {
-                fetched_entities, ..
-            } => Some(std::mem::take(fetched_entities)),
-        };
-        *self = Self::Pending {
-            fetched_entities_before,
-            pending_since: Instant::now(),
-        };
-        Ok(())
-    }
-
     fn fetch_more_succeeded(
         &mut self,
         offset: usize,
@@ -215,12 +198,14 @@ impl FetchState {
         let Self::Pending {
             fetched_entities_before,
             pending_since: _,
+            background_task,
         } = self
         else {
             // Not applicable
             log::error!("Not pending when fetching more succeeded");
             return Err(StateUnchanged);
         };
+        debug_assert!(background_task.is_finished());
         let expected_offset = fetched_entities_before.as_ref().map_or(0, Vec::len);
         let expected_offset_hash =
             last_offset_hash_of_fetched_entities(fetched_entities_before.as_deref());
@@ -273,12 +258,14 @@ impl FetchState {
         let Self::Pending {
             fetched_entities_before,
             pending_since: _,
+            background_task,
         } = self
         else {
             // No effect
             log::error!("Not pending when fetching more failed");
             return Err(StateUnchanged);
         };
+        debug_assert!(background_task.is_finished());
         let fetched_entities_before = std::mem::take(fetched_entities_before);
         *self = Self::Failed {
             fetched_entities_before,
@@ -293,12 +280,14 @@ impl FetchState {
         let Self::Pending {
             fetched_entities_before,
             pending_since: _,
+            background_task,
         } = self
         else {
             // No effect
             log::error!("Not pending when fetching more cancelled");
             return Err(StateUnchanged);
         };
+        debug_assert!(background_task.is_finished());
         let fetched_entities_before = std::mem::take(fetched_entities_before);
         if let Some(fetched_entities) = fetched_entities_before {
             *self = Self::Ready {
@@ -600,11 +589,6 @@ impl State {
         Ok(())
     }
 
-    fn fetch_more(&mut self) -> Result<(), StateUnchanged> {
-        debug_assert_eq!(Some(true), self.can_fetch_more());
-        self.fetch.fetch_more()
-    }
-
     fn fetch_more_task_completed(
         &mut self,
         result: FetchMoreResult,
@@ -647,21 +631,27 @@ impl State {
         self.fetch.reset()
     }
 
-    fn fetch_more_task(
+    fn spawn_fetch_more_task(
         &mut self,
+        observable: &ObservableState,
         handle: &Handle,
+        tokio_rt: &tokio::runtime::Handle,
         fetch_limit: Option<NonZeroUsize>,
-    ) -> Result<
-        (
-            impl Future<Output = FetchMoreResult> + Send + 'static,
-            FetchMoreTaskContinuation,
-        ),
-        StateUnchanged,
-    > {
+    ) -> Result<(), StateUnchanged> {
         if self.can_fetch_more() != Some(true) {
             return Err(StateUnchanged);
         }
-        self.fetch_more()?;
+
+        let fetched_entities_before = match &mut self.fetch {
+            FetchState::Initial => None,
+            FetchState::Pending { .. } | FetchState::Failed { .. } => {
+                // Not applicable
+                return Err(StateUnchanged);
+            }
+            FetchState::Ready {
+                fetched_entities, ..
+            } => Some(std::mem::take(fetched_entities)),
+        };
 
         let Context {
             collection_uid,
@@ -670,28 +660,47 @@ impl State {
         let Some(collection_uid) = collection_uid.clone() else {
             return Err(StateUnchanged);
         };
-        let params = params.clone();
-        let offset = self
-            .fetched_entities()
-            .and_then(|slice| slice.len().try_into().ok());
-        let limit = fetch_limit.and_then(|limit| limit.get().try_into().ok());
-        let pagination = Pagination { limit, offset };
-        let handle = handle.clone();
-        let task =
-            async move { search(handle.db_gatekeeper(), collection_uid, params, pagination).await };
 
-        let context = self.context.clone();
-        let offset = offset.unwrap_or(0) as usize;
-        let offset_hash = last_offset_hash_of_fetched_entities(self.fetched_entities());
-        let limit = fetch_limit;
-        let continuation = FetchMoreTaskContinuation {
-            context,
-            offset,
-            offset_hash,
-            limit,
+        let offset = fetched_entities_before
+            .as_ref()
+            .and_then(|slice| slice.len().try_into().ok());
+
+        let task = {
+            let params = params.clone();
+            let limit = fetch_limit.and_then(|limit| limit.get().try_into().ok());
+            let pagination = Pagination { limit, offset };
+            let handle = handle.clone();
+            async move { search(handle.db_gatekeeper(), collection_uid, params, pagination).await }
         };
 
-        Ok((task, continuation))
+        let continuation = {
+            let context = self.context.clone();
+            let offset = offset.unwrap_or(0) as usize;
+            let offset_hash = last_offset_hash_of_fetched_entities(self.fetched_entities());
+            let limit = fetch_limit;
+            FetchMoreTaskContinuation {
+                context,
+                offset,
+                offset_hash,
+                limit,
+            }
+        };
+
+        let background_task = tokio_rt.spawn({
+            let observable = observable.clone();
+            async move {
+                let result = task.await;
+                let _ = observable.fetch_more_task_completed(result, continuation);
+            }
+        });
+
+        self.fetch = FetchState::Pending {
+            fetched_entities_before,
+            pending_since: Instant::now(),
+            background_task,
+        };
+
+        Ok(())
     }
 }
 
@@ -708,7 +717,7 @@ pub type FetchMoreResult = aoide_backend_embedded::Result<Vec<Entity>>;
 pub type StateSubscriber = discro::Subscriber<State>;
 
 /// Manages the mutable, observable state
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ObservableState(Observable<State>);
 
 impl ObservableState {
@@ -746,21 +755,18 @@ impl ObservableState {
         modify_observable_state(&self.0, |state| state.update_params(params))
     }
 
-    pub fn fetch_more_task(
+    pub fn spawn_fetch_more_task(
         &self,
         handle: &Handle,
+        tokio_rt: &tokio::runtime::Handle,
         fetch_limit: Option<NonZeroUsize>,
-    ) -> Result<
-        (
-            impl Future<Output = FetchMoreResult> + Send + 'static,
-            FetchMoreTaskContinuation,
-        ),
-        StateUnchanged,
-    > {
-        modify_observable_state(&self.0, |state| state.fetch_more_task(handle, fetch_limit))
+    ) -> Result<(), StateUnchanged> {
+        modify_observable_state(&self.0, |state| {
+            state.spawn_fetch_more_task(self, handle, tokio_rt, fetch_limit)
+        })
     }
 
-    pub fn fetch_more_task_completed(
+    fn fetch_more_task_completed(
         &self,
         result: FetchMoreResult,
         continuation: FetchMoreTaskContinuation,

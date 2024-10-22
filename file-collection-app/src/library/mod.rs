@@ -492,20 +492,14 @@ impl Library {
         &self,
         tokio_rt: &tokio::runtime::Handle,
     ) -> ActionResponse {
-        let Ok((task, continuation)) = self
-            .state_observables
-            .track_search
-            .fetch_more_task(&self.handle, Some(track_search::DEFAULT_PREFETCH_LIMIT))
-        else {
-            return ActionResponse::Rejected;
-        };
-        log::debug!("Fetching more track search results");
-        let track_search_state = Arc::clone(&self.state_observables.track_search);
-        tokio_rt.spawn(async move {
-            let result = task.await;
-            let _ = track_search_state.fetch_more_task_completed(result, continuation);
-        });
-        ActionResponse::Accepted
+        match self.state_observables.track_search.spawn_fetch_more_task(
+            &self.handle,
+            tokio_rt,
+            Some(track_search::DEFAULT_PREFETCH_LIMIT),
+        ) {
+            Ok(()) => ActionResponse::Accepted,
+            Err(StateUnchanged) => ActionResponse::Rejected,
+        }
     }
 
     /// Spawn reactive background tasks
@@ -531,6 +525,7 @@ impl Library {
         tokio_rt.spawn(track_search::tasklet::on_should_prefetch(
             &self.state_observables.track_search,
             Handle::downgrade(&self.handle),
+            tokio_rt.clone(),
             Some(track_search::DEFAULT_PREFETCH_LIMIT),
         ));
     }
