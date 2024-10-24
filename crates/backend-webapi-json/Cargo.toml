@@ -47,8 +47,8 @@ aoide-usecases-sqlite.workspace = true
 default = []
 tokio = ["aoide-backend-embedded/tokio"]
 json-schema = [
-    "dep:schemars",
-    "aoide-core/json-schema",
-    "aoide-core-api-json/json-schema",
-    "aoide-core-json/json-schema",
+  "dep:schemars",
+  "aoide-core/json-schema",
+  "aoide-core-api-json/json-schema",
+  "aoide-core-json/json-schema",
 ]

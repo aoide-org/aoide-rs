@@ -30,16 +30,11 @@ serde = { workspace = true, optional = true, features = ["derive"] }
 # Bundle SQLite code to prevent dynamic linking.
 # The pinned version must be compatible with diesel!
 libsqlite3-sys = { version = "=0.30.1", optional = true, default-features = false, features = [
-    "bundled",
+  "bundled",
 ] }
 
 # Feature "tokio"
-tokio = { workspace = true, optional = true, features = [
-    "macros",
-    "rt",
-    "sync",
-    "time",
-] }
+tokio = { workspace = true, optional = true, features = ["macros", "rt", "sync", "time"] }
 
 [features]
 default = ["sqlite-bundled", "tokio"]

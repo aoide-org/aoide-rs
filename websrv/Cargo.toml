@@ -37,11 +37,7 @@ warp = { version = "0.3.7", default-features = false }
 aoide-backend-webapi-json = { "workspace" = true, features = ["tokio"] }
 aoide-core = { "workspace" = true, features = ["serde"] }
 aoide-repo-sqlite.workspace = true
-aoide-storage-sqlite = { "workspace" = true, features = [
-    "serde",
-    "sqlite-bundled",
-    "tokio",
-] }
+aoide-storage-sqlite = { "workspace" = true, features = ["serde", "sqlite-bundled", "tokio"] }
 aoide-usecases.workspace = true
 aoide-usecases-sqlite.workspace = true
 aoide-websrv-warp-sqlite.workspace = true
@@ -79,11 +75,7 @@ features = ["tokio", "xdg-portal"]
 default = ["json-schema", "mimalloc", "launcher-ui"]
 
 # Enable JSON schema support.
-json-schema = [
-    "dep:schemars",
-    "aoide-core/json-schema",
-    "aoide-backend-webapi-json/json-schema",
-]
+json-schema = ["dep:schemars", "aoide-core/json-schema", "aoide-backend-webapi-json/json-schema"]
 
 # Use mimalloc instead of the default allocator.
 mimalloc = ["dep:mimalloc"]
