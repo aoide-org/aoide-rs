@@ -142,14 +142,14 @@ async fn main() {
         }
     };
     log::debug!("Commissioning aoide library backend: {aoide_db_config:?}");
-    let aoide_handle = match aoide::desktop_app::Handle::commission(&aoide_db_config) {
+    let aoide_env = match aoide::desktop_app::env::Handle::commission(&aoide_db_config) {
         Ok(library_backend) => library_backend,
         Err(err) => {
             log::error!("Failed to commission aoide library backend: {err}");
             return;
         }
     };
-    let library = Library::new(aoide_handle, aoide_initial_settings);
+    let library = Library::new(aoide_env, aoide_initial_settings);
 
     let rt = match tokio::runtime::Handle::try_current() {
         Ok(handle) => handle,

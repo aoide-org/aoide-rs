@@ -1,18 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::ops::Deref;
+use std::ops::{Add, AddAssign};
 
-use discro::{Publisher, Ref, Subscriber};
+use discro::Publisher;
 use tokio::task::JoinHandle;
 
-mod handle;
-pub use self::handle::{Handle, WeakHandle};
-
-// Re-export the embedded backend environment that is referenced by [`Handle`].
 pub use aoide_backend_embedded::Environment;
 
-/// File system utilities
 pub mod fs;
 
 /// Collection management
@@ -23,73 +18,6 @@ pub mod settings;
 
 /// Track management
 pub mod track;
-
-pub type ObservableRef<'a, T> = Ref<'a, T>;
-
-/// Manages the mutable, observable state
-#[derive(Debug, Default)]
-pub struct Observable<T> {
-    publisher: Publisher<T>,
-}
-
-impl<T> Clone for Observable<T> {
-    fn clone(&self) -> Self {
-        let Self { publisher } = self;
-        Self {
-            publisher: publisher.clone(),
-        }
-    }
-}
-
-impl<T> Observable<T> {
-    #[must_use]
-    pub fn new(initial_value: T) -> Self {
-        let publisher = Publisher::new(initial_value);
-        Self { publisher }
-    }
-
-    #[must_use]
-    pub fn read(&self) -> ObservableRef<'_, T> {
-        self.publisher.read()
-    }
-
-    #[must_use]
-    pub fn subscribe_changed(&self) -> Subscriber<T> {
-        self.publisher.subscribe_changed()
-    }
-
-    #[allow(clippy::must_use_candidate)]
-    pub fn modify(&self, modify: impl FnOnce(&mut T) -> bool) -> bool {
-        self.publisher.modify(modify)
-    }
-
-    pub fn set_modified(&self) {
-        self.publisher.set_modified();
-    }
-}
-
-/// Read-only access to an observable.
-pub trait ObservableReader<T> {
-    /// Read the current value of the observable.
-    ///
-    /// Holds a read lock until the returned reference is dropped.
-    fn read_lock(&self) -> ObservableRef<'_, T>;
-}
-
-impl<T> ObservableReader<T> for Observable<T> {
-    fn read_lock(&self) -> ObservableRef<'_, T> {
-        self.read()
-    }
-}
-
-impl<T> ObservableReader<T> for T
-where
-    T: Deref<Target = Observable<T>>,
-{
-    fn read_lock(&self) -> ObservableRef<'_, T> {
-        self.read()
-    }
-}
 
 #[derive(Debug)]
 pub enum JoinedTask<T> {
@@ -121,16 +49,81 @@ impl<T> From<T> for JoinedTask<T> {
 }
 
 #[derive(Debug)]
+pub enum Reaction {
+    Rejected,
+    Accepted,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StateEffect {
+    /// The state has not been modified.
+    Unchanged,
+    /// The state might have been modified.
+    MaybeChanged,
+    /// The state has been modified.
+    Changed,
+}
+
+impl Add for StateEffect {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Self::Unchanged, Self::Unchanged) => Self::Unchanged,
+            (Self::MaybeChanged, Self::Unchanged | Self::MaybeChanged)
+            | (Self::Unchanged, Self::MaybeChanged) => Self::MaybeChanged,
+            (Self::Changed, _) | (_, Self::Changed) => Self::Changed,
+        }
+    }
+}
+
+impl AddAssign for StateEffect {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = self.add(rhs);
+    }
+}
+
+#[derive(Debug)]
 pub struct StateUnchanged;
 
-pub(crate) fn modify_observable_state<S, T>(
-    observable: &Observable<S>,
-    modify: impl FnOnce(&mut S) -> Result<T, StateUnchanged>,
-) -> Result<T, StateUnchanged> {
-    let mut result = Err(StateUnchanged);
-    observable.modify(|state| {
-        result = modify(state);
-        result.is_ok()
+impl From<StateUnchanged> for StateEffect {
+    fn from(_: StateUnchanged) -> Self {
+        StateEffect::Unchanged
+    }
+}
+
+pub(crate) fn modify_shared_state<S>(
+    shared_state: &Publisher<S>,
+    modify: impl FnOnce(&mut S) -> (anyhow::Result<Reaction>, StateEffect),
+) -> (anyhow::Result<Reaction>, StateEffect) {
+    let mut reaction_result = Ok(Reaction::Rejected);
+    let mut state_effect = StateEffect::Unchanged;
+    shared_state.modify(|state| {
+        let (modify_reaction_result, modify_state_effect) = modify(state);
+        reaction_result = modify_reaction_result;
+        state_effect = modify_state_effect;
+        match state_effect {
+            StateEffect::Unchanged => false,
+            StateEffect::MaybeChanged | StateEffect::Changed => true,
+        }
     });
-    result
+    (reaction_result, state_effect)
+}
+
+pub(crate) fn modify_shared_state_infallible<S>(
+    shared_state: &Publisher<S>,
+    modify: impl FnOnce(&mut S) -> (Reaction, StateEffect),
+) -> (Reaction, StateEffect) {
+    let mut reaction = Reaction::Rejected;
+    let mut state_effect = StateEffect::Unchanged;
+    shared_state.modify(|state| {
+        let (modify_reaction, modify_state_effect) = modify(state);
+        reaction = modify_reaction;
+        state_effect = modify_state_effect;
+        match state_effect {
+            StateEffect::Unchanged => false,
+            StateEffect::MaybeChanged | StateEffect::Changed => true,
+        }
+    });
+    (reaction, state_effect)
 }

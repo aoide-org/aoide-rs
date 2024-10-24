@@ -7,14 +7,14 @@ use std::{
     sync::{Arc, Weak},
 };
 
-use discro::{tasklet::OnChanged, Subscriber};
-use unnest::some_or_return_with;
+use discro::{tasklet::OnChanged, Observer, Subscriber};
+use unnest::{some_or_break, some_or_return_with};
 
-use crate::{collection, WeakHandle};
+use crate::{collection, Environment};
 
-use super::{ObservableState, State};
+use super::{SharedState, State};
 
-pub fn on_should_prefetch_trigger(
+fn on_should_prefetch_trigger(
     subscriber: Subscriber<State>,
     mut on_trigger: impl FnMut() -> OnChanged + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static {
@@ -29,7 +29,7 @@ pub fn on_should_prefetch_trigger(
     )
 }
 
-pub fn on_should_prefetch_trigger_async<T>(
+fn on_should_prefetch_trigger_async<T>(
     subscriber: Subscriber<State>,
     mut on_trigger: impl FnMut() -> T + Send + 'static,
 ) -> impl Future<Output = ()> + Send + 'static
@@ -48,29 +48,31 @@ where
 }
 
 pub fn on_should_prefetch(
-    observable_state: &Arc<ObservableState>,
-    handle: WeakHandle,
-    tokio_rt: tokio::runtime::Handle,
+    this: &Arc<SharedState>,
+    rt: tokio::runtime::Handle,
+    env: Weak<Environment>,
     prefetch_limit: Option<NonZeroUsize>,
 ) -> impl Future<Output = ()> + Send + 'static {
-    let observable_state_sub = observable_state.subscribe_changed();
-    let observable_state = Arc::downgrade(observable_state);
+    let subscriber = this.subscribe_changed();
+    let this = Arc::downgrade(this);
     async move {
-        log::debug!("on_should_prefetch");
-        on_should_prefetch_trigger_async(observable_state_sub, move || {
-            let observable_state = Weak::clone(&observable_state);
-            let handle = handle.clone();
-            let tokio_rt = tokio_rt.clone();
+        log::debug!("Starting on_should_prefetch");
+        on_should_prefetch_trigger_async(subscriber, move || {
+            let rt = rt.clone();
+            let env = Weak::clone(&env);
+            let this = Weak::clone(&this);
+
             async move {
-                let observable_state =
-                    some_or_return_with!(observable_state.upgrade(), OnChanged::Abort);
-                let should_prefetch = observable_state.read().should_prefetch();
+                log::debug!("Resuming on_should_prefetch");
+                let this = some_or_return_with!(this.upgrade(), OnChanged::Abort);
+                let should_prefetch = this.read().should_prefetch();
                 if should_prefetch {
-                    let handle = some_or_return_with!(handle.upgrade(), OnChanged::Abort);
-                    log::debug!("Prefetching");
-                    let _ =
-                        observable_state.spawn_fetch_more_task(&handle, &tokio_rt, prefetch_limit);
+                    let env = some_or_return_with!(env.upgrade(), OnChanged::Abort);
+                    let (reaction, state_effect) =
+                        this.spawn_fetch_more_task(&rt, &env, prefetch_limit);
+                    log::debug!("Prefetching: {reaction:?} {state_effect:?}");
                 }
+                log::debug!("Suspending on_should_prefetch");
                 OnChanged::Continue
             }
         })
@@ -79,36 +81,32 @@ pub fn on_should_prefetch(
 }
 
 pub fn on_collection_state_changed(
-    collection_state: &Arc<collection::ObservableState>,
-    observable_state: Weak<ObservableState>,
+    this: Weak<SharedState>,
+    collection_state: &Observer<collection::State>,
 ) -> impl Future<Output = ()> + Send + 'static {
     let mut collection_state_sub = collection_state.subscribe_changed();
     async move {
-        log::debug!("on_collection_state_changed");
+        log::debug!("Starting on_collection_state_changed");
         loop {
-            {
-                let Some(observable_state) = observable_state.upgrade() else {
-                    // Observable has been dropped.
-                    break;
-                };
-                let mut collection_uid = {
-                    let state = collection_state_sub.read_ack();
-                    // We are only interested in the collection UID if the collection is ready,
-                    // even though it is available in other states as well.
-                    match &*state {
-                        collection::State::Ready { entity, .. } => Some(entity.hdr.uid.clone()),
-                        _ => None,
-                    }
-                };
-                let _ = observable_state.update_collection_uid(&mut collection_uid);
-                if observable_state.reset_fetched().is_ok() {
-                    log::debug!("Fetched results have been reset");
-                }
-            }
+            log::debug!("Suspending on_collection_state_changed");
             if collection_state_sub.changed().await.is_err() {
-                // Publisher has been dropped.
+                // No publisher(s).
                 break;
             }
+            log::debug!("Resuming on_collection_state_changed");
+
+            let this = some_or_break!(this.upgrade());
+
+            let mut collection_uid = {
+                let state = collection_state_sub.read_ack();
+                // We are only interested in the collection UID if the collection is ready,
+                // even though it is available in other states as well.
+                match &*state {
+                    collection::State::Ready { entity, .. } => Some(entity.hdr.uid.clone()),
+                    _ => None,
+                }
+            };
+            this.update_collection_uid(&mut collection_uid);
         }
     }
 }

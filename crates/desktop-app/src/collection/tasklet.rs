@@ -10,19 +10,20 @@ use unnest::some_or_break;
 
 use aoide_core::util::fs::DirPath;
 
-use super::{NestedMusicDirectoriesStrategy, ObservableState, RestoreEntityStrategy};
-use crate::{settings, Handle, StateUnchanged, WeakHandle};
+use super::{NestedMusicDirectoriesStrategy, RestoreEntityStrategy, SharedState};
+use crate::{settings, Environment, StateUnchanged};
 
 async fn update_music_dir(
-    settings_state: &settings::ObservableState,
-    observable_state: &ObservableState,
-    handle: Handle,
+    rt: &tokio::runtime::Handle,
+    env: &Arc<Environment>,
+    this: &SharedState,
+    settings_state: &settings::SharedState,
     music_dir: Option<DirPath<'static>>,
     collection_kind: Option<String>,
     restore_entity: RestoreEntityStrategy,
     nested_music_directories: NestedMusicDirectoriesStrategy,
 ) {
-    if let Err(StateUnchanged) = observable_state.update_music_dir(
+    if let Err(StateUnchanged) = this.update_music_dir(
         collection_kind.map(Into::into),
         music_dir,
         restore_entity,
@@ -30,15 +31,19 @@ async fn update_music_dir(
     ) {
         return;
     }
-    if let Ok((task, continuation)) = observable_state.refresh_from_db_task(&handle) {
-        log::debug!("Refreshing from DB after updating music directory");
-        let result = task.await;
-        let _ = observable_state.refresh_from_db_task_completed(result, continuation);
+    match this.spawn_refresh_from_db_task(rt, env) {
+        Ok(()) => {
+            // The refresh task will finish in the background.
+            log::debug!("Refreshing from DB after updating music directory");
+        }
+        Err(StateUnchanged) => {
+            log::debug!("Not refreshed from DB after updating music directory");
+        }
     }
     // After succeeded read the actual music directory from the collection state
     // and feed it back into the settings state.
     let new_music_dir = {
-        let state = observable_state.read();
+        let state = this.read();
         if !state.is_ready() {
             return;
         }
@@ -56,9 +61,10 @@ async fn update_music_dir(
 }
 
 pub fn on_settings_state_changed(
-    settings_state: &Arc<settings::ObservableState>,
-    observable_state: Weak<ObservableState>,
-    handle: WeakHandle,
+    rt: tokio::runtime::Handle,
+    env: Weak<Environment>,
+    this: Weak<SharedState>,
+    settings_state: &Arc<settings::SharedState>,
     restore_entity: RestoreEntityStrategy,
     nested_music_directories: NestedMusicDirectoriesStrategy,
 ) -> impl Future<Output = ()> + Send + 'static {
@@ -67,34 +73,32 @@ pub fn on_settings_state_changed(
     async move {
         log::debug!("Starting on_settings_state_changed");
         loop {
-            {
-                let settings_state = some_or_break!(settings_state.upgrade());
-                let observable_state = some_or_break!(observable_state.upgrade());
-                let handle = some_or_break!(handle.upgrade());
-                let (music_dir, collection_kind) = {
-                    let settings_state = settings_state_sub.read_ack();
-                    let music_dir = settings_state.music_dir().cloned().map(DirPath::into_owned);
-                    let collection_kind = settings_state.collection_kind.clone();
-                    (music_dir, collection_kind)
-                };
-                update_music_dir(
-                    &settings_state,
-                    &observable_state,
-                    handle,
-                    music_dir,
-                    collection_kind,
-                    restore_entity,
-                    nested_music_directories,
-                )
-                .await;
-            }
             log::debug!("Suspending on_settings_state_changed");
             if settings_state_sub.changed().await.is_err() {
-                // Publisher disappeared
+                // No publisher(s).
                 break;
             }
             log::debug!("Resuming on_settings_state_changed");
+            let env = some_or_break!(env.upgrade());
+            let this = some_or_break!(this.upgrade());
+            let settings_state = some_or_break!(settings_state.upgrade());
+            let (music_dir, collection_kind) = {
+                let settings_state = settings_state_sub.read_ack();
+                let music_dir = settings_state.music_dir().cloned().map(DirPath::into_owned);
+                let collection_kind = settings_state.collection_kind.clone();
+                (music_dir, collection_kind)
+            };
+            update_music_dir(
+                &rt,
+                &env,
+                &this,
+                &settings_state,
+                music_dir,
+                collection_kind,
+                restore_entity,
+                nested_music_directories,
+            )
+            .await;
         }
-        log::debug!("Stopping on_settings_state_changed");
     }
 }

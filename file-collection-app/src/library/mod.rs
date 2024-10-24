@@ -4,7 +4,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use aoide::{
-    desktop_app::{collection::SynchronizeVfsTask, Handle, ObservableReader, StateUnchanged},
+    desktop_app::{collection::SynchronizingVfsTask, rt, env, ObservableReader, StateUnchanged},
     media::content::ContentPath,
     util::fs::DirPath,
     CollectionUid,
@@ -96,7 +96,7 @@ impl StateObservables {
 pub struct State {
     pub music_dir: Option<DirPath<'static>>,
     pub collection: collection::State,
-    pub pending_music_dir_sync_task: Option<SynchronizeVfsTask>,
+    pub pending_music_dir_sync_task: Option<SynchronizingVfsTask>,
 }
 
 impl State {
@@ -124,7 +124,7 @@ impl State {
 pub struct CurrentState<'a> {
     music_dir: Option<&'a DirPath<'static>>,
     collection: &'a collection::State,
-    pending_music_dir_sync_task: Option<&'a SynchronizeVfsTask>,
+    pending_music_dir_sync_task: Option<&'a SynchronizingVfsTask>,
     track_search: Ref<'a, track_search::State>,
 }
 
@@ -184,27 +184,27 @@ impl CurrentState<'_> {
     }
 }
 
-/// Library state with a handle to the runtime environment
+/// Library state with a env to the runtime environment
 #[allow(missing_debug_implementations)]
 pub struct Library {
-    handle: Handle,
+    env: env::Handle,
     state_observables: StateObservables,
     state: State,
 }
 
 impl Library {
     #[must_use]
-    pub fn new(handle: Handle, initial_settings: settings::State) -> Self {
+    pub fn new(env: env::Handle, initial_settings: settings::State) -> Self {
         Self {
-            handle,
+            env,
             state_observables: StateObservables::new(initial_settings),
             state: Default::default(),
         }
     }
 
     #[must_use]
-    pub const fn handle(&self) -> &Handle {
-        &self.handle
+    pub const fn env(&self) -> &env::Handle {
+        &self.env
     }
 
     #[must_use]
@@ -358,7 +358,7 @@ impl Library {
         }
         log::info!("Spawning synchronize music directory task");
         self.state.pending_music_dir_sync_task =
-            SynchronizeVfsTask::spawn(rt, &self.handle, &self.state_observables.collection).ok();
+            SynchronizingVfsTask::spawn(rt, &self.env, &self.state_observables.collection).ok();
         let Some(task) = &self.state.pending_music_dir_sync_task else {
             return rejected;
         };
@@ -427,11 +427,11 @@ impl Library {
             return ActionResponse::Rejected;
         }
         let collection_uid = self.state.collection.entity_uid().expect("Some").clone();
-        let handle = self.handle.clone();
+        let env = self.env.clone();
         let event_emitter = event_emitter.clone();
         rt.spawn(async move {
             let result = aoide::backend_embedded::media::tracker::count_sources_in_directories(
-                handle.db_gatekeeper(),
+                env.db_gatekeeper(),
                 collection_uid.clone(),
                 params.clone(),
             )
@@ -452,7 +452,7 @@ impl Library {
         let Ok((task, continuation)) = self
             .state_observables
             .collection
-            .refresh_from_db_task(&self.handle)
+            .spawn_refresh_from_db_task(rt, &self.env)
         else {
             return ActionResponse::Rejected;
         };
@@ -490,11 +490,11 @@ impl Library {
     #[allow(clippy::must_use_candidate)]
     pub fn fetch_more_track_search_results(
         &self,
-        tokio_rt: &tokio::runtime::Handle,
+        rt: &tokio::runtime::Handle,
     ) -> ActionResponse {
         match self.state_observables.track_search.spawn_fetch_more_task(
-            &self.handle,
-            tokio_rt,
+            rt,
+            &self.env,
             Some(track_search::DEFAULT_PREFETCH_LIMIT),
         ) {
             Ok(()) => ActionResponse::Accepted,
@@ -503,52 +503,53 @@ impl Library {
     }
 
     /// Spawn reactive background tasks
-    pub fn spawn_background_tasks(&self, tokio_rt: &tokio::runtime::Handle, settings_dir: PathBuf) {
-        tokio_rt.spawn(settings::tasklet::on_state_changed_save_to_file(
-            self.state_observables.settings.subscribe_changed(),
+    pub fn spawn_background_tasks(&self, rt: &tokio::runtime::Handle, settings_dir: PathBuf) {
+        rt.spawn(settings::tasklet::on_state_changed_save_to_file(
+            &self.state_observables.settings.observe(),
             settings_dir,
             |err| {
                 log::error!("Failed to save settings to file: {err}");
             },
         ));
-        tokio_rt.spawn(collection::tasklet::on_settings_state_changed(
+        rt.spawn(collection::tasklet::on_settings_state_changed(
             &self.state_observables.settings,
             Arc::downgrade(&self.state_observables.collection),
-            Handle::downgrade(&self.handle),
+            tokio::runtime::Handle::downgrade(rt),
+            env::Handle::downgrade(&self.env),
             collection::RESTORE_ENTITY_STRATEGY,
             collection::NESTED_MUSIC_DIRS_STRATEGY,
         ));
-        tokio_rt.spawn(track_search::tasklet::on_collection_state_changed(
+        rt.spawn(track_search::tasklet::on_collection_state_changed(
             &self.state_observables.collection,
             Arc::downgrade(&self.state_observables.track_search),
         ));
-        tokio_rt.spawn(track_search::tasklet::on_should_prefetch(
+        rt.spawn(track_search::tasklet::on_should_prefetch(
             &self.state_observables.track_search,
-            Handle::downgrade(&self.handle),
-            tokio_rt.clone(),
+            tokio::runtime::Handle::downgrade(rt),
+            env::Handle::downgrade(&self.env),
             Some(track_search::DEFAULT_PREFETCH_LIMIT),
         ));
     }
 
-    pub fn spawn_event_tasks<E>(&self, tokio_rt: &tokio::runtime::Handle, event_emitter: &E)
+    pub fn spawn_event_tasks<E>(&self, rt: &tokio::runtime::Handle, event_emitter: &E)
     where
         E: EventEmitter + Clone + 'static,
     {
-        tokio_rt.spawn({
+        rt.spawn({
             let subscriber = self.state_observables.settings.subscribe_changed();
             let event_emitter = event_emitter.clone();
             async move {
                 settings::watch_state(subscriber, event_emitter).await;
             }
         });
-        tokio_rt.spawn({
+        rt.spawn({
             let subscriber = self.state_observables.collection.subscribe_changed();
             let event_emitter = event_emitter.clone();
             async move {
                 collection::watch_state(subscriber, event_emitter).await;
             }
         });
-        tokio_rt.spawn({
+        rt.spawn({
             let subscriber = self.state_observables.track_search.subscribe_changed();
             let event_emitter = event_emitter.clone();
             async move {
