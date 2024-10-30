@@ -1019,6 +1019,7 @@ impl State {
     }
 }
 
+pub type SharedStateObserver = discro::Observer<State>;
 pub type SharedStateSubscriber = discro::Subscriber<State>;
 
 #[derive(Debug)]
@@ -1065,12 +1066,13 @@ impl SharedState {
     }
 
     #[must_use]
-    pub fn subscribe_changed(&self) -> SharedStateSubscriber {
-        self.0.subscribe_changed()
+    pub fn observe(&self) -> SharedStateObserver {
+        self.0.observe()
     }
 
-    pub fn set_modified(&self) {
-        self.0.set_modified();
+    #[must_use]
+    pub fn subscribe_changed(&self) -> SharedStateSubscriber {
+        self.0.subscribe_changed()
     }
 
     pub fn reset(&self) -> ActionEffect {
