@@ -39,8 +39,8 @@ use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 
 use crate::{
-    modify_shared_state_action_effect, modify_shared_state_action_effect_result, ActionEffect,
-    Environment, JoinedTask,
+    modify_shared_state_action_effect, modify_shared_state_action_effect_result,
+    modify_shared_state_result, ActionEffect, Environment, JoinedTask,
 };
 
 pub mod tasklet;
@@ -378,6 +378,21 @@ pub enum State {
     },
 }
 
+#[derive(Debug)]
+pub enum SpawnRestoringFromMusicDirectoryTaskReaction {
+    Unchanged,
+    SpawnedAndChanged(AbortHandle),
+}
+
+impl SpawnRestoringFromMusicDirectoryTaskReaction {
+    pub const fn effect(&self) -> ActionEffect {
+        match self {
+            Self::Unchanged => ActionEffect::Unchanged,
+            Self::SpawnedAndChanged(_) => ActionEffect::Changed,
+        }
+    }
+}
+
 impl State {
     #[must_use]
     pub const fn pending_since(&self) -> Option<Instant> {
@@ -514,6 +529,12 @@ impl State {
         ActionEffect::Changed
     }
 
+    /// Restore collection from a music directory.
+    ///
+    /// The operation is performed by a background task.
+    ///
+    /// If the method returns an error result the state has not been modified
+    /// and is unchanged.
     #[allow(clippy::too_many_arguments)] // TODO
     pub fn spawn_restoring_from_music_directory_task(
         &mut self,
@@ -524,7 +545,7 @@ impl State {
         new_music_dir: DirPath<'_>,
         restore_entity: RestoreEntityStrategy,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
-    ) -> (ActionEffect, anyhow::Result<Option<AbortHandle>>) {
+    ) -> anyhow::Result<SpawnRestoringFromMusicDirectoryTaskReaction> {
         match self {
             Self::Ready { entity, .. } => {
                 // When set the `kind` controls the selection of collections by music directory.
@@ -536,7 +557,7 @@ impl State {
                             "Music directory unchanged and not updated: {music_dir}",
                             music_dir = new_music_dir.display()
                         );
-                        return (ActionEffect::Unchanged, Ok(None));
+                        return Ok(SpawnRestoringFromMusicDirectoryTaskReaction::Unchanged);
                     }
                 }
             }
@@ -562,7 +583,7 @@ impl State {
                         "Music directory unchanged and not updated: {music_dir}",
                         music_dir = new_music_dir.display()
                     );
-                    return (ActionEffect::Unchanged, Ok(None));
+                    return Ok(SpawnRestoringFromMusicDirectoryTaskReaction::Unchanged);
                 }
             }
             _ => {
@@ -612,7 +633,7 @@ impl State {
             },
         };
 
-        (ActionEffect::Changed, Ok(Some(abort_worker_task)))
+        Ok(SpawnRestoringFromMusicDirectoryTaskReaction::SpawnedAndChanged(abort_worker_task))
     }
 
     fn spawn_loading_from_database_task(
@@ -1087,18 +1108,25 @@ impl SharedState {
         new_music_dir: DirPath<'static>,
         restore_entity: RestoreEntityStrategy,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
-    ) -> (ActionEffect, anyhow::Result<Option<AbortHandle>>) {
-        modify_shared_state_action_effect_result(&self.0, |state| {
-            state.spawn_restoring_from_music_directory_task(
-                self,
-                rt,
-                env,
-                kind,
-                new_music_dir,
-                restore_entity,
-                nested_music_dirs,
-            )
-        })
+    ) -> anyhow::Result<SpawnRestoringFromMusicDirectoryTaskReaction> {
+        modify_shared_state_result(
+            &self.0,
+            |state| {
+                state.spawn_restoring_from_music_directory_task(
+                    self,
+                    rt,
+                    env,
+                    kind,
+                    new_music_dir,
+                    restore_entity,
+                    nested_music_dirs,
+                )
+            },
+            |result| match result {
+                Ok(reaction) => reaction.effect(),
+                Err(_) => ActionEffect::Unchanged,
+            },
+        )
     }
 
     pub fn spawn_loading_from_database_task(

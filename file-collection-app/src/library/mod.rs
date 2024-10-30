@@ -457,8 +457,8 @@ impl Library {
         rt.spawn(collection::tasklet::on_settings_state_changed(
             rt.clone(),
             Arc::downgrade(&self.env),
-            &self.shared_state.settings,
             Arc::downgrade(&self.shared_state.collection),
+            &self.shared_state.settings,
             collection::RESTORE_ENTITY_STRATEGY,
             collection::NESTED_MUSIC_DIRS_STRATEGY,
         ));

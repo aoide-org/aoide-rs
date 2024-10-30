@@ -120,3 +120,21 @@ pub(crate) fn modify_shared_state_action_effect_result<State, Result>(
     let result = result.expect("has been set");
     (effect, result)
 }
+
+pub(crate) fn modify_shared_state_result<State, Result>(
+    shared_state: &Publisher<State>,
+    modify_state: impl FnOnce(&mut State) -> Result,
+    action_effect: impl FnOnce(&Result) -> ActionEffect,
+) -> Result {
+    let mut result = None;
+    shared_state.modify(|state| {
+        let modify_result = modify_state(state);
+        let modified = match action_effect(&modify_result) {
+            ActionEffect::Unchanged => false,
+            ActionEffect::MaybeChanged | ActionEffect::Changed => true,
+        };
+        result = Some(modify_result);
+        modified
+    });
+    result.expect("has been set")
+}
