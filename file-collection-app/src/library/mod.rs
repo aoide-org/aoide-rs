@@ -289,7 +289,6 @@ impl Library {
         *memo_state = track_search::MemoState::Ready(std::mem::take(memo));
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> ActionEffect {
         let mut effect = self.shared_state.settings.update_music_dir(music_dir);
         if matches!(effect, ActionEffect::Unchanged) {
@@ -303,12 +302,10 @@ impl Library {
         effect
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn reset_music_dir(&mut self) -> ActionEffect {
         self.update_music_dir(None)
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn reset_collection(&mut self) -> ActionEffect {
         let mut effect = self.shared_state.collection.reset();
         if matches!(effect, ActionEffect::Unchanged) {
@@ -322,7 +319,7 @@ impl Library {
         effect
     }
 
-    #[allow(clippy::must_use_candidate)]
+    #[must_use]
     pub fn sync_music_dir<E>(
         &mut self,
         rt: &tokio::runtime::Handle,
@@ -387,7 +384,6 @@ impl Library {
         (effect, Ok(()))
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn sync_music_dir_abort(&mut self) -> ActionEffect {
         let Some(sync_music_dir_task) = self.state.sync_music_dir_task.take() else {
             log::info!("Not pending");
@@ -398,7 +394,6 @@ impl Library {
         ActionEffect::Changed
     }
 
-    #[allow(clippy::must_use_candidate)]
     #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn view_music_dir_list<E>(
         &self,
@@ -435,7 +430,7 @@ impl Library {
         ActionEffect::MaybeChanged
     }
 
-    #[allow(clippy::must_use_candidate)]
+    #[must_use]
     pub fn refresh_collection_from_db(
         &self,
         rt: &tokio::runtime::Handle,
@@ -445,7 +440,6 @@ impl Library {
             .spawn_loading_from_database_task(rt, &self.env)
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn search_tracks(&self, input: &str) -> ActionEffect {
         let filter = track_search::parse_filter_from_input(input);
         let mut params = aoide::api::track::search::Params {
@@ -457,7 +451,6 @@ impl Library {
         self.shared_state.track_search.update_params(&mut params)
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn fetch_more_track_search_results(&self, rt: &tokio::runtime::Handle) -> ActionEffect {
         self.shared_state.track_search.spawn_fetching_more_task(
             rt,

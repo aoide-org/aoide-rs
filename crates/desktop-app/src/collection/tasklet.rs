@@ -16,6 +16,7 @@ use super::{
 };
 use crate::{settings, Environment};
 
+#[allow(clippy::too_many_arguments)] // TODO
 async fn update_music_dir(
     rt: &tokio::runtime::Handle,
     env: &Arc<Environment>,

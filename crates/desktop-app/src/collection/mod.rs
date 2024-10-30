@@ -335,6 +335,7 @@ pub enum LoadingFromDatabaseFinishedState {
     Failed { error: String },
 }
 
+#[allow(clippy::large_enum_variant)] // Only exists temporarily for a limited duration.
 #[derive(Debug)]
 pub enum SynchronizingVfsState {
     Pending {
@@ -344,6 +345,7 @@ pub enum SynchronizingVfsState {
     Finished(SynchronizingVfsFinishedState),
 }
 
+#[allow(clippy::large_enum_variant)] // Only exists temporarily for a limited duration.
 #[derive(Debug, Clone)]
 pub enum SynchronizingVfsFinishedState {
     Succeeded { outcome: Outcome },
@@ -353,8 +355,8 @@ pub enum SynchronizingVfsFinishedState {
 
 /// State of a single collection that is based on directory in the
 /// local directory using a virtual file system (VFS) for content paths.
+#[allow(clippy::large_enum_variant)] // That's fine for a single or very few instances.
 #[derive(Debug, Default)]
-#[allow(clippy::large_enum_variant)]
 pub enum State {
     #[default]
     Void,
@@ -492,8 +494,8 @@ impl State {
                         error,
                     }),
                 ..
-            } => Some(error.as_str()),
-            Self::SynchronizingVfs {
+            }
+            | Self::SynchronizingVfs {
                 state:
                     SynchronizingVfsState::Finished(SynchronizingVfsFinishedState::Failed { error }),
                 ..
@@ -512,6 +514,7 @@ impl State {
         ActionEffect::Changed
     }
 
+    #[allow(clippy::too_many_arguments)] // TODO
     pub fn spawn_restoring_from_music_directory_task(
         &mut self,
         this: &SharedState,
@@ -642,7 +645,7 @@ impl State {
                 };
 
                 let worker_task = rt.spawn({
-                    let env = env.clone();
+                    let env = Arc::clone(env);
                     let params = LoadStateFromDatabaseParams {
                         entity_uid: None,
                         context: Some(context.clone()),
@@ -724,7 +727,7 @@ impl State {
         };
 
         let worker_task = rt.spawn({
-            let env = env.clone();
+            let env = Arc::clone(env);
             async move { load_state_from_database(env, params).await }
         });
         let abort_worker_task = worker_task.abort_handle();
@@ -755,60 +758,61 @@ impl State {
             context: continuation_context,
             pending_since: continuation_pending_since,
         } = continuation;
-        match self {
-            Self::RestoringFromMusicDirectory {
-                context,
-                state:
-                    RestoringFromMusicDirectoryState::Pending {
-                        since: pending_since,
-                        task,
-                    },
-            } => {
-                debug_assert!(task.is_finished());
-                if *pending_since != continuation_pending_since || *context != continuation_context
-                {
-                    log::warn!(
-                        "State changed while restoring from music directory: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
-                        continuation = RestoringFromMusicDirectoryTaskContinuation {
-                            context: continuation_context,
-                            pending_since: continuation_pending_since,
-                        }
-                    );
-                    return ActionEffect::Unchanged;
-                }
-                match joined {
-                    JoinedTask::Completed(Ok(next_state)) => {
-                        log::debug!("Restored state from music directory: {next_state:?}");
-                        *self = next_state;
-                    }
-                    JoinedTask::Cancelled => {
-                        log::debug!("Restored state from music directory cancelled");
-                        *self = Self::Void;
-                    }
-                    JoinedTask::Completed(Err(err)) | JoinedTask::Panicked(err) => {
-                        log::warn!("Failed to restore state from music directory: {err}");
-                        let error = RestoringFromMusicDirectoryError::Other(err.to_string());
-                        *self = Self::RestoringFromMusicDirectory {
-                            context: continuation_context,
-                            state: RestoringFromMusicDirectoryState::Finished(
-                                RestoringFromMusicDirectoryFinishedState::Failed { error },
-                            ),
-                        };
-                    }
-                }
-            }
-            _ => {
-                log::warn!(
+
+        let Self::RestoringFromMusicDirectory {
+            context,
+            state:
+                RestoringFromMusicDirectoryState::Pending {
+                    since: pending_since,
+                    task,
+                },
+        } = self
+        else {
+            log::warn!(
                     "State changed while restoring from music directory: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
                         continuation = RestoringFromMusicDirectoryTaskContinuation {
                             context: continuation_context,
                             pending_since: continuation_pending_since,
                         }
                 );
-                return ActionEffect::Unchanged;
+            return ActionEffect::Unchanged;
+        };
+
+        debug_assert!(task.is_finished());
+        if *pending_since != continuation_pending_since || *context != continuation_context {
+            log::warn!(
+                        "State changed while restoring from music directory: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
+                        continuation = RestoringFromMusicDirectoryTaskContinuation {
+                            context: continuation_context,
+                            pending_since: continuation_pending_since,
+                        }
+                    );
+            return ActionEffect::Unchanged;
+        }
+
+        match joined {
+            JoinedTask::Completed(Ok(next_state)) => {
+                log::debug!("Restored state from music directory: {next_state:?}");
+                *self = next_state;
+                ActionEffect::MaybeChanged
+            }
+            JoinedTask::Cancelled => {
+                log::debug!("Restored state from music directory cancelled");
+                *self = Self::Void;
+                ActionEffect::Changed
+            }
+            JoinedTask::Completed(Err(err)) | JoinedTask::Panicked(err) => {
+                log::warn!("Failed to restore state from music directory: {err}");
+                let error = RestoringFromMusicDirectoryError::Other(err.to_string());
+                *self = Self::RestoringFromMusicDirectory {
+                    context: continuation_context,
+                    state: RestoringFromMusicDirectoryState::Finished(
+                        RestoringFromMusicDirectoryFinishedState::Failed { error },
+                    ),
+                };
+                ActionEffect::Changed
             }
         }
-        ActionEffect::MaybeChanged
     }
 
     fn continue_after_loading_from_database_task_joined(
@@ -820,60 +824,60 @@ impl State {
             context: continuation_context,
             pending_since: continuation_pending_since,
         } = continuation;
-        match self {
-            Self::LoadingFromDatabase {
-                context,
-                state:
-                    LoadingFromDatabaseState::Pending {
-                        since: pending_since,
-                        task,
-                    },
-            } => {
-                debug_assert!(task.is_finished());
-                if *pending_since != continuation_pending_since || *context != continuation_context
-                {
-                    log::warn!(
-                        "State changed while loading from database: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
-                        continuation = LoadingFromDatabaseTaskContinuation {
-                            context: continuation_context,
-                            pending_since: continuation_pending_since,
-                        }
-                    );
-                    return ActionEffect::Unchanged;
-                }
-                match joined {
-                    JoinedTask::Completed(Ok(next_state)) => {
-                        log::debug!("Loaded state from database: {next_state:?}");
-                        *self = next_state;
-                    }
-                    JoinedTask::Cancelled => {
-                        log::debug!("Loading state from database cancelled");
-                        *self = Self::Void;
-                    }
-                    JoinedTask::Completed(Err(err)) | JoinedTask::Panicked(err) => {
-                        log::warn!("Failed to load state from database: {err}");
-                        let error = err.to_string();
-                        *self = Self::LoadingFromDatabase {
-                            context: continuation_context,
-                            state: LoadingFromDatabaseState::Finished(
-                                LoadingFromDatabaseFinishedState::Failed { error },
-                            ),
-                        };
-                    }
-                }
-            }
-            _ => {
-                log::warn!(
+
+        let Self::LoadingFromDatabase {
+            context,
+            state:
+                LoadingFromDatabaseState::Pending {
+                    since: pending_since,
+                    task,
+                },
+        } = self
+        else {
+            log::warn!(
                     "State changed while loading from database: current {self:?}, continuation {continuation:?} - discarding {joined:?}",
                         continuation = LoadingFromDatabaseTaskContinuation {
                             context: continuation_context,
                             pending_since: continuation_pending_since,
                         }
                 );
-                return ActionEffect::Unchanged;
+            return ActionEffect::Unchanged;
+        };
+        debug_assert!(task.is_finished());
+        if *pending_since != continuation_pending_since || *context != continuation_context {
+            log::warn!(
+                        "State changed while loading from database: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
+                        continuation = LoadingFromDatabaseTaskContinuation {
+                            context: continuation_context,
+                            pending_since: continuation_pending_since,
+                        }
+                    );
+            return ActionEffect::Unchanged;
+        }
+
+        match joined {
+            JoinedTask::Completed(Ok(next_state)) => {
+                log::debug!("Loaded state from database: {next_state:?}");
+                *self = next_state;
+                ActionEffect::MaybeChanged
+            }
+            JoinedTask::Cancelled => {
+                log::debug!("Loading state from database cancelled");
+                *self = Self::Void;
+                ActionEffect::Changed
+            }
+            JoinedTask::Completed(Err(err)) | JoinedTask::Panicked(err) => {
+                log::warn!("Failed to load state from database: {err}");
+                let error = err.to_string();
+                *self = Self::LoadingFromDatabase {
+                    context: continuation_context,
+                    state: LoadingFromDatabaseState::Finished(
+                        LoadingFromDatabaseFinishedState::Failed { error },
+                    ),
+                };
+                ActionEffect::Changed
             }
         }
-        ActionEffect::MaybeChanged
     }
 
     #[must_use]
@@ -895,7 +899,6 @@ impl State {
         }
     }
 
-    #[must_use]
     fn spawn_synchronizing_vfs_task(
         &mut self,
         this: &SharedState,
@@ -918,7 +921,7 @@ impl State {
             pending_since,
         };
 
-        let task = SynchronizingVfsTask::spawn(rt, env.clone(), this.clone(), continuation);
+        let task = SynchronizingVfsTask::spawn(rt, Arc::clone(env), this.clone(), continuation);
         let state = SynchronizingVfsState::Pending {
             since: pending_since,
             task: task.clone(),
@@ -929,7 +932,6 @@ impl State {
         (ActionEffect::Changed, Ok(task))
     }
 
-    #[must_use]
     fn continue_after_synchronizing_vfs_task_joined(
         &mut self,
         joined: JoinedTask<anyhow::Result<Outcome>>,
@@ -1072,10 +1074,9 @@ impl SharedState {
     }
 
     pub fn reset(&self) -> ActionEffect {
-        modify_shared_state_action_effect(&self.0, |state| (state.reset()))
+        modify_shared_state_action_effect(&self.0, State::reset)
     }
 
-    #[must_use]
     pub fn spawn_restoring_from_music_directory_task(
         &self,
         rt: &tokio::runtime::Handle,
@@ -1098,7 +1099,6 @@ impl SharedState {
         })
     }
 
-    #[must_use]
     pub fn spawn_loading_from_database_task(
         &self,
         rt: &tokio::runtime::Handle,
@@ -1109,7 +1109,6 @@ impl SharedState {
         })
     }
 
-    #[must_use]
     fn continue_after_restoring_from_music_directory_task_joined(
         &self,
         joined: JoinedTask<anyhow::Result<State>>,
@@ -1120,7 +1119,6 @@ impl SharedState {
         })
     }
 
-    #[must_use]
     fn continue_after_loading_from_database_task_joined(
         &self,
         joined: JoinedTask<anyhow::Result<State>>,
@@ -1131,7 +1129,6 @@ impl SharedState {
         })
     }
 
-    #[must_use]
     pub fn spawn_synchronizing_vfs_task(
         &self,
         rt: &tokio::runtime::Handle,
@@ -1142,7 +1139,6 @@ impl SharedState {
         })
     }
 
-    #[must_use]
     pub async fn finish_synchronizing_vfs_task(
         &self,
         rt: &tokio::runtime::Handle,
@@ -1181,7 +1177,6 @@ impl SharedState {
         }
     }
 
-    #[must_use]
     fn continue_after_synchronizing_vfs_task_joined(
         &self,
         joined: JoinedTask<anyhow::Result<Outcome>>,

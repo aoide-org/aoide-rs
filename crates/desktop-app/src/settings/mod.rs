@@ -225,7 +225,6 @@ impl SharedState {
         self.0.set_modified();
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn update_music_dir(&self, music_dir: Option<&DirPath<'_>>) -> ActionEffect {
         modify_shared_state_action_effect(&self.0, |state| state.update_music_dir(music_dir))
     }

@@ -37,12 +37,12 @@ pub struct FetchedEntitiesMemo {
 }
 
 impl FetchedEntitiesMemo {
+    #[must_use]
     pub fn new(fetched_entities: &[FetchedEntity]) -> Self {
         let offset = fetched_entities.len();
         let offset_hash = fetched_entities
             .last()
-            .map(|last| last.offset_hash)
-            .unwrap_or(INITIAL_OFFSET_HASH_SEED);
+            .map_or(INITIAL_OFFSET_HASH_SEED, |last| last.offset_hash);
         Self {
             offset,
             offset_hash,
@@ -118,7 +118,6 @@ impl FetchState {
         self.pending_since().is_some()
     }
 
-    #[must_use]
     fn abort_pending_task(&self) -> ActionEffect {
         match self {
             Self::Initial | Self::Ready { .. } | Self::Failed { .. } => ActionEffect::Unchanged,
@@ -179,7 +178,6 @@ impl FetchState {
         }
     }
 
-    #[must_use]
     fn reset(&mut self) -> ActionEffect {
         if matches!(self, Self::Initial) {
             // No effect
@@ -200,8 +198,9 @@ impl FetchState {
         log::debug!("Fetching more succeeded with {num_fetched_entities} newly fetched entities");
 
         let (mut offset, mut offset_hash_seed) = memo
-            .map(|memo| (memo.offset, memo.offset_hash))
-            .unwrap_or((0, INITIAL_OFFSET_HASH_SEED));
+            .map_or((0, INITIAL_OFFSET_HASH_SEED), |memo| {
+                (memo.offset, memo.offset_hash)
+            });
 
         let Self::Pending {
             fetched_entities_before,
@@ -390,7 +389,6 @@ impl State {
         self.fetch.is_pending()
     }
 
-    #[must_use]
     pub fn abort_pending_task(&self) -> ActionEffect {
         self.fetch.abort_pending_task()
     }
@@ -519,7 +517,6 @@ impl State {
         diff
     }
 
-    #[must_use]
     fn reset(&mut self) -> ActionEffect {
         let Self {
             default_params: _,
@@ -543,7 +540,6 @@ impl State {
     /// Update the collection UID
     ///
     /// Consumed the argument when returning `true`.
-    #[must_use]
     fn update_collection_uid(
         &mut self,
         collection_uid: &mut Option<CollectionUid>,
@@ -564,7 +560,6 @@ impl State {
     /// Update the search parameters
     ///
     /// Consumed the argument when returning `true`.
-    #[must_use]
     fn update_params(&mut self, params: &mut Params) -> ActionEffect {
         if params == &self.context.params {
             // No effect.
@@ -576,7 +571,6 @@ impl State {
         ActionEffect::Changed + self.fetch.reset()
     }
 
-    #[must_use]
     fn continue_after_fetching_more_task_joined(
         &mut self,
         joined: JoinedTask<FetchMoreResult>,
@@ -634,7 +628,7 @@ impl State {
                 self.fetch.fetching_more_cancelled();
             }
             JoinedTask::Panicked(err) => {
-                self.fetch.fetching_more_failed(err.into());
+                self.fetch.fetching_more_failed(err);
             }
         }
 
@@ -645,7 +639,6 @@ impl State {
         self.fetch.reset()
     }
 
-    #[must_use]
     fn spawn_fetching_more_task(
         &mut self,
         this: &SharedState,
@@ -696,7 +689,7 @@ impl State {
         };
 
         let worker_task = rt.spawn({
-            let env = env.clone();
+            let env = Arc::clone(env);
             let collection_uid = collection_uid.clone();
             let params = continuation.context.params.clone();
             let offset = continuation
@@ -764,7 +757,7 @@ impl SharedState {
     }
 
     pub fn reset(&self) -> ActionEffect {
-        modify_shared_state_action_effect(&self.0, |state| state.reset())
+        modify_shared_state_action_effect(&self.0, State::reset)
     }
 
     pub fn update_collection_uid(
@@ -780,7 +773,6 @@ impl SharedState {
         modify_shared_state_action_effect(&self.0, |state| state.update_params(params))
     }
 
-    #[must_use]
     pub fn spawn_fetching_more_task(
         &self,
         rt: &tokio::runtime::Handle,
@@ -792,7 +784,6 @@ impl SharedState {
         })
     }
 
-    #[must_use]
     fn continue_after_fetching_more_task_joined(
         &self,
         joined: JoinedTask<FetchMoreResult>,
@@ -804,7 +795,7 @@ impl SharedState {
     }
 
     pub fn reset_fetched(&self) -> ActionEffect {
-        modify_shared_state_action_effect(&self.0, |state| state.reset_fetched())
+        modify_shared_state_action_effect(&self.0, State::reset_fetched)
     }
 }
 
