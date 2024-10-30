@@ -87,18 +87,6 @@ impl AddAssign for ActionEffect {
     }
 }
 
-#[derive(Debug)]
-pub struct ActionRejected;
-
-#[derive(Debug)]
-pub struct StateUnchanged;
-
-impl From<StateUnchanged> for ActionEffect {
-    fn from(_: StateUnchanged) -> Self {
-        ActionEffect::Unchanged
-    }
-}
-
 pub(crate) fn modify_shared_state_action_effect<State>(
     shared_state: &Publisher<State>,
     modify_state: impl FnOnce(&mut State) -> ActionEffect,
