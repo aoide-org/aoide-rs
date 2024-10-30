@@ -111,7 +111,7 @@ impl<'a> UpdateContext<'a> {
                     }
                     *mode = None;
                     msg_tx.send_action(CollectionAction::RefreshFromDb);
-                    return ActionEffect::Changed;
+                    ActionEffect::Changed
                 }
             },
             MediaTrackerAction::DirList(action) => match action {
@@ -423,8 +423,8 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
             }
             | collection::State::RestoringFromMusicDirectory {
                 state:
-                    collection::RestoringFromMusicDirectoryState::Finished(collection::RestoringFromMusicDirectoryFinishedState::Failed { .. })
-                    | collection::RestoringFromMusicDirectoryState::Finished(collection::RestoringFromMusicDirectoryFinishedState::NestedDirectoriesConflict { .. }),
+                    collection::RestoringFromMusicDirectoryState::Finished(collection::RestoringFromMusicDirectoryFinishedState::Failed { .. }
+                        | collection::RestoringFromMusicDirectoryFinishedState::NestedDirectoriesConflict { .. }),
                 ..
             } => {
                 reset_music_dir = true;

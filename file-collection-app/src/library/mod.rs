@@ -293,11 +293,9 @@ impl Library {
         let mut effect = self.shared_state.settings.update_music_dir(music_dir);
         if matches!(effect, ActionEffect::Unchanged) {
             debug_assert!(self.state.sync_music_dir_task.is_none());
-        } else {
-            if let Some(sync_music_dir_task) = self.state.sync_music_dir_task.take() {
-                sync_music_dir_task.abort();
-                effect += ActionEffect::Changed;
-            }
+        } else if let Some(sync_music_dir_task) = self.state.sync_music_dir_task.take() {
+            sync_music_dir_task.abort();
+            effect += ActionEffect::Changed;
         }
         effect
     }
@@ -310,16 +308,13 @@ impl Library {
         let mut effect = self.shared_state.collection.reset();
         if matches!(effect, ActionEffect::Unchanged) {
             debug_assert!(self.state.sync_music_dir_task.is_none());
-        } else {
-            if let Some(sync_music_dir_task) = self.state.sync_music_dir_task.take() {
-                sync_music_dir_task.abort();
-                effect += ActionEffect::Changed;
-            }
+        } else if let Some(sync_music_dir_task) = self.state.sync_music_dir_task.take() {
+            sync_music_dir_task.abort();
+            effect += ActionEffect::Changed;
         }
         effect
     }
 
-    #[must_use]
     pub fn sync_music_dir<E>(
         &mut self,
         rt: &tokio::runtime::Handle,
@@ -394,7 +389,6 @@ impl Library {
         ActionEffect::Changed
     }
 
-    #[allow(clippy::missing_panics_doc)] // Never panics
     pub fn view_music_dir_list<E>(
         &self,
         rt: &tokio::runtime::Handle,
@@ -430,7 +424,6 @@ impl Library {
         ActionEffect::MaybeChanged
     }
 
-    #[must_use]
     pub fn refresh_collection_from_db(
         &self,
         rt: &tokio::runtime::Handle,
