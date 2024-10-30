@@ -29,7 +29,7 @@ pub fn on_state_changed_save_to_file(
         loop {
             log::debug!("Suspending on_state_changed_save_to_file");
             if subscriber.changed().await.is_err() {
-                // Publisher has disappeared
+                // No publisher(s).
                 break;
             }
             log::debug!("Resuming on_state_changed_save_to_file");
@@ -86,6 +86,7 @@ pub fn on_music_dir_changed(
 
             log::debug!("Suspending on_music_dir_changed");
             if subscriber.changed().await.is_err() {
+                // No publisher(s).
                 break;
             }
             log::debug!("Resuming on_music_dir_changed");

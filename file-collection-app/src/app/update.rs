@@ -91,13 +91,18 @@ impl<'a> UpdateContext<'a> {
             MediaTrackerAction::Sync(action) => match action {
                 MediaTrackerSyncAction::SpawnTask => {
                     let (mut effect, result) = library.sync_music_dir(rt, *msg_tx);
-                    if matches!(result, Ok(())) {
-                        log::debug!("Switching to music dir sync progress view");
-                        *mode = Some(ModelMode::MusicDirSync {
-                            last_progress: None,
-                            final_outcome: None,
-                        });
-                        effect += ActionEffect::MaybeChanged;
+                    match result {
+                        Ok(()) => {
+                            log::debug!("Switching to synchronize music directory progress view");
+                            *mode = Some(ModelMode::MusicDirSync {
+                                last_progress: None,
+                                final_outcome: None,
+                            });
+                            effect += ActionEffect::MaybeChanged;
+                        }
+                        Err(err) => {
+                            log::warn!("Failed to synchronize music directory: {err:#}");
+                        }
                     }
                     effect
                 }
@@ -106,9 +111,10 @@ impl<'a> UpdateContext<'a> {
                     let Some(some_mode) = mode else {
                         return ActionEffect::Unchanged;
                     };
-                    if !matches!(some_mode, ModelMode::MusicDirList { .. }) {
+                    if !matches!(some_mode, ModelMode::MusicDirSync { .. }) {
                         return ActionEffect::Unchanged;
                     }
+                    log::debug!("Closing synchronize music directory progress view");
                     *mode = None;
                     msg_tx.send_action(CollectionAction::RefreshFromDb);
                     ActionEffect::Changed
@@ -126,7 +132,7 @@ impl<'a> UpdateContext<'a> {
                     if matches!(effect, ActionEffect::Unchanged) {
                         return effect;
                     }
-                    log::debug!("Switching to music dir list view");
+                    log::debug!("Switching to music directory list view");
                     *mode = Some(ModelMode::MusicDirList {
                         content_paths_with_count: vec![],
                     });
@@ -140,6 +146,7 @@ impl<'a> UpdateContext<'a> {
                     if !matches!(some_mode, ModelMode::MusicDirList { .. }) {
                         return ActionEffect::Unchanged;
                     }
+                    log::debug!("Closing music directory list view");
                     *mode = None;
                     msg_tx.send_action(CollectionAction::RefreshFromDb);
                     ActionEffect::Changed
@@ -156,6 +163,7 @@ impl<'a> UpdateContext<'a> {
             CollectionAction::RefreshFromDb => {
                 let (mut effect, abort_handle) = library.refresh_collection_from_db(rt);
                 if abort_handle.is_some() && mode.is_some() {
+                    log::debug!("Resetting mode {mode:?} with stale collection");
                     *mode = None;
                     effect += ActionEffect::Changed;
                 }
@@ -341,6 +349,7 @@ impl<'a> UpdateContext<'a> {
                 }
             }
             library::Event::MusicDirSyncFinished(finished_state) => {
+                let _ = library.sync_music_dir_finished();
                 let outcome = match *finished_state {
                     SynchronizingVfsFinishedState::Succeeded { outcome } => Some(outcome),
                     SynchronizingVfsFinishedState::Aborted => None,
@@ -354,7 +363,7 @@ impl<'a> UpdateContext<'a> {
                     *final_outcome = outcome.map(Box::new);
                 } else {
                     log::debug!(
-                        "Discarding unexpected music directory synchronization outcome: {outcome:?}"
+                        "Discarding unexpected music directory synchronization outcome {outcome:?}: {mode:?}"
                     );
                 }
             }
@@ -373,7 +382,7 @@ impl<'a> UpdateContext<'a> {
                 };
                 if Some(&collection_uid) != library.read_collection_state().entity_uid() {
                     log::debug!(
-                        "Discarding unexpected music directory list with {num_items} item(s) for collection {collection_uid}",
+                        "Discarding unexpected music directory list with {num_items} item(s) for collection {collection_uid}: {mode:?}",
                         num_items = new_content_paths_with_count.len()
                     );
                     return;
@@ -385,7 +394,7 @@ impl<'a> UpdateContext<'a> {
                     *content_paths_with_count = new_content_paths_with_count;
                 } else {
                     log::debug!(
-                        "Discarding unexpected music directory list with {num_items} item(s)",
+                        "Discarding unexpected music directory list with {num_items} item(s): {mode:?}",
                         num_items = new_content_paths_with_count.len()
                     );
                 }
@@ -413,7 +422,7 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
                 // Nothing to show with no collection available. This prevents to
                 // show stale data after the collection has been reset.
                 if mode.is_some() {
-                    log::debug!("Resetting central panel view");
+                    log::debug!("Resetting mode {mode:?} without active collection");
                     *mode = None;
                 }
             }
@@ -441,13 +450,6 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
                 }
             }
             _ => (),
-        }
-
-        // Reset mode if the collection is not synchronizing anymore.
-        if matches!(mode, Some(ModelMode::MusicDirSync { .. }))
-            && !collection_state.is_synchronizing()
-        {
-            *mode = None;
         }
     }
 

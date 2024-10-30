@@ -69,10 +69,13 @@ where
             log::info!("Stop watching track search state after event receiver has been dropped");
             break;
         };
+
+        log::debug!("Suspending watch_state");
         if subscriber.changed().await.is_err() {
             log::info!("Stop watching track search state after publisher has been dropped");
             break;
         }
+        log::debug!("Resuming watch_state");
     }
 }
 

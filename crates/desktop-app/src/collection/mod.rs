@@ -1148,31 +1148,43 @@ impl SharedState {
     ) -> (ActionEffect, anyhow::Result<SynchronizingVfsFinishedState>) {
         let mut subscriber = self.subscribe_changed();
         loop {
+            log::debug!("Suspending finish_synchronizing_vfs_task");
             if subscriber.changed().await.is_err() {
-                return (ActionEffect::Changed, Err(anyhow!("not subscribed")));
+                return (ActionEffect::Changed, Err(anyhow!("no publisher(s)")));
             }
+            log::debug!("Resuming finish_synchronizing_vfs_task");
+
             drop(subscriber.read_ack());
-            let mut finished_state_cloned = None;
+            let mut finished_state_before = None;
             self.0.modify(|state| match state {
                 State::SynchronizingVfs {
-                    state: sync_state, ..
+                    context: sync_context,
+                    state: sync_state,
                 } => match sync_state {
                     SynchronizingVfsState::Pending { .. } => {
-                        finished_state_cloned = None;
+                        debug_assert!(finished_state_before.is_none());
                         false
                     }
                     SynchronizingVfsState::Finished(finished_state) => {
-                        finished_state_cloned = Some(finished_state.clone());
-                        let (effect, abort_handle) =
-                            state.spawn_loading_from_database_task(self, rt, env);
-                        debug_assert!(matches!(effect, ActionEffect::Changed));
-                        debug_assert!(abort_handle.is_some());
+                        let entity_uid = sync_context.entity.hdr.uid.clone();
+                        finished_state_before = Some(std::mem::replace(
+                            finished_state,
+                            // Replace with a dummy placeholder that is overwritten immediately after.
+                            SynchronizingVfsFinishedState::Aborted,
+                        ));
+                        *state = State::Void;
+                        let context = LoadingFromDatabaseContext {
+                            entity_uid,
+                            loaded_before: None,
+                        };
+                        let _abort_handle = state
+                            .spawn_loading_from_database_task_unchecked(self, rt, env, context);
                         true
                     }
                 },
                 _ => false,
             });
-            let Some(finished_state) = finished_state_cloned else {
+            let Some(finished_state) = finished_state_before else {
                 continue;
             };
             return (ActionEffect::Changed, Ok(finished_state));
@@ -1356,5 +1368,10 @@ impl SynchronizingVfsTask {
     pub fn abort(&self) {
         self.abort_flag.store(true, Ordering::Relaxed);
         self.task.abort();
+    }
+
+    #[must_use]
+    pub fn is_finished(&self) -> bool {
+        self.task.is_finished()
     }
 }

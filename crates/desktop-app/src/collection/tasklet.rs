@@ -55,6 +55,7 @@ async fn update_music_dir(
         }
     ) {
         if subscriber.changed().await.is_err() {
+            // No publisher(s).
             break;
         }
     }

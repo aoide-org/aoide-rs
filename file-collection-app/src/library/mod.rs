@@ -343,9 +343,12 @@ impl Library {
             let mut subscriber = sync_music_dir_task.progress().subscribe_changed();
             async move {
                 loop {
+                    log::debug!("Suspending sync_music_dir progress");
                     if subscriber.changed().await.is_err() {
+                        // No publisher(s).
                         break;
                     }
+                    log::debug!("Resuming sync_music_dir progress");
                     let progress = subscriber.read_ack().clone();
                     if event_emitter
                         .emit_event(Event::MusicDirSyncProgress(progress))
@@ -365,10 +368,18 @@ impl Library {
             async move {
                 let (finish_effect, finish_result) =
                     collection.finish_synchronizing_vfs_task(&rt, &env).await;
-                if let Ok(finished_state) = finish_result {
-                    debug_assert!(!matches!(finish_effect, ActionEffect::Unchanged));
-                    let _ = event_emitter
-                        .emit_event(Event::MusicDirSyncFinished(Box::new(finished_state)));
+                match finish_result {
+                    Ok(finished_state) => {
+                        debug_assert!(!matches!(finish_effect, ActionEffect::Unchanged));
+                        log::debug!(
+                            "Finished synchronization of music directory: {finished_state:?}"
+                        );
+                        let _ = event_emitter
+                            .emit_event(Event::MusicDirSyncFinished(Box::new(finished_state)));
+                    }
+                    Err(err) => {
+                        log::warn!("Failed to finish synchronization of music directory: {err:#}");
+                    }
                 }
             }
         });
@@ -386,6 +397,18 @@ impl Library {
         };
         log::info!("Aborting synchronize music directory task");
         sync_music_dir_task.abort();
+        ActionEffect::Changed
+    }
+
+    pub(crate) fn sync_music_dir_finished(&mut self) -> ActionEffect {
+        debug_assert!(!matches!(
+            *self.shared_state.collection.read(),
+            CollectionState::SynchronizingVfs { .. }
+        ));
+        let Some(task) = self.state.sync_music_dir_task.take() else {
+            return ActionEffect::Unchanged;
+        };
+        debug_assert!(task.is_finished());
         ActionEffect::Changed
     }
 
