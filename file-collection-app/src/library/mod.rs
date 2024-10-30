@@ -104,55 +104,16 @@ pub enum State {
     },
 }
 
-impl State {
-    #[must_use]
-    fn read_current<'a>(&'a self, shared_state: &'a SharedState) -> CurrentState<'a> {
-        let sync_music_dir_task = match self {
-            Self::Idle => None,
-            Self::SynchronizingMusicDir { task } => Some(task),
-        };
-        let SharedState {
-            settings,
-            collection,
-            track_search,
-        } = shared_state;
-        let settings = settings.read();
-        let collection = collection.read();
-        let track_search = track_search.read();
-        CurrentState {
-            settings,
-            collection,
-            track_search,
-            sync_music_dir_task,
-        }
-    }
-}
-
 #[allow(missing_debug_implementations)]
 #[allow(dead_code)] // Some fields are not used yet.
 pub struct CurrentState<'a> {
-    settings: Ref<'a, settings::State>,
-    collection: Ref<'a, collection::State>,
-    track_search: Ref<'a, track_search::State>,
-    sync_music_dir_task: Option<&'a SynchronizingVfsTask>,
+    pub settings: Ref<'a, settings::State>,
+    pub collection: Ref<'a, collection::State>,
+    pub track_search: Ref<'a, track_search::State>,
+    pub library: &'a State,
 }
 
 impl CurrentState<'_> {
-    #[must_use]
-    pub fn settings(&self) -> &settings::State {
-        &self.settings
-    }
-
-    #[must_use]
-    pub fn collection(&self) -> &collection::State {
-        &self.collection
-    }
-
-    #[must_use]
-    pub fn track_search(&self) -> &track_search::State {
-        &self.track_search
-    }
-
     #[must_use]
     pub fn could_reset_music_dir(&self) -> bool {
         self.settings.music_dir().is_some()
@@ -160,13 +121,13 @@ impl CurrentState<'_> {
 
     #[must_use]
     pub fn could_synchronize_music_dir_task(&self) -> bool {
-        self.collection().is_ready()
+        self.collection.is_ready()
     }
 
     #[must_use]
     pub fn could_abort_synchronize_music_dir_task(&self) -> bool {
         matches!(
-            self.collection(),
+            *self.collection,
             CollectionState::SynchronizingVfs {
                 state: SynchronizingVfsState::Pending { .. },
                 ..
@@ -176,17 +137,17 @@ impl CurrentState<'_> {
 
     #[must_use]
     pub fn could_view_music_dir_list(&self) -> bool {
-        self.collection().is_ready() && !self.could_abort_synchronize_music_dir_task()
+        self.collection.is_ready() && !self.could_abort_synchronize_music_dir_task()
     }
 
     #[must_use]
     pub fn could_search_tracks(&self) -> bool {
-        self.collection().is_ready() && self.track_search().pending_since().is_none()
+        self.collection.is_ready() && self.track_search.pending_since().is_none()
     }
 
     #[must_use]
     pub fn could_fetch_more_track_search_results(&self) -> bool {
-        self.track_search().can_fetch_more().unwrap_or(false)
+        self.track_search.can_fetch_more().unwrap_or(false)
     }
 }
 
@@ -223,7 +184,25 @@ impl Library {
 
     #[must_use]
     pub fn read_current_state(&self) -> CurrentState<'_> {
-        self.state.read_current(&self.shared_state)
+        let Self {
+            env: _,
+            shared_state,
+            state: library,
+        } = self;
+        let SharedState {
+            settings,
+            collection,
+            track_search,
+        } = shared_state;
+        let settings = settings.read();
+        let collection = collection.read();
+        let track_search = track_search.read();
+        CurrentState {
+            settings,
+            collection,
+            track_search,
+            library,
+        }
     }
 
     #[must_use]

@@ -34,20 +34,20 @@ impl<'a> RenderContext<'a> {
             ui_data,
         } = self;
 
-        let current_library_state = mdl.library.read_current_state();
+        let library = mdl.library.read_current_state();
 
         TopBottomPanel::top("top-panel").show(ctx, |ui| {
-            render_top_panel(ui, ui_data, msg_tx, mdl, &current_library_state);
+            render_top_panel(ui, ui_data, msg_tx, mdl, &library);
         });
 
         if let Some(mdl_mode) = &mdl.mode {
             CentralPanel::default().show(ctx, |ui| {
-                render_central_panel(ui, msg_tx, mdl_mode, &current_library_state);
+                render_central_panel(ui, msg_tx, mdl_mode, &library);
             });
         }
 
         TopBottomPanel::bottom("bottem-panel").show(ctx, |ui| {
-            render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &current_library_state);
+            render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &library);
         });
     }
 }
@@ -58,7 +58,7 @@ fn render_top_panel(
     ui_data: &mut UiData,
     msg_tx: &MessageSender,
     mdl: &Model,
-    current_library_state: &crate::library::CurrentState<'_>,
+    library: &crate::library::CurrentState<'_>,
 ) {
     let Model {
         music_dir_selection,
@@ -69,7 +69,7 @@ fn render_top_panel(
         .spacing([40.0, 4.0])
         .striped(true)
         .show(ui, |ui| {
-            let music_dir = current_library_state.settings().music_dir();
+            let music_dir = library.settings.music_dir();
             ui.label("Music directory:");
             ui.label(
                 music_dir
@@ -96,7 +96,7 @@ fn render_top_panel(
                 }
                 if ui
                     .add_enabled(
-                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting)) && current_library_state.could_synchronize_music_dir_task(),
+                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting)) && library.could_synchronize_music_dir_task(),
                         Button::new("Synchronize music directory"),
                     )
                     .on_hover_text(
@@ -108,7 +108,7 @@ fn render_top_panel(
                 }
                 if ui
                     .add_enabled(
-                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting)) && current_library_state.could_view_music_dir_list(),
+                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting)) && library.could_view_music_dir_list(),
                         Button::new("View music directory list"),
                     )
                     .clicked()
@@ -118,7 +118,7 @@ fn render_top_panel(
                 if ui
                     .add_enabled(
                         !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting))
-                            && current_library_state.could_reset_music_dir(),
+                            && library.could_reset_music_dir(),
                         Button::new("Reset music directory"),
                     )
                     .on_hover_text("Disconnect from the corresponding collection.")
@@ -131,8 +131,8 @@ fn render_top_panel(
             });
             ui.end_row();
 
-            let collection_uid = current_library_state
-                .collection()
+            let collection_uid = library
+                .collection
                 .entity_brief()
                 .map(|(entity_uid, _)| entity_uid);
             ui.label("Collection UID:");
@@ -144,8 +144,8 @@ fn render_top_panel(
             );
             ui.end_row();
 
-            let collection_title = current_library_state
-                .collection()
+            let collection_title = library
+                .collection
                 .entity_brief()
                 .and_then(|(_, collection)| {
                     collection.map(|collection| collection.title.as_str())
@@ -154,8 +154,8 @@ fn render_top_panel(
             ui.label(collection_title.unwrap_or_default());
             ui.end_row();
 
-            let collection_summary = current_library_state
-                .collection()
+            let collection_summary = library
+                .collection
                 .entity_with_summary()
                 .map(|(_, summary)| summary);
             ui.label("Collection summary:");
@@ -172,7 +172,7 @@ fn render_top_panel(
             if ui
                 .add_enabled(
                     matches!(mdl.mode, Some(ModelMode::TrackSearch { .. }))
-                    && current_library_state.could_search_tracks(),
+                    && library.could_search_tracks(),
                     TextEdit::singleline(&mut ui_data.track_search_input),
                 )
                 .lost_focus()
@@ -188,13 +188,13 @@ fn render_central_panel(
     ui: &mut egui::Ui,
     msg_tx: &MessageSender,
     mode: &ModelMode,
-    current_library_state: &crate::library::CurrentState<'_>,
+    library: &crate::library::CurrentState<'_>,
 ) {
     match mode {
         ModelMode::TrackSearch(TrackSearchMode {
             track_list: None, ..
         }) => {
-            if current_library_state.collection().is_ready() {
+            if library.collection.is_ready() {
                 // The track list should become available soon.
                 ui.label("...loading...");
             }
@@ -208,16 +208,12 @@ fn render_central_panel(
                 .text_style_height(&text_style)
                 .max(ARTWORK_THUMBNAIL_IMAGE_SIZE as _);
             let total_rows = track_list.len();
-            ScrollArea::both().show_rows(
-            ui,
-            row_height,
-            total_rows,
-            |ui, row_range| {
+            ScrollArea::both().show_rows(ui, row_height, total_rows, |ui, row_range| {
                 if row_range.end == total_rows
                     // Prevent eagerly fetching more results repeatedly.
-                    && Some(total_rows) == current_library_state.track_search().fetched_entities_len()
+                    && Some(total_rows) == library.track_search.fetched_entities_len()
                     && matches!(memo_state, track_search::MemoState::Ready(_))
-                    && current_library_state.could_fetch_more_track_search_results()
+                    && library.could_fetch_more_track_search_results()
                 {
                     log::debug!("Trying to fetch more track search results");
                     msg_tx.send_action(TrackSearchAction::FetchMore);
@@ -236,8 +232,12 @@ fn render_central_panel(
                             let artwork_button = ImageButton::new(artwork_texture).frame(false);
                             let mut artwork_response = ui.add(artwork_button);
                             if let Some(content_url) = &item.content_url {
-                                let file_location = content_url.to_file_path().map_or_else(|()| content_url.to_string(), |path| path.display().to_string());
-                                artwork_response = artwork_response.on_hover_text_at_pointer(file_location);
+                                let file_location = content_url.to_file_path().map_or_else(
+                                    |()| content_url.to_string(),
+                                    |path| path.display().to_string(),
+                                );
+                                artwork_response =
+                                    artwork_response.on_hover_text_at_pointer(file_location);
                                 // Demo interaction handler that simply opens the content URL in a new (browser) tab.
                                 if artwork_response.clicked() || artwork_response.middle_clicked() {
                                     ui.ctx().open_url(OpenUrl {
@@ -251,8 +251,7 @@ fn render_central_panel(
                         });
                     }
                 })
-            },
-        );
+            });
         }
         ModelMode::MusicDirSync {
             last_progress,
@@ -285,7 +284,7 @@ fn render_bottom_panel(
     ui: &mut egui::Ui,
     msg_tx: &MessageSender,
     mode: Option<&ModelMode>,
-    current_library_state: &crate::library::CurrentState<'_>,
+    library: &crate::library::CurrentState<'_>,
 ) {
     Grid::new("grid")
         .num_columns(2)
@@ -301,11 +300,11 @@ fn render_bottom_panel(
                     ModelMode::TrackSearch(_) => {
                         text = "Fetch more";
                         hover_text = "Fetch the next page of search results.";
-                        enabled = current_library_state.could_fetch_more_track_search_results();
+                        enabled = library.could_fetch_more_track_search_results();
                         action = TrackSearchAction::FetchMore.into();
                     }
                     ModelMode::MusicDirSync { .. } => {
-                        if current_library_state.could_abort_synchronize_music_dir_task() {
+                        if library.could_abort_synchronize_music_dir_task() {
                             text = "Abort";
                             hover_text = "Stop the current synchronization task.";
                             enabled = true;
@@ -335,13 +334,13 @@ fn render_bottom_panel(
             }
 
             ui.label("Last error:");
-            let last_error = current_library_state
-                .collection()
+            let last_error = library
+                .collection
                 .last_error()
                 .map(ToOwned::to_owned)
                 .or_else(|| {
-                    current_library_state
-                        .track_search()
+                    library
+                        .track_search
                         .last_fetch_error()
                         .map(ToString::to_string)
                 });
