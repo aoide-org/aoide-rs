@@ -69,13 +69,13 @@ pub trait EventEmitter: Send + Sync + 'static {
 /// Manages the application state that should not depend on any
 /// particular UI technology.
 #[allow(missing_debug_implementations)]
-pub struct StateObservables {
+pub struct SharedState {
     pub settings: Arc<settings::SharedState>,
     pub collection: Arc<collection::SharedState>,
     pub track_search: Arc<track_search::SharedState>,
 }
 
-impl StateObservables {
+impl SharedState {
     #[must_use]
     fn new(initial_settings: settings::State) -> Self {
         let settings = Arc::new(settings::SharedState::new(initial_settings));
@@ -103,17 +103,17 @@ pub struct State {
 
 impl State {
     #[must_use]
-    fn read_current<'a>(&'a self, observables: &'a StateObservables) -> CurrentState<'a> {
+    fn read_current<'a>(&'a self, shared_state: &'a SharedState) -> CurrentState<'a> {
         let Self {
             music_dir,
             sync_music_dir_task,
         } = self;
-        let StateObservables {
+        let SharedState {
             settings,
             collection,
             track_search,
             ..
-        } = observables;
+        } = shared_state;
         let music_dir = music_dir.as_ref();
         let sync_music_dir_task = sync_music_dir_task.as_ref();
         let settings = settings.read();
@@ -192,11 +192,14 @@ impl CurrentState<'_> {
     }
 }
 
-/// Library state with a env to the runtime environment
+/// The library.
+///
+/// The runtime environment of the embedded backend and various stateful
+/// components.
 #[allow(missing_debug_implementations)]
 pub struct Library {
     env: Arc<Environment>,
-    state_observables: StateObservables,
+    shared_state: SharedState,
     state: State,
 }
 
@@ -205,7 +208,7 @@ impl Library {
     pub fn new(env: Environment, initial_settings: settings::State) -> Self {
         Self {
             env: Arc::new(env),
-            state_observables: StateObservables::new(initial_settings),
+            shared_state: SharedState::new(initial_settings),
             state: Default::default(),
         }
     }
@@ -222,28 +225,28 @@ impl Library {
 
     #[must_use]
     pub fn read_current_state(&self) -> CurrentState<'_> {
-        self.state.read_current(&self.state_observables)
+        self.state.read_current(&self.shared_state)
     }
 
     #[must_use]
     pub fn read_collection_state(&self) -> collection::StateRef<'_> {
-        self.state_observables.collection.read()
+        self.shared_state.collection.read()
     }
 
     #[must_use]
     pub fn read_track_search_state(&self) -> track_search::StateRef<'_> {
-        self.state_observables.track_search.read()
+        self.shared_state.track_search.read()
     }
 
     #[must_use]
     pub fn subscribe_track_search_state_changed(&self) -> track_search::StateSubscriber {
-        self.state_observables.track_search.subscribe_changed()
+        self.shared_state.track_search.subscribe_changed()
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn on_settings_state_changed(&mut self) -> bool {
         let new_music_dir = {
-            let settings_state = self.state_observables.settings.read();
+            let settings_state = self.shared_state.settings.read();
             if settings_state.music_dir() == self.state.music_dir.as_ref() {
                 log::debug!(
                     "Music directory unchanged: {music_dir:?}",
@@ -265,7 +268,7 @@ impl Library {
         &'a self,
         memo_state: &'a mut track_search::MemoState,
     ) -> Option<(&'a track_search::Memo, track_search::MemoDiff)> {
-        memo_state.try_start_pending(&self.state_observables.track_search)
+        memo_state.try_start_pending(&self.shared_state.track_search)
     }
 
     pub fn on_track_search_state_changed_pending_apply(
@@ -288,7 +291,7 @@ impl Library {
 
     #[allow(clippy::must_use_candidate)]
     pub fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> ActionEffect {
-        let mut effect = self.state_observables.settings.update_music_dir(music_dir);
+        let mut effect = self.shared_state.settings.update_music_dir(music_dir);
         if matches!(effect, ActionEffect::Unchanged) {
             debug_assert!(self.state.sync_music_dir_task.is_none());
         } else {
@@ -307,7 +310,7 @@ impl Library {
 
     #[allow(clippy::must_use_candidate)]
     pub fn reset_collection(&mut self) -> ActionEffect {
-        let mut effect = self.state_observables.collection.reset();
+        let mut effect = self.shared_state.collection.reset();
         if matches!(effect, ActionEffect::Unchanged) {
             debug_assert!(self.state.sync_music_dir_task.is_none());
         } else {
@@ -333,7 +336,7 @@ impl Library {
             return (ActionEffect::Unchanged, Err(rejected));
         }
         let (mut effect, result) = self
-            .state_observables
+            .shared_state
             .collection
             .spawn_synchronizing_vfs_task(rt, &self.env);
         let sync_music_dir_task = match result {
@@ -365,7 +368,7 @@ impl Library {
         let _emit_finished_state = rt.spawn({
             let rt = rt.clone();
             let env = Arc::clone(&self.env);
-            let collection = Arc::clone(&self.state_observables.collection);
+            let collection = Arc::clone(&self.shared_state.collection);
             let event_emitter = event_emitter.clone();
             async move {
                 let (finish_effect, finish_result) =
@@ -406,18 +409,12 @@ impl Library {
     where
         E: EventEmitter + Clone + 'static,
     {
-        let Some(collection_uid) = self
-            .state_observables
-            .collection
-            .read()
-            .entity_uid()
-            .cloned()
-        else {
+        let Some(collection_uid) = self.shared_state.collection.read().entity_uid().cloned() else {
             log::info!("No collection");
             return ActionEffect::Unchanged;
         };
         rt.spawn({
-            let env = self.env.clone();
+            let env = Arc::clone(self.env());
             let event_emitter = event_emitter.clone();
             async move {
                 let result = aoide::backend_embedded::media::tracker::count_sources_in_directories(
@@ -443,7 +440,7 @@ impl Library {
         &self,
         rt: &tokio::runtime::Handle,
     ) -> (ActionEffect, Option<AbortHandle>) {
-        self.state_observables
+        self.shared_state
             .collection
             .spawn_loading_from_database_task(rt, &self.env)
     }
@@ -457,22 +454,22 @@ impl Library {
         };
         // Argument is consumed when updating succeeds
         log::debug!("Updating track search params: {params:?}");
-        self.state_observables
-            .track_search
-            .update_params(&mut params)
+        self.shared_state.track_search.update_params(&mut params)
     }
 
     #[allow(clippy::must_use_candidate)]
     pub fn fetch_more_track_search_results(&self, rt: &tokio::runtime::Handle) -> ActionEffect {
-        self.state_observables
-            .track_search
-            .spawn_fetching_more_task(rt, &self.env, Some(track_search::DEFAULT_PREFETCH_LIMIT))
+        self.shared_state.track_search.spawn_fetching_more_task(
+            rt,
+            &self.env,
+            Some(track_search::DEFAULT_PREFETCH_LIMIT),
+        )
     }
 
     /// Spawn reactive background tasks
     pub fn spawn_background_tasks(&self, rt: &tokio::runtime::Handle, settings_dir: PathBuf) {
         rt.spawn(settings::tasklet::on_state_changed_save_to_file(
-            &self.state_observables.settings.observe(),
+            &self.shared_state.settings.observe(),
             settings_dir,
             |err| {
                 log::error!("Failed to save settings to file: {err}");
@@ -481,19 +478,19 @@ impl Library {
         rt.spawn(collection::tasklet::on_settings_state_changed(
             rt.clone(),
             Arc::downgrade(&self.env),
-            &self.state_observables.settings,
-            Arc::downgrade(&self.state_observables.collection),
+            &self.shared_state.settings,
+            Arc::downgrade(&self.shared_state.collection),
             collection::RESTORE_ENTITY_STRATEGY,
             collection::NESTED_MUSIC_DIRS_STRATEGY,
         ));
         rt.spawn(track_search::tasklet::on_collection_state_changed(
-            &self.state_observables.collection,
-            Arc::downgrade(&self.state_observables.track_search),
+            &self.shared_state.collection,
+            Arc::downgrade(&self.shared_state.track_search),
         ));
         rt.spawn(track_search::tasklet::on_should_prefetch(
             rt.clone(),
             Arc::downgrade(&self.env),
-            &self.state_observables.track_search,
+            &self.shared_state.track_search,
             Some(track_search::DEFAULT_PREFETCH_LIMIT),
         ));
     }
@@ -503,21 +500,21 @@ impl Library {
         E: EventEmitter + Clone + 'static,
     {
         rt.spawn({
-            let subscriber = self.state_observables.settings.subscribe_changed();
+            let subscriber = self.shared_state.settings.subscribe_changed();
             let event_emitter = event_emitter.clone();
             async move {
                 settings::watch_state(subscriber, event_emitter).await;
             }
         });
         rt.spawn({
-            let subscriber = self.state_observables.collection.subscribe_changed();
+            let subscriber = self.shared_state.collection.subscribe_changed();
             let event_emitter = event_emitter.clone();
             async move {
                 collection::watch_state(subscriber, event_emitter).await;
             }
         });
         rt.spawn({
-            let subscriber = self.state_observables.track_search.subscribe_changed();
+            let subscriber = self.shared_state.track_search.subscribe_changed();
             let event_emitter = event_emitter.clone();
             async move {
                 track_search::watch_state(subscriber, event_emitter).await;
