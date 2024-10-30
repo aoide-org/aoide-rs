@@ -130,6 +130,7 @@ impl State {
 }
 
 #[allow(missing_debug_implementations)]
+#[allow(dead_code)] // Some fields are not used yet.
 pub struct CurrentState<'a> {
     music_dir: Option<&'a DirPath<'static>>,
     sync_music_dir_task: Option<&'a SynchronizingVfsTask>,
