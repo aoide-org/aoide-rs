@@ -22,13 +22,13 @@ fn default_uid_typed() {
 #[test]
 fn clone_uid_typed() {
     let default_uid = EntityUidTyped::<EntityType>::default();
-    assert_eq!(default_uid, default_uid.clone(),);
+    assert_eq!(default_uid, default_uid.clone());
     let random_uid = EntityUid::new();
     println!("random_uid = {random_uid:?}");
     let random_uid_typed = EntityUidTyped::<EntityType>::from_untyped(random_uid);
     // Verify that the typed UID implements std::fmt::Debug
     println!("random_uid_typed = {random_uid_typed:?}");
-    assert_eq!(random_uid_typed, random_uid_typed.clone(),);
+    assert_eq!(random_uid_typed, random_uid_typed.clone());
 }
 
 #[test]

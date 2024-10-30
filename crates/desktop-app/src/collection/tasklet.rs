@@ -83,7 +83,7 @@ async fn update_music_dir(
             new_music_dir = new_music_dir.display()
         );
     } else {
-        log::info!("Resetting music directory in settings",);
+        log::info!("Resetting music directory in settings");
     }
     let _ = settings.update_music_dir(new_music_dir.as_ref());
 }

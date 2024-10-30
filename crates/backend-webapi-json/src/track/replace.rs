@@ -115,7 +115,7 @@ pub fn handle_request(
                 uc::validate_input(t)
                     .map(|(track, invalidities)| {
                         if !invalidities.is_empty() {
-                            log::warn!("Replacing track {track:?} invalidities: {invalidities:?}",);
+                            log::warn!("Replacing track {track:?} invalidities: {invalidities:?}");
                         }
                         track
                     })

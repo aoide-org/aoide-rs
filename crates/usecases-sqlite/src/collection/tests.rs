@@ -55,7 +55,7 @@ fn resolve_content_path_from_url() -> anyhow::Result<()> {
         .clone();
     assert_eq!(
         Some(ContentPath::default()),
-        super::resolve_content_path_from_url(&mut fixture.connection, &collection_uid, &root_url,)?
+        super::resolve_content_path_from_url(&mut fixture.connection, &collection_uid, &root_url)?
     );
     assert_eq!(
         Some(ContentPath::new("c".into())),
