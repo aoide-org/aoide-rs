@@ -69,7 +69,7 @@ fn render_top_panel(
         .spacing([40.0, 4.0])
         .striped(true)
         .show(ui, |ui| {
-            let music_dir = current_library_state.music_dir();
+            let music_dir = current_library_state.settings().music_dir();
             ui.label("Music directory:");
             ui.label(
                 music_dir

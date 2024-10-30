@@ -67,7 +67,11 @@ impl<'a> UpdateContext<'a> {
                         msg_tx.send_action(MusicDirectoryAction::Update(dir_path));
                     }
                 };
-                choose_directory_path(rt, library.state().music_dir.as_ref(), on_dir_path_chosen);
+                choose_directory_path(
+                    rt,
+                    library.read_settings_state().music_dir.as_ref(),
+                    on_dir_path_chosen,
+                );
                 *music_dir_selection = Some(MusicDirSelection::Selecting);
                 ActionEffect::Changed
             }
@@ -309,7 +313,7 @@ impl<'a> UpdateContext<'a> {
         let Model { library, mode, .. } = mdl;
         match event {
             library::Event::Settings(library::settings::Event::StateChanged) => {
-                library.on_settings_state_changed();
+                // Nothing to do.
             }
             library::Event::Collection(library::collection::Event::StateChanged) => {
                 on_library_collection_state_changed(ctx, mdl, msg_tx);

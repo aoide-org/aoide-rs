@@ -96,35 +96,34 @@ impl SharedState {
 /// Manages the application state that should not depend on any
 /// particular UI technology.
 #[derive(Debug, Default)]
-pub struct State {
-    pub music_dir: Option<DirPath<'static>>,
-    pub sync_music_dir_task: Option<SynchronizingVfsTask>,
+pub enum State {
+    #[default]
+    Idle,
+    SynchronizingMusicDir {
+        task: SynchronizingVfsTask,
+    },
 }
 
 impl State {
     #[must_use]
     fn read_current<'a>(&'a self, shared_state: &'a SharedState) -> CurrentState<'a> {
-        let Self {
-            music_dir,
-            sync_music_dir_task,
-        } = self;
+        let sync_music_dir_task = match self {
+            Self::Idle => None,
+            Self::SynchronizingMusicDir { task } => Some(task),
+        };
         let SharedState {
             settings,
             collection,
             track_search,
-            ..
         } = shared_state;
-        let music_dir = music_dir.as_ref();
-        let sync_music_dir_task = sync_music_dir_task.as_ref();
         let settings = settings.read();
         let collection = collection.read();
         let track_search = track_search.read();
         CurrentState {
-            music_dir,
-            sync_music_dir_task,
             settings,
             collection,
             track_search,
+            sync_music_dir_task,
         }
     }
 }
@@ -132,17 +131,16 @@ impl State {
 #[allow(missing_debug_implementations)]
 #[allow(dead_code)] // Some fields are not used yet.
 pub struct CurrentState<'a> {
-    music_dir: Option<&'a DirPath<'static>>,
-    sync_music_dir_task: Option<&'a SynchronizingVfsTask>,
     settings: Ref<'a, settings::State>,
     collection: Ref<'a, collection::State>,
     track_search: Ref<'a, track_search::State>,
+    sync_music_dir_task: Option<&'a SynchronizingVfsTask>,
 }
 
 impl CurrentState<'_> {
     #[must_use]
-    pub const fn music_dir(&self) -> Option<&'_ DirPath<'static>> {
-        self.music_dir
+    pub fn settings(&self) -> &settings::State {
+        &self.settings
     }
 
     #[must_use]
@@ -156,8 +154,8 @@ impl CurrentState<'_> {
     }
 
     #[must_use]
-    pub const fn could_reset_music_dir(&self) -> bool {
-        self.music_dir.is_some()
+    pub fn could_reset_music_dir(&self) -> bool {
+        self.settings.music_dir().is_some()
     }
 
     #[must_use]
@@ -229,6 +227,11 @@ impl Library {
     }
 
     #[must_use]
+    pub fn read_settings_state(&self) -> settings::StateRef<'_> {
+        self.shared_state.settings.read()
+    }
+
+    #[must_use]
     pub fn read_collection_state(&self) -> collection::StateRef<'_> {
         self.shared_state.collection.read()
     }
@@ -241,27 +244,6 @@ impl Library {
     #[must_use]
     pub fn subscribe_track_search_state_changed(&self) -> track_search::StateSubscriber {
         self.shared_state.track_search.subscribe_changed()
-    }
-
-    #[allow(clippy::must_use_candidate)]
-    pub fn on_settings_state_changed(&mut self) -> bool {
-        let new_music_dir = {
-            let settings_state = self.shared_state.settings.read();
-            if settings_state.music_dir() == self.state.music_dir.as_ref() {
-                log::debug!(
-                    "Music directory unchanged: {music_dir:?}",
-                    music_dir = self.state.music_dir,
-                );
-                return false;
-            }
-            settings_state.music_dir().cloned().map(DirPath::into_owned)
-        };
-        log::debug!(
-            "Music directory changed: {old_music_dir:?} -> {new_music_dir:?}",
-            old_music_dir = self.state.music_dir,
-        );
-        self.state.music_dir = new_music_dir;
-        true
     }
 
     pub fn on_track_search_state_changed<'a>(
@@ -289,13 +271,21 @@ impl Library {
         *memo_state = track_search::MemoState::Ready(std::mem::take(memo));
     }
 
+    fn reset_idle(&mut self) -> ActionEffect {
+        match std::mem::replace(&mut self.state, State::Idle) {
+            State::Idle => ActionEffect::Unchanged,
+            State::SynchronizingMusicDir { task } => {
+                // Abort pending task.
+                task.abort();
+                ActionEffect::Changed
+            }
+        }
+    }
+
     pub fn update_music_dir(&mut self, music_dir: Option<&DirPath<'_>>) -> ActionEffect {
         let mut effect = self.shared_state.settings.update_music_dir(music_dir);
-        if matches!(effect, ActionEffect::Unchanged) {
-            debug_assert!(self.state.sync_music_dir_task.is_none());
-        } else if let Some(sync_music_dir_task) = self.state.sync_music_dir_task.take() {
-            sync_music_dir_task.abort();
-            effect += ActionEffect::Changed;
+        if !matches!(effect, ActionEffect::Unchanged) {
+            effect += self.reset_idle();
         }
         effect
     }
@@ -306,11 +296,8 @@ impl Library {
 
     pub fn reset_collection(&mut self) -> ActionEffect {
         let mut effect = self.shared_state.collection.reset();
-        if matches!(effect, ActionEffect::Unchanged) {
-            debug_assert!(self.state.sync_music_dir_task.is_none());
-        } else if let Some(sync_music_dir_task) = self.state.sync_music_dir_task.take() {
-            sync_music_dir_task.abort();
-            effect += ActionEffect::Changed;
+        if !matches!(effect, ActionEffect::Unchanged) {
+            effect += self.reset_idle();
         }
         effect
     }
@@ -323,7 +310,7 @@ impl Library {
     where
         E: EventEmitter + Clone + 'static,
     {
-        if self.state.sync_music_dir_task.is_some() {
+        if matches!(self.state, State::SynchronizingMusicDir { .. }) {
             let rejected = anyhow!("already/still pending");
             return (ActionEffect::Unchanged, Err(rejected));
         }
@@ -384,19 +371,21 @@ impl Library {
             }
         });
 
-        self.state.sync_music_dir_task = Some(sync_music_dir_task);
+        self.state = State::SynchronizingMusicDir {
+            task: sync_music_dir_task,
+        };
         effect += ActionEffect::Changed;
 
         (effect, Ok(()))
     }
 
     pub fn sync_music_dir_abort(&mut self) -> ActionEffect {
-        let Some(sync_music_dir_task) = self.state.sync_music_dir_task.take() else {
-            log::info!("Not pending");
+        let State::SynchronizingMusicDir { task } = &self.state else {
+            log::info!("Not synchronizing music directory");
             return ActionEffect::Unchanged;
         };
         log::info!("Aborting synchronize music directory task");
-        sync_music_dir_task.abort();
+        task.abort();
         ActionEffect::Changed
     }
 
@@ -405,11 +394,13 @@ impl Library {
             *self.shared_state.collection.read(),
             CollectionState::SynchronizingVfs { .. }
         ));
-        let Some(task) = self.state.sync_music_dir_task.take() else {
-            return ActionEffect::Unchanged;
-        };
-        debug_assert!(task.is_finished());
-        ActionEffect::Changed
+        match std::mem::replace(&mut self.state, State::Idle) {
+            State::Idle => ActionEffect::Unchanged,
+            State::SynchronizingMusicDir { task } => {
+                debug_assert!(task.is_finished());
+                ActionEffect::Changed
+            }
+        }
     }
 
     pub fn view_music_dir_list<E>(
