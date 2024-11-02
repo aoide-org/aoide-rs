@@ -52,7 +52,8 @@ pub(crate) fn create_filters(
     rt: &tokio::runtime::Handle,
     shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
     abort_flag: Arc<AtomicBool>,
-) -> BoxedFilter<(impl Reply)> {
+) -> BoxedFilter<(impl Reply,)> {
+    // The trailing comma is required!
     let shared_connection_gatekeeper =
         warp::any().map(move || Arc::clone(&shared_connection_gatekeeper));
     let abort_flag = warp::any().map(move || Arc::clone(&abort_flag));
