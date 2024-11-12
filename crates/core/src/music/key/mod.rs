@@ -92,6 +92,52 @@ impl fmt::Display for KeyCode {
 
 impl KeyCode {
     #[must_use]
+    pub const fn to_value(self) -> KeyCodeValue {
+        self as _
+    }
+
+    #[must_use]
+    pub const fn try_from_value(val: KeyCodeValue) -> Option<Self> {
+        Self::from_repr(val)
+    }
+
+    /// Pitch class number.
+    ///
+    /// See also: <https://en.wikipedia.org/wiki/Pitch_class>
+    #[must_use]
+    pub const fn pitch_class_number(self) -> Option<KeyCodeValue> {
+        match self {
+            Self::Off => None,
+            Self::Cmaj | Self::Cmin => Some(0),
+            Self::Dbmaj | Self::Dbmin => Some(1),
+            Self::Dmaj | Self::Dmin => Some(2),
+            Self::Ebmaj | Self::Ebmin => Some(3),
+            Self::Emaj | Self::Emin => Some(4),
+            Self::Fmaj | Self::Fmin => Some(5),
+            Self::Gbmaj | Self::Gbmin => Some(6),
+            Self::Gmaj | Self::Gmin => Some(7),
+            Self::Abmaj | Self::Abmin => Some(8),
+            Self::Amaj | Self::Amin => Some(9),
+            Self::Bbmaj | Self::Bbmin => Some(10),
+            Self::Bmaj | Self::Bmin => Some(11),
+        }
+    }
+
+    /// Mode.
+    #[must_use]
+    pub const fn mode(self) -> Option<KeyMode> {
+        if matches!(self, Self::Off) {
+            return None;
+        }
+        let mode = match self.to_value() % 2 {
+            0 => KeyMode::Major,
+            1 => KeyMode::Minor,
+            _ => unreachable!(),
+        };
+        Some(mode)
+    }
+
+    #[must_use]
     pub const fn as_canonical_str(self) -> &'static str {
         #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
@@ -682,18 +728,6 @@ impl KeyCode {
     }
 }
 
-impl KeyCode {
-    #[must_use]
-    pub const fn to_value(self) -> KeyCodeValue {
-        self as _
-    }
-
-    #[must_use]
-    pub const fn try_from_value(val: KeyCodeValue) -> Option<Self> {
-        Self::from_repr(val)
-    }
-}
-
 impl TryFrom<KeyCodeValue> for KeyCode {
     type Error = ();
 
@@ -718,30 +752,27 @@ pub enum KeyMode {
 /// Circle of fifth / Open Key notation in clock-wise orientation,
 /// alternating between major and minor keys.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct KeySignature(KeyCode);
+#[repr(transparent)]
+pub struct KeySignature {
+    code: KeyCode,
+}
 
 impl KeySignature {
     #[must_use]
     pub const fn new(code: KeyCode) -> Self {
-        Self(code)
+        Self { code }
     }
 
     #[must_use]
     pub const fn code(self) -> KeyCode {
-        let Self(code) = self;
+        let Self { code } = self;
         code
     }
 
     #[must_use]
     pub const fn mode(self) -> Option<KeyMode> {
-        match self.code() {
-            KeyCode::Off => None,
-            code => match code.to_value() % 2 {
-                0 => Some(KeyMode::Minor),
-                1 => Some(KeyMode::Major),
-                _ => unreachable!(),
-            },
-        }
+        let Self { code } = self;
+        code.mode()
     }
 }
 
