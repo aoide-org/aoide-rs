@@ -1,17 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// TODO: Remove temporary workaround.
-// <https://github.com/rust-lang/rust-clippy/issues/11237>
-#![allow(clippy::wildcard_imports)]
+use aoide_core::{PlaylistUid, TrackUid};
 
 pub mod collection;
-pub use collection::Summary as CollectionSummary;
+pub use self::collection::Summary as CollectionSummary;
 
 pub mod filtering;
+
 pub mod media;
 pub mod playlist;
-pub mod sorting;
+
+mod sorting;
+pub use sorting::SortDirection;
+
 pub mod tag;
 pub mod track;
 
@@ -64,4 +66,14 @@ impl Pagination {
     pub fn mandatory_limit(&self) -> PaginationLimit {
         self.limit.unwrap_or(PaginationLimit::MAX)
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum TrackSelection {
+    All,
+    One(TrackUid),
+    Many(Vec<TrackUid>),
+    Search { filter: track::search::Filter },
+    OnePlaylist(PlaylistUid),
+    ManyPlaylists(Vec<PlaylistUid>),
 }

@@ -1,11 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use diesel::prelude::*;
+
 use aoide_core::{
     media::{content::ContentPath, Source},
     util::clock::OffsetDateTimeMs,
 };
-use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
+use aoide_core_api::filtering::StringPredicate;
+use aoide_repo::{
+    media::source::{CollectionRepo, RecordHeader, Repo},
+    CollectionId, MediaSourceId, RepoError, RepoResult,
+};
 
 use crate::{
     db::{
@@ -13,13 +19,15 @@ use crate::{
         media_tracker::schema::*,
         track::schema::*,
     },
-    prelude::*,
+    repo_error,
+    util::{escape_single_quotes, sql_column_substr_prefix_eq},
+    Connection, RowId,
 };
 
-impl<'db> Repo for crate::prelude::Connection<'db> {
+impl<'db> Repo for Connection<'db> {
     fn update_media_source(
         &mut self,
-        id: RecordId,
+        id: MediaSourceId,
         updated_at: &OffsetDateTimeMs,
         updated_source: &Source,
     ) -> RepoResult<()> {
@@ -34,7 +42,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         Ok(())
     }
 
-    fn purge_media_source(&mut self, id: RecordId) -> RepoResult<()> {
+    fn purge_media_source(&mut self, id: MediaSourceId) -> RepoResult<()> {
         let target = media_source::table.filter(media_source::row_id.eq(RowId::from(id)));
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
@@ -45,7 +53,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         Ok(())
     }
 
-    fn load_media_source(&mut self, id: RecordId) -> RepoResult<(RecordHeader, Source)> {
+    fn load_media_source(&mut self, id: MediaSourceId) -> RepoResult<(RecordHeader, Source)> {
         media_source::table
             .filter(media_source::row_id.eq(RowId::from(id)))
             .get_result::<QueryableRecord>(self.as_mut())
@@ -54,12 +62,12 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     }
 }
 
-impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
+impl<'db> CollectionRepo for Connection<'db> {
     fn resolve_media_source_id_synchronized_at_by_content_path(
         &mut self,
         collection_id: CollectionId,
         content_path: &ContentPath<'_>,
-    ) -> RepoResult<(RecordId, Option<u64>)> {
+    ) -> RepoResult<(MediaSourceId, Option<u64>)> {
         debug_assert!(!content_path.as_str().ends_with('/'));
         media_source::table
             .select((media_source::row_id, media_source::content_link_rev))
@@ -76,7 +84,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         &mut self,
         collection_id: CollectionId,
         content_path_predicate: StringPredicate<'_>,
-    ) -> RepoResult<Vec<RecordId>> {
+    ) -> RepoResult<Vec<MediaSourceId>> {
         let query = media_source::table
             .select(media_source::row_id)
             // Reuse the tested subselect with reliable predicate filtering
@@ -91,7 +99,7 @@ impl<'db> CollectionRepo for crate::prelude::Connection<'db> {
         let rows = query
             .load_iter::<RowId, _>(self.as_mut())
             .map_err(repo_error)?;
-        rows.map(|row| row.map_err(repo_error).map(RecordId::new))
+        rows.map(|row| row.map_err(repo_error).map(MediaSourceId::new))
             .collect::<RepoResult<_>>()
     }
 

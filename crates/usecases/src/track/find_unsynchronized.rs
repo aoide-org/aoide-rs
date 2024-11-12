@@ -2,15 +2,21 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::anyhow;
-use aoide_core::media::content::resolver::ContentPathResolver;
-use aoide_core_api::{media::source::ResolveUrlFromContentPath, track::find_unsynchronized::*};
+
+use aoide_core::{media::content::resolver::ContentPathResolver, CollectionUid};
+use aoide_core_api::{
+    filtering::StringPredicate,
+    media::source::ResolveUrlFromContentPath,
+    track::find_unsynchronized::{Params, UnsynchronizedTrack, UnsynchronizedTrackEntity},
+    Pagination,
+};
 use aoide_repo::{
-    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
+    collection::EntityRepo as CollectionRepo,
     track::{CollectionRepo as TrackCollectionRepo, RecordTrail},
+    CollectionId, RepoResult,
 };
 
-use super::*;
-use crate::collection::vfs::RepoContext;
+use crate::{collection::vfs::RepoContext, Error, Result};
 
 #[allow(clippy::missing_panics_doc)] // Never panics
 pub fn find_unsynchronized<Repo, Resolver>(

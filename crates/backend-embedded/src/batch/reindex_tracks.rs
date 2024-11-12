@@ -11,9 +11,8 @@ use tantivy::{
 
 use aoide_core::util::clock::OffsetDateTimeMs;
 use aoide_core_api::{
-    sorting::SortDirection,
     track::search::{SortField, SortOrder},
-    Pagination,
+    Pagination, SortDirection,
 };
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
@@ -87,7 +86,7 @@ pub async fn reindex_tracks(
                     aoide_usecases_sqlite::track::search::search(
                         connection,
                         &collection_uid,
-                        search_params.clone(),
+                        &search_params,
                         &pagination,
                         &mut collector,
                     )?;

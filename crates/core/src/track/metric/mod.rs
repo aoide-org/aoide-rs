@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use bitflags::bitflags;
+use semval::prelude::*;
 
-use crate::{
-    music::{
-        beat::{TimeSignature, TimeSignatureInvalidity},
-        key::KeySignature,
-        tempo::{TempoBpm, TempoBpmInvalidity},
-    },
-    prelude::*,
+use crate::music::{
+    beat::{TimeSignature, TimeSignatureInvalidity},
+    key::KeySignature,
+    tempo::{TempoBpm, TempoBpmInvalidity},
 };
 
 bitflags! {

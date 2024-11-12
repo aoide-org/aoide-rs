@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use diesel::{prelude::*, sql_types};
+
 use aoide_core::{
     audio::{
         channel::ChannelCount,
@@ -12,11 +14,17 @@ use aoide_core::{
     PlaylistUid, TrackUid,
 };
 use aoide_core_api::{
+    filtering::{
+        FilterModifier, NumericPredicate, ScalarPredicate, StringCompare, StringFilter,
+        StringPredicate,
+    },
     tag::search::{FacetsFilter, Filter as TagFilter},
-    track::search::*,
-};
-use diesel::{
-    sql_types, BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods,
+    track::search::{
+        ActorPhraseFilter, ConditionFilter, DateTimeField, DateTimeFieldFilter,
+        Filter as TrackFilter, NumericField, NumericFieldFilter, PhraseFieldFilter, SortField,
+        SortOrder, StringField, TitlePhraseFilter,
+    },
+    SortDirection,
 };
 
 use crate::{
@@ -31,7 +39,12 @@ use crate::{
         track_title::schema::*,
         view_track_search::schema::*,
     },
-    prelude::*,
+    util::{
+        entity::encode_entity_uid, escape_like_contains, escape_like_ends_with,
+        escape_like_matches, escape_like_starts_with, sql_column_substr_prefix_eq,
+        sql_column_substr_prefix_ne, StringCmpOp, LIKE_ESCAPE_CHARACTER, LIKE_WILDCARD_CHARACTER,
+    },
+    DbBackend,
 };
 
 define_sql_function! { fn ifnull<ST: sql_types::SingleValue>(x: sql_types::Nullable<ST>, y: ST) -> ST; }
@@ -1364,10 +1377,10 @@ fn build_title_filter_expression(filter: &TitlePhraseFilter) -> TrackSearchExpre
     }
 }
 
-impl TrackSearchExpressionBoxedBuilder for Filter {
+impl TrackSearchExpressionBoxedBuilder for TrackFilter {
     fn build_expression(&self) -> TrackSearchExpressionBoxed<'_> {
         #[allow(clippy::enum_glob_use)]
-        use Filter::*;
+        use TrackFilter::*;
         match self {
             Phrase(filter) => build_phrase_field_filter_expression(filter),
             Numeric(filter) => build_numeric_field_filter_expression(filter),

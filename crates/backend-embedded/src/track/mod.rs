@@ -3,17 +3,15 @@
 
 use std::sync::{atomic::AtomicBool, Arc};
 
+use diesel::Connection as _;
+
 use aoide_core::{
     media::content::ContentPath,
     track::{Entity, EntityUid, Track},
 };
 use aoide_core_api::{track::find_unsynchronized::UnsynchronizedTrackEntity, Pagination};
-use aoide_repo::{
-    prelude::{RecordCollector, ReservableRecordCollector},
-    track::RecordHeader,
-};
+use aoide_repo::{track::RecordHeader, RecordCollector, ReservableRecordCollector};
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
-use diesel::Connection as _;
 
 use crate::prelude::*;
 
@@ -141,7 +139,7 @@ where
                 aoide_usecases_sqlite::track::search::search(
                     connection,
                     &collection_uid,
-                    params,
+                    &params,
                     &pagination,
                     &mut collector,
                 )?;

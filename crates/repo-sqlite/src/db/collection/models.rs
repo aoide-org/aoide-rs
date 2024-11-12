@@ -1,16 +1,27 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::ops::Deref;
+
+use diesel::prelude::*;
+use semval::prelude::*;
+use url::Url;
+
 use aoide_core::{
     collection::MediaSourceConfig,
     media::content::ContentPathConfig,
     util::{clock::*, color::*, url::BaseUrl},
     Collection, CollectionEntity, CollectionHeader, EntityRevision,
 };
-use url::Url;
+use aoide_repo::collection::RecordHeader;
 
-use super::{schema::*, *};
-use crate::db::media_source::{decode_content_path_kind, encode_content_path_kind};
+use crate::{
+    db::media_source::{decode_content_path_kind, encode_content_path_kind},
+    util::entity::{decode_entity_header, encode_entity_revision, encode_entity_uid},
+    RowId,
+};
+
+use super::schema::*;
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = collection, primary_key(row_id))]

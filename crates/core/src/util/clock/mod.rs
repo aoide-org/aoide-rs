@@ -4,14 +4,13 @@
 use std::{fmt, str::FromStr};
 
 use jiff::Zoned;
+use semval::prelude::*;
 use time::{
     convert::{Millisecond, Nanosecond, Second},
     error::Parse as ParseError,
     format_description::{well_known::Rfc3339, FormatItem},
     Date, Duration, Month, OffsetDateTime, UtcOffset,
 };
-
-use crate::prelude::*;
 
 pub type TimestampMillis = i64;
 

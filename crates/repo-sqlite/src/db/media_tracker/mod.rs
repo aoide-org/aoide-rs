@@ -5,9 +5,9 @@ pub(crate) mod models;
 pub(crate) mod schema;
 
 use anyhow::anyhow;
-use aoide_core_api::media::tracker::DirTrackingStatus;
 
-use crate::prelude::*;
+use aoide_core_api::media::tracker::DirTrackingStatus;
+use aoide_repo::{RepoError, RepoResult};
 
 pub(crate) const fn encode_dir_tracking_status(value: DirTrackingStatus) -> i16 {
     value as _

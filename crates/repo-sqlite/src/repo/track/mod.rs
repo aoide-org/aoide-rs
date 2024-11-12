@@ -4,12 +4,14 @@
 use std::{collections::HashSet, time::Instant};
 
 use anyhow::anyhow;
+use diesel::prelude::*;
+use nonicle::{Canonical, CanonicalizeInto as _};
+
 use aoide_core::{
     media::{
         content::{ContentLink, ContentPath, ContentRevision},
         Source,
     },
-    prelude::*,
     tag::*,
     track::{
         actor::{Actor, ActorNamesSummarySplitter, Kind as ActorKind},
@@ -19,11 +21,19 @@ use aoide_core::{
     util::clock::*,
     EncodedEntityUid, Track, TrackBody, TrackEntity, TrackHeader, TrackUid,
 };
-use aoide_core_api::track::search::{Filter, Scope, SortOrder};
+use aoide_core_api::{
+    filtering::StringPredicate,
+    track::search::{Filter, Scope, SortOrder},
+    Pagination,
+};
 use aoide_repo::{
-    collection::RecordId as CollectionId,
-    media::source::{CollectionRepo as _, RecordId as MediaSourceId, Repo as _},
-    track::*,
+    media::source::{CollectionRepo as _, Repo as _},
+    track::{
+        ActorRepo, CollectionRepo, EntityRepo, RecordHeader, RecordTrail, ReplaceMode,
+        ReplaceOutcome, ReplaceParams,
+    },
+    CollectionId, MediaSourceId, OptionalRepoResult as _, RepoError, RepoResult,
+    ReservableRecordCollector, TrackId,
 };
 
 use crate::{
@@ -40,7 +50,12 @@ use crate::{
             schema::*,
         },
     },
-    prelude::*,
+    repo_error,
+    util::{
+        entity::{decode_entity_header, decode_entity_revision},
+        pagination_to_limit_offset,
+    },
+    Connection, RowId,
 };
 
 mod search;
@@ -49,8 +64,8 @@ use self::search::{TrackSearchExpressionBoxedBuilder as _, TrackSearchQueryTrans
 // TODO: Define a dedicated return type
 #[allow(clippy::type_complexity)]
 fn load_track_and_album_titles(
-    db: &mut crate::Connection<'_>,
-    id: RecordId,
+    db: &mut Connection<'_>,
+    id: TrackId,
 ) -> RepoResult<(Canonical<Vec<Title>>, Canonical<Vec<Title>>)> {
     use crate::db::track_title::{models::*, schema::*, *};
 
@@ -93,7 +108,7 @@ fn load_track_and_album_titles(
 
 fn delete_track_and_album_titles(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
 ) -> RepoResult<usize> {
     use crate::db::track_title::schema::*;
     diesel::delete(track_title::table.filter(track_title::track_id.eq(RowId::from(track_id))))
@@ -103,7 +118,7 @@ fn delete_track_and_album_titles(
 
 fn insert_track_and_album_titles(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
     track_titles: Canonical<&[Title]>,
     album_titles: Canonical<&[Title]>,
 ) -> RepoResult<()> {
@@ -127,7 +142,7 @@ fn insert_track_and_album_titles(
 
 fn update_track_and_album_titles(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
     new_track_titles: Canonical<&[Title]>,
     new_album_titles: Canonical<&[Title]>,
 ) -> RepoResult<()> {
@@ -149,7 +164,7 @@ fn update_track_and_album_titles(
 #[allow(clippy::type_complexity)]
 fn load_track_and_album_actors(
     db: &mut crate::Connection<'_>,
-    id: RecordId,
+    id: TrackId,
 ) -> RepoResult<(Canonical<Vec<Actor>>, Canonical<Vec<Actor>>)> {
     use crate::db::track_actor::{models::*, schema::*, *};
 
@@ -198,7 +213,7 @@ fn load_track_and_album_actors(
 
 fn delete_track_and_album_actors(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
 ) -> RepoResult<usize> {
     use crate::db::track_actor::schema::*;
     diesel::delete(track_actor::table.filter(track_actor::track_id.eq(RowId::from(track_id))))
@@ -208,7 +223,7 @@ fn delete_track_and_album_actors(
 
 fn insert_track_and_album_actors(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
     track_actors: Canonical<&[Actor]>,
     album_actors: Canonical<&[Actor]>,
 ) -> RepoResult<()> {
@@ -232,7 +247,7 @@ fn insert_track_and_album_actors(
 
 fn update_track_and_album_actors(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
     new_track_actors: Canonical<&[Actor]>,
     new_album_actors: Canonical<&[Actor]>,
 ) -> RepoResult<()> {
@@ -252,7 +267,7 @@ fn update_track_and_album_actors(
 
 fn load_track_cues(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
 ) -> RepoResult<Canonical<Vec<Cue>>> {
     use crate::db::track_cue::{models::*, schema::*, *};
     let query = track_cue::table
@@ -273,7 +288,7 @@ fn load_track_cues(
     Ok(Canonical::tie(cues))
 }
 
-fn delete_track_cues(db: &mut crate::Connection<'_>, track_id: RecordId) -> RepoResult<usize> {
+fn delete_track_cues(db: &mut crate::Connection<'_>, track_id: TrackId) -> RepoResult<usize> {
     use crate::db::track_cue::schema::*;
     diesel::delete(track_cue::table.filter(track_cue::track_id.eq(RowId::from(track_id))))
         .execute(db.as_mut())
@@ -282,7 +297,7 @@ fn delete_track_cues(db: &mut crate::Connection<'_>, track_id: RecordId) -> Repo
 
 fn insert_track_cues(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
     cues: Canonical<&[Cue]>,
 ) -> RepoResult<()> {
     use crate::db::track_cue::{models::*, schema::*};
@@ -298,7 +313,7 @@ fn insert_track_cues(
 
 fn update_track_cues(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
     new_cues: Canonical<&[Cue]>,
 ) -> RepoResult<()> {
     let old_cues = load_track_cues(db, track_id)?;
@@ -313,7 +328,7 @@ fn update_track_cues(
 
 fn load_track_tags(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
 ) -> RepoResult<Canonical<Tags<'static>>> {
     use crate::db::track_tag::{models::*, schema::*};
 
@@ -355,7 +370,7 @@ fn load_track_tags(
     Ok(tags.canonicalize_into())
 }
 
-fn delete_track_tags(db: &mut crate::Connection<'_>, track_id: RecordId) -> RepoResult<usize> {
+fn delete_track_tags(db: &mut crate::Connection<'_>, track_id: TrackId) -> RepoResult<usize> {
     use crate::db::track_tag::schema::*;
     diesel::delete(track_tag::table.filter(track_tag::track_id.eq(RowId::from(track_id))))
         .execute(db.as_mut())
@@ -364,7 +379,7 @@ fn delete_track_tags(db: &mut crate::Connection<'_>, track_id: RecordId) -> Repo
 
 fn insert_track_tags(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
     tags: &Canonical<Tags<'_>>,
 ) -> RepoResult<()> {
     use crate::db::track_tag::{models::*, schema::*};
@@ -394,7 +409,7 @@ fn insert_track_tags(
 
 fn update_track_tags(
     db: &mut crate::Connection<'_>,
-    track_id: RecordId,
+    track_id: TrackId,
     new_tags: &Canonical<Tags<'_>>,
 ) -> RepoResult<()> {
     let old_tags = load_track_tags(db, track_id)?;
@@ -409,7 +424,7 @@ fn update_track_tags(
 
 fn preload_entity(
     db: &mut crate::Connection<'_>,
-    id: RecordId,
+    id: TrackId,
     media_source: Source,
 ) -> RepoResult<EntityPreload> {
     let (track_titles, album_titles) = load_track_and_album_titles(db, id)?;
@@ -425,8 +440,8 @@ fn preload_entity(
     })
 }
 
-impl<'db> EntityRepo for crate::Connection<'db> {
-    fn resolve_track_id(&mut self, uid: &TrackUid) -> RepoResult<RecordId> {
+impl<'db> EntityRepo for Connection<'db> {
+    fn resolve_track_id(&mut self, uid: &TrackUid) -> RepoResult<TrackId> {
         track::table
             .select(track::row_id)
             .filter(track::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
@@ -439,7 +454,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         &mut self,
         media_source_id: MediaSourceId,
         created_entity: &TrackEntity,
-    ) -> RepoResult<RecordId> {
+    ) -> RepoResult<TrackId> {
         let insertable = InsertableRecord::bind(media_source_id, created_entity);
         let query = insertable.insert_into(track::table);
         let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
@@ -468,7 +483,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn update_track_entity(
         &mut self,
-        id: RecordId,
+        id: TrackId,
         media_source_id: MediaSourceId,
         updated_entity: &TrackEntity,
     ) -> RepoResult<()> {
@@ -505,7 +520,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, TrackEntity)> {
+    fn load_track_entity(&mut self, id: TrackId) -> RepoResult<(RecordHeader, TrackEntity)> {
         let queryable = view_track_search::table
             .filter(view_track_search::row_id.eq(RowId::from(id)))
             .get_result::<SearchQueryableRecord>(self.as_mut())
@@ -528,7 +543,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         load_repo_entity(preload, queryable)
     }
 
-    fn purge_track_entity(&mut self, id: RecordId) -> RepoResult<()> {
+    fn purge_track_entity(&mut self, id: TrackId) -> RepoResult<()> {
         let target = track::table.filter(track::row_id.eq(RowId::from(id)));
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
@@ -685,8 +700,8 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
         &mut self,
         collection_id: CollectionId,
         pagination: &Pagination,
-        filter: Option<Filter>,
-        ordering: Vec<SortOrder>,
+        filter: Option<&Filter>,
+        ordering: &[SortOrder],
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = TrackEntity>,
     ) -> RepoResult<usize> {
         let mut query = view_track_search::table
@@ -703,11 +718,11 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
             )
             .into_boxed();
 
-        if let Some(ref filter) = filter {
+        if let Some(filter) = filter {
             query = query.filter(filter.build_expression());
         }
 
-        for sort_order in &ordering {
+        for sort_order in ordering {
             query = sort_order.apply_to_query(query);
         }
         // Finally order by PK to preserve the relative order of results

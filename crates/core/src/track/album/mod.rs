@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use nonicle::{Canonical, IsCanonical};
+use semval::prelude::*;
 use strum::FromRepr;
 
 use super::{
     actor::{self, Actor, Actors, ActorsInvalidity},
     title::{Title, Titles, TitlesInvalidity},
 };
-use crate::prelude::*;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, FromRepr)]
 #[repr(u8)]

@@ -3,7 +3,7 @@
 
 use aoide_repo_sqlite::{run_migrations, DbConnection};
 
-use super::*;
+use crate::{Error, Result};
 
 pub fn migrate_schema(connection: &mut DbConnection) -> Result<()> {
     for migration_version in run_migrations(connection)

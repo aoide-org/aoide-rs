@@ -5,10 +5,15 @@ use std::ops::RangeBounds;
 
 use bitflags::bitflags;
 use rand::{seq::SliceRandom as _, RngCore};
+use semval::prelude::*;
 
 use crate::{
-    prelude::{random::adhoc_rng, *},
-    TrackUid,
+    util::{
+        clock::OffsetDateTimeMs,
+        color::{Color, ColorInvalidity},
+        random::adhoc_rng,
+    },
+    EntityHeaderTyped, EntityUidInvalidity, EntityUidTyped, TrackUid,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

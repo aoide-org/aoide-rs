@@ -4,8 +4,10 @@
 use aoide_core::playlist::EntityHeader;
 use aoide_core_api::playlist::EntityWithEntriesSummary;
 use aoide_repo::playlist::RecordHeader;
+use aoide_repo_sqlite::DbConnection;
+use aoide_usecases as uc;
 
-use super::*;
+use crate::{RepoConnection, Result};
 
 pub fn patch(
     connection: &mut DbConnection,

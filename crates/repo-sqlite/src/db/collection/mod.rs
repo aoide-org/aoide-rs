@@ -3,7 +3,3 @@
 
 pub(crate) mod models;
 pub(crate) mod schema;
-
-use aoide_repo::collection::RecordHeader;
-
-use crate::prelude::*;

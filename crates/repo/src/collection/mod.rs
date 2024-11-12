@@ -4,12 +4,15 @@
 use std::borrow::Cow;
 
 use aoide_core::{
-    collection::{Entity, EntityHeader, EntityUid},
     util::{clock::OffsetDateTimeMs, url::BaseUrl},
+    CollectionEntity, CollectionHeader, CollectionUid,
 };
-use aoide_core_api::collection::{EntityWithSummary, LoadScope, Summary};
+use aoide_core_api::{
+    collection::{EntityWithSummary, LoadScope, Summary},
+    Pagination,
+};
 
-use crate::prelude::*;
+use crate::{RecordCollector, RepoResult, ReservableRecordCollector};
 
 record_id_newtype!(RecordId);
 
@@ -32,12 +35,18 @@ pub enum KindFilter<'a> {
 }
 
 pub trait EntityRepo {
-    entity_repo_trait_common_functions!(RecordId, Entity, EntityUid, EntityHeader, Collection);
+    entity_repo_trait_common_functions!(
+        RecordId,
+        CollectionEntity,
+        CollectionUid,
+        CollectionHeader,
+        Collection
+    );
 
     fn insert_collection_entity(
         &mut self,
         created_at: &OffsetDateTimeMs,
-        created_entity: &Entity,
+        created_entity: &CollectionEntity,
     ) -> RepoResult<RecordId>;
 
     fn load_collection_entities(

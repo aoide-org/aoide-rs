@@ -1,7 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use super::{schema::*, *};
+use diesel::prelude::*;
+use semval::prelude::*;
+
+use aoide_core::tag::{FacetId, Label, PlainTag, Score, ScoreValue};
+
+use crate::RowId;
+
+use super::{schema::*, Record, RecordId};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = track_tag, primary_key(row_id))]

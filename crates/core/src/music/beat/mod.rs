@@ -3,7 +3,7 @@
 
 use std::{fmt, ops::Not as _};
 
-use crate::prelude::*;
+use semval::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 // TimeSignature

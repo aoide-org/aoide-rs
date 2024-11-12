@@ -21,6 +21,8 @@ anyhow.workspace = true
 bitflags.workspace = true
 digest.workspace = true
 log.workspace = true
+nonicle.workspace = true
+semval.workspace = true
 static_assertions.workspace = true
 thiserror.workspace = true
 

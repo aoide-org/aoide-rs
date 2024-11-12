@@ -4,18 +4,18 @@
 use std::borrow::Cow;
 
 use mime::Mime;
+use semval::prelude::*;
 
-use self::{
-    artwork::{Artwork, ArtworkInvalidity},
-    content::{
-        AudioContentMetadataInvalidity, ContentLink, ContentMetadata, ContentMetadataFlags,
-        ContentMetadataFlagsInvalidity,
-    },
-};
-use crate::prelude::*;
+use crate::util::clock::OffsetDateTimeMs;
 
 pub mod artwork;
+use self::artwork::{Artwork, ArtworkInvalidity};
+
 pub mod content;
+use self::content::{
+    AudioContentMetadataInvalidity, ContentLink, ContentMetadata, ContentMetadataFlags,
+    ContentMetadataFlagsInvalidity,
+};
 
 /// Concatenate encoder properties
 ///

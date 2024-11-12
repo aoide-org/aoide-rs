@@ -1,13 +1,18 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use diesel::prelude::*;
+use semval::prelude::*;
+
 use aoide_core::{
     audio::{PositionMs, PositionMsValue},
     track::cue::*,
     util::color::*,
 };
 
-use super::{schema::*, *};
+use crate::RowId;
+
+use super::{schema::*, Record, RecordId};
 
 ///////////////////////////////////////////////////////////////////////
 

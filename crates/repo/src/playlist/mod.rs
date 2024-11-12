@@ -3,16 +3,17 @@
 
 use std::{borrow::Cow, ops::Range};
 
+use rand::seq::SliceRandom as _;
+
 use aoide_core::{
     playlist::{
         Entity, EntityHeader, EntityUid, EntityWithEntries, EntriesSummary, Entry, TracksSummary,
     },
     util::{clock::OffsetDateTimeMs, random::adhoc_rng},
 };
-use aoide_core_api::playlist::EntityWithEntriesSummary;
-use rand::seq::SliceRandom as _;
+use aoide_core_api::{playlist::EntityWithEntriesSummary, Pagination};
 
-use crate::{collection::RecordId as CollectionId, prelude::*, track::RecordId as TrackId};
+use crate::{CollectionId, RecordCollector, RepoResult, ReservableRecordCollector, TrackId};
 
 record_id_newtype!(RecordId);
 

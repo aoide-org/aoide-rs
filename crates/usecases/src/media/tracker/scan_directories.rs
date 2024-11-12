@@ -4,9 +4,12 @@
 use std::{path::Path, sync::atomic::AtomicBool, time::Duration};
 
 use anyhow::anyhow;
+use url::Url;
+
 use aoide_core::{
     media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _},
     util::clock::OffsetDateTimeMs,
+    CollectionUid,
 };
 use aoide_core_api::media::tracker::{
     scan_directories::{Outcome, Summary},
@@ -20,11 +23,10 @@ use aoide_media_file::fs::{
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     media::tracker::{DirUpdateOutcome, Repo as MediaTrackerRepo},
+    RepoError,
 };
-use url::Url;
 
-use super::*;
-use crate::collection::vfs::RepoContext;
+use crate::{collection::vfs::RepoContext, Error, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgressEvent {

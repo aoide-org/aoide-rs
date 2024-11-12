@@ -87,7 +87,7 @@ pub fn handle_request(
         uc::search(
             connection,
             collection_uid,
-            params,
+            &params,
             &pagination,
             &mut collector,
         )

@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use diesel::Connection as _;
+use url::Url;
+
 use aoide_core::{
     collection::{Collection, Entity, EntityHeader, EntityUid},
     media::content::ContentPath,
@@ -12,11 +15,9 @@ use aoide_core_api::{
 };
 use aoide_repo::{
     collection::{EntityWithSummaryCollector, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
-    prelude::{RepoError, ReservableRecordCollector},
+    RepoError, ReservableRecordCollector,
 };
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
-use diesel::Connection as _;
-use url::Url;
 
 use crate::prelude::*;
 
@@ -96,6 +97,7 @@ pub async fn load_one(
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::collection::load_one(connection, &entity_uid, load_scope)
+                    .map(|(_record_id, entity_with_summary)| entity_with_summary)
             })
         })
         .await

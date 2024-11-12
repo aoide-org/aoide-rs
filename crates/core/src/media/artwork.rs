@@ -4,9 +4,10 @@
 use data_encoding::BASE64_NOPAD;
 use image::{codecs::png::PngEncoder, ImageEncoder as _};
 use mime::Mime;
+use semval::prelude::*;
 use strum::FromRepr;
 
-use crate::prelude::*;
+use crate::util::color::RgbColor;
 
 /// The `APIC` picture type code as defined by `ID3v2`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromRepr)]

@@ -1,14 +1,20 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use diesel::prelude::*;
+
 use aoide_core::{
     playlist::{Entry, Item, SeparatorItem, TrackItem},
     util::clock::{OffsetDateTimeMs, TimestampMillis},
 };
-use aoide_repo::{playlist::RecordId as PlaylistId, track::RecordId as TrackId};
+use aoide_repo::{PlaylistId, TrackId};
+
+use crate::{
+    util::{clock::parse_datetime, entity::decode_entity_uid_typed},
+    RowId,
+};
 
 use super::schema::*;
-use crate::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 

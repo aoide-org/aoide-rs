@@ -6,9 +6,8 @@ use std::cmp::Ordering;
 use aho_corasick::{AhoCorasick, AhoCorasickBuilder};
 use nonicle::{CanonicalOrd, Canonicalize, IsCanonical};
 use regex::{Regex, RegexBuilder};
+use semval::prelude::*;
 use strum::FromRepr;
-
-use crate::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 // Role

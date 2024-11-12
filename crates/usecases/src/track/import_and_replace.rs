@@ -7,12 +7,15 @@ use std::{
 };
 
 use anyhow::anyhow;
+use url::Url;
+
 use aoide_core::{
     media::content::{
         resolver::{vfs::VfsResolver, ContentPathResolver as _},
         ContentPath, ContentRevision,
     },
     util::clock::OffsetDateTimeMs,
+    CollectionUid, Track,
 };
 use aoide_core_api::{
     media::{tracker::Completion, SyncMode},
@@ -20,17 +23,18 @@ use aoide_core_api::{
 };
 use aoide_media_file::io::import::{ImportTrack, ImportTrackConfig, Issues};
 use aoide_repo::{
-    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
-    media::source::RecordId as MediaSourceId,
+    collection::EntityRepo as CollectionRepo,
     track::{CollectionRepo as TrackCollectionRepo, ReplaceMode, ReplaceParams},
+    CollectionId, MediaSourceId, OptionalRepoResult as _, RepoResult,
 };
-use url::Url;
 
-use super::*;
 use crate::{
     collection::vfs::RepoContext,
     media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncModeParams},
+    Error, MediaFileError, Result,
 };
+
+use super::{validate_input, ValidatedInput};
 
 #[derive(Debug, Clone)]
 pub struct Outcome {

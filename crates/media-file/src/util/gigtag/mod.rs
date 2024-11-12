@@ -3,12 +3,12 @@
 
 use std::borrow::Cow;
 
-use aoide_core::{
-    prelude::*,
-    tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, ScoreValue, Tags, TagsMap},
-};
 use compact_str::{format_compact, CompactString};
 use gigtag::{facet::has_date_like_suffix, Facet as _};
+use nonicle::Canonical;
+use semval::prelude::*;
+
+use aoide_core::tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, ScoreValue, Tags, TagsMap};
 
 pub type Facet = gigtag::CompactFacet;
 

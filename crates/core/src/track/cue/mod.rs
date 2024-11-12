@@ -4,9 +4,10 @@
 use std::cmp::Ordering;
 
 use nonicle::{CanonicalOrd, Canonicalize, IsCanonical};
+use semval::prelude::*;
 use strum::FromRepr;
 
-use crate::{audio::PositionMs, prelude::*};
+use crate::{audio::PositionMs, util::color::Color};
 
 pub type BankIndex = i16;
 

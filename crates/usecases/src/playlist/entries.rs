@@ -10,7 +10,7 @@ use aoide_core::{
 use aoide_core_api::playlist::EntityWithEntriesSummary;
 use aoide_repo::{
     playlist::{EntityRepo, EntryRepo, RecordHeader},
-    prelude::RepoResult,
+    RepoResult,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

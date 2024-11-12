@@ -11,9 +11,8 @@ use std::{
 
 use nonicle::{Canonicalize, IsCanonical};
 use rand::RngCore;
+use semval::prelude::*;
 use ulid::{Ulid, ULID_LEN};
-
-use crate::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 // EntityUid

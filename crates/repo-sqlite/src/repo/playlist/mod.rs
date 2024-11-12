@@ -4,6 +4,11 @@
 use std::ops::Range;
 
 use anyhow::anyhow;
+use diesel::{
+    dsl::{count_distinct, count_star},
+    prelude::*,
+};
+
 use aoide_core::{
     playlist::{
         EntityHeader, EntityWithEntries, EntriesSummary, Entry, Item, TrackItem, TracksSummary,
@@ -11,13 +16,11 @@ use aoide_core::{
     util::clock::*,
     EncodedEntityUid, EntityRevision, PlaylistEntity, PlaylistUid,
 };
-use aoide_core_api::playlist::EntityWithEntriesSummary;
+use aoide_core_api::{playlist::EntityWithEntriesSummary, Pagination};
 use aoide_repo::{
-    collection::RecordId as CollectionId,
-    playlist::*,
-    track::{EntityRepo as _, RecordId as TrackId},
+    playlist::*, track::EntityRepo as _, CollectionId, RepoError, RepoResult,
+    ReservableRecordCollector, TrackId,
 };
-use diesel::dsl::{count_distinct, count_star};
 
 use crate::{
     db::{
@@ -25,10 +28,16 @@ use crate::{
         playlist_entry as playlist_entry_db,
         track::schema as track_schema,
     },
-    prelude::*,
+    repo_error,
+    util::{
+        clock::parse_datetime,
+        entity::{decode_entity_revision, encode_entity_revision},
+        pagination_to_limit_offset,
+    },
+    Connection, RowId,
 };
 
-impl<'db> EntityRepo for crate::Connection<'db> {
+impl<'db> EntityRepo for Connection<'db> {
     fn resolve_playlist_entity_revision(
         &mut self,
         uid: &PlaylistUid,

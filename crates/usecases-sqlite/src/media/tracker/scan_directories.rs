@@ -3,9 +3,11 @@
 
 use std::sync::atomic::AtomicBool;
 
+use aoide_core::CollectionUid;
 use aoide_core_api::media::tracker::{scan_directories::Outcome, FsTraversalParams};
+use aoide_repo_sqlite::DbConnection;
 
-use super::*;
+use crate::{RepoConnection, Result};
 
 mod uc {
     pub(super) use aoide_usecases::media::tracker::scan_directories::*;

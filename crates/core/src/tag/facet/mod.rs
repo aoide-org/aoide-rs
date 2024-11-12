@@ -9,8 +9,7 @@ use std::{
 };
 
 use nonicle::CanonicalOrd;
-
-use crate::prelude::*;
+use semval::prelude::*;
 
 /// An identifier for referencing tag categories.
 ///

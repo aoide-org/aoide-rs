@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use mime::IMAGE_JPEG;
+use test_log::test;
+
 use aoide_core::{
     audio::DurationMs,
     media::{
@@ -16,9 +19,7 @@ use aoide_core::{
     util::{clock::OffsetDateTimeMs, color::RgbColor},
     Collection, CollectionEntity, CollectionHeader,
 };
-use aoide_repo::collection::{EntityRepo as _, RecordId as CollectionId};
-use mime::IMAGE_JPEG;
-use test_log::test;
+use aoide_repo::{collection::EntityRepo as _, CollectionId};
 
 use super::*;
 use crate::{repo::tests::vfs_media_source_config, tests::*};
@@ -47,7 +48,7 @@ impl Fixture {
         &self,
         db: &mut crate::Connection<'_>,
         content_path_predicate: StringPredicate<'_>,
-    ) -> RepoResult<Vec<RecordId>> {
+    ) -> RepoResult<Vec<MediaSourceId>> {
         db.resolve_media_source_ids_by_content_path_predicate(
             self.collection_id,
             content_path_predicate,

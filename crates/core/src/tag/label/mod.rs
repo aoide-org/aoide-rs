@@ -9,8 +9,9 @@ use std::{
 };
 
 use nonicle::CanonicalOrd;
+use semval::prelude::*;
 
-use crate::{prelude::*, util::string::trimmed_non_empty_from};
+use crate::util::string::trimmed_non_empty_from;
 
 /// The name of a tag.
 ///

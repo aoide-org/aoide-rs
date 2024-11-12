@@ -3,7 +3,7 @@
 
 use std::{fmt, time::Duration};
 
-use crate::prelude::*;
+use semval::prelude::*;
 
 pub mod channel;
 pub use self::channel::*;

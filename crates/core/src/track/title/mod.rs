@@ -4,9 +4,8 @@
 use std::{cmp::Ordering, iter::once};
 
 use nonicle::{CanonicalOrd, Canonicalize, IsCanonical};
+use semval::prelude::*;
 use strum::FromRepr;
-
-use crate::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 // Kind

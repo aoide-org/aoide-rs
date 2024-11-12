@@ -1,9 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use diesel::prelude::*;
+
 use aoide_core::util::clock::YyyyMmDdDateValue;
 
-use crate::prelude::*;
+use crate::RowId;
 
 #[derive(Debug, Queryable)]
 #[diesel(table_name = view_album)]

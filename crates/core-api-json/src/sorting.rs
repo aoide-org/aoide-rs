@@ -4,7 +4,7 @@
 use crate::prelude::*;
 
 mod _inner {
-    pub(super) use crate::_inner::sorting::*;
+    pub(super) use crate::_inner::SortDirection;
 }
 
 #[derive(Debug)]

@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core_api::filtering::StringPredicate;
 use aoide_repo::{
-    collection::RecordId as CollectionId,
     media::source::CollectionRepo as MediaSourceCollectionRepo, track::CollectionRepo,
+    CollectionId, RepoResult,
 };
-
-use super::*;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PurgeByMediaContentPathPredicatesSummary {

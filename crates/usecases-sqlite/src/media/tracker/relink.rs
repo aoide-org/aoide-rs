@@ -3,9 +3,11 @@
 
 use std::sync::atomic::AtomicBool;
 
+use aoide_core::CollectionUid;
+use aoide_repo_sqlite::DbConnection;
 use aoide_usecases::media::tracker::relink as uc;
 
-use super::*;
+use crate::{RepoConnection, Result};
 
 pub fn relink_tracks_with_untracked_media_sources<ReportProgressFn: FnMut(&uc::Progress)>(
     connection: &mut DbConnection,

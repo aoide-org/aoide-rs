@@ -8,126 +8,84 @@
 #![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::wildcard_imports)]
 
+use std::ops::{Deref, DerefMut};
+
 use diesel::{
     migration::{MigrationVersion, Result as MigrationResult},
-    QueryResult, RunQueryDsl as _,
+    prelude::*,
+    result::Error as DieselError,
+    QueryResult,
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness as _};
+use unicase::UniCase;
 
+use aoide_repo::RepoError;
 use aoide_storage_sqlite::VacuumMode;
 
-pub type DbBackend = diesel::sqlite::Sqlite;
-pub type DbConnection = diesel::sqlite::SqliteConnection;
-
-pub mod prelude {
-    pub(crate) use std::ops::Deref;
-    use std::ops::DerefMut;
-
-    pub(crate) use aoide_core::prelude::*;
-    pub(crate) use aoide_repo::prelude::*;
-    pub use diesel::Connection as _;
-    pub(crate) use diesel::{prelude::*, result::Error as DieselError};
-
-    pub(crate) use crate::util::{clock::*, entity::*, *};
-    pub use crate::{DbBackend, DbConnection};
-    #[allow(missing_debug_implementations)]
-    pub struct Connection<'db>(&'db mut DbConnection);
-
-    impl<'db> Connection<'db> {
-        pub fn new(inner: &'db mut DbConnection) -> Self {
-            Self(inner)
-        }
-    }
-
-    impl<'db> From<&'db mut DbConnection> for Connection<'db> {
-        fn from(inner: &'db mut DbConnection) -> Self {
-            Self::new(inner)
-        }
-    }
-
-    impl<'db> AsRef<DbConnection> for Connection<'db> {
-        fn as_ref(&self) -> &DbConnection {
-            self.0
-        }
-    }
-
-    impl<'db> AsMut<DbConnection> for Connection<'db> {
-        fn as_mut(&mut self) -> &mut DbConnection {
-            self.0
-        }
-    }
-
-    impl<'db> Deref for Connection<'db> {
-        type Target = DbConnection;
-
-        fn deref(&self) -> &Self::Target {
-            self.as_ref()
-        }
-    }
-
-    impl<'db> DerefMut for Connection<'db> {
-        fn deref_mut(&mut self) -> &mut Self::Target {
-            self.as_mut()
-        }
-    }
-
-    pub(crate) fn repo_error(err: DieselError) -> RepoError {
-        match err {
-            DieselError::NotFound => RepoError::NotFound,
-            err => RepoError::Other(err.into()),
-        }
-    }
-
-    #[derive(Debug)]
-    pub struct DieselTransactionError<E>(E);
-
-    impl<E> DieselTransactionError<E> {
-        pub const fn new(inner: E) -> Self {
-            Self(inner)
-        }
-
-        pub fn into_inner(self) -> E {
-            let Self(inner) = self;
-            inner
-        }
-    }
-
-    impl<E> From<DieselError> for DieselTransactionError<E>
-    where
-        E: From<RepoError>,
-    {
-        fn from(err: DieselError) -> Self {
-            Self(repo_error(err).into())
-        }
-    }
-
-    impl<E> From<RepoError> for DieselTransactionError<E>
-    where
-        E: From<RepoError>,
-    {
-        fn from(err: RepoError) -> Self {
-            Self(err.into())
-        }
-    }
-
-    pub type RepoTransactionError = DieselTransactionError<RepoError>;
-
-    pub(crate) use aoide_repo::RecordId as RowId;
-}
+mod db;
 
 pub mod repo;
 
-mod db;
 mod util;
 
-use prelude::Connection;
-use unicase::UniCase;
+pub(crate) use aoide_repo::RecordId as RowId;
 
 const INIT_DB_SQL: &str = include_str!("init_db.sql");
 
 pub(crate) const UNICASE_COLLATION_NAME: &str = "UNICASE";
 
 pub const DEFAULT_VACUUM_MODE: VacuumMode = VacuumMode::Incremental;
+
+pub type DbBackend = diesel::sqlite::Sqlite;
+pub type DbConnection = diesel::sqlite::SqliteConnection;
+
+#[allow(missing_debug_implementations)]
+pub struct Connection<'db>(&'db mut DbConnection);
+
+impl<'db> Connection<'db> {
+    pub fn new(inner: &'db mut DbConnection) -> Self {
+        Self(inner)
+    }
+}
+
+impl<'db> From<&'db mut DbConnection> for Connection<'db> {
+    fn from(inner: &'db mut DbConnection) -> Self {
+        Self::new(inner)
+    }
+}
+
+impl<'db> AsRef<DbConnection> for Connection<'db> {
+    fn as_ref(&self) -> &DbConnection {
+        self.0
+    }
+}
+
+impl<'db> AsMut<DbConnection> for Connection<'db> {
+    fn as_mut(&mut self) -> &mut DbConnection {
+        self.0
+    }
+}
+
+impl<'db> Deref for Connection<'db> {
+    type Target = DbConnection;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl<'db> DerefMut for Connection<'db> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_mut()
+    }
+}
+
+pub(crate) fn repo_error(err: DieselError) -> RepoError {
+    match err {
+        DieselError::NotFound => RepoError::NotFound,
+        err => RepoError::Other(err.into()),
+    }
+}
 
 /// Configure the database engine
 ///
@@ -167,7 +125,7 @@ pub mod tests {
     use anyhow::anyhow;
     use diesel::Connection as _;
 
-    use super::{initialize_database, prelude::*, run_migrations, DbConnection};
+    use super::{initialize_database, repo_error, run_migrations, DbConnection};
 
     pub type TestResult<T> = anyhow::Result<T>;
 

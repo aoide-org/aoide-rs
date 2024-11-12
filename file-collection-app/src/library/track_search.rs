@@ -9,9 +9,9 @@ use aoide::{
     api::{
         filtering::{NumericPredicate, ScalarFieldFilter, StringPredicate},
         media::source::ResolveUrlFromContentPath,
-        sorting::SortDirection,
         tag::search::{FacetsFilter, Filter as TagFilter},
         track::search::{Filter, NumericField, PhraseFieldFilter, SortOrder, StringField},
+        SortDirection,
     },
     desktop_app::track,
     tag::FacetKey,

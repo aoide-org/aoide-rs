@@ -1,51 +1,58 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{
-    collection::*,
-    media::content::{resolver::ContentPathResolver as _, ContentPath},
-    util::url::BaseUrl,
-};
-use aoide_core_api::collection::{EntityWithSummary, LoadScope};
-use aoide_repo::{
-    collection::{EntityRepo as _, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
-    prelude::*,
-};
-use uc::collection::vfs::RepoContext;
 use url::Url;
 
-use super::*;
+use aoide_core::{
+    media::content::{resolver::ContentPathResolver as _, ContentPath},
+    util::url::BaseUrl,
+    Collection, CollectionEntity, CollectionHeader, CollectionUid,
+};
+use aoide_core_api::{
+    collection::{EntityWithSummary, LoadScope},
+    Pagination,
+};
+use aoide_repo::{
+    collection::{EntityRepo as _, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
+    ReservableRecordCollector,
+};
+use aoide_usecases::collection::{self as uc, vfs::RepoContext};
 
-pub fn create(connection: &mut DbConnection, new_collection: Collection) -> Result<Entity> {
-    let created_entity = uc::collection::create_entity(new_collection)?;
+use crate::{DbConnection, Error, RepoConnection, Result};
+
+pub fn create(
+    connection: &mut DbConnection,
+    new_collection: Collection,
+) -> Result<CollectionEntity> {
+    let created_entity = uc::create_entity(new_collection)?;
     let mut repo = RepoConnection::new(connection);
-    uc::collection::store_created_entity(&mut repo, &created_entity)?;
+    uc::store_created_entity(&mut repo, &created_entity)?;
     Ok(created_entity)
 }
 
 pub fn update(
     connection: &mut DbConnection,
-    entity_header: EntityHeader,
+    entity_header: CollectionHeader,
     modified_collection: Collection,
-) -> Result<Entity> {
-    let updated_entity = uc::collection::update_entity(entity_header, modified_collection)?;
+) -> Result<CollectionEntity> {
+    let updated_entity = uc::update_entity(entity_header, modified_collection)?;
     let mut repo = RepoConnection::new(connection);
-    uc::collection::store_updated_entity(&mut repo, &updated_entity)?;
+    uc::store_updated_entity(&mut repo, &updated_entity)?;
     Ok(updated_entity)
 }
 
-pub fn purge(connection: &mut DbConnection, entity_uid: &EntityUid) -> Result<()> {
+pub fn purge(connection: &mut DbConnection, entity_uid: &CollectionUid) -> Result<()> {
     let mut repo = RepoConnection::new(connection);
-    uc::collection::purge(&mut repo, entity_uid).map_err(Into::into)
+    uc::purge(&mut repo, entity_uid).map_err(Into::into)
 }
 
 pub fn load_one(
     connection: &mut DbConnection,
-    entity_uid: &EntityUid,
+    entity_uid: &CollectionUid,
     scope: LoadScope,
-) -> Result<EntityWithSummary> {
+) -> Result<(RecordHeader, EntityWithSummary)> {
     let mut repo = RepoConnection::new(connection);
-    uc::collection::load_one(&mut repo, entity_uid, scope).map_err(Into::into)
+    uc::load_one(&mut repo, entity_uid, scope).map_err(Into::into)
 }
 
 pub fn load_all(
@@ -74,7 +81,7 @@ pub fn load_all_kinds(connection: &mut DbConnection) -> Result<Vec<String>> {
 
 pub fn resolve_content_path_from_url(
     connection: &mut DbConnection,
-    entity_uid: &EntityUid,
+    entity_uid: &CollectionUid,
     content_url: &Url,
 ) -> Result<Option<ContentPath<'static>>> {
     let mut repo = RepoConnection::new(connection);
@@ -90,7 +97,7 @@ pub fn resolve_content_path_from_url(
 
 pub fn resolve_url_from_content_path(
     connection: &mut DbConnection,
-    entity_uid: &EntityUid,
+    entity_uid: &CollectionUid,
     content_path: &ContentPath<'_>,
     override_root_url: Option<BaseUrl>,
 ) -> Result<Option<Url>> {

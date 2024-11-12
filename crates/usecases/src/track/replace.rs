@@ -1,15 +1,16 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::track::Entity as TrackEntity;
+use aoide_core::{Track, TrackEntity};
 use aoide_core_api::track::replace::Summary;
 use aoide_repo::{
-    collection::RecordId as CollectionId,
-    media::source::RecordId as MediaSourceId,
     track::{CollectionRepo as TrackCollectionRepo, ReplaceMode, ReplaceOutcome, ReplaceParams},
+    CollectionId, MediaSourceId,
 };
 
-use super::*;
+use crate::Result;
+
+use super::ValidatedInput;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[allow(clippy::struct_excessive_bools)]
@@ -135,7 +136,7 @@ where
 #[cfg(all(feature = "media-file", not(target_family = "wasm")))]
 pub fn replace_many_by_media_source_content_path<Repo>(
     repo: &mut Repo,
-    collection_uid: &CollectionUid,
+    collection_uid: &aoide_core::CollectionUid,
     params: &Params,
     validated_track_iter: impl IntoIterator<Item = ValidatedInput>,
 ) -> Result<Summary>
@@ -143,12 +144,17 @@ where
     Repo: aoide_repo::collection::EntityRepo + TrackCollectionRepo,
 {
     use anyhow::anyhow;
+    use nonicle::CanonicalizeInto as _;
+
     use aoide_core::{
-        media::content::resolver::ContentPathResolver as _,
-        {tag::TagsMap, track::tag::FACET_ID_GROUPING},
+        media::content::resolver::ContentPathResolver as _, tag::TagsMap,
+        track::tag::FACET_ID_GROUPING,
     };
 
-    use crate::collection::vfs::{ContentPathContext, RepoContext};
+    use crate::{
+        collection::vfs::{ContentPathContext, RepoContext},
+        Error,
+    };
 
     let Params {
         mode: replace_mode,

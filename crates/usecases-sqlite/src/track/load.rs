@@ -1,12 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::track::actor::ActorNamesSummarySplitter;
-use aoide_repo::{collection::EntityRepo as _, track::ActorRepo};
+use aoide_core::{track::actor::ActorNamesSummarySplitter, CollectionUid, TrackEntity, TrackUid};
+use aoide_repo::{
+    collection::EntityRepo as _,
+    track::{ActorRepo as _, EntityRepo as _, RecordHeader},
+    RecordCollector, RepoError,
+};
+use aoide_repo_sqlite::DbConnection;
 
-use super::*;
+use crate::{RepoConnection, Result};
 
-pub fn load_one(connection: &mut DbConnection, entity_uid: &EntityUid) -> Result<Entity> {
+pub fn load_one(connection: &mut DbConnection, entity_uid: &TrackUid) -> Result<TrackEntity> {
     let mut repo = RepoConnection::new(connection);
     let (_, entity) = repo.load_track_entity_by_uid(entity_uid)?;
     Ok(entity)
@@ -14,8 +19,8 @@ pub fn load_one(connection: &mut DbConnection, entity_uid: &EntityUid) -> Result
 
 pub fn load_many(
     connection: &mut DbConnection,
-    entity_uids: impl IntoIterator<Item = EntityUid>,
-    collector: &mut impl RecordCollector<Header = RecordHeader, Record = Entity>,
+    entity_uids: impl IntoIterator<Item = TrackUid>,
+    collector: &mut impl RecordCollector<Header = RecordHeader, Record = TrackEntity>,
 ) -> Result<()> {
     let mut repo = RepoConnection::new(connection);
     for entity_uid in entity_uids {

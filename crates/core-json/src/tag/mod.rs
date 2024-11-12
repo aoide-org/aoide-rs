@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, fmt};
 
-use aoide_core::prelude::*;
+use semval::prelude::*;
 use serde::{de::Visitor, Deserializer, Serializer};
 
 use crate::prelude::*;

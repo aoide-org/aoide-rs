@@ -3,7 +3,10 @@
 
 use aoide_core::tag::FacetKey;
 
-use crate::{filtering::*, sorting::*};
+use crate::{
+    filtering::{FilterModifier, NumericPredicate, StringPredicate},
+    SortDirection,
+};
 
 /// Filter by facets.
 ///
@@ -29,16 +32,6 @@ pub struct Filter {
 }
 
 impl Filter {
-    #[must_use]
-    pub const fn any_facet() -> Option<Vec<String>> {
-        None
-    }
-
-    #[must_use]
-    pub fn no_facet() -> Option<Vec<String>> {
-        Some(Vec::default())
-    }
-
     #[must_use]
     pub const fn any_term() -> Option<StringPredicate<'static>> {
         None

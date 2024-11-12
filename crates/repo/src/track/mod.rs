@@ -6,11 +6,13 @@ use aoide_core::{
     track::{actor::ActorNamesSummarySplitter, EntityHeader},
     EntityRevision, Track, TrackEntity, TrackUid,
 };
-use aoide_core_api::track::search::{Filter, SortOrder, StringField};
-
-use crate::{
-    collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
+use aoide_core_api::{
+    filtering::StringPredicate,
+    track::search::{Filter, SortOrder, StringField},
+    Pagination,
 };
+
+use crate::{CollectionId, MediaSourceId, RepoResult, ReservableRecordCollector, StringCount};
 
 record_id_newtype!(RecordId);
 
@@ -106,8 +108,8 @@ pub trait CollectionRepo {
         &mut self,
         collection_id: CollectionId,
         pagination: &Pagination,
-        filter: Option<Filter>,
-        ordering: Vec<SortOrder>,
+        filter: Option<&Filter>,
+        ordering: &[SortOrder],
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = TrackEntity>,
     ) -> RepoResult<usize>;
 

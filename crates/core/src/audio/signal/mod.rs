@@ -3,12 +3,11 @@
 
 use std::fmt;
 
-use crate::{
-    audio::{
-        channel::{ChannelFlags, ChannelFlagsInvalidity},
-        sample::{BitsPerSample, SampleLayout, SampleLayoutInvalidity, SampleLength},
-    },
-    prelude::*,
+use semval::prelude::*;
+
+use crate::audio::{
+    channel::{ChannelFlags, ChannelFlagsInvalidity},
+    sample::{BitsPerSample, SampleLayout, SampleLayoutInvalidity, SampleLength},
 };
 
 ///////////////////////////////////////////////////////////////////////

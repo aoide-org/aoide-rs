@@ -2,14 +2,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::anyhow;
+use semval::prelude::*;
+
 use aoide_core::{
-    collection::EntityHeader as CollectionEntityHeader, prelude::*, util::clock::OffsetDateTimeMs,
-    Collection, CollectionEntity, CollectionUid,
+    collection::EntityHeader as CollectionEntityHeader, util::clock::OffsetDateTimeMs, Collection,
+    CollectionEntity, CollectionUid,
 };
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
-use aoide_repo::collection::EntityRepo;
+use aoide_repo::collection::{EntityRepo, RecordHeader};
 
-use super::*;
+use crate::{Error, InputResult, Result};
 
 #[cfg(not(target_family = "wasm"))]
 pub mod vfs;
@@ -59,14 +61,14 @@ pub fn load_one(
     repo: &mut impl EntityRepo,
     collection_uid: &CollectionUid,
     scope: LoadScope,
-) -> Result<EntityWithSummary> {
+) -> Result<(RecordHeader, EntityWithSummary)> {
     let id = repo.resolve_collection_id(collection_uid)?;
     let (record_hdr, entity) = repo.load_collection_entity(id)?;
     let summary = match scope {
         LoadScope::Entity => None,
         LoadScope::EntityWithSummary => Some(repo.load_collection_summary(record_hdr.id)?),
     };
-    Ok(EntityWithSummary { entity, summary })
+    Ok((record_hdr, EntityWithSummary { entity, summary }))
 }
 
 pub fn purge(repo: &mut impl EntityRepo, collection_uid: &CollectionUid) -> Result<()> {

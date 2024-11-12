@@ -2,16 +2,25 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::anyhow;
+use diesel::prelude::*;
+
 use aoide_core::{
-    collection::EntityHeader,
     media::content::{ContentPath, ContentPathConfig, VirtualFilePathConfig},
     util::clock::*,
-    Collection, CollectionEntity, CollectionUid, EncodedEntityUid, EntityRevision,
+    Collection, CollectionEntity, CollectionHeader, CollectionUid, EncodedEntityUid,
+    EntityRevision,
 };
-use aoide_core_api::collection::{
-    EntityWithSummary, LoadScope, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
+use aoide_core_api::{
+    collection::{
+        EntityWithSummary, LoadScope, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
+    },
+    Pagination,
 };
-use aoide_repo::collection::*;
+use aoide_repo::{
+    collection::{EntityRepo, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
+    fetch_and_collect_filtered_records, CollectionId, RepoError, RepoResult,
+    ReservableRecordCollector,
+};
 
 use crate::{
     db::{
@@ -23,12 +32,17 @@ use crate::{
         playlist::schema::*,
         track::schema::*,
     },
-    prelude::*,
+    repo_error,
+    util::{
+        entity::{decode_entity_revision, encode_entity_revision},
+        pagination_to_limit_offset, sql_column_substr_prefix_eq,
+    },
+    Connection, RowId,
 };
 
 fn load_vfs_excluded_content_paths(
     db: &mut Connection<'_>,
-    id: RecordId,
+    id: CollectionId,
 ) -> RepoResult<Vec<ContentPath<'static>>> {
     let query = collection_vfs::table
         .select(collection_vfs::excluded_content_path)
@@ -42,7 +56,7 @@ fn load_vfs_excluded_content_paths(
 
 fn purge_vfs_excluded_content_paths<'a>(
     db: &mut Connection<'_>,
-    id: RecordId,
+    id: CollectionId,
     keep: impl IntoIterator<Item = &'a ContentPath<'a>>,
 ) -> RepoResult<()> {
     let target = collection_vfs::table
@@ -58,7 +72,7 @@ fn purge_vfs_excluded_content_paths<'a>(
 
 fn restore_vfs(
     db: &mut Connection<'_>,
-    id: RecordId,
+    id: CollectionId,
     collection: &mut Collection,
 ) -> RepoResult<()> {
     let ContentPathConfig::VirtualFilePath(VirtualFilePathConfig { excluded_paths, .. }) =
@@ -71,7 +85,7 @@ fn restore_vfs(
     Ok(())
 }
 
-fn store_vfs(db: &mut Connection<'_>, id: RecordId, collection: &Collection) -> RepoResult<()> {
+fn store_vfs(db: &mut Connection<'_>, id: CollectionId, collection: &Collection) -> RepoResult<()> {
     let ContentPathConfig::VirtualFilePath(VirtualFilePathConfig { excluded_paths, .. }) =
         &collection.media_source_config.content_path
     else {
@@ -90,7 +104,7 @@ fn store_vfs(db: &mut Connection<'_>, id: RecordId, collection: &Collection) -> 
     Ok(())
 }
 
-impl<'db> EntityRepo for crate::Connection<'db> {
+impl<'db> EntityRepo for Connection<'db> {
     fn resolve_collection_entity_revision(
         &mut self,
         uid: &CollectionUid,
@@ -119,7 +133,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         &mut self,
         created_at: &OffsetDateTimeMs,
         created_entity: &CollectionEntity,
-    ) -> RepoResult<RecordId> {
+    ) -> RepoResult<CollectionId> {
         let insertable = InsertableRecord::bind(created_at, created_entity);
         let query = insertable.insert_into(collection::table);
         let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
@@ -131,10 +145,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn touch_collection_entity_revision(
         &mut self,
-        entity_header: &EntityHeader,
+        entity_header: &CollectionHeader,
         updated_at: &OffsetDateTimeMs,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
-        let EntityHeader { uid, rev } = entity_header;
+        let CollectionHeader { uid, rev } = entity_header;
         let next_rev = rev
             .next()
             .ok_or_else(|| RepoError::Other(anyhow!("no next revision")))?;
@@ -156,7 +170,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn update_collection_entity(
         &mut self,
-        id: RecordId,
+        id: CollectionId,
         updated_at: &OffsetDateTimeMs,
         updated_entity: &CollectionEntity,
     ) -> RepoResult<()> {
@@ -175,7 +189,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
     fn load_collection_entity(
         &mut self,
-        id: RecordId,
+        id: CollectionId,
     ) -> RepoResult<(RecordHeader, CollectionEntity)> {
         let (record_header, mut entity) = collection::table
             .filter(collection::row_id.eq(RowId::from(id)))
@@ -328,7 +342,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         fetch_and_collect_filtered_records(self, pagination, fetch, filter_map, collector)
     }
 
-    fn load_collection_summary(&mut self, id: RecordId) -> RepoResult<Summary> {
+    fn load_collection_summary(&mut self, id: CollectionId) -> RepoResult<Summary> {
         let media_source_count = media_source::table
             .filter(media_source::collection_id.eq(RowId::from(id)))
             .count()
@@ -364,7 +378,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         })
     }
 
-    fn purge_collection_entity(&mut self, id: RecordId) -> RepoResult<()> {
+    fn purge_collection_entity(&mut self, id: CollectionId) -> RepoResult<()> {
         let target = collection::table.filter(collection::row_id.eq(RowId::from(id)));
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;

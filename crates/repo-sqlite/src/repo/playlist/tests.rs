@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use test_log::test;
+
 use aoide_core::{
     audio::DurationMs,
     media::{
@@ -12,11 +14,9 @@ use aoide_core::{
     TrackEntity, TrackHeader, TrackUid,
 };
 use aoide_repo::{
-    collection::{EntityRepo as _, RecordId as CollectionId},
-    media::source::{CollectionRepo as _, RecordId as MediaSourceId},
-    track::RecordId as TrackId,
+    collection::EntityRepo as _, media::source::CollectionRepo as _, CollectionId, MediaSourceId,
+    TrackId,
 };
-use test_log::test;
 
 use super::*;
 use crate::{repo::tests::vfs_media_source_config, tests::*};

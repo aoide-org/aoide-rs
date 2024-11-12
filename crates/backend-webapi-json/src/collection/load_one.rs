@@ -18,5 +18,5 @@ pub fn handle_request(
         .transaction::<_, Error, _>(|connection| {
             uc::load_one(connection, entity_uid, LoadScope::EntityWithSummary).map_err(Into::into)
         })
-        .map(export_entity_with_summary)
+        .map(|(_record_id, entity_with_summary)| export_entity_with_summary(entity_with_summary))
 }

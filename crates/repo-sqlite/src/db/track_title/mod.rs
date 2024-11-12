@@ -5,11 +5,10 @@ pub(crate) mod models;
 pub(crate) mod schema;
 
 use anyhow::anyhow;
+
 use aoide_core::track::title::*;
 use aoide_core_api::track::search::Scope;
-use aoide_repo::track::RecordId;
-
-use crate::prelude::*;
+use aoide_repo::{track::RecordId, RepoError, RepoResult};
 
 #[derive(Debug)]
 pub struct Record {
@@ -26,5 +25,5 @@ pub(crate) fn decode_kind(value: i16) -> RepoResult<Kind> {
     u8::try_from(value)
         .ok()
         .and_then(Kind::from_repr)
-        .ok_or_else(|| RepoError::Other(anyhow!("invalid track title Kind value: {value}")))
+        .ok_or_else(|| RepoError::Other(anyhow!("invalid track title kind value: {value}")))
 }

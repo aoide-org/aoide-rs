@@ -3,9 +3,12 @@
 
 use std::fmt::Debug;
 
+use semval::prelude::*;
+
 use crate::{
     media::content::{ContentPathConfig, ContentPathConfigInvalidity},
-    prelude::*,
+    util::color::{Color, ColorInvalidity},
+    EntityHeaderTyped, EntityUidTyped,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

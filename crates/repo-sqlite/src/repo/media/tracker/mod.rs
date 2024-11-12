@@ -1,13 +1,16 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use diesel::prelude::*;
+
 use aoide_core::{media::content::ContentPath, util::clock::OffsetDateTimeMs};
-use aoide_core_api::media::tracker::{
-    count_sources_in_directories, DirTrackingStatus, DirectoriesStatus,
+use aoide_core_api::{
+    media::tracker::{count_sources_in_directories, DirTrackingStatus, DirectoriesStatus},
+    Pagination,
 };
 use aoide_repo::{
-    collection::RecordId as CollectionId,
-    media::{source::RecordId as MediaSourceId, tracker::*, DigestBytes},
+    media::{tracker::*, DigestBytes},
+    CollectionId, MediaSourceId, RepoError, RepoResult,
 };
 
 use crate::{
@@ -17,10 +20,12 @@ use crate::{
             decode_dir_tracking_status, encode_dir_tracking_status, models::*, schema::*,
         },
     },
-    prelude::*,
+    repo_error,
+    util::{pagination_to_limit_offset, sql_column_substr_prefix_eq},
+    Connection, RowId,
 };
 
-impl<'db> Repo for crate::prelude::Connection<'db> {
+impl<'db> Repo for Connection<'db> {
     fn media_tracker_update_directories_status(
         &mut self,
         updated_at: &OffsetDateTimeMs,

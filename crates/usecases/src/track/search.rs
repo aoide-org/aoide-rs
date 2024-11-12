@@ -4,20 +4,24 @@
 use std::time::Instant;
 
 use aoide_core::track::Entity;
-use aoide_core_api::track::search::*;
+use aoide_core_api::{
+    track::search::{Filter, Params, SortOrder},
+    Pagination,
+};
 use aoide_repo::{
-    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
+    collection::EntityRepo as CollectionRepo,
     track::{CollectionRepo as TrackCollectionRepo, RecordHeader},
+    CollectionId, RepoResult, ReservableRecordCollector,
 };
 
-use super::*;
+use crate::Result;
 
 pub fn search<Repo>(
     repo: &mut Repo,
     collection_id: CollectionId,
     pagination: &Pagination,
-    filter: Option<Filter>,
-    ordering: Vec<SortOrder>,
+    filter: Option<&Filter>,
+    ordering: &[SortOrder],
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> RepoResult<usize>
 where
@@ -35,8 +39,8 @@ where
 #[cfg(not(target_family = "wasm"))]
 pub fn search_with_params<Repo>(
     repo: &mut Repo,
-    collection_uid: &CollectionUid,
-    params: Params,
+    collection_uid: &aoide_core::CollectionUid,
+    params: &Params,
     pagination: &Pagination,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<usize>
@@ -63,7 +67,7 @@ where
     if resolve_url_from_content_path.is_some() {
         let Some(resolver) = collection_ctx.content_path.resolver else {
             let path_kind = collection_ctx.content_path.kind;
-            return Err(Error::Other(anyhow!(
+            return Err(crate::Error::Other(anyhow!(
                 "unsupported path kind: {path_kind:?}"
             )));
         };
@@ -75,12 +79,19 @@ where
             repo,
             collection_id,
             pagination,
-            filter,
+            filter.as_ref(),
             ordering,
             &mut collector,
         )
     } else {
-        search(repo, collection_id, pagination, filter, ordering, collector)
+        search(
+            repo,
+            collection_id,
+            pagination,
+            filter.as_ref(),
+            ordering,
+            collector,
+        )
     }
     .map_err(Into::into)
 }

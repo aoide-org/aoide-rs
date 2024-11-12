@@ -2,15 +2,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::anyhow;
-use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
-use aoide_core_api::media::source::purge_untracked::{Outcome, Params, Summary};
+
+use aoide_core::{media::content::resolver::vfs::RemappingVfsResolver, CollectionUid};
+use aoide_core_api::{
+    filtering::StringPredicate,
+    media::source::purge_untracked::{Outcome, Params, Summary},
+};
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     media::source::CollectionRepo as MediaSourceCollectionRepo,
 };
 
-use super::*;
-use crate::collection::vfs::RepoContext;
+use crate::{collection::vfs::RepoContext, Error, Result};
 
 #[allow(clippy::missing_panics_doc)] // Never panics
 pub fn purge_untracked<Repo>(

@@ -3,11 +3,12 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::track::Track;
+use aoide_core::{track::Track, CollectionUid};
 use aoide_core_api::media::tracker::import_files::Params;
 use aoide_media_file::io::import::ImportTrackConfig;
+use aoide_repo_sqlite::DbConnection;
 
-use super::*;
+use crate::{RepoConnection, Result};
 
 mod uc {
     pub(super) use aoide_core_api::media::tracker::import_files::*;

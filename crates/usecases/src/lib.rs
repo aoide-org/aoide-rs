@@ -4,13 +4,12 @@
 // TODO: Remove temporary workaround.
 // <https://github.com/rust-lang/rust-clippy/issues/11237>
 #![allow(clippy::similar_names)]
-#![allow(clippy::wildcard_imports)]
 
 use std::result::Result as StdResult;
 
-use aoide_core::{prelude::*, CollectionUid};
-use aoide_repo::prelude::*;
 use thiserror::Error;
+
+use aoide_repo::RepoError;
 
 pub mod collection;
 pub mod playlist;

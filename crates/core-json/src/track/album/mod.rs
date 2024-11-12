@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::prelude::*;
+use nonicle::{Canonical, CanonicalizeInto as _};
+
+use crate::prelude::*;
 
 use super::{actor::Actor, title::Title};
-use crate::prelude::*;
 
 mod _core {
     pub(super) use aoide_core::track::album::*;

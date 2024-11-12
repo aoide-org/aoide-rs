@@ -3,6 +3,10 @@
 
 use std::str::FromStr;
 
+use diesel::prelude::*;
+use mime::Mime;
+use semval::prelude::*;
+
 use aoide_core::{
     audio::{
         BitrateBps, BitrateBpsValue, ChannelCount, ChannelFlags, Channels, DurationMs,
@@ -24,13 +28,11 @@ use aoide_core::{
         color::{RgbColor, RgbColorCode},
     },
 };
-use aoide_repo::collection::RecordId as CollectionId;
-use mime::Mime;
+use aoide_repo::{media::source::RecordHeader, CollectionId};
 
-use super::{schema::*, *};
-use crate::prelude::*;
+use crate::{db::media_source::ArtworkSource, util::clock::parse_datetime, RowId};
 
-///////////////////////////////////////////////////////////////////////
+use super::{decode_apic_type, encode_apic_type, schema::*};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = media_source, primary_key(row_id))]

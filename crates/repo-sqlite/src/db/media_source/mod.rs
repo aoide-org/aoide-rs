@@ -5,13 +5,22 @@ pub(crate) mod models;
 pub(crate) mod schema;
 
 use anyhow::anyhow;
-use aoide_core::media::{artwork::ApicType, content::ContentPathKind};
-use aoide_repo::{collection::RecordId as CollectionId, media::source::RecordHeader};
-use diesel::sql_types::BigInt;
+use diesel::{prelude::*, sql_types::BigInt};
 use strum::FromRepr;
 
+use aoide_core::media::{artwork::ApicType, content::ContentPathKind};
+use aoide_core_api::filtering::StringPredicate;
+use aoide_repo::{CollectionId, RepoError, RepoResult};
+
+use crate::{
+    util::{
+        escape_like_contains, escape_like_ends_with, escape_like_matches, escape_like_starts_with,
+        sql_column_substr_prefix_eq,
+    },
+    DbBackend, RowId,
+};
+
 use self::schema::*;
-use crate::prelude::*;
 
 pub(crate) const fn encode_content_path_kind(value: ContentPathKind) -> i16 {
     value as _

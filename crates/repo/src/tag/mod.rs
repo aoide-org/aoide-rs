@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::tag::*;
-use aoide_core_api::tag::search::*;
+use aoide_core::tag::{FacetId, Label, Score};
+use aoide_core_api::tag::search::SortOrder;
 
 fn dedup_facets(facets: &mut Vec<FacetId<'_>>) {
     facets.sort_unstable();
@@ -105,3 +105,6 @@ pub struct AvgScoreCount<'a> {
     pub avg_score: Score,
     pub total_count: usize,
 }
+
+#[cfg(test)]
+mod tests;

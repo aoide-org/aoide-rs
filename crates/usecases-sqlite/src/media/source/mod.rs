@@ -4,11 +4,12 @@
 use std::path::PathBuf;
 
 use anyhow::anyhow;
-use aoide_core::media::content::ContentPath;
-use aoide_repo::collection::RecordId as CollectionId;
-use uc::collection::vfs::RepoContext;
 
-use super::*;
+use aoide_core::{media::content::ContentPath, CollectionUid};
+use aoide_repo::CollectionId;
+use aoide_usecases::collection::vfs::RepoContext;
+
+use crate::{Error, RepoConnection, Result};
 
 pub mod purge_orphaned;
 pub mod purge_untracked;

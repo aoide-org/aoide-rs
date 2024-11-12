@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use crate::prelude::*;
+use semval::prelude::*;
 
 pub type TempoBpmValue = f64;
 

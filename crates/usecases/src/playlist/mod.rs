@@ -4,18 +4,20 @@
 use std::borrow::Cow;
 
 use anyhow::anyhow;
+use semval::prelude::*;
+
 use aoide_core::{
-    playlist::{EntityHeader as PlaylistEntityHeader, EntityWithEntries},
-    util::clock::OffsetDateTimeMs,
-    Playlist, PlaylistEntity, PlaylistUid,
+    playlist::EntityWithEntries, util::clock::OffsetDateTimeMs, CollectionUid, Playlist,
+    PlaylistEntity, PlaylistHeader, PlaylistUid,
 };
-use aoide_core_api::playlist::EntityWithEntriesSummary;
+use aoide_core_api::{playlist::EntityWithEntriesSummary, Pagination};
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     playlist::{CollectionFilter as RepoCollectionFilter, EntityRepo, KindFilter, RecordHeader},
+    RepoResult, ReservableRecordCollector,
 };
 
-use super::*;
+use crate::{Error, InputResult, Result};
 
 pub mod entries;
 
@@ -31,7 +33,7 @@ pub fn validate_input(playlist: Playlist) -> InputResult<ValidatedInput> {
 
 pub fn create_entity(new_playlist: Playlist) -> Result<PlaylistEntity> {
     let ValidatedInput(playlist) = validate_input(new_playlist)?;
-    let header = PlaylistEntityHeader::initial_random();
+    let header = PlaylistHeader::initial_random();
     let entity = PlaylistEntity::new(header, playlist);
     Ok(entity)
 }
@@ -52,10 +54,7 @@ where
     Ok(())
 }
 
-pub fn update_entity(
-    hdr: PlaylistEntityHeader,
-    modified_playlist: Playlist,
-) -> Result<PlaylistEntity> {
+pub fn update_entity(hdr: PlaylistHeader, modified_playlist: Playlist) -> Result<PlaylistEntity> {
     let ValidatedInput(playlist) = validate_input(modified_playlist)?;
     let next_hdr = hdr
         .next_rev()

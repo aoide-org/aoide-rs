@@ -3,21 +3,28 @@
 
 use std::num::NonZeroUsize;
 
+use bitflags::bitflags;
+use static_assertions::const_assert_eq;
+
 use aoide_core::{
     audio::DurationMs,
     media::content::{ContentMetadata, ContentPath},
     track::actor::Role as ActorRole,
     Track, TrackEntity,
 };
-use aoide_core_api::track::search::*;
-use aoide_repo::{
-    collection::RecordId as CollectionId,
-    track::{CollectionRepo as TrackCollectionRepo, RecordHeader, RecordId as TrackId},
+use aoide_core_api::{
+    filtering::{DateTimePredicate, NumericPredicate},
+    track::search::{
+        ActorPhraseFilter, ConditionFilter, DateTimeField, DateTimeFieldFilter, Filter,
+        NumericField, NumericFieldFilter, PhraseFieldFilter, Scope, SortField, SortOrder,
+        StringField, TitlePhraseFilter,
+    },
+    SortDirection,
 };
-use bitflags::bitflags;
-use static_assertions::const_assert_eq;
-
-use super::*;
+use aoide_repo::{
+    track::{CollectionRepo as TrackCollectionRepo, RecordHeader},
+    CollectionId, RepoResult, TrackId,
+};
 
 bitflags! {
     /// A bitmask for controlling how and if content metadata is
@@ -193,7 +200,7 @@ where
     }));
     let filter = Filter::All(all_filters);
     // Prefer recently added sources, e.g. after scanning the file system
-    let ordering = vec![SortOrder {
+    let ordering = [SortOrder {
         field: SortField::CollectedAt,
         direction: SortDirection::Descending,
     }];
@@ -201,8 +208,8 @@ where
     repo.search_tracks(
         collection_id,
         &Default::default(),
-        Some(filter),
-        ordering,
+        Some(&filter),
+        &ordering,
         &mut candidates,
     )?;
     Ok(candidates

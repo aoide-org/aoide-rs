@@ -5,7 +5,7 @@
 
 use std::fmt;
 
-use crate::prelude::*;
+use semval::prelude::*;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct Index {

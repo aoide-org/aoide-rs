@@ -3,13 +3,6 @@
 
 use std::{convert::Infallible, error::Error as StdError, result::Result as StdResult};
 
-use aoide_backend_webapi_json as api;
-use aoide_repo::prelude::RepoError;
-use aoide_storage_sqlite::{
-    self as db,
-    connection::pool::{gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper, PooledConnection},
-};
-use aoide_usecases_sqlite as uc;
 use serde::Serialize;
 use thiserror::Error;
 use warp::{
@@ -18,6 +11,14 @@ use warp::{
     reject::{self, InvalidHeader, InvalidQuery, MethodNotAllowed, Reject, Rejection},
     Reply,
 };
+
+use aoide_backend_webapi_json as api;
+use aoide_repo::RepoError;
+use aoide_storage_sqlite::{
+    self as db,
+    connection::pool::{gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper, PooledConnection},
+};
+use aoide_usecases_sqlite as uc;
 
 #[derive(Error, Debug)]
 pub enum Error {

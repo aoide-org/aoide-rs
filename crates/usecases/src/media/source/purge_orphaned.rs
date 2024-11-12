@@ -1,14 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core_api::media::source::purge_orphaned::{Outcome, Params, Summary};
+use aoide_core::CollectionUid;
+use aoide_core_api::{
+    filtering::StringPredicate,
+    media::source::purge_orphaned::{Outcome, Params, Summary},
+};
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
     media::source::CollectionRepo as MediaSourceCollectionRepo,
 };
 
-use super::*;
-use crate::collection::vfs::RepoContext;
+use crate::{collection::vfs::RepoContext, Result};
 
 /// Purge orphaned media sources that don't belong to any track
 pub fn purge_orphaned<Repo>(

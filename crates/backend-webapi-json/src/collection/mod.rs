@@ -4,10 +4,7 @@
 use aoide_core::CollectionUid;
 use aoide_core_api_json::collection::{export_entity_with_summary, EntityWithSummary};
 use aoide_core_json::collection::{Collection, Entity};
-use aoide_repo::{
-    collection::RecordHeader,
-    prelude::{RecordCollector, ReservableRecordCollector},
-};
+use aoide_repo::{collection::RecordHeader, RecordCollector, ReservableRecordCollector};
 
 use super::*;
 

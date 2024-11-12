@@ -3,7 +3,7 @@
 
 use std::{fmt, num::ParseIntError, str::FromStr};
 
-use crate::prelude::*;
+use semval::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 // Color

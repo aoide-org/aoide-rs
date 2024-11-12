@@ -4,20 +4,25 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use aoide_core::{
-    media::Source as MediaSource,
+    media::{content::ContentPath, Source as MediaSource},
     track::{Entity, EntityBody, Track},
+    util::clock::OffsetDateTimeMs,
+    CollectionUid,
 };
-use aoide_core_api::track::search::{ConditionFilter, Filter, SortField, SortOrder};
+use aoide_core_api::{
+    track::search::{ConditionFilter, Filter, SortField, SortOrder},
+    SortDirection,
+};
 use aoide_repo::{
-    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
+    collection::EntityRepo as CollectionRepo,
     media::{
         source::{CollectionRepo as MediaSourceCollectionRepo, Repo as MediaSourceRepo},
         tracker::Repo as MediaTrackerRepo,
     },
     track::{CollectionRepo as TrackCollectionRepo, EntityRepo as TrackRepo},
+    CollectionId, RepoError, RepoResult,
 };
 
-use super::*;
 use crate::track::find_duplicates::{self, find_duplicates};
 
 pub type FindCandidateParams = find_duplicates::Params;
@@ -165,8 +170,8 @@ where
         + MediaTrackerRepo,
 {
     let collection_id = repo.resolve_collection_id(collection_uid)?;
-    let source_untracked_filter = Filter::Condition(ConditionFilter::SourceUntracked);
-    let ordering = vec![SortOrder {
+    let filter = Filter::Condition(ConditionFilter::SourceUntracked);
+    let ordering = [SortOrder {
         field: SortField::CollectedAt,
         direction: SortDirection::Descending,
     }];
@@ -174,8 +179,8 @@ where
     repo.search_tracks(
         collection_id,
         &Default::default(),
-        Some(source_untracked_filter),
-        ordering,
+        Some(&filter),
+        &ordering,
         &mut lost_tracks,
     )?;
     // Only consider tracks with a tracked media source

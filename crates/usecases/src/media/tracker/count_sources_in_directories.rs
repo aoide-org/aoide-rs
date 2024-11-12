@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use anyhow::anyhow;
+
+use aoide_core::{media::content::ContentPath, CollectionUid};
 use aoide_core_api::media::tracker::count_sources_in_directories::Params;
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo, media::tracker::Repo as MediaTrackerRepo,
 };
 
-use super::*;
-use crate::collection::vfs::RepoContext;
+use crate::{collection::vfs::RepoContext, Error, Result};
 
 pub fn count_sources_in_directories<Repo>(
     repo: &mut Repo,

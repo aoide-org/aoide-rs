@@ -1,8 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use super::{schema::*, *};
-use crate::db::track::{decode_search_scope, encode_search_scope};
+use diesel::prelude::*;
+
+use aoide_core::track::Actor;
+use aoide_core_api::track::search::Scope;
+
+use crate::{
+    db::track::{decode_search_scope, encode_search_scope},
+    RowId,
+};
+
+use super::{decode_kind, decode_role, encode_kind, encode_role, schema::*, Record, RecordId};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = track_actor, primary_key(row_id))]

@@ -4,6 +4,7 @@
 use std::{borrow::Cow, fmt};
 
 use bitflags::bitflags;
+use semval::prelude::*;
 use strum::FromRepr;
 
 use crate::{
@@ -15,7 +16,7 @@ use crate::{
         },
         DurationMs, DurationMsInvalidity,
     },
-    prelude::{url::BaseUrl, *},
+    util::url::BaseUrl,
 };
 
 pub mod resolver;

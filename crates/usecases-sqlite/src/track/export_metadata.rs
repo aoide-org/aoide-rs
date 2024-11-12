@@ -1,15 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::media::content::resolver::vfs::VfsResolver;
+use aoide_core::{media::content::resolver::vfs::VfsResolver, TrackUid};
 use aoide_media_file::{io::export::ExportTrackConfig, util::artwork::EditEmbeddedArtworkImage};
 use aoide_repo::track::EntityRepo as _;
+use aoide_repo_sqlite::DbConnection;
+use aoide_usecases as uc;
 
-use super::*;
+use crate::{RepoConnection, Result};
 
 pub fn export_metadata_into_file(
     connection: &mut DbConnection,
-    track_uid: &EntityUid,
+    track_uid: &TrackUid,
     content_path_resolver: &VfsResolver,
     config: &ExportTrackConfig,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,

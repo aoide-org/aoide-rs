@@ -1,15 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{util::clock::OffsetDateTimeMs, Collection, CollectionEntity, CollectionHeader};
-use aoide_repo::{
-    collection::{EntityRepo as _, RecordId as CollectionId},
-    media::DigestBytes,
-};
 use test_log::test;
 
+use aoide_core::{util::clock::OffsetDateTimeMs, Collection, CollectionEntity, CollectionHeader};
+use aoide_repo::{collection::EntityRepo as _, media::DigestBytes, CollectionId};
+
+use crate::{repo::tests::vfs_media_source_config, tests::*, DbConnection};
+
 use super::*;
-use crate::{repo::tests::vfs_media_source_config, tests::*};
 
 struct Fixture {
     db: DbConnection,

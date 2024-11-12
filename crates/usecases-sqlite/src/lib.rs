@@ -4,15 +4,14 @@
 // TODO: Remove temporary workaround.
 // <https://github.com/rust-lang/rust-clippy/issues/11237>
 #![allow(clippy::similar_names)]
-#![allow(clippy::wildcard_imports)]
 
-use aoide_core::CollectionUid;
+use thiserror::Error;
+
 use aoide_media_file::Error as MediaFileError;
-use aoide_repo::prelude::RepoError;
-use aoide_repo_sqlite::{prelude::Connection as RepoConnection, DbConnection};
+use aoide_repo::RepoError;
+use aoide_repo_sqlite::{Connection as RepoConnection, DbConnection};
 use aoide_storage_sqlite::Error as StorageError;
 use aoide_usecases as uc;
-use thiserror::Error;
 
 pub mod collection;
 pub mod database;

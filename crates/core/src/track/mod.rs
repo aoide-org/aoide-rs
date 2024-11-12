@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use ::url::Url;
-use nonicle::{Canonical, IsCanonical};
+use nonicle::{Canonical, CanonicalizeInto as _, IsCanonical};
+use semval::prelude::*;
 use strum::FromRepr;
 
 pub mod actor;
@@ -26,11 +27,14 @@ pub mod tag;
 
 pub mod title;
 pub use self::title::{Title, TitleInvalidity, Titles, TitlesInvalidity};
+
+use crate::util::clock::{DateOrDateTime, DateOrDateTimeInvalidity, OffsetDateTimeMs};
+use crate::util::color::{Color, ColorInvalidity};
 use crate::{
     media::{Source, SourceInvalidity},
-    prelude::*,
     tag::{Tags, TagsInvalidity},
 };
+use crate::{EntityHeaderTyped, EntityRevision, EntityUidTyped};
 
 /// Advisory rating code for content(s)
 ///

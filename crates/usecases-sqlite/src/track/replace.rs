@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::CollectionUid;
 use aoide_core_api::track::replace::Summary;
+use aoide_repo_sqlite::DbConnection;
 use aoide_usecases::track::ValidatedInput;
 
-use super::*;
+use crate::{RepoConnection, Result};
 
 mod uc {
     pub(super) use aoide_usecases::track::replace::{

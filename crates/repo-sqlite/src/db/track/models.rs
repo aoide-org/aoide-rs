@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use diesel::prelude::*;
+
 use aoide_core::{
     music::{
         key::KeySignature,
@@ -12,8 +14,12 @@ use aoide_core::{
 };
 use aoide_repo::media::source::RecordId as MediaSourceId;
 
+use crate::{
+    util::entity::{encode_entity_revision, encode_entity_uid},
+    RowId,
+};
+
 use super::{encode_advisory_rating, encode_album_kind, encode_music_key_code, schema::*};
-use crate::prelude::*;
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = track)]

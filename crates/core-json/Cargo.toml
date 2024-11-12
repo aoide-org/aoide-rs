@@ -20,6 +20,8 @@ workspace = true
 anyhow.workspace = true
 data-encoding.workspace = true
 mime.workspace = true
+nonicle.workspace = true
+semval.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_repr = "0.1.19"
 url = { workspace = true, features = ["serde"] }

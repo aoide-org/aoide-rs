@@ -3,6 +3,16 @@
 
 use std::{borrow::Cow, ops::Not as _};
 
+use lofty::{
+    config::ParseOptions,
+    file::{AudioFile as _, TaggedFile, TaggedFileExt as _},
+    picture::{MimeType, Picture, PictureType},
+    properties::FileProperties,
+    tag::{Accessor as _, ItemKey, ItemValue, MergeTag, SplitTag, Tag, TagItem, TagType},
+};
+use nonicle::{Canonical, CanonicalizeInto as _};
+use semval::prelude::*;
+
 use aoide_core::{
     audio::{
         channel::ChannelCount,
@@ -14,7 +24,6 @@ use aoide_core::{
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
     },
     music::tempo::TempoBpm,
-    prelude::*,
     tag::{FacetId, FacetKey, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
         actor::{Kind as ActorKind, Role as ActorRole},
@@ -31,13 +40,6 @@ use aoide_core::{
         AdvisoryRating, Track,
     },
     util::string::trimmed_non_empty_from,
-};
-use lofty::{
-    config::ParseOptions,
-    file::{AudioFile as _, TaggedFile, TaggedFileExt as _},
-    picture::{MimeType, Picture, PictureType},
-    properties::FileProperties,
-    tag::{Accessor as _, ItemKey, ItemValue, MergeTag, SplitTag, Tag, TagItem, TagType},
 };
 
 use crate::{
@@ -122,6 +124,8 @@ pub fn encode_gig_tags(
     encoded_tags: &mut Vec<PlainTag<'_>>,
     facet_id: &FacetId<'_>,
 ) -> std::fmt::Result {
+    use nonicle::Canonical;
+
     let mut remaining_tags = std::mem::take(tags).untie();
     let facets = remaining_tags.split_off_faceted_tags(
         &file_tag_facets_without(facet_id),

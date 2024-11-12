@@ -8,29 +8,34 @@ use std::{
 };
 
 use anyhow::anyhow;
-use aoide_core::media::content::resolver::vfs::RemappingVfsResolver;
+
+use aoide_core::{
+    media::content::resolver::vfs::RemappingVfsResolver, util::clock::OffsetDateTimeMs,
+    CollectionUid, Track,
+};
 use aoide_core_api::{
     media::tracker::{
         import_files::{ImportedSourceWithIssues, Outcome, Params, Summary},
         Completion,
     },
     track::replace::Summary as TracksSummary,
+    Pagination, PaginationOffset,
 };
 use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_repo::{
-    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
+    collection::EntityRepo as CollectionRepo,
     media::tracker::{Repo as MediaTrackerRepo, TrackedDirectory},
-    prelude::{Pagination, PaginationOffset},
     track::{CollectionRepo as TrackCollectionRepo, ReplaceMode},
+    CollectionId,
 };
 
-use super::*;
 use crate::{
     collection::vfs::RepoContext,
     track::import_and_replace::{
         self, import_and_replace_by_local_file_path_from_directory_with_content_path_resolver,
         Outcome as ImportAndReplaceOutcome,
     },
+    Error, Result,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -299,7 +304,7 @@ where
             });
         }
     }
-    let updated_at: OffsetDateTimeMs = OffsetDateTimeMs::now_utc();
+    let updated_at = OffsetDateTimeMs::now_utc();
     let completion;
     if tracks_summary.failed.is_empty() {
         match repo.media_tracker_confirm_directory(&updated_at, collection_id, content_path, digest)

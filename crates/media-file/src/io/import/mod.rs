@@ -9,21 +9,6 @@ use std::{
 };
 
 use anyhow::anyhow;
-use aoide_core::{
-    audio::signal::LoudnessLufs,
-    media::{
-        artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork, LinkedArtwork},
-        content::{ContentLink, ContentMetadata},
-        Content, Source,
-    },
-    music::{key::KeySignature, tempo::TempoBpm},
-    prelude::*,
-    tag::{
-        FacetId as TagFacetId, Label as TagLabel, PlainTag, Score as TagScore, ScoreValue, TagsMap,
-    },
-    track::{actor::Actor, title::Title, Track},
-    util::clock::{DateOrDateTime, OffsetDateTimeMs},
-};
 use bitflags::bitflags;
 use image::{DynamicImage, ImageReader};
 use lofty::{
@@ -32,7 +17,23 @@ use lofty::{
     probe::Probe,
 };
 use mime::Mime;
+use nonicle::{Canonical, CanonicalizeInto as _};
+use semval::prelude::*;
 use url::Url;
+
+use aoide_core::{
+    audio::signal::LoudnessLufs,
+    media::{
+        artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork, LinkedArtwork},
+        content::{ContentLink, ContentMetadata},
+        Content, Source,
+    },
+    music::{key::KeySignature, tempo::TempoBpm},
+    tag::ScoreValue,
+    track::{actor::Actor, title::Title, Track},
+    util::clock::{DateOrDateTime, OffsetDateTimeMs},
+    PlainTag, TagFacetId, TagLabel, TagScore, TagsMap,
+};
 
 use crate::{
     fmt::parse_options,

@@ -1,15 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::playlist::*;
-use aoide_core_api::playlist::EntityWithEntriesSummary;
+use aoide_core::{
+    playlist::EntityWithEntries, CollectionUid, Playlist, PlaylistEntity, PlaylistHeader,
+    PlaylistUid,
+};
+use aoide_core_api::{playlist::EntityWithEntriesSummary, Pagination};
 use aoide_repo::{
     playlist::{EntityRepo as _, KindFilter, RecordHeader},
-    prelude::*,
+    ReservableRecordCollector,
 };
-use uc::playlist::CollectionFilter;
+use aoide_repo_sqlite::DbConnection;
+use aoide_usecases as uc;
 
-use super::*;
+use crate::{RepoConnection, Result};
 
 pub mod entries;
 
@@ -17,7 +21,7 @@ pub fn create(
     connection: &mut DbConnection,
     collection_uid: Option<&CollectionUid>,
     new_playlist: Playlist,
-) -> Result<Entity> {
+) -> Result<PlaylistEntity> {
     let created_entity = uc::playlist::create_entity(new_playlist)?;
     let mut repo = RepoConnection::new(connection);
     uc::playlist::store_created_entity(&mut repo, collection_uid, &created_entity)?;
@@ -26,16 +30,16 @@ pub fn create(
 
 pub fn update(
     connection: &mut DbConnection,
-    entity_header: EntityHeader,
+    entity_header: PlaylistHeader,
     modified_playlist: Playlist,
-) -> Result<Entity> {
+) -> Result<PlaylistEntity> {
     let updated_entity = uc::playlist::update_entity(entity_header, modified_playlist)?;
     let mut repo = RepoConnection::new(connection);
     uc::playlist::store_updated_entity(&mut repo, &updated_entity)?;
     Ok(updated_entity)
 }
 
-pub fn purge(connection: &mut DbConnection, entity_uid: &EntityUid) -> Result<()> {
+pub fn purge(connection: &mut DbConnection, entity_uid: &PlaylistUid) -> Result<()> {
     let mut repo = RepoConnection::new(connection);
     let id = repo.resolve_playlist_id(entity_uid)?;
     repo.purge_playlist_entity(id).map_err(Into::into)
@@ -43,7 +47,7 @@ pub fn purge(connection: &mut DbConnection, entity_uid: &EntityUid) -> Result<()
 
 pub fn load_one_with_entries(
     connection: &mut DbConnection,
-    entity_uid: &EntityUid,
+    entity_uid: &PlaylistUid,
 ) -> Result<EntityWithEntries> {
     let mut repo = RepoConnection::new(connection);
     uc::playlist::load_one_with_entries(&mut repo, entity_uid).map_err(Into::into)
@@ -51,7 +55,7 @@ pub fn load_one_with_entries(
 
 pub fn load_all_with_entries_summary(
     connection: &mut DbConnection,
-    collection_filter: Option<CollectionFilter<'_>>,
+    collection_filter: Option<uc::playlist::CollectionFilter<'_>>,
     kind_filter: Option<KindFilter<'_>>,
     pagination: Option<&Pagination>,
     collector: &mut impl ReservableRecordCollector<
@@ -72,7 +76,7 @@ pub fn load_all_with_entries_summary(
 
 pub fn patch_entries(
     connection: &mut DbConnection,
-    entity_header: &EntityHeader,
+    entity_header: &PlaylistHeader,
     operations: impl IntoIterator<Item = uc::playlist::entries::PatchOperation>,
 ) -> Result<(RecordHeader, EntityWithEntriesSummary)> {
     let mut repo = RepoConnection::new(connection);

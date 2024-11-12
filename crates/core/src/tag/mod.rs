@@ -15,8 +15,7 @@ use std::{
 };
 
 use nonicle::{Canonical, CanonicalOrd, Canonicalize, CanonicalizeInto, IsCanonical};
-
-use crate::prelude::*;
+use semval::prelude::*;
 
 pub mod facet;
 pub use facet::{FacetId, FacetIdInvalidity, Faceted};

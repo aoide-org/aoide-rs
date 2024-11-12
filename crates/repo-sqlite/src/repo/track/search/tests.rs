@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use nonicle::CanonicalizeInto as _;
+
 use aoide_core::{
     audio::DurationMs,
     collection::{Entity as CollectionEntity, EntityHeader as CollectionHeader},
@@ -8,14 +10,10 @@ use aoide_core::{
         self,
         content::{AudioContentMetadata, ContentLink},
     },
-    prelude::*,
     tag::{FacetKey, Label, PlainTag, TagsMap, TagsMapInner},
-    track::{
-        tag::FACET_ID_COMMENT, Entity as TrackEntity, EntityBody as TrackBody,
-        EntityHeader as TrackHeader,
-    },
+    track::tag::FACET_ID_COMMENT,
     util::clock::OffsetDateTimeMs,
-    Collection, Track,
+    Collection, Track, TrackBody, TrackEntity, TrackHeader,
 };
 use aoide_core_api::{
     filtering::StringPredicate,
@@ -23,10 +21,10 @@ use aoide_core_api::{
     track::search::{Filter as TrackFilter, Scope, TitlePhraseFilter},
 };
 use aoide_repo::{
-    collection::{EntityRepo as _, RecordId as CollectionId},
+    collection::EntityRepo as _,
     media::source::CollectionRepo as _,
-    prelude::*,
     track::{CollectionRepo, EntityRepo as _},
+    CollectionId, RecordCollector, ReservableRecordCollector,
 };
 
 use crate::{
@@ -144,7 +142,7 @@ fn filter_plain_tags() -> TestResult<()> {
         db.search_tracks(
             collection_id,
             &Default::default(),
-            Some(filter),
+            Some(&filter),
             Default::default(),
             &mut DummyCollector::new(),
         )?
@@ -160,7 +158,7 @@ fn filter_plain_tags() -> TestResult<()> {
         db.search_tracks(
             collection_id,
             &Default::default(),
-            Some(filter),
+            Some(&filter),
             Default::default(),
             &mut DummyCollector::new(),
         )?
@@ -176,7 +174,7 @@ fn filter_plain_tags() -> TestResult<()> {
         db.search_tracks(
             collection_id,
             &Default::default(),
-            Some(filter),
+            Some(&filter),
             Default::default(),
             &mut DummyCollector::new(),
         )?
@@ -193,7 +191,7 @@ fn filter_plain_tags() -> TestResult<()> {
             db.search_tracks(
                 collection_id,
                 &Default::default(),
-                Some(filter),
+                Some(&filter),
                 Default::default(),
                 &mut DummyCollector::new(),
             )?
@@ -209,7 +207,7 @@ fn filter_plain_tags() -> TestResult<()> {
             db.search_tracks(
                 collection_id,
                 &Default::default(),
-                Some(filter),
+                Some(&filter),
                 Default::default(),
                 &mut DummyCollector::new(),
             )?
@@ -229,7 +227,7 @@ fn search_title_phrase() -> TestResult<()> {
         db.search_tracks(
             collection_id,
             &Default::default(),
-            Some(TrackFilter::TitlePhrase(TitlePhraseFilter {
+            Some(&TrackFilter::TitlePhrase(TitlePhraseFilter {
                 modifier: None,
                 scope: Some(Scope::Album),
                 kinds: Default::default(),
@@ -245,7 +243,7 @@ fn search_title_phrase() -> TestResult<()> {
         db.search_tracks(
             collection_id,
             &Default::default(),
-            Some(TrackFilter::TitlePhrase(TitlePhraseFilter {
+            Some(&TrackFilter::TitlePhrase(TitlePhraseFilter {
                 modifier: None,
                 scope: Some(Scope::Track),
                 kinds: Default::default(),
