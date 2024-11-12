@@ -8,6 +8,8 @@ all-features = true
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
+# TODO: Remove this exception when it is no longer needed.
+ignore = [{ id = "RUSTSEC-2024-0384", reason = "needed by tantivy v0.22.0" }]
 
 [licenses]
 allow = [
@@ -19,6 +21,7 @@ allow = [
   "ISC",
   "MIT",
   "MPL-2.0",
+  "Unicode-3.0",
   "Unicode-DFS-2016",
   "Unlicense",
   "zlib-acknowledgement",
