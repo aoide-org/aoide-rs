@@ -433,7 +433,7 @@ impl KeyCode {
     }
 
     #[must_use]
-    pub fn try_from_camelot_str(s: &str) -> Option<Self> {
+    pub fn try_from_lancelot_str(s: &str) -> Option<Self> {
         #[allow(clippy::enum_glob_use)]
         use KeyCode::*;
         let code = match s {
