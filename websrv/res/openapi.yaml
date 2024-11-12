@@ -1112,21 +1112,26 @@ components:
       name: encodeGigtags
       description: |
         Encode all custom tags that are not supported as native file tags
-        into the "cgrp" (content group/grouping) tag.
+        into either the "cgrp" (content group/grouping) tag or the
+        "comm" (comment) tag.
 
         This options is useful for interoperability with applications that
         only support the common file tags and for file synchronization.
       in: query
       required: false
       schema:
-        type: boolean
+        type: string
         default: false
+        enum:
+          - cgrp
+          - comm
+      example: cgrp
     decodeGigtagsQuery:
       name: decodeGigtags
       description: |
         Decode all custom tags that are not supported as native file tags
-        from the "cgrp" (content group/grouping) tag when creating/updating
-        tags.
+        from both the "cgrp" (content group/grouping) and the "comm" (comment) tag
+        when creating/updating tags.
 
         This options is useful for interoperability with applications that
         only support the common file tags and for file synchronization.

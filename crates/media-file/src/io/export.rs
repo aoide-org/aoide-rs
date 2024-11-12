@@ -8,9 +8,12 @@ use std::{
     path::Path,
 };
 
-use aoide_core::track::{
-    actor::{Actor, Actors, Kind as ActorKind, Role as ActorRole},
-    Track,
+use aoide_core::{
+    tag::FacetId,
+    track::{
+        actor::{Actor, Actors, Kind as ActorKind, Role as ActorRole},
+        Track,
+    },
 };
 use bitflags::bitflags;
 use lofty::{file::FileType, probe::Probe};
@@ -27,9 +30,6 @@ bitflags! {
         /// See also: [`super::import::ImportTrackFlags`]
         const COMPATIBILITY_ID3V2_APPLE_GRP1 = ImportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1.bits();
 
-        #[cfg(feature = "gigtag")]
-        const GIGTAGS                        = ImportTrackFlags::GIGTAGS.bits();
-
         #[cfg(feature = "serato-markers")]
         const SERATO_MARKERS                 = ImportTrackFlags::SERATO_MARKERS.bits();
     }
@@ -39,6 +39,10 @@ bitflags! {
 pub struct ExportTrackConfig {
     pub faceted_tag_mapping: FacetedTagMappingConfig,
     pub flags: ExportTrackFlags,
+
+    // Encode gig tags into the corresponding file tag.
+    #[cfg(feature = "gigtag")]
+    pub encode_gigtags: Option<FacetId<'static>>,
 }
 
 impl Default for ExportTrackConfig {
@@ -47,6 +51,8 @@ impl Default for ExportTrackConfig {
             faceted_tag_mapping: Default::default(),
             flags: ExportTrackFlags::all()
                 .difference(ExportTrackFlags::COMPATIBILITY_ID3V2_APPLE_GRP1),
+            #[cfg(feature = "gigtag")]
+            encode_gigtags: None,
         }
     }
 }

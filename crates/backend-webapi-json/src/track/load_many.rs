@@ -20,7 +20,7 @@ pub fn handle_request(
 ) -> Result<ResponseBody> {
     let collector_config = EntityCollectorConfig {
         capacity: Some(request_body.len()),
-        encode_gigtags: false,
+        encode_gigtags: None,
     };
     let mut collector = EntityCollector::new(collector_config);
     connection.transaction::<_, Error, _>(|connection| {

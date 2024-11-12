@@ -78,31 +78,55 @@ pub(crate) mod vorbis;
 const ENCODER_FIELD_SEPARATOR: &str = "|";
 
 /// All facets that could be stored as native file tags.
-pub const FILE_TAG_FACETS_WITHOUT_GROUPING: &[&FacetId<'_>] = &[
-    FACET_ID_COMMENT,
-    FACET_ID_DESCRIPTION,
-    FACET_ID_GENRE,
-    FACET_ID_GROUPING,
-    FACET_ID_ISRC,
-    FACET_ID_MBID_ARTIST,
-    FACET_ID_MBID_RECORDING,
-    FACET_ID_MBID_RELEASE,
-    FACET_ID_MBID_RELEASE_ARTIST,
-    FACET_ID_MBID_RELEASE_GROUP,
-    FACET_ID_MBID_TRACK,
-    FACET_ID_MBID_WORK,
-    FACET_ID_MOOD,
-    FACET_ID_XID,
+const DEFAULT_FILE_TAG_MAPPING: [(&FacetId<'static>, &ItemKey); 14] = [
+    (FACET_ID_COMMENT, &ItemKey::Comment),
+    (FACET_ID_DESCRIPTION, &ItemKey::Description),
+    (FACET_ID_GENRE, &ItemKey::Genre),
+    (FACET_ID_GROUPING, &ItemKey::ContentGroup),
+    (FACET_ID_ISRC, &ItemKey::Isrc),
+    (FACET_ID_MBID_ARTIST, &ItemKey::MusicBrainzArtistId),
+    (FACET_ID_MBID_RECORDING, &ItemKey::MusicBrainzRecordingId),
+    (FACET_ID_MBID_RELEASE, &ItemKey::MusicBrainzReleaseId),
+    (
+        FACET_ID_MBID_RELEASE_ARTIST,
+        &ItemKey::MusicBrainzReleaseArtistId,
+    ),
+    (
+        FACET_ID_MBID_RELEASE_GROUP,
+        &ItemKey::MusicBrainzReleaseGroupId,
+    ),
+    (FACET_ID_MBID_TRACK, &ItemKey::MusicBrainzTrackId),
+    (FACET_ID_MBID_WORK, &ItemKey::MusicBrainzWorkId),
+    (FACET_ID_MOOD, &ItemKey::Mood),
+    (FACET_ID_XID, &ItemKey::AppleXid),
 ];
+
+fn file_tag_facets_without<'a>(
+    excluded_facet_id: &'a FacetId<'a>,
+) -> impl Iterator<Item = &'a FacetId<'a>> + 'a + Clone {
+    DEFAULT_FILE_TAG_MAPPING
+        .iter()
+        .copied()
+        .filter_map(move |(facet_id, _)| {
+            if facet_id == excluded_facet_id {
+                None
+            } else {
+                Some(facet_id)
+            }
+        })
+}
 
 #[cfg(feature = "gigtag")]
 pub fn encode_gig_tags(
     tags: &mut Canonical<Tags<'_>>,
     encoded_tags: &mut Vec<PlainTag<'_>>,
+    facet_id: &FacetId<'_>,
 ) -> std::fmt::Result {
     let mut remaining_tags = std::mem::take(tags).untie();
-    let facets =
-        remaining_tags.split_off_faceted_tags(&FILE_TAG_FACETS_WITHOUT_GROUPING.iter().copied());
+    let facets = remaining_tags.split_off_faceted_tags(
+        &file_tag_facets_without(facet_id),
+        DEFAULT_FILE_TAG_MAPPING.len(),
+    );
     let remaining_tags = Canonical::tie(remaining_tags);
     *tags = Canonical::tie(Tags {
         facets,
@@ -353,6 +377,27 @@ impl Compatibility {
             primary_work,
             secondary_work,
         }
+    }
+
+    #[must_use]
+    fn primary_item_key<'a>(&'a self, item_key: &'a ItemKey) -> &'a ItemKey {
+        let Compatibility {
+            primary_content_group,
+            secondary_content_group,
+            primary_work,
+            secondary_work,
+        } = self;
+        if let Some(secondary_content_group) = secondary_content_group {
+            if secondary_content_group == item_key {
+                return primary_content_group;
+            }
+        }
+        if let Some(secondary_work) = secondary_work {
+            if secondary_work == item_key {
+                return primary_work;
+            }
+        }
+        item_key
     }
 }
 
@@ -897,10 +942,27 @@ pub(crate) fn import_file_tag_into_track(
 
     // Import gig tags from raw grouping tags before any other tags.
     #[cfg(feature = "gigtag")]
-    if config.flags.contains(ImportTrackFlags::GIGTAGS) {
+    if config.flags.contains(ImportTrackFlags::GIGTAGS_CGRP) {
         if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_ID_GROUPING) {
             debug_assert!(tags_map.is_empty());
-            tags_map = crate::util::gigtag::import_from_faceted_tags(faceted_tags);
+            tags_map.merge(crate::util::gigtag::import_from_faceted_tags(faceted_tags));
+        }
+    }
+
+    // Comment tag
+    importer.import_faceted_tags_from_label_values(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        FACET_ID_COMMENT,
+        tag_take_strings(&mut tag, &ItemKey::Comment).map(Into::into),
+    );
+
+    // Import additional gig tags from the raw comment tag.
+    #[cfg(feature = "gigtag")]
+    if config.flags.contains(ImportTrackFlags::GIGTAGS_COMM) {
+        if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_ID_COMMENT) {
+            debug_assert!(tags_map.is_empty());
+            tags_map.merge(crate::util::gigtag::import_from_faceted_tags(faceted_tags));
         }
     }
 
@@ -926,14 +988,6 @@ pub(crate) fn import_file_tag_into_track(
         &config.faceted_tag_mapping,
         FACET_ID_MOOD,
         tag_take_strings(&mut tag, &ItemKey::Mood).map(Into::into),
-    );
-
-    // Comment tag
-    importer.import_faceted_tags_from_label_values(
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        FACET_ID_COMMENT,
-        tag_take_strings(&mut tag, &ItemKey::Comment).map(Into::into),
     );
 
     // Description tag
@@ -1133,11 +1187,11 @@ pub(crate) fn export_track_to_tag(
 
     let compatibility = Compatibility::export(tag.tag_type(), config.flags);
     // Prevent inconsistencies by removing ambiguous keys.
-    if let Some(secondary_content_group) = compatibility.secondary_content_group {
-        tag.remove_key(&secondary_content_group);
+    if let Some(secondary_content_group) = &compatibility.secondary_content_group {
+        tag.remove_key(secondary_content_group);
     }
-    if let Some(secondary_work) = compatibility.secondary_work {
-        tag.remove_key(&secondary_work);
+    if let Some(secondary_work) = &compatibility.secondary_work {
+        tag.remove_key(secondary_work);
     }
 
     // Music: Tempo/Bpm
@@ -1415,195 +1469,76 @@ pub(crate) fn export_track_to_tag(
         tag.remove_key(&ItemKey::OriginalReleaseDate);
     }
 
-    let mut tags_map = TagsMap::from(track.tags.clone().untie());
-
-    // Genre(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_GENRE) {
-        export_faceted_tags(
-            tag,
-            ItemKey::Genre,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::Genre);
-    }
-
-    // Comment(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_COMMENT) {
-        export_faceted_tags(
-            tag,
-            ItemKey::Comment,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::Comment);
-    }
-
-    // Description(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_DESCRIPTION) {
-        export_faceted_tags(
-            tag,
-            ItemKey::Description,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::Description);
-    }
-
-    // Mood(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MOOD) {
-        export_faceted_tags(
-            tag,
-            ItemKey::Mood,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::Mood);
-    }
-
-    // Isrc(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_ISRC) {
-        export_faceted_tags(
-            tag,
-            ItemKey::Isrc,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::Isrc);
-    }
-
-    // XID(s)
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_XID) {
-        export_faceted_tags(
-            tag,
-            ItemKey::AppleXid,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::AppleXid);
-    }
-
-    // MusicBrainz tags
-    if let Some(FacetedTags { facet_id, tags }) =
-        tags_map.take_faceted_tags(FACET_ID_MBID_RECORDING)
     {
-        export_faceted_tags(
-            tag,
-            ItemKey::MusicBrainzRecordingId,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::MusicBrainzRecordingId);
-    }
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MBID_TRACK) {
-        export_faceted_tags(
-            tag,
-            ItemKey::MusicBrainzTrackId,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::MusicBrainzTrackId);
-    }
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MBID_RELEASE)
-    {
-        export_faceted_tags(
-            tag,
-            ItemKey::MusicBrainzReleaseId,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::MusicBrainzReleaseId);
-    }
-    if let Some(FacetedTags { facet_id, tags }) =
-        tags_map.take_faceted_tags(FACET_ID_MBID_RELEASE_GROUP)
-    {
-        export_faceted_tags(
-            tag,
-            ItemKey::MusicBrainzReleaseGroupId,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::MusicBrainzReleaseGroupId);
-    }
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MBID_ARTIST) {
-        export_faceted_tags(
-            tag,
-            ItemKey::MusicBrainzArtistId,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::MusicBrainzArtistId);
-    }
-    if let Some(FacetedTags { facet_id, tags }) =
-        tags_map.take_faceted_tags(FACET_ID_MBID_RELEASE_ARTIST)
-    {
-        export_faceted_tags(
-            tag,
-            ItemKey::MusicBrainzReleaseArtistId,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::MusicBrainzReleaseArtistId);
-    }
-    if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_MBID_WORK) {
-        export_faceted_tags(
-            tag,
-            ItemKey::MusicBrainzWorkId,
-            config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-            tags,
-        );
-    } else {
-        tag.remove_key(&ItemKey::MusicBrainzWorkId);
-    }
+        let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
-    // Grouping(s)
-    {
-        let facet_id = FACET_ID_GROUPING;
-        let mut tags = tags_map
-            .take_faceted_tags(facet_id)
-            .map(|FacetedTags { facet_id: _, tags }| tags)
-            .unwrap_or_default();
-        // Verify that FILE_TAG_FACETS is consistent with the code.
-        debug_assert!(tags_map.facet_keys().all(|facet_key| {
-            let Some(facet_id) = facet_key.as_ref() else {
-                // Plain tag
-                return true;
-            };
-            FILE_TAG_FACETS_WITHOUT_GROUPING
-                .iter()
-                .all(|file_tag_facet_id| *file_tag_facet_id != facet_id)
-        }));
-        #[cfg(feature = "gigtag")]
-        if config.flags.contains(ExportTrackFlags::GIGTAGS) {
-            let remaining_tags = tags_map.canonicalize_into();
-            if let Err(err) = crate::util::gigtag::export_and_encode_tags_into(
-                remaining_tags.as_canonical_ref(),
-                &mut tags,
-            ) {
-                log::error!("Failed to export gig tags: {err}");
+        for (facet_id, item_key) in DEFAULT_FILE_TAG_MAPPING {
+            #[cfg(feature = "gigtag")]
+            if config.encode_gigtags.as_ref() == Some(facet_id) {
+                // Defer until later (see below).
+            }
+            let item_key = compatibility.primary_item_key(item_key).clone();
+            if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_GENRE)
+            {
+                export_faceted_tags(
+                    tag,
+                    item_key,
+                    config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+                    tags,
+                );
+            } else {
+                tag.remove_key(&item_key);
             }
         }
-        if tags.is_empty() {
-            tag.remove_key(&compatibility.primary_content_group);
-        } else {
-            export_faceted_tags(
-                tag,
-                compatibility.primary_content_group,
-                config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
-                tags,
-            );
+
+        #[cfg(feature = "gigtag")]
+        if let Some(facet_id) = &config.encode_gigtags {
+            if let Some(item_key) =
+                DEFAULT_FILE_TAG_MAPPING
+                    .iter()
+                    .copied()
+                    .find_map(|(file_tag_id, item_key)| {
+                        if file_tag_id == facet_id {
+                            Some(item_key)
+                        } else {
+                            None
+                        }
+                    })
+            {
+                let item_key = compatibility.primary_item_key(item_key).clone();
+                let mut tags = tags_map
+                    .take_faceted_tags(facet_id)
+                    .map(|FacetedTags { facet_id: _, tags }| tags)
+                    .unwrap_or_default();
+                // Verify that the map does not contain any tags that have already been exported.
+                debug_assert!(tags_map.facet_keys().all(|facet_key| {
+                    let Some(key_facet_id) = facet_key.as_ref() else {
+                        // Plain tag.
+                        return true;
+                    };
+                    file_tag_facets_without(facet_id)
+                        .all(|other_facet_id| other_facet_id != key_facet_id)
+                }));
+                let remaining_tags = tags_map.canonicalize_into();
+                if let Err(err) = crate::util::gigtag::export_and_encode_tags_into(
+                    remaining_tags.as_canonical_ref(),
+                    &mut tags,
+                ) {
+                    log::error!("Failed to export gig tags: {err}");
+                }
+                if tags.is_empty() {
+                    tag.remove_key(&item_key);
+                } else {
+                    export_faceted_tags(
+                        tag,
+                        item_key,
+                        config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+                        tags,
+                    );
+                }
+            } else {
+                log::error!("Cannot export gig tags through facet \"{facet_id}\": no file tag");
+            }
         }
     }
 

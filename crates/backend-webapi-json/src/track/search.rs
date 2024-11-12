@@ -80,7 +80,7 @@ pub fn handle_request(
                 None
             }
         }),
-        encode_gigtags: encode_gigtags.unwrap_or(false),
+        encode_gigtags,
     };
     let mut collector = EntityCollector::new(collector_config);
     connection.transaction::<_, Error, _>(|connection| {

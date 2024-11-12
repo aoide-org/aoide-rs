@@ -1,9 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use nonicle::Canonical;
+
 use aoide_core::{
-    tag::FacetedTags,
-    track::{tag::FACET_ID_GROUPING, EntityUid},
+    tag::{FacetId, FacetedTags},
+    track::EntityUid,
 };
 use aoide_core_json::track::Entity;
 use aoide_media_file::fmt::encode_gig_tags;
@@ -11,7 +13,6 @@ use aoide_repo::{
     prelude::{RecordCollector, ReservableRecordCollector},
     track::RecordHeader,
 };
-use nonicle::Canonical;
 
 use super::*;
 
@@ -37,7 +38,7 @@ const DEFAULT_PAGINATION: Pagination = Pagination {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct TrackQueryParams {
-    pub encode_gigtags: Option<bool>,
+    pub encode_gigtags: Option<FacetId<'static>>,
 }
 
 fn new_request_id() -> Uuid {
@@ -48,12 +49,12 @@ fn new_request_id() -> Uuid {
 pub struct EntityCollectorConfig {
     pub capacity: Option<usize>,
 
-    pub encode_gigtags: bool,
+    pub encode_gigtags: Option<FacetId<'static>>,
 }
 
 #[derive(Debug)]
 pub struct EntityCollector {
-    encode_gigtags: bool,
+    encode_gigtags: Option<FacetId<'static>>,
 
     collected: Vec<Entity>,
 }
@@ -94,23 +95,23 @@ impl RecordCollector for EntityCollector {
             collected,
             encode_gigtags,
         } = self;
-        if *encode_gigtags {
+        if let Some(gigtag_facet_id) = encode_gigtags.as_ref() {
             let mut tags = std::mem::take(&mut entity.body.track.tags).untie();
-            let mut grouping_tags = tags
+            let mut encoded_tags = tags
                 .facets
                 .iter()
                 .enumerate()
                 .find_map(|(index, faceted_tags)| {
-                    (faceted_tags.facet_id == *FACET_ID_GROUPING).then_some(index)
+                    (faceted_tags.facet_id == *gigtag_facet_id).then_some(index)
                 })
                 .map(|index| tags.facets.remove(index).tags)
                 .unwrap_or_default();
             let mut tags = Canonical::tie(tags);
-            encode_gig_tags(&mut tags, &mut grouping_tags).expect("no error");
+            encode_gig_tags(&mut tags, &mut encoded_tags, gigtag_facet_id).expect("no error");
             let mut tags = tags.untie();
             tags.facets.push(FacetedTags {
-                facet_id: FACET_ID_GROUPING.clone(),
-                tags: grouping_tags,
+                facet_id: gigtag_facet_id.clone(),
+                tags: encoded_tags,
             });
             entity.body.track.tags = Canonical::tie(tags);
         }

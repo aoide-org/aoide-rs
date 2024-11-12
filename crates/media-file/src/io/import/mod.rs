@@ -78,11 +78,15 @@ bitflags! {
 
         #[cfg(feature = "gigtag")]
         /// Import gigtags from Content Group/Grouping file tag
-        const GIGTAGS                                           = 0b0001_0000_0000_0000;
+        const GIGTAGS_CGRP                                      = 0b0001_0000_0000_0000;
+
+        #[cfg(feature = "gigtag")]
+        /// Import gigtags from Comment file tag
+        const GIGTAGS_COMM                                      = 0b0010_0000_0000_0000;
 
         #[cfg(feature = "serato-markers")]
         /// Import metadata (cue points, loops, track color) from Serato file tags
-        const SERATO_MARKERS                                    = 0b0010_0000_0000_0000;
+        const SERATO_MARKERS                                    = 0b0100_0000_0000_0000;
     }
 }
 

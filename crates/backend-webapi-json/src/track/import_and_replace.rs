@@ -138,9 +138,10 @@ pub fn handle_request(
         ..Default::default()
     };
     if let Some(decode_gigtags) = decode_gigtags {
-        import_config
-            .flags
-            .set(ImportTrackFlags::GIGTAGS, decode_gigtags);
+        import_config.flags.set(
+            ImportTrackFlags::GIGTAGS_CGRP | ImportTrackFlags::GIGTAGS_COMM,
+            decode_gigtags,
+        );
     }
     let params = uc::Params {
         sync_mode: sync_mode.into(),

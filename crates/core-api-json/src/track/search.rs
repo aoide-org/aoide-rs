@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use aoide_core::tag::FacetId;
 use aoide_core_json::{
     entity::EntityUid,
     track::{
@@ -638,7 +639,7 @@ pub struct QueryParams {
     pub override_root_url: Option<Url>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub encode_gigtags: Option<bool>,
+    pub encode_gigtags: Option<FacetId<'static>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<PaginationLimit>,
@@ -668,7 +669,7 @@ pub struct SearchParams {
 #[cfg(feature = "frontend")]
 pub fn client_query_params(
     resolve_url_from_content_path: Option<aoide_core_api::media::source::ResolveUrlFromContentPath>,
-    encode_gigtags: bool,
+    encode_gigtags: Option<aoide_core::tag::FacetId<'static>>,
     pagination: impl Into<Pagination>,
 ) -> QueryParams {
     use aoide_core_api::media::source::ResolveUrlFromContentPath;
@@ -687,7 +688,7 @@ pub fn client_query_params(
     QueryParams {
         resolve_url_from_content_path: Some(resolve_url_from_content_path),
         override_root_url: override_root_url.map(Into::into),
-        encode_gigtags: Some(encode_gigtags),
+        encode_gigtags,
         limit,
         offset,
     }
@@ -696,7 +697,7 @@ pub fn client_query_params(
 #[cfg(feature = "frontend")]
 pub fn client_request_params(
     params: _inner::Params,
-    encode_gigtags: bool,
+    encode_gigtags: Option<aoide_core::tag::FacetId<'static>>,
     pagination: impl Into<Pagination>,
 ) -> (QueryParams, SearchParams) {
     let _inner::Params {
