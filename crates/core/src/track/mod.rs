@@ -322,7 +322,7 @@ impl Validate for EntityBody {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct EntityType;
 
 pub type EntityUid = EntityUidTyped<EntityType>;
