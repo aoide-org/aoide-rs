@@ -44,7 +44,7 @@ pub const FACET_ID_LANGUAGE: &FacetId<'_> = &FacetId::new_unchecked(Cow::Borrowe
 // ID3v2.4: TCON
 // Vorbis:  GENRE
 // MP4:     ©gen
-pub const FACET_GENRE: &str = "genre";
+pub const FACET_GENRE: &str = "gnre";
 pub const FACET_ID_GENRE: &FacetId<'_> = &FacetId::new_unchecked(Cow::Borrowed(FACET_GENRE));
 
 // Personal mental or emotional state, e.g. "happy", "sexy", "sad", "melancholic", "joyful", ...
@@ -133,7 +133,7 @@ pub const FACET_ID_MBID_WORK: &FacetId<'_> =
 // be used for classifying emotion (= mood) according to Thayer's
 // arousel-valence emotion plane.
 //
-// See also: [Spotify Audio Features](https://developer.spotify.com/documentation/web-api/reference/tracks/get-audio-features/)
+// See also: [Spotify Audio Features](https://developer.spotify.com/documentation/web-api/reference/get-audio-features/)
 
 pub const FACET_ACOUSTICNESS: &str = "acousticness";
 pub const FACET_ID_ACOUSTICNESS: &FacetId<'_> =
