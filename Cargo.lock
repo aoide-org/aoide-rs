@@ -1913,16 +1913,16 @@ dependencies = [
 
 [[package]]
 name = "gigtag"
-version = "0.1.14"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7abc80a733acd73980ad7fb5bf4b74fa3e7dbf00c70687e5c87a758c014e5221"
+checksum = "d7430f595432fd159926f8687da9deba88a042661e6fb85fcdafdfac039c3c2e"
 dependencies = [
  "anyhow",
  "compact_str",
+ "derive_more",
  "itertools 0.13.0",
  "percent-encoding",
  "regex",
- "thiserror 1.0.69",
  "time",
  "url",
 ]
