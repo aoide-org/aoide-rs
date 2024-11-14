@@ -25,6 +25,7 @@ pub mod load_one;
 pub mod replace;
 pub mod resolve;
 pub mod search;
+pub mod vfs;
 
 const DEFAULT_PAGINATION: Pagination = Pagination {
     limit: Some(100),

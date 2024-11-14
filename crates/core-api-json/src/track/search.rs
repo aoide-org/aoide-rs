@@ -1,7 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+#[cfg(feature = "backend")]
+use serde::Deserialize;
+#[cfg(feature = "frontend")]
+use serde::Serialize;
+
 use aoide_core::tag::FacetId;
+use aoide_core_api::{filtering::NumericValue, PaginationLimit, PaginationOffset};
 use aoide_core_json::{
     entity::EntityUid,
     track::{
@@ -15,11 +21,9 @@ use url::Url;
 #[cfg(feature = "frontend")]
 use crate::Pagination;
 use crate::{
-    _inner::filtering::NumericValue,
     filtering::{FilterModifier, ScalarFieldFilter, StringFilter},
-    prelude::*,
-    sorting::SortDirection,
     tag::search::Filter as TagFilter,
+    SortDirection,
 };
 
 mod _inner {

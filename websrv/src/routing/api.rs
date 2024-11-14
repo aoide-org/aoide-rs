@@ -795,11 +795,40 @@ pub(crate) fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
+    // TODO: Add API docs.
+    let collected_tracks_export_vfs = warp::post()
+        .and(collections_path)
+        .and(path_param_collection_uid)
+        .and(tracks_path)
+        .and(warp::path("export-vfs"))
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(shared_connection_gatekeeper.clone())
+        .and_then(
+            move |uid,
+                  request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                websrv::spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |mut pooled_connection| {
+                        api::track::vfs::export_files::handle_request(
+                            &mut pooled_connection,
+                            &uid,
+                            request_body,
+                        )
+                    },
+                )
+                .await
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
+
     let collected_tracks_filters = collected_tracks_resolve
         .or(collected_tracks_search)
         .or(collected_tracks_replace)
         .or(collected_tracks_import_and_replace)
-        .or(collected_tracks_find_unsynchronized);
+        .or(collected_tracks_find_unsynchronized)
+        .or(collected_tracks_export_vfs);
 
     // Tracks
     let tracks_load_one = warp::get()

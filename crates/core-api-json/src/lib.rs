@@ -16,11 +16,13 @@ mod prelude {
 }
 use self::prelude::*;
 
+mod sorting;
+pub use self::sorting::SortDirection;
+
 pub mod collection;
 pub mod filtering;
 pub mod media;
 pub mod playlist;
-pub mod sorting;
 pub mod tag;
 pub mod track;
 

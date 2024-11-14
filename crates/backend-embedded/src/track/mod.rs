@@ -15,6 +15,8 @@ use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::prelude::*;
 
+pub mod vfs;
+
 #[derive(Debug, Default)]
 pub struct EntityCollector(Vec<Entity>);
 

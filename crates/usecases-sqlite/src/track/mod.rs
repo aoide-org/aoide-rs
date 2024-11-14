@@ -9,3 +9,4 @@ pub mod purge;
 pub mod replace;
 pub mod resolve;
 pub mod search;
+pub mod vfs;

@@ -7,6 +7,8 @@ use aoide_core::{
 };
 use aoide_repo::{track::RecordHeader, RecordCollector, ReservableRecordCollector};
 
+pub mod export_files;
+
 #[derive(Debug)]
 pub struct ResolveUrlFromVirtualFilePathCollector<'c, C> {
     pub resolver: RemappingVfsResolver,
