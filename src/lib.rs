@@ -26,3 +26,13 @@ pub use aoide_storage_sqlite as storage_sqlite;
 pub use aoide_usecases as usecases;
 #[cfg(all(feature = "usecases", feature = "sqlite"))]
 pub use aoide_usecases_sqlite as usecases_sqlite;
+
+pub mod prelude {
+    // Avoid transitive dependencies on nonicle.
+    pub use nonicle::{
+        CanonicalOrd as _, Canonicalize as _, CanonicalizeInto as _, IsCanonical as _,
+    };
+
+    // Avoid transitive dependencies on semval.
+    pub use semval::prelude::*;
+}

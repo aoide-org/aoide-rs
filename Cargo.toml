@@ -151,6 +151,8 @@ aoide-search-index-tantivy = { workspace = true, optional = true }
 aoide-storage-sqlite = { workspace = true, optional = true }
 aoide-usecases = { workspace = true, optional = true }
 aoide-usecases-sqlite = { workspace = true, optional = true }
+nonicle.workspace = true
+semval.workspace = true
 
 [features]
 # Portable features

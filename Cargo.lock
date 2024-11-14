@@ -166,6 +166,8 @@ dependencies = [
  "aoide-storage-sqlite",
  "aoide-usecases",
  "aoide-usecases-sqlite",
+ "nonicle",
+ "semval",
 ]
 
 [[package]]
