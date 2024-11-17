@@ -244,18 +244,35 @@ fn export_file_content(
     }
     fs::copy(source_path, target_path)?;
 
-    debug_assert_eq!(
-        is_file_content_eq(MatchFiles::Metadata, source_path, target_path).ok(),
-        Some(true)
-    );
+    // After successfully copying the file obtaining a handle to it should never fail.
+    let target_file = FileHandle::from_path(target_path)?;
+
+    // Adjust the target file's modified timestamp according to that of the source file.
+    // Otherwise it might be copied again next time when solely using metadata for matching
+    // file contents.
+    if let Err(err) = fs::File::open(source_path)
+        .and_then(|source_file| source_file.metadata())
+        .and_then(|source_metadata| source_metadata.modified())
+        .and_then(|source_modified| target_file.as_file().set_modified(source_modified))
+    {
+        log::warn!("Failed to set modified time stamp of target file: {err}");
+    }
+
+    // Are time stamps always compatible and comparable between different file systems?
+    // Differing resolutions of system time might break.
+    if is_file_content_eq(MatchFiles::Metadata, source_path, target_path).ok() != Some(true) {
+        log::warn!(
+            "Source file \"{source_path}\" and target file \"{target_path}\" differ in metadata",
+            source_path = source_path.display(),
+            target_path = target_path.display()
+        );
+    }
     #[cfg(feature = "expensive-debug-assertions")]
     debug_assert_eq!(
         is_file_content_eq(MatchFiles::Content, source_path, target_path).ok(),
         Some(true)
     );
 
-    // After successfully copying the file obtaining a handle to it should never fail.
-    let target_file = FileHandle::from_path(target_path)?;
     Ok(Some(target_file))
 }
 
