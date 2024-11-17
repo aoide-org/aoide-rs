@@ -137,7 +137,7 @@ impl FromStr for OffsetDateTimeMs {
 impl fmt::Display for OffsetDateTimeMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // TODO: Avoid allocation of temporary String?
-        f.write_str(&self.0.format(&Rfc3339).expect("valid timestamp"))
+        self.0.format(&Rfc3339).expect("valid timestamp").fmt(f)
     }
 }
 
@@ -301,7 +301,7 @@ impl fmt::Display for YyyyMmDdDate {
                 self.day_of_month() as u8,
             ) {
                 // TODO: Avoid allocation of temporary String?
-                return f.write_str(&date.format(YYYY_MM_DD_FORMAT).expect("valid date"));
+                return date.format(YYYY_MM_DD_FORMAT).expect("valid date").fmt(f);
             }
         }
         if self.day_of_month() == 0 {

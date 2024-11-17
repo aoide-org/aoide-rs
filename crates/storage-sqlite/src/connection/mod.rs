@@ -42,7 +42,7 @@ impl AsRef<str> for Storage {
 
 impl fmt::Display for Storage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
+        self.as_ref().fmt(f)
     }
 }
 

@@ -130,7 +130,7 @@ impl<'a> AsRef<Cow<'a, str>> for ContentPath<'a> {
 
 impl fmt::Display for ContentPath<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
+        self.as_ref().fmt(f)
     }
 }
 

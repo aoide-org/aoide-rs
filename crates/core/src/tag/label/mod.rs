@@ -108,7 +108,7 @@ impl Borrow<str> for Label<'_> {
 
 impl fmt::Display for Label<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+        self.as_str().fmt(f)
     }
 }
 

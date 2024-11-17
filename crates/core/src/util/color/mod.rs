@@ -135,7 +135,7 @@ impl fmt::Display for ParseError {
                 "Invalid input prefix: expected = {expected}",
                 expected = RgbColor::STRING_PREFIX,
             ),
-            Self::ParseIntError(err) => f.write_str(&err.to_string()),
+            Self::ParseIntError(err) => err.fmt(f),
         }
     }
 }

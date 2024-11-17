@@ -86,7 +86,7 @@ pub enum KeyCode {
 
 impl fmt::Display for KeyCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_canonical_str())
+        self.as_canonical_str().fmt(f)
     }
 }
 
@@ -846,7 +846,7 @@ impl From<OpenKeySignature> for KeySignature {
 
 impl fmt::Display for OpenKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.0.code().as_openkey_str())
+        self.0.code().as_openkey_str().fmt(f)
     }
 }
 
@@ -901,7 +901,7 @@ impl From<LancelotKeySignature> for KeySignature {
 
 impl fmt::Display for LancelotKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.0.code().as_lancelot_str())
+        self.0.code().as_lancelot_str().fmt(f)
     }
 }
 
