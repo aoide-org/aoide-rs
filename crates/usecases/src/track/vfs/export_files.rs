@@ -66,7 +66,7 @@ struct TrackFileExporter {
     match_files: MatchFiles,
     source_path_resolver: VfsResolver,
     target_path_resolver: VfsResolver,
-    exported_files: HashSet<FileHandle>,
+    target_files: HashSet<FileHandle>,
     outcome: ExportTrackFilesOutcome,
 }
 
@@ -94,7 +94,7 @@ impl TrackFileExporter {
             match_files,
             source_path_resolver,
             target_path_resolver,
-            exported_files: Default::default(),
+            target_files: Default::default(),
             outcome: Default::default(),
         })
     }
@@ -174,7 +174,7 @@ impl RecordCollector for TrackFileExporter {
             match_files,
             source_path_resolver,
             target_path_resolver,
-            exported_files,
+            target_files,
             outcome:
                 ExportTrackFilesOutcome {
                     exported,
@@ -188,13 +188,25 @@ impl RecordCollector for TrackFileExporter {
         let target_path = target_path_resolver.build_file_path(content_path);
         match export_file_content(*match_files, &source_path, &target_path) {
             Ok(Some(exported_file)) => {
-                debug_assert!(!exported_files.contains(&exported_file));
-                exported_files.insert(exported_file);
+                debug_assert!(!target_files.contains(&exported_file));
+                target_files.insert(exported_file);
                 *exported += 1;
             }
-            Ok(None) => {
-                *skipped += 1;
-            }
+            Ok(None) => match FileHandle::from_path(&target_path) {
+                Ok(target_file) => {
+                    debug_assert!(!target_files.contains(&target_file));
+                    target_files.insert(target_file);
+                    *skipped += 1;
+                }
+                Err(error) => {
+                    failed.push(ExportTrackFileFailed {
+                        entity,
+                        source_path,
+                        target_path,
+                        error,
+                    });
+                }
+            },
             Err(error) => {
                 failed.push(ExportTrackFileFailed {
                     entity,
@@ -227,6 +239,9 @@ fn export_file_content(
         source_path = source_path.display(),
         target_path = target_path.display()
     );
+    if let Some(parent_path) = target_path.parent() {
+        fs::create_dir_all(parent_path)?;
+    }
     fs::copy(source_path, target_path)?;
 
     debug_assert_eq!(
@@ -303,7 +318,7 @@ where
         match_files: _,
         source_path_resolver: _,
         target_path_resolver: _,
-        exported_files,
+        target_files,
         outcome,
     } = exporter;
     // Only purge files if no errors occurred to prevent unintended data loss.
@@ -320,7 +335,7 @@ where
                     return true;
                 }
             };
-            exported_files.contains(&file_handle)
+            target_files.contains(&file_handle)
         };
         debug_assert!(outcome.purged.is_none());
         outcome.purged = Some(purge_files(target_root_path, &mut keep_file));
