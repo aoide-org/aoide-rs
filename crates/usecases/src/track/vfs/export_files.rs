@@ -16,7 +16,7 @@ use walkdir::WalkDir;
 
 use aoide_core::{
     media::content::{resolver::vfs::VfsResolver, ContentPathConfig},
-    util::url::{is_valid_base_url, BaseUrl},
+    util::url::BaseUrl,
     CollectionUid, TrackEntity,
 };
 use aoide_core_api::{track::search::Filter, Pagination};
@@ -83,13 +83,13 @@ impl TrackFileExporter {
                 bail!("invalid target root path");
             }
         };
-        if !is_valid_base_url(&target_root_url) {
-            bail!(
-                "invalid target root path \"{target_root_path}\"",
-                target_root_path = target_root_path.display()
-            );
-        }
-        let target_path_resolver = VfsResolver::with_root_url(BaseUrl::new(target_root_url));
+        let target_root_url = match BaseUrl::try_autocomplete_from(target_root_url) {
+            Ok(ok) => ok,
+            Err(err) => {
+                bail!("invalid target root path: {err}");
+            }
+        };
+        let target_path_resolver = VfsResolver::with_root_url(target_root_url);
         Ok(Self {
             match_files,
             source_path_resolver,
