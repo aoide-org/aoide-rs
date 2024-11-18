@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use aoide_core::CollectionUid;
 use aoide_core_api_json::track::search::Filter;
 use aoide_repo_sqlite::DbConnection;
-use aoide_usecases::track::vfs::export_files::{ExportTrackFilesOutcome, MatchFiles};
+use aoide_usecases::track::vfs::export_files::ExportTrackFilesOutcome;
 use aoide_usecases_sqlite::track::vfs::export_files;
 
 use crate::Result;
@@ -20,7 +20,6 @@ pub struct RequestBody {
     target_root_path: String,
     filter: Option<Filter>,
     batch_size: Option<u64>,
-    compare_file_contents: Option<bool>,
     purge_other_files: Option<bool>,
 }
 
@@ -45,16 +44,10 @@ pub fn handle_request(
         target_root_path,
         filter,
         batch_size,
-        compare_file_contents,
         purge_other_files,
     } = request_body;
     let filter = filter.map(Into::into);
     let target_root_path = Path::new(&target_root_path);
-    let match_files = if compare_file_contents == Some(true) {
-        MatchFiles::Content
-    } else {
-        MatchFiles::Metadata
-    };
     let purge_other_files = purge_other_files.unwrap_or(false);
     let outcome = export_files(
         connection,
@@ -62,7 +55,7 @@ pub fn handle_request(
         filter.as_ref(),
         batch_size,
         target_root_path,
-        match_files,
+        Default::default(),
         purge_other_files,
     )?;
     let ExportTrackFilesOutcome {

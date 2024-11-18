@@ -24,10 +24,19 @@ use aoide_repo::{RecordCollector, ReservableRecordCollector};
 
 use crate::{Error, Result};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum MatchFiles {
-    Metadata,
+    /// Determine equality by comparing contents byte-wise.
+    ///
+    /// Slow but works reliably in any situation.
+    #[default]
     Content,
+
+    /// Determine equality by comparing metadata.
+    ///
+    /// Only works reliably if source and target files are stored on the same
+    /// file system!
+    Metadata,
 }
 
 #[derive(Debug)]
@@ -66,7 +75,7 @@ struct TrackFileExporter {
     match_files: MatchFiles,
     source_path_resolver: VfsResolver,
     target_path_resolver: VfsResolver,
-    target_files: HashSet<FileHandle>,
+    canonical_target_paths: HashSet<PathBuf>,
     outcome: ExportTrackFilesOutcome,
 }
 
@@ -94,7 +103,7 @@ impl TrackFileExporter {
             match_files,
             source_path_resolver,
             target_path_resolver,
-            target_files: Default::default(),
+            canonical_target_paths: Default::default(),
             outcome: Default::default(),
         })
     }
@@ -174,7 +183,7 @@ impl RecordCollector for TrackFileExporter {
             match_files,
             source_path_resolver,
             target_path_resolver,
-            target_files,
+            canonical_target_paths,
             outcome:
                 ExportTrackFilesOutcome {
                     exported,
@@ -187,26 +196,13 @@ impl RecordCollector for TrackFileExporter {
         let source_path = source_path_resolver.build_file_path(content_path);
         let target_path = target_path_resolver.build_file_path(content_path);
         match export_file_content(*match_files, &source_path, &target_path) {
-            Ok(Some(exported_file)) => {
-                debug_assert!(!target_files.contains(&exported_file));
-                target_files.insert(exported_file);
+            Ok(Some(_exported_file)) => {
+                // Dropping the file handle closes the file.
                 *exported += 1;
             }
-            Ok(None) => match FileHandle::from_path(&target_path) {
-                Ok(target_file) => {
-                    debug_assert!(!target_files.contains(&target_file));
-                    target_files.insert(target_file);
-                    *skipped += 1;
-                }
-                Err(error) => {
-                    failed.push(ExportTrackFileFailed {
-                        entity,
-                        source_path,
-                        target_path,
-                        error,
-                    });
-                }
-            },
+            Ok(None) => {
+                *skipped += 1;
+            }
             Err(error) => {
                 failed.push(ExportTrackFileFailed {
                     entity,
@@ -214,6 +210,19 @@ impl RecordCollector for TrackFileExporter {
                     target_path,
                     error,
                 });
+                return;
+            }
+        };
+        match target_path.canonicalize() {
+            Ok(canonical_target_path) => {
+                debug_assert!(!canonical_target_paths.contains(&canonical_target_path));
+                canonical_target_paths.insert(canonical_target_path);
+            }
+            Err(err) => {
+                log::warn!(
+                    "Failed to canonicalize target path \"{target_path}\": {err}",
+                    target_path = target_path.display()
+                );
             }
         }
     }
@@ -258,15 +267,6 @@ fn export_file_content(
         log::warn!("Failed to set modified time stamp of target file: {err}");
     }
 
-    // Are time stamps always compatible and comparable between different file systems?
-    // Differing resolutions of system time might break.
-    if is_file_content_eq(MatchFiles::Metadata, source_path, target_path).ok() != Some(true) {
-        log::warn!(
-            "Source file \"{source_path}\" and target file \"{target_path}\" differ in metadata",
-            source_path = source_path.display(),
-            target_path = target_path.display()
-        );
-    }
     #[cfg(feature = "expensive-debug-assertions")]
     debug_assert_eq!(
         is_file_content_eq(MatchFiles::Content, source_path, target_path).ok(),
@@ -335,24 +335,21 @@ where
         match_files: _,
         source_path_resolver: _,
         target_path_resolver: _,
-        target_files,
+        canonical_target_paths,
         outcome,
     } = exporter;
     // Only purge files if no errors occurred to prevent unintended data loss.
     let mut outcome = outcome;
     if purge_other_files && outcome.failed.is_empty() {
-        let mut keep_file = |file_path: &Path| {
-            let file_handle = match FileHandle::from_path(file_path) {
-                Ok(file_handle) => file_handle,
-                Err(err) => {
-                    log::warn!(
-                        "Keeping file \"{file_path}\": {err}",
-                        file_path = file_path.display()
-                    );
-                    return true;
-                }
-            };
-            target_files.contains(&file_handle)
+        let mut keep_file = |file_path: &Path| match file_path.canonicalize() {
+            Ok(canonical_target_path) => canonical_target_paths.contains(&canonical_target_path),
+            Err(err) => {
+                log::warn!(
+                    "Keeping file \"{file_path}\": {err}",
+                    file_path = file_path.display()
+                );
+                true
+            }
         };
         debug_assert!(outcome.purged.is_none());
         outcome.purged = Some(purge_files(target_root_path, &mut keep_file));
