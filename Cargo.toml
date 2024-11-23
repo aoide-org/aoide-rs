@@ -44,7 +44,7 @@ anyhow = "1.0.93"
 bitflags = "2.6.0"
 data-encoding = "2.6.0"
 derive_more = "1.0.0"
-diesel = { version = "2.2.4", default-features = false, features = ["sqlite"] }
+diesel = { version = "2.2.5", default-features = false, features = ["sqlite"] }
 digest = "0.10.7"
 image = "0.25.5"
 jiff = "0.1.14"
@@ -61,7 +61,7 @@ tantivy = "0.22.0"
 time = "0.3.36"
 thiserror = "2.0.3"
 tokio = "1.41.1"
-url = "2.5.3"
+url = "2.5.4"
 
 [workspace.lints.rust]
 # Opt-in for allowed-by-default lints (in alphabetical order)
