@@ -1947,9 +1947,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.15.1"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a9bfc1af68b1726ea47d3d5109de126281def866b33970e10fbab11b5dafab3"
+checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
 dependencies = [
  "allocator-api2",
  "equivalent",
@@ -2540,7 +2540,7 @@ dependencies = [
 [[package]]
 name = "lofty"
 version = "0.21.1"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#013b17dde630318ccba01cf60c7363c1f70d0c6f"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#dd4e926db4eaec593b051c34717a7fbae162397f"
 dependencies = [
  "byteorder",
  "data-encoding",
@@ -3115,7 +3115,7 @@ dependencies = [
 [[package]]
 name = "ogg_pager"
 version = "0.6.1"
-source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#013b17dde630318ccba01cf60c7363c1f70d0c6f"
+source = "git+https://github.com/Serial-ATA/lofty-rs?branch=main#dd4e926db4eaec593b051c34717a7fbae162397f"
 dependencies = [
  "byteorder",
 ]
