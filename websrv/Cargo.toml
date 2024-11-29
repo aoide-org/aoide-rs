@@ -27,9 +27,9 @@ serde_json.workspace = true
 thiserror.workspace = true
 time = { workspace = true, features = ["serde-human-readable"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
-tracing = "0.1.40"
+tracing = "0.1.41"
 tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 url = { workspace = true, features = ["serde"] }
 warp = { version = "0.3.7", default-features = false }
 
