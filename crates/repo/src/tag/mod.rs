@@ -28,7 +28,7 @@ pub struct CountParams<'a> {
     pub ordering: Vec<SortOrder>,
 }
 
-impl<'a> CountParams<'a> {
+impl CountParams<'_> {
     #[must_use]
     pub const fn all(ordering: Vec<SortOrder>) -> Self {
         Self {
@@ -74,7 +74,7 @@ pub struct FacetCountParams<'a> {
     pub ordering: Vec<SortOrder>,
 }
 
-impl<'a> FacetCountParams<'a> {
+impl FacetCountParams<'_> {
     #[must_use]
     pub const fn all(ordering: Vec<SortOrder>) -> Self {
         Self {

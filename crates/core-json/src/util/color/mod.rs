@@ -105,7 +105,7 @@ impl Serialize for RgbColor {
 
 struct ColorDeserializeVisitor;
 
-impl<'de> SerdeDeserializeVisitor<'de> for ColorDeserializeVisitor {
+impl SerdeDeserializeVisitor<'_> for ColorDeserializeVisitor {
     type Value = RgbColor;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {

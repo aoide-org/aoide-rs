@@ -79,7 +79,7 @@ pub type Digest = Base64;
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub struct DigestRef<'a>(&'a str);
 
-impl<'a> AsRef<str> for DigestRef<'a> {
+impl AsRef<str> for DigestRef<'_> {
     fn as_ref(&self) -> &str {
         let DigestRef(encoded) = self;
         encoded

@@ -22,7 +22,7 @@ pub(super) struct UpdateContext<'a> {
     pub(super) mdl: &'a mut Model,
 }
 
-impl<'a> UpdateContext<'a> {
+impl UpdateContext<'_> {
     pub(super) fn on_message(&mut self, ctx: &Context, msg: Message) {
         match msg {
             Message::Action(action) => self.on_action(ctx, action),

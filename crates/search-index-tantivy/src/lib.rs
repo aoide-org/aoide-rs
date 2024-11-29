@@ -120,18 +120,10 @@ impl TrackFields {
         }
         // Special case handling for faceted tags with dedicated document fields
         match facet_id.map(TagFacetId::as_str) {
-            Some(FACET_COMMENT) => {
-                return Some((self.comment, Cow::Borrowed(label.as_str())));
-            }
-            Some(FACET_GENRE) => {
-                return Some((self.genre, Cow::Borrowed(label.as_str())));
-            }
-            Some(FACET_GROUPING) => {
-                return Some((self.grouping, Cow::Borrowed(label.as_str())));
-            }
-            Some(FACET_MOOD) => {
-                return Some((self.mood, Cow::Borrowed(label.as_str())));
-            }
+            Some(FACET_COMMENT) => Some((self.comment, Cow::Borrowed(label.as_str()))),
+            Some(FACET_GENRE) => Some((self.genre, Cow::Borrowed(label.as_str()))),
+            Some(FACET_GROUPING) => Some((self.grouping, Cow::Borrowed(label.as_str()))),
+            Some(FACET_MOOD) => Some((self.mood, Cow::Borrowed(label.as_str()))),
             _ => {
                 // Generic tag field
                 let facet_prefix = facet_id

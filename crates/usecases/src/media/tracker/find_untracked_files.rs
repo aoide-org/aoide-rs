@@ -87,8 +87,8 @@ impl<'r, Repo> AncestorVisitor<'r, Repo> {
     }
 }
 
-impl<'r, Repo> visit::AncestorVisitor<Repo, Vec<ContentPath<'static>>, anyhow::Error>
-    for AncestorVisitor<'r, Repo>
+impl<Repo> visit::AncestorVisitor<Repo, Vec<ContentPath<'static>>, anyhow::Error>
+    for AncestorVisitor<'_, Repo>
 where
     Repo: MediaTrackerRepo,
 {

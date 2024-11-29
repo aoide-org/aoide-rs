@@ -26,7 +26,7 @@ pub(super) struct RenderContext<'a> {
     pub(super) ui_data: &'a mut UiData,
 }
 
-impl<'a> RenderContext<'a> {
+impl RenderContext<'_> {
     pub(super) fn render_frame(&mut self, ctx: &Context, _frm: &mut Frame) {
         let Self {
             msg_tx,

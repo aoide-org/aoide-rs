@@ -25,7 +25,7 @@ use crate::{
     Connection, RowId,
 };
 
-impl<'db> Repo for Connection<'db> {
+impl Repo for Connection<'_> {
     fn media_tracker_update_directories_status(
         &mut self,
         updated_at: &OffsetDateTimeMs,

@@ -37,7 +37,7 @@ use crate::{
     Connection, RowId,
 };
 
-impl<'db> EntityRepo for Connection<'db> {
+impl EntityRepo for Connection<'_> {
     fn resolve_playlist_entity_revision(
         &mut self,
         uid: &PlaylistUid,
@@ -327,7 +327,7 @@ fn load_playlist_entry_records(
 
 // TODO: Overwrite remaining default implementations of EntryRepo that are inefficient,
 // e.g. for moving and shuffling playlist entries.
-impl<'db> EntryRepo for crate::Connection<'db> {
+impl EntryRepo for crate::Connection<'_> {
     fn load_all_playlist_entries(&mut self, id: RecordId) -> RepoResult<Vec<Entry>> {
         let records = load_playlist_entry_records(self, id)?;
         let mut entries = Vec::with_capacity(records.len());

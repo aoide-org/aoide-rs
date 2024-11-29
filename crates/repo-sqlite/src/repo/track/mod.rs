@@ -440,7 +440,7 @@ fn preload_entity(
     })
 }
 
-impl<'db> EntityRepo for Connection<'db> {
+impl EntityRepo for Connection<'_> {
     fn resolve_track_id(&mut self, uid: &TrackUid) -> RepoResult<TrackId> {
         track::table
             .select(track::row_id)
@@ -555,7 +555,7 @@ impl<'db> EntityRepo for Connection<'db> {
     }
 }
 
-impl<'db> CollectionRepo for crate::Connection<'db> {
+impl CollectionRepo for crate::Connection<'_> {
     fn load_track_entity_by_media_source_content_path(
         &mut self,
         collection_id: CollectionId,
@@ -902,7 +902,7 @@ impl<'db> CollectionRepo for crate::Connection<'db> {
     }
 }
 
-impl<'db> ActorRepo for crate::Connection<'db> {
+impl ActorRepo for crate::Connection<'_> {
     fn load_all_actor_names(
         &mut self,
         collection_id: Option<CollectionId>,

@@ -15,7 +15,7 @@ pub struct ResolveUrlFromVirtualFilePathCollector<'c, C> {
     pub collector: &'c mut C,
 }
 
-impl<'c, C> RecordCollector for ResolveUrlFromVirtualFilePathCollector<'c, C>
+impl<C> RecordCollector for ResolveUrlFromVirtualFilePathCollector<'_, C>
 where
     C: RecordCollector<Header = RecordHeader, Record = TrackEntity>,
 {
@@ -36,7 +36,7 @@ where
     }
 }
 
-impl<'c, C> ReservableRecordCollector for ResolveUrlFromVirtualFilePathCollector<'c, C>
+impl<C> ReservableRecordCollector for ResolveUrlFromVirtualFilePathCollector<'_, C>
 where
     C: ReservableRecordCollector<Header = RecordHeader, Record = TrackEntity>,
 {

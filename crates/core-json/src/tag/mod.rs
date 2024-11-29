@@ -58,7 +58,7 @@ impl Serialize for FacetKey {
 
 struct FacetKeyVisitor;
 
-impl<'de> Visitor<'de> for FacetKeyVisitor {
+impl Visitor<'_> for FacetKeyVisitor {
     type Value = FacetKey;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -140,7 +140,7 @@ impl Serialize for Label {
 
 struct LabelVisitor;
 
-impl<'de> Visitor<'de> for LabelVisitor {
+impl Visitor<'_> for LabelVisitor {
     type Value = Label;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -207,7 +207,7 @@ impl Serialize for Score {
 
 struct ScoreVisitor;
 
-impl<'de> Visitor<'de> for ScoreVisitor {
+impl Visitor<'_> for ScoreVisitor {
     type Value = Score;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {

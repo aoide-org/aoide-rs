@@ -54,19 +54,19 @@ impl<'db> From<&'db mut DbConnection> for Connection<'db> {
     }
 }
 
-impl<'db> AsRef<DbConnection> for Connection<'db> {
+impl AsRef<DbConnection> for Connection<'_> {
     fn as_ref(&self) -> &DbConnection {
         self.0
     }
 }
 
-impl<'db> AsMut<DbConnection> for Connection<'db> {
+impl AsMut<DbConnection> for Connection<'_> {
     fn as_mut(&mut self) -> &mut DbConnection {
         self.0
     }
 }
 
-impl<'db> Deref for Connection<'db> {
+impl Deref for Connection<'_> {
     type Target = DbConnection;
 
     fn deref(&self) -> &Self::Target {
@@ -74,7 +74,7 @@ impl<'db> Deref for Connection<'db> {
     }
 }
 
-impl<'db> DerefMut for Connection<'db> {
+impl DerefMut for Connection<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut()
     }

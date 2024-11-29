@@ -100,7 +100,7 @@ impl Serialize for YyyyMmDdDate {
 #[allow(clippy::upper_case_acronyms)]
 struct YyyyMmDdDateDeserializeVisitor;
 
-impl<'de> SerdeDeserializeVisitor<'de> for YyyyMmDdDateDeserializeVisitor {
+impl SerdeDeserializeVisitor<'_> for YyyyMmDdDateDeserializeVisitor {
     type Value = YyyyMmDdDate;
 
     fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

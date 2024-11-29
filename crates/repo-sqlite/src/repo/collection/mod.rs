@@ -104,7 +104,7 @@ fn store_vfs(db: &mut Connection<'_>, id: CollectionId, collection: &Collection)
     Ok(())
 }
 
-impl<'db> EntityRepo for Connection<'db> {
+impl EntityRepo for Connection<'_> {
     fn resolve_collection_entity_revision(
         &mut self,
         uid: &CollectionUid,

@@ -24,7 +24,7 @@ use crate::{
     Connection, RowId,
 };
 
-impl<'db> Repo for Connection<'db> {
+impl Repo for Connection<'_> {
     fn update_media_source(
         &mut self,
         id: MediaSourceId,
@@ -62,7 +62,7 @@ impl<'db> Repo for Connection<'db> {
     }
 }
 
-impl<'db> CollectionRepo for Connection<'db> {
+impl CollectionRepo for Connection<'_> {
     fn resolve_media_source_id_synchronized_at_by_content_path(
         &mut self,
         collection_id: CollectionId,
