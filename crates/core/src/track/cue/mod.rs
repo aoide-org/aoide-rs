@@ -48,7 +48,14 @@ use bitflags::bitflags;
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct CueFlags: u8 {
+        /// Read-only.
+        ///
+        /// Supported by Serato DJ.
         const LOCKED = 0b0000_0001;
+        /// Activate implicitly, e.g. when loading a track.
+        ///
+        /// Supported by Engine DJ.
+        const ACTIVE = 0b0000_0010;
     }
 }
 

@@ -1823,13 +1823,14 @@ components:
       type: integer
       format: i32
       minimum: 0
-      maximum: 1
+      maximum: 3
       example: 1
       description: |
         A bitmask with flags, e.g. for locking to prevent unintended changes.
 
         Bits:
-          - 0x01: Locked
+          - 0x01: Locked (read-only)
+          - 0x02: Activate implicitly, e.g. when loading a track.
     CueInMarker:
       type: object
       properties:
