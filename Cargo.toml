@@ -59,7 +59,7 @@ static_assertions = "1.1.0"
 strum = "0.26.3"
 tantivy = "0.22.0"
 time = "0.3.37"
-thiserror = "2.0.7"
+thiserror = "2.0.8"
 tokio = "1.42.0"
 url = "2.5.4"
 
