@@ -46,11 +46,14 @@ This filter matches all tracks with a BPM between 80.0 and 120.0 (inclusive).
 
 #### Hashtag filter
 
-Supports _hashtags_ in the
-[Content Group](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#grouping-3)
-field, URL-encoded and delimited by whitespace:
+Supports importing _hashtags_ from both the
+[Content Group](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#grouping-3) and
+[Comment](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#comment-4) text fields.
+Please refer to [gigtag](https://github.com/uklotzde/gigtag) for the complete format specification.
 
-`#Afterhour #Main%20Floor`
+Example for two _hashtags_, URL-encoded and delimited by whitespace:
+
+`This is a regular text that precedes the following hashtags #Afterhour #Main%20Floor`
 
 The simple search input tokenizer of the app doesn't support spaces in tag labels yet, i.e. prefer
 `#MainFloor` instead of `#Main%20Floor`.
