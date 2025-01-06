@@ -47,7 +47,7 @@ derive_more = "1.0.0"
 diesel = { version = "2.2.6", default-features = false, features = ["sqlite"] }
 digest = "0.10.7"
 image = "0.25.5"
-jiff = "0.1.19"
+jiff = "0.1.21"
 log = "0.4.22"
 mime = "0.3.17"
 nonicle = "0.1.1"
