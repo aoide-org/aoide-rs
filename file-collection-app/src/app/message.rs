@@ -39,7 +39,6 @@ impl MessageSender {
         }
     }
 
-    #[allow(dead_code)] // TODO: Currently unused?
     pub(crate) fn emit_event<T>(&self, event: T) -> Result<(), NoReceiverForEvent>
     where
         T: Into<Event>,

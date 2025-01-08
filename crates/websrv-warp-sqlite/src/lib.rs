@@ -130,7 +130,7 @@ where
 }
 
 #[derive(Debug)]
-#[allow(dead_code)] // False positive
+#[expect(dead_code, reason = "False positive.")]
 struct CustomReject {
     code: StatusCode,
     message: String,

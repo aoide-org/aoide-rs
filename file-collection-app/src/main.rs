@@ -1,10 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// Remove later.
-// #![allow(dead_code)]
-// #![allow(unreachable_pub)]
-
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context as _};

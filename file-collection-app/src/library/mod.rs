@@ -105,7 +105,6 @@ pub enum State {
 }
 
 #[allow(missing_debug_implementations)]
-#[allow(dead_code)] // Some fields are not used yet.
 pub struct CurrentState<'a> {
     pub settings: Ref<'a, settings::State>,
     pub collection: Ref<'a, collection::State>,
