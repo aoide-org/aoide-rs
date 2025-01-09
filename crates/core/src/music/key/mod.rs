@@ -808,7 +808,7 @@ impl OpenKeySignature {
     #[must_use]
     #[allow(clippy::missing_panics_doc)] // Never panics
     #[allow(clippy::similar_names)] // False positive
-    pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
+    pub const fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
         #[allow(clippy::missing_panics_doc)] // Never panics
         let code = KeyCode::try_from_value(
             2 * code
@@ -864,7 +864,7 @@ impl LancelotKeySignature {
     #[must_use]
     #[allow(clippy::missing_panics_doc)] // Never panics
     #[allow(clippy::similar_names)] // False positive
-    pub fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
+    pub const fn new(code: KeyCodeValue, mode: KeyMode) -> Self {
         let code = KeyCode::try_from_value(
             ((code * 2 + 9) % 24)
                 + match mode {
@@ -918,7 +918,7 @@ impl EngineKeySignature {
 
     #[must_use]
     #[allow(clippy::missing_panics_doc)] // Never panics
-    pub fn from_code(code: KeyCodeValue) -> Self {
+    pub const fn from_code(code: KeyCodeValue) -> Self {
         let code = KeyCode::try_from_value(code % 24 + 1).expect("valid key code");
         Self(KeySignature::new(code))
     }

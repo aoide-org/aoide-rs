@@ -24,7 +24,7 @@ fn is_hidden_dir_entry(dir_entry: &DirEntry) -> bool {
         return dir_entry
             .file_name()
             .to_str()
-            .map_or(false, |dir_name| HIDDEN_DIR_NAMES.contains(&dir_name));
+            .is_some_and(|dir_name| HIDDEN_DIR_NAMES.contains(&dir_name));
     }
     false
 }

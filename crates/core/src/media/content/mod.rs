@@ -531,7 +531,7 @@ impl Validate for AudioContentMetadata {
                 self.encoder
                     .as_deref()
                     .map(str::trim)
-                    .map_or(false, str::is_empty),
+                    .is_some_and(str::is_empty),
                 Self::Invalidity::EncoderEmpty,
             )
             .into()

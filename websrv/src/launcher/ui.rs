@@ -348,11 +348,11 @@ impl App {
 }
 
 fn is_existing_directory(path: &Path) -> bool {
-    path.canonicalize().map_or(false, |p| p.is_dir())
+    path.canonicalize().as_deref().is_ok_and(Path::is_dir)
 }
 
 fn is_existing_file(path: &Path) -> bool {
-    path.canonicalize().map_or(false, |p| p.is_file())
+    path.canonicalize().as_deref().is_ok_and(Path::is_file)
 }
 
 impl eframe::App for App {
