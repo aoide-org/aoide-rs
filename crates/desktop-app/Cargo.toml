@@ -18,7 +18,7 @@ workspace = true
 
 [dependencies]
 anyhow.workspace = true
-discro = { version = "0.29.3", features = ["tokio"] }
+discro = { version = "0.29.4", features = ["tokio"] }
 highway = { version = "1.2.0" }
 log.workspace = true
 ron = "0.8.1"
