@@ -25,9 +25,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate Cargo.lock
-        run: cargo generate-lockfile
-
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
