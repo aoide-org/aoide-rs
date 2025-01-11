@@ -52,7 +52,7 @@ pub fn on_should_prefetch(
     env: Weak<Environment>,
     this: &Arc<SharedState>,
     prefetch_limit: Option<NonZeroUsize>,
-) -> impl Future<Output = ()> + Send + 'static {
+) -> impl Future<Output = ()> + Send + 'static + use<> {
     let subscriber = this.subscribe_changed();
     let this = Arc::downgrade(this);
     async move {
@@ -82,7 +82,7 @@ pub fn on_should_prefetch(
 pub fn on_collection_state_changed(
     collection_state: &collection::SharedState,
     this: Weak<SharedState>,
-) -> impl Future<Output = ()> + Send + 'static {
+) -> impl Future<Output = ()> + Send + 'static + use<> {
     let mut collection_state_sub = collection_state.subscribe_changed();
     async move {
         log::debug!("Starting on_collection_state_changed");

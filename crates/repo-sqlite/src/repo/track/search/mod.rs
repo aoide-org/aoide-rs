@@ -998,7 +998,7 @@ fn select_track_ids_matching_tag_filter(
     } = filter;
 
     // Filter tag facet(s)
-    if let Some(ref filter) = facets {
+    if let Some(filter) = facets {
         match filter {
             FacetsFilter::Prefix(prefix) => {
                 let prefix = prefix.as_str();
@@ -1059,7 +1059,7 @@ fn select_track_ids_matching_tag_filter(
     }
 
     // Filter tag labels
-    if let Some(ref label) = label {
+    if let Some(label) = label {
         if let Some((val, cmp, dir)) = decompose_string_predicate(label) {
             let string_cmp_op = match cmp {
                 // Equal comparison without escape characters

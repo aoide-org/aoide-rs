@@ -79,7 +79,7 @@ impl Validate for Item {
         let context = ValidationContext::new();
         match self {
             Item::Separator(_) => context,
-            Item::Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
+            Item::Track(track) => context.validate_with(track, Self::Invalidity::Track),
         }
         .into()
     }

@@ -12,11 +12,14 @@ use super::State;
 /// Save the settings after changed.
 ///
 /// The current settings at the time of invocation are not saved.
-pub fn on_state_changed_save_to_file(
+pub fn on_state_changed_save_to_file<E>(
     this: &Observer<State>,
     settings_dir: PathBuf,
-    mut report_error: impl FnMut(anyhow::Error) + Send + 'static,
-) -> impl Future<Output = ()> + Send + 'static {
+    mut report_error: E,
+) -> impl Future<Output = ()> + Send + 'static + use<E>
+where
+    E: FnMut(anyhow::Error) + Send + 'static,
+{
     // Read and acknowledge the initial settings immediately before spawning
     // the async task. These are supposed to be saved already. Only subsequent
     // changes will be captured, which might occur already while spawning the task.
@@ -56,10 +59,13 @@ pub fn on_state_changed_save_to_file(
 }
 
 /// Listen for changes of the music directory.
-pub fn on_music_dir_changed(
+pub fn on_music_dir_changed<C>(
     this: &Observer<State>,
-    mut on_changed: impl FnMut(Option<&DirPath<'_>>) -> OnChanged + Send + 'static,
-) -> impl Future<Output = ()> + Send + 'static {
+    mut on_changed: C,
+) -> impl Future<Output = ()> + Send + 'static + use<C>
+where
+    C: FnMut(Option<&DirPath<'_>>) -> OnChanged + Send + 'static,
+{
     // Read the initial value immediately before spawning the async task
     let mut subscriber = this.subscribe();
     let mut value = subscriber

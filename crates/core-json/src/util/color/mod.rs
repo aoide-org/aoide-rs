@@ -65,9 +65,9 @@ impl schemars::JsonSchema for RgbColor {
         "RgbColor".to_string()
     }
 
-    fn json_schema(gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(r#gen: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
         use schemars::schema::Schema;
-        let mut schema = gen.subschema_for::<String>();
+        let mut schema = r#gen.subschema_for::<String>();
         if let Schema::Object(mut schema_object) = schema {
             schema_object.metadata().title = Some("RGB color code".into());
             schema_object.metadata().description = Some(

@@ -278,7 +278,7 @@ impl<'a> InsertableRecord<'a> {
         } = created_source;
         let audio_metadata = {
             match content_metadata {
-                ContentMetadata::Audio(ref audio_metadata) => Some(audio_metadata),
+                ContentMetadata::Audio(audio_metadata) => Some(audio_metadata),
             }
         };
         let (artwork_source, artwork_uri, artwork_image) =
@@ -424,7 +424,7 @@ impl<'a> UpdatableRecord<'a> {
         } = updated_source;
         let audio_metadata = {
             match content_metadata {
-                ContentMetadata::Audio(ref audio_metadata) => Some(audio_metadata),
+                ContentMetadata::Audio(audio_metadata) => Some(audio_metadata),
             }
         };
         let (artwork_source, artwork_uri, artwork_image) =

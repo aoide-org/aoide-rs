@@ -144,7 +144,7 @@ impl Titles {
         titles.into_iter().find(|title| !title.name.is_empty())
     }
 
-    pub fn main_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title>
+    pub fn main_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title> + use<'a, I>
     where
         I: IntoIterator<Item = &'a Title>,
     {
@@ -165,7 +165,7 @@ impl Titles {
         Self::first_non_empty_name(Self::filter_kind(titles, kind))
     }
 
-    pub fn sorting_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title>
+    pub fn sorting_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title> + use<'a, I>
     where
         I: IntoIterator<Item = &'a Title>,
     {

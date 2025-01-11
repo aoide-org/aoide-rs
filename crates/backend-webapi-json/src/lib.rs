@@ -1,10 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// TODO: Remove temporary workaround.
-// <https://github.com/rust-lang/rust-clippy/issues/11237>
-#![allow(clippy::wildcard_imports)]
-
 use std::result::Result as StdResult;
 
 use diesel::Connection as _;

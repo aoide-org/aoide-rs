@@ -1,12 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2024 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-// Suppress warnings for diesel AsChangeset
-#![allow(clippy::ref_option_ref)]
-// TODO: Remove temporary workaround.
-// <https://github.com/rust-lang/rust-clippy/issues/11237>
+// These casts are needed for conversions from/to SQL types.
 #![allow(clippy::cast_possible_wrap)]
-#![allow(clippy::wildcard_imports)]
+// Suppress warnings for diesel AsChangeset.
+#![allow(clippy::ref_option_ref)]
 
 use std::ops::{Deref, DerefMut};
 

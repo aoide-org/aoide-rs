@@ -120,7 +120,7 @@ impl Validate for Source {
             .validate_with(&artwork, Self::Invalidity::Artwork);
         // TODO: Validate MIME type
         match content_metadata {
-            ContentMetadata::Audio(ref audio_content) => {
+            ContentMetadata::Audio(audio_content) => {
                 context.validate_with(audio_content, Self::Invalidity::AudioContentMetadata)
             }
         }
