@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: CC0-1.0
+
+formatter:
+  type: basic
+  retain_line_breaks_single: true
+  scan_folded_as_literal: true
+  trim_trailing_whitespace: true
+  # TODO: Missing option from Prettier config.
+  # Enforce double quotes which allow to use escapes.
+  # singleQuote: false

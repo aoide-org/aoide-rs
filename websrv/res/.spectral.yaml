@@ -3,7 +3,7 @@
 
 # Configuration file for https://stoplight.io/open-source/spectral
 
-extends: [[spectral:oas, all]]
+extends: [["spectral:oas", all]]
 rules:
   contact-properties: false
   tag-description: false

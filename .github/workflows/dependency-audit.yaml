@@ -28,6 +28,6 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
-          arguments: >-
+          arguments: |-
             --all-features
             --locked

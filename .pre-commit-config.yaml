@@ -49,7 +49,7 @@ repos:
           # Differs from default_stages (see above)
           - commit-msg
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.17.1
+    rev: v0.17.2
     hooks:
       - id: markdownlint-cli2
         exclude: ^LICENSE\.md$
@@ -61,24 +61,32 @@ repos:
     rev: v2.3.0
     hooks:
       - id: codespell
+  # JSON
   - repo: https://github.com/sirosen/check-jsonschema
     rev: 0.31.0
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
+  # Markdown
+  # TODO: Remove unmaintained Prettier plugin.
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
       - id: prettier
         types_or:
-          - yaml
           - markdown
+  # YAML
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.15.0
+    hooks:
+      - id: yamlfmt
+  # TOML
   - repo: https://github.com/ComPWA/taplo-pre-commit
     rev: v0.9.3
     hooks:
       - id: taplo-format
       - id: taplo-lint
-  # https://reuse.software
+  # Licensing: https://reuse.software
   - repo: https://github.com/fsfe/reuse-tool
     rev: v5.0.2
     hooks:
@@ -89,17 +97,7 @@ repos:
       - id: fmt
         args: [--all, --]
       - id: clippy
-        args:
-          [
-            --locked,
-            --workspace,
-            --all-features,
-            --all-targets,
-            --no-deps,
-            --,
-            -D,
-            warnings,
-          ]
+        args: [--locked, --workspace, --all-features, --all-targets, --no-deps, --, -D, warnings]
   - repo: local
     hooks:
       - id: cargo-doc
