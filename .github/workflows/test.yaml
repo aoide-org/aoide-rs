@@ -89,29 +89,29 @@ jobs:
           shared-key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.target }}
 
       - name: Check aoide-core
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/core/Cargo.toml
 
       - name: Check aoide-core-json
-        run: |-
-          ccargo check --locked --all-targets --all-features --target ${{ matrix.target }}
+        run: >-
+          cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/core-json/Cargo.toml
 
       - name: Check aoide-core-api
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/core-api/Cargo.toml
 
       - name: Check aoide-core-api-json
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/core-api-json/Cargo.toml
 
       - name: Check aoide-desktop-app
         # TODO: Re-enable after cross-compilation issues for wayland-sys have been fixed.
         if: false
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/desktop-app/Cargo.toml
 
@@ -121,73 +121,73 @@ jobs:
           --manifest-path crates/media-file/Cargo.toml
 
       - name: Check aoide-repo
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/repo/Cargo.toml
 
       - name: Check aoide-repo-sqlite
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/repo-sqlite/Cargo.toml
 
       - name: Check aoide-storage-sqlite
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/storage-sqlite/Cargo.toml
 
       - name: Check aoide-search-index-tantivy
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/search-index-tantivy/Cargo.toml
 
       - name: Check aoide-usecases
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/usecases/Cargo.toml
 
       - name: Check aoide-usecases-sqlite
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/usecases-sqlite/Cargo.toml
 
       - name: Check aoide-backend-embedded
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/backend-embedded/Cargo.toml
 
       - name: Check aoide-backend-webapi-json
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/backend-webapi-json/Cargo.toml
 
       - name: Check aoide-websrv-warp-sqlite
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path crates/websrv-warp-sqlite/Cargo.toml
 
       - name: Check aoide-websrv
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path websrv/Cargo.toml
 
       - name: Check aoide-file-collection-app
-        run: |-
+        run: >-
           cargo check --locked --all-targets --all-features --target ${{ matrix.target }}
           --manifest-path file-collection-app/Cargo.toml
 
       - name: Build tests with all features enabled
-        run: |-
+        run: >-
           cargo check --locked --workspace --all-features --target ${{ matrix.target }}
           --no-run
 
       - name: Run tests with all features enabled
         if: matrix.runnable
-        run: |-
+        run: >-
           cargo check --locked --workspace --all-features --target ${{ matrix.target }}
           -- --nocapture --quiet
 
       - name: Run doctests with all features enabled (only on default target)
         if: matrix.default_target
-        run: |-
+        run: >-
           cargo test --locked --workspace --all-features
           --doc

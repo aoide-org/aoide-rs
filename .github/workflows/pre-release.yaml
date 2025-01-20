@@ -39,7 +39,7 @@ jobs:
     steps:
       - name: Install dependencies for `musl libc` on Linux
         if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: |-
+        run: >-
           sudo apt update &&
           sudo apt -y install
           musl-tools
@@ -47,7 +47,7 @@ jobs:
       # See also: <https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml>
       - name: Install dependencies for `egui` on Linux
         if: runner.os == 'Linux'
-        run: |-
+        run: >-
           sudo apt update &&
           sudo apt -y install
           libgtk-3-dev
@@ -116,7 +116,7 @@ jobs:
         uses: actions/download-artifact@v4
 
       - name: Generate artifact checksums
-        run: |-
+        run: >-
           for file in ${{ matrix.build_package }}-*/${{ matrix.build_package }}-*;
           do
             openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256";
