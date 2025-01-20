@@ -177,13 +177,13 @@ jobs:
 
       - name: Build tests with all features enabled
         run: >-
-          cargo check --locked --workspace --all-features --target ${{ matrix.target }}
+          cargo test --locked --workspace --all-features --target ${{ matrix.target }}
           --no-run
 
       - name: Run tests with all features enabled
         if: matrix.runnable
         run: >-
-          cargo check --locked --workspace --all-features --target ${{ matrix.target }}
+          cargo test --locked --workspace --all-features --target ${{ matrix.target }}
           -- --nocapture --quiet
 
       - name: Run doctests with all features enabled (only on default target)
