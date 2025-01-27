@@ -9,7 +9,7 @@ use nom::{
     character::complete::{digit1, space0},
     number::complete::double,
     sequence::{delimited, pair, preceded, separated_pair, terminated},
-    IResult,
+    IResult, Parser as _,
 };
 use semval::prelude::*;
 use time::{
@@ -271,7 +271,7 @@ pub fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
         space0,
         terminated(tag_no_case("dB"), space0),
     );
-    let (input, (replay_gain_db, _)) = parser(input)?;
+    let (input, (replay_gain_db, _)) = parser.parse_complete(input)?;
     Ok((input, replay_gain_db))
 }
 
@@ -410,7 +410,7 @@ const RFC3339_WITHOUT_T_TZ_FORMAT: &[FormatItem<'static>] =
 pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
     let input = value.trim();
     let mut digits_parser = delimited(space0, digit1, space0);
-    let digits_parsed: IResult<_, _> = digits_parser(input);
+    let digits_parsed: IResult<_, _> = digits_parser.parse_complete(input);
     if let Ok((remainder, digits_input)) = digits_parsed {
         if remainder.is_empty()
             && (/* YYYY */digits_input.len() == 4 ||
@@ -439,7 +439,7 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
         tag("-"),
         delimited(space0, digit1, space0),
     );
-    let year_month_parsed: IResult<_, _> = year_month_parser(input);
+    let year_month_parsed: IResult<_, _> = year_month_parser.parse_complete(input);
     if let Ok((remainder, (year_input, month_input))) = year_month_parsed {
         if year_input.len() == 4 && month_input.len() <= 2 {
             if let (Ok(year), Ok(month)) = (
@@ -453,7 +453,8 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
                     }
                 }
                 let mut day_of_month_parser = delimited(pair(tag("-"), space0), digit1, space0);
-                let day_of_month_parsed: IResult<_, _> = day_of_month_parser(remainder);
+                let day_of_month_parsed: IResult<_, _> =
+                    day_of_month_parser.parse_complete(remainder);
                 if let Ok((remainder, day_of_month_input)) = day_of_month_parsed {
                     if remainder.is_empty() {
                         if let Ok(day_of_month) = day_of_month_input.parse::<YyyyMmDdDateValue>() {
