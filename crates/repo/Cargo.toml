@@ -20,7 +20,7 @@ workspace = true
 anyhow.workspace = true
 derive_more = { workspace = true, features = ["display", "error"] }
 paste = "1.0.15"
-rand = "0.8.5"
+rand = "0.9.0"
 
 # Workspace dependencies
 aoide-core.workspace = true

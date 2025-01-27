@@ -27,12 +27,12 @@ jiff.workspace = true
 mime.workspace = true
 nonicle.workspace = true
 num-integer = "0.1.46"
-rand = "0.8.5"
+rand = "0.9.0"
 regex.workspace = true
 semval.workspace = true
 strum = { workspace = true, features = ["derive"] }
 time = { workspace = true, features = ["macros", "parsing", "formatting"] }
-ulid = "1.1.4"
+ulid = "1.2.0"
 url.workspace = true
 
 # Serialization of selected, primitive types
@@ -42,7 +42,7 @@ serde = { workspace = true, optional = true, features = ["derive"] }
 schemars = { version = "0.8.21", optional = true, features = ["url"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = "0.2.15"
+getrandom = "0.3.1"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 path-slash = "0.2.1"
@@ -54,7 +54,6 @@ serde_json.workspace = true
 [features]
 default = []
 # Feature to enable JavaScript bindings on wasm32-unknown-unknown
-# TODO: Switch to "getrandom/wasm_js" after upgrading to getrandom v0.3
-js = ["getrandom/js", "jiff/js", "time/wasm-bindgen"]
+js = ["getrandom/wasm_js", "jiff/js", "time/wasm-bindgen"]
 serde = ["dep:serde", "time/serde-human-readable", "ulid/serde", "url/serde"]
 json-schema = ["serde", "dep:schemars"]
