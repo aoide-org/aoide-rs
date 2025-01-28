@@ -25,3 +25,4 @@ aoide-core.workspace = true
 
 [features]
 default = []
+js = ["aoide-core/js"]

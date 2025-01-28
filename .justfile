@@ -63,13 +63,13 @@ check-crates:
 check-crates-wasm:
     cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core
     cargo check --locked --all-targets --features js,serde --target wasm32-unknown-unknown -p aoide-core
-    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-json
-    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-core-api
-    cargo check --locked --all-targets --features frontend --target wasm32-unknown-unknown -p aoide-core-api-json
-    cargo check --locked --all-targets --features backend --target wasm32-unknown-unknown -p aoide-core-api-json
-    cargo check --locked --all-targets --features backend,frontend --target wasm32-unknown-unknown -p aoide-core-api-json
-    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-repo
-    cargo check --locked --all-targets --target wasm32-unknown-unknown -p aoide-usecases
+    cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core-json
+    cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core-api
+    cargo check --locked --all-targets --features js,frontend --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets --features js,backend --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets --features js,backend,frontend --target wasm32-unknown-unknown -p aoide-core-api-json
+    cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-repo
+    cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-usecases
 
 # Run clippy on the workspace (both dev and release profile)
 clippy:

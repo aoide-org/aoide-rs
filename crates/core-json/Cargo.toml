@@ -35,6 +35,7 @@ aoide-core = { "workspace" = true, features = ["serde"] }
 
 [features]
 default = []
+js = ["aoide-core/js"]
 json-schema = ["dep:schemars", "dep:chrono", "aoide-core/json-schema"]
 
 [dev-dependencies]

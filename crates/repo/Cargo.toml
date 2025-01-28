@@ -25,3 +25,6 @@ rand = "0.8.5"
 # Workspace dependencies
 aoide-core.workspace = true
 aoide-core-api.workspace = true
+
+[features]
+js = ["aoide-core-api/js"]

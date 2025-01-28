@@ -4,6 +4,7 @@
 use std::time::Instant;
 
 use aoide_core::track::Entity;
+use aoide_core::CollectionUid;
 use aoide_core_api::{
     track::search::{Filter, Params, SortOrder},
     Pagination,
@@ -39,7 +40,7 @@ where
 #[cfg(not(target_family = "wasm"))]
 pub fn search_with_params<Repo>(
     repo: &mut Repo,
-    collection_uid: &aoide_core::CollectionUid,
+    collection_uid: &CollectionUid,
     params: &Params,
     pagination: &Pagination,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
@@ -116,9 +117,23 @@ where
     if resolve_url_from_content_path.is_some() {
         // TODO: Support relative paths for URLs?
         log::warn!("Ignoring unsupported parameter {resolve_url_from_content_path:?}");
-        search(repo, collection_id, pagination, filter, ordering, collector)
+        search(
+            repo,
+            collection_id,
+            pagination,
+            filter.as_ref(),
+            &ordering,
+            collector,
+        )
     } else {
-        search(repo, collection_id, pagination, filter, ordering, collector)
+        search(
+            repo,
+            collection_id,
+            pagination,
+            filter.as_ref(),
+            &ordering,
+            collector,
+        )
     }
     .map_err(Into::into)
 }
