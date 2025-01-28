@@ -7,6 +7,7 @@ use aoide_core::{
 };
 use aoide_repo::{track::RecordHeader, RecordCollector, ReservableRecordCollector};
 
+#[cfg(feature = "media-file")]
 pub mod export_files;
 
 #[derive(Debug)]
