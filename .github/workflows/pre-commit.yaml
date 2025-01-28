@@ -17,7 +17,12 @@ on:
   workflow_dispatch:
 
 env:
+  # Disable incremental compilation for faster from-scratch builds
+  CARGO_INCREMENTAL: 0
+  # Disable debug info to improve cache efficiency
+  CARGO_PROFILE_TEST_DEBUG: 0
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: short
 
 jobs:
   run:
