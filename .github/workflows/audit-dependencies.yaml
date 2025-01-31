@@ -4,7 +4,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow
 
 # Same as file name
-name: dependency-audit
+name: audit-dependencies
 
 permissions:
   contents: read
