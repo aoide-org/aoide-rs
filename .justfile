@@ -37,6 +37,9 @@ fmt:
 pre-commit:
     pre-commit run --all-files
 
+audit-dependencies:
+    cargo deny check
+
 # Check all lib/bin projects individually with selected features (takes a long time)
 check-crates:
     cargo hack --each-feature --exclude-features json-api check --locked --all-targets -p aoide
