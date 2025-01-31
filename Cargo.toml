@@ -46,7 +46,7 @@ anyhow = "1.0.95"
 bitflags = "2.8.0"
 data-encoding = "2.7.0"
 derive_more = "1.0.0"
-diesel = { version = "2.2.6", default-features = false, features = ["sqlite"] }
+diesel = { version = "2.2.7", default-features = false, features = ["sqlite"] }
 digest = "0.10.7"
 image = "0.25.5"
 jiff = "0.1.28"
