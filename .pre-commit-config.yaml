@@ -77,7 +77,7 @@ repos:
           - markdown
   # YAML
   - repo: https://github.com/google/yamlfmt
-    rev: v0.15.0
+    rev: v0.16.0
     hooks:
       - id: yamlfmt
   # TOML
