@@ -3,7 +3,7 @@
 
 use std::ops::{Add, AddAssign};
 
-use discro::Publisher;
+use discro::{ModifyStatus, Publisher};
 use tokio::task::JoinHandle;
 
 pub use aoide_backend_embedded::Environment;
@@ -87,37 +87,38 @@ impl AddAssign for ActionEffect {
     }
 }
 
+impl ModifyStatus for ActionEffect {
+    fn is_modified(&self) -> bool {
+        match self {
+            Self::Unchanged => false,
+            Self::MaybeChanged | Self::Changed => true,
+        }
+    }
+}
+
 pub(crate) fn modify_shared_state_action_effect<State>(
     shared_state: &Publisher<State>,
     modify_state: impl FnOnce(&mut State) -> ActionEffect,
 ) -> ActionEffect {
-    let mut effect = ActionEffect::MaybeChanged;
-    shared_state.modify(|state| {
-        effect = modify_state(state);
-        match effect {
-            ActionEffect::Unchanged => false,
-            ActionEffect::MaybeChanged | ActionEffect::Changed => true,
-        }
-    });
-    effect
+    shared_state.modify(modify_state)
+}
+
+struct ActionEffectResult<Result>(ActionEffect, Result);
+
+impl<Result> ModifyStatus for ActionEffectResult<Result> {
+    fn is_modified(&self) -> bool {
+        self.0.is_modified()
+    }
 }
 
 pub(crate) fn modify_shared_state_action_effect_result<State, Result>(
     shared_state: &Publisher<State>,
     modify_state: impl FnOnce(&mut State) -> (ActionEffect, Result),
 ) -> (ActionEffect, Result) {
-    let mut effect = ActionEffect::MaybeChanged;
-    let mut result = None;
-    shared_state.modify(|state| {
-        let (modify_effect, modify_result) = modify_state(state);
-        effect = modify_effect;
-        result = Some(modify_result);
-        match modify_effect {
-            ActionEffect::Unchanged => false,
-            ActionEffect::MaybeChanged | ActionEffect::Changed => true,
-        }
+    let ActionEffectResult(effect, result) = shared_state.modify(|state| {
+        let (effect, result) = modify_state(state);
+        ActionEffectResult(effect, result)
     });
-    let result = result.expect("has been set");
     (effect, result)
 }
 
@@ -126,15 +127,10 @@ pub(crate) fn modify_shared_state_result<State, Result>(
     modify_state: impl FnOnce(&mut State) -> Result,
     action_effect: impl FnOnce(&Result) -> ActionEffect,
 ) -> Result {
-    let mut result = None;
-    shared_state.modify(|state| {
-        let modify_result = modify_state(state);
-        let modified = match action_effect(&modify_result) {
-            ActionEffect::Unchanged => false,
-            ActionEffect::MaybeChanged | ActionEffect::Changed => true,
-        };
-        result = Some(modify_result);
-        modified
+    let ActionEffectResult(_effect, result) = shared_state.modify(|state| {
+        let result = modify_state(state);
+        let effect = action_effect(&result);
+        ActionEffectResult(effect, result)
     });
-    result.expect("has been set")
+    result
 }
