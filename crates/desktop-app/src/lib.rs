@@ -3,7 +3,7 @@
 
 use std::ops::{Add, AddAssign};
 
-use discro::{ModifyStatus, Publisher};
+use discro::{ModifiedStatus, Publisher};
 use tokio::task::JoinHandle;
 
 pub use aoide_backend_embedded::Environment;
@@ -87,7 +87,7 @@ impl AddAssign for ActionEffect {
     }
 }
 
-impl ModifyStatus for ActionEffect {
+impl ModifiedStatus for ActionEffect {
     fn is_modified(&self) -> bool {
         match self {
             Self::Unchanged => false,
@@ -105,7 +105,7 @@ pub(crate) fn modify_shared_state_action_effect<State>(
 
 struct ActionEffectResult<Result>(ActionEffect, Result);
 
-impl<Result> ModifyStatus for ActionEffectResult<Result> {
+impl<Result> ModifiedStatus for ActionEffectResult<Result> {
     fn is_modified(&self) -> bool {
         self.0.is_modified()
     }

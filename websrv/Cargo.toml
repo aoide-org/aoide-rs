@@ -17,7 +17,7 @@ workspace = true
 [dependencies]
 anyhow.workspace = true
 directories = "6.0.0"
-discro = { version = "0.32.0", features = ["tokio"] }
+discro = { version = "0.33.0", features = ["tokio"] }
 dotenvy = "0.15.7"
 log = { version = "0.4.25", features = ["release_max_level_debug"] }
 parking_lot = "0.12.3"
