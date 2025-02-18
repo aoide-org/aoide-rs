@@ -33,7 +33,7 @@ impl From<UnsynchronizedTrack> for _inner::UnsynchronizedTrack {
         } = from;
         Self {
             content_link: content_link.into(),
-            last_synchronized_rev: last_synchronized_rev.map(Into::into),
+            last_synchronized_rev,
         }
     }
 }
@@ -47,7 +47,7 @@ impl From<_inner::UnsynchronizedTrack> for UnsynchronizedTrack {
         } = from;
         Self {
             content_link: content_link.into(),
-            last_synchronized_rev: last_synchronized_rev.map(Into::into),
+            last_synchronized_rev,
         }
     }
 }

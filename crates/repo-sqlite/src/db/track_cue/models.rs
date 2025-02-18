@@ -12,7 +12,7 @@ use aoide_core::{
 
 use crate::RowId;
 
-use super::{schema::*, Record, RecordId};
+use super::{Record, RecordId, schema::*};
 
 ///////////////////////////////////////////////////////////////////////
 

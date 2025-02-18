@@ -6,6 +6,7 @@ use nonicle::Canonical;
 use semval::prelude::*;
 
 use aoide_core::{
+    Track, TrackBody, TrackEntity, TrackHeader,
     audio::{BitrateBpsValue, DurationMsValue, LoudnessLufsValue, SampleRateHzValue},
     music::{
         beat::{BeatUnit, BeatsPerMeasure, TimeSignature},
@@ -14,17 +15,16 @@ use aoide_core::{
     },
     track::{album::Album, index::*, metric::*},
     util::{clock::*, color::*},
-    Track, TrackBody, TrackEntity, TrackHeader,
 };
-use aoide_repo::{media::source::RecordId as MediaSourceId, track::RecordHeader, RepoResult};
+use aoide_repo::{RepoResult, media::source::RecordId as MediaSourceId, track::RecordHeader};
 
 use crate::{
-    db::track::{decode_advisory_rating, decode_album_kind, decode_music_key_code, EntityPreload},
+    RowId,
+    db::track::{EntityPreload, decode_advisory_rating, decode_album_kind, decode_music_key_code},
     util::{
         clock::parse_datetime_opt,
         entity::{decode_entity_header, decode_entity_revision},
     },
-    RowId,
 };
 
 use super::schema::*;
@@ -176,7 +176,7 @@ pub(crate) fn load_repo_entity(
             .map(YyyyMmDdDate::new_unchecked)
             .map(Into::into)
     };
-    debug_assert!(recorded_at.as_ref().map_or(true, DateOrDateTime::is_valid));
+    debug_assert!(recorded_at.as_ref().is_none_or(DateOrDateTime::is_valid));
     let released_at = if let Some(released_at) = released_at {
         let released_at = parse_datetime_opt(Some(released_at.as_str()), released_ms);
         debug_assert_eq!(
@@ -191,7 +191,7 @@ pub(crate) fn load_repo_entity(
             .map(YyyyMmDdDate::new_unchecked)
             .map(Into::into)
     };
-    debug_assert!(released_at.as_ref().map_or(true, DateOrDateTime::is_valid));
+    debug_assert!(released_at.as_ref().is_none_or(DateOrDateTime::is_valid));
     let released_orig_at = if let Some(released_orig_at) = released_orig_at {
         let released_orig_at =
             parse_datetime_opt(Some(released_orig_at.as_str()), released_orig_ms);
@@ -207,9 +207,11 @@ pub(crate) fn load_repo_entity(
             .map(YyyyMmDdDate::new_unchecked)
             .map(Into::into)
     };
-    debug_assert!(released_orig_at
-        .as_ref()
-        .map_or(true, DateOrDateTime::is_valid));
+    debug_assert!(
+        released_orig_at
+            .as_ref()
+            .is_none_or(DateOrDateTime::is_valid)
+    );
     let advisory_rating = advisory_rating.map(decode_advisory_rating).transpose()?;
     let album_kind = album_kind.map(decode_album_kind).transpose()?;
     let album = Canonical::tie(Album {

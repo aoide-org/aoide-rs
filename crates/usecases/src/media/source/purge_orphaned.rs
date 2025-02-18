@@ -11,7 +11,7 @@ use aoide_repo::{
     media::source::CollectionRepo as MediaSourceCollectionRepo,
 };
 
-use crate::{collection::vfs::RepoContext, Result};
+use crate::{Result, collection::vfs::RepoContext};
 
 /// Purge orphaned media sources that don't belong to any track
 pub fn purge_orphaned<Repo>(

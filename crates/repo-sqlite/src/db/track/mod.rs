@@ -8,7 +8,7 @@ use aoide_core::{
     media::Source,
     music::key::KeyCode,
     tag::Tags,
-    track::{actor::Actor, album::Kind, cue::Cue, title::Title, AdvisoryRating},
+    track::{AdvisoryRating, actor::Actor, album::Kind, cue::Cue, title::Title},
 };
 use aoide_core_api::track::search::Scope;
 use aoide_repo::{RepoError, RepoResult};

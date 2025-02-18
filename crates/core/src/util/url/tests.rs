@@ -21,10 +21,10 @@ fn autocompletion() {
     // Autocompleted when parsing from string
     assert!(BaseUrl::from_str(valid_url_without_trailing_slash).is_ok());
     // Autocompleted on demand
-    assert!(BaseUrl::try_autocomplete_from(
-        Url::from_str(valid_url_without_trailing_slash).unwrap()
-    )
-    .is_ok());
+    assert!(
+        BaseUrl::try_autocomplete_from(Url::from_str(valid_url_without_trailing_slash).unwrap())
+            .is_ok()
+    );
     // Not implicitly autcompleted from intermediate URL
     assert!(BaseUrl::try_from(Url::from_str(valid_url_without_trailing_slash).unwrap()).is_err());
 }

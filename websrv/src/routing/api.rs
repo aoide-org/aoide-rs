@@ -5,8 +5,8 @@ use std::{
     borrow::Cow,
     convert::Infallible,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
@@ -19,9 +19,10 @@ use aoide_storage_sqlite::{
 };
 use aoide_usecases::{
     media::tracker::{
+        Progress as MediaTrackerProgress,
         find_untracked_files::ProgressEvent as FindUntrackedProgressEvent,
         import_files::ProgressEvent as ImportProgressEvent,
-        scan_directories::ProgressEvent as ScanProgressEvent, Progress as MediaTrackerProgress,
+        scan_directories::ProgressEvent as ScanProgressEvent,
     },
     playlist::CollectionFilter,
 };
@@ -29,8 +30,8 @@ use aoide_usecases_sqlite as uc;
 use aoide_websrv_warp_sqlite as websrv;
 #[cfg(feature = "json-schema")]
 use schemars::schema_for;
-use tokio::sync::{watch, Mutex};
-use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
+use tokio::sync::{Mutex, watch};
+use warp::{Filter, Reply, filters::BoxedFilter, http::StatusCode};
 
 async fn reply_media_tracker_progress(
     media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
@@ -372,10 +373,10 @@ pub(crate) fn create_filters(
                                 &mut |progress_event: ScanProgressEvent| {
                                     if let Err(err) = progress_event_tx.send(Some(progress_event)) {
                                         log::error!(
-                                        "Failed to send media tracker scanning progress event: \
+                                            "Failed to send media tracker scanning progress event: \
                                          {:?}",
-                                        err.0
-                                    );
+                                            err.0
+                                        );
                                     }
                                 },
                                 &abort_flag,
@@ -549,9 +550,9 @@ pub(crate) fn create_filters(
                     .await;
                     if let Err(err) = watcher.await {
                         log::error!(
-                        "Failed to terminate media tracker finding untracked progress watcher: \
+                            "Failed to terminate media tracker finding untracked progress watcher: \
                          {err}"
-                    );
+                        );
                     }
                     response.map(|response_body| warp::reply::json(&response_body))
                 }

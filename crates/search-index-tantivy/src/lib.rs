@@ -4,26 +4,26 @@
 use std::{borrow::Cow, fs, path::Path};
 
 use aoide_core::{
+    CollectionUid, EncodedEntityUid, EntityRevision, EntityUid, TrackEntity, TrackUid,
     media::content::ContentMetadata,
     tag::{FacetId as TagFacetId, FacetedTags, PlainTag},
     track::{
+        PlayCounter,
         actor::Actors,
         tag::{
             FACET_ACOUSTICNESS, FACET_AROUSAL, FACET_COMMENT, FACET_DANCEABILITY, FACET_ENERGY,
             FACET_GENRE, FACET_GROUPING, FACET_INSTRUMENTALNESS, FACET_LIVENESS, FACET_MOOD,
             FACET_POPULARITY, FACET_SPEECHINESS, FACET_VALENCE,
         },
-        PlayCounter,
     },
     util::clock::{OffsetDateTimeMs, YyyyMmDdDate},
-    CollectionUid, EncodedEntityUid, EntityRevision, EntityUid, TrackEntity, TrackUid,
 };
 use tantivy::{
+    Index, Searcher, TantivyDocument, TantivyError, Term,
     collector::TopDocs,
     directory::MmapDirectory,
     query::{AllQuery, Query as _, TermQuery},
-    schema::{Field, IndexRecordOption, Schema, Value, INDEXED, STORED, STRING, TEXT},
-    Index, Searcher, TantivyDocument, TantivyError, Term,
+    schema::{Field, INDEXED, IndexRecordOption, STORED, STRING, Schema, TEXT, Value},
 };
 
 const COLLECTION_UID: &str = "collection_uid";

@@ -2,15 +2,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::{
-    future::Future,
     num::NonZeroUsize,
     sync::{Arc, Weak},
 };
 
-use discro::{tasklet::OnChanged, Subscriber};
+use discro::{Subscriber, tasklet::OnChanged};
 use unnest::{some_or_break, some_or_return_with};
 
-use crate::{collection, Environment};
+use crate::{Environment, collection};
 
 use super::{SharedState, State};
 

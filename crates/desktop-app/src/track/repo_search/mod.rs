@@ -8,13 +8,13 @@ use highway::{HighwayHash, HighwayHasher, Key};
 
 use aoide_backend_embedded::track::search;
 use aoide_core::{
-    track::{Entity, EntityHeader},
     CollectionUid,
+    track::{Entity, EntityHeader},
 };
-use aoide_core_api::{track::search::Params, Pagination};
+use aoide_core_api::{Pagination, track::search::Params};
 use tokio::task::AbortHandle;
 
-use crate::{modify_shared_state_action_effect, ActionEffect, Environment, JoinedTask};
+use crate::{ActionEffect, Environment, JoinedTask, modify_shared_state_action_effect};
 
 pub mod tasklet;
 
@@ -823,7 +823,7 @@ fn hash_entity_header_at_offset(seed: u64, offset: usize, entity_header: &Entity
 mod tests {
     use highway::Key;
 
-    use crate::track::repo_search::{hash_key_for_offset, INITIAL_OFFSET_HASH_SEED};
+    use crate::track::repo_search::{INITIAL_OFFSET_HASH_SEED, hash_key_for_offset};
 
     #[test]
     fn default_hash_key_equals_offset_zero() {

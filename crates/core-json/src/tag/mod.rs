@@ -4,7 +4,7 @@
 use std::{collections::HashMap, fmt};
 
 use semval::prelude::*;
-use serde::{de::Visitor, Deserializer, Serializer};
+use serde::{Deserializer, Serializer, de::Visitor};
 
 use crate::prelude::*;
 

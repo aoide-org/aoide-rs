@@ -11,7 +11,7 @@ use aoide_core::{
     },
     util::{clock::OffsetDateTimeMs, random::adhoc_rng},
 };
-use aoide_core_api::{playlist::EntityWithEntriesSummary, Pagination};
+use aoide_core_api::{Pagination, playlist::EntityWithEntriesSummary};
 
 use crate::{CollectionId, RecordCollector, RepoResult, ReservableRecordCollector, TrackId};
 
@@ -60,10 +60,7 @@ pub trait EntityRepo: EntryRepo {
         collection_filter: Option<CollectionFilter>,
         kind_filter: Option<KindFilter<'_>>,
         pagination: Option<&Pagination>,
-        collector: &mut dyn ReservableRecordCollector<
-            Header = RecordHeader,
-            Record = EntityWithEntriesSummary,
-        >,
+        collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = EntityWithEntriesSummary>,
     ) -> RepoResult<()>;
 }
 

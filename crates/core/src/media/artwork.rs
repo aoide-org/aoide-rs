@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use data_encoding::BASE64_NOPAD;
-use image::{codecs::png::PngEncoder, ImageEncoder as _};
+use image::{ImageEncoder as _, codecs::png::PngEncoder};
 use mime::Mime;
 use semval::prelude::*;
 use strum::FromRepr;
@@ -220,7 +220,7 @@ mod tests {
     use std::io::Cursor;
 
     use data_url::DataUrl;
-    use image::{codecs::png::PngDecoder, ImageDecoder as _};
+    use image::{ImageDecoder as _, codecs::png::PngDecoder};
 
     use super::{THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH};
 

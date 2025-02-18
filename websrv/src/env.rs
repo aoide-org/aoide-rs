@@ -8,9 +8,9 @@ use std::{
     str::ParseBoolError,
 };
 
-use aoide_storage_sqlite::connection::{Storage as SqliteDatabaseStorage, IN_MEMORY_STORAGE};
+use aoide_storage_sqlite::connection::{IN_MEMORY_STORAGE, Storage as SqliteDatabaseStorage};
 use dotenvy::dotenv;
-use tracing::{subscriber::set_global_default, Subscriber};
+use tracing::{Subscriber, subscriber::set_global_default};
 use tracing_log::LogTracer;
 use tracing_subscriber::EnvFilter;
 use url::Url;

@@ -61,7 +61,7 @@ impl From<_core::Metrics> for Metrics {
             flags,
         } = from;
         Self {
-            tempo_bpm: tempo_bpm.map(Into::into),
+            tempo_bpm,
             key_code: key_signature.map(|s| s.code().into()),
             time_signature: time_signature.map(Into::into),
             flags: flags.bits(),
@@ -81,7 +81,7 @@ impl TryFrom<Metrics> for _core::Metrics {
         } = from;
         let key_code = key_code.map(TryInto::try_into).transpose()?;
         Ok(Self {
-            tempo_bpm: tempo_bpm.map(Into::into),
+            tempo_bpm,
             key_signature: key_code.map(KeySignature::new),
             time_signature: time_signature.map(Into::into),
             flags: MetricsFlags::from_bits_truncate(flags),

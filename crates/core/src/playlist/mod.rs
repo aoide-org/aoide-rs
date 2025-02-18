@@ -4,16 +4,16 @@
 use std::ops::RangeBounds;
 
 use bitflags::bitflags;
-use rand::{seq::SliceRandom as _, RngCore};
+use rand::{RngCore, seq::SliceRandom as _};
 use semval::prelude::*;
 
 use crate::{
+    EntityHeaderTyped, EntityUidInvalidity, EntityUidTyped, TrackUid,
     util::{
         clock::OffsetDateTimeMs,
         color::{Color, ColorInvalidity},
         random::adhoc_rng,
     },
-    EntityHeaderTyped, EntityUidInvalidity, EntityUidTyped, TrackUid,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

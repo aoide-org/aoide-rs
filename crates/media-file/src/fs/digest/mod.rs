@@ -10,10 +10,10 @@ use digest::Digest;
 use aoide_core::util::fs::DirPath;
 
 use super::visit::{
-    visit_directories, AfterAncestorFinished, AncestorVisitor, DirectoryVisitor, Outcome,
-    ProgressEvent,
+    AfterAncestorFinished, AncestorVisitor, DirectoryVisitor, Outcome, ProgressEvent,
+    visit_directories,
 };
-use crate::{util::digest::*, Error, Result};
+use crate::{Error, Result, util::digest::*};
 
 /// Fingerprint file metadata for detecting changes on the file.
 /// system.

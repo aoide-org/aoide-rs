@@ -5,14 +5,14 @@ use std::num::NonZeroU64;
 
 use diesel::Connection as _;
 use tantivy::{
-    query::{AllQuery, Query as _},
     IndexWriter,
+    query::{AllQuery, Query as _},
 };
 
 use aoide_core::util::clock::OffsetDateTimeMs;
 use aoide_core_api::{
-    track::search::{SortField, SortOrder},
     Pagination, SortDirection,
+    track::search::{SortField, SortOrder},
 };
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 

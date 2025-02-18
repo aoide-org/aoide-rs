@@ -15,9 +15,9 @@ use semval::prelude::*;
 
 use aoide_core::{
     audio::{
+        BitrateBpsValue, ChannelFlags, Channels, DurationMs,
         channel::ChannelCount,
         signal::{BitrateBps, SampleRateHz},
-        BitrateBpsValue, ChannelFlags, Channels, DurationMs,
     },
     media::{
         artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork},
@@ -26,6 +26,7 @@ use aoide_core::{
     music::tempo::TempoBpm,
     tag::{FacetId, FacetKey, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
+        AdvisoryRating, Track,
         actor::{Kind as ActorKind, Role as ActorRole},
         album::Kind as AlbumKind,
         index::Index,
@@ -37,7 +38,6 @@ use aoide_core::{
             FACET_ID_MBID_WORK, FACET_ID_MOOD, FACET_ID_XID,
         },
         title::{Kind as TitleKind, Titles},
-        AdvisoryRating, Track,
     },
     util::string::trimmed_non_empty_from,
 };
@@ -48,16 +48,15 @@ use crate::{
         import::{ImportTrackConfig, ImportTrackFlags, Importer, TrackScope},
     },
     util::{
+        FormattedTempoBpm, TempoBpmFormat,
         artwork::{
-            try_ingest_embedded_artwork_image, EditEmbeddedArtworkImage,
-            EditOtherEmbeddedArtworkImages, RemoveEmbeddedArtworkImage,
-            ReplaceEmbeddedArtworkImage,
+            EditEmbeddedArtworkImage, EditOtherEmbeddedArtworkImages, RemoveEmbeddedArtworkImage,
+            ReplaceEmbeddedArtworkImage, try_ingest_embedded_artwork_image,
         },
         digest::MediaDigest,
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
         key_signature_as_str, push_next_actor,
         tag::TagMappingConfig,
-        FormattedTempoBpm, TempoBpmFormat,
     },
 };
 

@@ -10,19 +10,20 @@ use diesel::{
 };
 
 use aoide_core::{
+    EncodedEntityUid, EntityRevision, PlaylistEntity, PlaylistUid,
     playlist::{
         EntityHeader, EntityWithEntries, EntriesSummary, Entry, Item, TrackItem, TracksSummary,
     },
     util::clock::*,
-    EncodedEntityUid, EntityRevision, PlaylistEntity, PlaylistUid,
 };
-use aoide_core_api::{playlist::EntityWithEntriesSummary, Pagination};
+use aoide_core_api::{Pagination, playlist::EntityWithEntriesSummary};
 use aoide_repo::{
-    playlist::*, track::EntityRepo as _, CollectionId, RepoError, RepoResult,
-    ReservableRecordCollector, TrackId,
+    CollectionId, RepoError, RepoResult, ReservableRecordCollector, TrackId, playlist::*,
+    track::EntityRepo as _,
 };
 
 use crate::{
+    Connection, RowId,
     db::{
         playlist::{models::*, schema::*},
         playlist_entry as playlist_entry_db,
@@ -34,7 +35,6 @@ use crate::{
         entity::{decode_entity_revision, encode_entity_revision},
         pagination_to_limit_offset,
     },
-    Connection, RowId,
 };
 
 impl EntityRepo for Connection<'_> {
@@ -153,10 +153,7 @@ impl EntityRepo for Connection<'_> {
         collection_filter: Option<CollectionFilter>,
         kind_filter: Option<KindFilter<'_>>,
         pagination: Option<&Pagination>,
-        collector: &mut dyn ReservableRecordCollector<
-            Header = RecordHeader,
-            Record = EntityWithEntriesSummary,
-        >,
+        collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = EntityWithEntriesSummary>,
     ) -> RepoResult<()> {
         let mut target = playlist::table
             .order_by(playlist::row_updated_ms.desc())

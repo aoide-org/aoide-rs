@@ -5,13 +5,13 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::anyhow;
 use aoide::{
+    CollectionUid,
     desktop_app::{
-        collection::{State as CollectionState, SynchronizingVfsState, SynchronizingVfsTask},
         ActionEffect, Environment,
+        collection::{State as CollectionState, SynchronizingVfsState, SynchronizingVfsTask},
     },
     media::content::ContentPath,
     util::fs::DirPath,
-    CollectionUid,
 };
 use discro::Ref;
 use tokio::task::AbortHandle;

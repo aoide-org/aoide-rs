@@ -17,7 +17,7 @@ workspace = true
 
 [dependencies]
 anyhow.workspace = true
-blake3 = { version = "1.5.5", features = ["traits-preview"] }
+blake3 = { version = "1.6.0", features = ["traits-preview"] }
 bitflags.workspace = true
 bytes = "1.10.0"
 data-encoding.workspace = true
@@ -51,7 +51,7 @@ triseratops = { version = "0.0.3", optional = true }
 aoide-core.workspace = true
 
 [dev-dependencies]
-tempfile = "3.17.0"
+tempfile = "3.17.1"
 
 [features]
 default = ["all"]

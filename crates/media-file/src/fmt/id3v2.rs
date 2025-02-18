@@ -3,7 +3,7 @@
 
 use aoide_core::{
     music::tempo::TempoBpm,
-    track::{metric::MetricsFlags, Track},
+    track::{Track, metric::MetricsFlags},
 };
 use lofty::id3::v2::Id3v2Tag;
 

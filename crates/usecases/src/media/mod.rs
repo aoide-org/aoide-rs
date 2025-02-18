@@ -4,15 +4,15 @@
 use std::io::BufReader;
 
 use aoide_core::{
-    media::content::{resolver::vfs::VfsResolver, ContentLink, ContentPath, ContentRevision},
+    media::content::{ContentLink, ContentPath, ContentRevision, resolver::vfs::VfsResolver},
     track::Track,
 };
 use aoide_core_api::media::SyncMode;
 use aoide_media_file::{
     fs::open_file_for_reading,
     io::{
-        export::{export_track_to_file_path, ExportTrackConfig},
-        import::{import_into_track, ImportTrack, ImportTrackConfig, Issues, Reader},
+        export::{ExportTrackConfig, export_track_to_file_path},
+        import::{ImportTrack, ImportTrackConfig, Issues, Reader, import_into_track},
     },
     util::{artwork::EditEmbeddedArtworkImage, guess_mime_from_file_path},
 };

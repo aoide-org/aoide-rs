@@ -8,9 +8,10 @@ use diesel::prelude::*;
 use nonicle::{Canonical, CanonicalizeInto as _};
 
 use aoide_core::{
+    EncodedEntityUid, Track, TrackBody, TrackEntity, TrackHeader, TrackUid,
     media::{
-        content::{ContentLink, ContentPath, ContentRevision},
         Source,
+        content::{ContentLink, ContentPath, ContentRevision},
     },
     tag::*,
     track::{
@@ -19,24 +20,24 @@ use aoide_core::{
         title::Title,
     },
     util::clock::*,
-    EncodedEntityUid, Track, TrackBody, TrackEntity, TrackHeader, TrackUid,
 };
 use aoide_core_api::{
+    Pagination,
     filtering::StringPredicate,
     track::search::{Filter, Scope, SortOrder},
-    Pagination,
 };
 use aoide_repo::{
+    CollectionId, MediaSourceId, OptionalRepoResult as _, RepoError, RepoResult,
+    ReservableRecordCollector, TrackId,
     media::source::{CollectionRepo as _, Repo as _},
     track::{
         ActorRepo, CollectionRepo, EntityRepo, RecordHeader, RecordTrail, ReplaceMode,
         ReplaceOutcome, ReplaceParams,
     },
-    CollectionId, MediaSourceId, OptionalRepoResult as _, RepoError, RepoResult,
-    ReservableRecordCollector, TrackId,
 };
 
 use crate::{
+    Connection, RowId,
     db::{
         collection::schema::*,
         media_source::{
@@ -46,7 +47,7 @@ use crate::{
         },
         track::{models::*, schema::*, *},
         view_track_search::{
-            models::{load_repo_entity, QueryableRecord as SearchQueryableRecord},
+            models::{QueryableRecord as SearchQueryableRecord, load_repo_entity},
             schema::*,
         },
     },
@@ -55,7 +56,6 @@ use crate::{
         entity::{decode_entity_header, decode_entity_revision},
         pagination_to_limit_offset,
     },
-    Connection, RowId,
 };
 
 mod search;

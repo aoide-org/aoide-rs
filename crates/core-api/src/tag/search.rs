@@ -4,8 +4,8 @@
 use aoide_core::tag::FacetKey;
 
 use crate::{
-    filtering::{FilterModifier, NumericPredicate, StringPredicate},
     SortDirection,
+    filtering::{FilterModifier, NumericPredicate, StringPredicate},
 };
 
 /// Filter by facets.

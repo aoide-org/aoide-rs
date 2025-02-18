@@ -11,9 +11,9 @@ use aoide_core::{
 };
 use nonicle::{Canonical, CanonicalizeInto as _};
 use triseratops::tag::{
+    TagContainer,
     color::Color as SeratoColor,
     generic::{Cue as SeratoCue, Loop},
-    TagContainer,
 };
 
 const CUE_BANK_INDEX: i16 = 1;

@@ -12,12 +12,12 @@ use lofty::{
 
 use super::parse_options;
 use crate::{
+    Result,
     io::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
     util::artwork::EditEmbeddedArtworkImage,
-    Result,
 };
 
 #[cfg(feature = "serato-markers")]

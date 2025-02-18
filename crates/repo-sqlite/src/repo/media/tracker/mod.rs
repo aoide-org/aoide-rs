@@ -5,15 +5,16 @@ use diesel::prelude::*;
 
 use aoide_core::{media::content::ContentPath, util::clock::OffsetDateTimeMs};
 use aoide_core_api::{
-    media::tracker::{count_sources_in_directories, DirTrackingStatus, DirectoriesStatus},
     Pagination,
+    media::tracker::{DirTrackingStatus, DirectoriesStatus, count_sources_in_directories},
 };
 use aoide_repo::{
-    media::{tracker::*, DigestBytes},
     CollectionId, MediaSourceId, RepoError, RepoResult,
+    media::{DigestBytes, tracker::*},
 };
 
 use crate::{
+    Connection, RowId,
     db::{
         media_source::schema::*,
         media_tracker::{
@@ -22,7 +23,6 @@ use crate::{
     },
     repo_error,
     util::{pagination_to_limit_offset, sql_column_substr_prefix_eq},
-    Connection, RowId,
 };
 
 impl Repo for Connection<'_> {

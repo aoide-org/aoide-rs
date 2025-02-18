@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::{
-    fs::{read_link, DirEntry},
+    fs::{DirEntry, read_link},
     path::Path,
 };
 

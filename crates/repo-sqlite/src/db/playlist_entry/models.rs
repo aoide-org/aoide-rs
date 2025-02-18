@@ -10,8 +10,8 @@ use aoide_core::{
 use aoide_repo::{PlaylistId, TrackId};
 
 use crate::{
-    util::{clock::parse_datetime, entity::decode_entity_uid_typed},
     RowId,
+    util::{clock::parse_datetime, entity::decode_entity_uid_typed},
 };
 
 use super::schema::*;

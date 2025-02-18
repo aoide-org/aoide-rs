@@ -6,9 +6,9 @@ use std::ops::Not as _;
 use anyhow::anyhow;
 
 use aoide_core::{
-    media::content::{resolver::vfs::RemappingVfsResolver, ContentPath, ContentPathKind},
-    util::url::BaseUrl,
     CollectionUid,
+    media::content::{ContentPath, ContentPathKind, resolver::vfs::RemappingVfsResolver},
+    util::url::BaseUrl,
 };
 use aoide_repo::collection::{EntityRepo, RecordId};
 

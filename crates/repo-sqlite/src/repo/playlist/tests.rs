@@ -4,18 +4,18 @@
 use test_log::test;
 
 use aoide_core::{
+    Collection, CollectionEntity, CollectionHeader, Playlist, PlaylistHeader, Track, TrackBody,
+    TrackEntity, TrackHeader, TrackUid,
     audio::DurationMs,
     media::{
         self,
         content::{AudioContentMetadata, ContentLink},
     },
     util::clock::OffsetDateTimeMs,
-    Collection, CollectionEntity, CollectionHeader, Playlist, PlaylistHeader, Track, TrackBody,
-    TrackEntity, TrackHeader, TrackUid,
 };
 use aoide_repo::{
-    collection::EntityRepo as _, media::source::CollectionRepo as _, CollectionId, MediaSourceId,
-    TrackId,
+    CollectionId, MediaSourceId, TrackId, collection::EntityRepo as _,
+    media::source::CollectionRepo as _,
 };
 
 use super::*;
@@ -423,12 +423,16 @@ fn move_entries_forward() -> anyhow::Result<()> {
     db.insert_playlist_entries(playlist_id, moved_range.end - 1, &[new_separator_entry()])?;
     let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
-    assert!(playlist_with_entries.entries[moved_range.start]
-        .item
-        .is_separator());
-    assert!(playlist_with_entries.entries[moved_range.end - 1]
-        .item
-        .is_separator());
+    assert!(
+        playlist_with_entries.entries[moved_range.start]
+            .item
+            .is_separator()
+    );
+    assert!(
+        playlist_with_entries.entries[moved_range.end - 1]
+            .item
+            .is_separator()
+    );
 
     let delta = (track_count / 2) as isize - 1;
     assert!(delta > 0);
@@ -473,12 +477,16 @@ fn move_entries_forward_beyond_last_element() -> anyhow::Result<()> {
     db.insert_playlist_entries(playlist_id, moved_range.end - 1, &[new_separator_entry()])?;
     let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
-    assert!(playlist_with_entries.entries[moved_range.start]
-        .item
-        .is_separator());
-    assert!(playlist_with_entries.entries[moved_range.end - 1]
-        .item
-        .is_separator());
+    assert!(
+        playlist_with_entries.entries[moved_range.start]
+            .item
+            .is_separator()
+    );
+    assert!(
+        playlist_with_entries.entries[moved_range.end - 1]
+            .item
+            .is_separator()
+    );
 
     let delta = (track_count - moved_range.start) as isize + 1;
     assert!(delta > 0);
@@ -523,12 +531,16 @@ fn move_entries_backward() -> anyhow::Result<()> {
     db.insert_playlist_entries(playlist_id, moved_range.end - 1, &[new_separator_entry()])?;
     let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
-    assert!(playlist_with_entries.entries[moved_range.start]
-        .item
-        .is_separator());
-    assert!(playlist_with_entries.entries[moved_range.end - 1]
-        .item
-        .is_separator());
+    assert!(
+        playlist_with_entries.entries[moved_range.start]
+            .item
+            .is_separator()
+    );
+    assert!(
+        playlist_with_entries.entries[moved_range.end - 1]
+            .item
+            .is_separator()
+    );
 
     assert!(moved_range.start > 0); // otherwise the range cannot be moved backwards
     let delta = -(moved_range.start as isize - 1);

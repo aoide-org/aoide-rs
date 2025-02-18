@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::CollectionUid;
-use aoide_core_api::media::tracker::{query_status::Params, Status};
+use aoide_core_api::media::tracker::{Status, query_status::Params};
 use aoide_repo_sqlite::DbConnection;
 
 use crate::{RepoConnection, Result};

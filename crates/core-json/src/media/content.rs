@@ -209,12 +209,12 @@ impl From<AudioContentMetadata> for _core::AudioContentMetadata {
         let channel_flags = channel_mask.map(ChannelFlags::from_bits_truncate);
         let channels = Channels::try_from_flags_or_count(channel_flags, channel_count);
         Self {
-            duration: duration_ms.map(Into::into),
+            duration: duration_ms,
             channels,
-            sample_rate: sample_rate_hz.map(Into::into),
-            bitrate: bitrate_bps.map(Into::into),
-            loudness: loudness_lufs.map(Into::into),
-            encoder: encoder.map(Into::into),
+            sample_rate: sample_rate_hz,
+            bitrate: bitrate_bps,
+            loudness: loudness_lufs,
+            encoder,
         }
     }
 }
@@ -230,16 +230,16 @@ impl From<_core::AudioContentMetadata> for AudioContentMetadata {
             encoder,
         } = from;
         Self {
-            duration_ms: duration.map(Into::into),
+            duration_ms: duration,
             channel_count: channels.map(Channels::count),
             channel_mask: channels
                 .and_then(Channels::flags)
                 .as_ref()
                 .map(ChannelFlags::bits),
-            sample_rate_hz: sample_rate.map(Into::into),
-            bitrate_bps: bitrate.map(Into::into),
-            loudness_lufs: loudness.map(Into::into),
-            encoder: encoder.map(Into::into),
+            sample_rate_hz: sample_rate,
+            bitrate_bps: bitrate,
+            loudness_lufs: loudness,
+            encoder,
         }
     }
 }

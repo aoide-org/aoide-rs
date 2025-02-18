@@ -3,10 +3,10 @@
 
 use test_log::test;
 
-use aoide_core::{util::clock::OffsetDateTimeMs, Collection, CollectionEntity, CollectionHeader};
-use aoide_repo::{collection::EntityRepo, RepoError, RepoResult};
+use aoide_core::{Collection, CollectionEntity, CollectionHeader, util::clock::OffsetDateTimeMs};
+use aoide_repo::{RepoError, RepoResult, collection::EntityRepo};
 
-use crate::{repo::tests::vfs_media_source_config, tests::*, DbConnection};
+use crate::{DbConnection, repo::tests::vfs_media_source_config, tests::*};
 
 struct Fixture {
     db: DbConnection,

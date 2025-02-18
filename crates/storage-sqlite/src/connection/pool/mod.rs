@@ -3,7 +3,7 @@
 
 use std::num::NonZeroU32;
 
-use diesel::{r2d2, Connection as _};
+use diesel::{Connection as _, r2d2};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 

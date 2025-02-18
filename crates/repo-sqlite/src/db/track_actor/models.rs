@@ -7,11 +7,11 @@ use aoide_core::track::Actor;
 use aoide_core_api::track::search::Scope;
 
 use crate::{
-    db::track::{decode_search_scope, encode_search_scope},
     RowId,
+    db::track::{decode_search_scope, encode_search_scope},
 };
 
-use super::{decode_kind, decode_role, encode_kind, encode_role, schema::*, Record, RecordId};
+use super::{Record, RecordId, decode_kind, decode_role, encode_kind, encode_role, schema::*};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = track_actor, primary_key(row_id))]

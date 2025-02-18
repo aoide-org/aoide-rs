@@ -12,8 +12,8 @@ pub async fn patch(
     db_gatekeeper: &Gatekeeper,
     entity_header: EntityHeader,
     operations: impl IntoIterator<Item = aoide_usecases::playlist::entries::PatchOperation>
-        + Send
-        + 'static,
+    + Send
+    + 'static,
 ) -> Result<EntityWithEntriesSummary> {
     db_gatekeeper
         .spawn_blocking_write_task(move |mut pooled_connection| {

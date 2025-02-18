@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{
-    media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _},
     TrackEntity,
+    media::content::resolver::{ContentPathResolver as _, vfs::RemappingVfsResolver},
 };
-use aoide_repo::{track::RecordHeader, RecordCollector, ReservableRecordCollector};
+use aoide_repo::{RecordCollector, ReservableRecordCollector, track::RecordHeader};
 
 #[cfg(feature = "media-file")]
 pub mod export_files;

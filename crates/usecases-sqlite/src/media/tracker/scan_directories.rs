@@ -4,7 +4,7 @@
 use std::sync::atomic::AtomicBool;
 
 use aoide_core::CollectionUid;
-use aoide_core_api::media::tracker::{scan_directories::Outcome, FsTraversalParams};
+use aoide_core_api::media::tracker::{FsTraversalParams, scan_directories::Outcome};
 use aoide_repo_sqlite::DbConnection;
 
 use crate::{RepoConnection, Result};

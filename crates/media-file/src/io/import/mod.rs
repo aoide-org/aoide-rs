@@ -22,20 +22,21 @@ use semval::prelude::*;
 use url::Url;
 
 use aoide_core::{
+    PlainTag, TagFacetId, TagLabel, TagScore, TagsMap,
     audio::signal::LoudnessLufs,
     media::{
+        Content, Source,
         artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork, LinkedArtwork},
         content::{ContentLink, ContentMetadata},
-        Content, Source,
     },
     music::{key::KeySignature, tempo::TempoBpm},
     tag::ScoreValue,
-    track::{actor::Actor, title::Title, Track},
+    track::{Track, actor::Actor, title::Title},
     util::clock::{DateOrDateTime, OffsetDateTimeMs},
-    PlainTag, TagFacetId, TagLabel, TagScore, TagsMap,
 };
 
 use crate::{
+    Error, Result,
     fmt::parse_options,
     util::{
         db2lufs,
@@ -44,7 +45,6 @@ use crate::{
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         trim_readable,
     },
-    Error, Result,
 };
 
 #[rustfmt::skip]

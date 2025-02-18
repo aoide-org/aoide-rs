@@ -7,11 +7,11 @@ use discro::{Ref, Subscriber};
 
 use aoide::{
     api::{
+        SortDirection,
         filtering::{NumericPredicate, ScalarFieldFilter, StringPredicate},
         media::source::ResolveUrlFromContentPath,
         tag::search::{FacetsFilter, Filter as TagFilter},
         track::search::{Filter, NumericField, PhraseFieldFilter, SortOrder, StringField},
-        SortDirection,
     },
     desktop_app::track,
     tag::FacetKey,

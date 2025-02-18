@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use aoide_core::{
+    Collection,
     collection::MediaSourceConfig,
     media::content::{ContentPath, ContentPathConfig, VirtualFilePathConfig},
     util::url::BaseUrl,
-    Collection,
 };
 use diesel::Connection;
 
-use aoide_repo_sqlite::{initialize_database, run_migrations, DbConnection};
+use aoide_repo_sqlite::{DbConnection, initialize_database, run_migrations};
 use url::Url;
 
 struct DbFixture {

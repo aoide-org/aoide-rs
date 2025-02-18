@@ -166,7 +166,7 @@ impl From<_core::Actor> for FullActor {
             kind: kind.into(),
             name,
             role: role.into(),
-            role_notes: role_notes.map(Into::into),
+            role_notes,
         }
     }
 }
@@ -183,7 +183,7 @@ impl From<FullActor> for _core::Actor {
             kind: kind.into(),
             name,
             role: role.into(),
-            role_notes: role_notes.map(Into::into),
+            role_notes,
         }
     }
 }
@@ -217,7 +217,7 @@ impl From<_core::Actor> for Actor {
                 kind: kind.into(),
                 name,
                 role: role.into(),
-                role_notes: role_notes.map(Into::into),
+                role_notes,
             })
         }
     }

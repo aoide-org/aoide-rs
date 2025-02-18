@@ -7,16 +7,16 @@ use aoide_core::track::Track;
 use lofty::{config::WriteOptions, file::AudioFile, mpeg::MpegFile};
 
 use super::{
-    id3v2::{export_track_to_tag, Import},
+    id3v2::{Import, export_track_to_tag},
     parse_options,
 };
 use crate::{
+    Result,
     io::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
     util::artwork::EditEmbeddedArtworkImage,
-    Result,
 };
 
 pub(crate) fn import_file_into_track(

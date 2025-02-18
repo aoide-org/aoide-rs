@@ -30,11 +30,11 @@ pub use self::title::{Title, TitleInvalidity, Titles, TitlesInvalidity};
 
 use crate::util::clock::{DateOrDateTime, DateOrDateTimeInvalidity, OffsetDateTimeMs};
 use crate::util::color::{Color, ColorInvalidity};
+use crate::{EntityHeaderTyped, EntityRevision, EntityUidTyped};
 use crate::{
     media::{Source, SourceInvalidity},
     tag::{Tags, TagsInvalidity},
 };
-use crate::{EntityHeaderTyped, EntityRevision, EntityUidTyped};
 
 /// Advisory rating code for content(s)
 ///

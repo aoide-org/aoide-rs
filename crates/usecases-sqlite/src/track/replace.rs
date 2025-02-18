@@ -10,7 +10,7 @@ use crate::{RepoConnection, Result};
 
 mod uc {
     pub(super) use aoide_usecases::track::replace::{
-        replace_many_by_media_source_content_path, Params,
+        Params, replace_many_by_media_source_content_path,
     };
 }
 

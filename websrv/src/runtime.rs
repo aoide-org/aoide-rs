@@ -5,8 +5,8 @@ use std::{
     collections::HashMap,
     net::SocketAddr,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     time::Duration,
 };
@@ -20,7 +20,7 @@ use aoide_usecases_sqlite as uc;
 use aoide_websrv_warp_sqlite::handle_rejection;
 use time::OffsetDateTime;
 use tokio::{sync::mpsc, time::sleep};
-use warp::{http::StatusCode, Filter};
+use warp::{Filter, http::StatusCode};
 
 use super::{config::Config, routing};
 use crate::config::DatabaseConfig;

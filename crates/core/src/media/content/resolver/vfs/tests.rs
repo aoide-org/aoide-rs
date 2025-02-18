@@ -7,9 +7,11 @@ use super::*;
 fn resolve_url_from_empty_path() {
     let empty_path = ContentPath::default();
     assert!(empty_path.is_empty());
-    assert!(VfsResolver::default()
-        .resolve_url_from_path(&empty_path)
-        .is_err());
+    assert!(
+        VfsResolver::default()
+            .resolve_url_from_path(&empty_path)
+            .is_err()
+    );
 }
 
 #[test]
@@ -148,9 +150,11 @@ fn resolve_url_from_empty_path_with_root_url() -> Result<(), ResolveFromPathErro
 #[test]
 fn resolve_url_from_relative_path_without_root_url_fails() {
     let slash_path = ContentPath::from("Test path/file.mp3");
-    assert!(VfsResolver::default()
-        .resolve_url_from_path(&slash_path)
-        .is_err());
+    assert!(
+        VfsResolver::default()
+            .resolve_url_from_path(&slash_path)
+            .is_err()
+    );
 }
 
 #[test]

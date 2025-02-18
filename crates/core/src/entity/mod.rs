@@ -12,7 +12,7 @@ use std::{
 use nonicle::{Canonicalize, IsCanonical};
 use rand::RngCore;
 use semval::prelude::*;
-use ulid::{Ulid, ULID_LEN};
+use ulid::{ULID_LEN, Ulid};
 
 ///////////////////////////////////////////////////////////////////////
 // EntityUid

@@ -4,6 +4,7 @@
 use nonicle::CanonicalizeInto as _;
 
 use aoide_core::{
+    Collection, Track, TrackBody, TrackEntity, TrackHeader,
     audio::DurationMs,
     collection::{Entity as CollectionEntity, EntityHeader as CollectionHeader},
     media::{
@@ -13,7 +14,6 @@ use aoide_core::{
     tag::{FacetKey, Label, PlainTag, TagsMap, TagsMapInner},
     track::tag::FACET_ID_COMMENT,
     util::clock::OffsetDateTimeMs,
-    Collection, Track, TrackBody, TrackEntity, TrackHeader,
 };
 use aoide_core_api::{
     filtering::StringPredicate,
@@ -21,15 +21,15 @@ use aoide_core_api::{
     track::search::{Filter as TrackFilter, Scope, TitlePhraseFilter},
 };
 use aoide_repo::{
+    CollectionId, RecordCollector, ReservableRecordCollector,
     collection::EntityRepo as _,
     media::source::CollectionRepo as _,
     track::{CollectionRepo, EntityRepo as _},
-    CollectionId, RecordCollector, ReservableRecordCollector,
 };
 
 use crate::{
     repo::tests::vfs_media_source_config,
-    tests::{establish_connection, TestResult},
+    tests::{TestResult, establish_connection},
 };
 
 struct DummyCollector<H, R> {

@@ -9,8 +9,8 @@ use aoide_core::{
 };
 use aoide_core_api::playlist::EntityWithEntriesSummary;
 use aoide_repo::{
-    playlist::{EntityRepo, EntryRepo, RecordHeader},
     RepoResult,
+    playlist::{EntityRepo, EntryRepo, RecordHeader},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -11,8 +11,8 @@ use std::{fmt, str::FromStr};
 
 use aoide_core::util::color::ColorIndex;
 use serde::{
-    de::{self, Visitor as SerdeDeserializeVisitor},
     Deserializer, Serializer,
+    de::{self, Visitor as SerdeDeserializeVisitor},
 };
 
 ///////////////////////////////////////////////////////////////////////

@@ -3,7 +3,7 @@
 
 use aoide::media::content::ContentPath;
 
-use crate::library::{track_search, ui::TrackListItem, Library};
+use crate::library::{Library, track_search, ui::TrackListItem};
 
 // Mutually exclusive modes of operation.
 #[derive(Debug)]

@@ -1,10 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{
-    future::Future,
-    sync::{Arc, Weak},
-};
+use std::sync::{Arc, Weak};
 
 use unnest::some_or_break;
 
@@ -14,7 +11,7 @@ use super::{
     NestedMusicDirectoriesStrategy, RestoreEntityStrategy, RestoringFromMusicDirectoryState,
     SharedState, State,
 };
-use crate::{collection::SpawnRestoringFromMusicDirectoryTaskReaction, settings, Environment};
+use crate::{Environment, collection::SpawnRestoringFromMusicDirectoryTaskReaction, settings};
 
 #[allow(clippy::too_many_arguments)] // TODO
 async fn update_music_dir(

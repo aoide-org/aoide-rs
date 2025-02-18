@@ -3,8 +3,8 @@
 
 use std::borrow::Cow;
 
-use compact_str::{format_compact, CompactString};
-use gigtag::{facet::has_date_like_suffix, Facet as _};
+use compact_str::{CompactString, format_compact};
+use gigtag::{Facet as _, facet::has_date_like_suffix};
 use nonicle::Canonical;
 use semval::prelude::*;
 

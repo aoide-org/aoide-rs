@@ -5,8 +5,8 @@ use std::fmt;
 
 use semval::prelude::*;
 use serde::{
-    de::{self, Visitor as SerdeDeserializeVisitor},
     Deserializer, Serializer,
+    de::{self, Visitor as SerdeDeserializeVisitor},
 };
 
 use aoide_core::util::clock::{YearType, YyyyMmDdDateValue};

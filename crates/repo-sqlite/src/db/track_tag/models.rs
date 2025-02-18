@@ -8,7 +8,7 @@ use aoide_core::tag::{FacetId, Label, PlainTag, Score, ScoreValue};
 
 use crate::RowId;
 
-use super::{schema::*, Record, RecordId};
+use super::{Record, RecordId, schema::*};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[diesel(table_name = track_tag, primary_key(row_id))]
@@ -30,9 +30,9 @@ impl From<QueryableRecord> for (RecordId, Record) {
             score,
         } = from;
         let facet_id = facet.map(FacetId::from_unchecked);
-        debug_assert!(facet_id.as_ref().map_or(true, FacetId::is_valid));
+        debug_assert!(facet_id.as_ref().is_none_or(FacetId::is_valid));
         let label = label.map(Label::from_unchecked);
-        debug_assert!(label.as_ref().map_or(true, Label::is_valid));
+        debug_assert!(label.as_ref().is_none_or(Label::is_valid));
         let score = Score::new_unchecked(score);
         debug_assert!(score.is_valid());
         let record = Record {

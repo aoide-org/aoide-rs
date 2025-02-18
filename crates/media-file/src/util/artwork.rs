@@ -7,17 +7,17 @@ use anyhow::anyhow;
 use aoide_core::{
     media::artwork::{
         ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
-        Thumbnail4x4Rgb8, THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH,
+        THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH, Thumbnail4x4Rgb8,
     },
     util::color::RgbColor,
 };
 use image::{
-    guess_format, load_from_memory, load_from_memory_with_format, DynamicImage, GenericImageView,
-    ImageError, ImageFormat,
+    DynamicImage, GenericImageView, ImageError, ImageFormat, guess_format, load_from_memory,
+    load_from_memory_with_format,
 };
-use kmeans_colors::{get_kmeans_hamerly, Kmeans, Sort as _};
-use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
-use palette::{cast::from_component_slice, FromColor as _, IntoColor as _, Lab, Srgb, Srgba};
+use kmeans_colors::{Kmeans, Sort as _, get_kmeans_hamerly};
+use mime::{IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR, Mime};
+use palette::{FromColor as _, IntoColor as _, Lab, Srgb, Srgba, cast::from_component_slice};
 use thiserror::Error;
 
 use super::digest::MediaDigest;

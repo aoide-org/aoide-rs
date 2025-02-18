@@ -5,22 +5,22 @@ use std::{
     ffi::OsStr,
     path::Path,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     thread::JoinHandle,
     time::Duration,
 };
 
 use aoide_storage_sqlite::connection::Storage as SqliteDatabaseStorage;
-use eframe::{egui::Context, Frame};
+use eframe::{Frame, egui::Context};
 use egui::{Button, CentralPanel, TextEdit, TopBottomPanel, ViewportCommand};
 use parking_lot::Mutex;
 use rfd::FileDialog;
 
 use crate::{
-    app_dirs, join_runtime_thread, launcher::State as LauncherState,
-    runtime::State as RuntimeState, save_app_config, shutdown_signal, LauncherMutex,
+    LauncherMutex, app_dirs, join_runtime_thread, launcher::State as LauncherState,
+    runtime::State as RuntimeState, save_app_config, shutdown_signal,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

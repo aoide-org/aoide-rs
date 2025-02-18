@@ -5,8 +5,8 @@ use std::{
     borrow::Borrow,
     cmp::Ordering,
     collections::{
-        hash_map::Entry::{self, Occupied, Vacant},
         HashMap,
+        hash_map::Entry::{self, Occupied, Vacant},
     },
     fmt,
     hash::{Hash, Hasher},

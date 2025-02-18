@@ -5,6 +5,7 @@ use mime::IMAGE_JPEG;
 use test_log::test;
 
 use aoide_core::{
+    Collection, CollectionEntity, CollectionHeader,
     audio::DurationMs,
     media::{
         self,
@@ -17,9 +18,8 @@ use aoide_core::{
         },
     },
     util::{clock::OffsetDateTimeMs, color::RgbColor},
-    Collection, CollectionEntity, CollectionHeader,
 };
-use aoide_repo::{collection::EntityRepo as _, CollectionId};
+use aoide_repo::{CollectionId, collection::EntityRepo as _};
 
 use super::*;
 use crate::{repo::tests::vfs_media_source_config, tests::*};
@@ -166,20 +166,22 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
             StringPredicate::Equals(file_lowercase.content.link.path.to_borrowed().into_inner())
         )?
     );
-    assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(
-            &mut db,
-            StringPredicate::Equals(
-                file_lowercase
-                    .content
-                    .link
-                    .path
-                    .as_str()
-                    .to_uppercase()
-                    .into()
-            )
-        )?
-        .is_empty());
+    assert!(
+        fixture
+            .resolve_record_ids_by_content_path_predicate(
+                &mut db,
+                StringPredicate::Equals(
+                    file_lowercase
+                        .content
+                        .link
+                        .path
+                        .as_str()
+                        .to_uppercase()
+                        .into()
+                )
+            )?
+            .is_empty()
+    );
 
     assert_eq!(
         vec![header_uppercase.id],
@@ -219,18 +221,22 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
             StringPredicate::Prefix("file:///Ho".into())
         )?
     );
-    assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(
-            &mut db,
-            StringPredicate::Prefix("file:///hO".into())
-        )?
-        .is_empty());
-    assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(
-            &mut db,
-            StringPredicate::Prefix("file:///HO".into())
-        )?
-        .is_empty());
+    assert!(
+        fixture
+            .resolve_record_ids_by_content_path_predicate(
+                &mut db,
+                StringPredicate::Prefix("file:///hO".into())
+            )?
+            .is_empty()
+    );
+    assert!(
+        fixture
+            .resolve_record_ids_by_content_path_predicate(
+                &mut db,
+                StringPredicate::Prefix("file:///HO".into())
+            )?
+            .is_empty()
+    );
 
     // StartsWith is case-insensitive
     assert_eq!(
@@ -272,22 +278,26 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
             StringPredicate::StartsWith("file:///".into())
         )?
     );
-    assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(
-            &mut db,
-            StringPredicate::StartsWith(
-                "file:///%home".into() // LIKE wildcard in predicate string
-            )
-        )?
-        .is_empty());
-    assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(
-            &mut db,
-            StringPredicate::StartsWith(
-            "file:/\\/home".into() // backslash in predicate string
-        )
-        )?
-        .is_empty());
+    assert!(
+        fixture
+            .resolve_record_ids_by_content_path_predicate(
+                &mut db,
+                StringPredicate::StartsWith(
+                    "file:///%home".into() // LIKE wildcard in predicate string
+                )
+            )?
+            .is_empty()
+    );
+    assert!(
+        fixture
+            .resolve_record_ids_by_content_path_predicate(
+                &mut db,
+                StringPredicate::StartsWith(
+                    "file:/\\/home".into() // backslash in predicate string
+                )
+            )?
+            .is_empty()
+    );
 
     Ok(())
 }
@@ -356,12 +366,14 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         )?
     );
 
-    assert!(fixture
-        .resolve_record_ids_by_content_path_predicate(
-            &mut db,
-            StringPredicate::Prefix(old_path_prefix.to_borrowed().into_inner())
-        )?
-        .is_empty());
+    assert!(
+        fixture
+            .resolve_record_ids_by_content_path_predicate(
+                &mut db,
+                StringPredicate::Prefix(old_path_prefix.to_borrowed().into_inner())
+            )?
+            .is_empty()
+    );
     assert_eq!(
         vec![header_lowercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(

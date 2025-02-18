@@ -4,17 +4,17 @@
 use url::Url;
 
 use aoide_core::{
-    media::content::{resolver::ContentPathResolver as _, ContentPath},
-    util::url::BaseUrl,
     Collection, CollectionEntity, CollectionHeader, CollectionUid,
+    media::content::{ContentPath, resolver::ContentPathResolver as _},
+    util::url::BaseUrl,
 };
 use aoide_core_api::{
-    collection::{EntityWithSummary, LoadScope},
     Pagination,
+    collection::{EntityWithSummary, LoadScope},
 };
 use aoide_repo::{
-    collection::{EntityRepo as _, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
     ReservableRecordCollector,
+    collection::{EntityRepo as _, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
 };
 use aoide_usecases::collection::{self as uc, vfs::RepoContext};
 

@@ -9,12 +9,12 @@
 use std::ops::{Deref, DerefMut};
 
 use diesel::{
+    QueryResult,
     migration::{MigrationVersion, Result as MigrationResult},
     prelude::*,
     result::Error as DieselError,
-    QueryResult,
 };
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness as _};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness as _, embed_migrations};
 use unicase::UniCase;
 
 use aoide_repo::RepoError;
@@ -123,7 +123,7 @@ pub mod tests {
     use anyhow::anyhow;
     use diesel::Connection as _;
 
-    use super::{initialize_database, repo_error, run_migrations, DbConnection};
+    use super::{DbConnection, initialize_database, repo_error, run_migrations};
 
     pub type TestResult<T> = anyhow::Result<T>;
 

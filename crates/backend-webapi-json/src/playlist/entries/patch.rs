@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::EntityUidTyped;
-use aoide_core_api_json::playlist::{export_entity_with_entries_summary, EntityWithEntriesSummary};
+use aoide_core_api_json::playlist::{EntityWithEntriesSummary, export_entity_with_entries_summary};
 use aoide_core_json::entity::EntityUid as SerdeEntityUid;
 
 use super::*;

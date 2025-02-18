@@ -4,10 +4,10 @@
 use diesel::Connection as _;
 
 use aoide_core::playlist::{Entity, EntityHeader, EntityUid, EntityWithEntries, Playlist};
-use aoide_core_api::{playlist::EntityWithEntriesSummary, Pagination};
+use aoide_core_api::{Pagination, playlist::EntityWithEntriesSummary};
 use aoide_repo::{
-    playlist::{EntityWithEntriesSummaryCollector, KindFilter, RecordHeader},
     ReservableRecordCollector,
+    playlist::{EntityWithEntriesSummaryCollector, KindFilter, RecordHeader},
 };
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use aoide_usecases::playlist::CollectionFilter;

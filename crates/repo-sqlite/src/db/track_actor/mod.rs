@@ -5,7 +5,7 @@ use anyhow::anyhow;
 
 use aoide_core::track::actor::*;
 use aoide_core_api::track::search::Scope;
-use aoide_repo::{track::RecordId, RepoError, RepoResult};
+use aoide_repo::{RepoError, RepoResult, track::RecordId};
 
 pub(crate) mod models;
 pub(crate) mod schema;

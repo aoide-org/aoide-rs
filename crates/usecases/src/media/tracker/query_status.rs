@@ -4,12 +4,12 @@
 use anyhow::anyhow;
 
 use aoide_core::CollectionUid;
-use aoide_core_api::media::tracker::{query_status::Params, Status};
+use aoide_core_api::media::tracker::{Status, query_status::Params};
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo, media::tracker::Repo as MediaTrackerRepo,
 };
 
-use crate::{collection::vfs::RepoContext, Error, Result};
+use crate::{Error, Result, collection::vfs::RepoContext};
 
 pub fn query_status<Repo>(
     repo: &mut Repo,

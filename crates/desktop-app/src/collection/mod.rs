@@ -5,8 +5,8 @@ use std::{
     borrow::Cow,
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     time::Instant,
 };
@@ -39,8 +39,8 @@ use aoide_media_file::io::import::ImportTrackConfig;
 use aoide_repo::collection::{KindFilter, MediaSourceRootUrlFilter};
 
 use crate::{
-    modify_shared_state_action_effect, modify_shared_state_action_effect_result,
-    modify_shared_state_result, ActionEffect, Environment, JoinedTask,
+    ActionEffect, Environment, JoinedTask, modify_shared_state_action_effect,
+    modify_shared_state_action_effect_result, modify_shared_state_result,
 };
 
 pub mod tasklet;
@@ -790,24 +790,24 @@ impl State {
         } = self
         else {
             log::warn!(
-                    "State changed while restoring from music directory: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
-                        continuation = RestoringFromMusicDirectoryTaskContinuation {
-                            context: continuation_context,
-                            pending_since: continuation_pending_since,
-                        }
-                );
+                "State changed while restoring from music directory: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
+                continuation = RestoringFromMusicDirectoryTaskContinuation {
+                    context: continuation_context,
+                    pending_since: continuation_pending_since,
+                }
+            );
             return ActionEffect::Unchanged;
         };
 
         debug_assert!(task.is_finished());
         if *pending_since != continuation_pending_since || *context != continuation_context {
             log::warn!(
-                        "State changed while restoring from music directory: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
-                        continuation = RestoringFromMusicDirectoryTaskContinuation {
-                            context: continuation_context,
-                            pending_since: continuation_pending_since,
-                        }
-                    );
+                "State changed while restoring from music directory: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
+                continuation = RestoringFromMusicDirectoryTaskContinuation {
+                    context: continuation_context,
+                    pending_since: continuation_pending_since,
+                }
+            );
             return ActionEffect::Unchanged;
         }
 
@@ -856,23 +856,23 @@ impl State {
         } = self
         else {
             log::warn!(
-                    "State changed while loading from database: current {self:?}, continuation {continuation:?} - discarding {joined:?}",
-                        continuation = LoadingFromDatabaseTaskContinuation {
-                            context: continuation_context,
-                            pending_since: continuation_pending_since,
-                        }
-                );
+                "State changed while loading from database: current {self:?}, continuation {continuation:?} - discarding {joined:?}",
+                continuation = LoadingFromDatabaseTaskContinuation {
+                    context: continuation_context,
+                    pending_since: continuation_pending_since,
+                }
+            );
             return ActionEffect::Unchanged;
         };
         debug_assert!(task.is_finished());
         if *pending_since != continuation_pending_since || *context != continuation_context {
             log::warn!(
-                        "State changed while loading from database: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
-                        continuation = LoadingFromDatabaseTaskContinuation {
-                            context: continuation_context,
-                            pending_since: continuation_pending_since,
-                        }
-                    );
+                "State changed while loading from database: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
+                continuation = LoadingFromDatabaseTaskContinuation {
+                    context: continuation_context,
+                    pending_since: continuation_pending_since,
+                }
+            );
             return ActionEffect::Unchanged;
         }
 
@@ -967,7 +967,9 @@ impl State {
             context,
         } = self
         else {
-            log::info!("State changed while pending: current state {self:?}, continuation {continuation:?} - discarding {joined:?}");
+            log::info!(
+                "State changed while pending: current state {self:?}, continuation {continuation:?} - discarding {joined:?}"
+            );
             return ActionEffect::Unchanged;
         };
         let SynchronizingVfsTaskContinuation {
@@ -975,7 +977,8 @@ impl State {
             pending_since: continuation_pending_since,
         } = continuation;
         if continuation_pending_since != *pending_since || continuation_context != *context {
-            log::info!("State changed while pending: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
+            log::info!(
+                "State changed while pending: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
                 continuation = SynchronizingVfsTaskContinuation {
                     context: continuation_context,
                     pending_since: continuation_pending_since,

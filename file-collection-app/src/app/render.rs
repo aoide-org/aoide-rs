@@ -3,19 +3,19 @@
 
 use eframe::Frame;
 use egui::{
-    load::SizedTexture, Align, Button, CentralPanel, Context, Grid, ImageButton, Layout, OpenUrl,
-    ScrollArea, TextEdit, TopBottomPanel,
+    Align, Button, CentralPanel, Context, Grid, ImageButton, Layout, OpenUrl, ScrollArea, TextEdit,
+    TopBottomPanel, load::SizedTexture,
 };
 
 use crate::library::{
     track_search,
-    ui::{TrackListItem, ARTWORK_THUMBNAIL_IMAGE_SIZE},
+    ui::{ARTWORK_THUMBNAIL_IMAGE_SIZE, TrackListItem},
 };
 
 use super::{
-    message::{MediaTrackerDirListAction, MediaTrackerSyncAction},
     Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
     TrackSearchAction, TrackSearchMode, UiData,
+    message::{MediaTrackerDirListAction, MediaTrackerSyncAction},
 };
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.

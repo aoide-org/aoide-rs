@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
 };
 
 use aoide_core::{
@@ -14,7 +14,7 @@ use aoide_core::{
 use aoide_core_api::{
     collection::LoadScope,
     filtering::StringPredicate,
-    media::{tracker::DirTrackingStatus, SyncMode},
+    media::{SyncMode, tracker::DirTrackingStatus},
     track::find_unsynchronized::UnsynchronizedTrackEntity,
 };
 use aoide_media_file::io::import::ImportTrackConfig;

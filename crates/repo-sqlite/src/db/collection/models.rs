@@ -8,17 +8,17 @@ use semval::prelude::*;
 use url::Url;
 
 use aoide_core::{
+    Collection, CollectionEntity, CollectionHeader, EntityRevision,
     collection::MediaSourceConfig,
     media::content::ContentPathConfig,
     util::{clock::*, color::*, url::BaseUrl},
-    Collection, CollectionEntity, CollectionHeader, EntityRevision,
 };
 use aoide_repo::collection::RecordHeader;
 
 use crate::{
+    RowId,
     db::media_source::{decode_content_path_kind, encode_content_path_kind},
     util::entity::{decode_entity_header, encode_entity_revision, encode_entity_uid},
-    RowId,
 };
 
 use super::schema::*;

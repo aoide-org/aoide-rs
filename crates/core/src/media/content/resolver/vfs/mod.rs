@@ -7,11 +7,11 @@ use anyhow::anyhow;
 use url::Url;
 
 use super::{
-    ContentPath, ContentPathResolver, ResolveFromPathError, ResolveFromUrlError, FILE_URL_SCHEME,
+    ContentPath, ContentPathResolver, FILE_URL_SCHEME, ResolveFromPathError, ResolveFromUrlError,
 };
 use crate::{
     media::content::ContentPathKind,
-    util::url::{is_valid_base_url, BaseUrl},
+    util::url::{BaseUrl, is_valid_base_url},
 };
 
 #[derive(Debug, Clone, Default)]
@@ -61,11 +61,13 @@ impl VfsResolver {
     pub fn with_root_url(root_url: BaseUrl) -> Self {
         debug_assert!(Self::is_valid_root_url(&root_url));
         let root_file_path = root_url.to_file_path();
-        debug_assert!(root_file_path
-            .as_deref()
-            .ok()
-            .and_then(has_trailing_path_separator)
-            .unwrap_or(true));
+        debug_assert!(
+            root_file_path
+                .as_deref()
+                .ok()
+                .and_then(has_trailing_path_separator)
+                .unwrap_or(true)
+        );
         let root_url = Some(root_url);
         debug_assert_eq!(
             root_url,
@@ -80,9 +82,11 @@ impl VfsResolver {
             .ok()
             .and_then(path_to_slash)
             .map(std::borrow::Cow::into_owned);
-        debug_assert!(root_slash_path
-            .as_ref()
-            .map_or(true, |path| path.ends_with('/')));
+        debug_assert!(
+            root_slash_path
+                .as_ref()
+                .is_none_or(|path| path.ends_with('/'))
+        );
         debug_assert_eq!(root_file_path.is_ok(), root_slash_path.is_some());
         Self {
             root_url,

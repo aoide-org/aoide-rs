@@ -4,12 +4,12 @@
 use std::{io::BufReader, path::Path};
 
 use aoide_core::{
-    media::content::ContentLink, music::tempo::TempoBpm, util::clock::OffsetDateTimeMs, Track,
+    Track, media::content::ContentLink, music::tempo::TempoBpm, util::clock::OffsetDateTimeMs,
 };
 use aoide_media_file::{
     io::{
         export::export_track_to_file,
-        import::{import_into_track, ImportTrack, Reader},
+        import::{ImportTrack, Reader, import_into_track},
     },
     util::guess_mime_from_file_path,
 };
@@ -82,10 +82,12 @@ fn integer_bpm_roundtrip() {
 
     let mut track =
         import_new_track_from_file_path(file.path(), Some("audio/mpeg".parse().unwrap()));
-    assert!(track
-        .metrics
-        .flags
-        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER));
+    assert!(
+        track
+            .metrics
+            .flags
+            .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER)
+    );
     assert_eq!(integer_bpm, track.metrics.tempo_bpm.unwrap());
 
     // Set a fractional BPM and write the track metadata back to the file.
@@ -106,9 +108,11 @@ fn integer_bpm_roundtrip() {
     // Verify that the fractional BPM is imported from the custom TXXX BPM tag
     // instead of the imprecise integer BPM from the standard tag.
     let track = import_new_track_from_file_path(file.path(), Some("audio/mpeg".parse().unwrap()));
-    assert!(!track
-        .metrics
-        .flags
-        .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER));
+    assert!(
+        !track
+            .metrics
+            .flags
+            .contains(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER)
+    );
     assert_eq!(fractional_bpm, track.metrics.tempo_bpm.unwrap());
 }

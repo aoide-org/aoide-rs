@@ -9,12 +9,12 @@ use lofty::{config::WriteOptions, file::AudioFile, iff::aiff::AiffFile};
 
 use super::{id3v2, parse_options};
 use crate::{
+    Error, Result,
     io::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
     util::artwork::EditEmbeddedArtworkImage,
-    Error, Result,
 };
 
 pub(crate) fn import_file_into_track(

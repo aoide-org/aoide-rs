@@ -11,8 +11,8 @@ use std::{
 use aoide_core::{
     tag::FacetId,
     track::{
-        actor::{Actor, Actors, Kind as ActorKind, Role as ActorRole},
         Track,
+        actor::{Actor, Actors, Kind as ActorKind, Role as ActorRole},
     },
 };
 use bitflags::bitflags;
@@ -20,8 +20,8 @@ use lofty::{file::FileType, probe::Probe};
 
 use super::import::ImportTrackFlags;
 use crate::{
-    util::{artwork::EditEmbeddedArtworkImage, tag::FacetedTagMappingConfig},
     Error, Result,
+    util::{artwork::EditEmbeddedArtworkImage, tag::FacetedTagMappingConfig},
 };
 
 bitflags! {

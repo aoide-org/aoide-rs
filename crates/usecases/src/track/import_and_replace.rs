@@ -10,31 +10,31 @@ use anyhow::anyhow;
 use url::Url;
 
 use aoide_core::{
+    CollectionUid, Track,
     media::content::{
-        resolver::{vfs::VfsResolver, ContentPathResolver as _},
         ContentPath, ContentRevision,
+        resolver::{ContentPathResolver as _, vfs::VfsResolver},
     },
     util::clock::OffsetDateTimeMs,
-    CollectionUid, Track,
 };
 use aoide_core_api::{
-    media::{tracker::Completion, SyncMode},
+    media::{SyncMode, tracker::Completion},
     track::replace::Summary,
 };
 use aoide_media_file::io::import::{ImportTrack, ImportTrackConfig, Issues};
 use aoide_repo::{
+    CollectionId, MediaSourceId, OptionalRepoResult as _, RepoResult,
     collection::EntityRepo as CollectionRepo,
     track::{CollectionRepo as TrackCollectionRepo, ReplaceMode, ReplaceParams},
-    CollectionId, MediaSourceId, OptionalRepoResult as _, RepoResult,
 };
 
 use crate::{
-    collection::vfs::RepoContext,
-    media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncModeParams},
     Error, MediaFileError, Result,
+    collection::vfs::RepoContext,
+    media::{ImportTrackFromFileOutcome, SyncModeParams, import_track_from_file_path},
 };
 
-use super::{validate_input, ValidatedInput};
+use super::{ValidatedInput, validate_input};
 
 #[derive(Debug, Clone)]
 pub struct Outcome {

@@ -9,12 +9,12 @@ use strum::FromRepr;
 
 use crate::{
     audio::{
+        DurationMs, DurationMsInvalidity,
         channel::{Channels, ChannelsInvalidity},
         signal::{
             BitrateBps, BitrateBpsInvalidity, LoudnessLufs, LoudnessLufsInvalidity, SampleRateHz,
             SampleRateHzInvalidity,
         },
-        DurationMs, DurationMsInvalidity,
     },
     util::url::BaseUrl,
 };

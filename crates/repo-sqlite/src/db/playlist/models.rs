@@ -5,15 +5,15 @@ use diesel::prelude::*;
 use semval::prelude::*;
 
 use aoide_core::{
+    EntityRevision, Playlist, PlaylistEntity, PlaylistHeader,
     playlist::Flags,
     util::{clock::*, color::*},
-    EntityRevision, Playlist, PlaylistEntity, PlaylistHeader,
 };
-use aoide_repo::{playlist::RecordHeader, CollectionId};
+use aoide_repo::{CollectionId, playlist::RecordHeader};
 
 use crate::{
-    util::entity::{decode_entity_header, encode_entity_revision, encode_entity_uid},
     RowId,
+    util::entity::{decode_entity_header, encode_entity_revision, encode_entity_uid},
 };
 
 use super::schema::*;

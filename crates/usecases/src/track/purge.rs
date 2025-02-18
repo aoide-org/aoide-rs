@@ -3,8 +3,8 @@
 
 use aoide_core_api::filtering::StringPredicate;
 use aoide_repo::{
-    media::source::CollectionRepo as MediaSourceCollectionRepo, track::CollectionRepo,
-    CollectionId, RepoResult,
+    CollectionId, RepoResult, media::source::CollectionRepo as MediaSourceCollectionRepo,
+    track::CollectionRepo,
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

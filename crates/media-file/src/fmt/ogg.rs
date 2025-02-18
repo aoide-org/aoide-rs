@@ -8,12 +8,12 @@ use lofty::{config::WriteOptions, file::AudioFile, ogg::VorbisFile};
 
 use super::{parse_options, vorbis::export_track_to_tag};
 use crate::{
+    Result,
     io::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
     util::artwork::EditEmbeddedArtworkImage,
-    Result,
 };
 
 pub(crate) fn import_file_into_track(

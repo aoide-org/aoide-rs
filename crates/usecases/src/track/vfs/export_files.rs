@@ -15,11 +15,11 @@ use url::Url;
 use walkdir::WalkDir;
 
 use aoide_core::{
-    media::content::{resolver::vfs::VfsResolver, ContentPathConfig},
-    util::url::BaseUrl,
     CollectionUid, TrackEntity,
+    media::content::{ContentPathConfig, resolver::vfs::VfsResolver},
+    util::url::BaseUrl,
 };
-use aoide_core_api::{track::search::Filter, Pagination};
+use aoide_core_api::{Pagination, track::search::Filter};
 use aoide_repo::{RecordCollector, ReservableRecordCollector};
 
 use crate::{Error, Result};

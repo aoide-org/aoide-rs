@@ -5,10 +5,10 @@ use aoide_core::{
     audio::{BitrateBps, ChannelCount, Channels, DurationMs, LoudnessLufs, SampleRateHz},
     collection,
     media::{
+        Content, Source as MediaSource,
         content::{
             AudioContentMetadata, ContentLink, ContentMetadata, ContentPath, ContentRevision,
         },
-        Content, Source as MediaSource,
     },
     track::{Entity, EntityBody, EntityHeader, Track},
     util::clock::OffsetDateTimeMs,

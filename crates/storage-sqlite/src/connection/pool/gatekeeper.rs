@@ -5,8 +5,8 @@ use std::{
     num::NonZeroU64,
     pin::pin,
     sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     time::Duration,
 };
@@ -15,7 +15,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 use tokio::{sync::RwLock, task::spawn_blocking, time::sleep};
 
-use super::{get_pooled_connection, ConnectionPool, PooledConnection};
+use super::{ConnectionPool, PooledConnection, get_pooled_connection};
 use crate::{Error, Result};
 
 /// Manage database connections for asynchronous tasks

@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{future::Future, path::PathBuf};
+use std::path::PathBuf;
 
-use discro::{tasklet::OnChanged, Observer};
+use discro::{Observer, tasklet::OnChanged};
 
 use aoide_core::util::fs::DirPath;
 

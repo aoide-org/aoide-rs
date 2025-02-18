@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_storage_sqlite::connection::{
-    pool::{create_connection_pool, gatekeeper::Gatekeeper, get_pooled_connection},
     Config as ConnectionConfig,
+    pool::{create_connection_pool, gatekeeper::Gatekeeper, get_pooled_connection},
 };
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]

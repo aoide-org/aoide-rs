@@ -28,16 +28,24 @@ fn import_replay_gain_valid() {
 #[test]
 fn import_replay_gain_invalid() {
     let mut importer = Importer::new();
-    assert!(importer
-        .import_loudness_from_replay_gain("-9.50572")
-        .is_none());
-    assert!(importer
-        .import_loudness_from_replay_gain("- 9.50572 dB")
-        .is_none());
-    assert!(importer
-        .import_loudness_from_replay_gain("+ 0.178062 dB")
-        .is_none());
-    assert!(importer
-        .import_loudness_from_replay_gain("+0.178062")
-        .is_none());
+    assert!(
+        importer
+            .import_loudness_from_replay_gain("-9.50572")
+            .is_none()
+    );
+    assert!(
+        importer
+            .import_loudness_from_replay_gain("- 9.50572 dB")
+            .is_none()
+    );
+    assert!(
+        importer
+            .import_loudness_from_replay_gain("+ 0.178062 dB")
+            .is_none()
+    );
+    assert!(
+        importer
+            .import_loudness_from_replay_gain("+0.178062")
+            .is_none()
+    );
 }

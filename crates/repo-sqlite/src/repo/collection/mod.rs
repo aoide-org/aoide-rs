@@ -5,24 +5,25 @@ use anyhow::anyhow;
 use diesel::prelude::*;
 
 use aoide_core::{
-    media::content::{ContentPath, ContentPathConfig, VirtualFilePathConfig},
-    util::clock::*,
     Collection, CollectionEntity, CollectionHeader, CollectionUid, EncodedEntityUid,
     EntityRevision,
+    media::content::{ContentPath, ContentPathConfig, VirtualFilePathConfig},
+    util::clock::*,
 };
 use aoide_core_api::{
+    Pagination,
     collection::{
         EntityWithSummary, LoadScope, MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
     },
-    Pagination,
 };
 use aoide_repo::{
+    CollectionId, RepoError, RepoResult, ReservableRecordCollector,
     collection::{EntityRepo, KindFilter, MediaSourceRootUrlFilter, RecordHeader},
-    fetch_and_collect_filtered_records, CollectionId, RepoError, RepoResult,
-    ReservableRecordCollector,
+    fetch_and_collect_filtered_records,
 };
 
 use crate::{
+    Connection, RowId,
     db::{
         collection::{models::*, schema::*},
         media_source::{
@@ -37,7 +38,6 @@ use crate::{
         entity::{decode_entity_revision, encode_entity_revision},
         pagination_to_limit_offset, sql_column_substr_prefix_eq,
     },
-    Connection, RowId,
 };
 
 fn load_vfs_excluded_content_paths(
@@ -207,10 +207,7 @@ impl EntityRepo for Connection<'_> {
         media_source_root_url: Option<&MediaSourceRootUrlFilter>,
         load_scope: LoadScope,
         pagination: Option<&Pagination>,
-        collector: &mut dyn ReservableRecordCollector<
-            Header = RecordHeader,
-            Record = EntityWithSummary,
-        >,
+        collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = EntityWithSummary>,
     ) -> RepoResult<()> {
         let kind_filter = kind_filter.as_ref();
         let fetch = move |db: &mut Connection<'_>, pagination: Option<&_>| {
@@ -286,12 +283,14 @@ impl EntityRepo for Connection<'_> {
             if let Some(media_source_root_url) = media_source_root_url {
                 match media_source_root_url {
                     MediaSourceRootUrlFilter::IsNone => {
-                        debug_assert!(entity
-                            .body
-                            .media_source_config
-                            .content_path
-                            .root_url()
-                            .is_none());
+                        debug_assert!(
+                            entity
+                                .body
+                                .media_source_config
+                                .content_path
+                                .root_url()
+                                .is_none()
+                        );
                     }
                     MediaSourceRootUrlFilter::Equal(root_url) => {
                         debug_assert_eq!(

@@ -6,26 +6,26 @@ use std::{marker::PhantomData, path::Path, sync::atomic::AtomicBool, time::Durat
 use anyhow::anyhow;
 
 use aoide_core::{
-    media::content::{
-        resolver::{
-            vfs::{RemappingVfsResolver, VfsResolver},
-            ContentPathResolver as _,
-        },
-        ContentPath,
-    },
     CollectionUid,
+    media::content::{
+        ContentPath,
+        resolver::{
+            ContentPathResolver as _,
+            vfs::{RemappingVfsResolver, VfsResolver},
+        },
+    },
 };
 use aoide_core_api::media::tracker::{
-    find_untracked_files::Outcome, Completion, FsTraversalDirectoriesProgress,
-    FsTraversalEntriesProgress, FsTraversalParams, FsTraversalProgress,
+    Completion, FsTraversalDirectoriesProgress, FsTraversalEntriesProgress, FsTraversalParams,
+    FsTraversalProgress, find_untracked_files::Outcome,
 };
 use aoide_media_file::fs::visit::{self, url_from_walkdir_entry};
 use aoide_repo::{
-    collection::EntityRepo as CollectionRepo, media::tracker::Repo as MediaTrackerRepo,
-    CollectionId, RepoError,
+    CollectionId, RepoError, collection::EntityRepo as CollectionRepo,
+    media::tracker::Repo as MediaTrackerRepo,
 };
 
-use crate::{collection::vfs::RepoContext, Error, Result};
+use crate::{Error, Result, collection::vfs::RepoContext};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgressEvent {

@@ -13,6 +13,7 @@ use aoide_core::{
         DurationMsValue, LoudnessLufs, LoudnessLufsValue, SampleRateHz, SampleRateHzValue,
     },
     media::{
+        Content, Source,
         artwork::{
             ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
             LinkedArtwork,
@@ -21,16 +22,15 @@ use aoide_core::{
             AudioContentMetadata, ContentLink, ContentMetadata, ContentMetadataFlags,
             ContentRevision, ContentRevisionSignedValue,
         },
-        Content, Source,
     },
     util::{
         clock::*,
         color::{RgbColor, RgbColorCode},
     },
 };
-use aoide_repo::{media::source::RecordHeader, CollectionId};
+use aoide_repo::{CollectionId, media::source::RecordHeader};
 
-use crate::{db::media_source::ArtworkSource, util::clock::parse_datetime, RowId};
+use crate::{RowId, db::media_source::ArtworkSource, util::clock::parse_datetime};
 
 use super::{decode_apic_type, encode_apic_type, schema::*};
 

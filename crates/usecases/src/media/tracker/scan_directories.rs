@@ -7,26 +7,26 @@ use anyhow::anyhow;
 use url::Url;
 
 use aoide_core::{
-    media::content::resolver::{vfs::RemappingVfsResolver, ContentPathResolver as _},
-    util::clock::OffsetDateTimeMs,
     CollectionUid,
+    media::content::resolver::{ContentPathResolver as _, vfs::RemappingVfsResolver},
+    util::clock::OffsetDateTimeMs,
 };
 use aoide_core_api::media::tracker::{
-    scan_directories::{Outcome, Summary},
     Completion, FsTraversalDirectoriesProgress, FsTraversalEntriesProgress, FsTraversalParams,
     FsTraversalProgress,
+    scan_directories::{Outcome, Summary},
 };
 use aoide_media_file::fs::{
-    digest::{hash_directories, HashDirectoryVisitor},
+    digest::{HashDirectoryVisitor, hash_directories},
     visit,
 };
 use aoide_repo::{
+    RepoError,
     collection::EntityRepo as CollectionRepo,
     media::tracker::{DirUpdateOutcome, Repo as MediaTrackerRepo},
-    RepoError,
 };
 
-use crate::{collection::vfs::RepoContext, Error, Result};
+use crate::{Error, Result, collection::vfs::RepoContext};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgressEvent {
@@ -115,9 +115,10 @@ pub fn scan_directories<
         let full_path = root_file_path.join(dir_path);
         debug_assert!(full_path.is_absolute());
         let url = Url::from_directory_path(&full_path).expect("URL");
-        debug_assert!(url
-            .as_str()
-            .starts_with(resolver.canonical_root_url().as_str()));
+        debug_assert!(
+            url.as_str()
+                .starts_with(resolver.canonical_root_url().as_str())
+        );
         let content_path = resolver
             .resolve_path_from_url(&url)?
             .ok_or_else(|| anyhow!("unresolved URL: {url}"))?;

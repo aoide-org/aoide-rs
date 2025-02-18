@@ -3,7 +3,7 @@
 
 use semval::prelude::*;
 
-use aoide_core::{track::TrackInvalidity, Track};
+use aoide_core::{Track, track::TrackInvalidity};
 
 use crate::InputResult;
 

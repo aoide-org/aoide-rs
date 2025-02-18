@@ -5,19 +5,19 @@ use std::{borrow::Cow, fmt, path::Path, str::FromStr};
 
 use mime::Mime;
 use nom::{
+    IResult, Parser as _,
     bytes::complete::{tag, tag_no_case},
     character::complete::{digit1, space0},
     number::complete::double,
     sequence::{delimited, pair, preceded, separated_pair, terminated},
-    IResult, Parser as _,
 };
 use semval::prelude::*;
 use time::{
-    format_description::{
-        well_known::{Rfc2822, Rfc3339},
-        FormatItem,
-    },
     OffsetDateTime, PrimitiveDateTime,
+    format_description::{
+        FormatItem,
+        well_known::{Rfc2822, Rfc3339},
+    },
 };
 
 use aoide_core::{
@@ -28,8 +28,8 @@ use aoide_core::{
     },
     track::{
         actor::{
-            is_valid_summary_individual_actor_name, Actor, Actors, Kind as ActorKind,
-            Role as ActorRole,
+            Actor, Actors, Kind as ActorKind, Role as ActorRole,
+            is_valid_summary_individual_actor_name,
         },
         title::{Kind as TitleKind, Title},
     },
@@ -160,13 +160,17 @@ fn adjust_summary_actor_kind(actors: &mut [Actor], role: ActorRole, next_name: &
             );
         }
         ActorKind::Summary => {
-            debug_assert!(!actors
-                .iter()
-                .any(|actor| actor.role == role && actor.kind == ActorKind::Summary));
-            debug_assert!(actors
-                .iter()
-                .filter(|actor| actor.role == role && actor.kind == ActorKind::Individual)
-                .all(|actor| next_name.contains(&actor.name)));
+            debug_assert!(
+                !actors
+                    .iter()
+                    .any(|actor| actor.role == role && actor.kind == ActorKind::Summary)
+            );
+            debug_assert!(
+                actors
+                    .iter()
+                    .filter(|actor| actor.role == role && actor.kind == ActorKind::Individual)
+                    .all(|actor| next_name.contains(&actor.name))
+            );
         }
         ActorKind::Sorting => unreachable!(),
     }

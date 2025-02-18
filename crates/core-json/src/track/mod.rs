@@ -238,7 +238,7 @@ impl TryFrom<EntityBody> for _core::EntityBody {
         Ok(Self {
             track,
             updated_at: updated_at.into(),
-            last_synchronized_rev: last_synchronized_rev.map(Into::into),
+            last_synchronized_rev,
             content_url,
         })
     }
@@ -255,7 +255,7 @@ impl From<_core::EntityBody> for EntityBody {
         Self {
             track: track.into(),
             updated_at: updated_at.into(),
-            last_synchronized_rev: last_synchronized_rev.map(Into::into),
+            last_synchronized_rev,
             content_url,
         }
     }
@@ -302,7 +302,7 @@ impl From<_core::PlayCounter> for PlayCounter {
         } = from;
         Self {
             last_played_at: last_played_at.map(Into::into),
-            times_played: times_played.map(Into::into),
+            times_played,
         }
     }
 }
@@ -315,7 +315,7 @@ impl From<PlayCounter> for _core::PlayCounter {
         } = from;
         Self {
             last_played_at: last_played_at.map(Into::into),
-            times_played: times_played.map(Into::into),
+            times_played,
         }
     }
 }

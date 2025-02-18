@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::media::content::ContentMetadataFlags;
-use data_encoding::{Encoding, BASE64URL_NOPAD};
+use data_encoding::{BASE64URL_NOPAD, Encoding};
 
 use self::{
     artwork::Artwork,

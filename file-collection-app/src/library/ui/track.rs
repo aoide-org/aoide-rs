@@ -6,14 +6,14 @@ use std::fmt;
 use egui::{Context, TextureHandle, TextureOptions};
 
 use aoide::{
+    TrackUid,
     music::{key::KeySignature, tempo::TempoBpm},
     tag::FacetId,
     track::{
-        tag::{FACET_ID_COMMENT, FACET_ID_GENRE, FACET_ID_GROUPING},
         AdvisoryRating,
+        tag::{FACET_ID_COMMENT, FACET_ID_GENRE, FACET_ID_GROUPING},
     },
     util::clock::DateOrDateTime,
-    TrackUid,
 };
 use itertools::Itertools as _;
 use url::Url;

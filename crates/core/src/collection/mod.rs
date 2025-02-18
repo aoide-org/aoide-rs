@@ -6,9 +6,9 @@ use std::fmt::Debug;
 use semval::prelude::*;
 
 use crate::{
+    EntityHeaderTyped, EntityUidTyped,
     media::content::{ContentPathConfig, ContentPathConfigInvalidity},
     util::color::{Color, ColorInvalidity},
-    EntityHeaderTyped, EntityUidTyped,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

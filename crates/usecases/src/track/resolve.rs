@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{media::content::ContentPath, track::EntityHeader};
-use aoide_repo::{track::CollectionRepo, CollectionId, OptionalRepoResult as _, RepoResult};
+use aoide_repo::{CollectionId, OptionalRepoResult as _, RepoResult, track::CollectionRepo};
 
 pub fn resolve_by_media_source_content_paths<Repo>(
     repo: &mut Repo,

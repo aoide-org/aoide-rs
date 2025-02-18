@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use aoide_core::tag::FacetId;
-use aoide_core_api::{filtering::NumericValue, PaginationLimit, PaginationOffset};
+use aoide_core_api::{PaginationLimit, PaginationOffset, filtering::NumericValue};
 use aoide_core_json::{
     entity::EntityUid,
     track::{
@@ -21,9 +21,9 @@ use url::Url;
 #[cfg(feature = "frontend")]
 use crate::Pagination;
 use crate::{
+    SortDirection,
     filtering::{FilterModifier, ScalarFieldFilter, StringFilter},
     tag::search::Filter as TagFilter,
-    SortDirection,
 };
 
 mod _inner {
@@ -476,7 +476,7 @@ impl From<ActorPhraseFilter> for _inner::ActorPhraseFilter {
             scope: scope.map(Into::into),
             roles: roles.into_iter().map(Into::into).collect(),
             kinds: kinds.into_iter().map(Into::into).collect(),
-            name_terms: name_terms.into_iter().map(Into::into).collect(),
+            name_terms,
         }
     }
 }
@@ -496,7 +496,7 @@ impl From<_inner::ActorPhraseFilter> for ActorPhraseFilter {
             scope: scope.map(Into::into),
             roles: roles.into_iter().map(Into::into).collect(),
             kinds: kinds.into_iter().map(Into::into).collect(),
-            name_terms: name_terms.into_iter().map(Into::into).collect(),
+            name_terms,
         }
     }
 }
@@ -533,7 +533,7 @@ impl From<TitlePhraseFilter> for _inner::TitlePhraseFilter {
             modifier: modifier.map(Into::into),
             scope: scope.map(Into::into),
             kinds: kinds.into_iter().map(Into::into).collect(),
-            name_terms: name_terms.into_iter().map(Into::into).collect(),
+            name_terms,
         }
     }
 }
@@ -551,7 +551,7 @@ impl From<_inner::TitlePhraseFilter> for TitlePhraseFilter {
             modifier: modifier.map(Into::into),
             scope: scope.map(Into::into),
             kinds: kinds.into_iter().map(Into::into).collect(),
-            name_terms: name_terms.into_iter().map(Into::into).collect(),
+            name_terms,
         }
     }
 }
@@ -580,8 +580,8 @@ pub enum Filter {
 #[cfg(feature = "backend")]
 impl From<Filter> for _inner::Filter {
     fn from(from: Filter) -> Self {
-        use aoide_core::EntityUidTyped;
         use Filter as From;
+        use aoide_core::EntityUidTyped;
         match from {
             From::Phrase(from) => Self::Phrase(from.into()),
             From::ActorPhrase(from) => Self::ActorPhrase(from.into()),

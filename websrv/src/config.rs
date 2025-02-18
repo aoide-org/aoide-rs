@@ -8,11 +8,11 @@ use std::{
 };
 
 use aoide_storage_sqlite::connection::{
-    pool::{
-        gatekeeper::Config as DatabaseConnectionGatekeeperConfig,
-        Config as DatabaseConnectionPoolConfig,
-    },
     Config as DatabaseConnectionConfig, Storage,
+    pool::{
+        Config as DatabaseConnectionPoolConfig,
+        gatekeeper::Config as DatabaseConnectionGatekeeperConfig,
+    },
 };
 use serde::{Deserialize, Serialize};
 

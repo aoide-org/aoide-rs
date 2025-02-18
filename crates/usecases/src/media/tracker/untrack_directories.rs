@@ -3,13 +3,13 @@
 
 use anyhow::anyhow;
 
-use aoide_core::{media::content::resolver::vfs::RemappingVfsResolver, CollectionUid};
+use aoide_core::{CollectionUid, media::content::resolver::vfs::RemappingVfsResolver};
 use aoide_core_api::media::tracker::untrack_directories::{Outcome, Params, PathsParam, Summary};
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo, media::tracker::Repo as MediaTrackerRepo,
 };
 
-use crate::{collection::vfs::RepoContext, Error, Result};
+use crate::{Error, Result, collection::vfs::RepoContext};
 
 #[allow(clippy::missing_panics_doc)] // Never panics
 pub fn untrack_directories<Repo>(

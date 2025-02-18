@@ -6,8 +6,8 @@ use diesel::prelude::*;
 use aoide_core::util::clock::{OffsetDateTimeMs, TimestampMillis};
 use aoide_core_api::media::tracker::DirTrackingStatus;
 use aoide_repo::{
-    media::{read_digest_from_slice, tracker::*, DigestBytes},
     CollectionId,
+    media::{DigestBytes, read_digest_from_slice, tracker::*},
 };
 
 use crate::RowId;

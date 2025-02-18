@@ -5,8 +5,8 @@ use anyhow::anyhow;
 use semval::prelude::*;
 
 use aoide_core::{
-    collection::EntityHeader as CollectionEntityHeader, util::clock::OffsetDateTimeMs, Collection,
-    CollectionEntity, CollectionUid,
+    Collection, CollectionEntity, CollectionUid,
+    collection::EntityHeader as CollectionEntityHeader, util::clock::OffsetDateTimeMs,
 };
 use aoide_core_api::collection::{EntityWithSummary, LoadScope};
 use aoide_repo::collection::{EntityRepo, RecordHeader};

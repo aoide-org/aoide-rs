@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{media::content::ContentPath, CollectionUid};
+use aoide_core::{CollectionUid, media::content::ContentPath};
 use aoide_core_api::media::tracker::count_sources_in_directories::Params;
 use aoide_repo_sqlite::DbConnection;
 

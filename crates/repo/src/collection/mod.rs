@@ -4,12 +4,12 @@
 use std::borrow::Cow;
 
 use aoide_core::{
-    util::{clock::OffsetDateTimeMs, url::BaseUrl},
     CollectionEntity, CollectionHeader, CollectionUid,
+    util::{clock::OffsetDateTimeMs, url::BaseUrl},
 };
 use aoide_core_api::{
-    collection::{EntityWithSummary, LoadScope, Summary},
     Pagination,
+    collection::{EntityWithSummary, LoadScope, Summary},
 };
 
 use crate::{RecordCollector, RepoResult, ReservableRecordCollector};
@@ -55,10 +55,7 @@ pub trait EntityRepo {
         media_source_root_url: Option<&MediaSourceRootUrlFilter>,
         load_scope: LoadScope,
         pagination: Option<&Pagination>,
-        collector: &mut dyn ReservableRecordCollector<
-            Header = RecordHeader,
-            Record = EntityWithSummary,
-        >,
+        collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = EntityWithSummary>,
     ) -> RepoResult<()>;
 
     fn load_collection_summary(&mut self, id: RecordId) -> RepoResult<Summary>;

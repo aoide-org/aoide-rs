@@ -336,13 +336,15 @@ impl ActorNamesSummarySplitter {
 
     pub fn split_all<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a str> + 'a {
         let mut rest = Some(name);
-        std::iter::from_fn(move || loop {
-            let (first_name, next_rest) = self.split_next(rest?)?;
-            rest = next_rest;
-            if first_name.is_empty() {
-                continue;
+        std::iter::from_fn(move || {
+            loop {
+                let (first_name, next_rest) = self.split_next(rest?)?;
+                rest = next_rest;
+                if first_name.is_empty() {
+                    continue;
+                }
+                return Some(first_name);
             }
-            return Some(first_name);
         })
     }
 }

@@ -13,11 +13,11 @@ use aoide_core_api::filtering::StringPredicate;
 use aoide_repo::{CollectionId, RepoError, RepoResult};
 
 use crate::{
+    DbBackend, RowId,
     util::{
         escape_like_contains, escape_like_ends_with, escape_like_matches, escape_like_starts_with,
         sql_column_substr_prefix_eq,
     },
-    DbBackend, RowId,
 };
 
 use self::schema::*;

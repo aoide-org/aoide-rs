@@ -138,11 +138,13 @@ fn try_import_tags() {
 #[test]
 fn try_import_tag_should_skip_invalid_tags() {
     assert!(try_import_tag(&Default::default()).is_none());
-    assert!(try_import_tag(&Tag {
-        props: vec![score_prop_from_value(0.75)],
-        ..Default::default()
-    })
-    .is_none());
+    assert!(
+        try_import_tag(&Tag {
+            props: vec![score_prop_from_value(0.75)],
+            ..Default::default()
+        })
+        .is_none()
+    );
 }
 
 #[test]

@@ -1,19 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide::desktop_app::{collection::SynchronizingVfsFinishedState, ActionEffect};
+use aoide::desktop_app::{ActionEffect, collection::SynchronizingVfsFinishedState};
 use egui::Context;
 
 use crate::{
     app::TrackSearchFetchedItems,
     fs::choose_directory_path,
-    library::{self, collection, track_search, ui::TrackListItem, Library},
+    library::{self, Library, collection, track_search, ui::TrackListItem},
 };
 
 use super::{
-    message::{MediaTrackerAction, MediaTrackerDirListAction, MediaTrackerSyncAction},
     Action, CollectionAction, Event, LibraryAction, Message, MessageSender, Model, ModelMode,
     MusicDirSelection, MusicDirectoryAction, TrackSearchAction, TrackSearchMode,
+    message::{MediaTrackerAction, MediaTrackerDirListAction, MediaTrackerSyncAction},
 };
 
 pub(super) struct UpdateContext<'a> {
@@ -265,9 +265,10 @@ impl UpdateContext<'_> {
                                             .map(|memo| memo.offset),
                                     );
                                     log::debug!(
-                                                "Track search list changed: Appending {count_append} fetched items to {count_before} existing items",
-                                                count_before = track_list.len(),
-                                                count_append = fetched_items.len());
+                                        "Track search list changed: Appending {count_append} fetched items to {count_before} existing items",
+                                        count_before = track_list.len(),
+                                        count_append = fetched_items.len()
+                                    );
                                     track_list.extend(fetched_items);
                                     Some(track_list.len())
                                 }

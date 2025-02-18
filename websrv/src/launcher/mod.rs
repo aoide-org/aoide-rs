@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 
 use crate::{
     config::Config,
-    runtime::{run, Command as RuntimeCommand, State as RuntimeState},
+    runtime::{Command as RuntimeCommand, State as RuntimeState, run},
 };
 
 #[cfg(feature = "launcher-ui")]

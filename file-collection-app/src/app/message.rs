@@ -8,8 +8,8 @@ use egui::Context;
 use aoide::util::fs::DirPath;
 
 use crate::{
-    library::{self, ui::TrackListItem},
     NoReceiverForEvent,
+    library::{self, ui::TrackListItem},
 };
 
 #[allow(missing_debug_implementations)]

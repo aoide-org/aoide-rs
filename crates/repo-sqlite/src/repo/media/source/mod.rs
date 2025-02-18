@@ -4,16 +4,17 @@
 use diesel::prelude::*;
 
 use aoide_core::{
-    media::{content::ContentPath, Source},
+    media::{Source, content::ContentPath},
     util::clock::OffsetDateTimeMs,
 };
 use aoide_core_api::filtering::StringPredicate;
 use aoide_repo::{
-    media::source::{CollectionRepo, RecordHeader, Repo},
     CollectionId, MediaSourceId, RepoError, RepoResult,
+    media::source::{CollectionRepo, RecordHeader, Repo},
 };
 
 use crate::{
+    Connection, RowId,
     db::{
         media_source::{models::*, schema::*, select_row_id_filtered_by_content_path_predicate},
         media_tracker::schema::*,
@@ -21,7 +22,6 @@ use crate::{
     },
     repo_error,
     util::{escape_single_quotes, sql_column_substr_prefix_eq},
-    Connection, RowId,
 };
 
 impl Repo for Connection<'_> {

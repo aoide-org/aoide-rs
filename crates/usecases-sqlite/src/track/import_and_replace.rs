@@ -3,15 +3,15 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::{media::content::ContentPath, CollectionUid, Track};
+use aoide_core::{CollectionUid, Track, media::content::ContentPath};
 use aoide_repo_sqlite::DbConnection;
 
 use crate::{RepoConnection, Result};
 
 mod uc {
     pub(super) use aoide_usecases::track::import_and_replace::{
-        import_and_replace_by_local_file_path_from_directory,
-        import_and_replace_many_by_local_file_path, Outcome, Params,
+        Outcome, Params, import_and_replace_by_local_file_path_from_directory,
+        import_and_replace_many_by_local_file_path,
     };
 }
 

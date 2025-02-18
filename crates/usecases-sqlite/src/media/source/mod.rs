@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use anyhow::anyhow;
 
-use aoide_core::{media::content::ContentPath, CollectionUid};
+use aoide_core::{CollectionUid, media::content::ContentPath};
 use aoide_repo::CollectionId;
 use aoide_usecases::collection::vfs::RepoContext;
 

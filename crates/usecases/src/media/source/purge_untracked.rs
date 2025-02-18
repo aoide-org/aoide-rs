@@ -3,7 +3,7 @@
 
 use anyhow::anyhow;
 
-use aoide_core::{media::content::resolver::vfs::RemappingVfsResolver, CollectionUid};
+use aoide_core::{CollectionUid, media::content::resolver::vfs::RemappingVfsResolver};
 use aoide_core_api::{
     filtering::StringPredicate,
     media::source::purge_untracked::{Outcome, Params, Summary},
@@ -13,7 +13,7 @@ use aoide_repo::{
     media::source::CollectionRepo as MediaSourceCollectionRepo,
 };
 
-use crate::{collection::vfs::RepoContext, Error, Result};
+use crate::{Error, Result, collection::vfs::RepoContext};
 
 #[allow(clippy::missing_panics_doc)] // Never panics
 pub fn purge_untracked<Repo>(

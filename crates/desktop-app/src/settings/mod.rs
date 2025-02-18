@@ -13,7 +13,7 @@ use url::Url;
 use aoide_backend_embedded::storage::DatabaseConfig;
 use aoide_core::util::fs::DirPath;
 
-use crate::{modify_shared_state_action_effect, ActionEffect};
+use crate::{ActionEffect, modify_shared_state_action_effect};
 
 pub const FILE_NAME: &str = "aoide_desktop_settings";
 

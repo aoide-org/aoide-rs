@@ -4,19 +4,19 @@
 use diesel::prelude::*;
 
 use aoide_core::{
+    EntityRevision, Track, TrackBody, TrackEntity, TrackHeader,
     music::{
         key::KeySignature,
         tempo::{TempoBpm, TempoBpmValue},
     },
     track::{album::Album, index::*, metric::*},
     util::{clock::*, color::*},
-    EntityRevision, Track, TrackBody, TrackEntity, TrackHeader,
 };
 use aoide_repo::media::source::RecordId as MediaSourceId;
 
 use crate::{
-    util::entity::{encode_entity_revision, encode_entity_uid},
     RowId,
+    util::entity::{encode_entity_revision, encode_entity_uid},
 };
 
 use super::{encode_advisory_rating, encode_album_kind, encode_music_key_code, schema::*};
