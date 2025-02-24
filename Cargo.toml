@@ -50,6 +50,7 @@ diesel = { version = "2.2.7", default-features = false, features = ["sqlite"] }
 digest = "0.10.7"
 image = "0.25.5"
 jiff = "0.2.1"
+log = "0.4.26"
 log = "0.4.25"
 mime = "0.3.17"
 nonicle = "0.1.1"

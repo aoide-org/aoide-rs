@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+# SPDX-License-Identifier: CC0-1.0
+
+rules:
+  cache-poisoning:
+    ignore:
+      # TODO: Check if runtime artifacts potentially vulnerable to a cache poisoning attack.
+      - pre-release.yaml:9:1
