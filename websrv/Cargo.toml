@@ -19,7 +19,7 @@ anyhow.workspace = true
 directories = "6.0.0"
 discro = { version = "0.33.0", features = ["tokio"] }
 dotenvy = "0.15.7"
-log = { version = "0.4.25", features = ["release_max_level_debug"] }
+log = { version = "0.4.26", features = ["release_max_level_debug"] }
 parking_lot = "0.12.3"
 ron = "0.8.1"
 serde = { workspace = true, features = ["derive"] }

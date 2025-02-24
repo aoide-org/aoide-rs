@@ -51,7 +51,6 @@ digest = "0.10.7"
 image = "0.25.5"
 jiff = "0.2.1"
 log = "0.4.26"
-log = "0.4.25"
 mime = "0.3.17"
 nonicle = "0.1.1"
 regex = "1.11.1"
@@ -69,18 +68,13 @@ url = "2.5.4"
 [workspace.lints.rust]
 # Opt-in for allowed-by-default lints (in alphabetical order)
 # See also: <https://doc.rust-lang.org/rustc/lints>
+deprecated-safe = { level = "warn", priority = -1 }
 future_incompatible = { level = "warn", priority = -1 }
 let_underscore = { level = "warn", priority = -1 }
 missing_debug_implementations = "warn"
-rust_2018_idioms = { level = "warn", priority = -1 }
-rust_2021_compatibility = { level = "warn", priority = -1 }
-rust_2024_compatibility = { level = "warn", priority = -1 }
 unreachable_pub = "warn"
 unsafe_code = "warn"
 unused = "warn"
-# Accept changed behavior in 2024 edition regarding temporary lifetimes and drop order.
-if_let_rescope = "allow"
-tail_expr_drop_order = "allow"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
