@@ -29,7 +29,7 @@ tracing = { version = "0.1.41", features = ["log"] }
 uuid = { version = "1.14.0", features = ["v4"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.21", optional = true }
+schemars = { version = "0.8.22", optional = true }
 
 # Workspace dependencies
 aoide-backend-embedded.workspace = true

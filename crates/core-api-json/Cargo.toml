@@ -22,7 +22,7 @@ serde = { workspace = true, features = ["derive"] }
 url = { workspace = true, features = ["serde"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.21", optional = true, features = ["url"] }
+schemars = { version = "0.8.22", optional = true, features = ["url"] }
 
 # Workspace dependencies
 aoide-core = { "workspace" = true, features = ["serde"] }

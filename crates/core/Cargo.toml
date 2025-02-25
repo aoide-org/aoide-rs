@@ -39,7 +39,7 @@ url.workspace = true
 serde = { workspace = true, optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.21", optional = true, features = ["url"] }
+schemars = { version = "0.8.22", optional = true, features = ["url"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 getrandom = "0.3.1"
