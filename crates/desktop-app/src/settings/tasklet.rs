@@ -16,9 +16,9 @@ pub fn on_state_changed_save_to_file<E>(
     this: &Observer<State>,
     settings_dir: PathBuf,
     mut report_error: E,
-) -> impl Future<Output = ()> + Send + 'static + use<E>
+) -> impl Future<Output = ()> + Send + use<E>
 where
-    E: FnMut(anyhow::Error) + Send + 'static,
+    E: FnMut(anyhow::Error) + Send,
 {
     // Read and acknowledge the initial settings immediately before spawning
     // the async task. These are supposed to be saved already. Only subsequent
@@ -62,9 +62,9 @@ where
 pub fn on_music_dir_changed<C>(
     this: &Observer<State>,
     mut on_changed: C,
-) -> impl Future<Output = ()> + Send + 'static + use<C>
+) -> impl Future<Output = ()> + Send + use<C>
 where
-    C: FnMut(Option<&DirPath<'_>>) -> OnChanged + Send + 'static,
+    C: FnMut(Option<&DirPath<'_>>) -> OnChanged + Send,
 {
     // Read the initial value immediately before spawning the async task
     let mut subscriber = this.subscribe();

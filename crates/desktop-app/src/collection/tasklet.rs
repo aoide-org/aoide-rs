@@ -92,7 +92,7 @@ pub fn on_settings_state_changed(
     settings: &Arc<settings::SharedState>,
     restore_entity: RestoreEntityStrategy,
     nested_music_directories: NestedMusicDirectoriesStrategy,
-) -> impl Future<Output = ()> + Send + 'static + use<> {
+) -> impl Future<Output = ()> + Send + use<> {
     let mut settings_subscriber = settings.subscribe_changed();
     let settings = Arc::downgrade(settings);
     async move {

@@ -144,7 +144,7 @@ impl Titles {
         titles.into_iter().find(|title| !title.name.is_empty())
     }
 
-    pub fn main_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title> + use<'a, I>
+    pub fn main_titles<'a, I>(titles: I) -> impl Iterator<Item = &'a Title>
     where
         I: IntoIterator<Item = &'a Title>,
     {

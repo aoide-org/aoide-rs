@@ -17,7 +17,7 @@ workspace = true
 [dependencies]
 anyhow.workspace = true
 directories = "6.0.0"
-discro = "0.33.0"
+discro = "0.34.0"
 itertools = "0.14.0"
 env_logger = "0.11.6"
 url.workspace = true
