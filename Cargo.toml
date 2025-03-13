@@ -49,7 +49,7 @@ derive_more = "2.0.1"
 diesel = { version = "2.2.8", default-features = false, features = ["sqlite"] }
 digest = "0.10.7"
 image = "0.25.5"
-jiff = "0.2.3"
+jiff = "0.2.4"
 log = "0.4.26"
 mime = "0.3.17"
 nonicle = "0.1.1"
@@ -62,7 +62,7 @@ strum = "0.27.1"
 tantivy = "0.22.0"
 time = "0.3.39"
 thiserror = "2.0.12"
-tokio = "1.44.0"
+tokio = "1.44.1"
 url = "2.5.4"
 
 [workspace.lints.rust]
