@@ -2,4 +2,4 @@
 -- SPDX-License-Identifier: AGPL-3.0-or-later
 
 -- Rename the predefined "genre" facet.
-UPDATE track_tag SET facet='gnre' WHERE facet='genre';
+UPDATE "track_tag" SET "facet"='gnre' WHERE "facet"='genre';

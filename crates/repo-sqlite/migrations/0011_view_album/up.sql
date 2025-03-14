@@ -3,5 +3,5 @@
 
 -- Empty tombstone migration.
 -- These views are re-created later.
-DROP VIEW IF EXISTS view_album_artist_initial;
-DROP VIEW IF EXISTS view_album;
+DROP VIEW IF EXISTS "view_album_artist_initial";
+DROP VIEW IF EXISTS "view_album";
