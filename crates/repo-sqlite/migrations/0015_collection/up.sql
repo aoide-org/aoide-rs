@@ -55,7 +55,8 @@ CREATE UNIQUE INDEX udx_collection_title_where_kind_null ON collection (
     title
 ) WHERE kind IS NULL;
 CREATE UNIQUE INDEX udx_collection_kind_title ON collection (
-    kind, title
+    kind,
+    title
 ) WHERE kind IS NOT NULL;
 
 CREATE INDEX idx_collection_row_created_ms_desc ON collection (
