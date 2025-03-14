@@ -51,7 +51,7 @@ triseratops = { version = "0.0.3", optional = true }
 aoide-core.workspace = true
 
 [dev-dependencies]
-tempfile = "3.18.0"
+tempfile = "3.19.0"
 
 [features]
 default = ["all"]
