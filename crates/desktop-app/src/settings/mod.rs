@@ -90,12 +90,12 @@ impl State {
             "Saving current settings into file: {file_path}",
             file_path = file_path.display()
         );
-        let mut bytes = vec![];
-        ron::ser::to_writer_pretty(&mut bytes, self, Default::default())?;
+        let mut text = String::new();
+        ron::ser::to_writer_pretty(&mut text, self, Default::default())?;
         if let Some(parent_path) = file_path.parent() {
             fs::create_dir_all(parent_path)?;
         }
-        fs::write(&file_path, &bytes)?;
+        fs::write(&file_path, &text)?;
         Ok(())
     }
 

@@ -78,8 +78,8 @@ pub fn save_app_config(app_dirs: &ProjectDirs, config: &Config) {
         "Saving current configuration into file: {file_path}",
         file_path = file_path.display()
     );
-    let mut bytes = vec![];
-    if let Err(err) = ron::ser::to_writer_pretty(&mut bytes, &config, Default::default()) {
+    let mut text = String::new();
+    if let Err(err) = ron::ser::to_writer_pretty(&mut text, &config, Default::default()) {
         log::warn!("Failed to store configuration data: {err}");
         return;
     }
@@ -88,7 +88,7 @@ pub fn save_app_config(app_dirs: &ProjectDirs, config: &Config) {
             log::warn!("Failed to create parent directories for configuration file: {err}");
         }
     }
-    if let Err(err) = fs::write(&file_path, &bytes) {
+    if let Err(err) = fs::write(&file_path, &text) {
         log::warn!("Failed to write configuration data into file: {err}");
     }
 }

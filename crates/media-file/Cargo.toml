@@ -17,7 +17,7 @@ workspace = true
 
 [dependencies]
 anyhow.workspace = true
-blake3 = { version = "1.6.1", features = ["traits-preview"] }
+blake3 = { version = "1.7.0", features = ["traits-preview"] }
 bitflags.workspace = true
 bytes = "1.10.1"
 data-encoding.workspace = true

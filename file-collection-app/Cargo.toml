@@ -45,7 +45,7 @@ default-features = false
 
 # mimalloc
 [dependencies.mimalloc]
-version = "0.1.43"
+version = "0.1.44"
 optional = true
 # No default features, i.e. all features are optional.
 
