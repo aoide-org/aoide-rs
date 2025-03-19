@@ -4,19 +4,19 @@
 # Only add deviations from the default settings!
 
 # Consistently use a single edition for all workspace crates, should match Cargo.toml
-edition = "2021"
+edition = "2024"
+
+# <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#use_field_init_shorthand>
+use_field_init_shorthand = true
+
+# <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#use_try_shorthand>
+use_try_shorthand = true
 
 # <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#imports_granularity>
 #imports_granularity = "Crate"
 
 # <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#group_imports>
 #group_imports = "StdExternalCrate"
-
-# <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#use_field_init_shorthand>
-#use_field_init_shorthand = true
-
-# <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#use_try_shorthand>
-#use_try_shorthand = true
 
 # <https://github.com/rust-lang/rustfmt/blob/master/Configurations.md#format_strings>
 #format_strings = true
