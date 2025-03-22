@@ -9,7 +9,7 @@ use aoide_core::{
         key::KeySignature,
         tempo::{TempoBpm, TempoBpmValue},
     },
-    track::{album::Album, index::*, metric::*},
+    track::{Actors, Titles, actor, album::Album, index::*, metric::*},
     util::{clock::*, color::*},
 };
 use aoide_repo::media::source::RecordId as MediaSourceId;
@@ -23,44 +23,48 @@ use super::{encode_advisory_rating, encode_album_kind, encode_music_key_code, sc
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = track)]
-pub struct InsertableRecord<'a> {
-    pub row_created_ms: TimestampMillis,
-    pub row_updated_ms: TimestampMillis,
-    pub entity_uid: String,
-    pub entity_rev: i64,
-    pub media_source_id: RowId,
-    pub last_synchronized_rev: Option<i64>,
-    pub recorded_at: Option<String>,
-    pub recorded_ms: Option<TimestampMillis>,
-    pub recorded_at_yyyymmdd: Option<YyyyMmDdDateValue>,
-    pub released_at: Option<String>,
-    pub released_ms: Option<TimestampMillis>,
-    pub released_at_yyyymmdd: Option<YyyyMmDdDateValue>,
-    pub released_orig_at: Option<String>,
-    pub released_orig_ms: Option<TimestampMillis>,
-    pub released_orig_at_yyyymmdd: Option<YyyyMmDdDateValue>,
-    pub publisher: Option<&'a str>,
-    pub copyright: Option<&'a str>,
-    pub advisory_rating: Option<i16>,
-    pub album_kind: Option<i16>,
-    pub track_number: Option<i16>,
-    pub track_total: Option<i16>,
-    pub disc_number: Option<i16>,
-    pub disc_total: Option<i16>,
-    pub movement_number: Option<i16>,
-    pub movement_total: Option<i16>,
-    pub music_tempo_bpm: Option<TempoBpmValue>,
-    pub music_key_code: Option<i16>,
-    pub music_beats_per_measure: Option<i16>,
-    pub music_beat_unit: Option<i16>,
-    pub music_flags: i16,
-    pub color_rgb: Option<i32>,
-    pub color_idx: Option<i16>,
+pub(crate) struct InsertableRecord<'a> {
+    pub(crate) row_created_ms: TimestampMillis,
+    pub(crate) row_updated_ms: TimestampMillis,
+    pub(crate) entity_uid: String,
+    pub(crate) entity_rev: i64,
+    pub(crate) media_source_id: RowId,
+    pub(crate) last_synchronized_rev: Option<i64>,
+    pub(crate) recorded_at: Option<String>,
+    pub(crate) recorded_ms: Option<TimestampMillis>,
+    pub(crate) recorded_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub(crate) released_at: Option<String>,
+    pub(crate) released_ms: Option<TimestampMillis>,
+    pub(crate) released_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub(crate) released_orig_at: Option<String>,
+    pub(crate) released_orig_ms: Option<TimestampMillis>,
+    pub(crate) released_orig_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub(crate) publisher: Option<&'a str>,
+    pub(crate) copyright: Option<&'a str>,
+    pub(crate) advisory_rating: Option<i16>,
+    pub(crate) album_kind: Option<i16>,
+    pub(crate) track_number: Option<i16>,
+    pub(crate) track_total: Option<i16>,
+    pub(crate) disc_number: Option<i16>,
+    pub(crate) disc_total: Option<i16>,
+    pub(crate) movement_number: Option<i16>,
+    pub(crate) movement_total: Option<i16>,
+    pub(crate) music_tempo_bpm: Option<TempoBpmValue>,
+    pub(crate) music_key_code: Option<i16>,
+    pub(crate) music_beats_per_measure: Option<i16>,
+    pub(crate) music_beat_unit: Option<i16>,
+    pub(crate) music_flags: i16,
+    pub(crate) color_rgb: Option<i32>,
+    pub(crate) color_idx: Option<i16>,
+    pub(crate) sort_track_artist: Option<&'a str>,
+    pub(crate) sort_album_artist: Option<&'a str>,
+    pub(crate) sort_track_title: Option<&'a str>,
+    pub(crate) sort_album_title: Option<&'a str>,
 }
 
 impl<'a> InsertableRecord<'a> {
     #[allow(clippy::too_many_lines)] // TODO
-    pub fn bind(media_source_id: MediaSourceId, entity: &'a TrackEntity) -> Self {
+    pub(crate) fn bind(media_source_id: MediaSourceId, entity: &'a TrackEntity) -> Self {
         let TrackHeader { uid, rev } = &entity.hdr;
         let TrackBody {
             track,
@@ -78,8 +82,8 @@ impl<'a> InsertableRecord<'a> {
             copyright,
             advisory_rating,
             album,
-            actors: _,
-            titles: _,
+            actors: track_actors,
+            titles: track_titles,
             indexes,
             metrics,
             color,
@@ -114,8 +118,8 @@ impl<'a> InsertableRecord<'a> {
             },
         );
         let Album {
-            actors: _,
-            titles: _,
+            actors: album_actors,
+            titles: album_titles,
             kind: album_kind,
         } = album.as_ref();
         let Indexes {
@@ -129,6 +133,12 @@ impl<'a> InsertableRecord<'a> {
             time_signature,
             flags: music_flags,
         } = metrics;
+        let sort_track_artist =
+            Actors::sort_or_main_actor(track_actors.iter(), actor::Role::Artist);
+        let sort_album_artist =
+            Actors::sort_or_main_actor(album_actors.iter(), actor::Role::Artist);
+        let sort_track_title = Titles::sort_or_main_title(track_titles.iter());
+        let sort_album_title = Titles::sort_or_main_title(album_titles.iter());
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
@@ -177,48 +187,56 @@ impl<'a> InsertableRecord<'a> {
             } else {
                 None
             },
+            sort_track_artist: sort_track_artist.map(|actor| actor.name.as_str()),
+            sort_album_artist: sort_album_artist.map(|actor| actor.name.as_str()),
+            sort_track_title: sort_track_title.map(|title| title.name.as_str()),
+            sort_album_title: sort_album_title.map(|title| title.name.as_str()),
         }
     }
 }
 
 #[derive(Debug, AsChangeset)]
 #[diesel(table_name = track, treat_none_as_null = true)]
-pub struct UpdatableRecord<'a> {
-    pub row_updated_ms: TimestampMillis,
-    pub entity_rev: i64,
-    pub media_source_id: RowId,
-    pub last_synchronized_rev: Option<i64>,
-    pub recorded_at: Option<String>,
-    pub recorded_ms: Option<TimestampMillis>,
-    pub recorded_at_yyyymmdd: Option<YyyyMmDdDateValue>,
-    pub released_at: Option<String>,
-    pub released_ms: Option<TimestampMillis>,
-    pub released_at_yyyymmdd: Option<YyyyMmDdDateValue>,
-    pub released_orig_at: Option<String>,
-    pub released_orig_ms: Option<TimestampMillis>,
-    pub released_orig_at_yyyymmdd: Option<YyyyMmDdDateValue>,
-    pub publisher: Option<&'a str>,
-    pub copyright: Option<&'a str>,
-    pub advisory_rating: Option<i16>,
-    pub album_kind: Option<i16>,
-    pub track_number: Option<i16>,
-    pub track_total: Option<i16>,
-    pub disc_number: Option<i16>,
-    pub disc_total: Option<i16>,
-    pub movement_number: Option<i16>,
-    pub movement_total: Option<i16>,
-    pub music_tempo_bpm: Option<TempoBpmValue>,
-    pub music_key_code: Option<i16>,
-    pub music_beats_per_measure: Option<i16>,
-    pub music_beat_unit: Option<i16>,
-    pub music_flags: i16,
-    pub color_rgb: Option<i32>,
-    pub color_idx: Option<i16>,
+pub(crate) struct UpdatableRecord<'a> {
+    pub(crate) row_updated_ms: TimestampMillis,
+    pub(crate) entity_rev: i64,
+    pub(crate) media_source_id: RowId,
+    pub(crate) last_synchronized_rev: Option<i64>,
+    pub(crate) recorded_at: Option<String>,
+    pub(crate) recorded_ms: Option<TimestampMillis>,
+    pub(crate) recorded_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub(crate) released_at: Option<String>,
+    pub(crate) released_ms: Option<TimestampMillis>,
+    pub(crate) released_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub(crate) released_orig_at: Option<String>,
+    pub(crate) released_orig_ms: Option<TimestampMillis>,
+    pub(crate) released_orig_at_yyyymmdd: Option<YyyyMmDdDateValue>,
+    pub(crate) publisher: Option<&'a str>,
+    pub(crate) copyright: Option<&'a str>,
+    pub(crate) advisory_rating: Option<i16>,
+    pub(crate) album_kind: Option<i16>,
+    pub(crate) track_number: Option<i16>,
+    pub(crate) track_total: Option<i16>,
+    pub(crate) disc_number: Option<i16>,
+    pub(crate) disc_total: Option<i16>,
+    pub(crate) movement_number: Option<i16>,
+    pub(crate) movement_total: Option<i16>,
+    pub(crate) music_tempo_bpm: Option<TempoBpmValue>,
+    pub(crate) music_key_code: Option<i16>,
+    pub(crate) music_beats_per_measure: Option<i16>,
+    pub(crate) music_beat_unit: Option<i16>,
+    pub(crate) music_flags: i16,
+    pub(crate) color_rgb: Option<i32>,
+    pub(crate) color_idx: Option<i16>,
+    pub(crate) sort_track_artist: Option<&'a str>,
+    pub(crate) sort_album_artist: Option<&'a str>,
+    pub(crate) sort_track_title: Option<&'a str>,
+    pub(crate) sort_album_title: Option<&'a str>,
 }
 
 impl<'a> UpdatableRecord<'a> {
     #[allow(clippy::too_many_lines)] // TODO
-    pub fn bind(
+    pub(crate) fn bind(
         next_rev: EntityRevision,
         media_source_id: MediaSourceId,
         entity_body: &'a TrackBody,
@@ -239,8 +257,8 @@ impl<'a> UpdatableRecord<'a> {
             copyright,
             advisory_rating,
             album,
-            actors: _,
-            titles: _,
+            actors: track_actors,
+            titles: track_titles,
             indexes,
             metrics,
             color,
@@ -275,8 +293,8 @@ impl<'a> UpdatableRecord<'a> {
             },
         );
         let Album {
-            actors: _,
-            titles: _,
+            actors: album_actors,
+            titles: album_titles,
             kind: album_kind,
         } = album.as_ref();
         let Indexes {
@@ -290,6 +308,12 @@ impl<'a> UpdatableRecord<'a> {
             time_signature,
             flags: music_flags,
         } = metrics;
+        let sort_track_artist =
+            Actors::sort_or_main_actor(track_actors.iter(), actor::Role::Artist);
+        let sort_album_artist =
+            Actors::sort_or_main_actor(album_actors.iter(), actor::Role::Artist);
+        let sort_track_title = Titles::sort_or_main_title(track_titles.iter());
+        let sort_album_title = Titles::sort_or_main_title(album_titles.iter());
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             entity_rev,
@@ -334,6 +358,10 @@ impl<'a> UpdatableRecord<'a> {
             } else {
                 None
             },
+            sort_track_artist: sort_track_artist.map(|actor| actor.name.as_str()),
+            sort_album_artist: sort_album_artist.map(|actor| actor.name.as_str()),
+            sort_track_title: sort_track_title.map(|title| title.name.as_str()),
+            sort_album_title: sort_album_title.map(|title| title.name.as_str()),
         }
     }
 }

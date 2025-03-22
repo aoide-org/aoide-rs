@@ -89,7 +89,7 @@ pub enum TitlesInvalidity {
     Title(TitleInvalidity),
     MainTitleMissing,
     MainTitleAmbiguous,
-    TitleSortingAmbiguous,
+    SortTitleAmbiguous,
 }
 
 pub const ANY_KIND_FILTER: Option<Kind> = None;
@@ -109,16 +109,16 @@ impl Titles {
                 context.validate_with(title, TitlesInvalidity::Title)
             });
         if context.is_valid() && at_least_one_title {
-            context = match Self::main_titles(titles.to_owned()).count() {
+            context = match Self::filter_kind(titles.to_owned(), Kind::Main).count() {
                 0 => context.invalidate(TitlesInvalidity::MainTitleMissing),
                 1 => context, // ok
                 _ => context.invalidate(TitlesInvalidity::MainTitleAmbiguous),
             }
         }
         if context.is_valid() {
-            context = match Self::sorting_titles(titles.to_owned()).count() {
+            context = match Self::filter_kind(titles.to_owned(), Kind::Sorting).count() {
                 0 | 1 => context, // ok
-                _ => context.invalidate(TitlesInvalidity::TitleSortingAmbiguous),
+                _ => context.invalidate(TitlesInvalidity::SortTitleAmbiguous),
             }
         }
         context.into()
@@ -137,20 +137,17 @@ impl Titles {
             .filter(move |title| kind == ANY_KIND_FILTER || kind == Some(title.kind))
     }
 
-    pub fn first_non_empty_name<'a, I>(titles: I) -> Option<&'a Title>
+    pub fn kind_title<'a, I>(titles: I, kind: Kind) -> Option<&'a Title>
     where
         I: IntoIterator<Item = &'a Title>,
     {
-        titles.into_iter().find(|title| !title.name.is_empty())
+        let mut iter = Self::filter_kind(titles, kind);
+        let first = iter.next();
+        debug_assert!(first.is_none() || iter.next().is_none());
+        first
     }
 
-    pub fn main_titles<'a, I>(titles: I) -> impl Iterator<Item = &'a Title>
-    where
-        I: IntoIterator<Item = &'a Title>,
-    {
-        Self::filter_kind(titles, Kind::Main)
-    }
-
+    #[must_use]
     pub fn main_title<'a, I>(titles: I) -> Option<&'a Title>
     where
         I: IntoIterator<Item = &'a Title>,
@@ -158,25 +155,20 @@ impl Titles {
         Self::kind_title(titles, Kind::Main)
     }
 
-    pub fn kind_title<'a, I>(titles: I, kind: Kind) -> Option<&'a Title>
+    #[must_use]
+    pub fn sort_title<'a, 'b, I>(titles: I) -> Option<&'a Title>
     where
         I: IntoIterator<Item = &'a Title>,
     {
-        Self::first_non_empty_name(Self::filter_kind(titles, kind))
+        Self::kind_title(titles, Kind::Sorting)
     }
 
-    pub fn sorting_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title> + use<'a, I>
+    #[must_use]
+    pub fn sort_or_main_title<'a, 'b, I>(titles: I) -> Option<&'a Title>
     where
-        I: IntoIterator<Item = &'a Title>,
+        I: IntoIterator<Item = &'a Title> + Clone,
     {
-        Self::filter_kind(titles, Kind::Sorting)
-    }
-
-    pub fn title_sorting<'a, I>(titles: I) -> Option<&'a Title>
-    where
-        I: IntoIterator<Item = &'a Title>,
-    {
-        Self::first_non_empty_name(Self::sorting_titles(titles))
+        Self::sort_title(titles.clone()).or_else(|| Self::main_title(titles))
     }
 
     pub fn set_main_title(titles: &mut Vec<Title>, name: impl Into<String>) -> bool {

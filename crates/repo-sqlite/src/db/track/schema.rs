@@ -40,6 +40,10 @@ diesel::table! {
         music_flags -> SmallInt,
         color_rgb -> Nullable<Integer>,
         color_idx -> Nullable<SmallInt>,
+        sort_track_artist -> Nullable<Text>,
+        sort_album_artist -> Nullable<Text>,
+        sort_track_title -> Nullable<Text>,
+        sort_album_title -> Nullable<Text>,
     }
 }
 

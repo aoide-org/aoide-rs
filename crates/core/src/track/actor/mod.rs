@@ -39,9 +39,12 @@ pub enum Role {
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromRepr)]
 #[repr(u8)]
 pub enum Kind {
+    /// Mandatory summary or main actor.
     #[default]
-    Summary = 0, /* unspecified for display, may mention multiple actors with differing kinds and roles */
-    Individual = 1, // single persons or group/band names
+    Summary = 0,
+    /// Single persons or group/band names.
+    Individual = 1,
+    /// Unique sort actor.
     Sorting = 2,
 }
 
@@ -133,10 +136,10 @@ pub struct Actors;
 #[derive(Copy, Clone, Debug)]
 pub enum ActorsInvalidity {
     Actor(ActorInvalidity),
+    SummaryActorMissing(Role),
     SummaryActorAmbiguous(Role),
-    SortingActorAmbiguous(Role),
+    SortActorAmbiguous(Role),
     SummaryNameInconsistentWithIndividualNames(Role),
-    MainActorUndefined(Role),
 }
 
 pub const ANY_ROLE_FILTER: Option<Role> = None;
@@ -165,38 +168,28 @@ impl Actors {
                 let mut summary_actors_iter =
                     Self::filter_kind_role(actors.clone(), Kind::Summary, role);
                 let summary_actor = summary_actors_iter.next();
-                if let Some(summary_actor) = summary_actor {
-                    debug_assert!(Self::main_actor(actors.clone(), role).is_some());
-                    // At most one summary entry exists for each role.
-                    context = context.invalidate_if(
-                        summary_actors_iter.next().is_some(),
-                        ActorsInvalidity::SummaryActorAmbiguous(role),
-                    );
-                    // All individual actors must be consistent with the summary actor
-                    context = context.invalidate_if(
-                        !Self::filter_kind_role(actors.clone(), Kind::Individual, role)
-                            .map(|actor| &actor.name)
-                            .all(|name| {
-                                is_valid_summary_individual_actor_name(&summary_actor.name, name)
-                            }),
-                        ActorsInvalidity::SummaryNameInconsistentWithIndividualNames(role),
-                    );
-                } else {
-                    // No summary actor
-                    debug_assert_eq!(
-                        Self::main_actor(actors.clone(), role).is_none(),
-                        // Optimization to skip finding the missing summary actor again
-                        Self::filter_kind_role(actors.clone(), Kind::Individual, role).count() != 1,
-                    );
-                    context = context.invalidate_if(
-                        Self::filter_kind_role(actors.clone(), Kind::Individual, role).count() != 1,
-                        ActorsInvalidity::MainActorUndefined(role),
-                    );
-                }
+                let Some(summary_actor) = summary_actor else {
+                    context = context.invalidate(ActorsInvalidity::SummaryActorMissing(role));
+                    continue;
+                };
+                // At most one summary entry exists for each role.
+                context = context.invalidate_if(
+                    summary_actors_iter.next().is_some(),
+                    ActorsInvalidity::SummaryActorAmbiguous(role),
+                );
+                // All individual actors must be consistent with the summary actor.
+                context = context.invalidate_if(
+                    !Self::filter_kind_role(actors.clone(), Kind::Individual, role)
+                        .map(|actor| &actor.name)
+                        .all(|name| {
+                            is_valid_summary_individual_actor_name(&summary_actor.name, name)
+                        }),
+                    ActorsInvalidity::SummaryNameInconsistentWithIndividualNames(role),
+                );
                 // At most one sorting entry exists for each role.
                 context = context.invalidate_if(
                     Self::filter_kind_role(actors.clone(), Kind::Sorting, role).count() > 1,
-                    ActorsInvalidity::SortingActorAmbiguous(role),
+                    ActorsInvalidity::SortActorAmbiguous(role),
                 );
             }
         }
@@ -219,14 +212,62 @@ impl Actors {
         })
     }
 
+    #[must_use]
+    fn kind_actor<'a, I>(actors: I, kind: Kind, role: Role) -> Option<&'a Actor>
+    where
+        I: Iterator<Item = &'a Actor> + Clone,
+    {
+        let mut iter = Self::filter_kind_role(actors, kind, role);
+        let first = iter.next();
+        debug_assert!(first.is_none() || iter.next().is_none());
+        first
+    }
+
+    #[must_use]
+    pub fn main_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
+    where
+        I: Iterator<Item = &'a Actor> + Clone,
+    {
+        if let Some(summary_actor) = Self::summary_actor(actors.clone(), role) {
+            return Some(summary_actor);
+        }
+        if let Some(solo_actor) = Self::solo_individual_actor(actors.clone(), role) {
+            return Some(solo_actor);
+        }
+        Self::sort_actor(actors, role)
+    }
+
+    #[must_use]
+    pub fn sort_or_main_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
+    where
+        I: Iterator<Item = &'a Actor> + Clone,
+    {
+        if let Some(sort_actor) = Self::sort_actor(actors.clone(), role) {
+            return Some(sort_actor);
+        }
+        if let Some(summary_actor) = Self::summary_actor(actors.clone(), role) {
+            return Some(summary_actor);
+        }
+        Self::solo_individual_actor(actors, role)
+    }
+
+    #[must_use]
     pub fn summary_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
     where
         I: Iterator<Item = &'a Actor> + Clone,
     {
-        Self::filter_kind_role(actors, Kind::Summary, role).next()
+        Self::kind_actor(actors, Kind::Summary, role)
     }
 
-    pub fn singular_individual_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
+    #[must_use]
+    pub fn sort_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
+    where
+        I: Iterator<Item = &'a Actor> + Clone,
+    {
+        Self::kind_actor(actors, Kind::Sorting, role)
+    }
+
+    pub fn solo_individual_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
     where
         I: Iterator<Item = &'a Actor> + Clone,
     {
@@ -235,18 +276,9 @@ impl Actors {
         if first.is_some() && iter.next().is_none() {
             first
         } else {
-            // Missing or ambiguous
+            // Missing or ambiguous.
             None
         }
-    }
-
-    // The singular summary actor or if none exists then the singular individual actor
-    pub fn main_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
-    where
-        I: Iterator<Item = &'a Actor> + Clone,
-    {
-        Self::summary_actor(actors.clone(), role)
-            .or_else(|| Self::singular_individual_actor(actors, role))
     }
 
     pub fn collect_all_unique_actor_names<'a, I>(actors: I) -> Vec<&'a str>

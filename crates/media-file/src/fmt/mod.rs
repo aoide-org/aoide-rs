@@ -1227,16 +1227,13 @@ pub(crate) fn export_track_to_tag(
     }
 
     // Track titles
-    if let Some(track_title) = Titles::main_title(track.titles.iter()) {
-        tag.set_title(track_title.name.clone());
+    if let Some(main_track_title) = Titles::main_title(track.titles.iter()) {
+        tag.set_title(main_track_title.name.clone());
     } else {
         tag.remove_title();
     }
-    if let Some(track_title_sorting) = Titles::title_sorting(track.titles.iter()) {
-        tag.insert_text(
-            ItemKey::TrackTitleSortOrder,
-            track_title_sorting.name.clone(),
-        );
+    if let Some(sort_track_title) = Titles::sort_title(track.titles.iter()) {
+        tag.insert_text(ItemKey::TrackTitleSortOrder, sort_track_title.name.clone());
     } else {
         tag.remove_key(&ItemKey::TrackTitleSortOrder);
     }
@@ -1347,24 +1344,21 @@ pub(crate) fn export_track_to_tag(
     );
 
     // Album
-    if let Some(album_title) = Titles::main_title(track.album.titles.iter()) {
-        tag.set_album(album_title.name.clone());
+    if let Some(main_album_title) = Titles::main_title(track.album.titles.iter()) {
+        tag.set_album(main_album_title.name.clone());
     } else {
         tag.remove_album();
+    }
+    if let Some(sort_album_title) = Titles::sort_title(track.album.titles.iter()) {
+        tag.insert_text(ItemKey::AlbumTitleSortOrder, sort_album_title.name.clone());
+    } else {
+        tag.remove_key(&ItemKey::AlbumTitleSortOrder);
     }
     for album_subtitle in Titles::filter_kind(track.album.titles.iter(), TitleKind::Sub).peekable()
     {
         let item_val = ItemValue::Text(album_subtitle.name.clone());
         let pushed = tag.push(TagItem::new(ItemKey::SetSubtitle, item_val));
         debug_assert!(pushed);
-    }
-    if let Some(album_title_sorting) = Titles::title_sorting(track.album.titles.iter()) {
-        tag.insert_text(
-            ItemKey::AlbumTitleSortOrder,
-            album_title_sorting.name.clone(),
-        );
-    } else {
-        tag.remove_key(&ItemKey::AlbumTitleSortOrder);
     }
     export_filtered_actor_names(
         tag,

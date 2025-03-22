@@ -82,6 +82,22 @@ impl<'db> TrackSearchQueryTransform<'db> for SortOrder {
     ) -> view_track_search::BoxedQuery<'db, DbBackend> {
         let direction = self.direction;
         match self.field {
+            SortField::AlbumArtist => match direction {
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::sort_album_artist.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::sort_album_artist.desc())
+                }
+            },
+            SortField::AlbumTitle => match direction {
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::sort_album_title.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::sort_album_title.desc())
+                }
+            },
             SortField::AudioBitrateBps => match direction {
                 SortDirection::Ascending => {
                     query.then_order_by(view_track_search::audio_bitrate_bps.asc())
@@ -230,12 +246,28 @@ impl<'db> TrackSearchQueryTransform<'db> for SortOrder {
                     query.then_order_by(view_track_search::released_orig_at_yyyymmdd.desc())
                 }
             },
+            SortField::TrackArtist => match direction {
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::sort_track_artist.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::sort_track_artist.desc())
+                }
+            },
             SortField::TrackNumber => match direction {
                 SortDirection::Ascending => {
                     query.then_order_by(view_track_search::track_number.asc())
                 }
                 SortDirection::Descending => {
                     query.then_order_by(view_track_search::track_number.desc())
+                }
+            },
+            SortField::TrackTitle => match direction {
+                SortDirection::Ascending => {
+                    query.then_order_by(view_track_search::sort_track_title.asc())
+                }
+                SortDirection::Descending => {
+                    query.then_order_by(view_track_search::sort_track_title.desc())
                 }
             },
             SortField::TrackTotal => match direction {

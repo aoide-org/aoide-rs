@@ -3600,6 +3600,8 @@ components:
     TrackSortField:
       type: string
       enum:
+        - albumArtist
+        - albumTitle
         - audioBitrateBps
         - audioChannelCount
         - audioChannelMask
@@ -3618,7 +3620,9 @@ components:
         - recordedAtDate
         - releasedAtDate
         - releasedOrigAtDate
+        - trackArtist
         - trackNumber
+        - trackTitle
         - trackTotal
         - updatedAt
     TrackSortOrder:

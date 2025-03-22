@@ -58,7 +58,7 @@ repos:
       - id: codespell
   # Check for hardcoded and leaked secrets.
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.24.0
+    rev: v8.24.2
     hooks:
       - id: gitleaks
   # Audit GitHub Actions CI/CD setups.

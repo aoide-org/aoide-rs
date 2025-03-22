@@ -38,6 +38,8 @@ mod _inner {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum SortField {
+    AlbumArtist,
+    AlbumTitle,
     AudioBitrateBps,
     AudioChannelCount,
     AudioChannelMask,
@@ -57,7 +59,9 @@ pub enum SortField {
     RecordedAtDate,
     ReleasedAtDate,
     ReleasedOrigAtDate,
+    TrackArtist,
     TrackNumber,
+    TrackTitle,
     TrackTotal,
     UpdatedAt,
 }
@@ -67,6 +71,8 @@ impl From<SortField> for _inner::SortField {
     fn from(from: SortField) -> Self {
         use SortField as From;
         match from {
+            From::AlbumArtist => Self::AlbumArtist,
+            From::AlbumTitle => Self::AlbumTitle,
             From::AudioBitrateBps => Self::AudioBitrateBps,
             From::AudioChannelCount => Self::AudioChannelCount,
             From::AudioChannelMask => Self::AudioChannelMask,
@@ -86,7 +92,9 @@ impl From<SortField> for _inner::SortField {
             From::RecordedAtDate => Self::RecordedAtDate,
             From::ReleasedAtDate => Self::ReleasedAtDate,
             From::ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
+            From::TrackArtist => Self::TrackArtist,
             From::TrackNumber => Self::TrackNumber,
+            From::TrackTitle => Self::TrackTitle,
             From::TrackTotal => Self::TrackTotal,
             From::UpdatedAt => Self::UpdatedAt,
         }
@@ -98,6 +106,8 @@ impl From<_inner::SortField> for SortField {
     fn from(from: _inner::SortField) -> Self {
         use _inner::SortField as From;
         match from {
+            From::AlbumArtist => Self::AlbumArtist,
+            From::AlbumTitle => Self::AlbumTitle,
             From::AudioBitrateBps => Self::AudioBitrateBps,
             From::AudioChannelCount => Self::AudioChannelCount,
             From::AudioChannelMask => Self::AudioChannelMask,
@@ -117,7 +127,9 @@ impl From<_inner::SortField> for SortField {
             From::RecordedAtDate => Self::RecordedAtDate,
             From::ReleasedAtDate => Self::ReleasedAtDate,
             From::ReleasedOrigAtDate => Self::ReleasedOrigAtDate,
+            From::TrackArtist => Self::TrackArtist,
             From::TrackNumber => Self::TrackNumber,
+            From::TrackTitle => Self::TrackTitle,
             From::TrackTotal => Self::TrackTotal,
             From::UpdatedAt => Self::UpdatedAt,
         }
