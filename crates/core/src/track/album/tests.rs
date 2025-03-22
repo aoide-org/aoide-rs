@@ -5,10 +5,10 @@ use super::*;
 use crate::track::{actor, title};
 
 #[test]
-fn with_main_title() {
+fn with_summary_title() {
     let album = Album {
         titles: Canonical::tie(vec![Title {
-            name: "main".to_string(),
+            name: "summary".to_string(),
             kind: title::Kind::Main,
         }]),
         ..Default::default()
@@ -17,7 +17,7 @@ fn with_main_title() {
 }
 
 #[test]
-fn without_main_title() {
+fn without_summary_title() {
     let album = Album {
         titles: Canonical::tie(vec![Title {
             name: "sub".to_string(),
@@ -29,10 +29,10 @@ fn without_main_title() {
 }
 
 #[test]
-fn with_main_artist() {
+fn with_summary_artist() {
     let album = Album {
         titles: Canonical::tie(vec![Title {
-            name: "main".to_string(),
+            name: "summary".to_string(),
             kind: title::Kind::Main,
         }]),
         actors: Canonical::tie(vec![Actor {
@@ -42,15 +42,15 @@ fn with_main_artist() {
         }]),
         ..Default::default()
     };
-    assert!(Actors::main_actor(album.actors.iter(), Default::default()).is_some());
+    assert!(Actors::summary_actor(album.actors.iter(), Default::default()).is_some());
     assert!(album.validate().is_ok());
 }
 
 #[test]
-fn without_main_artist() {
+fn without_summary_artist() {
     let album = Album {
         titles: Canonical::tie(vec![Title {
-            name: "main".to_string(),
+            name: "summary".to_string(),
             kind: title::Kind::Main,
         }]),
         actors: Canonical::tie(vec![Actor {
@@ -60,7 +60,7 @@ fn without_main_artist() {
         }]),
         ..Default::default()
     };
-    // No main artist required
-    assert!(Actors::main_actor(album.actors.iter(), Default::default()).is_none());
+    // No summary artist required
+    assert!(Actors::summary_actor(album.actors.iter(), Default::default()).is_none());
     assert!(album.validate().is_ok());
 }

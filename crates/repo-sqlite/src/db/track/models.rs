@@ -134,9 +134,9 @@ impl<'a> InsertableRecord<'a> {
             flags: music_flags,
         } = metrics;
         let sort_track_artist =
-            Actors::sort_or_main_actor(track_actors.iter(), actor::Role::Artist);
+            Actors::sort_or_summary_actor(track_actors.iter(), actor::Role::Artist);
         let sort_album_artist =
-            Actors::sort_or_main_actor(album_actors.iter(), actor::Role::Artist);
+            Actors::sort_or_summary_actor(album_actors.iter(), actor::Role::Artist);
         let sort_track_title = Titles::sort_or_main_title(track_titles.iter());
         let sort_album_title = Titles::sort_or_main_title(album_titles.iter());
         Self {
@@ -309,9 +309,9 @@ impl<'a> UpdatableRecord<'a> {
             flags: music_flags,
         } = metrics;
         let sort_track_artist =
-            Actors::sort_or_main_actor(track_actors.iter(), actor::Role::Artist);
+            Actors::sort_or_summary_actor(track_actors.iter(), actor::Role::Artist);
         let sort_album_artist =
-            Actors::sort_or_main_actor(album_actors.iter(), actor::Role::Artist);
+            Actors::sort_or_summary_actor(album_actors.iter(), actor::Role::Artist);
         let sort_track_title = Titles::sort_or_main_title(track_titles.iter());
         let sort_album_title = Titles::sort_or_main_title(album_titles.iter());
         Self {

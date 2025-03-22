@@ -39,13 +39,13 @@ impl Album {
     }
 
     #[must_use]
-    pub fn main_actor(&self, role: actor::Role) -> Option<&Actor> {
-        Actors::main_actor(self.actors.iter(), role)
+    pub fn summary_actor(&self, role: actor::Role) -> Option<&Actor> {
+        Actors::summary_actor(self.actors.iter(), role)
     }
 
     #[must_use]
-    pub fn main_artist(&self) -> Option<&Actor> {
-        Actors::main_actor(self.actors.iter(), actor::Role::Artist)
+    pub fn summary_artist(&self) -> Option<&Actor> {
+        Actors::summary_actor(self.actors.iter(), actor::Role::Artist)
     }
 }
 

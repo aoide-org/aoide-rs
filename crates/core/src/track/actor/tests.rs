@@ -7,8 +7,8 @@ use super::*;
 fn actors() {
     let summary_artist_name = "Madonna feat. M.I.A. and Nicki Minaj";
     let individual_artist_names = ["Madonna", "M.I.A.", "Nicki Minaj"];
-    let individual_producer_name = "Martin Solveig";
-    let actors = vec![
+    let summary_producer_name = "Martin Solveig";
+    let actors = [
         Actor {
             name: summary_artist_name.into(),
             ..Default::default()
@@ -24,9 +24,8 @@ fn actors() {
             ..Default::default()
         },
         Actor {
-            name: individual_producer_name.into(),
+            name: summary_producer_name.into(),
             role: Role::Producer,
-            kind: Kind::Individual,
             ..Default::default()
         },
         Actor {
@@ -55,38 +54,85 @@ fn actors() {
     );
     assert_eq!(
         summary_artist_name,
-        Actors::main_actor(actors.iter(), Role::Artist)
+        Actors::summary_actor(actors.iter(), Role::Artist)
             .unwrap()
             .name
     );
 
     // Producer(s)
     assert_eq!(
-        0,
+        1,
         Actors::filter_kind_role(&actors, Kind::Summary, Role::Producer).count()
     );
     assert_eq!(
-        &[individual_producer_name],
-        Actors::filter_kind_role(&actors, Kind::Individual, Role::Producer)
+        &[summary_producer_name],
+        Actors::filter_kind_role(&actors, Kind::Summary, Role::Producer)
             .map(|actor| actor.name.as_str())
             .collect::<Vec<_>>()
             .as_slice()
     );
     assert_eq!(
-        individual_producer_name,
-        Actors::main_actor(actors.iter(), Role::Producer)
+        summary_producer_name,
+        Actors::summary_actor(actors.iter(), Role::Producer)
             .unwrap()
             .name
     );
 
     // Conductor(s)
-    for kind in &[Kind::Summary, Kind::Individual, Kind::Individual] {
+    for kind in &[Kind::Summary, Kind::Individual, Kind::Sorting] {
         assert_eq!(
             0,
             Actors::filter_kind_role(&actors, *kind, Role::Conductor).count()
         );
     }
-    assert_eq!(None, Actors::main_actor(actors.iter(), Role::Conductor));
+    assert_eq!(None, Actors::summary_actor(actors.iter(), Role::Conductor));
+}
+
+#[test]
+fn single_individual_without_summary_actor_should_be_invalid() {
+    let actors = [Actor {
+        name: "Solo".into(),
+        kind: Kind::Individual,
+        ..Default::default()
+    }];
+
+    assert!(Actors::validate(&actors.iter()).is_err());
+}
+
+#[test]
+fn multiple_summary_actors_should_be_invalid() {
+    let actors = [
+        Actor {
+            name: "Summary1".into(),
+            kind: Kind::Summary,
+            ..Default::default()
+        },
+        Actor {
+            name: "Summary2".into(),
+            kind: Kind::Summary,
+            ..Default::default()
+        },
+    ];
+
+    assert!(Actors::validate(&actors.iter()).is_err());
+}
+
+#[test]
+fn multiple_sort_actors_should_be_invalid() {
+    let actors = [
+        Actor {
+            name: "Sorting1".into(),
+            kind: Kind::Sorting,
+            ..Default::default()
+        },
+        Actor {
+            name: "Sorting2".into(),
+            kind: Kind::Sorting,
+            ..Default::default()
+        },
+    ];
+
+    assert!(Actors::validate(&actors.iter()).is_err());
 }
 
 #[test]

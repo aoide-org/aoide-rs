@@ -39,12 +39,16 @@ pub enum Role {
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromRepr)]
 #[repr(u8)]
 pub enum Kind {
-    /// Unique and mandatory summary or main actor.
+    /// Unique summary actor (mandatory).
     #[default]
     Summary = 0,
     /// Single persons or group/band names.
+    ///
+    /// Individual actors should only be used if the summary actor comprises
+    /// two or more actors. A single/solo `Individual` actor without a `Summary` actor
+    /// is not permitted.
     Individual = 1,
-    /// Unique sort actor.
+    /// Unique sort actor (optional).
     Sorting = 2,
 }
 
@@ -224,31 +228,14 @@ impl Actors {
     }
 
     #[must_use]
-    pub fn main_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
-    where
-        I: Iterator<Item = &'a Actor> + Clone,
-    {
-        if let Some(summary_actor) = Self::summary_actor(actors.clone(), role) {
-            return Some(summary_actor);
-        }
-        if let Some(solo_actor) = Self::solo_individual_actor(actors.clone(), role) {
-            return Some(solo_actor);
-        }
-        Self::sort_actor(actors, role)
-    }
-
-    #[must_use]
-    pub fn sort_or_main_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
+    pub fn sort_or_summary_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
     where
         I: Iterator<Item = &'a Actor> + Clone,
     {
         if let Some(sort_actor) = Self::sort_actor(actors.clone(), role) {
             return Some(sort_actor);
         }
-        if let Some(summary_actor) = Self::summary_actor(actors.clone(), role) {
-            return Some(summary_actor);
-        }
-        Self::solo_individual_actor(actors, role)
+        Self::summary_actor(actors, role)
     }
 
     #[must_use]

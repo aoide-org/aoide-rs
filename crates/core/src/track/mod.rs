@@ -174,12 +174,13 @@ impl Track {
 
     #[must_use]
     pub fn track_artist(&self) -> Option<&str> {
-        Actors::main_actor(self.actors.iter(), actor::Role::Artist).map(|actor| actor.name.as_str())
+        Actors::summary_actor(self.actors.iter(), actor::Role::Artist)
+            .map(|actor| actor.name.as_str())
     }
 
     #[must_use]
     pub fn track_composer(&self) -> Option<&str> {
-        Actors::main_actor(self.actors.iter(), actor::Role::Composer)
+        Actors::summary_actor(self.actors.iter(), actor::Role::Composer)
             .map(|actor| actor.name.as_str())
     }
 
@@ -209,7 +210,7 @@ impl Track {
 
     #[must_use]
     pub fn album_artist(&self) -> Option<&str> {
-        Actors::main_actor(self.album.actors.iter(), actor::Role::Artist)
+        Actors::summary_actor(self.album.actors.iter(), actor::Role::Artist)
             .map(|actor| actor.name.as_str())
     }
 }
