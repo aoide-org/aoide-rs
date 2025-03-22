@@ -39,7 +39,7 @@ pub enum Role {
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, FromRepr)]
 #[repr(u8)]
 pub enum Kind {
-    /// Mandatory summary or main actor.
+    /// Unique and mandatory summary or main actor.
     #[default]
     Summary = 0,
     /// Single persons or group/band names.
