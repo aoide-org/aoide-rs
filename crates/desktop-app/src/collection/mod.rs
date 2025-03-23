@@ -1107,8 +1107,8 @@ impl SharedState {
         &self,
         rt: &tokio::runtime::Handle,
         env: &Arc<Environment>,
-        kind: Option<Cow<'static, str>>,
-        new_music_dir: DirPath<'static>,
+        kind: Option<Cow<'_, str>>,
+        new_music_dir: DirPath<'_>,
         restore_entity: RestoreEntityStrategy,
         nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> anyhow::Result<SpawnRestoringFromMusicDirectoryTaskReaction> {
