@@ -35,7 +35,10 @@ use aoide_core::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
             FACET_ID_ISRC, FACET_ID_MBID_ARTIST, FACET_ID_MBID_RECORDING, FACET_ID_MBID_RELEASE,
             FACET_ID_MBID_RELEASE_ARTIST, FACET_ID_MBID_RELEASE_GROUP, FACET_ID_MBID_TRACK,
-            FACET_ID_MBID_WORK, FACET_ID_MOOD, FACET_ID_XID,
+            FACET_ID_MBID_WORK, FACET_ID_MOOD, FACET_ID_XID, FACET_KEY_COMMENT,
+            FACET_KEY_DESCRIPTION, FACET_KEY_GENRE, FACET_KEY_GROUPING, FACET_KEY_ISRC,
+            FACET_KEY_MBID_RECORDING, FACET_KEY_MBID_RELEASE, FACET_KEY_MBID_RELEASE_GROUP,
+            FACET_KEY_MBID_TRACK, FACET_KEY_MOOD, FACET_KEY_XID,
         },
         title::{Kind as TitleKind, Titles},
     },
@@ -79,7 +82,7 @@ pub(crate) mod vorbis;
 const ENCODER_FIELD_SEPARATOR: &str = "|";
 
 /// All facets that could be stored as native file tags.
-const DEFAULT_FILE_TAG_MAPPING: [(&FacetId<'static>, &ItemKey); 14] = [
+const DEFAULT_FILE_TAG_MAPPING: [(&FacetId, &ItemKey); 14] = [
     (FACET_ID_COMMENT, &ItemKey::Comment),
     (FACET_ID_DESCRIPTION, &ItemKey::Description),
     (FACET_ID_GENRE, &ItemKey::Genre),
@@ -102,9 +105,9 @@ const DEFAULT_FILE_TAG_MAPPING: [(&FacetId<'static>, &ItemKey); 14] = [
     (FACET_ID_XID, &ItemKey::AppleXid),
 ];
 
-fn file_tag_facets_without<'a>(
-    excluded_facet_id: &'a FacetId<'a>,
-) -> impl Iterator<Item = &'a FacetId<'a>> + 'a + Clone {
+fn file_tag_facets_without(
+    excluded_facet_id: &FacetId,
+) -> impl Iterator<Item = &FacetId> + Clone + '_ {
     DEFAULT_FILE_TAG_MAPPING
         .iter()
         .copied()
@@ -121,7 +124,7 @@ fn file_tag_facets_without<'a>(
 pub fn encode_gig_tags(
     tags: &mut Canonical<Tags<'_>>,
     encoded_tags: &mut Vec<PlainTag<'_>>,
-    facet_id: &FacetId<'_>,
+    facet_id: &FacetId,
 ) -> std::fmt::Result {
     use nonicle::Canonical;
 
@@ -925,19 +928,19 @@ pub(crate) fn import_file_tag_into_track(
     let mut tags_map: TagsMap<'static> = Default::default();
 
     // Grouping tags
-    debug_assert!(tags_map.get_faceted_plain_tags(FACET_ID_GROUPING).is_none());
+    debug_assert!(tags_map.get_tags(FACET_KEY_GROUPING).is_none());
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_ID_GROUPING,
+        FACET_KEY_GROUPING,
         tag_take_strings(&mut tag, &compatibility.primary_content_group).map(Into::into),
     );
     if let Some(secondary_content_group) = compatibility.secondary_content_group {
-        if tags_map.get_faceted_plain_tags(FACET_ID_GROUPING).is_none() {
+        if tags_map.get_tags(FACET_KEY_GROUPING).is_none() {
             importer.import_faceted_tags_from_label_values(
                 &mut tags_map,
                 &config.faceted_tag_mapping,
-                FACET_ID_GROUPING,
+                FACET_KEY_GROUPING,
                 tag_take_strings(&mut tag, &secondary_content_group).map(Into::into),
             );
         }
@@ -946,7 +949,7 @@ pub(crate) fn import_file_tag_into_track(
     // Import gig tags from raw grouping tags before any other tags.
     #[cfg(feature = "gigtag")]
     if config.flags.contains(ImportTrackFlags::GIGTAGS_CGRP) {
-        if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_ID_GROUPING) {
+        if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_KEY_GROUPING) {
             tags_map.merge(crate::util::gigtag::import_from_faceted_tags(faceted_tags));
         }
     }
@@ -955,14 +958,14 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_ID_COMMENT,
+        FACET_KEY_COMMENT,
         tag_take_strings(&mut tag, &ItemKey::Comment).map(Into::into),
     );
 
     // Import additional gig tags from the raw comment tag.
     #[cfg(feature = "gigtag")]
     if config.flags.contains(ImportTrackFlags::GIGTAGS_COMM) {
-        if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_ID_COMMENT) {
+        if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_KEY_COMMENT) {
             tags_map.merge(crate::util::gigtag::import_from_faceted_tags(faceted_tags));
         }
     }
@@ -980,14 +983,14 @@ pub(crate) fn import_file_tag_into_track(
                 genre,
             );
         }
-        tags_map.update_faceted_plain_tags_by_label_ordering(FACET_ID_GENRE, plain_tags);
+        tags_map.update_tags_by_label_ordering(FACET_KEY_GENRE, plain_tags);
     }
 
     // Mood tags
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_ID_MOOD,
+        FACET_KEY_MOOD,
         tag_take_strings(&mut tag, &ItemKey::Mood).map(Into::into),
     );
 
@@ -995,7 +998,7 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_ID_DESCRIPTION,
+        FACET_KEY_DESCRIPTION,
         tag_take_strings(&mut tag, &ItemKey::Description).map(Into::into),
     );
 
@@ -1003,7 +1006,7 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_ID_ISRC,
+        FACET_KEY_ISRC,
         tag_take_strings(&mut tag, &ItemKey::Isrc).map(Into::into),
     );
 
@@ -1011,7 +1014,7 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_ID_XID,
+        FACET_KEY_XID,
         tag_take_strings(&mut tag, &ItemKey::AppleXid).map(Into::into),
     );
 
@@ -1019,25 +1022,25 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_ID_MBID_RECORDING,
+        FACET_KEY_MBID_RECORDING,
         tag_take_strings(&mut tag, &ItemKey::MusicBrainzRecordingId).map(Into::into),
     );
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_ID_MBID_TRACK,
+        FACET_KEY_MBID_TRACK,
         tag_take_strings(&mut tag, &ItemKey::MusicBrainzTrackId).map(Into::into),
     );
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_ID_MBID_RELEASE,
+        FACET_KEY_MBID_RELEASE,
         tag_take_strings(&mut tag, &ItemKey::MusicBrainzReleaseId).map(Into::into),
     );
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_ID_MBID_RELEASE_GROUP,
+        FACET_KEY_MBID_RELEASE_GROUP,
         tag_take_strings(&mut tag, &ItemKey::MusicBrainzReleaseGroupId).map(Into::into),
     );
 
@@ -1473,7 +1476,8 @@ pub(crate) fn export_track_to_tag(
                 // Defer until later (see below).
             }
             let item_key = compatibility.primary_item_key(item_key).clone();
-            if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(FACET_ID_GENRE)
+            if let Some(FacetedTags { facet_id, tags }) =
+                tags_map.take_faceted_tags(FACET_KEY_GENRE)
             {
                 export_faceted_tags(
                     tag,
@@ -1501,8 +1505,9 @@ pub(crate) fn export_track_to_tag(
                     })
             {
                 let item_key = compatibility.primary_item_key(item_key).clone();
+                let facet_key = facet_id.clone().into();
                 let mut tags = tags_map
-                    .take_faceted_tags(facet_id)
+                    .take_faceted_tags(&facet_key)
                     .map(|FacetedTags { facet_id: _, tags }| tags)
                     .unwrap_or_default();
                 // Verify that the map does not contain any tags that have already been exported.
@@ -1527,7 +1532,7 @@ pub(crate) fn export_track_to_tag(
                     export_faceted_tags(
                         tag,
                         item_key,
-                        config.faceted_tag_mapping.get(&FacetKey::from(facet_id)),
+                        config.faceted_tag_mapping.get(&facet_key),
                         tags,
                     );
                 }

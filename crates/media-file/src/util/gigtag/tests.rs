@@ -214,14 +214,14 @@ fn reencode_roundtrip() {
     );
 
     // Replace plain tag #Tag1 with #Tag2
-    tags_map.replace_faceted_plain_tags(
+    tags_map.replace_tags(
         Default::default(),
         vec![plain_tag_with_label("Tag2".to_string())],
     );
 
     // Add #Tag2 with a non-date-like facet
-    tags_map.replace_faceted_plain_tags(
-        FacetId::from_unchecked("facet"),
+    tags_map.replace_tags(
+        FacetId::from_unchecked("facet").into(),
         vec![plain_tag_with_label("Tag2".to_string())],
     );
 

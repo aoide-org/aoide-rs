@@ -10,12 +10,12 @@ pub(crate) mod schema;
 #[derive(Debug)]
 pub struct Record {
     pub track_id: RecordId,
-    pub facet_id: Option<FacetId<'static>>,
+    pub facet_id: Option<FacetId>,
     pub label: Option<Label<'static>>,
     pub score: Score,
 }
 
-impl From<Record> for (Option<FacetId<'static>>, PlainTag<'static>) {
+impl From<Record> for (Option<FacetId>, PlainTag<'static>) {
     fn from(from: Record) -> Self {
         let Record {
             track_id: _,

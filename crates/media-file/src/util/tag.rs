@@ -51,7 +51,7 @@ impl TagMappingConfig {
     }
 }
 
-pub type FacetedTagMappingConfigInner = HashMap<FacetKey<'static>, TagMappingConfig>;
+pub type FacetedTagMappingConfigInner = HashMap<FacetKey, TagMappingConfig>;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct FacetedTagMappingConfig(FacetedTagMappingConfigInner);

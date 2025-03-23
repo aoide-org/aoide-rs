@@ -1,15 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{
-    borrow::{Borrow, Cow},
-    cmp::Ordering,
-    fmt,
-    hash::Hash,
-};
+use std::{borrow::Borrow, cmp::Ordering, hash::Hash, ops::Not as _};
 
+use derive_more::Display;
 use nonicle::CanonicalOrd;
 use semval::prelude::*;
+use smol_str::SmolStr;
 
 /// An identifier for referencing tag categories.
 ///
@@ -32,26 +29,45 @@ use semval::prelude::*;
 ///
 /// References:
 ///   - <https://en.wikipedia.org/wiki/Faceted_classification>
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Display)]
 #[repr(transparent)]
 #[cfg_attr(
     feature = "serde",
     derive(serde::Serialize, serde::Deserialize),
     serde(transparent)
 )]
-#[cfg_attr(
-    feature = "json-schema",
-    derive(schemars::JsonSchema),
-    schemars(transparent)
-)]
-pub struct FacetId<'a>(Cow<'a, str>);
+pub struct FacetId(SmolStr);
+
+#[cfg(feature = "json-schema")]
+impl schemars::JsonSchema for FacetId {
+    fn schema_name() -> String {
+        "FacetId".to_string()
+    }
+
+    fn json_schema(r#gen: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
+        use schemars::schema::Schema;
+        let mut schema = r#gen.subschema_for::<String>();
+        if let Schema::Object(mut schema_object) = schema {
+            schema_object.metadata().title = Some("Tag facet identifier string".into());
+            schema_object.metadata().description =
+                Some("Only the following characters are allowed: \"{FACET_ID_ALPHABET}\"".into());
+            schema_object.metadata().examples = vec![
+                serde_json::to_value(crate::track::tag::FACET_ID_GENRE).expect("valid"),
+                serde_json::to_value(crate::track::tag::FACET_ID_MBID_RECORDING).expect("valid"),
+                serde_json::to_value(crate::track::tag::FACET_ID_VALENCE).expect("valid"),
+            ];
+            schema = Schema::Object(schema_object);
+        }
+        schema
+    }
+}
 
 /// The alphabet of facet identifiers
 ///
 /// All valid characters, ordered by their ASCII codes.
 pub const FACET_ID_ALPHABET: &str = "+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz~";
 
-impl<'a> FacetId<'a> {
+impl FacetId {
     #[must_use]
     fn is_valid_char(c: char) -> bool {
         FACET_ID_ALPHABET.contains(c)
@@ -73,29 +89,26 @@ impl<'a> FacetId<'a> {
     }
 
     #[must_use]
-    fn clamp_inner(inner: Cow<'a, str>) -> Option<Cow<'a, str>> {
+    fn clamp_inner(inner: SmolStr) -> Option<SmolStr> {
         if inner.is_empty() {
             return None;
         }
         if Self::is_valid_format(&inner) {
             return Some(inner);
         }
-        if !inner.contains(Self::is_valid_char) {
-            return None;
-        }
-        let mut owned = inner.into_owned();
-        owned.retain(Self::is_valid_char);
-        Some(Cow::Owned(owned))
+        let mut clamped = String::from(inner);
+        clamped.retain(Self::is_valid_char);
+        clamped.is_empty().not().then(|| clamped.into())
     }
 
-    pub fn clamp_from(from: impl Into<Cow<'a, str>>) -> Option<Self> {
-        let clamped = Self::clamp_inner(from.into()).map(Self::new_unchecked);
+    pub fn clamp_from(from: impl Into<SmolStr>) -> Option<Self> {
+        let clamped = Self::clamp_inner(from.into()).map(Self::new_unchecked)?;
         debug_assert!(clamped.is_valid());
-        clamped
+        Some(clamped)
     }
 
     #[must_use]
-    pub fn from_unchecked(from: impl Into<Cow<'a, str>>) -> Self {
+    pub fn from_unchecked(from: impl Into<SmolStr>) -> Self {
         let inner = from.into();
         let unchecked = Self::new_unchecked(inner);
         debug_assert!(unchecked.is_valid());
@@ -103,7 +116,7 @@ impl<'a> FacetId<'a> {
     }
 
     #[must_use]
-    pub const fn new_unchecked(inner: Cow<'a, str>) -> Self {
+    pub const fn new_unchecked(inner: SmolStr) -> Self {
         Self(inner)
     }
 
@@ -117,51 +130,28 @@ impl<'a> FacetId<'a> {
     pub fn is_empty(&self) -> bool {
         self.as_str().is_empty()
     }
-
-    #[must_use]
-    pub fn to_borrowed(&'a self) -> Self {
-        let Self(inner) = self;
-        FacetId(Cow::Borrowed(inner))
-    }
-
-    #[must_use]
-    pub fn into_owned(self) -> FacetId<'static> {
-        let Self(inner) = self;
-        FacetId(Cow::Owned(inner.into_owned()))
-    }
-
-    #[must_use]
-    pub fn clone_owned(&self) -> FacetId<'static> {
-        self.to_borrowed().into_owned()
-    }
 }
 
-impl<'a> AsRef<Cow<'a, str>> for FacetId<'a> {
-    fn as_ref(&self) -> &Cow<'a, str> {
+impl AsRef<SmolStr> for FacetId {
+    fn as_ref(&self) -> &SmolStr {
         &self.0
     }
 }
 
-impl Borrow<str> for FacetId<'_> {
+impl Borrow<str> for FacetId {
     fn borrow(&self) -> &str {
-        self.as_ref()
+        self.as_str()
     }
 }
 
-impl fmt::Display for FacetId<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_str().fmt(f)
-    }
-}
-
-impl CanonicalOrd for FacetId<'_> {
+impl CanonicalOrd for FacetId {
     fn canonical_cmp(&self, other: &Self) -> Ordering {
         self.cmp(other)
     }
 }
 
-impl<'a> From<FacetId<'a>> for Cow<'a, str> {
-    fn from(from: FacetId<'a>) -> Self {
+impl From<FacetId> for SmolStr {
+    fn from(from: FacetId) -> Self {
         let FacetId(inner) = from;
         inner
     }
@@ -173,7 +163,7 @@ pub enum FacetIdInvalidity {
     Format,
 }
 
-impl Validate for FacetId<'_> {
+impl Validate for FacetId {
     type Invalidity = FacetIdInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
@@ -188,10 +178,10 @@ impl Validate for FacetId<'_> {
 }
 
 pub trait Faceted {
-    fn facet(&self) -> Option<&FacetId<'_>>;
+    fn facet(&self) -> Option<&FacetId>;
 }
 
-impl Faceted for FacetId<'_> {
+impl Faceted for FacetId {
     fn facet(&self) -> Option<&Self> {
         Some(self)
     }

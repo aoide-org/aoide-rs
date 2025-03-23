@@ -13,18 +13,18 @@ use crate::{
 /// Both an empty vector or a default element inside a non-empty
 /// vector match all unfaceted tags, i.e. tags without a facet.
 #[derive(Clone, Debug, PartialEq)]
-pub enum FacetsFilter<'a> {
-    Prefix(FacetKey<'a>),
-    AnyOf(Vec<FacetKey<'a>>),
+pub enum FacetsFilter {
+    Prefix(FacetKey),
+    AnyOf(Vec<FacetKey>),
     /// Not [`AnyOf`](Self::AnyOf).
-    NoneOf(Vec<FacetKey<'a>>),
+    NoneOf(Vec<FacetKey>),
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Filter {
     pub modifier: Option<FilterModifier>,
 
-    pub facets: Option<FacetsFilter<'static>>,
+    pub facets: Option<FacetsFilter>,
 
     pub label: Option<StringPredicate<'static>>,
 

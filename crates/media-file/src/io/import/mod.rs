@@ -23,7 +23,7 @@ use semval::prelude::*;
 use url::Url;
 
 use aoide_core::{
-    PlainTag, TagFacetId, TagLabel, TagScore, TagsMap,
+    PlainTag, TagFacetKey, TagLabel, TagScore, TagsMap,
     audio::signal::LoudnessLufs,
     media::{
         Content, Source,
@@ -654,10 +654,10 @@ impl Importer {
         &mut self,
         tags_map: &mut TagsMap<'a>,
         faceted_tag_mapping_config: &FacetedTagMappingConfig,
-        facet_id: &TagFacetId<'_>,
+        facet_key: &TagFacetKey,
         label_values: impl IntoIterator<Item = Cow<'a, str>>,
     ) -> usize {
-        let tag_mapping_config = faceted_tag_mapping_config.get(facet_id.as_str());
+        let tag_mapping_config = faceted_tag_mapping_config.get(facet_key.as_str());
         let mut total_import_count = 0;
         let mut plain_tags = Vec::with_capacity(8);
         let mut next_score_value = PlainTag::DEFAULT_SCORE.value();
@@ -672,11 +672,11 @@ impl Importer {
         let count = plain_tags.len();
         if count < total_import_count {
             self.issues.add_message(format!(
-                "Discarded {duplicate_count} duplicate tag labels for facet '{facet_id}'",
+                "Discarded {duplicate_count} duplicate tag labels for facet \"{facet_key}\"",
                 duplicate_count = total_import_count - count,
             ));
         }
-        tags_map.update_faceted_plain_tags_by_label_ordering(facet_id, plain_tags);
+        tags_map.update_tags_by_label_ordering(facet_key, plain_tags);
         count
     }
 

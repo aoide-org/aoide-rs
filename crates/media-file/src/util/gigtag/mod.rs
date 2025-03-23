@@ -7,6 +7,7 @@ use compact_str::{CompactString, format_compact};
 use gigtag::{Facet as _, facet::has_date_like_suffix};
 use nonicle::Canonical;
 use semval::prelude::*;
+use smol_str::ToSmolStr as _;
 
 use aoide_core::tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, ScoreValue, Tags, TagsMap};
 
@@ -28,7 +29,7 @@ fn export_valid_label(label: &aoide_core::tag::Label<'_>) -> Option<Label> {
     (gigtag::label::is_valid(label)).then(|| gigtag::Label::from_str(label))
 }
 
-fn export_facet(facet_id: &FacetId<'_>) -> Facet {
+fn export_facet(facet_id: &FacetId) -> Facet {
     let facet = Facet::from_str(facet_id.as_str());
     debug_assert!(facet.is_valid());
     facet
@@ -133,7 +134,7 @@ pub fn export_and_encode_tags_into(
     Ok(())
 }
 
-fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag<'_>)> {
+fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag<'_>)> {
     let score = match &tag.props() {
         [] => Default::default(),
         [prop] => {
@@ -161,7 +162,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey<'_>, PlainTag<'_>)> {
     }
     let facet_key = if tag.has_facet() {
         let facet_id_clamped = FacetId::clamp_from(tag.facet().as_ref());
-        let facet_id_unclamped = Some(FacetId::new_unchecked(Cow::Borrowed(tag.facet())));
+        let facet_id_unclamped = Some(FacetId::new_unchecked(tag.facet().to_smolstr()));
         if facet_id_clamped != facet_id_unclamped {
             // Skip non-aoide tag
             return None;
@@ -198,7 +199,7 @@ fn decode_tags_eagerly_into(
         if let Some((facet_key, plain_tag)) = try_import_tag(tag) {
             log::debug!("Imported {facet_key:?} {plain_tag:?} from {tag:?}");
             if let Some(tags_map) = tags_map.as_mut() {
-                tags_map.insert(facet_key.into_owned(), plain_tag.into_owned());
+                tags_map.insert(facet_key, plain_tag.into_owned());
             }
             num_imported += 1;
             // Discard the imported tag
@@ -259,19 +260,20 @@ pub fn import_from_faceted_tags(mut faceted_tags: FacetedTags<'static>) -> TagsM
     });
     if !faceted_tags.tags.is_empty() {
         let FacetedTags { facet_id, mut tags } = faceted_tags;
-        let ingested_tags = tags_map.take_faceted_tags(&facet_id);
+        let facet_key = facet_id.into();
+        let ingested_tags = tags_map.take_faceted_tags(&facet_key);
         if let Some(mut ingested_tags) = ingested_tags {
             if !ingested_tags.tags.is_empty() {
                 log::warn!(
                     "Joining {num_undecoded} undecoded with {num_ingested} ingested tag(s) for \
-                     facet '{facet_id}'",
+                     facet \"{facet_key}\"",
                     num_undecoded = tags.len(),
                     num_ingested = ingested_tags.tags.len()
                 );
                 tags.append(&mut ingested_tags.tags);
             }
         }
-        tags_map.replace_faceted_plain_tags(facet_id, tags);
+        tags_map.replace_tags(facet_key, tags);
     }
     tags_map
 }

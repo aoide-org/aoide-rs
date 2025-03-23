@@ -252,6 +252,7 @@ dependencies = [
  "semval",
  "serde",
  "serde_json",
+ "smol_str 0.3.2",
  "strum 0.27.1",
  "time",
  "ulid",
@@ -364,6 +365,7 @@ dependencies = [
  "num-traits",
  "palette",
  "semval",
+ "smol_str 0.3.2",
  "tempfile",
  "thiserror 2.0.12",
  "time",
@@ -837,6 +839,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d59b4c170e16f0405a2e95aff44432a0d41aa97675f3d52623effe95792a037"
 dependencies = [
  "objc2 0.6.0",
+]
+
+[[package]]
+name = "borsh"
+version = "1.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2b74d67a0fc0af8e9823b79fd1c43a0900e5a8f0e0f4cc9210796bf3a820126"
+dependencies = [
+ "cfg_aliases",
 ]
 
 [[package]]
@@ -4349,6 +4360,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "smol_str"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9676b89cd56310a87b93dec47b11af744f34d5fc9f367b829474eec0a891350d"
+dependencies = [
+ "borsh",
+ "serde",
+]
+
+[[package]]
 name = "socket2"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5819,7 +5840,7 @@ dependencies = [
  "redox_syscall 0.4.1",
  "rustix 0.38.44",
  "smithay-client-toolkit",
- "smol_str",
+ "smol_str 0.2.2",
  "tracing",
  "unicode-segmentation",
  "wasm-bindgen",

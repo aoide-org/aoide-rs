@@ -36,7 +36,7 @@ const DEFAULT_PAGINATION: Pagination = Pagination {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct TrackQueryParams {
-    pub encode_gigtags: Option<FacetId<'static>>,
+    pub encode_gigtags: Option<FacetId>,
 }
 
 fn new_request_id() -> Uuid {
@@ -47,12 +47,12 @@ fn new_request_id() -> Uuid {
 pub struct EntityCollectorConfig {
     pub capacity: Option<usize>,
 
-    pub encode_gigtags: Option<FacetId<'static>>,
+    pub encode_gigtags: Option<FacetId>,
 }
 
 #[derive(Debug)]
 pub struct EntityCollector {
-    encode_gigtags: Option<FacetId<'static>>,
+    encode_gigtags: Option<FacetId>,
 
     collected: Vec<Entity>,
 }

@@ -24,25 +24,23 @@ mod _core {
 )]
 pub struct FacetKey {
     #[cfg_attr(feature = "json-schema", schemars(with = "String"))]
-    inner: _core::FacetKey<'static>,
+    inner: _core::FacetKey,
 }
 
-impl From<_core::FacetKey<'_>> for FacetKey {
-    fn from(inner: _core::FacetKey<'_>) -> Self {
-        Self {
-            inner: inner.into_owned(),
-        }
+impl From<_core::FacetKey> for FacetKey {
+    fn from(inner: _core::FacetKey) -> Self {
+        Self { inner }
     }
 }
 
-impl From<FacetKey> for _core::FacetKey<'_> {
+impl From<FacetKey> for _core::FacetKey {
     fn from(from: FacetKey) -> Self {
         from.inner
     }
 }
 
-impl AsRef<_core::FacetKey<'static>> for FacetKey {
-    fn as_ref(&self) -> &_core::FacetKey<'static> {
+impl AsRef<_core::FacetKey> for FacetKey {
+    fn as_ref(&self) -> &_core::FacetKey {
         &self.inner
     }
 }
@@ -81,7 +79,7 @@ impl Visitor<'_> for FacetKeyVisitor {
                     &self,
                 ));
             }
-            Some(facet_id.into_owned()).into()
+            Some(facet_id).into()
         };
         Ok(FacetKey { inner })
     }

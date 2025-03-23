@@ -24,7 +24,7 @@ pub enum FacetsFilter {
 }
 
 #[cfg(feature = "backend")]
-impl From<FacetsFilter> for _inner::FacetsFilter<'static> {
+impl From<FacetsFilter> for _inner::FacetsFilter {
     fn from(from: FacetsFilter) -> Self {
         use FacetsFilter as From;
         match from {
@@ -36,8 +36,8 @@ impl From<FacetsFilter> for _inner::FacetsFilter<'static> {
 }
 
 #[cfg(feature = "frontend")]
-impl From<_inner::FacetsFilter<'static>> for FacetsFilter {
-    fn from(from: _inner::FacetsFilter<'static>) -> Self {
+impl From<_inner::FacetsFilter> for FacetsFilter {
+    fn from(from: _inner::FacetsFilter) -> Self {
         use _inner::FacetsFilter as From;
         match from {
             From::Prefix(prefix) => Self::Prefix(prefix.into()),

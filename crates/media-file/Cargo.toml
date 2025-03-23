@@ -36,6 +36,7 @@ nonicle.workspace = true
 num-traits = "0.2.19"
 palette = { version = "0.7.6", default-features = false }
 semval.workspace = true
+smol_str.workspace = true
 thiserror.workspace = true
 time = { workspace = true, features = ["parsing"] }
 url.workspace = true

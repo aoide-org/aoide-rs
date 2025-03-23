@@ -30,6 +30,7 @@ num-integer = "0.1.46"
 rand = "0.9.0"
 regex.workspace = true
 semval.workspace = true
+smol_str.workspace = true
 strum = { workspace = true, features = ["derive"] }
 time = { workspace = true, features = ["macros", "parsing", "formatting"] }
 ulid = "1.2.1"
@@ -40,6 +41,7 @@ serde = { workspace = true, optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
 schemars = { version = "0.8.22", optional = true, features = ["url"] }
+serde_json = { workspace = true, optional = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 getrandom = "0.3.2"
@@ -55,5 +57,5 @@ serde_json.workspace = true
 default = []
 # Feature to enable JavaScript bindings on wasm32-unknown-unknown
 js = ["getrandom/wasm_js", "jiff/js", "time/wasm-bindgen"]
-serde = ["dep:serde", "time/serde-human-readable", "ulid/serde", "url/serde"]
-json-schema = ["serde", "dep:schemars"]
+serde = ["dep:serde", "smol_str/serde", "time/serde-human-readable", "ulid/serde", "url/serde"]
+json-schema = ["serde", "dep:serde_json", "dep:schemars"]

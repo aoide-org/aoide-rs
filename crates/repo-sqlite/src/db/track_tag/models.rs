@@ -57,7 +57,7 @@ pub struct InsertableRecord<'a> {
 impl<'a> InsertableRecord<'a> {
     pub fn bind(
         track_id: RecordId,
-        facet_id: Option<&'a FacetId<'a>>,
+        facet_id: Option<&'a FacetId>,
         plain_tag: &'a PlainTag<'a>,
     ) -> Self {
         let PlainTag { label, score } = plain_tag;

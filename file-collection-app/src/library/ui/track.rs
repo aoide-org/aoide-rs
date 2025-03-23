@@ -150,7 +150,7 @@ impl fmt::Debug for TrackListItem {
 
 fn filter_faceted_track_tag_labels<'a>(
     track: &'a aoide::Track,
-    facet_id: &'a FacetId<'a>,
+    facet_id: &'a FacetId,
 ) -> impl Iterator<Item = &'a aoide::tag::Label<'a>> {
     track
         .tags
@@ -171,7 +171,7 @@ fn filter_faceted_track_tag_labels<'a>(
 #[allow(unstable_name_collisions)] // Itertools::intersperse()
 fn concat_faceted_track_tag_labels(
     track: &aoide::Track,
-    facet_id: &FacetId<'_>,
+    facet_id: &FacetId,
     separator: &str,
 ) -> Option<String> {
     let concat = filter_faceted_track_tag_labels(track, facet_id)

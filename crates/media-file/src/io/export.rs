@@ -42,7 +42,7 @@ pub struct ExportTrackConfig {
 
     // Encode gig tags into the corresponding file tag.
     #[cfg(feature = "gigtag")]
-    pub encode_gigtags: Option<FacetId<'static>>,
+    pub encode_gigtags: Option<FacetId>,
 }
 
 impl Default for ExportTrackConfig {

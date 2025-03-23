@@ -14,10 +14,9 @@ use aoide::{
         track::search::{Filter, NumericField, PhraseFieldFilter, SortOrder, StringField},
     },
     desktop_app::track,
-    tag::FacetKey,
     track::tag::{
-        FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC,
-        FACET_ID_MOOD, FACET_ID_STYLE, FACET_ID_VIBE, FACET_ID_XID,
+        FACET_KEY_COMMENT, FACET_KEY_DESCRIPTION, FACET_KEY_GENRE, FACET_KEY_GROUPING,
+        FACET_KEY_ISRC, FACET_KEY_MOOD, FACET_KEY_XID,
     },
 };
 
@@ -206,15 +205,13 @@ pub(super) fn parse_filter_from_input(input: &str) -> Option<Filter> {
     }
     let phrase_fields = [StringField::Publisher];
     let predefined_tag_facets = [
-        FacetKey::from(FACET_ID_COMMENT),
-        FacetKey::from(FACET_ID_GROUPING),
-        FacetKey::from(FACET_ID_GENRE),
-        FacetKey::from(FACET_ID_MOOD),
-        FacetKey::from(FACET_ID_STYLE),
-        FacetKey::from(FACET_ID_DESCRIPTION),
-        FacetKey::from(FACET_ID_VIBE),
-        FacetKey::from(FACET_ID_XID),
-        FacetKey::from(FACET_ID_ISRC),
+        FACET_KEY_COMMENT.clone(),
+        FACET_KEY_GROUPING.clone(),
+        FACET_KEY_GENRE.clone(),
+        FACET_KEY_MOOD.clone(),
+        FACET_KEY_DESCRIPTION.clone(),
+        FACET_KEY_XID.clone(),
+        FACET_KEY_ISRC.clone(),
     ];
     let facets_filter = FacetsFilter::AnyOf(predefined_tag_facets.to_vec());
     // The size of the filter and as a consequence the execution time

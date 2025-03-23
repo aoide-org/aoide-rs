@@ -104,7 +104,7 @@ const TAG_LABEL_PREFIX: char = '#';
 impl TrackFields {
     fn format_tag_field_text<'a>(
         &self,
-        facet_id: Option<&TagFacetId<'_>>,
+        facet_id: Option<&TagFacetId>,
         tag: &'a PlainTag<'a>,
     ) -> Option<(Field, Cow<'a, str>)> {
         let PlainTag { label, score } = tag;

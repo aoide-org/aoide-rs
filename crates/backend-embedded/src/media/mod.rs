@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::track::tag::{FACET_ID_GENRE, FACET_ID_MOOD};
+use aoide_core::track::tag::{FACET_KEY_GENRE, FACET_KEY_MOOD};
 use aoide_media_file::util::tag::{
     FacetedTagMappingConfig, FacetedTagMappingConfigInner, TagMappingConfig,
 };
@@ -39,14 +39,14 @@ pub const DEFAULT_GENRE_MOOD_SCORE_ATTENUATION: f64 = 0.75;
 pub fn predefined_faceted_tag_mapping_config() -> FacetedTagMappingConfig {
     [
         (
-            FACET_ID_GENRE.to_borrowed().into(),
+            FACET_KEY_GENRE.clone(),
             TagMappingConfig {
                 label_separator: DEFAULT_GENRE_MOOD_LABEL_SEPARATOR.to_owned(),
                 split_score_attenuation: DEFAULT_GENRE_MOOD_SCORE_ATTENUATION,
             },
         ),
         (
-            FACET_ID_MOOD.to_borrowed().into(),
+            FACET_KEY_MOOD.clone(),
             TagMappingConfig {
                 label_separator: DEFAULT_GENRE_MOOD_LABEL_SEPARATOR.to_owned(),
                 split_score_attenuation: DEFAULT_GENRE_MOOD_SCORE_ATTENUATION,

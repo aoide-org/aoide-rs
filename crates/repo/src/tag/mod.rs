@@ -4,7 +4,7 @@
 use aoide_core::tag::{FacetId, Label, Score};
 use aoide_core_api::tag::search::SortOrder;
 
-fn dedup_facets(facets: &mut Vec<FacetId<'_>>) {
+fn dedup_facets(facets: &mut Vec<FacetId>) {
     facets.sort_unstable();
     facets.dedup();
 }
@@ -21,14 +21,14 @@ pub enum SelectTags {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct CountParams<'a> {
+pub struct CountParams {
     pub tags: SelectTags,
-    pub include_facets: Option<Vec<FacetId<'a>>>,
-    pub exclude_facets: Vec<FacetId<'a>>,
+    pub include_facets: Option<Vec<FacetId>>,
+    pub exclude_facets: Vec<FacetId>,
     pub ordering: Vec<SortOrder>,
 }
 
-impl CountParams<'_> {
+impl CountParams {
     #[must_use]
     pub const fn all(ordering: Vec<SortOrder>) -> Self {
         Self {
@@ -68,13 +68,13 @@ impl CountParams<'_> {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct FacetCountParams<'a> {
-    pub include_facets: Option<Vec<FacetId<'a>>>,
-    pub exclude_facets: Vec<FacetId<'a>>,
+pub struct FacetCountParams {
+    pub include_facets: Option<Vec<FacetId>>,
+    pub exclude_facets: Vec<FacetId>,
     pub ordering: Vec<SortOrder>,
 }
 
-impl FacetCountParams<'_> {
+impl FacetCountParams {
     #[must_use]
     pub const fn all(ordering: Vec<SortOrder>) -> Self {
         Self {
@@ -93,14 +93,14 @@ impl FacetCountParams<'_> {
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct FacetCount<'a> {
-    pub facet_id: FacetId<'a>,
+pub struct FacetCount {
+    pub facet_id: FacetId,
     pub total_count: usize,
 }
 
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct AvgScoreCount<'a> {
-    pub facet_id: Option<FacetId<'a>>,
+    pub facet_id: Option<FacetId>,
     pub label: Option<Label<'a>>,
     pub avg_score: Score,
     pub total_count: usize,
