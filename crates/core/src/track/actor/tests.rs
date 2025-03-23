@@ -118,6 +118,24 @@ fn multiple_summary_actors_should_be_invalid() {
 }
 
 #[test]
+fn summary_and_individual_actors_might_be_unrelated() {
+    let actors = [
+        Actor {
+            name: "Summary".into(),
+            kind: Kind::Summary,
+            ..Default::default()
+        },
+        Actor {
+            name: "Individual".into(),
+            kind: Kind::Individual,
+            ..Default::default()
+        },
+    ];
+
+    assert!(Actors::validate(&actors.iter()).is_ok());
+}
+
+#[test]
 fn multiple_sort_actors_should_be_invalid() {
     let actors = [
         Actor {
@@ -149,26 +167,6 @@ fn actor_names() {
     assert!(!is_valid_actor_name(""));
     assert!(!is_valid_actor_name(" "));
     assert!(!is_valid_actor_name("\t"));
-}
-
-#[test]
-fn summary_individual_actor_names() {
-    assert!(is_valid_summary_individual_actor_name(
-        "Artist 1 and artist 2",
-        "Artist 1"
-    ));
-    assert!(is_valid_summary_individual_actor_name(
-        "Artist 1 and artist 2",
-        "artist 2"
-    ));
-    assert!(!is_valid_summary_individual_actor_name(
-        "Artist 1 and artist 2",
-        "artist 1"
-    ));
-    assert!(!is_valid_summary_individual_actor_name(
-        "Artist 1 and artist 2",
-        "Artist 2"
-    ));
 }
 
 const ACTOR_NAME_SEPARATORS: &[&str] = &[

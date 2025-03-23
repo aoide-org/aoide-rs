@@ -11,6 +11,7 @@ use std::{
 use anyhow::anyhow;
 use bitflags::bitflags;
 use image::{DynamicImage, ImageReader};
+use itertools::Itertools as _;
 use lofty::{
     config::ParseOptions,
     file::{AudioFile, FileType},
@@ -31,7 +32,11 @@ use aoide_core::{
     },
     music::{key::KeySignature, tempo::TempoBpm},
     tag::ScoreValue,
-    track::{Track, actor::Actor, title::Title},
+    track::{
+        Actors, Track,
+        actor::{self, Actor},
+        title::Title,
+    },
     util::clock::{DateOrDateTime, OffsetDateTimeMs},
 };
 
@@ -509,19 +514,52 @@ impl Importer {
     }
 
     #[must_use]
+    #[expect(unstable_name_collisions, reason = "intersperse")]
     pub(crate) fn finish_import_of_actors(
         &mut self,
         scope: TrackScope,
         actors: Vec<Actor>,
     ) -> Canonical<Vec<Actor>> {
         let actors_len = actors.len();
-        let actors = actors.canonicalize_into();
+        let mut actors = actors.canonicalize_into();
         if actors.len() < actors_len {
             self.issues.add_message(format!(
                 "Discarded {duplicate_count} duplicate {scope} actors",
                 duplicate_count = actors_len - actors.len(),
                 scope = scope.message_str(),
             ));
+        }
+        let mut roles = actors
+            .iter()
+            .map(|actor| actor.role)
+            .dedup()
+            .collect::<Vec<_>>();
+        roles.sort_unstable();
+        roles.dedup();
+        for role in roles {
+            if Actors::summary_actor(actors.iter(), role).is_some() {
+                // Summary actor for this role is present.
+                continue;
+            }
+            // If no summary actor is present then create one by concatenating
+            // the names of all individual actors.
+            let summary_name =
+                Actors::filter_kind_role(actors.iter(), actor::Kind::Individual, role)
+                    .map(|actor| actor.name.as_str())
+                    .intersperse(", ")
+                    .collect::<String>();
+            if summary_name.is_empty() {
+                continue;
+            }
+            let summary_actor = Actor {
+                role,
+                kind: actor::Kind::Summary,
+                name: summary_name,
+                ..Default::default()
+            };
+            let mut actors_edit = std::mem::take(&mut actors).untie();
+            actors_edit.push(summary_actor);
+            actors = actors_edit.canonicalize_into();
         }
         actors
     }

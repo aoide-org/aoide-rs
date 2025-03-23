@@ -44,9 +44,7 @@ pub enum Kind {
     Summary = 0,
     /// Single persons or group/band names.
     ///
-    /// Individual actors should only be used if the summary actor comprises
-    /// two or more actors. A single/solo `Individual` actor without a `Summary` actor
-    /// is not permitted.
+    /// Useful for identifying all participants by their canonical names.
     Individual = 1,
     /// Unique sort actor (optional).
     Sorting = 2,
@@ -108,17 +106,6 @@ pub fn is_valid_actor_name(name: impl AsRef<str>) -> bool {
     !trimmed.is_empty() && trimmed == name
 }
 
-pub fn is_valid_summary_individual_actor_name(
-    summary_name: impl AsRef<str>,
-    individual_name: impl AsRef<str>,
-) -> bool {
-    let summary_name = summary_name.as_ref();
-    debug_assert!(is_valid_actor_name(summary_name));
-    let individual_name = individual_name.as_ref();
-    debug_assert!(is_valid_actor_name(individual_name));
-    summary_name.contains(individual_name)
-}
-
 #[derive(Copy, Clone, Debug)]
 pub enum ActorInvalidity {
     Name,
@@ -143,7 +130,6 @@ pub enum ActorsInvalidity {
     SummaryActorMissing(Role),
     SummaryActorAmbiguous(Role),
     SortActorAmbiguous(Role),
-    SummaryNameInconsistentWithIndividualNames(Role),
 }
 
 pub const ANY_ROLE_FILTER: Option<Role> = None;
@@ -171,25 +157,16 @@ impl Actors {
             for role in roles {
                 let mut summary_actors_iter =
                     Self::filter_kind_role(actors.clone(), Kind::Summary, role);
+                // Exactly one summary entry exists for each role.
                 let summary_actor = summary_actors_iter.next();
-                let Some(summary_actor) = summary_actor else {
+                if summary_actor.is_none() {
                     context = context.invalidate(ActorsInvalidity::SummaryActorMissing(role));
-                    continue;
-                };
-                // At most one summary entry exists for each role.
-                context = context.invalidate_if(
-                    summary_actors_iter.next().is_some(),
-                    ActorsInvalidity::SummaryActorAmbiguous(role),
-                );
-                // All individual actors must be consistent with the summary actor.
-                context = context.invalidate_if(
-                    !Self::filter_kind_role(actors.clone(), Kind::Individual, role)
-                        .map(|actor| &actor.name)
-                        .all(|name| {
-                            is_valid_summary_individual_actor_name(&summary_actor.name, name)
-                        }),
-                    ActorsInvalidity::SummaryNameInconsistentWithIndividualNames(role),
-                );
+                } else {
+                    context = context.invalidate_if(
+                        summary_actors_iter.next().is_some(),
+                        ActorsInvalidity::SummaryActorAmbiguous(role),
+                    );
+                }
                 // At most one sorting entry exists for each role.
                 context = context.invalidate_if(
                     Self::filter_kind_role(actors.clone(), Kind::Sorting, role).count() > 1,

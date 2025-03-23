@@ -27,10 +27,7 @@ use aoide_core::{
         tempo::TempoBpm,
     },
     track::{
-        actor::{
-            Actor, Actors, Kind as ActorKind, Role as ActorRole,
-            is_valid_summary_individual_actor_name,
-        },
+        actor::{Actor, Actors, Kind as ActorKind, Role as ActorRole},
         title::{Kind as TitleKind, Title},
     },
     util::{
@@ -117,17 +114,17 @@ fn adjust_summary_actor_kind(actors: &mut [Actor], role: ActorRole, next_name: &
             .rev()
             // Terminate the iteration if the role changes,
             // i.e. assume coherent chunks of equal roles and
-            // a single chunke per role!
+            // a single chunk per role!
             .take_while(|actor| actor.role == role)
             .find(|actor| actor.kind == ActorKind::Summary);
         if let Some(summary_actor) = summary_actor {
-            if is_valid_summary_individual_actor_name(&summary_actor.name, next_name) {
+            if summary_actor.name.contains(next_name) {
                 ActorKind::Individual
             } else {
                 // Turn the current summary actor into an individual actor
                 summary_actor.kind = ActorKind::Individual;
                 // Check if the next actor could become the new summary actor
-                if is_valid_summary_individual_actor_name(next_name, &summary_actor.name) {
+                if next_name.contains(&summary_actor.name) {
                     ActorKind::Summary
                 } else {
                     ActorKind::Individual
