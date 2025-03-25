@@ -62,7 +62,7 @@ mod search;
 use self::search::{TrackSearchExpressionBoxedBuilder as _, TrackSearchQueryTransform as _};
 
 // TODO: Define a dedicated return type
-#[allow(clippy::type_complexity)]
+#[expect(clippy::type_complexity)]
 fn load_track_and_album_titles(
     db: &mut Connection<'_>,
     id: TrackId,
@@ -161,7 +161,7 @@ fn update_track_and_album_titles(
 }
 
 // TODO: Define a dedicated return type
-#[allow(clippy::type_complexity)]
+#[expect(clippy::type_complexity)]
 fn load_track_and_album_actors(
     db: &mut crate::Connection<'_>,
     id: TrackId,

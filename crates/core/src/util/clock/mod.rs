@@ -60,7 +60,7 @@ impl OffsetDateTimeMs {
     }
 
     #[must_use]
-    #[allow(clippy::missing_panics_doc)] // Never panics
+    #[expect(clippy::missing_panics_doc)] // Never panics
     pub fn from_timestamp_millis(timestamp_millis: TimestampMillis) -> Self {
         // Avoid i128 arithmetic operations to maximize performance.
         // TODO: Use https://doc.rust-lang.org/std/primitive.i64.html#method.div_floor when available.
@@ -68,7 +68,7 @@ impl OffsetDateTimeMs {
             num_integer::div_floor(timestamp_millis, i64::from(Millisecond::per(Second)));
         let milliseconds_floor = seconds * i64::from(Millisecond::per(Second));
         debug_assert!(milliseconds_floor <= timestamp_millis);
-        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let subsec_nanos =
             (timestamp_millis - milliseconds_floor) as u32 * Nanosecond::per(Millisecond);
         let truncated = Self::clamp_from(
@@ -85,7 +85,7 @@ impl OffsetDateTimeMs {
     }
 
     #[must_use]
-    #[allow(clippy::missing_panics_doc)] // Never panics.
+    #[expect(clippy::missing_panics_doc)] // Never panics.
     pub fn now_local() -> Self {
         let zoned = Zoned::now();
         let ts_millis = zoned.timestamp().as_millisecond();
@@ -142,7 +142,6 @@ impl fmt::Display for OffsetDateTimeMs {
 }
 
 #[derive(Copy, Clone, Debug)]
-#[allow(clippy::upper_case_acronyms)]
 pub enum OffsetDateTimeMsInvalidity {
     /// Higher precision than expected
     Unclamped,
@@ -212,7 +211,6 @@ impl YyyyMmDdDate {
     }
 
     #[must_use]
-    #[allow(clippy::cast_possible_wrap)]
     pub fn from_date(from: Date) -> Self {
         Self(
             from.year() as YyyyMmDdDateValue * 10_000
@@ -243,7 +241,6 @@ impl YyyyMmDdDate {
 }
 
 #[derive(Copy, Clone, Debug)]
-#[allow(clippy::upper_case_acronyms)]
 pub enum YyyyMmDdDateInvalidity {
     Min,
     Max,

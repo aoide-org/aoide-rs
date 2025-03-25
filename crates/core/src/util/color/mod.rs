@@ -165,7 +165,7 @@ pub enum RgbColorInvalidity {
 impl Validate for RgbColor {
     type Invalidity = RgbColorInvalidity;
 
-    #[allow(clippy::absurd_extreme_comparisons)]
+    #[expect(clippy::absurd_extreme_comparisons)]
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(

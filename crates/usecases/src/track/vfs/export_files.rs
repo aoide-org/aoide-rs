@@ -57,7 +57,7 @@ pub struct ExportTrackFilesOutcome {
 
 impl ExportTrackFilesOutcome {
     #[must_use]
-    #[allow(clippy::missing_panics_doc)] // Should never panic according to the const_assert.
+    #[expect(clippy::missing_panics_doc)] // Should never panic according to the const_assert.
     pub fn total_count(&self) -> u64 {
         let Self {
             exported,
@@ -80,7 +80,7 @@ struct TrackFileExporter {
 }
 
 impl TrackFileExporter {
-    #[allow(clippy::manual_let_else)] // Verify that the error is the unit type.
+    #[expect(clippy::manual_let_else)] // Verify that the error is the unit type.
     fn new(
         match_files: MatchFiles,
         source_path_resolver: VfsResolver,

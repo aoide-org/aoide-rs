@@ -68,7 +68,7 @@ pub trait EventEmitter: Send + Sync + 'static {
 ///
 /// Manages the application state that should not depend on any
 /// particular UI technology.
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct SharedState {
     pub settings: Arc<settings::SharedState>,
     pub collection: Arc<collection::SharedState>,
@@ -104,7 +104,7 @@ pub enum State {
     },
 }
 
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct CurrentState<'a> {
     pub settings: Ref<'a, settings::State>,
     pub collection: Ref<'a, collection::State>,
@@ -154,7 +154,7 @@ impl CurrentState<'_> {
 ///
 /// The runtime environment of the embedded backend and various stateful
 /// components.
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct Library {
     env: Arc<Environment>,
     shared_state: SharedState,

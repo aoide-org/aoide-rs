@@ -63,7 +63,7 @@ pub(crate) struct InsertableRecord<'a> {
 }
 
 impl<'a> InsertableRecord<'a> {
-    #[allow(clippy::too_many_lines)] // TODO
+    #[expect(clippy::too_many_lines)] // TODO
     pub(crate) fn bind(media_source_id: MediaSourceId, entity: &'a TrackEntity) -> Self {
         let TrackHeader { uid, rev } = &entity.hdr;
         let TrackBody {
@@ -235,7 +235,7 @@ pub(crate) struct UpdatableRecord<'a> {
 }
 
 impl<'a> UpdatableRecord<'a> {
-    #[allow(clippy::too_many_lines)] // TODO
+    #[expect(clippy::too_many_lines)] // TODO
     pub(crate) fn bind(
         next_rev: EntityRevision,
         media_source_id: MediaSourceId,

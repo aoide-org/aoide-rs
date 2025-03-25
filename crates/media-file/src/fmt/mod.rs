@@ -429,7 +429,7 @@ fn tag_take_strings<'a>(tag: &'a mut Tag, key: &'a ItemKey) -> impl Iterator<Ite
         .filter_map(|item| item.into_value().into_string())
 }
 
-#[allow(clippy::too_many_lines)] // TODO
+#[expect(clippy::too_many_lines)] // TODO
 pub(crate) fn import_file_tag_into_track(
     importer: &mut Importer,
     config: &ImportTrackConfig,
@@ -1170,7 +1170,7 @@ where
     tag_remainder.merge_tag(tag)
 }
 
-#[allow(clippy::too_many_lines)] // TODO
+#[expect(clippy::too_many_lines)] // TODO
 pub(crate) fn export_track_to_tag(
     tag: &mut Tag,
     config: &ExportTrackConfig,

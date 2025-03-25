@@ -633,7 +633,7 @@ impl<'a> TagsMap<'a> {
         true
     }
 
-    #[allow(clippy::missing_panics_doc)] // Never panics
+    #[expect(clippy::missing_panics_doc)] // Never panics
     pub fn take_faceted_tags(&mut self, facet_key: &FacetKey) -> Option<FacetedTags<'a>> {
         if matches!(facet_key, FacetKey(None)) {
             return None;

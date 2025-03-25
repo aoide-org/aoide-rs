@@ -73,7 +73,7 @@ pub async fn reindex_tracks(
                 IndexingMode::RecentlyUpdated => (),
             }
             let mut offset = 0;
-            #[allow(clippy::cast_possible_truncation)]
+            #[expect(clippy::cast_possible_truncation)]
             let mut collector = EntityCollector::new(Vec::with_capacity(batch_size.get() as usize));
             // Last timestamp to consider for updates
             let mut last_updated_at: Option<OffsetDateTimeMs> = None;

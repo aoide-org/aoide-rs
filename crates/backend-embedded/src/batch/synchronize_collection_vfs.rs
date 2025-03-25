@@ -120,7 +120,7 @@ pub enum Progress {
     Step8FindUnsynchronizedTracks,
 }
 
-#[allow(clippy::too_many_lines)] // TODO
+#[expect(clippy::too_many_lines)] // TODO
 pub async fn synchronize_collection_vfs<InterceptImportedTrackFn, ReportProgressFn>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,

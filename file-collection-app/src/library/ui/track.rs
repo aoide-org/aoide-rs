@@ -135,7 +135,7 @@ impl TrackListItem {
     }
 }
 
-#[allow(clippy::missing_fields_in_debug)]
+#[expect(clippy::missing_fields_in_debug)]
 impl fmt::Debug for TrackListItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TrackListItem")
@@ -168,7 +168,7 @@ fn filter_faceted_track_tag_labels<'a>(
 }
 
 #[must_use]
-#[allow(unstable_name_collisions)] // Itertools::intersperse()
+#[expect(unstable_name_collisions)] // Itertools::intersperse()
 fn concat_faceted_track_tag_labels(
     track: &aoide::Track,
     facet_id: &FacetId,

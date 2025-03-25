@@ -138,7 +138,6 @@ impl MemoState {
         }
     }
 
-    #[allow(clippy::must_use_candidate)]
     pub fn abort(&mut self) -> bool {
         match self {
             Self::Ready(_) => {

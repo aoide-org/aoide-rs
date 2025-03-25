@@ -14,7 +14,6 @@ pub type RequestBody = aoide_core_api_json::media::tracker::FsTraversalParams;
 
 pub type ResponseBody = aoide_core_api_json::media::tracker::find_untracked_files::Outcome;
 
-#[allow(clippy::panic_in_result_fn)] // tracing::instrument
 #[tracing::instrument(
     name = "Finding untracked media sources",
     skip(

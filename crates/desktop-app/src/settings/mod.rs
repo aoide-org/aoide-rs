@@ -127,7 +127,7 @@ impl State {
             .map(DirPath::from_owned)
     }
 
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn create_database_config(&self) -> anyhow::Result<DatabaseConfig> {
         let url = self
             .database_url

@@ -25,7 +25,7 @@ use crate::{Error, Result};
 /// locking when obtaining a connection and timeouts when concurrently
 /// trying to execute write operations on a shared `SQLite` database
 /// instance.
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct Gatekeeper {
     connection_pool: Arc<RwLock<ConnectionPool>>,
     acquire_read_timeout: Duration,

@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+#![allow(
+    clippy::enum_glob_use,
+    reason = "improve readability when matching fields and predicates"
+)]
+
 use diesel::{prelude::*, sql_types};
 
 use aoide_core::{
@@ -75,7 +80,7 @@ pub(crate) trait TrackSearchQueryTransform<'db> {
 }
 
 impl<'db> TrackSearchQueryTransform<'db> for SortOrder {
-    #[allow(clippy::too_many_lines)] // TODO
+    #[expect(clippy::too_many_lines)] // TODO
     fn apply_to_query(
         &self,
         query: view_track_search::BoxedQuery<'db, DbBackend>,
@@ -403,13 +408,11 @@ fn build_phrase_field_filter_expression(
     or_expression
 }
 
-#[allow(clippy::too_many_lines)] // TODO
+#[expect(clippy::too_many_lines)] // TODO
 fn build_numeric_field_filter_expression(
     filter: &NumericFieldFilter,
 ) -> TrackSearchExpressionBoxed<'_> {
-    #[allow(clippy::enum_glob_use)]
     use NumericField::*;
-    #[allow(clippy::enum_glob_use)]
     use ScalarPredicate::*;
     match filter.field {
         AdvisoryRating => {
@@ -886,13 +889,10 @@ fn build_numeric_field_filter_expression(
     }
 }
 
-#[allow(clippy::too_many_lines)] // TODO
 fn build_datetime_field_filter_expression(
     filter: &DateTimeFieldFilter,
 ) -> TrackSearchExpressionBoxed<'_> {
-    #[allow(clippy::enum_glob_use)]
     use DateTimeField::*;
-    #[allow(clippy::enum_glob_use)]
     use ScalarPredicate::*;
     match filter.field {
         CollectedAt => {
@@ -1013,7 +1013,7 @@ fn build_condition_filter_expression(
     }
 }
 
-#[allow(clippy::too_many_lines)] // TODO
+#[expect(clippy::too_many_lines)] // TODO
 fn select_track_ids_matching_tag_filter(
     filter: &TagFilter,
 ) -> (
@@ -1411,7 +1411,6 @@ fn build_title_filter_expression(filter: &TitlePhraseFilter) -> TrackSearchExpre
 
 impl TrackSearchExpressionBoxedBuilder for TrackFilter {
     fn build_expression(&self) -> TrackSearchExpressionBoxed<'_> {
-        #[allow(clippy::enum_glob_use)]
         use TrackFilter::*;
         match self {
             Phrase(filter) => build_phrase_field_filter_expression(filter),
@@ -1444,7 +1443,6 @@ impl TrackSearchExpressionBoxedBuilder for TrackFilter {
 fn decompose_string_predicate<'a>(
     p: &'a StringPredicate<'a>,
 ) -> Option<(&'a str, StringCompare, bool)> {
-    #[allow(clippy::enum_glob_use)]
     use StringPredicate::*;
     let (s, cmp, dir) = match p {
         StartsWith(s) => {

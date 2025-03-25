@@ -87,7 +87,6 @@ impl UpdateContext<'_> {
         }
     }
 
-    #[allow(clippy::needless_pass_by_value)]
     fn on_library_media_tracker_action(&mut self, action: MediaTrackerAction) -> ActionEffect {
         let Self { rt, msg_tx, mdl } = self;
         let Model { library, mode, .. } = mdl;
@@ -159,7 +158,7 @@ impl UpdateContext<'_> {
         }
     }
 
-    #[allow(clippy::needless_pass_by_value)]
+    #[expect(clippy::needless_pass_by_value)]
     fn on_library_collection_action(&mut self, action: CollectionAction) -> ActionEffect {
         let Self { rt, mdl, .. } = self;
         let Model { library, mode, .. } = mdl;
@@ -176,7 +175,7 @@ impl UpdateContext<'_> {
         }
     }
 
-    #[allow(clippy::too_many_lines)] // TODO
+    #[expect(clippy::too_many_lines)] // TODO
     fn on_library_track_search_action(&mut self, action: TrackSearchAction) -> ActionEffect {
         let Self { rt, msg_tx, mdl } = self;
         let Model { library, mode, .. } = mdl;

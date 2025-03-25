@@ -135,7 +135,6 @@ impl Default for ImportTrackConfig {
 }
 
 #[derive(Debug)]
-#[allow(clippy::large_enum_variant)]
 pub enum ImportTrack {
     NewTrack { collected_at: OffsetDateTimeMs },
     UpdateTrack(Track),

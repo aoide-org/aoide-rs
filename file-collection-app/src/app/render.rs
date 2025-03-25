@@ -52,7 +52,7 @@ impl RenderContext<'_> {
     }
 }
 
-#[allow(clippy::too_many_lines)] // TODO
+#[expect(clippy::too_many_lines)] // TODO
 fn render_top_panel(
     ui: &mut egui::Ui,
     ui_data: &mut UiData,
@@ -183,7 +183,7 @@ fn render_top_panel(
         });
 }
 
-#[allow(clippy::float_cmp)] // Texture size (x/y) comparison.
+#[expect(clippy::float_cmp)] // Texture size (x/y) comparison.
 fn render_central_panel(
     ui: &mut egui::Ui,
     msg_tx: &MessageSender,

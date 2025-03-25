@@ -13,7 +13,7 @@ use super::{
 };
 use crate::{Environment, collection::SpawnRestoringFromMusicDirectoryTaskReaction, settings};
 
-#[allow(clippy::too_many_arguments)] // TODO
+#[expect(clippy::too_many_arguments)] // TODO
 async fn update_music_dir(
     rt: &tokio::runtime::Handle,
     env: &Arc<Environment>,

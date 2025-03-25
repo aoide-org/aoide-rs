@@ -54,7 +54,6 @@ fn import_new_track_from_file_path<T: AsRef<Path>>(
 }
 
 #[test]
-#[allow(clippy::float_cmp)]
 fn integer_bpm_roundtrip() {
     let mut file = copy_named_temp_file("tests/assets/empty.mp3");
 

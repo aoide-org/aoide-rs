@@ -81,7 +81,7 @@ impl Default for Params {
     }
 }
 
-#[allow(clippy::too_many_lines)] // TODO
+#[expect(clippy::too_many_lines)] // TODO
 pub fn find_duplicates<Repo>(
     repo: &mut Repo,
     collection_id: CollectionId,

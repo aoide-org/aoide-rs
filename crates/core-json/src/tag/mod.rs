@@ -250,7 +250,7 @@ pub enum PlainTag {
 }
 
 impl From<PlainTag> for _core::PlainTag<'static> {
-    #[allow(clippy::cast_precision_loss)]
+    #[expect(clippy::cast_precision_loss)]
     fn from(from: PlainTag) -> Self {
         use PlainTag as From;
         match from {

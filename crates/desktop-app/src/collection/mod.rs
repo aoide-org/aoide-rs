@@ -149,8 +149,8 @@ fn parse_music_dir_path(path: &Path) -> anyhow::Result<(BaseUrl, PathBuf)> {
 }
 
 impl RestoringFromMusicDirectoryContext {
-    #[allow(clippy::missing_panics_doc)]
-    #[allow(clippy::too_many_lines)] // TODO
+    #[expect(clippy::missing_panics_doc)]
+    #[expect(clippy::too_many_lines)] // TODO
     pub async fn restore(self, env: &Environment) -> anyhow::Result<State> {
         let Self {
             kind,
@@ -335,7 +335,7 @@ pub enum LoadingFromDatabaseFinishedState {
     Failed { error: String },
 }
 
-#[allow(clippy::large_enum_variant)] // Only exists temporarily for a limited duration.
+#[expect(clippy::large_enum_variant)] // Only exists temporarily for a limited duration.
 #[derive(Debug)]
 pub enum SynchronizingVfsState {
     Pending {
@@ -345,7 +345,7 @@ pub enum SynchronizingVfsState {
     Finished(SynchronizingVfsFinishedState),
 }
 
-#[allow(clippy::large_enum_variant)] // Only exists temporarily for a limited duration.
+#[expect(clippy::large_enum_variant)] // Only exists temporarily for a limited duration.
 #[derive(Debug, Clone)]
 pub enum SynchronizingVfsFinishedState {
     Succeeded { outcome: Outcome },
@@ -355,7 +355,6 @@ pub enum SynchronizingVfsFinishedState {
 
 /// State of a single collection that is based on directory in the
 /// local directory using a virtual file system (VFS) for content paths.
-#[allow(clippy::large_enum_variant)] // That's fine for a single or very few instances.
 #[derive(Debug, Default)]
 pub enum State {
     #[default]
@@ -535,7 +534,7 @@ impl State {
     ///
     /// If the method returns an error result the state has not been modified
     /// and is unchanged.
-    #[allow(clippy::too_many_arguments)] // TODO
+    #[expect(clippy::too_many_arguments)] // TODO
     pub fn spawn_restoring_from_music_directory_task(
         &mut self,
         this: &SharedState,
@@ -1337,7 +1336,6 @@ pub struct SynchronizingVfsTask {
 }
 
 impl SynchronizingVfsTask {
-    #[allow(clippy::missing_panics_doc)]
     fn spawn(
         rt: &tokio::runtime::Handle,
         env: Arc<Environment>,

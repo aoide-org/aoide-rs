@@ -107,8 +107,7 @@ pub fn update_tags_in_encoded(
     decoded_tags.encode_into(encoded)
 }
 
-#[allow(clippy::needless_pass_by_value)] // consume remaining_tags
-#[allow(clippy::missing_panics_doc)] // Never panics
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn export_and_encode_tags_into(
     tags: Canonical<&Tags<'_>>,
     encoded_tags: &mut Vec<PlainTag<'_>>,
@@ -146,7 +145,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag<'_>)> {
             let score_value = prop.value().parse::<ScoreValue>().ok()?;
             let score = Score::clamp_from(score_value);
             // Skip non-aoide tag if property value fails is not a valid score value
-            #[allow(clippy::float_cmp)]
+            #[expect(clippy::float_cmp)]
             if score_value != score.value() {
                 return None;
             }

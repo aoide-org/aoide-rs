@@ -57,7 +57,6 @@ impl Default for ExportTrackConfig {
     }
 }
 
-#[allow(clippy::too_many_lines)] // TODO
 pub fn export_track_to_file_path(
     path: &Path,
     file_ext: Option<&str>,
@@ -76,7 +75,6 @@ pub fn export_track_to_file_path(
     )
 }
 
-#[allow(clippy::too_many_lines)] // TODO
 pub fn export_track_to_file(
     file: &mut File,
     file_ext: Option<&str>,

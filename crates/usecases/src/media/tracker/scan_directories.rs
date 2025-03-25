@@ -69,8 +69,8 @@ impl From<visit::ProgressEvent> for ProgressEvent {
     }
 }
 
-#[allow(clippy::too_many_lines)] // TODO
-#[allow(clippy::missing_panics_doc)] // Never panics
+#[expect(clippy::too_many_lines)] // TODO
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn scan_directories<
     Repo: CollectionRepo + MediaTrackerRepo,
     ReportProgressFn: FnMut(ProgressEvent),

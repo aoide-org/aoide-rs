@@ -37,7 +37,7 @@ pub const DEFAULT_VACUUM_MODE: VacuumMode = VacuumMode::Incremental;
 pub type DbBackend = diesel::sqlite::Sqlite;
 pub type DbConnection = diesel::sqlite::SqliteConnection;
 
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct Connection<'db>(&'db mut DbConnection);
 
 impl<'db> Connection<'db> {
@@ -127,7 +127,7 @@ pub mod tests {
 
     pub type TestResult<T> = anyhow::Result<T>;
 
-    #[allow(clippy::missing_panics_doc)] // Never panics
+    #[expect(clippy::missing_panics_doc)] // Never panics
     pub fn establish_connection() -> TestResult<DbConnection> {
         let mut connection =
             DbConnection::establish(":memory:").expect("in-memory database connection");

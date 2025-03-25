@@ -25,7 +25,7 @@ pub mod prelude {
 /// Runtime environment for invoking operations
 ///
 /// Holds the database connection.
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct Environment {
     db_gatekeeper: Gatekeeper,
 }

@@ -44,7 +44,7 @@ fn artwork_thumbnail_image_from_rgb_pixels(
 }
 
 #[must_use]
-#[allow(clippy::similar_names)]
+#[expect(clippy::similar_names)]
 fn artwork_thumbnail_image_from_pixels(
     pixels: impl IntoIterator<Item = Color32>,
     border_color: Color32,
@@ -84,7 +84,6 @@ fn artwork_thumbnail_image_from_pixels(
 }
 
 #[must_use]
-#[allow(clippy::similar_names)]
 pub(super) fn artwork_thumbnail_image(
     artwork: &Artwork,
     default_color: Option<RgbColor>,

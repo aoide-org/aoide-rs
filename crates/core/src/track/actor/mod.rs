@@ -268,7 +268,7 @@ impl ActorNamesSummarySplitter {
     /// Both `separators` and `protected_names` are case-insensitive.
     ///
     /// Space characters in are replaced by whitespace matching regexes.
-    #[allow(clippy::missing_panics_doc)] // never panics
+    #[expect(clippy::missing_panics_doc)] // never panics
     pub fn new<'a>(
         name_separators: impl IntoIterator<Item = &'a str>,
         protected_names: impl IntoIterator<Item = &'a str>,

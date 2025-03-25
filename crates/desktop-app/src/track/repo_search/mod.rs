@@ -243,7 +243,6 @@ impl FetchState {
         }
     }
 
-    #[allow(clippy::needless_pass_by_value)]
     fn fetching_more_failed(&mut self, error: anyhow::Error) {
         log::warn!("Fetching more failed: {error}");
         let Self::Pending {
@@ -440,7 +439,7 @@ impl State {
     }
 
     #[must_use]
-    #[allow(clippy::missing_panics_doc)] // Never panics
+    #[expect(clippy::missing_panics_doc)] // Never panics
     pub fn update_memo_delta(&self, memo: &Memo) -> (MemoDelta, MemoDiff) {
         let Self {
             default_params,

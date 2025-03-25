@@ -137,7 +137,7 @@ impl ProgressEvent {
     }
 }
 
-#[allow(clippy::missing_panics_doc)] // Never panics
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn url_from_walkdir_entry(dir_entry: &walkdir::DirEntry) -> anyhow::Result<Url> {
     let url = if dir_entry.file_type().is_dir()
         || dir_entry.path_is_symlink() && read_link(dir_entry.path())?.is_dir()
@@ -182,8 +182,8 @@ pub trait DirectoryVisitor {
 /// finalized by the caller for reporting, i.e. for sending a final
 /// update after invoking [`ProgressEvent::try_finish()`] and for obtaining
 /// execution statistics by invoking [`ProgressEvent::finalize()`].
-#[allow(clippy::too_many_lines)] // TODO
-#[allow(clippy::missing_panics_doc)] // Never panics
+#[expect(clippy::too_many_lines)] // TODO
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn visit_directories<
     C,
     T,
@@ -280,7 +280,6 @@ pub fn visit_directories<
             debug_assert!(relative_path.is_relative());
 
             while let Some((ancestor_path, ancestor_visitor)) = ancestor_visitors.last_mut() {
-                #[allow(clippy::needless_borrows_for_generic_args)] // false positive
                 if relative_path.starts_with(&ancestor_path) {
                     // Visit child entry
                     log::debug!(
@@ -305,7 +304,6 @@ pub fn visit_directories<
                     "Finalized parent directory: {ancestor_path}",
                     ancestor_path = ancestor_path.display()
                 );
-                #[allow(clippy::blocks_in_conditions)] // TODO
                 match directory_visitor
                     .after_ancestor_finished(&ancestor_path, ancestor_finished)
                     .map_err(|err| {
@@ -357,7 +355,6 @@ pub fn visit_directories<
             "Finalized parent directory: {path}",
             path = ancestor_path.display()
         );
-        #[allow(clippy::blocks_in_conditions)] // TODO
         match directory_visitor
             .after_ancestor_finished(&ancestor_path, ancestor_data)
             .map_err(|err| {

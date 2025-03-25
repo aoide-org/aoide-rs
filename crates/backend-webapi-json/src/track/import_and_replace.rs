@@ -106,7 +106,6 @@ pub type RequestBody = Vec<String>;
 
 pub type ResponseBody = Outcome;
 
-#[allow(clippy::panic_in_result_fn)] // tracing::instrument
 #[tracing::instrument(
     name = "Importing and replacing tracks",
     skip(

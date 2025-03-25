@@ -169,7 +169,7 @@ fn format_fractional_bpm() {
 }
 
 #[test]
-#[allow(clippy::too_many_lines)] // TODO
+#[expect(clippy::too_many_lines)] // TODO
 fn push_next_actor_role_names() {
     let mut actors = vec![];
 

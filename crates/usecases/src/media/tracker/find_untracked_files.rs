@@ -165,7 +165,7 @@ impl<'a, Repo> aoide_media_file::fs::visit::DirectoryVisitor for DirectoryVisito
     }
 }
 
-#[allow(clippy::missing_panics_doc)] // Never panics
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn visit_directories<
     Repo: CollectionRepo + MediaTrackerRepo,
     ReportProgressFn: FnMut(ProgressEvent),

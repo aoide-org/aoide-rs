@@ -56,7 +56,7 @@ pub struct LoadedArtworkPicture {
 
 pub type LoadArtworkPictureResult = std::result::Result<LoadedArtworkPicture, ArtworkImageError>;
 
-#[allow(clippy::missing_panics_doc)] // Never panics
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn media_type_from_image_format(
     image_format: ImageFormat,
 ) -> std::result::Result<Mime, ArtworkImageError> {
@@ -285,7 +285,7 @@ pub fn try_ingest_embedded_artwork_image(
 }
 
 #[derive(Debug, Clone)]
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 pub enum EditEmbeddedArtworkImage {
     Replace(ReplaceEmbeddedArtworkImage),
     Remove(RemoveEmbeddedArtworkImage),

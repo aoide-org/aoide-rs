@@ -171,7 +171,7 @@ fn main() {
     log::info!("Exiting");
 }
 
-#[allow(clippy::needless_pass_by_value)] // consume arguments
+#[expect(clippy::needless_pass_by_value)] // consume arguments
 fn run_headless(launcher: Arc<LauncherMutex>, config: Config, save_config_on_exit: bool) {
     log::info!("Running headless");
 

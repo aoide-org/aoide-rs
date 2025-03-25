@@ -70,7 +70,7 @@ pub struct QueryableRecord {
 impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
     type Error = anyhow::Error;
 
-    #[allow(clippy::too_many_lines)] // TODO
+    #[expect(clippy::too_many_lines)] // TODO
     fn try_from(from: self::QueryableRecord) -> anyhow::Result<Self> {
         let self::QueryableRecord {
             row_id,
@@ -254,7 +254,7 @@ pub struct InsertableRecord<'a> {
 }
 
 impl<'a> InsertableRecord<'a> {
-    #[allow(clippy::too_many_lines)] // TODO
+    #[expect(clippy::too_many_lines)] // TODO
     pub fn bind(
         created_at: &'a OffsetDateTimeMs,
         collection_id: CollectionId,
@@ -403,7 +403,7 @@ pub struct UpdatableRecord<'a> {
     pub artwork_thumbnail: Option<&'a [u8]>,
 }
 
-#[allow(clippy::too_many_lines)] // TODO
+#[expect(clippy::too_many_lines)] // TODO
 impl<'a> UpdatableRecord<'a> {
     pub fn bind(updated_at: &'a OffsetDateTimeMs, updated_source: &'a Source) -> Self {
         let Source {

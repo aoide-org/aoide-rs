@@ -12,10 +12,8 @@ use crate::{
     library::{self, ui::TrackListItem},
 };
 
-#[allow(missing_debug_implementations)]
 struct NoReceiverForMessage(Message);
 
-#[allow(missing_debug_implementations)]
 #[derive(Clone)]
 pub(crate) struct MessageSender {
     ctx: Context,
@@ -72,9 +70,7 @@ impl library::EventEmitter for MessageSender {
     }
 }
 
-// Not cloneable so large enum variants should be fine.
 #[derive(Debug)]
-#[allow(clippy::large_enum_variant)]
 pub(crate) enum Message {
     Action(Action),
     Event(Event),

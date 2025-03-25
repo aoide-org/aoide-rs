@@ -30,7 +30,7 @@ struct UiData {
     track_search_input: String,
 }
 
-#[allow(missing_debug_implementations)]
+#[expect(missing_debug_implementations)]
 pub struct App {
     rt: tokio::runtime::Handle,
 

@@ -152,7 +152,7 @@ fn status_code_to_string(code: StatusCode) -> String {
         .to_string()
 }
 
-#[allow(clippy::unused_async)] // async needed for warp filter
+#[expect(clippy::unused_async)] // async needed for warp filter
 pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infallible> {
     let code;
     let message;

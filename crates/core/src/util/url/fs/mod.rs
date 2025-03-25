@@ -8,7 +8,7 @@ use std::{
 
 use ::url::Url;
 
-#[allow(clippy::result_unit_err)]
+#[expect(clippy::result_unit_err)]
 pub fn url_from_path(path: &Path) -> Result<Url, ()> {
     if path.is_file() {
         Url::from_file_path(path)
@@ -24,7 +24,7 @@ pub fn url_from_path(path: &Path) -> Result<Url, ()> {
     }
 }
 
-#[allow(clippy::missing_panics_doc)] // Never panics
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn url_from_dir_entry(dir_entry: &DirEntry) -> std::io::Result<Url> {
     let file_type = dir_entry.file_type()?;
     let url =

@@ -151,7 +151,7 @@ impl TrackFields {
     ///
     /// When storing tracks from multiple collections in a single index
     /// the `collection_uid` should be provided.
-    #[allow(clippy::too_many_lines)] // TODO
+    #[expect(clippy::too_many_lines)] // TODO
     #[must_use]
     pub fn create_document(
         &self,

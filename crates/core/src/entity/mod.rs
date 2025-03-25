@@ -228,7 +228,7 @@ pub struct EncodedEntityUid([u8; EntityUid::STR_LEN]);
 
 impl EncodedEntityUid {
     #[must_use]
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     pub const fn as_str(&self) -> &str {
         unsafe { std::str::from_utf8_unchecked(&self.0) }
     }

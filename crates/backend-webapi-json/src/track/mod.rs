@@ -59,7 +59,6 @@ pub struct EntityCollector {
 
 impl EntityCollector {
     #[must_use]
-    #[allow(clippy::needless_pass_by_value)]
     pub fn new(config: EntityCollectorConfig) -> Self {
         let EntityCollectorConfig {
             capacity,

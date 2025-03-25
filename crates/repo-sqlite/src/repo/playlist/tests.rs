@@ -356,7 +356,7 @@ fn should_not_modify_entries_when_removing_empty_ranges() -> anyhow::Result<()> 
     assert_eq!(track_entries, playlist_with_entries.entries);
 
     // Non-overlapping range
-    #[allow(clippy::range_plus_one)]
+    #[expect(clippy::range_plus_one)]
     db.remove_playlist_entries(playlist_id, &(track_count..track_count + 1))?;
     let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
@@ -386,12 +386,12 @@ fn should_not_modify_entries_when_moving_by_zero_delta() -> anyhow::Result<()> {
     let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
-    #[allow(clippy::range_plus_one)]
+    #[expect(clippy::range_plus_one)]
     db.move_playlist_entries(playlist_id, &(0..track_count + 1), 0)?;
     let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);
 
-    #[allow(clippy::range_plus_one)]
+    #[expect(clippy::range_plus_one)]
     db.move_playlist_entries(playlist_id, &(1..track_count + 1), 0)?;
     let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_entries, playlist_with_entries.entries);

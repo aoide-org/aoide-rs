@@ -48,7 +48,7 @@ struct CleanseDatabaseQueryParams {
     vacuum: bool,
 }
 
-#[allow(clippy::too_many_lines)] // TODO
+#[expect(clippy::too_many_lines)] // TODO
 pub(crate) fn create_filters(
     rt: &tokio::runtime::Handle,
     shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,

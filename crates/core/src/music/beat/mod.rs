@@ -68,7 +68,7 @@ impl TimeSignature {
         }
     }
 
-    #[allow(clippy::absurd_extreme_comparisons)]
+    #[expect(clippy::absurd_extreme_comparisons)]
     #[must_use]
     pub fn primary_beat_count(self) -> BeatNumber {
         let Self {

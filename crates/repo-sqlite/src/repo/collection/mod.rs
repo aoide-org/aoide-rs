@@ -200,7 +200,7 @@ impl EntityRepo for Connection<'_> {
         Ok((record_header, entity))
     }
 
-    #[allow(clippy::too_many_lines)] // TODO
+    #[expect(clippy::too_many_lines)] // TODO
     fn load_collection_entities(
         &mut self,
         kind_filter: Option<KindFilter<'_>>,

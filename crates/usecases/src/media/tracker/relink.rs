@@ -153,7 +153,7 @@ impl Progress {
     }
 }
 
-#[allow(clippy::missing_panics_doc)] // Never panics
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn relink_tracks_with_untracked_media_sources<Repo, ReportProgressFn: FnMut(&Progress)>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,

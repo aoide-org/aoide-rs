@@ -28,7 +28,7 @@ pub fn digest_duration<D: Digest>(digest: &mut D, duration: Duration) {
     digest_u128(digest, duration.as_nanos());
 }
 
-#[allow(clippy::missing_panics_doc)] // Never panics
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn digest_system_time<D: Digest>(digest: &mut D, system_time: SystemTime) {
     digest_duration(
         digest,

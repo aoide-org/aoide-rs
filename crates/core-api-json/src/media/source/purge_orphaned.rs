@@ -101,7 +101,7 @@ pub struct Summary {
 }
 
 #[cfg(feature = "frontend")]
-#[allow(clippy::cast_possible_truncation)]
+#[expect(clippy::cast_possible_truncation)]
 impl From<Summary> for _inner::Summary {
     fn from(from: Summary) -> Self {
         let Summary { purged } = from;
@@ -112,7 +112,6 @@ impl From<Summary> for _inner::Summary {
 }
 
 #[cfg(feature = "backend")]
-#[allow(clippy::cast_possible_truncation)]
 impl From<_inner::Summary> for Summary {
     fn from(from: _inner::Summary) -> Self {
         let _inner::Summary { purged } = from;

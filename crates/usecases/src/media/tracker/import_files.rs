@@ -44,8 +44,8 @@ pub struct ProgressEvent {
     pub summary: Summary,
 }
 
-#[allow(clippy::too_many_lines)] // TODO
-#[allow(clippy::missing_panics_doc)] // Never panics
+#[expect(clippy::too_many_lines)] // TODO
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn import_files<Repo, InterceptImportedTrackFn, ReportProgressFn>(
     repo: &mut Repo,
     collection_uid: &CollectionUid,
@@ -213,7 +213,7 @@ where
     Ok(outcome)
 }
 
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 enum ImportPendingDirectoryOutcome {
     Untracked(usize),
     Finished {

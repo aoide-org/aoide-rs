@@ -13,7 +13,7 @@ use crate::Result;
 use super::ValidatedInput;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[allow(clippy::struct_excessive_bools)]
+#[expect(clippy::struct_excessive_bools)]
 pub struct Params {
     pub mode: ReplaceMode,
 

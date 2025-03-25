@@ -20,7 +20,6 @@ pub struct QueryParams {
 
 pub type ResponseBody = ();
 
-#[allow(clippy::needless_pass_by_value)] // consume arguments
 pub fn handle_request(
     connection: &mut DbConnection,
     track_uid: &EntityUid,

@@ -34,7 +34,6 @@ pub struct ResponseBody {
     purged: Option<u64>,
 }
 
-#[allow(clippy::panic_in_result_fn)] // tracing::instrument
 pub fn handle_request(
     connection: &mut DbConnection,
     collection_uid: &CollectionUid,

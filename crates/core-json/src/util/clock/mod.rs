@@ -56,7 +56,6 @@ impl From<DateTime> for _core::OffsetDateTimeMs {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[repr(transparent)]
-#[allow(clippy::upper_case_acronyms)]
 pub struct YyyyMmDdDate(_core::YyyyMmDdDate);
 
 impl From<_core::YyyyMmDdDate> for YyyyMmDdDate {
@@ -97,7 +96,6 @@ impl Serialize for YyyyMmDdDate {
     }
 }
 
-#[allow(clippy::upper_case_acronyms)]
 struct YyyyMmDdDateDeserializeVisitor;
 
 impl SerdeDeserializeVisitor<'_> for YyyyMmDdDateDeserializeVisitor {
@@ -107,7 +105,7 @@ impl SerdeDeserializeVisitor<'_> for YyyyMmDdDateDeserializeVisitor {
         write!(f, "4-digit YYYY or 8-digit YyyyMmDdDateValue integer")
     }
 
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
     where
         E: de::Error,

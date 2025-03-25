@@ -34,7 +34,6 @@ pub(crate) enum MusicDirSelection {
 /// Application model
 ///
 /// Immutable during rendering.
-#[allow(missing_debug_implementations)]
 pub(crate) struct Model {
     pub(crate) library: Library,
 
