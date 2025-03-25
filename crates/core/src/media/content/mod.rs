@@ -339,7 +339,7 @@ impl ContentRevision {
             .duration_since(std::time::SystemTime::UNIX_EPOCH)
             .map(|duration| {
                 let timestamp_millis = duration.as_millis();
-                debug_assert!(timestamp_millis <= ContentRevisionValue::MAX.into());
+                debug_assert!(timestamp_millis <= u128::from(ContentRevisionValue::MAX));
                 Some(Self::new(timestamp_millis as ContentRevisionValue))
             })
     }
