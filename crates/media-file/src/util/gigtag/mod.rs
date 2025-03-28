@@ -3,20 +3,21 @@
 
 use std::borrow::Cow;
 
-use compact_str::{CompactString, format_compact};
-use gigtag::{Facet as _, facet::has_date_like_suffix};
+use gigtag::{
+    Facet as _, StringTyped,
+    smol_str::{SmolStr, ToSmolStr as _},
+};
 use nonicle::Canonical;
 use semval::prelude::*;
-use smol_str::ToSmolStr as _;
 
 use aoide_core::tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, ScoreValue, Tags, TagsMap};
 
-pub type Facet = gigtag::CompactFacet;
+pub type Facet = SmolStr;
 
-pub type Label = gigtag::CompactLabel;
+pub type Label = SmolStr;
 
-pub type PropName = gigtag::CompactName;
-pub type PropValue = CompactString;
+pub type PropName = SmolStr;
+pub type PropValue = SmolStr;
 pub type Property = gigtag::Property<PropName, PropValue>;
 
 pub type Tag = gigtag::Tag<Facet, Label, PropName, PropValue>;
@@ -25,8 +26,7 @@ pub type DecodedTags = gigtag::DecodedTags<Facet, Label, PropName, PropValue>;
 pub(crate) const SCORE_PROP_NAME: &str = "s";
 
 fn export_valid_label(label: &aoide_core::tag::Label<'_>) -> Option<Label> {
-    let label = label.as_str();
-    (gigtag::label::is_valid(label)).then(|| gigtag::Label::from_str(label))
+    (label.is_valid()).then(|| StringTyped::from_str(label.as_str()))
 }
 
 fn export_facet(facet_id: &FacetId) -> Facet {
@@ -45,10 +45,10 @@ fn try_export_plain_tag(facet: Facet, plain_tag: &PlainTag<'_>) -> Option<Tag> {
     };
     // A default score could only be omitted if the tag has a label or a date-like facet!
     let score = (plain_tag.score != Default::default()
-        || (label.is_empty() && !has_date_like_suffix(&facet)))
+        || (label.is_empty() && !facet.has_date_like_suffix()))
     .then(|| Property {
-        name: gigtag::Name::from_str(SCORE_PROP_NAME),
-        value: format_compact!("{score}", score = plain_tag.score.value()),
+        name: PropName::from_str(SCORE_PROP_NAME),
+        value: plain_tag.score.value().to_smolstr(),
     });
     let tag = Tag {
         facet,
@@ -138,7 +138,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag<'_>)> {
         [] => Default::default(),
         [prop] => {
             // Skip non-aoide tags with unknown property names
-            if prop.name().as_ref() != SCORE_PROP_NAME {
+            if prop.name().as_str() != SCORE_PROP_NAME {
                 return None;
             }
             // Skip non-aoide tag if property value fails to parse
@@ -160,7 +160,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag<'_>)> {
         return None;
     }
     let facet_key = if tag.has_facet() {
-        let facet_id_clamped = FacetId::clamp_from(tag.facet().as_ref());
+        let facet_id_clamped = FacetId::clamp_from(tag.facet().as_str());
         let facet_id_unclamped = Some(FacetId::new_unchecked(tag.facet().to_smolstr()));
         if facet_id_clamped != facet_id_unclamped {
             // Skip non-aoide tag
@@ -171,7 +171,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag<'_>)> {
         Default::default()
     };
     let label = if tag.has_label() {
-        let label_str = tag.label().as_ref();
+        let label_str = tag.label().as_str();
         let label = aoide_core::tag::Label::clamp_from(label_str);
         if label.as_ref().map_or("", aoide_core::tag::Label::as_str) != label_str {
             // Skip non-aoide tag

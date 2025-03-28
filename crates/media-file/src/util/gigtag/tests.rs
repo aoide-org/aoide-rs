@@ -6,15 +6,15 @@ use nonicle::CanonicalizeInto as _;
 use super::*;
 
 fn label_from_str(label: &str) -> Label {
-    gigtag::Label::from_str(label)
+    Label::from_str(label)
 }
 
 fn facet_from_str(facet: &str) -> Facet {
-    gigtag::Facet::from_str(facet)
+    Facet::from_str(facet)
 }
 
 fn prop_name_from_str(name: &str) -> PropName {
-    gigtag::Name::from_str(name)
+    PropName::from_str(name)
 }
 
 fn score_prop_from_value(score_value: aoide_core::tag::ScoreValue) -> Property {
@@ -96,7 +96,7 @@ fn try_import_tags() {
     };
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
     assert_eq!(
-        Some(FacetId::from_unchecked(date_like_facet.as_ref())),
+        Some(FacetId::from_unchecked(date_like_facet.as_str())),
         facet_key.into_inner()
     );
     assert_eq!(plain_tag_with_label(tag.label().to_string()), plain_tag);
@@ -108,7 +108,7 @@ fn try_import_tags() {
     };
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
     assert_eq!(
-        Some(FacetId::from_unchecked(date_like_facet.as_ref())),
+        Some(FacetId::from_unchecked(date_like_facet.as_str())),
         facet_key.into_inner()
     );
     assert_eq!(
@@ -123,7 +123,7 @@ fn try_import_tags() {
     };
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
     assert_eq!(
-        Some(FacetId::from_unchecked(date_like_facet.as_ref())),
+        Some(FacetId::from_unchecked(date_like_facet.as_str())),
         facet_key.into_inner()
     );
     assert_eq!(
