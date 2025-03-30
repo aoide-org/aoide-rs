@@ -992,7 +992,12 @@ pub(crate) fn import_file_tag_into_track(
                 genre,
             );
         }
-        tags_map.update_tags_by_label_ordering(FACET_ID_GENRE, plain_tags);
+        if !matches!(
+            tags_map.all_tag_labels_equal(FACET_ID_GENRE, &plain_tags),
+            Some((_, true))
+        ) {
+            tags_map.replace(FACET_ID_GENRE, plain_tags);
+        }
     }
 
     // Mood tags

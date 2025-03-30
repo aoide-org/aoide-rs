@@ -676,7 +676,12 @@ impl Importer {
                 duplicate_count = total_import_count - count,
             ));
         }
-        tags_map.update_tags_by_label_ordering(facet_key, plain_tags);
+        if !matches!(
+            tags_map.all_tag_labels_equal(&facet_key, &plain_tags),
+            Some((_, true))
+        ) {
+            tags_map.replace(facet_key, plain_tags);
+        }
         count
     }
 
