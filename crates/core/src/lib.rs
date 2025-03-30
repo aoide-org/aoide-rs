@@ -22,8 +22,8 @@ pub use self::media::Source as MediaSource;
 
 pub mod tag;
 pub use self::tag::{
-    FacetId as TagFacetId, FacetKey as TagFacetKey, FacetedTags, InsertOrReplaceTags,
-    Label as TagLabel, PlainTag, Score as TagScore, Tags, TagsMap,
+    FacetId as TagFacetId, FacetKey as TagFacetKey, FacetedTags, Label as TagLabel, PlainTag,
+    Score as TagScore, Tags, TagsMap,
 };
 
 pub mod track;

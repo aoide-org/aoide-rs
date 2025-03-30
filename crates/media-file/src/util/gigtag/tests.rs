@@ -214,15 +214,15 @@ fn reencode_roundtrip() {
     );
 
     // Replace plain tag #Tag1 with #Tag2
-    tags_map.insert_or_replace(
+    tags_map.replace(
         FacetKey::unfaceted(),
-        InsertOrReplaceTags::Replace(vec![plain_tag_with_label("Tag2".to_string())]),
+        vec![plain_tag_with_label("Tag2".to_string())],
     );
 
     // Add #Tag2 with a non-date-like facet
-    tags_map.insert_or_replace(
+    tags_map.replace(
         FacetId::from_unchecked("facet"),
-        InsertOrReplaceTags::Replace(vec![plain_tag_with_label("Tag2".to_string())]),
+        vec![plain_tag_with_label("Tag2".to_string())],
     );
 
     let mut reencoded = Cow::Borrowed(encoded);

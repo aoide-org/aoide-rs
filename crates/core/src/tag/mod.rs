@@ -503,7 +503,7 @@ impl Hash for FacetKey {
 }
 
 #[derive(Debug, Clone)]
-pub enum InsertOrReplaceTags<'a> {
+enum InsertOrReplaceTags<'a> {
     Insert(Vec<PlainTag<'a>>),
     Replace(Vec<PlainTag<'a>>),
 }
@@ -592,10 +592,36 @@ impl<'a> TagsMap<'a> {
             .clone()
     }
 
+    /// Insert tags.
+    ///
+    /// Returns the [`FacetKey`].
+    pub fn insert(
+        &mut self,
+        facet_key: impl AsRef<str> + Into<FacetKey>,
+        insert_tags: Vec<PlainTag<'a>>,
+    ) -> FacetKey {
+        let (facet_key, replaced_tags) =
+            self.insert_or_replace(facet_key, InsertOrReplaceTags::Insert(insert_tags));
+        debug_assert!(replaced_tags.is_none());
+        facet_key
+    }
+
+    /// Replace tags.
+    ///
+    /// Returns the [`FacetKey`] and the replaced tags. The replaced tags are `None`
+    /// if no entry existed yet.
+    pub fn replace(
+        &mut self,
+        facet_key: impl AsRef<str> + Into<FacetKey>,
+        replace_tags: Vec<PlainTag<'a>>,
+    ) -> (FacetKey, Option<Vec<PlainTag<'a>>>) {
+        self.insert_or_replace(facet_key, InsertOrReplaceTags::Replace(replace_tags))
+    }
+
     /// Insert or replace tags.
     ///
     /// Returns the [`FacetKey`] and the corresponding replaced tags.
-    pub fn insert_or_replace(
+    fn insert_or_replace(
         &mut self,
         facet_key: impl AsRef<str> + Into<FacetKey>,
         insert_or_replace_tags: InsertOrReplaceTags<'a>,
@@ -656,7 +682,7 @@ impl<'a> TagsMap<'a> {
         } else {
             // TODO: Optimize?
             for (facet_key, tags) in other.hash_table {
-                self.insert_or_replace(facet_key, InsertOrReplaceTags::Insert(tags));
+                self.insert(facet_key, tags);
             }
         }
     }
@@ -712,8 +738,7 @@ impl<'a> TagsMap<'a> {
                 }
             }
         }
-        self.insert_or_replace(facet_key, InsertOrReplaceTags::Replace(new_plain_tags))
-            .1
+        self.replace(facet_key, new_plain_tags).1
     }
 
     pub fn facet_keys(&self) -> impl Iterator<Item = &FacetKey> {
@@ -728,12 +753,9 @@ impl<'a> From<Tags<'a>> for TagsMap<'a> {
             facets,
         } = from;
         let mut into = Self::with_capacity(1 + facets.len());
-        into.insert_or_replace(
-            FacetKey::unfaceted(),
-            InsertOrReplaceTags::Insert(plain_tags),
-        );
+        into.insert(FacetKey::unfaceted(), plain_tags);
         for FacetedTags { facet_id, tags } in facets {
-            into.insert_or_replace(facet_id, InsertOrReplaceTags::Insert(tags));
+            into.insert(facet_id, tags);
         }
         into
     }
@@ -743,7 +765,7 @@ impl<'a> FromIterator<(FacetKey, Vec<PlainTag<'a>>)> for TagsMap<'a> {
     fn from_iter<T: IntoIterator<Item = (FacetKey, Vec<PlainTag<'a>>)>>(iter: T) -> Self {
         let mut into = Self::new();
         for (facet_key, tags) in iter {
-            into.insert_or_replace(facet_key, InsertOrReplaceTags::Insert(tags));
+            into.insert(facet_key, tags);
         }
         into
     }

@@ -10,10 +10,7 @@ use gigtag::{
 use nonicle::Canonical;
 use semval::prelude::*;
 
-use aoide_core::{
-    InsertOrReplaceTags,
-    tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, ScoreValue, Tags, TagsMap},
-};
+use aoide_core::tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, ScoreValue, Tags, TagsMap};
 
 pub type Facet = SmolStr;
 
@@ -275,7 +272,7 @@ pub fn import_from_faceted_tags(mut faceted_tags: FacetedTags<'static>) -> TagsM
                 tags.append(&mut ingested_tags);
             }
         }
-        tags_map.insert_or_replace(facet_key, InsertOrReplaceTags::Replace(tags));
+        tags_map.replace(facet_key, tags);
     }
     tags_map
 }
