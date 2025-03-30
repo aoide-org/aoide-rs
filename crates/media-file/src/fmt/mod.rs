@@ -35,10 +35,7 @@ use aoide_core::{
             FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING,
             FACET_ID_ISRC, FACET_ID_MBID_ARTIST, FACET_ID_MBID_RECORDING, FACET_ID_MBID_RELEASE,
             FACET_ID_MBID_RELEASE_ARTIST, FACET_ID_MBID_RELEASE_GROUP, FACET_ID_MBID_TRACK,
-            FACET_ID_MBID_WORK, FACET_ID_MOOD, FACET_ID_XID, FACET_KEY_COMMENT,
-            FACET_KEY_DESCRIPTION, FACET_KEY_GENRE, FACET_KEY_GROUPING, FACET_KEY_ISRC,
-            FACET_KEY_MBID_RECORDING, FACET_KEY_MBID_RELEASE, FACET_KEY_MBID_RELEASE_GROUP,
-            FACET_KEY_MBID_TRACK, FACET_KEY_MOOD, FACET_KEY_XID,
+            FACET_ID_MBID_WORK, FACET_ID_MOOD, FACET_ID_XID,
         },
         title::{Kind as TitleKind, Titles},
     },
@@ -928,19 +925,19 @@ pub(crate) fn import_file_tag_into_track(
     let mut tags_map: TagsMap<'static> = Default::default();
 
     // Grouping tags
-    debug_assert!(tags_map.find(FACET_KEY_GROUPING).is_none());
+    debug_assert!(tags_map.find(FACET_ID_GROUPING).is_none());
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_KEY_GROUPING.clone(),
+        FACET_ID_GROUPING,
         tag_take_strings(&mut tag, &compatibility.primary_content_group).map(Into::into),
     );
     if let Some(secondary_content_group) = compatibility.secondary_content_group {
-        if tags_map.find(FACET_KEY_GROUPING).is_none() {
+        if tags_map.find(FACET_ID_GROUPING).is_none() {
             importer.import_faceted_tags_from_label_values(
                 &mut tags_map,
                 &config.faceted_tag_mapping,
-                FACET_KEY_GROUPING.clone(),
+                FACET_ID_GROUPING,
                 tag_take_strings(&mut tag, &secondary_content_group).map(Into::into),
             );
         }
@@ -949,7 +946,7 @@ pub(crate) fn import_file_tag_into_track(
     // Import gig tags from raw grouping tags before any other tags.
     #[cfg(feature = "gigtag")]
     if config.flags.contains(ImportTrackFlags::GIGTAGS_CGRP) {
-        if let Some((facet_key, tags)) = tags_map.remove(FACET_KEY_GROUPING) {
+        if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_GROUPING) {
             let Some(facet_id) = facet_key.into_inner() else {
                 unreachable!()
             };
@@ -964,14 +961,14 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_KEY_COMMENT.clone(),
+        FACET_ID_COMMENT,
         tag_take_strings(&mut tag, &ItemKey::Comment).map(Into::into),
     );
 
     // Import additional gig tags from the raw comment tag.
     #[cfg(feature = "gigtag")]
     if config.flags.contains(ImportTrackFlags::GIGTAGS_COMM) {
-        if let Some((facet_key, tags)) = tags_map.remove(FACET_KEY_COMMENT) {
+        if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_COMMENT) {
             let Some(facet_id) = facet_key.into_inner() else {
                 unreachable!()
             };
@@ -995,14 +992,14 @@ pub(crate) fn import_file_tag_into_track(
                 genre,
             );
         }
-        tags_map.update_tags_by_label_ordering(FACET_KEY_GENRE.clone(), plain_tags);
+        tags_map.update_tags_by_label_ordering(FACET_ID_GENRE, plain_tags);
     }
 
     // Mood tags
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_KEY_MOOD.clone(),
+        FACET_ID_MOOD,
         tag_take_strings(&mut tag, &ItemKey::Mood).map(Into::into),
     );
 
@@ -1010,7 +1007,7 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_KEY_DESCRIPTION.clone(),
+        FACET_ID_DESCRIPTION,
         tag_take_strings(&mut tag, &ItemKey::Description).map(Into::into),
     );
 
@@ -1018,7 +1015,7 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_KEY_ISRC.clone(),
+        FACET_ID_ISRC,
         tag_take_strings(&mut tag, &ItemKey::Isrc).map(Into::into),
     );
 
@@ -1026,7 +1023,7 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_KEY_XID.clone(),
+        FACET_ID_XID,
         tag_take_strings(&mut tag, &ItemKey::AppleXid).map(Into::into),
     );
 
@@ -1034,25 +1031,25 @@ pub(crate) fn import_file_tag_into_track(
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_KEY_MBID_RECORDING.clone(),
+        FACET_ID_MBID_RECORDING,
         tag_take_strings(&mut tag, &ItemKey::MusicBrainzRecordingId).map(Into::into),
     );
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_KEY_MBID_TRACK.clone(),
+        FACET_ID_MBID_TRACK,
         tag_take_strings(&mut tag, &ItemKey::MusicBrainzTrackId).map(Into::into),
     );
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_KEY_MBID_RELEASE.clone(),
+        FACET_ID_MBID_RELEASE,
         tag_take_strings(&mut tag, &ItemKey::MusicBrainzReleaseId).map(Into::into),
     );
     importer.import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
-        FACET_KEY_MBID_RELEASE_GROUP.clone(),
+        FACET_ID_MBID_RELEASE_GROUP,
         tag_take_strings(&mut tag, &ItemKey::MusicBrainzReleaseGroupId).map(Into::into),
     );
 
@@ -1488,7 +1485,7 @@ pub(crate) fn export_track_to_tag(
                 // Defer until later (see below).
             }
             let item_key = compatibility.primary_item_key(item_key).clone();
-            if let Some((facet_key, tags)) = tags_map.remove(FACET_KEY_GENRE) {
+            if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_GENRE) {
                 export_faceted_tags(
                     tag,
                     item_key,

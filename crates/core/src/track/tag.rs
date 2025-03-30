@@ -3,7 +3,7 @@
 
 use smol_str::SmolStr;
 
-use crate::tag::{FacetId, FacetKey};
+use crate::tag::FacetId;
 
 // Some predefined facets that are commonly used and could serve as
 // a starting point for complex tagging schemes
@@ -18,9 +18,6 @@ use crate::tag::{FacetId, FacetKey};
 pub const FACET_GROUPING: &str = "cgrp";
 pub const FACET_ID_GROUPING: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_GROUPING));
-pub const FACET_KEY_GROUPING: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_GROUPING),
-)));
 
 // Comment
 // ID3v2.4: COMM (without `description`)
@@ -28,9 +25,6 @@ pub const FACET_KEY_GROUPING: &FacetKey = &FacetKey::new(Some(FacetId::new_unche
 // MP4:     ©cmt
 pub const FACET_COMMENT: &str = "comm";
 pub const FACET_ID_COMMENT: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_COMMENT));
-pub const FACET_KEY_COMMENT: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_COMMENT),
-)));
 
 // Description
 // ID3v2.4: COMM:description
@@ -39,9 +33,6 @@ pub const FACET_KEY_COMMENT: &FacetKey = &FacetKey::new(Some(FacetId::new_unchec
 pub const FACET_DESCRIPTION: &str = "desc";
 pub const FACET_ID_DESCRIPTION: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_DESCRIPTION));
-pub const FACET_KEY_DESCRIPTION: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_DESCRIPTION),
-)));
 
 // ISO 639-3 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
 // ID3v2.4: TLAN
@@ -50,9 +41,6 @@ pub const FACET_KEY_DESCRIPTION: &FacetKey = &FacetKey::new(Some(FacetId::new_un
 pub const FACET_LANGUAGE: &str = "lang";
 pub const FACET_ID_LANGUAGE: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_LANGUAGE));
-pub const FACET_KEY_LANGUAGE: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_LANGUAGE),
-)));
 
 // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
 // ID3v2.4: TCON
@@ -60,9 +48,6 @@ pub const FACET_KEY_LANGUAGE: &FacetKey = &FacetKey::new(Some(FacetId::new_unche
 // MP4:     ©gen
 pub const FACET_GENRE: &str = "gnre";
 pub const FACET_ID_GENRE: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_GENRE));
-pub const FACET_KEY_GENRE: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_GENRE),
-)));
 
 // Personal mental or emotional state, e.g. "happy", "sexy", "sad", "melancholic", "joyful", ...
 // ID3v2.4: TMOO
@@ -70,9 +55,6 @@ pub const FACET_KEY_GENRE: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecke
 // MP4:     ----:com.apple.iTunes:MOOD
 pub const FACET_MOOD: &str = "mood";
 pub const FACET_ID_MOOD: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_MOOD));
-pub const FACET_KEY_MOOD: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_MOOD),
-)));
 
 // International Standard Recording Code (ISRC, ISO 3901)
 // ID3v2.4: TSRC
@@ -80,9 +62,6 @@ pub const FACET_KEY_MOOD: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked
 // MP4:     isrc
 pub const FACET_ISRC: &str = "isrc";
 pub const FACET_ID_ISRC: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_ISRC));
-pub const FACET_KEY_ISRC: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_ISRC),
-)));
 
 // Vendor-supplied, globally unique identifier(s) used by iTunes
 // Format: prefix:scheme:identifier
@@ -91,8 +70,6 @@ pub const FACET_KEY_ISRC: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked
 // See also: https://www.apple.com/au/itunes/lp-and-extras/docs/Development_Guide.pdf
 pub const FACET_XID: &str = "xid";
 pub const FACET_ID_XID: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_XID));
-pub const FACET_KEY_XID: &FacetKey =
-    &FacetKey::new(Some(FacetId::new_unchecked(SmolStr::new_static(FACET_XID))));
 
 // [MusicBrainz Recording Identifier](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#id21)
 // ID3v2.4: UFID:http://musicbrainz.org
@@ -101,9 +78,6 @@ pub const FACET_KEY_XID: &FacetKey =
 pub const FACET_MBID_RECORDING: &str = "mbid-rec";
 pub const FACET_ID_MBID_RECORDING: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_MBID_RECORDING));
-pub const FACET_KEY_MBID_RECORDING: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_MBID_RECORDING),
-)));
 
 // [MusicBrainz Track Identifier](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#id24)
 // ID3v2.4: TXXX:MusicBrainz Release Track Id
@@ -112,9 +86,6 @@ pub const FACET_KEY_MBID_RECORDING: &FacetKey = &FacetKey::new(Some(FacetId::new
 pub const FACET_MBID_TRACK: &str = "mbid-trk";
 pub const FACET_ID_MBID_TRACK: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_MBID_TRACK));
-pub const FACET_KEY_MBID_TRACK: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_MBID_TRACK),
-)));
 
 // [MusicBrainz Release Identifier](https://musicbrainz.org/doc/Release)
 // ID3v2.4: TXXX:MusicBrainz Album Id
@@ -123,9 +94,6 @@ pub const FACET_KEY_MBID_TRACK: &FacetKey = &FacetKey::new(Some(FacetId::new_unc
 pub const FACET_MBID_RELEASE: &str = "mbid-rel";
 pub const FACET_ID_MBID_RELEASE: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_MBID_RELEASE));
-pub const FACET_KEY_MBID_RELEASE: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_MBID_RELEASE),
-)));
 
 // [MusicBrainz Release Group Identifier](https://musicbrainz.org/doc/Release_Group)
 // ID3v2.4: TXXX:MusicBrainz Release Group Id
@@ -134,9 +102,6 @@ pub const FACET_KEY_MBID_RELEASE: &FacetKey = &FacetKey::new(Some(FacetId::new_u
 pub const FACET_MBID_RELEASE_GROUP: &str = "mbid-rel-grp";
 pub const FACET_ID_MBID_RELEASE_GROUP: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_MBID_RELEASE_GROUP));
-pub const FACET_KEY_MBID_RELEASE_GROUP: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_MBID_RELEASE_GROUP),
-)));
 
 // [MusicBrainz Artist Identifier](https://musicbrainz.org/doc/Artist)
 // ID3v2.4: TXXX:MusicBrainz Artist Id
@@ -145,9 +110,6 @@ pub const FACET_KEY_MBID_RELEASE_GROUP: &FacetKey = &FacetKey::new(Some(FacetId:
 pub const FACET_MBID_ARTIST: &str = "mbid-art";
 pub const FACET_ID_MBID_ARTIST: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_MBID_ARTIST));
-pub const FACET_KEY_MBID_ARTIST: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_MBID_ARTIST),
-)));
 
 // [MusicBrainz Release Artist Identifier](https://musicbrainz.org/doc/Release_Artist)
 // ID3v2.4: TXXX:MusicBrainz Album Artist Id
@@ -156,9 +118,6 @@ pub const FACET_KEY_MBID_ARTIST: &FacetKey = &FacetKey::new(Some(FacetId::new_un
 pub const FACET_MBID_RELEASE_ARTIST: &str = "mbid-rel-art";
 pub const FACET_ID_MBID_RELEASE_ARTIST: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_MBID_RELEASE_ARTIST));
-pub const FACET_KEY_MBID_RELEASE_ARTIST: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_MBID_RELEASE_ARTIST),
-)));
 
 // [MusicBrainz Work Identifier](https://musicbrainz.org/doc/Work)
 // ID3v2.4: TXXX:MusicBrainz Work Id
@@ -167,9 +126,6 @@ pub const FACET_KEY_MBID_RELEASE_ARTIST: &FacetKey = &FacetKey::new(Some(FacetId
 pub const FACET_MBID_WORK: &str = "mbid-wrk";
 pub const FACET_ID_MBID_WORK: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_MBID_WORK));
-pub const FACET_KEY_MBID_WORK: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_MBID_WORK),
-)));
 
 // Predefined musical or audio feature scores (as of Spotify/EchoNest).
 // A label is optional and could be used for identifying the source of
@@ -184,80 +140,44 @@ pub const FACET_KEY_MBID_WORK: &FacetKey = &FacetKey::new(Some(FacetId::new_unch
 pub const FACET_ACOUSTICNESS: &str = "acousticness";
 pub const FACET_ID_ACOUSTICNESS: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_ACOUSTICNESS));
-pub const FACET_KEY_ACOUSTICNESS: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_ACOUSTICNESS),
-)));
 
 pub const FACET_AROUSAL: &str = "arousal";
 pub const FACET_ID_AROUSAL: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_AROUSAL));
-pub const FACET_KEY_AROUSAL: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_AROUSAL),
-)));
 
 pub const FACET_DANCEABILITY: &str = "danceability";
 pub const FACET_ID_DANCEABILITY: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_DANCEABILITY));
-pub const FACET_KEY_DANCEABILITY: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_DANCEABILITY),
-)));
 
 pub const FACET_ENERGY: &str = "energy";
 pub const FACET_ID_ENERGY: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_ENERGY));
-pub const FACET_KEY_ENERGY: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_ENERGY),
-)));
 
 pub const FACET_INSTRUMENTALNESS: &str = "instrumentalness";
 pub const FACET_ID_INSTRUMENTALNESS: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_INSTRUMENTALNESS));
-pub const FACET_KEY_INSTRUMENTALNESS: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_INSTRUMENTALNESS),
-)));
 
 pub const FACET_LIVENESS: &str = "liveness";
 pub const FACET_ID_LIVENESS: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_LIVENESS));
-pub const FACET_KEY_LIVENESS: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_LIVENESS),
-)));
 
 pub const FACET_POPULARITY: &str = "popularity";
 pub const FACET_ID_POPULARITY: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_POPULARITY));
-pub const FACET_KEY_POPULARITY: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_POPULARITY),
-)));
 
 pub const FACET_SPEECHINESS: &str = "speechiness";
 pub const FACET_ID_SPEECHINESS: &FacetId =
     &FacetId::new_unchecked(SmolStr::new_static(FACET_SPEECHINESS));
-pub const FACET_KEY_SPEECHINESS: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_SPEECHINESS),
-)));
 
 pub const FACET_VALENCE: &str = "valence";
 pub const FACET_ID_VALENCE: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_VALENCE));
-pub const FACET_KEY_VALENCE: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_VALENCE),
-)));
 
 // Custom: Decades like "1980s", "2000s", ..., or other time-based properties
 pub const FACET_DECADE: &str = "decade";
 pub const FACET_ID_DECADE: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_DECADE));
-pub const FACET_KEY_DECADE: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_DECADE),
-)));
 
 // Custom: Sub-genres or details like "East Coast", "West Coast", ...
 pub const FACET_STYLE: &str = "style";
 pub const FACET_ID_STYLE: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_STYLE));
-pub const FACET_KEY_STYLE: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_STYLE),
-)));
 
 // Custom: Atmosphere of the situation, e.g. "bouncy", "driving", "dreamy", "poppy", "punchy", "spiritual", "tropical", "uplifting" ...
 pub const FACET_VIBE: &str = "vibe";
 pub const FACET_ID_VIBE: &FacetId = &FacetId::new_unchecked(SmolStr::new_static(FACET_VIBE));
-pub const FACET_KEY_VIBE: &FacetKey = &FacetKey::new(Some(FacetId::new_unchecked(
-    SmolStr::new_static(FACET_VIBE),
-)));

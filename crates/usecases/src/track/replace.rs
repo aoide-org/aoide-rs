@@ -149,7 +149,7 @@ where
     use aoide_core::{
         FacetedTags, TagsMap,
         media::content::resolver::ContentPathResolver as _,
-        track::tag::{FACET_KEY_COMMENT, FACET_KEY_GROUPING},
+        track::tag::{FACET_ID_COMMENT, FACET_ID_GROUPING},
     };
 
     use crate::{
@@ -206,7 +206,7 @@ where
         }
         if *decode_gigtags {
             let mut tags_map: TagsMap<'static> = track.tags.untie().into();
-            if let Some((facet_key, tags)) = tags_map.remove(FACET_KEY_GROUPING) {
+            if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_GROUPING) {
                 let Some(facet_id) = facet_key.into_inner() else {
                     unreachable!();
                 };
@@ -215,7 +215,7 @@ where
                     aoide_media_file::util::gigtag::import_from_faceted_tags(faceted_tags);
                 tags_map.merge(decoded_gig_tags);
             }
-            if let Some((facet_key, tags)) = tags_map.remove(FACET_KEY_COMMENT) {
+            if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_COMMENT) {
                 let Some(facet_id) = facet_key.into_inner() else {
                     unreachable!();
                 };

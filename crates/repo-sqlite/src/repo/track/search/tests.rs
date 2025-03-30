@@ -12,7 +12,7 @@ use aoide_core::{
         content::{AudioContentMetadata, ContentLink},
     },
     tag::{FacetKey, Label, PlainTag, TagsMap},
-    track::tag::FACET_KEY_COMMENT,
+    track::tag::FACET_ID_COMMENT,
     util::clock::OffsetDateTimeMs,
 };
 use aoide_core_api::{
@@ -149,7 +149,7 @@ fn filter_plain_tags() -> TestResult<()> {
     );
     let filter = TrackFilter::Tag(TagFilter {
         modifier: None,
-        facets: Some(FacetsFilter::NoneOf(vec![FACET_KEY_COMMENT.clone()])),
+        facets: Some(FacetsFilter::NoneOf(vec![FACET_ID_COMMENT.into()])),
         label: Some(StringPredicate::StartsWith("tag\\".into())),
         score: None,
     });

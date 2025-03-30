@@ -15,8 +15,8 @@ use aoide::{
     },
     desktop_app::track,
     track::tag::{
-        FACET_KEY_COMMENT, FACET_KEY_DESCRIPTION, FACET_KEY_GENRE, FACET_KEY_GROUPING,
-        FACET_KEY_ISRC, FACET_KEY_MOOD, FACET_KEY_XID,
+        FACET_ID_COMMENT, FACET_ID_DESCRIPTION, FACET_ID_GENRE, FACET_ID_GROUPING, FACET_ID_ISRC,
+        FACET_ID_MOOD, FACET_ID_XID,
     },
 };
 
@@ -204,13 +204,13 @@ pub(super) fn parse_filter_from_input(input: &str) -> Option<Filter> {
     }
     let phrase_fields = [StringField::Publisher];
     let predefined_tag_facets = [
-        FACET_KEY_COMMENT.clone(),
-        FACET_KEY_GROUPING.clone(),
-        FACET_KEY_GENRE.clone(),
-        FACET_KEY_MOOD.clone(),
-        FACET_KEY_DESCRIPTION.clone(),
-        FACET_KEY_XID.clone(),
-        FACET_KEY_ISRC.clone(),
+        FACET_ID_COMMENT.into(),
+        FACET_ID_GROUPING.into(),
+        FACET_ID_GENRE.into(),
+        FACET_ID_MOOD.into(),
+        FACET_ID_DESCRIPTION.into(),
+        FACET_ID_XID.into(),
+        FACET_ID_ISRC.into(),
     ];
     let facets_filter = FacetsFilter::AnyOf(predefined_tag_facets.to_vec());
     // The size of the filter and as a consequence the execution time

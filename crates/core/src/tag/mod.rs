@@ -430,6 +430,27 @@ impl From<FacetId> for FacetKey {
     }
 }
 
+impl From<&FacetKey> for FacetKey {
+    fn from(from: &FacetKey) -> Self {
+        // Cloning a FacetKey is cheap.
+        from.clone()
+    }
+}
+
+impl From<Option<&FacetId>> for FacetKey {
+    fn from(from: Option<&FacetId>) -> Self {
+        // Cloning a FacetId is cheap.
+        from.cloned().into()
+    }
+}
+
+impl From<&FacetId> for FacetKey {
+    fn from(from: &FacetId) -> Self {
+        // Cloning a FacetId is cheap.
+        from.clone().into()
+    }
+}
+
 impl AsRef<Option<FacetId>> for FacetKey {
     fn as_ref(&self) -> &Option<FacetId> {
         let Self(inner) = self;
