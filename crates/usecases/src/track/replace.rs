@@ -32,8 +32,8 @@ pub struct Params {
     /// Decode gig tags
     ///
     /// Decode all custom tags that are not supported as native file tags
-    /// from the "cgrp" (content group/grouping) tag when creating/updating
-    /// tags.
+    /// from both the "cgrp" (content group/grouping) and "comm" (comment) tag
+    /// when creating/updating tags.
     ///
     /// This options is useful for interoperability with applications that
     /// only support the common file tags and for file synchronization.
@@ -149,7 +149,7 @@ where
     use aoide_core::{
         FacetedTags, TagsMap,
         media::content::resolver::ContentPathResolver as _,
-        track::tag::FACET_KEY_GROUPING,
+        track::tag::{FACET_KEY_COMMENT, FACET_KEY_GROUPING},
     };
 
     use crate::{
@@ -207,6 +207,15 @@ where
         if *decode_gigtags {
             let mut tags_map: TagsMap<'static> = track.tags.untie().into();
             if let Some((facet_key, tags)) = tags_map.remove(FACET_KEY_GROUPING) {
+                let Some(facet_id) = facet_key.into_inner() else {
+                    unreachable!();
+                };
+                let faceted_tags = FacetedTags { facet_id, tags };
+                let decoded_gig_tags =
+                    aoide_media_file::util::gigtag::import_from_faceted_tags(faceted_tags);
+                tags_map.merge(decoded_gig_tags);
+            }
+            if let Some((facet_key, tags)) = tags_map.remove(FACET_KEY_COMMENT) {
                 let Some(facet_id) = facet_key.into_inner() else {
                     unreachable!();
                 };

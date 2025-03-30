@@ -1133,7 +1133,7 @@ components:
         from both the "cgrp" (content group/grouping) and the "comm" (comment) tag
         when creating/updating tags.
 
-        This options is useful for interoperability with applications that
+        This option is useful for interoperability with applications that
         only support the common file tags and for file synchronization.
       in: query
       required: false
