@@ -1516,13 +1516,9 @@ pub(crate) fn export_track_to_tag(
                     .remove(&facet_id)
                     .unwrap_or_else(|| (facet_id.clone().into(), vec![]));
                 // Verify that the map does not contain any tags that have already been exported.
-                debug_assert!(tags_map.facet_keys().all(|facet_key| {
-                    let Some(key_facet_id) = facet_key.as_ref() else {
-                        // Plain tag.
-                        return true;
-                    };
+                debug_assert!(tags_map.facet_ids().all(|facet_id| {
                     file_tag_facets_without(facet_id)
-                        .all(|other_facet_id| other_facet_id != key_facet_id)
+                        .all(|other_facet_id| other_facet_id != facet_id)
                 }));
                 let remaining_tags = tags_map.canonicalize_into();
                 if let Err(err) = crate::util::gigtag::export_and_encode_tags_into(

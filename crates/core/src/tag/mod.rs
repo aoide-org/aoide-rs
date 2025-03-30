@@ -564,6 +564,13 @@ impl<'a> TagsMap<'a> {
         self.total_count() == 0
     }
 
+    /// The [`FacetId`]s of all faceted tags.
+    pub fn facet_ids(&self) -> impl Iterator<Item = &FacetId> {
+        self.hash_table
+            .iter()
+            .filter_map(|(FacetKey(facet_id), _)| facet_id.as_ref())
+    }
+
     /// Insert a single tag.
     pub fn insert_one(
         &mut self,
@@ -739,10 +746,6 @@ impl<'a> TagsMap<'a> {
             }
         }
         self.replace(facet_key, new_plain_tags).1
-    }
-
-    pub fn facet_keys(&self) -> impl Iterator<Item = &FacetKey> {
-        self.hash_table.iter().map(|(facet_key, _)| facet_key)
     }
 }
 
