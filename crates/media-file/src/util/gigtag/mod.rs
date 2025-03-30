@@ -10,7 +10,10 @@ use gigtag::{
 use nonicle::Canonical;
 use semval::prelude::*;
 
-use aoide_core::tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, ScoreValue, Tags, TagsMap};
+use aoide_core::{
+    InsertOrReplaceTags,
+    tag::{FacetId, FacetKey, FacetedTags, PlainTag, Score, ScoreValue, Tags, TagsMap},
+};
 
 pub type Facet = SmolStr;
 
@@ -168,7 +171,7 @@ fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag<'_>)> {
         }
         facet_id_clamped.into()
     } else {
-        Default::default()
+        FacetKey::unfaceted()
     };
     let label = if tag.has_label() {
         let label_str = tag.label().as_str();
@@ -198,7 +201,7 @@ fn decode_tags_eagerly_into(
         if let Some((facet_key, plain_tag)) = try_import_tag(tag) {
             log::debug!("Imported {facet_key:?} {plain_tag:?} from {tag:?}");
             if let Some(tags_map) = tags_map.as_mut() {
-                tags_map.insert(facet_key, plain_tag.into_owned());
+                tags_map.insert_one(facet_key, plain_tag.into_owned());
             }
             num_imported += 1;
             // Discard the imported tag
@@ -259,20 +262,20 @@ pub fn import_from_faceted_tags(mut faceted_tags: FacetedTags<'static>) -> TagsM
     });
     if !faceted_tags.tags.is_empty() {
         let FacetedTags { facet_id, mut tags } = faceted_tags;
-        let facet_key = facet_id.into();
-        let ingested_tags = tags_map.take_faceted_tags(&facet_key);
+        let facet_key = FacetKey::from(facet_id);
+        let ingested_tags = tags_map.remove(&facet_key).map(|(_, tags)| tags);
         if let Some(mut ingested_tags) = ingested_tags {
-            if !ingested_tags.tags.is_empty() {
+            if !ingested_tags.is_empty() {
                 log::warn!(
                     "Joining {num_undecoded} undecoded with {num_ingested} ingested tag(s) for \
                      facet \"{facet_key}\"",
                     num_undecoded = tags.len(),
-                    num_ingested = ingested_tags.tags.len()
+                    num_ingested = ingested_tags.len()
                 );
-                tags.append(&mut ingested_tags.tags);
+                tags.append(&mut ingested_tags);
             }
         }
-        tags_map.replace_tags(facet_key, tags);
+        tags_map.insert_or_replace(facet_key, InsertOrReplaceTags::Replace(tags));
     }
     tags_map
 }

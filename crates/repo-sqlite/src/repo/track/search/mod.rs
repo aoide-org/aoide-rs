@@ -1046,7 +1046,7 @@ fn select_track_ids_matching_tag_filter(
                     // Tags with any of the given facets.
                     let mut count_non_default = 0;
                     let any_of_non_default =
-                        any_of.iter().filter(|&key| *key != FacetKey::default());
+                        any_of.iter().filter(|&key| *key != FacetKey::unfaceted());
                     select =
                         select.filter(track_tag::facet.eq_any(any_of_non_default.map(|key| {
                             count_non_default += 1;
@@ -1070,7 +1070,7 @@ fn select_track_ids_matching_tag_filter(
                     // Tags with none of the given facets.
                     let mut count_non_default = 0;
                     let none_of_non_default =
-                        none_of.iter().filter(|&key| *key != FacetKey::default());
+                        none_of.iter().filter(|&key| *key != FacetKey::unfaceted());
                     select =
                         select.filter(track_tag::facet.ne_all(none_of_non_default.map(|key| {
                             count_non_default += 1;

@@ -653,10 +653,10 @@ impl Importer {
         &mut self,
         tags_map: &mut TagsMap<'a>,
         faceted_tag_mapping_config: &FacetedTagMappingConfig,
-        facet_key: &TagFacetKey,
+        facet_key: impl AsRef<str> + Into<TagFacetKey>,
         label_values: impl IntoIterator<Item = Cow<'a, str>>,
     ) -> usize {
-        let tag_mapping_config = faceted_tag_mapping_config.get(facet_key.as_str());
+        let tag_mapping_config = faceted_tag_mapping_config.get(facet_key.as_ref());
         let mut total_import_count = 0;
         let mut plain_tags = Vec::with_capacity(8);
         let mut next_score_value = PlainTag::DEFAULT_SCORE.value();
@@ -672,6 +672,7 @@ impl Importer {
         if count < total_import_count {
             self.issues.add_message(format!(
                 "Discarded {duplicate_count} duplicate tag labels for facet \"{facet_key}\"",
+                facet_key = facet_key.as_ref(),
                 duplicate_count = total_import_count - count,
             ));
         }

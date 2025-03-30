@@ -67,10 +67,10 @@ impl Visitor<'_> for FacetKeyVisitor {
     where
         E: serde::de::Error,
     {
-        let inner = if _core::FacetKey::default().as_str() == s {
+        let inner = if _core::FacetKey::unfaceted().as_str() == s {
             // Special case: Tags without a facet are referred to by an empty string,
             // i.e. by the string representation of the default facet identifier.
-            _core::FacetKey::default()
+            _core::FacetKey::unfaceted()
         } else {
             let facet_id = _core::FacetId::new_unchecked(s.into());
             if !facet_id.is_valid() {
@@ -318,7 +318,7 @@ impl From<_core::Tags<'static>> for Tags {
         } = from;
         if !plain_tags.is_empty() {
             into.insert(
-                _core::FacetKey::new(None).into(),
+                _core::FacetKey::unfaceted().into(),
                 plain_tags.into_iter().map(Into::into).collect(),
             );
         }

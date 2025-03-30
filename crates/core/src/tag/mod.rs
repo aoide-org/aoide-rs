@@ -4,16 +4,12 @@
 use std::{
     borrow::Borrow,
     cmp::Ordering,
-    collections::{
-        HashMap,
-        hash_map::Entry::{self, Occupied, Vacant},
-    },
     fmt,
-    hash::{Hash, Hasher},
-    iter::once,
+    hash::{BuildHasher as _, Hash, Hasher},
     ops::Not as _,
 };
 
+use hashbrown::{DefaultHashBuilder, HashTable};
 use nonicle::{Canonical, CanonicalOrd, Canonicalize, CanonicalizeInto, IsCanonical};
 use semval::prelude::*;
 
@@ -384,10 +380,16 @@ impl Validate for Tags<'_> {
 // TagsMap
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct FacetKey(Option<FacetId>);
 
 impl FacetKey {
+    /// Without a facet.
+    #[must_use]
+    pub const fn unfaceted() -> Self {
+        Self(None)
+    }
+
     #[must_use]
     pub const fn new(inner: Option<FacetId>) -> Self {
         Self(inner)
@@ -435,6 +437,12 @@ impl AsRef<Option<FacetId>> for FacetKey {
     }
 }
 
+impl AsRef<str> for FacetKey {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
 impl Borrow<str> for FacetKey {
     fn borrow(&self) -> &str {
         self.as_str()
@@ -449,9 +457,7 @@ impl fmt::Display for FacetKey {
 
 impl PartialEq for FacetKey {
     fn eq(&self, other: &Self) -> bool {
-        let self_str: &str = self.as_str();
-        let other_str: &str = other.as_str();
-        self_str == other_str
+        self.as_str().eq(other.as_str())
     }
 }
 
@@ -459,9 +465,7 @@ impl Eq for FacetKey {}
 
 impl Ord for FacetKey {
     fn cmp(&self, other: &Self) -> Ordering {
-        let self_str: &str = self.as_str();
-        let other_str: &str = other.as_str();
-        self_str.cmp(other_str)
+        self.as_str().cmp(other.as_str())
     }
 }
 
@@ -473,50 +477,154 @@ impl PartialOrd for FacetKey {
 
 impl Hash for FacetKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let self_str: &str = self.as_str();
-        self_str.hash(state);
+        self.as_str().hash(state);
     }
 }
 
-/// Unified map of both plain and faceted tags
-pub type TagsMapInner<'a> = HashMap<FacetKey, Vec<PlainTag<'a>>>;
+#[derive(Debug, Clone)]
+pub enum InsertOrReplaceTags<'a> {
+    Insert(Vec<PlainTag<'a>>),
+    Replace(Vec<PlainTag<'a>>),
+}
 
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct TagsMap<'a>(TagsMapInner<'a>);
+/// Unified map of both plain and faceted tags.
+///
+/// May contain duplicate tags if not _canonicalized_.
+#[derive(Debug, Default, Clone)]
+pub struct TagsMap<'a> {
+    hash_builder: DefaultHashBuilder,
+    hash_table: HashTable<(FacetKey, Vec<PlainTag<'a>>)>,
+}
 
 impl<'a> TagsMap<'a> {
     #[must_use]
-    pub const fn new(inner: TagsMapInner<'a>) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub fn into_inner(self) -> TagsMapInner<'a> {
-        let Self(inner) = self;
-        inner
-    }
-
-    pub fn insert(&mut self, key: impl Into<FacetKey>, tag: PlainTag<'a>) {
-        let Self(inner) = self;
-        match inner.entry(key.into()) {
-            Entry::Occupied(mut entry) => {
-                entry.get_mut().push(tag);
-            }
-            Entry::Vacant(entry) => {
-                entry.insert(vec![tag]);
-            }
+    pub fn new() -> Self {
+        Self {
+            hash_builder: Default::default(),
+            hash_table: HashTable::new(),
         }
     }
 
-    pub fn insert_many(&mut self, key: impl Into<FacetKey>, mut tags: Vec<PlainTag<'a>>) {
-        let Self(inner) = self;
-        match inner.entry(key.into()) {
-            Entry::Occupied(mut entry) => {
-                entry.get_mut().append(&mut tags);
-            }
-            Entry::Vacant(entry) => {
-                entry.insert(tags);
-            }
+    #[must_use]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            hash_builder: Default::default(),
+            hash_table: HashTable::with_capacity(capacity),
+        }
+    }
+
+    #[must_use]
+    pub fn find<'b>(&'b self, facet_key: &impl AsRef<str>) -> Option<&'b [PlainTag<'a>]> {
+        let Self {
+            hash_builder,
+            hash_table,
+        } = self;
+        let hash = hash_builder.hash_one(facet_key.as_ref());
+        hash_table
+            .find(hash, |(occupied_key, _)| {
+                occupied_key.as_str().eq(facet_key.as_ref())
+            })
+            .map(|(_, tags)| tags.as_slice())
+    }
+
+    pub fn count(&self, facet_key: &impl AsRef<str>) -> Option<usize> {
+        self.find(facet_key).map(<[_]>::len)
+    }
+
+    #[must_use]
+    pub fn total_count(&self) -> usize {
+        self.hash_table
+            .iter()
+            .fold(0, |total_count, (_, tags)| total_count + tags.len())
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.total_count() == 0
+    }
+
+    /// Insert a single tag.
+    pub fn insert_one(
+        &mut self,
+        facet_key: impl AsRef<str> + Into<FacetKey>,
+        one_tag: PlainTag<'a>,
+    ) -> FacetKey {
+        let Self {
+            hash_builder,
+            hash_table,
+        } = self;
+        let hash = hash_builder.hash_one(facet_key.as_ref());
+        if let Some((facet_key, tags)) = hash_table.find_mut(hash, |(occupied_key, _)| {
+            occupied_key.as_str().eq(facet_key.as_ref())
+        }) {
+            tags.push(one_tag);
+            return facet_key.clone();
+        }
+        hash_table
+            .insert_unique(
+                hash,
+                (facet_key.into(), vec![one_tag]),
+                |(occupied_key, _)| hash_builder.hash_one(occupied_key),
+            )
+            .get()
+            .0
+            .clone()
+    }
+
+    /// Insert or replace tags.
+    ///
+    /// Returns the [`FacetKey`] and the corresponding replaced tags.
+    pub fn insert_or_replace(
+        &mut self,
+        facet_key: impl AsRef<str> + Into<FacetKey>,
+        insert_or_replace_tags: InsertOrReplaceTags<'a>,
+    ) -> (FacetKey, Option<Vec<PlainTag<'a>>>) {
+        let Self {
+            hash_builder,
+            hash_table,
+        } = self;
+        let hash = hash_builder.hash_one(facet_key.as_ref());
+        if let Some((facet_key, tags)) = hash_table.find_mut(hash, |(occupied_key, _)| {
+            occupied_key.as_str().eq(facet_key.as_ref())
+        }) {
+            let replaced_tags = match insert_or_replace_tags {
+                InsertOrReplaceTags::Insert(mut insert_tags) => {
+                    tags.append(&mut insert_tags);
+                    None
+                }
+                InsertOrReplaceTags::Replace(replace_tags) => {
+                    let replaced_tags = std::mem::replace(tags, replace_tags);
+                    Some(replaced_tags)
+                }
+            };
+            return (facet_key.clone(), replaced_tags);
+        }
+        let facet_key = match insert_or_replace_tags {
+            InsertOrReplaceTags::Insert(tags) | InsertOrReplaceTags::Replace(tags) => hash_table
+                .insert_unique(hash, (facet_key.into(), tags), |(occupied_key, _)| {
+                    hash_builder.hash_one(occupied_key)
+                })
+                .get()
+                .0
+                .clone(),
+        };
+        (facet_key, None)
+    }
+
+    /// Remove tags.
+    ///
+    /// Returns the [`FacetKey`] and the corresponding removed tags.
+    pub fn remove(&mut self, facet_key: &impl AsRef<str>) -> Option<(FacetKey, Vec<PlainTag<'a>>)> {
+        let Self {
+            hash_builder,
+            hash_table,
+        } = self;
+        let hash = hash_builder.hash_one(facet_key.as_ref());
+        match hash_table.find_entry(hash, |(occupied_key, _)| {
+            occupied_key.as_str().eq(facet_key.as_ref())
+        }) {
+            Ok(occupied) => Some(occupied.remove().0),
+            Err(_absent) => None,
         }
     }
 
@@ -524,74 +632,33 @@ impl<'a> TagsMap<'a> {
         if self.is_empty() {
             // Replace the whole instance.
             *self = other;
-            return;
-        }
-        for (key, tags) in other.into_inner() {
-            self.insert_many(key, tags);
-        }
-    }
-
-    pub fn count(&mut self, facet_key: &FacetKey) -> usize {
-        let Self(inner) = self;
-        inner.get(facet_key).map_or(0, Vec::len)
-    }
-
-    #[must_use]
-    pub fn total_count(&self) -> usize {
-        let Self(inner) = self;
-        inner.values().fold(0, |sum, tags| sum + tags.len())
-    }
-
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.total_count() == 0
-    }
-}
-
-impl<'a> From<TagsMapInner<'a>> for TagsMap<'a> {
-    fn from(from: TagsMapInner<'a>) -> Self {
-        Self::new(from)
-    }
-}
-
-impl<'a> From<TagsMap<'a>> for TagsMapInner<'a> {
-    fn from(from: TagsMap<'a>) -> Self {
-        from.into_inner()
-    }
-}
-
-impl<'a> AsRef<TagsMapInner<'a>> for TagsMap<'a> {
-    fn as_ref(&self) -> &TagsMapInner<'a> {
-        let Self(inner) = self;
-        inner
-    }
-}
-
-impl<'a> TagsMap<'a> {
-    pub fn get_tags(&'a self, facet_key: &FacetKey) -> Option<&'a [PlainTag<'a>]> {
-        let Self(all_tags) = self;
-        all_tags.get(facet_key).map(Vec::as_slice)
-    }
-
-    pub fn replace_tags(
-        &mut self,
-        facet_key: FacetKey,
-        plain_tags: impl Into<Vec<PlainTag<'a>>>,
-    ) -> Option<Vec<PlainTag<'a>>> {
-        let Self(all_tags) = self;
-        match all_tags.entry(facet_key) {
-            Occupied(mut entry) => Some(entry.insert(plain_tags.into())),
-            Vacant(entry) => {
-                entry.insert(plain_tags.into());
-                None
+        } else {
+            // TODO: Optimize?
+            for (facet_key, tags) in other.hash_table {
+                self.insert_or_replace(facet_key, InsertOrReplaceTags::Insert(tags));
             }
         }
     }
 
     fn split_into_plain_and_faceted_tags(self) -> (Vec<PlainTag<'a>>, Self) {
-        let Self(mut all_tags) = self;
-        let plain_tags = all_tags.remove(&FacetKey::new(None)).unwrap_or_default();
-        (plain_tags, Self(all_tags))
+        let Self {
+            hash_builder,
+            mut hash_table,
+        } = self;
+        let plain_key = FacetKey::unfaceted();
+        let plain_hash = hash_builder.hash_one(&plain_key);
+        let plain_tags = hash_table
+            .find_entry(plain_hash, |(facet_key, _)| facet_key.eq(&plain_key))
+            .map(|entry| entry.remove().0.1)
+            .ok()
+            .unwrap_or_default();
+        (
+            plain_tags,
+            Self {
+                hash_builder,
+                hash_table,
+            },
+        )
     }
 
     /// Update tags.
@@ -603,14 +670,13 @@ impl<'a> TagsMap<'a> {
     /// an artificial score is generated depending on the ordering. In this case
     /// the original scores should be preserved.
     ///
-    /// Returns `true` if the tags have been replaced and `false` if unmodified.
+    /// Returns the replaced tags or `None` if unmodified.
     pub fn update_tags_by_label_ordering(
         &mut self,
-        facet_key: &FacetKey,
-        new_plain_tags: impl Into<Vec<PlainTag<'a>>>,
-    ) -> bool {
-        let new_plain_tags = new_plain_tags.into();
-        if let Some(old_plain_tags) = self.get_tags(facet_key) {
+        facet_key: impl AsRef<str> + Into<FacetKey>,
+        new_plain_tags: Vec<PlainTag<'a>>,
+    ) -> Option<Vec<PlainTag<'a>>> {
+        if let Some(old_plain_tags) = self.find(&facet_key) {
             if old_plain_tags.len() == new_plain_tags.len() {
                 let mut unchanged = true;
                 for (old_tag, new_tag) in old_plain_tags.iter().zip(new_plain_tags.iter()) {
@@ -621,39 +687,16 @@ impl<'a> TagsMap<'a> {
                 }
                 if !unchanged {
                     // No update desired if ordering of labels didn't change
-                    return false;
+                    return None;
                 }
             }
         }
-        if new_plain_tags.is_empty() {
-            self.remove_tags(facet_key);
-        } else {
-            self.replace_tags(facet_key.clone(), new_plain_tags);
-        }
-        true
-    }
-
-    #[expect(clippy::missing_panics_doc)] // Never panics
-    pub fn take_faceted_tags(&mut self, facet_key: &FacetKey) -> Option<FacetedTags<'a>> {
-        if matches!(facet_key, FacetKey(None)) {
-            return None;
-        };
-        let Self(all_tags) = self;
-        all_tags.remove_entry(facet_key).map(|(key, tags)| {
-            let FacetKey(facet_id) = key;
-            debug_assert!(facet_id.is_some());
-            let facet_id = facet_id.expect("facet");
-            FacetedTags { facet_id, tags }
-        })
-    }
-
-    pub fn remove_tags(&mut self, facet_key: &FacetKey) -> Option<usize> {
-        let Self(all_tags) = self;
-        all_tags.remove(facet_key).map(|tags| tags.len())
+        self.insert_or_replace(facet_key, InsertOrReplaceTags::Replace(new_plain_tags))
+            .1
     }
 
     pub fn facet_keys(&self) -> impl Iterator<Item = &FacetKey> {
-        self.0.keys()
+        self.hash_table.iter().map(|(facet_key, _)| facet_key)
     }
 }
 
@@ -663,23 +706,39 @@ impl<'a> From<Tags<'a>> for TagsMap<'a> {
             plain: plain_tags,
             facets,
         } = from;
-        let plain_iter = once((FacetKey::new(None), plain_tags));
-        let faceted_iter = facets.into_iter().map(|faceted_tags| {
-            let FacetedTags { facet_id, tags } = faceted_tags;
-            (facet_id.into(), tags)
-        });
-        Self::new(plain_iter.chain(faceted_iter).collect())
+        let mut into = Self::with_capacity(1 + facets.len());
+        into.insert_or_replace(
+            FacetKey::unfaceted(),
+            InsertOrReplaceTags::Insert(plain_tags),
+        );
+        for FacetedTags { facet_id, tags } in facets {
+            into.insert_or_replace(facet_id, InsertOrReplaceTags::Insert(tags));
+        }
+        into
+    }
+}
+
+impl<'a> FromIterator<(FacetKey, Vec<PlainTag<'a>>)> for TagsMap<'a> {
+    fn from_iter<T: IntoIterator<Item = (FacetKey, Vec<PlainTag<'a>>)>>(iter: T) -> Self {
+        let mut into = Self::new();
+        for (facet_key, tags) in iter {
+            into.insert_or_replace(facet_key, InsertOrReplaceTags::Insert(tags));
+        }
+        into
     }
 }
 
 impl<'a> CanonicalizeInto<Tags<'a>> for TagsMap<'a> {
     fn canonicalize_into(self) -> Canonical<Tags<'a>> {
         let (plain_tags, faceted_tags) = self.split_into_plain_and_faceted_tags();
-        let TagsMap(faceted_tags) = faceted_tags;
-        let facets = faceted_tags
+        let TagsMap {
+            hash_builder: _,
+            hash_table,
+        } = faceted_tags;
+        let facets = hash_table
             .into_iter()
-            .map(|(key, tags)| {
-                let FacetKey(facet_id) = key;
+            .map(|(facet_key, tags)| {
+                let FacetKey(facet_id) = facet_key;
                 debug_assert!(facet_id.is_some());
                 let facet_id = facet_id.expect("facet");
                 FacetedTags { facet_id, tags }

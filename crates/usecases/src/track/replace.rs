@@ -147,7 +147,8 @@ where
     use nonicle::CanonicalizeInto as _;
 
     use aoide_core::{
-        media::content::resolver::ContentPathResolver as _, tag::TagsMap,
+        FacetedTags, TagsMap,
+        media::content::resolver::ContentPathResolver as _,
         track::tag::FACET_KEY_GROUPING,
     };
 
@@ -205,7 +206,11 @@ where
         }
         if *decode_gigtags {
             let mut tags_map: TagsMap<'static> = track.tags.untie().into();
-            if let Some(faceted_tags) = tags_map.take_faceted_tags(FACET_KEY_GROUPING) {
+            if let Some((facet_key, tags)) = tags_map.remove(FACET_KEY_GROUPING) {
+                let Some(facet_id) = facet_key.into_inner() else {
+                    unreachable!();
+                };
+                let faceted_tags = FacetedTags { facet_id, tags };
                 let decoded_gig_tags =
                     aoide_media_file::util::gigtag::import_from_faceted_tags(faceted_tags);
                 tags_map.merge(decoded_gig_tags);

@@ -22,6 +22,7 @@ aho-corasick.workspace = true
 bitflags.workspace = true
 data-encoding.workspace = true
 derive_more = { workspace = true, features = ["display", "error"] }
+hashbrown.workspace = true
 image = { workspace = true, features = ["png"] }
 jiff.workspace = true
 mime.workspace = true

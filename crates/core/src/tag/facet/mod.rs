@@ -132,15 +132,21 @@ impl FacetId {
     }
 }
 
-impl AsRef<SmolStr> for FacetId {
-    fn as_ref(&self) -> &SmolStr {
-        &self.0
-    }
-}
-
 impl Borrow<str> for FacetId {
     fn borrow(&self) -> &str {
         self.as_str()
+    }
+}
+
+impl AsRef<str> for FacetId {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl AsRef<SmolStr> for FacetId {
+    fn as_ref(&self) -> &SmolStr {
+        &self.0
     }
 }
 

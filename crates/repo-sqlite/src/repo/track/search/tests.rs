@@ -11,7 +11,7 @@ use aoide_core::{
         self,
         content::{AudioContentMetadata, ContentLink},
     },
-    tag::{FacetKey, Label, PlainTag, TagsMap, TagsMapInner},
+    tag::{FacetKey, Label, PlainTag, TagsMap},
     track::tag::FACET_KEY_COMMENT,
     util::clock::OffsetDateTimeMs,
 };
@@ -111,10 +111,10 @@ fn create_single_track_collection_with_tags(
             ]
         })
         .collect::<Vec<_>>();
-    let tags = [(FacetKey::default(), plain_tags)]
+    track.tags = [(FacetKey::unfaceted(), plain_tags)]
         .into_iter()
-        .collect::<TagsMapInner<'static>>();
-    track.tags = TagsMap::new(tags).canonicalize_into();
+        .collect::<TagsMap<'_>>()
+        .canonicalize_into();
     let entity_body = TrackBody {
         track,
         updated_at: created_at,
@@ -133,7 +133,7 @@ fn filter_plain_tags() -> TestResult<()> {
     let collection_id = create_single_track_collection_with_tags(&mut db)?;
     let filter = TrackFilter::Tag(TagFilter {
         modifier: None,
-        facets: Some(FacetsFilter::AnyOf(vec![FacetKey::default()])),
+        facets: Some(FacetsFilter::AnyOf(vec![FacetKey::unfaceted()])),
         label: Some(StringPredicate::StartsWith("Tag\\".into())),
         score: None,
     });
