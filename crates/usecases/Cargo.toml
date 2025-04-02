@@ -34,7 +34,7 @@ aoide-repo.workspace = true
 
 # Workspace dependencies (optional): media-file
 aoide-media-file = { workspace = true, optional = true }
-blake3 = { version = "1.7.0", optional = true }
+blake3 = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 walkdir = { version = "2.5.0", optional = true }
 

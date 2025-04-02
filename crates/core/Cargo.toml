@@ -28,7 +28,7 @@ jiff.workspace = true
 mime.workspace = true
 nonicle.workspace = true
 num-integer = "0.1.46"
-rand = "0.9.0"
+rand.workspace = true
 regex.workspace = true
 semval.workspace = true
 smol_str.workspace = true
@@ -41,7 +41,7 @@ url.workspace = true
 serde = { workspace = true, optional = true, features = ["derive"] }
 
 # JSON Schema (optional)
-schemars = { version = "0.8.22", optional = true, features = ["url"] }
+schemars = { workspace = true, optional = true, features = ["url"] }
 serde_json = { workspace = true, optional = true }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
