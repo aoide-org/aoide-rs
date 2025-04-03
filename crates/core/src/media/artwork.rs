@@ -230,10 +230,10 @@ mod tests {
             for g in [0x00u8, 0xffu8] {
                 for b in [0x00u8, 0xffu8] {
                     let pixel = [r, g, b];
-                    let thumbnail_data = std::iter::repeat(pixel)
-                        .take((THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT) as _)
-                        .flatten()
-                        .collect::<Vec<_>>();
+                    let thumbnail_data =
+                        std::iter::repeat_n(pixel, (THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT) as _)
+                            .flatten()
+                            .collect::<Vec<_>>();
                     let thumbnail = thumbnail_data.clone().try_into().unwrap();
                     let thumbnail_uri = super::thumbnail_png_data_uri(&thumbnail);
                     let data_url = DataUrl::process(&thumbnail_uri).unwrap();

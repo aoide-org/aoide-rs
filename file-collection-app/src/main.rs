@@ -81,7 +81,7 @@ async fn main() {
         Err(err) => {
             log::error!("Failed to query permissions of config directory: {err}");
         }
-    };
+    }
 
     let aoide_initial_settings =
         match aoide::desktop_app::settings::State::restore(&config_dir, default_data_dir) {

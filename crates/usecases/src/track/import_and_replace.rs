@@ -268,7 +268,7 @@ where
         Replacement::SkippedDirectory => {
             // Nothing to do
         }
-    };
+    }
     Ok(ImportAndReplaceFromFilePathOutcome {
         content_path,
         import_issues,

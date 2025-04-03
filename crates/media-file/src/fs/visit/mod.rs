@@ -95,7 +95,7 @@ impl ProgressEvent {
         self.started_at.elapsed()
     }
 
-    pub fn try_finish(&mut self) -> bool {
+    pub const fn try_finish(&mut self) -> bool {
         if !matches!(self.status, Status::InProgress) {
             return false;
         }

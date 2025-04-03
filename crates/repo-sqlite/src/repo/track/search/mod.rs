@@ -1153,7 +1153,7 @@ fn select_track_ids_matching_tag_filter(
                         );
                     }
                 }
-            };
+            }
         }
     }
 
@@ -1341,7 +1341,7 @@ fn select_track_ids_matching_actor_filter(
                 .like(name_like_expr_escaped)
                 .escape(LIKE_ESCAPE_CHARACTER),
         );
-    };
+    }
 
     (select, *modifier)
 }
@@ -1396,7 +1396,7 @@ fn select_track_ids_matching_title_filter(
                 .like(name_like_expr_escaped)
                 .escape(LIKE_ESCAPE_CHARACTER),
         );
-    };
+    }
 
     (select, *modifier)
 }

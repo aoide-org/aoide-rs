@@ -148,7 +148,6 @@ where
                 Ok(outcome) => match outcome {
                     ImportPendingDirectoryOutcome::Untracked(untracked) => {
                         summary.directories.untracked += untracked;
-                        continue;
                     }
                     ImportPendingDirectoryOutcome::Finished {
                         completion,
@@ -181,7 +180,6 @@ where
                                      rejected",
                                 );
                                 // Keep going and retry to import this directory later
-                                continue;
                             }
                             ImportPendingDirectoryCompletion::NotConfirmed => {
                                 // Warnings why the confirmation didn't complete have already been logged.
@@ -198,7 +196,6 @@ where
                     log::warn!("Failed to import pending directory '{content_dir_path}': {err}");
                     // Skip this directory and keep going
                     summary.directories.skipped += 1;
-                    continue;
                 }
             }
         }

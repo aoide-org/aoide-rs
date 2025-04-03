@@ -707,7 +707,7 @@ impl State {
                     SynchronizingVfsState::Finished(
                         SynchronizingVfsFinishedState::Failed { .. }
                         | SynchronizingVfsFinishedState::Succeeded { .. }
-                        | SynchronizingVfsFinishedState::Aborted { .. },
+                        | SynchronizingVfsFinishedState::Aborted,
                     ),
                 context: SynchronizingVfsContext { entity },
             } => LoadingFromDatabaseContext {

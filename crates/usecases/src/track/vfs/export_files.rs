@@ -212,7 +212,7 @@ impl RecordCollector for TrackFileExporter {
                 });
                 return;
             }
-        };
+        }
         match target_path.canonicalize() {
             Ok(canonical_target_path) => {
                 debug_assert!(!canonical_target_paths.contains(&canonical_target_path));

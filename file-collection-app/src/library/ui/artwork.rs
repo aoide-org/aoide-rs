@@ -56,23 +56,33 @@ fn artwork_thumbnail_image_from_pixels(
     let pixels_row1 = pixels_rows.next().unwrap();
     let pixels_row2 = pixels_rows.next().unwrap();
     let pixels_row3 = pixels_rows.next().unwrap();
-    let pixels = std::iter::repeat(border_color)
-        .take(
-            ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_BORDER_SIZE
-                + ARTWORK_THUMBNAIL_BORDER_SIZE,
-        )
-        .chain(pixels_row0.iter().copied())
-        .chain(std::iter::repeat(border_color).take(ARTWORK_THUMBNAIL_BORDER_SIZE * 2))
-        .chain(pixels_row1.iter().copied())
-        .chain(std::iter::repeat(border_color).take(ARTWORK_THUMBNAIL_BORDER_SIZE * 2))
-        .chain(pixels_row2.iter().copied())
-        .chain(std::iter::repeat(border_color).take(ARTWORK_THUMBNAIL_BORDER_SIZE * 2))
-        .chain(pixels_row3.iter().copied())
-        .chain(std::iter::repeat(border_color).take(
-            ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_BORDER_SIZE
-                + ARTWORK_THUMBNAIL_BORDER_SIZE,
-        ))
-        .collect::<Vec<_>>();
+    let pixels = std::iter::repeat_n(
+        border_color,
+        ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_BORDER_SIZE
+            + ARTWORK_THUMBNAIL_BORDER_SIZE,
+    )
+    .chain(pixels_row0.iter().copied())
+    .chain(std::iter::repeat_n(
+        border_color,
+        ARTWORK_THUMBNAIL_BORDER_SIZE * 2,
+    ))
+    .chain(pixels_row1.iter().copied())
+    .chain(std::iter::repeat_n(
+        border_color,
+        ARTWORK_THUMBNAIL_BORDER_SIZE * 2,
+    ))
+    .chain(pixels_row2.iter().copied())
+    .chain(std::iter::repeat_n(
+        border_color,
+        ARTWORK_THUMBNAIL_BORDER_SIZE * 2,
+    ))
+    .chain(pixels_row3.iter().copied())
+    .chain(std::iter::repeat_n(
+        border_color,
+        ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_BORDER_SIZE
+            + ARTWORK_THUMBNAIL_BORDER_SIZE,
+    ))
+    .collect::<Vec<_>>();
     debug_assert_eq!(
         pixels.len(),
         ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_IMAGE_SIZE

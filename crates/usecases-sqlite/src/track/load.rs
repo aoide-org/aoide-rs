@@ -30,7 +30,6 @@ pub fn load_many(
             }
             Err(RepoError::NotFound) => {
                 log::debug!("Track with UID '{entity_uid}' not found");
-                continue;
             }
             Err(err) => {
                 return Err(err.into());

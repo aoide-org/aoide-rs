@@ -12,7 +12,7 @@ resolver = "3"
 [workspace.package]
 version = "0.8.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.86"
 repository = "https://gitlab.com/uklotzde/aoide-rs"
 license = "AGPL-3.0-or-later"
 categories = ["multimedia::audio"]
@@ -92,7 +92,12 @@ lint_groups_priority = "allow"
 clone_on_ref_ptr = "warn"
 
 # Declare as `const` whenever possible.
-missing_const_for_fn = "warn"
+#missing_const_for_fn = "warn"
+# Switched from "warn" to "allow" to suppress many false positive warnings
+# after upgrading to Rust v1.86.
+# TODO: Re-check for open issues: <https://github.com/rust-lang/rust-clippy/issues?q=is%3Aissue%20state%3Aopen%20missing_const_for_fn>
+# TODO: Switch back to "warn" after Clippy fixed the issues on their side.
+missing_const_for_fn = "allow"
 
 # Prefer mod.rs style for self-contained module directories.
 self_named_module_files = "warn"

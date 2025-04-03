@@ -67,7 +67,7 @@ where
         if let Err(NoReceiverForEvent) = event_emitter.emit_event(Event::StateChanged.into()) {
             log::info!("Stop watching track search state after event receiver has been dropped");
             break;
-        };
+        }
 
         log::debug!("Suspending watch_state");
         if subscriber.changed().await.is_err() {
