@@ -44,7 +44,7 @@ aoide-websrv-warp-sqlite = { version = "=0.8.0", path = "crates/websrv-warp-sqli
 aho-corasick = "1.1.3"
 anyhow = "1.0.97"
 bitflags = "2.9.0"
-blake3 = "1.8.0"
+blake3 = "1.8.1"
 data-encoding = "2.8.0"
 derive_more = "2.0.1"
 diesel = { version = "2.2.8", default-features = false, features = ["sqlite"] }

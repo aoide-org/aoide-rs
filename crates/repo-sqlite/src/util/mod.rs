@@ -50,9 +50,15 @@ pub(crate) enum StringCmpOp {
 }
 
 pub(crate) const LIKE_ESCAPE_CHARACTER: char = '\\';
+#[cfg(test)]
+pub(crate) const LIKE_ESCAPE_CHARACTER_STR: &str = "\\";
 
 pub(crate) const LIKE_WILDCARD_CHARACTER: char = '%';
+pub(crate) const LIKE_WILDCARD_CHARACTER_STR: &str = "%";
+
 pub(crate) const LIKE_PLACEHOLDER_CHARACTER: char = '_';
+#[cfg(test)]
+pub(crate) const LIKE_PLACEHOLDER_CHARACTER_STR: &str = "_";
 
 const LIKE_ESCAPE_CHARACTER_REPLACEMENT: &str = "\\\\"; // LIKE_ESCAPE_CHARACTER + LIKE_ESCAPE_CHARACTER
 
@@ -74,24 +80,20 @@ pub(crate) fn escape_single_quotes(arg: &str) -> String {
 }
 
 pub(crate) fn escape_like_starts_with(arg: &str) -> String {
-    format!(
-        "{escaped}{LIKE_WILDCARD_CHARACTER}",
-        escaped = escape_like_matches(arg)
-    )
+    [&escape_like_matches(arg), LIKE_WILDCARD_CHARACTER_STR].concat()
 }
 
 pub(crate) fn escape_like_ends_with(arg: &str) -> String {
-    format!(
-        "{LIKE_WILDCARD_CHARACTER}{escaped}",
-        escaped = escape_like_matches(arg)
-    )
+    [LIKE_WILDCARD_CHARACTER_STR, &escape_like_matches(arg)].concat()
 }
 
 pub(crate) fn escape_like_contains(arg: &str) -> String {
-    format!(
-        "{LIKE_WILDCARD_CHARACTER}{escaped}{LIKE_WILDCARD_CHARACTER}",
-        escaped = escape_like_matches(arg),
-    )
+    [
+        LIKE_WILDCARD_CHARACTER_STR,
+        &escape_like_matches(arg),
+        LIKE_WILDCARD_CHARACTER_STR,
+    ]
+    .concat()
 }
 
 fn sql_column_substr_prefix(column: &str, prefix: &str, cmp: &str) -> SqlLiteral<sql_types::Bool> {
@@ -130,15 +132,15 @@ mod tests {
     fn escape_character_and_replacements() {
         assert_eq!(
             LIKE_ESCAPE_CHARACTER_REPLACEMENT,
-            format!("{LIKE_ESCAPE_CHARACTER}{LIKE_ESCAPE_CHARACTER}")
+            [LIKE_ESCAPE_CHARACTER_STR, LIKE_ESCAPE_CHARACTER_STR].concat(),
         );
         assert_eq!(
             LIKE_WILDCARD_CHARACTER_REPLACEMENT,
-            format!("{LIKE_ESCAPE_CHARACTER}{LIKE_WILDCARD_CHARACTER}")
+            [LIKE_ESCAPE_CHARACTER_STR, LIKE_WILDCARD_CHARACTER_STR].concat(),
         );
         assert_eq!(
             LIKE_PLACEHOLDER_CHARACTER_REPLACEMENT,
-            format!("{LIKE_ESCAPE_CHARACTER}{LIKE_PLACEHOLDER_CHARACTER}")
+            [LIKE_ESCAPE_CHARACTER_STR, LIKE_PLACEHOLDER_CHARACTER_STR].concat(),
         );
     }
 }

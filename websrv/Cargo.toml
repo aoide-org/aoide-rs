@@ -44,7 +44,7 @@ aoide-websrv-warp-sqlite.workspace = true
 
 # mimalloc
 [dependencies.mimalloc]
-version = "0.1.44"
+version = "0.1.45"
 optional = true
 # No default features, i.e. all features are optional.
 

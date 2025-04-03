@@ -273,14 +273,16 @@ impl ActorNamesSummarySplitter {
         name_separators: impl IntoIterator<Item = &'a str>,
         protected_names: impl IntoIterator<Item = &'a str>,
     ) -> Self {
-        let name_separator_pattern = format!(
-            r"({pattern})",
-            pattern = name_separators
+        let name_separator_pattern = [
+            "(",
+            &name_separators
                 .into_iter()
-                .map(|separator| regex::escape(separator).replace(' ', r"\s+"))
+                .map(|separator| regex::escape(separator).replace(' ', "\\s+"))
                 .collect::<Vec<_>>()
-                .join("|")
-        );
+                .join("|"),
+            ")",
+        ]
+        .concat();
         let name_separator_regex = RegexBuilder::new(&name_separator_pattern)
             .case_insensitive(true)
             .build()

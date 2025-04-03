@@ -174,13 +174,15 @@ fn remap_content_path_to_file_path() {
     const CONTENT_PATH: ContentPath<'_> = ContentPath::new(Cow::Borrowed("sub/file.mp3"));
     const SUB_OVERRIDE_CONTENT_PATH: ContentPath<'_> = ContentPath::new(Cow::Borrowed("file.mp3"));
 
-    let canonical_root_url = &format!("file://{ROOT_PATH}").parse::<BaseUrl>().unwrap();
-    let override_root_url = &format!("file://{OVERRIDE_ROOT_PATH}")
+    let canonical_root_url = &["file://", ROOT_PATH].concat().parse::<BaseUrl>().unwrap();
+    let override_root_url = &["file://", OVERRIDE_ROOT_PATH]
+        .concat()
         .parse::<BaseUrl>()
         .unwrap();
 
-    let root_sub_path = &format!("{ROOT_PATH}{SUB_PATH}");
-    let root_sub_url = &format!("file://{root_sub_path}")
+    let root_sub_path = &[ROOT_PATH, SUB_PATH].concat();
+    let root_sub_url = &["file://", root_sub_path]
+        .concat()
         .parse::<BaseUrl>()
         .unwrap();
 
@@ -188,7 +190,8 @@ fn remap_content_path_to_file_path() {
     assert!(vfs.root_url.is_none());
     assert!(vfs.root_path.is_empty());
     assert_eq!(
-        format!("file://{ROOT_PATH}{CONTENT_PATH}")
+        ["file://", ROOT_PATH, CONTENT_PATH.as_str()]
+            .concat()
             .parse::<Url>()
             .unwrap(),
         Url::from_file_path(vfs.build_file_path(&CONTENT_PATH)).unwrap()
@@ -203,7 +206,8 @@ fn remap_content_path_to_file_path() {
     assert_eq!(vfs_override.root_url.as_ref(), Some(canonical_root_url));
     assert!(vfs_override.root_path.is_empty());
     assert_eq!(
-        format!("file://{OVERRIDE_ROOT_PATH}{CONTENT_PATH}")
+        ["file://", OVERRIDE_ROOT_PATH, CONTENT_PATH.as_str()]
+            .concat()
             .parse::<Url>()
             .unwrap(),
         Url::from_file_path(vfs_override.build_file_path(&CONTENT_PATH)).unwrap()
@@ -214,7 +218,8 @@ fn remap_content_path_to_file_path() {
     assert!(vfs.root_url.is_none());
     assert_eq!(vfs_sub.root_path, ContentPath::new(SUB_PATH.into()));
     assert_eq!(
-        format!("file://{ROOT_PATH}{CONTENT_PATH}")
+        ["file://", ROOT_PATH, CONTENT_PATH.as_str()]
+            .concat()
             .parse::<Url>()
             .unwrap(),
         Url::from_file_path(vfs_sub.build_file_path(&CONTENT_PATH)).unwrap()
@@ -232,9 +237,14 @@ fn remap_content_path_to_file_path() {
         ContentPath::new(SUB_PATH.into())
     );
     assert_eq!(
-        format!("file://{OVERRIDE_ROOT_PATH}{SUB_OVERRIDE_CONTENT_PATH}")
-            .parse::<Url>()
-            .unwrap(),
+        [
+            "file://",
+            OVERRIDE_ROOT_PATH,
+            SUB_OVERRIDE_CONTENT_PATH.as_str()
+        ]
+        .concat()
+        .parse::<Url>()
+        .unwrap(),
         Url::from_file_path(vfs_sub_override.build_file_path(&CONTENT_PATH)).unwrap()
     );
 }

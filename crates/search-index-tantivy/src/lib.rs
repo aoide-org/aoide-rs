@@ -100,6 +100,7 @@ fn add_date_field(doc: &mut TantivyDocument, field: Field, date_time: &OffsetDat
 }
 
 const TAG_LABEL_PREFIX: char = '#';
+const TAG_LABEL_PREFIX_STR: &str = "#";
 
 impl TrackFields {
     fn format_tag_field_text<'a>(
@@ -138,11 +139,11 @@ impl TrackFields {
                     if facet_prefix.is_empty() {
                         return Some((self.tag, Cow::Borrowed(label.as_str())));
                     }
-                    format!("{facet_prefix}{label}")
+                    [facet_prefix, label.as_str()].concat()
                 } else {
-                    format!("{facet_prefix}{TAG_LABEL_PREFIX}{label}")
+                    [facet_prefix, TAG_LABEL_PREFIX_STR, label.as_str()].concat()
                 };
-                Some((self.tag, Cow::Owned(text)))
+                Some((self.tag, text.into()))
             }
         }
     }

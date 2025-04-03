@@ -130,7 +130,7 @@ impl FromStr for BaseUrl {
             s.parse()
         } else {
             // Autocomplete the string before parsing
-            format!("{s}/").parse()
+            [s, "/"].concat().parse()
         }
         .map_err(Into::into)
         .map_err(BaseUrlError::Other)?;

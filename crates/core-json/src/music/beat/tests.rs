@@ -6,7 +6,7 @@ use super::*;
 #[test]
 fn deserialize_top() {
     let top = 4;
-    let json = format!("{top}");
+    let json = top.to_string();
     let timing: TimeSignature = serde_json::from_str(&json).unwrap();
     assert_eq!(TimeSignature::Top(top), timing);
     assert_eq!(json, serde_json::to_string(&timing).unwrap());

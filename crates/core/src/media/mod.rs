@@ -38,7 +38,7 @@ where
         // Concatenate both strings into a single field
         debug_assert!(!encoded_by.is_empty());
         debug_assert!(!encoder_settings.is_empty());
-        Cow::Owned(format!("{encoded_by} {encoder_settings}"))
+        [encoded_by, encoder_settings].join(" ").into()
     }
 }
 
