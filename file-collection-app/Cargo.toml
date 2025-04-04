@@ -50,6 +50,8 @@ optional = true
 # No default features, i.e. all features are optional.
 
 [features]
-default = ["mimalloc"]
+default = []
 # Use mimalloc instead of the default allocator.
+# libmusl build of mimalloc is currently broken:
+# <https://github.com/purpleprotocol/mimalloc_rust/issues/133>
 mimalloc = ["dep:mimalloc"]
