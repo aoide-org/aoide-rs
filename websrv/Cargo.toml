@@ -72,12 +72,14 @@ default-features = false
 features = ["tokio", "xdg-portal"]
 
 [features]
-default = ["json-schema", "mimalloc", "launcher-ui"]
+default = ["json-schema", "launcher-ui"]
 
 # Enable JSON schema support.
 json-schema = ["dep:schemars", "aoide-core/json-schema", "aoide-backend-webapi-json/json-schema"]
 
 # Use mimalloc instead of the default allocator.
+# libmusl build of mimalloc is currently broken:
+# <https://github.com/purpleprotocol/mimalloc_rust/issues/133>
 mimalloc = ["dep:mimalloc"]
 
 # Enable the launcher UI.
