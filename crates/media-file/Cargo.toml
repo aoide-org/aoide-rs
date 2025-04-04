@@ -25,7 +25,7 @@ digest.workspace = true
 image = { workspace = true, features = ["default-formats"] }
 itertools.workspace = true
 kmeans_colors = { version = "0.6.0", default-features = false, features = ["palette_color"] }
-lofty = "0.22.2"
+lofty = "0.22.3"
 # Use main branch of lofty-rs for testing unreleased features.
 #lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
 log.workspace = true
