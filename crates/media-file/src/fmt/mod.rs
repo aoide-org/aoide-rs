@@ -22,7 +22,11 @@ use aoide_core::{
     },
     media::{
         MediaDigest,
-        artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork},
+        artwork::{
+            ApicType, Artwork, ArtworkImage, EditEmbeddedArtworkImage,
+            EditOtherEmbeddedArtworkImages, EmbeddedArtwork, RemoveEmbeddedArtworkImage,
+            ReplaceEmbeddedArtworkImage, try_ingest_embedded_artwork_image,
+        },
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
     },
     music::tempo::TempoBpm,
@@ -49,14 +53,8 @@ use crate::{
         import::{ImportTrackConfig, ImportTrackFlags, Importer, TrackScope},
     },
     util::{
-        FormattedTempoBpm, TempoBpmFormat,
-        artwork::{
-            EditEmbeddedArtworkImage, EditOtherEmbeddedArtworkImages, RemoveEmbeddedArtworkImage,
-            ReplaceEmbeddedArtworkImage, try_ingest_embedded_artwork_image,
-        },
-        format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
-        key_signature_as_str, push_next_actor,
-        tag::TagMappingConfig,
+        FormattedTempoBpm, TempoBpmFormat, format_valid_replay_gain, format_validated_tempo_bpm,
+        ingest_title_from, key_signature_as_str, push_next_actor, tag::TagMappingConfig,
     },
 };
 

@@ -1,18 +1,20 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use lofty::id3::v2::Id3v2Tag;
+
 use aoide_core::{
+    media::artwork::EditEmbeddedArtworkImage,
     music::tempo::TempoBpm,
     track::{Track, metric::MetricsFlags},
 };
-use lofty::id3::v2::Id3v2Tag;
 
 use crate::{
     io::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, ImportedTempoBpm, Importer},
     },
-    util::{artwork::EditEmbeddedArtworkImage, format_validated_tempo_bpm},
+    util::format_validated_tempo_bpm,
 };
 
 const TXXX_BPM_DESCRIPTION: &str = "BPM";

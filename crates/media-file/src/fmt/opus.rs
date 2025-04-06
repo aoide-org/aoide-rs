@@ -3,18 +3,19 @@
 
 use std::fs::File;
 
-use aoide_core::track::Track;
 use lofty::{config::WriteOptions, file::AudioFile, ogg::OpusFile};
 
-use super::{parse_options, vorbis::export_track_to_tag};
+use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
+
 use crate::{
     Result,
     io::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
-    util::artwork::EditEmbeddedArtworkImage,
 };
+
+use super::{parse_options, vorbis::export_track_to_tag};
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,

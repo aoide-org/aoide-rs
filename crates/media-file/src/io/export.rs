@@ -8,21 +8,20 @@ use std::{
     path::Path,
 };
 
+use bitflags::bitflags;
+use lofty::{file::FileType, probe::Probe};
+
 use aoide_core::{
+    media::artwork::EditEmbeddedArtworkImage,
     tag::FacetId,
     track::{
         Track,
         actor::{Actor, Actors, Kind as ActorKind, Role as ActorRole},
     },
 };
-use bitflags::bitflags;
-use lofty::{file::FileType, probe::Probe};
 
 use super::import::ImportTrackFlags;
-use crate::{
-    Error, Result,
-    util::{artwork::EditEmbeddedArtworkImage, tag::FacetedTagMappingConfig},
-};
+use crate::{Error, Result, util::tag::FacetedTagMappingConfig};
 
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

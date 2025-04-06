@@ -4,6 +4,7 @@
 use std::{convert::TryFrom as _, ops::Not as _, rc::Rc};
 
 use anyhow::anyhow;
+use derive_more::{Display, Error, From};
 use image::{
     DynamicImage, GenericImageView, ImageError, ImageFormat, guess_format, load_from_memory,
     load_from_memory_with_format,
@@ -11,43 +12,24 @@ use image::{
 use kmeans_colors::{Kmeans, Sort as _, get_kmeans_hamerly};
 use mime::{IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR, Mime};
 use palette::{FromColor as _, IntoColor as _, Lab, Srgb, Srgba, cast::from_component_slice};
-use thiserror::Error;
 
-use aoide_core::{
-    media::{
-        MediaDigest,
-        artwork::{
-            ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
-            THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH, Thumbnail4x4Rgb8,
-        },
-    },
-    util::color::RgbColor,
+use crate::{media::MediaDigest, util::color::RgbColor};
+
+use super::{
+    ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize, THUMBNAIL_HEIGHT,
+    THUMBNAIL_WIDTH, Thumbnail4x4Rgb8,
 };
 
-use crate::Result;
-
-#[derive(Debug, Error)]
+#[derive(Debug, Display, Error, From)]
 pub enum ArtworkImageError {
-    #[error("unsupported format {0:?}")]
-    UnsupportedFormat(ImageFormat),
+    #[display("unsupported format {_0:?}")]
+    UnsupportedFormat(#[error(not(source))] ImageFormat),
 
-    #[error(transparent)]
-    Image(#[from] ImageError),
+    #[from]
+    Image(ImageError),
 
-    #[error(transparent)]
+    #[from]
     Other(anyhow::Error),
-}
-
-impl From<ArtworkImageError> for crate::Error {
-    fn from(err: ArtworkImageError) -> crate::Error {
-        match err {
-            ArtworkImageError::UnsupportedFormat(image_format) => Self::Metadata(anyhow::anyhow!(
-                "unsupported artwork image format: {image_format:?}"
-            )),
-            ArtworkImageError::Image(err) => Self::Metadata(err.into()),
-            ArtworkImageError::Other(err) => Self::Metadata(err),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -328,7 +310,10 @@ impl ReplaceEmbeddedArtworkImage {
         }
     }
 
-    pub fn reingest_artwork_image(&self, image_digest: &mut MediaDigest) -> Result<ArtworkImage> {
+    pub fn reingest_artwork_image(
+        &self,
+        image_digest: &mut MediaDigest,
+    ) -> Result<ArtworkImage, ArtworkImageError> {
         let ArtworkImage {
             media_type,
             apic_type,

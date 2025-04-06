@@ -38,7 +38,6 @@ use aoide_core::{
 
 use crate::{io::import::Importer, prelude::*};
 
-pub mod artwork;
 pub mod tag;
 
 #[cfg(feature = "gigtag")]

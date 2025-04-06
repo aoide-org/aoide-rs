@@ -1,13 +1,21 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use ::image::{ExtendedColorType, ImageEncoder as _, RgbImage, codecs::png::PngEncoder};
 use data_encoding::BASE64_NOPAD;
-use image::{ImageEncoder as _, codecs::png::PngEncoder};
 use mime::Mime;
 use semval::prelude::*;
 use strum::FromRepr;
 
 use crate::util::color::RgbColor;
+
+mod image;
+pub use self::image::{
+    ArtworkImageError, EditEmbeddedArtworkImage, EditOtherEmbeddedArtworkImages,
+    IngestedArtworkImage, LoadArtworkPictureResult, LoadedArtworkPicture,
+    RemoveEmbeddedArtworkImage, ReplaceEmbeddedArtworkImage, load_artwork_picture,
+    media_type_from_image_format, try_ingest_embedded_artwork_image,
+};
 
 /// The `APIC` picture type code as defined by `ID3v2`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromRepr)]
@@ -77,8 +85,8 @@ pub type Thumbnail4x4Rgb8 = [u8; (THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3) as _];
 /// Create an image from thumbnail data
 #[must_use]
 #[expect(clippy::missing_panics_doc)] // Never panics
-pub fn thumbnail_image(thumbnail: &Thumbnail4x4Rgb8) -> image::RgbImage {
-    image::RgbImage::from_raw(
+pub fn thumbnail_image(thumbnail: &Thumbnail4x4Rgb8) -> RgbImage {
+    RgbImage::from_raw(
         THUMBNAIL_WIDTH.into(),
         THUMBNAIL_HEIGHT.into(),
         thumbnail.to_vec(),
@@ -99,7 +107,7 @@ pub fn thumbnail_png_data_uri(thumbnail: &Thumbnail4x4Rgb8) -> String {
             thumbnail,
             THUMBNAIL_WIDTH.into(),
             THUMBNAIL_HEIGHT.into(),
-            image::ExtendedColorType::Rgb8,
+            ExtendedColorType::Rgb8,
         )
         .expect("infallible");
     debug_assert!(png_data.len() <= 192);

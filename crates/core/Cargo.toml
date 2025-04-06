@@ -23,14 +23,15 @@ bitflags.workspace = true
 blake3 = { workspace = true, features = ["traits-preview"] }
 bytes.workspace = true
 data-encoding.workspace = true
-derive_more = { workspace = true, features = ["display", "error"] }
+derive_more = { workspace = true, features = ["display", "error", "from"] }
 digest.workspace = true
 hashbrown.workspace = true
-image = { workspace = true, features = ["png"] }
+image = { workspace = true, features = ["default-formats"] }
 jiff.workspace = true
 mime.workspace = true
 nonicle.workspace = true
 num-integer = "0.1.46"
+palette = { version = "0.7.6", default-features = false }
 rand.workspace = true
 regex.workspace = true
 semval.workspace = true
@@ -43,9 +44,17 @@ url.workspace = true
 # Serialization of selected, primitive types
 serde = { workspace = true, optional = true, features = ["derive"] }
 
-# JSON Schema (optional)
+# JSON Schema
 schemars = { workspace = true, optional = true, features = ["url"] }
 serde_json = { workspace = true, optional = true }
+
+[dependencies.kmeans_colors]
+# TODO: Switch back to released version after <https://github.com/okaneco/kmeans-colors/pull/62> has been merged.
+git = "https://github.com/uklotzde/kmeans-colors.git"
+branch = "dependencies"
+#version = "0.6.0"
+default-features = false
+features = ["palette_color"]
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 getrandom = "0.3.2"

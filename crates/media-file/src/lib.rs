@@ -8,6 +8,7 @@ pub mod util;
 
 use std::{io::Error as IoError, result::Result as StdResult};
 
+use aoide_core::media::artwork::ArtworkImageError;
 use image::ImageError;
 use lofty::error::LoftyError;
 use mime::Mime;
@@ -54,6 +55,18 @@ impl From<ImageError> for Error {
         match err {
             ImageError::IoError(err) => Self::Io(err),
             _ => Self::Metadata(err.into()),
+        }
+    }
+}
+
+impl From<ArtworkImageError> for crate::Error {
+    fn from(err: ArtworkImageError) -> crate::Error {
+        match err {
+            ArtworkImageError::UnsupportedFormat(image_format) => Self::Metadata(anyhow::anyhow!(
+                "unsupported artwork image format: {image_format:?}"
+            )),
+            ArtworkImageError::Image(err) => err.into(),
+            ArtworkImageError::Other(err) => Self::Metadata(err),
         }
     }
 }

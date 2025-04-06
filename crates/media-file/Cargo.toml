@@ -20,9 +20,8 @@ anyhow.workspace = true
 bitflags.workspace = true
 data-encoding.workspace = true
 digest.workspace = true
-image = { workspace = true, features = ["default-formats"] }
+image.workspace = true
 itertools.workspace = true
-kmeans_colors = { version = "0.6.0", default-features = false, features = ["palette_color"] }
 lofty = "0.22.3"
 # Use main branch of lofty-rs for testing unreleased features.
 #lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
@@ -32,7 +31,6 @@ mime_guess = "2.0.5"
 nom = "8.0.0"
 nonicle.workspace = true
 num-traits = "0.2.19"
-palette = { version = "0.7.6", default-features = false }
 semval.workspace = true
 smol_str.workspace = true
 thiserror.workspace = true

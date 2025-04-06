@@ -1,15 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::track::Track;
 use lofty::ogg::VorbisComments;
 
-use crate::{
-    io::{
-        export::{ExportTrackConfig, ExportTrackFlags},
-        import::Importer,
-    },
-    util::artwork::EditEmbeddedArtworkImage,
+use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
+
+use crate::io::{
+    export::{ExportTrackConfig, ExportTrackFlags},
+    import::Importer,
 };
 
 #[cfg(feature = "serato-markers")]

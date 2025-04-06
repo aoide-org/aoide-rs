@@ -3,22 +3,23 @@
 
 use std::{borrow::Cow, fs::File};
 
-use aoide_core::track::Track;
 use lofty::{
     config::WriteOptions,
     file::AudioFile,
     mp4::{AtomData, AtomIdent, Ilst, Mp4File},
 };
 
-use super::parse_options;
+use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
+
 use crate::{
     Result,
     io::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
-    util::artwork::EditEmbeddedArtworkImage,
 };
+
+use super::parse_options;
 
 #[cfg(feature = "serato-markers")]
 const SERATO_MARKERS_IDENT: AtomIdent<'_> = AtomIdent::Freeform {

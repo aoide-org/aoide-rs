@@ -246,9 +246,11 @@ dependencies = [
  "hashbrown",
  "image",
  "jiff",
+ "kmeans_colors",
  "mime",
  "nonicle",
  "num-integer",
+ "palette",
  "path-slash",
  "rand 0.9.0",
  "regex",
@@ -356,7 +358,6 @@ dependencies = [
  "gigtag",
  "image",
  "itertools 0.14.0",
- "kmeans_colors",
  "lofty",
  "log",
  "mime",
@@ -364,7 +365,6 @@ dependencies = [
  "nom 8.0.0",
  "nonicle",
  "num-traits",
- "palette",
  "semval",
  "smol_str 0.3.2",
  "tempfile",
@@ -1868,6 +1868,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fxhash"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2591,13 +2600,13 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 [[package]]
 name = "kmeans_colors"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9a15ffb2811dc35dd7efefc227cf208a68eb8abc76be325d6319eba37747894"
+source = "git+https://github.com/uklotzde/kmeans-colors.git?branch=dependencies#864deef21a7e6cf38ce42065a3bc677d97da6a53"
 dependencies = [
+ "fxhash",
  "num-traits",
  "palette",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
+ "rand 0.9.0",
+ "rand_chacha 0.9.0",
 ]
 
 [[package]]
