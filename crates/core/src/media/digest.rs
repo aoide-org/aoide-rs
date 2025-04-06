@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::{
-    ffi::OsStr,
+    io,
     path::Path,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -38,7 +38,7 @@ pub fn digest_system_time<D: Digest>(digest: &mut D, system_time: SystemTime) {
     );
 }
 
-pub fn digest_os_str<D: Digest>(digest: &mut D, os_str: &OsStr) {
+pub fn digest_os_str<D: Digest>(digest: &mut D, os_str: &std::ffi::OsStr) {
     if let Some(utf8_str) = os_str.to_str() {
         digest.update(utf8_str.as_bytes());
     } else {
@@ -62,7 +62,7 @@ impl MediaDigest {
     }
 
     #[must_use]
-    pub(crate) const fn dummy() -> Self {
+    pub const fn void() -> Self {
         Self { hasher: None }
     }
 
@@ -73,10 +73,17 @@ impl MediaDigest {
         }
     }
 
-    pub fn digest_content(&mut self, content_data: &[u8]) -> &mut Self {
+    pub fn digest_content_data(&mut self, content_data: &[u8]) -> &mut Self {
         self.hasher
             .as_mut()
             .map(|hasher| hasher.update(content_data));
+        self
+    }
+
+    pub fn digest_content_read(&mut self, content_read: impl io::Read) -> &mut Self {
+        self.hasher
+            .as_mut()
+            .map(|hasher| hasher.update_reader(content_read));
         self
     }
 

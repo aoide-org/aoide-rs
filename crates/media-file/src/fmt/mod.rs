@@ -21,6 +21,7 @@ use aoide_core::{
         signal::{BitrateBps, SampleRateHz},
     },
     media::{
+        MediaDigest,
         artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork},
         content::{AudioContentMetadata, ContentMetadata, ContentMetadataFlags},
     },
@@ -53,7 +54,6 @@ use crate::{
             EditEmbeddedArtworkImage, EditOtherEmbeddedArtworkImages, RemoveEmbeddedArtworkImage,
             ReplaceEmbeddedArtworkImage, try_ingest_embedded_artwork_image,
         },
-        digest::MediaDigest,
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
         key_signature_as_str, push_next_actor,
         tag::TagMappingConfig,

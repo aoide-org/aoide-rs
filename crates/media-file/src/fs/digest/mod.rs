@@ -7,13 +7,16 @@ use std::{
 
 use digest::Digest;
 
-use aoide_core::util::fs::DirPath;
+use aoide_core::{
+    media::{digest_os_str, digest_system_time, digest_u64},
+    util::fs::DirPath,
+};
 
 use super::visit::{
     AfterAncestorFinished, AncestorVisitor, DirectoryVisitor, Outcome, ProgressEvent,
     visit_directories,
 };
-use crate::{Error, Result, util::digest::*};
+use crate::{Error, Result};
 
 /// Fingerprint file metadata for detecting changes on the file.
 /// system.

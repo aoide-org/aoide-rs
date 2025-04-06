@@ -4,13 +4,6 @@
 use std::{convert::TryFrom as _, ops::Not as _, rc::Rc};
 
 use anyhow::anyhow;
-use aoide_core::{
-    media::artwork::{
-        ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
-        THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH, Thumbnail4x4Rgb8,
-    },
-    util::color::RgbColor,
-};
 use image::{
     DynamicImage, GenericImageView, ImageError, ImageFormat, guess_format, load_from_memory,
     load_from_memory_with_format,
@@ -20,7 +13,17 @@ use mime::{IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR, Mime};
 use palette::{FromColor as _, IntoColor as _, Lab, Srgb, Srgba, cast::from_component_slice};
 use thiserror::Error;
 
-use super::digest::MediaDigest;
+use aoide_core::{
+    media::{
+        MediaDigest,
+        artwork::{
+            ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize,
+            THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH, Thumbnail4x4Rgb8,
+        },
+    },
+    util::color::RgbColor,
+};
+
 use crate::Result;
 
 #[derive(Debug, Error)]
@@ -151,7 +154,9 @@ fn ingest_artwork_image(
     })?;
     let data_size = image_data.len() as u64;
     let image_size = ImageSize { width, height };
-    let digest = image_digest.digest_content(image_data).finalize_reset();
+    let digest = image_digest
+        .digest_content_data(image_data)
+        .finalize_reset();
     let picture = Rc::new(picture);
     let scaled_picture = if width > KMEANS_COLORS_MAX_SIZE || height > KMEANS_COLORS_MAX_SIZE {
         Rc::new(picture.resize(

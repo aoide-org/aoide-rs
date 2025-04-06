@@ -17,6 +17,12 @@ use self::content::{
     ContentMetadataFlagsInvalidity,
 };
 
+mod digest;
+pub use self::digest::{
+    MediaDigest, digest_duration, digest_os_str, digest_path, digest_system_time, digest_u64,
+    digest_u128,
+};
+
 /// Concatenate encoder properties
 ///
 /// Some but not all file formats specify two different encoder

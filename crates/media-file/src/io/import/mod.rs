@@ -26,7 +26,7 @@ use aoide_core::{
     PlainTag, TagFacetKey, TagLabel, TagScore, TagsMap,
     audio::signal::LoudnessLufs,
     media::{
-        Content, Source,
+        Content, MediaDigest, Source,
         artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork, LinkedArtwork},
         content::{ContentLink, ContentMetadata},
     },
@@ -44,9 +44,7 @@ use crate::{
     Error, Result,
     fmt::parse_options,
     util::{
-        db2lufs,
-        digest::MediaDigest,
-        parse_key_signature, parse_replay_gain_db, parse_year_tag,
+        db2lufs, parse_key_signature, parse_replay_gain_db, parse_year_tag,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
         trim_readable,
     },
@@ -107,7 +105,7 @@ impl ImportTrackFlags {
         if self.contains(Self::METADATA_EMBEDDED_ARTWORK_DIGEST) {
             MediaDigest::new()
         } else {
-            MediaDigest::dummy()
+            MediaDigest::void()
         }
     }
 }

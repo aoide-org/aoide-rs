@@ -20,8 +20,11 @@ workspace = true
 anyhow.workspace = true
 aho-corasick.workspace = true
 bitflags.workspace = true
+blake3 = { workspace = true, features = ["traits-preview"] }
+bytes.workspace = true
 data-encoding.workspace = true
 derive_more = { workspace = true, features = ["display", "error"] }
+digest.workspace = true
 hashbrown.workspace = true
 image = { workspace = true, features = ["png"] }
 jiff.workspace = true
