@@ -163,13 +163,13 @@ impl TrackFields {
         // TODO (optimization): Consuming the entity would avoid string allocations for text fields
         let mut doc = TantivyDocument::new();
         if let Some(collection_uid) = collection_uid {
-            doc.add_text(self.collection_uid, collection_uid);
+            doc.add_text(self.collection_uid, collection_uid.to_string());
         }
-        doc.add_text(self.uid, &entity.hdr.uid);
+        doc.add_text(self.uid, entity.hdr.uid.to_string());
         doc.add_u64(self.rev, entity.hdr.rev.value());
         doc.add_text(
             self.content_path,
-            &entity.body.track.media_source.content.link.path,
+            entity.body.track.media_source.content.link.path.as_str(),
         );
         add_date_field(
             &mut doc,
