@@ -49,10 +49,7 @@ schemars = { workspace = true, optional = true, features = ["url"] }
 serde_json = { workspace = true, optional = true }
 
 [dependencies.kmeans_colors]
-# TODO: Switch back to released version after v0.7.0 has been released.
-git = "https://github.com/okaneco/kmeans-colors.git"
-branch = "master"
-#version = "0.7.0"
+version = "0.7.0"
 default-features = false
 features = ["palette_color"]
 

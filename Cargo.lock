@@ -2621,8 +2621,9 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "kmeans_colors"
-version = "0.6.0"
-source = "git+https://github.com/okaneco/kmeans-colors.git?branch=master#c24120e23ef7fa6c44e78f7bc3fdc43956a125ad"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43cad637ef7f2e901ec79f6e42130497b70c27f07bcf8e92418d56a602a55502"
 dependencies = [
  "fxhash",
  "num-traits",
