@@ -2622,7 +2622,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 [[package]]
 name = "kmeans_colors"
 version = "0.6.0"
-source = "git+https://github.com/uklotzde/kmeans-colors.git?branch=dependencies#5e268f668993c84f191ac76c9dd9119ad3467d49"
+source = "git+https://github.com/okaneco/kmeans-colors.git?branch=master#c24120e23ef7fa6c44e78f7bc3fdc43956a125ad"
 dependencies = [
  "fxhash",
  "num-traits",
