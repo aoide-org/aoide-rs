@@ -86,7 +86,7 @@ fn try_import_tags() {
         ..Default::default()
     };
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
-    assert!(facet_key.into_inner().is_none());
+    assert_eq!(facet_key, FacetKey::unfaceted());
     assert_eq!(plain_tag_with_label(tag.label().to_string()), plain_tag);
 
     // Label + Facet
@@ -97,7 +97,7 @@ fn try_import_tags() {
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
     assert_eq!(
         Some(FacetId::from_unchecked(date_like_facet.as_str())),
-        facet_key.into_inner()
+        facet_key.into()
     );
     assert_eq!(plain_tag_with_label(tag.label().to_string()), plain_tag);
 
@@ -109,7 +109,7 @@ fn try_import_tags() {
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
     assert_eq!(
         Some(FacetId::from_unchecked(date_like_facet.as_str())),
-        facet_key.into_inner()
+        facet_key.into()
     );
     assert_eq!(
         plain_tag_with_label_and_score(tag.label().to_string(), score),
@@ -124,7 +124,7 @@ fn try_import_tags() {
     let (facet_key, plain_tag) = try_import_tag(&tag).unwrap();
     assert_eq!(
         Some(FacetId::from_unchecked(date_like_facet.as_str())),
-        facet_key.into_inner()
+        facet_key.into()
     );
     assert_eq!(
         PlainTag {

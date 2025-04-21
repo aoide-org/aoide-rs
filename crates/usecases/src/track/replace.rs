@@ -207,7 +207,7 @@ where
         if *decode_gigtags {
             let mut tags_map: TagsMap<'static> = track.tags.untie().into();
             if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_GROUPING) {
-                let Some(facet_id) = facet_key.into_inner() else {
+                let Some(facet_id) = facet_key.into() else {
                     unreachable!();
                 };
                 let faceted_tags = FacetedTags { facet_id, tags };
@@ -216,7 +216,7 @@ where
                 tags_map.merge(decoded_gig_tags);
             }
             if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_COMMENT) {
-                let Some(facet_id) = facet_key.into_inner() else {
+                let Some(facet_id) = facet_key.into() else {
                     unreachable!();
                 };
                 let faceted_tags = FacetedTags { facet_id, tags };

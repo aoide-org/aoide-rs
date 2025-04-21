@@ -163,7 +163,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         vec![header_lowercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicate::Equals(file_lowercase.content.link.path.to_borrowed().into_inner())
+            StringPredicate::Equals(file_lowercase.content.link.path.to_borrowed().into())
         )?
     );
     assert!(
@@ -187,7 +187,7 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         vec![header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicate::Equals(file_uppercase.content.link.path.to_borrowed().into_inner())
+            StringPredicate::Equals(file_uppercase.content.link.path.to_borrowed().into())
         )?
     );
     assert_eq!(
@@ -243,18 +243,14 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicate::StartsWith(
-                file_lowercase.content.link.path.to_borrowed().into_inner()
-            )
+            StringPredicate::StartsWith(file_lowercase.content.link.path.to_borrowed().into())
         )?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicate::StartsWith(
-                file_uppercase.content.link.path.to_borrowed().into_inner()
-            )
+            StringPredicate::StartsWith(file_uppercase.content.link.path.to_borrowed().into())
         )?
     );
     assert_eq!(
@@ -370,7 +366,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         fixture
             .resolve_record_ids_by_content_path_predicate(
                 &mut db,
-                StringPredicate::Prefix(old_path_prefix.to_borrowed().into_inner())
+                StringPredicate::Prefix(old_path_prefix.to_borrowed().into())
             )?
             .is_empty()
     );
@@ -378,7 +374,7 @@ fn relocate_by_content_path() -> anyhow::Result<()> {
         vec![header_lowercase.id],
         fixture.resolve_record_ids_by_content_path_predicate(
             &mut db,
-            StringPredicate::Prefix(new_path_prefix.to_borrowed().into_inner())
+            StringPredicate::Prefix(new_path_prefix.to_borrowed().into())
         )?
     );
     assert_eq!(

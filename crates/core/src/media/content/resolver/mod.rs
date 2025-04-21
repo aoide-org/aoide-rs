@@ -65,7 +65,7 @@ impl ContentPathResolver for UrlResolver {
         content_path: &ContentPath<'_>,
     ) -> Result<Url, ResolveFromPathError> {
         Url::parse(content_path.as_str())
-            .map_err(|_| ResolveFromPathError::InvalidPath(content_path.clone_owned().into()))
+            .map_err(|_| ResolveFromPathError::InvalidPath(content_path.as_str().to_owned()))
     }
 }
 
@@ -96,7 +96,7 @@ impl ContentPathResolver for FileUrlResolver {
         let content_url = UrlResolver.resolve_url_from_path(content_path)?;
         if content_url.scheme() != FILE_URL_SCHEME {
             return Err(ResolveFromPathError::InvalidPath(
-                content_path.to_borrowed().into_owned().into(),
+                content_path.as_str().to_owned(),
             ));
         }
         Ok(content_url)

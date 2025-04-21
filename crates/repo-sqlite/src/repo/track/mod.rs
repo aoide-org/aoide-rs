@@ -563,7 +563,7 @@ impl CollectionRepo for crate::Connection<'_> {
     ) -> RepoResult<(MediaSourceId, RecordHeader, TrackEntity)> {
         let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
-            StringPredicate::Equals(content_path.to_borrowed().into_inner()),
+            StringPredicate::Equals(content_path.to_borrowed().into()),
         );
         let queryable = view_track_search::table
             .filter(view_track_search::media_source_id.eq_any(media_source_id_subselect))
@@ -583,7 +583,7 @@ impl CollectionRepo for crate::Connection<'_> {
     ) -> RepoResult<(MediaSourceId, RecordHeader, TrackHeader)> {
         let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
-            StringPredicate::Equals(content_path.to_borrowed().into_inner()),
+            StringPredicate::Equals(content_path.to_borrowed().into()),
         );
         let queryable = view_track_search::table
             .filter(view_track_search::media_source_id.eq_any(media_source_id_subselect))

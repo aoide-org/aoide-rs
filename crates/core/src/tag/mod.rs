@@ -396,12 +396,6 @@ impl FacetKey {
     }
 
     #[must_use]
-    pub fn into_inner(self) -> Option<FacetId> {
-        let Self(inner) = self;
-        inner
-    }
-
-    #[must_use]
     pub fn as_str(&self) -> &str {
         if let Self(Some(facet_id)) = self {
             facet_id.as_str()
@@ -414,7 +408,8 @@ impl FacetKey {
 
 impl From<FacetKey> for Option<FacetId> {
     fn from(from: FacetKey) -> Self {
-        from.into_inner()
+        let FacetKey(inner) = from;
+        inner
     }
 }
 

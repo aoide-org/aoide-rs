@@ -51,12 +51,6 @@ impl<'a> ContentPath<'a> {
     }
 
     #[must_use]
-    pub fn into_inner(self) -> Cow<'a, str> {
-        let Self(inner) = self;
-        inner
-    }
-
-    #[must_use]
     pub fn to_borrowed(&'a self) -> Self {
         Self::new(Cow::Borrowed(&self.0))
     }
@@ -116,9 +110,17 @@ impl From<String> for ContentPath<'static> {
     }
 }
 
+impl<'a> From<ContentPath<'a>> for Cow<'a, str> {
+    fn from(from: ContentPath<'a>) -> Self {
+        let ContentPath(inner) = from;
+        inner
+    }
+}
+
 impl From<ContentPath<'static>> for String {
     fn from(from: ContentPath<'static>) -> Self {
-        from.into_inner().into_owned()
+        let ContentPath(inner) = from;
+        inner.into_owned()
     }
 }
 

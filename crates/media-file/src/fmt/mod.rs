@@ -945,7 +945,7 @@ pub(crate) fn import_file_tag_into_track(
     #[cfg(feature = "gigtag")]
     if config.flags.contains(ImportTrackFlags::GIGTAGS_CGRP) {
         if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_GROUPING) {
-            let Some(facet_id) = facet_key.into_inner() else {
+            let Some(facet_id) = facet_key.into() else {
                 unreachable!()
             };
             tags_map.merge(crate::util::gigtag::import_from_faceted_tags(FacetedTags {
@@ -967,7 +967,7 @@ pub(crate) fn import_file_tag_into_track(
     #[cfg(feature = "gigtag")]
     if config.flags.contains(ImportTrackFlags::GIGTAGS_COMM) {
         if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_COMMENT) {
-            let Some(facet_id) = facet_key.into_inner() else {
+            let Some(facet_id) = facet_key.into() else {
                 unreachable!()
             };
             tags_map.merge(crate::util::gigtag::import_from_faceted_tags(FacetedTags {
