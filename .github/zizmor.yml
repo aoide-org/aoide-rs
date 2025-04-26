@@ -6,3 +6,11 @@ rules:
     ignore:
       # TODO: Check if runtime artifacts potentially vulnerable to a cache poisoning attack.
       - pre-release.yaml:9:1
+
+  unpinned-uses:
+    # TODO: Pin SHA of all untrusted GitHub actions.
+    ignore:
+      - audit-dependencies.yaml
+      - pre-commit.yaml
+      - pre-release.yaml
+      - test.yaml
