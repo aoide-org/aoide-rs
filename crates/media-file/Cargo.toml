@@ -22,7 +22,7 @@ data-encoding.workspace = true
 digest.workspace = true
 image.workspace = true
 itertools.workspace = true
-lofty = "0.22.3"
+lofty = "0.22.4"
 # Use main branch of lofty-rs for testing unreleased features.
 #lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
 log.workspace = true
