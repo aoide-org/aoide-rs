@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide::desktop_app::{ActionEffect, collection::SynchronizingVfsFinishedState};
+use aoide::desktop_app::{
+    ActionEffect, collection::SynchronizingVfsFinishedState,
+    track::repo_search::FetchedEntitiesMemo,
+};
 use egui::Context;
 
 use crate::{
@@ -261,7 +264,7 @@ impl UpdateContext<'_> {
                                         memo.fetch
                                             .fetched_entities
                                             .as_ref()
-                                            .map(|memo| memo.offset),
+                                            .map(FetchedEntitiesMemo::offset),
                                     );
                                     log::debug!(
                                         "Track search list changed: Appending {count_append} fetched items to {count_before} existing items",
@@ -277,7 +280,7 @@ impl UpdateContext<'_> {
                                 memo_delta.fetch.as_ref().and_then(|fetch| fetch
                                     .fetched_entities
                                     .as_ref()
-                                    .map(|memo| memo.offset))
+                                    .map(FetchedEntitiesMemo::offset))
                             );
                             library.on_track_search_state_changed_pending_apply(memo_state);
                             debug_assert!(matches!(memo_state, track_search::MemoState::Ready(_)));
@@ -491,7 +494,7 @@ fn on_library_track_search_state_changed(
             .fetch
             .fetched_entities
             .as_ref()
-            .map_or(0, |memo| memo.offset),
+            .map_or(0, FetchedEntitiesMemo::offset),
     };
     let ctx = ctx.clone();
     let msg_tx = msg_tx.clone();

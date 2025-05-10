@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{hash::Hash as _, num::NonZeroUsize, sync::Arc, time::Instant};
+use std::{hash::Hash, num::NonZeroUsize, sync::Arc, time::Instant};
 
 use discro::Publisher;
-use highway::{HighwayHash, HighwayHasher, Key};
+use highway::{HighwayHash as _, HighwayHasher, Key};
+use tokio::task::AbortHandle;
 
 use aoide_backend_embedded::track::search;
 use aoide_core::{
@@ -12,7 +13,6 @@ use aoide_core::{
     track::{Entity, EntityHeader},
 };
 use aoide_core_api::{Pagination, track::search::Params};
-use tokio::task::AbortHandle;
 
 use crate::{ActionEffect, Environment, JoinedTask, modify_shared_state_action_effect};
 
@@ -30,27 +30,57 @@ pub struct FetchedEntity {
     pub entity: Entity,
 }
 
+const HIGHWAY_HASH_KEY: Key = Key([0, 0, 0, 0]);
+
+const INITIAL_OFFSET_HASH_SEED: u64 = 0;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FetchedEntitiesMemo {
-    pub offset: usize,
-    pub offset_hash: u64,
+    offset: usize,
+    offset_hash: u64,
 }
 
 impl FetchedEntitiesMemo {
     #[must_use]
-    pub fn new(fetched_entities: &[FetchedEntity]) -> Self {
-        let offset = fetched_entities.len();
-        let offset_hash = fetched_entities
-            .last()
-            .map_or(INITIAL_OFFSET_HASH_SEED, |last| last.offset_hash);
+    const fn empty() -> Self {
+        Self {
+            offset: 0,
+            offset_hash: INITIAL_OFFSET_HASH_SEED,
+        }
+    }
+
+    #[must_use]
+    fn next(&self, entity_header: &EntityHeader) -> Self {
+        let offset = self.offset + 1;
+        let offset_hash = {
+            let mut hasher = HighwayHasher::new(HIGHWAY_HASH_KEY);
+            self.hash(&mut hasher);
+            entity_header.hash(&mut hasher);
+            hasher.finalize64()
+        };
         Self {
             offset,
             offset_hash,
         }
     }
+
+    #[must_use]
+    fn from_slice(fetched_entities: &[FetchedEntity]) -> Self {
+        fetched_entities
+            .last()
+            .map_or_else(Self::empty, |last| Self {
+                offset: fetched_entities.len(),
+                offset_hash: last.offset_hash,
+            })
+    }
+
+    #[must_use]
+    pub const fn offset(&self) -> usize {
+        self.offset
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum FetchStateMemo {
     #[default]
     Initial,
@@ -72,7 +102,7 @@ impl FetchStateMemo {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct FetchMemo {
     pub state: FetchStateMemo,
     pub fetched_entities: Option<FetchedEntitiesMemo>,
@@ -149,7 +179,7 @@ impl FetchState {
     #[must_use]
     fn memo(&self) -> FetchMemo {
         let state = self.fetch_state_memo();
-        let fetched_entities = self.fetched_entities().map(FetchedEntitiesMemo::new);
+        let fetched_entities = self.fetched_entities().map(FetchedEntitiesMemo::from_slice);
         FetchMemo {
             state,
             fetched_entities,
@@ -188,19 +218,9 @@ impl FetchState {
         ActionEffect::Changed
     }
 
-    fn fetching_more_succeeded(
-        &mut self,
-        memo: Option<FetchedEntitiesMemo>,
-        fetched_entities: Vec<Entity>,
-        can_fetch_more: bool,
-    ) {
+    fn fetching_more_succeeded(&mut self, fetched_entities: Vec<Entity>, can_fetch_more: bool) {
         let num_fetched_entities = fetched_entities.len();
         log::debug!("Fetching more succeeded with {num_fetched_entities} newly fetched entities");
-
-        let (mut offset, mut offset_hash_seed) = memo
-            .map_or((0, INITIAL_OFFSET_HASH_SEED), |memo| {
-                (memo.offset, memo.offset_hash)
-            });
 
         let Self::Pending {
             fetched_entities_before,
@@ -214,15 +234,16 @@ impl FetchState {
         let mut fetched_entities_before =
             std::mem::take(fetched_entities_before).unwrap_or_default();
         fetched_entities_before.reserve(fetched_entities.len());
-        fetched_entities_before.extend(fetched_entities.into_iter().map(|entity| {
-            let offset_hash = hash_entity_header_at_offset(offset_hash_seed, offset, &entity.hdr);
-            offset_hash_seed = offset_hash;
-            offset += 1;
-            FetchedEntity {
-                offset_hash,
-                entity,
-            }
-        }));
+        {
+            let mut last_memo = FetchedEntitiesMemo::from_slice(&fetched_entities_before);
+            fetched_entities_before.extend(fetched_entities.into_iter().map(|entity| {
+                last_memo = last_memo.next(&entity.hdr);
+                FetchedEntity {
+                    offset_hash: last_memo.offset_hash,
+                    entity,
+                }
+            }));
+        }
 
         let fetched_entities = fetched_entities_before;
         let num_cached_entities = fetched_entities.len();
@@ -603,7 +624,7 @@ impl State {
             || continuation_fetched_entities_before_memo
                 != fetched_entities_before
                     .as_deref()
-                    .map(FetchedEntitiesMemo::new)
+                    .map(FetchedEntitiesMemo::from_slice)
         {
             return ActionEffect::Unchanged;
         }
@@ -614,11 +635,8 @@ impl State {
                 } else {
                     false
                 };
-                self.fetch.fetching_more_succeeded(
-                    continuation_fetched_entities_before_memo,
-                    fetched_entities,
-                    can_fetch_more,
-                );
+                self.fetch
+                    .fetching_more_succeeded(fetched_entities, can_fetch_more);
             }
             JoinedTask::Completed(Err(err)) => {
                 self.fetch.fetching_more_failed(err.into());
@@ -676,7 +694,7 @@ impl State {
             let context = self.context.clone();
             let fetched_entities_before = fetched_entities_before
                 .as_deref()
-                .map(FetchedEntitiesMemo::new);
+                .map(FetchedEntitiesMemo::from_slice);
             let limit = fetch_limit;
             FetchMoreTaskContinuation {
                 pending_since,
@@ -801,34 +819,3 @@ impl SharedState {
 }
 
 pub type SharedStateRef<'a> = discro::Ref<'a, State>;
-
-const INITIAL_OFFSET_HASH_SEED: u64 = 0;
-
-const fn hash_key_for_offset(seed: u64, offset: usize) -> Key {
-    let offset_u64 = offset as u64;
-    Key([seed, offset_u64, seed, offset_u64])
-}
-
-fn hash_entity_header_at_offset(seed: u64, offset: usize, entity_header: &EntityHeader) -> u64 {
-    debug_assert_eq!(seed == INITIAL_OFFSET_HASH_SEED, offset == 0);
-    let mut hasher = HighwayHasher::new(hash_key_for_offset(seed, offset));
-    offset.hash(&mut hasher);
-    // Ugly workaround, because the tag type does not implement `Hash`. No allocations.
-    entity_header.clone().into_untyped().hash(&mut hasher);
-    hasher.finalize64()
-}
-
-#[cfg(test)]
-mod tests {
-    use highway::Key;
-
-    use crate::track::repo_search::{INITIAL_OFFSET_HASH_SEED, hash_key_for_offset};
-
-    #[test]
-    fn default_hash_key_equals_offset_zero() {
-        assert_eq!(
-            Key::default().0,
-            hash_key_for_offset(INITIAL_OFFSET_HASH_SEED, 0).0
-        );
-    }
-}
