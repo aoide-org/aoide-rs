@@ -10,7 +10,7 @@ use aoide_core::util::clock::*;
 pub(crate) fn parse_datetime(s: &str, timestamp_millis: TimestampMillis) -> OffsetDateTimeMs {
     let res = s.parse();
     debug_assert!(res.is_ok());
-    res.unwrap_or_else(|_| OffsetDateTimeMs::from_timestamp_millis(timestamp_millis))
+    res.unwrap_or_else(|_| OffsetDateTimeMs::from_unix_timestamp_millis(timestamp_millis))
 }
 
 pub(crate) fn parse_datetime_opt(
@@ -23,6 +23,6 @@ pub(crate) fn parse_datetime_opt(
     if let Ok(ok) = res {
         ok
     } else {
-        timestamp_millis.map(OffsetDateTimeMs::from_timestamp_millis)
+        timestamp_millis.map(OffsetDateTimeMs::from_unix_timestamp_millis)
     }
 }

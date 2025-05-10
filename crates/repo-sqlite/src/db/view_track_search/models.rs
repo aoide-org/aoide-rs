@@ -97,8 +97,8 @@ impl From<QueryableRecord> for (MediaSourceId, RecordHeader, TrackHeader) {
         } = from;
         let record_header = RecordHeader {
             id: row_id.into(),
-            created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
-            updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
+            created_at: UtcDateTimeMs::from_unix_timestamp_millis(row_created_ms),
+            updated_at: UtcDateTimeMs::from_unix_timestamp_millis(row_updated_ms),
         };
         let entity_header = decode_entity_header(&entity_uid, entity_rev);
         (
@@ -161,17 +161,15 @@ pub(crate) fn load_repo_entity(
     } = queryable;
     let header = RecordHeader {
         id: row_id.into(),
-        created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
-        updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
+        created_at: UtcDateTimeMs::from_unix_timestamp_millis(row_created_ms),
+        updated_at: UtcDateTimeMs::from_unix_timestamp_millis(row_updated_ms),
     };
     let entity_hdr = decode_entity_header(&entity_uid, entity_rev);
     let last_synchronized_rev = last_synchronized_rev.map(decode_entity_revision);
     let recorded_at = if let Some(recorded_at) = recorded_at {
         let recorded_at = parse_datetime_opt(Some(recorded_at.as_str()), recorded_ms);
         debug_assert_eq!(
-            recorded_at
-                .clone()
-                .map(|recorded_at| YyyyMmDdDate::from_date(recorded_at.date())),
+            recorded_at.map(|recorded_at| YyyyMmDdDate::from_date(recorded_at.date())),
             recorded_at_yyyymmdd.map(YyyyMmDdDate::new_unchecked),
         );
         recorded_at.map(Into::into)
@@ -184,9 +182,7 @@ pub(crate) fn load_repo_entity(
     let released_at = if let Some(released_at) = released_at {
         let released_at = parse_datetime_opt(Some(released_at.as_str()), released_ms);
         debug_assert_eq!(
-            released_at
-                .clone()
-                .map(|released_at| YyyyMmDdDate::from_date(released_at.date())),
+            released_at.map(|released_at| YyyyMmDdDate::from_date(released_at.date())),
             released_at_yyyymmdd.map(YyyyMmDdDate::new_unchecked),
         );
         released_at.map(Into::into)
@@ -201,7 +197,6 @@ pub(crate) fn load_repo_entity(
             parse_datetime_opt(Some(released_orig_at.as_str()), released_orig_ms);
         debug_assert_eq!(
             released_orig_at
-                .clone()
                 .map(|released_orig_at| YyyyMmDdDate::from_date(released_orig_at.date())),
             released_orig_at_yyyymmdd.map(YyyyMmDdDate::new_unchecked),
         );
@@ -285,7 +280,7 @@ pub(crate) fn load_repo_entity(
     };
     let entity_body = TrackBody {
         track,
-        updated_at: header.updated_at.clone(),
+        updated_at: header.updated_at,
         last_synchronized_rev,
         content_url: None,
     };

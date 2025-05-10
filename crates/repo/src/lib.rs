@@ -3,7 +3,7 @@
 
 use derive_more::derive::{Display, Error};
 
-use aoide_core::util::clock::OffsetDateTimeMs;
+use aoide_core::util::clock::UtcDateTimeMs;
 use aoide_core_api::{Pagination, PaginationOffset};
 
 #[macro_use]
@@ -28,8 +28,8 @@ pub type RecordId = i64;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RecordHeader<Id> {
     pub id: Id,
-    pub created_at: OffsetDateTimeMs,
-    pub updated_at: OffsetDateTimeMs,
+    pub created_at: UtcDateTimeMs,
+    pub updated_at: UtcDateTimeMs,
 }
 
 pub trait RecordCollector {

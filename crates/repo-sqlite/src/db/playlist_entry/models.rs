@@ -5,7 +5,7 @@ use diesel::prelude::*;
 
 use aoide_core::{
     playlist::{Entry, Item, SeparatorItem, TrackItem},
-    util::clock::{OffsetDateTimeMs, TimestampMillis},
+    util::clock::{TimestampMillis, UtcDateTimeMs},
 };
 use aoide_repo::{PlaylistId, TrackId};
 
@@ -87,10 +87,10 @@ impl<'a> InsertableRecord<'a> {
         playlist_id: PlaylistId,
         track_id: Option<TrackId>,
         ordering: i64,
-        created_at: &'a OffsetDateTimeMs,
+        created_at: &'a UtcDateTimeMs,
         created_entry: &'a Entry,
     ) -> Self {
-        let row_created_updated_ms = created_at.timestamp_millis();
+        let row_created_updated_ms = created_at.unix_timestamp_millis();
         let Entry {
             added_at,
             title,
@@ -113,7 +113,7 @@ impl<'a> InsertableRecord<'a> {
             playlist_id: playlist_id.into(),
             track_id: track_id.map(Into::into),
             added_at: added_at.to_string(),
-            added_ms: added_at.timestamp_millis(),
+            added_ms: added_at.to_utc().unix_timestamp_millis(),
             ordering,
             title: title.as_deref(),
             notes: notes.as_deref(),

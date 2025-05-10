@@ -900,20 +900,20 @@ fn build_datetime_field_filter_expression(
             let expr_not_null = expr;
             // TODO: Check and limit/clamp value range when converting from f64 to i64
             match &filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value.timestamp_millis())),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value.timestamp_millis())),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.timestamp_millis())),
+                LessThan(value) => Box::new(expr_not_null.lt(value.unix_timestamp_millis())),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value.unix_timestamp_millis())),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value.unix_timestamp_millis())),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.unix_timestamp_millis())),
                 Equal(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value.timestamp_millis()))
+                        Box::new(expr_not_null.eq(value.unix_timestamp_millis()))
                     } else {
                         Box::new(expr.is_null())
                     }
                 }
                 NotEqual(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value.timestamp_millis()))
+                        Box::new(expr_not_null.ne(value.unix_timestamp_millis()))
                     } else {
                         Box::new(expr.is_not_null())
                     }
@@ -925,20 +925,20 @@ fn build_datetime_field_filter_expression(
             let expr_not_null = ifnull(expr, 0i64);
             // TODO: Check and limit/clamp value range when converting from f64 to i64
             match &filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value.timestamp_millis())),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value.timestamp_millis())),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.timestamp_millis())),
+                LessThan(value) => Box::new(expr_not_null.lt(value.unix_timestamp_millis())),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value.unix_timestamp_millis())),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value.unix_timestamp_millis())),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.unix_timestamp_millis())),
                 Equal(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value.timestamp_millis()))
+                        Box::new(expr_not_null.eq(value.unix_timestamp_millis()))
                     } else {
                         Box::new(expr.is_null())
                     }
                 }
                 NotEqual(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value.timestamp_millis()))
+                        Box::new(expr_not_null.ne(value.unix_timestamp_millis()))
                     } else {
                         Box::new(expr.is_not_null())
                     }
@@ -950,20 +950,20 @@ fn build_datetime_field_filter_expression(
             let expr_not_null = ifnull(expr, 0i64);
             // TODO: Check and limit/clamp value range when converting from f64 to i64
             match &filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value.timestamp_millis())),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value.timestamp_millis())),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.timestamp_millis())),
+                LessThan(value) => Box::new(expr_not_null.lt(value.unix_timestamp_millis())),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value.unix_timestamp_millis())),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value.unix_timestamp_millis())),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.unix_timestamp_millis())),
                 Equal(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value.timestamp_millis()))
+                        Box::new(expr_not_null.eq(value.unix_timestamp_millis()))
                     } else {
                         Box::new(expr.is_null())
                     }
                 }
                 NotEqual(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value.timestamp_millis()))
+                        Box::new(expr_not_null.ne(value.unix_timestamp_millis()))
                     } else {
                         Box::new(expr.is_not_null())
                     }
@@ -975,20 +975,20 @@ fn build_datetime_field_filter_expression(
             let expr_not_null = ifnull(expr, 0i64);
             // TODO: Check and limit/clamp value range when converting from f64 to i64
             match &filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value.timestamp_millis())),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value.timestamp_millis())),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value.timestamp_millis())),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.timestamp_millis())),
+                LessThan(value) => Box::new(expr_not_null.lt(value.unix_timestamp_millis())),
+                LessOrEqual(value) => Box::new(expr_not_null.le(value.unix_timestamp_millis())),
+                GreaterThan(value) => Box::new(expr_not_null.gt(value.unix_timestamp_millis())),
+                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.unix_timestamp_millis())),
                 Equal(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value.timestamp_millis()))
+                        Box::new(expr_not_null.eq(value.unix_timestamp_millis()))
                     } else {
                         Box::new(expr.is_null())
                     }
                 }
                 NotEqual(value) => {
                     if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value.timestamp_millis()))
+                        Box::new(expr_not_null.ne(value.unix_timestamp_millis()))
                     } else {
                         Box::new(expr.is_not_null())
                     }

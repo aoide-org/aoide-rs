@@ -55,8 +55,8 @@ impl EntityRepo for Connection<'_> {
             .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
                 let header = RecordHeader {
                     id: row_id.into(),
-                    created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
-                    updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
+                    created_at: UtcDateTimeMs::from_unix_timestamp_millis(row_created_ms),
+                    updated_at: UtcDateTimeMs::from_unix_timestamp_millis(row_updated_ms),
                 };
                 (header, decode_entity_revision(entity_rev))
             })
@@ -65,7 +65,7 @@ impl EntityRepo for Connection<'_> {
     fn touch_playlist_entity_revision(
         &mut self,
         entity_header: &EntityHeader,
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
         let EntityHeader { uid, rev } = entity_header;
         let next_rev = rev
@@ -90,7 +90,7 @@ impl EntityRepo for Connection<'_> {
     fn update_playlist_entity(
         &mut self,
         id: RecordId,
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
         updated_entity: &PlaylistEntity,
     ) -> RepoResult<()> {
         let updatable =
@@ -138,7 +138,7 @@ impl EntityRepo for Connection<'_> {
     fn insert_playlist_entity(
         &mut self,
         collection_id: Option<CollectionId>,
-        created_at: &OffsetDateTimeMs,
+        created_at: UtcDateTimeMs,
         created_entity: &PlaylistEntity,
     ) -> RepoResult<RecordId> {
         let insertable = InsertableRecord::bind(collection_id, created_at, created_entity);
@@ -426,7 +426,7 @@ impl EntryRepo for crate::Connection<'_> {
         }
         let max_ordering = max_playlist_entry_ordering(self, id)?.unwrap_or(-1);
         let mut ordering = max_ordering;
-        let created_at = OffsetDateTimeMs::now_utc();
+        let created_at = UtcDateTimeMs::now();
         for entry in new_entries {
             ordering = ordering.saturating_add(1);
             let track_id = match &entry.item {
@@ -452,7 +452,7 @@ impl EntryRepo for crate::Connection<'_> {
         // TODO: Ordering range checks and adjustments when needed!
         debug_assert!(new_entries.len() as i64 >= 0);
         let mut ordering = min_ordering.saturating_sub(new_entries.len() as i64);
-        let created_at = OffsetDateTimeMs::now_utc();
+        let created_at = UtcDateTimeMs::now();
         for entry in new_entries {
             let track_id = match &entry.item {
                 Item::Separator(_) => None,
@@ -623,7 +623,7 @@ impl EntryRepo for crate::Connection<'_> {
             new_ordering_range
         };
         let mut ordering = new_ordering_range.start;
-        let created_at = OffsetDateTimeMs::now_utc();
+        let created_at = UtcDateTimeMs::now();
         for entry in new_entries {
             let track_id = match &entry.item {
                 Item::Separator(_) => None,
@@ -648,7 +648,7 @@ impl EntryRepo for crate::Connection<'_> {
         use playlist_entry_db::{models::*, schema::*};
         let records = load_playlist_entry_records(self, source_id)?;
         let copied_count = records.len();
-        let created_at = OffsetDateTimeMs::now_utc();
+        let created_at = UtcDateTimeMs::now();
         for record in records {
             let (_id, ordering, track_id, entry) = record.into();
             let insertable =

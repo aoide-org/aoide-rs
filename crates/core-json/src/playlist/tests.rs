@@ -31,19 +31,19 @@ fn deserialize_playlist() {
         },
         entries: vec![
             Entry {
-                added_at: added_at1.clone().into(),
+                added_at: added_at1.into(),
                 item: Item::Track(TrackItem { uid: uid.clone() }),
                 title: None,
                 notes: None,
             },
             Entry {
-                added_at: added_at2.clone().into(),
+                added_at: added_at2.into(),
                 item: Item::Separator(Default::default()),
                 title: None,
                 notes: None,
             },
             Entry {
-                added_at: added_at3.clone().into(),
+                added_at: added_at3.into(),
                 item: Item::Separator(SeparatorItem {
                     kind: Some("Kind".into()),
                 }),

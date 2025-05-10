@@ -3,7 +3,7 @@
 
 use diesel::prelude::*;
 
-use aoide_core::{media::content::ContentPath, util::clock::OffsetDateTimeMs};
+use aoide_core::{media::content::ContentPath, util::clock::UtcDateTimeMs};
 use aoide_core_api::{
     Pagination,
     media::tracker::{DirTrackingStatus, DirectoriesStatus, count_sources_in_directories},
@@ -28,7 +28,7 @@ use crate::{
 impl Repo for Connection<'_> {
     fn media_tracker_update_directories_status(
         &mut self,
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
         old_status: Option<DirTrackingStatus>,
@@ -42,7 +42,7 @@ impl Repo for Connection<'_> {
             ));
         let mut query = diesel::update(target)
             .set((
-                media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
+                media_tracker_directory::row_updated_ms.eq(updated_at.unix_timestamp_millis()),
                 media_tracker_directory::status.eq(encode_dir_tracking_status(new_status)),
             ))
             .into_boxed();
@@ -94,7 +94,7 @@ impl Repo for Connection<'_> {
 
     fn media_tracker_update_directory_digest(
         &mut self,
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
         collection_id: CollectionId,
         content_path: &ContentPath<'_>,
         digest: &DigestBytes,
@@ -116,7 +116,7 @@ impl Repo for Connection<'_> {
                         .eq(encode_dir_tracking_status(DirTrackingStatus::Orphaned))),
             );
         let query = diesel::update(target).set((
-            media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
+            media_tracker_directory::row_updated_ms.eq(updated_at.unix_timestamp_millis()),
             media_tracker_directory::status
                 .eq(encode_dir_tracking_status(DirTrackingStatus::Current)),
         ));
@@ -131,7 +131,7 @@ impl Repo for Connection<'_> {
             .filter(media_tracker_directory::content_path.eq(content_path.as_str()))
             .filter(media_tracker_directory::digest.ne(&digest[..]));
         let query = diesel::update(target).set((
-            media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
+            media_tracker_directory::row_updated_ms.eq(updated_at.unix_timestamp_millis()),
             media_tracker_directory::status
                 .eq(encode_dir_tracking_status(DirTrackingStatus::Modified)),
             media_tracker_directory::digest.eq(&digest[..]),
@@ -194,7 +194,7 @@ impl Repo for Connection<'_> {
 
     fn media_tracker_confirm_directory(
         &mut self,
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
         collection_id: CollectionId,
         directory_path: &ContentPath<'_>,
         digest: &DigestBytes,
@@ -205,7 +205,7 @@ impl Repo for Connection<'_> {
             .filter(media_tracker_directory::content_path.eq(directory_path.as_str()))
             .filter(media_tracker_directory::digest.eq(&digest[..]));
         let query = diesel::update(target).set((
-            media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
+            media_tracker_directory::row_updated_ms.eq(updated_at.unix_timestamp_millis()),
             media_tracker_directory::status
                 .eq(encode_dir_tracking_status(DirTrackingStatus::Current)),
         ));

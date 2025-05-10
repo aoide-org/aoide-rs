@@ -621,7 +621,7 @@ impl CollectionRepo for crate::Connection<'_> {
             {
                 return Ok(ReplaceOutcome::Unchanged(media_source_id, id, entity));
             }
-            let updated_at = OffsetDateTimeMs::now_utc();
+            let updated_at = UtcDateTimeMs::now();
             if preserve_collected_at {
                 if track.media_source.collected_at != entity.body.track.media_source.collected_at {
                     log::debug!(
@@ -630,8 +630,7 @@ impl CollectionRepo for crate::Connection<'_> {
                         discarded = track.media_source.collected_at
                     );
                 }
-                track.media_source.collected_at =
-                    entity.body.track.media_source.collected_at.clone();
+                track.media_source.collected_at = entity.body.track.media_source.collected_at;
             }
             if track == entity.body.track {
                 return Ok(ReplaceOutcome::Unchanged(media_source_id, id, entity));
@@ -639,7 +638,7 @@ impl CollectionRepo for crate::Connection<'_> {
             log::trace!("original = {:?}", entity.body);
             log::trace!("updated = {track:?}");
             if track.media_source != entity.body.track.media_source {
-                self.update_media_source(media_source_id, &updated_at, &track.media_source)?;
+                self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
             let entity_hdr = entity
                 .raw
@@ -672,9 +671,9 @@ impl CollectionRepo for crate::Connection<'_> {
             if mode == ReplaceMode::UpdateOnly {
                 return Ok(ReplaceOutcome::NotCreated(track));
             }
-            let created_at = OffsetDateTimeMs::now_utc();
+            let created_at = UtcDateTimeMs::now();
             let media_source_id = self
-                .insert_media_source(collection_id, created_at.clone(), &track.media_source)?
+                .insert_media_source(collection_id, created_at, &track.media_source)?
                 .id;
             let entity_hdr = TrackHeader::initial_random();
             let last_synchronized_rev =
@@ -686,7 +685,7 @@ impl CollectionRepo for crate::Connection<'_> {
                 };
             let entity_body = TrackBody {
                 track,
-                updated_at: created_at.clone(),
+                updated_at: created_at,
                 last_synchronized_rev,
                 content_url: None,
             };
@@ -878,8 +877,8 @@ impl CollectionRepo for crate::Connection<'_> {
                 )| {
                     let record_header = RecordHeader {
                         id: row_id.into(),
-                        created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
-                        updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
+                        created_at: UtcDateTimeMs::from_unix_timestamp_millis(row_created_ms),
+                        updated_at: UtcDateTimeMs::from_unix_timestamp_millis(row_updated_ms),
                     };
                     let entity_header =
                         TrackHeader::from_untyped(decode_entity_header(&entity_uid, entity_rev));

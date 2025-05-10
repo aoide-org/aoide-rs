@@ -227,14 +227,14 @@ impl PlaylistWithEntries {
     pub fn entries_added_at_minmax(&self) -> Option<(OffsetDateTimeMs, OffsetDateTimeMs)> {
         let mut entries = self.entries.iter();
         if let Some(first_added) = entries.next().map(|e| &e.added_at) {
-            let mut added_min = first_added.clone();
-            let mut added_max = first_added.clone();
+            let mut added_min = *first_added;
+            let mut added_max = *first_added;
             for e in entries {
                 if added_min > e.added_at {
-                    added_min = e.added_at.clone();
+                    added_min = e.added_at;
                 }
                 if added_max < e.added_at {
-                    added_max = e.added_at.clone();
+                    added_max = e.added_at;
                 }
             }
             Some((added_min, added_max))
@@ -284,8 +284,10 @@ impl PlaylistWithEntries {
     // Sort entries by their creation time stamp, preserving the
     // order of entries with equal time stamps.
     pub fn sort_entries_chronologically(&mut self) {
-        self.entries
-            .sort_by(|lhs, rhs| lhs.added_at.cmp(&rhs.added_at));
+        self.entries.sort_by(|lhs, rhs| {
+            // Ignore the UTC offset and only compare the timestamps.
+            lhs.added_at.to_utc().cmp(&rhs.added_at.to_utc())
+        });
     }
 
     #[must_use]

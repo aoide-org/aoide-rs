@@ -95,8 +95,8 @@ pub struct TrackFields {
     pub valence: Field,
 }
 
-fn add_date_field(doc: &mut TantivyDocument, field: Field, date_time: &OffsetDateTimeMs) {
-    doc.add_date(field, tantivy::DateTime::from_utc(date_time.date_time()));
+fn add_date_field(doc: &mut TantivyDocument, field: Field, date_time: OffsetDateTimeMs) {
+    doc.add_date(field, tantivy::DateTime::from_utc(date_time.into()));
 }
 
 const TAG_LABEL_PREFIX: char = '#';
@@ -174,7 +174,7 @@ impl TrackFields {
         add_date_field(
             &mut doc,
             self.collected_at,
-            &entity.body.track.media_source.collected_at,
+            entity.body.track.media_source.collected_at,
         );
         let ContentMetadata::Audio(audio_metadata) =
             &entity.body.track.media_source.content.metadata;
@@ -239,7 +239,7 @@ impl TrackFields {
                 doc.add_u64(self.times_played, *times_played);
             }
             if let Some(last_played_at) = last_played_at {
-                add_date_field(&mut doc, self.last_played_at, last_played_at);
+                add_date_field(&mut doc, self.last_played_at, *last_played_at);
             }
         }
         for tag in &entity.body.track.tags.plain {

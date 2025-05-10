@@ -9,7 +9,7 @@ use url::Url;
 use aoide_core::{
     CollectionUid,
     media::content::resolver::{ContentPathResolver as _, vfs::RemappingVfsResolver},
-    util::clock::OffsetDateTimeMs,
+    util::clock::UtcDateTimeMs,
 };
 use aoide_core_api::media::tracker::{
     Completion, FsTraversalDirectoriesProgress, FsTraversalEntriesProgress, FsTraversalParams,
@@ -100,7 +100,7 @@ pub fn scan_directories<
         .map(|dir_path| resolver.build_file_path(dir_path).into())
         .collect::<Vec<_>>();
     let outdated_count = repo.media_tracker_mark_current_directories_outdated(
-        &OffsetDateTimeMs::now_utc(),
+        UtcDateTimeMs::now(),
         collection_id,
         resolver.root_path(),
     )?;
@@ -123,10 +123,10 @@ pub fn scan_directories<
             .resolve_path_from_url(&url)?
             .ok_or_else(|| anyhow!("unresolved URL: {url}"))?;
         log::debug!("Updating digest of content path: {content_path}");
-        let updated_at = OffsetDateTimeMs::now_utc();
+        let updated_at = UtcDateTimeMs::now();
         match repo
             .media_tracker_update_directory_digest(
-                &updated_at,
+                updated_at,
                 collection_id,
                 &content_path,
                 &digest.into(),
@@ -179,9 +179,9 @@ pub fn scan_directories<
             visit::Completion::Finished => {
                 // Mark all remaining entries that are unreachable and
                 // have not been visited as orphaned.
-                let updated_at = OffsetDateTimeMs::now_utc();
+                let updated_at = UtcDateTimeMs::now();
                 summary.orphaned = repo.media_tracker_mark_outdated_directories_orphaned(
-                    &updated_at,
+                    updated_at,
                     collection_id,
                     resolver.root_path(),
                 )?;

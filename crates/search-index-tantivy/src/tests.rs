@@ -11,7 +11,7 @@ use aoide_core::{
         },
     },
     track::{Entity, EntityBody, EntityHeader, Track},
-    util::clock::OffsetDateTimeMs,
+    util::clock::{OffsetDateTimeMs, UtcDateTimeMs},
 };
 
 use crate::{IndexStorage, TrackIndex};
@@ -27,8 +27,9 @@ fn track_index_smoke_test_to_verify_dynamic_schema_against_static_types() {
         loudness: Some(LoudnessLufs::new(1.234)),
         sample_rate: Some(SampleRateHz::new(44_100.0)),
     };
+    let collected_at = OffsetDateTimeMs::now_local();
     let media_source = MediaSource {
-        collected_at: OffsetDateTimeMs::now_utc(),
+        collected_at,
         artwork: None,
         content: Content {
             link: ContentLink {
@@ -60,7 +61,7 @@ fn track_index_smoke_test_to_verify_dynamic_schema_against_static_types() {
         titles: Default::default(),
     };
     let entity_body = EntityBody {
-        updated_at: OffsetDateTimeMs::now_utc(),
+        updated_at: UtcDateTimeMs::now(),
         track,
         content_url: Some("https://www.example.com/file.mp3".parse().unwrap()),
         last_synchronized_rev: None,

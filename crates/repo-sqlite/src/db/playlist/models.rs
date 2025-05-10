@@ -53,8 +53,8 @@ impl From<QueryableRecord> for (RecordHeader, Option<CollectionId>, PlaylistEnti
         } = from;
         let header = RecordHeader {
             id: row_id.into(),
-            created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
-            updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
+            created_at: UtcDateTimeMs::from_unix_timestamp_millis(row_created_ms),
+            updated_at: UtcDateTimeMs::from_unix_timestamp_millis(row_updated_ms),
         };
         let collection_id = collection_id.map(Into::into);
         let entity_hdr = decode_entity_header(&entity_uid, entity_rev);
@@ -99,10 +99,10 @@ pub struct InsertableRecord<'a> {
 impl<'a> InsertableRecord<'a> {
     pub fn bind(
         collection_id: Option<CollectionId>,
-        created_at: &OffsetDateTimeMs,
+        created_at: UtcDateTimeMs,
         entity: &'a PlaylistEntity,
     ) -> Self {
-        let row_created_updated_ms = created_at.timestamp_millis();
+        let row_created_updated_ms = created_at.unix_timestamp_millis();
         let (hdr, body) = entity.into();
         let PlaylistHeader { uid, rev } = hdr;
         let Playlist {
@@ -144,10 +144,10 @@ pub struct TouchableRecord {
 }
 
 impl TouchableRecord {
-    pub fn bind(updated_at: &OffsetDateTimeMs, next_rev: EntityRevision) -> Self {
+    pub fn bind(updated_at: UtcDateTimeMs, next_rev: EntityRevision) -> Self {
         let entity_rev = encode_entity_revision(next_rev);
         Self {
-            row_updated_ms: updated_at.timestamp_millis(),
+            row_updated_ms: updated_at.unix_timestamp_millis(),
             entity_rev,
         }
     }
@@ -168,7 +168,7 @@ pub struct UpdatableRecord<'a> {
 
 impl<'a> UpdatableRecord<'a> {
     pub fn bind(
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
         next_rev: EntityRevision,
         playlist: &'a Playlist,
     ) -> Self {
@@ -181,7 +181,7 @@ impl<'a> UpdatableRecord<'a> {
             flags,
         } = playlist;
         Self {
-            row_updated_ms: updated_at.timestamp_millis(),
+            row_updated_ms: updated_at.unix_timestamp_millis(),
             entity_rev,
             title,
             kind: kind.as_deref(),

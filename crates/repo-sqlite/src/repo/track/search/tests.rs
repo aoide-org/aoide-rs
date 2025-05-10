@@ -67,12 +67,12 @@ fn create_single_track_collection_with_tags(
         color: None,
         media_source_config: vfs_media_source_config(),
     };
+    let collected_at = OffsetDateTimeMs::now_local();
+    let created_at = collected_at.to_utc();
     let collection_entity = CollectionEntity::new(CollectionHeader::initial_random(), collection);
-    let collection_id =
-        db.insert_collection_entity(&OffsetDateTimeMs::now_utc(), &collection_entity)?;
-    let created_at = OffsetDateTimeMs::now_local();
+    let collection_id = db.insert_collection_entity(created_at, &collection_entity)?;
     let media_source = media::Source {
-        collected_at: created_at.clone(),
+        collected_at,
         content: media::Content {
             link: ContentLink {
                 path: "/home/test/file.mp3".into(),
@@ -90,7 +90,7 @@ fn create_single_track_collection_with_tags(
         artwork: Default::default(),
     };
     let media_source_id = db
-        .insert_media_source(collection_id, created_at.clone(), &media_source)?
+        .insert_media_source(collection_id, created_at, &media_source)?
         .id;
     let mut track = Track::new_from_media_source(media_source);
     // Track title with Unicode characters.

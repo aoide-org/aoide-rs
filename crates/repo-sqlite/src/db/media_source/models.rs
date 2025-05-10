@@ -193,8 +193,8 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
 
         let header = RecordHeader {
             id: row_id.into(),
-            created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
-            updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
+            created_at: UtcDateTimeMs::from_unix_timestamp_millis(row_created_ms),
+            updated_at: UtcDateTimeMs::from_unix_timestamp_millis(row_updated_ms),
         };
 
         let collected_at = parse_datetime(&collected_at, collected_ms);
@@ -256,7 +256,7 @@ pub struct InsertableRecord<'a> {
 impl<'a> InsertableRecord<'a> {
     #[expect(clippy::too_many_lines)] // TODO
     pub fn bind(
-        created_at: &'a OffsetDateTimeMs,
+        created_at: UtcDateTimeMs,
         collection_id: CollectionId,
         created_source: &'a Source,
     ) -> Self {
@@ -331,13 +331,13 @@ impl<'a> InsertableRecord<'a> {
             artwork_color = None;
             artwork_thumbnail = None;
         }
-        let row_created_updated_ms = created_at.timestamp_millis();
+        let row_created_updated_ms = created_at.unix_timestamp_millis();
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
             collection_id: collection_id.into(),
             collected_at: collected_at.to_string(),
-            collected_ms: collected_at.timestamp_millis(),
+            collected_ms: collected_at.to_utc().unix_timestamp_millis(),
             content_link_path: content_link_path.as_str(),
             content_link_rev: content_link_rev.map(ContentRevision::to_signed_value),
             content_type: content_type.to_string(),
@@ -405,7 +405,7 @@ pub struct UpdatableRecord<'a> {
 
 #[expect(clippy::too_many_lines)] // TODO
 impl<'a> UpdatableRecord<'a> {
-    pub fn bind(updated_at: &'a OffsetDateTimeMs, updated_source: &'a Source) -> Self {
+    pub fn bind(updated_at: UtcDateTimeMs, updated_source: &'a Source) -> Self {
         let Source {
             collected_at,
             content:
@@ -478,9 +478,9 @@ impl<'a> UpdatableRecord<'a> {
             artwork_thumbnail = None;
         }
         Self {
-            row_updated_ms: updated_at.timestamp_millis(),
+            row_updated_ms: updated_at.unix_timestamp_millis(),
             collected_at: collected_at.to_string(),
-            collected_ms: collected_at.timestamp_millis(),
+            collected_ms: collected_at.to_utc().unix_timestamp_millis(),
             content_link_path: content_link_path.as_str(),
             content_link_rev: content_link_rev.map(ContentRevision::to_signed_value),
             content_type: content_type.to_string(),

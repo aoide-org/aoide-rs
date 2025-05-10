@@ -8,7 +8,7 @@ use semval::prelude::*;
 
 use aoide_core::{
     CollectionUid, Playlist, PlaylistEntity, PlaylistHeader, PlaylistUid,
-    playlist::EntityWithEntries, util::clock::OffsetDateTimeMs,
+    playlist::EntityWithEntries, util::clock::UtcDateTimeMs,
 };
 use aoide_core_api::{Pagination, playlist::EntityWithEntriesSummary};
 use aoide_repo::{
@@ -49,8 +49,8 @@ where
     let collection_id = collection_uid
         .map(|uid| repo.resolve_collection_id(uid))
         .transpose()?;
-    let created_at = OffsetDateTimeMs::now_utc();
-    repo.insert_playlist_entity(collection_id, &created_at, entity)?;
+    let created_at = UtcDateTimeMs::now();
+    repo.insert_playlist_entity(collection_id, created_at, entity)?;
     Ok(())
 }
 
@@ -70,8 +70,8 @@ pub fn store_updated_entity<Repo>(
 where
     Repo: EntityRepo,
 {
-    let updated_at = OffsetDateTimeMs::now_utc();
-    repo.update_playlist_entity_revision(&updated_at, updated_entity)?;
+    let updated_at = UtcDateTimeMs::now();
+    repo.update_playlist_entity_revision(updated_at, updated_entity)?;
     Ok(())
 }
 

@@ -474,13 +474,13 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
     if let Ok(date_time) =
         OffsetDateTime::parse(input, &Rfc3339).or_else(|_| OffsetDateTime::parse(input, &Rfc2822))
     {
-        return Some(OffsetDateTimeMs::clamp_from(date_time).into());
+        return Some(OffsetDateTimeMs::clamp_from(&date_time).into());
     }
     if let Ok(date_time) = PrimitiveDateTime::parse(input, RFC3339_WITHOUT_TZ_FORMAT)
         .or_else(|_| PrimitiveDateTime::parse(input, RFC3339_WITHOUT_T_TZ_FORMAT))
     {
         // Assume UTC if time zone is missing
-        return Some(OffsetDateTimeMs::clamp_from(date_time.assume_utc()).into());
+        return Some(OffsetDateTimeMs::clamp_from(&date_time.assume_utc()).into());
     }
     // Replace arbitrary whitespace by a single space and try again
     let recombined = input.split_whitespace().collect::<Vec<_>>().join(" ");

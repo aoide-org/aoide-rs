@@ -28,7 +28,9 @@ pub mod tag;
 pub mod title;
 pub use self::title::{Title, TitleInvalidity, Titles, TitlesInvalidity};
 
-use crate::util::clock::{DateOrDateTime, DateOrDateTimeInvalidity, OffsetDateTimeMs};
+use crate::util::clock::{
+    DateOrDateTime, DateOrDateTimeInvalidity, OffsetDateTimeMs, UtcDateTimeMs,
+};
 use crate::util::color::{Color, ColorInvalidity};
 use crate::{EntityHeaderTyped, EntityRevision, EntityUidTyped};
 use crate::{
@@ -302,7 +304,7 @@ impl IsCanonical for Track {
 pub struct EntityBody {
     pub track: Track,
 
-    pub updated_at: OffsetDateTimeMs,
+    pub updated_at: UtcDateTimeMs,
 
     /// Last synchronized track entity revision
     ///

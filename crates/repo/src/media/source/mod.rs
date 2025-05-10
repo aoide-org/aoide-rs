@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{MediaSource, media::content::ContentPath, util::clock::OffsetDateTimeMs};
+use aoide_core::{MediaSource, media::content::ContentPath, util::clock::UtcDateTimeMs};
 use aoide_core_api::filtering::StringPredicate;
 
 use crate::{CollectionId, RepoResult};
@@ -14,7 +14,7 @@ pub trait Repo {
     fn update_media_source(
         &mut self,
         id: RecordId,
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
         updated_media_source: &MediaSource,
     ) -> RepoResult<()>;
 
@@ -39,7 +39,7 @@ pub trait CollectionRepo {
     fn insert_media_source(
         &mut self,
         collection_id: CollectionId,
-        created_at: OffsetDateTimeMs,
+        created_at: UtcDateTimeMs,
         created_media_source: &MediaSource,
     ) -> RepoResult<RecordHeader>;
 
@@ -52,7 +52,7 @@ pub trait CollectionRepo {
     fn relocate_media_sources_by_content_path_prefix(
         &mut self,
         collection_id: CollectionId,
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
         old_content_path_prefix: &ContentPath<'_>,
         new_content_path_prefix: &ContentPath<'_>,
     ) -> RepoResult<usize>;

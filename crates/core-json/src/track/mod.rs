@@ -4,7 +4,7 @@
 use nonicle::CanonicalizeInto as _;
 use url::Url;
 
-use aoide_core::track::PlayCount;
+use aoide_core::{track::PlayCount, util::clock::OffsetDateTimeMs};
 
 use crate::{entity::EntityRevision, media::Source, prelude::*, tag::*};
 
@@ -237,7 +237,7 @@ impl TryFrom<EntityBody> for _core::EntityBody {
         let track = track.try_into()?;
         Ok(Self {
             track,
-            updated_at: updated_at.into(),
+            updated_at: OffsetDateTimeMs::from(updated_at).to_utc(),
             last_synchronized_rev,
             content_url,
         })
@@ -254,7 +254,7 @@ impl From<_core::EntityBody> for EntityBody {
         } = from;
         Self {
             track: track.into(),
-            updated_at: updated_at.into(),
+            updated_at: OffsetDateTimeMs::from_utc(updated_at).into(),
             last_synchronized_rev,
             content_url,
         }

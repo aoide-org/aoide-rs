@@ -1,22 +1,174 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{fmt, str::FromStr};
+use std::{convert::Infallible, fmt, str::FromStr};
 
-use jiff::Zoned;
+use jiff::{Timestamp, Zoned};
 use semval::prelude::*;
 use time::{
-    Date, Duration, Month, OffsetDateTime, UtcOffset,
-    convert::{Millisecond, Nanosecond, Second},
+    Date, Month, OffsetDateTime, UtcDateTime, UtcOffset,
+    convert::{Millisecond, Nanosecond},
     error::Parse as ParseError,
     format_description::{FormatItem, well_known::Rfc3339},
 };
 
 pub type TimestampMillis = i64;
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(transparent)]
-pub struct OffsetDateTimeMs(OffsetDateTime);
+/// An [`UtcDateTime`] with truncated millisecond precision.
+#[derive(Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UtcDateTimeMs {
+    unix_timestamp_millis: TimestampMillis,
+}
+
+impl UtcDateTimeMs {
+    #[must_use]
+    pub const fn new_unchecked(dt: &UtcDateTime) -> Self {
+        let unix_timestamp_millis =
+            (dt.unix_timestamp_nanos() / (Nanosecond::per(Millisecond)) as i128) as _;
+        Self {
+            unix_timestamp_millis,
+        }
+    }
+
+    #[must_use]
+    pub fn clamp_from(dt: &UtcDateTime) -> Self {
+        // TODO: Avoid i128 arithmetic operations to maximize performance.
+        let unix_timestamp_millis = (dt.unix_timestamp_nanos()
+            / i128::from(Nanosecond::per(Millisecond)))
+        .min(i64::MAX.into())
+        .max(i64::MIN.into()) as _;
+        Self {
+            unix_timestamp_millis,
+        }
+    }
+
+    #[must_use]
+    pub const fn from_unix_timestamp_millis(unix_timestamp_millis: TimestampMillis) -> Self {
+        Self {
+            unix_timestamp_millis,
+        }
+    }
+
+    #[must_use]
+    pub const fn unix_timestamp_millis(&self) -> TimestampMillis {
+        self.unix_timestamp_millis
+    }
+
+    #[must_use]
+    pub fn from_timestamp(timestamp: &Timestamp) -> Self {
+        Self::from_unix_timestamp_millis(timestamp.as_millisecond())
+    }
+
+    #[must_use]
+    #[expect(clippy::missing_panics_doc, reason = "should never panic")]
+    pub fn to_timestamp(&self) -> Timestamp {
+        Timestamp::from_millisecond(self.unix_timestamp_millis).expect("valid timestamp")
+    }
+
+    #[must_use]
+    pub fn now() -> Self {
+        Self::from_unix_timestamp_millis(Timestamp::now().as_millisecond())
+    }
+}
+
+impl From<UtcDateTimeMs> for UtcDateTime {
+    fn from(from: UtcDateTimeMs) -> Self {
+        let UtcDateTimeMs {
+            unix_timestamp_millis,
+        } = from;
+        // TODO: Avoid i128 arithmetic operations to maximize performance.
+        UtcDateTime::from_unix_timestamp_nanos(
+            i128::from(unix_timestamp_millis) * i128::from(Nanosecond::per(Millisecond)),
+        )
+        .expect("all components should be in range")
+    }
+}
+
+impl From<Timestamp> for UtcDateTimeMs {
+    fn from(from: Timestamp) -> Self {
+        Self::from_timestamp(&from)
+    }
+}
+
+impl From<UtcDateTimeMs> for Timestamp {
+    fn from(from: UtcDateTimeMs) -> Self {
+        from.to_timestamp()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for UtcDateTimeMs {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.to_timestamp().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for UtcDateTimeMs {
+    fn deserialize<D>(deserializer: D) -> Result<UtcDateTimeMs, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        time::serde::rfc3339::deserialize(deserializer).map(|dt| Self::clamp_from(&dt.to_utc()))
+    }
+}
+
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+pub struct OffsetDateTimeMs {
+    utc_date_time: UtcDateTimeMs,
+    utc_offset_secs: i32,
+}
+
+impl PartialOrd for OffsetDateTimeMs {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let Self {
+            utc_date_time,
+            utc_offset_secs,
+        } = *self;
+        if utc_offset_secs != other.utc_offset_secs {
+            return None;
+        }
+        utc_date_time.partial_cmp(&other.utc_date_time)
+    }
+}
+
+impl From<OffsetDateTimeMs> for OffsetDateTime {
+    fn from(from: OffsetDateTimeMs) -> Self {
+        let OffsetDateTimeMs {
+            utc_date_time,
+            utc_offset_secs,
+        } = from;
+        // TODO: Avoid i128 arithmetic operations to maximize performance.
+        let dt = OffsetDateTime::from_unix_timestamp_nanos(
+            i128::from(utc_date_time.unix_timestamp_millis())
+                * i128::from(Nanosecond::per(Millisecond)),
+        )
+        .expect("valid date/time");
+        let utc_offset =
+            UtcOffset::from_whole_seconds(utc_offset_secs).expect("valid time zone offset");
+        dt.to_offset(utc_offset)
+    }
+}
+
+impl From<&Zoned> for OffsetDateTimeMs {
+    fn from(from: &Zoned) -> Self {
+        let utc_date_time = from.timestamp().into();
+        let utc_offset_secs = from.offset().seconds();
+        Self {
+            utc_date_time,
+            utc_offset_secs,
+        }
+    }
+}
+
+impl From<Zoned> for OffsetDateTimeMs {
+    fn from(from: Zoned) -> Self {
+        From::from(&from)
+    }
+}
 
 // Serialize (and deserialize) as string for maximum compatibility and portability
 #[cfg(feature = "serde")]
@@ -25,7 +177,7 @@ impl serde::Serialize for OffsetDateTimeMs {
     where
         S: serde::Serializer,
     {
-        time::serde::rfc3339::serialize(&self.0, serializer)
+        time::serde::rfc3339::serialize(&(*self).into(), serializer)
     }
 }
 
@@ -35,7 +187,7 @@ impl<'de> serde::Deserialize<'de> for OffsetDateTimeMs {
     where
         D: serde::Deserializer<'de>,
     {
-        time::serde::rfc3339::deserialize(deserializer).map(OffsetDateTimeMs::clamp_from)
+        time::serde::rfc3339::deserialize(deserializer).map(|dt| Self::clamp_from(&dt))
     }
 }
 
@@ -45,79 +197,73 @@ const YYYY_MM_DD_FORMAT: &[FormatItem<'static>] =
 /// An [`OffsetDateTime`] with truncated millisecond precision.
 impl OffsetDateTimeMs {
     #[must_use]
-    pub const fn new_unchecked(inner: OffsetDateTime) -> Self {
-        Self(inner)
+    pub const fn new_unchecked(dt: &OffsetDateTime) -> Self {
+        let utc_offset_secs = dt.offset().whole_seconds();
+        let utc_date_time = UtcDateTimeMs::new_unchecked(&dt.to_utc());
+        Self {
+            utc_date_time,
+            utc_offset_secs,
+        }
     }
 
     #[must_use]
-    pub fn clamp_from(inner: OffsetDateTime) -> Self {
-        // Avoid i128 arithmetic operations to maximize performance.
-        let subsec_nanos_mod = inner.nanosecond() % Nanosecond::per(Millisecond);
-        let subsec_duration_mod = Duration::nanoseconds(subsec_nanos_mod.into());
-        let truncated = Self::new_unchecked(inner - subsec_duration_mod);
-        debug_assert!(truncated.is_valid());
-        truncated
+    pub fn clamp_from(dt: &OffsetDateTime) -> Self {
+        let utc_offset_secs = dt.offset().whole_seconds();
+        let utc_date_time = UtcDateTimeMs::clamp_from(&dt.to_utc());
+        Self {
+            utc_date_time,
+            utc_offset_secs,
+        }
     }
 
     #[must_use]
-    #[expect(clippy::missing_panics_doc)] // Never panics
-    pub fn from_timestamp_millis(timestamp_millis: TimestampMillis) -> Self {
-        // Avoid i128 arithmetic operations to maximize performance.
-        // TODO: Use https://doc.rust-lang.org/std/primitive.i64.html#method.div_floor when available.
-        let seconds: i64 =
-            num_integer::div_floor(timestamp_millis, i64::from(Millisecond::per(Second)));
-        let milliseconds_floor = seconds * i64::from(Millisecond::per(Second));
-        debug_assert!(milliseconds_floor <= timestamp_millis);
-        #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let subsec_nanos =
-            (timestamp_millis - milliseconds_floor) as u32 * Nanosecond::per(Millisecond);
-        let truncated = Self::clamp_from(
-            OffsetDateTime::from_unix_timestamp(seconds).expect("valid timestamp")
-                + Duration::nanoseconds(subsec_nanos.into()),
-        );
-        debug_assert!(truncated.is_valid());
-        truncated
+    pub const fn from_utc(utc_date_time: UtcDateTimeMs) -> Self {
+        Self {
+            utc_date_time,
+            utc_offset_secs: 0,
+        }
+    }
+
+    #[must_use]
+    pub fn from_zoned(zoned: &Zoned) -> Self {
+        let utc_date_time = zoned.timestamp().into();
+        let utc_offset_secs = zoned.offset().seconds();
+        Self {
+            utc_date_time,
+            utc_offset_secs,
+        }
+    }
+
+    #[must_use]
+    pub const fn from_unix_timestamp_millis(unix_timestamp_millis: TimestampMillis) -> Self {
+        Self::from_utc(UtcDateTimeMs::from_unix_timestamp_millis(
+            unix_timestamp_millis,
+        ))
+    }
+
+    #[must_use]
+    pub const fn unix_timestamp_millis(&self) -> TimestampMillis {
+        self.to_utc().unix_timestamp_millis()
     }
 
     #[must_use]
     pub fn now_utc() -> Self {
-        Self::clamp_from(OffsetDateTime::now_utc())
+        Self::from_utc(UtcDateTimeMs::now())
     }
 
     #[must_use]
-    #[expect(clippy::missing_panics_doc)] // Never panics.
     pub fn now_local() -> Self {
-        let zoned = Zoned::now();
-        let ts_millis = zoned.timestamp().as_millisecond();
-        let this_utc = Self::from_timestamp_millis(ts_millis);
-        let offset_secs = zoned.offset().seconds();
-        let utc_offset =
-            UtcOffset::from_whole_seconds(offset_secs).expect("offset should always be valid");
-        Self(this_utc.0.replace_offset(utc_offset))
+        Zoned::now().into()
     }
 
     #[must_use]
-    pub fn timestamp_millis(&self) -> TimestampMillis {
-        // Avoid i128 arithmetic operations to maximize performance.
-        let seconds = self.0.unix_timestamp();
-        let subsec_millis = self.0.nanosecond() / Nanosecond::per(Millisecond);
-        seconds * TimestampMillis::from(Millisecond::per(Second))
-            + TimestampMillis::from(subsec_millis)
+    pub const fn to_utc(&self) -> UtcDateTimeMs {
+        self.utc_date_time
     }
 
     #[must_use]
-    pub const fn year(&self) -> YearType {
-        self.0.year() as _
-    }
-
-    #[must_use]
-    pub const fn date(&self) -> Date {
-        self.0.date()
-    }
-
-    #[must_use]
-    pub const fn date_time(&self) -> OffsetDateTime {
-        self.0
+    pub fn date(&self) -> Date {
+        OffsetDateTime::from(*self).date()
     }
 
     #[must_use]
@@ -130,33 +276,25 @@ impl FromStr for OffsetDateTimeMs {
     type Err = ParseError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        OffsetDateTime::parse(input, &Rfc3339).map(Self::clamp_from)
+        OffsetDateTime::parse(input, &Rfc3339).map(|dt| Self::clamp_from(&dt))
     }
 }
 
 impl fmt::Display for OffsetDateTimeMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // TODO: Avoid allocation of temporary String?
-        self.0.format(&Rfc3339).expect("valid timestamp").fmt(f)
+        OffsetDateTime::from(*self)
+            .format(&Rfc3339)
+            .expect("valid timestamp")
+            .fmt(f)
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum OffsetDateTimeMsInvalidity {
-    /// Higher precision than expected
-    Unclamped,
-}
-
 impl Validate for OffsetDateTimeMs {
-    type Invalidity = OffsetDateTimeMsInvalidity;
+    type Invalidity = Infallible;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(
-                self.0.nanosecond() % Nanosecond::per(Millisecond) != 0,
-                Self::Invalidity::Unclamped,
-            )
-            .into()
+        ValidationContext::new().into()
     }
 }
 
@@ -310,7 +448,7 @@ impl fmt::Display for YyyyMmDdDate {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DateOrDateTime {
     Date(YyyyMmDdDate),
     DateTime(OffsetDateTimeMs),
@@ -318,10 +456,10 @@ pub enum DateOrDateTime {
 
 impl DateOrDateTime {
     #[must_use]
-    pub const fn year(&self) -> YearType {
+    pub fn year(&self) -> YearType {
         match self {
             Self::Date(inner) => inner.year(),
-            Self::DateTime(inner) => inner.year(),
+            Self::DateTime(inner) => inner.date().year() as _,
         }
     }
 
@@ -346,8 +484,8 @@ impl From<YyyyMmDdDate> for DateOrDateTime {
 impl From<&DateOrDateTime> for YyyyMmDdDate {
     fn from(from: &DateOrDateTime) -> Self {
         match from {
-            DateOrDateTime::Date(date) => *date,
-            DateOrDateTime::DateTime(dt) => Self::from_date(dt.date()),
+            DateOrDateTime::Date(inner) => *inner,
+            DateOrDateTime::DateTime(inner) => Self::from_date(OffsetDateTime::from(*inner).date()),
         }
     }
 }

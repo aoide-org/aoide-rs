@@ -102,7 +102,7 @@ fn deserialize_date_time() {
     use time::macros::datetime;
 
     assert_eq!(
-        OffsetDateTimeMs::new_unchecked(datetime!(2020-12-18 21:27:15.123 UTC)),
+        OffsetDateTimeMs::new_unchecked(&datetime!(2020-12-18 21:27:15.123 UTC)),
         serde_json::from_value::<OffsetDateTimeMs>(serde_json::json!(
             "2020-12-18T21:27:15.123456Z"
         ))

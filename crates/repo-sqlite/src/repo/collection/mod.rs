@@ -122,8 +122,8 @@ impl EntityRepo for Connection<'_> {
             .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
                 let header = RecordHeader {
                     id: row_id.into(),
-                    created_at: OffsetDateTimeMs::from_timestamp_millis(row_created_ms),
-                    updated_at: OffsetDateTimeMs::from_timestamp_millis(row_updated_ms),
+                    created_at: UtcDateTimeMs::from_unix_timestamp_millis(row_created_ms),
+                    updated_at: UtcDateTimeMs::from_unix_timestamp_millis(row_updated_ms),
                 };
                 (header, decode_entity_revision(entity_rev))
             })
@@ -131,7 +131,7 @@ impl EntityRepo for Connection<'_> {
 
     fn insert_collection_entity(
         &mut self,
-        created_at: &OffsetDateTimeMs,
+        created_at: UtcDateTimeMs,
         created_entity: &CollectionEntity,
     ) -> RepoResult<CollectionId> {
         let insertable = InsertableRecord::bind(created_at, created_entity);
@@ -146,7 +146,7 @@ impl EntityRepo for Connection<'_> {
     fn touch_collection_entity_revision(
         &mut self,
         entity_header: &CollectionHeader,
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
         let CollectionHeader { uid, rev } = entity_header;
         let next_rev = rev
@@ -171,7 +171,7 @@ impl EntityRepo for Connection<'_> {
     fn update_collection_entity(
         &mut self,
         id: CollectionId,
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
         updated_entity: &CollectionEntity,
     ) -> RepoResult<()> {
         let updatable =

@@ -9,7 +9,7 @@ use aoide_core::{
     playlist::{
         Entity, EntityHeader, EntityUid, EntityWithEntries, EntriesSummary, Entry, TracksSummary,
     },
-    util::{clock::OffsetDateTimeMs, random::adhoc_rng},
+    util::{clock::UtcDateTimeMs, random::adhoc_rng},
 };
 use aoide_core_api::{Pagination, playlist::EntityWithEntriesSummary};
 
@@ -51,7 +51,7 @@ pub trait EntityRepo: EntryRepo {
     fn insert_playlist_entity(
         &mut self,
         collection_id: Option<CollectionId>,
-        created_at: &OffsetDateTimeMs,
+        created_at: UtcDateTimeMs,
         created_entity: &Entity,
     ) -> RepoResult<RecordId>;
 

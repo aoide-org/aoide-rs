@@ -3,7 +3,7 @@
 
 use test_log::test;
 
-use aoide_core::{Collection, CollectionEntity, CollectionHeader, util::clock::OffsetDateTimeMs};
+use aoide_core::{Collection, CollectionEntity, CollectionHeader, util::clock::UtcDateTimeMs};
 use aoide_repo::{CollectionId, collection::EntityRepo as _, media::DigestBytes};
 
 use crate::{DbConnection, repo::tests::vfs_media_source_config, tests::*};
@@ -28,7 +28,7 @@ impl Fixture {
         let collection_entity =
             CollectionEntity::new(CollectionHeader::initial_random(), collection);
         let collection_id = crate::Connection::new(&mut db)
-            .insert_collection_entity(&OffsetDateTimeMs::now_utc(), &collection_entity)?;
+            .insert_collection_entity(UtcDateTimeMs::now(), &collection_entity)?;
         Ok(Self { db, collection_id })
     }
 }
@@ -38,7 +38,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     let mut fixture = Fixture::new()?;
     let mut db = crate::Connection::new(&mut fixture.db);
 
-    let updated_at = OffsetDateTimeMs::now_utc();
+    let updated_at = UtcDateTimeMs::now();
     let collection_id = fixture.collection_id;
     let path = ContentPath::from("file:///test/");
     let mut digest = DigestBytes::default();
@@ -46,7 +46,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     // -> Added
     assert_eq!(
         DirUpdateOutcome::Inserted,
-        db.media_tracker_update_directory_digest(&updated_at, collection_id, &path, &digest)?
+        db.media_tracker_update_directory_digest(updated_at, collection_id, &path, &digest)?
     );
     assert_eq!(
         DirTrackingStatus::Added,
@@ -55,7 +55,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     // Added -> Added
     assert_eq!(
         DirUpdateOutcome::Skipped,
-        db.media_tracker_update_directory_digest(&updated_at, collection_id, &path, &digest)?
+        db.media_tracker_update_directory_digest(updated_at, collection_id, &path, &digest)?
     );
     assert_eq!(
         DirTrackingStatus::Added,
@@ -67,7 +67,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     // Added -> Modified
     assert_eq!(
         DirUpdateOutcome::Updated,
-        db.media_tracker_update_directory_digest(&updated_at, collection_id, &path, &digest)?
+        db.media_tracker_update_directory_digest(updated_at, collection_id, &path, &digest)?
     );
     assert_eq!(
         DirTrackingStatus::Modified,
@@ -76,7 +76,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     // Modified -> Modified
     assert_eq!(
         DirUpdateOutcome::Skipped,
-        db.media_tracker_update_directory_digest(&updated_at, collection_id, &path, &digest)?
+        db.media_tracker_update_directory_digest(updated_at, collection_id, &path, &digest)?
     );
     assert_eq!(
         DirTrackingStatus::Modified,
@@ -87,7 +87,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     assert_eq!(
         1,
         db.media_tracker_update_directories_status(
-            &updated_at,
+            updated_at,
             collection_id,
             &path,
             None,
@@ -101,7 +101,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     // Orphaned -> Current (digest unchanged)
     assert_eq!(
         DirUpdateOutcome::Current,
-        db.media_tracker_update_directory_digest(&updated_at, collection_id, &path, &digest)?
+        db.media_tracker_update_directory_digest(updated_at, collection_id, &path, &digest)?
     );
     assert_eq!(
         DirTrackingStatus::Current,
@@ -113,7 +113,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     // Orphaned -> Modified (after digest changed)
     assert_eq!(
         DirUpdateOutcome::Updated,
-        db.media_tracker_update_directory_digest(&updated_at, collection_id, &path, &digest)?
+        db.media_tracker_update_directory_digest(updated_at, collection_id, &path, &digest)?
     );
     assert_eq!(
         DirTrackingStatus::Modified,
@@ -124,7 +124,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     assert_eq!(
         1,
         db.media_tracker_update_directories_status(
-            &updated_at,
+            updated_at,
             collection_id,
             &path,
             None,
@@ -141,7 +141,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     // Current -> Modified (after digest changed)
     assert_eq!(
         DirUpdateOutcome::Updated,
-        db.media_tracker_update_directory_digest(&updated_at, collection_id, &path, &digest)?
+        db.media_tracker_update_directory_digest(updated_at, collection_id, &path, &digest)?
     );
     assert_eq!(
         DirTrackingStatus::Modified,
@@ -152,7 +152,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     assert_eq!(
         1,
         db.media_tracker_update_directories_status(
-            &updated_at,
+            updated_at,
             collection_id,
             &path,
             None,
@@ -167,7 +167,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     // Outdated -> Current (digest unchanged)
     assert_eq!(
         DirUpdateOutcome::Current,
-        db.media_tracker_update_directory_digest(&updated_at, collection_id, &path, &digest)?
+        db.media_tracker_update_directory_digest(updated_at, collection_id, &path, &digest)?
     );
     assert_eq!(
         DirTrackingStatus::Current,
@@ -178,7 +178,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     assert_eq!(
         1,
         db.media_tracker_update_directories_status(
-            &updated_at,
+            updated_at,
             collection_id,
             &path,
             None,
@@ -195,7 +195,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     // Outdated -> Modified (after digest changed)
     assert_eq!(
         DirUpdateOutcome::Updated,
-        db.media_tracker_update_directory_digest(&updated_at, collection_id, &path, &digest)?
+        db.media_tracker_update_directory_digest(updated_at, collection_id, &path, &digest)?
     );
     assert_eq!(
         DirTrackingStatus::Modified,
@@ -210,7 +210,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     let mut fixture = Fixture::new()?;
     let mut db = crate::Connection::new(&mut fixture.db);
 
-    let updated_at = OffsetDateTimeMs::now_utc();
+    let updated_at = UtcDateTimeMs::now();
     let collection_id = fixture.collection_id;
     let path = ContentPath::from("file:///test/");
     let digest = DigestBytes::default();
@@ -221,7 +221,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     // -> Added
     assert_eq!(
         DirUpdateOutcome::Inserted,
-        db.media_tracker_update_directory_digest(&updated_at, collection_id, &path, &digest)?
+        db.media_tracker_update_directory_digest(updated_at, collection_id, &path, &digest)?
     );
     assert_eq!(
         DirTrackingStatus::Added,
@@ -230,7 +230,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
 
     // Added -> Current: Rejected
     assert!(!db.media_tracker_confirm_directory(
-        &updated_at,
+        updated_at,
         collection_id,
         &path,
         &other_digest,
@@ -241,7 +241,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     );
 
     // Added -> Current: Confirmed
-    assert!(db.media_tracker_confirm_directory(&updated_at, collection_id, &path, &digest)?);
+    assert!(db.media_tracker_confirm_directory(updated_at, collection_id, &path, &digest)?);
     assert_eq!(
         DirTrackingStatus::Current,
         db.media_tracker_load_directory_tracking_status(collection_id, &path)?
@@ -251,7 +251,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     assert_eq!(
         1,
         db.media_tracker_update_directories_status(
-            &updated_at,
+            updated_at,
             collection_id,
             &path,
             None,
@@ -265,7 +265,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
 
     // Modified -> Current: Rejected
     assert!(!db.media_tracker_confirm_directory(
-        &updated_at,
+        updated_at,
         collection_id,
         &path,
         &other_digest,
@@ -276,7 +276,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     );
 
     // Modified -> Current: Confirmed
-    assert!(db.media_tracker_confirm_directory(&updated_at, collection_id, &path, &digest)?);
+    assert!(db.media_tracker_confirm_directory(updated_at, collection_id, &path, &digest)?);
     assert_eq!(
         DirTrackingStatus::Current,
         db.media_tracker_load_directory_tracking_status(collection_id, &path)?

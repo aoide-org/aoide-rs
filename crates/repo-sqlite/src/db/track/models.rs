@@ -72,7 +72,7 @@ impl<'a> InsertableRecord<'a> {
             last_synchronized_rev,
             content_url: _,
         } = &entity.body;
-        let row_created_updated_ms = updated_at.timestamp_millis();
+        let row_created_updated_ms = updated_at.unix_timestamp_millis();
         let Track {
             media_source: _,
             recorded_at,
@@ -96,7 +96,7 @@ impl<'a> InsertableRecord<'a> {
                 .map_or((None, None), |recorded_at| match recorded_at {
                     DateOrDateTime::Date(date) => (Some(*date), None),
                     DateOrDateTime::DateTime(dt) => {
-                        (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt.clone()))
+                        (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt))
                     }
                 });
         let (released_at_yyyymmdd, released_at) =
@@ -105,7 +105,7 @@ impl<'a> InsertableRecord<'a> {
                 .map_or((None, None), |released_at| match released_at {
                     DateOrDateTime::Date(date) => (Some(*date), None),
                     DateOrDateTime::DateTime(dt) => {
-                        (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt.clone()))
+                        (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt))
                     }
                 });
         let (released_orig_at_yyyymmdd, released_orig_at) = released_orig_at.as_ref().map_or(
@@ -113,7 +113,7 @@ impl<'a> InsertableRecord<'a> {
             |released_orig_at| match released_orig_at {
                 DateOrDateTime::Date(date) => (Some(*date), None),
                 DateOrDateTime::DateTime(dt) => {
-                    (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt.clone()))
+                    (Some(YyyyMmDdDate::from_date(dt.date())), Some(dt))
                 }
             },
         );
@@ -147,15 +147,13 @@ impl<'a> InsertableRecord<'a> {
             media_source_id: media_source_id.into(),
             last_synchronized_rev: last_synchronized_rev.map(encode_entity_revision),
             recorded_at: recorded_at.as_ref().map(ToString::to_string),
-            recorded_ms: recorded_at.as_ref().map(OffsetDateTimeMs::timestamp_millis),
+            recorded_ms: recorded_at.map(OffsetDateTimeMs::unix_timestamp_millis),
             recorded_at_yyyymmdd: recorded_at_yyyymmdd.map(YyyyMmDdDate::value),
             released_at: released_at.as_ref().map(ToString::to_string),
-            released_ms: released_at.as_ref().map(OffsetDateTimeMs::timestamp_millis),
+            released_ms: released_at.map(OffsetDateTimeMs::unix_timestamp_millis),
             released_at_yyyymmdd: released_at_yyyymmdd.map(YyyyMmDdDate::value),
             released_orig_at: released_orig_at.as_ref().map(ToString::to_string),
-            released_orig_ms: released_orig_at
-                .as_ref()
-                .map(OffsetDateTimeMs::timestamp_millis),
+            released_orig_ms: released_orig_at.map(OffsetDateTimeMs::unix_timestamp_millis),
             released_orig_at_yyyymmdd: released_orig_at_yyyymmdd.map(YyyyMmDdDate::value),
             publisher: publisher.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),
@@ -315,18 +313,18 @@ impl<'a> UpdatableRecord<'a> {
         let sort_track_title = Titles::sort_or_main_title(track_titles.iter());
         let sort_album_title = Titles::sort_or_main_title(album_titles.iter());
         Self {
-            row_updated_ms: updated_at.timestamp_millis(),
+            row_updated_ms: updated_at.unix_timestamp_millis(),
             entity_rev,
             media_source_id: media_source_id.into(),
             last_synchronized_rev: last_synchronized_rev.map(encode_entity_revision),
             recorded_at: recorded_at.as_ref().map(ToString::to_string),
-            recorded_ms: recorded_at.map(OffsetDateTimeMs::timestamp_millis),
+            recorded_ms: recorded_at.map(OffsetDateTimeMs::unix_timestamp_millis),
             recorded_at_yyyymmdd: recorded_at_yyyymmdd.map(YyyyMmDdDate::value),
             released_at: released_at.as_ref().map(ToString::to_string),
-            released_ms: released_at.map(OffsetDateTimeMs::timestamp_millis),
+            released_ms: released_at.map(OffsetDateTimeMs::unix_timestamp_millis),
             released_at_yyyymmdd: released_at_yyyymmdd.map(YyyyMmDdDate::value),
             released_orig_at: released_orig_at.as_ref().map(ToString::to_string),
-            released_orig_ms: released_orig_at.map(OffsetDateTimeMs::timestamp_millis),
+            released_orig_ms: released_orig_at.map(OffsetDateTimeMs::unix_timestamp_millis),
             released_orig_at_yyyymmdd: released_orig_at_yyyymmdd.map(YyyyMmDdDate::value),
             publisher: publisher.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),

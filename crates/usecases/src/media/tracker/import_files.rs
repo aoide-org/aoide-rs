@@ -11,7 +11,7 @@ use anyhow::anyhow;
 
 use aoide_core::{
     CollectionUid, Track, media::content::resolver::vfs::RemappingVfsResolver,
-    util::clock::OffsetDateTimeMs,
+    util::clock::UtcDateTimeMs,
 };
 use aoide_core_api::{
     Pagination, PaginationOffset,
@@ -301,10 +301,10 @@ where
             });
         }
     }
-    let updated_at = OffsetDateTimeMs::now_utc();
+    let updated_at = UtcDateTimeMs::now();
     let completion;
     if tracks_summary.failed.is_empty() {
-        match repo.media_tracker_confirm_directory(&updated_at, collection_id, content_path, digest)
+        match repo.media_tracker_confirm_directory(updated_at, collection_id, content_path, digest)
         {
             Ok(true) => {
                 completion = ImportPendingDirectoryCompletion::Confirmed;

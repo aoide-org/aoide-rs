@@ -3,7 +3,7 @@
 
 use diesel::prelude::*;
 
-use aoide_core::util::clock::{OffsetDateTimeMs, TimestampMillis};
+use aoide_core::util::clock::{TimestampMillis, UtcDateTimeMs};
 use aoide_core_api::media::tracker::DirTrackingStatus;
 use aoide_repo::{
     CollectionId,
@@ -64,13 +64,13 @@ pub struct InsertableRecord<'a> {
 
 impl<'a> InsertableRecord<'a> {
     pub fn bind(
-        created_at: &OffsetDateTimeMs,
+        created_at: UtcDateTimeMs,
         collection_id: CollectionId,
         content_path: &'a str,
         status: DirTrackingStatus,
         digest: &'a DigestBytes,
     ) -> Self {
-        let row_created_ms = created_at.timestamp_millis();
+        let row_created_ms = created_at.unix_timestamp_millis();
         let collection_id = RowId::from(collection_id);
         let status = encode_dir_tracking_status(status);
         Self {
@@ -94,13 +94,13 @@ pub struct UpdateDigest<'a> {
 
 impl<'a> UpdateDigest<'a> {
     pub fn bind(
-        updated_at: &OffsetDateTimeMs,
+        updated_at: UtcDateTimeMs,
         status: DirTrackingStatus,
         digest: &'a DigestBytes,
     ) -> Self {
         let status = encode_dir_tracking_status(status);
         Self {
-            row_updated_ms: updated_at.timestamp_millis(),
+            row_updated_ms: updated_at.unix_timestamp_millis(),
             status,
             digest: &digest[..],
         }
