@@ -19,13 +19,13 @@ anyhow.workspace = true
 directories = "6.0.0"
 discro = { version = "0.34.0", features = ["tokio"] }
 dotenvy = "0.15.7"
+jiff.workspace = true
 log = { workspace = true, features = ["release_max_level_debug"] }
 parking_lot = "0.12.3"
 ron = "0.10.1"
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 thiserror.workspace = true
-time = { workspace = true, features = ["serde-human-readable"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
 tracing = "0.1.41"
 tracing-log = "0.2.0"

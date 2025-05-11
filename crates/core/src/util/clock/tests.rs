@@ -53,14 +53,21 @@ fn from_to_string() {
     );
     assert_eq!(
         "1996-12-19T02:00:57Z",
-        "1996-12-19T02:00:57+00:00"
+        "1996-12-19T02:00:57.000Z"
             .parse::<OffsetDateTimeMs>()
             .unwrap()
             .to_string()
     );
     assert_eq!(
         "1996-12-19T02:00:57Z",
-        "1996-12-19T02:00:57-00:00"
+        "1996-12-19T02:00:57+00:00"
+            .parse::<OffsetDateTimeMs>()
+            .unwrap()
+            .to_string()
+    );
+    assert_eq!(
+        "1996-12-19T02:00:57.123Z",
+        "1996-12-19T02:00:57.123-00:00"
             .parse::<OffsetDateTimeMs>()
             .unwrap()
             .to_string()
@@ -99,10 +106,10 @@ fn validate_date() {
 #[cfg(feature = "serde")]
 #[test]
 fn deserialize_date_time() {
-    use time::macros::datetime;
-
     assert_eq!(
-        OffsetDateTimeMs::new_unchecked(&datetime!(2020-12-18 21:27:15.123 UTC)),
+        "2020-12-18T21:27:15.123Z"
+            .parse::<OffsetDateTimeMs>()
+            .unwrap(),
         serde_json::from_value::<OffsetDateTimeMs>(serde_json::json!(
             "2020-12-18T21:27:15.123456Z"
         ))

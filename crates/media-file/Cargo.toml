@@ -22,6 +22,7 @@ data-encoding.workspace = true
 digest.workspace = true
 image.workspace = true
 itertools.workspace = true
+jiff.workspace = true
 lofty = "0.22.4"
 # Use main branch of lofty-rs for testing unreleased features.
 #lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
@@ -34,7 +35,8 @@ num-traits = "0.2.19"
 semval.workspace = true
 smol_str.workspace = true
 thiserror.workspace = true
-time = { workspace = true, features = ["parsing"] }
+# TODO: Remove time dependency.
+time = { version = "0.3.41", features = ["formatting"] }
 url.workspace = true
 walkdir = "2.5.0"
 
@@ -48,7 +50,7 @@ triseratops = { version = "0.0.3", optional = true }
 aoide-core.workspace = true
 
 [dev-dependencies]
-tempfile = "3.19.1"
+tempfile = "3.20.0"
 
 [features]
 default = ["all"]

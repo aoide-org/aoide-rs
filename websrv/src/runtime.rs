@@ -11,6 +11,10 @@ use std::{
     time::Duration,
 };
 
+use jiff::Timestamp;
+use tokio::{sync::mpsc, time::sleep};
+use warp::{Filter, http::StatusCode};
+
 use aoide_repo_sqlite::initialize_database;
 use aoide_storage_sqlite::connection::pool::{
     create_connection_pool, gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper,
@@ -18,9 +22,6 @@ use aoide_storage_sqlite::connection::pool::{
 };
 use aoide_usecases_sqlite as uc;
 use aoide_websrv_warp_sqlite::handle_rejection;
-use time::OffsetDateTime;
-use tokio::{sync::mpsc, time::sleep};
-use warp::{Filter, http::StatusCode};
 
 use super::{config::Config, routing};
 use crate::config::DatabaseConfig;
@@ -77,7 +78,7 @@ pub(crate) async fn run(
     command_rx: mpsc::UnboundedReceiver<Command>,
     current_state_tx: discro::Publisher<Option<State>>,
 ) -> anyhow::Result<()> {
-    let launched_at = OffsetDateTime::now_utc();
+    let launched_at = Timestamp::now();
 
     log::info!("Launching");
     current_state_tx.write(Some(State::Launching));

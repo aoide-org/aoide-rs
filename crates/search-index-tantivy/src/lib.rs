@@ -96,7 +96,10 @@ pub struct TrackFields {
 }
 
 fn add_date_field(doc: &mut TantivyDocument, field: Field, date_time: OffsetDateTimeMs) {
-    doc.add_date(field, tantivy::DateTime::from_utc(date_time.into()));
+    doc.add_date(
+        field,
+        tantivy::DateTime::from_timestamp_millis(date_time.unix_timestamp_millis()),
+    );
 }
 
 const TAG_LABEL_PREFIX: char = '#';

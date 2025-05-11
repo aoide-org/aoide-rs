@@ -3,6 +3,11 @@
 
 use std::{borrow::Cow, fmt, path::Path, str::FromStr};
 
+use jiff::{
+    civil::{Date, DateTime, Time},
+    fmt::rfc2822,
+    tz::TimeZone,
+};
 use mime::Mime;
 use nom::{
     IResult, Parser as _,
@@ -12,13 +17,7 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, terminated},
 };
 use semval::prelude::*;
-use time::{
-    OffsetDateTime, PrimitiveDateTime,
-    format_description::{
-        FormatItem,
-        well_known::{Rfc2822, Rfc3339},
-    },
-};
+use time::{PrimitiveDateTime, format_description::FormatItem};
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
@@ -471,16 +470,35 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
             }
         }
     }
-    if let Ok(date_time) =
-        OffsetDateTime::parse(input, &Rfc3339).or_else(|_| OffsetDateTime::parse(input, &Rfc2822))
+    if let Ok(date_time) = input
+        .parse::<OffsetDateTimeMs>()
+        .or_else(|_| rfc2822::parse(input).map(|zoned| OffsetDateTimeMs::from_zoned(&zoned)))
     {
-        return Some(OffsetDateTimeMs::clamp_from(&date_time).into());
+        return Some(date_time.into());
     }
     if let Ok(date_time) = PrimitiveDateTime::parse(input, RFC3339_WITHOUT_TZ_FORMAT)
         .or_else(|_| PrimitiveDateTime::parse(input, RFC3339_WITHOUT_T_TZ_FORMAT))
     {
         // Assume UTC if time zone is missing
-        return Some(OffsetDateTimeMs::clamp_from(&date_time.assume_utc()).into());
+        if let Ok(year) = i16::try_from(date_time.date().year()) {
+            #[expect(clippy::cast_possible_wrap)]
+            if let Ok(date) = Date::new(
+                year,
+                u8::from(date_time.date().month()) as _,
+                date_time.date().day() as _,
+            ) {
+                if let Ok(time) = Time::new(
+                    date_time.hour() as _,
+                    date_time.minute() as _,
+                    date_time.second() as _,
+                    date_time.nanosecond() as _,
+                ) {
+                    let date_time = DateTime::from_parts(date, time);
+                    let zoned = date_time.to_zoned(TimeZone::UTC).expect("always valid");
+                    return Some(OffsetDateTimeMs::from_zoned(&zoned).into());
+                }
+            }
+        }
     }
     // Replace arbitrary whitespace by a single space and try again
     let recombined = input.split_whitespace().collect::<Vec<_>>().join(" ");

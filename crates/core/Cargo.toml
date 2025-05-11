@@ -37,7 +37,6 @@ regex.workspace = true
 semval.workspace = true
 smol_str.workspace = true
 strum = { workspace = true, features = ["derive"] }
-time = { workspace = true, features = ["macros", "parsing", "formatting"] }
 ulid = "1.2.1"
 url.workspace = true
 
@@ -66,13 +65,6 @@ serde_json.workspace = true
 [features]
 default = []
 # Feature to enable JavaScript bindings on wasm32-unknown-unknown
-js = ["getrandom/wasm_js", "jiff/js", "time/wasm-bindgen"]
-serde = [
-  "dep:serde",
-  "jiff/serde",
-  "smol_str/serde",
-  "time/serde-human-readable",
-  "ulid/serde",
-  "url/serde",
-]
+js = ["getrandom/wasm_js", "jiff/js"]
+serde = ["dep:serde", "jiff/serde", "smol_str/serde", "ulid/serde", "url/serde"]
 json-schema = ["serde", "dep:serde_json", "dep:schemars"]
