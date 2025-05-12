@@ -184,7 +184,7 @@ impl OffsetDateTimeMs {
     }
 
     #[must_use]
-    pub fn try_from_pieces(pieces: &Pieces) -> Option<Self> {
+    fn try_from_pieces(pieces: &Pieces) -> Option<Self> {
         let offset = pieces.to_numeric_offset()?;
         let time = pieces.time().unwrap_or(Time::midnight());
         let date = pieces.date();
@@ -192,24 +192,6 @@ impl OffsetDateTimeMs {
             .to_zoned(TimeZone::fixed(offset))
             .ok()?;
         Some(Self::from_zoned(&zoned))
-    }
-
-    #[must_use]
-    #[expect(clippy::missing_panics_doc, reason = "Offset is always valid.")]
-    pub fn to_pieces(&self) -> Pieces {
-        let Self {
-            utc_date_time,
-            utc_offset_secs,
-        } = self;
-        let timestamp = utc_date_time.to_timestamp();
-        if *utc_offset_secs == 0 {
-            // Zulu offset.
-            timestamp.into()
-        } else {
-            // Numeric offset.
-            let offset = Offset::from_seconds(*utc_offset_secs).expect("valid offset");
-            (timestamp, offset).into()
-        }
     }
 
     #[must_use]
@@ -286,7 +268,19 @@ impl FromStr for OffsetDateTimeMs {
 
 impl fmt::Display for OffsetDateTimeMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.to_pieces().fmt(f)
+        let Self {
+            utc_date_time,
+            utc_offset_secs,
+        } = self;
+        let timestamp = utc_date_time.to_timestamp();
+        if *utc_offset_secs == 0 {
+            // Zulu offset.
+            timestamp.fmt(f)
+        } else {
+            // Numeric offset.
+            let offset = Offset::from_seconds(*utc_offset_secs).expect("valid offset");
+            timestamp.display_with_offset(offset).fmt(f)
+        }
     }
 }
 
