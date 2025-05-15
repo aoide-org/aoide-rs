@@ -349,7 +349,7 @@ impl EntityRepo for Connection<'_> {
             .map_err(repo_error)?;
         debug_assert!(media_source_count >= 0);
         let media_source_summary = MediaSourceSummary {
-            total_count: media_source_count as u64,
+            total_count: media_source_count.cast_unsigned(),
         };
         let media_source_id_subselect = select_media_source_id_filtered_by_collection_id(id);
         let track_count = track::table
@@ -359,7 +359,7 @@ impl EntityRepo for Connection<'_> {
             .map_err(repo_error)?;
         debug_assert!(track_count >= 0);
         let track_summary = TrackSummary {
-            total_count: track_count as u64,
+            total_count: track_count.cast_unsigned(),
         };
         let playlist_count = playlist::table
             .filter(playlist::collection_id.eq(RowId::from(id)))

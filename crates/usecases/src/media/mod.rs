@@ -64,6 +64,7 @@ impl SyncModeParams {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[expect(clippy::large_enum_variant)]
 pub enum ImportTrackFromFileOutcome {
     Imported {
         track: Track,

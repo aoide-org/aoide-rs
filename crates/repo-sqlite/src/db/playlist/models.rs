@@ -122,7 +122,7 @@ impl<'a> InsertableRecord<'a> {
             kind: kind.as_deref(),
             notes: notes.as_deref(),
             color_rgb: if let Some(Color::Rgb(color)) = color {
-                Some(color.code() as i32)
+                Some(color.code().cast_signed())
             } else {
                 None
             },
@@ -187,7 +187,7 @@ impl<'a> UpdatableRecord<'a> {
             kind: kind.as_deref(),
             notes: notes.as_deref(),
             color_rgb: if let Some(Color::Rgb(color)) = color {
-                Some(color.code() as i32)
+                Some(color.code().cast_signed())
             } else {
                 None
             },

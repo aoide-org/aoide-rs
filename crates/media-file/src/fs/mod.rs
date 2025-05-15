@@ -3,7 +3,6 @@
 
 use std::{
     fs::File,
-    io::ErrorKind,
     path::{Path, PathBuf},
 };
 
@@ -18,17 +17,13 @@ pub mod visit;
 pub fn file_path_from_url(url: &Url) -> Result<PathBuf> {
     let url_scheme = url.scheme();
     if url_scheme != "file" {
-        return Err(Error::Io(IoError::new(
-            ErrorKind::Other,
-            anyhow!("Unsupported URL scheme '{url_scheme}'"),
-        )));
+        return Err(Error::Io(IoError::other(anyhow!(
+            "Unsupported URL scheme '{url_scheme}'"
+        ))));
     }
     url.to_file_path().map_err(|()| {
         log::debug!("Failed to convert URL '{url}', into a local, absolute file path");
-        Error::Io(IoError::new(
-            ErrorKind::Other,
-            anyhow!("Invalid or unsupported URL: {url}"),
-        ))
+        Error::Io(IoError::other(anyhow!("Invalid or unsupported URL: {url}")))
     })
 }
 

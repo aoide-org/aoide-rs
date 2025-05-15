@@ -75,7 +75,7 @@ impl CollectionRepo for Connection<'_> {
             .filter(media_source::content_link_path.eq(content_path.as_str()))
             .get_result::<(RowId, Option<i64>)>(self.as_mut())
             .map(|(row_id, content_link_rev)| {
-                (row_id.into(), content_link_rev.map(|rev| rev as u64))
+                (row_id.into(), content_link_rev.map(i64::cast_unsigned))
             })
             .map_err(repo_error)
     }

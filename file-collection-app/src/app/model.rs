@@ -7,6 +7,7 @@ use crate::library::{Library, track_search, ui::TrackListItem};
 
 // Mutually exclusive modes of operation.
 #[derive(Debug)]
+#[expect(clippy::large_enum_variant)]
 pub(crate) enum ModelMode {
     TrackSearch(TrackSearchMode),
     MusicDirSync {

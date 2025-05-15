@@ -20,7 +20,10 @@ use crate::config::Config;
 pub(crate) fn init_environment() {
     if let Ok(path) = dotenv() {
         // Print to stderr because logging has not been initialized yet
-        eprintln!("Loaded environment from dotenv file {path:?}");
+        eprintln!(
+            "Loaded environment from dotenv file {path}",
+            path = path.display()
+        );
     }
 }
 

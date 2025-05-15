@@ -330,12 +330,7 @@ fn build_phrase_field_filter_expression(
 
     let mut or_expression = dummy_false_expression();
     // media_source (join)
-    if filter.fields.is_empty()
-        || filter
-            .fields
-            .iter()
-            .any(|target| *target == StringField::ContentPath)
-    {
+    if filter.fields.is_empty() || filter.fields.contains(&StringField::ContentPath) {
         or_expression = if let Some(like_expr) = &like_expr {
             Box::new(
                 or_expression.or(view_track_search::content_link_path
@@ -350,12 +345,7 @@ fn build_phrase_field_filter_expression(
             )
         };
     }
-    if filter.fields.is_empty()
-        || filter
-            .fields
-            .iter()
-            .any(|target| *target == StringField::ContentType)
-    {
+    if filter.fields.is_empty() || filter.fields.contains(&StringField::ContentType) {
         or_expression = if let Some(like_expr) = &like_expr {
             Box::new(
                 or_expression.or(view_track_search::content_type
@@ -371,12 +361,7 @@ fn build_phrase_field_filter_expression(
         };
     }
     // track (join)
-    if filter.fields.is_empty()
-        || filter
-            .fields
-            .iter()
-            .any(|target| *target == StringField::Copyright)
-    {
+    if filter.fields.is_empty() || filter.fields.contains(&StringField::Copyright) {
         let copyright_not_null = ifnull(view_track_search::copyright, "");
         or_expression = if let Some(like_expr) = &like_expr {
             Box::new(
@@ -388,12 +373,7 @@ fn build_phrase_field_filter_expression(
             Box::new(or_expression.or(copyright_not_null.eq("")))
         };
     }
-    if filter.fields.is_empty()
-        || filter
-            .fields
-            .iter()
-            .any(|target| *target == StringField::Publisher)
-    {
+    if filter.fields.is_empty() || filter.fields.contains(&StringField::Publisher) {
         let publisher_not_null = ifnull(view_track_search::publisher, "");
         or_expression = if let Some(like_expr) = &like_expr {
             Box::new(

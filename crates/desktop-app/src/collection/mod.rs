@@ -356,6 +356,7 @@ pub enum SynchronizingVfsFinishedState {
 /// State of a single collection that is based on directory in the
 /// local directory using a virtual file system (VFS) for content paths.
 #[derive(Debug, Default)]
+#[expect(clippy::large_enum_variant)]
 pub enum State {
     #[default]
     Void,

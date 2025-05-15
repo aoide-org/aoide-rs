@@ -348,7 +348,7 @@ impl<'a> InsertableRecord<'a> {
                 .map(DurationMs::value),
             audio_channel_count: audio_metadata
                 .and_then(|audio| audio.channels)
-                .map(|channels| channels.count().value() as i16),
+                .map(|channels| channels.count().value().cast_signed()),
             audio_samplerate_hz: audio_metadata
                 .and_then(|audio| audio.sample_rate)
                 .map(SampleRateHz::value),

@@ -159,24 +159,24 @@ impl<'a> InsertableRecord<'a> {
             copyright: copyright.as_ref().map(String::as_str),
             advisory_rating: advisory_rating.map(encode_advisory_rating),
             album_kind: album_kind.map(encode_album_kind),
-            track_number: track_index.number.map(|idx| idx as i16),
-            track_total: track_index.total.map(|idx| idx as i16),
-            disc_number: disc_index.number.map(|idx| idx as i16),
-            disc_total: disc_index.total.map(|idx| idx as i16),
-            movement_number: movement_index.number.map(|idx| idx as i16),
-            movement_total: movement_index.total.map(|idx| idx as i16),
+            track_number: track_index.number.map(u16::cast_signed),
+            track_total: track_index.total.map(u16::cast_signed),
+            disc_number: disc_index.number.map(u16::cast_signed),
+            disc_total: disc_index.total.map(u16::cast_signed),
+            movement_number: movement_index.number.map(u16::cast_signed),
+            movement_total: movement_index.total.map(u16::cast_signed),
             music_tempo_bpm: tempo_bpm.map(TempoBpm::value),
             music_key_code: key_signature
                 .map(KeySignature::code)
                 .map(encode_music_key_code),
             music_beats_per_measure: time_signature
-                .map(|time_sig| time_sig.beats_per_measure as i16),
+                .map(|time_sig| time_sig.beats_per_measure.cast_signed()),
             music_beat_unit: time_signature
                 .and_then(|time_sig| time_sig.beat_unit)
-                .map(|beat_unit| beat_unit as i16),
+                .map(u16::cast_signed),
             music_flags: i16::from(music_flags.bits()),
             color_rgb: if let Some(Color::Rgb(color)) = color {
-                Some(color.code() as i32)
+                Some(color.code().cast_signed())
             } else {
                 None
             },
@@ -330,24 +330,24 @@ impl<'a> UpdatableRecord<'a> {
             copyright: copyright.as_ref().map(String::as_str),
             advisory_rating: advisory_rating.map(encode_advisory_rating),
             album_kind: album_kind.map(encode_album_kind),
-            track_number: track_index.number.map(|number| number as i16),
-            track_total: track_index.total.map(|total| total as i16),
-            disc_number: disc_index.number.map(|number| number as i16),
-            disc_total: disc_index.total.map(|total| total as i16),
-            movement_number: movement_index.number.map(|number| number as i16),
-            movement_total: movement_index.total.map(|total| total as i16),
+            track_number: track_index.number.map(u16::cast_signed),
+            track_total: track_index.total.map(u16::cast_signed),
+            disc_number: disc_index.number.map(u16::cast_signed),
+            disc_total: disc_index.total.map(u16::cast_signed),
+            movement_number: movement_index.number.map(u16::cast_signed),
+            movement_total: movement_index.total.map(u16::cast_signed),
             music_tempo_bpm: tempo_bpm.map(TempoBpm::value),
             music_key_code: key_signature
                 .map(KeySignature::code)
                 .map(encode_music_key_code),
             music_beats_per_measure: time_signature
-                .map(|time_sig| time_sig.beats_per_measure as i16),
+                .map(|time_sig| time_sig.beats_per_measure.cast_signed()),
             music_beat_unit: time_signature
                 .and_then(|time_sig| time_sig.beat_unit)
-                .map(|beat_unit| beat_unit as i16),
+                .map(u16::cast_signed),
             music_flags: i16::from(music_flags.bits()),
             color_rgb: if let Some(Color::Rgb(color)) = color {
-                Some(color.code() as i32)
+                Some(color.code().cast_signed())
             } else {
                 None
             },

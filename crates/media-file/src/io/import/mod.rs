@@ -132,6 +132,10 @@ impl Default for ImportTrackConfig {
     }
 }
 
+#[expect(
+    clippy::large_enum_variant,
+    reason = "TODO: Box data of UpdateTrack variant?"
+)]
 #[derive(Debug)]
 pub enum ImportTrack {
     NewTrack { collected_at: OffsetDateTimeMs },

@@ -104,6 +104,7 @@ struct ImportReplacementFromFilePathOutcome {
 }
 
 #[derive(Debug)]
+#[expect(clippy::large_enum_variant)]
 enum Replacement {
     SkippedDirectory,
     SkippedFile(MediaFileError),

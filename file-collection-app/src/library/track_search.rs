@@ -79,6 +79,7 @@ where
 }
 
 #[derive(Debug)]
+#[expect(clippy::large_enum_variant)]
 pub enum MemoState {
     Ready(Memo),
     Pending {

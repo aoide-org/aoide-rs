@@ -130,7 +130,7 @@ impl<'a> InsertableRecord<'a> {
             kind: kind.as_ref().map(String::as_str),
             label: label.as_ref().map(String::as_str),
             color_rgb: if let Some(Color::Rgb(color)) = color {
-                Some(color.code() as i32)
+                Some(color.code().cast_signed())
             } else {
                 None
             },

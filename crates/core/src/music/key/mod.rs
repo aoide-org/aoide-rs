@@ -864,7 +864,7 @@ impl LancelotKeySignature {
 
     #[must_use]
     pub const fn code(self) -> KeyCodeValue {
-        1 + ((self.0.code().to_value() + 13) / 2) % 12
+        1 + self.0.code().to_value().midpoint(13) % 12
     }
 
     #[must_use]

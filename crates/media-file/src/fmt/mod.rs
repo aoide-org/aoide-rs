@@ -287,8 +287,7 @@ pub(crate) fn import_embedded_artwork(
     tag: &Tag,
     mut media_digest: MediaDigest,
 ) -> Artwork {
-    let artwork = if let Some((apic_type, mime_type, image_data)) = find_embedded_artwork_image(tag)
-    {
+    if let Some((apic_type, mime_type, image_data)) = find_embedded_artwork_image(tag) {
         let (artwork, _, issues) = try_ingest_embedded_artwork_image(
             apic_type,
             image_data,
@@ -302,8 +301,7 @@ pub(crate) fn import_embedded_artwork(
         artwork
     } else {
         Artwork::Missing
-    };
-    artwork
+    }
 }
 
 pub(crate) fn import_tagged_file_into_track(

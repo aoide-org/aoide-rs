@@ -779,7 +779,7 @@ impl CollectionRepo for crate::Connection<'_> {
             .map_err(repo_error)
             .map(|count| {
                 debug_assert!(count >= 0);
-                count as u64
+                count.cast_unsigned()
             })
     }
 

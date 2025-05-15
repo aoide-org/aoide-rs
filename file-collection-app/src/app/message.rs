@@ -51,6 +51,7 @@ impl MessageSender {
         Ok(())
     }
 
+    #[expect(clippy::result_large_err)]
     fn send_message(&self, msg: Message) -> Result<(), NoReceiverForMessage> {
         self.msg_tx.send(msg).map_err(|err| {
             log::warn!("Failed to send message: {err}");
