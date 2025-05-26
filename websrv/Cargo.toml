@@ -50,7 +50,7 @@ optional = true
 
 # schemars
 [dependencies.schemars]
-version = "0.8.22"
+workspace = true
 optional = true
 
 # launcher-ui

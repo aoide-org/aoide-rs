@@ -44,7 +44,7 @@ url.workspace = true
 serde = { workspace = true, optional = true, features = ["derive"] }
 
 # JSON Schema
-schemars = { workspace = true, optional = true, features = ["url"] }
+schemars = { workspace = true, optional = true, features = ["url2"] }
 serde_json = { workspace = true, optional = true }
 
 [dependencies.kmeans_colors]

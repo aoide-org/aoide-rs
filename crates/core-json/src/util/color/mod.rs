@@ -7,7 +7,7 @@ mod _core {
     pub(super) use aoide_core::util::color::{Color, RgbColor};
 }
 
-use std::{fmt, str::FromStr};
+use std::{borrow::Cow, fmt, str::FromStr};
 
 use aoide_core::util::color::ColorIndex;
 use serde::{
@@ -61,23 +61,23 @@ pub struct RgbColor(_core::RgbColor);
 
 #[cfg(feature = "json-schema")]
 impl schemars::JsonSchema for RgbColor {
-    fn schema_name() -> String {
-        "RgbColor".to_string()
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("RgbColor")
     }
 
-    fn json_schema(r#gen: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
-        use schemars::schema::Schema;
-        let mut schema = r#gen.subschema_for::<String>();
-        if let Schema::Object(mut schema_object) = schema {
-            schema_object.metadata().title = Some("RGB color code".into());
-            schema_object.metadata().description = Some(
-                "A hexadecimal RGB color code \"#RRGGBB\" encoded as a string with 8 bits per \
-                 channel."
-                    .into(),
-            );
-            schema_object.metadata().examples = vec!["#808080".into()];
-            schema = Schema::Object(schema_object);
-        }
+    fn json_schema(schema_gen: &mut schemars::generate::SchemaGenerator) -> schemars::Schema {
+        let mut schema = schema_gen.subschema_for::<String>();
+        let schema_object = schema.ensure_object();
+        schema_object.insert("title".to_owned(), "RGB color code".into());
+        schema_object.insert(
+            "description".to_owned(),
+            "A hexadecimal RGB color code \"#RRGGBB\" encoded as a string with 8 bits per channel."
+                .into(),
+        );
+        schema_object.insert(
+            "examples".to_owned(),
+            vec![serde_json::Value::String("#808080".into())].into(),
+        );
         schema
     }
 }

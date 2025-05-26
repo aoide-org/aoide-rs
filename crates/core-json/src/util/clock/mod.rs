@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::fmt;
+use std::{borrow::Cow, fmt};
 
 use semval::prelude::*;
 use serde::{
@@ -72,12 +72,12 @@ impl From<YyyyMmDdDate> for _core::YyyyMmDdDate {
 
 #[cfg(feature = "json-schema")]
 impl schemars::JsonSchema for YyyyMmDdDate {
-    fn schema_name() -> String {
-        "YyyyMmDdDate".to_string()
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("YyyyMmDdDate")
     }
 
-    fn json_schema(r#gen: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
-        r#gen.subschema_for::<YyyyMmDdDateValue>()
+    fn json_schema(schema_gen: &mut schemars::generate::SchemaGenerator) -> schemars::Schema {
+        schema_gen.subschema_for::<YyyyMmDdDateValue>()
     }
 }
 

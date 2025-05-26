@@ -27,8 +27,9 @@ serde_repr = "0.1.20"
 url = { workspace = true, features = ["serde"] }
 
 # JSON Schema (optional)
-schemars = { workspace = true, optional = true, features = ["chrono", "url"] }
 chrono = { version = "0.4.41", optional = true, default-features = false }
+schemars = { workspace = true, optional = true, features = ["chrono04", "url2"] }
+serde_json = { workspace = true, optional = true }
 
 # Workspace dependencies
 aoide-core = { "workspace" = true, features = ["serde"] }
@@ -36,7 +37,7 @@ aoide-core = { "workspace" = true, features = ["serde"] }
 [features]
 default = []
 js = ["aoide-core/js"]
-json-schema = ["dep:schemars", "dep:chrono", "aoide-core/json-schema"]
+json-schema = ["dep:chrono", "dep:schemars", "dep:serde_json", "aoide-core/json-schema"]
 
 [dev-dependencies]
 serde_json.workspace = true

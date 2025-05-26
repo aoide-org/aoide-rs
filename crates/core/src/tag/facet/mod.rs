@@ -1,7 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Borrow, cmp::Ordering, hash::Hash, ops::Not as _};
+use std::{
+    borrow::{Borrow, Cow},
+    cmp::Ordering,
+    hash::Hash,
+    ops::Not as _,
+};
 
 use derive_more::Display;
 use nonicle::CanonicalOrd;
@@ -40,24 +45,27 @@ pub struct FacetId(SmolStr);
 
 #[cfg(feature = "json-schema")]
 impl schemars::JsonSchema for FacetId {
-    fn schema_name() -> String {
-        "FacetId".to_string()
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("FacetId")
     }
 
-    fn json_schema(r#gen: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
-        use schemars::schema::Schema;
-        let mut schema = r#gen.subschema_for::<String>();
-        if let Schema::Object(mut schema_object) = schema {
-            schema_object.metadata().title = Some("Tag facet identifier string".into());
-            schema_object.metadata().description =
-                Some("Only the following characters are allowed: \"{FACET_ID_ALPHABET}\"".into());
-            schema_object.metadata().examples = vec![
+    fn json_schema(schema_gen: &mut schemars::generate::SchemaGenerator) -> schemars::Schema {
+        let mut schema = schema_gen.subschema_for::<String>();
+        let schema_object = schema.ensure_object();
+        schema_object.insert("title".to_owned(), "Tag facet identifier string".into());
+        schema_object.insert(
+            "description".to_owned(),
+            format!("Only the following characters are allowed: \"{FACET_ID_ALPHABET}\"").into(),
+        );
+        schema_object.insert(
+            "examples".to_owned(),
+            vec![
                 serde_json::to_value(crate::track::tag::FACET_ID_GENRE).expect("valid"),
                 serde_json::to_value(crate::track::tag::FACET_ID_MBID_RECORDING).expect("valid"),
                 serde_json::to_value(crate::track::tag::FACET_ID_VALENCE).expect("valid"),
-            ];
-            schema = Schema::Object(schema_object);
-        }
+            ]
+            .into(),
+        );
         schema
     }
 }
