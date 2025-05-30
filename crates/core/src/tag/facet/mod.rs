@@ -1,12 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{
-    borrow::{Borrow, Cow},
-    cmp::Ordering,
-    hash::Hash,
-    ops::Not as _,
-};
+use std::{borrow::Borrow, cmp::Ordering, hash::Hash, ops::Not as _};
 
 use derive_more::Display;
 use nonicle::CanonicalOrd;
@@ -45,8 +40,8 @@ pub struct FacetId(SmolStr);
 
 #[cfg(feature = "json-schema")]
 impl schemars::JsonSchema for FacetId {
-    fn schema_name() -> Cow<'static, str> {
-        Cow::Borrowed("FacetId")
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        std::borrow::Cow::Borrowed("FacetId")
     }
 
     fn json_schema(schema_gen: &mut schemars::generate::SchemaGenerator) -> schemars::Schema {

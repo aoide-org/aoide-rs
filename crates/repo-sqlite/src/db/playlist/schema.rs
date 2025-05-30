@@ -18,6 +18,7 @@ diesel::table! {
         notes -> Nullable<Text>,
         color_rgb -> Nullable<Integer>,
         color_idx -> Nullable<SmallInt>,
+        iana_tz -> Nullable<Text>,
         flags -> SmallInt,
     }
 }

@@ -31,7 +31,7 @@ use crate::{
     },
     repo_error,
     util::{
-        clock::parse_datetime,
+        clock::timestamp_millis,
         entity::{decode_entity_revision, encode_entity_revision},
         pagination_to_limit_offset,
     },
@@ -311,7 +311,6 @@ fn load_playlist_entry_records(
             playlist_entry::ordering,
             playlist_entry::track_id,
             track::entity_uid.nullable(),
-            playlist_entry::added_at,
             playlist_entry::added_ms,
             playlist_entry::title,
             playlist_entry::notes,
@@ -386,26 +385,26 @@ impl EntryRepo for crate::Connection<'_> {
         let tracks_summary = self.load_playlist_tracks_summary(id)?;
         debug_assert!(tracks_summary.total_count <= entries_count);
         debug_assert!(tracks_summary.distinct_count <= tracks_summary.total_count);
-        let added_at_minmax = if entries_count > 0 {
-            let added_at_min = playlist_entry::table
+        let added_ts_minmax = if entries_count > 0 {
+            let added_ts_min = playlist_entry::table
                 .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-                .select((playlist_entry::added_at, playlist_entry::added_ms))
+                .select(playlist_entry::added_ms)
                 .order_by(playlist_entry::added_ms.asc())
-                .first::<(String, TimestampMillis)>(self.as_mut())
+                .first::<TimestampMillis>(self.as_mut())
                 .optional()
-                .map(|opt| opt.map(|(at, ms)| parse_datetime(&at, ms)))
+                .map(|added_ms| added_ms.map(timestamp_millis))
                 .map_err(repo_error)?;
-            let added_at_max = playlist_entry::table
+            let added_ts_max = playlist_entry::table
                 .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-                .select((playlist_entry::added_at, playlist_entry::added_ms))
+                .select(playlist_entry::added_ms)
                 .order_by(playlist_entry::added_ms.desc())
-                .first::<(String, TimestampMillis)>(self.as_mut())
+                .first::<TimestampMillis>(self.as_mut())
                 .optional()
-                .map(|opt| opt.map(|(at, ms)| parse_datetime(&at, ms)))
+                .map(|added_ms| added_ms.map(timestamp_millis))
                 .map_err(repo_error)?;
-            debug_assert_eq!(added_at_min.is_some(), added_at_max.is_some());
-            if let (Some(added_at_min), Some(added_at_max)) = (added_at_min, added_at_max) {
-                Some((added_at_min, added_at_max))
+            debug_assert_eq!(added_ts_min.is_some(), added_ts_max.is_some());
+            if let (Some(added_ts_min), Some(added_ts_max)) = (added_ts_min, added_ts_max) {
+                Some((added_ts_min, added_ts_max))
             } else {
                 None
             }
@@ -414,7 +413,7 @@ impl EntryRepo for crate::Connection<'_> {
         };
         Ok(EntriesSummary {
             total_count: entries_count,
-            added_at_minmax,
+            added_ts_minmax,
             tracks: tracks_summary,
         })
     }

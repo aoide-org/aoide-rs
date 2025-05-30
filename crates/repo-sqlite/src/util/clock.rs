@@ -3,6 +3,8 @@
 
 use std::str::FromStr;
 
+use jiff::{Timestamp, tz};
+
 use aoide_core::util::clock::*;
 
 /// Try to parse a `DateTime` value and fallback to the timestamp
@@ -25,4 +27,12 @@ pub(crate) fn parse_datetime_opt(
     } else {
         timestamp_millis.map(OffsetDateTimeMs::from_unix_timestamp_millis)
     }
+}
+
+pub(crate) fn parse_iana_tz(iana_tz: &str) -> Option<tz::TimeZone> {
+    tz::db().get(iana_tz).ok()
+}
+
+pub(crate) fn timestamp_millis(timestamp_millis: TimestampMillis) -> Timestamp {
+    Timestamp::from_millisecond(timestamp_millis).unwrap_or_default()
 }

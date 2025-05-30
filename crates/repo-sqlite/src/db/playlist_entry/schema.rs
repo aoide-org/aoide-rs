@@ -13,7 +13,6 @@ diesel::table! {
         playlist_id -> BigInt,
         track_id -> Nullable<BigInt>,
         ordering -> BigInt,
-        added_at -> Text,
         added_ms -> BigInt,
         title -> Nullable<Text>,
         notes -> Nullable<Text>,

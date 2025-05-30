@@ -2014,6 +2014,10 @@ components:
       properties:
         ne:
           $ref: "#/components/schemas/DateTime"
+    IanaTimeZome:
+      description: IANA time zone name
+      type: string
+      minLength: 1
     NumericField:
       type: string
       enum:
@@ -2151,6 +2155,8 @@ components:
           $ref: "#/components/schemas/PlaylistNotes"
         kind:
           $ref: "#/components/schemas/PlaylistKind"
+        ianaTz:
+          $ref: "#/components/schemas/PlaylistTimeZone"
         flags:
           $ref: "#/components/schemas/PlaylistFlags"
       required:
@@ -2394,6 +2400,13 @@ components:
         A custom identifier that allows third-party applications to distinguish
         different kinds of playlist separators.
       type: string
+    PlaylistTimeZone:
+      description: |
+        Time zone associated with the playlist and all entries.
+
+        Mainly used for history playlists.
+      allOf:
+        - $ref: "#/components/schemas/IanaTimeZone"
     PlaylistTitle:
       description: Mandatory playlist title
       type: string

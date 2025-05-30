@@ -11,7 +11,7 @@ use aoide_repo::{PlaylistId, TrackId};
 
 use crate::{
     RowId,
-    util::{clock::parse_datetime, entity::decode_entity_uid_typed},
+    util::{clock::timestamp_millis, entity::decode_entity_uid_typed},
 };
 
 use super::schema::*;
@@ -24,7 +24,6 @@ pub struct QueryableRecord {
     pub ordering: i64,
     pub track_id: Option<RowId>,
     pub track_uid: Option<String>,
-    pub added_at: String,
     pub added_ms: TimestampMillis,
     pub title: Option<String>,
     pub notes: Option<String>,
@@ -38,7 +37,6 @@ impl From<QueryableRecord> for (PlaylistId, i64, Option<TrackId>, Entry) {
             ordering,
             track_id,
             track_uid,
-            added_at,
             added_ms,
             title,
             notes,
@@ -53,7 +51,7 @@ impl From<QueryableRecord> for (PlaylistId, i64, Option<TrackId>, Entry) {
             Item::Separator(SeparatorItem { kind: item_data })
         };
         let entry = Entry {
-            added_at: parse_datetime(&added_at, added_ms),
+            added_ts: timestamp_millis(added_ms),
             title,
             notes,
             item,
@@ -75,7 +73,6 @@ pub struct InsertableRecord<'a> {
     pub playlist_id: RowId,
     pub track_id: Option<RowId>,
     pub ordering: i64,
-    pub added_at: String,
     pub added_ms: TimestampMillis,
     pub title: Option<&'a str>,
     pub notes: Option<&'a str>,
@@ -92,7 +89,7 @@ impl<'a> InsertableRecord<'a> {
     ) -> Self {
         let row_created_updated_ms = created_at.unix_timestamp_millis();
         let Entry {
-            added_at,
+            added_ts,
             title,
             notes,
             item,
@@ -112,8 +109,7 @@ impl<'a> InsertableRecord<'a> {
             row_updated_ms: row_created_updated_ms,
             playlist_id: playlist_id.into(),
             track_id: track_id.map(Into::into),
-            added_at: added_at.to_string(),
-            added_ms: added_at.to_utc().unix_timestamp_millis(),
+            added_ms: added_ts.as_millisecond(),
             ordering,
             title: title.as_deref(),
             notes: notes.as_deref(),

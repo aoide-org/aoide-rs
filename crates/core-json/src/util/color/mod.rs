@@ -7,7 +7,7 @@ mod _core {
     pub(super) use aoide_core::util::color::{Color, RgbColor};
 }
 
-use std::{borrow::Cow, fmt, str::FromStr};
+use std::{fmt, str::FromStr};
 
 use aoide_core::util::color::ColorIndex;
 use serde::{
@@ -61,8 +61,8 @@ pub struct RgbColor(_core::RgbColor);
 
 #[cfg(feature = "json-schema")]
 impl schemars::JsonSchema for RgbColor {
-    fn schema_name() -> Cow<'static, str> {
-        Cow::Borrowed("RgbColor")
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        std::borrow::Cow::Borrowed("RgbColor")
     }
 
     fn json_schema(schema_gen: &mut schemars::generate::SchemaGenerator) -> schemars::Schema {

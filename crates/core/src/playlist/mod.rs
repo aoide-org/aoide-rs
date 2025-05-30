@@ -4,13 +4,13 @@
 use std::ops::RangeBounds;
 
 use bitflags::bitflags;
+use jiff::{Timestamp, tz::TimeZone};
 use rand::{RngCore, seq::SliceRandom as _};
 use semval::prelude::*;
 
 use crate::{
     EntityHeaderTyped, EntityUidInvalidity, EntityUidTyped, TrackUid,
     util::{
-        clock::OffsetDateTimeMs,
         color::{Color, ColorInvalidity},
         random::adhoc_rng,
     },
@@ -87,9 +87,8 @@ impl Validate for Item {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Entry {
-    /// Time stamp added when this entry is part of the playlist,
-    /// i.e. when it has been created and added.
-    pub added_at: OffsetDateTimeMs,
+    /// Timestamp when this entry has been created and added to the playlist.
+    pub added_ts: Timestamp,
 
     /// Optional title for display.
     pub title: Option<String>,
@@ -175,6 +174,14 @@ pub struct Playlist {
     /// Optional color for display purposes.
     pub color: Option<Color>,
 
+    /// Optional time zone.
+    ///
+    /// Needed for deriving wall-clock times from timestamps. Useful
+    /// to reconstruct the original, local time for history playlists.
+    ///
+    /// All entries share a common time zone.
+    pub time_zone: Option<TimeZone>,
+
     pub flags: Flags,
 }
 
@@ -224,17 +231,17 @@ pub struct PlaylistWithEntries {
 
 impl PlaylistWithEntries {
     #[must_use]
-    pub fn entries_added_at_minmax(&self) -> Option<(OffsetDateTimeMs, OffsetDateTimeMs)> {
+    pub fn entries_added_ts_minmax(&self) -> Option<(Timestamp, Timestamp)> {
         let mut entries = self.entries.iter();
-        if let Some(first_added) = entries.next().map(|e| &e.added_at) {
+        if let Some(first_added) = entries.next().map(|e| &e.added_ts) {
             let mut added_min = *first_added;
             let mut added_max = *first_added;
             for e in entries {
-                if added_min > e.added_at {
-                    added_min = e.added_at;
+                if added_min > e.added_ts {
+                    added_min = e.added_ts;
                 }
-                if added_max < e.added_at {
-                    added_max = e.added_at;
+                if added_max < e.added_ts {
+                    added_max = e.added_ts;
                 }
             }
             Some((added_min, added_max))
@@ -284,10 +291,7 @@ impl PlaylistWithEntries {
     // Sort entries by their creation time stamp, preserving the
     // order of entries with equal time stamps.
     pub fn sort_entries_chronologically(&mut self) {
-        self.entries.sort_by(|lhs, rhs| {
-            // Ignore the UTC offset and only compare the timestamps.
-            lhs.added_at.to_utc().cmp(&rhs.added_at.to_utc())
-        });
+        self.entries.sort_by_key(|entry| entry.added_ts);
     }
 
     #[must_use]
@@ -356,7 +360,7 @@ impl From<(Entity, Vec<Entry>)> for EntityWithEntries {
 pub struct EntriesSummary {
     pub total_count: usize,
 
-    pub added_at_minmax: Option<(OffsetDateTimeMs, OffsetDateTimeMs)>,
+    pub added_ts_minmax: Option<(Timestamp, Timestamp)>,
 
     pub tracks: TracksSummary,
 }
@@ -364,7 +368,7 @@ pub struct EntriesSummary {
 impl EntriesSummary {
     pub const EMPTY: Self = Self {
         total_count: 0,
-        added_at_minmax: None,
+        added_ts_minmax: None,
         tracks: TracksSummary::EMPTY,
     };
 }
@@ -387,7 +391,7 @@ impl PlaylistWithEntries {
     pub fn entries_summary(&self) -> EntriesSummary {
         EntriesSummary {
             total_count: self.entries.len(),
-            added_at_minmax: self.entries_added_at_minmax(),
+            added_ts_minmax: self.entries_added_ts_minmax(),
             tracks: TracksSummary {
                 total_count: self.count_tracks(),
                 distinct_count: self.count_distinct_tracks(),

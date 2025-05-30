@@ -21,7 +21,7 @@ discro = { version = "0.34.0", features = ["tokio"] }
 dotenvy = "0.15.7"
 jiff.workspace = true
 log = { workspace = true, features = ["release_max_level_debug"] }
-parking_lot = "0.12.3"
+parking_lot = "0.12.4"
 ron = "0.10.1"
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

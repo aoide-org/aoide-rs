@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use jiff::{Zoned, tz};
+
 use aoide_core::{TrackUid, playlist::Flags};
 
 use crate::{entity::EntityUid, prelude::*, util::clock::DateTime};
@@ -98,7 +100,7 @@ impl From<_core::Item> for Item {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Entry {
-    added_at: DateTime,
+    added_at: Zoned,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     title: Option<String>,
@@ -119,7 +121,7 @@ impl From<Entry> for _core::Entry {
             item,
         } = from;
         Self {
-            added_at: added_at.into(),
+            added_ts: added_at.timestamp(),
             title,
             notes,
             item: item.into(),
@@ -127,16 +129,17 @@ impl From<Entry> for _core::Entry {
     }
 }
 
-impl From<_core::Entry> for Entry {
-    fn from(from: _core::Entry) -> Self {
+impl From<(_core::Entry, tz::TimeZone)> for Entry {
+    fn from((from, added_tz): (_core::Entry, tz::TimeZone)) -> Self {
         let _core::Entry {
-            added_at,
+            added_ts,
             title,
             notes,
             item,
         } = from;
+        let added_at = Zoned::new(added_ts, added_tz);
         Self {
-            added_at: added_at.into(),
+            added_at,
             title,
             notes,
             item: item.into(),
@@ -169,6 +172,14 @@ pub struct Playlist {
     #[serde(skip_serializing_if = "Option::is_none")]
     color: Option<Color>,
 
+    /// Associated time zone.
+    ///
+    /// IANA name of the time zone.
+    ///
+    /// Used for history playlists.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    iana_tz: Option<String>,
+
     #[serde(skip_serializing_if = "is_default_flags", default)]
     flags: u8,
 }
@@ -180,13 +191,27 @@ impl From<Playlist> for _core::Playlist {
             kind,
             notes,
             color,
+            iana_tz,
             flags,
         } = from;
+        let time_zone = if let Some(iana_tz) = iana_tz.as_deref() {
+            jiff::tz::db()
+                .get(iana_tz)
+                .inspect_err(|err| {
+                    log::warn!(
+                        "Unknown IANA time zone \"{iana_tz}\" in playlist \"{title}\": {err:#}"
+                    );
+                })
+                .ok()
+        } else {
+            None
+        };
         Self {
             title,
             kind,
             notes,
             color: color.map(Into::into),
+            time_zone,
             flags: Flags::from_bits_truncate(flags),
         }
     }
@@ -199,13 +224,19 @@ impl From<_core::Playlist> for Playlist {
             kind,
             notes,
             color,
+            time_zone,
             flags,
         } = from;
+        let iana_tz = time_zone
+            .as_ref()
+            .and_then(tz::TimeZone::iana_name)
+            .map(ToOwned::to_owned);
         Self {
             title,
             kind,
             notes,
             color: color.map(Into::into),
+            iana_tz,
             flags: flags.bits(),
         }
     }
@@ -235,9 +266,19 @@ impl From<PlaylistWithEntries> for _core::PlaylistWithEntries {
 impl From<_core::PlaylistWithEntries> for PlaylistWithEntries {
     fn from(from: _core::PlaylistWithEntries) -> Self {
         let _core::PlaylistWithEntries { playlist, entries } = from;
+        let entries = entries
+            .into_iter()
+            .map(|entry| {
+                (
+                    entry,
+                    playlist.time_zone.clone().unwrap_or(tz::TimeZone::UTC),
+                )
+                    .into()
+            })
+            .collect();
         Self {
             playlist: playlist.into(),
-            entries: entries.into_iter().map(Into::into).collect(),
+            entries,
         }
     }
 }
@@ -288,7 +329,7 @@ pub struct EntriesSummary {
     total_count: usize,
 
     #[serde(rename = "addedAtMinMax", skip_serializing_if = "Option::is_none")]
-    added_at_minmax: Option<(DateTime, DateTime)>,
+    added_ts_minmax: Option<(DateTime, DateTime)>,
 
     tracks: TracksSummary,
 }
@@ -297,12 +338,12 @@ impl From<_core::EntriesSummary> for EntriesSummary {
     fn from(from: _core::EntriesSummary) -> Self {
         let _core::EntriesSummary {
             total_count,
-            added_at_minmax,
+            added_ts_minmax,
             tracks,
         } = from;
         Self {
             total_count,
-            added_at_minmax: added_at_minmax.map(|(min, max)| (min.into(), max.into())),
+            added_ts_minmax: added_ts_minmax.map(|(min, max)| (min.into(), max.into())),
             tracks: tracks.into(),
         }
     }
@@ -312,12 +353,13 @@ impl From<EntriesSummary> for _core::EntriesSummary {
     fn from(from: EntriesSummary) -> Self {
         let EntriesSummary {
             total_count,
-            added_at_minmax,
+            added_ts_minmax,
             tracks,
         } = from;
         Self {
             total_count,
-            added_at_minmax: added_at_minmax.map(|(min, max)| (min.into(), max.into())),
+            added_ts_minmax: added_ts_minmax
+                .map(|(min, max)| (min.to_timestamp(), max.to_timestamp())),
             tracks: tracks.into(),
         }
     }

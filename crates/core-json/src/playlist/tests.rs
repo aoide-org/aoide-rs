@@ -16,37 +16,33 @@ fn serialize_item_default_separator() {
 #[test]
 fn deserialize_playlist() {
     let uid: EntityUid = "01AN4Z07BY79KA1307SR9X4MV3".parse().unwrap();
+    let tz = tz::db().get("Europe/Berlin").unwrap();
+    let added_at = "2020-12-18T22:27:15+01:00[Europe/Berlin]"
+        .parse::<Zoned>()
+        .unwrap();
     let added_at1 = "2020-12-18T21:27:15Z".parse::<OffsetDateTimeMs>().unwrap();
-    let added_at2 = "2020-12-18T21:27:15-01:00"
+    let added_at2 = "2020-12-18T22:27:15+01:00[Europe/Berlin]"
         .parse::<OffsetDateTimeMs>()
         .unwrap();
-    let added_at3 = OffsetDateTimeMs::now_utc();
     let playlist = PlaylistWithEntries {
         playlist: Playlist {
-            title: "Title".to_string(),
-            kind: Some("Kind".to_string()),
+            title: "Title".to_owned(),
+            kind: Some("Kind".to_owned()),
             notes: None,
             color: None,
+            iana_tz: tz.iana_name().map(ToOwned::to_owned),
             flags: 0,
         },
         entries: vec![
             Entry {
-                added_at: added_at1.into(),
+                added_at: Zoned::new(added_at1.to_utc().to_timestamp(), tz.clone()),
                 item: Item::Track(TrackItem { uid: uid.clone() }),
                 title: None,
                 notes: None,
             },
             Entry {
-                added_at: added_at2.into(),
+                added_at: Zoned::new(added_at2.to_utc().to_timestamp(), tz.clone()),
                 item: Item::Separator(Default::default()),
-                title: None,
-                notes: None,
-            },
-            Entry {
-                added_at: added_at3.into(),
-                item: Item::Separator(SeparatorItem {
-                    kind: Some("Kind".into()),
-                }),
                 title: None,
                 notes: None,
             },
@@ -55,23 +51,18 @@ fn deserialize_playlist() {
     let playlist_json = serde_json::json!({
         "title": playlist.playlist.title,
         "kind": playlist.playlist.kind,
+        "ianaTz": tz.iana_name().unwrap(),
         "entries": [
             {
                 "track": {
                     "uid": uid.to_string()
                 },
-                "addedAt": added_at1.to_string()
+                "addedAt": added_at.to_string()
             },
             {
                 "separator": {},
-                "addedAt": added_at2.to_string()
+                "addedAt": added_at.to_string()
             },
-            {
-                "separator": {
-                    "kind": "Kind"
-                },
-                "addedAt": added_at3.to_string()
-            }
         ]
     })
     .to_string();

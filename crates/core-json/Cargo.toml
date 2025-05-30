@@ -19,7 +19,9 @@ workspace = true
 [dependencies]
 anyhow.workspace = true
 data-encoding.workspace = true
+jiff = { workspace = true, features = ["serde"] }
 mime.workspace = true
+log.workspace = true
 nonicle.workspace = true
 semval.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -28,7 +30,7 @@ url = { workspace = true, features = ["serde"] }
 
 # JSON Schema (optional)
 chrono = { version = "0.4.41", optional = true, default-features = false }
-schemars = { workspace = true, optional = true, features = ["chrono04", "url2"] }
+schemars = { workspace = true, optional = true, features = ["chrono04", "jiff02", "url2"] }
 serde_json = { workspace = true, optional = true }
 
 # Workspace dependencies

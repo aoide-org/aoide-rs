@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use diesel::prelude::*;
+use jiff::tz::TimeZone;
 use semval::prelude::*;
 
 use aoide_core::{
@@ -13,7 +14,10 @@ use aoide_repo::{CollectionId, playlist::RecordHeader};
 
 use crate::{
     RowId,
-    util::entity::{decode_entity_header, encode_entity_revision, encode_entity_uid},
+    util::{
+        clock::parse_iana_tz,
+        entity::{decode_entity_header, encode_entity_revision, encode_entity_uid},
+    },
 };
 
 use super::schema::*;
@@ -32,6 +36,7 @@ pub struct QueryableRecord {
     pub notes: Option<String>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub iana_tz: Option<String>,
     pub flags: i16,
 }
 
@@ -50,6 +55,7 @@ impl From<QueryableRecord> for (RecordHeader, Option<CollectionId>, PlaylistEnti
             color_rgb,
             color_idx,
             flags,
+            iana_tz,
         } = from;
         let header = RecordHeader {
             id: row_id.into(),
@@ -70,6 +76,7 @@ impl From<QueryableRecord> for (RecordHeader, Option<CollectionId>, PlaylistEnti
             } else {
                 color_idx.map(|idx| Color::Index(idx as ColorIndex))
             },
+            time_zone: iana_tz.as_deref().and_then(parse_iana_tz),
             flags: Flags::from_bits_truncate(flags as u8),
         };
         (
@@ -93,6 +100,7 @@ pub struct InsertableRecord<'a> {
     pub notes: Option<&'a str>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub iana_tz: Option<&'a str>,
     pub flags: i16,
 }
 
@@ -110,6 +118,7 @@ impl<'a> InsertableRecord<'a> {
             kind,
             notes,
             color,
+            time_zone,
             flags,
         } = body;
         Self {
@@ -132,6 +141,7 @@ impl<'a> InsertableRecord<'a> {
                 None
             },
             flags: i16::from(flags.bits()),
+            iana_tz: time_zone.as_ref().and_then(TimeZone::iana_name),
         }
     }
 }
@@ -163,6 +173,7 @@ pub struct UpdatableRecord<'a> {
     pub notes: Option<&'a str>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub iana_tz: Option<&'a str>,
     pub flags: i16,
 }
 
@@ -178,6 +189,7 @@ impl<'a> UpdatableRecord<'a> {
             kind,
             notes,
             color,
+            time_zone,
             flags,
         } = playlist;
         Self {
@@ -197,6 +209,7 @@ impl<'a> UpdatableRecord<'a> {
                 None
             },
             flags: i16::from(flags.bits()),
+            iana_tz: time_zone.as_ref().and_then(TimeZone::iana_name),
         }
     }
 }

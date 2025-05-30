@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Cow, fmt};
+use std::fmt;
 
+use jiff::Timestamp;
 use semval::prelude::*;
 use serde::{
     Deserializer, Serializer,
@@ -35,6 +36,21 @@ pub struct DateTime {
         schemars(with = "chrono::DateTime<chrono::FixedOffset>")
     )]
     inner: _core::OffsetDateTimeMs,
+}
+
+impl DateTime {
+    #[must_use]
+    pub fn to_timestamp(&self) -> Timestamp {
+        self.inner.to_utc().to_timestamp()
+    }
+}
+
+impl From<Timestamp> for DateTime {
+    fn from(ts: Timestamp) -> Self {
+        Self {
+            inner: _core::OffsetDateTimeMs::from_utc(ts.into()),
+        }
+    }
 }
 
 impl From<_core::OffsetDateTimeMs> for DateTime {
@@ -72,8 +88,8 @@ impl From<YyyyMmDdDate> for _core::YyyyMmDdDate {
 
 #[cfg(feature = "json-schema")]
 impl schemars::JsonSchema for YyyyMmDdDate {
-    fn schema_name() -> Cow<'static, str> {
-        Cow::Borrowed("YyyyMmDdDate")
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        std::borrow::Cow::Borrowed("YyyyMmDdDate")
     }
 
     fn json_schema(schema_gen: &mut schemars::generate::SchemaGenerator) -> schemars::Schema {

@@ -3,6 +3,8 @@
 
 use test_log::test;
 
+use jiff::{Timestamp, tz};
+
 use aoide_core::{
     Collection, CollectionEntity, CollectionHeader, Playlist, PlaylistHeader, Track, TrackBody,
     TrackEntity, TrackHeader, TrackUid,
@@ -18,8 +20,13 @@ use aoide_repo::{
     media::source::CollectionRepo as _,
 };
 
-use super::*;
 use crate::{repo::tests::vfs_media_source_config, tests::*};
+
+use super::*;
+
+fn now_ms() -> Timestamp {
+    Timestamp::from_millisecond(Timestamp::now().as_millisecond()).unwrap()
+}
 
 struct Fixture {
     collection_id: CollectionId,
@@ -102,6 +109,7 @@ impl Fixture {
             notes: None,
             kind: None,
             color: None,
+            time_zone: Some(tz::TimeZone::system()),
             flags: Default::default(),
         };
         let playlist_entity = PlaylistEntity::new(PlaylistHeader::initial_random(), playlist);
@@ -116,7 +124,7 @@ impl Fixture {
             .into_iter()
             .enumerate()
             .map(|(i, (_media_source_id, _track_id, track_uid))| Entry {
-                added_at: OffsetDateTimeMs::now_local(),
+                added_ts: now_ms(),
                 title: Some(format!("Entry {i}")),
                 notes: None,
                 item: Item::Track(TrackItem { uid: track_uid }),
@@ -131,7 +139,7 @@ impl Fixture {
 
 fn new_separator_entry() -> Entry {
     Entry {
-        added_at: OffsetDateTimeMs::now_local(),
+        added_ts: now_ms(),
         title: None,
         notes: None,
         item: Item::Separator(Default::default()),
@@ -140,7 +148,7 @@ fn new_separator_entry() -> Entry {
 
 fn new_separator_entry_with_title(title: String) -> Entry {
     Entry {
-        added_at: OffsetDateTimeMs::now_local(),
+        added_ts: now_ms(),
         title: Some(title),
         notes: None,
         item: Item::Separator(Default::default()),
