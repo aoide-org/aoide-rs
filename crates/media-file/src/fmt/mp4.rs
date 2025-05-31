@@ -168,8 +168,20 @@ pub(crate) fn export_track_to_tag(
     }
 }
 
-pub(crate) fn export_track_to_file(
+pub(crate) fn export_track_to_file_ilst(
     mp4_file: &mut Mp4File,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
+) -> Result<()> {
+    let mut ilst = mp4_file.ilst_mut().map(std::mem::take).unwrap_or_default();
+    export_track_to_ilst(&mut ilst, config, track, edit_embedded_artwork_image)?;
+    mp4_file.set_ilst(ilst);
+    Ok(())
+}
+
+pub(crate) fn export_track_to_ilst(
+    ilst: &mut Ilst,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
@@ -182,12 +194,6 @@ pub(crate) fn export_track_to_file(
             track.media_source.content.r#type.clone(),
         ));
     }
-
-    let mut ilst = mp4_file.ilst_mut().map(std::mem::take).unwrap_or_default();
-
-    export_track_to_tag(&mut ilst, config, track, edit_embedded_artwork_image);
-
-    mp4_file.set_ilst(ilst);
-
+    export_track_to_tag(ilst, config, track, edit_embedded_artwork_image);
     Ok(())
 }

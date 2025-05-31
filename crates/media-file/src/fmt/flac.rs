@@ -13,6 +13,8 @@ use crate::{
     },
 };
 
+use super::vorbis;
+
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,
     config: &ImportTrackConfig,
@@ -27,7 +29,7 @@ pub(crate) fn import_file_into_track(
         .then(|| flac_file.vorbis_comments())
         .flatten()
         .and_then(|vorbis_comments| {
-            super::vorbis::import_serato_markers(
+            vorbis::import_serato_markers(
                 importer,
                 vorbis_comments,
                 triseratops::tag::TagFormat::FLAC,
@@ -45,7 +47,7 @@ pub(crate) fn import_file_into_track(
     }
 }
 
-pub(crate) fn export_track_to_file(
+pub(crate) fn export_track_to_file_vorbis_comments(
     flac_file: &mut FlacFile,
     config: &ExportTrackConfig,
     track: &mut Track,
@@ -57,19 +59,13 @@ pub(crate) fn export_track_to_file(
         ));
     }
 
-    let mut vorbis_comments = flac_file
-        .vorbis_comments_mut()
-        .map(std::mem::take)
-        .unwrap_or_default();
-
-    super::vorbis::export_track_to_tag(
-        &mut vorbis_comments,
-        config,
-        track,
-        edit_embedded_artwork_image,
-    );
-
-    flac_file.set_vorbis_comments(vorbis_comments);
+    let vorbis_comments = if let Some(vorbis_comments) = flac_file.vorbis_comments_mut() {
+        vorbis_comments
+    } else {
+        flac_file.set_vorbis_comments(Default::default());
+        flac_file.vorbis_comments_mut().expect("Some")
+    };
+    vorbis::export_track_to_tag(vorbis_comments, config, track, edit_embedded_artwork_image);
 
     Ok(())
 }

@@ -44,7 +44,7 @@ pub(crate) fn import_file_into_track(
     }
 }
 
-pub(crate) fn export_track_to_file(
+pub(crate) fn export_track_to_file_id3v2(
     aiff_file: &mut AiffFile,
     config: &ExportTrackConfig,
     track: &mut Track,
@@ -61,14 +61,13 @@ pub(crate) fn export_track_to_file(
         ));
     }
 
-    let mut id3v2 = aiff_file
-        .id3v2_mut()
-        .map(std::mem::take)
-        .unwrap_or_default();
-
-    id3v2::export_track_to_tag(&mut id3v2, config, track, edit_embedded_artwork_image);
-
-    aiff_file.set_id3v2(id3v2);
+    let id3v2 = if let Some(id3v2) = aiff_file.id3v2_mut() {
+        id3v2
+    } else {
+        aiff_file.set_id3v2(Default::default());
+        aiff_file.id3v2_mut().expect("Some")
+    };
+    id3v2::export_track_to_tag(id3v2, config, track, edit_embedded_artwork_image);
 
     Ok(())
 }

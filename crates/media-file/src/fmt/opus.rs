@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use lofty::ogg::OpusFile;
+use lofty::ogg::{OpusFile, VorbisComments};
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
@@ -46,8 +46,8 @@ pub(crate) fn import_file_into_track(
     }
 }
 
-pub(crate) fn export_track_to_file(
-    opus_file: &mut OpusFile,
+pub(crate) fn export_track_to_vorbis_comments(
+    vorbis_comments: &mut VorbisComments,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
@@ -57,17 +57,6 @@ pub(crate) fn export_track_to_file(
             track.media_source.content.r#type.clone(),
         ));
     }
-
-    let mut vorbis_comments = std::mem::take(opus_file.vorbis_comments_mut());
-
-    export_track_to_tag(
-        &mut vorbis_comments,
-        config,
-        track,
-        edit_embedded_artwork_image,
-    );
-
-    opus_file.set_vorbis_comments(vorbis_comments);
-
+    export_track_to_tag(vorbis_comments, config, track, edit_embedded_artwork_image);
     Ok(())
 }

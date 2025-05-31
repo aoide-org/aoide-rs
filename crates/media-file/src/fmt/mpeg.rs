@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-use super::id3v2::{Import, export_track_to_tag};
+use super::id3v2;
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,
@@ -27,7 +27,7 @@ pub(crate) fn import_file_into_track(
         .contains(ImportTrackFlags::METADATA)
         .then(|| mpeg_file.id3v2())
         .flatten()
-        .map(|tag| Import::build(importer, config, tag));
+        .map(|tag| id3v2::Import::build(importer, config, tag));
 
     // Import generic metadata
     let tagged_file = mpeg_file.into();
@@ -39,7 +39,7 @@ pub(crate) fn import_file_into_track(
     }
 }
 
-pub(crate) fn export_track_to_file(
+pub(crate) fn export_track_to_file_id3v2(
     mpeg_file: &mut MpegFile,
     config: &ExportTrackConfig,
     track: &mut Track,
@@ -51,14 +51,13 @@ pub(crate) fn export_track_to_file(
         ));
     }
 
-    let mut id3v2 = mpeg_file
-        .id3v2_mut()
-        .map(std::mem::take)
-        .unwrap_or_default();
-
-    export_track_to_tag(&mut id3v2, config, track, edit_embedded_artwork_image);
-
-    mpeg_file.set_id3v2(id3v2);
+    let id3v2 = if let Some(id3v2) = mpeg_file.id3v2_mut() {
+        id3v2
+    } else {
+        mpeg_file.set_id3v2(Default::default());
+        mpeg_file.id3v2_mut().expect("Some")
+    };
+    id3v2::export_track_to_tag(id3v2, config, track, edit_embedded_artwork_image);
 
     Ok(())
 }

@@ -105,14 +105,14 @@ pub fn export_track_to_file(
         };
         file_type
     };
-    // Ensure that the file could be read again
+    // Ensure that the file could be read again.
     file.rewind()?;
     let parse_options = parse_options();
     let write_options = Default::default();
     match file_type {
         FileType::Aiff => {
             let mut aiff_file = <AiffFile as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::aiff::export_track_to_file(
+            crate::fmt::aiff::export_track_to_file_id3v2(
                 &mut aiff_file,
                 config,
                 track,
@@ -122,7 +122,7 @@ pub fn export_track_to_file(
         }
         FileType::Flac => {
             let mut flac_file = <FlacFile as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::flac::export_track_to_file(
+            crate::fmt::flac::export_track_to_file_vorbis_comments(
                 &mut flac_file,
                 config,
                 track,
@@ -132,7 +132,7 @@ pub fn export_track_to_file(
         }
         FileType::Mp4 => {
             let mut mp4_file = <Mp4File as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::mp4::export_track_to_file(
+            crate::fmt::mp4::export_track_to_file_ilst(
                 &mut mp4_file,
                 config,
                 track,
@@ -142,7 +142,7 @@ pub fn export_track_to_file(
         }
         FileType::Mpeg => {
             let mut mpeg_file = <MpegFile as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::mpeg::export_track_to_file(
+            crate::fmt::mpeg::export_track_to_file_id3v2(
                 &mut mpeg_file,
                 config,
                 track,
@@ -152,8 +152,8 @@ pub fn export_track_to_file(
         }
         FileType::Opus => {
             let mut opus_file = <OpusFile as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::opus::export_track_to_file(
-                &mut opus_file,
+            crate::fmt::opus::export_track_to_vorbis_comments(
+                opus_file.vorbis_comments_mut(),
                 config,
                 track,
                 edit_embedded_artwork_image,
@@ -162,8 +162,8 @@ pub fn export_track_to_file(
         }
         FileType::Vorbis => {
             let mut vorbis_file = <VorbisFile as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::ogg::export_track_to_file(
-                &mut vorbis_file,
+            crate::fmt::ogg::export_track_to_vorbis_comments(
+                vorbis_file.vorbis_comments_mut(),
                 config,
                 track,
                 edit_embedded_artwork_image,
