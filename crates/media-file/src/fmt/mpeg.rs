@@ -1,24 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::fs::File;
-
-use lofty::{config::WriteOptions, file::AudioFile, mpeg::MpegFile};
+use lofty::mpeg::MpegFile;
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
 use crate::{
-    Result,
+    Error, Result,
     io::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
 };
 
-use super::{
-    id3v2::{Import, export_track_to_tag},
-    parse_options,
-};
+use super::id3v2::{Import, export_track_to_tag};
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,
@@ -45,13 +40,16 @@ pub(crate) fn import_file_into_track(
 }
 
 pub(crate) fn export_track_to_file(
-    file: &mut File,
+    mpeg_file: &mut MpegFile,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
-    std::io::Seek::rewind(file)?;
-    let mut mpeg_file = <MpegFile as AudioFile>::read_from(file, parse_options())?;
+    if track.media_source.content.r#type.essence_str() != "audio/mpeg" {
+        return Err(Error::UnsupportedContentType(
+            track.media_source.content.r#type.clone(),
+        ));
+    }
 
     let mut id3v2 = mpeg_file
         .id3v2_mut()
@@ -61,7 +59,6 @@ pub(crate) fn export_track_to_file(
     export_track_to_tag(&mut id3v2, config, track, edit_embedded_artwork_image);
 
     mpeg_file.set_id3v2(id3v2);
-    mpeg_file.save_to(file, WriteOptions::default())?;
 
     Ok(())
 }

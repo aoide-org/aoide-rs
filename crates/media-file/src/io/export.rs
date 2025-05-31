@@ -9,7 +9,15 @@ use std::{
 };
 
 use bitflags::bitflags;
-use lofty::{file::FileType, probe::Probe};
+use lofty::{
+    file::{AudioFile, FileType},
+    flac::FlacFile,
+    iff::aiff::AiffFile,
+    mp4::Mp4File,
+    mpeg::MpegFile,
+    ogg::{OpusFile, VorbisFile},
+    probe::Probe,
+};
 
 use aoide_core::{
     media::artwork::EditEmbeddedArtworkImage,
@@ -20,8 +28,9 @@ use aoide_core::{
     },
 };
 
+use crate::{Error, Result, fmt::parse_options, util::tag::FacetedTagMappingConfig};
+
 use super::import::ImportTrackFlags;
-use crate::{Error, Result, util::tag::FacetedTagMappingConfig};
 
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -98,68 +107,80 @@ pub fn export_track_to_file(
     };
     // Ensure that the file could be read again
     file.rewind()?;
+    let parse_options = parse_options();
+    let write_options = Default::default();
     match file_type {
         FileType::Aiff => {
-            if track.media_source.content.r#type.essence_str() != "audio/aiff" {
-                return Err(Error::UnsupportedContentType(
-                    track.media_source.content.r#type.clone(),
-                ));
-            }
-            crate::fmt::aiff::export_track_to_file(file, config, track, edit_embedded_artwork_image)
+            let mut aiff_file = <AiffFile as AudioFile>::read_from(file, parse_options)?;
+            crate::fmt::aiff::export_track_to_file(
+                &mut aiff_file,
+                config,
+                track,
+                edit_embedded_artwork_image,
+            )?;
+            aiff_file.save_to(file, write_options)?;
         }
         FileType::Flac => {
-            if track.media_source.content.r#type.essence_str() != "audio/flac" {
-                return Err(Error::UnsupportedContentType(
-                    track.media_source.content.r#type.clone(),
-                ));
-            }
-            crate::fmt::flac::export_track_to_file(file, config, track, edit_embedded_artwork_image)
+            let mut flac_file = <FlacFile as AudioFile>::read_from(file, parse_options)?;
+            crate::fmt::flac::export_track_to_file(
+                &mut flac_file,
+                config,
+                track,
+                edit_embedded_artwork_image,
+            )?;
+            flac_file.save_to(file, write_options)?;
         }
         FileType::Mp4 => {
-            if !matches!(
-                track.media_source.content.r#type.essence_str(),
-                "audio/m4a" | "audio/mp4" | "video/mp4"
-            ) {
-                return Err(Error::UnsupportedContentType(
-                    track.media_source.content.r#type.clone(),
-                ));
-            }
-            crate::fmt::mp4::export_track_to_file(file, config, track, edit_embedded_artwork_image)
+            let mut mp4_file = <Mp4File as AudioFile>::read_from(file, parse_options)?;
+            crate::fmt::mp4::export_track_to_file(
+                &mut mp4_file,
+                config,
+                track,
+                edit_embedded_artwork_image,
+            )?;
+            mp4_file.save_to(file, write_options)?;
         }
         FileType::Mpeg => {
-            if track.media_source.content.r#type.essence_str() != "audio/mpeg" {
-                return Err(Error::UnsupportedContentType(
-                    track.media_source.content.r#type.clone(),
-                ));
-            }
-            crate::fmt::mpeg::export_track_to_file(file, config, track, edit_embedded_artwork_image)
+            let mut mpeg_file = <MpegFile as AudioFile>::read_from(file, parse_options)?;
+            crate::fmt::mpeg::export_track_to_file(
+                &mut mpeg_file,
+                config,
+                track,
+                edit_embedded_artwork_image,
+            )?;
+            mpeg_file.save_to(file, write_options)?;
         }
         FileType::Opus => {
-            if track.media_source.content.r#type.essence_str() != "audio/ogg" {
-                return Err(Error::UnsupportedContentType(
-                    track.media_source.content.r#type.clone(),
-                ));
-            }
-            crate::fmt::ogg::export_track_to_file(file, config, track, edit_embedded_artwork_image)
+            let mut opus_file = <OpusFile as AudioFile>::read_from(file, parse_options)?;
+            crate::fmt::opus::export_track_to_file(
+                &mut opus_file,
+                config,
+                track,
+                edit_embedded_artwork_image,
+            )?;
+            opus_file.save_to(file, write_options)?;
         }
         FileType::Vorbis => {
-            if track.media_source.content.r#type.essence_str() != "audio/opus" {
-                return Err(Error::UnsupportedContentType(
-                    track.media_source.content.r#type.clone(),
-                ));
-            }
-            crate::fmt::opus::export_track_to_file(file, config, track, edit_embedded_artwork_image)
+            let mut vorbis_file = <VorbisFile as AudioFile>::read_from(file, parse_options)?;
+            crate::fmt::ogg::export_track_to_file(
+                &mut vorbis_file,
+                config,
+                track,
+                edit_embedded_artwork_image,
+            )?;
+            vorbis_file.save_to(file, write_options)?;
         }
         _ => {
             log::debug!(
                 "Skipping export of track {media_source_content_link:?}: {config:?}",
                 media_source_content_link = track.media_source.content.link
             );
-            Err(Error::UnsupportedContentType(
+            return Err(Error::UnsupportedContentType(
                 track.media_source.content.r#type.clone(),
-            ))
+            ));
         }
     }
+    Ok(())
 }
 
 #[derive(Debug, Clone)]

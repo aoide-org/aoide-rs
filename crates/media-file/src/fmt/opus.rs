@@ -1,21 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::fs::File;
-
-use lofty::{config::WriteOptions, file::AudioFile, ogg::OpusFile};
+use lofty::ogg::OpusFile;
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
 use crate::{
-    Result,
+    Error, Result,
     io::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
 };
 
-use super::{parse_options, vorbis::export_track_to_tag};
+use super::vorbis::export_track_to_tag;
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,
@@ -49,12 +47,17 @@ pub(crate) fn import_file_into_track(
 }
 
 pub(crate) fn export_track_to_file(
-    file: &mut File,
+    opus_file: &mut OpusFile,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
-    let mut opus_file = <OpusFile as AudioFile>::read_from(file, parse_options())?;
+    if track.media_source.content.r#type.essence_str() != "audio/opus" {
+        return Err(Error::UnsupportedContentType(
+            track.media_source.content.r#type.clone(),
+        ));
+    }
+
     let mut vorbis_comments = std::mem::take(opus_file.vorbis_comments_mut());
 
     export_track_to_tag(
@@ -65,7 +68,6 @@ pub(crate) fn export_track_to_file(
     );
 
     opus_file.set_vorbis_comments(vorbis_comments);
-    opus_file.save_to(file, WriteOptions::default())?;
 
     Ok(())
 }

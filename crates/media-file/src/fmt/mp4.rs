@@ -1,25 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Cow, fs::File};
+use std::borrow::Cow;
 
-use lofty::{
-    config::WriteOptions,
-    file::AudioFile,
-    mp4::{AtomData, AtomIdent, Ilst, Mp4File},
-};
+use lofty::mp4::{AtomData, AtomIdent, Ilst, Mp4File};
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
 use crate::{
-    Result,
+    Error, Result,
     io::{
         export::{ExportTrackConfig, ExportTrackFlags},
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
 };
-
-use super::parse_options;
 
 #[cfg(feature = "serato-markers")]
 const SERATO_MARKERS_IDENT: AtomIdent<'_> = AtomIdent::Freeform {
@@ -155,23 +149,6 @@ pub(crate) fn import_file_into_track(
     }
 }
 
-pub(crate) fn export_track_to_file(
-    file: &mut File,
-    config: &ExportTrackConfig,
-    track: &mut Track,
-    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<()> {
-    let mut mp4_file = <Mp4File as AudioFile>::read_from(file, parse_options())?;
-    let mut ilst = mp4_file.ilst_mut().map(std::mem::take).unwrap_or_default();
-
-    export_track_to_tag(&mut ilst, config, track, edit_embedded_artwork_image);
-
-    mp4_file.set_ilst(ilst);
-    mp4_file.save_to(file, WriteOptions::default())?;
-
-    Ok(())
-}
-
 pub(crate) fn export_track_to_tag(
     ilst: &mut Ilst,
     config: &ExportTrackConfig,
@@ -189,4 +166,28 @@ pub(crate) fn export_track_to_tag(
     if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {
         log::warn!("TODO: Export Serato markers");
     }
+}
+
+pub(crate) fn export_track_to_file(
+    mp4_file: &mut Mp4File,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
+) -> Result<()> {
+    if !matches!(
+        track.media_source.content.r#type.essence_str(),
+        "audio/m4a" | "audio/mp4" | "video/mp4"
+    ) {
+        return Err(Error::UnsupportedContentType(
+            track.media_source.content.r#type.clone(),
+        ));
+    }
+
+    let mut ilst = mp4_file.ilst_mut().map(std::mem::take).unwrap_or_default();
+
+    export_track_to_tag(&mut ilst, config, track, edit_embedded_artwork_image);
+
+    mp4_file.set_ilst(ilst);
+
+    Ok(())
 }

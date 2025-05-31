@@ -1,10 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::fs::File;
-
 use anyhow::anyhow;
-use lofty::{config::WriteOptions, file::AudioFile, iff::aiff::AiffFile};
+use lofty::iff::aiff::AiffFile;
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
@@ -16,7 +14,7 @@ use crate::{
     },
 };
 
-use super::{id3v2, parse_options};
+use super::id3v2;
 
 pub(crate) fn import_file_into_track(
     importer: &mut Importer,
@@ -47,17 +45,22 @@ pub(crate) fn import_file_into_track(
 }
 
 pub(crate) fn export_track_to_file(
-    file: &mut File,
+    aiff_file: &mut AiffFile,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
-    let mut aiff_file = <AiffFile as AudioFile>::read_from(file, parse_options())?;
     if aiff_file.text_chunks().is_some() {
         return Err(Error::Metadata(anyhow!(
             "Exporting metadata into AIFF files with text chunks is not supported"
         )));
     }
+    if track.media_source.content.r#type.essence_str() != "audio/aiff" {
+        return Err(Error::UnsupportedContentType(
+            track.media_source.content.r#type.clone(),
+        ));
+    }
+
     let mut id3v2 = aiff_file
         .id3v2_mut()
         .map(std::mem::take)
@@ -66,7 +69,6 @@ pub(crate) fn export_track_to_file(
     id3v2::export_track_to_tag(&mut id3v2, config, track, edit_embedded_artwork_image);
 
     aiff_file.set_id3v2(id3v2);
-    aiff_file.save_to(file, WriteOptions::default())?;
 
     Ok(())
 }
