@@ -1258,7 +1258,7 @@ components:
       description: |
         Optional actor rank that defaults to 0 = summary if missing:
           * 0 = summary actor (default if missing)
-          * 1 = individual actor(s), either persons or groups/bands
+          * 1 = individual/credited actor(s), either persons or groups/bands
           * 2 = sorting actor
     ActorRole:
       type: integer

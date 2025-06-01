@@ -44,7 +44,8 @@ pub enum Kind {
     Summary = 0,
     /// Single persons or group/band names.
     ///
-    /// Useful for identifying all participants by their canonical names.
+    /// Useful for identifying all participants by their canonical names,
+    /// e.g. for credited artists.
     Individual = 1,
     /// Unique sort actor (optional).
     Sorting = 2,

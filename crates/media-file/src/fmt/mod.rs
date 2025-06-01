@@ -578,7 +578,15 @@ pub(crate) fn import_file_tag_into_track(
         push_next_actor(
             &mut track_actors,
             name,
-            Default::default(),
+            ActorKind::Summary,
+            ActorRole::Artist,
+        );
+    }
+    for name in tag_take_strings(&mut tag, &ItemKey::TrackArtists) {
+        push_next_actor(
+            &mut track_actors,
+            name,
+            ActorKind::Individual,
             ActorRole::Artist,
         );
     }
@@ -725,10 +733,19 @@ pub(crate) fn import_file_tag_into_track(
         push_next_actor(
             &mut album_actors,
             name,
-            Default::default(),
+            ActorKind::Summary,
             ActorRole::Artist,
         );
     }
+    // TODO: <https://github.com/Serial-ATA/lofty-rs/issues/522>
+    // for name in tag_take_strings(&mut tag, &ItemKey::AlbumArtists) {
+    //     push_next_actor(
+    //         &mut album_actors,
+    //         name,
+    //         ActorKind::Individual,
+    //         ActorRole::Artist,
+    //     );
+    // }
     for name in tag_take_strings(&mut tag, &ItemKey::AlbumArtistSortOrder) {
         push_next_actor(
             &mut album_actors,
@@ -1271,7 +1288,16 @@ pub(crate) fn export_track_to_tag(
     export_filtered_actor_names(
         tag,
         ItemKey::TrackArtist,
-        FilteredActorNames::filter(track.actors.iter(), ActorRole::Artist, Default::default()),
+        FilteredActorNames::filter(track.actors.iter(), ActorRole::Artist, ActorKind::Summary),
+    );
+    export_filtered_actor_names(
+        tag,
+        ItemKey::TrackArtists,
+        FilteredActorNames::filter(
+            track.actors.iter(),
+            ActorRole::Artist,
+            ActorKind::Individual,
+        ),
     );
     export_filtered_actor_names(
         tag,
@@ -1379,9 +1405,19 @@ pub(crate) fn export_track_to_tag(
         FilteredActorNames::filter(
             track.album.actors.iter(),
             ActorRole::Artist,
-            Default::default(),
+            ActorKind::Summary,
         ),
     );
+    // TODO: <https://github.com/Serial-ATA/lofty-rs/issues/522>
+    // export_filtered_actor_names(
+    //     tag,
+    //     ItemKey::AlbumArtists,
+    //     FilteredActorNames::filter(
+    //         track.album.actors.iter(),
+    //         ActorRole::Artist,
+    //         ActorKind::Individual,
+    //     ),
+    // );
     export_filtered_actor_names(
         tag,
         ItemKey::AlbumArtistSortOrder,
