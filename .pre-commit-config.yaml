@@ -63,7 +63,7 @@ repos:
       - id: gitleaks
   # Audit GitHub Actions CI/CD setups.
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.9.0
+    rev: v1.10.0
     hooks:
       - id: zizmor
   # JSON
@@ -87,7 +87,7 @@ repos:
           - markdown
   # YAML
   - repo: https://github.com/google/yamlfmt
-    rev: v0.17.1
+    rev: v0.17.2
     hooks:
       - id: yamlfmt
   # TOML
