@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use egui::{Color32, ColorImage};
+use egui::{Color32, ColorImage, Vec2};
 
 use aoide::{
     media::artwork::{Artwork, ArtworkImage, EmbeddedArtwork},
@@ -20,11 +20,26 @@ const fn solid_rgb_color(color: RgbColor) -> Color32 {
 }
 
 #[must_use]
-fn artwork_thumbnail_image_with_solid_color(color: Color32) -> ColorImage {
+fn artwork_thumbnail_image_from_pixels(pixels: Vec<Color32>) -> ColorImage {
+    debug_assert_eq!(
+        Some(pixels.len()),
+        ARTWORK_THUMBNAIL_IMAGE_SIZE.checked_mul(ARTWORK_THUMBNAIL_IMAGE_SIZE)
+    );
     ColorImage {
         size: [ARTWORK_THUMBNAIL_IMAGE_SIZE, ARTWORK_THUMBNAIL_IMAGE_SIZE],
-        pixels: [color; ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_IMAGE_SIZE].to_vec(),
+        source_size: Vec2::new(
+            ARTWORK_THUMBNAIL_IMAGE_SIZE as _,
+            ARTWORK_THUMBNAIL_IMAGE_SIZE as _,
+        ),
+        pixels,
     }
+}
+
+#[must_use]
+fn artwork_thumbnail_image_with_solid_color(color: Color32) -> ColorImage {
+    artwork_thumbnail_image_from_pixels(
+        [color; ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_IMAGE_SIZE].to_vec(),
+    )
 }
 
 #[must_use]
@@ -40,12 +55,12 @@ fn artwork_thumbnail_image_from_rgb_pixels(
     let pixels = thumbnail
         .chunks_exact(3)
         .map(|rgb| Color32::from_rgb(rgb[0], rgb[1], rgb[2]));
-    artwork_thumbnail_image_from_pixels(pixels, border_color)
+    artwork_thumbnail_image_with_border(pixels, border_color)
 }
 
 #[must_use]
 #[expect(clippy::similar_names)]
-fn artwork_thumbnail_image_from_pixels(
+fn artwork_thumbnail_image_with_border(
     pixels: impl IntoIterator<Item = Color32>,
     border_color: Color32,
 ) -> ColorImage {
@@ -83,14 +98,7 @@ fn artwork_thumbnail_image_from_pixels(
             + ARTWORK_THUMBNAIL_BORDER_SIZE,
     ))
     .collect::<Vec<_>>();
-    debug_assert_eq!(
-        pixels.len(),
-        ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_IMAGE_SIZE
-    );
-    ColorImage {
-        size: [ARTWORK_THUMBNAIL_IMAGE_SIZE, ARTWORK_THUMBNAIL_IMAGE_SIZE],
-        pixels,
-    }
+    artwork_thumbnail_image_from_pixels(pixels)
 }
 
 #[must_use]

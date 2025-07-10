@@ -4,7 +4,7 @@
 use eframe::Frame;
 use egui::{
     Align, Button, CentralPanel, Context, Grid, ImageButton, Layout, OpenUrl, ScrollArea, TextEdit,
-    TopBottomPanel, load::SizedTexture,
+    TopBottomPanel, load::SizedTexture, scroll_area::ScrollSource,
 };
 
 use crate::library::{
@@ -257,25 +257,29 @@ fn render_central_panel(
             last_progress,
             final_outcome,
         } => {
-            ScrollArea::both().drag_to_scroll(true).show(ui, |ui| {
-                if let Some(final_outcome) = final_outcome {
-                    let line = format!("{final_outcome:#?}");
-                    ui.label(line);
-                } else if let Some(progress) = last_progress {
-                    let line = format!("{progress:#?}");
-                    ui.label(line);
-                }
-            });
+            ScrollArea::both()
+                .scroll_source(ScrollSource::ALL)
+                .show(ui, |ui| {
+                    if let Some(final_outcome) = final_outcome {
+                        let line = format!("{final_outcome:#?}");
+                        ui.label(line);
+                    } else if let Some(progress) = last_progress {
+                        let line = format!("{progress:#?}");
+                        ui.label(line);
+                    }
+                });
         }
         ModelMode::MusicDirList {
             content_paths_with_count,
         } => {
-            ScrollArea::both().drag_to_scroll(true).show(ui, |ui| {
-                for (content_path, count) in content_paths_with_count {
-                    // Display absolute paths. Otherwise the root folder would become an empty string.
-                    ui.label(format!("/{content_path} ({count})"));
-                }
-            });
+            ScrollArea::both()
+                .scroll_source(ScrollSource::ALL)
+                .show(ui, |ui| {
+                    for (content_path, count) in content_paths_with_count {
+                        // Display absolute paths. Otherwise the root folder would become an empty string.
+                        ui.label(format!("/{content_path} ({count})"));
+                    }
+                });
         }
     }
 }
