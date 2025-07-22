@@ -37,7 +37,7 @@ aoide-repo.workspace = true
 aoide-storage-sqlite.workspace = true
 
 [dependencies.rfd]
-version = "0.15.3"
+version = "0.15.4"
 optional = true
 default-features = false
 features = ["tokio", "xdg-portal"]
