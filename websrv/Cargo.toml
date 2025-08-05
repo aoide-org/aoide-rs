@@ -31,7 +31,7 @@ tracing = "0.1.41"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 url = { workspace = true, features = ["serde"] }
-warp = { version = "0.3.7", default-features = false }
+warp = { version = "0.4.1", default-features = false, features = ["server"] }
 
 # Workspace dependencies
 aoide-backend-webapi-json = { "workspace" = true, features = ["tokio"] }

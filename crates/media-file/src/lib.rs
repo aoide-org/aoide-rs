@@ -8,11 +8,12 @@ pub mod util;
 
 use std::{io::Error as IoError, result::Result as StdResult};
 
-use aoide_core::media::artwork::ArtworkImageError;
 use image::ImageError;
 use lofty::error::LoftyError;
 use mime::Mime;
 use thiserror::Error;
+
+use aoide_core::media::artwork::ArtworkImageError;
 
 #[derive(Error, Debug)]
 pub enum Error {

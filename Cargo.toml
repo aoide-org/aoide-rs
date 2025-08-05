@@ -62,14 +62,15 @@ regex = "1.11.1"
 schemars = "1.0.4"
 semval = "0.5.2"
 serde = "1.0.219"
-serde_json = "1.0.141"
+serde_json = "1.0.142"
 smol_str = "0.3.2"
 static_assertions = "1.1.0"
 strum = "0.27.2"
 tantivy = "0.24.2"
 thiserror = "2.0.12"
-tokio = "1.47.0"
+tokio = "1.47.1"
 url = "2.5.4"
+walkdir = "2.5.0"
 
 [workspace.lints.rust]
 # Opt-in for allowed-by-default lints (in alphabetical order)

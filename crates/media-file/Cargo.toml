@@ -38,7 +38,7 @@ thiserror.workspace = true
 # TODO: Remove time dependency.
 time = { version = "0.3.41", features = ["formatting"] }
 url.workspace = true
-walkdir = "2.5.0"
+walkdir.workspace = true
 
 # Dependencies (optional): gigtag
 gigtag = { version = "0.4.1", features = ["smol_str"], optional = true }

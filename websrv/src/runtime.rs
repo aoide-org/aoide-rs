@@ -12,7 +12,7 @@ use std::{
 };
 
 use jiff::Timestamp;
-use tokio::{sync::mpsc, time::sleep};
+use tokio::{net::TcpListener, sync::mpsc, time::sleep};
 use warp::{Filter, http::StatusCode};
 
 use aoide_repo_sqlite::initialize_database;
@@ -72,6 +72,7 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
     ))
 }
 
+#[expect(clippy::too_many_lines, reason = "TODO")]
 pub(crate) async fn run(
     rt: &tokio::runtime::Handle,
     config: Config,
@@ -163,11 +164,15 @@ pub(crate) async fn run(
     log::info!("Starting");
     current_state_tx.write(Some(State::Starting));
 
+    let tcp_listener = TcpListener::bind(config.network.endpoint.socket_addr()).await?;
+    let socket_addr = tcp_listener.local_addr()?;
+    let server = server.incoming(tcp_listener);
+
     let abort_pending_tasks_on_termination = Arc::new(AtomicBool::new(false));
-    let (socket_addr, server_listener) = {
+    let server = {
         let mut command_rx = command_rx;
         let abort_pending_tasks_on_termination = Arc::clone(&abort_pending_tasks_on_termination);
-        server.bind_with_graceful_shutdown(config.network.endpoint.socket_addr(), async move {
+        let shutdown_signal = async move {
             tokio::select! {
                 Some(()) = server_shutdown_rx.recv() => (),
                 Some(command) = command_rx.recv() => {
@@ -181,7 +186,8 @@ pub(crate) async fn run(
                 }
                 else => (),
             }
-        })
+        };
+        server.graceful(shutdown_signal)
     };
 
     // Give the server some time to become ready and start listening
@@ -194,7 +200,7 @@ pub(crate) async fn run(
     log::info!("Listening on {socket_addr}");
     current_state_tx.write(Some(State::Listening { socket_addr }));
 
-    server_listener.await;
+    server.run().await;
 
     log::info!("Stopping");
     current_state_tx.write(Some(State::Stopping));

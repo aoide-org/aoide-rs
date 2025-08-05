@@ -8,7 +8,7 @@ use aoide_core::{
 };
 use aoide_media_file::{
     io::{
-        export::export_track_to_file,
+        export::export_track_to_file_with_type,
         import::{ImportTrack, Reader, import_into_track},
     },
     util::guess_mime_from_file_path,
@@ -95,9 +95,9 @@ fn integer_bpm_roundtrip() {
         .metrics
         .flags
         .remove(aoide_core::track::metric::MetricsFlags::TEMPO_BPM_INTEGER);
-    export_track_to_file(
+    export_track_to_file_with_type(
         file.as_file_mut(),
-        Some("mp3"),
+        FileType::Mpeg,
         &Default::default(),
         &mut track,
         None,

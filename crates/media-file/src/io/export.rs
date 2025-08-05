@@ -65,35 +65,24 @@ impl Default for ExportTrackConfig {
     }
 }
 
+#[must_use]
+fn file_extension_str(path: &Path) -> Option<&str> {
+    path.extension().and_then(OsStr::to_str)
+}
+
 pub fn export_track_to_file_path(
     path: &Path,
-    file_ext: Option<&str>,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
     let mut file = OpenOptions::new().write(true).open(path)?;
-    let file_ext = file_ext.or_else(|| path.extension().and_then(OsStr::to_str));
-    export_track_to_file(
-        &mut file,
-        file_ext,
-        config,
-        track,
-        edit_embedded_artwork_image,
-    )
-}
-
-pub fn export_track_to_file(
-    file: &mut File,
-    file_ext: Option<&str>,
-    config: &ExportTrackConfig,
-    track: &mut Track,
-    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<()> {
-    let file_type = if let Some(file_type) = file_ext.and_then(FileType::from_ext) {
+    let file_type = if let Some(file_type) = file_extension_str(path).and_then(FileType::from_ext) {
         file_type
     } else {
         let probe = Probe::new(file.try_clone()?).guess_file_type()?;
+        // Ensure that the file could be read again.
+        file.rewind()?;
         let Some(file_type) = probe.file_type() else {
             log::debug!(
                 "Skipping export of track {media_source_content_link:?}: {config:?}",
@@ -105,8 +94,22 @@ pub fn export_track_to_file(
         };
         file_type
     };
-    // Ensure that the file could be read again.
-    file.rewind()?;
+    export_track_to_file_with_type(
+        &mut file,
+        file_type,
+        config,
+        track,
+        edit_embedded_artwork_image,
+    )
+}
+
+pub fn export_track_to_file_with_type(
+    file: &mut File,
+    file_type: FileType,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
+) -> Result<()> {
     let parse_options = parse_options();
     let write_options = Default::default();
     match file_type {
