@@ -8,11 +8,10 @@ use std::{
         Arc,
         atomic::{AtomicBool, Ordering},
     },
-    time::Duration,
 };
 
 use jiff::Timestamp;
-use tokio::{net::TcpListener, sync::mpsc, time::sleep};
+use tokio::{net::TcpListener, sync::mpsc};
 use warp::{Filter, http::StatusCode};
 
 use aoide_repo_sqlite::initialize_database;
@@ -25,8 +24,6 @@ use aoide_websrv_warp_sqlite::handle_rejection;
 
 use super::{config::Config, routing};
 use crate::config::DatabaseConfig;
-
-const WEB_SERVER_LISTENING_DELAY: Duration = Duration::from_millis(250);
 
 static OPENAPI_YAML: &str = include_str!("../res/openapi.yaml");
 
@@ -168,6 +165,9 @@ pub(crate) async fn run(
     let socket_addr = tcp_listener.local_addr()?;
     let server = server.incoming(tcp_listener);
 
+    log::info!("Listening on {socket_addr}");
+    current_state_tx.write(Some(State::Listening { socket_addr }));
+
     let abort_pending_tasks_on_termination = Arc::new(AtomicBool::new(false));
     let server = {
         let mut command_rx = command_rx;
@@ -189,16 +189,6 @@ pub(crate) async fn run(
         };
         server.graceful(shutdown_signal)
     };
-
-    // Give the server some time to become ready and start listening
-    // before announcing the actual endpoint address, i.e. when using
-    // an ephemeral port. The delay might need to be tuned depending
-    // on how long the startup actually takes. Unfortunately warp does
-    // not provide any signal when the server has started listening.
-    sleep(WEB_SERVER_LISTENING_DELAY).await;
-
-    log::info!("Listening on {socket_addr}");
-    current_state_tx.write(Some(State::Listening { socket_addr }));
 
     server.run().await;
 
