@@ -331,14 +331,14 @@ fn verify_artwork_image_metadata(
     apic_type: Option<ApicType>,
     media_type: &Mime,
 ) {
-    if let Some(apic_type) = apic_type {
-        if apic_type != artwork_image.apic_type {
-            log::warn!(
-                "Mismatching artwork image APIC types: expected = {expected:?}, actual = \
+    if let Some(apic_type) = apic_type
+        && apic_type != artwork_image.apic_type
+    {
+        log::warn!(
+            "Mismatching artwork image APIC types: expected = {expected:?}, actual = \
                  {apic_type:?}",
-                expected = artwork_image.apic_type
-            );
-        }
+            expected = artwork_image.apic_type
+        );
     }
     if media_type.essence_str() != artwork_image.media_type.essence_str() {
         log::warn!(
@@ -697,25 +697,23 @@ impl Importer {
         if let Some(joined_label) = TagLabel::clamp_from(joined_label_value) {
             debug_assert!(!joined_label.is_empty());
             let mut import_count = 0;
-            if let Some(tag_mapping_config) = tag_mapping_config {
-                if !tag_mapping_config.label_separator.is_empty() {
-                    for split in joined_label
-                        .as_str()
-                        .split(&tag_mapping_config.label_separator)
-                    {
-                        let label = TagLabel::clamp_from(split).map(TagLabel::into_owned);
-                        match try_import_plain_tag(label, *next_score_value) {
-                            Ok(plain_tag) => {
-                                plain_tags.push(plain_tag);
-                                import_count += 1;
-                                *next_score_value =
-                                    tag_mapping_config.next_score_value(*next_score_value);
-                            }
-                            Err(plain_tag) => {
-                                self.add_issue(format!(
-                                    "Failed to import plain tag: {plain_tag:?}"
-                                ));
-                            }
+            if let Some(tag_mapping_config) = tag_mapping_config
+                && !tag_mapping_config.label_separator.is_empty()
+            {
+                for split in joined_label
+                    .as_str()
+                    .split(&tag_mapping_config.label_separator)
+                {
+                    let label = TagLabel::clamp_from(split).map(TagLabel::into_owned);
+                    match try_import_plain_tag(label, *next_score_value) {
+                        Ok(plain_tag) => {
+                            plain_tags.push(plain_tag);
+                            import_count += 1;
+                            *next_score_value =
+                                tag_mapping_config.next_score_value(*next_score_value);
+                        }
+                        Err(plain_tag) => {
+                            self.add_issue(format!("Failed to import plain tag: {plain_tag:?}"));
                         }
                     }
                 }

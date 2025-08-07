@@ -130,16 +130,16 @@ impl ContentPathResolver for VfsResolver {
         }
         match content_url.to_file_path() {
             Ok(file_path) => {
-                if file_path.is_absolute() {
-                    if let Some(slash_path) = path_to_slash(&file_path) {
-                        if let Some(root_slash_path) = &self.root_slash_path {
-                            let stripped_path = slash_path.strip_prefix(root_slash_path);
-                            if let Some(stripped_path) = stripped_path {
-                                return Ok(Some(stripped_path.to_owned().into()));
-                            }
-                        } else {
-                            return Ok(Some(slash_path.into_owned().into()));
+                if file_path.is_absolute()
+                    && let Some(slash_path) = path_to_slash(&file_path)
+                {
+                    if let Some(root_slash_path) = &self.root_slash_path {
+                        let stripped_path = slash_path.strip_prefix(root_slash_path);
+                        if let Some(stripped_path) = stripped_path {
+                            return Ok(Some(stripped_path.to_owned().into()));
                         }
+                    } else {
+                        return Ok(Some(slash_path.into_owned().into()));
                     }
                 }
                 Ok(None)

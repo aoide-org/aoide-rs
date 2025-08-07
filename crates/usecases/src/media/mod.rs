@@ -114,16 +114,16 @@ pub fn import_track_from_file_path(
             is_synchronized,
         } => {
             if let (old_content_rev, Some(new_content_rev)) = (old_content_rev, new_content_rev) {
-                if let Some(old_content_rev) = old_content_rev {
-                    if new_content_rev <= *old_content_rev {
-                        log::debug!(
-                            "Skipping reimport of synchronized file {path}",
-                            path = canonical_path.display(),
-                        );
-                        return Ok(ImportTrackFromFileOutcome::SkippedSynchronized {
-                            content_rev: Some(new_content_rev),
-                        });
-                    }
+                if let Some(old_content_rev) = old_content_rev
+                    && new_content_rev <= *old_content_rev
+                {
+                    log::debug!(
+                        "Skipping reimport of synchronized file {path}",
+                        path = canonical_path.display(),
+                    );
+                    return Ok(ImportTrackFromFileOutcome::SkippedSynchronized {
+                        content_rev: Some(new_content_rev),
+                    });
                 }
                 // If the existing information is synchronized or not only becomes
                 // relevant if an import is desired. Checking this later at this

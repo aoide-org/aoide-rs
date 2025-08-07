@@ -184,20 +184,20 @@ impl RestoringFromMusicDirectoryContext {
         );
         let mut selected_candidate: Option<EntityWithSummary> = None;
         for candidate in candidates {
-            if let Some(candidate_vfs_music_dir) = vfs_music_dir(&candidate.entity.body) {
-                if music_dir.starts_with(&*candidate_vfs_music_dir) {
-                    if let Some(selected_candidate) = &mut selected_candidate {
-                        if candidate_vfs_music_dir.starts_with(
-                            &*vfs_music_dir(&selected_candidate.entity.body).expect("some"),
-                        ) {
-                            // Prefer the closest/longest match
-                            *selected_candidate = candidate;
-                            continue;
-                        }
-                    } else {
-                        selected_candidate = Some(candidate);
+            if let Some(candidate_vfs_music_dir) = vfs_music_dir(&candidate.entity.body)
+                && music_dir.starts_with(&*candidate_vfs_music_dir)
+            {
+                if let Some(selected_candidate) = &mut selected_candidate {
+                    if candidate_vfs_music_dir.starts_with(
+                        &*vfs_music_dir(&selected_candidate.entity.body).expect("some"),
+                    ) {
+                        // Prefer the closest/longest match
+                        *selected_candidate = candidate;
                         continue;
                     }
+                } else {
+                    selected_candidate = Some(candidate);
+                    continue;
                 }
             }
             log::info!(

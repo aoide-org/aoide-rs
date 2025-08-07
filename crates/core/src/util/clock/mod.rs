@@ -418,10 +418,12 @@ impl fmt::Display for YyyyMmDdDate {
         if self.is_year() {
             return write!(f, "{:04}", self.year());
         }
-        if self.month() >= 1 && self.month() <= 12 && self.day_of_month() <= 31 {
-            if let Ok(date) = Date::new(self.year(), self.month(), self.day_of_month()) {
-                return date.fmt(f);
-            }
+        if self.month() >= 1
+            && self.month() <= 12
+            && self.day_of_month() <= 31
+            && let Ok(date) = Date::new(self.year(), self.month(), self.day_of_month())
+        {
+            return date.fmt(f);
         }
         if self.day_of_month() == 0 {
             return write!(f, "{:04}-{:02}", self.year(), self.month());

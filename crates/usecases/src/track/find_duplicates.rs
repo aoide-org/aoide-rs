@@ -98,54 +98,54 @@ where
         max_results,
     } = params;
     let mut all_filters = Vec::with_capacity(10);
-    if search_flags.contains(SearchFlags::TRACK_ARTIST) {
-        if let Some(track_artist) = track.track_artist() {
-            let track_artist = track_artist.trim();
-            if !track_artist.is_empty() {
-                all_filters.push(Filter::ActorPhrase(ActorPhraseFilter {
-                    scope: Some(Scope::Track),
-                    roles: vec![ActorRole::Artist],
-                    name_terms: vec![track_artist.to_owned()],
-                    ..Default::default()
-                }));
-            }
+    if search_flags.contains(SearchFlags::TRACK_ARTIST)
+        && let Some(track_artist) = track.track_artist()
+    {
+        let track_artist = track_artist.trim();
+        if !track_artist.is_empty() {
+            all_filters.push(Filter::ActorPhrase(ActorPhraseFilter {
+                scope: Some(Scope::Track),
+                roles: vec![ActorRole::Artist],
+                name_terms: vec![track_artist.to_owned()],
+                ..Default::default()
+            }));
         }
     }
-    if search_flags.contains(SearchFlags::TRACK_TITLE) {
-        if let Some(track_title) = track.track_title() {
-            let track_title = track_title.trim();
-            if !track_title.is_empty() {
-                all_filters.push(Filter::TitlePhrase(TitlePhraseFilter {
-                    scope: Some(Scope::Track),
-                    name_terms: vec![track_title.to_owned()],
-                    ..Default::default()
-                }));
-            }
+    if search_flags.contains(SearchFlags::TRACK_TITLE)
+        && let Some(track_title) = track.track_title()
+    {
+        let track_title = track_title.trim();
+        if !track_title.is_empty() {
+            all_filters.push(Filter::TitlePhrase(TitlePhraseFilter {
+                scope: Some(Scope::Track),
+                name_terms: vec![track_title.to_owned()],
+                ..Default::default()
+            }));
         }
     }
-    if search_flags.contains(SearchFlags::ALBUM_ARTIST) {
-        if let Some(album_artist) = track.album_artist() {
-            let album_artist = album_artist.trim();
-            if !album_artist.is_empty() {
-                all_filters.push(Filter::ActorPhrase(ActorPhraseFilter {
-                    scope: Some(Scope::Album),
-                    roles: vec![ActorRole::Artist],
-                    name_terms: vec![album_artist.to_owned()],
-                    ..Default::default()
-                }));
-            }
+    if search_flags.contains(SearchFlags::ALBUM_ARTIST)
+        && let Some(album_artist) = track.album_artist()
+    {
+        let album_artist = album_artist.trim();
+        if !album_artist.is_empty() {
+            all_filters.push(Filter::ActorPhrase(ActorPhraseFilter {
+                scope: Some(Scope::Album),
+                roles: vec![ActorRole::Artist],
+                name_terms: vec![album_artist.to_owned()],
+                ..Default::default()
+            }));
         }
     }
-    if search_flags.contains(SearchFlags::ALBUM_TITLE) {
-        if let Some(album_title) = track.album_title() {
-            let album_title = album_title.trim();
-            if !album_title.is_empty() {
-                all_filters.push(Filter::TitlePhrase(TitlePhraseFilter {
-                    scope: Some(Scope::Album),
-                    name_terms: vec![album_title.to_owned()],
-                    ..Default::default()
-                }));
-            }
+    if search_flags.contains(SearchFlags::ALBUM_TITLE)
+        && let Some(album_title) = track.album_title()
+    {
+        let album_title = album_title.trim();
+        if !album_title.is_empty() {
+            all_filters.push(Filter::TitlePhrase(TitlePhraseFilter {
+                scope: Some(Scope::Album),
+                name_terms: vec![album_title.to_owned()],
+                ..Default::default()
+            }));
         }
     }
     if search_flags.contains(SearchFlags::RECORDED_AT) {

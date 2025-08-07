@@ -346,11 +346,11 @@ fn load_track_tags(
         let (_, record) = row.map_err(repo_error)?.into();
         let (facet_id, tag) = record.into();
         if let Some(facet_id) = facet_id {
-            if let Some(faceted_tags) = facets.last_mut() {
-                if faceted_tags.facet_id == facet_id {
-                    faceted_tags.tags.push(tag);
-                    continue;
-                }
+            if let Some(faceted_tags) = facets.last_mut()
+                && faceted_tags.facet_id == facet_id
+            {
+                faceted_tags.tags.push(tag);
+                continue;
             }
             facets.push(FacetedTags {
                 facet_id,

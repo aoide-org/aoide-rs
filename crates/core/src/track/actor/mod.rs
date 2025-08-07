@@ -303,13 +303,13 @@ impl ActorNamesSummarySplitter {
         let mut skipped_leading_separator = false;
         loop {
             let name_trimmed = name.trim_start();
-            if let Some(first_match) = self.protected_names.find(name_trimmed) {
-                if first_match.start() == 0 {
-                    let (first_name, rest) = name_trimmed.split_at(first_match.end());
-                    let rest = rest.trim_end();
-                    let rest = if rest.is_empty() { None } else { Some(rest) };
-                    return Some((first_name, rest));
-                }
+            if let Some(first_match) = self.protected_names.find(name_trimmed)
+                && first_match.start() == 0
+            {
+                let (first_name, rest) = name_trimmed.split_at(first_match.end());
+                let rest = rest.trim_end();
+                let rest = if rest.is_empty() { None } else { Some(rest) };
+                return Some((first_name, rest));
             }
             if skipped_leading_separator {
                 break;

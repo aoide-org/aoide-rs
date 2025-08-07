@@ -201,11 +201,11 @@ fn load_tracks_summary_and_count_entries() -> anyhow::Result<()> {
     );
 
     // Append first track again as new last track
-    db.append_playlist_entries(playlist_id, &[first_track_entry.clone()])?;
+    db.append_playlist_entries(playlist_id, std::slice::from_ref(first_track_entry))?;
 
     // Prepend separator entry
     let first_separator = new_separator_entry_with_title("First".to_string());
-    db.prepend_playlist_entries(playlist_id, &[first_separator.clone()])?;
+    db.prepend_playlist_entries(playlist_id, std::slice::from_ref(&first_separator))?;
 
     assert_eq!(track_count + 2, db.count_playlist_entries(playlist_id)?);
     let tracks_summary = db.load_playlist_tracks_summary(playlist_id)?;
@@ -243,7 +243,7 @@ fn prepend_append_entries() -> anyhow::Result<()> {
 
     // Prepend entry
     let first_separator = new_separator_entry_with_title("First".to_string());
-    db.prepend_playlist_entries(playlist_id, &[first_separator.clone()])?;
+    db.prepend_playlist_entries(playlist_id, std::slice::from_ref(&first_separator))?;
     let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 1, playlist_with_entries.entries.len());
     assert_eq!(
@@ -254,7 +254,7 @@ fn prepend_append_entries() -> anyhow::Result<()> {
 
     // Append entry
     let last_separator = new_separator_entry_with_title("Last".to_string());
-    db.append_playlist_entries(playlist_id, &[last_separator.clone()])?;
+    db.append_playlist_entries(playlist_id, std::slice::from_ref(&last_separator))?;
     let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(track_count + 2, playlist_with_entries.entries.len());
     assert_eq!(

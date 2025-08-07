@@ -195,11 +195,11 @@ impl Channels {
         flags: Option<ChannelFlags>,
         count: Option<ChannelCount>,
     ) -> Option<Self> {
-        if let Some(flags) = flags {
-            if flags.channel_count() > ChannelCount(0) {
-                // Valid flags are prioritized over count
-                return Some(Self::Flags(flags));
-            }
+        if let Some(flags) = flags
+            && flags.channel_count() > ChannelCount(0)
+        {
+            // Valid flags are prioritized over count
+            return Some(Self::Flags(flags));
         }
         count.map(Self::Count)
     }

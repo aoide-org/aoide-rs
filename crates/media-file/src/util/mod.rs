@@ -409,27 +409,24 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
     let input = value.trim();
     let mut digits_parser = delimited(space0, digit1, space0);
     let digits_parsed: IResult<_, _> = digits_parser.parse_complete(input);
-    if let Ok((remainder, digits_input)) = digits_parsed {
-        if remainder.is_empty()
-            && (/* YYYY */digits_input.len() == 4 ||
+    if let Ok((remainder, digits_input)) = digits_parsed
+        && remainder.is_empty()
+        && (/* YYYY */digits_input.len() == 4 ||
             /*YYYYMM*/ digits_input.len() == 6 ||
             /*YyyyMmDdDateValue*/ digits_input.len() == 8)
-        {
-            if let Ok(yyyymmdd) =
-                digits_input
-                    .parse::<YyyyMmDdDateValue>()
-                    .map(|val| match digits_input.len() {
-                        4 => val * 10000,
-                        6 => val * 100,
-                        8 => val,
-                        _ => unreachable!(),
-                    })
-            {
-                let date = YyyyMmDdDate::new_unchecked(yyyymmdd);
-                if date.is_valid() {
-                    return Some(date.into());
-                }
-            }
+        && let Ok(yyyymmdd) =
+            digits_input
+                .parse::<YyyyMmDdDateValue>()
+                .map(|val| match digits_input.len() {
+                    4 => val * 10000,
+                    6 => val * 100,
+                    8 => val,
+                    _ => unreachable!(),
+                })
+    {
+        let date = YyyyMmDdDate::new_unchecked(yyyymmdd);
+        if date.is_valid() {
+            return Some(date.into());
         }
     }
     let mut year_month_parser = separated_pair(
@@ -438,35 +435,30 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
         delimited(space0, digit1, space0),
     );
     let year_month_parsed: IResult<_, _> = year_month_parser.parse_complete(input);
-    if let Ok((remainder, (year_input, month_input))) = year_month_parsed {
-        if year_input.len() == 4 && month_input.len() <= 2 {
-            if let (Ok(year), Ok(month)) = (
-                year_input.parse::<YyyyMmDdDateValue>(),
-                month_input.parse::<YyyyMmDdDateValue>(),
-            ) {
-                if remainder.is_empty() {
-                    let date = YyyyMmDdDate::new_unchecked(year * 10000 + month * 100);
-                    if date.is_valid() {
-                        return Some(date.into());
-                    }
-                }
-                let mut day_of_month_parser = delimited(pair(tag("-"), space0), digit1, space0);
-                let day_of_month_parsed: IResult<_, _> =
-                    day_of_month_parser.parse_complete(remainder);
-                if let Ok((remainder, day_of_month_input)) = day_of_month_parsed {
-                    if remainder.is_empty() {
-                        if let Ok(day_of_month) = day_of_month_input.parse::<YyyyMmDdDateValue>() {
-                            if (0..=31).contains(&day_of_month) {
-                                let date = YyyyMmDdDate::new_unchecked(
-                                    year * 10000 + month * 100 + day_of_month,
-                                );
-                                if date.is_valid() {
-                                    return Some(date.into());
-                                }
-                            }
-                        }
-                    }
-                }
+    if let Ok((remainder, (year_input, month_input))) = year_month_parsed
+        && year_input.len() == 4
+        && month_input.len() <= 2
+        && let (Ok(year), Ok(month)) = (
+            year_input.parse::<YyyyMmDdDateValue>(),
+            month_input.parse::<YyyyMmDdDateValue>(),
+        )
+    {
+        if remainder.is_empty() {
+            let date = YyyyMmDdDate::new_unchecked(year * 10000 + month * 100);
+            if date.is_valid() {
+                return Some(date.into());
+            }
+        }
+        let mut day_of_month_parser = delimited(pair(tag("-"), space0), digit1, space0);
+        let day_of_month_parsed: IResult<_, _> = day_of_month_parser.parse_complete(remainder);
+        if let Ok((remainder, day_of_month_input)) = day_of_month_parsed
+            && remainder.is_empty()
+            && let Ok(day_of_month) = day_of_month_input.parse::<YyyyMmDdDateValue>()
+            && (0..=31).contains(&day_of_month)
+        {
+            let date = YyyyMmDdDate::new_unchecked(year * 10000 + month * 100 + day_of_month);
+            if date.is_valid() {
+                return Some(date.into());
             }
         }
     }
@@ -486,17 +478,15 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
                 year,
                 u8::from(date_time.date().month()) as _,
                 date_time.date().day() as _,
+            ) && let Ok(time) = Time::new(
+                date_time.hour() as _,
+                date_time.minute() as _,
+                date_time.second() as _,
+                date_time.nanosecond() as _,
             ) {
-                if let Ok(time) = Time::new(
-                    date_time.hour() as _,
-                    date_time.minute() as _,
-                    date_time.second() as _,
-                    date_time.nanosecond() as _,
-                ) {
-                    let date_time = DateTime::from_parts(date, time);
-                    let zoned = date_time.to_zoned(TimeZone::UTC).expect("always valid");
-                    return Some(OffsetDateTimeMs::from_zoned(&zoned).into());
-                }
+                let date_time = DateTime::from_parts(date, time);
+                let zoned = date_time.to_zoned(TimeZone::UTC).expect("always valid");
+                return Some(OffsetDateTimeMs::from_zoned(&zoned).into());
             }
         }
     }

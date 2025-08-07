@@ -41,12 +41,10 @@ const TRACING_SUBSCRIBER_ENV_FILTER_DEFAULT: &str = "info";
 fn create_env_filter() -> EnvFilter {
     EnvFilter::try_from_default_env().unwrap_or_else(|err| {
         let rust_log_from_env = env::var("RUST_LOG").ok();
-        if let Some(rust_log_from_env) = rust_log_from_env {
-            if !rust_log_from_env.is_empty() {
-                eprintln!(
-                    "Failed to parse RUST_LOG environment variable '{rust_log_from_env}': {err}"
-                );
-            }
+        if let Some(rust_log_from_env) = rust_log_from_env
+            && !rust_log_from_env.is_empty()
+        {
+            eprintln!("Failed to parse RUST_LOG environment variable '{rust_log_from_env}': {err}");
         }
         EnvFilter::new(TRACING_SUBSCRIBER_ENV_FILTER_DEFAULT)
     })

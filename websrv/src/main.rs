@@ -83,10 +83,10 @@ pub fn save_app_config(app_dirs: &ProjectDirs, config: &Config) {
         log::warn!("Failed to store configuration data: {err}");
         return;
     }
-    if let Some(parent_path) = file_path.parent() {
-        if let Err(err) = fs::create_dir_all(parent_path) {
-            log::warn!("Failed to create parent directories for configuration file: {err}");
-        }
+    if let Some(parent_path) = file_path.parent()
+        && let Err(err) = fs::create_dir_all(parent_path)
+    {
+        log::warn!("Failed to create parent directories for configuration file: {err}");
     }
     if let Err(err) = fs::write(&file_path, &text) {
         log::warn!("Failed to write configuration data into file: {err}");

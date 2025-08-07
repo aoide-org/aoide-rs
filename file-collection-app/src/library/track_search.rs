@@ -219,17 +219,17 @@ pub(super) fn parse_filter_from_input(input: &str) -> Option<Filter> {
     let all_filters: Vec<_> = input
         .split_whitespace()
         .map(|term| {
-            if let Some(hashtag_label) = term.strip_prefix(HASHTAG_LABEL_PREFIX) {
-                if !hashtag_label.is_empty() {
-                    // Exclude predefined facets from the hashtag search.
-                    let facets = FacetsFilter::NoneOf(predefined_tag_facets.to_vec());
-                    let label = StringPredicate::StartsWith(hashtag_label.to_owned().into());
-                    return Filter::Tag(TagFilter {
-                        facets: Some(facets),
-                        label: Some(label),
-                        ..Default::default()
-                    });
-                }
+            if let Some(hashtag_label) = term.strip_prefix(HASHTAG_LABEL_PREFIX)
+                && !hashtag_label.is_empty()
+            {
+                // Exclude predefined facets from the hashtag search.
+                let facets = FacetsFilter::NoneOf(predefined_tag_facets.to_vec());
+                let label = StringPredicate::StartsWith(hashtag_label.to_owned().into());
+                return Filter::Tag(TagFilter {
+                    facets: Some(facets),
+                    label: Some(label),
+                    ..Default::default()
+                });
             }
             let mut bpm_filter = BpmFilter::GreaterOrEqual;
             if let Some(bpm) = term

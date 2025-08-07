@@ -261,16 +261,16 @@ pub fn import_from_faceted_tags(mut faceted_tags: FacetedTags<'static>) -> TagsM
         let FacetedTags { facet_id, mut tags } = faceted_tags;
         let facet_key = FacetKey::from(facet_id);
         let ingested_tags = tags_map.remove(&facet_key).map(|(_, tags)| tags);
-        if let Some(mut ingested_tags) = ingested_tags {
-            if !ingested_tags.is_empty() {
-                log::warn!(
-                    "Joining {num_undecoded} undecoded with {num_ingested} ingested tag(s) for \
+        if let Some(mut ingested_tags) = ingested_tags
+            && !ingested_tags.is_empty()
+        {
+            log::warn!(
+                "Joining {num_undecoded} undecoded with {num_ingested} ingested tag(s) for \
                      facet \"{facet_key}\"",
-                    num_undecoded = tags.len(),
-                    num_ingested = ingested_tags.len()
-                );
-                tags.append(&mut ingested_tags);
-            }
+                num_undecoded = tags.len(),
+                num_ingested = ingested_tags.len()
+            );
+            tags.append(&mut ingested_tags);
         }
         tags_map.replace(facet_key, tags);
     }

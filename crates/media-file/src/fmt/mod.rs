@@ -386,15 +386,15 @@ impl Compatibility {
             primary_work,
             secondary_work,
         } = self;
-        if let Some(secondary_content_group) = secondary_content_group {
-            if *secondary_content_group == item_key {
-                return *primary_content_group;
-            }
+        if let Some(secondary_content_group) = secondary_content_group
+            && *secondary_content_group == item_key
+        {
+            return *primary_content_group;
         }
-        if let Some(secondary_work) = secondary_work {
-            if *secondary_work == item_key {
-                return *primary_work;
-            }
+        if let Some(secondary_work) = secondary_work
+            && *secondary_work == item_key
+        {
+            return *primary_work;
         }
         item_key
     }
@@ -502,10 +502,10 @@ pub(crate) fn import_file_tag_into_track(
         }
         let old_tempo_bpm = &mut track.metrics.tempo_bpm;
         let new_tempo_bpm = TempoBpm::from(imported_tempo_bpm);
-        if let Some(old_tempo_bpm) = old_tempo_bpm {
-            if *old_tempo_bpm != new_tempo_bpm {
-                log::debug!("Replacing tempo: {old_tempo_bpm} -> {new_tempo_bpm}");
-            }
+        if let Some(old_tempo_bpm) = old_tempo_bpm
+            && *old_tempo_bpm != new_tempo_bpm
+        {
+            log::debug!("Replacing tempo: {old_tempo_bpm} -> {new_tempo_bpm}");
         }
         *old_tempo_bpm = Some(new_tempo_bpm);
         track
@@ -944,29 +944,29 @@ pub(crate) fn import_file_tag_into_track(
         FACET_ID_GROUPING,
         tag_take_strings(&mut tag, compatibility.primary_content_group).map(Into::into),
     );
-    if let Some(secondary_content_group) = compatibility.secondary_content_group {
-        if tags_map.find(FACET_ID_GROUPING).is_none() {
-            importer.import_faceted_tags_from_label_values(
-                &mut tags_map,
-                &config.faceted_tag_mapping,
-                FACET_ID_GROUPING,
-                tag_take_strings(&mut tag, secondary_content_group).map(Into::into),
-            );
-        }
+    if let Some(secondary_content_group) = compatibility.secondary_content_group
+        && tags_map.find(FACET_ID_GROUPING).is_none()
+    {
+        importer.import_faceted_tags_from_label_values(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            FACET_ID_GROUPING,
+            tag_take_strings(&mut tag, secondary_content_group).map(Into::into),
+        );
     }
 
     // Import gig tags from raw grouping tags before any other tags.
     #[cfg(feature = "gigtag")]
-    if config.flags.contains(ImportTrackFlags::GIGTAGS_CGRP) {
-        if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_GROUPING) {
-            let Some(facet_id) = facet_key.into() else {
-                unreachable!()
-            };
-            tags_map.merge(crate::util::gigtag::import_from_faceted_tags(FacetedTags {
-                facet_id,
-                tags,
-            }));
-        }
+    if config.flags.contains(ImportTrackFlags::GIGTAGS_CGRP)
+        && let Some((facet_key, tags)) = tags_map.remove(FACET_ID_GROUPING)
+    {
+        let Some(facet_id) = facet_key.into() else {
+            unreachable!()
+        };
+        tags_map.merge(crate::util::gigtag::import_from_faceted_tags(FacetedTags {
+            facet_id,
+            tags,
+        }));
     }
 
     // Comment tag
@@ -979,16 +979,16 @@ pub(crate) fn import_file_tag_into_track(
 
     // Import additional gig tags from the raw comment tag.
     #[cfg(feature = "gigtag")]
-    if config.flags.contains(ImportTrackFlags::GIGTAGS_COMM) {
-        if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_COMMENT) {
-            let Some(facet_id) = facet_key.into() else {
-                unreachable!()
-            };
-            tags_map.merge(crate::util::gigtag::import_from_faceted_tags(FacetedTags {
-                facet_id,
-                tags,
-            }));
-        }
+    if config.flags.contains(ImportTrackFlags::GIGTAGS_COMM)
+        && let Some((facet_key, tags)) = tags_map.remove(FACET_ID_COMMENT)
+    {
+        let Some(facet_id) = facet_key.into() else {
+            unreachable!()
+        };
+        tags_map.merge(crate::util::gigtag::import_from_faceted_tags(FacetedTags {
+            facet_id,
+            tags,
+        }));
     }
 
     // Genre tags
@@ -1084,10 +1084,10 @@ pub(crate) fn import_file_tag_into_track(
     {
         let new_artwork =
             import_embedded_artwork(importer, &tag, config.flags.new_artwork_digest());
-        if let Some(old_artwork) = &track.media_source.artwork {
-            if *old_artwork != new_artwork {
-                log::debug!("Replacing artwork: {old_artwork:?} -> {new_artwork:?}");
-            }
+        if let Some(old_artwork) = &track.media_source.artwork
+            && *old_artwork != new_artwork
+        {
+            log::debug!("Replacing artwork: {old_artwork:?} -> {new_artwork:?}");
         }
         track.media_source.artwork = Some(new_artwork);
     } else {
