@@ -24,7 +24,7 @@ default_stages:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-case-conflict
       - id: check-json
@@ -49,7 +49,7 @@ repos:
           # Differs from default_stages (see above)
           - commit-msg
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+    rev: v0.11.0.1
     hooks:
       - id: shellcheck
   - repo: https://github.com/codespell-project/codespell
