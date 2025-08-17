@@ -192,7 +192,7 @@ dependencies = [
  "log",
  "serde",
  "tantivy",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "tokio",
  "url",
 ]
@@ -217,7 +217,7 @@ dependencies = [
  "nonicle",
  "schemars",
  "serde",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "tracing",
  "url",
  "uuid",
@@ -317,7 +317,7 @@ dependencies = [
  "rfd",
  "ron",
  "serde",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "tokio",
  "unnest",
  "url",
@@ -364,7 +364,7 @@ dependencies = [
  "semval",
  "smol_str 0.3.2",
  "tempfile",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "time",
  "triseratops",
  "url",
@@ -414,7 +414,7 @@ dependencies = [
  "aoide-core",
  "log",
  "tantivy",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
 ]
 
 [[package]]
@@ -427,7 +427,7 @@ dependencies = [
  "log",
  "r2d2",
  "serde",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "tokio",
 ]
 
@@ -448,7 +448,7 @@ dependencies = [
  "same-file",
  "semval",
  "static_assertions",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "url",
  "walkdir",
 ]
@@ -467,7 +467,7 @@ dependencies = [
  "aoide-usecases",
  "diesel",
  "log",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "url",
 ]
 
@@ -497,7 +497,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "tokio",
  "tracing",
  "tracing-log",
@@ -517,7 +517,7 @@ dependencies = [
  "aoide-usecases-sqlite",
  "log",
  "serde",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "warp",
 ]
 
@@ -1391,7 +1391,7 @@ checksum = "bd0cf8c02d8f8f9351c626839f4a2c95e117346c477e2aad2cd8c131ab0aba27"
 dependencies = [
  "async-stream",
  "futures-core",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "tokio",
 ]
 
@@ -2941,7 +2941,7 @@ dependencies = [
  "once_cell",
  "rustc-hash 1.1.0",
  "strum 0.26.3",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "unicode-ident",
 ]
 
@@ -3678,9 +3678,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.97"
+version = "1.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d61789d7719defeb74ea5fe81f2fdfdbd28a803847077cecce2ff14e1472f6f1"
+checksum = "89ae43fd86e4158d6db51ad8e2b80f313af9cc74f5c0e03ccb87de09998732de"
 dependencies = [
  "unicode-ident",
 ]
@@ -3925,7 +3925,7 @@ checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
 dependencies = [
  "getrandom 0.2.16",
  "libredox",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
 ]
 
 [[package]]
@@ -4551,7 +4551,7 @@ dependencies = [
  "tantivy-stacker",
  "tantivy-tokenizer-api",
  "tempfile",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "time",
  "uuid",
  "winapi",
@@ -4712,11 +4712,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.14"
+version = "2.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b0949c3a6c842cbde3f1686d6eea5a010516deb7085f79db747562d4102f41e"
+checksum = "80d76d3f064b981389ecb4b6b7f45a0bf9fdac1d5b9204c7bd6714fecc302850"
 dependencies = [
- "thiserror-impl 2.0.14",
+ "thiserror-impl 2.0.15",
 ]
 
 [[package]]
@@ -4732,9 +4732,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.14"
+version = "2.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc5b44b4ab9c2fdd0e0512e6bece8388e214c0749f5862b114cc5b7a25daf227"
+checksum = "44d29feb33e986b6ea906bd9c3559a856983f92371b3eaa5e83782a351623de0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5485,7 +5485,7 @@ dependencies = [
  "raw-window-handle",
  "rustc-hash 1.1.0",
  "smallvec",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "wgpu-core-deps-windows-linux-android",
  "wgpu-hal",
  "wgpu-types",
@@ -5515,7 +5515,7 @@ dependencies = [
  "portable-atomic",
  "raw-window-handle",
  "renderdoc-sys",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "wgpu-types",
 ]
 
@@ -5529,7 +5529,7 @@ dependencies = [
  "bytemuck",
  "js-sys",
  "log",
- "thiserror 2.0.14",
+ "thiserror 2.0.15",
  "web-sys",
 ]
 
