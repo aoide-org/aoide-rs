@@ -59,7 +59,7 @@ getrandom = "0.3.3"
 path-slash = "0.2.1"
 
 [dev-dependencies]
-data-url = "0.3.1"
+data-url = "0.3.2"
 serde_json.workspace = true
 
 [features]
