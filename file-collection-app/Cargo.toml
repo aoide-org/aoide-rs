@@ -35,12 +35,12 @@ workspace = true
 features = ["macros", "rt-multi-thread"]
 
 [dependencies.eframe]
-version = "0.32.1"
+version = "0.32.2"
 default-features = false
 features = ["default_fonts", "glow", "wayland"]
 
 [dependencies.egui]
-version = "0.32.1"
+version = "0.32.2"
 default-features = false
 
 # mimalloc
