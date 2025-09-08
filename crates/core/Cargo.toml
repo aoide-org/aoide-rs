@@ -48,7 +48,7 @@ schemars = { workspace = true, optional = true, features = ["url2"] }
 serde_json = { workspace = true, optional = true }
 
 [dependencies.kmeans_colors]
-version = "0.7.0"
+version = "0.7.1"
 default-features = false
 features = ["palette_color"]
 
