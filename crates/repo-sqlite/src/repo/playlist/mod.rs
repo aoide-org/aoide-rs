@@ -5,7 +5,7 @@ use std::ops::Range;
 
 use anyhow::anyhow;
 use diesel::{
-    dsl::{count_distinct, count_star},
+    dsl::{count, count_star},
     prelude::*,
 };
 
@@ -349,7 +349,10 @@ impl EntryRepo for crate::Connection<'_> {
         use playlist_entry_db::schema::*;
         playlist_entry::table
             .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-            .select((count_star(), count_distinct(playlist_entry::track_id)))
+            .select((
+                count_star(),
+                count(playlist_entry::track_id).aggregate_distinct(),
+            ))
             .filter(playlist_entry::track_id.is_not_null())
             .get_result::<(i64, i64)>(self.as_mut())
             .map(|(total_count, distinct_count)| {

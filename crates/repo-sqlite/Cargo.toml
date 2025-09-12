@@ -19,7 +19,7 @@ workspace = true
 [dependencies]
 anyhow.workspace = true
 diesel = { workspace = true, features = ["64-column-tables", "numeric"] }
-diesel_migrations = { version = "2.2.0", default-features = false, features = ["sqlite"] }
+diesel_migrations = { version = "2.3.0", default-features = false, features = ["sqlite"] }
 jiff.workspace = true
 log.workspace = true
 mime.workspace = true
