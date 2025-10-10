@@ -3,7 +3,7 @@
 
 use eframe::Frame;
 use egui::{
-    Align, Button, CentralPanel, Context, Grid, ImageButton, Layout, OpenUrl, ScrollArea, TextEdit,
+    Align, Button, CentralPanel, Context, Grid, Layout, OpenUrl, ScrollArea, TextEdit,
     TopBottomPanel, load::SizedTexture, scroll_area::ScrollSource,
 };
 
@@ -229,7 +229,7 @@ fn render_central_panel(
                             size: egui::Vec2::new(row_height, row_height),
                         };
                         ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-                            let artwork_button = ImageButton::new(artwork_texture).frame(false);
+                            let artwork_button = Button::image(artwork_texture).frame(false);
                             let mut artwork_response = ui.add(artwork_button);
                             if let Some(content_url) = &item.content_url {
                                 let file_location = content_url.to_file_path().map_or_else(
