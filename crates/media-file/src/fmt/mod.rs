@@ -1611,7 +1611,10 @@ pub(crate) fn export_track_to_tag(
                 track.media_source.artwork = Some(Artwork::Embedded(EmbeddedArtwork {
                     image: artwork_image,
                 }));
-                let picture = Picture::new_unchecked(pic_type, Some(mime_type), None, image_data);
+                let picture = Picture::unchecked(image_data)
+                    .pic_type(pic_type)
+                    .mime_type(mime_type)
+                    .build();
                 match others {
                     EditOtherEmbeddedArtworkImages::Keep => {
                         tag.remove_picture_type(pic_type);

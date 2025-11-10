@@ -58,12 +58,12 @@ repos:
       - id: codespell
   # Check for hardcoded and leaked secrets.
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.28.0
+    rev: v8.29.0
     hooks:
       - id: gitleaks
   # Audit GitHub Actions CI/CD setups.
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.16.0
+    rev: v1.16.3
     hooks:
       - id: zizmor
   # JSON
@@ -98,7 +98,7 @@ repos:
       - id: taplo-lint
   # Licensing: https://reuse.software
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v6.1.2
+    rev: v6.2.0
     hooks:
       - id: reuse
   # Rust
