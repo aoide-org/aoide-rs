@@ -1486,14 +1486,14 @@ pub(crate) fn export_track_to_tag(
         // time stamp if available.
         let year = recorded_at.year();
         if year >= 0 {
-            tag.set_year(year as _);
+            tag.insert_text(ItemKey::Year, year.to_string());
         } else {
-            tag.remove_year();
+            tag.remove_key(ItemKey::Year);
         }
         let recorded_at_text = recorded_at.to_string();
         tag.insert_text(ItemKey::RecordingDate, recorded_at_text);
     } else {
-        tag.remove_year();
+        tag.remove_key(ItemKey::Year);
         tag.remove_key(ItemKey::RecordingDate);
     }
     if let Some(released_at) = &track.released_at {
