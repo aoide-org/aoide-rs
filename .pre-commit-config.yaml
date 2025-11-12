@@ -68,7 +68,7 @@ repos:
       - id: zizmor
   # JSON
   - repo: https://github.com/sirosen/check-jsonschema
-    rev: 0.34.1
+    rev: 0.35.0
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
