@@ -45,7 +45,7 @@ aho-corasick = "1.1.4"
 anyhow = "1.0.100"
 bitflags = "2.10.0"
 blake3 = "1.8.2"
-bytes = "1.10.1"
+bytes = "1.11.0"
 data-encoding = "2.9.0"
 derive_more = "2.0.1"
 diesel = { version = "2.3.3", default-features = false, features = ["sqlite"] }
