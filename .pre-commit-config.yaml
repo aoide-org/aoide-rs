@@ -58,7 +58,7 @@ repos:
       - id: codespell
   # Check for hardcoded and leaked secrets.
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.29.0
+    rev: v8.29.1
     hooks:
       - id: gitleaks
   # Audit GitHub Actions CI/CD setups.
@@ -74,7 +74,7 @@ repos:
       - id: check-github-workflows
   # Markdown
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.19.0
+    rev: v0.19.1
     hooks:
       - id: markdownlint-cli2
         exclude: ^LICENSE\.md$
