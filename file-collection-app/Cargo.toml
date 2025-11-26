@@ -20,11 +20,17 @@ directories = "6.0.0"
 discro = "0.34.1"
 itertools.workspace = true
 env_logger = "0.11.8"
+serde_json.workspace = true
 url.workspace = true
 
 [dependencies.aoide]
 path = ".."
-features = ["desktop-app", "async-file-dialog", "sqlite-bundled"]
+features = ["desktop-app", "async-file-dialog", "json-frontend", "sqlite-bundled"]
+
+[dependencies.clap]
+version = "4.5.53"
+optional = true
+features = ["derive"]
 
 [dependencies.log]
 workspace = true
@@ -50,7 +56,8 @@ optional = true
 # No default features, i.e. all features are optional.
 
 [features]
-default = []
+default = ["cli"]
+cli = ["aoide/json-backend", "dep:clap"]
 # Use mimalloc instead of the default allocator.
 # libmusl build of mimalloc is currently broken:
 # <https://github.com/purpleprotocol/mimalloc_rust/issues/133>

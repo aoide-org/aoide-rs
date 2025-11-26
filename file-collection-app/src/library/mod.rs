@@ -427,12 +427,19 @@ impl Library {
 
     pub fn search_tracks(&self, input: &str) -> ActionEffect {
         let filter = track_search::parse_filter_from_input(input);
-        let mut params = aoide::api::track::search::Params {
+        let params = aoide::api::track::search::Params {
             filter,
             ..track_search::default_params()
         };
-        // Argument is consumed when updating succeeds
+        self.search_tracks_with_params(params)
+    }
+
+    pub fn search_tracks_with_params(
+        &self,
+        mut params: aoide::api::track::search::Params,
+    ) -> ActionEffect {
         log::debug!("Updating track search params: {params:?}");
+        // Argument is consumed when updating succeeds.
         self.shared_state.track_search.update_params(&mut params)
     }
 

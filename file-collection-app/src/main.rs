@@ -1,9 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::path::{Path, PathBuf};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context as _, bail};
+use clap::Parser;
 use directories::ProjectDirs;
 use log::LevelFilter;
 
@@ -46,6 +50,14 @@ fn default_data_dir() -> anyhow::Result<PathBuf> {
         );
     }
     Ok(dir_path)
+}
+
+/// CLI arguments for headless operation.
+#[derive(Parser)]
+struct Cli {
+    /// Search files.
+    #[arg(short, long, default_value_t = false)]
+    search: bool,
 }
 
 #[tokio::main]
@@ -115,6 +127,77 @@ async fn main() {
             return;
         }
     };
+
+    let Cli { search } = Cli::parse();
+    if search {
+        // Run headless.
+        library.spawn_background_tasks(&rt, config_dir);
+        let search_params =
+            match serde_json::from_reader::<_, aoide::api_json::track::search::SearchParams>(
+                io::stdin(),
+            ) {
+                Ok(search_params) => search_params,
+                Err(err) => {
+                    log::error!("Failed to read search params from stdin: {err:#}");
+                    return;
+                }
+            };
+        let search_filter = search_params.filter.map(Into::into);
+        let search_ordering = search_params
+            .ordering
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<_>>();
+        let search_params = aoide::api::track::search::Params {
+            resolve_url_from_content_path: Some(Default::default()),
+            filter: search_filter,
+            ordering: search_ordering,
+        };
+        log::info!("Searching library for tracks");
+        let _ = library.search_tracks_with_params(search_params);
+        let mut offset = 0;
+        let mut subscriber = library.subscribe_track_search_state_changed();
+        while let Ok(()) = subscriber.changed().await {
+            {
+                let state = subscriber.read_ack();
+                if state.is_pending() {
+                    log::debug!("Still pending...");
+                    continue;
+                }
+                if let Some(err) = state.last_fetch_error() {
+                    log::warn!("Fetching search results failed: {err:#}");
+                    break;
+                }
+                let Some(fetched_tracks) = state.fetched_entities() else {
+                    log::debug!("Not fetched yet...");
+                    continue;
+                };
+                debug_assert!(fetched_tracks.len() >= offset);
+                let fetched_next_len = fetched_tracks.len() - offset;
+                log::info!("Fetched {fetched_next_len} track(s)");
+                for track_entity in &fetched_tracks[offset..] {
+                    debug_assert!(track_entity.entity.body.content_url.is_some());
+                    let Some(url) = &track_entity.entity.body.content_url else {
+                        continue;
+                    };
+                    let Ok(file_path) = url.to_file_path() else {
+                        log::warn!("Skipping track with URL <{url}>");
+                        continue;
+                    };
+                    println!("{}", file_path.display());
+                }
+                offset = fetched_tracks.len();
+                if !matches!(state.can_fetch_more(), Some(true)) {
+                    // Finished.
+                    break;
+                }
+                // Implicitly drop the state lock when leaving this scope to to avoid a deadlock.
+            }
+            log::info!("Fetching more tracks");
+            let _ = library.fetch_more_track_search_results(&rt);
+        }
+        return;
+    }
 
     eframe::run_native(
         app_name(),

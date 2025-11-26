@@ -27,9 +27,9 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
-tracing = "0.1.41"
+tracing = "0.1.43"
 tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 url = { workspace = true, features = ["serde"] }
 warp = { version = "0.4.2", default-features = false, features = ["server"] }
 
@@ -66,7 +66,7 @@ optional = true
 default-features = false
 
 [dependencies.rfd]
-version = "0.15.4"
+version = "0.16.0"
 optional = true
 default-features = false
 features = ["tokio", "xdg-portal"]
