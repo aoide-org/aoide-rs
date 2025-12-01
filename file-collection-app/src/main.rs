@@ -61,6 +61,7 @@ struct Cli {
 }
 
 #[tokio::main]
+#[expect(clippy::too_many_lines, reason = "TODO: Extract CLI code.")]
 async fn main() {
     env_logger::Builder::new()
         .filter_level(DEFAULT_LOG_FILTER_LEVEL)
