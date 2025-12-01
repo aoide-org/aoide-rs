@@ -144,15 +144,15 @@ async fn main() {
                 }
             };
         let search_filter = search_params.filter.map(Into::into);
-        let search_ordering = search_params
-            .ordering
+        let search_order = search_params
+            .order
             .into_iter()
             .map(Into::into)
             .collect::<Vec<_>>();
         let search_params = aoide::api::track::search::Params {
             resolve_url_from_content_path: Some(Default::default()),
             filter: search_filter,
-            ordering: search_ordering,
+            order: search_order,
         };
         log::info!("Searching library for tracks");
         let _ = library.search_tracks_with_params(search_params);

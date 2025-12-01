@@ -5,7 +5,7 @@ use anyhow::anyhow;
 
 use aoide_core::{CollectionUid, media::content::resolver::vfs::RemappingVfsResolver};
 use aoide_core_api::{
-    filtering::StringPredicate,
+    filter::StringPredicate,
     media::source::purge_untracked::{Outcome, Params, Summary},
 };
 use aoide_repo::{

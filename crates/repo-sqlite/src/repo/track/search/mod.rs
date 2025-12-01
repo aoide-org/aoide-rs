@@ -20,7 +20,7 @@ use aoide_core::{
 };
 use aoide_core_api::{
     SortDirection,
-    filtering::{
+    filter::{
         FilterModifier, NumericPredicate, ScalarPredicate, StringCompare, StringFilter,
         StringPredicate,
     },

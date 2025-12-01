@@ -16,7 +16,7 @@ mod sorting;
 pub use self::sorting::SortDirection;
 
 pub mod collection;
-pub mod filtering;
+pub mod filter;
 pub mod media;
 pub mod playlist;
 pub mod tag;

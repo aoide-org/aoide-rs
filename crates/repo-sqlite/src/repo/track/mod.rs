@@ -23,7 +23,7 @@ use aoide_core::{
 };
 use aoide_core_api::{
     Pagination,
-    filtering::StringPredicate,
+    filter::StringPredicate,
     track::search::{Filter, Scope, SortOrder},
 };
 use aoide_repo::{
@@ -700,7 +700,7 @@ impl CollectionRepo for crate::Connection<'_> {
         collection_id: CollectionId,
         pagination: &Pagination,
         filter: Option<&Filter>,
-        ordering: &[SortOrder],
+        order: &[SortOrder],
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = TrackEntity>,
     ) -> RepoResult<usize> {
         let mut query = view_track_search::table
@@ -721,7 +721,7 @@ impl CollectionRepo for crate::Connection<'_> {
             query = query.filter(filter.build_expression());
         }
 
-        for sort_order in ordering {
+        for sort_order in order {
             query = sort_order.apply_to_query(query);
         }
         // Finally order by PK to preserve the relative order of results

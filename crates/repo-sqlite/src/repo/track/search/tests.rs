@@ -16,7 +16,7 @@ use aoide_core::{
     util::clock::OffsetDateTimeMs,
 };
 use aoide_core_api::{
-    filtering::StringPredicate,
+    filter::StringPredicate,
     tag::search::{FacetsFilter, Filter as TagFilter},
     track::search::{Filter as TrackFilter, Scope, TitlePhraseFilter},
 };

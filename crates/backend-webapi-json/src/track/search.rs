@@ -65,11 +65,11 @@ pub fn handle_request(
             None
         };
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    let RequestBody { filter, ordering } = request_body;
+    let RequestBody { filter, order } = request_body;
     let params = uc::Params {
         resolve_url_from_content_path,
         filter: filter.map(Into::into),
-        ordering: ordering.into_iter().map(Into::into).collect(),
+        order: order.into_iter().map(Into::into).collect(),
     };
     let collector_config = EntityCollectorConfig {
         capacity: limit.and_then(|limit| {

@@ -4,7 +4,7 @@
 use aoide_core::util::url::BaseUrl;
 use aoide_core_api::media::source::ResolveUrlFromContentPath;
 use aoide_core_api_json::{
-    filtering::StringPredicate,
+    filter::StringPredicate,
     track::{find_unsynchronized::UnsynchronizedTrackEntity, search::QueryParams},
 };
 

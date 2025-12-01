@@ -5,7 +5,7 @@ use aoide_core::tag::FacetKey;
 
 use crate::{
     SortDirection,
-    filtering::{FilterModifier, NumericPredicate, StringPredicate},
+    filter::{FilterModifier, NumericPredicate, StringPredicate},
 };
 
 /// Filter by facets.

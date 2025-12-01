@@ -8,7 +8,7 @@ use aoide_core::{
 };
 use aoide_core_api::{
     Pagination,
-    filtering::StringPredicate,
+    filter::StringPredicate,
     track::search::{Filter, SortOrder, StringField},
 };
 
@@ -109,7 +109,7 @@ pub trait CollectionRepo {
         collection_id: CollectionId,
         pagination: &Pagination,
         filter: Option<&Filter>,
-        ordering: &[SortOrder],
+        order: &[SortOrder],
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = TrackEntity>,
     ) -> RepoResult<usize>;
 

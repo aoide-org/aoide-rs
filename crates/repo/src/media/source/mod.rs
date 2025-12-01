@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::{MediaSource, media::content::ContentPath, util::clock::UtcDateTimeMs};
-use aoide_core_api::filtering::StringPredicate;
+use aoide_core_api::filter::StringPredicate;
 
 use crate::{CollectionId, RepoResult};
 

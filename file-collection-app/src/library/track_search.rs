@@ -8,7 +8,7 @@ use discro::{Ref, Subscriber};
 use aoide::{
     api::{
         SortDirection,
-        filtering::{NumericPredicate, ScalarFieldFilter, StringPredicate},
+        filter::{NumericPredicate, ScalarFieldFilter, StringPredicate},
         media::source::ResolveUrlFromContentPath,
         tag::search::{FacetsFilter, Filter as TagFilter},
         track::search::{Filter, NumericField, PhraseFieldFilter, SortOrder, StringField},
@@ -34,7 +34,7 @@ const RESOLVE_TRACK_URL_FROM_CONTENT_PATH: Option<ResolveUrlFromContentPath> =
 pub(super) fn default_params() -> aoide::api::track::search::Params {
     aoide::api::track::search::Params {
         resolve_url_from_content_path: RESOLVE_TRACK_URL_FROM_CONTENT_PATH.clone(),
-        ordering: DEFAULT_SORT_ORDER.to_vec(),
+        order: DEFAULT_SORT_ORDER.to_vec(),
         ..Default::default()
     }
 }

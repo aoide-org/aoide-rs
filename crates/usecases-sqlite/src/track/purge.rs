@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core::CollectionUid;
-use aoide_core_api::filtering::StringPredicate;
+use aoide_core_api::filter::StringPredicate;
 use aoide_repo::collection::EntityRepo as _;
 use aoide_repo_sqlite::DbConnection;
 

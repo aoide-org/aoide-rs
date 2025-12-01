@@ -3,7 +3,7 @@
 
 use aoide_core::CollectionUid;
 use aoide_core_api::{
-    filtering::StringPredicate,
+    filter::StringPredicate,
     media::source::purge_orphaned::{Outcome, Params, Summary},
 };
 use aoide_repo::{

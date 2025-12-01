@@ -53,7 +53,7 @@ pub async fn reindex_tracks(
         .spawn_blocking_write_task(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             let search_params = aoide_core_api::track::search::Params {
-                ordering: vec![SortOrder {
+                order: vec![SortOrder {
                     field: SortField::UpdatedAt,
                     direction: SortDirection::Descending,
                 }],

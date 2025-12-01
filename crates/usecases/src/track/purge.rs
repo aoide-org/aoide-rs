@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core_api::filtering::StringPredicate;
+use aoide_core_api::filter::StringPredicate;
 use aoide_repo::{
     CollectionId, RepoResult, media::source::CollectionRepo as MediaSourceCollectionRepo,
     track::CollectionRepo,

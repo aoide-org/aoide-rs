@@ -4,7 +4,7 @@
 use aoide_core_json::tag::FacetKey;
 
 use crate::{
-    filtering::{FilterModifier, NumericPredicate, StringPredicate},
+    filter::{FilterModifier, NumericPredicate, StringPredicate},
     prelude::*,
 };
 

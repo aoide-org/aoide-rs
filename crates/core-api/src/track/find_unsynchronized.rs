@@ -3,7 +3,7 @@
 
 use aoide_core::{Entity, EntityRevision, media::content::ContentLink, track};
 
-use crate::{filtering::StringPredicate, media::source::ResolveUrlFromContentPath};
+use crate::{filter::StringPredicate, media::source::ResolveUrlFromContentPath};
 
 #[derive(Debug, Clone, Default)]
 pub struct Params {

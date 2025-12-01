@@ -7,7 +7,7 @@ use aoide_core::{
     media::{Source, content::ContentPath},
     util::clock::UtcDateTimeMs,
 };
-use aoide_core_api::filtering::StringPredicate;
+use aoide_core_api::filter::StringPredicate;
 use aoide_repo::{
     CollectionId, MediaSourceId, RepoError, RepoResult,
     media::source::{CollectionRepo, RecordHeader, Repo},

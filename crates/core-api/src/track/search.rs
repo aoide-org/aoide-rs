@@ -14,7 +14,7 @@ use strum::FromRepr;
 
 use crate::{
     SortDirection,
-    filtering::{
+    filter::{
         DateTimePredicate, FilterModifier, NumericPredicate, NumericValue, ScalarFieldFilter,
         StringFilter, StringPredicate,
     },
@@ -256,5 +256,5 @@ impl Filter {
 pub struct Params {
     pub resolve_url_from_content_path: Option<ResolveUrlFromContentPath>,
     pub filter: Option<Filter>,
-    pub ordering: Vec<SortOrder>,
+    pub order: Vec<SortOrder>,
 }

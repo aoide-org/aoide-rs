@@ -129,8 +129,8 @@ impl UpdateContext<'_> {
             MediaTrackerAction::DirList(action) => match action {
                 MediaTrackerDirListAction::OpenView => {
                     let params = aoide::api::media::tracker::count_sources_in_directories::Params {
-                        ordering: Some(
-                            aoide::api::media::tracker::count_sources_in_directories::Ordering::CountDescending,
+                        order: Some(
+                            aoide::api::media::tracker::count_sources_in_directories::Order::CountDescending,
                         ),
                         ..Default::default()
                     };

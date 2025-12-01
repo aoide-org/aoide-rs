@@ -13,7 +13,7 @@ use aoide_core::{
 };
 use aoide_core_api::{
     collection::LoadScope,
-    filtering::StringPredicate,
+    filter::StringPredicate,
     media::{SyncMode, tracker::DirTrackingStatus},
     track::find_unsynchronized::UnsynchronizedTrackEntity,
 };

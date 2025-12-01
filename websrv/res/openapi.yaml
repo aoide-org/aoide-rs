@@ -3082,7 +3082,7 @@ components:
       properties:
         filter:
           $ref: "#/components/schemas/TrackSearchFilterNode"
-        ordering:
+        order:
           type: array
           items:
             $ref: "#/components/schemas/TrackSortOrder"

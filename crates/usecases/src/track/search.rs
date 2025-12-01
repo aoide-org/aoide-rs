@@ -22,14 +22,14 @@ pub fn search<Repo>(
     collection_id: CollectionId,
     pagination: &Pagination,
     filter: Option<&Filter>,
-    ordering: &[SortOrder],
+    order: &[SortOrder],
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> RepoResult<usize>
 where
     Repo: TrackCollectionRepo,
 {
     let timed = Instant::now();
-    let num_tracks = repo.search_tracks(collection_id, pagination, filter, ordering, collector)?;
+    let num_tracks = repo.search_tracks(collection_id, pagination, filter, order, collector)?;
     log::debug!(
         "Search returned {num_tracks} track(s) and took {elapsed_millis} ms",
         elapsed_millis = timed.elapsed().as_secs_f64() * 1000.0,
@@ -53,7 +53,7 @@ where
     let Params {
         resolve_url_from_content_path,
         filter,
-        ordering,
+        order,
     } = params;
     let collection_ctx = crate::collection::vfs::RepoContext::resolve_override(
         repo,
@@ -81,7 +81,7 @@ where
             collection_id,
             pagination,
             filter.as_ref(),
-            ordering,
+            order,
             &mut collector,
         )
     } else {
@@ -90,7 +90,7 @@ where
             collection_id,
             pagination,
             filter.as_ref(),
-            ordering,
+            order,
             collector,
         )
     }

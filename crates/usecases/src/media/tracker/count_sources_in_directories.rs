@@ -21,8 +21,8 @@ where
 {
     let Params {
         root_url,
-        filtering,
-        ordering,
+        filter,
+        order,
         pagination,
     } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
@@ -36,8 +36,8 @@ where
     repo.media_tracker_count_sources_in_directories(
         collection_id,
         resolver.root_path(),
-        filtering,
-        *ordering,
+        filter,
+        *order,
         pagination,
     )
     .map_err(Into::into)

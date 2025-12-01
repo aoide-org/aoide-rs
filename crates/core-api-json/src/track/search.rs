@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use aoide_core::tag::FacetId;
-use aoide_core_api::{PaginationLimit, PaginationOffset, filtering::NumericValue};
+use aoide_core_api::{PaginationLimit, PaginationOffset, filter::NumericValue};
 use aoide_core_json::{
     entity::EntityUid,
     track::{
@@ -22,13 +22,13 @@ use url::Url;
 use crate::Pagination;
 use crate::{
     SortDirection,
-    filtering::{FilterModifier, ScalarFieldFilter, StringFilter},
+    filter::{FilterModifier, ScalarFieldFilter, StringFilter},
     tag::search::Filter as TagFilter,
 };
 
 mod _inner {
     #[cfg(feature = "frontend")]
-    pub(super) use crate::_inner::filtering::*;
+    pub(super) use crate::_inner::filter::*;
     pub(super) use crate::_inner::track::search::*;
 }
 
@@ -679,7 +679,7 @@ pub struct SearchParams {
     pub filter: Option<Filter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub ordering: Vec<SortOrder>,
+    pub order: Vec<SortOrder>,
 }
 
 #[cfg(feature = "frontend")]
@@ -719,13 +719,13 @@ pub fn client_request_params(
     let _inner::Params {
         resolve_url_from_content_path,
         filter,
-        ordering,
+        order,
     } = params;
     let query_params =
         client_query_params(resolve_url_from_content_path, encode_gigtags, pagination);
     let search_params = SearchParams {
         filter: filter.map(Into::into),
-        ordering: ordering.into_iter().map(Into::into).collect(),
+        order: order.into_iter().map(Into::into).collect(),
     };
     (query_params, search_params)
 }

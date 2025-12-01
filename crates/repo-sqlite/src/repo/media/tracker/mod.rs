@@ -280,8 +280,8 @@ impl Repo for Connection<'_> {
         &mut self,
         collection_id: CollectionId,
         path_prefix: &ContentPath<'_>,
-        filtering: &count_sources_in_directories::Filtering,
-        ordering: Option<count_sources_in_directories::Ordering>,
+        filter: &count_sources_in_directories::Filter,
+        order: Option<count_sources_in_directories::Order>,
         pagination: &Pagination,
     ) -> RepoResult<Vec<(ContentPath<'static>, usize)>> {
         let mut query = media_tracker_directory::table
@@ -299,10 +299,10 @@ impl Repo for Connection<'_> {
             .into_boxed();
 
         // Filtering
-        let count_sources_in_directories::Filtering {
+        let count_sources_in_directories::Filter {
             min_count,
             max_count,
-        } = filtering;
+        } = filter;
         if let Some(Ok(min_count)) = min_count.map(i64::try_from) {
             query = query.having(diesel::dsl::count_star().ge(min_count));
         }
@@ -311,18 +311,18 @@ impl Repo for Connection<'_> {
         }
 
         // Ordering
-        if let Some(ordering) = ordering {
-            query = match ordering {
-                count_sources_in_directories::Ordering::CountAscending => {
+        if let Some(order) = order {
+            query = match order {
+                count_sources_in_directories::Order::CountAscending => {
                     query.order_by(diesel::dsl::count_star())
                 }
-                count_sources_in_directories::Ordering::CountDescending => {
+                count_sources_in_directories::Order::CountDescending => {
                     query.order_by(diesel::dsl::count_star().desc())
                 }
-                count_sources_in_directories::Ordering::ContentPathAscending => {
+                count_sources_in_directories::Order::ContentPathAscending => {
                     query.order_by(media_tracker_directory::content_path)
                 }
-                count_sources_in_directories::Ordering::ContentPathDescending => {
+                count_sources_in_directories::Order::ContentPathDescending => {
                     query.order_by(media_tracker_directory::content_path.desc())
                 }
             }

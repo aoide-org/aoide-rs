@@ -4,7 +4,7 @@
 pub mod collection;
 pub use self::collection::Summary as CollectionSummary;
 
-pub mod filtering;
+pub mod filter;
 
 pub mod media;
 pub mod playlist;

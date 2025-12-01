@@ -25,37 +25,37 @@ pub struct CountParams {
     pub tags: SelectTags,
     pub include_facets: Option<Vec<FacetId>>,
     pub exclude_facets: Vec<FacetId>,
-    pub ordering: Vec<SortOrder>,
+    pub order: Vec<SortOrder>,
 }
 
 impl CountParams {
     #[must_use]
-    pub const fn all(ordering: Vec<SortOrder>) -> Self {
+    pub const fn all(order: Vec<SortOrder>) -> Self {
         Self {
             tags: SelectTags::All,
             include_facets: None,
             exclude_facets: Vec::new(),
-            ordering,
+            order,
         }
     }
 
     #[must_use]
-    pub const fn all_faceted(ordering: Vec<SortOrder>) -> Self {
+    pub const fn all_faceted(order: Vec<SortOrder>) -> Self {
         Self {
             tags: SelectTags::Faceted,
             include_facets: None,
             exclude_facets: Vec::new(),
-            ordering,
+            order,
         }
     }
 
     #[must_use]
-    pub const fn all_non_faceted(ordering: Vec<SortOrder>) -> Self {
+    pub const fn all_non_faceted(order: Vec<SortOrder>) -> Self {
         Self {
             tags: SelectTags::All,
             include_facets: Some(vec![]),
             exclude_facets: Vec::new(),
-            ordering,
+            order,
         }
     }
 
@@ -71,16 +71,16 @@ impl CountParams {
 pub struct FacetCountParams {
     pub include_facets: Option<Vec<FacetId>>,
     pub exclude_facets: Vec<FacetId>,
-    pub ordering: Vec<SortOrder>,
+    pub order: Vec<SortOrder>,
 }
 
 impl FacetCountParams {
     #[must_use]
-    pub const fn all(ordering: Vec<SortOrder>) -> Self {
+    pub const fn all(order: Vec<SortOrder>) -> Self {
         Self {
             include_facets: None,
             exclude_facets: Vec::new(),
-            ordering,
+            order,
         }
     }
 

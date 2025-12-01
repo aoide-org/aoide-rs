@@ -9,7 +9,7 @@ use diesel::{prelude::*, sql_types::BigInt};
 use strum::FromRepr;
 
 use aoide_core::media::{artwork::ApicType, content::ContentPathKind};
-use aoide_core_api::filtering::StringPredicate;
+use aoide_core_api::filter::StringPredicate;
 use aoide_repo::{CollectionId, RepoError, RepoResult};
 
 use crate::{

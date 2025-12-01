@@ -6,13 +6,13 @@ use aoide_core::util::url::BaseUrl;
 use crate::Pagination;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Filtering {
+pub struct Filter {
     pub min_count: Option<usize>,
     pub max_count: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Ordering {
+pub enum Order {
     CountAscending,
     CountDescending,
     ContentPathAscending,
@@ -22,7 +22,7 @@ pub enum Ordering {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
-    pub filtering: Filtering,
-    pub ordering: Option<Ordering>,
+    pub filter: Filter,
+    pub order: Option<Order>,
     pub pagination: Pagination,
 }

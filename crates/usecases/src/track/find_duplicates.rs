@@ -14,7 +14,7 @@ use aoide_core::{
 };
 use aoide_core_api::{
     SortDirection,
-    filtering::{DateTimePredicate, NumericPredicate},
+    filter::{DateTimePredicate, NumericPredicate},
     track::search::{
         ActorPhraseFilter, ConditionFilter, DateTimeField, DateTimeFieldFilter, Filter,
         NumericField, NumericFieldFilter, PhraseFieldFilter, Scope, SortField, SortOrder,

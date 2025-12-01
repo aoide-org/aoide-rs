@@ -6,7 +6,7 @@ use anyhow::anyhow;
 use aoide_core::{CollectionUid, media::content::resolver::ContentPathResolver};
 use aoide_core_api::{
     Pagination,
-    filtering::StringPredicate,
+    filter::StringPredicate,
     media::source::ResolveUrlFromContentPath,
     track::find_unsynchronized::{Params, UnsynchronizedTrack, UnsynchronizedTrackEntity},
 };
