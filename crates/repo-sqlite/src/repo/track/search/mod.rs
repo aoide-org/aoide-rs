@@ -15,7 +15,7 @@ use aoide_core::{
         channel::ChannelCount,
         signal::{BitrateBps, LoudnessLufs, SampleRateHz},
     },
-    tag::{FacetKey, Label},
+    tag::FacetKey,
     util::clock::YyyyMmDdDateValue,
 };
 use aoide_core_api::{
@@ -1094,24 +1094,14 @@ fn select_track_ids_matching_tag_filter(
         };
         match string_cmp_op {
             StringCmpOp::Equal(eq) => {
-                let eq = Label::clamp_from(eq);
-                if let Some(eq) = eq {
-                    debug_assert!(!eq.as_str().is_empty());
-                    if dir {
-                        select = select.filter(track_tag::label.eq(eq.to_string()));
-                        // Exclude tags without a label.
-                        select = select.filter(diesel::dsl::not(track_tag::label.is_null()));
-                    } else {
-                        select = select.filter(track_tag::label.ne(eq.to_string()));
-                        // Include tags without a label.
-                        select = select.or_filter(track_tag::label.is_null());
-                    }
-                } else if dir {
-                    // Include tags without a label.
-                    select = select.or_filter(track_tag::label.is_null());
-                } else {
+                if dir {
+                    select = select.filter(track_tag::label.eq(eq));
                     // Exclude tags without a label.
                     select = select.filter(diesel::dsl::not(track_tag::label.is_null()));
+                } else {
+                    select = select.filter(track_tag::label.ne(eq));
+                    // Include tags without a label.
+                    select = select.or_filter(track_tag::label.is_null());
                 }
             }
             StringCmpOp::Prefix(prefix) => {
