@@ -729,3 +729,22 @@ pub fn client_request_params(
     };
     (query_params, search_params)
 }
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "backend")]
+    #[test]
+    fn deserialize_filter_examples() {
+        for filter_name in ["any_date_in_1990s", "missing_genre_tag"] {
+            assert!(
+                serde_json::from_reader::<_, super::Filter>(std::io::BufReader::new(
+                    std::fs::File::open(format!(
+                        "../../examples/json/track-search/filter_{filter_name}.json"
+                    ))
+                    .unwrap()
+                ))
+                .is_ok()
+            );
+        }
+    }
+}

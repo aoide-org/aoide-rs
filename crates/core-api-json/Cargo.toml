@@ -29,6 +29,9 @@ aoide-core = { "workspace" = true, features = ["serde"] }
 aoide-core-api.workspace = true
 aoide-core-json.workspace = true
 
+[dev-dependencies]
+serde_json.workspace = true
+
 [features]
 default = []
 js = ["aoide-core-api/js"]

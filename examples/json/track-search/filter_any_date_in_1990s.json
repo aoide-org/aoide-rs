@@ -1,0 +1,64 @@
+{
+  "any": [
+    {
+      "all": [
+        {
+          "numeric": [
+            "recordedAtDate",
+            {
+              "ge": 19900000
+            }
+          ]
+        },
+        {
+          "numeric": [
+            "recordedAtDate",
+            {
+              "lt": 20000000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "numeric": [
+            "releasedAtDate",
+            {
+              "ge": 19900000
+            }
+          ]
+        },
+        {
+          "numeric": [
+            "releasedAtDate",
+            {
+              "lt": 20000000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "numeric": [
+            "releasedOrigAtDate",
+            {
+              "ge": 19900000
+            }
+          ]
+        },
+        {
+          "numeric": [
+            "releasedOrigAtDate",
+            {
+              "lt": 20000000
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

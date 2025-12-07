@@ -1,0 +1,6 @@
+{
+  "tag": {
+    "modifier": "complement",
+    "facets": { "anyOf": ["gnre"] }
+  }
+}

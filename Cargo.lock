@@ -277,6 +277,7 @@ dependencies = [
  "aoide-core-json",
  "schemars",
  "serde",
+ "serde_json",
  "url",
 ]
 
