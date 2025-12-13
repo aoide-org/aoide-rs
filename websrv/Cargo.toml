@@ -55,13 +55,13 @@ optional = true
 
 # launcher-ui
 [dependencies.eframe]
-version = "0.33.2"
+version = "0.33.3"
 optional = true
 default-features = false
 features = ["default_fonts", "glow", "wayland"]
 
 [dependencies.egui]
-version = "0.33.2"
+version = "0.33.3"
 optional = true
 default-features = false
 

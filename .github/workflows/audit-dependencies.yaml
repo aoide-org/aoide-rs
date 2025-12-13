@@ -30,7 +30,7 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           # Keep in sync with `Cargo.toml`.
-          rust-version: "1.91"
+          rust-version: "1.92"
           command: check
           arguments: >-
             --all-features
