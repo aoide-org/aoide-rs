@@ -25,7 +25,7 @@ thiserror.workspace = true
 url.workspace = true
 
 # tracing
-tracing = { version = "0.1.43", features = ["log"] }
+tracing = { version = "0.1.44", features = ["log"] }
 uuid = { version = "1.19.0", features = ["v4"] }
 
 # JSON Schema (optional)
