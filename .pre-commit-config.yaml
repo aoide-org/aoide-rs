@@ -66,12 +66,12 @@ repos:
       - id: gitleaks
   # Audit GitHub Actions CI/CD setups.
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.18.0
+    rev: v1.19.0
     hooks:
       - id: zizmor
   # JSON
   - repo: https://github.com/sirosen/check-jsonschema
-    rev: 0.35.0
+    rev: 0.36.0
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
@@ -86,7 +86,7 @@ repos:
           )
   # TODO: Remove unmaintained Prettier plugin.
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.1.0
+    rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
         types_or:
