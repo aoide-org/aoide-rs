@@ -75,6 +75,10 @@ repos:
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
+  - repo: https://gitlab.com/bmares/check-json5
+    rev: v1.0.1
+    hooks:
+      - id: check-json5
   # Markdown
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.20.0
