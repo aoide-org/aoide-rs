@@ -16,10 +16,10 @@ workspace = true
 
 [dependencies]
 anyhow.workspace = true
-directories = "6.0.0"
-discro = "0.34.1"
+directories.workspace = true
+discro.workspace = true
 itertools.workspace = true
-env_logger = "0.11.8"
+env_logger.workspace = true
 serde_json.workspace = true
 url.workspace = true
 
