@@ -7,9 +7,12 @@ use std::{
 };
 
 use anyhow::{Context as _, bail};
-use clap::Parser;
+use clap::{Parser, Subcommand, ValueEnum};
 use directories::ProjectDirs;
 use log::LevelFilter;
+use url::Url;
+
+use aoide::{api::media::source::ResolveUrlFromContentPath, util::url::BaseUrl};
 
 pub mod app;
 use self::app::App;
@@ -55,14 +58,51 @@ fn default_data_dir() -> anyhow::Result<PathBuf> {
 /// CLI arguments for headless operation.
 #[derive(Parser)]
 struct Cli {
+    #[clap(subcommand)]
+    command: Option<CliCommand>,
+}
+
+#[derive(Debug, Default, Subcommand)]
+enum CliCommand {
+    /// Open the interactive UI (default).
+    #[default]
+    Ui,
     /// Search files.
-    #[arg(short, long, default_value_t = false)]
-    search: bool,
+    ///
+    /// Reads a JSON track search query and prints the file paths line by line to stdout.
+    SearchTracks(CliSearchTracksOptions),
+}
+
+#[derive(Debug, Default, Parser)]
+struct CliSearchTracksOptions {
+    /// Override the root URL.
+    ///
+    /// Must be a valid base URL.
+    #[arg(long)]
+    override_root_url: Option<Url>,
+}
+
+#[derive(Debug, Clone, Copy, Default, ValueEnum)]
+enum CliSearchOutputMode {
+    /// Prints relative, platform-independent file paths with slashes as separator.
+    #[default]
+    RelativeSlash,
+    /// Prints relative, platform-dependent file paths.
+    Relative,
+    /// Prints absolute, platform-dependent file paths.
+    Absolute,
 }
 
 #[tokio::main]
 #[expect(clippy::too_many_lines, reason = "TODO: Extract CLI code.")]
 async fn main() {
+    // In Windows, we must request a virtual terminal environment to display colors correctly.
+    // This enables support for the ANSI escape sequences used by `colored`.
+    //
+    // <https://github.com/colored-rs/colored/issues/59#issuecomment-954355180>
+    #[cfg(windows)]
+    let _unused = colored::control::set_virtual_terminal(true);
+
     env_logger::Builder::new()
         .filter_level(DEFAULT_LOG_FILTER_LEVEL)
         // Parse environment variables after configuring all default option(s).
@@ -129,75 +169,95 @@ async fn main() {
         }
     };
 
-    let Cli { search } = Cli::parse();
-    if search {
-        // Run headless.
-        library.spawn_background_tasks(&rt, config_dir);
-        let search_params =
-            match serde_json::from_reader::<_, aoide::api_json::track::search::SearchParams>(
-                io::stdin(),
-            ) {
-                Ok(search_params) => search_params,
-                Err(err) => {
-                    log::error!("Failed to read search params from stdin: {err:#}");
-                    return;
-                }
-            };
-        let search_filter = search_params.filter.map(Into::into);
-        let search_order = search_params
-            .order
-            .into_iter()
-            .map(Into::into)
-            .collect::<Vec<_>>();
-        let search_params = aoide::api::track::search::Params {
-            resolve_url_from_content_path: Some(Default::default()),
-            filter: search_filter,
-            order: search_order,
-        };
-        log::info!("Searching library for tracks");
-        let _ = library.search_tracks_with_params(search_params);
-        let mut offset = 0;
-        let mut subscriber = library.subscribe_track_search_state_changed();
-        while let Ok(()) = subscriber.changed().await {
-            {
-                let state = subscriber.read_ack();
-                if state.is_pending() {
-                    log::debug!("Still pending...");
-                    continue;
-                }
-                if let Some(err) = state.last_fetch_error() {
-                    log::warn!("Fetching search results failed: {err:#}");
-                    break;
-                }
-                let Some(fetched_tracks) = state.fetched_entities() else {
-                    log::debug!("Not fetched yet...");
-                    continue;
-                };
-                debug_assert!(fetched_tracks.len() >= offset);
-                let fetched_next_len = fetched_tracks.len() - offset;
-                log::info!("Fetched {fetched_next_len} track(s)");
-                for track_entity in &fetched_tracks[offset..] {
-                    debug_assert!(track_entity.entity.body.content_url.is_some());
-                    let Some(url) = &track_entity.entity.body.content_url else {
-                        continue;
-                    };
-                    let Ok(file_path) = url.to_file_path() else {
-                        log::warn!("Skipping track with URL <{url}>");
-                        continue;
-                    };
-                    println!("{}", file_path.display());
-                }
-                offset = fetched_tracks.len();
-                if !matches!(state.can_fetch_more(), Some(true)) {
-                    // Finished.
-                    break;
-                }
-                // Implicitly drop the state lock when leaving this scope to to avoid a deadlock.
-            }
-            log::info!("Fetching more tracks");
-            let _ = library.fetch_more_track_search_results(&rt);
+    let Cli { command } = Cli::parse();
+    let command = command.unwrap_or_default();
+    match command {
+        CliCommand::Ui => {
+            // Continue below.
         }
-        return;
+        CliCommand::SearchTracks(CliSearchTracksOptions { override_root_url }) => {
+            // Run headless.
+            library.spawn_background_tasks(&rt, config_dir);
+            let search_params =
+                match serde_json::from_reader::<_, aoide::api_json::track::search::SearchParams>(
+                    io::stdin(),
+                ) {
+                    Ok(search_params) => search_params,
+                    Err(err) => {
+                        log::error!("Failed to read search params from stdin: {err:#}");
+                        return;
+                    }
+                };
+            let search_filter = search_params.filter.map(Into::into);
+            let search_order = search_params
+                .order
+                .into_iter()
+                .map(Into::into)
+                .collect::<Vec<_>>();
+            let resolve_url_from_content_path = override_root_url.map_or(
+                ResolveUrlFromContentPath::CanonicalRootUrl,
+                |override_root_url| {
+                    BaseUrl::try_from(override_root_url.clone()).map_or_else(
+                        |err| {
+                            log::warn!(
+                                "Cannot override root URL with \"{override_root_url}\": {err:#}"
+                            );
+                            ResolveUrlFromContentPath::CanonicalRootUrl
+                        },
+                        |root_url| ResolveUrlFromContentPath::OverrideRootUrl { root_url },
+                    )
+                },
+            );
+            let search_params = aoide::api::track::search::Params {
+                resolve_url_from_content_path: Some(resolve_url_from_content_path),
+                filter: search_filter,
+                order: search_order,
+            };
+            log::info!("Searching library for tracks");
+            let _ = library.search_tracks_with_params(search_params);
+            let mut offset = 0;
+            let mut subscriber = library.subscribe_track_search_state_changed();
+            while let Ok(()) = subscriber.changed().await {
+                {
+                    let state = subscriber.read_ack();
+                    if state.is_pending() {
+                        log::debug!("Still pending...");
+                        continue;
+                    }
+                    if let Some(err) = state.last_fetch_error() {
+                        log::warn!("Fetching search results failed: {err:#}");
+                        break;
+                    }
+                    let Some(fetched_tracks) = state.fetched_entities() else {
+                        log::debug!("Not fetched yet...");
+                        continue;
+                    };
+                    debug_assert!(fetched_tracks.len() >= offset);
+                    let fetched_next_len = fetched_tracks.len() - offset;
+                    log::info!("Fetched {fetched_next_len} track(s)");
+                    for track_entity in &fetched_tracks[offset..] {
+                        debug_assert!(track_entity.entity.body.content_url.is_some());
+                        let Some(url) = &track_entity.entity.body.content_url else {
+                            continue;
+                        };
+                        let Ok(file_path) = url.to_file_path() else {
+                            log::warn!("Skipping track with URL <{url}>");
+                            continue;
+                        };
+                        println!("{}", file_path.display());
+                    }
+                    offset = fetched_tracks.len();
+                    if !matches!(state.can_fetch_more(), Some(true)) {
+                        // Finished.
+                        break;
+                    }
+                    // Implicitly drop the state lock when leaving this scope to to avoid a deadlock.
+                }
+                log::info!("Fetching more tracks");
+                let _ = library.fetch_more_track_search_results(&rt);
+            }
+            return;
+        }
     }
 
     eframe::run_native(
