@@ -171,7 +171,7 @@ where
 {
     let collection_id = repo.resolve_collection_id(collection_uid)?;
     let filter = Filter::Condition(ConditionFilter::SourceUntracked);
-    let ordering = [SortOrder {
+    let order = [SortOrder {
         field: SortField::CollectedAt,
         direction: SortDirection::Descending,
     }];
@@ -180,7 +180,7 @@ where
         collection_id,
         &Default::default(),
         Some(&filter),
-        &ordering,
+        &order,
         &mut lost_tracks,
     )?;
     // Only consider tracks with a tracked media source

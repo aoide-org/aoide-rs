@@ -111,7 +111,7 @@ where
     let Params {
         resolve_url_from_content_path,
         filter,
-        ordering,
+        order,
     } = params;
     let collection_id = repo.resolve_collection_id(collection_uid)?;
     if resolve_url_from_content_path.is_some() {
@@ -122,7 +122,7 @@ where
             collection_id,
             pagination,
             filter.as_ref(),
-            &ordering,
+            &order,
             collector,
         )
     } else {
@@ -131,7 +131,7 @@ where
             collection_id,
             pagination,
             filter.as_ref(),
-            &ordering,
+            &order,
             collector,
         )
     }

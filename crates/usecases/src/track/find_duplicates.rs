@@ -200,7 +200,7 @@ where
     }));
     let filter = Filter::All(all_filters);
     // Prefer recently added sources, e.g. after scanning the file system
-    let ordering = [SortOrder {
+    let order = [SortOrder {
         field: SortField::CollectedAt,
         direction: SortDirection::Descending,
     }];
@@ -209,7 +209,7 @@ where
         collection_id,
         &Default::default(),
         Some(&filter),
-        &ordering,
+        &order,
         &mut candidates,
     )?;
     Ok(candidates
