@@ -96,13 +96,6 @@ enum CliSearchOutputMode {
 #[tokio::main]
 #[expect(clippy::too_many_lines, reason = "TODO: Extract CLI code.")]
 async fn main() {
-    // In Windows, we must request a virtual terminal environment to display colors correctly.
-    // This enables support for the ANSI escape sequences used by `colored`.
-    //
-    // <https://github.com/colored-rs/colored/issues/59#issuecomment-954355180>
-    #[cfg(windows)]
-    let _unused = colored::control::set_virtual_terminal(true);
-
     env_logger::Builder::new()
         .filter_level(DEFAULT_LOG_FILTER_LEVEL)
         // Parse environment variables after configuring all default option(s).
