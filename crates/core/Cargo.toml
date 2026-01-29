@@ -53,7 +53,7 @@ default-features = false
 features = ["palette_color"]
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = "0.3.4"
+getrandom = "0.4.1"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 path-slash = "0.2.1"
