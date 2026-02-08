@@ -23,9 +23,7 @@ digest.workspace = true
 image.workspace = true
 itertools.workspace = true
 jiff.workspace = true
-#lofty = "0.23.0"
-# Use main branch of lofty-rs for testing unreleased features.
-lofty = { git = "https://github.com/Serial-ATA/lofty-rs", branch = "main" }
+lofty = "0.23.0"
 log.workspace = true
 mime.workspace = true
 mime_guess = "2.0.5"
