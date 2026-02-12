@@ -43,7 +43,7 @@ aoide-websrv-warp-sqlite = { version = "=0.8.0", path = "crates/websrv-warp-sqli
 # Also serves for documenting the opionionated selection of third-party crates.
 aho-corasick = "1.1.4"
 anyhow = "1.0.101"
-bitflags = "2.10.0"
+bitflags = "2.11.0"
 blake3 = "1.8.3"
 bytes = "1.11.1"
 data-encoding = "2.10.0"
@@ -52,11 +52,11 @@ diesel = { version = "2.3.6", default-features = false, features = ["sqlite"] }
 digest = "0.10.7"
 directories = "6.0.0"
 discro = { version = "0.35.0", features = ["tokio"] }
-env_logger = "0.11.8"
+env_logger = "0.11.9"
 hashbrown = "0.16.1"
 image = "0.25.9"
 itertools = "0.14.0"
-jiff = "0.2.19"
+jiff = "0.2.20"
 log = "0.4.29"
 mime = "0.3.17"
 nonicle = "0.1.1"
@@ -75,7 +75,7 @@ thiserror = "2.0.18"
 tokio = "1.49.0"
 tracing = "0.1.44"
 url = "2.5.8"
-uuid = "1.20.0"
+uuid = "1.21.0"
 walkdir = "2.5.0"
 
 [workspace.lints.rust]

@@ -23,7 +23,7 @@ digest.workspace = true
 image.workspace = true
 itertools.workspace = true
 jiff.workspace = true
-lofty = "0.23.0"
+lofty = "0.23.2"
 log.workspace = true
 mime.workspace = true
 mime_guess = "2.0.5"
@@ -48,7 +48,7 @@ triseratops = { version = "0.0.3", optional = true }
 aoide-core.workspace = true
 
 [dev-dependencies]
-tempfile = "3.24.0"
+tempfile = "3.25.0"
 
 [features]
 default = ["all"]
