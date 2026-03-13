@@ -61,12 +61,12 @@ repos:
       - id: codespell
   # Check for hardcoded and leaked secrets.
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.0
+    rev: v8.30.1
     hooks:
       - id: gitleaks
   # Audit GitHub Actions CI/CD setups.
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.22.0
+    rev: v1.23.1
     hooks:
       - id: zizmor
   # JSON

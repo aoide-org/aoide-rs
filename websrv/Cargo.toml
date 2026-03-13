@@ -29,7 +29,7 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
 tracing.workspace = true
 tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = { workspace = true, features = ["serde"] }
 warp = { version = "0.4.2", default-features = false, features = ["server"] }
 
