@@ -14,3 +14,11 @@ rules:
       - pre-commit.yaml
       - pre-release.yaml
       - test.yaml
+
+  superfluous-actions:
+    # TODO: Replace obsolete actions.
+    ignore:
+      - pre-commit.yaml:38:15
+      - pre-release.yaml:74:15
+      - pre-release.yaml:143:15
+      - test.yaml:54:15
