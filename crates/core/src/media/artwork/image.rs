@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{convert::TryFrom as _, ops::Not as _, rc::Rc};
+use std::{convert::TryFrom as _, rc::Rc};
 
 use anyhow::anyhow;
 use derive_more::{Display, Error, From};
@@ -9,9 +9,8 @@ use image::{
     DynamicImage, GenericImageView, ImageError, ImageFormat, guess_format, load_from_memory,
     load_from_memory_with_format,
 };
-use kmeans_colors::{Kmeans, Sort as _, get_kmeans_hamerly};
 use mime::{IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR, Mime};
-use palette::{FromColor as _, IntoColor as _, Lab, Srgb, Srgba, cast::from_component_slice};
+use okmain::InputImage;
 
 use crate::{media::MediaDigest, util::color::RgbColor};
 
@@ -105,15 +104,7 @@ pub struct IngestedArtworkImage {
 
 type IngestArtworkImageResult = std::result::Result<IngestedArtworkImage, ArtworkImageError>;
 
-const KMEANS_COLORS_SEED: u64 = 1143;
-
-const KMEANS_COLORS_RUNS: usize = 2;
-
-const KMEANS_COLORS_MAX_ITER: usize = 20;
-
-const KMEANS_COLORS_MAX_COLORS: usize = 8;
-
-const KMEANS_COLORS_MAX_SIZE: u16 = 128;
+const MAIN_COLORS_IMAGE_MAX_SIZE: u16 = 128;
 
 fn ingest_artwork_image(
     apic_type: ApicType,
@@ -140,60 +131,35 @@ fn ingest_artwork_image(
         .digest_content_data(image_data)
         .finalize_reset();
     let picture = Rc::new(picture);
-    let scaled_picture = if width > KMEANS_COLORS_MAX_SIZE || height > KMEANS_COLORS_MAX_SIZE {
-        Rc::new(picture.resize(
-            KMEANS_COLORS_MAX_SIZE.into(),
-            KMEANS_COLORS_MAX_SIZE.into(),
-            image::imageops::FilterType::Lanczos3,
-        ))
-    } else {
-        Rc::clone(&picture)
+    let scaled_picture =
+        if width > MAIN_COLORS_IMAGE_MAX_SIZE || height > MAIN_COLORS_IMAGE_MAX_SIZE {
+            Rc::new(picture.resize(
+                MAIN_COLORS_IMAGE_MAX_SIZE.into(),
+                MAIN_COLORS_IMAGE_MAX_SIZE.into(),
+                image::imageops::FilterType::Lanczos3,
+            ))
+        } else {
+            Rc::clone(&picture)
+        };
+    let color = {
+        let rgb8_image_buffer;
+        let rgb8_image_buffer = if let Some(rgb8_image_buffer) = scaled_picture.as_rgb8() {
+            rgb8_image_buffer
+        } else {
+            // Format conversion requires a temporary allocation.
+            rgb8_image_buffer = scaled_picture.to_rgb8();
+            &rgb8_image_buffer
+        };
+        let input_image = InputImage::try_from(rgb8_image_buffer).map_err(|err| {
+            ArtworkImageError::Other(
+                anyhow::Error::from(err).context("convert image to okmain input"),
+            )
+        })?;
+        let main_colors = okmain::colors(input_image);
+        main_colors
+            .first()
+            .map(|rgb| RgbColor::rgb(rgb.r, rgb.g, rgb.b))
     };
-    // Convert pixel buffer to Lab for k-means
-    let lab_pixels = match scaled_picture.color() {
-        image::ColorType::Rgb8 => from_component_slice::<Srgb<u8>>(scaled_picture.as_bytes())
-            .iter()
-            .map(|rgb| rgb.into_format().into_color())
-            .collect::<Vec<Lab>>(),
-        image::ColorType::Rgba8 => from_component_slice::<Srgba<u8>>(scaled_picture.as_bytes())
-            .iter()
-            .map(|rgba| rgba.color.into_format().into_color())
-            .collect::<Vec<Lab>>(),
-        _ => {
-            // Format conversion requires a temporary allocation. Could be optimized,
-            // but should only happen rarely.
-            from_component_slice::<Srgb<u8>>(scaled_picture.to_rgb8().as_raw())
-                .iter()
-                .map(|rgb| rgb.into_format().into_color())
-                .collect::<Vec<Lab>>()
-        }
-    };
-    let color = lab_pixels
-        .is_empty()
-        .not()
-        .then(|| {
-            let mut result = Kmeans::new();
-            for i in 0..KMEANS_COLORS_RUNS {
-                let run_result = get_kmeans_hamerly(
-                    KMEANS_COLORS_MAX_COLORS,
-                    KMEANS_COLORS_MAX_ITER,
-                    5.0, // default convergence factor for Lab
-                    false,
-                    &lab_pixels,
-                    KMEANS_COLORS_SEED + i as u64,
-                );
-                if run_result.score < result.score {
-                    result = run_result;
-                }
-            }
-            let result = Lab::sort_indexed_colors(&result.centroids, &result.indices);
-            Lab::get_dominant_color(&result).map(|x| {
-                let rgb = Srgb::from_color(x).into_format();
-                RgbColor::rgb(rgb.red, rgb.green, rgb.blue)
-            })
-        })
-        .flatten();
-    // TODO: Calculate thumbnail based on k-means color palette?
     let thumbnail_picture = scaled_picture.resize_exact(
         THUMBNAIL_WIDTH.into(),
         THUMBNAIL_HEIGHT.into(),

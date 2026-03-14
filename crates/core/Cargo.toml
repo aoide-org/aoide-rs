@@ -31,7 +31,6 @@ jiff.workspace = true
 mime.workspace = true
 nonicle.workspace = true
 num-integer = "0.1.46"
-palette = { version = "0.7.6", default-features = false }
 rand.workspace = true
 regex.workspace = true
 semval.workspace = true
@@ -47,10 +46,9 @@ serde = { workspace = true, optional = true, features = ["derive"] }
 schemars = { workspace = true, optional = true, features = ["url2"] }
 serde_json = { workspace = true, optional = true }
 
-[dependencies.kmeans_colors]
-version = "0.7.1"
-default-features = false
-features = ["palette_color"]
+[dependencies.okmain]
+version = "0.2.0"
+features = ["image"]
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 getrandom = "0.4.2"
