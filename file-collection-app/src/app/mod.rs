@@ -4,7 +4,7 @@
 use std::{path::PathBuf, sync::mpsc};
 
 use eframe::{CreationContext, Frame};
-use egui::Context;
+use egui::Ui;
 
 mod message;
 pub(crate) use self::message::{
@@ -91,12 +91,12 @@ impl App {
 }
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &Context, frm: &mut Frame) {
+    fn ui(&mut self, ui: &mut Ui, frm: &mut Frame) {
         let (msg_rx, mut update_ctx) = self.update();
         let msg_count = msg_rx
             .try_iter()
             .map(|msg| {
-                update_ctx.on_message(ctx, msg);
+                update_ctx.on_message(ui.ctx(), msg);
             })
             .count();
         if msg_count > 0 {
@@ -104,6 +104,6 @@ impl eframe::App for App {
         }
 
         let mut render_ctx = self.render();
-        render_ctx.render_frame(ctx, frm);
+        render_ctx.render_frame(ui, frm);
     }
 }

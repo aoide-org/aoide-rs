@@ -3,8 +3,8 @@
 
 use eframe::Frame;
 use egui::{
-    Align, Button, CentralPanel, Context, Grid, Layout, OpenUrl, ScrollArea, TextEdit,
-    TopBottomPanel, load::SizedTexture, scroll_area::ScrollSource,
+    Align, Button, CentralPanel, Grid, Layout, OpenUrl, Panel, ScrollArea, TextEdit, Ui,
+    load::SizedTexture, scroll_area::ScrollSource,
 };
 
 use crate::library::{
@@ -27,7 +27,7 @@ pub(super) struct RenderContext<'a> {
 }
 
 impl RenderContext<'_> {
-    pub(super) fn render_frame(&mut self, ctx: &Context, _frm: &mut Frame) {
+    pub(super) fn render_frame(&mut self, ui: &mut Ui, _frm: &mut Frame) {
         let Self {
             msg_tx,
             mdl,
@@ -36,17 +36,17 @@ impl RenderContext<'_> {
 
         let library = mdl.library.read_current_state();
 
-        TopBottomPanel::top("top-panel").show(ctx, |ui| {
+        Panel::top("top-panel").show_inside(ui, |ui| {
             render_top_panel(ui, ui_data, msg_tx, mdl, &library);
         });
 
         if let Some(mdl_mode) = &mdl.mode {
-            CentralPanel::default().show(ctx, |ui| {
+            CentralPanel::default().show_inside(ui, |ui| {
                 render_central_panel(ui, msg_tx, mdl_mode, &library);
             });
         }
 
-        TopBottomPanel::bottom("bottem-panel").show(ctx, |ui| {
+        Panel::bottom("bottem-panel").show_inside(ui, |ui| {
             render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &library);
         });
     }

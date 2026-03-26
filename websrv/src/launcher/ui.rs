@@ -13,8 +13,8 @@ use std::{
 };
 
 use aoide_storage_sqlite::connection::Storage as SqliteDatabaseStorage;
-use eframe::{Frame, egui::Context};
-use egui::{Button, CentralPanel, TextEdit, TopBottomPanel, ViewportCommand};
+use eframe::Frame;
+use egui::{Button, CentralPanel, Panel, TextEdit, Ui, ViewportCommand};
 use parking_lot::Mutex;
 use rfd::FileDialog;
 
@@ -230,7 +230,7 @@ impl App {
         ui.end_row();
     }
 
-    fn show_launch_controls(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+    fn show_launch_controls(&mut self, ui: &mut egui::Ui) {
         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
             let launcher_state = self.launcher.lock().state();
             let stop_button_text = match launcher_state {
@@ -252,7 +252,7 @@ impl App {
                 .add_enabled(stop_button_enabled, Button::new(stop_button_text))
                 .clicked()
             {
-                self.on_stop(ctx, true);
+                self.on_stop(ui.ctx(), true);
             }
 
             let start_button_text = match launcher_state {
@@ -266,7 +266,7 @@ impl App {
                 .add_enabled(start_button_enabled, Button::new(start_button_text))
                 .clicked()
             {
-                self.on_start(ctx);
+                self.on_start(ui.ctx());
             }
         });
     }
@@ -384,11 +384,11 @@ impl eframe::App for App {
         }
     }
 
-    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+    fn ui(&mut self, ui: &mut Ui, _frame: &mut Frame) {
         if matches!(self.state, State::Setup) {
             if let Some(rt_handle) = self.launcher.lock().runtime_handle() {
                 rt_handle.spawn({
-                    let ctx = ctx.clone();
+                    let ctx = ui.ctx().clone();
                     let exit_flag = Arc::clone(&self.exit_flag);
                     async move {
                         shutdown_signal().await;
@@ -399,13 +399,13 @@ impl eframe::App for App {
             }
             // The transition from Setup to Idle must only occur once!
             self.state = State::Idle;
-            ctx.request_repaint();
+            ui.ctx().request_repaint();
         }
-        self.resync_state_on_update(ctx);
+        self.resync_state_on_update(ui.ctx());
         if self.exit_flag.load(Ordering::Relaxed) {
-            ctx.send_viewport_cmd(ViewportCommand::Close);
+            ui.ctx().send_viewport_cmd(ViewportCommand::Close);
         }
-        TopBottomPanel::top("config_panel").show(ctx, |ui| {
+        Panel::top("config_panel").show_inside(ui, |ui| {
             egui::Grid::new("config_grid")
                 .num_columns(2)
                 .spacing([40.0, 4.0])
@@ -414,12 +414,12 @@ impl eframe::App for App {
                     self.show_config_grid(ui);
                 });
         });
-        CentralPanel::default().show(ctx, |_ui| {
-            TopBottomPanel::top("launch_controls").show(ctx, |ui| {
-                self.show_launch_controls(ui, ctx);
+        CentralPanel::default().show_inside(ui, |ui| {
+            Panel::top("launch_controls").show_inside(ui, |ui| {
+                self.show_launch_controls(ui);
             });
         });
-        TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
+        Panel::bottom("status_panel").show_inside(ui, |ui| {
             egui::Grid::new("config_grid")
                 .num_columns(2)
                 .spacing([40.0, 4.0])
