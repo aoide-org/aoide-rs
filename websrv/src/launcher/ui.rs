@@ -388,7 +388,7 @@ impl eframe::App for App {
         if matches!(self.state, State::Setup) {
             if let Some(rt_handle) = self.launcher.lock().runtime_handle() {
                 rt_handle.spawn({
-                    let ctx = ui.ctx().clone();
+                    let ctx = ui.clone();
                     let exit_flag = Arc::clone(&self.exit_flag);
                     async move {
                         shutdown_signal().await;
@@ -399,11 +399,11 @@ impl eframe::App for App {
             }
             // The transition from Setup to Idle must only occur once!
             self.state = State::Idle;
-            ui.ctx().request_repaint();
+            ui.request_repaint();
         }
         self.resync_state_on_update(ui.ctx());
         if self.exit_flag.load(Ordering::Relaxed) {
-            ui.ctx().send_viewport_cmd(ViewportCommand::Close);
+            ui.send_viewport_cmd(ViewportCommand::Close);
         }
         Panel::top("config_panel").show_inside(ui, |ui| {
             egui::Grid::new("config_grid")

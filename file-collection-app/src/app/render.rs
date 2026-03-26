@@ -240,7 +240,7 @@ fn render_central_panel(
                                     artwork_response.on_hover_text_at_pointer(file_location);
                                 // Demo interaction handler that simply opens the content URL in a new (browser) tab.
                                 if artwork_response.clicked() || artwork_response.middle_clicked() {
-                                    ui.ctx().open_url(OpenUrl {
+                                    ui.open_url(OpenUrl {
                                         url: content_url.to_string(),
                                         new_tab: true,
                                     });
