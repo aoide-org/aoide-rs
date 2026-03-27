@@ -40,15 +40,16 @@ impl RenderContext<'_> {
             render_top_panel(ui, ui_data, msg_tx, mdl, &library);
         });
 
+        Panel::bottom("bottom-panel").show_inside(ui, |ui| {
+            render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &library);
+        });
+
+        // CentralPanel must be added after all other panels!
         if let Some(mdl_mode) = &mdl.mode {
             CentralPanel::default().show_inside(ui, |ui| {
                 render_central_panel(ui, msg_tx, mdl_mode, &library);
             });
         }
-
-        Panel::bottom("bottom-panel").show_inside(ui, |ui| {
-            render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &library);
-        });
     }
 }
 
