@@ -54,11 +54,11 @@ default-features = false
 version = "0.1.48"
 optional = true
 # No default features, i.e. all features are optional.
+# See also: <https://blog.kerollmops.com/the-good-the-bad-and-the-leaky-jemalloc-bumpalo-and-mimalloc-in-meilisearch>
+features = ["v3"]
 
 [features]
 default = ["cli"]
 cli = ["aoide/json-backend", "dep:clap"]
 # Use mimalloc instead of the default allocator.
-# libmusl build of mimalloc is currently broken:
-# <https://github.com/purpleprotocol/mimalloc_rust/issues/133>
 mimalloc = ["dep:mimalloc"]

@@ -47,6 +47,8 @@ aoide-websrv-warp-sqlite.workspace = true
 version = "0.1.48"
 optional = true
 # No default features, i.e. all features are optional.
+# See also: <https://blog.kerollmops.com/the-good-the-bad-and-the-leaky-jemalloc-bumpalo-and-mimalloc-in-meilisearch>
+features = ["v3"]
 
 # schemars
 [dependencies.schemars]
@@ -78,8 +80,6 @@ default = ["json-schema", "launcher-ui"]
 json-schema = ["dep:schemars", "aoide-core/json-schema", "aoide-backend-webapi-json/json-schema"]
 
 # Use mimalloc instead of the default allocator.
-# libmusl build of mimalloc is currently broken:
-# <https://github.com/purpleprotocol/mimalloc_rust/issues/133>
 mimalloc = ["dep:mimalloc"]
 
 # Enable the launcher UI.
