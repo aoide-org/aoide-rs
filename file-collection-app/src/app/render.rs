@@ -46,7 +46,7 @@ impl RenderContext<'_> {
             });
         }
 
-        Panel::bottom("bottem-panel").show_inside(ui, |ui| {
+        Panel::bottom("bottom-panel").show_inside(ui, |ui| {
             render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &library);
         });
     }
@@ -54,7 +54,7 @@ impl RenderContext<'_> {
 
 #[expect(clippy::too_many_lines)] // TODO
 fn render_top_panel(
-    ui: &mut egui::Ui,
+    ui: &mut Ui,
     ui_data: &mut UiData,
     msg_tx: &MessageSender,
     mdl: &Model,
@@ -185,7 +185,7 @@ fn render_top_panel(
 
 #[expect(clippy::float_cmp)] // Texture size (x/y) comparison.
 fn render_central_panel(
-    ui: &mut egui::Ui,
+    ui: &mut Ui,
     msg_tx: &MessageSender,
     mode: &ModelMode,
     library: &crate::library::CurrentState<'_>,
@@ -285,7 +285,7 @@ fn render_central_panel(
 }
 
 fn render_bottom_panel(
-    ui: &mut egui::Ui,
+    ui: &mut Ui,
     msg_tx: &MessageSender,
     mode: Option<&ModelMode>,
     library: &crate::library::CurrentState<'_>,

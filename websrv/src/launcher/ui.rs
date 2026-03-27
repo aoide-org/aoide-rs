@@ -145,7 +145,7 @@ impl App {
         }
     }
 
-    fn resync_state_on_update(&mut self, ctx: &egui::Context) {
+    fn resync_state_on_update(&mut self, ctx: &Context) {
         let launcher = self.launcher.lock();
         let launcher_state = launcher.state();
         if matches!(self.state, State::Terminated) {
@@ -162,7 +162,7 @@ impl App {
         }
     }
 
-    fn show_config_grid(&mut self, ui: &mut egui::Ui) {
+    fn show_config_grid(&mut self, ui: &mut Ui) {
         let editing_enabled = matches!(self.state, State::Idle);
 
         ui.label("Network IP:");
@@ -230,7 +230,7 @@ impl App {
         ui.end_row();
     }
 
-    fn show_launch_controls(&mut self, ui: &mut egui::Ui) {
+    fn show_launch_controls(&mut self, ui: &mut Ui) {
         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
             let launcher_state = self.launcher.lock().state();
             let stop_button_text = match launcher_state {
@@ -271,7 +271,7 @@ impl App {
         });
     }
 
-    fn on_start(&mut self, ctx: &egui::Context) {
+    fn on_start(&mut self, ctx: &Context) {
         debug_assert!(matches!(self.state, State::Idle));
         let Config {
             network: network_config,
@@ -307,7 +307,7 @@ impl App {
         }
     }
 
-    fn on_stop(&mut self, ctx: &egui::Context, abort_pending_tasks: bool) {
+    fn on_stop(&mut self, ctx: &Context, abort_pending_tasks: bool) {
         debug_assert!(matches!(self.state, State::Running { .. }));
         if let Err(err) = self.launcher.lock().terminate_runtime(abort_pending_tasks) {
             log::error!("Failed to terminate runtime: {err}");
@@ -316,7 +316,7 @@ impl App {
         self.on_launcher_terminating(ctx);
     }
 
-    fn on_launcher_terminating(&mut self, ctx: &egui::Context) {
+    fn on_launcher_terminating(&mut self, ctx: &Context) {
         if let State::Running { runtime_thread } =
             std::mem::replace(&mut self.state, State::Terminated)
         {
@@ -408,7 +408,7 @@ impl eframe::App for App {
     }
 
     fn ui(&mut self, ui: &mut Ui, _frame: &mut Frame) {
-        Panel::top("config_panel").show_inside(ui, |ui| {
+        Panel::top("config-panel").show_inside(ui, |ui| {
             egui::Grid::new("config_grid")
                 .num_columns(2)
                 .spacing([40.0, 4.0])
@@ -418,11 +418,11 @@ impl eframe::App for App {
                 });
         });
         CentralPanel::default().show_inside(ui, |ui| {
-            Panel::top("launch_controls").show_inside(ui, |ui| {
+            Panel::top("launch-controls").show_inside(ui, |ui| {
                 self.show_launch_controls(ui);
             });
         });
-        Panel::bottom("status_panel").show_inside(ui, |ui| {
+        Panel::bottom("status-panel").show_inside(ui, |ui| {
             egui::Grid::new("config_grid")
                 .num_columns(2)
                 .spacing([40.0, 4.0])
