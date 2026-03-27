@@ -14,7 +14,7 @@ use std::{
 
 use aoide_storage_sqlite::connection::Storage as SqliteDatabaseStorage;
 use eframe::Frame;
-use egui::{Button, CentralPanel, Panel, TextEdit, Ui, ViewportCommand};
+use egui::{Button, CentralPanel, Context, Panel, TextEdit, Ui, ViewportCommand};
 use parking_lot::Mutex;
 use rfd::FileDialog;
 
@@ -384,11 +384,11 @@ impl eframe::App for App {
         }
     }
 
-    fn ui(&mut self, ui: &mut Ui, _frame: &mut Frame) {
+    fn logic(&mut self, ctx: &Context, _frame: &mut Frame) {
         if matches!(self.state, State::Setup) {
             if let Some(rt_handle) = self.launcher.lock().runtime_handle() {
                 rt_handle.spawn({
-                    let ctx = ui.clone();
+                    let ctx = ctx.clone();
                     let exit_flag = Arc::clone(&self.exit_flag);
                     async move {
                         shutdown_signal().await;
@@ -399,12 +399,15 @@ impl eframe::App for App {
             }
             // The transition from Setup to Idle must only occur once!
             self.state = State::Idle;
-            ui.request_repaint();
+            ctx.request_repaint();
         }
-        self.resync_state_on_update(ui.ctx());
+        self.resync_state_on_update(ctx);
         if self.exit_flag.load(Ordering::Relaxed) {
-            ui.send_viewport_cmd(ViewportCommand::Close);
+            ctx.send_viewport_cmd(ViewportCommand::Close);
         }
+    }
+
+    fn ui(&mut self, ui: &mut Ui, _frame: &mut Frame) {
         Panel::top("config_panel").show_inside(ui, |ui| {
             egui::Grid::new("config_grid")
                 .num_columns(2)
