@@ -36,7 +36,7 @@ fn deserialize_playlist() {
         entries: vec![
             Entry {
                 added_at: Zoned::new(added_at1.to_utc().to_timestamp(), tz.clone()),
-                item: Item::Track(TrackItem { uid: uid.clone() }),
+                item: Item::Track(TrackItem { uid }),
                 title: None,
                 notes: None,
             },

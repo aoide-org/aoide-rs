@@ -8,7 +8,7 @@ use diesel::prelude::*;
 use nonicle::{Canonical, CanonicalizeInto as _};
 
 use aoide_core::{
-    EncodedEntityUid, Track, TrackBody, TrackEntity, TrackHeader, TrackUid,
+    Track, TrackBody, TrackEntity, TrackHeader, TrackUid,
     media::{
         Source,
         content::{ContentLink, ContentPath, ContentRevision},
@@ -53,7 +53,7 @@ use crate::{
     },
     repo_error,
     util::{
-        entity::{decode_entity_header, decode_entity_revision},
+        entity::{decode_entity_header, decode_entity_revision, encode_entity_uid},
         pagination_to_limit_offset,
     },
 };
@@ -444,7 +444,7 @@ impl EntityRepo for Connection<'_> {
     fn resolve_track_id(&mut self, uid: &TrackUid) -> RepoResult<TrackId> {
         track::table
             .select(track::row_id)
-            .filter(track::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
+            .filter(track::entity_uid.eq(encode_entity_uid(uid).as_str()))
             .get_result::<RowId>(self.as_mut())
             .map_err(repo_error)
             .map(Into::into)
@@ -535,7 +535,7 @@ impl EntityRepo for Connection<'_> {
         uid: &TrackUid,
     ) -> RepoResult<(RecordHeader, TrackEntity)> {
         let queryable = view_track_search::table
-            .filter(view_track_search::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
+            .filter(view_track_search::entity_uid.eq(encode_entity_uid(uid).as_str()))
             .get_result::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;

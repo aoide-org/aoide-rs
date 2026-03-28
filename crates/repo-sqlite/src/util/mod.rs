@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core_api::Pagination;
 use diesel::{expression::SqlLiteral, sql_types};
+
+use aoide_core_api::Pagination;
 
 pub(crate) mod clock;
 pub(crate) mod entity;

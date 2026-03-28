@@ -13,14 +13,8 @@ pub(crate) fn decode_entity_uid_typed<T: 'static>(uid: &str) -> EntityUidTyped<T
     EntityUidTyped::from_untyped(decode_entity_uid(uid))
 }
 
-pub(crate) fn encode_entity_uid(uid: &impl AsRef<EntityUid>) -> String {
-    // TODO: Avoid dynamic allocation by using EncodedEntityUid instead of String
-    let encoded = uid.as_ref().to_string();
-    debug_assert_eq!(
-        encoded.as_str(),
-        EncodedEntityUid::from(uid.as_ref()).as_str()
-    );
-    encoded
+pub(crate) fn encode_entity_uid(uid: &impl AsRef<EntityUid>) -> EncodedEntityUid {
+    uid.as_ref().encode_str()
 }
 
 pub(crate) fn decode_entity_revision(rev: i64) -> EntityRevision {

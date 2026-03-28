@@ -4,7 +4,7 @@
 use std::{borrow::Cow, fs, path::Path, str::FromStr};
 
 use aoide_core::{
-    CollectionUid, EncodedEntityUid, EntityRevision, TrackEntity, TrackUid,
+    CollectionUid, EntityRevision, TrackEntity, TrackUid,
     media::content::ContentMetadata,
     tag::{FacetId as TagFacetId, FacetedTags, PlainTag},
     track::{
@@ -289,10 +289,7 @@ impl TrackFields {
 
     #[must_use]
     pub fn collection_uid_term(&self, collection_uid: &CollectionUid) -> Term {
-        Term::from_field_text(
-            self.collection_uid,
-            EncodedEntityUid::from(collection_uid).as_str(),
-        )
+        Term::from_field_text(self.collection_uid, collection_uid.encode_str().as_str())
     }
 
     #[must_use]
@@ -317,7 +314,7 @@ impl TrackFields {
 
     #[must_use]
     pub fn uid_term(&self, uid: &TrackUid) -> Term {
-        Term::from_field_text(self.uid, EncodedEntityUid::from(uid).as_str())
+        Term::from_field_text(self.uid, uid.encode_str().as_str())
     }
 
     #[must_use]

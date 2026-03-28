@@ -5,8 +5,7 @@ use anyhow::anyhow;
 use diesel::prelude::*;
 
 use aoide_core::{
-    Collection, CollectionEntity, CollectionHeader, CollectionUid, EncodedEntityUid,
-    EntityRevision,
+    Collection, CollectionEntity, CollectionHeader, CollectionUid, EntityRevision,
     media::content::{ContentPath, ContentPathConfig, VirtualFilePathConfig},
     util::clock::*,
 };
@@ -35,7 +34,7 @@ use crate::{
     },
     repo_error,
     util::{
-        entity::{decode_entity_revision, encode_entity_revision},
+        entity::{decode_entity_revision, encode_entity_revision, encode_entity_uid},
         pagination_to_limit_offset, sql_column_substr_prefix_eq,
     },
 };
@@ -116,7 +115,7 @@ impl EntityRepo for Connection<'_> {
                 collection::row_updated_ms,
                 collection::entity_rev,
             ))
-            .filter(collection::entity_uid.eq(EncodedEntityUid::from(uid).as_str()))
+            .filter(collection::entity_uid.eq(encode_entity_uid(uid).as_str()))
             .get_result::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_mut())
             .map_err(repo_error)
             .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
@@ -153,7 +152,7 @@ impl EntityRepo for Connection<'_> {
             .next()
             .ok_or_else(|| RepoError::Other(anyhow!("no next revision")))?;
         let touchable = TouchableRecord::bind(updated_at, next_rev);
-        let encoded_uid = EncodedEntityUid::from(uid);
+        let encoded_uid = encode_entity_uid(uid);
         let target = collection::table
             .filter(collection::entity_uid.eq(encoded_uid.as_str()))
             .filter(collection::entity_rev.eq(encode_entity_revision(*rev)));

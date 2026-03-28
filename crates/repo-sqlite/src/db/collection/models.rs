@@ -145,7 +145,7 @@ impl<'a> InsertableRecord<'a> {
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
-            entity_uid: encode_entity_uid(uid),
+            entity_uid: encode_entity_uid(uid).to_string(),
             entity_rev: encode_entity_revision(*rev),
             title,
             kind: kind.as_deref(),

@@ -8,6 +8,8 @@ pub mod random;
 pub mod string;
 pub mod url;
 
+pub(crate) mod uuid;
+
 pub trait IsInteger {
     fn is_integer(&self) -> bool;
 }
