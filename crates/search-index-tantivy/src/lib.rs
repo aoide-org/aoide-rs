@@ -1,10 +1,10 @@
 // aoide.org - Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{borrow::Cow, fs, path::Path};
+use std::{borrow::Cow, fs, path::Path, str::FromStr};
 
 use aoide_core::{
-    CollectionUid, EncodedEntityUid, EntityRevision, EntityUid, TrackEntity, TrackUid,
+    CollectionUid, EncodedEntityUid, EntityRevision, TrackEntity, TrackUid,
     media::content::ContentMetadata,
     tag::{FacetId as TagFacetId, FacetedTags, PlainTag},
     track::{
@@ -308,7 +308,7 @@ impl TrackFields {
         doc.get_first(self.collection_uid)
             .as_ref()
             .and_then(Value::as_str)
-            .map(EntityUid::decode_from)
+            .map(FromStr::from_str)
             .transpose()
             .ok()
             .flatten()
@@ -330,7 +330,7 @@ impl TrackFields {
         doc.get_first(self.uid)
             .as_ref()
             .and_then(Value::as_str)
-            .map(EntityUid::decode_from)
+            .map(FromStr::from_str)
             .transpose()
             .ok()
             .flatten()

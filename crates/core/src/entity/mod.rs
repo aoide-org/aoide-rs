@@ -9,10 +9,11 @@ use std::{
     str,
 };
 
+use anyhow::bail;
+use data_encoding::{BASE32HEX, DecodePartial, Encoding};
 use nonicle::{Canonicalize, IsCanonical};
-use rand::RngCore;
 use semval::prelude::*;
-use ulid::{ULID_LEN, Ulid};
+use uuid::Uuid;
 
 ///////////////////////////////////////////////////////////////////////
 // EntityUid
@@ -21,58 +22,107 @@ use ulid::{ULID_LEN, Ulid};
 #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 #[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize),
-    serde(transparent)
-)]
-#[cfg_attr(
     feature = "json-schema",
     derive(schemars::JsonSchema),
     schemars(transparent)
 )]
 pub struct EntityUid {
     #[cfg_attr(feature = "json-schema", schemars(with = "String"))]
-    ulid: Ulid,
+    uuid: Uuid,
 }
 
 impl EntityUid {
-    pub const STR_LEN: usize = ULID_LEN;
+    const ENCODING: &'static Encoding = &BASE32HEX;
 
-    pub const NIL: Self = Self { ulid: Ulid::nil() };
+    // UUID encoded as string with Self::ENCODING.
+    pub const STR_LEN: usize = 26;
+
+    // Encoding requires some extra space for padding.
+    const ENCODE_LEN: usize = 32;
+
+    // Decoding requires some extra space to account for padding.
+    const DECODE_LEN: usize = 20;
+
+    pub const NIL: Self = Self { uuid: Uuid::nil() };
 
     #[must_use]
     pub const fn is_nil(&self) -> bool {
-        let Self { ulid } = self;
-        ulid.is_nil()
+        let Self { uuid } = self;
+        uuid.is_nil()
     }
 
     #[must_use]
-    pub fn new() -> Self {
-        Self::with_rng(&mut crate::util::random::adhoc_rng())
+    pub fn random() -> Self {
+        Self {
+            uuid: Uuid::now_v7(),
+        }
     }
 
-    #[must_use]
-    pub fn with_rng<R: rand::Rng>(rng: &mut R) -> Self {
-        let ulid = Ulid::with_source(rng);
-        Self { ulid }
+    fn decode_ascii(input: &[u8]) -> anyhow::Result<Self> {
+        const DECODED_LEN: usize = 16;
+        debug_assert_eq!(DECODED_LEN, Uuid::nil().as_bytes().len());
+        if input.len() != Self::STR_LEN {
+            bail!("invalid input");
+        }
+        // Pad input.
+        let input: [_; Self::ENCODE_LEN] = std::array::from_fn(|index| {
+            if index < Self::STR_LEN {
+                // Input character.
+                input[index]
+            } else {
+                // Padding.
+                b'='
+            }
+        });
+        let mut decode_buf = [0; Self::DECODE_LEN];
+        let decoded = match Self::ENCODING.decode_mut(&input, &mut decode_buf) {
+            Ok(decode_len) => {
+                debug_assert!(decode_len <= DECODED_LEN);
+                if decode_len < DECODED_LEN {
+                    bail!("insufficient input");
+                }
+                decode_buf[..DECODED_LEN].try_into().unwrap()
+            }
+            Err(DecodePartial {
+                error,
+                read,
+                written,
+            }) => {
+                debug_assert!(read <= input.len());
+                debug_assert!(written <= decode_buf.len());
+                if written != DECODED_LEN || read != Self::STR_LEN {
+                    bail!("invalid input: {error:#}");
+                }
+                decode_buf[..DECODED_LEN].try_into().unwrap()
+            }
+        };
+        let uuid = Uuid::from_bytes(decoded);
+        Ok(Self { uuid })
     }
 
-    pub fn decode_from(encoded: &str) -> anyhow::Result<Self> {
-        Ulid::from_string(encoded)
-            .map(|ulid| Self { ulid })
-            .map_err(Into::into)
+    fn decode_str(input: &str) -> anyhow::Result<Self> {
+        Self::decode_ascii(input.as_bytes())
     }
 
-    pub fn encode_into(&self, buf: &mut [u8; EntityUid::STR_LEN]) {
-        let Self { ulid } = self;
-        ulid.array_to_str(buf);
+    #[expect(clippy::assertions_on_constants)]
+    fn encode_str<'a>(&self, output: &'a mut [u8; Self::ENCODE_LEN]) -> &'a str {
+        let Self { uuid } = self;
+        let uuid_bytes = uuid.as_bytes();
+        let encoded_str = Self::ENCODING.encode_mut_str(uuid_bytes, output);
+        // The length of the returned string matches that of the encode buffer
+        // and needs to be adjusted to the actual length.
+        debug_assert_eq!(encoded_str.len(), Self::ENCODE_LEN);
+        debug_assert!(Self::STR_LEN <= Self::ENCODE_LEN);
+        &encoded_str[..Self::STR_LEN]
     }
 }
 
 impl fmt::Display for EntityUid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let Self { ulid } = self;
-        ulid.fmt(f)
+        let mut encode_buf = [0; Self::ENCODE_LEN];
+        let encoded_str = self.encode_str(&mut encode_buf);
+        debug_assert_eq!(encoded_str, EncodedEntityUid::from(self).to_string());
+        encoded_str.fmt(f)
     }
 }
 
@@ -80,7 +130,48 @@ impl std::str::FromStr for EntityUid {
     type Err = anyhow::Error;
 
     fn from_str(encoded: &str) -> Result<Self, Self::Err> {
-        EntityUid::decode_from(encoded)
+        EntityUid::decode_str(encoded)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for EntityUid {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_str(self)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for EntityUid {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_str(EntityUidDeserializeFromStr)
+    }
+}
+
+#[cfg(feature = "serde")]
+struct EntityUidDeserializeFromStr;
+
+#[cfg(feature = "serde")]
+impl serde::de::Visitor<'_> for EntityUidDeserializeFromStr {
+    type Value = EntityUid;
+
+    fn visit_str<E>(self, input: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        input
+            .parse()
+            .map_err(|_| serde::de::Error::invalid_value(serde::de::Unexpected::Str(input), &self))
+    }
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "a base32hex encoded UUID v7")
     }
 }
 
@@ -242,9 +333,10 @@ impl Default for EncodedEntityUid {
 
 impl From<&EntityUid> for EncodedEntityUid {
     fn from(from: &EntityUid) -> Self {
-        let mut encoded = [0; EntityUid::STR_LEN];
-        from.encode_into(&mut encoded);
-        Self(encoded)
+        let mut encode_buf = [0u8; EntityUid::ENCODE_LEN];
+        let encoded_len = from.encode_str(&mut encode_buf).len();
+        debug_assert_eq!(encoded_len, EntityUid::STR_LEN);
+        Self(encode_buf[..EntityUid::STR_LEN].try_into().unwrap())
     }
 }
 
@@ -256,7 +348,7 @@ impl<T: 'static> From<&EntityUidTyped<T>> for EncodedEntityUid {
 
 impl From<&EncodedEntityUid> for EntityUid {
     fn from(from: &EncodedEntityUid) -> Self {
-        EntityUid::decode_from(from.as_str()).unwrap()
+        EntityUid::decode_str(from.as_str()).unwrap()
     }
 }
 
@@ -269,6 +361,12 @@ impl<T: 'static> From<&EncodedEntityUid> for EntityUidTyped<T> {
 impl AsRef<str> for EncodedEntityUid {
     fn as_ref(&self) -> &str {
         self.as_str()
+    }
+}
+
+impl fmt::Display for EncodedEntityUid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.as_str().fmt(f)
     }
 }
 
@@ -376,12 +474,7 @@ pub struct EntityHeader {
 impl EntityHeader {
     #[must_use]
     pub fn initial_random() -> Self {
-        Self::initial_with_uid(EntityUid::new())
-    }
-
-    #[must_use]
-    pub fn initial_random_with<T: RngCore>(rng: &mut T) -> Self {
-        Self::initial_with_uid(EntityUid::with_rng(rng))
+        Self::initial_with_uid(EntityUid::random())
     }
 
     #[must_use]

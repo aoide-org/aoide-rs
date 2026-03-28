@@ -344,7 +344,7 @@ impl TracksWithGenreTagsFixture {
     ) -> RepoResult<TrackId> {
         let collected_at = OffsetDateTimeMs::now_local();
         let created_at = collected_at.to_utc();
-        let uuid = Uuid::new_v4();
+        let uuid = Uuid::now_v7();
         let media_source = media::Source {
             collected_at,
             content: media::Content {

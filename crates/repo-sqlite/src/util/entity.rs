@@ -6,7 +6,7 @@ use aoide_core::{
 };
 
 pub(crate) fn decode_entity_uid(uid: &str) -> EntityUid {
-    EntityUid::decode_from(uid).expect("valid entity UID")
+    uid.parse().expect("valid entity UID")
 }
 
 pub(crate) fn decode_entity_uid_typed<T: 'static>(uid: &str) -> EntityUidTyped<T> {

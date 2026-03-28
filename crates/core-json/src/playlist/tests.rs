@@ -15,7 +15,7 @@ fn serialize_item_default_separator() {
 
 #[test]
 fn deserialize_playlist() {
-    let uid: EntityUid = "01AN4Z07BY79KA1307SR9X4MV3".parse().unwrap();
+    let uid = EntityUid::random();
     let tz = tz::db().get("Europe/Berlin").unwrap();
     let added_at = "2020-12-18T22:27:15+01:00[Europe/Berlin]"
         .parse::<Zoned>()

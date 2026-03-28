@@ -56,5 +56,5 @@ pub struct EntityRevQueryParams {
 }
 
 fn new_request_id() -> Uuid {
-    Uuid::new_v4()
+    Uuid::now_v7()
 }
