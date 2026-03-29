@@ -56,7 +56,7 @@ impl EntityUid {
 
     #[must_use]
     pub fn random() -> Self {
-        Self(Uuid::now_v7())
+        Self(uuid::Uuid::now_v7().into())
     }
 }
 

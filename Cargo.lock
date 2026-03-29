@@ -236,7 +236,7 @@ dependencies = [
  "num-integer",
  "okmain",
  "path-slash",
- "rand 0.9.2",
+ "rand 0.10.0",
  "regex",
  "schemars",
  "semval",
@@ -245,6 +245,7 @@ dependencies = [
  "smol_str 0.3.6",
  "strum",
  "url",
+ "uuid",
  "uuid-base32hex",
 ]
 
@@ -373,7 +374,7 @@ dependencies = [
  "aoide-core-api",
  "derive_more",
  "paste",
- "rand 0.9.2",
+ "rand 0.10.0",
 ]
 
 [[package]]
@@ -749,7 +750,7 @@ dependencies = [
  "cc",
  "cfg-if",
  "constant_time_eq",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "digest",
 ]
 
@@ -956,6 +957,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "chacha20"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f8d983286843e49675a4b7a2d174efe136dc93a18d69130dd18198a6c167601"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.3.0",
+ "rand_core 0.10.0",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1141,6 +1153,15 @@ name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "cpufeatures"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b2a41393f66f16b0823bb79094d54ac5fbd34ab292ddafb9a0456ac9f87d201"
 dependencies = [
  "libc",
 ]
@@ -2013,6 +2034,7 @@ dependencies = [
  "js-sys",
  "libc",
  "r-efi 6.0.0",
+ "rand_core 0.10.0",
  "wasip2",
  "wasip3",
  "wasm-bindgen",
@@ -3842,6 +3864,8 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc266eb313df6c5c09c1c7b1fbe2510961e5bcd3add930c1e31f7ed9da0feff8"
 dependencies = [
+ "chacha20",
+ "getrandom 0.4.2",
  "rand_core 0.10.0",
 ]
 
@@ -4385,7 +4409,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
 dependencies = [
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "digest",
 ]
 
@@ -5235,9 +5259,9 @@ dependencies = [
 
 [[package]]
 name = "uuid-base32hex"
-version = "0.1.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8dd14391e9a85d536f17472bf08eda1bf7ccf2fca73d1d2e1e2175de1f6fcece"
+checksum = "7dd800b4910041db2f92b56bdec9430399b6c66ee92631976a15fbaa84bdb2c7"
 dependencies = [
  "data-encoding",
  "derive_more",

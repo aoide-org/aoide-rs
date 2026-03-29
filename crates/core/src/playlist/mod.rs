@@ -5,7 +5,7 @@ use std::ops::RangeBounds;
 
 use bitflags::bitflags;
 use jiff::{Timestamp, tz::TimeZone};
-use rand::{RngCore, seq::SliceRandom as _};
+use rand::{Rng, seq::SliceRandom as _};
 use semval::prelude::*;
 
 use crate::{
@@ -278,7 +278,7 @@ impl PlaylistWithEntries {
         self.shuffle_entries_with(&mut adhoc_rng());
     }
 
-    pub fn shuffle_entries_with<T: RngCore>(&mut self, rng: &mut T) {
+    pub fn shuffle_entries_with<T: Rng>(&mut self, rng: &mut T) {
         self.entries.shuffle(rng);
     }
 

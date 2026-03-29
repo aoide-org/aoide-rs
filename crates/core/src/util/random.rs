@@ -10,7 +10,7 @@ pub type AdhocRng = rand::rngs::StdRng;
 #[cfg(target_family = "wasm")]
 #[must_use]
 pub fn adhoc_rng() -> AdhocRng {
-    <AdhocRng as rand::SeedableRng>::from_os_rng()
+    rand::make_rng()
 }
 
 #[cfg(not(target_family = "wasm"))]
