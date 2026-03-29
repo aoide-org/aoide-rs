@@ -36,5 +36,3 @@ pub mod playlist;
 pub use self::playlist::{
     Entity as PlaylistEntity, EntityHeader as PlaylistHeader, EntityUid as PlaylistUid, Playlist,
 };
-
-pub use self::util::uuid::{Uuid, UuidEncodedStr, UuidInvalidity};

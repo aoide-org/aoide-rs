@@ -23,7 +23,14 @@ bitflags.workspace = true
 blake3 = { workspace = true, features = ["traits-preview"] }
 bytes.workspace = true
 data-encoding.workspace = true
-derive_more = { workspace = true, features = ["display", "error", "from"] }
+derive_more = { workspace = true, features = [
+  "as_ref",
+  "deref",
+  "display",
+  "error",
+  "from",
+  "from_str",
+] }
 digest.workspace = true
 hashbrown.workspace = true
 image = { workspace = true, features = ["default-formats"] }
@@ -37,7 +44,7 @@ semval.workspace = true
 smol_str.workspace = true
 strum = { workspace = true, features = ["derive"] }
 url.workspace = true
-uuid = { workspace = true, features = ["v7"] }
+uuid-base32hex = { workspace = true, features = ["v7"] }
 
 # Serialization of selected, primitive types
 serde = { workspace = true, optional = true, features = ["derive"] }
@@ -63,6 +70,6 @@ serde_json.workspace = true
 [features]
 default = []
 # Feature to enable JavaScript bindings on wasm32-unknown-unknown
-js = ["getrandom/wasm_js", "jiff/js", "uuid/js"]
-serde = ["dep:serde", "jiff/serde", "smol_str/serde", "url/serde"]
-json-schema = ["serde", "dep:serde_json", "dep:schemars"]
+js = ["getrandom/wasm_js", "jiff/js", "uuid-base32hex/js"]
+serde = ["dep:serde", "jiff/serde", "smol_str/serde", "url/serde", "uuid-base32hex/serde"]
+json-schema = ["serde", "dep:serde_json", "dep:schemars", "uuid-base32hex/json-schema"]

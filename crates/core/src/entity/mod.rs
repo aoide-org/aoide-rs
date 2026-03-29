@@ -6,21 +6,76 @@ use std::{
     hash::{Hash, Hasher},
     marker::PhantomData,
     ops::{Deref, DerefMut},
-    str,
+    str::FromStr,
 };
 
 use nonicle::{Canonicalize, IsCanonical};
 use semval::prelude::*;
-
-use crate::{Uuid, UuidEncodedStr, UuidInvalidity};
+use uuid_base32hex::{Uuid, UuidEncodedStr};
 
 ///////////////////////////////////////////////////////////////////////
 // EntityUid
 ///////////////////////////////////////////////////////////////////////
 
-pub type EntityUid = Uuid;
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    derive_more::AsRef,
+    derive_more::Deref,
+    derive_more::Display,
+    derive_more::FromStr,
+)]
+#[repr(transparent)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(transparent)
+)]
+pub struct EntityUid(Uuid);
+
+impl EntityUid {
+    pub const NIL: Self = Self(Uuid::NIL);
+
+    #[must_use]
+    pub const fn as_ref(&self) -> &Uuid {
+        &self.0
+    }
+
+    #[must_use]
+    pub const fn is_nil(&self) -> bool {
+        self.as_ref().is_nil()
+    }
+
+    #[must_use]
+    pub fn random() -> Self {
+        Self(Uuid::now_v7())
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum EntityUidInvalidity {
+    Nil,
+}
+
+impl Validate for EntityUid {
+    type Invalidity = EntityUidInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(self.is_nil(), Self::Invalidity::Nil)
+            .into()
+    }
+}
+
 pub type EncodedEntityUid = UuidEncodedStr;
-pub type EntityUidInvalidity = UuidInvalidity;
 
 #[repr(transparent)]
 pub struct EntityUidTyped<T: 'static> {
@@ -73,11 +128,13 @@ impl<T> fmt::Display for EntityUidTyped<T> {
     }
 }
 
-impl<T> std::str::FromStr for EntityUidTyped<T> {
+impl<T> FromStr for EntityUidTyped<T> {
     type Err = anyhow::Error;
 
     fn from_str(encoded: &str) -> Result<Self, Self::Err> {
-        EntityUid::from_str(encoded).map(Self::from_untyped)
+        EntityUid::from_str(encoded)
+            .map(Self::from_untyped)
+            .map_err(Into::into)
     }
 }
 

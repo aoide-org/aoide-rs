@@ -76,6 +76,7 @@ tokio = "1.50.0"
 tracing = "0.1.44"
 url = "2.5.8"
 uuid = "1.23.0"
+uuid-base32hex = "0.1.0"
 walkdir = "2.5.0"
 
 [workspace.lints.rust]
