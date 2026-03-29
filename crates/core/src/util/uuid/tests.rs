@@ -6,30 +6,29 @@ use semval::Validate as _;
 use super::{Uuid, UuidEncodedStr};
 
 #[test]
-fn nil_str() {
-    assert_eq!(
-        UuidEncodedStr::from(Uuid::NIL).as_str(),
-        Uuid::NIL.to_string().as_str(),
-    );
+fn nil() {
+    assert_eq!(Uuid::NIL.encode_str(), UuidEncodedStr::NIL);
+    assert_eq!(UuidEncodedStr::NIL.decode(), Uuid::NIL);
+    assert!(Uuid::NIL.validate().is_err());
 }
 
 #[test]
 fn default() {
-    assert!(Uuid::default().validate().is_err());
     assert_eq!(Uuid::default(), Uuid::NIL);
+    assert_eq!(UuidEncodedStr::default(), UuidEncodedStr::NIL);
 }
 
 #[test]
-fn random() {
+fn random_is_valid() {
     assert!(Uuid::random().validate().is_ok());
 }
 
 #[test]
 fn should_encode_decode_uuid() {
     let uuid = Uuid::random();
-    let encoded = uuid.to_string();
-    assert_eq!(encoded.len(), Uuid::STR_LEN);
-    let decoded = Uuid::decode_str(&encoded).unwrap();
+    let encoded_str = uuid.encode_str();
+    assert_eq!(encoded_str.len(), Uuid::STR_LEN);
+    let decoded = encoded_str.decode();
     assert_eq!(uuid, decoded);
 }
 

@@ -23,7 +23,7 @@ pub struct Uuid {
 impl Uuid {
     const ENCODING: &'static Encoding = &BASE32HEX_NOPAD;
 
-    /// UUID encoded as ASCII string with Self::ENCODING.
+    /// Length of UUID encoded as ASCII string.
     pub const STR_LEN: usize = 26;
 
     pub const NIL: Self = Self {
@@ -182,12 +182,18 @@ impl Validate for Uuid {
 pub struct UuidEncodedStr([u8; Uuid::STR_LEN]);
 
 impl UuidEncodedStr {
-    pub const NIL: Self = Self([0; Uuid::STR_LEN]);
+    pub const NIL: Self = Self([b'0'; Uuid::STR_LEN]);
 
     #[must_use]
     #[expect(unsafe_code)]
     pub const fn as_str(&self) -> &str {
         unsafe { std::str::from_utf8_unchecked(&self.0) }
+    }
+
+    #[must_use]
+    #[allow(clippy::missing_panics_doc, reason = "Infallible.")]
+    pub fn decode(&self) -> Uuid {
+        Uuid::decode_str(self).unwrap()
     }
 }
 
@@ -208,7 +214,7 @@ impl From<Uuid> for UuidEncodedStr {
 
 impl From<UuidEncodedStr> for Uuid {
     fn from(from: UuidEncodedStr) -> Self {
-        Uuid::decode_str(from.as_str()).unwrap()
+        from.decode()
     }
 }
 
