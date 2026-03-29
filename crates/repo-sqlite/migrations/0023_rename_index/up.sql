@@ -1,4 +1,4 @@
--- SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+-- SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 -- SPDX-License-Identifier: AGPL-3.0-or-later
 
 DROP INDEX "udx_track_actor_track_id_scope_role_where_kind_main";

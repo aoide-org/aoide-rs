@@ -1,4 +1,4 @@
--- SPDX-FileCopyrightText: Copyright (C) 2018-2025 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+-- SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 -- SPDX-License-Identifier: AGPL-3.0-or-later
 
 -- Rename and re-create the table as proposed here: https://www.sqlite.org/lang_altertable.html
