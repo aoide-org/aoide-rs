@@ -4,7 +4,7 @@
 use std::{fmt, hash::Hash, ops::Deref, str};
 
 use anyhow::bail;
-use data_encoding::{BASE32HEX, DecodePartial, Encoding};
+use data_encoding::{BASE32HEX_NOPAD, DecodePartial, Encoding};
 use semval::prelude::*;
 
 /// UUID v7 with base32hex string representation.
@@ -21,16 +21,10 @@ pub struct Uuid {
 }
 
 impl Uuid {
-    const ENCODING: &'static Encoding = &BASE32HEX;
+    const ENCODING: &'static Encoding = &BASE32HEX_NOPAD;
 
-    // UUID encoded as string with Self::ENCODING.
+    /// UUID encoded as ASCII string with Self::ENCODING.
     pub const STR_LEN: usize = 26;
-
-    // Encoding requires some extra space for padding.
-    const ENCODE_LEN: usize = 32;
-
-    // Decoding requires some extra space to account for padding.
-    const DECODE_LEN: usize = 20;
 
     pub const NIL: Self = Self {
         uuid: uuid::Uuid::nil(),
@@ -55,24 +49,13 @@ impl Uuid {
         if input.len() != Self::STR_LEN {
             bail!("invalid input");
         }
-        // Pad input.
-        let input: [_; Self::ENCODE_LEN] = std::array::from_fn(|index| {
-            if index < Self::STR_LEN {
-                // Input character.
-                input[index]
-            } else {
-                // Padding.
-                b'='
-            }
-        });
-        let mut decode_buf = [0; Self::DECODE_LEN];
-        let decoded = match Self::ENCODING.decode_mut(&input, &mut decode_buf) {
+        let mut decode_buf = [0; DECODED_LEN];
+        match Self::ENCODING.decode_mut(input, &mut decode_buf) {
             Ok(decode_len) => {
                 debug_assert!(decode_len <= DECODED_LEN);
                 if decode_len < DECODED_LEN {
                     bail!("insufficient input");
                 }
-                decode_buf[..DECODED_LEN].try_into().unwrap()
             }
             Err(DecodePartial {
                 error,
@@ -81,13 +64,10 @@ impl Uuid {
             }) => {
                 debug_assert!(read <= input.len());
                 debug_assert!(written <= decode_buf.len());
-                if written != DECODED_LEN || read != Self::STR_LEN {
-                    bail!("invalid input: {error:#}");
-                }
-                decode_buf[..DECODED_LEN].try_into().unwrap()
+                bail!("invalid input: {error:#}");
             }
-        };
-        let uuid = uuid::Uuid::from_bytes(decoded);
+        }
+        let uuid = uuid::Uuid::from_bytes(decode_buf);
         Ok(Self { uuid })
     }
 
@@ -96,16 +76,12 @@ impl Uuid {
     }
 
     #[must_use]
-    #[expect(clippy::assertions_on_constants)]
-    fn encode_str_impl(self, output: &mut [u8; Self::ENCODE_LEN]) -> &str {
+    fn encode_str_impl(self, output: &mut [u8; Self::STR_LEN]) -> &str {
         let Self { uuid } = self;
         let uuid_bytes = uuid.as_bytes();
         let encoded_str = Self::ENCODING.encode_mut_str(uuid_bytes, output);
-        // The length of the returned string matches that of the encode buffer
-        // and needs to be adjusted to the actual length.
-        debug_assert_eq!(encoded_str.len(), Self::ENCODE_LEN);
-        debug_assert!(Self::STR_LEN <= Self::ENCODE_LEN);
-        &encoded_str[..Self::STR_LEN]
+        debug_assert_eq!(encoded_str.len(), Self::STR_LEN);
+        encoded_str
     }
 
     #[must_use]
@@ -130,7 +106,7 @@ impl Deref for Uuid {
 
 impl fmt::Display for Uuid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut encode_buf = [0; Self::ENCODE_LEN];
+        let mut encode_buf = [0; Self::STR_LEN];
         let encoded_str = self.encode_str_impl(&mut encode_buf);
         debug_assert_eq!(encoded_str, self.encode_str().as_str());
         encoded_str.fmt(f)
@@ -223,10 +199,10 @@ impl Default for UuidEncodedStr {
 
 impl From<Uuid> for UuidEncodedStr {
     fn from(from: Uuid) -> Self {
-        let mut encode_buf = [0u8; Uuid::ENCODE_LEN];
-        let encoded_len = from.encode_str_impl(&mut encode_buf).len();
-        debug_assert_eq!(encoded_len, Uuid::STR_LEN);
-        Self(encode_buf[..Uuid::STR_LEN].try_into().unwrap())
+        let mut encode_buf = [0u8; Uuid::STR_LEN];
+        let encode_len = from.encode_str_impl(&mut encode_buf).len();
+        debug_assert_eq!(encode_len, encode_buf.len());
+        Self(encode_buf)
     }
 }
 
