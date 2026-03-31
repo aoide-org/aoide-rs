@@ -352,7 +352,7 @@ impl TrackFields {
     ) -> tantivy::Result<Option<EntityRevision>> {
         let query = self.uid_query(uid);
         // Search for 2 documents
-        let top_docs = searcher.search(&query, &TopDocs::with_limit(2))?;
+        let top_docs = searcher.search(&query, &TopDocs::with_limit(2).order_by_score())?;
         debug_assert!(top_docs.len() <= 1);
         if let Some((_score, doc_addr)) = top_docs.into_iter().next() {
             let doc = searcher.doc(doc_addr)?;
