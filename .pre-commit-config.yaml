@@ -88,18 +88,15 @@ repos:
           (?x)(
             ^LICENSE\.md$
           )
-  # TODO: Remove unmaintained Prettier plugin.
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.1.0
+  # Format code with oxfmt for supported file types.
+  - repo: https://github.com/oxc-project/mirrors-oxfmt
+    rev: v0.43.0
     hooks:
-      - id: prettier
+      - id: oxfmt
         types_or:
+          - json
           - markdown
-  # YAML
-  - repo: https://github.com/google/yamlfmt
-    rev: v0.21.0
-    hooks:
-      - id: yamlfmt
+          - yaml
   # TOML
   - repo: https://github.com/ComPWA/taplo-pre-commit
     rev: v0.9.3
