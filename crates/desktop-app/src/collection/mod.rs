@@ -547,9 +547,9 @@ impl State {
         nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> anyhow::Result<SpawnRestoringFromMusicDirectoryTaskReaction> {
         match self {
-            Self::Ready { entity, .. } => {
+            Self::Ready { entity, .. }
                 // When set the `kind` controls the selection of collections by music directory.
-                if new_kind.is_none() || new_kind.as_deref() == entity.body.kind.as_deref() {
+                if new_kind.is_none() || new_kind.as_deref() == entity.body.kind.as_deref() => {
                     let vfs_music_dir = vfs_music_dir(&entity.body);
                     if vfs_music_dir.as_ref() == Some(&new_music_dir) {
                         // Unchanged
@@ -559,7 +559,6 @@ impl State {
                         );
                         return Ok(SpawnRestoringFromMusicDirectoryTaskReaction::Unchanged);
                     }
-                }
             }
             Self::RestoringFromMusicDirectory {
                 state:
@@ -573,18 +572,17 @@ impl State {
                         kind, music_dir, ..
                     },
                 ..
-            } => {
+            }
                 // When set the `kind` controls the selection of collections by music directory.
                 if (new_kind.is_none() || new_kind.as_deref() == kind.as_deref())
                     && music_dir.borrowed() == new_music_dir
-                {
+                 => {
                     // No effect
                     log::debug!(
                         "Music directory unchanged and not updated: {music_dir}",
                         music_dir = new_music_dir.display()
                     );
                     return Ok(SpawnRestoringFromMusicDirectoryTaskReaction::Unchanged);
-                }
             }
             _ => {
                 // Proceed without any checks.

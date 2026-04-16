@@ -28,7 +28,7 @@ path = ".."
 features = ["desktop-app", "async-file-dialog", "json-backend", "json-frontend", "sqlite-bundled"]
 
 [dependencies.clap]
-version = "4.6.0"
+version = "4.6.1"
 features = ["derive"]
 
 [dependencies.log]

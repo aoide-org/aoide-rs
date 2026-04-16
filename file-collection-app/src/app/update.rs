@@ -425,13 +425,12 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
         // Determine a follow-up effect or action dependent on the new state.
         // TODO: Store or report outcomes and errors from these dead end states.
         match &*collection_state {
-            collection::State::Void => {
+            collection::State::Void
                 // Nothing to show with no collection available. This prevents to
                 // show stale data after the collection has been reset.
-                if mode.is_some() {
+                if mode.is_some() => {
                     log::debug!("Resetting mode {mode:?} without active collection");
                     *mode = None;
-                }
             }
             collection::State::LoadingFromDatabase {
                 state: collection::LoadingFromDatabaseState::Finished(collection::LoadingFromDatabaseFinishedState::Failed { .. }),
@@ -445,8 +444,8 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
             } => {
                 reset_music_dir = true;
             }
-            collection::State::Ready { summary, .. } => {
-                if matches!(music_dir_selection, Some(MusicDirSelection::Selected)) {
+            collection::State::Ready { summary, .. }
+                if matches!(music_dir_selection, Some(MusicDirSelection::Selected)) => {
                     *music_dir_selection = None;
                     if summary.media_sources.total_count == 0 {
                         log::info!(
@@ -454,7 +453,6 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
                         );
                         msg_tx.send_action(MediaTrackerSyncAction::SpawnTask);
                     }
-                }
             }
             _ => (),
         }
