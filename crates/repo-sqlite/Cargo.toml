@@ -38,5 +38,5 @@ aoide-storage-sqlite.workspace = true
 [dev-dependencies]
 itertools.workspace = true
 env_logger.workspace = true
-test-log = "0.2.19"
+test-log = "0.2.20"
 uuid = { workspace = true, features = ["v7"] }

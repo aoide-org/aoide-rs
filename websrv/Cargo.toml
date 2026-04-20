@@ -44,11 +44,8 @@ aoide-websrv-warp-sqlite.workspace = true
 
 # mimalloc
 [dependencies.mimalloc]
-version = "0.1.48"
+version = "0.1.49"
 optional = true
-# No default features, i.e. all features are optional.
-# See also: <https://blog.kerollmops.com/the-good-the-bad-and-the-leaky-jemalloc-bumpalo-and-mimalloc-in-meilisearch>
-features = ["v3"]
 
 # schemars
 [dependencies.schemars]
