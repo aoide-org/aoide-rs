@@ -307,20 +307,18 @@ impl Library {
             let event_emitter = event_emitter.clone();
             let mut subscriber = sync_music_dir_task.progress().subscribe_changed();
             async move {
+                log::debug!("Start sync_music_dir progress");
+                // Emit the first event immediately.
                 loop {
-                    log::debug!("Suspending sync_music_dir progress");
-                    if subscriber.changed().await.is_err() {
-                        // No publisher(s).
-                        break;
-                    }
-                    log::debug!("Resuming sync_music_dir progress");
                     let progress = subscriber.read_ack().clone();
-                    if event_emitter
-                        .emit_event(Event::MusicDirSyncProgress(progress))
-                        .is_err()
-                    {
+                    drop(event_emitter.emit_event(Event::MusicDirSyncProgress(progress)));
+
+                    log::debug!("Suspend sync_music_dir progress");
+                    if subscriber.changed().await.is_err() {
+                        log::debug!("Finish sync_music_dir progress after publisher(s) dropped");
                         break;
                     }
+                    log::debug!("Resume sync_music_dir progress");
                 }
             }
         });
@@ -339,8 +337,10 @@ impl Library {
                         log::debug!(
                             "Finished synchronization of music directory: {finished_state:?}"
                         );
-                        let _ = event_emitter
-                            .emit_event(Event::MusicDirSyncFinished(Box::new(finished_state)));
+                        drop(
+                            event_emitter
+                                .emit_event(Event::MusicDirSyncFinished(Box::new(finished_state))),
+                        );
                     }
                     Err(err) => {
                         log::warn!("Failed to finish synchronization of music directory: {err:#}");
@@ -410,7 +410,7 @@ impl Library {
                     params,
                     result,
                 };
-                event_emitter.emit_event(event).ok();
+                drop(event_emitter.emit_event(event));
             }
         });
         ActionEffect::MaybeChanged

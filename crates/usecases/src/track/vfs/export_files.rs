@@ -309,7 +309,7 @@ where
     let limit = batch_size.unwrap_or(u64::MAX);
     let mut exporter = TrackFileExporter::new(match_files, source_path_resolver, target_root_path)
         .map_err(Error::Other)?;
-    loop {
+    let () = loop {
         let pagination = Pagination {
             limit: Some(limit),
             offset: Some(offset),
@@ -330,7 +330,7 @@ where
         if batch_count < limit {
             break;
         }
-    }
+    };
     let TrackFileExporter {
         match_files: _,
         source_path_resolver: _,

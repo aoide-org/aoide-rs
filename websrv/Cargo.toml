@@ -31,7 +31,7 @@ tracing.workspace = true
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = { workspace = true, features = ["serde"] }
-warp = { version = "0.4.2", default-features = false, features = ["server"] }
+warp = { version = "0.4.3", default-features = false, features = ["server"] }
 
 # Workspace dependencies
 aoide-backend-webapi-json = { "workspace" = true, features = ["tokio"] }
@@ -54,13 +54,13 @@ optional = true
 
 # launcher-ui
 [dependencies.eframe]
-version = "0.34.1"
+version = "0.34.2"
 optional = true
 default-features = false
 features = ["default_fonts", "glow", "wayland"]
 
 [dependencies.egui]
-version = "0.34.1"
+version = "0.34.2"
 optional = true
 default-features = false
 

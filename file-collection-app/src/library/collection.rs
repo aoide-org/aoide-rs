@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use discro::{Ref, Subscriber};
+use std::convert::Infallible;
 
-use crate::NoReceiverForEvent;
+use discro::{Ref, Subscriber};
 
 use super::EventEmitter;
 
@@ -30,17 +30,22 @@ where
     E: EventEmitter,
 {
     // The first event is always emitted immediately.
-    loop {
-        drop(subscriber.read_ack());
-        if let Err(NoReceiverForEvent) = event_emitter.emit_event(Event::StateChanged.into()) {
-            log::info!("Stop watching collection state after event receiver has been dropped");
-            break;
-        }
-        log::debug!("Suspending watch_state");
+    log::debug!("Start watching collection state");
+    let _unreachable: Infallible = loop {
+        let event = on_state_changed(&mut subscriber);
+        drop(event_emitter.emit_event(event.into()));
+
+        log::debug!("Suspend watching collection state");
         if subscriber.changed().await.is_err() {
-            log::info!("Stop watching collection state after publisher has been dropped");
-            break;
+            log::debug!("Finish watching collection state after publisher has been dropped");
+            return;
         }
-        log::debug!("Resuming watch_state");
-    }
+        log::debug!("Resume watching collection state");
+    };
+}
+
+#[must_use]
+fn on_state_changed(subscriber: &mut StateSubscriber) -> Event {
+    drop(subscriber.read_ack());
+    Event::StateChanged
 }

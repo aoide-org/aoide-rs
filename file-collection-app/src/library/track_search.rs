@@ -20,8 +20,6 @@ use aoide::{
     },
 };
 
-use crate::NoReceiverForEvent;
-
 use super::EventEmitter;
 
 // Re-exports
@@ -61,21 +59,25 @@ pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitte
 where
     E: EventEmitter,
 {
-    // The first event is always emitted immediately.
+    log::debug!("Start watching track search state");
+    // Emit the first event immediately.
     loop {
-        drop(subscriber.read_ack());
-        if let Err(NoReceiverForEvent) = event_emitter.emit_event(Event::StateChanged.into()) {
-            log::info!("Stop watching track search state after event receiver has been dropped");
-            break;
-        }
+        let event = on_state_changed(&mut subscriber);
+        drop(event_emitter.emit_event(event.into()));
 
-        log::debug!("Suspending watch_state");
+        log::debug!("Suspend watching track search state");
         if subscriber.changed().await.is_err() {
-            log::info!("Stop watching track search state after publisher has been dropped");
+            log::debug!("Finish watching track search state");
             break;
         }
-        log::debug!("Resuming watch_state");
+        log::debug!("Resume watching track search state");
     }
+}
+
+#[must_use]
+fn on_state_changed(subscriber: &mut StateSubscriber) -> Event {
+    drop(subscriber.read_ack());
+    Event::StateChanged
 }
 
 #[derive(Debug)]

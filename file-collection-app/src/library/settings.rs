@@ -3,8 +3,6 @@
 
 use discro::{Ref, Subscriber};
 
-use crate::NoReceiverForEvent;
-
 use super::EventEmitter;
 
 // Re-exports
@@ -22,19 +20,23 @@ pub(super) async fn watch_state<E>(mut subscriber: StateSubscriber, event_emitte
 where
     E: EventEmitter,
 {
-    // The first event is always emitted immediately.
+    log::debug!("Start watching settings state");
+    // Emit the first event immediately.
     loop {
-        drop(subscriber.read_ack());
-        if let Err(NoReceiverForEvent) = event_emitter.emit_event(Event::StateChanged.into()) {
-            log::info!("Stop watching settings state after event receiver has been dropped");
-            break;
-        }
+        let event = on_state_changed(&mut subscriber);
+        drop(event_emitter.emit_event(event.into()));
 
-        log::debug!("Suspending watch_state");
+        log::debug!("Suspend watching settings state");
         if subscriber.changed().await.is_err() {
-            log::info!("Stop watching settings state after publisher has been dropped");
+            log::info!("Finish watching settings state");
             break;
         }
-        log::debug!("Resuming watch_state");
+        log::debug!("Resume watching settings state");
     }
+}
+
+#[must_use]
+fn on_state_changed(subscriber: &mut StateSubscriber) -> Event {
+    drop(subscriber.read_ack());
+    Event::StateChanged
 }

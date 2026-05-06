@@ -579,11 +579,9 @@ fn on_library_track_search_state_changed_pending_abort_with_completion_error(
             log::info!("Aborting track search state change completion and retrying");
             memo_state.abort();
             // Replay the corresponding event.
-            msg_tx
-                .emit_event(library::Event::from(
-                    library::track_search::Event::StateChanged,
-                ))
-                .unwrap();
+            drop(msg_tx.emit_event(library::Event::from(
+                library::track_search::Event::StateChanged,
+            )));
             ActionEffect::MaybeChanged
         }
     }

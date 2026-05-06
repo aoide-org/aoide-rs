@@ -1179,7 +1179,7 @@ impl SharedState {
         loop {
             log::debug!("Suspending finish_synchronizing_vfs_task");
             if subscriber.changed().await.is_err() {
-                return (ActionEffect::Changed, Err(anyhow!("no publisher(s)")));
+                break (ActionEffect::Changed, Err(anyhow!("no publisher(s)")));
             }
             log::debug!("Resuming finish_synchronizing_vfs_task");
 
@@ -1216,7 +1216,7 @@ impl SharedState {
             let Some(finished_state) = finished_state_before else {
                 continue;
             };
-            return (ActionEffect::Changed, Ok(finished_state));
+            break (ActionEffect::Changed, Ok(finished_state));
         }
     }
 

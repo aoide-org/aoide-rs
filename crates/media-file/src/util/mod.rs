@@ -224,11 +224,10 @@ where
         value_formatted = value.to_string();
         let value_parsed = value_formatted.parse().expect("valid value");
         if value_parsed == *value {
-            break;
+            break value_formatted;
         }
         *value = value_parsed;
     }
-    value_formatted
 }
 
 // Assumption: Gain has been calculated with the EBU R128 algorithm

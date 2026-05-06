@@ -52,7 +52,7 @@ fn gcd(nom: BeatNumber, denom: BeatNumber) -> BeatNumber {
     loop {
         let c = a % b;
         if c == 0 {
-            return b;
+            break b;
         }
         a = b;
         b = c;

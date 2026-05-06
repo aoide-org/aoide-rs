@@ -301,7 +301,7 @@ impl ActorNamesSummarySplitter {
 
     fn split_next<'a>(&self, mut name: &'a str) -> Option<(&'a str, Option<&'a str>)> {
         let mut skipped_leading_separator = false;
-        loop {
+        let () = loop {
             let name_trimmed = name.trim_start();
             if let Some(first_match) = self.protected_names.find(name_trimmed)
                 && first_match.start() == 0
@@ -326,7 +326,7 @@ impl ActorNamesSummarySplitter {
                 }
             }
             break;
-        }
+        };
         let mut regex_split_iter = self.name_separator_regex.splitn(name, 2);
         let first_name = regex_split_iter.next()?.trim();
         let rest = regex_split_iter.next();
@@ -342,7 +342,7 @@ impl ActorNamesSummarySplitter {
                 if first_name.is_empty() {
                     continue;
                 }
-                return Some(first_name);
+                break Some(first_name);
             }
         })
     }

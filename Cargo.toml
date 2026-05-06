@@ -44,12 +44,12 @@ aoide-websrv-warp-sqlite = { version = "=0.8.0", path = "crates/websrv-warp-sqli
 aho-corasick = "1.1.4"
 anyhow = "1.0.102"
 bitflags = "2.11.1"
-blake3 = "1.8.4"
+blake3 = "1.8.5"
 bytes = "1.11.1"
 data-encoding = "2.11.0"
 derive_more = "2.1.1"
-digest = "0.11.2"
-diesel = { version = "2.3.8", default-features = false, features = [
+digest = "0.11.3"
+diesel = { version = "2.3.9", default-features = false, features = [
   "returning_clauses_for_sqlite_3_35",
   "sqlite",
 ] }
@@ -75,7 +75,7 @@ static_assertions = "1.1.0"
 strum = "0.28.0"
 tantivy = "0.26.1"
 thiserror = "2.0.18"
-tokio = "1.52.1"
+tokio = "1.52.2"
 tracing = "0.1.44"
 url = "2.5.8"
 uuid = "1.23.1"

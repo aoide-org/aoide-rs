@@ -73,7 +73,7 @@ where
     Collector: ReservableRecordCollector<Header = Header, Record = Record> + ?Sized,
 {
     let mut pagination = pagination.cloned();
-    loop {
+    let () = loop {
         let fetched_records = fetch(repo, pagination.as_ref())?;
         if fetched_records.is_empty() {
             break;
@@ -107,7 +107,7 @@ where
         } else {
             break;
         }
-    }
+    };
     Ok(())
 }
 
