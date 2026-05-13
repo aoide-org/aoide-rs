@@ -27,7 +27,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      - uses: EmbarkStudios/cargo-deny-action@v2.0.17
         with:
           # Keep in sync with `Cargo.toml`.
           rust-version: "1.95"
