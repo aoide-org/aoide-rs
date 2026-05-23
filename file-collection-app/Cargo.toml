@@ -50,7 +50,7 @@ default-features = false
 
 # mimalloc
 [dependencies.mimalloc]
-version = "0.1.50"
+version = "0.1.52"
 optional = true
 
 [features]
