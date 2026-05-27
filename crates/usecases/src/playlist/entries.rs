@@ -38,54 +38,52 @@ where
     let (record_header, next_rev) =
         repo.touch_playlist_entity_revision(entity_header, updated_at)?;
     for operation in operations {
-        #[expect(clippy::enum_glob_use)]
-        use PatchOperation::*;
         // TODO: Accept a streaming iterator that only borrows the items that it yields
         let operation = &operation;
         match operation {
-            Append { entries } => {
+            PatchOperation::Append { entries } => {
                 if entries.is_empty() {
                     continue;
                 }
                 repo.append_playlist_entries(record_header.id, entries)?;
             }
-            Prepend { entries } => {
+            PatchOperation::Prepend { entries } => {
                 if entries.is_empty() {
                     continue;
                 }
                 repo.prepend_playlist_entries(record_header.id, entries)?;
             }
-            Insert { before, entries } => {
+            PatchOperation::Insert { before, entries } => {
                 if entries.is_empty() {
                     continue;
                 }
                 repo.insert_playlist_entries(record_header.id, *before, entries)?;
             }
-            CopyAll {
+            PatchOperation::CopyAll {
                 source_playlist_uid,
             } => {
                 let source_playlist_id = repo.resolve_playlist_id(source_playlist_uid)?;
                 repo.copy_all_playlist_entries(source_playlist_id, record_header.id)?;
             }
-            Move { range, delta } => {
+            PatchOperation::Move { range, delta } => {
                 if range.is_empty() || *delta == 0 {
                     continue;
                 }
                 repo.move_playlist_entries(record_header.id, range, *delta)?;
             }
-            Remove { range } => {
+            PatchOperation::Remove { range } => {
                 if range.is_empty() {
                     continue;
                 }
                 repo.remove_playlist_entries(record_header.id, range)?;
             }
-            RemoveAll => {
+            PatchOperation::RemoveAll => {
                 repo.remove_all_playlist_entries(record_header.id)?;
             }
-            ReverseAll => {
+            PatchOperation::ReverseAll => {
                 repo.reverse_all_playlist_entries(record_header.id)?;
             }
-            ShuffleAll => {
+            PatchOperation::ShuffleAll => {
                 repo.shuffle_all_playlist_entries(record_header.id)?;
             }
         }
