@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 // These casts are needed for conversions from/to SQL types.
-#![allow(clippy::cast_possible_wrap)]
+#![expect(clippy::cast_possible_wrap)]
 // Suppress warnings for diesel AsChangeset.
-#![allow(clippy::ref_option_ref)]
+#![expect(clippy::ref_option_ref)]
 
 use std::ops::{Deref, DerefMut};
 

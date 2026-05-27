@@ -3,7 +3,7 @@
 
 #![allow(
     clippy::enum_glob_use,
-    reason = "improve readability when matching key codes"
+    reason = "Improve readability when matching key codes."
 )]
 
 use std::fmt;

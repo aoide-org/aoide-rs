@@ -103,7 +103,7 @@ pub struct ContentPathContext {
 }
 
 impl ContentPathContext {
-    #[cfg_attr(target_family = "wasm", allow(unused_variables))]
+    #[cfg_attr(target_family = "wasm", expect(unused_variables))]
     fn new(
         repo_props: RepoContextProps,
         root_url: Option<&BaseUrl>,

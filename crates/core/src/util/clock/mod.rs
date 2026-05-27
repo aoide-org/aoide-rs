@@ -39,7 +39,7 @@ impl UtcDateTimeMs {
     }
 
     #[must_use]
-    #[expect(clippy::missing_panics_doc, reason = "should never panic")]
+    #[expect(clippy::missing_panics_doc, reason = "Should never panic.")]
     pub fn to_timestamp(&self) -> Timestamp {
         Timestamp::from_millisecond(self.unix_timestamp_millis).expect("valid timestamp")
     }

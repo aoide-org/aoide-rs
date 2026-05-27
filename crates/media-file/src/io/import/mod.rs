@@ -515,7 +515,7 @@ impl Importer {
     }
 
     #[must_use]
-    #[expect(unstable_name_collisions, reason = "intersperse")]
+    #[expect(unstable_name_collisions, reason = "Usage of intersperse().")]
     pub(crate) fn finish_import_of_actors(
         &mut self,
         scope: TrackScope,

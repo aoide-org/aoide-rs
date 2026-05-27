@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-#![allow(
+#![expect(
     clippy::enum_glob_use,
-    reason = "improve readability when matching fields and predicates"
+    reason = "Improve readability when matching fields and predicates."
 )]
 
 use diesel::{prelude::*, sql_types};
