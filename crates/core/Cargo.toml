@@ -59,7 +59,7 @@ version = "0.2.0"
 features = ["image"]
 
 [target.'cfg(target_family = "wasm")'.dependencies]
-getrandom = "0.4.2"
+getrandom = "0.4.3"
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 path-slash = "0.2.1"

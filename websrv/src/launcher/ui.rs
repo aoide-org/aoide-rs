@@ -408,7 +408,7 @@ impl eframe::App for App {
     }
 
     fn ui(&mut self, ui: &mut Ui, _frame: &mut Frame) {
-        Panel::top("config-panel").show_inside(ui, |ui| {
+        Panel::top("config-panel").show(ui, |ui| {
             egui::Grid::new("config_grid")
                 .num_columns(2)
                 .spacing([40.0, 4.0])
@@ -417,12 +417,12 @@ impl eframe::App for App {
                     self.show_config_grid(ui);
                 });
         });
-        CentralPanel::default().show_inside(ui, |ui| {
-            Panel::top("launch-controls").show_inside(ui, |ui| {
+        CentralPanel::default().show(ui, |ui| {
+            Panel::top("launch-controls").show(ui, |ui| {
                 self.show_launch_controls(ui);
             });
         });
-        Panel::bottom("status-panel").show_inside(ui, |ui| {
+        Panel::bottom("status-panel").show(ui, |ui| {
             egui::Grid::new("config_grid")
                 .num_columns(2)
                 .spacing([40.0, 4.0])

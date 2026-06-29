@@ -34,6 +34,7 @@ impl Fixture {
 }
 
 #[test]
+#[expect(clippy::too_many_lines, reason = "TODO")]
 fn update_entry_digest() -> anyhow::Result<()> {
     let mut fixture = Fixture::new()?;
     let mut db = crate::Connection::new(&mut fixture.db);

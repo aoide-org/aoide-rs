@@ -109,6 +109,7 @@ fn insert_media_source() -> anyhow::Result<()> {
 }
 
 #[test]
+#[expect(clippy::too_many_lines, reason = "TODO")]
 fn filter_by_content_path_predicate() -> anyhow::Result<()> {
     let mut db = establish_connection()?;
     let mut db = crate::Connection::new(&mut db);
