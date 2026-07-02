@@ -34,7 +34,7 @@ semval.workspace = true
 smol_str.workspace = true
 thiserror.workspace = true
 # TODO: Remove time dependency.
-time = { version = "0.3.51", features = ["formatting", "macros", "parsing"] }
+time = { version = "0.3.53", features = ["formatting", "macros", "parsing"] }
 url.workspace = true
 walkdir.workspace = true
 

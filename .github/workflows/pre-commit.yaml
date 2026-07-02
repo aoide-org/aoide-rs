@@ -35,8 +35,9 @@ jobs:
           python-version: "3.x"
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: stable
           components: clippy, rustfmt
 
       # Checkout the repository before the remaining steps that depend on it.

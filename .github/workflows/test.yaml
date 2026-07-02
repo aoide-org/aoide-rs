@@ -51,8 +51,9 @@ jobs:
 
     steps:
       - name: Install Rust toolchains for both native target and WASM
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: stable
           # The build target will be selected implicitly by setup-cross-toolchain-action (see below).
           targets: ${{ matrix.target }}
 
