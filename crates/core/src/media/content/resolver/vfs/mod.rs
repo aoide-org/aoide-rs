@@ -160,8 +160,9 @@ impl ContentPathResolver for VfsResolver {
             Url::from_file_path(&file_path)
         }
         .map_err(|()| ResolveFromPathError::InvalidFilePath(file_path))?;
-        debug_assert!(
-            content_path.is_directory() == content_url.as_str().ends_with(ContentPath::SEPARATOR)
+        debug_assert_eq!(
+            content_path.is_directory(),
+            content_url.as_str().ends_with(ContentPath::SEPARATOR)
         );
         debug_assert!(!content_path.is_empty() || is_valid_base_url(&content_url));
         Ok(content_url)
