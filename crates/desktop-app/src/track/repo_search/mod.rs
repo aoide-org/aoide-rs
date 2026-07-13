@@ -664,7 +664,7 @@ impl State {
         fetch_limit: Option<NonZeroUsize>,
     ) -> ActionEffect {
         let Some(collection_uid) = &self.context.collection_uid else {
-            debug_assert!(self.can_fetch_more() != Some(true));
+            debug_assert_ne!(self.can_fetch_more(), Some(true));
             return ActionEffect::Unchanged;
         };
 
@@ -676,7 +676,7 @@ impl State {
                 can_fetch_more: false,
                 ..
             } => {
-                debug_assert!(self.can_fetch_more() != Some(true));
+                debug_assert_ne!(self.can_fetch_more(), Some(true));
                 return ActionEffect::Unchanged;
             }
             FetchState::Ready {
@@ -686,7 +686,7 @@ impl State {
             } => Some(std::mem::take(fetched_entities)),
         };
 
-        debug_assert!(self.can_fetch_more() == Some(true));
+        debug_assert_eq!(self.can_fetch_more(), Some(true));
         let pending_since = Instant::now();
 
         let continuation = {

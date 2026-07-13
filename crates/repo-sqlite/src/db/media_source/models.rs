@@ -189,7 +189,10 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
         } else {
             None
         };
-        debug_assert!(artwork_image_width.is_some() == artwork_image_height.is_some());
+        debug_assert_eq!(
+            artwork_image_width.is_some(),
+            artwork_image_height.is_some()
+        );
 
         let header = RecordHeader {
             id: row_id.into(),

@@ -554,7 +554,7 @@ impl EntryRepo for crate::Connection<'_> {
         } else {
             debug_assert!(min_ordering.is_none());
             debug_assert!(max_ordering.is_none());
-            debug_assert!(self.count_playlist_entries(id)? == 0);
+            debug_assert_eq!(self.count_playlist_entries(id).ok(), Some(0));
             0
         };
         Ok(rows_updated)
