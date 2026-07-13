@@ -20,5 +20,5 @@ rules:
     ignore:
       - pre-commit.yaml:38:15
       - pre-release.yaml:74:15
-      - pre-release.yaml:143:15
+      - pre-release.yaml:144:15
       - test.yaml:54:15
