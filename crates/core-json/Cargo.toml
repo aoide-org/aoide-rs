@@ -25,7 +25,7 @@ log.workspace = true
 nonicle.workspace = true
 semval.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_repr = "0.1.20"
+serde_repr = "0.1.21"
 url = { workspace = true, features = ["serde"] }
 
 # JSON Schema (optional)
