@@ -39,7 +39,7 @@ url.workspace = true
 walkdir.workspace = true
 
 # Dependencies (optional): gigtag
-gigtag = { version = "0.4.1", features = ["smol_str"], optional = true }
+gigtag = { version = "0.4.2", features = ["smol_str"], optional = true }
 
 # Dependencies (optional): serato-markers
 triseratops = { version = "0.0.3", optional = true }
