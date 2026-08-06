@@ -41,12 +41,12 @@ aoide-websrv-warp-sqlite = { version = "=0.8.0", path = "crates/websrv-warp-sqli
 
 # Commonly used dependencies.
 # Also serves for documenting the opionionated selection of third-party crates.
-aho-corasick = "1.1.4"
+aho-corasick = "1.1.5"
 anyhow = "1.0.104"
 bitflags = "2.13.1"
-blake3 = "1.8.5"
+blake3 = "1.8.6"
 bytes = "1.12.1"
-data-encoding = "2.11.0"
+data-encoding = "2.11.1"
 derive_more = "2.1.1"
 digest = "0.11.3"
 diesel = { version = "2.3.11", default-features = false, features = [
