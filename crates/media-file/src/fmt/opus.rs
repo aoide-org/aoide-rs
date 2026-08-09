@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use lofty::ogg::{OpusFile, VorbisComments};
+use lofty::ogg::{OpusFile, tag::VorbisComments};
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
