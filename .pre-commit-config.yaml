@@ -71,7 +71,7 @@ repos:
       - id: zizmor
   # JSON
   - repo: https://github.com/sirosen/check-jsonschema
-    rev: 0.37.4
+    rev: 0.38.0
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
@@ -90,7 +90,7 @@ repos:
           )
   # Format code with oxfmt for supported file types.
   - repo: https://github.com/oxc-project/mirrors-oxfmt
-    rev: v0.45.0
+    rev: v0.63.0
     hooks:
       - id: oxfmt
         types_or:

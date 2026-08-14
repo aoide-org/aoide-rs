@@ -37,7 +37,7 @@ image = { workspace = true, features = ["default-formats"] }
 jiff.workspace = true
 mime.workspace = true
 nonicle.workspace = true
-num-integer = "0.1.46"
+num-integer = "0.1.47"
 rand.workspace = true
 regex.workspace = true
 semval.workspace = true
