@@ -52,46 +52,44 @@ fn artwork_thumbnail_image_from_rgb_pixels(
     thumbnail: &[u8; ARTWORK_THUMBNAIL_SIZE * ARTWORK_THUMBNAIL_SIZE * 3],
     border_color: Color32,
 ) -> ColorImage {
-    let pixels = thumbnail
-        .chunks_exact(3)
+    let (rgb, remainder) = thumbnail.as_chunks::<3>();
+    debug_assert!(remainder.is_empty());
+    let pixels = rgb
+        .iter()
         .map(|rgb| Color32::from_rgb(rgb[0], rgb[1], rgb[2]));
     artwork_thumbnail_image_with_border(pixels, border_color)
 }
 
 #[must_use]
-#[expect(clippy::similar_names)]
 fn artwork_thumbnail_image_with_border(
     pixels: impl IntoIterator<Item = Color32>,
     border_color: Color32,
 ) -> ColorImage {
     // TODO: Avoid temporary allocation.
     let pixels = pixels.into_iter().collect::<Vec<_>>();
-    let mut pixels_rows = pixels.chunks_exact(4);
-    let pixels_row0 = pixels_rows.next().unwrap();
-    let pixels_row1 = pixels_rows.next().unwrap();
-    let pixels_row2 = pixels_rows.next().unwrap();
-    let pixels_row3 = pixels_rows.next().unwrap();
+    let (pixels_rows, remainder) = pixels.as_chunks::<4>();
+    debug_assert!(remainder.is_empty());
     let pixels = std::iter::repeat_n(
         border_color,
         ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_BORDER_SIZE
             + ARTWORK_THUMBNAIL_BORDER_SIZE,
     )
-    .chain(pixels_row0.iter().copied())
+    .chain(pixels_rows[0].iter().copied())
     .chain(std::iter::repeat_n(
         border_color,
         ARTWORK_THUMBNAIL_BORDER_SIZE * 2,
     ))
-    .chain(pixels_row1.iter().copied())
+    .chain(pixels_rows[1].iter().copied())
     .chain(std::iter::repeat_n(
         border_color,
         ARTWORK_THUMBNAIL_BORDER_SIZE * 2,
     ))
-    .chain(pixels_row2.iter().copied())
+    .chain(pixels_rows[2].iter().copied())
     .chain(std::iter::repeat_n(
         border_color,
         ARTWORK_THUMBNAIL_BORDER_SIZE * 2,
     ))
-    .chain(pixels_row3.iter().copied())
+    .chain(pixels_rows[3].iter().copied())
     .chain(std::iter::repeat_n(
         border_color,
         ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_BORDER_SIZE
