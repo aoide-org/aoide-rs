@@ -81,7 +81,7 @@ repos:
       - id: check-json5
   # Markdown
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.23.2
+    rev: v0.23.3
     hooks:
       - id: markdownlint-cli2
         exclude: |
@@ -90,7 +90,7 @@ repos:
           )
   # Format code with oxfmt for supported file types.
   - repo: https://github.com/oxc-project/mirrors-oxfmt
-    rev: v0.67.0
+    rev: v0.69.0
     hooks:
       - id: oxfmt
         types_or:
