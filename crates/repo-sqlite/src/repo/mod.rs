@@ -18,7 +18,7 @@ mod tests {
         MediaSourceConfig {
             content_path: ContentPathConfig::VirtualFilePath(VirtualFilePathConfig {
                 root_url: BaseUrl::parse_strict("file:///").unwrap(),
-                excluded_paths: vec![],
+                excluded_paths: Vec::new(),
             }),
         }
     }

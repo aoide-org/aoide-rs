@@ -184,7 +184,6 @@ fn render_top_panel(
         });
 }
 
-#[expect(clippy::float_cmp)] // Texture size (x/y) comparison.
 fn render_central_panel(
     ui: &mut Ui,
     msg_tx: &MessageSender,

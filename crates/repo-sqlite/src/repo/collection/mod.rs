@@ -79,7 +79,7 @@ fn restore_vfs(
     else {
         return Ok(());
     };
-    debug_assert!(excluded_paths.is_empty());
+    debug_assert_eq!(*excluded_paths, Vec::new());
     *excluded_paths = load_vfs_excluded_content_paths(db, id)?;
     Ok(())
 }

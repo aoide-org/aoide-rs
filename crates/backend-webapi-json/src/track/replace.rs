@@ -56,9 +56,9 @@ impl From<uc::Summary> for Summary {
             not_created,
             not_updated,
         } = from;
-        debug_assert!(skipped.is_empty());
-        debug_assert!(failed.is_empty());
-        debug_assert!(not_imported.is_empty());
+        debug_assert_eq!(skipped, Vec::new());
+        debug_assert_eq!(failed, Vec::new());
+        debug_assert_eq!(not_imported, Vec::new());
         Self {
             created: created.into_iter().map(Into::into).collect(),
             updated: updated.into_iter().map(Into::into).collect(),

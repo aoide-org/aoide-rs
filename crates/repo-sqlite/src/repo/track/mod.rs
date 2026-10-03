@@ -340,8 +340,8 @@ fn load_track_tags(
         .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
 
-    let mut plain_tags = vec![];
-    let mut facets: Vec<FacetedTags<'_>> = vec![];
+    let mut plain_tags = Vec::new();
+    let mut facets: Vec<FacetedTags<'_>> = Vec::new();
     for row in rows {
         let (_, record) = row.map_err(repo_error)?.into();
         let (facet_id, tag) = record.into();

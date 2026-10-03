@@ -24,7 +24,6 @@ fn measure_position_is_valid_in_measure() {
 }
 
 #[test]
-#[expect(clippy::float_cmp)]
 fn measure_position_total_beat_offset() {
     assert_eq!(
         3.0,

@@ -24,7 +24,7 @@ impl TagMappingConfig {
         separator: impl AsRef<str>,
     ) -> Option<Cow<'label, str>> {
         let separator = separator.as_ref();
-        debug_assert!(!separator.is_empty());
+        debug_assert_ne!(separator, "");
         labels.into_iter().fold(None, |joined_labels, next_label| {
             if let Some(joined_labels) = joined_labels {
                 if next_label.is_empty() {

@@ -1547,7 +1547,7 @@ pub(crate) fn export_track_to_tag(
                 let item_key = compatibility.primary_item_key(item_key);
                 let (facet_key, mut tags) = tags_map
                     .remove(&facet_id)
-                    .unwrap_or_else(|| (facet_id.clone().into(), vec![]));
+                    .unwrap_or_else(|| (facet_id.clone().into(), Vec::new()));
                 // Verify that the map does not contain any tags that have already been exported.
                 debug_assert!(tags_map.facet_ids().all(|facet_id| {
                     file_tag_facets_without(facet_id)

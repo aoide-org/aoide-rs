@@ -429,7 +429,7 @@ fn find_no_tracks_with_empty_or_invalid_genre_tag_label() -> TestResult<()> {
                 &[],
                 &mut entities,
             )?;
-            assert!(entities.is_empty());
+            assert_eq!(entities, Vec::new());
         }
     }
 

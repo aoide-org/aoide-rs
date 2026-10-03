@@ -338,7 +338,7 @@ impl From<_core::Tags<'static>> for Tags {
 impl From<Tags> for _core::Tags<'static> {
     fn from(from: Tags) -> Self {
         let Tags(from) = from;
-        let mut plain_tags = vec![];
+        let mut plain_tags = Vec::new();
         let mut facets = Vec::with_capacity(from.len());
         for (key, tags) in from {
             let tags = tags.into_iter().map(Into::into).collect();
@@ -346,7 +346,7 @@ impl From<Tags> for _core::Tags<'static> {
             if let Some(facet_id) = inner.into() {
                 facets.push(_core::FacetedTags { facet_id, tags });
             } else {
-                debug_assert!(plain_tags.is_empty());
+                debug_assert_eq!(plain_tags, Vec::new());
                 plain_tags = tags;
             }
         }

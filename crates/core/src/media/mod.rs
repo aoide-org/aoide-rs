@@ -42,8 +42,8 @@ where
         Cow::Borrowed(encoded_by)
     } else {
         // Concatenate both strings into a single field
-        debug_assert!(!encoded_by.is_empty());
-        debug_assert!(!encoder_settings.is_empty());
+        debug_assert_ne!(encoded_by, "");
+        debug_assert_ne!(encoder_settings, "");
         [encoded_by, encoder_settings].join(" ").into()
     }
 }

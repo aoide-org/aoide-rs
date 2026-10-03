@@ -583,7 +583,7 @@ fn copy_all_entries() -> anyhow::Result<()> {
     let (target_entity_header, target_playlist_with_entries) = target_entity_with_entries.into();
     let target_playlist_id = db.resolve_playlist_id(&target_entity_header.uid)?;
     let target_entries = target_playlist_with_entries.entries;
-    assert!(target_entries.is_empty());
+    assert_eq!(target_entries, Vec::new());
 
     db.copy_all_playlist_entries(source_playlist_id, target_playlist_id)?;
 

@@ -68,7 +68,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, CollectionEntity) {
             .as_deref()
             .map(BaseUrl::parse_strict)
             .transpose()?;
-        let excluded_content_paths = vec![];
+        let excluded_content_paths = Vec::new();
         let content_path_config = ContentPathConfig::try_from((
             media_source_path_kind,
             media_source_root_url,

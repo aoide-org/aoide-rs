@@ -248,9 +248,9 @@ mod tests {
                     let mime_type = data_url.mime_type();
                     assert_eq!("image", mime_type.type_);
                     assert_eq!("png", mime_type.subtype);
-                    assert!(mime_type.parameters.is_empty());
+                    assert_eq!(mime_type.parameters, Vec::new());
                     let (png_data, fragment_identifier) = data_url.decode_to_vec().unwrap();
-                    assert!(!png_data.is_empty());
+                    assert_ne!(png_data, Vec::<u8>::new());
                     assert!(fragment_identifier.is_none());
                     let png_data_cursor = Cursor::new(png_data);
                     let png_decoder = PngDecoder::new(png_data_cursor).unwrap();

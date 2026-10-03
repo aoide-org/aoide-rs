@@ -53,7 +53,7 @@ impl CountParams {
     pub const fn all_non_faceted(order: Vec<SortOrder>) -> Self {
         Self {
             tags: SelectTags::All,
-            include_facets: Some(vec![]),
+            include_facets: Some(Vec::new()),
             exclude_facets: Vec::new(),
             order,
         }

@@ -260,7 +260,7 @@ impl RestoringFromMusicDirectoryContext {
                     media_source_config: MediaSourceConfig {
                         content_path: ContentPathConfig::VirtualFilePath(VirtualFilePathConfig {
                             root_url,
-                            excluded_paths: vec![],
+                            excluded_paths: Vec::new(),
                         }),
                     },
                     kind,

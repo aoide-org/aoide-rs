@@ -45,7 +45,7 @@ fn resolve_content_path_from_url() -> anyhow::Result<()> {
         media_source_config: MediaSourceConfig {
             content_path: ContentPathConfig::VirtualFilePath(VirtualFilePathConfig {
                 root_url: root_url.clone(),
-                excluded_paths: vec![],
+                excluded_paths: Vec::new(),
             }),
         },
     };

@@ -271,6 +271,6 @@ pub(super) fn parse_filter_from_input(input: &str) -> Option<Filter> {
             Filter::Any(vec![title_phrase, actor_phrase, field_phrase, tag])
         })
         .collect();
-    debug_assert!(!all_filters.is_empty());
+    debug_assert_ne!(all_filters, Vec::new());
     Some(Filter::All(all_filters))
 }

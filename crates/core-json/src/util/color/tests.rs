@@ -11,7 +11,7 @@ fn generate_json_schema() {
     let json_schema = schemars::schema_for!(Color);
     let schema_string = serde_json::to_string_pretty(&json_schema).unwrap();
     println!("{schema_string}");
-    assert!(!schema_string.is_empty());
+    assert_ne!(schema_string, "");
 }
 
 #[test]

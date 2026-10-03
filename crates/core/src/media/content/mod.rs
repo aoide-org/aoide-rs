@@ -246,9 +246,9 @@ impl From<ContentPathConfig> for (ContentPathKind, Option<BaseUrl>, Vec<ContentP
     fn from(from: ContentPathConfig) -> Self {
         use ContentPathConfig as From;
         match from {
-            From::Uri => (ContentPathKind::Uri, None, vec![]),
-            From::Url => (ContentPathKind::Url, None, vec![]),
-            From::FileUrl => (ContentPathKind::FileUrl, None, vec![]),
+            From::Uri => (ContentPathKind::Uri, None, Vec::new()),
+            From::Url => (ContentPathKind::Url, None, Vec::new()),
+            From::FileUrl => (ContentPathKind::FileUrl, None, Vec::new()),
             From::VirtualFilePath(VirtualFilePathConfig {
                 root_url,
                 excluded_paths,

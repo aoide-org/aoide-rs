@@ -140,7 +140,7 @@ impl UpdateContext<'_> {
                     }
                     log::debug!("Switching to music directory list view");
                     *mode = Some(ModelMode::MusicDirList {
-                        content_paths_with_count: vec![],
+                        content_paths_with_count: Vec::new(),
                     });
                     effect += ActionEffect::MaybeChanged;
                     effect

@@ -12,7 +12,7 @@ resolver = "3"
 [workspace.package]
 version = "0.8.0"
 edition = "2024"
-rust-version = "1.98"
+rust-version = "1.99"
 repository = "https://gitlab.com/uklotzde/aoide-rs"
 license = "AGPL-3.0-or-later"
 categories = ["multimedia::audio"]
@@ -74,18 +74,18 @@ smol_str = "0.3.6"
 static_assertions = "1.1.0"
 strum = "0.28.0"
 tantivy = "0.26.2"
-thiserror = "2.0.20"
+thiserror = "2.0.21"
 tokio = "1.53.1"
 tracing = "0.1.44"
 url = "2.5.8"
-uuid = "1.26.1"
+uuid = "1.27.0"
 uuid-base32hex = "0.2.1"
 walkdir = "2.5.0"
 
 [workspace.lints.rust]
 # Opt-in for allowed-by-default lints (in alphabetical order)
 # See also: <https://doc.rust-lang.org/rustc/lints>
-deprecated-safe = { level = "warn", priority = -1 }
+deprecated_safe = { level = "warn", priority = -1 }
 future_incompatible = { level = "warn", priority = -1 }
 let_underscore = { level = "warn", priority = -1 }
 missing_debug_implementations = "warn"

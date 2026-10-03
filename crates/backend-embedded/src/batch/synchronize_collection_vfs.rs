@@ -153,7 +153,7 @@ where
         ContentPathConfig::VirtualFilePath(VirtualFilePathConfig { excluded_paths, .. }) => {
             excluded_paths
         }
-        _ => vec![],
+        _ => Vec::new(),
     };
     let mut outcome = Outcome::default();
     // 1st step: Untrack excluded directories

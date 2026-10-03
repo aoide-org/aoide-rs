@@ -275,7 +275,7 @@ fn duplicate_facets_and_labels() {
 #[test]
 fn canonicalize_should_remove_facets_without_tags() {
     let expected_tags = Tags {
-        plain: vec![],
+        plain: Vec::new(),
         facets: vec![
             FacetedTags {
                 facet_id: FacetId::from_unchecked("facet1"),
@@ -306,14 +306,14 @@ fn canonicalize_should_remove_facets_without_tags() {
         1,
         FacetedTags {
             facet_id: FacetId::from_unchecked("facet2"),
-            tags: vec![],
+            tags: Vec::new(),
         },
     );
     actual_tags.facets.insert(
         2,
         FacetedTags {
             facet_id: FacetId::from_unchecked("facet3"),
-            tags: vec![],
+            tags: Vec::new(),
         },
     );
     actual_tags.facets.insert(

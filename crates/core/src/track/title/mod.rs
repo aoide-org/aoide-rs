@@ -187,7 +187,7 @@ impl Titles {
                 .chain(old_titles.into_iter().filter(|title| title.kind != kind))
                 .collect();
             let placeholder = std::mem::replace(titles, new_titles);
-            debug_assert!(placeholder.is_empty());
+            debug_assert_eq!(placeholder, Vec::new());
         } else {
             // Add
             titles.push(Title {

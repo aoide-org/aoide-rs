@@ -257,7 +257,7 @@ pub fn format_valid_replay_gain(loudness: LoudnessLufs) -> Option<String> {
             Some(db2lufs(replay_gain_db)),
             importer.import_loudness_from_replay_gain(&formatted)
         );
-        debug_assert!(importer.finish().into_messages().is_empty());
+        debug_assert_eq!(importer.finish().into_messages(), Vec::<String>::new());
         formatted
     })
 }
@@ -329,7 +329,7 @@ pub(crate) fn format_tempo_bpm(
                     Some(*tempo_bpm),
                     importer.import_tempo_bpm(&formatted).map(Into::into)
                 );
-                debug_assert!(importer.finish().into_messages().is_empty());
+                debug_assert_eq!(importer.finish().into_messages(), Vec::<String>::new());
                 true
             });
             if value.fract() == 0.0 {

@@ -205,7 +205,7 @@ impl Issues {
 
     pub fn add_message(&mut self, message: impl Into<String>) {
         let message = message.into();
-        debug_assert!(!message.trim().is_empty());
+        debug_assert_ne!(message.trim(), "");
         self.messages.push(message);
     }
 

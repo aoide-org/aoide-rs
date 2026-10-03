@@ -60,9 +60,9 @@ fn parse_year_tag_valid() {
 
 #[test]
 fn trim_readable_should_ignore_whitespace_and_control_characters() {
-    assert!(trim_readable(" \t \n ").is_empty());
+    assert_eq!(trim_readable(" \t \n "), "");
     let input = String::from_utf8(vec![0x11, 0x00, 0x0A, 0x0D, 0x20, 0x09]).unwrap();
-    assert!(trim_readable(&input).is_empty());
+    assert_eq!(trim_readable(&input), "");
 }
 
 #[test]
@@ -171,7 +171,7 @@ fn format_fractional_bpm() {
 #[test]
 #[expect(clippy::too_many_lines)] // TODO
 fn push_next_actor_role_names() {
-    let mut actors = vec![];
+    let mut actors = Vec::new();
 
     assert!(push_next_actor(
         &mut actors,

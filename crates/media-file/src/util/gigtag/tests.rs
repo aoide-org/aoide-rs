@@ -323,7 +323,7 @@ fn encode_decode_roundtrip_with_valid_tags() {
     let (decoded, decoded_count) = decode_tags_eagerly_into(&encoded, Some(&mut decoded_tags));
     assert_eq!(decoded_count, decoded_tags.total_count());
     assert_eq!(expected_count, decoded_count);
-    assert!(decoded.undecoded_prefix.is_empty());
+    assert_eq!(decoded.undecoded_prefix, "");
 
     let decoded_tags = decoded_tags.canonicalize_into();
     assert_eq!(tags, decoded_tags);

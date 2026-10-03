@@ -53,7 +53,7 @@ fn artwork_thumbnail_image_from_rgb_pixels(
     border_color: Color32,
 ) -> ColorImage {
     let (rgb, remainder) = thumbnail.as_chunks::<3>();
-    debug_assert!(remainder.is_empty());
+    debug_assert_eq!(remainder, [] as [u8; 0]);
     let pixels = rgb
         .iter()
         .map(|rgb| Color32::from_rgb(rgb[0], rgb[1], rgb[2]));
@@ -68,7 +68,7 @@ fn artwork_thumbnail_image_with_border(
     // TODO: Avoid temporary allocation.
     let pixels = pixels.into_iter().collect::<Vec<_>>();
     let (pixels_rows, remainder) = pixels.as_chunks::<4>();
-    debug_assert!(remainder.is_empty());
+    debug_assert_eq!(remainder, [] as [Color32; 0]);
     let pixels = std::iter::repeat_n(
         border_color,
         ARTWORK_THUMBNAIL_IMAGE_SIZE * ARTWORK_THUMBNAIL_BORDER_SIZE
