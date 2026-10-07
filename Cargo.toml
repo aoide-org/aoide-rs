@@ -49,7 +49,7 @@ bytes = "1.12.1"
 data-encoding = "2.11.1"
 derive_more = "2.1.1"
 digest = "0.11.3"
-diesel = { version = "2.3.13", default-features = false, features = [
+diesel = { version = "2.3.14", default-features = false, features = [
   "returning_clauses_for_sqlite_3_35",
   "sqlite",
 ] }
@@ -59,7 +59,7 @@ env_logger = "0.11.11"
 hashbrown = "0.17.1"
 image = "0.25.10"
 itertools = "0.15.0"
-jiff = "0.2.37"
+jiff = "0.2.38"
 log = "0.4.34"
 mime = "0.3.17"
 nonicle = "0.1.1"
@@ -75,7 +75,7 @@ static_assertions = "1.1.0"
 strum = "0.28.0"
 tantivy = "0.26.2"
 thiserror = "2.0.21"
-tokio = "1.53.1"
+tokio = "1.53.2"
 tracing = "0.1.44"
 url = "2.5.8"
 uuid = "1.27.0"
