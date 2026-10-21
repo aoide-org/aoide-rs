@@ -108,8 +108,8 @@ RUN USER=root \
     mv ${WORKSPACE_NAME}-usecases crates/usecases && \
     cargo new --vcs none --lib ${WORKSPACE_NAME}-usecases-sqlite && \
     mv ${WORKSPACE_NAME}-usecases-sqlite crates/usecases-sqlite && \
-    cargo new --vcs none --lib ${WORKSPACE_NAME}-websrv-warp-sqlite && \
-    mv ${WORKSPACE_NAME}-websrv-warp-sqlite crates/websrv-warp-sqlite && \
+    cargo new --vcs none --lib ${WORKSPACE_NAME}-websrv-axum-sqlite && \
+    mv ${WORKSPACE_NAME}-websrv-axum-sqlite crates/websrv-axum-sqlite && \
     cargo new --vcs none --bin ${WORKSPACE_NAME}-websrv && \
     mv ${WORKSPACE_NAME}-websrv websrv && \
     tree -a
@@ -167,8 +167,8 @@ COPY [ \
     "crates/usecases-sqlite/Cargo.toml", \
     "./crates/usecases-sqlite/" ]
 COPY [ \
-    "crates/websrv-warp-sqlite/Cargo.toml", \
-    "./crates/websrv-warp-sqlite/" ]
+    "crates/websrv-axum-sqlite/Cargo.toml", \
+    "./crates/websrv-axum-sqlite/" ]
 COPY [ \
     "websrv/Cargo.toml", \
     "./websrv/" ]
@@ -253,8 +253,8 @@ COPY [ \
     "crates/usecases-sqlite/src", \
     "./crates/usecases-sqlite/src/" ]
 COPY [ \
-    "crates/websrv-warp-sqlite/src", \
-    "./crates/websrv-warp-sqlite/src/" ]
+    "crates/websrv-axum-sqlite/src", \
+    "./crates/websrv-axum-sqlite/src/" ]
 COPY [ \
     "websrv/res", \
     "./websrv/res/" ]

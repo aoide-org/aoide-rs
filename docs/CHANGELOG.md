@@ -14,6 +14,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Web server: Migrated from [warp](https://github.com/seanmonstar/warp) to
+  [axum](https://github.com/tokio-rs/axum). Renamed `aoide-websrv-warp-sqlite` to
+  `aoide-websrv-axum-sqlite`.
+
 ### Removed
 
 ## [0.8.0] - 2021-01-04

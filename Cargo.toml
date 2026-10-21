@@ -37,7 +37,7 @@ aoide-search-index-tantivy = { version = "=0.8.0", path = "crates/search-index-t
 aoide-storage-sqlite = { version = "=0.8.0", path = "crates/storage-sqlite" }
 aoide-usecases = { version = "=0.8.0", path = "crates/usecases" }
 aoide-usecases-sqlite = { version = "=0.8.0", path = "crates/usecases-sqlite" }
-aoide-websrv-warp-sqlite = { version = "=0.8.0", path = "crates/websrv-warp-sqlite" }
+aoide-websrv-axum-sqlite = { version = "=0.8.0", path = "crates/websrv-axum-sqlite" }
 
 # Commonly used dependencies.
 # Also serves for documenting the opionionated selection of third-party crates.
@@ -151,7 +151,7 @@ include = [
   "crates/",
   "!crates/backend-webapi-json",
   "!crates/client",
-  "!crates/websrv-warp-sqlite",
+  "!crates/websrv-axum-sqlite",
   "src/",
   "LICENSES/",
   "README.md",

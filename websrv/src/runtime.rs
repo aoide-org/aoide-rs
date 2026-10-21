@@ -10,9 +10,16 @@ use std::{
     },
 };
 
+use axum::{
+    Json, Router,
+    extract::DefaultBodyLimit,
+    http::{StatusCode, header},
+    response::Html,
+    routing::{any, get, post},
+};
 use jiff::Timestamp;
 use tokio::{net::TcpListener, sync::mpsc};
-use warp::{Filter, http::StatusCode};
+use tower_http::cors::{Any, CorsLayer};
 
 use aoide_repo_sqlite::initialize_database;
 use aoide_storage_sqlite::connection::pool::{
@@ -20,7 +27,7 @@ use aoide_storage_sqlite::connection::pool::{
     get_pooled_connection,
 };
 use aoide_usecases_sqlite as uc;
-use aoide_websrv_warp_sqlite::handle_rejection;
+use aoide_websrv_axum_sqlite::{handle_method_not_allowed, handle_not_found};
 
 use super::{config::Config, routing};
 use crate::config::DatabaseConfig;
@@ -69,7 +76,6 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
     ))
 }
 
-#[expect(clippy::too_many_lines, reason = "TODO")]
 pub(crate) async fn run(
     rt: &tokio::runtime::Handle,
     config: Config,
@@ -104,75 +110,64 @@ pub(crate) async fn run(
 
     // POST /shutdown
     let (server_shutdown_tx, mut server_shutdown_rx) = mpsc::unbounded_channel::<()>();
-    let shutdown_filter = {
-        let server_shutdown_tx = server_shutdown_tx.clone();
-        warp::post()
-            .and(warp::path("shutdown"))
-            .and(warp::path::end())
-            .map(move || {
-                server_shutdown_tx
-                    .send(())
-                    .map(|()| StatusCode::ACCEPTED)
-                    .map_err(|_| {
-                        log::warn!("Failed to forward shutdown request");
-                        StatusCode::BAD_GATEWAY
-                    })
-            })
+    let shutdown_handler = move || {
+        let result = server_shutdown_tx
+            .send(())
+            .map(|()| StatusCode::ACCEPTED)
+            .map_err(|_| {
+                log::warn!("Failed to forward shutdown request");
+                StatusCode::BAD_GATEWAY
+            });
+        async move { result }
     };
 
     // GET /about
-    let about_filter = warp::get()
-        .and(warp::path("about"))
-        .and(warp::path::end())
-        .map(move || warp::reply::json(&about_json));
+    let about_handler = move || {
+        let about_json = about_json.clone();
+        async move { Json(about_json) }
+    };
 
     let abort_flag = Arc::new(AtomicBool::new(false));
-    let api_filters = warp::path("api").and(self::routing::api::create_filters(
-        rt,
-        Arc::clone(&shared_connection_pool),
-        abort_flag,
-    ));
-
-    // Static content
-    let openapi_yaml = warp::path("openapi.yaml").map(|| {
-        warp::reply::with_header(
-            OPENAPI_YAML,
-            "Content-Type",
-            "application/x-yaml;charset=utf-8",
-        )
-    });
-    let static_filters = openapi_yaml;
-
-    let static_filters = static_filters.or(warp::path::end().map(|| warp::reply::html(INDEX_HTML)));
-
-    let all_filters = api_filters
-        .or(static_filters)
-        .or(shutdown_filter)
-        .or(about_filter);
+    let api_router =
+        self::routing::api::create_router(rt, Arc::clone(&shared_connection_pool), abort_flag);
 
     log::info!("Initializing server");
 
-    let server = warp::serve(
-        all_filters
-            .with(warp::cors().allow_any_origin())
-            .recover(handle_rejection),
-    );
+    let router = Router::new()
+        .nest("/api", api_router)
+        // Static content
+        .route(
+            "/openapi.yaml",
+            any(|| async {
+                (
+                    [(header::CONTENT_TYPE, "application/x-yaml;charset=utf-8")],
+                    OPENAPI_YAML,
+                )
+            }),
+        )
+        .route("/", any(|| async { Html(INDEX_HTML) }))
+        .route("/shutdown", post(shutdown_handler))
+        .route("/about", get(about_handler))
+        .method_not_allowed_fallback(handle_method_not_allowed)
+        .fallback(handle_not_found)
+        // Request bodies are unlimited, e.g. for importing or replacing many tracks at once.
+        .layer(DefaultBodyLimit::disable())
+        .layer(CorsLayer::new().allow_origin(Any));
 
     log::info!("Starting");
     current_state_tx.write(Some(State::Starting));
 
     let tcp_listener = TcpListener::bind(config.network.endpoint.socket_addr()).await?;
     let socket_addr = tcp_listener.local_addr()?;
-    let server = server.incoming(tcp_listener);
 
     log::info!("Listening on {socket_addr}");
     current_state_tx.write(Some(State::Listening { socket_addr }));
 
     let abort_pending_tasks_on_termination = Arc::new(AtomicBool::new(false));
-    let server = {
+    let shutdown_signal = {
         let mut command_rx = command_rx;
         let abort_pending_tasks_on_termination = Arc::clone(&abort_pending_tasks_on_termination);
-        let shutdown_signal = async move {
+        async move {
             tokio::select! {
                 Some(()) = server_shutdown_rx.recv() => (),
                 Some(command) = command_rx.recv() => {
@@ -186,11 +181,12 @@ pub(crate) async fn run(
                 }
                 else => (),
             }
-        };
-        server.graceful(shutdown_signal)
+        }
     };
 
-    server.run().await;
+    axum::serve(tcp_listener, router)
+        .with_graceful_shutdown(shutdown_signal)
+        .await?;
 
     log::info!("Stopping");
     current_state_tx.write(Some(State::Stopping));

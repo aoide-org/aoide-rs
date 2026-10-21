@@ -61,7 +61,7 @@ check-crates:
     cargo hack --feature-powerset check --locked --all-targets -p aoide-usecases
     cargo hack --feature-powerset check --locked --all-targets -p aoide-usecases-sqlite
     cargo hack --feature-powerset check --locked --all-targets -p aoide-websrv
-    cargo hack --feature-powerset check --locked --all-targets -p aoide-websrv-warp-sqlite
+    cargo hack --feature-powerset check --locked --all-targets -p aoide-websrv-axum-sqlite
 
 check-crates-wasm:
     cargo check --locked --all-targets --features js --target wasm32-unknown-unknown -p aoide-core

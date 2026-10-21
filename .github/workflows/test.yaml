@@ -157,10 +157,10 @@ jobs:
           cargo check --locked --all-targets --all-features
           --manifest-path crates/backend-webapi-json/Cargo.toml
 
-      - name: Check aoide-websrv-warp-sqlite
+      - name: Check aoide-websrv-axum-sqlite
         run: >-
           cargo check --locked --all-targets --all-features
-          --manifest-path crates/websrv-warp-sqlite/Cargo.toml
+          --manifest-path crates/websrv-axum-sqlite/Cargo.toml
 
       - name: Check aoide-websrv
         run: >-

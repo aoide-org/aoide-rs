@@ -16,6 +16,7 @@ workspace = true
 
 [dependencies]
 anyhow.workspace = true
+axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
 directories.workspace = true
 discro.workspace = true
 dotenvy = "0.15.7"
@@ -27,11 +28,11 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
+tower-http = { version = "0.7.1", features = ["cors"] }
 tracing.workspace = true
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = { workspace = true, features = ["serde"] }
-warp = { version = "0.4.3", default-features = false, features = ["server"] }
 
 # Workspace dependencies
 aoide-backend-webapi-json = { "workspace" = true, features = ["tokio"] }
@@ -40,7 +41,7 @@ aoide-repo-sqlite.workspace = true
 aoide-storage-sqlite = { "workspace" = true, features = ["serde", "sqlite-bundled", "tokio"] }
 aoide-usecases.workspace = true
 aoide-usecases-sqlite.workspace = true
-aoide-websrv-warp-sqlite.workspace = true
+aoide-websrv-axum-sqlite.workspace = true
 
 # mimalloc
 [dependencies.mimalloc]

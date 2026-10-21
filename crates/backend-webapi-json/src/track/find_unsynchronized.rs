@@ -4,8 +4,7 @@
 use aoide_core::util::url::BaseUrl;
 use aoide_core_api::media::source::ResolveUrlFromContentPath;
 use aoide_core_api_json::{
-    filter::StringPredicate,
-    track::{find_unsynchronized::UnsynchronizedTrackEntity, search::QueryParams},
+    filter::StringPredicate, track::find_unsynchronized::UnsynchronizedTrackEntity,
 };
 
 use super::*;
@@ -14,6 +13,8 @@ mod uc {
     pub(super) use aoide_core_api::track::find_unsynchronized::Params;
     pub(super) use aoide_usecases_sqlite::track::find_unsynchronized::*;
 }
+
+pub type QueryParams = super::search::QueryParams;
 
 pub type RequestBody = Option<StringPredicate>;
 

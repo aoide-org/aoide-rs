@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 [package]
-name = "aoide-websrv-warp-sqlite"
-description = "aoide - Routes and handlers for a web server (warp/SQLite)"
+name = "aoide-websrv-axum-sqlite"
+description = "aoide - Routes and handlers for a web server (axum/SQLite)"
 publish = false
 version.workspace = true
 repository.workspace = true
@@ -18,10 +18,10 @@ workspace = true
 
 [dependencies]
 anyhow.workspace = true
-log.workspace = true
+axum = { version = "0.8.9", default-features = false, features = ["json", "query"] }
 serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
-warp = { version = "0.4.3", default-features = false }
 
 # Workspace dependencies
 aoide-backend-webapi-json.workspace = true
