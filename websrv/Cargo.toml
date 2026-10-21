@@ -21,7 +21,7 @@ discro.workspace = true
 dotenvy = "0.15.7"
 jiff.workspace = true
 log = { workspace = true, features = ["release_max_level_debug"] }
-parking_lot = "0.12.5"
+parking_lot = "0.13.0"
 ron.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
