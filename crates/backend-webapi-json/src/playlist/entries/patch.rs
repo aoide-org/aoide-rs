@@ -22,7 +22,11 @@ pub struct PlaylistRef {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(serde::Serialize))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(
+    deny_unknown_fields,
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 pub enum PatchOperation {
     Append {
