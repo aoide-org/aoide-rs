@@ -14,12 +14,15 @@ use axum::{
     Json, Router,
     extract::DefaultBodyLimit,
     http::{StatusCode, header},
-    response::Html,
-    routing::{any, get, post},
+    response::{Html, IntoResponse},
+    routing::{get, post},
 };
 use jiff::Timestamp;
 use tokio::{net::TcpListener, sync::mpsc};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
 
 use aoide_repo_sqlite::initialize_database;
 use aoide_storage_sqlite::connection::pool::{
@@ -35,6 +38,17 @@ use crate::config::DatabaseConfig;
 static OPENAPI_YAML: &str = include_str!("../res/openapi.yaml");
 
 static INDEX_HTML: &str = include_str!("../res/index.html");
+
+async fn openapi_yaml() -> impl IntoResponse {
+    (
+        [(header::CONTENT_TYPE, "application/x-yaml;charset=utf-8")],
+        OPENAPI_YAML,
+    )
+}
+
+async fn index_html() -> Html<&'static str> {
+    Html(INDEX_HTML)
+}
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum State {
@@ -77,7 +91,6 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
 }
 
 pub(crate) async fn run(
-    rt: &tokio::runtime::Handle,
     config: Config,
     command_rx: mpsc::UnboundedReceiver<Command>,
     current_state_tx: discro::Publisher<Option<State>>,
@@ -127,32 +140,23 @@ pub(crate) async fn run(
         async move { Json(about_json) }
     };
 
-    let abort_flag = Arc::new(AtomicBool::new(false));
-    let api_router =
-        self::routing::api::create_router(rt, Arc::clone(&shared_connection_pool), abort_flag);
+    let api_router = self::routing::api::create_router(Arc::clone(&shared_connection_pool));
 
     log::info!("Initializing server");
 
     let router = Router::new()
         .nest("/api", api_router)
         // Static content
-        .route(
-            "/openapi.yaml",
-            any(|| async {
-                (
-                    [(header::CONTENT_TYPE, "application/x-yaml;charset=utf-8")],
-                    OPENAPI_YAML,
-                )
-            }),
-        )
-        .route("/", any(|| async { Html(INDEX_HTML) }))
+        .route("/openapi.yaml", get(openapi_yaml))
+        .route("/", get(index_html))
         .route("/shutdown", post(shutdown_handler))
         .route("/about", get(about_handler))
         .method_not_allowed_fallback(handle_method_not_allowed)
         .fallback(handle_not_found)
         // Request bodies are unlimited, e.g. for importing or replacing many tracks at once.
         .layer(DefaultBodyLimit::disable())
-        .layer(CorsLayer::new().allow_origin(Any));
+        .layer(CorsLayer::new().allow_origin(Any))
+        .layer(TraceLayer::new_for_http());
 
     log::info!("Starting");
     current_state_tx.write(Some(State::Starting));

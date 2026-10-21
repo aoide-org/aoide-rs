@@ -17,6 +17,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Web server: Migrated from [warp](https://github.com/seanmonstar/warp) to
   [axum](https://github.com/tokio-rs/axum). Renamed `aoide-websrv-warp-sqlite` to
   `aoide-websrv-axum-sqlite`.
+- Web API: Requests with a JSON body require the header `Content-Type: application/json` (415
+  Unsupported Media Type otherwise).
+- Web API: Malformed entity UIDs in the path are rejected with 400 Bad Request instead of 404 Not
+  Found.
+- Web API: `/` and `/openapi.yaml` only accept `GET` and `HEAD` requests.
 
 ### Removed
 

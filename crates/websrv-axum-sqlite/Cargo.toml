@@ -18,9 +18,8 @@ workspace = true
 
 [dependencies]
 anyhow.workspace = true
-axum = { version = "0.8.9", default-features = false, features = ["json", "query"] }
+axum = { version = "0.8.9", default-features = false, features = ["json", "macros", "query"] }
 serde.workspace = true
-serde_json.workspace = true
 thiserror.workspace = true
 
 # Workspace dependencies

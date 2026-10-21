@@ -1,19 +1,23 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{result::Result as StdResult, str::FromStr};
+//! Integration of the JSON web API into [axum].
+//!
+//! Provides an [`Error`] type that is converted into a JSON error response
+//! and the extractors [`Json`], [`Query`], and [`Path`] that reject requests
+//! with this error type.
+
+use std::result::Result as StdResult;
 
 use axum::{
-    Json,
-    body::Bytes,
     extract::{
-        FromRequest, FromRequestParts, Path, Query, Request,
-        rejection::{BytesRejection, PathRejection, QueryRejection},
+        FromRequest, FromRequestParts,
+        rejection::{JsonRejection, PathRejection, QueryRejection},
     },
-    http::{StatusCode, request::Parts},
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
-use serde::{Serialize, de::DeserializeOwned};
+use serde::Serialize;
 use thiserror::Error;
 
 use aoide_backend_webapi_json as api;
@@ -94,67 +98,24 @@ impl From<db::Error> for Error {
     }
 }
 
-impl From<PathRejection> for Error {
-    fn from(rejection: PathRejection) -> Self {
-        Self::Rejected {
-            status: rejection.status(),
-            message: rejection.body_text(),
+macro_rules! impl_from_rejection {
+    ($rejection:ty) => {
+        impl From<$rejection> for Error {
+            fn from(rejection: $rejection) -> Self {
+                Self::Rejected {
+                    status: rejection.status(),
+                    message: rejection.body_text(),
+                }
+            }
         }
-    }
+    };
 }
 
-impl From<QueryRejection> for Error {
-    fn from(rejection: QueryRejection) -> Self {
-        Self::Rejected {
-            status: rejection.status(),
-            message: rejection.body_text(),
-        }
-    }
-}
-
-impl From<BytesRejection> for Error {
-    fn from(rejection: BytesRejection) -> Self {
-        Self::Rejected {
-            status: rejection.status(),
-            message: rejection.body_text(),
-        }
-    }
-}
+impl_from_rejection!(JsonRejection);
+impl_from_rejection!(QueryRejection);
+impl_from_rejection!(PathRejection);
 
 pub type Result<T> = StdResult<T, Error>;
-
-pub fn after_blocking_task_finished<T, E1, E2>(res: StdResult<StdResult<T, E1>, E2>) -> Result<T>
-where
-    E1: Into<Error>,
-    E2: Into<Error>,
-{
-    res.map_err(Into::into)
-        .and_then(|res| res.map_err(Into::into))
-}
-
-pub async fn spawn_blocking_write_task<H, T, E>(
-    gatekeeper: &DatabaseConnectionGatekeeper,
-    handler: H,
-) -> Result<T>
-where
-    H: FnOnce(PooledConnection) -> StdResult<T, E> + Send + 'static,
-    T: Send + 'static,
-    E: Into<Error> + Send + 'static,
-{
-    after_blocking_task_finished(gatekeeper.spawn_blocking_write_task(handler).await)
-}
-
-pub async fn spawn_blocking_read_task<H, T, E>(
-    gatekeeper: &DatabaseConnectionGatekeeper,
-    handler: H,
-) -> Result<T>
-where
-    H: FnOnce(PooledConnection) -> StdResult<T, E> + Send + 'static,
-    T: Send + 'static,
-    E: Into<Error> + Send + 'static,
-{
-    after_blocking_task_finished(gatekeeper.spawn_blocking_read_task(handler).await)
-}
 
 /// An API error serializable to JSON.
 #[derive(Debug, Serialize)]
@@ -190,7 +151,7 @@ impl IntoResponse for Error {
             Self::Rejected { status, message } => (status, message),
             Self::Other(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
         };
-        let body = Json(ErrorResponseBody {
+        let body = axum::Json(ErrorResponseBody {
             code: code.as_u16(),
             message,
         });
@@ -214,63 +175,66 @@ pub async fn handle_method_not_allowed() -> Error {
     }
 }
 
-/// A single path parameter that is parsed with [`FromStr`].
+/// JSON request or response body.
 ///
-/// Entity UIDs only implement [`FromStr`] but not [`serde::Deserialize`].
-#[derive(Debug)]
-pub struct PathParam<T>(pub T);
+/// Like [`axum::Json`], but rejects requests with an [`Error`].
+#[derive(Debug, FromRequest)]
+#[from_request(via(axum::Json), rejection(Error))]
+pub struct Json<T>(pub T);
 
-impl<S, T> FromRequestParts<S> for PathParam<T>
+impl<T> IntoResponse for Json<T>
 where
-    S: Send + Sync,
-    T: FromStr,
-    T::Err: Into<anyhow::Error>,
+    axum::Json<T>: IntoResponse,
 {
-    type Rejection = Error;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self> {
-        let Path(param) = Path::<String>::from_request_parts(parts, state).await?;
-        param
-            .parse()
-            .map(Self)
-            .map_err(|err: T::Err| Error::BadRequest(err.into()))
+    fn into_response(self) -> Response {
+        let Self(value) = self;
+        axum::Json(value).into_response()
     }
 }
 
-/// Query parameters with a JSON error response on rejection.
-#[derive(Debug)]
-pub struct QueryParams<T>(pub T);
+/// Query parameters.
+///
+/// Like [`axum::extract::Query`], but rejects requests with an [`Error`].
+#[derive(Debug, FromRequestParts)]
+#[from_request(via(axum::extract::Query), rejection(Error))]
+pub struct Query<T>(pub T);
 
-impl<S, T> FromRequestParts<S> for QueryParams<T>
+/// Path parameters.
+///
+/// Like [`axum::extract::Path`], but rejects requests with an [`Error`].
+#[derive(Debug, FromRequestParts)]
+#[from_request(via(axum::extract::Path), rejection(Error))]
+pub struct Path<T>(pub T);
+
+fn after_blocking_task_finished<T, E1, E2>(res: StdResult<StdResult<T, E1>, E2>) -> Result<T>
 where
-    S: Send + Sync,
-    T: DeserializeOwned,
+    E1: Into<Error>,
+    E2: Into<Error>,
 {
-    type Rejection = Error;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self> {
-        let Query(params) = Query::<T>::from_request_parts(parts, state).await?;
-        Ok(Self(params))
-    }
+    res.map_err(Into::into)
+        .and_then(|res| res.map_err(Into::into))
 }
 
-/// A JSON request body.
-///
-/// In contrast to [`axum::Json`] the `Content-Type` header is not checked.
-#[derive(Debug)]
-pub struct JsonBody<T>(pub T);
-
-impl<S, T> FromRequest<S> for JsonBody<T>
+pub async fn spawn_blocking_write_task<H, T, E>(
+    gatekeeper: &DatabaseConnectionGatekeeper,
+    handler: H,
+) -> Result<T>
 where
-    S: Send + Sync,
-    T: DeserializeOwned,
+    H: FnOnce(PooledConnection) -> StdResult<T, E> + Send + 'static,
+    T: Send + 'static,
+    E: Into<Error> + Send + 'static,
 {
-    type Rejection = Error;
+    after_blocking_task_finished(gatekeeper.spawn_blocking_write_task(handler).await)
+}
 
-    async fn from_request(req: Request, state: &S) -> Result<Self> {
-        let body = Bytes::from_request(req, state).await?;
-        serde_json::from_slice(&body)
-            .map(Self)
-            .map_err(|err| Error::BadRequest(err.into()))
-    }
+pub async fn spawn_blocking_read_task<H, T, E>(
+    gatekeeper: &DatabaseConnectionGatekeeper,
+    handler: H,
+) -> Result<T>
+where
+    H: FnOnce(PooledConnection) -> StdResult<T, E> + Send + 'static,
+    T: Send + 'static,
+    E: Into<Error> + Send + 'static,
+{
+    after_blocking_task_finished(gatekeeper.spawn_blocking_read_task(handler).await)
 }
