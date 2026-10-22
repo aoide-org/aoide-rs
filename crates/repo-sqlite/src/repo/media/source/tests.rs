@@ -295,6 +295,88 @@ fn filter_by_content_path_predicate() -> anyhow::Result<()> {
 }
 
 #[test]
+fn filter_by_content_path_predicate_with_like_special_characters() -> anyhow::Result<()> {
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
+
+    let collection_id = fixture.collection_id;
+
+    let new_source = |path: &str| media::Source {
+        collected_at: OffsetDateTimeMs::now_local(),
+        content: media::Content {
+            link: ContentLink {
+                path: ContentPath::from(path.to_owned()),
+                rev: None,
+            },
+            r#type: "audio/mpeg".parse().unwrap(),
+            digest: None,
+            metadata_flags: Default::default(),
+            metadata: AudioContentMetadata::default().into(),
+        },
+        artwork: Default::default(),
+    };
+
+    // Contains the LIKE wildcard, placeholder, and escape characters.
+    let header_special = db.insert_media_source(
+        collection_id,
+        UtcDateTimeMs::now(),
+        &new_source("file:///music/100%_hits/a\\b.mp3"),
+    )?;
+    // Would be matched if the special characters were not escaped.
+    let header_plain = db.insert_media_source(
+        collection_id,
+        UtcDateTimeMs::now(),
+        &new_source("file:///music/1000-hits/aXb.mp3"),
+    )?;
+
+    for (predicate, expected) in [
+        (
+            StringPredicate::StartsWith("file:///music/100%".into()),
+            vec![header_special.id],
+        ),
+        (
+            StringPredicate::StartsNotWith("file:///music/100%".into()),
+            vec![header_plain.id],
+        ),
+        (
+            StringPredicate::EndsWith("a\\b.mp3".into()),
+            vec![header_special.id],
+        ),
+        (
+            StringPredicate::EndsNotWith("a\\b.mp3".into()),
+            vec![header_plain.id],
+        ),
+        (StringPredicate::EndsWith("a_b.mp3".into()), vec![]),
+        (
+            StringPredicate::Contains("%_hits".into()),
+            vec![header_special.id],
+        ),
+        (
+            StringPredicate::ContainsNot("%_hits".into()),
+            vec![header_plain.id],
+        ),
+        (
+            StringPredicate::Matches("FILE:///MUSIC/100%_HITS/A\\B.MP3".into()),
+            vec![header_special.id],
+        ),
+        (
+            StringPredicate::MatchesNot("FILE:///MUSIC/100%_HITS/A\\B.MP3".into()),
+            vec![header_plain.id],
+        ),
+    ] {
+        let debug_predicate = format!("{predicate:?}");
+        assert_eq!(
+            expected,
+            fixture.resolve_record_ids_by_content_path_predicate(&mut db, predicate)?,
+            "{debug_predicate}"
+        );
+    }
+
+    Ok(())
+}
+
+#[test]
 fn relocate_by_content_path() -> anyhow::Result<()> {
     let mut db = establish_connection()?;
     let mut db = crate::Connection::new(&mut db);

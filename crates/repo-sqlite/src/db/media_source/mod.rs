@@ -15,8 +15,8 @@ use aoide_repo::{CollectionId, RepoError, RepoResult};
 use crate::{
     DbBackend, RowId,
     util::{
-        escape_like_contains, escape_like_ends_with, escape_like_matches, escape_like_starts_with,
-        sql_column_substr_prefix_eq,
+        LIKE_ESCAPE_CHARACTER, escape_like_contains, escape_like_ends_with, escape_like_matches,
+        escape_like_starts_with, sql_column_substr_prefix_eq,
     },
 };
 
@@ -96,7 +96,9 @@ pub(crate) fn select_row_id_filtered_by_content_path_predicate(
                 return statement;
             }
             statement.filter(
-                media_source::content_link_path.like(escape_like_starts_with(&path_prefix_nocase)),
+                media_source::content_link_path
+                    .like(escape_like_starts_with(&path_prefix_nocase))
+                    .escape(LIKE_ESCAPE_CHARACTER),
             )
         }
         StringPredicate::StartsNotWith(path_prefix_nocase) => {
@@ -105,7 +107,8 @@ pub(crate) fn select_row_id_filtered_by_content_path_predicate(
             }
             statement.filter(
                 media_source::content_link_path
-                    .not_like(escape_like_starts_with(&path_prefix_nocase)),
+                    .not_like(escape_like_starts_with(&path_prefix_nocase))
+                    .escape(LIKE_ESCAPE_CHARACTER),
             )
         }
         StringPredicate::EndsWith(path_suffix_nocase) => {
@@ -113,7 +116,9 @@ pub(crate) fn select_row_id_filtered_by_content_path_predicate(
                 return statement;
             }
             statement.filter(
-                media_source::content_link_path.like(escape_like_ends_with(&path_suffix_nocase)),
+                media_source::content_link_path
+                    .like(escape_like_ends_with(&path_suffix_nocase))
+                    .escape(LIKE_ESCAPE_CHARACTER),
             )
         }
         StringPredicate::EndsNotWith(path_suffix_nocase) => {
@@ -122,7 +127,8 @@ pub(crate) fn select_row_id_filtered_by_content_path_predicate(
             }
             statement.filter(
                 media_source::content_link_path
-                    .not_like(escape_like_ends_with(&path_suffix_nocase)),
+                    .not_like(escape_like_ends_with(&path_suffix_nocase))
+                    .escape(LIKE_ESCAPE_CHARACTER),
             )
         }
         StringPredicate::Contains(path_fragment_nocase) => {
@@ -130,7 +136,9 @@ pub(crate) fn select_row_id_filtered_by_content_path_predicate(
                 return statement;
             }
             statement.filter(
-                media_source::content_link_path.like(escape_like_contains(&path_fragment_nocase)),
+                media_source::content_link_path
+                    .like(escape_like_contains(&path_fragment_nocase))
+                    .escape(LIKE_ESCAPE_CHARACTER),
             )
         }
         StringPredicate::ContainsNot(path_fragment_nocase) => {
@@ -139,7 +147,8 @@ pub(crate) fn select_row_id_filtered_by_content_path_predicate(
             }
             statement.filter(
                 media_source::content_link_path
-                    .not_like(escape_like_contains(&path_fragment_nocase)),
+                    .not_like(escape_like_contains(&path_fragment_nocase))
+                    .escape(LIKE_ESCAPE_CHARACTER),
             )
         }
         StringPredicate::Matches(path_fragment_nocase) => {
@@ -147,7 +156,9 @@ pub(crate) fn select_row_id_filtered_by_content_path_predicate(
                 return statement;
             }
             statement.filter(
-                media_source::content_link_path.like(escape_like_matches(&path_fragment_nocase)),
+                media_source::content_link_path
+                    .like(escape_like_matches(&path_fragment_nocase))
+                    .escape(LIKE_ESCAPE_CHARACTER),
             )
         }
         StringPredicate::MatchesNot(path_fragment_nocase) => {
@@ -156,7 +167,8 @@ pub(crate) fn select_row_id_filtered_by_content_path_predicate(
             }
             statement.filter(
                 media_source::content_link_path
-                    .not_like(escape_like_matches(&path_fragment_nocase)),
+                    .not_like(escape_like_matches(&path_fragment_nocase))
+                    .escape(LIKE_ESCAPE_CHARACTER),
             )
         }
         StringPredicate::Prefix(path_prefix) => {
