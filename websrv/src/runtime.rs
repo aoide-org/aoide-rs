@@ -24,7 +24,7 @@ use tower_http::{
     trace::TraceLayer,
 };
 
-use aoide_repo_sqlite::initialize_database;
+use aoide_repo_sqlite::{initialize_connection, initialize_database};
 use aoide_storage_sqlite::connection::pool::{
     create_connection_pool, gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper,
     get_pooled_connection,
@@ -74,7 +74,11 @@ fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnect
     // allowed readers while writers require exclusive access.
     let pool_max_size = config.connection.pool.max_size;
     log::info!("Creating connection pool of max. size {pool_max_size}");
-    let connection_pool = create_connection_pool(&config.connection.storage, pool_max_size)?;
+    let connection_pool = create_connection_pool(
+        &config.connection.storage,
+        pool_max_size,
+        initialize_connection,
+    )?;
 
     log::info!("Initializing database");
     initialize_database(&mut *get_pooled_connection(&connection_pool)?)?;

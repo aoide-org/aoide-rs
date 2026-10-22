@@ -40,7 +40,11 @@ pub fn provision_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper>
         "Creating connection pool of max. size {max_size}",
         max_size = connection.pool.max_size
     );
-    let connection_pool = create_connection_pool(&connection.storage, connection.pool.max_size)?;
+    let connection_pool = create_connection_pool(
+        &connection.storage,
+        connection.pool.max_size,
+        aoide_repo_sqlite::initialize_connection,
+    )?;
 
     log::info!("Initializing database");
     aoide_repo_sqlite::initialize_database(&mut *get_pooled_connection(&connection_pool)?)?;

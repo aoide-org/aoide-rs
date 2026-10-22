@@ -11,6 +11,7 @@ use std::ops::{Deref, DerefMut};
 use anyhow::anyhow;
 use diesel::{
     QueryResult,
+    connection::SimpleConnection as _,
     migration::MigrationVersion,
     prelude::*,
     result::{DatabaseErrorKind, Error as DieselError},
@@ -32,7 +33,9 @@ mod util;
 
 pub(crate) use aoide_repo::RecordId as RowId;
 
-const INIT_DB_SQL: &str = include_str!("init_db.sql");
+const INIT_DATABASE_SQL: &str = include_str!("init_database.sql");
+
+const INIT_CONNECTION_SQL: &str = include_str!("init_connection.sql");
 
 pub(crate) const UNICASE_COLLATION_NAME: &str = "UNICASE";
 
@@ -98,8 +101,21 @@ pub(crate) fn repo_error(err: DieselError) -> RepoError {
 ///
 /// Some values like the text encoding can only be changed once after the
 /// database has initially been created.
+///
+/// Also initializes the given connection, see [`initialize_connection()`].
+/// All other connections must be initialized separately.
 pub fn initialize_database(connection: &mut DbConnection) -> QueryResult<()> {
-    diesel::sql_query(INIT_DB_SQL).execute(connection)?;
+    connection.batch_execute(INIT_DATABASE_SQL)?;
+    initialize_connection(connection)
+}
+
+/// Configure a single connection
+///
+/// Pragmas, custom functions, and collations only apply to a single connection.
+/// This function must be invoked for each connection, e.g. when establishing
+/// pooled connections.
+pub fn initialize_connection(connection: &mut DbConnection) -> QueryResult<()> {
+    connection.batch_execute(INIT_CONNECTION_SQL)?;
 
     connection.register_collation(UNICASE_COLLATION_NAME, |lhs, rhs| {
         UniCase::new(lhs).cmp(&UniCase::new(rhs))
@@ -234,5 +250,25 @@ pub mod tests {
         initialize_database(&mut connection).map_err(repo_error)?;
         run_migrations(&mut connection).map_err(|err| anyhow!(err))?;
         Ok(connection)
+    }
+
+    #[test]
+    fn initialize_connection_pragmas() -> TestResult<()> {
+        use diesel::{RunQueryDsl as _, dsl::sql, sql_types};
+
+        let mut connection = establish_connection()?;
+        let mut select_pragma = |name: &str| {
+            diesel::select(sql::<sql_types::BigInt>(&format!(
+                "(SELECT {name} FROM pragma_{name}())"
+            )))
+            .get_result::<i64>(&mut connection)
+        };
+        // All statements of the batch must have been executed, not only the first.
+        assert_eq!(1, select_pragma("automatic_index")?);
+        assert_eq!(1, select_pragma("foreign_keys")?);
+        assert_eq!(1, select_pragma("recursive_triggers")?);
+        assert_eq!(1, select_pragma("synchronous")?); // NORMAL
+        assert_eq!(0, select_pragma("secure_delete")?);
+        Ok(())
     }
 }

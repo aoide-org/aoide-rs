@@ -16,10 +16,39 @@ pub type ConnectionPool = r2d2::Pool<ConnectionManager>;
 
 pub type PooledConnection = r2d2::PooledConnection<ConnectionManager>;
 
+/// Initialize a newly established connection.
+///
+/// Some settings like custom functions, collations, or most pragmas only
+/// apply to a single connection and need to be applied to each connection
+/// of the pool.
+pub type InitializeConnection = fn(&mut diesel::SqliteConnection) -> diesel::QueryResult<()>;
+
+#[derive(Debug)]
+struct ConnectionCustomizer {
+    initialize_connection: InitializeConnection,
+}
+
+impl r2d2::CustomizeConnection<diesel::SqliteConnection, r2d2::Error> for ConnectionCustomizer {
+    fn on_acquire(
+        &self,
+        connection: &mut diesel::SqliteConnection,
+    ) -> std::result::Result<(), r2d2::Error> {
+        (self.initialize_connection)(connection).map_err(r2d2::Error::QueryError)
+    }
+}
+
 #[cfg(feature = "tokio")]
 pub mod gatekeeper;
 
-pub fn create_connection_pool(storage: &Storage, max_size: NonZeroU32) -> Result<ConnectionPool> {
+/// Create a connection pool.
+///
+/// The `initialize_connection` function is invoked for each
+/// connection that is established by the pool.
+pub fn create_connection_pool(
+    storage: &Storage,
+    max_size: NonZeroU32,
+    initialize_connection: InitializeConnection,
+) -> Result<ConnectionPool> {
     let storage = storage.as_ref();
     // Establish a test connection before creating the connection pool to fail early.
     // If the given file is inaccessible r2d2 (Diesel 1.4.8) seems to do multiple retries
@@ -32,6 +61,9 @@ pub fn create_connection_pool(storage: &Storage, max_size: NonZeroU32) -> Result
     let manager = ConnectionManager::new(storage);
     let pool = ConnectionPool::builder()
         .max_size(max_size.get())
+        .connection_customizer(Box::new(ConnectionCustomizer {
+            initialize_connection,
+        }))
         .build(manager)?;
     Ok(pool)
 }
@@ -48,3 +80,6 @@ pub struct Config {
     #[cfg(feature = "tokio")]
     pub gatekeeper: self::gatekeeper::Config,
 }
+
+#[cfg(test)]
+mod tests;
