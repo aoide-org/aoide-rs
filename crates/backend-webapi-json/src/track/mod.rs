@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use nonicle::Canonical;
+use nonicle::{Canonical, CanonicalizeInto as _};
 
 use aoide_core::{
     tag::{FacetId, FacetedTags},
@@ -110,7 +110,8 @@ impl RecordCollector for EntityCollector {
                 facet_id: gigtag_facet_id.clone(),
                 tags: encoded_tags,
             });
-            entity.body.track.tags = Canonical::tie(tags);
+            // The appended facet might break the canonical ordering.
+            entity.body.track.tags = tags.canonicalize_into();
         }
         collected.push(entity.into());
     }
