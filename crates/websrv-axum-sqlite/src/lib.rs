@@ -119,9 +119,17 @@ pub type Result<T> = StdResult<T, Error>;
 
 /// An API error serializable to JSON.
 #[derive(Debug, Serialize)]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ErrorResponse")
+)]
 #[serde(rename_all = "camelCase")]
-struct ErrorResponseBody {
+pub struct ErrorResponseBody {
+    /// The HTTP status code.
     code: u16,
+
+    /// A textual description of the error.
     message: String,
 }
 

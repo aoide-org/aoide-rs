@@ -12,6 +12,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Web API: The OpenAPI document is generated from the code and served at `/openapi.json`. The
+  request and response schemas are derived from the JSON schemas of the corresponding types.
+- Web API: Interactive API documentation (Swagger UI) at `/swagger-ui`.
+
 ### Changed
 
 - Web server: Migrated from [warp](https://github.com/seanmonstar/warp) to
@@ -21,7 +25,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Unsupported Media Type otherwise).
 - Web API: Malformed entity UIDs in the path are rejected with 400 Bad Request instead of 404 Not
   Found.
-- Web API: `/` and `/openapi.yaml` only accept `GET` and `HEAD` requests.
+- Web API: `/` only accepts `GET` and `HEAD` requests.
 - Web API: Violations of unique constraints, e.g. duplicate collection titles, are rejected with 409
   Conflict instead of 500 Internal Server Error.
 - Web API: `POST /api/t/{trackUid}/export-metadata` responds with 204 No Content instead of 200 with
@@ -30,12 +34,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   of `source_playlist`, as documented.
 - OpenAPI: Validated against the implementation, fixed numerous deviations, and documented all
   missing endpoints and error responses.
+- JSON schemas: Ambiguous schema names like `Entity`, `Kind`, or `Summary` have been replaced by
+  unique, qualified names like `CollectionEntity`, `ActorKind`, or `CollectionSummary`.
 
 ### Fixed
 
 - Web API: Searching tracks with `encodeGigtags` crashed the server in debug builds.
+- JSON schemas: Enums that are serialized as integers are no longer described as strings.
 
 ### Removed
+
+- Web API: The static OpenAPI document `/openapi.yaml` has been replaced by the generated
+  `/openapi.json`.
 
 ## [0.8.0] - 2021-01-04
 

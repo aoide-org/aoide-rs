@@ -13,7 +13,11 @@ mod _core {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "TrackIndex")
+)]
 #[serde(untagged)]
 pub enum Index {
     Number(u16),
@@ -55,7 +59,11 @@ impl Index {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "TrackIndexes")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Indexes {
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -14,17 +14,15 @@ use aoide_usecases::media::tracker::{
 use aoide_websrv_axum_sqlite::{
     Json, Path, Result, spawn_blocking_read_task, spawn_blocking_write_task,
 };
-use axum::{
-    Router,
-    extract::State,
-    routing::{get, post},
-};
+use axum::extract::State;
 use tokio::{
     sync::{Mutex, watch},
     task::JoinHandle,
 };
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use super::{AbortFlag, ApiState};
+use crate::openapi as doc;
 
 /// Progress of the currently running media tracker task.
 #[derive(Debug, Clone)]
@@ -71,19 +69,34 @@ async fn join_watcher(watcher: JoinHandle<()>) {
     }
 }
 
-pub(super) fn router() -> Router<ApiState> {
-    Router::new().route("/progress", get(get_progress))
+pub(super) fn router() -> OpenApiRouter<ApiState> {
+    OpenApiRouter::new().routes(routes!(get_progress))
 }
 
-pub(super) fn collected_router() -> Router<ApiState> {
-    Router::new()
-        .route("/query-status", post(query_status))
-        .route("/scan-directories", post(scan_directories))
-        .route("/import-files", post(import_files))
-        .route("/untrack-directories", post(untrack_directories))
-        .route("/find-untracked-files", post(find_untracked_files))
+pub(super) fn collected_router() -> OpenApiRouter<ApiState> {
+    OpenApiRouter::new()
+        .routes(routes!(query_status))
+        .routes(routes!(scan_directories))
+        .routes(routes!(import_files))
+        .routes(routes!(untrack_directories))
+        .routes(routes!(find_untracked_files))
 }
 
+/// Query the current progress
+///
+/// Show the currently running batch operation and report the progress so far.
+///
+/// If no batch operation is running then the string "idle" is returned.
+#[utoipa::path(
+    get,
+    path = "/progress",
+    operation_id = "getMediaTrackerProgress",
+    tag = doc::MEDIA_TRACKER_TAG,
+    responses(
+        (status = 200, description = "Operation succeeded.", body = doc::MediaTrackerProgress),
+        (status = 500, response = doc::InternalServerError),
+    ),
+)]
 async fn get_progress(
     State(SharedProgress(progress)): State<SharedProgress>,
 ) -> Json<api::Progress> {
@@ -91,6 +104,29 @@ async fn get_progress(
     Json(progress.into())
 }
 
+/// Query the aggregated status of tracked directories
+///
+/// Fetches the aggregated status of tracked directories from the database.
+///
+/// Requires a collection of local files, i.e. with path kind 3
+/// (virtual file path) and a `file://` root URL. Otherwise the request
+/// fails with status 500.
+#[utoipa::path(
+    post,
+    path = "/query-status",
+    operation_id = "queryMediaTrackerStatus",
+    tag = doc::COLLECTED_MEDIA_TRACKER_TAG,
+    params(doc::CollectionUidPath),
+    request_body = doc::MediaTrackerQueryStatusParams,
+    responses(
+        (status = 200, description = "Operation succeeded.", body = doc::MediaTrackerStatus),
+        (status = 400, response = doc::BadRequest),
+        (status = 404, response = doc::NotFound),
+        (status = 415, response = doc::UnsupportedMediaType),
+        (status = 422, response = doc::UnprocessableEntity),
+        (status = 500, response = doc::InternalServerError),
+    ),
+)]
 async fn query_status(
     State(gatekeeper): State<Arc<Gatekeeper>>,
     Path(collection_uid): Path<CollectionUid>,
@@ -103,6 +139,40 @@ async fn query_status(
     .map(Json)
 }
 
+/// Scan a directory tree for changes
+///
+/// Recursively scan a root directory for changes, i.e. discover
+/// added/modified/removed files and directories.
+///
+/// For each directory a cryptographic hash is calculated and stored in
+/// the database for further processing, e.g. import of track metadata.
+/// Results are stored on behalf of the collection.
+///
+/// Previously scanned directories that are not discovered again during
+/// a subsequent scan are marked and counted as *orphaned*.
+///
+/// This operation is blocking and locks the database while running.
+/// It can be aborted with `/api/storage/abort-current-task`.
+///
+/// Requires a collection of local files, i.e. with path kind 3
+/// (virtual file path) and a `file://` root URL. Otherwise the request
+/// fails with status 500.
+#[utoipa::path(
+    post,
+    path = "/scan-directories",
+    operation_id = "scanDirectories",
+    tag = doc::COLLECTED_MEDIA_TRACKER_TAG,
+    params(doc::CollectionUidPath),
+    request_body = doc::MediaTrackerFsTraversalParams,
+    responses(
+        (status = 200, description = "Operation succeeded.", body = doc::MediaTrackerScanDirectoriesOutcome),
+        (status = 400, response = doc::BadRequest),
+        (status = 404, response = doc::NotFound),
+        (status = 415, response = doc::UnsupportedMediaType),
+        (status = 422, response = doc::UnprocessableEntity),
+        (status = 500, response = doc::InternalServerError),
+    ),
+)]
 async fn scan_directories(
     State(gatekeeper): State<Arc<Gatekeeper>>,
     State(abort_flag): State<AbortFlag>,
@@ -131,6 +201,33 @@ async fn scan_directories(
     response.map(Json)
 }
 
+/// Import file contents from changed directories
+///
+/// Recursively import media sources from files located in directories
+/// that have been marked as changed.
+///
+/// This operation is blocking and locks the database while running.
+/// It can be aborted with `/api/storage/abort-current-task`.
+///
+/// Requires a collection of local files, i.e. with path kind 3
+/// (virtual file path) and a `file://` root URL. Otherwise the request
+/// fails with status 500.
+#[utoipa::path(
+    post,
+    path = "/import-files",
+    operation_id = "importFiles",
+    tag = doc::COLLECTED_MEDIA_TRACKER_TAG,
+    params(doc::CollectionUidPath),
+    request_body = doc::MediaTrackerImportFilesParams,
+    responses(
+        (status = 200, description = "Operation succeeded.", body = doc::MediaTrackerImportFilesOutcome),
+        (status = 400, response = doc::BadRequest),
+        (status = 404, response = doc::NotFound),
+        (status = 415, response = doc::UnsupportedMediaType),
+        (status = 422, response = doc::UnprocessableEntity),
+        (status = 500, response = doc::InternalServerError),
+    ),
+)]
 async fn import_files(
     State(gatekeeper): State<Arc<Gatekeeper>>,
     State(abort_flag): State<AbortFlag>,
@@ -159,6 +256,37 @@ async fn import_files(
     response.map(Json)
 }
 
+/// Discard tracked directories and their contents
+///
+/// Recursively purge the tracking status of a directory subtree.
+///
+/// The media sources (and tracks) that are located in the subtree
+/// are unaffected. As a result all these media sources and
+/// corresponding tracks become *untracked*.
+///
+/// Untracked directories can be re-added by a rescanning.
+/// This would also allow to recover from an inconsistent state
+/// i.e. if changes are expected but not detected by rescanning.
+///
+/// Requires a collection of local files, i.e. with path kind 3
+/// (virtual file path) and a `file://` root URL. Otherwise the request
+/// fails with status 500.
+#[utoipa::path(
+    post,
+    path = "/untrack-directories",
+    operation_id = "untrackDirectories",
+    tag = doc::COLLECTED_MEDIA_TRACKER_TAG,
+    params(doc::CollectionUidPath),
+    request_body = doc::MediaTrackerUntrackDirectoriesParams,
+    responses(
+        (status = 200, description = "Operation succeeded.", body = doc::MediaTrackerUntrackDirectoriesOutcome),
+        (status = 400, response = doc::BadRequest),
+        (status = 404, response = doc::NotFound),
+        (status = 415, response = doc::UnsupportedMediaType),
+        (status = 422, response = doc::UnprocessableEntity),
+        (status = 500, response = doc::InternalServerError),
+    ),
+)]
 async fn untrack_directories(
     State(gatekeeper): State<Arc<Gatekeeper>>,
     Path(collection_uid): Path<CollectionUid>,
@@ -171,6 +299,32 @@ async fn untrack_directories(
     .map(Json)
 }
 
+/// Find untracked entries in the directory tree
+///
+/// Recursively scan a root directory for untracked files.
+///
+/// This operation is blocking while running.
+/// It can be aborted with `/api/storage/abort-current-task`.
+///
+/// Requires a collection of local files, i.e. with path kind 3
+/// (virtual file path) and a `file://` root URL. Otherwise the request
+/// fails with status 500.
+#[utoipa::path(
+    post,
+    path = "/find-untracked-files",
+    operation_id = "findUntrackedFiles",
+    tag = doc::COLLECTED_MEDIA_TRACKER_TAG,
+    params(doc::CollectionUidPath),
+    request_body = doc::MediaTrackerFsTraversalParams,
+    responses(
+        (status = 200, description = "Operation succeeded.", body = doc::MediaTrackerFindUntrackedFilesOutcome),
+        (status = 400, response = doc::BadRequest),
+        (status = 404, response = doc::NotFound),
+        (status = 415, response = doc::UnsupportedMediaType),
+        (status = 422, response = doc::UnprocessableEntity),
+        (status = 500, response = doc::InternalServerError),
+    ),
+)]
 async fn find_untracked_files(
     State(gatekeeper): State<Arc<Gatekeeper>>,
     State(abort_flag): State<AbortFlag>,

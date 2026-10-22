@@ -13,7 +13,11 @@ mod uc {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ExportTrackMetadataQueryParams")
+)]
 pub struct QueryParams {
     // TODO: Add export options
 }

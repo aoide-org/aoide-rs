@@ -35,7 +35,11 @@ mod _inner {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "TrackSortField")
+)]
 #[serde(rename_all = "camelCase")]
 pub enum SortField {
     AlbumArtist,
@@ -140,7 +144,11 @@ impl From<_inner::SortField> for SortField {
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "TrackSortOrder")
+)]
 pub struct SortOrder(SortField, SortDirection);
 
 #[cfg(feature = "backend")]
@@ -324,7 +332,11 @@ impl From<_inner::DateTimeField> for DateTimeField {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "TrackSearchConditionFilter")
+)]
 #[serde(rename_all = "camelCase")]
 pub enum ConditionFilter {
     SourceTracked,
@@ -425,7 +437,11 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "kebab-case")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "TrackScope")
+)]
 pub enum Scope {
     Track,
     Album,
@@ -571,7 +587,11 @@ impl From<_inner::TitlePhraseFilter> for TitlePhraseFilter {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "TrackSearchFilter")
+)]
 #[serde(rename_all = "camelCase")]
 pub enum Filter {
     Phrase(PhraseFieldFilter),
@@ -646,20 +666,46 @@ impl From<_inner::Filter> for Filter {
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "TrackSearchQueryParams")
+)]
 pub struct QueryParams {
+    /// Resolve the actual URL of the media source from the stored path according
+    /// to the collection's media source configuration.
+    ///
+    /// Only supported for local files with virtual paths.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolve_url_from_content_path: Option<bool>,
 
+    /// Resolve the actual URL of the media source from the stored path according
+    /// to the given root URL. The provided URL overrides the root URL from the
+    /// collection's media source configuration for this particular request.
+    ///
+    /// Only supported for local files with virtual paths.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub override_root_url: Option<Url>,
 
+    /// Encode all custom tags that are not supported as native file tags
+    /// into the tags with the given facet, typically either "cgrp"
+    /// (content group/grouping) or "comm" (comment).
+    ///
+    /// This option is useful for interoperability with applications that
+    /// only support the common file tags and for file synchronization.
+    /// Custom tags are not encoded if omitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub encode_gigtags: Option<FacetId>,
 
+    /// Maximum number of items to return or unlimited if missing.
+    ///
+    /// When this parameter is specified its value is evaluated and
+    /// applied, i.e. a value of 0 will result in an empty set of
+    /// returned items.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<PaginationLimit>,
 
+    /// Number of items to skip before returning the results or 0 if missing.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub offset: Option<PaginationOffset>,
     // TODO: Replace separate limit/offset properties with flattened
@@ -673,7 +719,11 @@ pub struct QueryParams {
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "TrackSearchParams")
+)]
 pub struct SearchParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub filter: Option<Filter>,

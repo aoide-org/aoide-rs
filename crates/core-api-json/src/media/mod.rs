@@ -13,7 +13,11 @@ mod _core {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaSyncMode")
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum SyncMode {
     Once,

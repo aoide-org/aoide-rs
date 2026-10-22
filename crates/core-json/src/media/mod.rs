@@ -76,7 +76,11 @@ pub type Digest = Base64;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaDigest")
+)]
 pub struct DigestRef<'a>(&'a str);
 
 impl AsRef<str> for DigestRef<'_> {
@@ -106,7 +110,11 @@ fn is_default_content_metadata_flags(flags: &u8) -> bool {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaContent")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Content {
     link: ContentLink,
@@ -169,7 +177,11 @@ impl TryFrom<Content> for _core::Content {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaSource")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Source {
     collected_at: DateTime,

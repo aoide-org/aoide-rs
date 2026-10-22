@@ -15,7 +15,11 @@ use crate::Result;
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ExportTrackFilesRequestBody")
+)]
 pub struct RequestBody {
     target_root_path: String,
     filter: Option<Filter>,
@@ -25,7 +29,11 @@ pub struct RequestBody {
 
 #[derive(Debug, Default, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ExportTrackFilesResponseBody")
+)]
 pub struct ResponseBody {
     exported: u64,
     skipped: u64,

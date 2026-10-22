@@ -22,8 +22,15 @@ axum = { version = "0.8.9", default-features = false, features = ["json", "macro
 serde.workspace = true
 thiserror.workspace = true
 
+# JSON Schema (optional)
+schemars = { workspace = true, optional = true }
+
 # Workspace dependencies
 aoide-backend-webapi-json.workspace = true
 aoide-repo.workspace = true
 aoide-storage-sqlite.workspace = true
 aoide-usecases-sqlite.workspace = true
+
+[features]
+default = []
+json-schema = ["dep:schemars"]

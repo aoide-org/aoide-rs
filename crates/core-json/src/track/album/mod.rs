@@ -17,7 +17,11 @@ mod _core {
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema_repr),
+    schemars(rename = "AlbumKind")
+)]
 #[repr(u8)]
 pub enum Kind {
     NoCompilation = 0,

@@ -10,7 +10,8 @@ use std::{
 };
 
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
-use axum::{Router, extract::FromRef};
+use axum::extract::FromRef;
+use utoipa_axum::router::OpenApiRouter;
 
 mod collection;
 mod media_source;
@@ -18,7 +19,7 @@ mod media_tracker;
 mod playlist;
 #[cfg(feature = "json-schema")]
 mod schema;
-mod storage;
+pub(crate) mod storage;
 mod track;
 
 /// Flag for aborting the currently running, long-running task.
@@ -50,7 +51,7 @@ struct ApiState {
     media_tracker_progress: media_tracker::SharedProgress,
 }
 
-pub(crate) fn create_router(gatekeeper: Arc<Gatekeeper>) -> Router {
+pub(crate) fn create_router<S>(gatekeeper: Arc<Gatekeeper>) -> OpenApiRouter<S> {
     log::info!("Creating API routes");
 
     let state = ApiState {
@@ -59,12 +60,12 @@ pub(crate) fn create_router(gatekeeper: Arc<Gatekeeper>) -> Router {
         media_tracker_progress: Default::default(),
     };
 
-    let router = Router::new()
+    let router = OpenApiRouter::new()
         .nest("/c", collection::router())
-        .nest("/c/{collection_uid}/mt", media_tracker::collected_router())
-        .nest("/c/{collection_uid}/ms", media_source::collected_router())
-        .nest("/c/{collection_uid}/t", track::collected_router())
-        .nest("/c/{collection_uid}/p", playlist::collected_router())
+        .nest("/c/{collectionUid}/mt", media_tracker::collected_router())
+        .nest("/c/{collectionUid}/ms", media_source::collected_router())
+        .nest("/c/{collectionUid}/t", track::collected_router())
+        .nest("/c/{collectionUid}/p", playlist::collected_router())
         .nest("/mt", media_tracker::router())
         .nest("/t", track::router())
         .nest("/p", playlist::router())

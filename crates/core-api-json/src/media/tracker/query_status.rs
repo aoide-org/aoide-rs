@@ -15,7 +15,11 @@ mod _inner {
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerQueryStatusParams")
+)]
 pub struct Params {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub root_url: Option<Url>,

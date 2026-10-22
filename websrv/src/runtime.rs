@@ -12,17 +12,20 @@ use std::{
 
 use axum::{
     Json, Router,
-    extract::DefaultBodyLimit,
-    http::{StatusCode, header},
-    response::{Html, IntoResponse},
-    routing::{get, post},
+    extract::{self, DefaultBodyLimit, FromRef},
+    http::StatusCode,
+    response::Html,
 };
 use jiff::Timestamp;
+use serde_json::Value;
 use tokio::{net::TcpListener, sync::mpsc};
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::TraceLayer,
 };
+use utoipa::OpenApi as _;
+use utoipa_axum::{router::OpenApiRouter, routes};
+use utoipa_swagger_ui::SwaggerUi;
 
 use aoide_repo_sqlite::{initialize_connection, initialize_database};
 use aoide_storage_sqlite::connection::pool::{
@@ -33,21 +36,106 @@ use aoide_usecases_sqlite as uc;
 use aoide_websrv_axum_sqlite::{handle_method_not_allowed, handle_not_found};
 
 use super::{config::Config, routing};
-use crate::config::DatabaseConfig;
-
-static OPENAPI_YAML: &str = include_str!("../res/openapi.yaml");
+use crate::{config::DatabaseConfig, openapi as doc};
 
 static INDEX_HTML: &str = include_str!("../res/index.html");
 
-async fn openapi_yaml() -> impl IntoResponse {
-    (
-        [(header::CONTENT_TYPE, "application/x-yaml;charset=utf-8")],
-        OPENAPI_YAML,
-    )
+const OPENAPI_JSON_PATH: &str = "/openapi.json";
+
+const SWAGGER_UI_PATH: &str = "/swagger-ui";
+
+#[derive(Clone, FromRef)]
+struct ServiceState {
+    about_json: Arc<Value>,
+    shutdown_tx: mpsc::UnboundedSender<()>,
 }
 
+/// Web interface
+///
+/// A minimal HTML page for exploring the API.
+#[utoipa::path(
+    get,
+    path = "/",
+    operation_id = "getIndexHtml",
+    tag = doc::ADMINISTRATION_TAG,
+    responses(
+        (status = 200, description = "The HTML page.", body = String, content_type = "text/html"),
+    ),
+)]
 async fn index_html() -> Html<&'static str> {
     Html(INDEX_HTML)
+}
+
+/// Report service properties
+///
+/// Inspect the service environment.
+#[utoipa::path(
+    get,
+    path = "/about",
+    operation_id = "about",
+    tag = doc::ADMINISTRATION_TAG,
+    responses(
+        (status = 200, description = "The properties of the service.", body = Object),
+    ),
+)]
+async fn about(extract::State(about_json): extract::State<Arc<Value>>) -> Json<Value> {
+    Json(Value::clone(&about_json))
+}
+
+/// Shut down gracefully
+///
+/// Shut down the server after finishing all pending requests.
+#[utoipa::path(
+    post,
+    path = "/shutdown",
+    operation_id = "shutdown",
+    tag = doc::ADMINISTRATION_TAG,
+    responses(
+        (status = 202, description = "The request has been accepted."),
+        (status = 502, description = "The server failed to forward the request."),
+    ),
+)]
+async fn shutdown(
+    extract::State(shutdown_tx): extract::State<mpsc::UnboundedSender<()>>,
+) -> Result<StatusCode, StatusCode> {
+    shutdown_tx
+        .send(())
+        .map(|()| StatusCode::ACCEPTED)
+        .map_err(|_| {
+            log::warn!("Failed to forward shutdown request");
+            StatusCode::BAD_GATEWAY
+        })
+}
+
+/// All routes of the service, documented by the OpenAPI document.
+fn openapi_router(gatekeeper: Arc<DatabaseConnectionGatekeeper>) -> OpenApiRouter<ServiceState> {
+    OpenApiRouter::with_openapi(doc::ApiDoc::openapi())
+        .nest("/api", routing::api::create_router(gatekeeper))
+        .routes(routes!(index_html))
+        .routes(routes!(about))
+        .routes(routes!(shutdown))
+}
+
+#[cfg(test)]
+pub(crate) fn collect_openapi(
+    gatekeeper: Arc<DatabaseConnectionGatekeeper>,
+) -> utoipa::openapi::OpenApi {
+    openapi_router(gatekeeper).into_openapi()
+}
+
+fn create_router(gatekeeper: Arc<DatabaseConnectionGatekeeper>, state: ServiceState) -> Router {
+    let (router, openapi) = openapi_router(gatekeeper).split_for_parts();
+    let swagger_ui = SwaggerUi::new(SWAGGER_UI_PATH)
+        .external_url_unchecked(OPENAPI_JSON_PATH, doc::finish_document(openapi));
+    router
+        .merge(swagger_ui)
+        .method_not_allowed_fallback(handle_method_not_allowed)
+        .fallback(handle_not_found)
+        // Request bodies are unlimited, e.g. for importing or replacing many tracks at once.
+        .layer(DefaultBodyLimit::disable())
+        .layer(CorsLayer::new().allow_origin(Any))
+        .layer(TraceLayer::new_for_http())
+        .with_state(state)
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -125,42 +213,14 @@ pub(crate) async fn run(
 
     log::info!("Creating service routes");
 
-    // POST /shutdown
     let (server_shutdown_tx, mut server_shutdown_rx) = mpsc::unbounded_channel::<()>();
-    let shutdown_handler = move || {
-        let result = server_shutdown_tx
-            .send(())
-            .map(|()| StatusCode::ACCEPTED)
-            .map_err(|_| {
-                log::warn!("Failed to forward shutdown request");
-                StatusCode::BAD_GATEWAY
-            });
-        async move { result }
+    let state = ServiceState {
+        about_json: Arc::new(about_json),
+        shutdown_tx: server_shutdown_tx,
     };
-
-    // GET /about
-    let about_handler = move || {
-        let about_json = about_json.clone();
-        async move { Json(about_json) }
-    };
-
-    let api_router = self::routing::api::create_router(Arc::clone(&shared_connection_pool));
+    let router = create_router(Arc::clone(&shared_connection_pool), state);
 
     log::info!("Initializing server");
-
-    let router = Router::new()
-        .nest("/api", api_router)
-        // Static content
-        .route("/openapi.yaml", get(openapi_yaml))
-        .route("/", get(index_html))
-        .route("/shutdown", post(shutdown_handler))
-        .route("/about", get(about_handler))
-        .method_not_allowed_fallback(handle_method_not_allowed)
-        .fallback(handle_not_found)
-        // Request bodies are unlimited, e.g. for importing or replacing many tracks at once.
-        .layer(DefaultBodyLimit::disable())
-        .layer(CorsLayer::new().allow_origin(Any))
-        .layer(TraceLayer::new_for_http());
 
     log::info!("Starting");
     current_state_tx.write(Some(State::Starting));

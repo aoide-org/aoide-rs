@@ -22,7 +22,11 @@ pub mod untrack_directories;
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerFsTraversalParams")
+)]
 pub struct FsTraversalParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub root_url: Option<Url>,
@@ -73,7 +77,11 @@ impl TryFrom<FsTraversalParams> for _core::FsTraversalParams {
 #[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerProgress")
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum Progress {
     Idle,
@@ -111,7 +119,11 @@ impl From<_core::Progress> for Progress {
 #[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerFsTraversalProgress")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct FsTraversalProgress {
     pub entries: FsTraversalEntriesProgress,
@@ -149,7 +161,11 @@ impl From<_core::FsTraversalProgress> for FsTraversalProgress {
 #[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerFsTraversalEntriesProgress")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct FsTraversalEntriesProgress {
     pub skipped: usize,
@@ -175,7 +191,11 @@ impl From<_core::FsTraversalEntriesProgress> for FsTraversalEntriesProgress {
 #[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerFsTraversalDirectoriesProgress")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct FsTraversalDirectoriesProgress {
     pub finished: usize,
@@ -202,7 +222,11 @@ pub type ImportingProgress = import_files::Summary;
 #[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerCompletion")
+)]
 #[serde(rename_all = "camelCase")]
 pub enum Completion {
     Finished,
@@ -235,7 +259,11 @@ impl From<_core::Completion> for Completion {
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerStatus")
+)]
 pub struct Status {
     pub directories: DirectoriesStatus,
 }
@@ -264,7 +292,11 @@ impl From<Status> for _core::Status {
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerDirectoriesStatus")
+)]
 pub struct DirectoriesStatus {
     pub current: usize,
     pub outdated: usize,
@@ -316,7 +348,11 @@ impl From<DirectoriesStatus> for _core::DirectoriesStatus {
 // Used both in requests and responses.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerDirTrackingStatus")
+)]
 pub enum DirTrackingStatus {
     Current,
     Outdated,

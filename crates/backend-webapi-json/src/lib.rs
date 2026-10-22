@@ -52,6 +52,8 @@ pub type Result<T> = StdResult<T, Error>;
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRevQueryParams {
+    /// The current entity revision for optimistic locking when
+    /// modifying an entity.
     pub rev: EntityRevision,
 }
 

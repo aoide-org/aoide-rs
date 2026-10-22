@@ -13,7 +13,11 @@ mod _core {
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema_repr),
+    schemars(rename = "ActorKind")
+)]
 #[repr(u8)]
 pub enum Kind {
     Summary = _core::Kind::Summary as u8,
@@ -61,7 +65,11 @@ impl From<_core::Kind> for Kind {
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema_repr),
+    schemars(rename = "ActorRole")
+)]
 #[repr(u8)]
 pub enum Role {
     Artist = _core::Role::Artist as u8,

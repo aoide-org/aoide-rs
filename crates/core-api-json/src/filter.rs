@@ -154,7 +154,11 @@ impl From<_inner::StringFilter<'static>> for StringFilter {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ScalarPredicate_{V}")
+)]
 pub enum ScalarPredicate<V> {
     #[serde(rename = "lt")]
     LessThan(V),
@@ -242,5 +246,9 @@ impl From<_inner::DateTimePredicate> for DateTimePredicate {
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "{F}Filter")
+)]
 pub struct ScalarFieldFilter<F, V>(pub(crate) F, pub(crate) ScalarPredicate<V>);

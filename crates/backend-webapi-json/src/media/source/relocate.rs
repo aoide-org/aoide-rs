@@ -7,7 +7,11 @@ use super::*;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "RelocateMediaSourcesRequestBody")
+)]
 pub struct RequestBody {
     old_path_prefix: String,
     new_path_prefix: String,
@@ -15,7 +19,11 @@ pub struct RequestBody {
 
 #[derive(Debug, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "RelocateMediaSourcesResponseBody")
+)]
 pub struct ResponseBody {
     replaced_count: usize,
 }

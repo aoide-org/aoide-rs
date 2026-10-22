@@ -14,7 +14,11 @@ mod uc {
 }
 
 #[derive(Debug, Deserialize)]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ReplaceTrackMode")
+)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum ReplaceMode {
     CreateOnly,
@@ -35,7 +39,11 @@ impl From<ReplaceMode> for uc::ReplaceMode {
 
 #[derive(Debug, Default, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ReplaceTracksSummary")
+)]
 pub struct Summary {
     pub created: Vec<Entity>,
     pub updated: Vec<Entity>,
@@ -71,14 +79,30 @@ impl From<uc::Summary> for Summary {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ReplaceTracksQueryParams")
+)]
 pub struct QueryParams {
+    /// Controls if track entities are created and/or updated.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<ReplaceMode>,
 
+    /// Consider the provided media source path as an URL and
+    /// resolve it according to the collection's media source
+    /// configuration.
+    ///
+    /// Only supported for local files with virtual paths.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolve_path_from_url: Option<bool>,
 
+    /// Decode all custom tags that are not supported as native file tags
+    /// from both the "cgrp" (content group/grouping) and the "comm" (comment) tag
+    /// when creating/updating tags.
+    ///
+    /// This option is useful for interoperability with applications that
+    /// only support the common file tags and for file synchronization.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub decode_gigtags: Option<bool>,
 }

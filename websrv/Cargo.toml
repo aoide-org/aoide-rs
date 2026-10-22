@@ -24,6 +24,7 @@ jiff.workspace = true
 log = { workspace = true, features = ["release_max_level_debug"] }
 parking_lot = "0.13.0"
 ron.workspace = true
+schemars.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 thiserror.workspace = true
@@ -33,24 +34,24 @@ tracing.workspace = true
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = { workspace = true, features = ["serde"] }
+utoipa = { version = "6.0.0", features = ["preserve_order", "preserve_path_order"] }
+utoipa-axum = "0.3.0"
+# The vendored Swagger UI avoids downloading it from GitHub during the build.
+utoipa-swagger-ui = { version = "10.0.2", features = ["axum", "vendored"] }
 
 # Workspace dependencies
-aoide-backend-webapi-json = { "workspace" = true, features = ["tokio"] }
-aoide-core = { "workspace" = true, features = ["serde"] }
+# The OpenAPI document is generated from the JSON schemas of all requests and responses.
+aoide-backend-webapi-json = { "workspace" = true, features = ["json-schema", "tokio"] }
+aoide-core = { "workspace" = true, features = ["json-schema", "serde"] }
 aoide-repo-sqlite.workspace = true
 aoide-storage-sqlite = { "workspace" = true, features = ["serde", "sqlite-bundled", "tokio"] }
 aoide-usecases.workspace = true
 aoide-usecases-sqlite.workspace = true
-aoide-websrv-axum-sqlite.workspace = true
+aoide-websrv-axum-sqlite = { workspace = true, features = ["json-schema"] }
 
 # mimalloc
 [dependencies.mimalloc]
 version = "0.1.52"
-optional = true
-
-# schemars
-[dependencies.schemars]
-workspace = true
 optional = true
 
 # launcher-ui
@@ -74,8 +75,8 @@ features = ["xdg-portal"]
 [features]
 default = ["json-schema", "launcher-ui"]
 
-# Enable JSON schema support.
-json-schema = ["dep:schemars", "aoide-core/json-schema", "aoide-backend-webapi-json/json-schema"]
+# Serve the JSON schemas of selected requests and responses at /api/schema.
+json-schema = []
 
 # Use mimalloc instead of the default allocator.
 mimalloc = ["dep:mimalloc"]

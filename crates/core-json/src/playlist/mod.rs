@@ -17,7 +17,11 @@ mod _core {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "PlaylistSeparatorItem")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SeparatorItem {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -40,7 +44,11 @@ impl From<_core::SeparatorItem> for SeparatorItem {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "PlaylistTrackItem")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TrackItem {
     pub(crate) uid: EntityUid,
@@ -64,7 +72,11 @@ impl From<_core::TrackItem> for TrackItem {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "PlaylistItem")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub enum Item {
     Separator(SeparatorItem),
@@ -97,7 +109,11 @@ impl From<_core::Item> for Item {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "PlaylistEntry")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Entry {
     added_at: Zoned,
@@ -323,7 +339,11 @@ impl From<_core::EntityWithEntries> for EntityWithEntries {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "PlaylistEntriesSummary")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntriesSummary {
     total_count: usize,
@@ -371,7 +391,11 @@ impl From<EntriesSummary> for _core::EntriesSummary {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "PlaylistTracksSummary")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TracksSummary {
     total_count: usize,

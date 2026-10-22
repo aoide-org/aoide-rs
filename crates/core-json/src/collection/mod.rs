@@ -13,7 +13,11 @@ mod _core {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "CollectionMediaSourceConfig")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct MediaSourceConfig {
     content_path: ContentPathConfig,

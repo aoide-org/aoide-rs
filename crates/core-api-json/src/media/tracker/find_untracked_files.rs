@@ -16,7 +16,11 @@ mod _core {
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "MediaTrackerFindUntrackedFilesOutcome")
+)]
 pub struct Outcome {
     pub root_url: Url,
     pub root_path: String,

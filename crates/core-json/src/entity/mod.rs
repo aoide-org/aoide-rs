@@ -50,5 +50,9 @@ impl<T> From<_core::EntityHeaderTyped<T>> for EntityHeader {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "{B}Entity")
+)]
 pub struct Entity<B>(pub EntityHeader, pub B);

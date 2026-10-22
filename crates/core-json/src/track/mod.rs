@@ -23,7 +23,7 @@ mod _core {
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema_repr))]
 #[repr(u8)]
 pub enum AdvisoryRating {
     Unrated = _core::AdvisoryRating::Unrated as u8,
@@ -210,7 +210,11 @@ impl TryFrom<Track> for _core::Track {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "TrackBody")
+)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityBody {
     track: Track,

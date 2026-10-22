@@ -21,6 +21,7 @@ use crate::{
 mod config;
 mod env;
 mod launcher;
+mod openapi;
 mod routing;
 mod runtime;
 

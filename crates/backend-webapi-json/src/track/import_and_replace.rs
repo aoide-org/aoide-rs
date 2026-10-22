@@ -21,7 +21,11 @@ mod uc {
 
 #[derive(Debug, Default, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ImportAndReplaceTracksSummary")
+)]
 pub struct Summary {
     pub created: Vec<Entity>,
     pub updated: Vec<Entity>,
@@ -60,6 +64,11 @@ impl From<uc::Summary> for Summary {
 
 #[derive(Debug, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ImportAndReplaceTracksOutcome")
+)]
 pub struct Outcome {
     pub completion: Completion,
     pub summary: Summary,
@@ -91,13 +100,26 @@ impl From<uc::Outcome> for Outcome {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "ImportAndReplaceTracksQueryParams")
+)]
 pub struct QueryParams {
+    /// Controls when metadata is (re-)imported from the media sources.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sync_mode: Option<SyncMode>,
 
+    /// Controls if track entities are created and/or updated.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub replace_mode: Option<ReplaceMode>,
 
+    /// Decode all custom tags that are not supported as native file tags
+    /// from both the "cgrp" (content group/grouping) and the "comm" (comment) tag
+    /// when creating/updating tags.
+    ///
+    /// This option is useful for interoperability with applications that
+    /// only support the common file tags and for file synchronization.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub decode_gigtags: Option<bool>,
 }

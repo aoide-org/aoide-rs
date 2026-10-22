@@ -27,7 +27,11 @@ pub struct PlaylistRef {
     rename_all = "camelCase",
     rename_all_fields = "camelCase"
 )]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "PlaylistEntriesPatchOperation")
+)]
 pub enum PatchOperation {
     Append {
         entries: Vec<Entry>,

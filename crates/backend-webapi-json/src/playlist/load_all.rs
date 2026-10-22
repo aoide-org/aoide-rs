@@ -9,15 +9,26 @@ use aoide_usecases_sqlite::playlist as uc;
 use super::*;
 
 #[derive(Debug, Default, Deserialize)]
-#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+#[cfg_attr(
+    feature = "json-schema",
+    derive(schemars::JsonSchema),
+    schemars(rename = "LoadPlaylistsQueryParams")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct QueryParams {
+    /// The desired kind of the playlists.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
 
+    /// Maximum number of items to return or unlimited if missing.
+    ///
+    /// When this parameter is specified its value is evaluated and
+    /// applied, i.e. a value of 0 will result in an empty set of
+    /// returned items.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<PaginationLimit>,
 
+    /// Number of items to skip before returning the results or 0 if missing.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub offset: Option<PaginationOffset>,
     // TODO: Replace limit/offset with pagination after serde issue
