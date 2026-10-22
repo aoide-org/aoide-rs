@@ -256,22 +256,21 @@ fn search_title_phrase() -> TestResult<()> {
         )?
     );
     // Case-insensitive/folding Unicode search.
-    // FIXME: Add Unicode-aware LIKE support to SQLite to fix this test.
-    // assert_eq!(
-    //     1,
-    //     db.search_tracks(
-    //         collection_id,
-    //         &Default::default(),
-    //         Some(TrackFilter::TitlePhrase(TitlePhraseFilter {
-    //             modifier: None,
-    //             scope: Some(Scope::Track),
-    //             kinds: Default::default(),
-    //             name_terms: vec!["aA".into(), "EEee".into()],
-    //         })),
-    //         Default::default(),
-    //         &mut DummyCollector::new(),
-    //     )?
-    // );
+    assert_eq!(
+        1,
+        db.search_tracks(
+            collection_id,
+            &Default::default(),
+            Some(&TrackFilter::TitlePhrase(TitlePhraseFilter {
+                modifier: None,
+                scope: Some(Scope::Track),
+                kinds: Default::default(),
+                name_terms: vec!["aA".into(), "EEee".into()],
+            })),
+            Default::default(),
+            &mut DummyCollector::new(),
+        )?
+    );
     Ok(())
 }
 

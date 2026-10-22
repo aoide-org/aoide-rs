@@ -27,6 +27,7 @@ nonicle.workspace = true
 semval.workspace = true
 strum = { workspace = true, features = ["derive"] }
 unicase = "2.10.0"
+unicode-normalization = "0.1.26"
 url.workspace = true
 
 # Workspace dependencies

@@ -24,6 +24,8 @@ use aoide_storage_sqlite::VacuumMode;
 
 mod db;
 
+mod like;
+
 pub mod repo;
 
 mod util;
@@ -99,18 +101,12 @@ pub(crate) fn repo_error(err: DieselError) -> RepoError {
 pub fn initialize_database(connection: &mut DbConnection) -> QueryResult<()> {
     diesel::sql_query(INIT_DB_SQL).execute(connection)?;
 
-    // FIXME: How to use this collation for all LIKE queries instead of
-    // the default NOCASE comparison?
-    //
-    // The built-in LIKE operator doesn't support case-insensitive matching with
-    // custom collations beyond ASCII. You need to overload it separately using
-    // sqlite3_create_function(). Both the 2-arg and 3-arg (escaped) versions of
-    // LIKE are affected and need to be overloaded separately!
-    //
-    // Currently, "Beyonce" doesn't match "Beyoncé" and "Ä" doesn't match "a".
     connection.register_collation(UNICASE_COLLATION_NAME, |lhs, rhs| {
         UniCase::new(lhs).cmp(&UniCase::new(rhs))
     })?;
+
+    // Unicode-aware, case-insensitive and diacritic-insensitive LIKE.
+    like::register_functions(connection)?;
 
     Ok(())
 }
