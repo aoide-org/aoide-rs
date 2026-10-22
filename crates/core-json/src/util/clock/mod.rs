@@ -22,6 +22,9 @@ mod _core {
 // DateTime
 ///////////////////////////////////////////////////////////////////////
 
+/// A time stamp.
+///
+/// Values are truncated to millisecond precision.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(transparent)]
 #[serde(transparent)]
@@ -93,7 +96,15 @@ impl schemars::JsonSchema for YyyyMmDdDate {
     }
 
     fn json_schema(schema_gen: &mut schemars::generate::SchemaGenerator) -> schemars::Schema {
-        schema_gen.subschema_for::<YyyyMmDdDateValue>()
+        let mut schema = schema_gen.subschema_for::<YyyyMmDdDateValue>();
+        schema.ensure_object().insert(
+            "description".to_owned(),
+            "A naive date without any time zone information, encoded as an 8-digit integer \
+             YYYYMMDD = YYYY (year, 4 digits) + MM (month, 2 digits) + DD (day of month, 2 digits). \
+             A 4-digit integer YYYY represents just a year."
+                .into(),
+        );
+        schema
     }
 }
 

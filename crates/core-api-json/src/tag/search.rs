@@ -23,7 +23,12 @@ mod _inner {
 )]
 pub enum FacetsFilter {
     Prefix(FacetKey),
+    /// An empty array or an empty string in the array matches all unfaceted tags, i.e. tags without a facet.
     AnyOf(Vec<FacetKey>),
+    /// The complement of *anyOf*, i.e. *notAnyOf*.
+    ///
+    /// An empty array or an empty string in the array matches all unfaceted tags, i.e. tags without a
+    /// facet.
     NoneOf(Vec<FacetKey>),
 }
 

@@ -10,6 +10,18 @@ mod _core {
     pub(super) use aoide_core_api::media::*;
 }
 
+/// Controls when metadata is (re-)imported from the media sources.
+///
+/// * once: Only import metadata once, never re-import.
+/// * modified (recommended): Only (re-)import metadata from media source if modified and if the
+///   current track revision matches the synchronized revision.
+/// * modified-resync: Only (re-)import metadata from media source if modified but regardless of
+///   the synchronized revision, i.e. allow to overwrite changed metadata with metadata imported
+///   from the media source to enforce resynchronization. Use this variant if the metadata stored
+///   in file tags is complete and the primary metadata source for tracks, i.e. if the file system
+///   is considered as the actual "book of records".
+/// * always: Always (re-)import metadata from media source, regardless of modification time and
+///   synchronization status.
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]

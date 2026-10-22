@@ -29,6 +29,7 @@ mod _inner {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MediaSourceSummary {
+    /// Total number of media sources.
     pub total_count: u64,
 }
 
@@ -59,6 +60,7 @@ impl From<_inner::MediaSourceSummary> for MediaSourceSummary {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PlaylistSummary {
+    /// Total number of playlists.
     pub total_count: u64,
 }
 
@@ -89,6 +91,7 @@ impl From<_inner::PlaylistSummary> for PlaylistSummary {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSummary {
+    /// Total number of tracks.
     pub total_count: u64,
 }
 

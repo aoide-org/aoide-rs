@@ -19,6 +19,7 @@ fn is_default_flags(flags: &u8) -> bool {
     *flags == u8::default()
 }
 
+/// Musical signature including tempo/speed, timing, and key.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
@@ -33,6 +34,16 @@ pub struct Metrics {
     #[serde(skip_serializing_if = "Option::is_none")]
     time_signature: Option<TimeSignature>,
 
+    /// A bitmask for locking selected musical metrics properties and for indicating special cases.
+    ///
+    /// Bits:
+    ///
+    /// * 0x01: Tempo/BPM is locked
+    /// * 0x02: Key signature is locked
+    /// * 0x04: Time signature is locked
+    /// * 0x10: Imprecise integer BPM value (non-fractional)
+    ///
+    /// Example: A value of 3 = 1 | 2 locks both the tempo and the key signature.
     #[serde(skip_serializing_if = "is_default_flags", default)]
     flags: u8,
 }

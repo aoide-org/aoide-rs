@@ -48,6 +48,7 @@ impl<T> From<_core::EntityHeaderTyped<T>> for EntityHeader {
 // Entity
 ///////////////////////////////////////////////////////////////////////
 
+/// Entity header followed by entity body.
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(

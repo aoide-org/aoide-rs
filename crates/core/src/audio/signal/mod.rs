@@ -16,6 +16,7 @@ use crate::audio::{
 
 pub type BitrateBpsValue = f64;
 
+/// The bit rate in bits per second (bps).
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
 #[cfg_attr(
@@ -88,6 +89,7 @@ impl fmt::Display for BitrateBps {
 
 pub type SampleRateHzValue = f64;
 
+/// The sample rate in Hertz (Hz).
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
 #[cfg_attr(
@@ -293,6 +295,11 @@ impl fmt::Display for LatencyMs {
 
 pub type LoudnessLufsValue = f64;
 
+/// Loudness measured in "Loudness Units relative to Full Scale" (LUFS) with 1 LU = 1 dB
+/// according to ITU-R BS.1770.
+///
+/// EBU R128 proposes a target level of -23 LUFS while the ReplayGain v2 specification (RG2)
+/// proposes -18 LUFS for achieving similar perceptive results compared to ReplayGain v1 (RG1).
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
 #[cfg_attr(

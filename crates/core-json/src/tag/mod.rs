@@ -94,6 +94,9 @@ impl<'de> Deserialize<'de> for FacetKey {
     }
 }
 
+/// Non-empty string that defines the textual content of the tag.
+///
+/// Tag labels must not contain any leading or trailing whitespace.
 #[derive(Debug)]
 #[repr(transparent)]
 #[cfg_attr(test, derive(Clone, PartialEq, Eq))]
@@ -169,6 +172,9 @@ impl<'de> Deserialize<'de> for Label {
     }
 }
 
+/// Normalized numeric value between 0 and 1 that assigns a score to the tag.
+///
+/// If not specified the default score is 1.0, i.e. full score.
 #[derive(Debug)]
 #[repr(transparent)]
 #[cfg_attr(test, derive(Clone, PartialEq))]
@@ -236,6 +242,7 @@ impl<'de> Deserialize<'de> for Score {
     }
 }
 
+/// Either a single label, a single score, or a 2-element array [label, score].
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(Clone, PartialEq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
@@ -296,6 +303,9 @@ impl From<_core::PlainTag<'_>> for PlainTag {
 
 pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
 
+/// A dictionary of tags indexed by facet.
+///
+/// The empty key "" stands for no facet and contains all plain tags, i.e. tags without a facet.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[repr(transparent)]
 #[serde(transparent)]

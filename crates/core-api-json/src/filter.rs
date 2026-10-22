@@ -45,16 +45,27 @@ impl From<_inner::FilterModifier> for FilterModifier {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum StringPredicate {
+    /// Matches the head of a string (case-insensitive).
     StartsWith(String),
+    /// Mismatches the head of a string (case-insensitive).
     StartsNotWith(String),
+    /// Matches the tail of a string (case-insensitive).
     EndsWith(String),
+    /// Mismatches the tail of a string (case-insensitive).
     EndsNotWith(String),
+    /// Matches the middle of the string with arbitrary head/tail (case-insensitive).
     Contains(String),
+    /// Mismatches the middle of the string with arbitrary head/tail (case-insensitive).
     ContainsNot(String),
+    /// Matches the whole string (case-insensitive).
     Matches(String),
+    /// Mismatches the whole string (case-insensitive).
     MatchesNot(String),
+    /// Prefix match (case-sensitive).
     Prefix(String),
+    /// Exact match (case-sensitive).
     Equals(String),
+    /// Exact mismatch (case-sensitive).
     EqualsNot(String),
 }
 

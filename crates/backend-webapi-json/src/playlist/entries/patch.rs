@@ -40,6 +40,7 @@ pub enum PatchOperation {
         entries: Vec<Entry>,
     },
     Insert {
+        /// 0-based position number to locate a playlist entry.
         before: usize,
         entries: Vec<Entry>,
     },
@@ -47,12 +48,17 @@ pub enum PatchOperation {
         source_playlist: PlaylistRef,
     },
     Move {
+        /// 0-based position number to locate a playlist entry.
         start: usize,
+        /// 0-based position number to locate a playlist entry.
         end: usize,
+        /// The signed difference between two playlist entry positions.
         delta: isize,
     },
     Remove {
+        /// 0-based position number to locate a playlist entry.
         start: usize,
+        /// 0-based position number to locate a playlist entry.
         end: usize,
     },
     RemoveAll,

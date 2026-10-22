@@ -15,6 +15,7 @@ mod _core {
 // Item
 ///////////////////////////////////////////////////////////////////////
 
+/// Partitions the entries of a playlist.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(
@@ -24,6 +25,10 @@ mod _core {
 )]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SeparatorItem {
+    /// Semantic type of the playlist separator.
+    ///
+    /// A custom identifier that allows third-party applications to distinguish different kinds of
+    /// playlist separators.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) kind: Option<String>,
 }
@@ -51,6 +56,7 @@ impl From<_core::SeparatorItem> for SeparatorItem {
 )]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TrackItem {
+    /// The UID of the referenced track.
     pub(crate) uid: EntityUid,
 }
 
@@ -107,6 +113,7 @@ impl From<_core::Item> for Item {
 // Entry
 ///////////////////////////////////////////////////////////////////////
 
+/// A playlist entry with exactly one item, either `separator` or `track`.
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(
@@ -116,11 +123,21 @@ impl From<_core::Item> for Item {
 )]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Entry {
+    /// Time stamp since when an entry is part of the playlist, i.e. when it has been added by the
+    /// client.
+    ///
+    /// This time stamp allows clients to impose a secondary, chronological ordering on the entries.
+    /// The backend will always return entries sorted by their primary, canonical ordering.
+    ///
+    /// Encoded according to RFC 9557, i.e. an RFC 3339 time stamp followed by a mandatory time zone
+    /// annotation in brackets. Time stamps without a time zone annotation are rejected.
     added_at: Zoned,
 
+    /// Optional playlist entry title.
     #[serde(skip_serializing_if = "Option::is_none")]
     title: Option<String>,
 
+    /// Lengthy, personal notes.
     #[serde(skip_serializing_if = "Option::is_none")]
     notes: Option<String>,
 
@@ -177,11 +194,18 @@ fn is_default_flags(flags: &u8) -> bool {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Playlist {
+    /// Mandatory playlist title.
     title: String,
 
+    /// Semantic type of the playlist.
+    ///
+    /// A custom identifier that allows third-party applications to distinguish different kinds of
+    /// playlists for different purposes and depending on their use case, e.g. generated session or
+    /// history playlists for logging all tracks that have been played during this session.
     #[serde(skip_serializing_if = "Option::is_none")]
     kind: Option<String>,
 
+    /// Lengthy, personal notes.
     #[serde(skip_serializing_if = "Option::is_none")]
     notes: Option<String>,
 
@@ -196,6 +220,11 @@ pub struct Playlist {
     #[serde(skip_serializing_if = "Option::is_none")]
     iana_tz: Option<String>,
 
+    /// A bitmask with flags, e.g. for locking to prevent unintended changes.
+    ///
+    /// Bits:
+    ///
+    /// * 0x01: Locked
     #[serde(skip_serializing_if = "is_default_flags", default)]
     flags: u8,
 }
@@ -266,6 +295,7 @@ pub struct PlaylistWithEntries {
     #[serde(flatten)]
     playlist: Playlist,
 
+    /// A sequence of playlist entries.
     entries: Vec<Entry>,
 }
 
@@ -346,8 +376,10 @@ impl From<_core::EntityWithEntries> for EntityWithEntries {
 )]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntriesSummary {
+    /// Number of entries in the playlist.
     total_count: usize,
 
+    /// Minimum (lower bound) and maximum (upper bound) `addedAt` time stamp of all playlist entries.
     #[serde(rename = "addedAtMinMax", skip_serializing_if = "Option::is_none")]
     added_ts_minmax: Option<(DateTime, DateTime)>,
 
@@ -398,7 +430,9 @@ impl From<EntriesSummary> for _core::EntriesSummary {
 )]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TracksSummary {
+    /// Number of tracks in the playlist.
     total_count: usize,
+    /// The distinct (deduplicated) number of tracks.
     distinct_count: usize,
 }
 

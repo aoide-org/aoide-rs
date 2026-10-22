@@ -21,6 +21,11 @@ mod _core {
     pub(super) use aoide_core::{tag::Tags, track::*};
 }
 
+/// Advisory rating for content(s):
+///
+/// * 0 = Inoffensive/Unrated
+/// * 1 = Explicit (offensive)
+/// * 2 = Clean (inoffensive after edited)
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema_repr))]
@@ -64,18 +69,51 @@ impl From<AdvisoryRating> for _core::AdvisoryRating {
 pub struct Track {
     media_source: Source,
 
+    /// The recording date.
+    ///
+    /// This field resembles what is commonly known as `year` in many applications, i.e. a generic
+    /// year, date or time stamp for chronological ordering. If in doubt or nothing else is
+    /// available then use this field.
+    ///
+    /// Proposed tag mapping:
+    ///
+    /// * ID3v2.4: "TDRC"
+    /// * MP4: "©day"
+    /// * Vorbis: "DATE" ("YEAR")
     #[serde(skip_serializing_if = "Option::is_none")]
     recorded_at: Option<DateOrDateTime>,
 
+    /// The release date.
+    ///
+    /// Stores the distinguished release date if available.
+    ///
+    /// Proposed tag mapping:
+    ///
+    /// * ID3v2.4: "TDRL"
+    /// * MP4: n/a
+    /// * Vorbis: "RELEASEDATE" ("RELEASEYEAR")
     #[serde(skip_serializing_if = "Option::is_none")]
     released_at: Option<DateOrDateTime>,
 
+    /// The original release date.
+    ///
+    /// Stores the original or first release date if available.
+    ///
+    /// The original release date is supposed to be not later than the release date.
+    ///
+    /// Proposed tag mapping:
+    ///
+    /// * ID3v2.4: "TDOR"
+    /// * MP4: n/a
+    /// * Vorbis: "ORIGINALDATE" ("ORIGINALYEAR")
     #[serde(skip_serializing_if = "Option::is_none")]
     released_orig_at: Option<DateOrDateTime>,
 
+    /// The publisher or record label.
     #[serde(skip_serializing_if = "Option::is_none")]
     publisher: Option<String>,
 
+    /// Copyright.
     #[serde(skip_serializing_if = "Option::is_none")]
     copyright: Option<String>,
 
@@ -85,9 +123,11 @@ pub struct Track {
     #[serde(skip_serializing_if = "Album::is_default", default)]
     album: Album,
 
+    /// An array of titles.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     titles: Vec<Title>,
 
+    /// An array of actors.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     actors: Vec<Actor>,
 
@@ -103,6 +143,7 @@ pub struct Track {
     #[serde(skip_serializing_if = "Metrics::is_default", default)]
     metrics: Metrics,
 
+    /// An array of cues.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     cues: Vec<Cue>,
 }
@@ -221,6 +262,10 @@ pub struct EntityBody {
 
     updated_at: DateTime,
 
+    /// Last synchronized track entity revision
+    ///
+    /// The last entity revision of this track that is considered as synchronized with the
+    /// underlying media source, or absent if unsynchronized.
     #[serde(skip_serializing_if = "Option::is_none")]
     last_synchronized_rev: Option<EntityRevision>,
 

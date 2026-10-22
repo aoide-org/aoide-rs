@@ -9,6 +9,19 @@ mod _core {
     pub(super) use aoide_core::music::key::KeyCode;
 }
 
+/// The key signature is denoted by a code with one of the following values:
+///
+/// * 0 = Off key
+/// * 1 = C maj
+/// * 2 = A min
+/// * 3 = G maj
+/// * 4 = E min
+/// * ...
+/// * 23 = F maj
+/// * 24 = D min
+///
+/// The numbering follows the Circle of fifth / Open Key notation in clock-wise orientation,
+/// alternating between major and minor keys.
 #[derive(Debug, Serialize, Deserialize)]
 #[repr(transparent)]
 #[serde(transparent)]

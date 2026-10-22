@@ -20,6 +20,7 @@ pub use self::signal::*;
 
 pub type PositionMsValue = f64;
 
+/// The position in an audio stream in milliseconds.
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 #[repr(transparent)]
 #[cfg_attr(

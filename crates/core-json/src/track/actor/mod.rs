@@ -11,6 +11,11 @@ mod _core {
 // Kind
 ///////////////////////////////////////////////////////////////////////
 
+/// Optional actor rank that defaults to 0 = summary if missing:
+///
+/// * 0 = summary actor (default if missing)
+/// * 1 = individual/credited actor(s), either persons or groups/bands
+/// * 2 = sorting actor
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(
@@ -63,6 +68,21 @@ impl From<_core::Kind> for Kind {
 // Role
 ///////////////////////////////////////////////////////////////////////
 
+/// Optional actor role that defaults to 0 = artist if missing:
+///
+/// * 0 = Artist (default if missing)
+/// * 1 = Arranger
+/// * 2 = Composer
+/// * 3 = Conductor
+/// * 4 = Mix DJ
+/// * 5 = Engineer
+/// * 6 = Lyricist
+/// * 7 = Mix Engineer
+/// * 8 = Performer
+/// * 9 = Producer
+/// * 10 = Director
+/// * 11 = Remixer
+/// * 12 = Writer
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(
@@ -145,6 +165,7 @@ impl From<_core::Role> for Role {
 // Actor
 ///////////////////////////////////////////////////////////////////////
 
+/// Named actor with all properties.
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
@@ -196,6 +217,13 @@ impl From<FullActor> for _core::Actor {
     }
 }
 
+/// Named actor, categorized by *kind* and *role*.
+///
+/// Summary actors without role notes are encoded compactly, either as a plain name
+/// (role = artist) or as a 2-element array [name, role].
+///
+/// Only a single `summary` and `sorting` actor is allowed per track/album, while multiple
+/// `individual` actors are allowed.
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]

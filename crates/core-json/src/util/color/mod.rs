@@ -27,6 +27,7 @@ pub enum Color {
     #[serde(rename = "rgb")]
     Rgb(RgbColor),
 
+    /// A color palette index.
     #[serde(rename = "idx")]
     Index(ColorIndex),
 }

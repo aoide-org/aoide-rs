@@ -7,6 +7,10 @@ mod _inner {
     pub(super) use crate::_inner::SortDirection;
 }
 
+/// Direction for sorting results.
+///
+/// * `asc` - ascending
+/// * `desc` - descending
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]

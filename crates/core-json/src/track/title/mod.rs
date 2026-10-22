@@ -11,6 +11,13 @@ mod _core {
 // Kind
 ///////////////////////////////////////////////////////////////////////
 
+/// Optional level that defaults to 0 = main if missing:
+///
+/// * 0 = main title (default)
+/// * 1 = subtitle
+/// * 2 = sorting
+/// * 3 = work title for classical music
+/// * 4 = movement title for classical music
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(
@@ -100,6 +107,7 @@ impl From<FullTitle> for _core::Title {
     }
 }
 
+/// Mandatory name with an optional kind, encoded either as a plain name (kind = main), as a 2-element array [name, kind], or as an object.
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]

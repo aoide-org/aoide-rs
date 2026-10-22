@@ -20,7 +20,9 @@ mod _core {
 )]
 #[serde(untagged)]
 pub enum Index {
+    /// Identifies the number of the current item.
     Number(u16),
+    /// Identifies the number of the current item (1st) and the number of total items (2nd).
     NumberAndTotal(u16, u16),
 }
 

@@ -13,6 +13,17 @@ mod _core {
 // OutMode
 ///////////////////////////////////////////////////////////////////////
 
+/// The playback behavior when reaching the out position.
+///
+/// Possible values:
+///
+/// * 0 - cont: Continue playback when reaching the out position (default if missing).
+/// * 1 - stop: Stop playback when reaching the out position.
+/// * 2 - next: Continue playback at the in position of the cue with the next slot index, i.e.
+///   slot index + 1. If next slot is empty or if that cue has no in position then playback
+///   continues (default behavior).
+/// * 3 - loop: Continue playback at the in position when reaching the out position. If no in
+///   position is defined then playback continues (default behavior).
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(
@@ -131,8 +142,12 @@ fn is_default_flags(flags: &u8) -> bool {
 )]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Cue {
+    /// The bank index.
+    ///
+    /// Banks are used for distinguishing different kinds of cues.
     pub bank_index: BankIndex,
 
+    /// The slot index within a bank.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub slot_index: Option<SlotIndex>,
 
@@ -142,15 +157,23 @@ pub struct Cue {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub out_marker: Option<OutMarker>,
 
+    /// Application-defined tag for distinguishing cues within the same `bank`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
 
+    /// A custom, user-defined string.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<Color>,
 
+    /// A bitmask with flags, e.g. for locking to prevent unintended changes.
+    ///
+    /// Bits:
+    ///
+    /// * 0x01: Locked (read-only)
+    /// * 0x02: Activate implicitly, e.g. when loading a track.
     #[serde(skip_serializing_if = "is_default_flags", default)]
     flags: u8,
 }

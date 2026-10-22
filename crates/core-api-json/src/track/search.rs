@@ -170,6 +170,11 @@ impl From<_inner::SortOrder> for SortOrder {
     }
 }
 
+/// Selectable fields, including
+///
+/// * `contentType` - RFC 6838 media type
+/// * `contentPath`
+/// * ...
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
@@ -407,6 +412,17 @@ impl From<_inner::DateTimeFieldFilter> for DateTimeFieldFilter {
     }
 }
 
+/// Matches a sequence of terms on any of the given string fields. A match for at least one of the
+/// fields is sufficient.
+///
+/// The array consists of two elements:
+///
+/// 1. The fields that are matched against the terms. If no fields are specified all available
+///    string fields are matched.
+/// 2. The terms are concatenated with wildcards, and filtered using case-insensitive "contains"
+///    semantics for each of the selected fields, e.g. `["pa", "lab", "ll"]` or `["tt", "ll"]`
+///    both match the string "Patti LaBelle". An empty array matches both empty and missing/null
+///    fields.
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
@@ -433,6 +449,7 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
     }
 }
 
+/// The scope of a field or property in a track.
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
@@ -479,12 +496,17 @@ pub struct ActorPhraseFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<Scope>,
 
+    /// A non-empty array will match any of the given roles. An empty or missing array will match any role.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub roles: Vec<ActorRole>,
 
+    /// A non-empty array will match any of the given kinds. An empty or missing array will match any kind.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub kinds: Vec<ActorKind>,
 
+    /// The terms are concatenated with wildcards, and filtered using case-insensitive "contains"
+    /// semantics for each of the selected fields, e.g. `["pa", "lab", "ll"]` or `["tt", "ll"]` both
+    /// match the string "Patti LaBelle".
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub name_terms: Vec<String>,
 }
@@ -541,9 +563,13 @@ pub struct TitlePhraseFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<Scope>,
 
+    /// A non-empty array will match any of the given kinds. An empty or missing array will match any kind.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub kinds: Vec<TitleKind>,
 
+    /// The terms are concatenated with wildcards, and filtered using case-insensitive "contains"
+    /// semantics for each of the selected fields, e.g. `["pa", "lab", "ll"]` or `["tt", "ll"]` both
+    /// match the string "Patti LaBelle".
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub name_terms: Vec<String>,
 }

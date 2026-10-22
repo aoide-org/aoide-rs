@@ -26,6 +26,13 @@ mod _core {
 )]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ContentLink {
+    /// The path of a media source within a collection.
+    ///
+    /// The interpretation depends on the path kind of the collection (see `MediaContentPathKind`):
+    ///
+    /// * 0, 1, 2: a percent-encoded URI or URL (RFC 3986)
+    /// * 3: a virtual file path relative to the root URL of the collection with '/' as path
+    ///   separator. The empty path denotes the root directory.
     pub path: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,6 +59,15 @@ impl From<_core::ContentLink> for ContentLink {
     }
 }
 
+/// Defines how to resolve the location of media sources from the path:
+///
+/// * 0 = Percent-encoded URI (case-sensitive)
+/// * 1 = Percent-encoded URL (case-sensitive)
+/// * 2 = Percent-encoded URL with the scheme "file" (case-sensitive)
+/// * 3 = Virtual, relative file path with '/' as path separator
+///
+/// For collections of local files option 3 is the recommended choice. The accompanying
+/// `file://` URL is stored as part of the media source configuration in the collection.
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(
@@ -195,6 +211,14 @@ pub struct AudioContentMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     channel_count: Option<ChannelCount>,
 
+    /// Channel mask
+    ///
+    /// A mask of (at least) 18 bits, one for each channel.
+    ///
+    /// * Standard speaker channels: <https://www.wikipedia.org/wiki/Surround_sound>
+    /// * CAF channel bitmap: <https://developer.apple.com/library/archive/documentation/MusicAudio/Reference/CAFSpec/CAF_spec/CAF_spec.html#//apple_ref/doc/uid/TP40001862-CH210-BCGBHHHI>
+    /// * WAV default channel ordering: <https://learn.microsoft.com/en-us/previous-versions/windows/hardware/design/dn653308(v=vs.85)?redirectedfrom=MSDN#default-channel-ordering>
+    /// * FFmpeg: <https://ffmpeg.org/doxygen/trunk/group__channel__masks.html>
     #[serde(skip_serializing_if = "Option::is_none")]
     channel_mask: Option<ChannelMask>,
 
@@ -207,6 +231,7 @@ pub struct AudioContentMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     loudness_lufs: Option<LoudnessLufs>,
 
+    /// Encoder and its settings.
     #[serde(skip_serializing_if = "Option::is_none")]
     encoder: Option<String>,
 }

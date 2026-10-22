@@ -7,6 +7,7 @@ use semval::prelude::*;
 
 pub type TempoBpmValue = f64;
 
+/// The tempo measured in beats per minute (bpm).
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 #[repr(transparent)]
 #[cfg_attr(

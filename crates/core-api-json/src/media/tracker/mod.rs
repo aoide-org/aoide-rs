@@ -31,6 +31,7 @@ pub struct FsTraversalParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub root_url: Option<Url>,
 
+    /// Content paths of directories that are excluded from the traversal.
     #[serde(default)]
     pub excluded_paths: Vec<ContentPath<'static>>,
 

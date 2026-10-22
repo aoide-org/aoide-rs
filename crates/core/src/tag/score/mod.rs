@@ -7,6 +7,9 @@ use semval::prelude::*;
 
 pub type ScoreValue = f64;
 
+/// Normalized numeric value between 0 and 1 that assigns a score to the tag.
+///
+/// If not specified the default score is 1.0, i.e. full score.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 #[repr(transparent)]
 #[cfg_attr(

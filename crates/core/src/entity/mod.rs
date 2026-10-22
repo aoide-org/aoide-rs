@@ -17,6 +17,7 @@ use uuid_base32hex::{Uuid, UuidEncodedStr};
 // EntityUid
 ///////////////////////////////////////////////////////////////////////
 
+/// A unique identifier (UID) for entities in base-32 encoding.
 #[derive(
     Clone,
     Copy,

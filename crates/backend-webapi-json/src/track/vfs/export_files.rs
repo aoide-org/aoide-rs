@@ -21,9 +21,12 @@ use crate::Result;
     schemars(rename = "ExportTrackFilesRequestBody")
 )]
 pub struct RequestBody {
+    /// The local file system path of the target directory.
     target_root_path: String,
     filter: Option<Filter>,
+    /// The number of tracks that are loaded and exported at once. All tracks are loaded at once if not specified.
     batch_size: Option<u64>,
+    /// Delete all other files in the target directory that do not belong to any of the exported tracks. Only applied if no export failed.
     purge_other_files: Option<bool>,
 }
 
@@ -35,9 +38,13 @@ pub struct RequestBody {
     schemars(rename = "ExportTrackFilesResponseBody")
 )]
 pub struct ResponseBody {
+    /// Number of copied files.
     exported: u64,
+    /// Number of files that already existed with the same content.
     skipped: u64,
+    /// Number of files that could not be exported.
     failed: u64,
+    /// Number of deleted files if `purgeOtherFiles` has been requested.
     #[serde(skip_serializing_if = "Option::is_none")]
     purged: Option<u64>,
 }

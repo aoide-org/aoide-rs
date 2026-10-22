@@ -15,6 +15,10 @@ mod _core {
 // Album
 ///////////////////////////////////////////////////////////////////////
 
+/// * 0 = No compilation, unknown if either album or single
+/// * 1 = Compilation
+/// * 2 = Album
+/// * 3 = Single
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(
@@ -60,6 +64,7 @@ impl Default for Kind {
     }
 }
 
+/// Album properties.
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
@@ -68,9 +73,11 @@ pub struct Album {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<Kind>,
 
+    /// An array of titles.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
 
+    /// An array of acting participants/people.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
 }

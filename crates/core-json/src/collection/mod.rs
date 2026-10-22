@@ -49,11 +49,17 @@ impl From<_core::MediaSourceConfig> for MediaSourceConfig {
 #[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Collection {
+    /// A concise title.
     title: String,
 
+    /// Lengthy, personal notes.
     #[serde(skip_serializing_if = "Option::is_none")]
     notes: Option<String>,
 
+    /// Semantic type of the collection.
+    ///
+    /// A custom identifier that allows third-party applications to distinguish different kinds of
+    /// collections.
     #[serde(skip_serializing_if = "Option::is_none")]
     kind: Option<String>,
 

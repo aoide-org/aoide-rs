@@ -20,6 +20,7 @@ mod _inner {
 pub struct UnsynchronizedTrack {
     pub content_link: ContentLink,
 
+    /// The revision of the track entity when the metadata has last been synchronized with the media source, if ever.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_synchronized_rev: Option<EntityRevision>,
 }
@@ -52,6 +53,7 @@ impl From<_inner::UnsynchronizedTrack> for UnsynchronizedTrack {
     }
 }
 
+/// Entity header followed by entity body.
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
