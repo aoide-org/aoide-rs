@@ -22,6 +22,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Web API: Malformed entity UIDs in the path are rejected with 400 Bad Request instead of 404 Not
   Found.
 - Web API: `/` and `/openapi.yaml` only accept `GET` and `HEAD` requests.
+- Web API: Violations of unique constraints, e.g. duplicate collection titles, are rejected with 409
+  Conflict instead of 500 Internal Server Error.
+- Web API: `POST /api/t/{trackUid}/export-metadata` responds with 204 No Content instead of 200 with
+  a `null` body.
+- Web API: The `copyAll` playlist entries patch operation expects the field `sourcePlaylist` instead
+  of `source_playlist`, as documented.
+- OpenAPI: Validated against the implementation, fixed numerous deviations, and documented all
+  missing endpoints and error responses.
+
+### Fixed
+
+- Web API: Searching tracks with `encodeGigtags` crashed the server in debug builds.
 
 ### Removed
 

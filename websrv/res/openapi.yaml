@@ -25,6 +25,9 @@ tags:
   - name: "Playlists"
   - name: "Storage"
   - name: "Administration"
+  - name: "Schemas"
+    description: |
+      JSON schemas of requests and responses, generated from the server code.
 paths:
   /api/c:
     get:
@@ -76,6 +79,12 @@ paths:
                 $ref: "#/components/schemas/CollectionEntity"
         "400":
           $ref: "#/components/responses/400BadRequest"
+        "409":
+          $ref: "#/components/responses/409Conflict"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/kinds:
@@ -95,8 +104,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CollectionKind"
-        "400":
-          $ref: "#/components/responses/400BadRequest"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
@@ -104,12 +111,11 @@ paths:
     get:
       summary: Load a single collection
       description: |
-        Load a single collection entity by UID.
+        Load a single collection entity by UID, including its summary.
       tags:
         - Collections
       parameters:
         - $ref: "#/components/parameters/collectionUidPath"
-        - $ref: "#/components/parameters/collectionSummaryQuery"
       responses:
         "200":
           description: |
@@ -118,6 +124,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CollectionWithSummaryEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
         "404":
           $ref: "#/components/responses/404NotFound"
         "500":
@@ -134,12 +142,12 @@ paths:
         - $ref: "#/components/parameters/currentEntityRevisionQuery"
       requestBody:
         description: |
-          The updated collection entity.
+          The updated collection.
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CollectionEntity"
+              $ref: "#/components/schemas/Collection"
       responses:
         "200":
           description: |
@@ -147,13 +155,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EntityHeader"
+                $ref: "#/components/schemas/CollectionEntity"
         "400":
           $ref: "#/components/responses/400BadRequest"
         "404":
           $ref: "#/components/responses/404NotFound"
         "409":
           $ref: "#/components/responses/409Conflict"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
     delete:
@@ -169,6 +181,8 @@ paths:
           $ref: "#/components/responses/204NoContent"
         "400":
           $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
@@ -205,10 +219,17 @@ paths:
                   type: array
                   minItems: 2
                   maxItems: 2
-                  items:
-                    oneOf:
-                      - $ref: "#/components/schemas/PercentEncodedUri"
-                      - $ref: "#/components/schemas/EntityHeader"
+                  prefixItems:
+                    - $ref: "#/components/schemas/PercentEncodedUri"
+                    - $ref: "#/components/schemas/EntityHeader"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/t/search:
@@ -240,6 +261,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SearchCollectedTracksResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/t/replace:
@@ -269,18 +298,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReplaceCollectedTracksResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/t/import-and-replace:
     post:
-      summary: Import and replace collected tracks and media sources by URI
+      summary: Import and replace collected tracks from local files
       description: |
-        TODO
+        Import the media sources of the given files and create or update
+        the corresponding tracks within a single database transaction.
+
+        The request body contains the content paths of the files, i.e.
+        virtual file paths relative to the root URL of the collection.
+
+        The operation can be aborted with `/api/storage/abort-current-task`.
+
+        Requires a collection of local files, i.e. with path kind 3
+        (virtual file path) and a `file://` root URL. Otherwise the request
+        fails with status 500.
       tags:
         - "Collections: Tracks"
       parameters:
         - $ref: "#/components/parameters/collectionUidPath"
-        - $ref: "#/components/parameters/replaceCollectedTrackModeQuery"
+        - name: syncMode
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/MediaSyncMode"
+          description: |
+            Controls when metadata is (re-)imported from the media sources.
+        - name: replaceMode
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/ReplaceCollectedTrackMode"
+          description: |
+            Controls if track entities are created and/or updated.
         - $ref: "#/components/parameters/decodeGigtagsQuery"
       requestBody:
         required: true
@@ -296,6 +356,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ImportAndReplaceCollectedTracksResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/t/find-unsynchronized:
@@ -329,9 +397,59 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FindUnsynchronizedTracksResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
+  /api/c/{collectionUid}/t/export-vfs:
+    post:
+      summary: Export the files of collected tracks into a directory
+      description: |
+        Copy the media files of all collected tracks that match an optional
+        filter into a target directory, preserving their virtual file paths
+        relative to the root of the collection.
+
+        Files that already exist in the target directory with the same
+        content are skipped.
+
+        Requires a collection of local files, i.e. with path kind 3
+        (virtual file path) and a `file://` root URL. Otherwise the request
+        fails with status 500.
+      tags:
+        - "Collections: Tracks"
+      parameters:
+        - $ref: "#/components/parameters/collectionUidPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportCollectedTrackFilesRequestBody"
+      responses:
+        "200":
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportCollectedTrackFilesResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/ms/purge-orphaned:
     post:
       summary: Purge media sources without a corresponding track
@@ -355,6 +473,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PurgeOrphanedMediaSourcesResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/ms/purge-untracked:
@@ -367,6 +493,10 @@ paths:
 
         Purging all orphaned directories from the media tracker before invoking
         this operation might generate additional candidates,
+
+        Requires a collection of local files, i.e. with path kind 3
+        (virtual file path) and a `file://` root URL. Otherwise the request
+        fails with status 500.
       tags:
         - "Collections: Media Sources"
       parameters:
@@ -385,6 +515,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PurgeUntrackedMediaSourcesResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/ms/relocate:
@@ -413,6 +551,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RelocateCollectedMediaSourcesResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
@@ -421,6 +567,10 @@ paths:
       summary: Query the aggregated status of tracked directories
       description: |
         Fetches the aggregated status of tracked directories from the database.
+
+        Requires a collection of local files, i.e. with path kind 3
+        (virtual file path) and a `file://` root URL. Otherwise the request
+        fails with status 500.
       tags:
         - "Collections: Media Tracker"
       parameters:
@@ -439,6 +589,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaTrackerQueryStatusResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/mt/scan-directories:
@@ -456,6 +614,10 @@ paths:
         a subsequent scan are marked and counted as *orphaned*.
 
         This operation is blocking and locks the database while running.
+
+        Requires a collection of local files, i.e. with path kind 3
+        (virtual file path) and a `file://` root URL. Otherwise the request
+        fails with status 500.
       tags:
         - "Collections: Media Tracker"
       parameters:
@@ -474,6 +636,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaTrackerScanResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/mt/untrack-directories:
@@ -489,6 +659,10 @@ paths:
         Untracked directories can be re-added by a rescanning.
         This would also allow to recover from an inconsistent state
         i.e. if changes are expected but not detected by rescanning.
+
+        Requires a collection of local files, i.e. with path kind 3
+        (virtual file path) and a `file://` root URL. Otherwise the request
+        fails with status 500.
       tags:
         - "Collections: Media Tracker"
       parameters:
@@ -507,6 +681,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaTrackerUntrackDirectoriesResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/mt/import-files:
@@ -517,6 +699,10 @@ paths:
         that have been marked as changed.
 
         This operation is blocking and locks the database while running.
+
+        Requires a collection of local files, i.e. with path kind 3
+        (virtual file path) and a `file://` root URL. Otherwise the request
+        fails with status 500.
       tags:
         - "Collections: Media Tracker"
       parameters:
@@ -535,6 +721,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaTrackerImportResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/c/{collectionUid}/mt/find-untracked-files:
@@ -544,6 +738,10 @@ paths:
         Recursively scan a root directory for untracked files.
 
         This operation is blocking and locks the database while running.
+
+        Requires a collection of local files, i.e. with path kind 3
+        (virtual file path) and a `file://` root URL. Otherwise the request
+        fails with status 500.
       tags:
         - "Collections: Media Tracker"
       parameters:
@@ -562,6 +760,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaTrackerFindUntrackedResponseBody"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
@@ -590,14 +796,20 @@ paths:
                     properties:
                       scanning:
                         $ref: "#/components/schemas/MediaTrackerFsTraversalProgress"
+                    required:
+                      - scanning
                   - type: object
                     properties:
                       importing:
                         $ref: "#/components/schemas/MediaTrackerImportingProgress"
+                    required:
+                      - importing
                   - type: object
                     properties:
-                      findingUntracked:
+                      finding-untracked:
                         $ref: "#/components/schemas/MediaTrackerFsTraversalProgress"
+                    required:
+                      - finding-untracked
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
@@ -618,6 +830,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TrackEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
         "404":
           $ref: "#/components/responses/404NotFound"
         "500":
@@ -651,6 +865,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/TrackEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
   /api/t/{trackUid}/export-metadata:
@@ -663,13 +883,12 @@ paths:
       parameters:
         - $ref: "#/components/parameters/trackUidPath"
       responses:
-        "200":
-          description: |
-            Operation succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ExportTrackMetadataResponseBody"
+        "204":
+          $ref: "#/components/responses/204NoContent"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
@@ -698,6 +917,8 @@ paths:
                   $ref: "#/components/schemas/PlaylistWithEntriesSummaryEntity"
         "400":
           $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
         "500":
           $ref: "#/components/responses/500InternalServerError"
     post:
@@ -726,6 +947,14 @@ paths:
                 $ref: "#/components/schemas/PlaylistEntity"
         "400":
           $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
+        "409":
+          $ref: "#/components/responses/409Conflict"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
@@ -781,6 +1010,10 @@ paths:
                 $ref: "#/components/schemas/PlaylistEntity"
         "400":
           $ref: "#/components/responses/400BadRequest"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
@@ -801,6 +1034,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlaylistWithEntriesEntity"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
         "404":
           $ref: "#/components/responses/404NotFound"
         "500":
@@ -808,8 +1043,10 @@ paths:
     put:
       summary: Update a playlist
       description: |
-        Update a playlist entity after validating that the provided `header`
+        Update a playlist entity after validating that the provided `rev`
         matches that of the current entity (optimistic locking).
+
+        The entries of the playlist are not affected.
       tags:
         - Playlists
       parameters:
@@ -817,12 +1054,12 @@ paths:
         - $ref: "#/components/parameters/currentEntityRevisionQuery"
       requestBody:
         description: |
-          A playlist entity with the current `header` and and updated `body`.
+          The updated playlist.
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PlaylistEntity"
+              $ref: "#/components/schemas/Playlist"
       responses:
         "200":
           description: |
@@ -830,13 +1067,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PlaylistWithEntriesSummaryEntity"
+                $ref: "#/components/schemas/PlaylistEntity"
         "400":
           $ref: "#/components/responses/400BadRequest"
         "404":
           $ref: "#/components/responses/404NotFound"
         "409":
           $ref: "#/components/responses/409Conflict"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
     delete:
@@ -852,6 +1093,8 @@ paths:
           $ref: "#/components/responses/204NoContent"
         "400":
           $ref: "#/components/responses/400BadRequest"
+        "404":
+          $ref: "#/components/responses/404NotFound"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
@@ -887,6 +1130,10 @@ paths:
           $ref: "#/components/responses/404NotFound"
         "409":
           $ref: "#/components/responses/409Conflict"
+        "415":
+          $ref: "#/components/responses/415UnsupportedMediaType"
+        "422":
+          $ref: "#/components/responses/422UnprocessableEntity"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
@@ -953,6 +1200,7 @@ paths:
       parameters:
         - in: query
           name: vacuum
+          required: true
           schema:
             type: boolean
           description: |
@@ -960,9 +1208,112 @@ paths:
       responses:
         "204":
           $ref: "#/components/responses/204NoContent"
+        "400":
+          $ref: "#/components/responses/400BadRequest"
         "500":
           $ref: "#/components/responses/500InternalServerError"
 
+  /api/schema/get/c:
+    get:
+      summary: JSON schemas for listing collections
+      description: |
+        The JSON schemas of the query parameters and the response of `GET /api/c`.
+
+        Only available if the server has been built with the feature
+        `json-schema`.
+      tags:
+        - Schemas
+      responses:
+        "200":
+          $ref: "#/components/responses/200JsonSchemas"
+  /api/schema/post/c:
+    get:
+      summary: JSON schemas for creating a collection
+      description: |
+        The JSON schemas of the request and the response of `POST /api/c`.
+
+        Only available if the server has been built with the feature
+        `json-schema`.
+      tags:
+        - Schemas
+      responses:
+        "200":
+          $ref: "#/components/responses/200JsonSchemas"
+  /api/schema/get/c/kinds:
+    get:
+      summary: JSON schemas for listing collection kinds
+      description: |
+        The JSON schema of the response of `GET /api/c/kinds`.
+
+        Only available if the server has been built with the feature
+        `json-schema`.
+      tags:
+        - Schemas
+      responses:
+        "200":
+          $ref: "#/components/responses/200JsonSchemas"
+  /api/schema/get/c/{collectionUid}:
+    get:
+      summary: JSON schemas for loading a collection
+      description: |
+        The JSON schema of the response of `GET /api/c/{collectionUid}`.
+        The value of the path parameter is ignored.
+
+        Only available if the server has been built with the feature
+        `json-schema`.
+      tags:
+        - Schemas
+      parameters:
+        - $ref: "#/components/parameters/collectionUidPath"
+      responses:
+        "200":
+          $ref: "#/components/responses/200JsonSchemas"
+  /api/schema/put/c/{collectionUid}:
+    get:
+      summary: JSON schemas for updating a collection
+      description: |
+        The JSON schemas of the query parameters, the request, and the response
+        of `PUT /api/c/{collectionUid}`. The value of the path parameter is ignored.
+
+        Only available if the server has been built with the feature
+        `json-schema`.
+      tags:
+        - Schemas
+      parameters:
+        - $ref: "#/components/parameters/collectionUidPath"
+      responses:
+        "200":
+          $ref: "#/components/responses/200JsonSchemas"
+  /:
+    get:
+      summary: Web interface
+      description: |
+        A minimal HTML page for exploring the API.
+      tags:
+        - Administration
+      responses:
+        "200":
+          description: |
+            The HTML page.
+          content:
+            text/html:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      summary: OpenAPI document
+      description: |
+        This document.
+      tags:
+        - Administration
+      responses:
+        "200":
+          description: |
+            The OpenAPI document in YAML format.
+          content:
+            application/x-yaml:
+              schema:
+                type: string
   /about:
     get:
       summary: Report service properties
@@ -1004,6 +1355,22 @@ components:
     202Accepted:
       description: |
         The request/command has been accepted.
+    200JsonSchemas:
+      description: |
+        An object with the JSON schemas of the operation, keyed by `query`,
+        `request`, and `response`. Only applicable keys are present.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              query:
+                type: object
+              request:
+                type: object
+              response:
+                type: object
+            additionalProperties: false
     204NoContent:
       description: |
         The request/command has been processed, no response available.
@@ -1017,6 +1384,21 @@ components:
     404NotFound:
       description: |
         The specified resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    415UnsupportedMediaType:
+      description: |
+        The request body is not declared as JSON, i.e. the header
+        `Content-Type: application/json` is missing.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    422UnprocessableEntity:
+      description: |
+        The request body is valid JSON but does not match the expected schema.
       content:
         application/json:
           schema:
@@ -1112,19 +1494,16 @@ components:
       name: encodeGigtags
       description: |
         Encode all custom tags that are not supported as native file tags
-        into either the "cgrp" (content group/grouping) tag or the
-        "comm" (comment) tag.
+        into the tags with the given facet, typically either "cgrp"
+        (content group/grouping) or "comm" (comment).
 
-        This options is useful for interoperability with applications that
+        This option is useful for interoperability with applications that
         only support the common file tags and for file synchronization.
+        Custom tags are not encoded if omitted.
       in: query
       required: false
       schema:
-        type: string
-        default: false
-        enum:
-          - cgrp
-          - comm
+        $ref: "#/components/schemas/TagFacetId"
       example: cgrp
     decodeGigtagsQuery:
       name: decodeGigtags
@@ -1200,6 +1579,24 @@ components:
         The UID of the track.
   schemas:
     Actor:
+      oneOf:
+        - $ref: "#/components/schemas/ActorName"
+        - type: array
+          minItems: 2
+          maxItems: 2
+          prefixItems:
+            - $ref: "#/components/schemas/ActorName"
+            - $ref: "#/components/schemas/ActorRole"
+        - $ref: "#/components/schemas/FullActor"
+      description: |
+        Named actor, categorized by *kind* and *role*.
+
+        Summary actors without role notes are encoded compactly, either as
+        a plain name (role = artist) or as a 2-element array [name, role].
+
+        Only a single `summary` and `sorting` actor is allowed per track/album,
+        while multiple `individual` actors are allowed.
+    FullActor:
       type: object
       properties:
         name:
@@ -1213,10 +1610,7 @@ components:
       required:
         - name
       description: |
-        Named actor, categorized by *kind* and *role*.
-
-        Only a single `summary` and `sorting` actor is allowed per track/album,
-        while multiple `individual` actors are allowed.
+        Named actor with all properties.
     ActorPhraseFilter:
       type: object
       properties:
@@ -1360,6 +1754,7 @@ components:
       required:
         - apicType
         - mediaType
+        - dataSize
     ArtworkSource:
       description: |
         The source and state of the artwork.
@@ -1381,12 +1776,8 @@ components:
           $ref: "#/components/schemas/ChannelCount"
         channelMask:
           $ref: "#/components/schemas/ChannelMask"
-        encodedBy:
-          description: Encoder, either a person or an application
-          type: string
-          minLength: 1
         encoder:
-          description: Encoder settings or configuration
+          description: Encoder and its settings
           type: string
           minLength: 1
         loudnessLufs:
@@ -1422,8 +1813,8 @@ components:
 
         Example: 4 for a quarter note
     BitrateBps:
-      type: integer
-      format: int32
+      type: number
+      format: double
       minimum: 0
       example: 256000
       description: |
@@ -1453,10 +1844,9 @@ components:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/EntityHeader"
-          - $ref: "#/components/schemas/Collection"
+      prefixItems:
+        - $ref: "#/components/schemas/EntityHeader"
+        - $ref: "#/components/schemas/Collection"
     Collection:
       type: object
       properties:
@@ -1483,6 +1873,14 @@ components:
         to distinguish different kinds of collections.
       example: "local"
     CollectionMediaSourceConfig:
+      type: object
+      properties:
+        contentPath:
+          $ref: "#/components/schemas/CollectionMediaContentPathConfig"
+      required:
+        - contentPath
+    CollectionMediaContentPathConfig:
+      type: object
       properties:
         pathKind:
           $ref: "#/components/schemas/MediaContentPathKind"
@@ -1513,10 +1911,9 @@ components:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/EntityHeader"
-          - $ref: "#/components/schemas/CollectionWithSummary"
+      prefixItems:
+        - $ref: "#/components/schemas/EntityHeader"
+        - $ref: "#/components/schemas/CollectionWithSummary"
     CollectionSummary:
       type: object
       properties:
@@ -1526,6 +1923,10 @@ components:
           $ref: "#/components/schemas/CollectionTrackSummary"
         playlists:
           $ref: "#/components/schemas/CollectionPlaylistSummary"
+      required:
+        - mediaSources
+        - tracks
+        - playlists
     CollectionMediaSourceSummary:
       type: object
       properties:
@@ -1538,11 +1939,8 @@ components:
       properties:
         totalCount:
           $ref: "#/components/schemas/TotalPlaylistCount"
-        distinctCount:
-          $ref: "#/components/schemas/DistinctTrackCount"
       required:
         - totalCount
-        - distinctCount
     CollectionTrackSummary:
       type: object
       properties:
@@ -1576,6 +1974,8 @@ components:
       properties:
         idx:
           $ref: "#/components/schemas/ColorIndex"
+      required:
+        - idx
     AdvisoryRatingCode:
       type: integer
       enum: [0, 1, 2]
@@ -1634,7 +2034,7 @@ components:
     CueBankIndex:
       type: integer
       format: int32
-      minimum: -32368
+      minimum: -32768
       maximum: 32767
       example: 0
       description: |
@@ -1644,7 +2044,7 @@ components:
     CueSlotIndex:
       type: integer
       format: int32
-      minimum: -32368
+      minimum: -32768
       maximum: 32767
       example: 3
       description: |
@@ -1661,10 +2061,9 @@ components:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/EntityUid"
-          - $ref: "#/components/schemas/EntityRevision"
+      prefixItems:
+        - $ref: "#/components/schemas/EntityUid"
+        - $ref: "#/components/schemas/EntityRevision"
     EntityRevision:
       type: integer
       format: uint64
@@ -1854,14 +2253,6 @@ components:
           $ref: "#/components/schemas/FilterModifier"
         value:
           $ref: "#/components/schemas/StringPredicate"
-    MediaContentMetadata:
-      allOf:
-        - $ref: "#/components/schemas/MediaSourceAudioContentMetadata"
-    MediaSourceAudioContentMetadata:
-      type: object
-      properties:
-        audio:
-          $ref: "#/components/schemas/AudioContentMetadata"
     MediaContent:
       type: object
       properties:
@@ -1873,11 +2264,12 @@ components:
           $ref: "#/components/schemas/MediaDigest"
         metadataFlags:
           $ref: "#/components/schemas/ContentMetadataFlags"
-      additionalProperties:
-        $ref: "#/components/schemas/MediaContentMetadata"
+        audio:
+          $ref: "#/components/schemas/AudioContentMetadata"
       required:
         - link
         - type
+        - audio
     MediaSource:
       type: object
       properties:
@@ -1965,10 +2357,9 @@ components:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/DateTimeField"
-          - $ref: "#/components/schemas/DateTimePredicate"
+      prefixItems:
+        - $ref: "#/components/schemas/DateTimeField"
+        - $ref: "#/components/schemas/DateTimePredicate"
     DateTimePredicate:
       oneOf:
         - $ref: "#/components/schemas/DateTimePredicateLessThan"
@@ -2010,12 +2401,16 @@ components:
       properties:
         eq:
           $ref: "#/components/schemas/DateTime"
+      required:
+        - eq
     DateTimePredicateNotEqual:
       type: object
       properties:
         ne:
           $ref: "#/components/schemas/DateTime"
-    IanaTimeZome:
+      required:
+        - ne
+    IanaTimeZone:
       description: IANA time zone name
       type: string
       minLength: 1
@@ -2045,10 +2440,9 @@ components:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/NumericField"
-          - $ref: "#/components/schemas/NumericPredicate"
+      prefixItems:
+        - $ref: "#/components/schemas/NumericField"
+        - $ref: "#/components/schemas/NumericPredicate"
     NumericPredicate:
       oneOf:
         - $ref: "#/components/schemas/NumericPredicateLessThan"
@@ -2095,36 +2489,37 @@ components:
         eq:
           type: number
           format: double
+      required:
+        - eq
     NumericPredicateNotEqual:
       type: object
       properties:
         ne:
           type: number
           format: double
+      required:
+        - ne
     PhraseFieldFilter:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - type: array
-            items:
-              $ref: "#/components/schemas/StringField"
-            description: |
-              The fields that are matched against the terms. If no fields
-              are specified all available string fields are matched.
-          - type: array
-            items:
-              type: string
-            description: |
-              The terms are concatenated with wildcards, and filtered
-              using case-insensitive "contains" semantics for each of the
-              selected fields, e.g. ["pa", "lab", "ll"] or ["tt", "ll"] both
-              match the string "Patti LaBelle".
+      prefixItems:
+        - type: array
+          items:
+            $ref: "#/components/schemas/StringField"
+          description: |
+            The fields that are matched against the terms. If no fields
+            are specified all available string fields are matched.
+        - type: array
+          items:
+            type: string
+          description: |
+            The terms are concatenated with wildcards, and filtered
+            using case-insensitive "contains" semantics for each of the
+            selected fields, e.g. ["pa", "lab", "ll"] or ["tt", "ll"] both
+            match the string "Patti LaBelle".
 
               An empty array matches both empty and missing/null fields.
-      required:
-        - terms
       description: |
         Matches a sequence of terms on any of the given string fields.
         A match for at least one of the fields is sufficient.
@@ -2137,10 +2532,9 @@ components:
         - type: array
           minItems: 2
           maxItems: 2
-          items:
-            oneOf:
-              - $ref: "#/components/schemas/TagLabel"
-              - $ref: "#/components/schemas/TagScore"
+          prefixItems:
+            - $ref: "#/components/schemas/TagLabel"
+            - $ref: "#/components/schemas/TagScore"
     PlainTags:
       type: array
       items:
@@ -2167,10 +2561,9 @@ components:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/EntityHeader"
-          - $ref: "#/components/schemas/Playlist"
+      prefixItems:
+        - $ref: "#/components/schemas/EntityHeader"
+        - $ref: "#/components/schemas/Playlist"
     PlaylistEntries:
       description: |
         A sequence of playlist entries
@@ -2279,7 +2672,7 @@ components:
           minItems: 2
           maxItems: 2
           items:
-            $ref: "#/components/schemas/PlaylistEntryAddedAt"
+            $ref: "#/components/schemas/DateTime"
         totalCount:
           description: Number of entries in the playlist
           allOf:
@@ -2290,6 +2683,8 @@ components:
         - totalCount
         - tracks
     PlaylistEntry:
+      description: |
+        A playlist entry with exactly one item, either `separator` or `track`.
       type: object
       properties:
         addedAt:
@@ -2298,10 +2693,12 @@ components:
           $ref: "#/components/schemas/PlaylistEntryTitle"
         notes:
           $ref: "#/components/schemas/PlaylistEntryNotes"
-        item:
-          $ref: "#/components/schemas/PlaylistItem"
       required:
-        - item
+        - addedAt
+      oneOf:
+        - $ref: "#/components/schemas/PlaylistItemSeparator"
+        - $ref: "#/components/schemas/PlaylistItemTrack"
+      unevaluatedProperties: false
     PlaylistEntryAddedAt:
       description: |
         Time stamp since when an entry is part of the playlist,
@@ -2310,8 +2707,12 @@ components:
         This time stamp allows clients to impose a secondary, chronological
         ordering on the entries. The backend will always return entries
         sorted by their primary, canonical ordering.
-      allOf:
-        - $ref: "#/components/schemas/DateTime"
+
+        Encoded according to RFC 9557, i.e. an RFC 3339 time stamp followed
+        by a mandatory time zone annotation in brackets. Time stamps without
+        a time zone annotation are rejected.
+      type: string
+      example: "2026-10-22T10:00:00+02:00[Europe/Berlin]"
     PlaylistEntryCount:
       description: |
         Total number of entries in a playlist.
@@ -2348,10 +2749,6 @@ components:
 
         Bits:
           - 0x01: Locked
-    PlaylistItem:
-      oneOf:
-        - $ref: "#/components/schemas/PlaylistItemSeparator"
-        - $ref: "#/components/schemas/PlaylistItemTrack"
     PlaylistItemSeparator:
       type: object
       properties:
@@ -2419,6 +2816,8 @@ components:
       properties:
         uid:
           $ref: "#/components/schemas/TrackUid"
+      required:
+        - uid
     PlaylistTrackCount:
       description: |
         Number of tracks in the playlist
@@ -2429,8 +2828,11 @@ components:
       properties:
         totalCount:
           $ref: "#/components/schemas/PlaylistTrackCount"
+        distinctCount:
+          $ref: "#/components/schemas/DistinctTrackCount"
       required:
         - totalCount
+        - distinctCount
     PlaylistUid:
       allOf:
         - $ref: "#/components/schemas/EntityUid"
@@ -2441,6 +2843,8 @@ components:
           properties:
             entries:
               $ref: "#/components/schemas/PlaylistEntriesSummary"
+          required:
+            - entries
     PlaylistWithEntries:
       allOf:
         - $ref: "#/components/schemas/Playlist"
@@ -2448,24 +2852,24 @@ components:
           properties:
             entries:
               $ref: "#/components/schemas/PlaylistEntries"
+          required:
+            - entries
     PlaylistWithEntriesEntity:
       description: Entity header and body
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/EntityHeader"
-          - $ref: "#/components/schemas/PlaylistWithEntries"
+      prefixItems:
+        - $ref: "#/components/schemas/EntityHeader"
+        - $ref: "#/components/schemas/PlaylistWithEntries"
     PlaylistWithEntriesSummaryEntity:
       description: Entity header and body
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/EntityHeader"
-          - $ref: "#/components/schemas/PlaylistWithEntriesSummary"
+      prefixItems:
+        - $ref: "#/components/schemas/EntityHeader"
+        - $ref: "#/components/schemas/PlaylistWithEntriesSummary"
     PositionMs:
       type: number
       format: double
@@ -2735,16 +3139,13 @@ components:
           type: object
           properties:
             confirmed:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             skipped:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             untracked:
-              type: number
-              format: int
+              type: integer
               minimum: 0
           required:
             - confirmed
@@ -2754,36 +3155,28 @@ components:
           type: object
           properties:
             created:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             updated:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             unchanged:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             skipped:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             failed:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             notImported:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             notCreated:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             notUpdated:
-              type: number
-              format: int
+              type: integer
               minimum: 0
           required:
             - created
@@ -2794,6 +3187,9 @@ components:
             - notImported
             - notCreated
             - notUpdated
+      required:
+        - directories
+        - tracks
     MediaTrackerImportingProgress:
       allOf:
         - $ref: "#/components/schemas/MediaTrackerImportSummary"
@@ -2804,19 +3200,16 @@ components:
           type: object
           properties:
             skipped:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             finished:
-              type: number
-              format: int
+              type: integer
               minimum: 0
         directories:
           type: object
           properties:
             finished:
-              type: number
-              format: int
+              type: integer
               minimum: 0
     MediaTrackerDirTraversalRequestBody:
       type: object
@@ -2824,9 +3217,14 @@ components:
         rootUrl:
           $ref: "#/components/schemas/PercentEncodedDirectoryUrl"
         maxDepth:
-          type: number
-          format: int
+          type: integer
           minimum: 1
+        excludedPaths:
+          description: |
+            Content paths of directories that are excluded from the traversal.
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaContentPath"
     MediaTrackerScanRequestBody:
       allOf:
         - $ref: "#/components/schemas/MediaTrackerDirTraversalRequestBody"
@@ -2837,24 +3235,19 @@ components:
       type: object
       properties:
         current:
-          type: number
-          format: int
+          type: integer
           minimum: 0
         added:
-          type: number
-          format: int
+          type: integer
           minimum: 0
         modified:
-          type: number
-          format: int
+          type: integer
           minimum: 0
         orphaned:
-          type: number
-          format: int
+          type: integer
           minimum: 0
         skipped:
-          type: number
-          format: int
+          type: integer
           minimum: 0
       required:
         - current
@@ -2881,10 +3274,17 @@ components:
         The accompanying `file://` URL is stored as part of the media source
         configuration in the collection.
     MediaContentPath:
-      oneOf:
-        - $ref: "#/components/schemas/PercentEncodedUri"
-        - $ref: "#/components/schemas/PercentEncodedUrl"
-        - $ref: "#/components/schemas/MediaSourceVirtualFilePath"
+      type: string
+      description: |
+        The path of a media source within a collection.
+
+        The interpretation depends on the path kind of the collection
+        (see `MediaContentPathKind`):
+          * 0, 1, 2: a percent-encoded URI or URL (RFC 3986)
+          * 3: a virtual file path relative to the root URL of the collection
+            with '/' as path separator. The empty path denotes the root
+            directory.
+      example: album artist/album title/01 the first track.mp3
     MediaTrackerScanResponseBody:
       type: object
       properties:
@@ -2949,7 +3349,7 @@ components:
       type: object
       properties:
         replacedCount:
-          type: number
+          type: integer
           format: uint64
       required:
         - replacedCount
@@ -2968,7 +3368,7 @@ components:
     ImportAndReplaceCollectedTracksRequestBody:
       type: array
       items:
-        $ref: "#/components/schemas/PercentEncodedUri"
+        $ref: "#/components/schemas/MediaContentPath"
     ReplaceCollectedTracksResponseBody:
       type: object
       properties:
@@ -2992,6 +3392,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Track"
+      required:
+        - created
+        - updated
+        - unchanged
+        - notCreated
+        - notUpdated
     ImportAndReplaceCollectedTracksResponseBody:
       type: object
       properties:
@@ -3010,6 +3416,14 @@ components:
                   type: array
                   items:
                     $ref: "#/components/schemas/MediaContentPath"
+                notImported:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/MediaContentPath"
+              required:
+                - skipped
+                - failed
+                - notImported
         importedMediaSourcesWithIssues:
           type: array
           items:
@@ -3017,15 +3431,62 @@ components:
       required:
         - completion
         - summary
-    ExportTrackMetadataResponseBody:
-      description: A boolean value indicating if the file has been modified.
-      allOf:
-        - type: boolean
-    FindUnsynchronizedTracksRequestBody:
+        - importedMediaSourcesWithIssues
+    ExportCollectedTrackFilesRequestBody:
       type: object
       properties:
-        mediaContentPathPredicate:
-          $ref: "#/components/schemas/StringPredicate"
+        targetRootPath:
+          description: |
+            The local file system path of the target directory.
+          type: string
+          minLength: 1
+        filter:
+          $ref: "#/components/schemas/TrackSearchFilterNode"
+        batchSize:
+          description: |
+            The number of tracks that are loaded and exported at once.
+            All tracks are loaded at once if not specified.
+          type: integer
+          minimum: 1
+        purgeOtherFiles:
+          description: |
+            Delete all other files in the target directory that do not belong
+            to any of the exported tracks. Only applied if no export failed.
+          type: boolean
+          default: false
+      required:
+        - targetRootPath
+      additionalProperties: false
+    ExportCollectedTrackFilesResponseBody:
+      type: object
+      properties:
+        exported:
+          description: Number of copied files
+          type: integer
+          minimum: 0
+        skipped:
+          description: Number of files that already existed with the same content
+          type: integer
+          minimum: 0
+        failed:
+          description: Number of files that could not be exported
+          type: integer
+          minimum: 0
+        purged:
+          description: Number of deleted files if `purgeOtherFiles` has been requested
+          type: integer
+          minimum: 0
+      required:
+        - exported
+        - skipped
+        - failed
+    FindUnsynchronizedTracksRequestBody:
+      description: |
+        Optional predicate for filtering tracks by their media content path.
+        Use `null` for finding all unsynchronized tracks.
+      oneOf:
+        - $ref: "#/components/schemas/StringPredicate"
+        - type: "null"
     FindUnsynchronizedTracksResponseBody:
       type: array
       items:
@@ -3036,20 +3497,21 @@ components:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/EntityHeader"
-          - $ref: "#/components/schemas/UnsynchronizedTrack"
+      prefixItems:
+        - $ref: "#/components/schemas/EntityHeader"
+        - $ref: "#/components/schemas/UnsynchronizedTrack"
     UnsynchronizedTrack:
       type: object
       properties:
         contentLink:
           $ref: "#/components/schemas/MediaContentLink"
         lastSynchronizedRev:
+          description: |
+            The revision of the track entity when the metadata has last been
+            synchronized with the media source, if ever.
           $ref: "#/components/schemas/EntityRevision"
       required:
         - contentLink
-        - lastSynchronizedRev
     MediaContentLink:
       type: object
       properties:
@@ -3071,9 +3533,11 @@ components:
       properties:
         rgb:
           $ref: "#/components/schemas/RgbColor"
+      required:
+        - rgb
     SampleRateHz:
-      type: integer
-      format: int32
+      type: number
+      format: double
       minimum: 0
       example: 44100
       description: |
@@ -3095,7 +3559,7 @@ components:
       type: string
       enum:
         - asc
-        - dsc
+        - desc
       description: |
         Direction for sorting results.
           * `asc` - ascending
@@ -3145,66 +3609,88 @@ components:
         startsWith:
           type: string
       description: Matches the head of a string (case-insensitive)
+      required:
+        - startsWith
     StringPredicateStartsNotWith:
       type: object
       properties:
         startsNotWith:
           type: string
       description: Mismatches the head of a string (case-insensitive)
+      required:
+        - startsNotWith
     StringPredicateEndsWith:
       type: object
       properties:
         endsWith:
           type: string
       description: Matches the tail of a string (case-insensitive)
+      required:
+        - endsWith
     StringPredicateEndsNotWith:
       type: object
       properties:
         endsNotWith:
           type: string
       description: Mismatches the tail of a string (case-insensitive)
+      required:
+        - endsNotWith
     StringPredicateContains:
       type: object
       properties:
         contains:
           type: string
       description: Matches the middle of the string with arbitrary head/tail (case-insensitive)
+      required:
+        - contains
     StringPredicateContainsNot:
       type: object
       properties:
         containsNot:
           type: string
       description: Mismatches the middle of the string with arbitrary head/tail (case-insensitive)
+      required:
+        - containsNot
     StringPredicateMatches:
       type: object
       properties:
         matches:
           type: string
       description: Matches the whole string (case-insensitive)
+      required:
+        - matches
     StringPredicateMatchesNot:
       type: object
       properties:
         matchesNot:
           type: string
       description: Mismatches the whole string (case-insensitive)
+      required:
+        - matchesNot
     StringPredicatePrefix:
       type: object
       properties:
         prefix:
           type: string
       description: Prefix match (case-sensitive)
+      required:
+        - prefix
     StringPredicateEquals:
       type: object
       properties:
         equals:
           type: string
       description: Exact match (case-sensitive)
+      required:
+        - equals
     StringPredicateEqualsNot:
       type: object
       properties:
         equalsNot:
           type: string
       description: Exact mismatch (case-sensitive)
+      required:
+        - equalsNot
     TagFacetId:
       type: string
       minLength: 1
@@ -3226,17 +3712,23 @@ components:
       properties:
         prefix:
           $ref: "#/components/schemas/TagFacetId"
+      required:
+        - prefix
     TagFacetsFilterAnyOf:
       type: object
       properties:
         anyOf:
           $ref: "#/components/schemas/TagFacetIdArray"
+      required:
+        - anyOf
     TagFacetsFilterNoneOf:
       type: object
       properties:
         noneOf:
           $ref: "#/components/schemas/TagFacetIdArray"
       description: The complement of *anyOf*, i.e. *notAnyOf*.
+      required:
+        - noneOf
     TagFacetIdArray:
       type: array
       items:
@@ -3308,10 +3800,9 @@ components:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/BeatsPerMeasure"
-          - $ref: "#/components/schemas/BeatUnit"
+      prefixItems:
+        - $ref: "#/components/schemas/BeatsPerMeasure"
+        - $ref: "#/components/schemas/BeatUnit"
       description: |
         An array with exactly 2 elements: The number of beats per measure
         followed by the beat unit.
@@ -3328,12 +3819,22 @@ components:
       oneOf:
         - $ref: "#/components/schemas/TitleName"
         - type: array
-          items:
-            oneOf:
-              - $ref: "#/components/schemas/TitleName"
-              - $ref: "#/components/schemas/TitleKind"
+          minItems: 2
+          maxItems: 2
+          prefixItems:
+            - $ref: "#/components/schemas/TitleName"
+            - $ref: "#/components/schemas/TitleKind"
+        - type: object
+          properties:
+            name:
+              $ref: "#/components/schemas/TitleName"
+            kind:
+              $ref: "#/components/schemas/TitleKind"
+          required:
+            - name
       description: |
-        Mandatory name, followed by optional level
+        Mandatory name with an optional kind, encoded either as a plain name
+        (kind = main), as a 2-element array [name, kind], or as an object.
     TitlePhraseFilter:
       type: object
       properties:
@@ -3404,10 +3905,9 @@ components:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/EntityHeader"
-          - $ref: "#/components/schemas/TrackBody"
+      prefixItems:
+        - $ref: "#/components/schemas/EntityHeader"
+        - $ref: "#/components/schemas/TrackBody"
     Track:
       type: object
       properties:
@@ -3456,6 +3956,8 @@ components:
           $ref: "#/components/schemas/Color"
         tags:
           $ref: "#/components/schemas/Tags"
+      required:
+        - mediaSource
     TrackCue:
       type: object
       properties:
@@ -3475,6 +3977,8 @@ components:
           $ref: "#/components/schemas/Color"
         flags:
           $ref: "#/components/schemas/CueFlags"
+      required:
+        - bankIndex
     TrackBody:
       type: object
       properties:
@@ -3560,14 +4064,14 @@ components:
     TrackSearchActorPhraseFilterNode:
       type: object
       properties:
-        trackActor:
+        actorPhrase:
           $ref: "#/components/schemas/ActorPhraseFilter"
       required:
         - actorPhrase
     TrackSearchTitlePhraseFilterNode:
       type: object
       properties:
-        trackTitle:
+        titlePhrase:
           $ref: "#/components/schemas/TitlePhraseFilter"
       required:
         - titlePhrase
@@ -3593,10 +4097,15 @@ components:
       required:
         - dateTime
     TrackSearchConditionFilterNode:
-      type: string
-      enum:
-        - sourceTracked
-        - sourceUntracked
+      type: object
+      properties:
+        condition:
+          type: string
+          enum:
+            - sourceTracked
+            - sourceUntracked
+      required:
+        - condition
     TrackSearchPhraseFieldFilterNode:
       type: object
       properties:
@@ -3631,6 +4140,7 @@ components:
         - discTotal
         - musicTempoBpm
         - musicKeyCode
+        - publisher
         - recordedAtDate
         - releasedAtDate
         - releasedOrigAtDate
@@ -3643,10 +4153,9 @@ components:
       type: array
       minItems: 2
       maxItems: 2
-      items:
-        oneOf:
-          - $ref: "#/components/schemas/TrackSortField"
-          - $ref: "#/components/schemas/SortDirection"
+      prefixItems:
+        - $ref: "#/components/schemas/TrackSortField"
+        - $ref: "#/components/schemas/SortDirection"
     TrackUid:
       allOf:
         - $ref: "#/components/schemas/EntityUid"
