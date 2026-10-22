@@ -12,6 +12,7 @@ use aoide_websrv_axum_sqlite::{
 use axum::{
     Router,
     extract::State,
+    http::StatusCode,
     routing::{get, post},
 };
 
@@ -61,12 +62,12 @@ async fn export_metadata(
     State(gatekeeper): State<Arc<Gatekeeper>>,
     Path(track_uid): Path<TrackUid>,
     Query(query_params): Query<api::export_metadata::QueryParams>,
-) -> Result<Json<api::export_metadata::ResponseBody>> {
+) -> Result<StatusCode> {
     spawn_blocking_write_task(&gatekeeper, move |mut connection| {
         api::export_metadata::handle_request(&mut connection, &track_uid, query_params)
     })
     .await
-    .map(Json)
+    .map(|()| StatusCode::NO_CONTENT)
 }
 
 async fn resolve(

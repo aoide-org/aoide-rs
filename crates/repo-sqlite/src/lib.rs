@@ -9,7 +9,12 @@
 use std::ops::{Deref, DerefMut};
 
 use anyhow::anyhow;
-use diesel::{QueryResult, migration::MigrationVersion, prelude::*, result::Error as DieselError};
+use diesel::{
+    QueryResult,
+    migration::MigrationVersion,
+    prelude::*,
+    result::{DatabaseErrorKind, Error as DieselError},
+};
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness as _, embed_migrations};
 use unicase::UniCase;
 
@@ -78,6 +83,7 @@ impl DerefMut for Connection<'_> {
 pub(crate) fn repo_error(err: DieselError) -> RepoError {
     match err {
         DieselError::NotFound => RepoError::NotFound,
+        DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _) => RepoError::Conflict,
         err => RepoError::Other(err.into()),
     }
 }
