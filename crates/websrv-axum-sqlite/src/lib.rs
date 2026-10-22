@@ -3,7 +3,7 @@
 
 //! Integration of the JSON web API into [axum].
 //!
-//! Provides an [`Error`] type that is converted into a JSON error response
+//! Provides an [`Error`](enum@Error) type that is converted into a JSON error response
 //! and the extractors [`Json`], [`Query`], and [`Path`] that reject requests
 //! with this error type.
 
@@ -177,7 +177,7 @@ pub async fn handle_method_not_allowed() -> Error {
 
 /// JSON request or response body.
 ///
-/// Like [`axum::Json`], but rejects requests with an [`Error`].
+/// Like [`axum::Json`], but rejects requests with an [`Error`](enum@Error).
 #[derive(Debug, FromRequest)]
 #[from_request(via(axum::Json), rejection(Error))]
 pub struct Json<T>(pub T);
@@ -194,14 +194,14 @@ where
 
 /// Query parameters.
 ///
-/// Like [`axum::extract::Query`], but rejects requests with an [`Error`].
+/// Like [`axum::extract::Query`], but rejects requests with an [`Error`](enum@Error).
 #[derive(Debug, FromRequestParts)]
 #[from_request(via(axum::extract::Query), rejection(Error))]
 pub struct Query<T>(pub T);
 
 /// Path parameters.
 ///
-/// Like [`axum::extract::Path`], but rejects requests with an [`Error`].
+/// Like [`axum::extract::Path`], but rejects requests with an [`Error`](enum@Error).
 #[derive(Debug, FromRequestParts)]
 #[from_request(via(axum::extract::Path), rejection(Error))]
 pub struct Path<T>(pub T);
