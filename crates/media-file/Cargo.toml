@@ -23,7 +23,7 @@ digest.workspace = true
 image.workspace = true
 itertools.workspace = true
 jiff.workspace = true
-lofty = "0.25.4"
+lofty = "0.25.5"
 log.workspace = true
 mime.workspace = true
 mime_guess = "2.0.5"
@@ -39,7 +39,7 @@ url.workspace = true
 walkdir.workspace = true
 
 # Dependencies (optional): gigtag
-gigtag = { version = "0.4.2", features = ["smol_str"], optional = true }
+gigtag = { version = "0.4.4", features = ["smol_str"], optional = true }
 
 # Dependencies (optional): serato-markers
 triseratops = { version = "0.0.3", optional = true }
