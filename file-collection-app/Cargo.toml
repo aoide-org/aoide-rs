@@ -82,4 +82,13 @@ default = []
 # Use mimalloc instead of the default allocator.
 mimalloc = ["dep:mimalloc"]
 # Create Spotify playlists from track search queries.
-spotify = ["dep:data-encoding", "dep:rand", "dep:reqwest", "dep:serde", "dep:sha2", "tokio/net", "tokio/io-util", "tokio/time"]
+spotify = [
+  "dep:data-encoding",
+  "dep:rand",
+  "dep:reqwest",
+  "dep:serde",
+  "dep:sha2",
+  "tokio/net",
+  "tokio/io-util",
+  "tokio/time",
+]

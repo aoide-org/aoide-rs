@@ -269,6 +269,43 @@ pub mod tests {
         assert_eq!(1, select_pragma("recursive_triggers")?);
         assert_eq!(1, select_pragma("synchronous")?); // NORMAL
         assert_eq!(0, select_pragma("secure_delete")?);
+        // The column name differs from the pragma name.
+        assert_eq!(
+            5000,
+            diesel::select(sql::<sql_types::BigInt>(
+                "(SELECT timeout FROM pragma_busy_timeout())"
+            ))
+            .get_result::<i64>(&mut connection)?
+        );
         Ok(())
+    }
+
+    /// Initializing a connection must wait for locks held by other
+    /// connections instead of failing with "database is locked".
+    #[test]
+    fn initialize_connection_waits_while_database_is_locked() -> TestResult<()> {
+        use std::time::Duration;
+
+        use diesel::connection::SimpleConnection as _;
+
+        use super::initialize_connection;
+
+        let file_path = std::env::temp_dir().join(format!(
+            "aoide-repo-sqlite-test-{uuid}.sqlite",
+            uuid = uuid::Uuid::now_v7()
+        ));
+        let database_url = file_path.to_str().expect("UTF-8 path");
+        let mut locking_connection = DbConnection::establish(database_url)?;
+        locking_connection.batch_execute("CREATE TABLE t (id INTEGER); BEGIN EXCLUSIVE;")?;
+        let release_lock = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(200));
+            locking_connection.batch_execute("COMMIT;")
+        });
+        let mut connection = DbConnection::establish(database_url)?;
+        let result = initialize_connection(&mut connection);
+        release_lock.join().expect("no panic")?;
+        drop(connection);
+        drop(std::fs::remove_file(&file_path));
+        result.map_err(Into::into)
     }
 }

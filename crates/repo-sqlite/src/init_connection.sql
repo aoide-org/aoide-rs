@@ -2,6 +2,7 @@
 -- SPDX-License-Identifier: AGPL-3.0-or-later
 
 -- Connection options that need to be applied to each connection
+PRAGMA busy_timeout = 5000;       -- wait for locks held by concurrently initialized connections instead of failing with "database is locked" (must be the first statement)
 PRAGMA wal_autocheckpoint = 1000; -- write WAL changes back every 1000 pages (default), for an in average 1MB WAL file
 PRAGMA automatic_index = 1;       -- detect and log missing indexes
 PRAGMA foreign_keys = 1;          -- check foreign key constraints
