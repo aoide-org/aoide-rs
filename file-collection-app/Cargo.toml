@@ -29,7 +29,7 @@ features = ["desktop-app", "async-file-dialog", "json-backend", "json-frontend",
 
 [dependencies.clap]
 version = "4.6.7"
-features = ["derive"]
+features = ["derive", "env"]
 
 [dependencies.log]
 workspace = true
@@ -48,6 +48,30 @@ features = ["default_fonts", "glow", "wayland"]
 version = "0.37.0"
 default-features = false
 
+# Spotify integration
+[dependencies.data-encoding]
+workspace = true
+optional = true
+
+[dependencies.rand]
+workspace = true
+optional = true
+
+[dependencies.reqwest]
+version = "0.13.5"
+default-features = false
+features = ["rustls", "http2", "json", "query", "form"]
+optional = true
+
+[dependencies.serde]
+workspace = true
+features = ["derive"]
+optional = true
+
+[dependencies.sha2]
+version = "0.11.1"
+optional = true
+
 # mimalloc
 [dependencies.mimalloc]
 version = "0.1.52"
@@ -57,3 +81,5 @@ optional = true
 default = []
 # Use mimalloc instead of the default allocator.
 mimalloc = ["dep:mimalloc"]
+# Create Spotify playlists from track search queries.
+spotify = ["dep:data-encoding", "dep:rand", "dep:reqwest", "dep:serde", "dep:sha2", "tokio/net", "tokio/io-util", "tokio/time"]

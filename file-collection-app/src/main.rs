@@ -22,6 +22,9 @@ pub mod fs;
 pub mod library;
 use self::library::Library;
 
+#[cfg(feature = "spotify")]
+pub mod spotify;
+
 #[cfg(feature = "mimalloc")]
 #[global_allocator]
 static MIMALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -71,6 +74,13 @@ enum CliCommand {
     ///
     /// Reads a JSON track search query and prints the file paths line by line to stdout.
     SearchTracks(CliSearchTracksOptions),
+    /// Create a Spotify playlist.
+    ///
+    /// Reads a JSON track search query and creates a new playlist in
+    /// your Spotify account. Tracks are matched by artist and title,
+    /// preferring tracks that you have already liked.
+    #[cfg(feature = "spotify")]
+    CreateSpotifyPlaylist(spotify::CliOptions),
 }
 
 #[derive(Debug, Default, Parser)]
@@ -171,83 +181,39 @@ async fn main() {
         CliCommand::SearchTracks(CliSearchTracksOptions { override_root_url }) => {
             // Run headless.
             library.spawn_background_tasks(&rt, config_dir);
-            let search_params =
-                match serde_json::from_reader::<_, aoide::api_json::track::search::SearchParams>(
-                    io::stdin(),
-                ) {
-                    Ok(search_params) => search_params,
-                    Err(err) => {
-                        log::error!("Failed to read search params from stdin: {err:#}");
-                        return;
-                    }
-                };
-            let search_filter = search_params.filter.map(Into::into);
-            let search_order = search_params
-                .order
-                .into_iter()
-                .map(Into::into)
-                .collect::<Vec<_>>();
-            let resolve_url_from_content_path = override_root_url.map_or(
-                ResolveUrlFromContentPath::CanonicalRootUrl,
-                |override_root_url| {
-                    BaseUrl::try_from(override_root_url.clone()).map_or_else(
-                        |err| {
-                            log::warn!(
-                                "Cannot override root URL with \"{override_root_url}\": {err:#}"
-                            );
-                            ResolveUrlFromContentPath::CanonicalRootUrl
-                        },
-                        |root_url| ResolveUrlFromContentPath::OverrideRootUrl { root_url },
-                    )
-                },
-            );
-            let search_params = aoide::api::track::search::Params {
-                resolve_url_from_content_path: Some(resolve_url_from_content_path),
-                filter: search_filter,
-                order: search_order,
+            let search_params = match read_search_params(io::stdin(), override_root_url) {
+                Ok(search_params) => search_params,
+                Err(err) => {
+                    log::error!("Failed to read search params from stdin: {err:#}");
+                    return;
+                }
             };
-            log::info!("Searching library for tracks");
-            let _ = library.search_tracks_with_params(search_params);
-            let mut offset = 0;
-            let mut subscriber = library.subscribe_track_search_state_changed();
-            while let Ok(()) = subscriber.changed().await {
-                {
-                    let state = subscriber.read_ack();
-                    if state.is_pending() {
-                        log::debug!("Still pending...");
-                        continue;
-                    }
-                    if let Some(err) = state.last_fetch_error() {
-                        log::warn!("Fetching search results failed: {err:#}");
-                        break;
-                    }
-                    let Some(fetched_tracks) = state.fetched_entities() else {
-                        log::debug!("Not fetched yet...");
+            let result = search_tracks_headless(&library, &rt, search_params, |fetched_tracks| {
+                for track_entity in fetched_tracks {
+                    debug_assert!(track_entity.entity.body.content_url.is_some());
+                    let Some(url) = &track_entity.entity.body.content_url else {
                         continue;
                     };
-                    debug_assert!(fetched_tracks.len() >= offset);
-                    let fetched_next_len = fetched_tracks.len() - offset;
-                    log::info!("Fetched {fetched_next_len} track(s)");
-                    for track_entity in &fetched_tracks[offset..] {
-                        debug_assert!(track_entity.entity.body.content_url.is_some());
-                        let Some(url) = &track_entity.entity.body.content_url else {
-                            continue;
-                        };
-                        let Ok(file_path) = url.to_file_path() else {
-                            log::warn!("Skipping track with URL <{url}>");
-                            continue;
-                        };
-                        println!("{}", file_path.display());
-                    }
-                    offset = fetched_tracks.len();
-                    if !matches!(state.can_fetch_more(), Some(true)) {
-                        // Finished.
-                        break;
-                    }
-                    // Implicitly drop the state lock when leaving this scope to to avoid a deadlock.
+                    let Ok(file_path) = url.to_file_path() else {
+                        log::warn!("Skipping track with URL <{url}>");
+                        continue;
+                    };
+                    println!("{}", file_path.display());
                 }
-                log::info!("Fetching more tracks");
-                let _ = library.fetch_more_track_search_results(&rt);
+            })
+            .await;
+            if let Err(err) = result {
+                log::warn!("{err:#}");
+            }
+            return;
+        }
+        #[cfg(feature = "spotify")]
+        CliCommand::CreateSpotifyPlaylist(options) => {
+            // Run headless.
+            library.spawn_background_tasks(&rt, config_dir.clone());
+            if let Err(err) = spotify::run_cli(&library, &rt, &config_dir, options).await {
+                log::error!("Failed to create Spotify playlist: {err:#}");
+                std::process::exit(1);
             }
             return;
         }
@@ -263,6 +229,83 @@ async fn main() {
         }),
     )
     .unwrap();
+}
+
+/// Read JSON track search params.
+fn read_search_params(
+    reader: impl io::Read,
+    override_root_url: Option<Url>,
+) -> anyhow::Result<aoide::api::track::search::Params> {
+    let search_params =
+        serde_json::from_reader::<_, aoide::api_json::track::search::SearchParams>(reader)?;
+    let search_filter = search_params.filter.map(Into::into);
+    let search_order = search_params
+        .order
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>();
+    let resolve_url_from_content_path = override_root_url.map_or(
+        ResolveUrlFromContentPath::CanonicalRootUrl,
+        |override_root_url| {
+            BaseUrl::try_from(override_root_url.clone()).map_or_else(
+                |err| {
+                    log::warn!("Cannot override root URL with \"{override_root_url}\": {err:#}");
+                    ResolveUrlFromContentPath::CanonicalRootUrl
+                },
+                |root_url| ResolveUrlFromContentPath::OverrideRootUrl { root_url },
+            )
+        },
+    );
+    Ok(aoide::api::track::search::Params {
+        resolve_url_from_content_path: Some(resolve_url_from_content_path),
+        filter: search_filter,
+        order: search_order,
+    })
+}
+
+/// Search the library and fetch all results.
+///
+/// Requires that the background tasks of the library have been spawned.
+/// The callback is invoked repeatedly with the next chunk of fetched tracks.
+async fn search_tracks_headless(
+    library: &Library,
+    rt: &tokio::runtime::Handle,
+    search_params: aoide::api::track::search::Params,
+    mut on_fetched: impl FnMut(&[library::track_search::FetchedEntity]),
+) -> anyhow::Result<()> {
+    log::info!("Searching library for tracks");
+    let _ = library.search_tracks_with_params(search_params);
+    let mut offset = 0;
+    let mut subscriber = library.subscribe_track_search_state_changed();
+    while let Ok(()) = subscriber.changed().await {
+        {
+            let state = subscriber.read_ack();
+            if state.is_pending() {
+                log::debug!("Still pending...");
+                continue;
+            }
+            if let Some(err) = state.last_fetch_error() {
+                bail!("fetching search results failed: {err:#}");
+            }
+            let Some(fetched_tracks) = state.fetched_entities() else {
+                log::debug!("Not fetched yet...");
+                continue;
+            };
+            debug_assert!(fetched_tracks.len() >= offset);
+            let fetched_next_len = fetched_tracks.len() - offset;
+            log::info!("Fetched {fetched_next_len} track(s)");
+            on_fetched(&fetched_tracks[offset..]);
+            offset = fetched_tracks.len();
+            if !matches!(state.can_fetch_more(), Some(true)) {
+                // Finished.
+                break;
+            }
+            // Implicitly drop the state lock when leaving this scope to to avoid a deadlock.
+        }
+        log::info!("Fetching more tracks");
+        let _ = library.fetch_more_track_search_results(rt);
+    }
+    Ok(())
 }
 
 #[must_use]
