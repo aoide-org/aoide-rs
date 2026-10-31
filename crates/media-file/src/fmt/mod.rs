@@ -322,6 +322,13 @@ pub(crate) fn import_tagged_file_into_track(
         );
         let file_properties = tagged_file.properties();
         import_file_tag_into_track(importer, config, file_properties, tag, track);
+    } else {
+        log::debug!(
+            "Importing only audio properties from untagged {file_type:?} file \"{content_path}\"",
+            file_type = tagged_file.file_type(),
+            content_path = track.media_source.content.link.path,
+        );
+        import_audio_content_into_track(importer, tagged_file.properties(), None, track);
     }
 }
 
@@ -422,21 +429,23 @@ fn tag_take_strings(tag: &mut Tag, key: ItemKey) -> impl Iterator<Item = String>
         .filter_map(|item| item.into_value().into_string())
 }
 
-#[expect(clippy::too_many_lines)] // TODO
-pub(crate) fn import_file_tag_into_track(
+/// Import the audio properties of the file and the related, optional tag items
+fn import_audio_content_into_track(
     importer: &mut Importer,
-    config: &ImportTrackConfig,
     file_properties: &FileProperties,
-    mut tag: Tag,
+    tag: Option<&Tag>,
     track: &mut Track,
 ) {
-    let audio_content = track
+    if !track
         .media_source
         .content
         .metadata_flags
         .update(ContentMetadataFlags::UNRELIABLE)
-        .then(|| import_audio_content_from_file_properties(file_properties));
-    if let Some(mut audio_content) = audio_content {
+    {
+        return;
+    }
+    let mut audio_content = import_audio_content_from_file_properties(file_properties);
+    if let Some(tag) = tag {
         // Import the remaining audio content properties
         debug_assert!(audio_content.encoder.is_none());
         let encoder_info: Vec<_> = [
@@ -455,13 +464,24 @@ pub(crate) fn import_file_tag_into_track(
         audio_content.loudness = tag
             .get_string(ItemKey::ReplayGainTrackGain)
             .and_then(|input| importer.import_loudness_from_replay_gain(input));
-        let new_metadata = ContentMetadata::Audio(audio_content);
-        let old_metadata = &mut track.media_source.content.metadata;
-        if *old_metadata != new_metadata {
-            log::debug!("Updating content metadata: {old_metadata:?} -> {new_metadata:?}");
-        }
-        *old_metadata = new_metadata;
     }
+    let new_metadata = ContentMetadata::Audio(audio_content);
+    let old_metadata = &mut track.media_source.content.metadata;
+    if *old_metadata != new_metadata {
+        log::debug!("Updating content metadata: {old_metadata:?} -> {new_metadata:?}");
+    }
+    *old_metadata = new_metadata;
+}
+
+#[expect(clippy::too_many_lines)] // TODO
+pub(crate) fn import_file_tag_into_track(
+    importer: &mut Importer,
+    config: &ImportTrackConfig,
+    file_properties: &FileProperties,
+    mut tag: Tag,
+    track: &mut Track,
+) {
+    import_audio_content_into_track(importer, file_properties, Some(&tag), track);
 
     if !config.flags.contains(ImportTrackFlags::METADATA) {
         log::debug!("Skipping import of metadata");

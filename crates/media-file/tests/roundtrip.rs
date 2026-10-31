@@ -11,8 +11,8 @@ use std::{fs::File, io::BufReader, path::Path};
 
 use aoide_core::{
     PlainTag, TagFacetId, TagLabel, Tags, TagsMap, Track,
-    audio::signal::LoudnessLufs,
-    media::content::{AudioContentMetadata, ContentLink, ContentMetadata},
+    audio::signal::{LoudnessLufs, SampleRateHz},
+    media::content::{ContentLink, ContentMetadata},
     music::{
         key::{KeyCode, KeySignature},
         tempo::TempoBpm,
@@ -50,6 +50,8 @@ struct TestFile {
     unsupported_actors: &'static [(ActorRole, ActorKind)],
     unsupported_facets: &'static [&'static TagFacetId],
     unsupported_advisory_rating: bool,
+    // The encoder is lost when exporting a track without any metadata.
+    encoder_lost_without_metadata: bool,
 }
 
 const MP3: TestFile = TestFile {
@@ -65,6 +67,7 @@ const MP3: TestFile = TestFile {
     ],
     unsupported_facets: &[FACET_ID_DESCRIPTION, FACET_ID_XID],
     unsupported_advisory_rating: false,
+    encoder_lost_without_metadata: false,
 };
 
 const M4A: TestFile = TestFile {
@@ -79,6 +82,7 @@ const M4A: TestFile = TestFile {
     ],
     unsupported_facets: &[],
     unsupported_advisory_rating: false,
+    encoder_lost_without_metadata: false,
 };
 
 const FLAC: TestFile = TestFile {
@@ -89,6 +93,8 @@ const FLAC: TestFile = TestFile {
     unsupported_actors: &[(ActorRole::Composer, ActorKind::Sorting)],
     unsupported_facets: &[FACET_ID_XID],
     unsupported_advisory_rating: true,
+    // lofty omits the VORBIS_COMMENT block with the vendor string if there are no comments.
+    encoder_lost_without_metadata: true,
 };
 
 impl TestFile {
@@ -181,21 +187,12 @@ fn export_and_reimport(
     // Re-import into a new track from scratch.
     let mut reimported = import_new_track(test_file, temp_file.path(), import_config);
     reimported.media_source.collected_at = track.media_source.collected_at;
-    // The audio properties and the artwork of files without any file tags
-    // are not imported. Take them from the re-imported track that is
-    // guaranteed to have file tags after the export.
-    {
-        let ContentMetadata::Audio(audio) = &mut track.media_source.content.metadata;
-        let ContentMetadata::Audio(reimported_audio) = &reimported.media_source.content.metadata;
-        *audio = AudioContentMetadata {
-            loudness: audio.loudness,
-            ..reimported_audio.clone()
-        };
-        track
-            .media_source
-            .artwork
-            .clone_from(&reimported.media_source.artwork);
-    }
+    // The artwork of files without any file tags is not imported. Take it from
+    // the re-imported track that is guaranteed to have file tags after the export.
+    track
+        .media_source
+        .artwork
+        .clone_from(&reimported.media_source.artwork);
     assert_eq!(track, reimported);
 
     // Re-import into the existing track, i.e. update it.
@@ -451,6 +448,14 @@ fn clear_track_metadata(track: &mut Track) {
     track.tags = Default::default();
 }
 
+fn assert_audio_properties(track: &Track) {
+    let ContentMetadata::Audio(audio) = &track.media_source.content.metadata;
+    assert!(audio.duration.is_some());
+    assert!(audio.channels.is_some());
+    assert_eq!(Some(SampleRateHz::new(44_100.0)), audio.sample_rate);
+    assert!(audio.bitrate.is_some());
+}
+
 fn roundtrip(
     test_file: &TestFile,
     import_config: &ImportTrackConfig,
@@ -462,6 +467,7 @@ fn roundtrip(
 
     // Import the empty file.
     let empty_track = import_new_track(test_file, temp_file.path(), import_config);
+    assert_audio_properties(&empty_track);
     assert!(empty_track.titles.is_empty());
     assert!(empty_track.actors.is_empty());
     assert!(empty_track.tags.is_empty());
@@ -501,6 +507,10 @@ fn roundtrip(
 
     // Remove all metadata.
     clear_track_metadata(&mut track);
+    if test_file.encoder_lost_without_metadata {
+        let ContentMetadata::Audio(audio) = &mut track.media_source.content.metadata;
+        audio.encoder = None;
+    }
     let track = export_and_reimport(
         test_file,
         &mut temp_file,
