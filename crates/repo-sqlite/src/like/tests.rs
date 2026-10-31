@@ -1,11 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::{RunQueryDsl as _, dsl::sql, sql_types};
+use std::time::{Duration, Instant};
+
+use diesel::{
+    Connection as _, RunQueryDsl as _, connection::SimpleConnection as _, dsl::sql, sql_types,
+};
 
 use super::like;
 use crate::{
-    DbConnection,
+    DbConnection, initialize_connection,
     tests::{TestResult, establish_connection},
 };
 
@@ -152,4 +156,134 @@ fn sql_like_with_escape() -> TestResult<()> {
     assert_eq!(None, eval(connection, "'a' LIKE 'a' ESCAPE ''")?);
     assert_eq!(None, eval(connection, "'a' LIKE 'a' ESCAPE 'xy'")?);
     Ok(())
+}
+
+const BENCH_ROW_COUNT: usize = 1_000_000;
+
+const BENCH_RUN_COUNT: u32 = 3;
+
+/// Optional path of a real database for running the search query
+/// of the file collection app, e.g. `~/.mixxx/aoide.sqlite`.
+const BENCH_DATABASE_ENV_VAR: &str = "AOIDE_BENCH_DATABASE";
+
+#[derive(diesel::QueryableByName)]
+struct BenchCount {
+    #[diesel(sql_type = sql_types::BigInt)]
+    count: i64,
+}
+
+/// Average execution time and result of a `SELECT count(*) AS count ...` query.
+fn bench_count_query(connection: &mut DbConnection, query: &str) -> TestResult<(Duration, i64)> {
+    // Warm up the page cache.
+    diesel::sql_query(query).load::<BenchCount>(connection)?;
+    let started = Instant::now();
+    let mut count = 0;
+    for _ in 0..BENCH_RUN_COUNT {
+        count = diesel::sql_query(query).load::<BenchCount>(connection)?[0].count;
+    }
+    Ok((started.elapsed() / BENCH_RUN_COUNT, count))
+}
+
+fn bench_builtin_and_custom_like(
+    mut connect: impl FnMut() -> TestResult<DbConnection>,
+    query: &str,
+) -> TestResult<()> {
+    // A connection that has not been initialized uses the built-in LIKE.
+    let (builtin_elapsed, builtin_count) = bench_count_query(&mut connect()?, query)?;
+    let mut custom_connection = connect()?;
+    initialize_connection(&mut custom_connection)?;
+    let (custom_elapsed, custom_count) = bench_count_query(&mut custom_connection, query)?;
+    println!("{query}");
+    println!("built-in LIKE: {builtin_elapsed:>10.1?} (count = {builtin_count})");
+    println!("custom LIKE:   {custom_elapsed:>10.1?} (count = {custom_count})");
+    println!(
+        "slowdown:      {:>10.1}x",
+        custom_elapsed.as_secs_f64() / builtin_elapsed.as_secs_f64()
+    );
+    Ok(())
+}
+
+/// Baseline for the performance of the custom LIKE.
+///
+/// Run in release mode: `cargo test --release -p aoide-repo-sqlite -- --ignored --nocapture bench_sql_like`
+#[test]
+#[ignore = "benchmark"]
+fn bench_sql_like() -> TestResult<()> {
+    // Mostly ASCII text with some non-ASCII characters, like track titles and artist names.
+    let words = [
+        "Love",
+        "Night",
+        "Dancing",
+        "Summer",
+        "Daft",
+        "Punk",
+        "Club",
+        "Mix",
+        "Remix",
+        "Edit",
+        "Original",
+        "Feat.",
+        "Deep",
+        "House",
+        "Tribe",
+        "Sound",
+        "Heart",
+        "City",
+        "Dream",
+        "Fire",
+        "Light",
+        "Soul",
+        "Funk",
+        "Dub",
+        "Beyoncé",
+        "Señorita",
+        "Café",
+        "Über",
+        "Mötley",
+        "Crüe",
+        "Sigur",
+        "Rós",
+    ];
+    let words_json = format!("[{}]", words.map(|word| format!("\"{word}\"")).join(","));
+    let word_count = words.len();
+    let create_table = format!(
+        "CREATE TABLE bench_text (text TEXT NOT NULL);
+        WITH RECURSIVE seq(i) AS (SELECT 0 UNION ALL SELECT i+1 FROM seq WHERE i < {max_row})
+        INSERT INTO bench_text (text) SELECT
+            (SELECT value FROM json_each('{words_json}') WHERE key = i % {word_count}) || ' ' ||
+            (SELECT value FROM json_each('{words_json}') WHERE key = (i / {word_count}) % {word_count}) || ' ' ||
+            (SELECT value FROM json_each('{words_json}') WHERE key = (i / {word_count} / {word_count}) % {word_count}) || ' ' ||
+            i
+        FROM seq;",
+        max_row = BENCH_ROW_COUNT - 1,
+    );
+    // The in-memory database is shared by all connections while this one is open.
+    let database_url = "file:bench_sql_like?mode=memory&cache=shared";
+    let mut connection = DbConnection::establish(database_url)?;
+    connection.batch_execute(&create_table)?;
+    for pattern in ["%love%", "%beyonce%", "%xyz%"] {
+        bench_builtin_and_custom_like(
+            || DbConnection::establish(database_url).map_err(Into::into),
+            &format!(
+                "SELECT count(*) AS count FROM bench_text WHERE text LIKE '{pattern}' ESCAPE '\\'"
+            ),
+        )?;
+    }
+
+    let Ok(database) = std::env::var(BENCH_DATABASE_ENV_VAR) else {
+        println!("Set {BENCH_DATABASE_ENV_VAR} to benchmark the search query on a real database");
+        return Ok(());
+    };
+    // Search query of the file collection app for a single term.
+    let query = "SELECT count(*) AS count FROM view_track_search WHERE
+        row_id IN (SELECT track_id FROM track_title WHERE name LIKE '%love%' ESCAPE '\\')
+        OR row_id IN (SELECT track_id FROM track_actor WHERE name LIKE '%love%' ESCAPE '\\')
+        OR ifnull(publisher, '') LIKE '%love%' ESCAPE '\\'
+        OR row_id IN (SELECT track_id FROM track_tag WHERE
+            facet IN ('comm', 'cgrp', 'genre', 'mood', 'desc', 'xid', 'isrc')
+            AND label LIKE '%love%' ESCAPE '\\')";
+    bench_builtin_and_custom_like(
+        || DbConnection::establish(&format!("file:{database}?mode=ro")).map_err(Into::into),
+        query,
+    )
 }
