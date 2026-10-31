@@ -144,7 +144,7 @@ const WORDS: &[&str] = &[
 ///
 /// Avoid combinations that contain the search term without matches.
 const SYLLABLES: &[&str] = &[
-    "ka", "lo", "ve", "ri", "na", "so", "ul", "te", "mo", "da", "ni", "be", "yo", "ce", "ra", "pu",
+    "ka", "lo", "ve", "ri", "na", "so", "ul", "tu", "mo", "da", "ni", "be", "yo", "ce", "ra", "pu",
     "shi", "ta", "mé", "ño", "zu", "fa", "gi", "ho",
 ];
 

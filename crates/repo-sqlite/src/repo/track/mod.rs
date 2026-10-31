@@ -708,15 +708,15 @@ impl CollectionRepo for crate::Connection<'_> {
             // TODO: Filtering by collection_id from the view is SLOOWWWWWWW!?!
             //.filter(view_track_search::collection_id.eq(RowId::from(collection_id)))
             // Filtering the collection_id by subselect through media_source (with an index) is much faster.
-            // The unary plus prevents using the column for an index lookup. Otherwise SQLite might combine
+            // Adding zero prevents using the column for an index lookup. Otherwise SQLite might combine
             // it with other `row_id IN (...)` filters for a lookup by (media_source_id, row_id) and probe
             // all pairs of both lists, i.e. all tracks of the collection times all candidates of the filter.
             .filter(
-                diesel::dsl::sql::<diesel::sql_types::Bool>(
-                    "+view_track_search.media_source_id IN (SELECT row_id FROM media_source WHERE collection_id = ",
-                )
-                .bind::<diesel::sql_types::BigInt, _>(RowId::from(collection_id))
-                .sql(")"),
+                (view_track_search::media_source_id + 0_i64).eq_any(
+                    media_source::table
+                        .select(media_source::row_id)
+                        .filter(media_source::collection_id.eq(RowId::from(collection_id))),
+                ),
             )
             .into_boxed();
 
