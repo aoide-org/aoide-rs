@@ -686,6 +686,14 @@ pub(crate) fn import_file_tag_into_track(
             ActorRole::Producer,
         );
     }
+    for name in tag_take_strings(&mut tag, ItemKey::Remixer) {
+        push_next_actor(
+            &mut track_actors,
+            name,
+            Default::default(),
+            ActorRole::Remixer,
+        );
+    }
     for name in tag_take_strings(&mut tag, ItemKey::Writer) {
         push_next_actor(
             &mut track_actors,
@@ -871,7 +879,7 @@ pub(crate) fn import_file_tag_into_track(
                 _ => None,
             });
     let movement_total =
-        tag.get_items(ItemKey::MovementNumber)
+        tag.get_items(ItemKey::MovementTotal)
             .find_map(|item| match item.value() {
                 ItemValue::Text(number) => number.parse::<u16>().ok(),
                 _ => None,
@@ -1126,6 +1134,7 @@ fn export_filtered_actor_names(
             tag.insert_text(item_key, name.to_owned());
         }
         FilteredActorNames::Individual(names) => {
+            tag.remove_key(item_key);
             for name in names {
                 let item_val = ItemValue::Text(name.to_owned());
                 let pushed = tag.push(TagItem::new(item_key, item_val));
@@ -1270,11 +1279,13 @@ pub(crate) fn export_track_to_tag(
         let pushed = tag.push(TagItem::new(ItemKey::TrackSubtitle, item_val));
         debug_assert!(pushed);
     }
+    tag.remove_key(ItemKey::Movement);
     for movement_title in Titles::filter_kind(track.titles.iter(), TitleKind::Movement).peekable() {
         let item_val = ItemValue::Text(movement_title.name.clone());
         let pushed = tag.push(TagItem::new(ItemKey::Movement, item_val));
         debug_assert!(pushed);
     }
+    tag.remove_key(compatibility.primary_work);
     for work_title in Titles::filter_kind(track.titles.iter(), TitleKind::Work).peekable() {
         let item_val = ItemValue::Text(work_title.name.clone());
         let pushed = tag.push(TagItem::new(compatibility.primary_work, item_val));
@@ -1390,6 +1401,7 @@ pub(crate) fn export_track_to_tag(
     } else {
         tag.remove_key(ItemKey::AlbumTitleSortOrder);
     }
+    tag.remove_key(ItemKey::SetSubtitle);
     for album_subtitle in Titles::filter_kind(track.album.titles.iter(), TitleKind::Sub).peekable()
     {
         let item_val = ItemValue::Text(album_subtitle.name.clone());
@@ -1440,6 +1452,8 @@ pub(crate) fn export_track_to_tag(
         tag.insert_text(ItemKey::Label, publisher.clone());
     } else {
         tag.remove_key(ItemKey::Label);
+        // Also used as a fallback during import.
+        tag.remove_key(ItemKey::Publisher);
     }
     if let Some(copyright) = &track.copyright {
         tag.insert_text(ItemKey::CopyrightMessage, copyright.clone());
@@ -1516,9 +1530,10 @@ pub(crate) fn export_track_to_tag(
             #[cfg(feature = "gigtag")]
             if config.encode_gigtags.as_ref() == Some(facet_id) {
                 // Defer until later (see below).
+                continue;
             }
             let item_key = compatibility.primary_item_key(item_key);
-            if let Some((facet_key, tags)) = tags_map.remove(FACET_ID_GENRE) {
+            if let Some((facet_key, tags)) = tags_map.remove(facet_id) {
                 export_faceted_tags(
                     tag,
                     item_key,

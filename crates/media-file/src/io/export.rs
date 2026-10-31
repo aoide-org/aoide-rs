@@ -110,6 +110,8 @@ pub fn export_track_to_file_with_type(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
+    // Both reading and saving require the file cursor to be at the beginning.
+    file.rewind()?;
     let parse_options = parse_options();
     let write_options = Default::default();
     match file_type {
@@ -121,6 +123,7 @@ pub fn export_track_to_file_with_type(
                 track,
                 edit_embedded_artwork_image,
             )?;
+            file.rewind()?;
             aiff_file.save_to(file, write_options)?;
         }
         FileType::Flac => {
@@ -131,6 +134,7 @@ pub fn export_track_to_file_with_type(
                 track,
                 edit_embedded_artwork_image,
             )?;
+            file.rewind()?;
             flac_file.save_to(file, write_options)?;
         }
         FileType::Mp4 => {
@@ -141,6 +145,7 @@ pub fn export_track_to_file_with_type(
                 track,
                 edit_embedded_artwork_image,
             )?;
+            file.rewind()?;
             mp4_file.save_to(file, write_options)?;
         }
         FileType::Mpeg => {
@@ -151,6 +156,7 @@ pub fn export_track_to_file_with_type(
                 track,
                 edit_embedded_artwork_image,
             )?;
+            file.rewind()?;
             mpeg_file.save_to(file, write_options)?;
         }
         FileType::Opus => {
@@ -161,6 +167,7 @@ pub fn export_track_to_file_with_type(
                 track,
                 edit_embedded_artwork_image,
             )?;
+            file.rewind()?;
             opus_file.save_to(file, write_options)?;
         }
         FileType::Vorbis => {
@@ -171,6 +178,7 @@ pub fn export_track_to_file_with_type(
                 track,
                 edit_embedded_artwork_image,
             )?;
+            file.rewind()?;
             vorbis_file.save_to(file, write_options)?;
         }
         _ => {
@@ -201,34 +209,29 @@ impl<'a> FilteredActorNames<'a> {
         kind: ActorKind,
     ) -> Option<Self> {
         match kind {
-            ActorKind::Summary | ActorKind::Individual => {
+            ActorKind::Summary => {
                 // At most a single summary actor
                 debug_assert!(
                     Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role).count() <= 1
-                );
-                // Either a summary actor or individual actors but not both at the same time
-                debug_assert!(
-                    Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role)
-                        .next()
-                        .is_none()
-                        || Actors::filter_kind_role(actors.clone(), ActorKind::Individual, role)
-                            .next()
-                            .is_none()
                 );
                 if let Some(summary_actor) =
                     Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role).next()
                 {
                     Some(Self::Summary(summary_actor.name.as_str()))
                 } else {
-                    let individual_actors =
-                        Actors::filter_kind_role(actors, ActorKind::Individual, role)
-                            .map(|actor| actor.name.as_str())
-                            .collect::<Vec<_>>();
-                    if individual_actors.is_empty() {
-                        None
-                    } else {
-                        Some(Self::Individual(individual_actors))
-                    }
+                    // Fallback: Individual actors
+                    Self::filter(actors, role, ActorKind::Individual)
+                }
+            }
+            ActorKind::Individual => {
+                let individual_actors =
+                    Actors::filter_kind_role(actors, ActorKind::Individual, role)
+                        .map(|actor| actor.name.as_str())
+                        .collect::<Vec<_>>();
+                if individual_actors.is_empty() {
+                    None
+                } else {
+                    Some(Self::Individual(individual_actors))
                 }
             }
             ActorKind::Sorting => {
