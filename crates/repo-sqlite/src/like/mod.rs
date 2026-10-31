@@ -12,6 +12,8 @@
 //!
 //! <https://www.sqlite.org/lang_corefunc.html#like>
 
+use std::cell::RefCell;
+
 use diesel::{
     QueryResult, define_sql_function,
     sql_types::{Bool, Nullable, Text},
@@ -111,9 +113,49 @@ fn tokenize_pattern(pattern: &str, escape: Option<char>) -> Vec<Token> {
     tokens
 }
 
+/// Reusable state of [`like()`] for consecutive invocations.
+///
+/// The pattern is usually constant for all rows of a query and only
+/// needs to be tokenized once. The buffer for the folded text is reused
+/// to avoid allocations.
+#[derive(Default)]
+struct LikeCache {
+    pattern: Option<(String, Option<char>)>,
+    pattern_tokens: Vec<Token>,
+    text_chars: Vec<char>,
+}
+
+thread_local! {
+    static LIKE_CACHE: RefCell<LikeCache> = RefCell::default();
+}
+
 fn like(pattern: &str, text: &str, escape: Option<char>) -> bool {
-    let pattern = tokenize_pattern(pattern, escape);
-    let text = fold_chars(text).collect::<Vec<_>>();
+    LIKE_CACHE.with_borrow_mut(|cache| {
+        let LikeCache {
+            pattern: cached_pattern,
+            pattern_tokens,
+            text_chars,
+        } = cache;
+        if cached_pattern
+            .as_ref()
+            .is_none_or(|(cached, cached_escape)| cached != pattern || *cached_escape != escape)
+        {
+            *pattern_tokens = tokenize_pattern(pattern, escape);
+            *cached_pattern = Some((pattern.to_owned(), escape));
+        }
+        text_chars.clear();
+        if text.is_ascii() {
+            // Fast path: ASCII text has no combining marks and is not
+            // affected by NFD, i.e. folding only affects the case.
+            text_chars.extend(text.bytes().map(|b| char::from(b.to_ascii_lowercase())));
+        } else {
+            text_chars.extend(fold_chars(text));
+        }
+        match_tokens(pattern_tokens, text_chars)
+    })
+}
+
+fn match_tokens(pattern: &[Token], text: &[char]) -> bool {
     // Iterative wildcard matching with backtracking to the last `%`.
     let mut pattern_pos = 0;
     let mut text_pos = 0;
