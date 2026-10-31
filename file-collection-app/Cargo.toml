@@ -77,6 +77,10 @@ optional = true
 version = "0.1.52"
 optional = true
 
+[dev-dependencies]
+diesel.workspace = true
+nonicle.workspace = true
+
 [features]
 default = []
 # Use mimalloc instead of the default allocator.

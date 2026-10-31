@@ -47,6 +47,9 @@ const DEFAULT_PREFETCH_LIMIT_USIZE: usize = 250;
 pub(super) const DEFAULT_PREFETCH_LIMIT: NonZeroUsize =
     NonZeroUsize::MIN.saturating_add(DEFAULT_PREFETCH_LIMIT_USIZE - 1);
 
+#[cfg(test)]
+mod bench;
+
 #[derive(Debug)]
 pub enum Event {
     StateChanged,
