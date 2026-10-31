@@ -13,8 +13,10 @@ use lofty::{
 use nonicle::{Canonical, CanonicalizeInto as _};
 use semval::prelude::*;
 
+#[cfg(feature = "gigtag")]
+use aoide_core::{FacetedTags, Tags};
 use aoide_core::{
-    FacetedTags, PlainTag, TagFacetId, Tags, TagsMap,
+    PlainTag, TagFacetId, TagsMap,
     audio::{
         BitrateBpsValue, ChannelFlags, Channels, DurationMs,
         channel::ChannelCount,
@@ -100,6 +102,7 @@ const DEFAULT_FILE_TAG_MAPPING: [(&TagFacetId, ItemKey); 14] = [
     (FACET_ID_XID, ItemKey::AppleXid),
 ];
 
+#[cfg(feature = "gigtag")]
 fn file_tag_facets_without(
     excluded_facet_id: &TagFacetId,
 ) -> impl Iterator<Item = &TagFacetId> + Clone + '_ {

@@ -5,15 +5,12 @@ use lofty::ogg::tag::VorbisComments;
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
-use crate::io::{
-    export::{ExportTrackConfig, ExportTrackFlags},
-    import::Importer,
-};
+use crate::io::export::ExportTrackConfig;
 
 #[cfg(feature = "serato-markers")]
 #[must_use]
 pub(super) fn import_serato_markers(
-    importer: &mut Importer,
+    importer: &mut crate::io::import::Importer,
     vorbis_comments: &VorbisComments,
     format: triseratops::tag::TagFormat,
 ) -> Option<triseratops::tag::TagContainer> {
@@ -53,7 +50,10 @@ pub(crate) fn export_track_to_tag(
     );
 
     #[cfg(feature = "serato-markers")]
-    if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {
+    if config
+        .flags
+        .contains(crate::io::export::ExportTrackFlags::SERATO_MARKERS)
+    {
         log::warn!("TODO: Export Serato markers");
     }
 }

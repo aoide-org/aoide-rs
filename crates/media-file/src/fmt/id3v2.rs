@@ -11,7 +11,7 @@ use aoide_core::{
 
 use crate::{
     io::{
-        export::{ExportTrackConfig, ExportTrackFlags},
+        export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, ImportedTempoBpm, Importer},
     },
     util::format_validated_tempo_bpm,
@@ -156,7 +156,10 @@ pub(crate) fn export_track_to_tag(
     }
 
     #[cfg(feature = "serato-markers")]
-    if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {
+    if config
+        .flags
+        .contains(crate::io::export::ExportTrackFlags::SERATO_MARKERS)
+    {
         log::warn!("TODO: Export Serato markers");
     }
 }

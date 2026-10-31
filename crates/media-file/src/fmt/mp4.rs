@@ -1,16 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+#[cfg(feature = "serato-markers")]
 use std::borrow::Cow;
 
-use lofty::mp4::{AtomData, AtomIdent, Ilst, Mp4File};
+#[cfg(feature = "serato-markers")]
+use lofty::mp4::{AtomData, AtomIdent};
+use lofty::mp4::{Ilst, Mp4File};
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
 use crate::{
     Error, Result,
     io::{
-        export::{ExportTrackConfig, ExportTrackFlags},
+        export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
     },
 };
@@ -95,7 +98,8 @@ impl Import {
         #[cfg(feature = "serato-markers")] importer: &mut Importer,
         #[cfg(not(feature = "serato-markers"))] _importer: &mut Importer,
         config: &ImportTrackConfig,
-        ilst: &Ilst,
+        #[cfg(feature = "serato-markers")] ilst: &Ilst,
+        #[cfg(not(feature = "serato-markers"))] _ilst: &Ilst,
     ) -> Self {
         debug_assert!(config.flags.contains(ImportTrackFlags::METADATA));
 
@@ -112,7 +116,11 @@ impl Import {
         }
     }
 
-    fn finish(self, track: &mut Track) {
+    fn finish(
+        self,
+        #[cfg(feature = "serato-markers")] track: &mut Track,
+        #[cfg(not(feature = "serato-markers"))] _track: &mut Track,
+    ) {
         let Self {
             #[cfg(feature = "serato-markers")]
             serato_tags,
@@ -163,7 +171,10 @@ pub(crate) fn export_track_to_tag(
     );
 
     #[cfg(feature = "serato-markers")]
-    if config.flags.contains(ExportTrackFlags::SERATO_MARKERS) {
+    if config
+        .flags
+        .contains(crate::io::export::ExportTrackFlags::SERATO_MARKERS)
+    {
         log::warn!("TODO: Export Serato markers");
     }
 }

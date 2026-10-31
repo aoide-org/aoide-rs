@@ -21,12 +21,14 @@ use lofty::{
 
 use aoide_core::{
     media::artwork::EditEmbeddedArtworkImage,
-    tag::FacetId,
     track::{
         Track,
         actor::{Actor, Actors, Kind as ActorKind, Role as ActorRole},
     },
 };
+
+#[cfg(feature = "gigtag")]
+use aoide_core::tag::FacetId;
 
 use crate::{Error, Result, fmt::parse_options, util::tag::FacetedTagMappingConfig};
 

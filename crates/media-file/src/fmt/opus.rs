@@ -9,7 +9,7 @@ use crate::{
     Error, Result,
     io::{
         export::ExportTrackConfig,
-        import::{ImportTrackConfig, ImportTrackFlags, Importer},
+        import::{ImportTrackConfig, Importer},
     },
 };
 
@@ -25,7 +25,7 @@ pub(crate) fn import_file_into_track(
     #[cfg(feature = "serato-markers")]
     let serato_tags = config
         .flags
-        .contains(ImportTrackFlags::SERATO_MARKERS)
+        .contains(crate::io::import::ImportTrackFlags::SERATO_MARKERS)
         .then(|| {
             super::vorbis::import_serato_markers(
                 importer,

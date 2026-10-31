@@ -10,7 +10,7 @@ use crate::{
     Error, Result,
     io::{
         export::ExportTrackConfig,
-        import::{ImportTrackConfig, ImportTrackFlags, Importer},
+        import::{ImportTrackConfig, Importer},
     },
 };
 
@@ -27,7 +27,7 @@ pub(crate) fn import_file_into_track(
     #[cfg(feature = "serato-markers")]
     let serato_tags = config
         .flags
-        .contains(ImportTrackFlags::SERATO_MARKERS)
+        .contains(crate::io::import::ImportTrackFlags::SERATO_MARKERS)
         .then(|| aiff_file.id3v2())
         .flatten()
         .and_then(|tag| super::id3v2::import_serato_markers(importer, tag));
