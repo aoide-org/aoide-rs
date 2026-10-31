@@ -90,6 +90,19 @@ test:
     RUST_BACKTRACE=1 cargo test --locked --workspace --no-default-features -- --nocapture
     RUST_BACKTRACE=1 cargo test --locked --workspace --all-features -- --nocapture
 
+# Run all benchmarks (ignored by default when running tests)
+bench: bench-sql-like bench-track-search
+
+# Benchmark the custom SQL LIKE function, optionally also on an existing database file
+bench-sql-like database='':
+    {{ if database == "" { "" } else { "AOIDE_BENCH_DATABASE=" + quote(database) } }} \
+    cargo test --locked --release -p aoide-repo-sqlite --lib -- --ignored --nocapture bench_sql_like
+
+# Benchmark the track search of the file collection app with synthetic tracks, optionally reusing a database file
+bench-track-search database='':
+    {{ if database == "" { "" } else { "AOIDE_BENCH_TRACK_SEARCH_DATABASE=" + quote(database) } }} \
+    cargo test --locked --release -p aoide-file-collection-app -- --ignored --nocapture bench_track_search
+
 depgraph-svg:
     cargo depgraph --all-features --focus aoide-core | dot -T svg -o aoide-depgraph.svg
 
