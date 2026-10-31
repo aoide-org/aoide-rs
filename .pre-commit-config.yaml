@@ -102,7 +102,7 @@ repos:
   #    - id: taplo-lint
   # Licensing: https://reuse.software
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v6.2.0
+    rev: v6.3.0
     hooks:
       - id: reuse
   # Rust
