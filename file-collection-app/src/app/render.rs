@@ -202,6 +202,7 @@ fn render_central_panel(
         ModelMode::TrackSearch(TrackSearchMode {
             track_list: Some(track_list),
             memo_state,
+            ..
         }) => {
             let text_style = egui::TextStyle::Body;
             let row_height = ui

@@ -9,11 +9,13 @@ use egui::Ui;
 mod message;
 pub(crate) use self::message::{
     Action, CollectionAction, Event, LibraryAction, Message, MessageSender, MusicDirectoryAction,
-    TrackSearchAction, TrackSearchFetchedItems,
+    TrackEditAction, TrackSearchAction, TrackSearchFetchedItems,
 };
 
 mod model;
-pub(crate) use self::model::{Model, ModelMode, MusicDirSelection, TrackSearchMode};
+pub(crate) use self::model::{
+    Model, ModelMode, MusicDirSelection, TrackEditor, TrackEditorState, TrackSearchMode,
+};
 
 mod update;
 use self::update::UpdateContext;

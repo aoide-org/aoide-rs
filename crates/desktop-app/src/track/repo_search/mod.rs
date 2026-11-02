@@ -177,6 +177,66 @@ impl FetchState {
     }
 
     #[must_use]
+    fn fetched_entities_mut(&mut self) -> Option<&mut [FetchedEntity]> {
+        match self {
+            Self::Initial => None,
+            Self::Ready {
+                fetched_entities, ..
+            } => Some(fetched_entities),
+            Self::Pending {
+                fetched_entities_before,
+                ..
+            }
+            | Self::Failed {
+                fetched_entities_before,
+                ..
+            } => fetched_entities_before.as_deref_mut(),
+        }
+    }
+
+    fn replace_fetched_entity(&mut self, mut entity: Entity) -> ActionEffect {
+        let Some(fetched_entity) = self.fetched_entities_mut().and_then(|fetched_entities| {
+            fetched_entities
+                .iter_mut()
+                .find(|fetched_entity| fetched_entity.entity.hdr.uid == entity.hdr.uid)
+        }) else {
+            log::debug!("Fetched entity {uid} not found", uid = entity.hdr.uid);
+            return ActionEffect::Unchanged;
+        };
+        if fetched_entity.entity.hdr.rev >= entity.hdr.rev {
+            log::debug!(
+                "Not replacing fetched entity {old_hdr:?} with {new_hdr:?}",
+                old_hdr = fetched_entity.entity.hdr,
+                new_hdr = entity.hdr
+            );
+            return ActionEffect::Unchanged;
+        }
+        if entity.body.content_url.is_none() {
+            // The content path and therefore the resolved URL is not supposed to change.
+            debug_assert_eq!(
+                fetched_entity
+                    .entity
+                    .body
+                    .track
+                    .media_source
+                    .content
+                    .link
+                    .path,
+                entity.body.track.media_source.content.link.path
+            );
+            entity
+                .body
+                .content_url
+                .clone_from(&fetched_entity.entity.body.content_url);
+        }
+        // The offset hash is preserved intentionally! Otherwise all subsequent offset
+        // hashes would need to be recalculated and the memo would change, forcing
+        // consumers to replace all fetched entities instead of only a single one.
+        fetched_entity.entity = entity;
+        ActionEffect::Changed
+    }
+
+    #[must_use]
     fn memo(&self) -> FetchMemo {
         let state = self.fetch_state_memo();
         let fetched_entities = self.fetched_entities().map(FetchedEntitiesMemo::from_slice);
@@ -656,6 +716,10 @@ impl State {
         self.fetch.reset()
     }
 
+    fn replace_fetched_entity(&mut self, entity: Entity) -> ActionEffect {
+        self.fetch.replace_fetched_entity(entity)
+    }
+
     fn spawn_fetching_more_task(
         &mut self,
         this: &SharedState,
@@ -816,6 +880,21 @@ impl SharedState {
     pub fn reset_fetched(&self) -> ActionEffect {
         modify_shared_state_action_effect(&self.0, State::reset_fetched)
     }
+
+    /// Replace a single fetched entity with a newer revision.
+    ///
+    /// Intended for updating the fetched entities after modifying an
+    /// entity, i.e. without re-fetching and without changing the order.
+    ///
+    /// The memo of the fetched entities is not affected, i.e. consumers
+    /// that maintain a copy of the fetched entities must replace the
+    /// modified entity explicitly.
+    pub fn replace_fetched_entity(&self, entity: Entity) -> ActionEffect {
+        modify_shared_state_action_effect(&self.0, |state| state.replace_fetched_entity(entity))
+    }
 }
 
 pub type SharedStateRef<'a> = discro::Ref<'a, State>;
+
+#[cfg(test)]
+mod tests;

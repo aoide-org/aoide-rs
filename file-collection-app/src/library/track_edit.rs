@@ -147,6 +147,15 @@ impl Library {
         });
         ActionEffect::MaybeChanged
     }
+
+    /// Replace a modified track in the track search results.
+    ///
+    /// See also: [`aoide::desktop_app::track::repo_search::SharedState::replace_fetched_entity()`]
+    pub fn replace_track_search_result(&self, entity: TrackEntity) -> ActionEffect {
+        self.shared_state
+            .track_search
+            .replace_fetched_entity(entity)
+    }
 }
 
 async fn save_edited_track(

@@ -5,7 +5,7 @@ use std::sync::mpsc;
 
 use egui::Context;
 
-use aoide::util::fs::DirPath;
+use aoide::{Track, TrackUid, util::fs::DirPath};
 
 use crate::{
     NoReceiverForEvent,
@@ -100,6 +100,7 @@ pub(crate) enum LibraryAction {
     MediaTracker(MediaTrackerAction),
     Collection(CollectionAction),
     TrackSearch(TrackSearchAction),
+    TrackEdit(TrackEditAction),
 }
 
 impl<T> From<T> for Action
@@ -192,6 +193,25 @@ pub(crate) enum TrackSearchFetchedItems {
 impl From<TrackSearchAction> for LibraryAction {
     fn from(action: TrackSearchAction) -> Self {
         Self::TrackSearch(action)
+    }
+}
+
+#[derive(Debug)]
+#[expect(dead_code, reason = "Not yet sent from the UI")]
+pub(crate) enum TrackEditAction {
+    /// Open the editor and (re-)load the track.
+    ///
+    /// Discards all pending edits of the currently edited track.
+    Open(TrackUid),
+    /// Save the edited track and optionally write the file.
+    Save { track: Box<Track>, write_file: bool },
+    /// Close the editor and discard all pending edits.
+    Close,
+}
+
+impl From<TrackEditAction> for LibraryAction {
+    fn from(action: TrackEditAction) -> Self {
+        Self::TrackEdit(action)
     }
 }
 

@@ -1,21 +1,25 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide::desktop_app::{
-    ActionEffect, collection::SynchronizingVfsFinishedState,
-    track::repo_search::FetchedEntitiesMemo,
+use aoide::{
+    CollectionUid, TrackEntity,
+    desktop_app::{
+        ActionEffect, collection::SynchronizingVfsFinishedState,
+        track::repo_search::FetchedEntitiesMemo,
+    },
 };
 use egui::Context;
 
 use crate::{
     app::TrackSearchFetchedItems,
     fs::choose_directory_path,
-    library::{self, Library, collection, track_search, ui::TrackListItem},
+    library::{self, Library, collection, track_edit, track_search, ui::TrackListItem},
 };
 
 use super::{
     Action, CollectionAction, Event, LibraryAction, Message, MessageSender, Model, ModelMode,
-    MusicDirSelection, MusicDirectoryAction, TrackSearchAction, TrackSearchMode,
+    MusicDirSelection, MusicDirectoryAction, TrackEditAction, TrackEditor, TrackEditorState,
+    TrackSearchAction, TrackSearchMode,
     message::{MediaTrackerAction, MediaTrackerDirListAction, MediaTrackerSyncAction},
 };
 
@@ -42,6 +46,7 @@ impl UpdateContext<'_> {
                 LibraryAction::MediaTracker(action) => self.on_library_media_tracker_action(action),
                 LibraryAction::Collection(action) => self.on_library_collection_action(action),
                 LibraryAction::TrackSearch(action) => self.on_library_track_search_action(action),
+                LibraryAction::TrackEdit(action) => self.on_library_track_edit_action(action),
             },
         };
         if matches!(action_effect, ActionEffect::Unchanged) {
@@ -194,6 +199,7 @@ impl UpdateContext<'_> {
         let TrackSearchMode {
             track_list,
             memo_state,
+            ..
         } = track_search;
         let action_effect = match action {
             TrackSearchAction::Search(input) => {
@@ -303,6 +309,60 @@ impl UpdateContext<'_> {
         mode_effect + action_effect
     }
 
+    fn on_library_track_edit_action(&mut self, action: TrackEditAction) -> ActionEffect {
+        let Self { rt, msg_tx, mdl } = self;
+        let Model { library, mode, .. } = mdl;
+        let Some(ModelMode::TrackSearch(TrackSearchMode { track_editor, .. })) = mode else {
+            log::info!("Discarding track edit action: {action:?}");
+            return ActionEffect::Unchanged;
+        };
+        match action {
+            TrackEditAction::Open(entity_uid) => {
+                let effect = library.load_track_for_edit(rt, *msg_tx, entity_uid.clone());
+                if matches!(effect, ActionEffect::Unchanged) {
+                    return effect;
+                }
+                log::debug!("Opening track editor for {entity_uid}");
+                *track_editor = Some(TrackEditor::loading(entity_uid));
+                ActionEffect::Changed
+            }
+            TrackEditAction::Save { track, write_file } => {
+                let Some(track_editor) = track_editor else {
+                    log::info!("Discarding save action without track editor");
+                    return ActionEffect::Unchanged;
+                };
+                let TrackEditorState::Ready { entity } = &track_editor.state else {
+                    log::info!(
+                        "Discarding save action in state {state:?}",
+                        state = track_editor.state
+                    );
+                    return ActionEffect::Unchanged;
+                };
+                let expected_entity_hdr = entity.hdr.clone();
+                let effect =
+                    library.save_edited_track(rt, *msg_tx, expected_entity_hdr, *track, write_file);
+                if matches!(effect, ActionEffect::Unchanged) {
+                    return effect;
+                }
+                track_editor.start_saving(write_file);
+                ActionEffect::Changed
+            }
+            TrackEditAction::Close => {
+                let Some(track_editor) = track_editor.take() else {
+                    return ActionEffect::Unchanged;
+                };
+                if matches!(track_editor.state, TrackEditorState::Saving { .. }) {
+                    // The pending result will still update the track list.
+                    log::info!(
+                        "Closing track editor for {uid} while saving",
+                        uid = track_editor.entity_uid
+                    );
+                }
+                ActionEffect::Changed
+            }
+        }
+    }
+
     fn on_event(&mut self, ctx: &Context, event: Event) {
         match event {
             Event::Library(event) => {
@@ -342,8 +402,7 @@ impl UpdateContext<'_> {
                 }
             }
             library::Event::TrackEdit(event) => {
-                // TODO: Handle in the track editor.
-                log::debug!("Ignoring track edit event: {event:?}");
+                on_library_track_edit_event(ctx, library, mode, *event);
             }
             library::Event::MusicDirSyncProgress(progress) => {
                 if let Some(ModelMode::MusicDirSync {
@@ -467,6 +526,138 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
         // The UI will be repainted in any case (see above).
         let _ = library.reset_music_dir();
     }
+}
+
+#[must_use]
+fn is_current_collection(library: &Library, collection_uid: &CollectionUid) -> bool {
+    Some(collection_uid) == library.read_collection_state().entity_uid()
+}
+
+fn on_library_track_edit_event(
+    ctx: &Context,
+    library: &Library,
+    mode: &mut Option<ModelMode>,
+    event: track_edit::Event,
+) {
+    match event {
+        track_edit::Event::Loaded {
+            collection_uid,
+            entity_uid,
+            result,
+        } => {
+            if !is_current_collection(library, &collection_uid) {
+                log::debug!("Discarding loaded track {entity_uid} of collection {collection_uid}");
+                return;
+            }
+            let Some(ModelMode::TrackSearch(TrackSearchMode {
+                track_editor: Some(track_editor),
+                ..
+            })) = mode
+            else {
+                log::debug!("Discarding loaded track {entity_uid} without track editor");
+                return;
+            };
+            if track_editor.entity_uid != entity_uid
+                || !matches!(track_editor.state, TrackEditorState::Loading)
+            {
+                log::debug!("Discarding unexpected loaded track {entity_uid}: {track_editor:?}");
+                return;
+            }
+            match result {
+                Ok(entity) => {
+                    log::debug!("Loaded track {hdr:?} for editing", hdr = entity.hdr);
+                    track_editor.state = TrackEditorState::Ready {
+                        entity: Box::new(entity),
+                    };
+                    track_editor.last_error = None;
+                }
+                Err(err) => {
+                    log::warn!("Failed to load track {entity_uid} for editing: {err:#}");
+                    track_editor.state = TrackEditorState::LoadingFailed;
+                    track_editor.last_error = Some(format!("Failed to load track: {err:#}"));
+                }
+            }
+            ctx.request_repaint();
+        }
+        track_edit::Event::Saved {
+            collection_uid,
+            entity_uid,
+            result,
+        } => {
+            if !is_current_collection(library, &collection_uid) {
+                log::debug!("Discarding saved track {entity_uid} of collection {collection_uid}");
+                return;
+            }
+            let (track_list, track_editor) = match mode {
+                Some(ModelMode::TrackSearch(TrackSearchMode {
+                    track_list,
+                    track_editor,
+                    ..
+                })) => (track_list.as_deref_mut(), track_editor.as_mut()),
+                _ => (None, None),
+            };
+            // The editor might have been closed or re-opened for a different track in the meantime.
+            let track_editor = track_editor.filter(|track_editor| {
+                track_editor.entity_uid == entity_uid
+                    && matches!(track_editor.state, TrackEditorState::Saving { .. })
+            });
+            let result = match result {
+                Ok(track_edit::Outcome::Updated { entity, exported }) => {
+                    log::info!(
+                        "Saved track {hdr:?} (file written: {exported})",
+                        hdr = entity.hdr
+                    );
+                    // The track list must be updated independent of the editor.
+                    let _ = library.replace_track_search_result(entity.clone());
+                    if let Some(track_list) = track_list {
+                        replace_track_list_item(ctx, track_list, &entity);
+                    }
+                    Ok(entity)
+                }
+                Ok(track_edit::Outcome::Rejected(conflict)) => {
+                    log::info!("Saving track {entity_uid} rejected: {conflict:?}");
+                    Err(track_edit_conflict_message(conflict).to_owned())
+                }
+                Err(err) => {
+                    log::warn!("Failed to save track {entity_uid}: {err:#}");
+                    Err(format!("Failed to save track: {err:#}"))
+                }
+            };
+            if let Some(track_editor) = track_editor {
+                track_editor.finish_saving(result);
+            }
+            ctx.request_repaint();
+        }
+    }
+}
+
+#[must_use]
+const fn track_edit_conflict_message(conflict: track_edit::Conflict) -> &'static str {
+    match conflict {
+        track_edit::Conflict::EntityRevision { .. } => {
+            "The track has been modified in the meantime. Reload the track to discard your changes."
+        }
+        track_edit::Conflict::ContentRevision { .. } => {
+            "The file has been modified on disk. Synchronize the music directory and reload the \
+             track to discard your changes."
+        }
+    }
+}
+
+fn replace_track_list_item(ctx: &Context, track_list: &mut [TrackListItem], entity: &TrackEntity) {
+    let Some(item) = track_list
+        .iter_mut()
+        .find(|item| item.entity_uid == entity.hdr.uid)
+    else {
+        return;
+    };
+    // The content URL is not resolved after saving and the content path is not supposed to change.
+    let content_url = entity
+        .body
+        .content_url
+        .clone()
+        .or_else(|| item.content_url.take());
+    *item = TrackListItem::new(ctx, entity.hdr.uid.clone(), content_url, &entity.body.track);
 }
 
 fn on_library_track_search_state_changed(
