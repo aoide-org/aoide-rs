@@ -78,7 +78,8 @@ pub fn export_track_to_file_path(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
-    let mut file = OpenOptions::new().write(true).open(path)?;
+    // Existing tags must be read before they could be replaced.
+    let mut file = OpenOptions::new().read(true).write(true).open(path)?;
     let file_type = if let Some(file_type) = file_extension_str(path).and_then(FileType::from_ext) {
         file_type
     } else {

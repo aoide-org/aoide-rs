@@ -19,6 +19,9 @@ pub mod find_unsynchronized;
 #[cfg(all(feature = "media-file", not(target_family = "wasm")))]
 pub mod import_and_replace;
 
+#[cfg(all(feature = "media-file", not(target_family = "wasm")))]
+pub mod update;
+
 #[cfg(not(target_family = "wasm"))]
 pub mod vfs;
 

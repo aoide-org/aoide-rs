@@ -180,6 +180,20 @@ impl Track {
             .map(|actor| actor.name.as_str())
     }
 
+    /// Set, replace, or remove the track artist.
+    ///
+    /// See also: [`Actors::set_summary_actor()`]
+    pub fn set_track_artist(&mut self, track_artist: impl Into<Option<String>>) -> bool {
+        let mut actors = std::mem::take(&mut self.actors).untie();
+        let res = Actors::set_summary_actor(&mut actors, actor::Role::Artist, track_artist.into());
+        if res {
+            self.actors = actors.canonicalize_into();
+        } else {
+            self.actors = Canonical::tie(actors);
+        }
+        res
+    }
+
     #[must_use]
     pub fn track_composer(&self) -> Option<&str> {
         Actors::summary_actor(self.actors.iter(), actor::Role::Composer)
@@ -195,6 +209,20 @@ impl Track {
     pub fn album_subtitle(&self) -> Option<&str> {
         Titles::kind_title(self.album.titles.as_ref(), title::Kind::Sub)
             .map(|title| title.name.as_str())
+    }
+
+    /// Set, replace, or remove the album subtitle.
+    pub fn set_album_subtitle(&mut self, album_subtitle: impl Into<Option<String>>) -> bool {
+        let mut album = std::mem::take(&mut self.album).untie();
+        let mut titles = album.titles.untie();
+        let res = Titles::set_kind_title(&mut titles, title::Kind::Sub, album_subtitle.into());
+        if res {
+            album.titles = titles.canonicalize_into();
+        } else {
+            album.titles = Canonical::tie(titles);
+        }
+        self.album = Canonical::tie(album);
+        res
     }
 
     pub fn set_album_title(&mut self, album_title: impl Into<String>) -> bool {
@@ -214,6 +242,22 @@ impl Track {
     pub fn album_artist(&self) -> Option<&str> {
         Actors::summary_actor(self.album.actors.iter(), actor::Role::Artist)
             .map(|actor| actor.name.as_str())
+    }
+
+    /// Set, replace, or remove the album artist.
+    ///
+    /// See also: [`Actors::set_summary_actor()`]
+    pub fn set_album_artist(&mut self, album_artist: impl Into<Option<String>>) -> bool {
+        let mut album = std::mem::take(&mut self.album).untie();
+        let mut actors = album.actors.untie();
+        let res = Actors::set_summary_actor(&mut actors, actor::Role::Artist, album_artist.into());
+        if res {
+            album.actors = actors.canonicalize_into();
+        } else {
+            album.actors = Canonical::tie(actors);
+        }
+        self.album = Canonical::tie(album);
+        res
     }
 }
 

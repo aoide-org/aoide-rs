@@ -246,6 +246,45 @@ impl Actors {
         }
     }
 
+    /// Set, replace, or remove the summary actor of the given role.
+    ///
+    /// Replacing the summary actor preserves all other actors with the
+    /// same role, i.e. individual and sorting actors. Removing the summary
+    /// actor also removes all other actors with the same role, because
+    /// a summary actor is mandatory for each role.
+    ///
+    /// Returns `true` if `actors` has been modified. Modified actors
+    /// need to be canonicalized again.
+    pub fn set_summary_actor(actors: &mut Vec<Actor>, role: Role, name: Option<String>) -> bool {
+        let Some(name) = name else {
+            // Remove
+            let len_before = actors.len();
+            actors.retain(|actor| actor.role != role);
+            return actors.len() != len_before;
+        };
+        if let Some(summary_actor) = actors
+            .iter_mut()
+            .find(|actor| actor.kind == Kind::Summary && actor.role == role)
+        {
+            // Replace
+            if summary_actor.name == name {
+                // Unmodified
+                return false;
+            }
+            summary_actor.name = name;
+        } else {
+            // Add
+            actors.push(Actor {
+                role,
+                kind: Kind::Summary,
+                name,
+                role_notes: None,
+            });
+        }
+        // Modified (and probably no longer canonical)
+        true
+    }
+
     pub fn collect_all_unique_actor_names<'a, I>(actors: I) -> Vec<&'a str>
     where
         I: Iterator<Item = &'a Actor> + Clone,

@@ -341,6 +341,10 @@ impl UpdateContext<'_> {
                     }
                 }
             }
+            library::Event::TrackEdit(event) => {
+                // TODO: Handle in the track editor.
+                log::debug!("Ignoring track edit event: {event:?}");
+            }
             library::Event::MusicDirSyncProgress(progress) => {
                 if let Some(ModelMode::MusicDirSync {
                     last_progress,

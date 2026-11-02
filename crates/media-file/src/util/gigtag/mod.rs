@@ -133,6 +133,47 @@ pub fn export_and_encode_tags_into(
     Ok(())
 }
 
+/// Encode tags as a whitespace-separated string of gig tags.
+///
+/// Tags that could not be exported as gig tags are skipped.
+/// The result is ordered canonically and could be decoded again
+/// with [`decode_tags()`], e.g. for editing tags as text.
+pub fn encode_tags(tags: Canonical<&Tags<'_>>) -> Result<String, std::fmt::Error> {
+    let mut decoded_tags = DecodedTags {
+        tags: export_tags(tags),
+        undecoded_prefix: String::new(),
+    };
+    decoded_tags.reorder_and_dedup();
+    decoded_tags.reencode()
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("invalid gig tags: \"{invalid}\"")]
+pub struct DecodeTagsError {
+    /// All remaining input that could not be decoded as tags.
+    pub invalid: String,
+}
+
+/// Decode a whitespace-separated string of gig tags strictly.
+///
+/// In contrast to decoding gig tags from file tags all input must be
+/// valid. Fails if any token could not be decoded and imported as a tag,
+/// e.g. when validating user input.
+///
+/// The inverse of [`encode_tags()`].
+pub fn decode_tags(encoded: &str) -> Result<TagsMap<'static>, DecodeTagsError> {
+    let mut tags_map = TagsMap::default();
+    let (decoded_tags, _num_imported) =
+        decode_tags_eagerly_into(encoded.trim(), Some(&mut tags_map));
+    if decoded_tags.undecoded_prefix.is_empty() && decoded_tags.tags.is_empty() {
+        return Ok(tags_map);
+    }
+    let invalid = decoded_tags
+        .reencode()
+        .unwrap_or_else(|_| encoded.to_owned());
+    Err(DecodeTagsError { invalid })
+}
+
 fn try_import_tag(tag: &Tag) -> Option<(FacetKey, PlainTag<'_>)> {
     let score = match &tag.props() {
         [] => Default::default(),

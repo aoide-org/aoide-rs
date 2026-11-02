@@ -20,6 +20,7 @@ use crate::NoReceiverForEvent;
 
 pub mod collection;
 pub mod settings;
+pub mod track_edit;
 pub mod track_search;
 pub mod ui;
 
@@ -28,6 +29,7 @@ pub enum Event {
     Settings(settings::Event),
     Collection(collection::Event),
     TrackSearch(track_search::Event),
+    TrackEdit(Box<track_edit::Event>),
     MusicDirSyncProgress(
         Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>,
     ),
@@ -48,6 +50,12 @@ impl From<settings::Event> for Event {
 impl From<collection::Event> for Event {
     fn from(event: collection::Event) -> Self {
         Self::Collection(event)
+    }
+}
+
+impl From<track_edit::Event> for Event {
+    fn from(event: track_edit::Event) -> Self {
+        Self::TrackEdit(Box::new(event))
     }
 }
 

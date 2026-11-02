@@ -101,3 +101,48 @@ fn validate_multiple_titles() {
     ];
     assert!(Titles::validate(&titles.iter()).is_ok());
 }
+
+#[test]
+fn set_kind_title() {
+    let mut titles = vec![Title {
+        name: "main".into(),
+        kind: Kind::Main,
+    }];
+    // Add
+    assert!(Titles::set_kind_title(
+        &mut titles,
+        Kind::Sub,
+        Some("sub".into())
+    ));
+    titles.canonicalize();
+    assert_eq!(
+        Some("sub"),
+        Titles::kind_title(&titles, Kind::Sub).map(|title| title.name.as_str())
+    );
+    // Unmodified
+    assert!(!Titles::set_kind_title(
+        &mut titles,
+        Kind::Sub,
+        Some("sub".into())
+    ));
+    // Replace
+    assert!(Titles::set_kind_title(
+        &mut titles,
+        Kind::Sub,
+        Some("sub2".into())
+    ));
+    titles.canonicalize();
+    assert_eq!(2, titles.len());
+    assert_eq!(
+        Some("sub2"),
+        Titles::kind_title(&titles, Kind::Sub).map(|title| title.name.as_str())
+    );
+    // Remove
+    assert!(Titles::set_kind_title(&mut titles, Kind::Sub, None));
+    assert!(!Titles::set_kind_title(&mut titles, Kind::Sub, None));
+    assert_eq!(
+        Some("main"),
+        Titles::main_title(&titles).map(|title| title.name.as_str())
+    );
+    assert_eq!(1, titles.len());
+}

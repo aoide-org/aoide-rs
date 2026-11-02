@@ -7,7 +7,7 @@ use diesel::Connection as _;
 
 use aoide_core::{
     media::content::ContentPath,
-    track::{Entity, EntityUid, Track},
+    track::{Entity, EntityHeader, EntityUid, Track},
 };
 use aoide_core_api::{Pagination, track::find_unsynchronized::UnsynchronizedTrackEntity};
 use aoide_repo::{RecordCollector, ReservableRecordCollector, track::RecordHeader};
@@ -194,6 +194,38 @@ where
                     &collection_uid,
                     &params,
                     validated_track_iter,
+                )
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
+/// Update a single, edited track and optionally write the file.
+///
+/// See also: [`aoide_usecases::track::update::update_one()`]
+///
+/// All database modifications are rolled back on failure. If writing
+/// the file succeeded but the subsequent re-import failed, then the
+/// metadata will be re-imported during the next synchronization.
+pub async fn update_one(
+    db_gatekeeper: &Gatekeeper,
+    collection_uid: CollectionUid,
+    expected_entity_hdr: EntityHeader,
+    track: aoide_usecases::track::ValidatedInput,
+    params: aoide_usecases::track::update::Params,
+) -> Result<aoide_usecases::track::update::Outcome> {
+    db_gatekeeper
+        .spawn_blocking_write_task(move |mut pooled_connection| {
+            let connection = &mut *pooled_connection;
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::track::update::update_one(
+                    connection,
+                    &collection_uid,
+                    &expected_entity_hdr,
+                    track,
+                    &params,
                 )
             })
         })

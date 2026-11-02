@@ -172,16 +172,30 @@ impl Titles {
     }
 
     pub fn set_main_title(titles: &mut Vec<Title>, name: impl Into<String>) -> bool {
+        Self::set_kind_title(titles, Kind::Main, Some(name.into()))
+    }
+
+    /// Set, replace, or remove the unique title of the given kind.
+    ///
+    /// Returns `true` if `titles` has been modified. Modified titles
+    /// need to be canonicalized again.
+    pub fn set_kind_title(titles: &mut Vec<Title>, kind: Kind, name: Option<String>) -> bool {
         debug_assert!(titles.is_canonical());
-        let name = name.into();
-        if let Some(main_title) = Self::main_title(titles.iter()) {
+        let Some(name) = name else {
+            // Remove
+            let len_before = titles.len();
+            titles.retain(|title| title.kind != kind);
+            // Removing elements does not affect the canonical ordering
+            debug_assert!(titles.is_canonical());
+            return titles.len() != len_before;
+        };
+        if let Some(kind_title) = Self::kind_title(titles.iter(), kind) {
             // Replace
-            if main_title.name == name {
+            if kind_title.name == name {
                 // Unmodified (and still canonical)
                 debug_assert!(titles.is_canonical());
                 return false;
             }
-            let kind = main_title.kind;
             let old_titles = std::mem::take(titles);
             let new_titles = once(Title { kind, name })
                 .chain(old_titles.into_iter().filter(|title| title.kind != kind))
@@ -190,10 +204,7 @@ impl Titles {
             debug_assert_eq!(placeholder, Vec::new());
         } else {
             // Add
-            titles.push(Title {
-                name,
-                kind: Kind::Main,
-            });
+            titles.push(Title { kind, name });
         }
         // Modified (and probably no longer canonical)
         true

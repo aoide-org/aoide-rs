@@ -32,5 +32,9 @@ aoide-repo-sqlite.workspace = true
 aoide-storage-sqlite.workspace = true
 aoide-usecases = { "workspace" = true, features = ["media-file"] }
 
+[dev-dependencies]
+nonicle.workspace = true
+tempfile = "3.27.0"
+
 [features]
 default = []

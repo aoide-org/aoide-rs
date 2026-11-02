@@ -344,3 +344,44 @@ fn encode_date_like_facet_should_omit_default_score() {
     println!("encoded = {encoded}");
     assert_eq!("@20230330", encoded);
 }
+
+#[test]
+fn encode_decode_tags_roundtrip() {
+    let mut tags_map = TagsMap::default();
+    tags_map.insert_one(FacetKey::unfaceted(), plain_tag_with_label("warmup"));
+    tags_map.insert_one(
+        FacetKey::unfaceted(),
+        plain_tag_with_label_and_score("Label with spaces".to_string(), Score::MIN),
+    );
+    tags_map.insert_one(
+        FacetKey::new(FacetId::clamp_from("venue")),
+        plain_tag_with_label("club-x"),
+    );
+    tags_map.insert_one(
+        FacetKey::new(FacetId::clamp_from("played@20240101")),
+        Default::default(),
+    );
+    let tags = tags_map.canonicalize_into();
+    assert!(tags.is_valid());
+
+    let encoded = encode_tags(tags.as_canonical_ref()).unwrap();
+    println!("encoded = {encoded}");
+
+    let decoded_tags = decode_tags(&encoded).unwrap().canonicalize_into();
+    assert_eq!(tags, decoded_tags);
+}
+
+#[test]
+fn decode_tags_should_accept_empty_input() {
+    assert!(decode_tags("").unwrap().is_empty());
+    assert!(decode_tags(" \t ").unwrap().is_empty());
+}
+
+#[test]
+fn decode_tags_should_reject_invalid_input() {
+    // Undecoded prefix
+    let err = decode_tags("no gig tag #valid").unwrap_err();
+    assert_eq!("no gig tag", err.invalid.trim_end());
+    // Valid gig tag with an unknown property that could not be imported
+    assert!(decode_tags("#valid ?unknown=prop#label").is_err());
+}

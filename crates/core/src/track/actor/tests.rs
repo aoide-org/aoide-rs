@@ -203,3 +203,59 @@ fn split_actor_names_summary() {
             .as_slice()
     );
 }
+
+#[test]
+fn set_summary_actor() {
+    let mut actors = vec![
+        Actor {
+            role: Role::Artist,
+            kind: Kind::Summary,
+            name: "A & B".into(),
+            role_notes: None,
+        },
+        Actor {
+            role: Role::Artist,
+            kind: Kind::Individual,
+            name: "A".into(),
+            role_notes: None,
+        },
+        Actor {
+            role: Role::Composer,
+            kind: Kind::Summary,
+            name: "C".into(),
+            role_notes: None,
+        },
+    ];
+    // Unmodified
+    assert!(!Actors::set_summary_actor(
+        &mut actors,
+        Role::Artist,
+        Some("A & B".into())
+    ));
+    // Replace and preserve other actors with the same role
+    assert!(Actors::set_summary_actor(
+        &mut actors,
+        Role::Artist,
+        Some("A & D".into())
+    ));
+    assert_eq!(3, actors.len());
+    assert_eq!(
+        Some("A & D"),
+        Actors::summary_actor(actors.iter(), Role::Artist).map(|actor| actor.name.as_str())
+    );
+    assert!(Actors::validate(&actors.iter()).is_ok());
+    // Remove all actors with the same role
+    assert!(Actors::set_summary_actor(&mut actors, Role::Artist, None));
+    assert!(!Actors::set_summary_actor(&mut actors, Role::Artist, None));
+    assert_eq!(1, actors.len());
+    assert!(Actors::validate(&actors.iter()).is_ok());
+    // Add
+    assert!(Actors::set_summary_actor(
+        &mut actors,
+        Role::Artist,
+        Some("E".into())
+    ));
+    actors.canonicalize();
+    assert_eq!(2, actors.len());
+    assert!(Actors::validate(&actors.iter()).is_ok());
+}
