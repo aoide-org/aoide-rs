@@ -398,7 +398,7 @@ impl UpdateContext<'_> {
                 ActionEffect::Changed
             }
             TrackSelectionAction::Update {
-                custom_tags_delta,
+                edit: multi_track_edit,
                 write_files,
             } => {
                 let Some(TrackSearchEdit::Multiple(track_selection)) = edit else {
@@ -408,7 +408,7 @@ impl UpdateContext<'_> {
                     rt,
                     *msg_tx,
                     track_selection.entity_uids.clone(),
-                    *custom_tags_delta,
+                    *multi_track_edit,
                     write_files,
                 );
                 match result {

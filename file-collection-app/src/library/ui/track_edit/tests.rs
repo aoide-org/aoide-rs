@@ -249,3 +249,55 @@ fn custom_tags_delta_should_reject_invalid_tags() {
     );
     assert!(CustomTagsDelta::parse(" ", "").unwrap().is_empty());
 }
+
+#[test]
+fn multi_track_edit() {
+    let track = new_track();
+    let fields = MultiTrackFields {
+        artist: Some(String::new()),
+        album_title: Some("Compilation".to_owned()),
+        recorded_at: Some("2024".to_owned()),
+        genres: Some("Techno\nHouse".to_owned()),
+        advisory_rating: Some(Some(AdvisoryRating::Clean)),
+        ..Default::default()
+    };
+    let custom_tags = CustomTagsDelta::parse("#peaktime", "#warmup").unwrap();
+    let edit = MultiTrackEdit::new(fields, custom_tags).unwrap();
+    assert!(!edit.is_empty());
+
+    let mut edited = track.clone();
+    edit.apply(&mut edited);
+    assert_eq!(None, edited.track_artist());
+    assert_eq!(Some("Title"), edited.track_title());
+    assert_eq!(Some("Compilation"), edited.album_title());
+    assert_eq!(
+        Some(DateOrDateTime::from(YyyyMmDdDate::from_year(2024))),
+        edited.recorded_at
+    );
+    assert_eq!(Some(AdvisoryRating::Clean), edited.advisory_rating);
+    let draft = TrackEditDraft::from_track(&edited);
+    assert_eq!("House\nTechno", draft.genres);
+    assert_eq!("#peaktime venue#club-x", draft.custom_tags);
+    // Fields that are not set are preserved.
+    assert_eq!(TrackEditDraft::from_track(&track).comment, draft.comment);
+    assert_eq!(track.metrics, edited.metrics);
+}
+
+#[test]
+fn multi_track_edit_should_reject_invalid_fields() {
+    let fields = MultiTrackFields {
+        recorded_at: Some("May".to_owned()),
+        color: Some("red".to_owned()),
+        ..Default::default()
+    };
+    let errors = MultiTrackEdit::new(fields, CustomTagsDelta::default()).unwrap_err();
+    assert_eq!(
+        vec![Field::RecordedAt, Field::Color],
+        errors.iter().map(|err| err.field).collect::<Vec<_>>()
+    );
+    assert!(
+        MultiTrackEdit::new(MultiTrackFields::default(), CustomTagsDelta::default())
+            .unwrap()
+            .is_empty()
+    );
+}

@@ -54,11 +54,11 @@ pub(super) fn sync_draft(track_editor: Option<&TrackEditor>, draft: &mut Option<
     }
 }
 
-const FIELD_HINT_RECORDED_AT: &str = "YYYY[-MM[-DD]]";
+pub(super) const FIELD_HINT_RECORDED_AT: &str = "YYYY[-MM[-DD]]";
 const FIELD_HINT_KEY: &str = "Lancelot, e.g. 8A";
-const FIELD_HINT_GENRES: &str = "One genre per line";
-const FIELD_HINT_COLOR: &str = "#RRGGBB";
-const FIELD_HINT_CUSTOM_TAGS: &str = "#label facet#label ?s=0.5#scored-label";
+pub(super) const FIELD_HINT_GENRES: &str = "One genre per line";
+pub(super) const FIELD_HINT_COLOR: &str = "#RRGGBB";
+pub(super) const FIELD_HINT_CUSTOM_TAGS: &str = "#label facet#label ?s=0.5#scored-label";
 
 pub(super) fn render_track_editor_panel(
     ui: &mut Ui,
@@ -259,22 +259,7 @@ fn render_fields(ui: &mut Ui, draft: &mut TrackEditDraft, errors: &[TrackEditFie
                 text_edit(ui, copyright, None);
             });
             row(ui, "Advisory rating", Field::AdvisoryRating, &mut |ui| {
-                ComboBox::from_id_salt("track-editor-advisory-rating")
-                    .selected_text(advisory_rating_text(*advisory_rating))
-                    .show_ui(ui, |ui| {
-                        for value in [
-                            None,
-                            Some(AdvisoryRating::Unrated),
-                            Some(AdvisoryRating::Explicit),
-                            Some(AdvisoryRating::Clean),
-                        ] {
-                            ui.selectable_value(
-                                advisory_rating,
-                                value,
-                                advisory_rating_text(value),
-                            );
-                        }
-                    });
+                advisory_rating_combo_box(ui, "track-editor-advisory-rating", advisory_rating);
             });
             row(ui, "Color", Field::Color, &mut |ui| {
                 text_edit(ui, color, Some(FIELD_HINT_COLOR));
@@ -303,11 +288,30 @@ fn field_row(
     ui.end_row();
 }
 
-fn text_edit(ui: &mut Ui, value: &mut String, hint: Option<&'static str>) {
+pub(super) fn advisory_rating_combo_box(
+    ui: &mut Ui,
+    id_salt: &str,
+    advisory_rating: &mut Option<AdvisoryRating>,
+) {
+    ComboBox::from_id_salt(id_salt)
+        .selected_text(advisory_rating_text(*advisory_rating))
+        .show_ui(ui, |ui| {
+            for value in [
+                None,
+                Some(AdvisoryRating::Unrated),
+                Some(AdvisoryRating::Explicit),
+                Some(AdvisoryRating::Clean),
+            ] {
+                ui.selectable_value(advisory_rating, value, advisory_rating_text(value));
+            }
+        });
+}
+
+pub(super) fn text_edit(ui: &mut Ui, value: &mut String, hint: Option<&'static str>) {
     add_text_edit(ui, TextEdit::singleline(value), hint);
 }
 
-fn multiline_text_edit(ui: &mut Ui, value: &mut String, hint: Option<&'static str>) {
+pub(super) fn multiline_text_edit(ui: &mut Ui, value: &mut String, hint: Option<&'static str>) {
     add_text_edit(ui, TextEdit::multiline(value).desired_rows(2), hint);
 }
 

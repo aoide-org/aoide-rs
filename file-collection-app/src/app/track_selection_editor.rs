@@ -3,17 +3,44 @@
 
 //! Rendering of the editor for multiple tracks.
 
-use egui::{Button, Grid, ScrollArea, TextEdit, Ui};
+use egui::{Button, Grid, ScrollArea, Ui};
 
 use aoide::TrackUid;
 
+use aoide::track::AdvisoryRating;
+
 use crate::library::{
     track_edit::Conflict,
-    ui::{CustomTagsDelta, TrackEditField, TrackEditFieldError, TrackListItem},
+    ui::{
+        CustomTagsDelta, MultiTrackEdit, MultiTrackFields, TrackEditField, TrackEditFieldError,
+        TrackListItem,
+    },
     update_tracks,
 };
 
-use super::{MessageSender, TrackSelection, TrackSelectionAction, TrackSelectionState};
+use super::{
+    MessageSender, TrackSelection, TrackSelectionAction, TrackSelectionState,
+    track_editor::{
+        FIELD_HINT_COLOR, FIELD_HINT_CUSTOM_TAGS, FIELD_HINT_GENRES, FIELD_HINT_RECORDED_AT,
+        advisory_rating_combo_box, multiline_text_edit, text_edit,
+    },
+};
+
+/// A field that is only applied if enabled.
+///
+/// The value is preserved while disabled.
+#[derive(Debug, Default)]
+struct OptionalField<T> {
+    enabled: bool,
+    value: T,
+}
+
+impl<T: Clone> OptionalField<T> {
+    #[must_use]
+    fn to_option(&self) -> Option<T> {
+        self.enabled.then(|| self.value.clone())
+    }
+}
 
 /// Editable inputs for the selected tracks.
 ///
@@ -21,11 +48,72 @@ use super::{MessageSender, TrackSelection, TrackSelectionAction, TrackSelectionS
 /// same changes to multiple selections.
 #[derive(Debug, Default)]
 pub(super) struct TrackSelectionDraft {
+    artist: OptionalField<String>,
+    album_title: OptionalField<String>,
+    album_artist: OptionalField<String>,
+    album_subtitle: OptionalField<String>,
+    recorded_at: OptionalField<String>,
+    genres: OptionalField<String>,
+    grouping: OptionalField<String>,
+    comment: OptionalField<String>,
+    publisher: OptionalField<String>,
+    copyright: OptionalField<String>,
+    advisory_rating: OptionalField<Option<AdvisoryRating>>,
+    color: OptionalField<String>,
     add_custom_tags: String,
     remove_custom_tags: String,
 }
 
-const FIELD_HINT_ADD_CUSTOM_TAGS: &str = "#label facet#label ?s=0.5#scored-label";
+impl TrackSelectionDraft {
+    #[must_use]
+    fn fields(&self) -> MultiTrackFields {
+        let Self {
+            artist,
+            album_title,
+            album_artist,
+            album_subtitle,
+            recorded_at,
+            genres,
+            grouping,
+            comment,
+            publisher,
+            copyright,
+            advisory_rating,
+            color,
+            add_custom_tags: _,
+            remove_custom_tags: _,
+        } = self;
+        MultiTrackFields {
+            artist: artist.to_option(),
+            album_title: album_title.to_option(),
+            album_artist: album_artist.to_option(),
+            album_subtitle: album_subtitle.to_option(),
+            recorded_at: recorded_at.to_option(),
+            genres: genres.to_option(),
+            grouping: grouping.to_option(),
+            comment: comment.to_option(),
+            publisher: publisher.to_option(),
+            copyright: copyright.to_option(),
+            advisory_rating: advisory_rating.to_option(),
+            color: color.to_option(),
+        }
+    }
+
+    fn to_edit(&self) -> Result<MultiTrackEdit, Vec<TrackEditFieldError>> {
+        let custom_tags = CustomTagsDelta::parse(&self.add_custom_tags, &self.remove_custom_tags);
+        let edit = MultiTrackEdit::new(self.fields(), custom_tags.clone().unwrap_or_default());
+        match (edit, custom_tags) {
+            (Ok(edit), Ok(_)) => Ok(edit),
+            (edit, custom_tags) => Err(edit
+                .err()
+                .into_iter()
+                .flatten()
+                .chain(custom_tags.err().into_iter().flatten())
+                .collect()),
+        }
+    }
+}
+
 const FIELD_HINT_REMOVE_CUSTOM_TAGS: &str = "#label facet#label";
 
 pub(super) fn render_track_selection_editor_panel(
@@ -105,43 +193,160 @@ pub(super) fn render_track_selection_editor_panel(
 }
 
 fn render_inputs(ui: &mut Ui, msg_tx: &MessageSender, draft: &mut TrackSelectionDraft) {
+    let edit = draft.to_edit();
+    let errors = edit.as_ref().err().map_or(&[][..], Vec::as_slice);
+    ui.label("Only checked fields are set for all selected tracks. Empty fields are cleared.");
+    ScrollArea::vertical()
+        .id_salt("track-selection-editor-inputs")
+        .max_height(ui.available_height() / 2.0)
+        .show(ui, |ui| {
+            Grid::new("track-selection-editor-fields")
+                .num_columns(2)
+                .spacing([20.0, 4.0])
+                .striped(true)
+                .show(ui, |ui| {
+                    render_field_inputs(ui, errors, draft);
+                    render_custom_tags_inputs(ui, errors, draft);
+                });
+        });
+    render_buttons(ui, msg_tx, edit.as_ref().ok());
+}
+
+fn render_field_inputs(
+    ui: &mut Ui,
+    errors: &[TrackEditFieldError],
+    draft: &mut TrackSelectionDraft,
+) {
+    use TrackEditField as Field;
+    let TrackSelectionDraft {
+        artist,
+        album_title,
+        album_artist,
+        album_subtitle,
+        recorded_at,
+        genres,
+        grouping,
+        comment,
+        publisher,
+        copyright,
+        advisory_rating,
+        color,
+        add_custom_tags: _,
+        remove_custom_tags: _,
+    } = draft;
+    let text_row = |ui: &mut Ui,
+                    label: &str,
+                    field: Field,
+                    optional: &mut OptionalField<String>,
+                    hint: Option<&'static str>,
+                    multiline: bool| {
+        optional_field_row(ui, errors, label, field, &mut optional.enabled, |ui| {
+            if multiline {
+                multiline_text_edit(ui, &mut optional.value, hint);
+            } else {
+                text_edit(ui, &mut optional.value, hint);
+            }
+        });
+    };
+    text_row(ui, "Artist", Field::Artist, artist, None, false);
+    text_row(ui, "Album", Field::AlbumTitle, album_title, None, false);
+    text_row(
+        ui,
+        "Album artist",
+        Field::AlbumArtist,
+        album_artist,
+        None,
+        false,
+    );
+    text_row(
+        ui,
+        "Album subtitle",
+        Field::AlbumSubtitle,
+        album_subtitle,
+        None,
+        false,
+    );
+    text_row(
+        ui,
+        "Recorded",
+        Field::RecordedAt,
+        recorded_at,
+        Some(FIELD_HINT_RECORDED_AT),
+        false,
+    );
+    text_row(
+        ui,
+        "Genres",
+        Field::Genres,
+        genres,
+        Some(FIELD_HINT_GENRES),
+        true,
+    );
+    text_row(ui, "Grouping", Field::Grouping, grouping, None, false);
+    text_row(ui, "Comment", Field::Comment, comment, None, true);
+    text_row(ui, "Publisher", Field::Publisher, publisher, None, false);
+    text_row(ui, "Copyright", Field::Copyright, copyright, None, false);
+    optional_field_row(
+        ui,
+        errors,
+        "Advisory rating",
+        Field::AdvisoryRating,
+        &mut advisory_rating.enabled,
+        |ui| {
+            advisory_rating_combo_box(
+                ui,
+                "track-selection-editor-advisory-rating",
+                &mut advisory_rating.value,
+            );
+        },
+    );
+    text_row(
+        ui,
+        "Color",
+        Field::Color,
+        color,
+        Some(FIELD_HINT_COLOR),
+        false,
+    );
+}
+
+fn render_custom_tags_inputs(
+    ui: &mut Ui,
+    errors: &[TrackEditFieldError],
+    draft: &mut TrackSelectionDraft,
+) {
     let TrackSelectionDraft {
         add_custom_tags,
         remove_custom_tags,
+        ..
     } = draft;
-    let custom_tags_delta = CustomTagsDelta::parse(add_custom_tags, remove_custom_tags);
-    let errors = custom_tags_delta
-        .as_ref()
-        .err()
-        .map_or(&[][..], Vec::as_slice);
-    Grid::new("track-selection-editor-fields")
-        .num_columns(2)
-        .spacing([20.0, 4.0])
-        .show(ui, |ui| {
-            field_row(
-                ui,
-                errors,
-                "Add tags",
-                TrackEditField::AddCustomTags,
-                add_custom_tags,
-                FIELD_HINT_ADD_CUSTOM_TAGS,
-            );
-            field_row(
-                ui,
-                errors,
-                "Remove tags",
-                TrackEditField::RemoveCustomTags,
-                remove_custom_tags,
-                FIELD_HINT_REMOVE_CUSTOM_TAGS,
-            );
-        });
+    field_row(
+        ui,
+        errors,
+        "Add tags",
+        TrackEditField::AddCustomTags,
+        |ui| {
+            multiline_text_edit(ui, add_custom_tags, Some(FIELD_HINT_CUSTOM_TAGS));
+        },
+    );
+    field_row(
+        ui,
+        errors,
+        "Remove tags",
+        TrackEditField::RemoveCustomTags,
+        |ui| {
+            multiline_text_edit(ui, remove_custom_tags, Some(FIELD_HINT_REMOVE_CUSTOM_TAGS));
+        },
+    );
+}
+
+fn render_buttons(ui: &mut Ui, msg_tx: &MessageSender, edit: Option<&MultiTrackEdit>) {
     ui.horizontal(|ui| {
-        let custom_tags_delta = custom_tags_delta.as_ref().ok();
-        let has_changes = custom_tags_delta.is_some_and(|delta| !delta.is_empty());
+        let has_changes = edit.is_some_and(|edit| !edit.is_empty());
         let update = |write_files| {
-            if let Some(custom_tags_delta) = custom_tags_delta {
+            if let Some(edit) = edit {
                 msg_tx.send_action(TrackSelectionAction::Update {
-                    custom_tags_delta: Box::new(custom_tags_delta.clone()),
+                    edit: Box::new(edit.clone()),
                     write_files,
                 });
             }
@@ -154,7 +359,7 @@ fn render_inputs(ui: &mut Ui, msg_tx: &MessageSender, draft: &mut TrackSelection
             update(false);
         }
         if ui
-            .add_enabled(custom_tags_delta.is_some(), Button::new("Apply & write files"))
+            .add_enabled(edit.is_some(), Button::new("Apply & write files"))
             .on_hover_text(
                 "Save the changes in the collection and write all selected tracks into their files.",
             )
@@ -165,27 +370,43 @@ fn render_inputs(ui: &mut Ui, msg_tx: &MessageSender, draft: &mut TrackSelection
     });
 }
 
+/// Render a grid row with a checkbox for enabling the field.
+fn optional_field_row(
+    ui: &mut Ui,
+    errors: &[TrackEditFieldError],
+    label: &str,
+    field: TrackEditField,
+    enabled: &mut bool,
+    add_contents: impl FnOnce(&mut Ui),
+) {
+    ui.checkbox(enabled, label);
+    let enabled = *enabled;
+    ui.vertical(|ui| {
+        ui.add_enabled_ui(enabled, add_contents);
+        render_field_errors(ui, errors, field);
+    });
+    ui.end_row();
+}
+
 fn field_row(
     ui: &mut Ui,
     errors: &[TrackEditFieldError],
     label: &str,
     field: TrackEditField,
-    value: &mut String,
-    hint: &'static str,
+    add_contents: impl FnOnce(&mut Ui),
 ) {
     ui.label(label);
     ui.vertical(|ui| {
-        ui.add(
-            TextEdit::multiline(value)
-                .desired_rows(2)
-                .hint_text(hint)
-                .desired_width(f32::INFINITY),
-        );
-        for error in errors.iter().filter(|error| error.field == field) {
-            ui.colored_label(ui.visuals().error_fg_color, &error.message);
-        }
+        add_contents(ui);
+        render_field_errors(ui, errors, field);
     });
     ui.end_row();
+}
+
+fn render_field_errors(ui: &mut Ui, errors: &[TrackEditFieldError], field: TrackEditField) {
+    for error in errors.iter().filter(|error| error.field == field) {
+        ui.colored_label(ui.visuals().error_fg_color, &error.message);
+    }
 }
 
 fn render_outcome(

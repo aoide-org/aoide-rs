@@ -14,10 +14,10 @@ use aoide::{TrackUid, desktop_app::ActionEffect};
 // Re-exports
 pub use aoide::backend_embedded::batch::update_tracks::{Completion, Outcome, Progress};
 
-use super::{Event, EventEmitter, Library, State, track_edit::export_params, ui::CustomTagsDelta};
+use super::{Event, EventEmitter, Library, State, track_edit::export_params, ui::MultiTrackEdit};
 
 impl Library {
-    /// Spawn a task for adding and removing custom tags of multiple tracks.
+    /// Spawn a task for modifying multiple tracks.
     ///
     /// Emits [`Event::UpdateTracksProgress`] while running and
     /// [`Event::UpdateTracksFinished`] when finished.
@@ -26,7 +26,7 @@ impl Library {
         rt: &tokio::runtime::Handle,
         event_emitter: &E,
         entity_uids: Vec<TrackUid>,
-        custom_tags_delta: CustomTagsDelta,
+        edit: MultiTrackEdit,
         write_files: bool,
     ) -> (ActionEffect, anyhow::Result<()>)
     where
@@ -51,9 +51,9 @@ impl Library {
                         drop(event_emitter.emit_event(Event::UpdateTracksProgress(progress)));
                     }
                 };
-                let custom_tags_delta = Arc::new(custom_tags_delta);
+                let edit = Arc::new(edit);
                 let modify_track_fn = move |track: &mut aoide::Track| {
-                    custom_tags_delta.apply(track);
+                    edit.apply(track);
                 };
                 let result = aoide::backend_embedded::batch::update_tracks::update_tracks(
                     env.db_gatekeeper(),

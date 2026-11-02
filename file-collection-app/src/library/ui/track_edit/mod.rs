@@ -603,5 +603,146 @@ fn contains_tag_label(
         .any(|tag| tag.label.as_ref().map(TagLabel::as_str) == label.map(TagLabel::as_str))
 }
 
+/// Properties to set for multiple tracks at once.
+///
+/// `None` keeps the property of each track as is. An empty value
+/// clears the property. The values have the same format as the
+/// corresponding fields of [`TrackEditDraft`].
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct MultiTrackFields {
+    pub artist: Option<String>,
+    pub album_title: Option<String>,
+    pub album_artist: Option<String>,
+    pub album_subtitle: Option<String>,
+    pub recorded_at: Option<String>,
+    pub genres: Option<String>,
+    pub grouping: Option<String>,
+    pub comment: Option<String>,
+    pub publisher: Option<String>,
+    pub copyright: Option<String>,
+    pub advisory_rating: Option<Option<AdvisoryRating>>,
+    pub color: Option<String>,
+}
+
+impl MultiTrackFields {
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        *self == Self::default()
+    }
+
+    /// Validate all values independent of a particular track.
+    #[must_use]
+    fn validate(&self) -> Vec<FieldError> {
+        let mut errors = Vec::new();
+        if let Some(recorded_at) = &self.recorded_at
+            && let Err(message) = parse_date_or_date_time(recorded_at)
+        {
+            errors.push(FieldError {
+                field: Field::RecordedAt,
+                message,
+            });
+        }
+        if let Some(color) = &self.color
+            && let Err(message) = parse_color(color)
+        {
+            errors.push(FieldError {
+                field: Field::Color,
+                message,
+            });
+        }
+        errors
+    }
+
+    fn apply_to_draft(&self, draft: &mut TrackEditDraft) {
+        let Self {
+            artist,
+            album_title,
+            album_artist,
+            album_subtitle,
+            recorded_at,
+            genres,
+            grouping,
+            comment,
+            publisher,
+            copyright,
+            advisory_rating,
+            color,
+        } = self;
+        let set = |field: &mut String, value: &Option<String>| {
+            if let Some(value) = value {
+                field.clone_from(value);
+            }
+        };
+        set(&mut draft.artist, artist);
+        set(&mut draft.album_title, album_title);
+        set(&mut draft.album_artist, album_artist);
+        set(&mut draft.album_subtitle, album_subtitle);
+        set(&mut draft.recorded_at, recorded_at);
+        set(&mut draft.genres, genres);
+        set(&mut draft.grouping, grouping);
+        set(&mut draft.comment, comment);
+        set(&mut draft.publisher, publisher);
+        set(&mut draft.copyright, copyright);
+        if let Some(advisory_rating) = advisory_rating {
+            draft.advisory_rating = *advisory_rating;
+        }
+        set(&mut draft.color, color);
+    }
+}
+
+/// Modifications of multiple tracks at once.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct MultiTrackEdit {
+    fields: MultiTrackFields,
+    custom_tags: CustomTagsDelta,
+}
+
+impl MultiTrackEdit {
+    /// Validate the fields.
+    ///
+    /// Returns the errors of all invalid fields.
+    pub fn new(
+        fields: MultiTrackFields,
+        custom_tags: CustomTagsDelta,
+    ) -> Result<Self, Vec<FieldError>> {
+        let errors = fields.validate();
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+        Ok(Self {
+            fields,
+            custom_tags,
+        })
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.fields.is_empty() && self.custom_tags.is_empty()
+    }
+
+    /// Set the fields and then add and remove the custom tags.
+    ///
+    /// Same as editing each track individually, i.e. only fields that
+    /// differ from the current values of the track are modified.
+    pub fn apply(&self, track: &mut Track) {
+        let Self {
+            fields,
+            custom_tags,
+        } = self;
+        if !fields.is_empty() {
+            let mut draft = TrackEditDraft::from_track(track);
+            fields.apply_to_draft(&mut draft);
+            match draft.to_track(track) {
+                Ok(edited_track) => *track = edited_track,
+                Err(errors) => {
+                    // Unreachable, because all fields have been validated.
+                    log::error!("Failed to apply validated fields: {errors:?}");
+                }
+            }
+        }
+        custom_tags.apply(track);
+    }
+}
+
 #[cfg(test)]
 mod tests;

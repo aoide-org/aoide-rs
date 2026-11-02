@@ -11,7 +11,7 @@ use crate::{
     NoReceiverForEvent,
     library::{
         self,
-        ui::{CustomTagsDelta, TrackListItem},
+        ui::{MultiTrackEdit, TrackListItem},
     },
 };
 
@@ -231,9 +231,9 @@ pub(crate) enum TrackSelectionAction {
     /// The range is determined by the order of the track list.
     SelectRange(TrackUid),
     Clear,
-    /// Add and remove custom tags of all selected tracks.
+    /// Modify all selected tracks.
     Update {
-        custom_tags_delta: Box<CustomTagsDelta>,
+        edit: Box<MultiTrackEdit>,
         write_files: bool,
     },
     AbortUpdate,
