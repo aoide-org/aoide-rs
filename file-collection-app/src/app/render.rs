@@ -429,12 +429,16 @@ fn render_track_list_item(
         if is_track_selection_updating {
             return;
         }
-        let label_response = label_response
-            .on_hover_text("Click to edit the track. Ctrl+click to select multiple tracks.");
+        let label_response = label_response.on_hover_text(
+            "Click to edit the track. Ctrl+click to select multiple tracks, Shift+click to select a range.",
+        );
         if !label_response.clicked() {
             return;
         }
-        if ui.input(|input| input.modifiers.command) {
+        let modifiers = ui.input(|input| input.modifiers);
+        if modifiers.shift {
+            msg_tx.send_action(TrackSelectionAction::SelectRange(item.entity_uid.clone()));
+        } else if modifiers.command {
             msg_tx.send_action(TrackSelectionAction::Toggle(item.entity_uid.clone()));
         } else if !is_edited {
             msg_tx.send_action(TrackEditAction::Open(item.entity_uid.clone()));

@@ -226,6 +226,10 @@ pub(crate) enum TrackSelectionAction {
     ///
     /// Closes the editor of a single track and selects that track.
     Toggle(TrackUid),
+    /// Add all tracks from the last toggled track up to the given track.
+    ///
+    /// The range is determined by the order of the track list.
+    SelectRange(TrackUid),
     Clear,
     /// Add and remove custom tags of all selected tracks.
     Update {

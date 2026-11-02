@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide::{
-    CollectionUid, TrackEntity,
+    CollectionUid, TrackEntity, TrackUid,
     desktop_app::{
         ActionEffect, collection::SynchronizingVfsFinishedState,
         track::repo_search::FetchedEntitiesMemo,
@@ -363,7 +363,10 @@ impl UpdateContext<'_> {
     fn on_library_track_selection_action(&mut self, action: TrackSelectionAction) -> ActionEffect {
         let Self { rt, msg_tx, mdl } = self;
         let Model { library, mode, .. } = mdl;
-        let Some(ModelMode::TrackSearch(TrackSearchMode { edit, .. })) = mode else {
+        let Some(ModelMode::TrackSearch(TrackSearchMode {
+            edit, track_list, ..
+        })) = mode
+        else {
             log::info!("Discarding track selection action: {action:?}");
             return ActionEffect::Unchanged;
         };
@@ -375,32 +378,16 @@ impl UpdateContext<'_> {
         }
         match action {
             TrackSelectionAction::Toggle(entity_uid) => {
-                let mut entity_uids = match edit.take() {
-                    None => Vec::new(),
-                    Some(TrackSearchEdit::Single(track_editor)) => {
-                        // Continue with the track that has been edited.
-                        if track_editor.entity_uid == entity_uid {
-                            Vec::new()
-                        } else {
-                            vec![track_editor.entity_uid]
-                        }
-                    }
-                    Some(TrackSearchEdit::Multiple(track_selection)) => track_selection.entity_uids,
-                };
-                if let Some(index) = entity_uids
-                    .iter()
-                    .position(|selected| *selected == entity_uid)
-                {
-                    entity_uids.remove(index);
-                } else {
-                    entity_uids.push(entity_uid);
-                }
-                if !entity_uids.is_empty() {
-                    *edit = Some(TrackSearchEdit::Multiple(TrackSelection {
-                        entity_uids,
-                        state: TrackSelectionState::Ready { last_outcome: None },
-                    }));
-                }
+                let mut track_selection = take_track_selection(edit, Some(&entity_uid));
+                track_selection.toggle(entity_uid);
+                replace_track_selection(edit, track_selection);
+                ActionEffect::Changed
+            }
+            TrackSelectionAction::SelectRange(entity_uid) => {
+                let mut track_selection = take_track_selection(edit, None);
+                let ordered_entity_uids = track_list.iter().flatten().map(|item| &item.entity_uid);
+                track_selection.select_range(ordered_entity_uids, entity_uid);
+                replace_track_selection(edit, track_selection);
                 ActionEffect::Changed
             }
             TrackSelectionAction::Clear => {
@@ -703,6 +690,42 @@ fn on_library_music_dir_list_result(
             num_items = new_content_paths_with_count.len()
         );
     }
+}
+
+/// Continue with the current selection or start a new one.
+///
+/// Starting from the editor of a single track continues with the
+/// edited track, unless it is about to be toggled.
+#[must_use]
+fn take_track_selection(
+    edit: &mut Option<TrackSearchEdit>,
+    toggled_entity_uid: Option<&TrackUid>,
+) -> TrackSelection {
+    match edit.take() {
+        None => TrackSelection::new(Vec::new(), None),
+        Some(TrackSearchEdit::Single(track_editor)) => {
+            if Some(&track_editor.entity_uid) == toggled_entity_uid {
+                TrackSelection::new(Vec::new(), None)
+            } else {
+                let entity_uid = track_editor.entity_uid;
+                TrackSelection::new(vec![entity_uid.clone()], Some(entity_uid))
+            }
+        }
+        Some(TrackSearchEdit::Multiple(track_selection)) => {
+            // Discard the outcome of the last update after modifying the selection.
+            let TrackSelection {
+                entity_uids,
+                anchor_entity_uid,
+                state: _,
+            } = track_selection;
+            TrackSelection::new(entity_uids, anchor_entity_uid)
+        }
+    }
+}
+
+fn replace_track_selection(edit: &mut Option<TrackSearchEdit>, track_selection: TrackSelection) {
+    *edit = (!track_selection.entity_uids.is_empty())
+        .then_some(TrackSearchEdit::Multiple(track_selection));
 }
 
 fn on_library_update_tracks_finished(

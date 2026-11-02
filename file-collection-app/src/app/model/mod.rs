@@ -92,10 +92,85 @@ impl TrackSearchEdit {
 pub(crate) struct TrackSelection {
     /// The selected tracks in the order of selection.
     pub(crate) entity_uids: Vec<TrackUid>,
+    /// The start of ranges, i.e. the last toggled track.
+    pub(crate) anchor_entity_uid: Option<TrackUid>,
     pub(crate) state: TrackSelectionState,
 }
 
 impl TrackSelection {
+    #[must_use]
+    pub(crate) const fn new(
+        entity_uids: Vec<TrackUid>,
+        anchor_entity_uid: Option<TrackUid>,
+    ) -> Self {
+        Self {
+            entity_uids,
+            anchor_entity_uid,
+            state: TrackSelectionState::Ready { last_outcome: None },
+        }
+    }
+
+    /// Add or remove a track.
+    ///
+    /// The track becomes the anchor for selecting ranges.
+    pub(crate) fn toggle(&mut self, entity_uid: TrackUid) {
+        if let Some(index) = self
+            .entity_uids
+            .iter()
+            .position(|selected| *selected == entity_uid)
+        {
+            self.entity_uids.remove(index);
+        } else {
+            self.entity_uids.push(entity_uid.clone());
+        }
+        self.anchor_entity_uid = Some(entity_uid);
+    }
+
+    /// Add all tracks from the anchor up to and including the target.
+    ///
+    /// The range is determined by the order of `ordered_entity_uids`, i.e.
+    /// the order in the track list. Tracks are added in the direction from
+    /// the anchor to the target. Already selected tracks are preserved.
+    ///
+    /// Only selects the target if the anchor is missing or not listed.
+    /// The anchor is not modified for selecting multiple ranges from the
+    /// same anchor.
+    pub(crate) fn select_range<'a>(
+        &mut self,
+        ordered_entity_uids: impl IntoIterator<Item = &'a TrackUid>,
+        target_entity_uid: TrackUid,
+    ) {
+        let ordered_entity_uids: Vec<_> = ordered_entity_uids.into_iter().collect();
+        let position = |entity_uid: &TrackUid| {
+            ordered_entity_uids
+                .iter()
+                .position(|ordered| *ordered == entity_uid)
+        };
+        let range = self
+            .anchor_entity_uid
+            .as_ref()
+            .and_then(position)
+            .zip(position(&target_entity_uid));
+        let Some((anchor_index, target_index)) = range else {
+            if !self.contains(&target_entity_uid) {
+                self.entity_uids.push(target_entity_uid.clone());
+            }
+            self.anchor_entity_uid = Some(target_entity_uid);
+            return;
+        };
+        let indices: Box<dyn Iterator<Item = usize>> = if anchor_index <= target_index {
+            Box::new(anchor_index..=target_index)
+        } else {
+            Box::new((target_index..=anchor_index).rev())
+        };
+        for index in indices {
+            let entity_uid = ordered_entity_uids[index];
+            if !self.contains(entity_uid) {
+                self.entity_uids.push(entity_uid.clone());
+            }
+        }
+    }
+
     #[must_use]
     pub(crate) fn contains(&self, entity_uid: &TrackUid) -> bool {
         self.entity_uids.contains(entity_uid)
@@ -227,3 +302,6 @@ impl Model {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -35,7 +35,9 @@ pub(super) fn render_track_selection_editor_panel(
     track_list: &[TrackListItem],
     draft: &mut TrackSelectionDraft,
 ) {
-    let TrackSelection { entity_uids, state } = track_selection;
+    let TrackSelection {
+        entity_uids, state, ..
+    } = track_selection;
     let is_updating = track_selection.is_updating();
 
     ui.horizontal(|ui| {
@@ -52,7 +54,7 @@ pub(super) fn render_track_selection_editor_panel(
             msg_tx.send_action(TrackSelectionAction::Clear);
         }
     });
-    ui.label("Ctrl+click tracks in the list to add them to or remove them from the selection.");
+    ui.label("Ctrl+click tracks in the list to add them to or remove them from the selection. Shift+click to add a range.");
     ui.separator();
 
     ui.add_enabled_ui(!is_updating, |ui| {
