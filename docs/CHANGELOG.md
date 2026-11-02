@@ -28,8 +28,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Web API: `/` only accepts `GET` and `HEAD` requests.
 - Web API: Violations of unique constraints, e.g. duplicate collection titles, are rejected with 409
   Conflict instead of 500 Internal Server Error.
-- Web API: `POST /api/t/{trackUid}/export-metadata` responds with 204 No Content instead of 200 with
-  a `null` body.
+- Web API: `POST /api/t/{trackUid}/export-metadata` has been moved to
+  `POST /api/c/{collectionUid}/t/{trackUid}/export-metadata` and responds with 204 No Content
+  instead of 200 with a `null` body. The file is re-imported after writing it, i.e. the track
+  becomes synchronized. Custom tags are encoded as gig tags into the comment tag. Rejected with 409
+  Conflict if the file has been modified since it has been imported for the last time.
 - Web API: The `copyAll` playlist entries patch operation expects the field `sourcePlaylist` instead
   of `source_playlist`, as documented.
 - OpenAPI: Validated against the implementation, fixed numerous deviations, and documented all

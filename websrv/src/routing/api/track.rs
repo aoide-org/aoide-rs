@@ -19,7 +19,6 @@ pub(super) fn router() -> OpenApiRouter<ApiState> {
     OpenApiRouter::new()
         .routes(routes!(load_many))
         .routes(routes!(load_one))
-        .routes(routes!(export_metadata))
 }
 
 pub(super) fn collected_router() -> OpenApiRouter<ApiState> {
@@ -29,6 +28,7 @@ pub(super) fn collected_router() -> OpenApiRouter<ApiState> {
         .routes(routes!(replace))
         .routes(routes!(import_and_replace))
         .routes(routes!(find_unsynchronized))
+        .routes(routes!(export_metadata))
         .routes(routes!(export_vfs))
 }
 
@@ -97,27 +97,38 @@ async fn load_many(
 
 /// Export metadata of a single track
 ///
-/// Write track metadata into file tags.
+/// Write track metadata into file tags and re-import the file, i.e. the
+/// track becomes synchronized. Custom tags are encoded as gig tags into
+/// the comment tag.
+///
+/// Rejected with a conflict if the file has been modified since it has
+/// been imported for the last time. The file is not modified in this case.
 #[utoipa::path(
     post,
     path = "/{trackUid}/export-metadata",
     operation_id = "exportTrackMetadata",
     tag = doc::TRACKS_TAG,
-    params(doc::TrackUidPath, doc::ExportTrackMetadataQuery),
+    params(doc::CollectionUidPath, doc::TrackUidPath, doc::ExportTrackMetadataQuery),
     responses(
         (status = 204, description = "The metadata has been exported."),
         (status = 400, response = doc::BadRequest),
         (status = 404, response = doc::NotFound),
+        (status = 409, response = doc::Conflict),
         (status = 500, response = doc::InternalServerError),
     ),
 )]
 async fn export_metadata(
     State(gatekeeper): State<Arc<Gatekeeper>>,
-    Path(track_uid): Path<TrackUid>,
+    Path((collection_uid, track_uid)): Path<(CollectionUid, TrackUid)>,
     Query(query_params): Query<api::export_metadata::QueryParams>,
 ) -> Result<StatusCode> {
     spawn_blocking_write_task(&gatekeeper, move |mut connection| {
-        api::export_metadata::handle_request(&mut connection, &track_uid, query_params)
+        api::export_metadata::handle_request(
+            &mut connection,
+            &collection_uid,
+            &track_uid,
+            query_params,
+        )
     })
     .await
     .map(|()| StatusCode::NO_CONTENT)
