@@ -9,3 +9,8 @@ use self::artwork::{artwork_thumbnail_image, artwork_thumbnail_image_placeholder
 
 mod track;
 pub use self::track::{TrackListItem, TrackYear};
+
+mod track_edit;
+pub use self::track_edit::{
+    Field as TrackEditField, FieldError as TrackEditFieldError, TrackEditDraft,
+};

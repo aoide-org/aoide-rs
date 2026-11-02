@@ -14,9 +14,12 @@ use crate::library::{
 
 use super::{
     Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
-    TrackSearchAction, TrackSearchMode, UiData,
+    TrackEditAction, TrackEditor, TrackSearchAction, TrackSearchMode, UiData,
     message::{MediaTrackerDirListAction, MediaTrackerSyncAction},
+    track_editor,
 };
+
+const TRACK_EDITOR_PANEL_DEFAULT_WIDTH: f32 = 420.0;
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.
 // Only the `UiDataState` remains mutable.
@@ -44,10 +47,40 @@ impl RenderContext<'_> {
             render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &library);
         });
 
+        let track_editor = match &mdl.mode {
+            Some(ModelMode::TrackSearch(TrackSearchMode { track_editor, .. })) => {
+                track_editor.as_ref()
+            }
+            _ => None,
+        };
+        track_editor::sync_draft(track_editor, &mut ui_data.track_editor_draft);
+        let is_track_editor_draft_modified = track_editor
+            .zip(ui_data.track_editor_draft.as_ref())
+            .is_some_and(|(track_editor, draft)| draft.is_modified(track_editor));
+        if let Some(track_editor) = track_editor {
+            Panel::right("track-editor-panel")
+                .resizable(true)
+                .default_size(TRACK_EDITOR_PANEL_DEFAULT_WIDTH)
+                .show(ui, |ui| {
+                    track_editor::render_track_editor_panel(
+                        ui,
+                        msg_tx,
+                        track_editor,
+                        ui_data.track_editor_draft.as_mut(),
+                    );
+                });
+        }
+
         // CentralPanel must be added after all other panels!
         if let Some(mdl_mode) = &mdl.mode {
             CentralPanel::default().show(ui, |ui| {
-                render_central_panel(ui, msg_tx, mdl_mode, &library);
+                render_central_panel(
+                    ui,
+                    msg_tx,
+                    mdl_mode,
+                    &library,
+                    is_track_editor_draft_modified,
+                );
             });
         }
     }
@@ -189,6 +222,7 @@ fn render_central_panel(
     msg_tx: &MessageSender,
     mode: &ModelMode,
     library: &crate::library::CurrentState<'_>,
+    is_track_editor_draft_modified: bool,
 ) {
     match mode {
         ModelMode::TrackSearch(TrackSearchMode {
@@ -202,8 +236,11 @@ fn render_central_panel(
         ModelMode::TrackSearch(TrackSearchMode {
             track_list: Some(track_list),
             memo_state,
-            ..
+            track_editor,
         }) => {
+            let edited_entity_uid = track_editor
+                .as_ref()
+                .map(|TrackEditor { entity_uid, .. }| entity_uid);
             let text_style = egui::TextStyle::Body;
             let row_height = ui
                 .text_style_height(&text_style)
@@ -221,35 +258,15 @@ fn render_central_panel(
                 }
                 ui.with_layout(Layout::top_down(Align::Max), |ui| {
                     for item in &track_list[row_range] {
-                        debug_assert_eq!(
-                            item.artwork_thumbnail_texture.size_vec2().x,
-                            item.artwork_thumbnail_texture.size_vec2().y
+                        let is_edited = edited_entity_uid == Some(&item.entity_uid);
+                        render_track_list_item(
+                            ui,
+                            msg_tx,
+                            item,
+                            row_height,
+                            is_edited,
+                            is_track_editor_draft_modified,
                         );
-                        let artwork_texture = SizedTexture {
-                            id: item.artwork_thumbnail_texture.id(),
-                            size: egui::Vec2::new(row_height, row_height),
-                        };
-                        ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-                            let artwork_button = Button::image(artwork_texture).frame(false);
-                            let mut artwork_response = ui.add(artwork_button);
-                            if let Some(content_url) = &item.content_url {
-                                let file_location = content_url.to_file_path().map_or_else(
-                                    |()| content_url.to_string(),
-                                    |path| path.display().to_string(),
-                                );
-                                artwork_response =
-                                    artwork_response.on_hover_text_at_pointer(file_location);
-                                // Demo interaction handler that simply opens the content URL in a new (browser) tab.
-                                if artwork_response.clicked() || artwork_response.middle_clicked() {
-                                    ui.open_url(OpenUrl {
-                                        url: content_url.to_string(),
-                                        new_tab: true,
-                                    });
-                                }
-                            }
-                            let label = track_list_item_label(item);
-                            ui.label(label);
-                        });
                     }
                 })
             });
@@ -283,6 +300,53 @@ fn render_central_panel(
                 });
         }
     }
+}
+
+fn render_track_list_item(
+    ui: &mut Ui,
+    msg_tx: &MessageSender,
+    item: &TrackListItem,
+    row_height: f32,
+    is_edited: bool,
+    is_track_editor_draft_modified: bool,
+) {
+    debug_assert_eq!(
+        item.artwork_thumbnail_texture.size_vec2().x,
+        item.artwork_thumbnail_texture.size_vec2().y
+    );
+    let artwork_texture = SizedTexture {
+        id: item.artwork_thumbnail_texture.id(),
+        size: egui::Vec2::new(row_height, row_height),
+    };
+    ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
+        let artwork_button = Button::image(artwork_texture).frame(false);
+        let mut artwork_response = ui.add(artwork_button);
+        if let Some(content_url) = &item.content_url {
+            let file_location = content_url.to_file_path().map_or_else(
+                |()| content_url.to_string(),
+                |path| path.display().to_string(),
+            );
+            artwork_response = artwork_response.on_hover_text_at_pointer(file_location);
+            // Demo interaction handler that simply opens the content URL in a new (browser) tab.
+            if artwork_response.clicked() || artwork_response.middle_clicked() {
+                ui.open_url(OpenUrl {
+                    url: content_url.to_string(),
+                    new_tab: true,
+                });
+            }
+        }
+        let label = track_list_item_label(item);
+        let label_response = ui.selectable_label(is_edited, label);
+        if is_edited {
+            return;
+        }
+        if is_track_editor_draft_modified {
+            // Prevent losing unsaved changes unintentionally.
+            label_response.on_hover_text("Save or revert the changes of the edited track first.");
+        } else if label_response.on_hover_text("Edit the track.").clicked() {
+            msg_tx.send_action(TrackEditAction::Open(item.entity_uid.clone()));
+        }
+    });
 }
 
 fn render_bottom_panel(

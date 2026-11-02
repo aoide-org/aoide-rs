@@ -197,7 +197,6 @@ impl From<TrackSearchAction> for LibraryAction {
 }
 
 #[derive(Debug)]
-#[expect(dead_code, reason = "Not yet sent from the UI")]
 pub(crate) enum TrackEditAction {
     /// Open the editor and (re-)load the track.
     ///

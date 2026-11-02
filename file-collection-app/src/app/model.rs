@@ -52,7 +52,6 @@ impl TrackEditor {
 
     /// The entity that is edited.
     #[must_use]
-    #[expect(dead_code, reason = "Not yet used by the UI")]
     pub(crate) fn entity(&self) -> Option<&TrackEntity> {
         match &self.state {
             TrackEditorState::Loading | TrackEditorState::LoadingFailed => None,
@@ -63,7 +62,6 @@ impl TrackEditor {
     }
 
     #[must_use]
-    #[expect(dead_code, reason = "Not yet used by the UI")]
     pub(crate) const fn could_save(&self) -> bool {
         matches!(self.state, TrackEditorState::Ready { .. })
     }
@@ -107,7 +105,6 @@ pub(crate) enum TrackEditorState {
     Saving {
         /// The entity before saving.
         entity: Box<TrackEntity>,
-        #[expect(dead_code, reason = "Not yet used by the UI")]
         write_file: bool,
     },
 }

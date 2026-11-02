@@ -23,6 +23,8 @@ use self::update::UpdateContext;
 mod render;
 use self::render::RenderContext;
 
+mod track_editor;
+
 /// UI data bindings
 ///
 /// Stores user input and other mutable UI state that needs to be preserved
@@ -30,6 +32,7 @@ use self::render::RenderContext;
 #[derive(Debug, Default)]
 struct UiData {
     track_search_input: String,
+    track_editor_draft: Option<track_editor::TrackEditorDraft>,
 }
 
 #[expect(missing_debug_implementations)]
