@@ -101,6 +101,7 @@ pub(crate) enum LibraryAction {
     Collection(CollectionAction),
     TrackSearch(TrackSearchAction),
     TrackEdit(TrackEditAction),
+    ExportUnsynchronizedTracks(ExportUnsynchronizedTracksAction),
 }
 
 impl<T> From<T> for Action
@@ -211,6 +212,21 @@ pub(crate) enum TrackEditAction {
 impl From<TrackEditAction> for LibraryAction {
     fn from(action: TrackEditAction) -> Self {
         Self::TrackEdit(action)
+    }
+}
+
+/// Write the metadata of all unsynchronized tracks into their files.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum ExportUnsynchronizedTracksAction {
+    SpawnTask,
+    AbortPendingTask,
+    /// Dismiss the outcome and return to track search.
+    Finish,
+}
+
+impl From<ExportUnsynchronizedTracksAction> for LibraryAction {
+    fn from(action: ExportUnsynchronizedTracksAction) -> Self {
+        Self::ExportUnsynchronizedTracks(action)
     }
 }
 

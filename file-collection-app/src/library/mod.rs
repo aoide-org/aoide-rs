@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::PathBuf,
+    sync::{Arc, atomic::AtomicBool},
+};
 
 use anyhow::anyhow;
 use aoide::{
@@ -19,6 +22,7 @@ use tokio::task::AbortHandle;
 use crate::NoReceiverForEvent;
 
 pub mod collection;
+pub mod export_unsynchronized_tracks;
 pub mod settings;
 pub mod track_edit;
 pub mod track_search;
@@ -34,6 +38,8 @@ pub enum Event {
         Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>,
     ),
     MusicDirSyncFinished(Box<aoide::desktop_app::collection::SynchronizingVfsFinishedState>),
+    ExportUnsynchronizedTracksProgress(export_unsynchronized_tracks::Progress),
+    ExportUnsynchronizedTracksFinished(Box<anyhow::Result<export_unsynchronized_tracks::Outcome>>),
     MusicDirListResult {
         collection_uid: CollectionUid,
         params: aoide::api::media::tracker::count_sources_in_directories::Params,
@@ -110,6 +116,9 @@ pub enum State {
     SynchronizingMusicDir {
         task: SynchronizingVfsTask,
     },
+    ExportingUnsynchronizedTracks {
+        abort_flag: Arc<AtomicBool>,
+    },
 }
 
 #[expect(missing_debug_implementations)]
@@ -128,7 +137,7 @@ impl CurrentState<'_> {
 
     #[must_use]
     pub fn could_synchronize_music_dir_task(&self) -> bool {
-        self.collection.is_ready()
+        self.collection.is_ready() && matches!(self.library, State::Idle)
     }
 
     #[must_use]
@@ -145,6 +154,16 @@ impl CurrentState<'_> {
     #[must_use]
     pub fn could_view_music_dir_list(&self) -> bool {
         self.collection.is_ready() && !self.could_abort_synchronize_music_dir_task()
+    }
+
+    #[must_use]
+    pub fn could_export_unsynchronized_tracks(&self) -> bool {
+        self.collection.is_ready() && matches!(self.library, State::Idle)
+    }
+
+    #[must_use]
+    pub const fn could_abort_export_unsynchronized_tracks(&self) -> bool {
+        matches!(self.library, State::ExportingUnsynchronizedTracks { .. })
     }
 
     #[must_use]
@@ -265,6 +284,11 @@ impl Library {
                 task.abort();
                 ActionEffect::Changed
             }
+            State::ExportingUnsynchronizedTracks { abort_flag } => {
+                // Abort pending task.
+                abort_flag.store(true, std::sync::atomic::Ordering::Relaxed);
+                ActionEffect::Changed
+            }
         }
     }
 
@@ -296,7 +320,7 @@ impl Library {
     where
         E: EventEmitter + Clone + 'static,
     {
-        if matches!(self.state, State::SynchronizingMusicDir { .. }) {
+        if !matches!(self.state, State::Idle) {
             let rejected = anyhow!("already/still pending");
             return (ActionEffect::Unchanged, Err(rejected));
         }
@@ -385,6 +409,11 @@ impl Library {
             State::SynchronizingMusicDir { task } => {
                 debug_assert!(task.is_finished());
                 ActionEffect::Changed
+            }
+            state @ State::ExportingUnsynchronizedTracks { .. } => {
+                // Restore the unexpected state.
+                self.state = state;
+                ActionEffect::Unchanged
             }
         }
     }

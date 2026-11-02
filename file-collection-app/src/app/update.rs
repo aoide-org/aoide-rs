@@ -7,6 +7,7 @@ use aoide::{
         ActionEffect, collection::SynchronizingVfsFinishedState,
         track::repo_search::FetchedEntitiesMemo,
     },
+    media::content::ContentPath,
 };
 use egui::Context;
 
@@ -20,7 +21,10 @@ use super::{
     Action, CollectionAction, Event, LibraryAction, Message, MessageSender, Model, ModelMode,
     MusicDirSelection, MusicDirectoryAction, TrackEditAction, TrackEditor, TrackEditorState,
     TrackSearchAction, TrackSearchMode,
-    message::{MediaTrackerAction, MediaTrackerDirListAction, MediaTrackerSyncAction},
+    message::{
+        ExportUnsynchronizedTracksAction, MediaTrackerAction, MediaTrackerDirListAction,
+        MediaTrackerSyncAction,
+    },
 };
 
 pub(super) struct UpdateContext<'a> {
@@ -47,6 +51,9 @@ impl UpdateContext<'_> {
                 LibraryAction::Collection(action) => self.on_library_collection_action(action),
                 LibraryAction::TrackSearch(action) => self.on_library_track_search_action(action),
                 LibraryAction::TrackEdit(action) => self.on_library_track_edit_action(action),
+                LibraryAction::ExportUnsynchronizedTracks(action) => {
+                    self.on_library_export_unsynchronized_tracks_action(action)
+                }
             },
         };
         if matches!(action_effect, ActionEffect::Unchanged) {
@@ -309,6 +316,46 @@ impl UpdateContext<'_> {
         mode_effect + action_effect
     }
 
+    fn on_library_export_unsynchronized_tracks_action(
+        &mut self,
+        action: ExportUnsynchronizedTracksAction,
+    ) -> ActionEffect {
+        let Self { rt, msg_tx, mdl } = self;
+        let Model { library, mode, .. } = mdl;
+        match action {
+            ExportUnsynchronizedTracksAction::SpawnTask => {
+                let (mut effect, result) = library.export_unsynchronized_tracks(rt, *msg_tx);
+                match result {
+                    Ok(()) => {
+                        log::debug!("Switching to export unsynchronized tracks progress view");
+                        *mode = Some(ModelMode::ExportUnsynchronizedTracks {
+                            last_progress: None,
+                            final_outcome: None,
+                        });
+                        effect += ActionEffect::MaybeChanged;
+                    }
+                    Err(err) => {
+                        log::warn!("Failed to export unsynchronized tracks: {err:#}");
+                    }
+                }
+                effect
+            }
+            ExportUnsynchronizedTracksAction::AbortPendingTask => {
+                library.export_unsynchronized_tracks_abort()
+            }
+            ExportUnsynchronizedTracksAction::Finish => {
+                if !matches!(mode, Some(ModelMode::ExportUnsynchronizedTracks { .. })) {
+                    return ActionEffect::Unchanged;
+                }
+                log::debug!("Closing export unsynchronized tracks progress view");
+                *mode = None;
+                // Reload the modified tracks.
+                msg_tx.send_action(CollectionAction::RefreshFromDb);
+                ActionEffect::Changed
+            }
+        }
+    }
+
     fn on_library_track_edit_action(&mut self, action: TrackEditAction) -> ActionEffect {
         let Self { rt, msg_tx, mdl } = self;
         let Model { library, mode, .. } = mdl;
@@ -437,37 +484,18 @@ impl UpdateContext<'_> {
                     );
                 }
             }
+            library::Event::ExportUnsynchronizedTracksProgress(progress) => {
+                on_library_export_unsynchronized_tracks_progress(mode, progress);
+            }
+            library::Event::ExportUnsynchronizedTracksFinished(result) => {
+                on_library_export_unsynchronized_tracks_finished(library, mode, *result);
+            }
             library::Event::MusicDirListResult {
                 collection_uid,
                 params: _,
                 result,
             } => {
-                let new_content_paths_with_count = match result {
-                    Ok(content_paths_with_count) => content_paths_with_count,
-                    Err(err) => {
-                        log::warn!("Failed to view music directory list: {err}");
-                        // TODO: Set last error.
-                        return;
-                    }
-                };
-                if Some(&collection_uid) != library.read_collection_state().entity_uid() {
-                    log::debug!(
-                        "Discarding unexpected music directory list with {num_items} item(s) for collection {collection_uid}: {mode:?}",
-                        num_items = new_content_paths_with_count.len()
-                    );
-                    return;
-                }
-                if let Some(ModelMode::MusicDirList {
-                    content_paths_with_count,
-                }) = mode
-                {
-                    *content_paths_with_count = new_content_paths_with_count;
-                } else {
-                    log::debug!(
-                        "Discarding unexpected music directory list with {num_items} item(s): {mode:?}",
-                        num_items = new_content_paths_with_count.len()
-                    );
-                }
+                on_library_music_dir_list_result(library, mode, &collection_uid, result);
             }
         }
     }
@@ -525,6 +553,87 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
     if reset_music_dir {
         // The UI will be repainted in any case (see above).
         let _ = library.reset_music_dir();
+    }
+}
+
+fn on_library_music_dir_list_result(
+    library: &Library,
+    mode: &mut Option<ModelMode>,
+    collection_uid: &CollectionUid,
+    result: anyhow::Result<Vec<(ContentPath<'static>, usize)>>,
+) {
+    let new_content_paths_with_count = match result {
+        Ok(content_paths_with_count) => content_paths_with_count,
+        Err(err) => {
+            log::warn!("Failed to view music directory list: {err}");
+            // TODO: Set last error.
+            return;
+        }
+    };
+    if Some(collection_uid) != library.read_collection_state().entity_uid() {
+        log::debug!(
+            "Discarding unexpected music directory list with {num_items} item(s) for collection {collection_uid}: {mode:?}",
+            num_items = new_content_paths_with_count.len()
+        );
+        return;
+    }
+    if let Some(ModelMode::MusicDirList {
+        content_paths_with_count,
+    }) = mode
+    {
+        *content_paths_with_count = new_content_paths_with_count;
+    } else {
+        log::debug!(
+            "Discarding unexpected music directory list with {num_items} item(s): {mode:?}",
+            num_items = new_content_paths_with_count.len()
+        );
+    }
+}
+
+fn on_library_export_unsynchronized_tracks_progress(
+    mode: &mut Option<ModelMode>,
+    progress: library::export_unsynchronized_tracks::Progress,
+) {
+    if let Some(ModelMode::ExportUnsynchronizedTracks {
+        last_progress,
+        final_outcome,
+    }) = mode
+    {
+        debug_assert!(final_outcome.is_none());
+        *last_progress = Some(progress);
+    } else {
+        log::debug!("Discarding unexpected export unsynchronized tracks progress: {progress:?}");
+    }
+}
+
+fn on_library_export_unsynchronized_tracks_finished(
+    library: &mut Library,
+    mode: &mut Option<ModelMode>,
+    result: anyhow::Result<library::export_unsynchronized_tracks::Outcome>,
+) {
+    let _ = library.export_unsynchronized_tracks_finished();
+    let outcome = match result {
+        Ok(outcome) => {
+            log::info!(
+                "Exporting unsynchronized tracks finished: {completion:?}, {exported} \
+                     exported, {skipped} skipped, {failed} failed",
+                completion = outcome.completion,
+                exported = outcome.exported.len(),
+                skipped = outcome.skipped.len(),
+                failed = outcome.failed.len(),
+            );
+            Ok(Box::new(outcome))
+        }
+        Err(err) => {
+            log::warn!("Exporting unsynchronized tracks failed: {err:#}");
+            Err(format!("{err:#}"))
+        }
+    };
+    if let Some(ModelMode::ExportUnsynchronizedTracks { final_outcome, .. }) = mode {
+        debug_assert!(final_outcome.is_none());
+        *final_outcome = Some(outcome);
+    } else {
+        log::debug!("Discarding unexpected export unsynchronized tracks outcome: {mode:?}");
     }
 }
 
@@ -657,7 +766,19 @@ fn replace_track_list_item(ctx: &Context, track_list: &mut [TrackListItem], enti
         .content_url
         .clone()
         .or_else(|| item.content_url.take());
-    *item = TrackListItem::new(ctx, entity.hdr.uid.clone(), content_url, &entity.body.track);
+    *item = TrackListItem::new(
+        ctx,
+        entity.hdr.uid.clone(),
+        content_url,
+        is_synchronized(entity),
+        &entity.body.track,
+    );
+}
+
+/// Check if the current revision of the track has been written into the file.
+#[must_use]
+pub(super) fn is_synchronized(entity: &TrackEntity) -> bool {
+    entity.body.last_synchronized_rev == Some(entity.hdr.rev)
 }
 
 fn on_library_track_search_state_changed(
@@ -731,6 +852,7 @@ fn collect_and_forward_fetched_track_list_items(
                         ctx,
                         entity_uid,
                         content_url,
+                        is_synchronized(&fetched_entity.entity),
                         &fetched_entity.entity.body.track,
                     )
                 })

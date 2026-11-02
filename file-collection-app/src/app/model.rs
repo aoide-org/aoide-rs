@@ -3,7 +3,7 @@
 
 use aoide::{TrackEntity, TrackUid, media::content::ContentPath};
 
-use crate::library::{Library, track_search, ui::TrackListItem};
+use crate::library::{Library, export_unsynchronized_tracks, track_search, ui::TrackListItem};
 
 // Mutually exclusive modes of operation.
 #[derive(Debug)]
@@ -17,6 +17,10 @@ pub(crate) enum ModelMode {
     },
     MusicDirList {
         content_paths_with_count: Vec<(ContentPath<'static>, usize)>,
+    },
+    ExportUnsynchronizedTracks {
+        last_progress: Option<export_unsynchronized_tracks::Progress>,
+        final_outcome: Option<Result<Box<export_unsynchronized_tracks::Outcome>, String>>,
     },
 }
 

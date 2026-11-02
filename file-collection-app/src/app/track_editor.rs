@@ -120,7 +120,7 @@ pub(super) fn render_track_editor_panel(
     };
     let original_track = &entity.body.track;
     let is_modified = draft.is_modified(original_track);
-    let is_synchronized = entity.body.last_synchronized_rev == Some(entity.hdr.rev);
+    let is_synchronized = super::update::is_synchronized(entity);
     if !is_synchronized {
         ui.label("The file has not been written since the track has been modified.");
     }

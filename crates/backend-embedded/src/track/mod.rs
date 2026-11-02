@@ -206,9 +206,10 @@ where
 ///
 /// See also: [`aoide_usecases::track::update::update_one()`]
 ///
-/// All database modifications are rolled back on failure. If writing
-/// the file succeeded but the subsequent re-import failed, then the
-/// metadata will be re-imported during the next synchronization.
+/// All database modifications are rolled back on failure, even if writing
+/// the file succeeded and only the subsequent re-import failed. In this
+/// case the metadata is only re-imported during the next synchronization
+/// if the track has been synchronized before editing it.
 pub async fn update_one(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,

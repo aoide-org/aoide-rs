@@ -27,7 +27,7 @@ use aoide_repo::track::ReplaceMode;
 use aoide_repo_sqlite::{DbConnection, initialize_database, run_migrations};
 use aoide_usecases::track::validate_input;
 
-use super::{Conflict, ExportParams, Outcome, Params, update_one};
+use super::{Conflict, ExportParams, Outcome, Params, export_one, update_one};
 
 const ASSET_FILE_PATH: &str = "../media-file/tests/assets/empty.mp3";
 
@@ -102,13 +102,7 @@ impl Fixture {
         write_file: bool,
     ) -> anyhow::Result<Outcome> {
         let (validated_input, _) = validate_input(track)?;
-        let export = write_file.then(|| ExportParams {
-            export_config: ExportTrackConfig {
-                encode_gigtags: Some(FACET_ID_COMMENT.clone()),
-                ..Default::default()
-            },
-            import_config: ImportTrackConfig::default(),
-        });
+        let export = write_file.then(export_params);
         let params = Params { export };
         let outcome = self.connection.transaction(|connection| {
             update_one(
@@ -120,6 +114,16 @@ impl Fixture {
             )
         })?;
         Ok(outcome)
+    }
+}
+
+fn export_params() -> ExportParams {
+    ExportParams {
+        export_config: ExportTrackConfig {
+            encode_gigtags: Some(FACET_ID_COMMENT.clone()),
+            ..Default::default()
+        },
+        import_config: ImportTrackConfig::default(),
     }
 }
 
@@ -248,5 +252,73 @@ fn reject_update_if_file_modified() -> anyhow::Result<()> {
             Outcome::Rejected(Conflict::ContentRevision { .. })
         ));
     }
+    Ok(())
+}
+
+#[test]
+fn export_unsynchronized_track() -> anyhow::Result<()> {
+    let mut fixture = Fixture::new()?;
+    let imported_entity = fixture.import_track()?;
+    let edited_track = edit_track(&imported_entity.body.track);
+    let Outcome::Updated { entity, .. } =
+        fixture.update_track(&imported_entity, edited_track.clone(), false)?
+    else {
+        panic!("rejected");
+    };
+    assert_ne!(Some(entity.hdr.rev), entity.body.last_synchronized_rev);
+
+    let collection_uid = fixture.collection_uid.clone();
+    let outcome = fixture.connection.transaction(|connection| {
+        export_one(connection, &collection_uid, &entity.hdr, export_params())
+    })?;
+    let Outcome::Updated {
+        entity: exported_entity,
+        exported,
+    } = outcome
+    else {
+        panic!("rejected");
+    };
+    assert!(exported);
+    assert_eq!(
+        Some(exported_entity.hdr.rev),
+        exported_entity.body.last_synchronized_rev
+    );
+    assert_eq!(edited_track.tags, exported_entity.body.track.tags);
+    Ok(())
+}
+
+#[test]
+fn reject_update_of_track_from_other_collection() -> anyhow::Result<()> {
+    let mut fixture = Fixture::new()?;
+    let imported_entity = fixture.import_track()?;
+    let other_collection = Collection {
+        title: "Other Collection".into(),
+        notes: None,
+        kind: None,
+        color: None,
+        media_source_config: MediaSourceConfig {
+            content_path: ContentPathConfig::VirtualFilePath(VirtualFilePathConfig {
+                root_url: BaseUrl::parse_strict("file:///other/")?,
+                excluded_paths: Vec::new(),
+            }),
+        },
+    };
+    let other_collection_uid =
+        crate::collection::create(&mut fixture.connection, other_collection)?
+            .hdr
+            .uid
+            .clone();
+    let result = fixture.connection.transaction(|connection| {
+        export_one(
+            connection,
+            &other_collection_uid,
+            &imported_entity.hdr,
+            export_params(),
+        )
+    });
+    assert!(matches!(
+        result,
+        Err(crate::Error::Repository(aoide_repo::RepoError::NotFound))
+    ));
     Ok(())
 }

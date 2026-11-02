@@ -6,12 +6,14 @@ use std::{fs::File, path::Path, sync::atomic::AtomicBool};
 use anyhow::anyhow;
 
 use aoide_core::{
-    CollectionUid, EntityRevision, TrackEntity, media::content::ContentRevision,
+    CollectionUid, EntityRevision, TrackEntity,
+    media::content::{ContentPath, ContentRevision},
     track::EntityHeader,
 };
 use aoide_core_api::media::SyncMode;
 use aoide_media_file::io::{export::ExportTrackConfig, import::ImportTrackConfig};
 use aoide_repo::{
+    CollectionId, RepoError,
     collection::EntityRepo as CollectionRepo,
     track::{
         CollectionRepo as TrackCollectionRepo, EntityRepo as TrackEntityRepo, ReplaceMode,
@@ -21,7 +23,7 @@ use aoide_repo::{
 
 use crate::{Error, Result, collection::vfs::RepoContext, media::export_track_metadata_into_file};
 
-use super::{ValidatedInput, import_and_replace, replace};
+use super::{ValidatedInput, import_and_replace, replace, validate_input};
 
 #[derive(Debug, Clone)]
 pub struct ExportParams {
@@ -104,16 +106,13 @@ where
     let content_path_resolver = resolver.canonical_resolver();
     let collection_id = collection_ctx.record_id;
 
-    let (_, current_entity) = repo.load_track_entity_by_uid(&expected_entity_hdr.uid)?;
+    let current_entity = load_collected_entity(
+        repo,
+        collection_id,
+        expected_entity_hdr,
+        &track.media_source.content.link.path,
+    )?;
     let current_media_source = &current_entity.body.track.media_source;
-    if track.media_source.content.link.path != current_media_source.content.link.path {
-        return Err(Error::Other(anyhow!(
-            "media source content path must not be changed: expected \"{expected}\", actual \
-             \"{actual}\"",
-            expected = current_media_source.content.link.path,
-            actual = track.media_source.content.link.path,
-        )));
-    }
     let file_path = content_path_resolver.build_file_path(&current_media_source.content.link.path);
     if let Some(conflict) = check_for_conflict(expected_entity_hdr, &current_entity, &file_path)? {
         log::info!(
@@ -196,6 +195,63 @@ where
         entity,
         exported: true,
     })
+}
+
+/// Write the current metadata of a track into the file.
+///
+/// Intended for synchronizing tracks that have only been modified
+/// in the database.
+///
+/// Same as [`update_one()`] with the current, unmodified track and
+/// writing the file, including all checks for conflicts.
+pub fn export_one<Repo>(
+    repo: &mut Repo,
+    collection_uid: &CollectionUid,
+    expected_entity_hdr: &EntityHeader,
+    export: ExportParams,
+) -> Result<Outcome>
+where
+    Repo: CollectionRepo + TrackCollectionRepo + TrackEntityRepo,
+{
+    let (_, entity) = repo.load_track_entity_by_uid(&expected_entity_hdr.uid)?;
+    // Unchanged invalidities have already been reported when importing the track.
+    let (track, _invalidities) = validate_input(entity.raw.body.track)?;
+    let params = Params {
+        export: Some(export),
+    };
+    update_one(repo, collection_uid, expected_entity_hdr, track, &params)
+}
+
+/// Load the current entity of a track in the collection.
+///
+/// The content path of the media source must not be changed.
+fn load_collected_entity<Repo>(
+    repo: &mut Repo,
+    collection_id: CollectionId,
+    expected_entity_hdr: &EntityHeader,
+    content_path: &ContentPath<'_>,
+) -> Result<TrackEntity>
+where
+    Repo: TrackCollectionRepo + TrackEntityRepo,
+{
+    let (_, current_entity) = repo.load_track_entity_by_uid(&expected_entity_hdr.uid)?;
+    let current_content_path = &current_entity.body.track.media_source.content.link.path;
+    // The track must belong to the collection.
+    let (_, _, collected_entity_hdr) = repo
+        .resolve_track_entity_header_by_media_source_content_path(
+            collection_id,
+            current_content_path,
+        )?;
+    if collected_entity_hdr.uid != expected_entity_hdr.uid {
+        return Err(RepoError::NotFound.into());
+    }
+    if content_path != current_content_path {
+        return Err(Error::Other(anyhow!(
+            "media source content path must not be changed: expected \"{current_content_path}\", \
+             actual \"{content_path}\""
+        )));
+    }
+    Ok(current_entity)
 }
 
 fn check_for_conflict(

@@ -31,6 +31,9 @@ pub struct TrackListItem {
     pub entity_uid: TrackUid,
     pub content_url: Option<Url>,
 
+    /// Modifications have been written into the file.
+    pub is_synchronized: bool,
+
     pub artist: Option<String>,
     pub title: Option<String>,
     pub album_artist: Option<String>,
@@ -56,6 +59,7 @@ impl TrackListItem {
         ctx: &Context,
         entity_uid: aoide::TrackUid,
         content_url: Option<Url>,
+        is_synchronized: bool,
         track: &aoide::Track,
     ) -> Self {
         let artist = track.track_artist().map(ToOwned::to_owned);
@@ -117,6 +121,7 @@ impl TrackListItem {
         Self {
             entity_uid,
             content_url,
+            is_synchronized,
             artist,
             title,
             album_artist,

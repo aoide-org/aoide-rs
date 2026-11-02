@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::track::tag::{FACET_ID_GENRE, FACET_ID_MOOD};
-use aoide_media_file::util::tag::{
-    FacetedTagMappingConfig, FacetedTagMappingConfigInner, TagMappingConfig,
+use aoide_core::track::tag::{FACET_ID_COMMENT, FACET_ID_GENRE, FACET_ID_MOOD};
+use aoide_media_file::{
+    io::{export::ExportTrackConfig, import::ImportTrackConfig},
+    util::tag::{FacetedTagMappingConfig, FacetedTagMappingConfigInner, TagMappingConfig},
 };
 
 pub mod source;
@@ -56,4 +57,29 @@ pub fn predefined_faceted_tag_mapping_config() -> FacetedTagMappingConfig {
     .into_iter()
     .collect::<FacetedTagMappingConfigInner>()
     .into()
+}
+
+/// An opinionated [`ImportTrackConfig`] based on
+/// [`predefined_faceted_tag_mapping_config()`].
+///
+/// Gig tags are decoded from both the grouping and the comment tag.
+#[must_use]
+pub fn predefined_import_track_config() -> ImportTrackConfig {
+    ImportTrackConfig {
+        faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
+        ..Default::default()
+    }
+}
+
+/// An opinionated [`ExportTrackConfig`] that matches
+/// [`predefined_import_track_config()`].
+///
+/// Gig tags are encoded into the comment tag.
+#[must_use]
+pub fn predefined_export_track_config() -> ExportTrackConfig {
+    ExportTrackConfig {
+        faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
+        encode_gigtags: Some(FACET_ID_COMMENT.clone()),
+        ..Default::default()
+    }
 }

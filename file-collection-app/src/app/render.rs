@@ -8,18 +8,22 @@ use egui::{
 };
 
 use crate::library::{
-    track_search,
+    export_unsynchronized_tracks, track_search,
     ui::{ARTWORK_THUMBNAIL_IMAGE_SIZE, TrackListItem},
 };
 
 use super::{
     Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
     TrackEditAction, TrackEditor, TrackSearchAction, TrackSearchMode, UiData,
-    message::{MediaTrackerDirListAction, MediaTrackerSyncAction},
+    message::{
+        ExportUnsynchronizedTracksAction, MediaTrackerDirListAction, MediaTrackerSyncAction,
+    },
     track_editor,
 };
 
 const TRACK_EDITOR_PANEL_DEFAULT_WIDTH: f32 = 420.0;
+
+const UNSYNCHRONIZED_MARKER: &str = "*";
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.
 // Only the `UiDataState` remains mutable.
@@ -39,14 +43,6 @@ impl RenderContext<'_> {
 
         let library = mdl.library.read_current_state();
 
-        Panel::top("top-panel").show(ui, |ui| {
-            render_top_panel(ui, ui_data, msg_tx, mdl, &library);
-        });
-
-        Panel::bottom("bottom-panel").show(ui, |ui| {
-            render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &library);
-        });
-
         let track_editor = match &mdl.mode {
             Some(ModelMode::TrackSearch(TrackSearchMode { track_editor, .. })) => {
                 track_editor.as_ref()
@@ -57,6 +53,22 @@ impl RenderContext<'_> {
         let is_track_editor_draft_modified = track_editor
             .zip(ui_data.track_editor_draft.as_ref())
             .is_some_and(|(track_editor, draft)| draft.is_modified(track_editor));
+
+        Panel::top("top-panel").show(ui, |ui| {
+            render_top_panel(
+                ui,
+                ui_data,
+                msg_tx,
+                mdl,
+                &library,
+                is_track_editor_draft_modified,
+            );
+        });
+
+        Panel::bottom("bottom-panel").show(ui, |ui| {
+            render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &library);
+        });
+
         if let Some(track_editor) = track_editor {
             Panel::right("track-editor-panel")
                 .resizable(true)
@@ -93,6 +105,7 @@ fn render_top_panel(
     msg_tx: &MessageSender,
     mdl: &Model,
     library: &crate::library::CurrentState<'_>,
+    is_track_editor_draft_modified: bool,
 ) {
     let Model {
         music_dir_selection,
@@ -148,6 +161,21 @@ fn render_top_panel(
                     .clicked()
                 {
                     msg_tx.send_action(MediaTrackerDirListAction::OpenView);
+                }
+                if ui
+                    .add_enabled(
+                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting))
+                            // Unsaved changes would be lost when switching the mode.
+                            && !is_track_editor_draft_modified
+                            && library.could_export_unsynchronized_tracks(),
+                        Button::new("Write unsynchronized files"),
+                    )
+                    .on_hover_text(
+                        "Write the metadata of all modified tracks into their files. Files that have been modified on disk are skipped.",
+                    )
+                    .clicked()
+                {
+                    msg_tx.send_action(ExportUnsynchronizedTracksAction::SpawnTask);
                 }
                 if ui
                     .add_enabled(
@@ -287,6 +315,20 @@ fn render_central_panel(
                     }
                 });
         }
+        ModelMode::ExportUnsynchronizedTracks {
+            last_progress,
+            final_outcome,
+        } => {
+            ScrollArea::both()
+                .scroll_source(ScrollSource::ALL)
+                .show(ui, |ui| {
+                    render_export_unsynchronized_tracks(
+                        ui,
+                        last_progress.as_ref(),
+                        final_outcome.as_ref(),
+                    );
+                });
+        }
         ModelMode::MusicDirList {
             content_paths_with_count,
         } => {
@@ -335,6 +377,10 @@ fn render_track_list_item(
                 });
             }
         }
+        if !item.is_synchronized {
+            ui.colored_label(ui.visuals().warn_fg_color, UNSYNCHRONIZED_MARKER)
+                .on_hover_text("Modified, but not written into the file yet.");
+        }
         let label = track_list_item_label(item);
         let label_response = ui.selectable_label(is_edited, label);
         if is_edited {
@@ -347,6 +393,70 @@ fn render_track_list_item(
             msg_tx.send_action(TrackEditAction::Open(item.entity_uid.clone()));
         }
     });
+}
+
+fn render_export_unsynchronized_tracks(
+    ui: &mut Ui,
+    last_progress: Option<&export_unsynchronized_tracks::Progress>,
+    final_outcome: Option<&Result<Box<export_unsynchronized_tracks::Outcome>, String>>,
+) {
+    let Some(final_outcome) = final_outcome else {
+        ui.horizontal(|ui| {
+            ui.spinner();
+            if let Some(export_unsynchronized_tracks::Progress { total, finished }) = last_progress
+            {
+                ui.label(format!("Writing files: {finished} of {total}"));
+            } else {
+                ui.label("Finding unsynchronized tracks...");
+            }
+        });
+        return;
+    };
+    let outcome = match final_outcome {
+        Ok(outcome) => outcome,
+        Err(err) => {
+            ui.colored_label(
+                ui.visuals().error_fg_color,
+                format!("Writing files failed: {err}"),
+            );
+            return;
+        }
+    };
+    let export_unsynchronized_tracks::Outcome {
+        completion,
+        exported,
+        skipped,
+        failed,
+    } = outcome.as_ref();
+    if matches!(
+        completion,
+        export_unsynchronized_tracks::Completion::Aborted
+    ) {
+        ui.label("Aborted.");
+    }
+    ui.label(format!(
+        "Written: {exported}, skipped: {skipped}, failed: {failed}",
+        exported = exported.len(),
+        skipped = skipped.len(),
+        failed = failed.len(),
+    ));
+    if !skipped.is_empty() {
+        ui.separator();
+        ui.label("Skipped files that have been modified on disk or never been imported. Synchronize the music directory first:");
+        for (_, content_path, _) in skipped {
+            ui.label(format!("/{content_path}"));
+        }
+    }
+    if !failed.is_empty() {
+        ui.separator();
+        ui.label("Failed:");
+        for (_, content_path, error) in failed {
+            ui.colored_label(
+                ui.visuals().error_fg_color,
+                format!("/{content_path}: {error}"),
+            );
+        }
+    }
 }
 
 fn render_bottom_panel(
@@ -383,6 +493,19 @@ fn render_bottom_panel(
                             hover_text = "Clear output and return to track search.";
                             enabled = true;
                             action = MediaTrackerSyncAction::Finish.into();
+                        }
+                    }
+                    ModelMode::ExportUnsynchronizedTracks { .. } => {
+                        if library.could_abort_export_unsynchronized_tracks() {
+                            text = "Abort";
+                            hover_text = "Stop writing files after the current file.";
+                            enabled = true;
+                            action = ExportUnsynchronizedTracksAction::AbortPendingTask.into();
+                        } else {
+                            text = "Dismiss";
+                            hover_text = "Clear output and return to track search.";
+                            enabled = true;
+                            action = ExportUnsynchronizedTracksAction::Finish.into();
                         }
                     }
                     ModelMode::MusicDirList { .. } => {

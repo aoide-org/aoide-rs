@@ -10,7 +10,7 @@ use crate::{RepoConnection, Result};
 pub use aoide_usecases::track::update::{Conflict, ExportParams, Outcome, Params};
 
 mod uc {
-    pub(super) use aoide_usecases::track::update::update_one;
+    pub(super) use aoide_usecases::track::update::{export_one, update_one};
 }
 
 pub fn update_one(
@@ -29,6 +29,16 @@ pub fn update_one(
         params,
     )
     .map_err(Into::into)
+}
+
+pub fn export_one(
+    connection: &mut DbConnection,
+    collection_uid: &CollectionUid,
+    expected_entity_hdr: &EntityHeader,
+    export: ExportParams,
+) -> Result<Outcome> {
+    let mut repo = RepoConnection::new(connection);
+    uc::export_one(&mut repo, collection_uid, expected_entity_hdr, export).map_err(Into::into)
 }
 
 #[cfg(test)]

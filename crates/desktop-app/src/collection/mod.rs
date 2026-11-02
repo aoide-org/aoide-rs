@@ -24,7 +24,7 @@ use aoide_backend_embedded::{
             UntrackedMediaSources,
         },
     },
-    media::predefined_faceted_tag_mapping_config,
+    media::predefined_import_track_config,
 };
 use aoide_core::{
     collection::{Collection, Entity, EntityUid, MediaSourceConfig},
@@ -1353,11 +1353,8 @@ impl SynchronizingVfsTask {
                     progress_pub.lock().unwrap().write(Some(progress));
                 }
             };
-            let import_track_config = ImportTrackConfig {
-                // TODO: Customize faceted tag mapping
-                faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
-                ..Default::default()
-            };
+            // TODO: Customize faceted tag mapping
+            let import_track_config = predefined_import_track_config();
             let abort_flag = Arc::clone(&abort_flag);
             let entity_uid = continuation.context.entity.hdr.uid.clone();
             async move {

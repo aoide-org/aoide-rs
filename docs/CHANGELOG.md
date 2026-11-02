@@ -39,6 +39,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Web API: Exporting track metadata failed for all files, which were opened write-only, and for
+  collections with relative content paths.
+- Lancelot key codes were imported with swapped major/minor modes, e.g. "8A" as C major instead of A
+  minor. A few Beatport and traditional key notations could not be parsed.
 - Web API: Searching tracks with `encodeGigtags` crashed the server in debug builds.
 - JSON schemas: Enums that are serialized as integers are no longer described as strings.
 

@@ -7,10 +7,9 @@ use std::sync::Arc;
 
 use aoide::{
     CollectionUid, Track, TrackEntity, TrackUid,
-    backend_embedded::media::predefined_faceted_tag_mapping_config,
+    backend_embedded::media::{predefined_export_track_config, predefined_import_track_config},
     desktop_app::ActionEffect,
-    media_file::io::{export::ExportTrackConfig, import::ImportTrackConfig},
-    track::{EntityHeader, tag::FACET_ID_COMMENT},
+    track::EntityHeader,
     usecases::track::update::{ExportParams, Params},
 };
 
@@ -34,31 +33,16 @@ pub enum Event {
 }
 
 #[must_use]
-fn import_track_config() -> ImportTrackConfig {
-    // Must match the configuration for synchronizing the music directory.
-    ImportTrackConfig {
-        faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
-        ..Default::default()
-    }
-}
-
-#[must_use]
-fn export_track_config() -> ExportTrackConfig {
-    ExportTrackConfig {
-        faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
-        // Custom tags are encoded as gig tags into the comment tag that
-        // is decoded again when importing the file.
-        encode_gigtags: Some(FACET_ID_COMMENT.clone()),
-        ..Default::default()
+pub(crate) fn export_params() -> ExportParams {
+    ExportParams {
+        export_config: predefined_export_track_config(),
+        import_config: predefined_import_track_config(),
     }
 }
 
 #[must_use]
 fn update_params(write_file: bool) -> Params {
-    let export = write_file.then(|| ExportParams {
-        export_config: export_track_config(),
-        import_config: import_track_config(),
-    });
+    let export = write_file.then(export_params);
     Params { export }
 }
 

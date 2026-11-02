@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+pub mod export_unsynchronized_tracks;
 pub mod synchronize_collection_vfs;
 
 #[cfg(feature = "tantivy")]
