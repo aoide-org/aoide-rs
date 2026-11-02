@@ -160,3 +160,49 @@ fn display_key_sigs() {
         LancelotKeySignature::from(KeySignature::new(KeyCode::Dmin)).to_string()
     );
 }
+
+#[test]
+fn format_parse_roundtrip() {
+    for code in KeyCode::iter() {
+        assert_eq!(
+            Some(code),
+            KeyCode::try_from_canonical_str(code.as_canonical_str()),
+            "canonical"
+        );
+        assert_eq!(
+            Some(code),
+            KeyCode::try_from_traditional_str(code.as_traditional_str()),
+            "traditional"
+        );
+        assert_eq!(
+            Some(code),
+            KeyCode::try_from_traditional_ascii_str(code.as_traditional_ascii_str()),
+            "traditional ASCII"
+        );
+        assert_eq!(
+            Some(code),
+            KeyCode::try_from_openkey_str(code.as_openkey_str()),
+            "OpenKey"
+        );
+        assert_eq!(
+            Some(code),
+            KeyCode::try_from_lancelot_str(code.as_lancelot_str()),
+            "Lancelot"
+        );
+        assert_eq!(
+            Some(code),
+            KeyCode::try_from_traxsource_str(code.as_traxsource_str()),
+            "Traxsource"
+        );
+        assert_eq!(
+            Some(code),
+            KeyCode::try_from_beatport_str(code.as_beatport_str()),
+            "Beatport"
+        );
+        assert_eq!(
+            Some(code),
+            KeyCode::try_from_serato_str(code.as_serato_str()),
+            "Serato"
+        );
+    }
+}
