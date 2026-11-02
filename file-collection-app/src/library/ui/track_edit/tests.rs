@@ -219,3 +219,33 @@ fn parse_dates() {
     }
     assert_eq!(Ok(None), parse_date_or_date_time(" "));
 }
+
+#[test]
+fn custom_tags_delta() {
+    let track = new_track();
+    let delta = CustomTagsDelta::parse("#peaktime ?s=0.5#warmup", "venue#club-x #unknown").unwrap();
+    assert!(!delta.is_empty());
+    let mut edited = track.clone();
+    delta.apply(&mut edited);
+    let draft = TrackEditDraft::from_track(&edited);
+    // The score of the existing tag has been replaced.
+    assert_eq!("#peaktime ?s=0.5#warmup", draft.custom_tags);
+    // Other tags are not affected.
+    assert_eq!(TrackEditDraft::from_track(&track).comment, draft.comment);
+    assert_eq!(1, filter_faceted_tags(&edited.tags, FACET_ID_ISRC).count());
+
+    // Applying the delta again has no effect.
+    let mut edited_again = edited.clone();
+    delta.apply(&mut edited_again);
+    assert_eq!(edited, edited_again);
+}
+
+#[test]
+fn custom_tags_delta_should_reject_invalid_tags() {
+    let errors = CustomTagsDelta::parse("warmup", "gnre#House").unwrap_err();
+    assert_eq!(
+        vec![Field::AddCustomTags, Field::RemoveCustomTags],
+        errors.iter().map(|err| err.field).collect::<Vec<_>>()
+    );
+    assert!(CustomTagsDelta::parse(" ", "").unwrap().is_empty());
+}

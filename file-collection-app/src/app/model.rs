@@ -3,7 +3,9 @@
 
 use aoide::{TrackEntity, TrackUid, media::content::ContentPath};
 
-use crate::library::{Library, export_unsynchronized_tracks, track_search, ui::TrackListItem};
+use crate::library::{
+    Library, export_unsynchronized_tracks, track_search, ui::TrackListItem, update_tracks,
+};
 
 // Mutually exclusive modes of operation.
 #[derive(Debug)]
@@ -28,7 +30,92 @@ pub(crate) enum ModelMode {
 pub(crate) struct TrackSearchMode {
     pub(crate) memo_state: track_search::MemoState,
     pub(crate) track_list: Option<Vec<TrackListItem>>,
-    pub(crate) track_editor: Option<TrackEditor>,
+    pub(crate) edit: Option<TrackSearchEdit>,
+}
+
+/// Editing of tracks in the track search results.
+#[derive(Debug)]
+pub(crate) enum TrackSearchEdit {
+    /// Edit all properties of a single track.
+    Single(TrackEditor),
+    /// Edit some properties of multiple tracks at once.
+    Multiple(TrackSelection),
+}
+
+impl TrackSearchEdit {
+    #[must_use]
+    pub(crate) const fn track_editor(&self) -> Option<&TrackEditor> {
+        match self {
+            Self::Single(track_editor) => Some(track_editor),
+            Self::Multiple(_) => None,
+        }
+    }
+
+    #[must_use]
+    pub(crate) const fn track_editor_mut(&mut self) -> Option<&mut TrackEditor> {
+        match self {
+            Self::Single(track_editor) => Some(track_editor),
+            Self::Multiple(_) => None,
+        }
+    }
+
+    #[must_use]
+    pub(crate) const fn track_selection(&self) -> Option<&TrackSelection> {
+        match self {
+            Self::Single(_) => None,
+            Self::Multiple(track_selection) => Some(track_selection),
+        }
+    }
+
+    #[must_use]
+    pub(crate) const fn track_selection_mut(&mut self) -> Option<&mut TrackSelection> {
+        match self {
+            Self::Single(_) => None,
+            Self::Multiple(track_selection) => Some(track_selection),
+        }
+    }
+
+    /// Check if a pending task prevents switching to another track or selection.
+    #[must_use]
+    pub(crate) const fn is_pending(&self) -> bool {
+        match self {
+            Self::Single(track_editor) => {
+                matches!(track_editor.state, TrackEditorState::Saving { .. })
+            }
+            Self::Multiple(track_selection) => track_selection.is_updating(),
+        }
+    }
+}
+
+/// Multiple tracks that are edited at once.
+#[derive(Debug)]
+pub(crate) struct TrackSelection {
+    /// The selected tracks in the order of selection.
+    pub(crate) entity_uids: Vec<TrackUid>,
+    pub(crate) state: TrackSelectionState,
+}
+
+impl TrackSelection {
+    #[must_use]
+    pub(crate) fn contains(&self, entity_uid: &TrackUid) -> bool {
+        self.entity_uids.contains(entity_uid)
+    }
+
+    #[must_use]
+    pub(crate) const fn is_updating(&self) -> bool {
+        matches!(self.state, TrackSelectionState::Updating { .. })
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum TrackSelectionState {
+    Ready {
+        last_outcome: Option<Result<Box<update_tracks::Outcome>, String>>,
+    },
+    Updating {
+        last_progress: Option<update_tracks::Progress>,
+        write_files: bool,
+    },
 }
 
 /// Editor for a single track.

@@ -9,12 +9,13 @@ use egui::Ui;
 mod message;
 pub(crate) use self::message::{
     Action, CollectionAction, Event, LibraryAction, Message, MessageSender, MusicDirectoryAction,
-    TrackEditAction, TrackSearchAction, TrackSearchFetchedItems,
+    TrackEditAction, TrackSearchAction, TrackSearchFetchedItems, TrackSelectionAction,
 };
 
 mod model;
 pub(crate) use self::model::{
-    Model, ModelMode, MusicDirSelection, TrackEditor, TrackEditorState, TrackSearchMode,
+    Model, ModelMode, MusicDirSelection, TrackEditor, TrackEditorState, TrackSearchEdit,
+    TrackSearchMode, TrackSelection, TrackSelectionState,
 };
 
 mod update;
@@ -25,6 +26,8 @@ use self::render::RenderContext;
 
 mod track_editor;
 
+mod track_selection_editor;
+
 /// UI data bindings
 ///
 /// Stores user input and other mutable UI state that needs to be preserved
@@ -32,7 +35,8 @@ mod track_editor;
 #[derive(Debug, Default)]
 struct UiData {
     track_search_input: String,
-    track_editor_draft: Option<track_editor::TrackEditorDraft>,
+    editor_draft: Option<track_editor::TrackEditorDraft>,
+    selection_draft: track_selection_editor::TrackSelectionDraft,
 }
 
 #[expect(missing_debug_implementations)]

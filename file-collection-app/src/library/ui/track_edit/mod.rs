@@ -80,6 +80,8 @@ pub enum Field {
     AdvisoryRating,
     Color,
     CustomTags,
+    AddCustomTags,
+    RemoveCustomTags,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -526,6 +528,79 @@ fn parse_color(input: &str) -> Result<Option<Color>, String> {
         .parse::<RgbColor>()
         .map_err(|_| format!("Expected #RRGGBB or a color index: {input}"))?;
     Ok(Some(Color::Rgb(rgb_color)))
+}
+
+/// Custom tags to add to or remove from multiple tracks.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct CustomTagsDelta {
+    add: Tags<'static>,
+    remove: Tags<'static>,
+}
+
+impl CustomTagsDelta {
+    /// Parse the custom tags to add and remove as gig tags.
+    pub fn parse(add: &str, remove: &str) -> Result<Self, Vec<FieldError>> {
+        let add = decode_custom_tags(add).map_err(|message| FieldError {
+            field: Field::AddCustomTags,
+            message,
+        });
+        let remove = decode_custom_tags(remove).map_err(|message| FieldError {
+            field: Field::RemoveCustomTags,
+            message,
+        });
+        match (add, remove) {
+            (Ok(add), Ok(remove)) => Ok(Self { add, remove }),
+            (add, remove) => Err(add.err().into_iter().chain(remove.err()).collect()),
+        }
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.add.is_empty() && self.remove.is_empty()
+    }
+
+    /// Remove and then add the custom tags.
+    ///
+    /// Tags are matched by facet and label, i.e. adding an existing tag
+    /// replaces its score and removing a tag ignores its score.
+    pub fn apply(&self, track: &mut Track) {
+        let Self { add, remove } = self;
+        let mut tags = std::mem::take(&mut track.tags).untie();
+        let is_replaced = |facet_id: Option<&TagFacetId>, tag: &PlainTag<'_>| {
+            [add, remove]
+                .into_iter()
+                .any(|delta| contains_tag_label(delta, facet_id, tag.label.as_ref()))
+        };
+        tags.plain.retain(|tag| !is_replaced(None, tag));
+        for faceted_tags in &mut tags.facets {
+            let facet_id = &faceted_tags.facet_id;
+            faceted_tags
+                .tags
+                .retain(|tag| !is_replaced(Some(facet_id), tag));
+        }
+        tags.plain.extend(add.plain.iter().cloned());
+        tags.facets.extend(add.facets.iter().cloned());
+        track.tags = tags.canonicalize_into();
+    }
+}
+
+#[must_use]
+fn contains_tag_label(
+    tags: &Tags<'static>,
+    facet_id: Option<&TagFacetId>,
+    label: Option<&TagLabel<'_>>,
+) -> bool {
+    let candidates: &[PlainTag<'static>] = if let Some(facet_id) = facet_id {
+        tags.facets
+            .iter()
+            .find(|faceted_tags| faceted_tags.facet_id == *facet_id)
+            .map_or(&[], |faceted_tags| faceted_tags.tags.as_slice())
+    } else {
+        &tags.plain
+    };
+    candidates
+        .iter()
+        .any(|tag| tag.label.as_ref().map(TagLabel::as_str) == label.map(TagLabel::as_str))
 }
 
 #[cfg(test)]

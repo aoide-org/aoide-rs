@@ -3,6 +3,7 @@
 
 pub mod export_unsynchronized_tracks;
 pub mod synchronize_collection_vfs;
+pub mod update_tracks;
 
 #[cfg(feature = "tantivy")]
 pub mod reindex_tracks;

@@ -27,6 +27,7 @@ pub mod settings;
 pub mod track_edit;
 pub mod track_search;
 pub mod ui;
+pub mod update_tracks;
 
 #[derive(Debug)]
 pub enum Event {
@@ -40,6 +41,8 @@ pub enum Event {
     MusicDirSyncFinished(Box<aoide::desktop_app::collection::SynchronizingVfsFinishedState>),
     ExportUnsynchronizedTracksProgress(export_unsynchronized_tracks::Progress),
     ExportUnsynchronizedTracksFinished(Box<anyhow::Result<export_unsynchronized_tracks::Outcome>>),
+    UpdateTracksProgress(update_tracks::Progress),
+    UpdateTracksFinished(Box<anyhow::Result<update_tracks::Outcome>>),
     MusicDirListResult {
         collection_uid: CollectionUid,
         params: aoide::api::media::tracker::count_sources_in_directories::Params,
@@ -119,6 +122,9 @@ pub enum State {
     ExportingUnsynchronizedTracks {
         abort_flag: Arc<AtomicBool>,
     },
+    UpdatingTracks {
+        abort_flag: Arc<AtomicBool>,
+    },
 }
 
 #[expect(missing_debug_implementations)]
@@ -164,6 +170,16 @@ impl CurrentState<'_> {
     #[must_use]
     pub const fn could_abort_export_unsynchronized_tracks(&self) -> bool {
         matches!(self.library, State::ExportingUnsynchronizedTracks { .. })
+    }
+
+    #[must_use]
+    pub fn could_update_tracks(&self) -> bool {
+        self.collection.is_ready() && matches!(self.library, State::Idle)
+    }
+
+    #[must_use]
+    pub const fn could_abort_update_tracks(&self) -> bool {
+        matches!(self.library, State::UpdatingTracks { .. })
     }
 
     #[must_use]
@@ -284,7 +300,8 @@ impl Library {
                 task.abort();
                 ActionEffect::Changed
             }
-            State::ExportingUnsynchronizedTracks { abort_flag } => {
+            State::ExportingUnsynchronizedTracks { abort_flag }
+            | State::UpdatingTracks { abort_flag } => {
                 // Abort pending task.
                 abort_flag.store(true, std::sync::atomic::Ordering::Relaxed);
                 ActionEffect::Changed
@@ -410,7 +427,8 @@ impl Library {
                 debug_assert!(task.is_finished());
                 ActionEffect::Changed
             }
-            state @ State::ExportingUnsynchronizedTracks { .. } => {
+            state
+            @ (State::ExportingUnsynchronizedTracks { .. } | State::UpdatingTracks { .. }) => {
                 // Restore the unexpected state.
                 self.state = state;
                 ActionEffect::Unchanged

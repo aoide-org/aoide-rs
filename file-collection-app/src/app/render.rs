@@ -14,11 +14,12 @@ use crate::library::{
 
 use super::{
     Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
-    TrackEditAction, TrackEditor, TrackSearchAction, TrackSearchMode, UiData,
+    TrackEditAction, TrackEditor, TrackSearchAction, TrackSearchEdit, TrackSearchMode,
+    TrackSelection, TrackSelectionAction, UiData,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerDirListAction, MediaTrackerSyncAction,
     },
-    track_editor,
+    track_editor, track_selection_editor,
 };
 
 const TRACK_EDITOR_PANEL_DEFAULT_WIDTH: f32 = 420.0;
@@ -43,15 +44,16 @@ impl RenderContext<'_> {
 
         let library = mdl.library.read_current_state();
 
-        let track_editor = match &mdl.mode {
-            Some(ModelMode::TrackSearch(TrackSearchMode { track_editor, .. })) => {
-                track_editor.as_ref()
-            }
-            _ => None,
+        let (track_list, edit) = match &mdl.mode {
+            Some(ModelMode::TrackSearch(TrackSearchMode {
+                track_list, edit, ..
+            })) => (track_list.as_deref().unwrap_or_default(), edit.as_ref()),
+            _ => (&[][..], None),
         };
-        track_editor::sync_draft(track_editor, &mut ui_data.track_editor_draft);
+        let track_editor = edit.and_then(TrackSearchEdit::track_editor);
+        track_editor::sync_draft(track_editor, &mut ui_data.editor_draft);
         let is_track_editor_draft_modified = track_editor
-            .zip(ui_data.track_editor_draft.as_ref())
+            .zip(ui_data.editor_draft.as_ref())
             .is_some_and(|(track_editor, draft)| draft.is_modified(track_editor));
 
         Panel::top("top-panel").show(ui, |ui| {
@@ -69,18 +71,35 @@ impl RenderContext<'_> {
             render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &library);
         });
 
-        if let Some(track_editor) = track_editor {
-            Panel::right("track-editor-panel")
-                .resizable(true)
-                .default_size(TRACK_EDITOR_PANEL_DEFAULT_WIDTH)
-                .show(ui, |ui| {
-                    track_editor::render_track_editor_panel(
-                        ui,
-                        msg_tx,
-                        track_editor,
-                        ui_data.track_editor_draft.as_mut(),
-                    );
-                });
+        match edit {
+            Some(TrackSearchEdit::Multiple(track_selection)) => {
+                Panel::right("track-selection-editor-panel")
+                    .resizable(true)
+                    .default_size(TRACK_EDITOR_PANEL_DEFAULT_WIDTH)
+                    .show(ui, |ui| {
+                        track_selection_editor::render_track_selection_editor_panel(
+                            ui,
+                            msg_tx,
+                            track_selection,
+                            track_list,
+                            &mut ui_data.selection_draft,
+                        );
+                    });
+            }
+            Some(TrackSearchEdit::Single(track_editor)) => {
+                Panel::right("track-editor-panel")
+                    .resizable(true)
+                    .default_size(TRACK_EDITOR_PANEL_DEFAULT_WIDTH)
+                    .show(ui, |ui| {
+                        track_editor::render_track_editor_panel(
+                            ui,
+                            msg_tx,
+                            track_editor,
+                            ui_data.editor_draft.as_mut(),
+                        );
+                    });
+            }
+            None => (),
         }
 
         // CentralPanel must be added after all other panels!
@@ -264,11 +283,13 @@ fn render_central_panel(
         ModelMode::TrackSearch(TrackSearchMode {
             track_list: Some(track_list),
             memo_state,
-            track_editor,
+            edit,
         }) => {
-            let edited_entity_uid = track_editor
+            let edited_entity_uid = edit
                 .as_ref()
+                .and_then(TrackSearchEdit::track_editor)
                 .map(|TrackEditor { entity_uid, .. }| entity_uid);
+            let track_selection = edit.as_ref().and_then(TrackSearchEdit::track_selection);
             let text_style = egui::TextStyle::Body;
             let row_height = ui
                 .text_style_height(&text_style)
@@ -286,15 +307,15 @@ fn render_central_panel(
                 }
                 ui.with_layout(Layout::top_down(Align::Max), |ui| {
                     for item in &track_list[row_range] {
-                        let is_edited = edited_entity_uid == Some(&item.entity_uid);
-                        render_track_list_item(
-                            ui,
-                            msg_tx,
-                            item,
-                            row_height,
-                            is_edited,
+                        let interaction = TrackListItemInteraction {
+                            is_edited: edited_entity_uid == Some(&item.entity_uid),
+                            is_selected: track_selection
+                                .is_some_and(|selection| selection.contains(&item.entity_uid)),
                             is_track_editor_draft_modified,
-                        );
+                            is_track_selection_updating: track_selection
+                                .is_some_and(TrackSelection::is_updating),
+                        };
+                        render_track_list_item(ui, msg_tx, item, row_height, interaction);
                     }
                 })
             });
@@ -344,14 +365,28 @@ fn render_central_panel(
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+#[expect(clippy::struct_excessive_bools)]
+struct TrackListItemInteraction {
+    is_edited: bool,
+    is_selected: bool,
+    is_track_editor_draft_modified: bool,
+    is_track_selection_updating: bool,
+}
+
 fn render_track_list_item(
     ui: &mut Ui,
     msg_tx: &MessageSender,
     item: &TrackListItem,
     row_height: f32,
-    is_edited: bool,
-    is_track_editor_draft_modified: bool,
+    interaction: TrackListItemInteraction,
 ) {
+    let TrackListItemInteraction {
+        is_edited,
+        is_selected,
+        is_track_editor_draft_modified,
+        is_track_selection_updating,
+    } = interaction;
     debug_assert_eq!(
         item.artwork_thumbnail_texture.size_vec2().x,
         item.artwork_thumbnail_texture.size_vec2().y
@@ -382,14 +417,26 @@ fn render_track_list_item(
                 .on_hover_text("Modified, but not written into the file yet.");
         }
         let label = track_list_item_label(item);
-        let label_response = ui.selectable_label(is_edited, label);
-        if is_edited {
-            return;
-        }
+        let label_response = ui.selectable_label(is_edited || is_selected, label);
         if is_track_editor_draft_modified {
             // Prevent losing unsaved changes unintentionally.
-            label_response.on_hover_text("Save or revert the changes of the edited track first.");
-        } else if label_response.on_hover_text("Edit the track.").clicked() {
+            if !is_edited {
+                label_response
+                    .on_hover_text("Save or revert the changes of the edited track first.");
+            }
+            return;
+        }
+        if is_track_selection_updating {
+            return;
+        }
+        let label_response = label_response
+            .on_hover_text("Click to edit the track. Ctrl+click to select multiple tracks.");
+        if !label_response.clicked() {
+            return;
+        }
+        if ui.input(|input| input.modifiers.command) {
+            msg_tx.send_action(TrackSelectionAction::Toggle(item.entity_uid.clone()));
+        } else if !is_edited {
             msg_tx.send_action(TrackEditAction::Open(item.entity_uid.clone()));
         }
     });
@@ -544,7 +591,7 @@ fn render_bottom_panel(
 }
 
 #[must_use]
-fn track_list_item_label(track: &TrackListItem) -> String {
+pub(super) fn track_list_item_label(track: &TrackListItem) -> String {
     let track_title = track.title.as_deref().unwrap_or("Untitled");
     let track_artist = &track.artist;
     let album_title = &track.album_title;

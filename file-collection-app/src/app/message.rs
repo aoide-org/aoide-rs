@@ -9,7 +9,10 @@ use aoide::{Track, TrackUid, util::fs::DirPath};
 
 use crate::{
     NoReceiverForEvent,
-    library::{self, ui::TrackListItem},
+    library::{
+        self,
+        ui::{CustomTagsDelta, TrackListItem},
+    },
 };
 
 struct NoReceiverForMessage(Message);
@@ -101,6 +104,7 @@ pub(crate) enum LibraryAction {
     Collection(CollectionAction),
     TrackSearch(TrackSearchAction),
     TrackEdit(TrackEditAction),
+    TrackSelection(TrackSelectionAction),
     ExportUnsynchronizedTracks(ExportUnsynchronizedTracksAction),
 }
 
@@ -212,6 +216,28 @@ pub(crate) enum TrackEditAction {
 impl From<TrackEditAction> for LibraryAction {
     fn from(action: TrackEditAction) -> Self {
         Self::TrackEdit(action)
+    }
+}
+
+/// Edit multiple tracks at once.
+#[derive(Debug)]
+pub(crate) enum TrackSelectionAction {
+    /// Add a track to or remove it from the selection.
+    ///
+    /// Closes the editor of a single track and selects that track.
+    Toggle(TrackUid),
+    Clear,
+    /// Add and remove custom tags of all selected tracks.
+    Update {
+        custom_tags_delta: Box<CustomTagsDelta>,
+        write_files: bool,
+    },
+    AbortUpdate,
+}
+
+impl From<TrackSelectionAction> for LibraryAction {
+    fn from(action: TrackSelectionAction) -> Self {
+        Self::TrackSelection(action)
     }
 }
 

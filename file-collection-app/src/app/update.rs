@@ -20,7 +20,8 @@ use crate::{
 use super::{
     Action, CollectionAction, Event, LibraryAction, Message, MessageSender, Model, ModelMode,
     MusicDirSelection, MusicDirectoryAction, TrackEditAction, TrackEditor, TrackEditorState,
-    TrackSearchAction, TrackSearchMode,
+    TrackSearchAction, TrackSearchEdit, TrackSearchMode, TrackSelection, TrackSelectionAction,
+    TrackSelectionState,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerAction, MediaTrackerDirListAction,
         MediaTrackerSyncAction,
@@ -51,6 +52,9 @@ impl UpdateContext<'_> {
                 LibraryAction::Collection(action) => self.on_library_collection_action(action),
                 LibraryAction::TrackSearch(action) => self.on_library_track_search_action(action),
                 LibraryAction::TrackEdit(action) => self.on_library_track_edit_action(action),
+                LibraryAction::TrackSelection(action) => {
+                    self.on_library_track_selection_action(action)
+                }
                 LibraryAction::ExportUnsynchronizedTracks(action) => {
                     self.on_library_export_unsynchronized_tracks_action(action)
                 }
@@ -356,25 +360,116 @@ impl UpdateContext<'_> {
         }
     }
 
+    fn on_library_track_selection_action(&mut self, action: TrackSelectionAction) -> ActionEffect {
+        let Self { rt, msg_tx, mdl } = self;
+        let Model { library, mode, .. } = mdl;
+        let Some(ModelMode::TrackSearch(TrackSearchMode { edit, .. })) = mode else {
+            log::info!("Discarding track selection action: {action:?}");
+            return ActionEffect::Unchanged;
+        };
+        if edit.as_ref().is_some_and(TrackSearchEdit::is_pending)
+            && !matches!(action, TrackSelectionAction::AbortUpdate)
+        {
+            log::info!("Discarding track selection action while pending: {action:?}");
+            return ActionEffect::Unchanged;
+        }
+        match action {
+            TrackSelectionAction::Toggle(entity_uid) => {
+                let mut entity_uids = match edit.take() {
+                    None => Vec::new(),
+                    Some(TrackSearchEdit::Single(track_editor)) => {
+                        // Continue with the track that has been edited.
+                        if track_editor.entity_uid == entity_uid {
+                            Vec::new()
+                        } else {
+                            vec![track_editor.entity_uid]
+                        }
+                    }
+                    Some(TrackSearchEdit::Multiple(track_selection)) => track_selection.entity_uids,
+                };
+                if let Some(index) = entity_uids
+                    .iter()
+                    .position(|selected| *selected == entity_uid)
+                {
+                    entity_uids.remove(index);
+                } else {
+                    entity_uids.push(entity_uid);
+                }
+                if !entity_uids.is_empty() {
+                    *edit = Some(TrackSearchEdit::Multiple(TrackSelection {
+                        entity_uids,
+                        state: TrackSelectionState::Ready { last_outcome: None },
+                    }));
+                }
+                ActionEffect::Changed
+            }
+            TrackSelectionAction::Clear => {
+                if !matches!(edit, Some(TrackSearchEdit::Multiple(_))) {
+                    return ActionEffect::Unchanged;
+                }
+                *edit = None;
+                ActionEffect::Changed
+            }
+            TrackSelectionAction::Update {
+                custom_tags_delta,
+                write_files,
+            } => {
+                let Some(TrackSearchEdit::Multiple(track_selection)) = edit else {
+                    return ActionEffect::Unchanged;
+                };
+                let (mut effect, result) = library.update_tracks(
+                    rt,
+                    *msg_tx,
+                    track_selection.entity_uids.clone(),
+                    *custom_tags_delta,
+                    write_files,
+                );
+                match result {
+                    Ok(()) => {
+                        track_selection.state = TrackSelectionState::Updating {
+                            last_progress: None,
+                            write_files,
+                        };
+                        effect += ActionEffect::Changed;
+                    }
+                    Err(err) => {
+                        log::warn!("Failed to update the selected tracks: {err:#}");
+                    }
+                }
+                effect
+            }
+            TrackSelectionAction::AbortUpdate => library.update_tracks_abort(),
+        }
+    }
+
     fn on_library_track_edit_action(&mut self, action: TrackEditAction) -> ActionEffect {
         let Self { rt, msg_tx, mdl } = self;
         let Model { library, mode, .. } = mdl;
-        let Some(ModelMode::TrackSearch(TrackSearchMode { track_editor, .. })) = mode else {
+        let Some(ModelMode::TrackSearch(TrackSearchMode { edit, .. })) = mode else {
             log::info!("Discarding track edit action: {action:?}");
             return ActionEffect::Unchanged;
         };
         match action {
             TrackEditAction::Open(entity_uid) => {
+                if edit
+                    .as_ref()
+                    .and_then(TrackSearchEdit::track_selection)
+                    .is_some_and(TrackSelection::is_updating)
+                {
+                    log::info!("Discarding open action while updating the selected tracks");
+                    return ActionEffect::Unchanged;
+                }
                 let effect = library.load_track_for_edit(rt, *msg_tx, entity_uid.clone());
                 if matches!(effect, ActionEffect::Unchanged) {
                     return effect;
                 }
                 log::debug!("Opening track editor for {entity_uid}");
-                *track_editor = Some(TrackEditor::loading(entity_uid));
+                *edit = Some(TrackSearchEdit::Single(TrackEditor::loading(entity_uid)));
                 ActionEffect::Changed
             }
             TrackEditAction::Save { track, write_file } => {
-                let Some(track_editor) = track_editor else {
+                let Some(track_editor) = edit.as_mut().and_then(TrackSearchEdit::track_editor_mut)
+                else {
                     log::info!("Discarding save action without track editor");
                     return ActionEffect::Unchanged;
                 };
@@ -395,7 +490,9 @@ impl UpdateContext<'_> {
                 ActionEffect::Changed
             }
             TrackEditAction::Close => {
-                let Some(track_editor) = track_editor.take() else {
+                let Some(TrackSearchEdit::Single(track_editor)) =
+                    edit.take_if(|edit| matches!(edit, TrackSearchEdit::Single(_)))
+                else {
                     return ActionEffect::Unchanged;
                 };
                 if matches!(track_editor.state, TrackEditorState::Saving { .. }) {
@@ -489,6 +586,24 @@ impl UpdateContext<'_> {
             }
             library::Event::ExportUnsynchronizedTracksFinished(result) => {
                 on_library_export_unsynchronized_tracks_finished(library, mode, *result);
+            }
+            library::Event::UpdateTracksProgress(progress) => {
+                if let Some(ModelMode::TrackSearch(TrackSearchMode {
+                    edit:
+                        Some(TrackSearchEdit::Multiple(TrackSelection {
+                            state: TrackSelectionState::Updating { last_progress, .. },
+                            ..
+                        })),
+                    ..
+                })) = mode
+                {
+                    *last_progress = Some(progress);
+                } else {
+                    log::debug!("Discarding unexpected update tracks progress: {progress:?}");
+                }
+            }
+            library::Event::UpdateTracksFinished(result) => {
+                on_library_update_tracks_finished(ctx, library, mode, *result);
             }
             library::Event::MusicDirListResult {
                 collection_uid,
@@ -590,6 +705,60 @@ fn on_library_music_dir_list_result(
     }
 }
 
+fn on_library_update_tracks_finished(
+    ctx: &Context,
+    library: &mut Library,
+    mode: &mut Option<ModelMode>,
+    result: anyhow::Result<library::update_tracks::Outcome>,
+) {
+    let _ = library.update_tracks_finished();
+    let (track_list, track_selection) = match mode {
+        Some(ModelMode::TrackSearch(TrackSearchMode {
+            track_list, edit, ..
+        })) => (
+            track_list.as_deref_mut(),
+            edit.as_mut().and_then(TrackSearchEdit::track_selection_mut),
+        ),
+        _ => (None, None),
+    };
+    let outcome = match result {
+        Ok(outcome) => {
+            log::info!(
+                "Updating tracks finished: {completion:?}, {updated} updated, {unchanged} \
+                 unchanged, {skipped} skipped, {failed} failed",
+                completion = outcome.completion,
+                updated = outcome.updated.len(),
+                unchanged = outcome.unchanged.len(),
+                skipped = outcome.skipped.len(),
+                failed = outcome.failed.len(),
+            );
+            // The track list must be updated independent of the selection.
+            let mut track_list = track_list;
+            for entity in &outcome.updated {
+                let _ = library.replace_track_search_result(entity.clone());
+                if let Some(track_list) = track_list.as_deref_mut() {
+                    replace_track_list_item(ctx, track_list, entity);
+                }
+            }
+            Ok(Box::new(outcome))
+        }
+        Err(err) => {
+            log::warn!("Updating tracks failed: {err:#}");
+            Err(format!("{err:#}"))
+        }
+    };
+    if let Some(track_selection) = track_selection
+        && track_selection.is_updating()
+    {
+        track_selection.state = TrackSelectionState::Ready {
+            last_outcome: Some(outcome),
+        };
+    } else {
+        log::debug!("Discarding unexpected update tracks outcome");
+    }
+    ctx.request_repaint();
+}
+
 fn on_library_export_unsynchronized_tracks_progress(
     mode: &mut Option<ModelMode>,
     progress: library::export_unsynchronized_tracks::Progress,
@@ -659,7 +828,7 @@ fn on_library_track_edit_event(
                 return;
             }
             let Some(ModelMode::TrackSearch(TrackSearchMode {
-                track_editor: Some(track_editor),
+                edit: Some(TrackSearchEdit::Single(track_editor)),
                 ..
             })) = mode
             else {
@@ -699,10 +868,11 @@ fn on_library_track_edit_event(
             }
             let (track_list, track_editor) = match mode {
                 Some(ModelMode::TrackSearch(TrackSearchMode {
-                    track_list,
-                    track_editor,
-                    ..
-                })) => (track_list.as_deref_mut(), track_editor.as_mut()),
+                    track_list, edit, ..
+                })) => (
+                    track_list.as_deref_mut(),
+                    edit.as_mut().and_then(TrackSearchEdit::track_editor_mut),
+                ),
                 _ => (None, None),
             };
             // The editor might have been closed or re-opened for a different track in the meantime.
