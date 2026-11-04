@@ -9,7 +9,9 @@ use aoide::{TrackEntity, track::AdvisoryRating, track::EntityHeader};
 
 use crate::library::ui::{TrackEditDraft, TrackEditField, TrackEditFieldError};
 
-use super::{MessageSender, TrackEditAction, TrackEditor, TrackEditorState};
+use super::{
+    MessageSender, TrackEditAction, TrackEditor, TrackEditorState, pending_edits::DraftEdit,
+};
 
 /// Editable draft of the edited track.
 ///
@@ -31,11 +33,26 @@ impl TrackEditorDraft {
         }
     }
 
+    #[cfg(test)]
+    pub(super) const fn draft_mut(&mut self) -> &mut TrackEditDraft {
+        &mut self.draft
+    }
+
+    /// The unsaved changes of the edited track.
     #[must_use]
-    pub(super) fn is_modified(&self, track_editor: &TrackEditor) -> bool {
-        track_editor
+    pub(super) fn pending_edit(&self, track_editor: &TrackEditor) -> DraftEdit {
+        let Some(track) = track_editor
             .entity()
-            .is_some_and(|entity| self.draft.is_modified(&entity.body.track))
+            .map(|entity| &entity.body.track)
+            .filter(|track| self.draft.is_modified(track))
+        else {
+            return DraftEdit::Unmodified;
+        };
+        self.draft
+            .to_track(track)
+            .map_or(DraftEdit::Invalid, |track| {
+                DraftEdit::Valid(Box::new(track))
+            })
     }
 }
 

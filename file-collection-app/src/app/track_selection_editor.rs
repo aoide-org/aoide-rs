@@ -84,6 +84,8 @@ impl TrackSelectionDraft {
             remove_custom_tags: _,
         } = self;
         MultiTrackFields {
+            // Not available, because titles are specific for each track.
+            title: None,
             artist: artist.to_option(),
             album_title: album_title.to_option(),
             album_artist: album_artist.to_option(),

@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{cell::RefCell, sync::mpsc};
+use std::{
+    cell::{Cell, RefCell},
+    sync::mpsc,
+};
 
 use aoide::{EntityUid, TrackUid};
 use egui::{
@@ -147,6 +150,7 @@ struct Harness {
     columns: TrackListColumns,
     table_state: RefCell<TrackListTableState>,
     track_list: Vec<TrackListItem>,
+    is_draft_modified: Cell<bool>,
 }
 
 impl Harness {
@@ -162,6 +166,7 @@ impl Harness {
             columns,
             table_state: RefCell::default(),
             track_list,
+            is_draft_modified: Cell::new(false),
         }
     }
 
@@ -185,7 +190,8 @@ impl Harness {
                     TrackListInteraction {
                         edited_entity_uid: None,
                         track_selection: None,
-                        is_track_editor_draft_modified: false,
+                        is_track_editor_draft_modified: self.is_draft_modified.get(),
+                        edit_error: None,
                     },
                 );
             });
@@ -251,8 +257,13 @@ fn title_only_harness() -> Harness {
 }
 
 #[test]
-fn clicking_on_a_row_opens_the_track_editor() {
-    let harness = title_only_harness();
+fn clicking_on_a_non_text_cell_opens_the_track_editor() {
+    let harness = Harness::new(
+        TrackListColumns {
+            selected: vec![TrackListColumn::Year],
+        },
+        &["First", "Second", "Third"],
+    );
     harness.frame(Vec::new(), Modifiers::NONE, false);
     harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
     let actions = harness.actions();
@@ -398,7 +409,8 @@ fn rows_remain_clickable_if_the_columns_exceed_the_available_width() {
     );
     harness.frame(Vec::new(), Modifiers::NONE, false);
     harness.click(Pos2::new(900.0, FIRST_ROW_LABEL_POS.y), Modifiers::NONE);
-    assert_eq!(1, harness.actions().len());
+    // A text column.
+    assert!(harness.is_editing());
 }
 
 /// The vertical center of the table header.
@@ -581,5 +593,264 @@ fn moving_columns_preserves_their_widths() {
     assert!(
         (width_before - width_after).abs() < 1.0,
         "{width_before} {width_after}"
+    );
+}
+
+fn key_event(key: egui::Key) -> Event {
+    Event::Key {
+        key,
+        physical_key: None,
+        pressed: true,
+        repeat: false,
+        modifiers: Modifiers::NONE,
+    }
+}
+
+impl Harness {
+    fn press_key(&self, key: egui::Key) {
+        self.frame(vec![key_event(key)], Modifiers::NONE, false);
+        self.frame(Vec::new(), Modifiers::NONE, false);
+    }
+
+    fn type_text(&self, text: &str) {
+        self.frame(vec![Event::Text(text.to_owned())], Modifiers::NONE, false);
+        self.frame(Vec::new(), Modifiers::NONE, false);
+    }
+
+    fn is_editing(&self) -> bool {
+        self.table_state.borrow().cell_edit.is_some()
+    }
+}
+
+fn expected_edit(fields: MultiTrackFields) -> MultiTrackEdit {
+    MultiTrackEdit::new(fields, CustomTagsDelta::default()).unwrap()
+}
+
+fn assert_single_edit(harness: &Harness, index: usize, fields: MultiTrackFields) {
+    let actions = harness.actions();
+    let [LibraryAction::TrackEdit(TrackEditAction::Apply { entity_uid, edit })] =
+        actions.as_slice()
+    else {
+        panic!("unexpected actions: {actions:?}");
+    };
+    assert_eq!(harness.track_list[index].entity_uid, *entity_uid);
+    assert_eq!(expected_edit(fields), **edit);
+}
+
+fn title_fields(title: &str) -> MultiTrackFields {
+    MultiTrackFields {
+        title: Some(title.to_owned()),
+        ..Default::default()
+    }
+}
+
+#[test]
+fn clicking_into_a_text_cell_starts_editing_and_enter_applies() {
+    let harness = title_only_harness();
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    assert!(harness.is_editing());
+    assert!(harness.msg_rx.try_iter().next().is_none());
+    harness.type_text("!");
+    harness.press_key(egui::Key::Enter);
+    assert!(!harness.is_editing());
+    assert_single_edit(&harness, 0, title_fields("First!"));
+}
+
+#[test]
+fn escape_aborts_editing() {
+    let harness = title_only_harness();
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    harness.type_text("!");
+    harness.press_key(egui::Key::Escape);
+    assert!(!harness.is_editing());
+    assert_eq!(0, harness.msg_rx.try_iter().count());
+    // The text is not resurrected when editing the cell again.
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    harness.press_key(egui::Key::Enter);
+    assert_eq!(0, harness.msg_rx.try_iter().count());
+}
+
+#[test]
+fn unmodified_text_is_not_applied() {
+    let harness = title_only_harness();
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    harness.press_key(egui::Key::Enter);
+    assert!(!harness.is_editing());
+    assert_eq!(0, harness.msg_rx.try_iter().count());
+}
+
+#[test]
+fn clicking_elsewhere_applies_the_text() {
+    let harness = title_only_harness();
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    harness.type_text("!");
+    // The empty space below the table.
+    harness.click(Pos2::new(300.0, 400.0), Modifiers::NONE);
+    assert!(!harness.is_editing());
+    assert_single_edit(&harness, 0, title_fields("First!"));
+}
+
+#[test]
+fn clicking_into_another_cell_applies_the_text_and_edits_that_cell() {
+    let row_height = 19.0;
+    for (from_y, to_y, from_index, to_index) in [
+        (
+            FIRST_ROW_LABEL_POS.y,
+            FIRST_ROW_LABEL_POS.y + row_height,
+            0,
+            1,
+        ),
+        // The target row is rendered before the edited row.
+        (
+            FIRST_ROW_LABEL_POS.y + row_height,
+            FIRST_ROW_LABEL_POS.y,
+            1,
+            0,
+        ),
+    ] {
+        let harness = title_only_harness();
+        harness.frame(Vec::new(), Modifiers::NONE, false);
+        harness.click(Pos2::new(20.0, from_y), Modifiers::NONE);
+        harness.type_text("!");
+        harness.click(Pos2::new(20.0, to_y), Modifiers::NONE);
+        let expected_title = format!(
+            "{title}!",
+            title = harness.track_list[from_index].title.as_deref().unwrap()
+        );
+        assert_single_edit(&harness, from_index, title_fields(&expected_title));
+        let table_state = harness.table_state.borrow();
+        let cell_edit = table_state.cell_edit.as_ref().unwrap();
+        assert_eq!(
+            harness.track_list[to_index].entity_uid,
+            cell_edit.entity_uid
+        );
+    }
+}
+
+#[test]
+fn text_cells_are_not_editable_with_a_modified_track_editor_draft() {
+    let harness = title_only_harness();
+    harness.is_draft_modified.set(true);
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    assert!(!harness.is_editing());
+    assert_eq!(0, harness.msg_rx.try_iter().count());
+}
+
+#[test]
+fn clicking_a_text_cell_with_modifiers_selects_instead_of_editing() {
+    let harness = title_only_harness();
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::COMMAND);
+    assert!(!harness.is_editing());
+}
+
+#[test]
+fn multiple_values_open_the_track_editor_instead_of_editing_the_cell() {
+    let mut harness = Harness::new(
+        TrackListColumns {
+            selected: vec![TrackListColumn::Comment],
+        },
+        &["First"],
+    );
+    harness.track_list[0].comment = Some("One\nTwo".to_owned());
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    assert!(!harness.is_editing());
+    let actions = harness.actions();
+    assert!(
+        matches!(
+            actions.as_slice(),
+            [LibraryAction::TrackEdit(TrackEditAction::Open(_))]
+        ),
+        "unexpected actions: {actions:?}"
+    );
+}
+
+#[test]
+fn right_clicking_a_row_offers_to_open_the_track_editor() {
+    let harness = title_only_harness();
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    let pos = FIRST_ROW_LABEL_POS;
+    let pointer_event = |pressed| Event::PointerButton {
+        pos,
+        button: PointerButton::Secondary,
+        pressed,
+        modifiers: Modifiers::NONE,
+    };
+    harness.frame(vec![Event::PointerMoved(pos)], Modifiers::NONE, false);
+    harness.frame(vec![pointer_event(true)], Modifiers::NONE, false);
+    harness.frame(vec![pointer_event(false)], Modifiers::NONE, false);
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    assert!(!harness.is_editing());
+    // The button is located right below the pointer.
+    harness.click(pos + Vec2::new(16.0, 16.0), Modifiers::NONE);
+    let actions = harness.actions();
+    assert!(
+        matches!(
+            actions.as_slice(),
+            [LibraryAction::TrackEdit(TrackEditAction::Open(_))]
+        ),
+        "unexpected actions: {actions:?}"
+    );
+}
+
+fn genres_harness() -> Harness {
+    let mut harness = Harness::new(
+        TrackListColumns {
+            selected: vec![TrackListColumn::Genres],
+        },
+        &["First"],
+    );
+    harness.track_list[0].genres = vec!["Ambient".to_owned(), "Techno".to_owned()];
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    harness
+}
+
+fn genres_fields(genres: &str) -> MultiTrackFields {
+    MultiTrackFields {
+        genres: Some(genres.to_owned()),
+        ..Default::default()
+    }
+}
+
+#[test]
+fn dragging_a_genre_reorders_the_genres() {
+    let harness = genres_harness();
+    drag_slowly(&harness, FIRST_ROW_LABEL_POS, Pos2::new(300.0, 62.0));
+    assert_single_edit(&harness, 0, genres_fields("Techno\nAmbient"));
+}
+
+#[test]
+fn dragging_a_genre_onto_its_position_has_no_effect() {
+    let harness = genres_harness();
+    drag_slowly(&harness, FIRST_ROW_LABEL_POS, Pos2::new(30.0, 62.0));
+    assert_eq!(0, harness.msg_rx.try_iter().count());
+}
+
+#[test]
+fn genres_are_not_movable_with_a_modified_track_editor_draft() {
+    let harness = genres_harness();
+    harness.is_draft_modified.set(true);
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    drag_slowly(&harness, FIRST_ROW_LABEL_POS, Pos2::new(300.0, 62.0));
+    assert_eq!(0, harness.msg_rx.try_iter().count());
+}
+
+#[test]
+fn clicking_a_genre_opens_the_track_editor() {
+    let harness = genres_harness();
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    let actions = harness.actions();
+    assert!(
+        matches!(
+            actions.as_slice(),
+            [LibraryAction::TrackEdit(TrackEditAction::Open(_))]
+        ),
+        "unexpected actions: {actions:?}"
     );
 }

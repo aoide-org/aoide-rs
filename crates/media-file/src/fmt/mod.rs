@@ -1170,6 +1170,15 @@ fn export_filtered_actor_names(
     }
 }
 
+/// Restore the original order of tags.
+///
+/// Canonical tags are ordered by label. The order of tags with multiple
+/// values that have been imported or edited is encoded by their descending
+/// scores. Tags with equal scores remain in their current order.
+fn sort_tags_by_descending_score(tags: &mut [PlainTag<'static>]) {
+    tags.sort_by(|lhs, rhs| rhs.score.value().total_cmp(&lhs.score.value()));
+}
+
 fn export_faceted_tags(
     tag: &mut Tag,
     item_key: ItemKey,
@@ -1556,7 +1565,10 @@ pub(crate) fn export_track_to_tag(
                 continue;
             }
             let item_key = compatibility.primary_item_key(item_key);
-            if let Some((facet_key, tags)) = tags_map.remove(facet_id) {
+            if let Some((facet_key, mut tags)) = tags_map.remove(facet_id) {
+                if *facet_id == *FACET_ID_GENRE {
+                    sort_tags_by_descending_score(&mut tags);
+                }
                 export_faceted_tags(
                     tag,
                     item_key,
@@ -1690,3 +1702,6 @@ pub(crate) fn export_track_to_tag(
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -10,19 +10,23 @@ use std::{
 };
 
 use egui::{
-    Align, Align2, Button, Checkbox, DragAndDrop, Label, LayerId, Layout, OpenUrl, Order,
-    PopupCloseBehavior, Rect, RichText, ScrollArea, Sense, Stroke, TextStyle, Ui, Vec2,
+    Align, Align2, Button, Checkbox, CornerRadius, CursorIcon, DragAndDrop, Frame, Key, Label,
+    LayerId, Layout, OpenUrl, Order, PopupCloseBehavior, Rect, RichText, ScrollArea, Sense, Stroke,
+    TextEdit, TextStyle, Ui, Vec2,
     containers::menu::{MenuButton, MenuConfig},
     load::SizedTexture,
 };
 use egui_extras::{Column, TableBuilder, TableRow};
 use itertools::Itertools as _;
 
-use aoide::track::AdvisoryRating;
+use aoide::{TrackUid, track::AdvisoryRating};
 
 use crate::library::{
     track_search,
-    ui::{ARTWORK_THUMBNAIL_IMAGE_SIZE, TrackListItem},
+    ui::{
+        ARTWORK_THUMBNAIL_IMAGE_SIZE, CustomTagsDelta, MultiTrackEdit, MultiTrackFields,
+        TrackListItem,
+    },
 };
 
 use super::{
@@ -42,6 +46,12 @@ const COLUMN_DROP_MARKER_WIDTH: f32 = 2.0;
 const DRAGGED_COLUMN_LABEL_MARGIN: f32 = 4.0;
 
 const DRAGGED_COLUMN_LABEL_POINTER_OFFSET: Vec2 = Vec2::new(16.0, 0.0);
+
+const GENRE_BUBBLE_HORIZONTAL_PADDING: f32 = 6.0;
+
+const GENRE_BUBBLE_CORNER_RADIUS: u8 = 8;
+
+const LINE_SEPARATOR: &str = "\n";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum TrackListColumn {
@@ -175,6 +185,45 @@ impl TrackListColumn {
         column.at_least(COLUMN_MIN_WIDTH).clip(true)
     }
 
+    /// The fields for replacing the contents of the column.
+    ///
+    /// Returns `None` if the column could not be edited as plain text.
+    #[must_use]
+    fn edited_fields(self, text: String) -> Option<MultiTrackFields> {
+        let mut fields = MultiTrackFields::default();
+        let field = match self {
+            Self::Artist => &mut fields.artist,
+            Self::Title => &mut fields.title,
+            Self::AlbumTitle => &mut fields.album_title,
+            Self::AlbumSubtitle => &mut fields.album_subtitle,
+            Self::AlbumArtist => &mut fields.album_artist,
+            Self::Grouping => &mut fields.grouping,
+            Self::Comment => &mut fields.comment,
+            Self::Copyright => &mut fields.copyright,
+            Self::Artwork
+            | Self::Unsynchronized
+            | Self::Genres
+            | Self::Year
+            | Self::Bpm
+            | Self::Key
+            | Self::AdvisoryRating
+            | Self::FilePath => return None,
+        };
+        *field = Some(text);
+        Some(fields)
+    }
+
+    /// The text for editing the column directly in the table cell.
+    ///
+    /// Returns `None` if the column is not editable. This also applies to
+    /// multiple values, which could not be edited on a single line.
+    #[must_use]
+    fn editable_text(self, item: &TrackListItem) -> Option<String> {
+        self.edited_fields(String::new())?;
+        let text = self.cell_text(item).unwrap_or_default();
+        (!text.contains(LINE_SEPARATOR)).then_some(text)
+    }
+
     /// The text of the table cell.
     ///
     /// Returns `None` for columns that are not rendered as plain text.
@@ -271,12 +320,7 @@ impl TrackListColumns {
     #[must_use]
     fn move_target_index(&self, column: TrackListColumn, insertion_index: usize) -> Option<usize> {
         let index = self.selected.iter().position(|&other| other == column)?;
-        let target_index = if insertion_index > index {
-            insertion_index - 1
-        } else {
-            insertion_index
-        };
-        (target_index != index && target_index < self.selected.len()).then_some(target_index)
+        move_target_index(index, insertion_index, self.selected.len())
     }
 
     /// Move a selected column.
@@ -356,6 +400,22 @@ impl TrackListColumns {
     }
 }
 
+/// The final index of an element when moving it within a list.
+///
+/// The `insertion_index` is the position in the current order, i.e.
+/// the element is inserted before the element at this index.
+///
+/// Returns `None` if moving the element would not have any effect.
+#[must_use]
+fn move_target_index(index: usize, insertion_index: usize, len: usize) -> Option<usize> {
+    let target_index = if insertion_index > index {
+        insertion_index - 1
+    } else {
+        insertion_index
+    };
+    (target_index != index && target_index < len).then_some(target_index)
+}
+
 #[must_use]
 fn content_url_display(content_url: &url::Url) -> String {
     content_url.to_file_path().map_or_else(
@@ -392,6 +452,69 @@ pub(super) struct TrackListTableState {
     /// The columns that the current state of the table belongs to.
     columns: Vec<TrackListColumn>,
     widths: HashMap<TrackListColumn, f32>,
+    /// The table cell that is currently edited.
+    cell_edit: Option<CellEdit>,
+}
+
+impl TrackListTableState {
+    /// Finish editing the current table cell and apply the text if it has been modified.
+    pub(super) fn finish_cell_edit(&mut self, msg_tx: &MessageSender) {
+        if let Some(cell_edit) = self.cell_edit.take() {
+            cell_edit.apply(msg_tx);
+        }
+    }
+}
+
+/// Editing the text of a table cell.
+#[derive(Debug)]
+struct CellEdit {
+    entity_uid: TrackUid,
+    column: TrackListColumn,
+    original_text: String,
+    text: String,
+    is_focus_requested: bool,
+}
+
+impl CellEdit {
+    #[must_use]
+    fn is_cell(&self, item: &TrackListItem, column: TrackListColumn) -> bool {
+        self.entity_uid == item.entity_uid && self.column == column
+    }
+
+    /// Finish editing and apply the text if it has been modified.
+    fn apply(self, msg_tx: &MessageSender) {
+        let Self {
+            entity_uid,
+            column,
+            original_text,
+            text,
+            is_focus_requested: _,
+        } = self;
+        if text.trim() == original_text.trim() {
+            return;
+        }
+        let Some(fields) = column.edited_fields(text) else {
+            return;
+        };
+        send_track_edit(msg_tx, entity_uid, fields);
+    }
+}
+
+fn send_track_edit(msg_tx: &MessageSender, entity_uid: TrackUid, fields: MultiTrackFields) {
+    match MultiTrackEdit::new(fields, CustomTagsDelta::default()) {
+        Ok(edit) => msg_tx.send_action(TrackEditAction::Apply {
+            entity_uid,
+            edit: Box::new(edit),
+        }),
+        Err(errors) => log::error!("Invalid edit of track {entity_uid}: {errors:?}"),
+    }
+}
+
+/// A genre bubble that is dragged to another position within its table cell.
+#[derive(Debug, Clone)]
+struct DraggedGenre {
+    entity_uid: TrackUid,
+    index: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -399,6 +522,8 @@ pub(super) struct TrackListInteraction<'a> {
     pub(super) edited_entity_uid: Option<&'a aoide::TrackUid>,
     pub(super) track_selection: Option<&'a TrackSelection>,
     pub(super) is_track_editor_draft_modified: bool,
+    /// The error of the last edit that was applied directly in the table.
+    pub(super) edit_error: Option<&'a str>,
 }
 
 /// Render the column selection and the table with all tracks.
@@ -413,8 +538,15 @@ pub(super) fn render_track_list(
 ) {
     ui.horizontal(|ui| {
         render_columns_menu(ui, msg_tx, columns);
-        ui.weak("Click to edit a track. Ctrl+click to select multiple tracks, Shift+click to select a range. Drag column headers to move columns.");
+        ui.weak(
+            "Click text to edit it (Enter applies, Esc aborts). Click other cells or right-click \
+             to open the track editor. Ctrl+click to select multiple tracks, Shift+click to \
+             select a range. Drag genres or column headers to reorder them.",
+        );
     });
+    if let Some(edit_error) = interaction.edit_error {
+        ui.colored_label(ui.visuals().error_fg_color, edit_error);
+    }
     ui.separator();
 
     let text_height = ui.text_style_height(&TextStyle::Body);
@@ -471,6 +603,7 @@ pub(super) fn render_track_list(
                     &track_list[index],
                     row_height,
                     interaction,
+                    &mut table_state.cell_edit,
                 );
             });
         });
@@ -591,27 +724,75 @@ fn render_track_list_row(
     item: &TrackListItem,
     row_height: f32,
     interaction: TrackListInteraction<'_>,
+    cell_edit: &mut Option<CellEdit>,
 ) {
     let TrackListInteraction {
         edited_entity_uid,
         track_selection,
         is_track_editor_draft_modified,
+        edit_error: _,
     } = interaction;
     let is_edited = edited_entity_uid == Some(&item.entity_uid);
     let is_selected = track_selection.is_some_and(|selection| selection.contains(&item.entity_uid));
+    // Prevent losing unsaved changes unintentionally and modifying
+    // tracks while they are updated.
+    let is_editable = !is_track_editor_draft_modified
+        && !track_selection.is_some_and(TrackSelection::is_updating);
     row.set_selected(is_edited || is_selected);
+    let mut is_cell_edit_started = false;
+    // The contents of a cell might receive the click instead of the cell.
+    let mut is_contents_clicked = false;
     for &column in &columns.selected {
-        row.col(|ui| render_track_list_cell(ui, column, item, row_height));
+        let (_, response) = row.col(|ui| {
+            is_contents_clicked |= render_track_list_cell(
+                ui,
+                msg_tx,
+                column,
+                item,
+                row_height,
+                is_editable,
+                cell_edit,
+            );
+        });
+        if !is_editable || !response.clicked() || response.ctx.input(|i| !i.modifiers.is_none()) {
+            continue;
+        }
+        let Some(text) = column.editable_text(item) else {
+            continue;
+        };
+        is_cell_edit_started = true;
+        // The previously edited cell might have been rendered before this one.
+        // Otherwise it would be discarded before noticing that it lost the focus.
+        if let Some(previous_cell_edit) = cell_edit.take() {
+            previous_cell_edit.apply(msg_tx);
+        }
+        *cell_edit = Some(CellEdit {
+            entity_uid: item.entity_uid.clone(),
+            column,
+            original_text: text.clone(),
+            text,
+            is_focus_requested: false,
+        });
     }
     let response = row.response();
     if is_track_editor_draft_modified {
-        // Prevent losing unsaved changes unintentionally.
         if !is_edited {
             response.on_hover_text("Save or revert the changes of the edited track first.");
         }
         return;
     }
-    if track_selection.is_some_and(TrackSelection::is_updating) || !response.clicked() {
+    if !is_editable {
+        return;
+    }
+    if !is_edited {
+        response.context_menu(|ui| {
+            if ui.button("Open track editor").clicked() {
+                msg_tx.send_action(TrackEditAction::Open(item.entity_uid.clone()));
+                ui.close();
+            }
+        });
+    }
+    if is_cell_edit_started || !(response.clicked() || is_contents_clicked) {
         return;
     }
     let modifiers = response.ctx.input(|input| input.modifiers);
@@ -626,10 +807,20 @@ fn render_track_list_row(
 
 fn render_track_list_cell(
     ui: &mut Ui,
+    msg_tx: &MessageSender,
     column: TrackListColumn,
     item: &TrackListItem,
     row_height: f32,
-) {
+    is_editable: bool,
+    cell_edit: &mut Option<CellEdit>,
+) -> bool {
+    if cell_edit
+        .as_ref()
+        .is_some_and(|cell_edit| cell_edit.is_cell(item, column))
+    {
+        render_cell_edit(ui, msg_tx, cell_edit);
+        return false;
+    }
     match column {
         TrackListColumn::Artwork => render_artwork_cell(ui, item, row_height),
         TrackListColumn::Unsynchronized => {
@@ -639,6 +830,7 @@ fn render_track_list_cell(
                     .on_hover_text("Modified, but not written into the file yet.");
             }
         }
+        TrackListColumn::Genres => return render_genres_cell(ui, msg_tx, item, is_editable),
         _ => {
             if let Some(text) = column.cell_text(item) {
                 // Selectable labels would swallow the clicks on the row.
@@ -647,6 +839,128 @@ fn render_track_list_cell(
             }
         }
     }
+    false
+}
+
+/// Render the text field of the edited table cell.
+///
+/// The text is applied when the text field loses the focus, i.e. by pressing
+/// enter, clicking elsewhere, or scrolling the table cell out of view.
+/// Pressing escape discards the text.
+fn render_cell_edit(ui: &mut Ui, msg_tx: &MessageSender, cell_edit: &mut Option<CellEdit>) {
+    let Some(edit) = cell_edit else {
+        return;
+    };
+    let response = ui.add(
+        TextEdit::singleline(&mut edit.text)
+            .frame(Frame::new().fill(ui.visuals().extreme_bg_color))
+            .margin(0)
+            .desired_width(f32::INFINITY),
+    );
+    if !edit.is_focus_requested {
+        response.request_focus();
+        edit.is_focus_requested = true;
+        return;
+    }
+    // The text field also loses the focus when pressing escape.
+    if ui.input(|input| input.key_pressed(Key::Escape)) {
+        *cell_edit = None;
+        return;
+    }
+    if !response.has_focus()
+        && let Some(edit) = cell_edit.take()
+    {
+        edit.apply(msg_tx);
+    }
+}
+
+/// Render the genres as bubbles that could be dragged to reorder them.
+///
+/// Returns `true` if a bubble has been clicked.
+fn render_genres_cell(
+    ui: &mut Ui,
+    msg_tx: &MessageSender,
+    item: &TrackListItem,
+    is_editable: bool,
+) -> bool {
+    let genres = &item.genres;
+    let is_movable = is_editable && genres.len() > 1;
+    let dragged_index = DragAndDrop::payload::<DraggedGenre>(ui.ctx())
+        .filter(|dragged| dragged.entity_uid == item.entity_uid)
+        .map(|dragged| dragged.index);
+    let font_id = TextStyle::Body.resolve(ui.style());
+    let text_color = ui.visuals().text_color();
+    let mut is_clicked = false;
+    let bubble_rects = genres
+        .iter()
+        .enumerate()
+        .map(|(index, genre)| {
+            let galley = ui
+                .painter()
+                .layout_no_wrap(genre.clone(), font_id.clone(), text_color);
+            let padding = Vec2::new(GENRE_BUBBLE_HORIZONTAL_PADDING, 0.0);
+            // Only sensing drags would prevent the table cell from being clicked.
+            let sense = if is_movable {
+                Sense::click_and_drag()
+            } else {
+                Sense::hover()
+            };
+            let (rect, response) = ui.allocate_exact_size(galley.size() + 2.0 * padding, sense);
+            if is_movable {
+                response.dnd_set_drag_payload(DraggedGenre {
+                    entity_uid: item.entity_uid.clone(),
+                    index,
+                });
+                is_clicked |= response.clicked();
+                if response.hovered() {
+                    ui.ctx().set_cursor_icon(CursorIcon::Grab);
+                }
+            }
+            let fill = if dragged_index == Some(index) {
+                ui.visuals().selection.bg_fill
+            } else {
+                ui.visuals().widgets.inactive.bg_fill
+            };
+            ui.painter()
+                .rect_filled(rect, CornerRadius::same(GENRE_BUBBLE_CORNER_RADIUS), fill);
+            ui.painter().galley(rect.min + padding, galley, text_color);
+            rect
+        })
+        .collect::<Vec<_>>();
+    let Some(dragged_index) = dragged_index else {
+        return is_clicked;
+    };
+    let Some(pointer_pos) = ui.input(|input| input.pointer.interact_pos()) else {
+        return is_clicked;
+    };
+    let insertion_index = column_insertion_index(&bubble_rects, pointer_pos.x);
+    let Some(target_index) = move_target_index(dragged_index, insertion_index, genres.len()) else {
+        return is_clicked;
+    };
+    let marker_x = bubble_rects.get(insertion_index).map_or_else(
+        || {
+            bubble_rects.last().map_or(pointer_pos.x, |rect| {
+                rect.right() + ui.spacing().item_spacing.x / 2.0
+            })
+        },
+        |rect| rect.left() - ui.spacing().item_spacing.x / 2.0,
+    );
+    ui.painter().vline(
+        marker_x,
+        ui.max_rect().y_range(),
+        Stroke::new(COLUMN_DROP_MARKER_WIDTH, ui.visuals().selection.bg_fill),
+    );
+    if ui.input(|input| input.pointer.any_released()) {
+        let mut reordered = genres.iter().map(String::as_str).collect::<Vec<_>>();
+        let genre = reordered.remove(dragged_index);
+        reordered.insert(target_index, genre);
+        let fields = MultiTrackFields {
+            genres: Some(reordered.join(LINE_SEPARATOR)),
+            ..Default::default()
+        };
+        send_track_edit(msg_tx, item.entity_uid.clone(), fields);
+    }
+    is_clicked
 }
 
 fn render_artwork_cell(ui: &mut Ui, item: &TrackListItem, row_height: f32) {

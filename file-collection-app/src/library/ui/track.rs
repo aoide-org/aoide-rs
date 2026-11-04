@@ -11,14 +11,16 @@ use aoide::{
     tag::FacetId,
     track::{
         AdvisoryRating,
-        tag::{FACET_ID_COMMENT, FACET_ID_GENRE, FACET_ID_GROUPING},
+        tag::{FACET_ID_COMMENT, FACET_ID_GROUPING},
     },
     util::clock::DateOrDateTime,
 };
 use itertools::Itertools as _;
 use url::Url;
 
-use super::{artwork_thumbnail_image, artwork_thumbnail_image_placeholder};
+use super::{
+    artwork_thumbnail_image, artwork_thumbnail_image_placeholder, track_edit::genre_labels,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TrackYear {
@@ -43,6 +45,7 @@ pub struct TrackListItem {
     pub advisory_rating: Option<AdvisoryRating>,
     pub grouping: Option<String>,
     pub comment: Option<String>,
+    /// In their intended order.
     pub genres: Vec<String>,
     pub year: Option<TrackYear>,
     pub bpm: Option<TempoBpm>,
@@ -69,8 +72,9 @@ impl TrackListItem {
         let album_subtitle = track.album_subtitle().map(ToOwned::to_owned);
         let copyright = track.copyright.clone();
         let advisory_rating = track.advisory_rating;
-        let genres = filter_faceted_track_tag_labels(track, FACET_ID_GENRE)
-            .map(ToString::to_string)
+        let genres = genre_labels(&track.tags)
+            .into_iter()
+            .map(ToOwned::to_owned)
             .collect();
         let grouping = concat_faceted_track_tag_labels(
             track,

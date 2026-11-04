@@ -147,13 +147,14 @@ fn edit_tags() {
         "#peaktime ?s=0.5#rated venue#club-y",
         edited_draft.custom_tags
     );
-    // The score of the existing genre is preserved.
-    assert_eq!(
-        Some(TagScore::new_unchecked(0.75)),
+    // The scores of genres encode their order, same as when importing them.
+    let genre_score = |label| {
         filter_faceted_tags(&edited.tags, FACET_ID_GENRE)
-            .find(|tag| tag.label.as_ref().map(TagLabel::as_str) == Some("House"))
+            .find(|tag| tag.label.as_ref().map(TagLabel::as_str) == Some(label))
             .map(|tag| tag.score)
-    );
+    };
+    assert_eq!(Some(TagScore::new_unchecked(1.0)), genre_score("House"));
+    assert_eq!(Some(TagScore::new_unchecked(0.75)), genre_score("Techno"));
     // Unmodified tags are preserved, even if they have multiple labels.
     assert_eq!(draft.comment, edited_draft.comment);
     assert_eq!(1, filter_faceted_tags(&edited.tags, FACET_ID_ISRC).count());
@@ -276,7 +277,8 @@ fn multi_track_edit() {
     );
     assert_eq!(Some(AdvisoryRating::Clean), edited.advisory_rating);
     let draft = TrackEditDraft::from_track(&edited);
-    assert_eq!("House\nTechno", draft.genres);
+    // The order is preserved.
+    assert_eq!("Techno\nHouse", draft.genres);
     assert_eq!("#peaktime venue#club-x", draft.custom_tags);
     // Fields that are not set are preserved.
     assert_eq!(TrackEditDraft::from_track(&track).comment, draft.comment);
@@ -300,4 +302,51 @@ fn multi_track_edit_should_reject_invalid_fields() {
             .unwrap()
             .is_empty()
     );
+}
+
+#[test]
+fn reordering_genres_modifies_the_track_and_is_preserved() {
+    let track = new_track();
+    let mut draft = TrackEditDraft::from_track(&track);
+    draft.genres = "House\nAmbient\nTechno".to_owned();
+    let ordered = draft.to_track(&track).unwrap();
+    let draft = TrackEditDraft::from_track(&ordered);
+    assert_eq!("House\nAmbient\nTechno", draft.genres);
+    // Tags are still canonical, i.e. the order is encoded by the scores.
+    assert!(nonicle::IsCanonical::is_canonical(&*ordered.tags));
+
+    let fields = MultiTrackFields {
+        genres: Some("Techno\nHouse\nAmbient".to_owned()),
+        ..Default::default()
+    };
+    let edit = MultiTrackEdit::new(fields, CustomTagsDelta::default()).unwrap();
+    let mut reordered = ordered.clone();
+    edit.apply(&mut reordered);
+    assert_ne!(ordered, reordered);
+    assert_eq!(
+        vec!["Techno", "House", "Ambient"],
+        genre_labels(&reordered.tags)
+    );
+}
+
+#[test]
+fn genres_with_equal_scores_are_ordered_by_label() {
+    let mut track = new_track();
+    let mut tags = std::mem::take(&mut track.tags).untie();
+    replace_faceted_tags(&mut tags, FACET_ID_GENRE, ["Techno", "Ambient"]);
+    track.tags = tags.canonicalize_into();
+    assert_eq!(vec!["Ambient", "Techno"], genre_labels(&track.tags));
+}
+
+#[test]
+fn multi_track_edit_sets_the_title() {
+    let track = new_track();
+    let fields = MultiTrackFields {
+        title: Some("New title".to_owned()),
+        ..Default::default()
+    };
+    let edit = MultiTrackEdit::new(fields, CustomTagsDelta::default()).unwrap();
+    let mut edited = track.clone();
+    edit.apply(&mut edited);
+    assert_eq!(Some("New title"), edited.track_title());
 }

@@ -9,7 +9,10 @@ use std::sync::{
 };
 
 use anyhow::anyhow;
-use aoide::desktop_app::ActionEffect;
+use aoide::{
+    CollectionUid, desktop_app::ActionEffect,
+    storage_sqlite::connection::pool::gatekeeper::Gatekeeper,
+};
 
 // Re-exports
 pub use aoide::backend_embedded::batch::export_unsynchronized_tracks::{
@@ -71,6 +74,37 @@ impl Library {
         (ActionEffect::Changed, Ok(()))
     }
 
+    /// Count all unsynchronized tracks of the current collection.
+    ///
+    /// Emits [`Event::UnsynchronizedTracksCounted`] when finished.
+    ///
+    /// Returns [`ActionEffect::Unchanged`] without a collection.
+    pub fn count_unsynchronized_tracks<E>(
+        &self,
+        rt: &tokio::runtime::Handle,
+        event_emitter: &E,
+        request_id: u64,
+    ) -> ActionEffect
+    where
+        E: EventEmitter + Clone + 'static,
+    {
+        let Some(collection_uid) = self.shared_state.collection.read().entity_uid().cloned() else {
+            return ActionEffect::Unchanged;
+        };
+        rt.spawn({
+            let env = Arc::clone(self.env());
+            let event_emitter = event_emitter.clone();
+            async move {
+                let result = count_unsynchronized_tracks(env.db_gatekeeper(), collection_uid).await;
+                drop(
+                    event_emitter
+                        .emit_event(Event::UnsynchronizedTracksCounted { request_id, result }),
+                );
+            }
+        });
+        ActionEffect::MaybeChanged
+    }
+
     /// Abort the pending task after the current track has been written.
     pub fn export_unsynchronized_tracks_abort(&self) -> ActionEffect {
         let State::ExportingUnsynchronizedTracks { abort_flag } = &self.state else {
@@ -89,4 +123,19 @@ impl Library {
         self.state = State::Idle;
         ActionEffect::Changed
     }
+}
+
+pub(super) async fn count_unsynchronized_tracks(
+    db_gatekeeper: &Gatekeeper,
+    collection_uid: CollectionUid,
+) -> anyhow::Result<usize> {
+    aoide::backend_embedded::track::find_unsynchronized(
+        db_gatekeeper,
+        collection_uid,
+        Default::default(),
+        Default::default(),
+    )
+    .await
+    .map(|tracks| tracks.len())
+    .map_err(Into::into)
 }

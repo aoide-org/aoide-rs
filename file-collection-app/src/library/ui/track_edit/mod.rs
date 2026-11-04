@@ -10,12 +10,13 @@ use nonicle::{Canonical, CanonicalizeInto as _};
 
 use aoide::{
     PlainTag, TagFacetId, TagLabel, Tags, Track,
+    backend_embedded::media::DEFAULT_GENRE_MOOD_SCORE_ATTENUATION,
     media_file::util::gigtag,
     music::{
         key::{KeyCode, KeySignature},
         tempo::TempoBpm,
     },
-    tag::FacetedTags,
+    tag::{FacetedTags, Score},
     track::{
         AdvisoryRating,
         metric::MetricsFlags,
@@ -150,7 +151,7 @@ impl TrackEditDraft {
                 .key_signature
                 .map(|key| key.code().as_lancelot_str().to_owned())
                 .unwrap_or_default(),
-            genres: join_faceted_tag_labels(&track.tags, FACET_ID_GENRE),
+            genres: genre_labels(&track.tags).join(LINE_SEPARATOR),
             grouping: join_faceted_tag_labels(&track.tags, FACET_ID_GROUPING),
             comment: join_faceted_tag_labels(&track.tags, FACET_ID_COMMENT),
             publisher: track.publisher.clone().unwrap_or_default(),
@@ -284,6 +285,7 @@ impl TrackEditDraft {
         } = self;
         if *genres != unmodified.genres {
             replace_faceted_tags(tags, FACET_ID_GENRE, genres.lines());
+            assign_genre_scores_by_position(tags);
         }
         if *grouping != unmodified.grouping {
             replace_faceted_tags(tags, FACET_ID_GROUPING, [grouping.as_str()]);
@@ -335,6 +337,36 @@ fn filter_faceted_tags<'a>(
         .iter()
         .filter(move |faceted_tags| faceted_tags.facet_id == *facet_id)
         .flat_map(|faceted_tags| faceted_tags.tags.iter())
+}
+
+/// The labels of the genres in their intended order.
+///
+/// Tags are canonically ordered by label. The intended order is encoded
+/// by descending scores, both when importing and when editing genres.
+/// Genres with equal scores remain ordered by label.
+#[must_use]
+pub(super) fn genre_labels<'a>(tags: &'a Tags<'static>) -> Vec<&'a str> {
+    filter_faceted_tags(tags, FACET_ID_GENRE)
+        .sorted_by(|lhs, rhs| rhs.score.value().total_cmp(&lhs.score.value()))
+        .filter_map(|tag| tag.label.as_ref().map(TagLabel::as_str))
+        .collect()
+}
+
+/// Encode the current order of genres, which is lost when canonicalizing tags.
+///
+/// Uses the same scores as for importing multiple genres from a file. Other
+/// scores are not preserved, because genres are only edited as a whole.
+fn assign_genre_scores_by_position(tags: &mut Tags<'static>) {
+    let mut score_value = PlainTag::DEFAULT_SCORE.value();
+    for tag in tags
+        .facets
+        .iter_mut()
+        .filter(|faceted_tags| faceted_tags.facet_id == *FACET_ID_GENRE)
+        .flat_map(|faceted_tags| faceted_tags.tags.iter_mut())
+    {
+        tag.score = Score::clamp_from(score_value);
+        score_value *= DEFAULT_GENRE_MOOD_SCORE_ATTENUATION;
+    }
 }
 
 #[must_use]
@@ -610,6 +642,7 @@ fn contains_tag_label(
 /// corresponding fields of [`TrackEditDraft`].
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct MultiTrackFields {
+    pub title: Option<String>,
     pub artist: Option<String>,
     pub album_title: Option<String>,
     pub album_artist: Option<String>,
@@ -655,6 +688,7 @@ impl MultiTrackFields {
 
     fn apply_to_draft(&self, draft: &mut TrackEditDraft) {
         let Self {
+            title,
             artist,
             album_title,
             album_artist,
@@ -673,6 +707,7 @@ impl MultiTrackFields {
                 field.clone_from(value);
             }
         };
+        set(&mut draft.title, title);
         set(&mut draft.artist, artist);
         set(&mut draft.album_title, album_title);
         set(&mut draft.album_artist, album_artist);

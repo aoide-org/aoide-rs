@@ -98,6 +98,26 @@ impl From<Event> for Message {
 pub(crate) enum Action {
     Library(LibraryAction),
     TrackListColumns(TrackListColumnsAction),
+    PendingEdits(PendingEditsAction),
+}
+
+/// Save pending track edits on demand and before closing the application.
+#[derive(Debug)]
+pub(crate) enum PendingEditsAction {
+    /// Save the draft of the track editor if any and write all modified tracks into their files.
+    Save { draft: Option<Box<Track>> },
+    /// Closing the application has been requested.
+    RequestClose,
+    /// Continue working without closing the application.
+    CancelClose,
+    /// Close the application and keep the modified tracks for writing them later.
+    CloseWithoutWriting,
+}
+
+impl From<PendingEditsAction> for Action {
+    fn from(action: PendingEditsAction) -> Self {
+        Self::PendingEdits(action)
+    }
 }
 
 /// Select and arrange the columns of the track list.
@@ -229,6 +249,13 @@ pub(crate) enum TrackEditAction {
     ///
     /// Discards all pending edits of the currently edited track.
     Open(TrackUid),
+    /// Modify a track directly in the track list without writing the file.
+    ///
+    /// Independent of the track that is currently edited.
+    Apply {
+        entity_uid: TrackUid,
+        edit: Box<MultiTrackEdit>,
+    },
     /// Save the edited track and optionally write the file.
     Save { track: Box<Track>, write_file: bool },
     /// Close the editor and discard all pending edits.

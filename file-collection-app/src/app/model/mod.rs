@@ -9,7 +9,7 @@ use crate::library::{
     Library, export_unsynchronized_tracks, track_search, ui::TrackListItem, update_tracks,
 };
 
-use super::TrackListColumns;
+use super::{CloseState, ModifiedTrackCount, TrackListColumns};
 
 // Mutually exclusive modes of operation.
 #[derive(Debug)]
@@ -35,6 +35,8 @@ pub(crate) struct TrackSearchMode {
     pub(crate) memo_state: track_search::MemoState,
     pub(crate) track_list: Option<Vec<TrackListItem>>,
     pub(crate) edit: Option<TrackSearchEdit>,
+    /// The error of the last edit that was applied directly in the track list.
+    pub(crate) track_list_edit_error: Option<String>,
 }
 
 /// Editing of tracks in the track search results.
@@ -299,6 +301,16 @@ pub(crate) struct Model {
 
     /// The directory for persistent settings.
     pub(crate) settings_dir: PathBuf,
+
+    pub(crate) modified_track_count: ModifiedTrackCount,
+
+    /// The number of single track edits that are still written into the database.
+    pub(crate) active_track_writes: usize,
+
+    /// Continue with writing all modified tracks after the draft of the track editor has been saved.
+    pub(crate) write_files_after_saving_draft: bool,
+
+    pub(crate) close_state: CloseState,
 }
 
 impl Model {
@@ -311,6 +323,10 @@ impl Model {
             music_dir_selection: None,
             track_list_columns,
             settings_dir,
+            modified_track_count: Default::default(),
+            active_track_writes: 0,
+            write_files_after_saving_draft: false,
+            close_state: Default::default(),
         }
     }
 }

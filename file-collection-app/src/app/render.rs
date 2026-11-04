@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use eframe::Frame;
 use egui::{
     Button, CentralPanel, Grid, Panel, ScrollArea, TextEdit, Ui, scroll_area::ScrollSource,
 };
@@ -9,11 +8,12 @@ use egui::{
 use crate::library::{export_unsynchronized_tracks, ui::TrackListItem};
 
 use super::{
-    Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction, TrackEditor,
-    TrackListColumns, TrackSearchAction, TrackSearchEdit, TrackSearchMode, UiData,
+    Action, CloseState, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
+    TrackEditor, TrackListColumns, TrackSearchAction, TrackSearchEdit, TrackSearchMode, UiData,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerDirListAction, MediaTrackerSyncAction,
     },
+    pending_edits::{self, DraftEdit, PendingEdits},
     track_editor, track_list, track_selection_editor,
 };
 
@@ -28,7 +28,7 @@ pub(super) struct RenderContext<'a> {
 }
 
 impl RenderContext<'_> {
-    pub(super) fn render_frame(&mut self, ui: &mut Ui, _frm: &mut Frame) {
+    pub(super) fn render_frame(&mut self, ui: &mut Ui, pending_edits: &PendingEdits) {
         let Self {
             msg_tx,
             mdl,
@@ -43,21 +43,10 @@ impl RenderContext<'_> {
             })) => (track_list.as_deref().unwrap_or_default(), edit.as_ref()),
             _ => (&[][..], None),
         };
-        let track_editor = edit.and_then(TrackSearchEdit::track_editor);
-        track_editor::sync_draft(track_editor, &mut ui_data.editor_draft);
-        let is_track_editor_draft_modified = track_editor
-            .zip(ui_data.editor_draft.as_ref())
-            .is_some_and(|(track_editor, draft)| draft.is_modified(track_editor));
+        let is_track_editor_draft_modified = pending_edits.is_draft_modified();
 
         Panel::top("top-panel").show(ui, |ui| {
-            render_top_panel(
-                ui,
-                ui_data,
-                msg_tx,
-                mdl,
-                &library,
-                is_track_editor_draft_modified,
-            );
+            render_top_panel(ui, ui_data, msg_tx, mdl, &library, pending_edits);
         });
 
         Panel::bottom("bottom-panel").show(ui, |ui| {
@@ -109,6 +98,11 @@ impl RenderContext<'_> {
                 );
             });
         }
+
+        // Rendered after all panels to block them.
+        if mdl.close_state == CloseState::Requested {
+            pending_edits::render_close_dialog(ui.ctx(), msg_tx, pending_edits, mdl.mode.as_ref());
+        }
     }
 }
 
@@ -119,7 +113,7 @@ fn render_top_panel(
     msg_tx: &MessageSender,
     mdl: &Model,
     library: &crate::library::CurrentState<'_>,
-    is_track_editor_draft_modified: bool,
+    pending_edits: &PendingEdits,
 ) {
     let Model {
         music_dir_selection,
@@ -176,20 +170,22 @@ fn render_top_panel(
                 {
                     msg_tx.send_action(MediaTrackerDirListAction::OpenView);
                 }
-                if ui
+                let mut save_button = ui
                     .add_enabled(
                         !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting))
-                            // Unsaved changes would be lost when switching the mode.
-                            && !is_track_editor_draft_modified
-                            && library.could_export_unsynchronized_tracks(),
-                        Button::new("Write unsynchronized files"),
+                            && pending_edits.could_save(),
+                        Button::new(pending_edits.save_button_text()),
                     )
                     .on_hover_text(
-                        "Write the metadata of all modified tracks into their files. Files that have been modified on disk are skipped.",
-                    )
-                    .clicked()
-                {
-                    msg_tx.send_action(ExportUnsynchronizedTracksAction::SpawnTask);
+                        "Save the changes of the track editor and write the metadata of all modified tracks into their files. Files that have been modified on disk are skipped.",
+                    );
+                if matches!(pending_edits.draft, DraftEdit::Invalid) {
+                    save_button = save_button.on_disabled_hover_text(
+                        "Fix the invalid values in the track editor first.",
+                    );
+                }
+                if save_button.clicked() {
+                    msg_tx.send_action(pending_edits.save_action());
                 }
                 if ui
                     .add_enabled(
@@ -281,6 +277,7 @@ fn render_central_panel(
             track_list: Some(track_list),
             memo_state,
             edit,
+            track_list_edit_error,
         }) => {
             let interaction = track_list::TrackListInteraction {
                 edited_entity_uid: edit
@@ -289,6 +286,7 @@ fn render_central_panel(
                     .map(|TrackEditor { entity_uid, .. }| entity_uid),
                 track_selection: edit.as_ref().and_then(TrackSearchEdit::track_selection),
                 is_track_editor_draft_modified,
+                edit_error: track_list_edit_error.as_deref(),
             };
             track_list::render_track_list(
                 ui,
@@ -345,7 +343,7 @@ fn render_central_panel(
     }
 }
 
-fn render_export_unsynchronized_tracks(
+pub(super) fn render_export_unsynchronized_tracks(
     ui: &mut Ui,
     last_progress: Option<&export_unsynchronized_tracks::Progress>,
     final_outcome: Option<&Result<Box<export_unsynchronized_tracks::Outcome>, String>>,

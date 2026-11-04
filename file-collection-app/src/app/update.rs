@@ -18,13 +18,13 @@ use crate::{
 };
 
 use super::{
-    Action, CollectionAction, Event, LibraryAction, Message, MessageSender, Model, ModelMode,
-    MusicDirSelection, MusicDirectoryAction, TrackEditAction, TrackEditor, TrackEditorState,
-    TrackListColumnsAction, TrackSearchAction, TrackSearchEdit, TrackSearchMode, TrackSelection,
-    TrackSelectionAction, TrackSelectionState,
+    Action, CloseState, CollectionAction, Event, LibraryAction, Message, MessageSender, Model,
+    ModelMode, MusicDirSelection, MusicDirectoryAction, TrackEditAction, TrackEditor,
+    TrackEditorState, TrackListColumnsAction, TrackSearchAction, TrackSearchEdit, TrackSearchMode,
+    TrackSelection, TrackSelectionAction, TrackSelectionState,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerAction, MediaTrackerDirListAction,
-        MediaTrackerSyncAction,
+        MediaTrackerSyncAction, PendingEditsAction,
     },
 };
 
@@ -60,11 +60,51 @@ impl UpdateContext<'_> {
                 }
             },
             Action::TrackListColumns(action) => self.on_track_list_columns_action(action),
+            Action::PendingEdits(action) => self.on_pending_edits_action(ctx, action),
         };
         if matches!(action_effect, ActionEffect::Unchanged) {
             return;
         }
         ctx.request_repaint();
+    }
+
+    fn on_pending_edits_action(
+        &mut self,
+        ctx: &Context,
+        action: PendingEditsAction,
+    ) -> ActionEffect {
+        match action {
+            PendingEditsAction::Save { draft: Some(track) } => {
+                let effect = self.on_library_track_edit_action(TrackEditAction::Save {
+                    track,
+                    write_file: false,
+                });
+                if !matches!(effect, ActionEffect::Unchanged) {
+                    self.mdl.write_files_after_saving_draft = true;
+                }
+                effect
+            }
+            PendingEditsAction::Save { draft: None } => self
+                .on_library_export_unsynchronized_tracks_action(
+                    ExportUnsynchronizedTracksAction::SpawnTask,
+                ),
+            PendingEditsAction::RequestClose => {
+                self.mdl.close_state = CloseState::Requested;
+                // Decide with the current count.
+                refresh_modified_track_count(self.rt, self.msg_tx, self.mdl);
+                ActionEffect::Changed
+            }
+            PendingEditsAction::CancelClose => {
+                self.mdl.close_state = CloseState::NotRequested;
+                ActionEffect::Changed
+            }
+            PendingEditsAction::CloseWithoutWriting => {
+                log::info!("Closing the application without writing pending edits");
+                self.mdl.close_state = CloseState::Confirmed;
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                ActionEffect::Changed
+            }
+        }
     }
 
     fn on_track_list_columns_action(&mut self, action: TrackListColumnsAction) -> ActionEffect {
@@ -454,12 +494,33 @@ impl UpdateContext<'_> {
 
     fn on_library_track_edit_action(&mut self, action: TrackEditAction) -> ActionEffect {
         let Self { rt, msg_tx, mdl } = self;
-        let Model { library, mode, .. } = mdl;
-        let Some(ModelMode::TrackSearch(TrackSearchMode { edit, .. })) = mode else {
+        let Model {
+            library,
+            mode,
+            active_track_writes,
+            ..
+        } = mdl;
+        let Some(ModelMode::TrackSearch(TrackSearchMode {
+            edit,
+            track_list_edit_error,
+            ..
+        })) = mode
+        else {
             log::info!("Discarding track edit action: {action:?}");
             return ActionEffect::Unchanged;
         };
         match action {
+            TrackEditAction::Apply {
+                entity_uid,
+                edit: track_edit,
+            } => {
+                *track_list_edit_error = None;
+                let effect = library.apply_track_edit(rt, *msg_tx, entity_uid, *track_edit);
+                if !matches!(effect, ActionEffect::Unchanged) {
+                    *active_track_writes += 1;
+                }
+                effect
+            }
             TrackEditAction::Open(entity_uid) => {
                 if edit
                     .as_ref()
@@ -497,6 +558,7 @@ impl UpdateContext<'_> {
                     return effect;
                 }
                 track_editor.start_saving(write_file);
+                *active_track_writes += 1;
                 ActionEffect::Changed
             }
             TrackEditAction::Close => {
@@ -526,8 +588,34 @@ impl UpdateContext<'_> {
     }
 
     fn on_library_event(&mut self, ctx: &Context, event: library::Event) {
+        let is_modified_track_count_outdated = match &event {
+            library::Event::Collection(library::collection::Event::StateChanged)
+            | library::Event::MusicDirSyncFinished(_)
+            | library::Event::ExportUnsynchronizedTracksFinished(_)
+            | library::Event::UpdateTracksFinished(_) => true,
+            library::Event::TrackEdit(event) => matches!(
+                **event,
+                track_edit::Event::Saved { .. } | track_edit::Event::Applied { .. }
+            ),
+            _ => false,
+        };
+        self.on_library_event_inner(ctx, event);
+        if is_modified_track_count_outdated {
+            refresh_modified_track_count(self.rt, self.msg_tx, self.mdl);
+            ctx.request_repaint();
+        }
+    }
+
+    fn on_library_event_inner(&mut self, ctx: &Context, event: library::Event) {
         let Self { rt, msg_tx, mdl } = self;
-        let Model { library, mode, .. } = mdl;
+        let Model {
+            library,
+            mode,
+            modified_track_count,
+            active_track_writes,
+            write_files_after_saving_draft,
+            ..
+        } = mdl;
         match event {
             library::Event::Settings(library::settings::Event::StateChanged) => {
                 // Nothing to do.
@@ -556,7 +644,28 @@ impl UpdateContext<'_> {
                 }
             }
             library::Event::TrackEdit(event) => {
+                let write_finished = TrackWriteFinished::from_event(&event);
                 on_library_track_edit_event(ctx, library, mode, *event);
+                if let Some(write_finished) = write_finished {
+                    *active_track_writes = active_track_writes.saturating_sub(1);
+                    // Edits that are unrelated to the draft must not affect the pending decision.
+                    if !matches!(write_finished, TrackWriteFinished::Applied)
+                        && std::mem::take(write_files_after_saving_draft)
+                        && matches!(write_finished, TrackWriteFinished::Saved)
+                    {
+                        msg_tx.send_action(ExportUnsynchronizedTracksAction::SpawnTask);
+                    }
+                }
+            }
+            library::Event::UnsynchronizedTracksCounted { request_id, result } => {
+                let count = result
+                    .inspect_err(|err| {
+                        log::warn!("Failed to count unsynchronized tracks: {err:#}");
+                    })
+                    .ok();
+                if modified_track_count.finish_counting(request_id, count) {
+                    ctx.request_repaint();
+                }
             }
             library::Event::MusicDirSyncProgress(progress) => {
                 if let Some(ModelMode::MusicDirSync {
@@ -564,8 +673,10 @@ impl UpdateContext<'_> {
                     final_outcome,
                 }) = mode
                 {
-                    debug_assert!(final_outcome.is_none());
-                    *last_progress = progress;
+                    // The last progress might arrive after the outcome.
+                    if final_outcome.is_none() {
+                        *last_progress = progress;
+                    }
                 } else {
                     log::debug!(
                         "Discarding unexpected music directory synchronization progress: {progress:?}"
@@ -573,23 +684,7 @@ impl UpdateContext<'_> {
                 }
             }
             library::Event::MusicDirSyncFinished(finished_state) => {
-                let _ = library.sync_music_dir_finished();
-                let outcome = match *finished_state {
-                    SynchronizingVfsFinishedState::Succeeded { outcome } => Some(outcome),
-                    SynchronizingVfsFinishedState::Aborted => None,
-                    SynchronizingVfsFinishedState::Failed { error } => {
-                        log::warn!("Synchronizing music directory failed: {error}");
-                        None
-                    }
-                };
-                if let Some(ModelMode::MusicDirSync { final_outcome, .. }) = mode {
-                    debug_assert!(final_outcome.is_none());
-                    *final_outcome = outcome.map(Box::new);
-                } else {
-                    log::debug!(
-                        "Discarding unexpected music directory synchronization outcome {outcome:?}: {mode:?}"
-                    );
-                }
+                on_library_music_dir_sync_finished(library, mode, *finished_state);
             }
             library::Event::ExportUnsynchronizedTracksProgress(progress) => {
                 on_library_export_unsynchronized_tracks_progress(mode, progress);
@@ -598,19 +693,7 @@ impl UpdateContext<'_> {
                 on_library_export_unsynchronized_tracks_finished(library, mode, *result);
             }
             library::Event::UpdateTracksProgress(progress) => {
-                if let Some(ModelMode::TrackSearch(TrackSearchMode {
-                    edit:
-                        Some(TrackSearchEdit::Multiple(TrackSelection {
-                            state: TrackSelectionState::Updating { last_progress, .. },
-                            ..
-                        })),
-                    ..
-                })) = mode
-                {
-                    *last_progress = Some(progress);
-                } else {
-                    log::debug!("Discarding unexpected update tracks progress: {progress:?}");
-                }
+                on_library_update_tracks_progress(mode, progress);
             }
             library::Event::UpdateTracksFinished(result) => {
                 on_library_update_tracks_finished(ctx, library, mode, *result);
@@ -623,6 +706,87 @@ impl UpdateContext<'_> {
                 on_library_music_dir_list_result(library, mode, &collection_uid, result);
             }
         }
+    }
+}
+
+fn on_library_update_tracks_progress(
+    mode: &mut Option<ModelMode>,
+    progress: library::update_tracks::Progress,
+) {
+    if let Some(ModelMode::TrackSearch(TrackSearchMode {
+        edit:
+            Some(TrackSearchEdit::Multiple(TrackSelection {
+                state: TrackSelectionState::Updating { last_progress, .. },
+                ..
+            })),
+        ..
+    })) = mode
+    {
+        *last_progress = Some(progress);
+    } else {
+        log::debug!("Discarding unexpected update tracks progress: {progress:?}");
+    }
+}
+
+fn on_library_music_dir_sync_finished(
+    library: &mut Library,
+    mode: &mut Option<ModelMode>,
+    finished_state: SynchronizingVfsFinishedState,
+) {
+    let _ = library.sync_music_dir_finished();
+    let outcome = match finished_state {
+        SynchronizingVfsFinishedState::Succeeded { outcome } => Some(outcome),
+        SynchronizingVfsFinishedState::Aborted => None,
+        SynchronizingVfsFinishedState::Failed { error } => {
+            log::warn!("Synchronizing music directory failed: {error}");
+            None
+        }
+    };
+    if let Some(ModelMode::MusicDirSync { final_outcome, .. }) = mode {
+        debug_assert!(final_outcome.is_none());
+        *final_outcome = outcome.map(Box::new);
+    } else {
+        log::debug!(
+            "Discarding unexpected music directory synchronization outcome {outcome:?}: {mode:?}"
+        );
+    }
+}
+
+/// A single track edit has been written into the database.
+#[derive(Debug, Clone, Copy)]
+enum TrackWriteFinished {
+    Applied,
+    Saved,
+    SavingFailed,
+}
+
+impl TrackWriteFinished {
+    #[must_use]
+    const fn from_event(event: &track_edit::Event) -> Option<Self> {
+        match event {
+            track_edit::Event::Loaded { .. } => None,
+            track_edit::Event::Applied { .. } => Some(Self::Applied),
+            track_edit::Event::Saved {
+                result: Ok(track_edit::Outcome::Updated { .. }),
+                ..
+            } => Some(Self::Saved),
+            track_edit::Event::Saved { .. } => Some(Self::SavingFailed),
+        }
+    }
+}
+
+/// Count the modified tracks of the current collection.
+fn refresh_modified_track_count(
+    rt: &tokio::runtime::Handle,
+    msg_tx: &MessageSender,
+    mdl: &mut Model,
+) {
+    let request_id = mdl.modified_track_count.start_counting();
+    let effect = mdl
+        .library
+        .count_unsynchronized_tracks(rt, msg_tx, request_id);
+    if matches!(effect, ActionEffect::Unchanged) {
+        mdl.modified_track_count.reset();
     }
 }
 
@@ -954,7 +1118,72 @@ fn on_library_track_edit_event(
             }
             ctx.request_repaint();
         }
+        track_edit::Event::Applied {
+            collection_uid,
+            entity_uid,
+            result,
+        } => {
+            if !is_current_collection(library, &collection_uid) {
+                log::debug!("Discarding edit of track {entity_uid} of collection {collection_uid}");
+                return;
+            }
+            on_library_track_edit_applied(ctx, library, mode, &entity_uid, result);
+        }
     }
+}
+
+fn on_library_track_edit_applied(
+    ctx: &Context,
+    library: &Library,
+    mode: &mut Option<ModelMode>,
+    entity_uid: &TrackUid,
+    result: anyhow::Result<library::update_tracks::Outcome>,
+) {
+    let (updated, error) = match result {
+        Ok(outcome) => {
+            let error = outcome
+                .skipped
+                .into_iter()
+                .map(|(_, conflict)| track_edit_conflict_message(conflict).to_owned())
+                .chain(outcome.failed.into_iter().map(|(_, error)| error))
+                .next();
+            (outcome.updated, error)
+        }
+        Err(err) => (Vec::new(), Some(format!("{err:#}"))),
+    };
+    if let Some(error) = &error {
+        log::warn!("Failed to edit track {entity_uid}: {error}");
+    }
+    for entity in &updated {
+        // The track list must be updated independent of the current mode.
+        let _ = library.replace_track_search_result(entity.clone());
+    }
+    if let Some(ModelMode::TrackSearch(TrackSearchMode {
+        track_list,
+        edit,
+        track_list_edit_error,
+        ..
+    })) = mode
+    {
+        *track_list_edit_error = error.map(|error| format!("Failed to edit track: {error}"));
+        for entity in updated {
+            if let Some(track_list) = track_list.as_deref_mut() {
+                replace_track_list_item(ctx, track_list, &entity);
+            }
+            // Otherwise saving in the track editor would be rejected as a conflict.
+            // Edits are not possible while the draft of the track editor is modified.
+            if let Some(TrackEditor {
+                entity_uid,
+                state: TrackEditorState::Ready { entity: edited },
+                ..
+            }) = edit.as_mut().and_then(TrackSearchEdit::track_editor_mut)
+                && *entity_uid == entity.hdr.uid
+            {
+                **edited = entity;
+            }
+        }
+    }
+    ctx.request_repaint();
 }
 
 #[must_use]

@@ -41,6 +41,10 @@ pub enum Event {
     MusicDirSyncFinished(Box<aoide::desktop_app::collection::SynchronizingVfsFinishedState>),
     ExportUnsynchronizedTracksProgress(export_unsynchronized_tracks::Progress),
     ExportUnsynchronizedTracksFinished(Box<anyhow::Result<export_unsynchronized_tracks::Outcome>>),
+    UnsynchronizedTracksCounted {
+        request_id: u64,
+        result: anyhow::Result<usize>,
+    },
     UpdateTracksProgress(update_tracks::Progress),
     UpdateTracksFinished(Box<anyhow::Result<update_tracks::Outcome>>),
     MusicDirListResult {
@@ -170,6 +174,11 @@ impl CurrentState<'_> {
     #[must_use]
     pub const fn could_abort_export_unsynchronized_tracks(&self) -> bool {
         matches!(self.library, State::ExportingUnsynchronizedTracks { .. })
+    }
+
+    #[must_use]
+    pub const fn is_updating_tracks(&self) -> bool {
+        matches!(self.library, State::UpdatingTracks { .. })
     }
 
     #[must_use]
