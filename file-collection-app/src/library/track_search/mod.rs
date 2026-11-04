@@ -50,6 +50,9 @@ pub(super) const DEFAULT_PREFETCH_LIMIT: NonZeroUsize =
 #[cfg(test)]
 mod bench;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug)]
 pub enum Event {
     StateChanged,
@@ -126,6 +129,12 @@ impl MemoState {
                 let state = shared_state.read();
                 state.update_memo_delta(memo)
             };
+            if matches!(memo_diff, MemoDiff::Unchanged) {
+                // Nothing to apply, i.e. a pending state would never be completed
+                // and would block all subsequent changes.
+                log::debug!("State changed without affecting the memo");
+                return None;
+            }
             let memo = std::mem::take(memo);
             (memo, memo_delta, memo_diff)
         };

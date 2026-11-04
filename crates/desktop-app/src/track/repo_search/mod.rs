@@ -669,7 +669,6 @@ impl State {
         else {
             return ActionEffect::Unchanged;
         };
-        debug_assert!(task.is_finished());
 
         let FetchMoreTaskContinuation {
             pending_since: continuation_pending_since,
@@ -686,8 +685,10 @@ impl State {
                     .as_deref()
                     .map(FetchedEntitiesMemo::from_slice)
         {
+            // Outdated, i.e. the pending task is not the one that has been joined.
             return ActionEffect::Unchanged;
         }
+        debug_assert!(task.is_finished());
         match joined {
             JoinedTask::Completed(Ok(fetched_entities)) => {
                 let can_fetch_more = if let Some(limit) = limit {

@@ -23,13 +23,17 @@ use aoide::{
 
 use crate::library::{
     Library, settings,
+    track_search::{Memo, MemoState},
     ui::{CustomTagsDelta, MultiTrackEdit, MultiTrackFields},
 };
 
-use super::super::{App, TrackEditAction, TrackEditorState, message::PendingEditsAction};
+use super::super::{
+    App, TrackEditAction, TrackEditorState, TrackSearchAction, TrackSearchFetchedItems,
+    message::{MediaTrackerSyncAction, PendingEditsAction},
+};
 use super::*;
 
-const TIMEOUT: Duration = Duration::from_secs(60);
+const TIMEOUT: Duration = Duration::from_secs(10);
 
 struct TestDir(PathBuf);
 
@@ -69,8 +73,8 @@ struct Flow {
 }
 
 impl Flow {
-    /// Start the application with a synchronized music directory.
-    fn new(test_name: &str) -> Self {
+    /// Start the application until the collection is ready.
+    fn start(test_name: &str) -> Self {
         let dir = TestDir::new(test_name);
         let rt = tokio::runtime::Runtime::new().unwrap();
         let settings = settings::State {
@@ -96,6 +100,12 @@ impl Flow {
         flow.run_until("collection is ready", |app| {
             app.mdl.library.read_collection_state().is_ready()
         });
+        flow
+    }
+
+    /// Start the application with an imported file.
+    fn new(test_name: &str) -> Self {
+        let mut flow = Self::start(test_name);
         flow.import_track_file();
         // Independent of fetching the track list in the background.
         flow.app
@@ -205,7 +215,10 @@ impl Flow {
             }
             assert!(
                 started.elapsed() < TIMEOUT,
-                "timed out waiting until {description}"
+                "timed out waiting until {description}: mode = {mode:?}, collection = {collection:?}, library = {library:?}",
+                mode = self.app.mdl.mode,
+                collection = *self.app.mdl.library.read_collection_state(),
+                library = self.app.mdl.library.state(),
             );
             std::thread::sleep(Duration::from_millis(2));
         }
@@ -476,4 +489,97 @@ fn stays_open_if_a_file_could_not_be_written() {
         .send_action(PendingEditsAction::CloseWithoutWriting);
     let commands = flow.run_until("closing is confirmed", is_close_confirmed);
     assert!(commands.contains(&ViewportCommand::Close));
+}
+
+/// Synchronize and list tracks like a user, i.e. without bypassing the application.
+fn run_ui_paths(test_name: &str, search_while_fetching: bool) -> Flow {
+    let mut flow = Flow::start(test_name);
+    flow.app
+        .msg_tx
+        .send_action(MediaTrackerSyncAction::SpawnTask);
+    flow.run_until("music directory is synchronized", |app| {
+        matches!(
+            app.mdl.mode,
+            Some(ModelMode::MusicDirSync {
+                final_outcome: Some(_),
+                ..
+            })
+        )
+    });
+    flow.app.msg_tx.send_action(MediaTrackerSyncAction::Finish);
+    if search_while_fetching {
+        flow.run_until("track search is available", |app| {
+            matches!(app.mdl.mode, Some(ModelMode::TrackSearch(_)))
+        });
+        flow.app
+            .msg_tx
+            .send_action(TrackSearchAction::Search(String::new()));
+    }
+    flow.run_until("track is listed", |app| {
+        matches!(
+            &app.mdl.mode,
+            Some(ModelMode::TrackSearch(TrackSearchMode { track_list: Some(track_list), .. }))
+                if !track_list.is_empty()
+        )
+    });
+    flow
+}
+
+#[test]
+fn synchronizing_and_listing_tracks_finishes() {
+    drop(run_ui_paths(
+        "synchronizing_and_listing_tracks_finishes",
+        false,
+    ));
+}
+
+#[test]
+fn searching_while_fetching_still_lists_tracks() {
+    drop(run_ui_paths(
+        "searching_while_fetching_still_lists_tracks",
+        true,
+    ));
+}
+
+#[test]
+fn outdated_track_search_items_are_discarded_and_fetched_again() {
+    let mut flow = run_ui_paths(
+        "outdated_track_search_items_are_discarded_and_fetched_again",
+        false,
+    );
+    let (memo_delta, _) = flow
+        .app
+        .mdl
+        .library
+        .read_current_state()
+        .track_search
+        .update_memo_delta(&Memo::default());
+    let Some(ModelMode::TrackSearch(TrackSearchMode {
+        memo_state,
+        track_list,
+        ..
+    })) = &mut flow.app.mdl.mode
+    else {
+        unreachable!();
+    };
+    *track_list = None;
+    // The memo delta expects fetched entities that are not available anymore.
+    *memo_state = MemoState::Pending {
+        memo: Memo::default(),
+        memo_delta,
+        state_changed_again: false,
+        pending_since: Instant::now(),
+    };
+    flow.app
+        .msg_tx
+        .send_action(TrackSearchAction::ApplyPendingStateChange {
+            fetched_items: TrackSearchFetchedItems::Reset,
+        });
+    flow.run_until("track is listed again", |app| {
+        matches!(
+            &app.mdl.mode,
+            Some(ModelMode::TrackSearch(TrackSearchMode { track_list: Some(track_list), .. }))
+                if !track_list.is_empty()
+        )
+    });
 }

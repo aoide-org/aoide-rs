@@ -657,7 +657,7 @@ fn column_insertion_index(header_rects: &[Rect], pointer_x: f32) -> usize {
 /// Visualize and finish dragging a column.
 ///
 /// The column is dropped wherever the mouse button is released. Dragging
-/// could be canceled by pressing the escape key.
+/// could be cancelled by pressing the escape key.
 fn render_dragged_column(
     ui: &mut Ui,
     msg_tx: &MessageSender,

@@ -547,7 +547,13 @@ impl State {
         nested_music_dirs: NestedMusicDirectoriesStrategy,
     ) -> anyhow::Result<SpawnRestoringFromMusicDirectoryTaskReaction> {
         match self {
+            // Restoring the same music directory must not replace a running synchronization.
+            // Its outcome would get lost and it would appear to be pending forever.
             Self::Ready { entity, .. }
+            | Self::SynchronizingVfs {
+                context: SynchronizingVfsContext { entity },
+                ..
+            }
                 // When set the `kind` controls the selection of collections by music directory.
                 if new_kind.is_none() || new_kind.as_deref() == entity.body.kind.as_deref() => {
                     let vfs_music_dir = vfs_music_dir(&entity.body);
@@ -797,7 +803,6 @@ impl State {
             return ActionEffect::Unchanged;
         };
 
-        debug_assert!(task.is_finished());
         if *pending_since != continuation_pending_since || *context != continuation_context {
             log::warn!(
                 "State changed while restoring from music directory: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
@@ -808,6 +813,7 @@ impl State {
             );
             return ActionEffect::Unchanged;
         }
+        debug_assert!(task.is_finished());
 
         match joined {
             JoinedTask::Completed(Ok(next_state)) => {
@@ -862,7 +868,6 @@ impl State {
             );
             return ActionEffect::Unchanged;
         };
-        debug_assert!(task.is_finished());
         if *pending_since != continuation_pending_since || *context != continuation_context {
             log::warn!(
                 "State changed while loading from database: current state {self:?}, continuation {continuation:?} - discarding {joined:?}",
@@ -873,6 +878,7 @@ impl State {
             );
             return ActionEffect::Unchanged;
         }
+        debug_assert!(task.is_finished());
 
         match joined {
             JoinedTask::Completed(Ok(next_state)) => {
@@ -1400,3 +1406,6 @@ impl SynchronizingVfsTask {
         self.task.is_finished()
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -45,3 +45,6 @@ features = ["xdg-portal"]
 [features]
 default = []
 async-file-dialog = ["dep:rfd"]
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

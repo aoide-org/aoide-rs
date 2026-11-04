@@ -134,3 +134,32 @@ fn replace_fetched_entity_should_ignore_outdated_or_unknown_entities() {
         state.fetched_entities().unwrap()[0].entity.hdr
     );
 }
+
+#[tokio::test]
+async fn outdated_fetch_result_should_be_ignored_while_another_task_is_pending() {
+    let running_task = tokio::spawn(std::future::pending::<()>());
+    let mut state = State {
+        fetch: FetchState::Pending {
+            fetched_entities_before: None,
+            since: Instant::now(),
+            task: running_task.abort_handle(),
+        },
+        ..Default::default()
+    };
+    let outdated = FetchMoreTaskContinuation {
+        // A previous task that has been replaced by the running task.
+        pending_since: Instant::now()
+            .checked_sub(std::time::Duration::from_secs(1))
+            .unwrap(),
+        default_params: state.default_params.clone(),
+        context: state.context.clone(),
+        fetched_entities_before: None,
+        limit: None,
+    };
+
+    let effect = state.continue_after_fetching_more_task_joined(JoinedTask::Cancelled, outdated);
+
+    assert!(matches!(effect, ActionEffect::Unchanged));
+    assert!(matches!(state.fetch, FetchState::Pending { .. }));
+    running_task.abort();
+}

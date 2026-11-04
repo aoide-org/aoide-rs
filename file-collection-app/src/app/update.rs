@@ -314,14 +314,41 @@ impl UpdateContext<'_> {
                 if matches!(memo_state, track_search::MemoState::Pending { .. }) {
                     match memo_state.complete() {
                         Ok((memo, memo_delta)) => {
+                            let expected_offset = memo_delta.fetch.as_ref().and_then(|fetch| {
+                                fetch
+                                    .fetched_entities
+                                    .as_ref()
+                                    .map(FetchedEntitiesMemo::offset)
+                            });
+                            let new_offset = match &fetched_items {
+                                TrackSearchFetchedItems::Reset => None,
+                                TrackSearchFetchedItems::Replace(fetched_items) => {
+                                    Some(fetched_items.len())
+                                }
+                                TrackSearchFetchedItems::Append(fetched_items) => Some(
+                                    track_list.as_ref().map_or(0, Vec::len) + fetched_items.len(),
+                                ),
+                            };
+                            if new_offset != expected_offset {
+                                // The items are collected after the memo delta has been determined
+                                // and the state might have changed in the meantime. Applying them
+                                // would leave the track list inconsistent with the memo.
+                                log::info!(
+                                    "Discarding outdated track search items: {new_offset:?} <> {expected_offset:?}"
+                                );
+                                memo_state.abort();
+                                drop(msg_tx.emit_event(library::Event::from(
+                                    library::track_search::Event::StateChanged,
+                                )));
+                                return mode_effect + ActionEffect::MaybeChanged;
+                            }
                             log::debug!("Applying track search memo change");
-                            let new_offset = match fetched_items {
+                            match fetched_items {
                                 TrackSearchFetchedItems::Reset => {
                                     log::debug!(
                                         "Track search list changed: No fetched items available"
                                     );
                                     *track_list = None;
-                                    None
                                 }
                                 TrackSearchFetchedItems::Replace(fetched_items) => {
                                     let track_list = track_list
@@ -333,7 +360,6 @@ impl UpdateContext<'_> {
                                     );
                                     track_list.clear();
                                     track_list.extend(fetched_items);
-                                    Some(track_list.len())
                                 }
                                 TrackSearchFetchedItems::Append(fetched_items) => {
                                     let track_list = track_list
@@ -352,16 +378,8 @@ impl UpdateContext<'_> {
                                         count_append = fetched_items.len()
                                     );
                                     track_list.extend(fetched_items);
-                                    Some(track_list.len())
                                 }
-                            };
-                            debug_assert_eq!(
-                                new_offset,
-                                memo_delta.fetch.as_ref().and_then(|fetch| fetch
-                                    .fetched_entities
-                                    .as_ref()
-                                    .map(FetchedEntitiesMemo::offset))
-                            );
+                            }
                             library.on_track_search_state_changed_pending_apply(memo_state);
                             debug_assert!(matches!(memo_state, track_search::MemoState::Ready(_)));
                             ActionEffect::MaybeChanged
@@ -1240,8 +1258,7 @@ fn on_library_track_search_state_changed(
     };
     let fetched_entities_diff = match memo_diff {
         aoide::desktop_app::track::repo_search::MemoDiff::Unchanged => {
-            log::debug!("Track search memo unchanged");
-            return false;
+            unreachable!("not pending without changes");
         }
         aoide::desktop_app::track::repo_search::MemoDiff::Changed {
             fetched_entities: fetched_entities_diff,
