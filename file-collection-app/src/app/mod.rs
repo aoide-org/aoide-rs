@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{path::PathBuf, sync::mpsc};
+use std::sync::mpsc;
 
 use eframe::{CreationContext, Frame};
 use egui::Ui;
@@ -9,7 +9,8 @@ use egui::Ui;
 mod message;
 pub(crate) use self::message::{
     Action, CollectionAction, Event, LibraryAction, Message, MessageSender, MusicDirectoryAction,
-    TrackEditAction, TrackSearchAction, TrackSearchFetchedItems, TrackSelectionAction,
+    TrackEditAction, TrackListColumnsAction, TrackSearchAction, TrackSearchFetchedItems,
+    TrackSelectionAction,
 };
 
 mod model;
@@ -26,6 +27,9 @@ use self::render::RenderContext;
 
 mod track_editor;
 
+mod track_list;
+pub(crate) use self::track_list::{TrackListColumn, TrackListColumns};
+
 mod track_selection_editor;
 
 /// UI data bindings
@@ -37,6 +41,7 @@ struct UiData {
     track_search_input: String,
     editor_draft: Option<track_editor::TrackEditorDraft>,
     selection_draft: track_selection_editor::TrackSelectionDraft,
+    track_list_table: track_list::TrackListTableState,
 }
 
 #[expect(missing_debug_implementations)]
@@ -53,15 +58,11 @@ pub struct App {
 
 impl App {
     #[must_use]
-    pub(crate) fn new(
-        ctx: &CreationContext<'_>,
-        rt: tokio::runtime::Handle,
-        mdl: Model,
-        settings_dir: PathBuf,
-    ) -> Self {
+    pub(crate) fn new(ctx: &CreationContext<'_>, rt: tokio::runtime::Handle, mdl: Model) -> Self {
         let (msg_tx, msg_rx) = mpsc::channel();
         let msg_tx = MessageSender::new(ctx.egui_ctx.clone(), msg_tx);
-        mdl.library.spawn_background_tasks(&rt, settings_dir);
+        mdl.library
+            .spawn_background_tasks(&rt, mdl.settings_dir.clone());
         mdl.library.spawn_event_tasks(&rt, &msg_tx);
         Self {
             rt,

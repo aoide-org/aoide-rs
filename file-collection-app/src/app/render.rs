@@ -3,28 +3,21 @@
 
 use eframe::Frame;
 use egui::{
-    Align, Button, CentralPanel, Grid, Layout, OpenUrl, Panel, ScrollArea, TextEdit, Ui,
-    load::SizedTexture, scroll_area::ScrollSource,
+    Button, CentralPanel, Grid, Panel, ScrollArea, TextEdit, Ui, scroll_area::ScrollSource,
 };
 
-use crate::library::{
-    export_unsynchronized_tracks, track_search,
-    ui::{ARTWORK_THUMBNAIL_IMAGE_SIZE, TrackListItem},
-};
+use crate::library::{export_unsynchronized_tracks, ui::TrackListItem};
 
 use super::{
-    Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
-    TrackEditAction, TrackEditor, TrackSearchAction, TrackSearchEdit, TrackSearchMode,
-    TrackSelection, TrackSelectionAction, UiData,
+    Action, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction, TrackEditor,
+    TrackListColumns, TrackSearchAction, TrackSearchEdit, TrackSearchMode, UiData,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerDirListAction, MediaTrackerSyncAction,
     },
-    track_editor, track_selection_editor,
+    track_editor, track_list, track_selection_editor,
 };
 
 const TRACK_EDITOR_PANEL_DEFAULT_WIDTH: f32 = 420.0;
-
-const UNSYNCHRONIZED_MARKER: &str = "*";
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.
 // Only the `UiDataState` remains mutable.
@@ -109,6 +102,8 @@ impl RenderContext<'_> {
                     ui,
                     msg_tx,
                     mdl_mode,
+                    &mdl.track_list_columns,
+                    &mut ui_data.track_list_table,
                     &library,
                     is_track_editor_draft_modified,
                 );
@@ -268,6 +263,8 @@ fn render_central_panel(
     ui: &mut Ui,
     msg_tx: &MessageSender,
     mode: &ModelMode,
+    track_list_columns: &TrackListColumns,
+    track_list_table: &mut track_list::TrackListTableState,
     library: &crate::library::CurrentState<'_>,
     is_track_editor_draft_modified: bool,
 ) {
@@ -285,40 +282,23 @@ fn render_central_panel(
             memo_state,
             edit,
         }) => {
-            let edited_entity_uid = edit
-                .as_ref()
-                .and_then(TrackSearchEdit::track_editor)
-                .map(|TrackEditor { entity_uid, .. }| entity_uid);
-            let track_selection = edit.as_ref().and_then(TrackSearchEdit::track_selection);
-            let text_style = egui::TextStyle::Body;
-            let row_height = ui
-                .text_style_height(&text_style)
-                .max(ARTWORK_THUMBNAIL_IMAGE_SIZE as _);
-            let total_rows = track_list.len();
-            ScrollArea::both().show_rows(ui, row_height, total_rows, |ui, row_range| {
-                if row_range.end == total_rows
-                    // Prevent eagerly fetching more results repeatedly.
-                    && Some(total_rows) == library.track_search.fetched_entities_len()
-                    && matches!(memo_state, track_search::MemoState::Ready(_))
-                    && library.could_fetch_more_track_search_results()
-                {
-                    log::debug!("Trying to fetch more track search results");
-                    msg_tx.send_action(TrackSearchAction::FetchMore);
-                }
-                ui.with_layout(Layout::top_down(Align::Max), |ui| {
-                    for item in &track_list[row_range] {
-                        let interaction = TrackListItemInteraction {
-                            is_edited: edited_entity_uid == Some(&item.entity_uid),
-                            is_selected: track_selection
-                                .is_some_and(|selection| selection.contains(&item.entity_uid)),
-                            is_track_editor_draft_modified,
-                            is_track_selection_updating: track_selection
-                                .is_some_and(TrackSelection::is_updating),
-                        };
-                        render_track_list_item(ui, msg_tx, item, row_height, interaction);
-                    }
-                })
-            });
+            let interaction = track_list::TrackListInteraction {
+                edited_entity_uid: edit
+                    .as_ref()
+                    .and_then(TrackSearchEdit::track_editor)
+                    .map(|TrackEditor { entity_uid, .. }| entity_uid),
+                track_selection: edit.as_ref().and_then(TrackSearchEdit::track_selection),
+                is_track_editor_draft_modified,
+            };
+            track_list::render_track_list(
+                ui,
+                msg_tx,
+                track_list_columns,
+                track_list_table,
+                track_list,
+                track_list::could_fetch_more(library, memo_state, track_list.len()),
+                interaction,
+            );
         }
         ModelMode::MusicDirSync {
             last_progress,
@@ -363,87 +343,6 @@ fn render_central_panel(
                 });
         }
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-#[expect(clippy::struct_excessive_bools)]
-struct TrackListItemInteraction {
-    is_edited: bool,
-    is_selected: bool,
-    is_track_editor_draft_modified: bool,
-    is_track_selection_updating: bool,
-}
-
-fn render_track_list_item(
-    ui: &mut Ui,
-    msg_tx: &MessageSender,
-    item: &TrackListItem,
-    row_height: f32,
-    interaction: TrackListItemInteraction,
-) {
-    let TrackListItemInteraction {
-        is_edited,
-        is_selected,
-        is_track_editor_draft_modified,
-        is_track_selection_updating,
-    } = interaction;
-    debug_assert_eq!(
-        item.artwork_thumbnail_texture.size_vec2().x,
-        item.artwork_thumbnail_texture.size_vec2().y
-    );
-    let artwork_texture = SizedTexture {
-        id: item.artwork_thumbnail_texture.id(),
-        size: egui::Vec2::new(row_height, row_height),
-    };
-    ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-        let artwork_button = Button::image(artwork_texture).frame(false);
-        let mut artwork_response = ui.add(artwork_button);
-        if let Some(content_url) = &item.content_url {
-            let file_location = content_url.to_file_path().map_or_else(
-                |()| content_url.to_string(),
-                |path| path.display().to_string(),
-            );
-            artwork_response = artwork_response.on_hover_text_at_pointer(file_location);
-            // Demo interaction handler that simply opens the content URL in a new (browser) tab.
-            if artwork_response.clicked() || artwork_response.middle_clicked() {
-                ui.open_url(OpenUrl {
-                    url: content_url.to_string(),
-                    new_tab: true,
-                });
-            }
-        }
-        if !item.is_synchronized {
-            ui.colored_label(ui.visuals().warn_fg_color, UNSYNCHRONIZED_MARKER)
-                .on_hover_text("Modified, but not written into the file yet.");
-        }
-        let label = track_list_item_label(item);
-        let label_response = ui.selectable_label(is_edited || is_selected, label);
-        if is_track_editor_draft_modified {
-            // Prevent losing unsaved changes unintentionally.
-            if !is_edited {
-                label_response
-                    .on_hover_text("Save or revert the changes of the edited track first.");
-            }
-            return;
-        }
-        if is_track_selection_updating {
-            return;
-        }
-        let label_response = label_response.on_hover_text(
-            "Click to edit the track. Ctrl+click to select multiple tracks, Shift+click to select a range.",
-        );
-        if !label_response.clicked() {
-            return;
-        }
-        let modifiers = ui.input(|input| input.modifiers);
-        if modifiers.shift {
-            msg_tx.send_action(TrackSelectionAction::SelectRange(item.entity_uid.clone()));
-        } else if modifiers.command {
-            msg_tx.send_action(TrackSelectionAction::Toggle(item.entity_uid.clone()));
-        } else if !is_edited {
-            msg_tx.send_action(TrackEditAction::Open(item.entity_uid.clone()));
-        }
-    });
 }
 
 fn render_export_unsynchronized_tracks(
@@ -594,20 +493,26 @@ fn render_bottom_panel(
         });
 }
 
+/// The tempo rounded to an integer value for display.
 #[must_use]
-pub(super) fn track_list_item_label(track: &TrackListItem) -> String {
-    let track_title = track.title.as_deref().unwrap_or("Untitled");
-    let track_artist = &track.artist;
-    let album_title = &track.album_title;
-    let album_artist = &track.album_artist;
-    let bpm = track.bpm.and_then(|bpm| {
+pub(super) fn track_list_item_bpm(track: &TrackListItem) -> Option<u16> {
+    track.bpm.and_then(|bpm| {
         let value = bpm.value().round();
         if value > 0.0 && value < f64::from(u16::MAX) {
             Some(value as u16)
         } else {
             None
         }
-    });
+    })
+}
+
+#[must_use]
+pub(super) fn track_list_item_label(track: &TrackListItem) -> String {
+    let track_title = track.title.as_deref().unwrap_or("Untitled");
+    let track_artist = &track.artist;
+    let album_title = &track.album_title;
+    let album_artist = &track.album_artist;
+    let bpm = track_list_item_bpm(track);
     let label = match (track_artist, album_title, album_artist) {
         (Some(track_artist), Some(album_title), Some(album_artist)) => {
             if track_artist == album_artist {

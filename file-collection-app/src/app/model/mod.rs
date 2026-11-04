@@ -1,11 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::path::PathBuf;
+
 use aoide::{TrackEntity, TrackUid, media::content::ContentPath};
 
 use crate::library::{
     Library, export_unsynchronized_tracks, track_search, ui::TrackListItem, update_tracks,
 };
+
+use super::TrackListColumns;
 
 // Mutually exclusive modes of operation.
 #[derive(Debug)]
@@ -290,15 +294,23 @@ pub(crate) struct Model {
     pub(crate) mode: Option<ModelMode>,
 
     pub(crate) music_dir_selection: Option<MusicDirSelection>,
+
+    pub(crate) track_list_columns: TrackListColumns,
+
+    /// The directory for persistent settings.
+    pub(crate) settings_dir: PathBuf,
 }
 
 impl Model {
     #[must_use]
-    pub(crate) const fn new(library: Library) -> Self {
+    pub(crate) fn new(library: Library, settings_dir: PathBuf) -> Self {
+        let track_list_columns = TrackListColumns::restore(&settings_dir);
         Self {
             library,
             mode: None,
             music_dir_selection: None,
+            track_list_columns,
+            settings_dir,
         }
     }
 }

@@ -49,6 +49,10 @@ features = ["clipboard", "default_fonts", "glow", "system_fonts", "wayland", "x1
 version = "0.37.0"
 default-features = false
 
+[dependencies.egui_extras]
+version = "0.37.0"
+default-features = false
+
 # Spotify integration
 [dependencies.data-encoding]
 workspace = true

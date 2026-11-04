@@ -223,8 +223,8 @@ async fn main() {
         app_name(),
         eframe::NativeOptions::default(),
         Box::new(move |ctx| {
-            let mdl = app::Model::new(library);
-            let app = App::new(ctx, rt, mdl, config_dir);
+            let mdl = app::Model::new(library, config_dir);
+            let app = App::new(ctx, rt, mdl);
             Ok(Box::new(app))
         }),
     )

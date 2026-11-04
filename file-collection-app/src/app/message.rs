@@ -7,6 +7,8 @@ use egui::Context;
 
 use aoide::{Track, TrackUid, util::fs::DirPath};
 
+use super::TrackListColumn;
+
 use crate::{
     NoReceiverForEvent,
     library::{
@@ -95,6 +97,26 @@ impl From<Event> for Message {
 #[derive(Debug)]
 pub(crate) enum Action {
     Library(LibraryAction),
+    TrackListColumns(TrackListColumnsAction),
+}
+
+/// Select and arrange the columns of the track list.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum TrackListColumnsAction {
+    /// Select or deselect a column.
+    Toggle(TrackListColumn),
+    /// Move a selected column.
+    Move {
+        column: TrackListColumn,
+        /// The column is inserted before the column at this index of the current order.
+        insertion_index: usize,
+    },
+}
+
+impl From<TrackListColumnsAction> for Action {
+    fn from(action: TrackListColumnsAction) -> Self {
+        Self::TrackListColumns(action)
+    }
 }
 
 #[derive(Debug)]

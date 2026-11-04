@@ -20,8 +20,8 @@ use crate::{
 use super::{
     Action, CollectionAction, Event, LibraryAction, Message, MessageSender, Model, ModelMode,
     MusicDirSelection, MusicDirectoryAction, TrackEditAction, TrackEditor, TrackEditorState,
-    TrackSearchAction, TrackSearchEdit, TrackSearchMode, TrackSelection, TrackSelectionAction,
-    TrackSelectionState,
+    TrackListColumnsAction, TrackSearchAction, TrackSearchEdit, TrackSearchMode, TrackSelection,
+    TrackSelectionAction, TrackSelectionState,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerAction, MediaTrackerDirListAction,
         MediaTrackerSyncAction,
@@ -59,11 +59,34 @@ impl UpdateContext<'_> {
                     self.on_library_export_unsynchronized_tracks_action(action)
                 }
             },
+            Action::TrackListColumns(action) => self.on_track_list_columns_action(action),
         };
         if matches!(action_effect, ActionEffect::Unchanged) {
             return;
         }
         ctx.request_repaint();
+    }
+
+    fn on_track_list_columns_action(&mut self, action: TrackListColumnsAction) -> ActionEffect {
+        let Model {
+            track_list_columns,
+            settings_dir,
+            ..
+        } = &mut *self.mdl;
+        let changed = match action {
+            TrackListColumnsAction::Toggle(column) => track_list_columns.toggle(column),
+            TrackListColumnsAction::Move {
+                column,
+                insertion_index,
+            } => track_list_columns.move_column(column, insertion_index),
+        };
+        if !changed {
+            return ActionEffect::Unchanged;
+        }
+        if let Err(err) = track_list_columns.save(settings_dir) {
+            log::warn!("Failed to save track list columns: {err}");
+        }
+        ActionEffect::Changed
     }
 
     fn on_library_music_directory_action(&mut self, action: MusicDirectoryAction) -> ActionEffect {
@@ -608,6 +631,7 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
         library,
         music_dir_selection,
         mode,
+        ..
     } = mdl;
     // Update the UI unconditionally to reflect the new state.
     ctx.request_repaint();
