@@ -298,7 +298,12 @@ fn reject_update_of_track_from_other_collection() -> anyhow::Result<()> {
         color: None,
         media_source_config: MediaSourceConfig {
             content_path: ContentPathConfig::VirtualFilePath(VirtualFilePathConfig {
-                root_url: BaseUrl::parse_strict("file:///other/")?,
+                // Windows requires a drive letter for file URLs to be convertible into paths.
+                root_url: BaseUrl::parse_strict(if cfg!(windows) {
+                    "file:///C:/other/"
+                } else {
+                    "file:///other/"
+                })?,
                 excluded_paths: Vec::new(),
             }),
         },
