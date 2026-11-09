@@ -29,7 +29,7 @@ use crate::library::{
 
 use super::super::{
     App, TrackEditAction, TrackEditorState, TrackSearchAction, TrackSearchFetchedItems,
-    message::{MediaTrackerSyncAction, PendingEditsAction},
+    message::{MediaTrackerSyncAction, PendingEditsAction, RevertUnsynchronizedTracksAction},
 };
 use super::*;
 
@@ -582,4 +582,172 @@ fn outdated_track_search_items_are_discarded_and_fetched_again() {
                 if !track_list.is_empty()
         )
     });
+}
+
+fn is_revert_finished(app: &App) -> bool {
+    matches!(
+        app.mdl.mode,
+        Some(ModelMode::RevertUnsynchronizedTracks {
+            final_outcome: Some(_),
+            ..
+        })
+    ) && !app.mdl.modified_track_count.is_counting
+}
+
+impl Flow {
+    fn load_genres(&self) -> String {
+        let entity = self
+            .rt
+            .block_on(aoide::backend_embedded::track::load_one(
+                self.app.mdl.library.env().db_gatekeeper(),
+                self.entity_uid.clone(),
+            ))
+            .unwrap();
+        crate::library::ui::TrackEditDraft::from_track(&entity.body.track).genres
+    }
+
+    fn open_close_dialog(&mut self) {
+        self.request_close();
+        self.run_until("close dialog is open", |app| {
+            app.mdl.close_state == CloseState::Requested
+                && !app.mdl.modified_track_count.is_counting
+        });
+    }
+
+    fn request_revert(&mut self) {
+        self.app
+            .msg_tx
+            .send_action(PendingEditsAction::RequestRevert);
+        self.run_until("confirmation is requested", |app| {
+            app.mdl.is_revert_confirmation_open
+        });
+    }
+}
+
+#[test]
+fn reverting_on_demand_requires_confirmation() {
+    let mut flow = Flow::new("reverting_on_demand_requires_confirmation");
+    flow.apply_genres("Techno\nAmbient");
+
+    flow.request_revert();
+    for _ in 0..10 {
+        flow.run_frame(false);
+    }
+    assert_eq!("Techno\nAmbient", flow.load_genres());
+
+    flow.app
+        .msg_tx
+        .send_action(PendingEditsAction::CancelRevert);
+    flow.run_until("confirmation is cancelled", |app| {
+        !app.mdl.is_revert_confirmation_open
+    });
+    for _ in 0..10 {
+        flow.run_frame(false);
+    }
+    assert_eq!("Techno\nAmbient", flow.load_genres());
+    assert_eq!(Some(1), flow.pending_edits().modified_track_count);
+}
+
+#[test]
+fn reverting_on_demand_restores_the_track_without_writing_the_file() {
+    let mut flow = Flow::new("reverting_on_demand_restores_the_track_without_writing_the_file");
+    let unmodified_file = fs::read(flow.dir.track_file()).unwrap();
+    flow.apply_genres("Techno\nAmbient");
+
+    flow.request_revert();
+    flow.app
+        .msg_tx
+        .send_action(PendingEditsAction::ConfirmRevert);
+    let commands = flow.run_until("reverting is finished", is_revert_finished);
+
+    assert!(!commands.contains(&ViewportCommand::Close));
+    assert_eq!(CloseState::NotRequested, flow.app.mdl.close_state);
+    assert_eq!("", flow.load_genres());
+    assert_eq!(Some(0), flow.app.mdl.modified_track_count.count);
+    assert_eq!(unmodified_file, fs::read(flow.dir.track_file()).unwrap());
+    assert!(!flow.pending_edits().could_revert());
+
+    // Returns to the track search.
+    flow.app
+        .msg_tx
+        .send_action(RevertUnsynchronizedTracksAction::Finish);
+    flow.run_until("track search is available again", |app| {
+        matches!(app.mdl.mode, Some(ModelMode::TrackSearch(_)))
+    });
+}
+
+#[test]
+fn reverting_before_closing_restores_the_track_and_closes() {
+    let mut flow = Flow::new("reverting_before_closing_restores_the_track_and_closes");
+    let unmodified_file = fs::read(flow.dir.track_file()).unwrap();
+    flow.apply_genres("Techno\nAmbient");
+    flow.open_close_dialog();
+
+    flow.request_revert();
+    // Nothing happens until confirmed.
+    assert!(!flow.run_frame(false).contains(&ViewportCommand::Close));
+    flow.app
+        .msg_tx
+        .send_action(PendingEditsAction::ConfirmRevert);
+    let commands = flow.run_until("closing is confirmed", is_close_confirmed);
+
+    assert!(commands.contains(&ViewportCommand::Close));
+    assert_eq!("", flow.load_genres());
+    assert_eq!(unmodified_file, fs::read(flow.dir.track_file()).unwrap());
+}
+
+#[test]
+fn cancelling_the_revert_confirmation_keeps_the_close_dialog_open() {
+    let mut flow = Flow::new("cancelling_the_revert_confirmation_keeps_the_close_dialog_open");
+    flow.apply_genres("Techno\nAmbient");
+    flow.open_close_dialog();
+    flow.request_revert();
+    flow.app
+        .msg_tx
+        .send_action(PendingEditsAction::CancelRevert);
+    flow.run_until("confirmation is cancelled", |app| {
+        !app.mdl.is_revert_confirmation_open
+    });
+    assert_eq!(CloseState::Requested, flow.app.mdl.close_state);
+    assert_eq!("Techno\nAmbient", flow.load_genres());
+}
+
+#[test]
+fn reverting_discards_the_draft_of_the_track_editor() {
+    let mut flow = Flow::new("reverting_discards_the_draft_of_the_track_editor");
+    flow.open_track_editor_with_title("Draft title");
+    assert!(flow.pending_edits().could_revert());
+    flow.request_revert();
+    flow.app
+        .msg_tx
+        .send_action(PendingEditsAction::ConfirmRevert);
+    flow.run_until("reverting is finished", is_revert_finished);
+    assert!(!flow.pending_edits().is_draft_modified());
+    assert!(!flow.file_contains("Draft title"));
+}
+
+#[test]
+fn stays_open_if_a_track_could_not_be_reverted() {
+    let mut flow = Flow::new("stays_open_if_a_track_could_not_be_reverted");
+    flow.apply_genres("Techno\nAmbient");
+    fs::remove_file(flow.dir.track_file()).unwrap();
+    flow.open_close_dialog();
+
+    flow.request_revert();
+    flow.app
+        .msg_tx
+        .send_action(PendingEditsAction::ConfirmRevert);
+    let commands = flow.run_until("reverting is finished", is_revert_finished);
+
+    assert!(!commands.contains(&ViewportCommand::Close));
+    assert_eq!(CloseState::Requested, flow.app.mdl.close_state);
+    assert_eq!(Some(1), flow.app.mdl.modified_track_count.count);
+    // The edits have not been lost.
+    assert_eq!("Techno\nAmbient", flow.load_genres());
+
+    flow.app
+        .msg_tx
+        .send_action(PendingEditsAction::CloseWithoutWriting);
+    let commands = flow.run_until("closing is confirmed", is_close_confirmed);
+    assert!(commands.contains(&ViewportCommand::Close));
 }

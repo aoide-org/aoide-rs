@@ -5,13 +5,17 @@ use std::{fs::File, path::Path, sync::atomic::AtomicBool};
 
 use anyhow::anyhow;
 
+use aoide_core::util::clock::OffsetDateTimeMs;
 use aoide_core::{
     CollectionUid, EntityRevision, TrackEntity,
     media::content::{ContentPath, ContentRevision},
     track::EntityHeader,
 };
 use aoide_core_api::media::SyncMode;
-use aoide_media_file::io::{export::ExportTrackConfig, import::ImportTrackConfig};
+use aoide_media_file::io::{
+    export::ExportTrackConfig,
+    import::{ImportTrack, ImportTrackConfig},
+};
 use aoide_repo::{
     CollectionId, RepoError,
     collection::EntityRepo as CollectionRepo,
@@ -21,7 +25,14 @@ use aoide_repo::{
     },
 };
 
-use crate::{Error, Result, collection::vfs::RepoContext, media::export_track_metadata_into_file};
+use crate::{
+    Error, Result,
+    collection::vfs::RepoContext,
+    media::{
+        ImportTrackFromFileOutcome, SyncModeParams, export_track_metadata_into_file,
+        import_track_from_file_path,
+    },
+};
 
 use super::{ValidatedInput, import_and_replace, replace, validate_input};
 
@@ -220,6 +231,118 @@ where
         export: Some(export),
     };
     update_one(repo, collection_uid, expected_entity_hdr, track, &params)
+}
+
+#[derive(Debug)]
+#[expect(clippy::large_enum_variant)]
+pub enum RevertOutcome {
+    /// The metadata of the track is identical to the file and the
+    /// track is synchronized.
+    Reverted(TrackEntity),
+
+    /// The track has been modified in the database in the meantime
+    /// and nothing has been modified.
+    Rejected(Conflict),
+}
+
+/// Discard all modifications of a track by restoring it from the file.
+///
+/// The track is rebuilt from the file instead of importing the file into the
+/// current track. Otherwise modifications of properties that are missing in
+/// the file would survive, e.g. all of them if the file has no tags at all.
+///
+/// The current file is authoritative, even if it has been modified on disk
+/// since it has been imported for the last time. It is never written.
+///
+/// Cue points and artwork are preserved if the file doesn't provide them.
+/// Otherwise reverting would lose data that could not be edited.
+pub fn revert_one<Repo>(
+    repo: &mut Repo,
+    collection_uid: &CollectionUid,
+    expected_entity_hdr: &EntityHeader,
+    import_config: &ImportTrackConfig,
+) -> Result<RevertOutcome>
+where
+    Repo: CollectionRepo + TrackCollectionRepo + TrackEntityRepo,
+{
+    let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
+    let Some(resolver) = &collection_ctx.content_path.resolver else {
+        let path_kind = collection_ctx.content_path.kind;
+        return Err(Error::Other(anyhow!(
+            "unsupported path kind: {path_kind:?}"
+        )));
+    };
+    let content_path_resolver = resolver.canonical_resolver();
+    let collection_id = collection_ctx.record_id;
+
+    let (_, current_entity) = repo.load_track_entity_by_uid(&expected_entity_hdr.uid)?;
+    let content_path = current_entity
+        .body
+        .track
+        .media_source
+        .content
+        .link
+        .path
+        .clone_owned();
+    let current_entity =
+        load_collected_entity(repo, collection_id, expected_entity_hdr, &content_path)?;
+    if current_entity.hdr.rev != expected_entity_hdr.rev {
+        return Ok(RevertOutcome::Rejected(Conflict::EntityRevision {
+            expected: expected_entity_hdr.rev,
+            actual: current_entity.hdr.rev,
+        }));
+    }
+
+    let current_track = &current_entity.body.track;
+    let collected_at: OffsetDateTimeMs = current_track.media_source.collected_at;
+    let imported = import_track_from_file_path(
+        ImportTrack::NewTrack { collected_at },
+        content_path_resolver,
+        &content_path,
+        &SyncModeParams::Always,
+        import_config,
+    )?;
+    let ImportTrackFromFileOutcome::Imported { mut track, issues } = imported else {
+        return Err(Error::Other(anyhow!(
+            "failed to import {content_path} from file: {imported:?}"
+        )));
+    };
+    if !issues.is_empty() {
+        log::warn!("Issues while reverting track {content_path}: {issues:?}");
+    }
+    if track.cues.is_empty() {
+        track.cues.clone_from(&current_track.cues);
+    }
+    if track.media_source.artwork.is_none() {
+        track
+            .media_source
+            .artwork
+            .clone_from(&current_track.media_source.artwork);
+    }
+
+    // Imported tracks are often invalid to some extent and reverting must not be prevented.
+    let (validated_input, _invalidities) = validate_input(track)?;
+    let replace_params = ReplaceParams {
+        mode: ReplaceMode::UpdateOnly,
+        preserve_collected_at: true,
+        update_last_synchronized_rev: true,
+    };
+    let outcome = replace::replace_collected_track_by_media_source_content_path(
+        repo,
+        collection_id,
+        replace_params,
+        validated_input,
+    )?;
+    match outcome {
+        replace::Outcome::Unchanged(_, entity) | replace::Outcome::Updated(_, entity) => {
+            Ok(RevertOutcome::Reverted(entity))
+        }
+        replace::Outcome::NotCreated(_) | replace::Outcome::NotUpdated(_, _) => {
+            // Unreachable for an existing track in mode `UpdateOnly`.
+            Err(Error::Other(anyhow!("track {content_path} not reverted")))
+        }
+        replace::Outcome::Created(_, _) => unreachable!(),
+    }
 }
 
 /// Load the current entity of a track in the collection.

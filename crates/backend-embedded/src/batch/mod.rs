@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 pub mod export_unsynchronized_tracks;
+pub mod revert_unsynchronized_tracks;
 pub mod synchronize_collection_vfs;
 pub mod update_tracks;
 

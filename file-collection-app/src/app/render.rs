@@ -5,13 +5,16 @@ use egui::{
     Button, CentralPanel, Grid, Panel, ScrollArea, TextEdit, Ui, scroll_area::ScrollSource,
 };
 
-use crate::library::{export_unsynchronized_tracks, ui::TrackListItem};
+use crate::library::{
+    export_unsynchronized_tracks, revert_unsynchronized_tracks, ui::TrackListItem,
+};
 
 use super::{
     Action, CloseState, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
     TrackEditor, TrackListColumns, TrackSearchAction, TrackSearchEdit, TrackSearchMode, UiData,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerDirListAction, MediaTrackerSyncAction,
+        PendingEditsAction, RevertUnsynchronizedTracksAction,
     },
     pending_edits::{self, DraftEdit, PendingEdits},
     track_editor, track_list, track_selection_editor,
@@ -100,7 +103,9 @@ impl RenderContext<'_> {
         }
 
         // Rendered after all panels to block them.
-        if mdl.close_state == CloseState::Requested {
+        if mdl.is_revert_confirmation_open {
+            pending_edits::render_revert_dialog(ui.ctx(), msg_tx, pending_edits);
+        } else if mdl.close_state == CloseState::Requested {
             pending_edits::render_close_dialog(ui.ctx(), msg_tx, pending_edits, mdl.mode.as_ref());
         }
     }
@@ -186,6 +191,19 @@ fn render_top_panel(
                 }
                 if save_button.clicked() {
                     msg_tx.send_action(pending_edits.save_action());
+                }
+                if ui
+                    .add_enabled(
+                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting))
+                            && pending_edits.could_revert(),
+                        Button::new(pending_edits.revert_button_text()),
+                    )
+                    .on_hover_text(
+                        "Discard the changes of the track editor and restore all modified tracks from their files. Asks for confirmation.",
+                    )
+                    .clicked()
+                {
+                    msg_tx.send_action(PendingEditsAction::RequestRevert);
                 }
                 if ui
                     .add_enabled(
@@ -328,6 +346,20 @@ fn render_central_panel(
                     );
                 });
         }
+        ModelMode::RevertUnsynchronizedTracks {
+            last_progress,
+            final_outcome,
+        } => {
+            ScrollArea::both()
+                .scroll_source(ScrollSource::ALL)
+                .show(ui, |ui| {
+                    render_revert_unsynchronized_tracks(
+                        ui,
+                        last_progress.as_ref(),
+                        final_outcome.as_ref(),
+                    );
+                });
+        }
         ModelMode::MusicDirList {
             content_paths_with_count,
         } => {
@@ -407,6 +439,61 @@ pub(super) fn render_export_unsynchronized_tracks(
     }
 }
 
+pub(super) fn render_revert_unsynchronized_tracks(
+    ui: &mut Ui,
+    last_progress: Option<&revert_unsynchronized_tracks::Progress>,
+    final_outcome: Option<&Result<Box<revert_unsynchronized_tracks::Outcome>, String>>,
+) {
+    let Some(final_outcome) = final_outcome else {
+        ui.horizontal(|ui| {
+            ui.spinner();
+            if let Some(revert_unsynchronized_tracks::Progress { total, finished }) = last_progress
+            {
+                ui.label(format!("Reverting tracks: {finished} of {total}"));
+            } else {
+                ui.label("Finding modified tracks...");
+            }
+        });
+        return;
+    };
+    let outcome = match final_outcome {
+        Ok(outcome) => outcome,
+        Err(err) => {
+            ui.colored_label(
+                ui.visuals().error_fg_color,
+                format!("Reverting tracks failed: {err}"),
+            );
+            return;
+        }
+    };
+    let revert_unsynchronized_tracks::Outcome {
+        completion,
+        reverted,
+        failed,
+    } = outcome.as_ref();
+    if matches!(
+        completion,
+        revert_unsynchronized_tracks::Completion::Aborted
+    ) {
+        ui.label("Aborted.");
+    }
+    ui.label(format!(
+        "Reverted: {reverted}, failed: {failed}",
+        reverted = reverted.len(),
+        failed = failed.len(),
+    ));
+    if !failed.is_empty() {
+        ui.separator();
+        ui.label("Failed, these tracks remain modified:");
+        for (_, content_path, error) in failed {
+            ui.colored_label(
+                ui.visuals().error_fg_color,
+                format!("/{content_path}: {error}"),
+            );
+        }
+    }
+}
+
 fn render_bottom_panel(
     ui: &mut Ui,
     msg_tx: &MessageSender,
@@ -454,6 +541,19 @@ fn render_bottom_panel(
                             hover_text = "Clear output and return to track search.";
                             enabled = true;
                             action = ExportUnsynchronizedTracksAction::Finish.into();
+                        }
+                    }
+                    ModelMode::RevertUnsynchronizedTracks { .. } => {
+                        if library.could_abort_revert_unsynchronized_tracks() {
+                            text = "Abort";
+                            hover_text = "Stop reverting after the current track.";
+                            enabled = true;
+                            action = RevertUnsynchronizedTracksAction::AbortPendingTask.into();
+                        } else {
+                            text = "Dismiss";
+                            hover_text = "Clear output and return to track search.";
+                            enabled = true;
+                            action = RevertUnsynchronizedTracksAction::Finish.into();
                         }
                     }
                     ModelMode::MusicDirList { .. } => {

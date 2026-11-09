@@ -23,6 +23,7 @@ use crate::NoReceiverForEvent;
 
 pub mod collection;
 pub mod export_unsynchronized_tracks;
+pub mod revert_unsynchronized_tracks;
 pub mod settings;
 pub mod track_edit;
 pub mod track_search;
@@ -41,6 +42,8 @@ pub enum Event {
     MusicDirSyncFinished(Box<aoide::desktop_app::collection::SynchronizingVfsFinishedState>),
     ExportUnsynchronizedTracksProgress(export_unsynchronized_tracks::Progress),
     ExportUnsynchronizedTracksFinished(Box<anyhow::Result<export_unsynchronized_tracks::Outcome>>),
+    RevertUnsynchronizedTracksProgress(revert_unsynchronized_tracks::Progress),
+    RevertUnsynchronizedTracksFinished(Box<anyhow::Result<revert_unsynchronized_tracks::Outcome>>),
     UnsynchronizedTracksCounted {
         request_id: u64,
         result: anyhow::Result<usize>,
@@ -126,6 +129,9 @@ pub enum State {
     ExportingUnsynchronizedTracks {
         abort_flag: Arc<AtomicBool>,
     },
+    RevertingUnsynchronizedTracks {
+        abort_flag: Arc<AtomicBool>,
+    },
     UpdatingTracks {
         abort_flag: Arc<AtomicBool>,
     },
@@ -174,6 +180,11 @@ impl CurrentState<'_> {
     #[must_use]
     pub const fn could_abort_export_unsynchronized_tracks(&self) -> bool {
         matches!(self.library, State::ExportingUnsynchronizedTracks { .. })
+    }
+
+    #[must_use]
+    pub const fn could_abort_revert_unsynchronized_tracks(&self) -> bool {
+        matches!(self.library, State::RevertingUnsynchronizedTracks { .. })
     }
 
     #[must_use]
@@ -310,6 +321,7 @@ impl Library {
                 ActionEffect::Changed
             }
             State::ExportingUnsynchronizedTracks { abort_flag }
+            | State::RevertingUnsynchronizedTracks { abort_flag }
             | State::UpdatingTracks { abort_flag } => {
                 // Abort pending task.
                 abort_flag.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -436,8 +448,9 @@ impl Library {
                 debug_assert!(task.is_finished());
                 ActionEffect::Changed
             }
-            state
-            @ (State::ExportingUnsynchronizedTracks { .. } | State::UpdatingTracks { .. }) => {
+            state @ (State::ExportingUnsynchronizedTracks { .. }
+            | State::RevertingUnsynchronizedTracks { .. }
+            | State::UpdatingTracks { .. }) => {
                 // Restore the unexpected state.
                 self.state = state;
                 ActionEffect::Unchanged

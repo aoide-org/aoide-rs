@@ -632,7 +632,10 @@ impl CollectionRepo for crate::Connection<'_> {
                 }
                 track.media_source.collected_at = entity.body.track.media_source.collected_at;
             }
-            if track == entity.body.track {
+            if track == entity.body.track
+                && (!update_last_synchronized_rev
+                    || entity.body.last_synchronized_rev == Some(entity.hdr.rev))
+            {
                 return Ok(ReplaceOutcome::Unchanged(media_source_id, id, entity));
             }
             log::trace!("original = {:?}", entity.body);

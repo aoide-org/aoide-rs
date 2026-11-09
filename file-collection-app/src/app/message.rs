@@ -112,6 +112,12 @@ pub(crate) enum PendingEditsAction {
     CancelClose,
     /// Close the application and keep the modified tracks for writing them later.
     CloseWithoutWriting,
+    /// Ask for confirmation before reverting all pending edits.
+    RequestRevert,
+    /// Don't revert the pending edits.
+    CancelRevert,
+    /// Discard all pending edits by restoring the modified tracks from their files.
+    ConfirmRevert,
 }
 
 impl From<PendingEditsAction> for Action {
@@ -148,6 +154,7 @@ pub(crate) enum LibraryAction {
     TrackEdit(TrackEditAction),
     TrackSelection(TrackSelectionAction),
     ExportUnsynchronizedTracks(ExportUnsynchronizedTracksAction),
+    RevertUnsynchronizedTracks(RevertUnsynchronizedTracksAction),
 }
 
 impl<T> From<T> for Action
@@ -306,6 +313,20 @@ pub(crate) enum ExportUnsynchronizedTracksAction {
 impl From<ExportUnsynchronizedTracksAction> for LibraryAction {
     fn from(action: ExportUnsynchronizedTracksAction) -> Self {
         Self::ExportUnsynchronizedTracks(action)
+    }
+}
+
+/// Discard all modifications of unsynchronized tracks by restoring them from their files.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum RevertUnsynchronizedTracksAction {
+    AbortPendingTask,
+    /// Dismiss the outcome and return to track search.
+    Finish,
+}
+
+impl From<RevertUnsynchronizedTracksAction> for LibraryAction {
+    fn from(action: RevertUnsynchronizedTracksAction) -> Self {
+        Self::RevertUnsynchronizedTracks(action)
     }
 }
 

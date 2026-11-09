@@ -398,7 +398,10 @@ fn click_buttons(pending_edits: &PendingEdits) -> Vec<&'static str> {
                     PendingEditsAction::Save { .. } => "save",
                     PendingEditsAction::CloseWithoutWriting => "close",
                     PendingEditsAction::CancelClose => "cancel",
-                    PendingEditsAction::RequestClose => "request",
+                    PendingEditsAction::RequestRevert => "revert",
+                    PendingEditsAction::RequestClose
+                    | PendingEditsAction::CancelRevert
+                    | PendingEditsAction::ConfirmRevert => "unexpected",
                 };
                 if clicked.last() != Some(&name) {
                     clicked.push(name);
@@ -414,7 +417,7 @@ fn click_buttons(pending_edits: &PendingEdits) -> Vec<&'static str> {
 #[test]
 fn dialog_buttons_send_their_actions() {
     assert_eq!(
-        vec!["save", "close", "cancel"],
+        vec!["save", "revert", "close", "cancel"],
         click_buttons(&modified_tracks(1))
     );
 }
@@ -433,9 +436,114 @@ fn only_cancel_is_available_while_writing() {
 #[test]
 fn invalid_draft_could_only_be_discarded() {
     assert_eq!(
-        vec!["close", "cancel"],
+        vec!["revert", "close", "cancel"],
         click_buttons(&PendingEdits {
             draft: DraftEdit::Invalid,
+            ..modified_tracks(1)
+        })
+    );
+}
+
+#[test]
+fn reverting_requires_pending_edits_and_an_idle_library() {
+    assert!(!no_pending_edits().could_revert());
+    assert!(modified_tracks(1).could_revert());
+    // In contrast to saving an invalid draft could be reverted.
+    assert!(
+        PendingEdits {
+            draft: DraftEdit::Invalid,
+            ..no_pending_edits()
+        }
+        .could_revert()
+    );
+    assert!(
+        PendingEdits {
+            modified_track_count: None,
+            ..no_pending_edits()
+        }
+        .could_revert()
+    );
+    assert!(
+        !PendingEdits {
+            is_writing: true,
+            ..modified_tracks(1)
+        }
+        .could_revert()
+    );
+    assert!(
+        !PendingEdits {
+            could_write_files: false,
+            ..modified_tracks(1)
+        }
+        .could_revert()
+    );
+}
+
+#[test]
+fn the_revert_button_shows_the_number_of_modified_tracks() {
+    assert_eq!(
+        "Revert pending edits",
+        no_pending_edits().revert_button_text()
+    );
+    assert_eq!(
+        "Revert pending edits (3)",
+        modified_tracks(3).revert_button_text()
+    );
+}
+
+/// The actions of the buttons in the confirmation dialog from left to right.
+fn click_revert_dialog_buttons(pending_edits: &PendingEdits) -> Vec<&'static str> {
+    let harness = Harness::new();
+    let run_frame = |events: Vec<Event>| {
+        let mut rect = None;
+        let mut output = harness.ctx.run_ui(Harness::raw_input(events, false), |ui| {
+            render_revert_dialog(ui.ctx(), &harness.msg_tx, pending_edits);
+            rect = ui.ctx().memory(|mem| mem.area_rect(revert_dialog_id()));
+        });
+        output.textures_delta.clear();
+        rect
+    };
+    run_frame(Vec::new());
+    let rect = run_frame(Vec::new()).expect("rendered");
+    let mut clicked = Vec::new();
+    let mut y = rect.bottom() - 2.0;
+    while clicked.is_empty() && y > rect.top() {
+        let mut x = rect.left() + 2.0;
+        while x < rect.right() {
+            for events in click_events(Pos2::new(x, y)) {
+                run_frame(events);
+            }
+            for action in harness.actions() {
+                let name = match action {
+                    PendingEditsAction::ConfirmRevert => "confirm",
+                    PendingEditsAction::CancelRevert => "cancel",
+                    _ => "unexpected",
+                };
+                if clicked.last() != Some(&name) {
+                    clicked.push(name);
+                }
+            }
+            x += 8.0;
+        }
+        y -= 4.0;
+    }
+    clicked
+}
+
+#[test]
+fn revert_dialog_buttons_send_their_actions() {
+    assert_eq!(
+        vec!["confirm", "cancel"],
+        click_revert_dialog_buttons(&modified_tracks(1))
+    );
+}
+
+#[test]
+fn reverting_could_not_be_confirmed_while_writing() {
+    assert_eq!(
+        vec!["cancel"],
+        click_revert_dialog_buttons(&PendingEdits {
+            is_writing: true,
             ..modified_tracks(1)
         })
     );

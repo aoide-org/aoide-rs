@@ -24,7 +24,7 @@ use super::{
     TrackSelection, TrackSelectionAction, TrackSelectionState,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerAction, MediaTrackerDirListAction,
-        MediaTrackerSyncAction, PendingEditsAction,
+        MediaTrackerSyncAction, PendingEditsAction, RevertUnsynchronizedTracksAction,
     },
 };
 
@@ -58,6 +58,9 @@ impl UpdateContext<'_> {
                 LibraryAction::ExportUnsynchronizedTracks(action) => {
                     self.on_library_export_unsynchronized_tracks_action(action)
                 }
+                LibraryAction::RevertUnsynchronizedTracks(action) => {
+                    self.on_library_revert_unsynchronized_tracks_action(action)
+                }
             },
             Action::TrackListColumns(action) => self.on_track_list_columns_action(action),
             Action::PendingEdits(action) => self.on_pending_edits_action(ctx, action),
@@ -88,6 +91,18 @@ impl UpdateContext<'_> {
                 .on_library_export_unsynchronized_tracks_action(
                     ExportUnsynchronizedTracksAction::SpawnTask,
                 ),
+            PendingEditsAction::RequestRevert => {
+                self.mdl.is_revert_confirmation_open = true;
+                ActionEffect::Changed
+            }
+            PendingEditsAction::CancelRevert => {
+                self.mdl.is_revert_confirmation_open = false;
+                ActionEffect::Changed
+            }
+            PendingEditsAction::ConfirmRevert => {
+                self.mdl.is_revert_confirmation_open = false;
+                self.spawn_revert_unsynchronized_tracks() + ActionEffect::Changed
+            }
             PendingEditsAction::RequestClose => {
                 self.mdl.close_state = CloseState::Requested;
                 // Decide with the current count.
@@ -401,6 +416,50 @@ impl UpdateContext<'_> {
         mode_effect + action_effect
     }
 
+    fn spawn_revert_unsynchronized_tracks(&mut self) -> ActionEffect {
+        let Self { rt, msg_tx, mdl } = self;
+        let Model { library, mode, .. } = mdl;
+        let (mut effect, result) = library.revert_unsynchronized_tracks(rt, *msg_tx);
+        match result {
+            Ok(()) => {
+                // Also discards the track editor including its draft.
+                log::debug!("Switching to revert unsynchronized tracks progress view");
+                *mode = Some(ModelMode::RevertUnsynchronizedTracks {
+                    last_progress: None,
+                    final_outcome: None,
+                });
+                effect += ActionEffect::MaybeChanged;
+            }
+            Err(err) => {
+                log::warn!("Failed to revert unsynchronized tracks: {err:#}");
+            }
+        }
+        effect
+    }
+
+    fn on_library_revert_unsynchronized_tracks_action(
+        &mut self,
+        action: RevertUnsynchronizedTracksAction,
+    ) -> ActionEffect {
+        let Self { msg_tx, mdl, .. } = self;
+        let Model { library, mode, .. } = mdl;
+        match action {
+            RevertUnsynchronizedTracksAction::AbortPendingTask => {
+                library.revert_unsynchronized_tracks_abort()
+            }
+            RevertUnsynchronizedTracksAction::Finish => {
+                if !matches!(mode, Some(ModelMode::RevertUnsynchronizedTracks { .. })) {
+                    return ActionEffect::Unchanged;
+                }
+                log::debug!("Closing revert unsynchronized tracks progress view");
+                *mode = None;
+                // Reload the reverted tracks.
+                msg_tx.send_action(CollectionAction::RefreshFromDb);
+                ActionEffect::Changed
+            }
+        }
+    }
+
     fn on_library_export_unsynchronized_tracks_action(
         &mut self,
         action: ExportUnsynchronizedTracksAction,
@@ -610,6 +669,7 @@ impl UpdateContext<'_> {
             library::Event::Collection(library::collection::Event::StateChanged)
             | library::Event::MusicDirSyncFinished(_)
             | library::Event::ExportUnsynchronizedTracksFinished(_)
+            | library::Event::RevertUnsynchronizedTracksFinished(_)
             | library::Event::UpdateTracksFinished(_) => true,
             library::Event::TrackEdit(event) => matches!(
                 **event,
@@ -709,6 +769,18 @@ impl UpdateContext<'_> {
             }
             library::Event::ExportUnsynchronizedTracksFinished(result) => {
                 on_library_export_unsynchronized_tracks_finished(library, mode, *result);
+            }
+            library::Event::RevertUnsynchronizedTracksProgress(progress) => {
+                if let Some(ModelMode::RevertUnsynchronizedTracks {
+                    last_progress,
+                    final_outcome: None,
+                }) = mode
+                {
+                    *last_progress = Some(progress);
+                }
+            }
+            library::Event::RevertUnsynchronizedTracksFinished(result) => {
+                on_library_revert_unsynchronized_tracks_finished(library, mode, *result);
             }
             library::Event::UpdateTracksProgress(progress) => {
                 on_library_update_tracks_progress(mode, progress);
@@ -1001,6 +1073,35 @@ fn on_library_export_unsynchronized_tracks_progress(
         *last_progress = Some(progress);
     } else {
         log::debug!("Discarding unexpected export unsynchronized tracks progress: {progress:?}");
+    }
+}
+
+fn on_library_revert_unsynchronized_tracks_finished(
+    library: &mut Library,
+    mode: &mut Option<ModelMode>,
+    result: anyhow::Result<library::revert_unsynchronized_tracks::Outcome>,
+) {
+    let _ = library.revert_unsynchronized_tracks_finished();
+    let outcome = match result {
+        Ok(outcome) => {
+            log::info!(
+                "Reverting unsynchronized tracks finished: {completion:?}, {reverted} reverted, \
+                 {failed} failed",
+                completion = outcome.completion,
+                reverted = outcome.reverted.len(),
+                failed = outcome.failed.len(),
+            );
+            Ok(Box::new(outcome))
+        }
+        Err(err) => {
+            log::warn!("Reverting unsynchronized tracks failed: {err:#}");
+            Err(format!("{err:#}"))
+        }
+    };
+    if let Some(ModelMode::RevertUnsynchronizedTracks { final_outcome, .. }) = mode {
+        *final_outcome = Some(outcome);
+    } else {
+        log::debug!("Discarding unexpected revert unsynchronized tracks outcome: {mode:?}");
     }
 }
 

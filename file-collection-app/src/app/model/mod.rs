@@ -6,7 +6,8 @@ use std::path::PathBuf;
 use aoide::{TrackEntity, TrackUid, media::content::ContentPath};
 
 use crate::library::{
-    Library, export_unsynchronized_tracks, track_search, ui::TrackListItem, update_tracks,
+    Library, export_unsynchronized_tracks, revert_unsynchronized_tracks, track_search,
+    ui::TrackListItem, update_tracks,
 };
 
 use super::{CloseState, ModifiedTrackCount, TrackListColumns};
@@ -27,6 +28,10 @@ pub(crate) enum ModelMode {
     ExportUnsynchronizedTracks {
         last_progress: Option<export_unsynchronized_tracks::Progress>,
         final_outcome: Option<Result<Box<export_unsynchronized_tracks::Outcome>, String>>,
+    },
+    RevertUnsynchronizedTracks {
+        last_progress: Option<revert_unsynchronized_tracks::Progress>,
+        final_outcome: Option<Result<Box<revert_unsynchronized_tracks::Outcome>, String>>,
     },
 }
 
@@ -311,6 +316,9 @@ pub(crate) struct Model {
     pub(crate) write_files_after_saving_draft: bool,
 
     pub(crate) close_state: CloseState,
+
+    /// Reverting is irreversible and needs to be confirmed.
+    pub(crate) is_revert_confirmation_open: bool,
 }
 
 impl Model {
@@ -327,6 +335,7 @@ impl Model {
             active_track_writes: 0,
             write_files_after_saving_draft: false,
             close_state: Default::default(),
+            is_revert_confirmation_open: false,
         }
     }
 }

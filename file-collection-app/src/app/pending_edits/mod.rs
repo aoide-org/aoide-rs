@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Saving pending track edits on demand and before closing the application.
+//! Saving or reverting pending track edits on demand and before closing the application.
 //!
 //! Track edits are pending until they have been written into the files:
 //!
@@ -15,8 +15,11 @@ use aoide::Track;
 
 use super::{
     Model, ModelMode, TrackSearchEdit, TrackSearchMode, UiData,
-    message::{ExportUnsynchronizedTracksAction, MessageSender, PendingEditsAction},
-    render::render_export_unsynchronized_tracks,
+    message::{
+        ExportUnsynchronizedTracksAction, MessageSender, PendingEditsAction,
+        RevertUnsynchronizedTracksAction,
+    },
+    render::{render_export_unsynchronized_tracks, render_revert_unsynchronized_tracks},
     track_editor,
 };
 
@@ -124,6 +127,7 @@ impl PendingEdits {
             is_writing: mdl.active_track_writes > 0
                 || mdl.write_files_after_saving_draft
                 || library.could_abort_export_unsynchronized_tracks()
+                || library.could_abort_revert_unsynchronized_tracks()
                 || library.is_updating_tracks(),
             could_write_files: library.could_export_unsynchronized_tracks(),
         }
@@ -154,6 +158,25 @@ impl PendingEdits {
             DraftEdit::Invalid => return false,
         };
         has_pending_edits && !self.is_writing && self.could_write_files
+    }
+
+    /// Check if there is something to revert and reverting is currently possible.
+    ///
+    /// In contrast to saving this also includes an invalid draft.
+    #[must_use]
+    pub(super) const fn could_revert(&self) -> bool {
+        (self.is_draft_modified() || !matches!(self.modified_track_count, Some(0)))
+            && !self.is_writing
+            && self.could_write_files
+    }
+
+    /// The label of the button for reverting all pending edits.
+    #[must_use]
+    pub(super) fn revert_button_text(&self) -> String {
+        match self.modified_track_count {
+            Some(count) if count > 0 => format!("Revert pending edits ({count})"),
+            _ => "Revert pending edits".to_owned(),
+        }
     }
 
     /// The label of the button for saving all pending edits.
@@ -222,6 +245,65 @@ pub(super) fn handle_close(
 }
 
 #[must_use]
+fn revert_dialog_id() -> Id {
+    Id::unique("revert-dialog")
+}
+
+/// Ask for confirmation, because reverting could not be undone.
+pub(super) fn render_revert_dialog(
+    ctx: &Context,
+    msg_tx: &MessageSender,
+    pending_edits: &PendingEdits,
+) {
+    let response = Modal::new(revert_dialog_id()).show(ctx, |ui| {
+        ui.set_width(CLOSE_DIALOG_WIDTH);
+        ui.heading("Revert pending track edits?");
+        ui.add_space(4.0);
+        match pending_edits.modified_track_count {
+            Some(0) => (),
+            Some(1) => {
+                ui.label("1 modified track will be restored from its file.");
+            }
+            Some(count) => {
+                ui.label(format!(
+                    "{count} modified tracks will be restored from their files."
+                ));
+            }
+            None => {
+                ui.label("All modified tracks will be restored from their files.");
+            }
+        }
+        if pending_edits.is_draft_modified() {
+            ui.label("The unsaved changes of the track editor will be discarded.");
+        }
+        ui.colored_label(
+            ui.visuals().warn_fg_color,
+            "This includes edits from earlier sessions and cannot be undone. Files that have \
+             been modified on disk replace the track as well. Files are not written.",
+        );
+        ui.separator();
+        ui.horizontal_wrapped(|ui| {
+            if ui
+                .add_enabled(pending_edits.could_revert(), Button::new("Revert"))
+                .clicked()
+            {
+                msg_tx.send_action(PendingEditsAction::ConfirmRevert);
+            }
+            if ui
+                .button("Cancel")
+                .on_hover_text("Keep all pending edits.")
+                .clicked()
+            {
+                msg_tx.send_action(PendingEditsAction::CancelRevert);
+            }
+        });
+    });
+    if response.should_close() {
+        msg_tx.send_action(PendingEditsAction::CancelRevert);
+    }
+}
+
+#[must_use]
 fn close_dialog_id() -> Id {
     Id::unique("close-dialog")
 }
@@ -237,7 +319,7 @@ pub(super) fn render_close_dialog(
     }
     let response = Modal::new(close_dialog_id()).show(ctx, |ui| {
         ui.set_width(CLOSE_DIALOG_WIDTH);
-        ui.heading("Save pending track edits?");
+        ui.heading("Pending track edits");
         ui.add_space(4.0);
         render_close_dialog_status(ui, pending_edits, mode);
         ui.separator();
@@ -297,6 +379,20 @@ fn render_close_dialog_status(ui: &mut Ui, pending_edits: &PendingEdits, mode: O
                     final_outcome.as_ref(),
                 );
             });
+    } else if let Some(ModelMode::RevertUnsynchronizedTracks {
+        last_progress,
+        final_outcome,
+    }) = mode
+    {
+        ScrollArea::vertical()
+            .max_height(CLOSE_DIALOG_OUTCOME_MAX_HEIGHT)
+            .show(ui, |ui| {
+                render_revert_unsynchronized_tracks(
+                    ui,
+                    last_progress.as_ref(),
+                    final_outcome.as_ref(),
+                );
+            });
     } else if pending_edits.is_writing {
         ui.horizontal(|ui| {
             ui.spinner();
@@ -334,6 +430,19 @@ fn render_close_dialog_buttons(
         }
         if ui
             .add_enabled(
+                pending_edits.could_revert(),
+                Button::new("Revert and close"),
+            )
+            .on_hover_text(
+                "Discard all pending edits by restoring the modified tracks from their files. \
+                 The application stays open if tracks could not be restored.",
+            )
+            .clicked()
+        {
+            msg_tx.send_action(PendingEditsAction::RequestRevert);
+        }
+        if ui
+            .add_enabled(
                 !pending_edits.is_writing,
                 Button::new("Close without writing"),
             )
@@ -344,6 +453,21 @@ fn render_close_dialog_buttons(
             .clicked()
         {
             msg_tx.send_action(PendingEditsAction::CloseWithoutWriting);
+        }
+        if pending_edits.is_writing
+            && matches!(
+                mode,
+                Some(ModelMode::RevertUnsynchronizedTracks {
+                    final_outcome: None,
+                    ..
+                })
+            )
+            && ui
+                .button("Abort")
+                .on_hover_text("Stop reverting after the current track.")
+                .clicked()
+        {
+            msg_tx.send_action(RevertUnsynchronizedTracksAction::AbortPendingTask);
         }
         if pending_edits.is_writing
             && matches!(
