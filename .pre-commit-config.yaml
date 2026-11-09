@@ -62,7 +62,7 @@ repos:
       - id: gitleaks
   # Audit GitHub Actions CI/CD setups.
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.31.1
+    rev: v1.32.0
     hooks:
       - id: zizmor
   # JSON
@@ -86,7 +86,7 @@ repos:
           )
   # Format code with oxfmt for supported file types.
   - repo: https://github.com/oxc-project/mirrors-oxfmt
-    rev: v0.74.0
+    rev: v0.78.0
     hooks:
       - id: oxfmt
         types_or:
