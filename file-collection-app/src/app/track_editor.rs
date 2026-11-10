@@ -82,6 +82,7 @@ pub(super) fn render_track_editor_panel(
     msg_tx: &MessageSender,
     track_editor: &TrackEditor,
     draft: Option<&mut TrackEditorDraft>,
+    write_file: &mut bool,
 ) {
     let TrackEditor {
         entity_uid,
@@ -152,6 +153,7 @@ pub(super) fn render_track_editor_panel(
             edited_track.as_ref().ok().filter(|_| editable),
             is_modified,
             is_synchronized,
+            write_file,
             || *draft = TrackEditDraft::from_track(original_track),
         );
         ui.separator();
@@ -167,34 +169,30 @@ fn render_buttons(
     edited_track: Option<&aoide::Track>,
     is_modified: bool,
     is_synchronized: bool,
+    write_file: &mut bool,
     revert: impl FnOnce(),
 ) {
     ui.horizontal(|ui| {
-        let save = |write_file| {
-            if let Some(track) = edited_track {
-                msg_tx.send_action(TrackEditAction::Save {
-                    track: Box::new(track.clone()),
-                    write_file,
-                });
-            }
+        // Writing an unsynchronized file is also possible without changes.
+        let could_save = is_modified || (*write_file && !is_synchronized);
+        let save_hover_text = if *write_file {
+            "Save the changes in the collection and write them into the file."
+        } else {
+            "Save the changes in the collection without writing the file."
         };
         if ui
-            .add_enabled(edited_track.is_some() && is_modified, Button::new("Save"))
-            .on_hover_text("Save the changes in the collection without writing the file.")
+            .add_enabled(edited_track.is_some() && could_save, Button::new("Save"))
+            .on_hover_text(save_hover_text)
             .clicked()
+            && let Some(track) = edited_track
         {
-            save(false);
+            msg_tx.send_action(TrackEditAction::Save {
+                track: Box::new(track.clone()),
+                write_file: *write_file,
+            });
         }
-        if ui
-            .add_enabled(
-                edited_track.is_some() && (is_modified || !is_synchronized),
-                Button::new("Save & write file"),
-            )
-            .on_hover_text("Save the changes in the collection and write them into the file.")
-            .clicked()
-        {
-            save(true);
-        }
+        ui.checkbox(write_file, "Write to file")
+            .on_hover_text("Also write the metadata into the file when saving.");
         if ui
             .add_enabled(is_modified, Button::new("Revert"))
             .on_hover_text("Discard all unsaved changes.")

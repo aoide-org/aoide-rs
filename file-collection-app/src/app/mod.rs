@@ -46,6 +46,8 @@ struct UiData {
     editor_draft: Option<track_editor::TrackEditorDraft>,
     selection_draft: track_selection_editor::TrackSelectionDraft,
     track_list_table: track_list::TrackListTableState,
+    /// Write the files when saving in the track (selection) editor.
+    write_files: bool,
 }
 
 #[expect(missing_debug_implementations)]

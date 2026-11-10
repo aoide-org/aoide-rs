@@ -75,6 +75,7 @@ impl RenderContext<'_> {
                             track_selection,
                             track_list,
                             &mut ui_data.selection_draft,
+                            &mut ui_data.write_files,
                         );
                     });
             }
@@ -88,6 +89,7 @@ impl RenderContext<'_> {
                             msg_tx,
                             track_editor,
                             ui_data.editor_draft.as_mut(),
+                            &mut ui_data.write_files,
                         );
                     });
             }

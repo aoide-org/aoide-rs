@@ -124,6 +124,7 @@ pub(super) fn render_track_selection_editor_panel(
     track_selection: &TrackSelection,
     track_list: &[TrackListItem],
     draft: &mut TrackSelectionDraft,
+    write_files: &mut bool,
 ) {
     let TrackSelection {
         entity_uids, state, ..
@@ -148,7 +149,7 @@ pub(super) fn render_track_selection_editor_panel(
     ui.separator();
 
     ui.add_enabled_ui(!is_updating, |ui| {
-        render_inputs(ui, msg_tx, draft);
+        render_inputs(ui, msg_tx, draft, write_files);
     });
 
     match state {
@@ -194,7 +195,12 @@ pub(super) fn render_track_selection_editor_panel(
     });
 }
 
-fn render_inputs(ui: &mut Ui, msg_tx: &MessageSender, draft: &mut TrackSelectionDraft) {
+fn render_inputs(
+    ui: &mut Ui,
+    msg_tx: &MessageSender,
+    draft: &mut TrackSelectionDraft,
+    write_files: &mut bool,
+) {
     let edit = draft.to_edit();
     let errors = edit.as_ref().err().map_or(&[][..], Vec::as_slice);
     ui.label("Only checked fields are set for all selected tracks. Empty fields are cleared.");
@@ -211,7 +217,7 @@ fn render_inputs(ui: &mut Ui, msg_tx: &MessageSender, draft: &mut TrackSelection
                     render_custom_tags_inputs(ui, errors, draft);
                 });
         });
-    render_buttons(ui, msg_tx, edit.as_ref().ok());
+    render_buttons(ui, msg_tx, edit.as_ref().ok(), write_files);
 }
 
 fn render_field_inputs(
@@ -342,33 +348,33 @@ fn render_custom_tags_inputs(
     );
 }
 
-fn render_buttons(ui: &mut Ui, msg_tx: &MessageSender, edit: Option<&MultiTrackEdit>) {
+fn render_buttons(
+    ui: &mut Ui,
+    msg_tx: &MessageSender,
+    edit: Option<&MultiTrackEdit>,
+    write_files: &mut bool,
+) {
     ui.horizontal(|ui| {
-        let has_changes = edit.is_some_and(|edit| !edit.is_empty());
-        let update = |write_files| {
-            if let Some(edit) = edit {
-                msg_tx.send_action(TrackSelectionAction::Update {
-                    edit: Box::new(edit.clone()),
-                    write_files,
-                });
-            }
+        // Writing the files is also possible without changes.
+        let could_apply = edit.is_some_and(|edit| *write_files || !edit.is_empty());
+        let apply_hover_text = if *write_files {
+            "Save the changes in the collection and write all selected tracks into their files."
+        } else {
+            "Save the changes in the collection without writing the files."
         };
         if ui
-            .add_enabled(has_changes, Button::new("Apply"))
-            .on_hover_text("Save the changes in the collection without writing the files.")
+            .add_enabled(could_apply, Button::new("Apply"))
+            .on_hover_text(apply_hover_text)
             .clicked()
+            && let Some(edit) = edit
         {
-            update(false);
+            msg_tx.send_action(TrackSelectionAction::Update {
+                edit: Box::new(edit.clone()),
+                write_files: *write_files,
+            });
         }
-        if ui
-            .add_enabled(edit.is_some(), Button::new("Apply & write files"))
-            .on_hover_text(
-                "Save the changes in the collection and write all selected tracks into their files.",
-            )
-            .clicked()
-        {
-            update(true);
-        }
+        ui.checkbox(write_files, "Write to files")
+            .on_hover_text("Also write the metadata of all selected tracks into their files.");
     });
 }
 
