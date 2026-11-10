@@ -1,8 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::fmt::Write as _;
+
 use egui::{
-    Button, CentralPanel, Grid, Panel, ScrollArea, TextEdit, Ui, scroll_area::ScrollSource,
+    Align, Button, CentralPanel, Label, Layout, MenuBar, Panel, RichText, ScrollArea, TextEdit, Ui,
+    scroll_area::ScrollSource,
 };
 
 use crate::library::{
@@ -48,12 +51,16 @@ impl RenderContext<'_> {
         };
         let is_track_editor_draft_modified = pending_edits.is_draft_modified();
 
+        Panel::top("menu-bar").show(ui, |ui| {
+            render_menu_bar(ui, msg_tx, mdl, &library);
+        });
+
         Panel::top("top-panel").show(ui, |ui| {
             render_top_panel(ui, ui_data, msg_tx, mdl, &library, pending_edits);
         });
 
-        Panel::bottom("bottom-panel").show(ui, |ui| {
-            render_bottom_panel(ui, msg_tx, mdl.mode.as_ref(), &library);
+        Panel::bottom("status-bar").show(ui, |ui| {
+            render_status_bar(ui, &library);
         });
 
         match edit {
@@ -111,7 +118,62 @@ impl RenderContext<'_> {
     }
 }
 
-#[expect(clippy::too_many_lines)] // TODO
+/// Menus for the infrequent actions that affect the whole collection.
+fn render_menu_bar(
+    ui: &mut Ui,
+    msg_tx: &MessageSender,
+    mdl: &Model,
+    library: &crate::library::CurrentState<'_>,
+) {
+    let is_selecting = matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting));
+    MenuBar::new().ui(ui, |ui| {
+        ui.menu_button("Collection", |ui| {
+            if ui
+                .add_enabled(!is_selecting, Button::new("Select music directory…"))
+                .on_hover_text("Switch collections or create a new one.")
+                .clicked()
+            {
+                msg_tx.send_action(MusicDirectoryAction::Select);
+            }
+            if ui
+                .add_enabled(
+                    !is_selecting && library.could_synchronize_music_dir_task(),
+                    Button::new("Synchronize music directory"),
+                )
+                .on_hover_text(
+                    "Rescan the music directory for added/modified/deleted files and update the collection.",
+                )
+                .clicked()
+            {
+                msg_tx.send_action(MediaTrackerSyncAction::SpawnTask);
+            }
+            ui.separator();
+            if ui
+                .add_enabled(
+                    !is_selecting && library.could_reset_music_dir(),
+                    Button::new("Reset music directory"),
+                )
+                .on_hover_text("Disconnect from the corresponding collection.")
+                .clicked()
+            {
+                msg_tx.send_action(MusicDirectoryAction::Reset);
+            }
+        });
+        ui.menu_button("View", |ui| {
+            if ui
+                .add_enabled(
+                    !is_selecting && library.could_view_music_dir_list(),
+                    Button::new("Music directory list"),
+                )
+                .on_hover_text("List all folders of the music directory with their track count.")
+                .clicked()
+            {
+                msg_tx.send_action(MediaTrackerDirListAction::OpenView);
+            }
+        });
+    });
+}
+
 fn render_top_panel(
     ui: &mut Ui,
     ui_data: &mut UiData,
@@ -120,157 +182,85 @@ fn render_top_panel(
     library: &crate::library::CurrentState<'_>,
     pending_edits: &PendingEdits,
 ) {
-    let Model {
-        music_dir_selection,
-        ..
-    } = mdl;
-    Grid::new("grid")
-        .num_columns(2)
-        .spacing([40.0, 4.0])
-        .striped(true)
-        .show(ui, |ui| {
-            let music_dir = library.settings.music_dir();
-            ui.label("Music directory:");
-            ui.label(
-                music_dir
-                    .map(|path| path.display().to_string())
-                    .unwrap_or_default(),
-            );
-            ui.end_row();
-
-            ui.label("");
-            Grid::new("grid")
-                .num_columns(3)
-                .spacing([40.0, 4.0])
-                .show(ui, |ui| {
-                if ui
-                    .add_enabled(
-                        !matches!(music_dir_selection, Some(MusicDirSelection::Selecting)),
-                        Button::new("Select music directory..."),
-                    )
-                    .on_hover_text("Switch collections or create a new one.")
-                    .clicked()
-                {
-                    msg_tx
-                        .send_action(MusicDirectoryAction::Select);
-                }
-                if ui
-                    .add_enabled(
-                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting)) && library.could_synchronize_music_dir_task(),
-                        Button::new("Synchronize music directory"),
-                    )
-                    .on_hover_text(
-                        "Rescan the music directory for added/modified/deleted files and update the collection.",
-                    )
-                    .clicked()
-                {
-                    msg_tx.send_action(MediaTrackerSyncAction::SpawnTask);
-                }
-                if ui
-                    .add_enabled(
-                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting)) && library.could_view_music_dir_list(),
-                        Button::new("View music directory list"),
-                    )
-                    .clicked()
-                {
-                    msg_tx.send_action(MediaTrackerDirListAction::OpenView);
-                }
-                let mut save_button = ui
-                    .add_enabled(
-                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting))
-                            && pending_edits.could_save(),
-                        Button::new(pending_edits.save_button_text()),
-                    )
-                    .on_hover_text(
-                        "Save the changes of the track editor and write the metadata of all modified tracks into their files. Files that have been modified on disk are skipped.",
-                    );
-                if matches!(pending_edits.draft, DraftEdit::Invalid) {
-                    save_button = save_button.on_disabled_hover_text(
-                        "Fix the invalid values in the track editor first.",
-                    );
-                }
-                if save_button.clicked() {
-                    msg_tx.send_action(pending_edits.save_action());
-                }
-                if ui
-                    .add_enabled(
-                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting))
-                            && pending_edits.could_revert(),
-                        Button::new(pending_edits.revert_button_text()),
-                    )
-                    .on_hover_text(
-                        "Discard the changes of the track editor and restore all modified tracks from their files. Asks for confirmation.",
-                    )
-                    .clicked()
-                {
-                    msg_tx.send_action(PendingEditsAction::RequestRevert);
-                }
-                if ui
-                    .add_enabled(
-                        !matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting))
-                            && library.could_reset_music_dir(),
-                        Button::new("Reset music directory"),
-                    )
-                    .on_hover_text("Disconnect from the corresponding collection.")
-                    .clicked()
-                {
-                    msg_tx
-                        .send_action(MusicDirectoryAction::Reset);
-                }
-                ui.end_row();
-            });
-            ui.end_row();
-
-            let collection_uid = library
-                .collection
-                .entity_brief()
-                .map(|(entity_uid, _)| entity_uid);
-            ui.label("Collection UID:");
-            ui.label(
-                collection_uid
-                    .as_ref()
-                    .map(ToString::to_string)
-                    .unwrap_or_default(),
-            );
-            ui.end_row();
-
-            let collection_title = library
-                .collection
-                .entity_brief()
-                .and_then(|(_, collection)| {
-                    collection.map(|collection| collection.title.as_str())
-                });
-            ui.label("Collection title:");
-            ui.label(collection_title.unwrap_or_default());
-            ui.end_row();
-
-            let collection_summary = library
-                .collection
-                .entity_with_summary()
-                .map(|(_, summary)| summary);
-            ui.label("Collection summary:");
-            ui.label(collection_summary.map_or(String::new(), |summary| {
-                format!(
-                    "#tracks = {num_tracks}, #playlists = {num_playlists}",
-                    num_tracks = summary.tracks.total_count,
-                    num_playlists = summary.playlists.total_count
-                )
-            }));
-            ui.end_row();
-
-            ui.label("Search tracks:");
+    ui.horizontal(|ui| {
+        // Right-to-left: The pending edits are placed at the right edge
+        // and the search field fills the remaining space.
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            let is_selecting =
+                matches!(mdl.music_dir_selection, Some(MusicDirSelection::Selecting));
+            render_pending_edits(ui, msg_tx, pending_edits, is_selecting);
+            let search_enabled = matches!(mdl.mode, Some(ModelMode::TrackSearch { .. }))
+                && library.could_search_tracks();
+            let search_input = TextEdit::singleline(&mut ui_data.track_search_input)
+                .hint_text("🔍 Search tracks…")
+                .desired_width(ui.available_width());
             if ui
-                .add_enabled(
-                    matches!(mdl.mode, Some(ModelMode::TrackSearch { .. }))
-                    && library.could_search_tracks(),
-                    TextEdit::singleline(&mut ui_data.track_search_input),
-                )
+                .add_enabled(search_enabled, search_input)
+                .on_hover_text("Press Enter to search.")
                 .lost_focus()
             {
-                msg_tx.send_action(TrackSearchAction::Search(ui_data.track_search_input.clone()));
+                msg_tx.send_action(TrackSearchAction::Search(
+                    ui_data.track_search_input.clone(),
+                ));
             }
-            ui.end_row();
         });
+    });
+}
+
+/// Save button with a drop-down for reverting, only visible if needed.
+///
+/// Must be rendered into a right-to-left layout.
+fn render_pending_edits(
+    ui: &mut Ui,
+    msg_tx: &MessageSender,
+    pending_edits: &PendingEdits,
+    is_selecting: bool,
+) {
+    if pending_edits.is_writing {
+        ui.label("Writing files…");
+        ui.spinner();
+        return;
+    }
+    let could_revert = pending_edits.could_revert();
+    if !could_revert && !pending_edits.could_save() {
+        // Nothing pending.
+        return;
+    }
+    ui.add_enabled_ui(!is_selecting, |ui| {
+        ui.menu_button("⏷", |ui| {
+            if ui
+                .add_enabled(
+                    could_revert,
+                    Button::new(format!("{}…", pending_edits.revert_button_text())),
+                )
+                .on_hover_text(
+                    "Discard the changes of the track editor and restore all modified tracks from their files. Asks for confirmation.",
+                )
+                .clicked()
+            {
+                msg_tx.send_action(PendingEditsAction::RequestRevert);
+            }
+        })
+        .response
+        .on_hover_text("More actions for the pending edits.");
+        let mut save_button = ui
+            .add_enabled(
+                pending_edits.could_save(),
+                Button::new(pending_edits.save_button_text()),
+            )
+            .on_hover_text(
+                "Save the changes of the track editor and write the metadata of all modified tracks into their files. Files that have been modified on disk are skipped.",
+            );
+        if matches!(pending_edits.draft, DraftEdit::Invalid) {
+            save_button = save_button
+                .on_disabled_hover_text("Fix the invalid values in the track editor first.");
+        }
+        if save_button.clicked() {
+            msg_tx.send_action(pending_edits.save_action());
+        }
+        ui.colored_label(ui.visuals().warn_fg_color, "●")
+            .on_hover_text("There are unsaved changes.");
+    });
 }
 
 fn render_central_panel(
@@ -282,6 +272,10 @@ fn render_central_panel(
     library: &crate::library::CurrentState<'_>,
     is_track_editor_draft_modified: bool,
 ) {
+    if !matches!(mode, ModelMode::TrackSearch(_)) {
+        render_task_header(ui, msg_tx, mode, library);
+        ui.separator();
+    }
     match mode {
         ModelMode::TrackSearch(TrackSearchMode {
             track_list: None, ..
@@ -494,101 +488,133 @@ pub(super) fn render_revert_unsynchronized_tracks(
     }
 }
 
-fn render_bottom_panel(
+/// Title of the current task view with a button for aborting or leaving it.
+fn render_task_header(
     ui: &mut Ui,
     msg_tx: &MessageSender,
-    mode: Option<&ModelMode>,
+    mode: &ModelMode,
     library: &crate::library::CurrentState<'_>,
 ) {
-    Grid::new("grid")
-        .num_columns(2)
-        .spacing([40.0, 4.0])
-        .striped(true)
-        .show(ui, |ui| {
-            if let Some(mode) = mode {
-                let text;
-                let hover_text;
-                let enabled;
-                let action: Action;
-                match mode {
-                    ModelMode::TrackSearch(_) => {
-                        text = "Fetch more";
-                        hover_text = "Fetch the next page of search results.";
-                        enabled = library.could_fetch_more_track_search_results();
-                        action = TrackSearchAction::FetchMore.into();
-                    }
-                    ModelMode::MusicDirSync { .. } => {
-                        if library.could_abort_synchronize_music_dir_task() {
-                            text = "Abort";
-                            hover_text = "Stop the current synchronization task.";
-                            enabled = true;
-                            action = MediaTrackerSyncAction::AbortPendingTask.into();
-                        } else {
-                            text = "Dismiss";
-                            hover_text = "Clear output and return to track search.";
-                            enabled = true;
-                            action = MediaTrackerSyncAction::Finish.into();
-                        }
-                    }
-                    ModelMode::ExportUnsynchronizedTracks { .. } => {
-                        if library.could_abort_export_unsynchronized_tracks() {
-                            text = "Abort";
-                            hover_text = "Stop writing files after the current file.";
-                            enabled = true;
-                            action = ExportUnsynchronizedTracksAction::AbortPendingTask.into();
-                        } else {
-                            text = "Dismiss";
-                            hover_text = "Clear output and return to track search.";
-                            enabled = true;
-                            action = ExportUnsynchronizedTracksAction::Finish.into();
-                        }
-                    }
-                    ModelMode::RevertUnsynchronizedTracks { .. } => {
-                        if library.could_abort_revert_unsynchronized_tracks() {
-                            text = "Abort";
-                            hover_text = "Stop reverting after the current track.";
-                            enabled = true;
-                            action = RevertUnsynchronizedTracksAction::AbortPendingTask.into();
-                        } else {
-                            text = "Dismiss";
-                            hover_text = "Clear output and return to track search.";
-                            enabled = true;
-                            action = RevertUnsynchronizedTracksAction::Finish.into();
-                        }
-                    }
-                    ModelMode::MusicDirList { .. } => {
-                        text = "Dismiss";
-                        hover_text = "Clear output and return to track search.";
-                        enabled = true;
-                        action = MediaTrackerDirListAction::CloseView.into();
-                    }
-                }
-                if ui
-                    .add_enabled(enabled, Button::new(text))
-                    .on_hover_text(hover_text)
-                    .clicked()
-                {
-                    msg_tx.send_action(action);
-                }
-                ui.end_row();
+    const DISMISS_HOVER_TEXT: &str = "Clear output and return to track search.";
+    let (title, text, hover_text, action): (_, _, _, Action) = match mode {
+        ModelMode::TrackSearch(_) => {
+            // Not a task.
+            return;
+        }
+        ModelMode::MusicDirSync { .. } => {
+            let title = "Synchronize music directory";
+            if library.could_abort_synchronize_music_dir_task() {
+                (
+                    title,
+                    "Abort",
+                    "Stop the current synchronization task.",
+                    MediaTrackerSyncAction::AbortPendingTask.into(),
+                )
+            } else {
+                (
+                    title,
+                    "Dismiss",
+                    DISMISS_HOVER_TEXT,
+                    MediaTrackerSyncAction::Finish.into(),
+                )
             }
+        }
+        ModelMode::ExportUnsynchronizedTracks { .. } => {
+            let title = "Write files";
+            if library.could_abort_export_unsynchronized_tracks() {
+                (
+                    title,
+                    "Abort",
+                    "Stop writing files after the current file.",
+                    ExportUnsynchronizedTracksAction::AbortPendingTask.into(),
+                )
+            } else {
+                (
+                    title,
+                    "Dismiss",
+                    DISMISS_HOVER_TEXT,
+                    ExportUnsynchronizedTracksAction::Finish.into(),
+                )
+            }
+        }
+        ModelMode::RevertUnsynchronizedTracks { .. } => {
+            let title = "Revert tracks";
+            if library.could_abort_revert_unsynchronized_tracks() {
+                (
+                    title,
+                    "Abort",
+                    "Stop reverting after the current track.",
+                    RevertUnsynchronizedTracksAction::AbortPendingTask.into(),
+                )
+            } else {
+                (
+                    title,
+                    "Dismiss",
+                    DISMISS_HOVER_TEXT,
+                    RevertUnsynchronizedTracksAction::Finish.into(),
+                )
+            }
+        }
+        ModelMode::MusicDirList { .. } => (
+            "Music directory list",
+            "Dismiss",
+            DISMISS_HOVER_TEXT,
+            MediaTrackerDirListAction::CloseView.into(),
+        ),
+    };
+    ui.horizontal(|ui| {
+        ui.heading(title);
+        if ui.button(text).on_hover_text(hover_text).clicked() {
+            msg_tx.send_action(action);
+        }
+    });
+}
 
-            ui.label("Last error:");
-            let last_error = library
-                .collection
-                .last_error()
-                .map(ToOwned::to_owned)
-                .or_else(|| {
-                    library
-                        .track_search
-                        .last_fetch_error()
-                        .map(ToString::to_string)
-                });
-            if let Some(last_error) = last_error.as_deref() {
-                ui.label(last_error);
+/// A single line with the collection and the last error, if any.
+fn render_status_bar(ui: &mut Ui, library: &crate::library::CurrentState<'_>) {
+    ui.horizontal(|ui| {
+        if let Some(music_dir) = library.settings.music_dir() {
+            let mut hover_text = format!("Music directory: {}", music_dir.display());
+            let brief = library.collection.entity_brief();
+            if let Some((entity_uid, _)) = brief {
+                let _ = write!(hover_text, "\nCollection UID: {entity_uid}");
             }
-            ui.end_row();
-        });
+            let title = brief.and_then(|(_, collection)| collection.map(|c| c.title.as_str()));
+            let mut text = title.map_or_else(|| music_dir.display().to_string(), ToOwned::to_owned);
+            if let Some((_, summary)) = library.collection.entity_with_summary() {
+                let _ = write!(
+                    text,
+                    " · {num_tracks} tracks · {num_playlists} playlists",
+                    num_tracks = summary.tracks.total_count,
+                    num_playlists = summary.playlists.total_count,
+                );
+            }
+            ui.label(text).on_hover_text(hover_text);
+        } else {
+            ui.weak("No music directory selected. Use Collection ▸ Select music directory…");
+        }
+
+        let last_error = library
+            .collection
+            .last_error()
+            .map(ToOwned::to_owned)
+            .or_else(|| {
+                library
+                    .track_search
+                    .last_fetch_error()
+                    .map(ToString::to_string)
+            });
+        if let Some(last_error) = last_error {
+            ui.separator();
+            ui.add(
+                Label::new(
+                    RichText::new(format!("⚠ {last_error}")).color(ui.visuals().error_fg_color),
+                )
+                .truncate(),
+            )
+            .on_hover_text(last_error);
+        }
+    });
 }
 
 /// The tempo rounded to an integer value for display.
