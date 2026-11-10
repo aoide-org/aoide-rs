@@ -4,9 +4,11 @@
 use std::fmt::Write as _;
 
 use egui::{
-    Align, Button, CentralPanel, Label, Layout, MenuBar, Panel, RichText, ScrollArea, TextEdit, Ui,
-    scroll_area::ScrollSource,
+    Align, Button, CentralPanel, Grid, Label, Layout, MenuBar, Panel, RichText, ScrollArea,
+    TextEdit, Ui, scroll_area::ScrollSource,
 };
+
+use aoide::backend_embedded::batch::synchronize_collection_vfs;
 
 use crate::library::{
     export_unsynchronized_tracks, revert_unsynchronized_tracks, ui::TrackListItem,
@@ -325,13 +327,12 @@ fn render_central_panel(
             ScrollArea::both()
                 .scroll_source(ScrollSource::ALL)
                 .show(ui, |ui| {
-                    if let Some(final_outcome) = final_outcome {
-                        let line = format!("{final_outcome:#?}");
-                        ui.label(line);
-                    } else if let Some(progress) = last_progress {
-                        let line = format!("{progress:#?}");
-                        ui.label(line);
-                    }
+                    render_music_dir_sync(
+                        ui,
+                        last_progress.as_ref(),
+                        final_outcome.as_deref(),
+                        library.could_abort_synchronize_music_dir_task(),
+                    );
                 });
         }
         ModelMode::ExportUnsynchronizedTracks {
@@ -373,6 +374,229 @@ fn render_central_panel(
                         ui.label(format!("/{content_path} ({count})"));
                     }
                 });
+        }
+    }
+}
+
+/// Join the non-zero counts, e.g. "3 added, 1 modified".
+#[must_use]
+fn format_counts(counts: &[(usize, &str)]) -> String {
+    let text = counts
+        .iter()
+        .filter(|(count, _)| *count > 0)
+        .map(|(count, label)| format!("{count} {label}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    if text.is_empty() {
+        "none".to_owned()
+    } else {
+        text
+    }
+}
+
+#[must_use]
+fn music_dir_sync_progress_text(progress: &synchronize_collection_vfs::Progress) -> String {
+    use synchronize_collection_vfs::Progress;
+    const NUM_STEPS: usize = 8;
+    let (step, text) = match progress {
+        Progress::Step1UntrackExcludedDirectories => {
+            (1, "Untracking excluded directories…".to_owned())
+        }
+        Progress::Step2ScanDirectories(event) => (
+            2,
+            format!(
+                "Scanning directories: {directories} directories, {entries} ({elapsed} s)",
+                directories = event.progress.directories.finished,
+                entries = format_counts(&[
+                    (event.progress.entries.finished, "files"),
+                    (event.progress.entries.skipped, "skipped"),
+                ]),
+                elapsed = event.elapsed.as_secs(),
+            ),
+        ),
+        Progress::Step3UntrackOrphanedDirectories => {
+            (3, "Untracking orphaned directories…".to_owned())
+        }
+        Progress::Step4ImportFiles(event) => {
+            let tracks = &event.summary.tracks;
+            (
+                4,
+                format!(
+                    "Importing files: {counts} ({elapsed} s)",
+                    counts = format_counts(&[
+                        (tracks.created, "created"),
+                        (tracks.updated, "updated"),
+                        (tracks.unchanged, "unchanged"),
+                        (tracks.skipped, "skipped"),
+                        (tracks.failed, "failed"),
+                    ]),
+                    elapsed = event.elapsed.as_secs(),
+                ),
+            )
+        }
+        Progress::Step5PurgeUntrackedMediaSources => {
+            (5, "Purging untracked media sources…".to_owned())
+        }
+        Progress::Step6PurgeOrphanedMediaSources => {
+            (6, "Purging orphaned media sources…".to_owned())
+        }
+        Progress::Step7FindUntrackedFiles(event) => (
+            7,
+            format!(
+                "Finding untracked files: {files} files ({elapsed} s)",
+                files = event.progress.entries.finished,
+                elapsed = event.elapsed.as_secs(),
+            ),
+        ),
+        Progress::Step8FindUnsynchronizedTracks => (8, "Finding unsynchronized tracks…".to_owned()),
+    };
+    format!("Step {step} of {NUM_STEPS}: {text}")
+}
+
+/// The counts of all synchronization steps.
+fn render_music_dir_sync_summary(ui: &mut Ui, outcome: &synchronize_collection_vfs::Outcome) {
+    let synchronize_collection_vfs::Outcome {
+        completion: _,
+        untrack_excluded_directories,
+        scan_directories,
+        untrack_orphaned_directories,
+        import_files,
+        purge_untracked_media_sources,
+        purge_orphaned_media_sources,
+        find_untracked_files,
+        find_unsynchronized_tracks,
+    } = outcome;
+    Grid::new("music-dir-sync-outcome")
+        .num_columns(2)
+        .spacing([20.0, 4.0])
+        .striped(true)
+        .show(ui, |ui| {
+            let mut row = |label: &str, text: String| {
+                ui.label(label);
+                ui.label(text);
+                ui.end_row();
+            };
+            if let Some(outcome) = scan_directories {
+                let summary = &outcome.summary;
+                row(
+                    "Directories:",
+                    format_counts(&[
+                        (summary.current, "unchanged"),
+                        (summary.added, "added"),
+                        (summary.modified, "modified"),
+                        (summary.orphaned, "orphaned"),
+                        (summary.skipped, "skipped"),
+                    ]),
+                );
+            }
+            let untracked_directories = untrack_excluded_directories
+                .as_ref()
+                .map_or(0, |outcome| outcome.summary.untracked)
+                + untrack_orphaned_directories
+                    .as_ref()
+                    .map_or(0, |outcome| outcome.summary.untracked);
+            if untracked_directories > 0 {
+                row("Untracked directories:", untracked_directories.to_string());
+            }
+            if let Some(outcome) = import_files {
+                let tracks = &outcome.summary.tracks;
+                row(
+                    "Tracks:",
+                    format_counts(&[
+                        (tracks.created, "created"),
+                        (tracks.updated, "updated"),
+                        (tracks.unchanged, "unchanged"),
+                        (tracks.skipped, "skipped"),
+                        (tracks.failed, "failed"),
+                        (tracks.not_imported, "not imported"),
+                        (tracks.not_created, "not created"),
+                        (tracks.not_updated, "not updated"),
+                    ]),
+                );
+            }
+            let purged_sources = purge_untracked_media_sources
+                .as_ref()
+                .map_or(0, |outcome| outcome.summary.purged)
+                + purge_orphaned_media_sources
+                    .as_ref()
+                    .map_or(0, |outcome| outcome.summary.purged);
+            if purged_sources > 0 {
+                row("Purged tracks:", purged_sources.to_string());
+            }
+            if let Some(outcome) = find_untracked_files {
+                row("Untracked files:", outcome.content_paths.len().to_string());
+            }
+            if let Some(tracks) = find_unsynchronized_tracks {
+                row("Unsynchronized tracks:", tracks.len().to_string());
+            }
+        });
+}
+
+pub(super) fn render_music_dir_sync(
+    ui: &mut Ui,
+    last_progress: Option<&synchronize_collection_vfs::Progress>,
+    final_outcome: Option<&synchronize_collection_vfs::Outcome>,
+    is_running: bool,
+) {
+    let Some(outcome) = final_outcome else {
+        if is_running {
+            ui.horizontal(|ui| {
+                ui.spinner();
+                ui.label(
+                    last_progress
+                        .map_or_else(|| "Starting…".to_owned(), music_dir_sync_progress_text),
+                );
+            });
+        } else {
+            ui.label("Synchronization has been aborted or failed. See the log for details.");
+        }
+        return;
+    };
+    if matches!(
+        outcome.completion,
+        synchronize_collection_vfs::Completion::Aborted
+    ) {
+        ui.label("Aborted.");
+    }
+    render_music_dir_sync_summary(ui, outcome);
+    let synchronize_collection_vfs::Outcome {
+        import_files,
+        find_untracked_files,
+        find_unsynchronized_tracks,
+        ..
+    } = outcome;
+    if let Some(outcome) = import_files
+        && !outcome.imported_sources_with_issues.is_empty()
+    {
+        ui.separator();
+        ui.label("Imported with issues:");
+        for source in &outcome.imported_sources_with_issues {
+            ui.colored_label(
+                ui.visuals().warn_fg_color,
+                format!(
+                    "/{path}: {messages}",
+                    path = source.path,
+                    messages = source.messages.join("; ")
+                ),
+            );
+        }
+    }
+    if let Some(outcome) = find_untracked_files
+        && !outcome.content_paths.is_empty()
+    {
+        ui.separator();
+        ui.label("Untracked files:");
+        for content_path in &outcome.content_paths {
+            ui.label(format!("/{content_path}"));
+        }
+    }
+    if let Some(tracks) = find_unsynchronized_tracks
+        && !tracks.is_empty()
+    {
+        ui.separator();
+        ui.label("Unsynchronized tracks, the collection differs from their files:");
+        for track in tracks {
+            ui.label(format!("/{}", track.raw.body.content_link.path));
         }
     }
 }
@@ -686,5 +910,20 @@ pub(super) fn track_list_item_label(track: &TrackListItem) -> String {
         label
     } else {
         format!("{label} {{{key}}}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::format_counts;
+
+    #[test]
+    fn format_counts_skips_zeros() {
+        assert_eq!(
+            "3 added, 1 failed",
+            format_counts(&[(3, "added"), (0, "modified"), (1, "failed")])
+        );
+        assert_eq!("none", format_counts(&[(0, "added")]));
+        assert_eq!("none", format_counts(&[]));
     }
 }
