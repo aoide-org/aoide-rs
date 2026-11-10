@@ -13,8 +13,9 @@ use crate::library::{
 };
 
 use super::{
-    Action, CloseState, MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction,
-    TrackEditor, TrackListColumns, TrackSearchAction, TrackSearchEdit, TrackSearchMode, UiData,
+    Action, CloseState, EditorSettingsAction, MessageSender, Model, ModelMode, MusicDirSelection,
+    MusicDirectoryAction, TrackEditor, TrackListColumns, TrackSearchAction, TrackSearchEdit,
+    TrackSearchMode, UiData,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerDirListAction, MediaTrackerSyncAction,
         PendingEditsAction, RevertUnsynchronizedTracksAction,
@@ -63,6 +64,8 @@ impl RenderContext<'_> {
             render_status_bar(ui, &library);
         });
 
+        // Changed by the editor panels and persisted by an action.
+        let mut write_files = mdl.editor_settings.write_files;
         match edit {
             Some(TrackSearchEdit::Multiple(track_selection)) => {
                 Panel::right("track-selection-editor-panel")
@@ -75,7 +78,7 @@ impl RenderContext<'_> {
                             track_selection,
                             track_list,
                             &mut ui_data.selection_draft,
-                            &mut ui_data.write_files,
+                            &mut write_files,
                         );
                     });
             }
@@ -89,11 +92,14 @@ impl RenderContext<'_> {
                             msg_tx,
                             track_editor,
                             ui_data.editor_draft.as_mut(),
-                            &mut ui_data.write_files,
+                            &mut write_files,
                         );
                     });
             }
             None => (),
+        }
+        if write_files != mdl.editor_settings.write_files {
+            msg_tx.send_action(EditorSettingsAction::SetWriteFiles(write_files));
         }
 
         // CentralPanel must be added after all other panels!

@@ -18,10 +18,10 @@ use crate::{
 };
 
 use super::{
-    Action, CloseState, CollectionAction, Event, LibraryAction, Message, MessageSender, Model,
-    ModelMode, MusicDirSelection, MusicDirectoryAction, TrackEditAction, TrackEditor,
-    TrackEditorState, TrackListColumnsAction, TrackSearchAction, TrackSearchEdit, TrackSearchMode,
-    TrackSelection, TrackSelectionAction, TrackSelectionState,
+    Action, CloseState, CollectionAction, EditorSettingsAction, Event, LibraryAction, Message,
+    MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction, TrackEditAction,
+    TrackEditor, TrackEditorState, TrackListColumnsAction, TrackSearchAction, TrackSearchEdit,
+    TrackSearchMode, TrackSelection, TrackSelectionAction, TrackSelectionState,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerAction, MediaTrackerDirListAction,
         MediaTrackerSyncAction, PendingEditsAction, RevertUnsynchronizedTracksAction,
@@ -63,6 +63,7 @@ impl UpdateContext<'_> {
                 }
             },
             Action::TrackListColumns(action) => self.on_track_list_columns_action(action),
+            Action::EditorSettings(action) => self.on_editor_settings_action(action),
             Action::PendingEdits(action) => self.on_pending_edits_action(ctx, action),
         };
         if matches!(action_effect, ActionEffect::Unchanged) {
@@ -140,6 +141,26 @@ impl UpdateContext<'_> {
         }
         if let Err(err) = track_list_columns.save(settings_dir) {
             log::warn!("Failed to save track list columns: {err}");
+        }
+        ActionEffect::Changed
+    }
+
+    fn on_editor_settings_action(&mut self, action: EditorSettingsAction) -> ActionEffect {
+        let Model {
+            editor_settings,
+            settings_dir,
+            ..
+        } = &mut *self.mdl;
+        match action {
+            EditorSettingsAction::SetWriteFiles(write_files) => {
+                if editor_settings.write_files == write_files {
+                    return ActionEffect::Unchanged;
+                }
+                editor_settings.write_files = write_files;
+            }
+        }
+        if let Err(err) = editor_settings.save(settings_dir) {
+            log::warn!("Failed to save editor settings: {err}");
         }
         ActionEffect::Changed
     }

@@ -10,7 +10,7 @@ use crate::library::{
     ui::TrackListItem, update_tracks,
 };
 
-use super::{CloseState, ModifiedTrackCount, TrackListColumns};
+use super::{CloseState, EditorSettings, ModifiedTrackCount, TrackListColumns};
 
 // Mutually exclusive modes of operation.
 #[derive(Debug)]
@@ -304,6 +304,8 @@ pub(crate) struct Model {
 
     pub(crate) track_list_columns: TrackListColumns,
 
+    pub(crate) editor_settings: EditorSettings,
+
     /// The directory for persistent settings.
     pub(crate) settings_dir: PathBuf,
 
@@ -325,11 +327,13 @@ impl Model {
     #[must_use]
     pub(crate) fn new(library: Library, settings_dir: PathBuf) -> Self {
         let track_list_columns = TrackListColumns::restore(&settings_dir);
+        let editor_settings = EditorSettings::restore(&settings_dir);
         Self {
             library,
             mode: None,
             music_dir_selection: None,
             track_list_columns,
+            editor_settings,
             settings_dir,
             modified_track_count: Default::default(),
             active_track_writes: 0,

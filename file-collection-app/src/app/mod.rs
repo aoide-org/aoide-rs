@@ -8,9 +8,9 @@ use egui::Ui;
 
 mod message;
 pub(crate) use self::message::{
-    Action, CollectionAction, Event, LibraryAction, Message, MessageSender, MusicDirectoryAction,
-    TrackEditAction, TrackListColumnsAction, TrackSearchAction, TrackSearchFetchedItems,
-    TrackSelectionAction,
+    Action, CollectionAction, EditorSettingsAction, Event, LibraryAction, Message, MessageSender,
+    MusicDirectoryAction, TrackEditAction, TrackListColumnsAction, TrackSearchAction,
+    TrackSearchFetchedItems, TrackSelectionAction,
 };
 
 mod model;
@@ -24,6 +24,9 @@ use self::update::UpdateContext;
 
 mod render;
 use self::render::RenderContext;
+
+mod editor_settings;
+pub(crate) use self::editor_settings::EditorSettings;
 
 mod track_editor;
 
@@ -46,8 +49,6 @@ struct UiData {
     editor_draft: Option<track_editor::TrackEditorDraft>,
     selection_draft: track_selection_editor::TrackSelectionDraft,
     track_list_table: track_list::TrackListTableState,
-    /// Write the files when saving in the track (selection) editor.
-    write_files: bool,
 }
 
 #[expect(missing_debug_implementations)]

@@ -98,7 +98,21 @@ impl From<Event> for Message {
 pub(crate) enum Action {
     Library(LibraryAction),
     TrackListColumns(TrackListColumnsAction),
+    EditorSettings(EditorSettingsAction),
     PendingEdits(PendingEditsAction),
+}
+
+/// Change the persistent settings of the track (selection) editor.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum EditorSettingsAction {
+    /// Also write the files when saving the edited tracks.
+    SetWriteFiles(bool),
+}
+
+impl From<EditorSettingsAction> for Action {
+    fn from(action: EditorSettingsAction) -> Self {
+        Self::EditorSettings(action)
+    }
 }
 
 /// Save pending track edits on demand and before closing the application.
