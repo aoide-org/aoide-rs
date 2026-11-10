@@ -19,8 +19,13 @@ pub(crate) enum ModelMode {
     TrackSearch(TrackSearchMode),
     MusicDirSync {
         last_progress: Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>,
-        final_outcome:
-            Option<Box<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>>,
+        /// The error message if synchronization failed.
+        final_outcome: Option<
+            Result<
+                Box<aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome>,
+                String,
+            >,
+        >,
     },
     MusicDirList {
         content_paths_with_count: Vec<(ContentPath<'static>, usize)>,

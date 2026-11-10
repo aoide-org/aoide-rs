@@ -846,16 +846,22 @@ fn on_library_music_dir_sync_finished(
 ) {
     let _ = library.sync_music_dir_finished();
     let outcome = match finished_state {
-        SynchronizingVfsFinishedState::Succeeded { outcome } => Some(outcome),
-        SynchronizingVfsFinishedState::Aborted => None,
+        SynchronizingVfsFinishedState::Succeeded { outcome } => Ok(Box::new(outcome)),
+        SynchronizingVfsFinishedState::Aborted => Ok(Box::new(
+            aoide::backend_embedded::batch::synchronize_collection_vfs::Outcome {
+                completion:
+                    aoide::backend_embedded::batch::synchronize_collection_vfs::Completion::Aborted,
+                ..Default::default()
+            },
+        )),
         SynchronizingVfsFinishedState::Failed { error } => {
             log::warn!("Synchronizing music directory failed: {error}");
-            None
+            Err(error)
         }
     };
     if let Some(ModelMode::MusicDirSync { final_outcome, .. }) = mode {
         debug_assert!(final_outcome.is_none());
-        *final_outcome = outcome.map(Box::new);
+        *final_outcome = Some(outcome);
     } else {
         log::debug!(
             "Discarding unexpected music directory synchronization outcome {outcome:?}: {mode:?}"

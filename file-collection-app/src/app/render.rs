@@ -327,12 +327,7 @@ fn render_central_panel(
             ScrollArea::both()
                 .scroll_source(ScrollSource::ALL)
                 .show(ui, |ui| {
-                    render_music_dir_sync(
-                        ui,
-                        last_progress.as_ref(),
-                        final_outcome.as_deref(),
-                        library.could_abort_synchronize_music_dir_task(),
-                    );
+                    render_music_dir_sync(ui, last_progress.as_ref(), final_outcome.as_ref());
                 });
         }
         ModelMode::ExportUnsynchronizedTracks {
@@ -535,22 +530,26 @@ fn render_music_dir_sync_summary(ui: &mut Ui, outcome: &synchronize_collection_v
 pub(super) fn render_music_dir_sync(
     ui: &mut Ui,
     last_progress: Option<&synchronize_collection_vfs::Progress>,
-    final_outcome: Option<&synchronize_collection_vfs::Outcome>,
-    is_running: bool,
+    final_outcome: Option<&Result<Box<synchronize_collection_vfs::Outcome>, String>>,
 ) {
-    let Some(outcome) = final_outcome else {
-        if is_running {
-            ui.horizontal(|ui| {
-                ui.spinner();
-                ui.label(
-                    last_progress
-                        .map_or_else(|| "Starting…".to_owned(), music_dir_sync_progress_text),
-                );
-            });
-        } else {
-            ui.label("Synchronization has been aborted or failed. See the log for details.");
-        }
+    let Some(final_outcome) = final_outcome else {
+        ui.horizontal(|ui| {
+            ui.spinner();
+            ui.label(
+                last_progress.map_or_else(|| "Starting…".to_owned(), music_dir_sync_progress_text),
+            );
+        });
         return;
+    };
+    let outcome = match final_outcome {
+        Ok(outcome) => outcome.as_ref(),
+        Err(err) => {
+            ui.colored_label(
+                ui.visuals().error_fg_color,
+                format!("Synchronization failed: {err}"),
+            );
+            return;
+        }
     };
     if matches!(
         outcome.completion,

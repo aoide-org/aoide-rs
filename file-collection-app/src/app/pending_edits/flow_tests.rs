@@ -501,7 +501,7 @@ fn run_ui_paths(test_name: &str, search_while_fetching: bool) -> Flow {
         matches!(
             app.mdl.mode,
             Some(ModelMode::MusicDirSync {
-                final_outcome: Some(_),
+                final_outcome: Some(Ok(_)),
                 ..
             })
         )
