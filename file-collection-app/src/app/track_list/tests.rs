@@ -132,6 +132,7 @@ fn new_item(ctx: &Context, title: &str) -> TrackListItem {
         grouping: None,
         comment: None,
         genres: Vec::new(),
+        tags: Vec::new(),
         year: None,
         bpm: None,
         key: None,
@@ -853,4 +854,16 @@ fn clicking_a_genre_opens_the_track_editor() {
         ),
         "unexpected actions: {actions:?}"
     );
+}
+
+#[test]
+fn tags_column_is_read_only() {
+    let ctx = Context::default();
+    let mut item = new_item(&ctx, "Title");
+    item.tags = vec!["chill".to_owned(), "vocal".to_owned()];
+    assert_eq!(
+        Some("chill, vocal".to_owned()),
+        TrackListColumn::Tags.cell_text(&item)
+    );
+    assert_eq!(None, TrackListColumn::Tags.editable_text(&item));
 }

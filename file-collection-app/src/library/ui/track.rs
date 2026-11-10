@@ -47,6 +47,8 @@ pub struct TrackListItem {
     pub comment: Option<String>,
     /// In their intended order.
     pub genres: Vec<String>,
+    /// Labels of all plain tags without a facet, in no particular order.
+    pub tags: Vec<String>,
     pub year: Option<TrackYear>,
     pub bpm: Option<TempoBpm>,
     pub key: Option<KeySignature>,
@@ -75,6 +77,13 @@ impl TrackListItem {
         let genres = genre_labels(&track.tags)
             .into_iter()
             .map(ToOwned::to_owned)
+            .collect();
+        let tags = track
+            .tags
+            .plain
+            .iter()
+            .filter_map(|tag| tag.label.as_ref())
+            .map(|label| label.as_str().to_owned())
             .collect();
         let grouping = concat_faceted_track_tag_labels(
             track,
@@ -136,6 +145,7 @@ impl TrackListItem {
             grouping,
             comment,
             genres,
+            tags,
             year,
             bpm,
             key,

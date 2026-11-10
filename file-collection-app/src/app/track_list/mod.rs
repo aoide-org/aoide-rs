@@ -47,9 +47,9 @@ const DRAGGED_COLUMN_LABEL_MARGIN: f32 = 4.0;
 
 const DRAGGED_COLUMN_LABEL_POINTER_OFFSET: Vec2 = Vec2::new(16.0, 0.0);
 
-const GENRE_BUBBLE_HORIZONTAL_PADDING: f32 = 6.0;
+const BUBBLE_HORIZONTAL_PADDING: f32 = 6.0;
 
-const GENRE_BUBBLE_CORNER_RADIUS: u8 = 8;
+const BUBBLE_CORNER_RADIUS: u8 = 8;
 
 const LINE_SEPARATOR: &str = "\n";
 
@@ -63,6 +63,7 @@ pub(crate) enum TrackListColumn {
     AlbumSubtitle,
     AlbumArtist,
     Genres,
+    Tags,
     Grouping,
     Comment,
     Year,
@@ -75,7 +76,7 @@ pub(crate) enum TrackListColumn {
 
 impl TrackListColumn {
     /// All columns in the order of the selection menu.
-    pub(crate) const ALL: [Self; 16] = [
+    pub(crate) const ALL: [Self; 17] = [
         Self::Artwork,
         Self::Unsynchronized,
         Self::Artist,
@@ -84,6 +85,7 @@ impl TrackListColumn {
         Self::AlbumSubtitle,
         Self::AlbumArtist,
         Self::Genres,
+        Self::Tags,
         Self::Grouping,
         Self::Comment,
         Self::Year,
@@ -108,6 +110,7 @@ impl TrackListColumn {
             Self::AlbumSubtitle => "album_subtitle",
             Self::AlbumArtist => "album_artist",
             Self::Genres => "genres",
+            Self::Tags => "tags",
             Self::Grouping => "grouping",
             Self::Comment => "comment",
             Self::Year => "year",
@@ -136,6 +139,7 @@ impl TrackListColumn {
             Self::AlbumSubtitle => "Album subtitle",
             Self::AlbumArtist => "Album artist",
             Self::Genres => "Genre",
+            Self::Tags => "Tags",
             Self::Grouping => "Grouping",
             Self::Comment => "Comment",
             Self::Year => "Year",
@@ -169,9 +173,12 @@ impl TrackListColumn {
             }
             Self::Bpm | Self::Key => 48.0,
             Self::Year | Self::AdvisoryRating => 72.0,
-            Self::Artist | Self::AlbumArtist | Self::Genres | Self::Grouping | Self::Copyright => {
-                160.0
-            }
+            Self::Artist
+            | Self::AlbumArtist
+            | Self::Genres
+            | Self::Tags
+            | Self::Grouping
+            | Self::Copyright => 160.0,
             Self::Title | Self::AlbumTitle | Self::AlbumSubtitle | Self::Comment => 240.0,
             Self::FilePath => 400.0,
         };
@@ -203,6 +210,7 @@ impl TrackListColumn {
             Self::Artwork
             | Self::Unsynchronized
             | Self::Genres
+            | Self::Tags
             | Self::Year
             | Self::Bpm
             | Self::Key
@@ -237,6 +245,7 @@ impl TrackListColumn {
             Self::AlbumSubtitle => item.album_subtitle.clone(),
             Self::AlbumArtist => item.album_artist.clone(),
             Self::Genres => Some(item.genres.iter().join(", ")),
+            Self::Tags => Some(item.tags.iter().join(", ")),
             Self::Grouping => item.grouping.clone(),
             Self::Comment => item.comment.clone(),
             Self::Year => item.year.map(|year| {
@@ -833,6 +842,7 @@ fn render_track_list_cell(
             }
         }
         TrackListColumn::Genres => return render_genres_cell(ui, msg_tx, item, is_editable),
+        TrackListColumn::Tags => render_tags_cell(ui, &item.tags),
         _ => {
             if let Some(text) = column.cell_text(item) {
                 // Selectable labels would swallow the clicks on the row.
@@ -890,24 +900,19 @@ fn render_genres_cell(
     let dragged_index = DragAndDrop::payload::<DraggedGenre>(ui.ctx())
         .filter(|dragged| dragged.entity_uid == item.entity_uid)
         .map(|dragged| dragged.index);
-    let font_id = TextStyle::Body.resolve(ui.style());
-    let text_color = ui.visuals().text_color();
     let mut is_clicked = false;
     let bubble_rects = genres
         .iter()
         .enumerate()
         .map(|(index, genre)| {
-            let galley = ui
-                .painter()
-                .layout_no_wrap(genre.clone(), font_id.clone(), text_color);
-            let padding = Vec2::new(GENRE_BUBBLE_HORIZONTAL_PADDING, 0.0);
             // Only sensing drags would prevent the table cell from being clicked.
             let sense = if is_movable {
                 Sense::click_and_drag()
             } else {
                 Sense::hover()
             };
-            let (rect, response) = ui.allocate_exact_size(galley.size() + 2.0 * padding, sense);
+            let is_dragged = dragged_index == Some(index);
+            let response = paint_bubble(ui, genre, sense, is_dragged);
             if is_movable {
                 response.dnd_set_drag_payload(DraggedGenre {
                     entity_uid: item.entity_uid.clone(),
@@ -918,15 +923,7 @@ fn render_genres_cell(
                     ui.ctx().set_cursor_icon(CursorIcon::Grab);
                 }
             }
-            let fill = if dragged_index == Some(index) {
-                ui.visuals().selection.bg_fill
-            } else {
-                ui.visuals().widgets.inactive.bg_fill
-            };
-            ui.painter()
-                .rect_filled(rect, CornerRadius::same(GENRE_BUBBLE_CORNER_RADIUS), fill);
-            ui.painter().galley(rect.min + padding, galley, text_color);
-            rect
+            response.rect
         })
         .collect::<Vec<_>>();
     let Some(dragged_index) = dragged_index else {
@@ -963,6 +960,33 @@ fn render_genres_cell(
         send_track_edit(msg_tx, item.entity_uid.clone(), fields);
     }
     is_clicked
+}
+
+/// Render the plain tags as bubbles like the genres, but read-only.
+fn render_tags_cell(ui: &mut Ui, tags: &[String]) {
+    for tag in tags {
+        paint_bubble(ui, tag, Sense::hover(), false);
+    }
+}
+
+/// Allocate and paint a single bubble with a label.
+fn paint_bubble(ui: &mut Ui, text: &str, sense: Sense, is_highlighted: bool) -> egui::Response {
+    let font_id = TextStyle::Body.resolve(ui.style());
+    let text_color = ui.visuals().text_color();
+    let galley = ui
+        .painter()
+        .layout_no_wrap(text.to_owned(), font_id, text_color);
+    let padding = Vec2::new(BUBBLE_HORIZONTAL_PADDING, 0.0);
+    let (rect, response) = ui.allocate_exact_size(galley.size() + 2.0 * padding, sense);
+    let fill = if is_highlighted {
+        ui.visuals().selection.bg_fill
+    } else {
+        ui.visuals().widgets.inactive.bg_fill
+    };
+    ui.painter()
+        .rect_filled(rect, CornerRadius::same(BUBBLE_CORNER_RADIUS), fill);
+    ui.painter().galley(rect.min + padding, galley, text_color);
+    response
 }
 
 fn render_artwork_cell(ui: &mut Ui, item: &TrackListItem, row_height: f32) {
