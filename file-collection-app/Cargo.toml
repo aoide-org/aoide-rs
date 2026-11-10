@@ -43,7 +43,7 @@ features = ["macros", "rt-multi-thread"]
 [dependencies.eframe]
 version = "0.37.0"
 default-features = false
-features = ["clipboard", "default_fonts", "glow", "system_fonts", "wayland", "x11"]
+features = ["clipboard", "default_fonts", "glow", "links", "system_fonts", "wayland", "x11"]
 
 [dependencies.egui]
 version = "0.37.0"
