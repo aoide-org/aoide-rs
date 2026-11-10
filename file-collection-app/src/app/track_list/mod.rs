@@ -538,10 +538,12 @@ pub(super) fn render_track_list(
 ) {
     ui.horizontal(|ui| {
         render_columns_menu(ui, msg_tx, columns);
-        ui.weak(
-            "Click text to edit it (Enter applies, Esc aborts). Click other cells or right-click \
-             to open the track editor. Ctrl+click to select multiple tracks, Shift+click to \
-             select a range. Drag genres or column headers to reorder them.",
+        super::render::help_icon(
+            ui,
+            "Click text to edit it (Enter applies, Esc aborts).\n\
+             Click other cells or right-click to open the track editor.\n\
+             Ctrl+click to select multiple tracks, Shift+click to select a range.\n\
+             Drag genres or column headers to reorder them.",
         );
     });
     if let Some(edit_error) = interaction.edit_error {

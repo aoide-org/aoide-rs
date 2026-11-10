@@ -619,6 +619,11 @@ fn render_status_bar(ui: &mut Ui, library: &crate::library::CurrentState<'_>) {
     });
 }
 
+/// A small icon that shows usage hints on hover.
+pub(super) fn help_icon(ui: &mut Ui, hover_text: &str) -> egui::Response {
+    ui.weak("(?)").on_hover_text(hover_text)
+}
+
 /// The tempo rounded to an integer value for display.
 #[must_use]
 pub(super) fn track_list_item_bpm(track: &TrackListItem) -> Option<u16> {

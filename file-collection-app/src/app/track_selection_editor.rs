@@ -144,8 +144,12 @@ pub(super) fn render_track_selection_editor_panel(
         {
             msg_tx.send_action(TrackSelectionAction::Clear);
         }
+        super::render::help_icon(
+            ui,
+            "Ctrl+click tracks in the list to add them to or remove them from the selection.\n\
+             Shift+click to add a range.",
+        );
     });
-    ui.label("Ctrl+click tracks in the list to add them to or remove them from the selection. Shift+click to add a range.");
     ui.separator();
 
     ui.add_enabled_ui(!is_updating, |ui| {
