@@ -100,6 +100,7 @@ pub(crate) enum Action {
     TrackListColumns(TrackListColumnsAction),
     EditorSettings(EditorSettingsAction),
     PendingEdits(PendingEditsAction),
+    TagCloud(TagCloudAction),
 }
 
 /// Change the persistent settings of the track (selection) editor.
@@ -112,6 +113,20 @@ pub(crate) enum EditorSettingsAction {
 impl From<EditorSettingsAction> for Action {
     fn from(action: EditorSettingsAction) -> Self {
         Self::EditorSettings(action)
+    }
+}
+
+/// Edit the plain tags of tracks with the help of a tag cloud.
+#[derive(Debug)]
+pub(crate) enum TagCloudAction {
+    /// Open the tag cloud or switch to another track.
+    Open(TrackUid),
+    Close,
+}
+
+impl From<TagCloudAction> for Action {
+    fn from(action: TagCloudAction) -> Self {
+        Self::TagCloud(action)
     }
 }
 

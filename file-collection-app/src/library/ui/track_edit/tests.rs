@@ -252,6 +252,24 @@ fn custom_tags_delta_should_reject_invalid_tags() {
 }
 
 #[test]
+fn plain_custom_tags_delta() {
+    let track = new_track();
+    let delta = CustomTagsDelta::plain([" peaktime ", "", "closing"], ["warmup", "unknown"]);
+    assert!(!delta.is_empty());
+    let mut edited = track.clone();
+    delta.apply(&mut edited);
+    let draft = TrackEditDraft::from_track(&edited);
+    assert_eq!("#closing #peaktime venue#club-x", draft.custom_tags);
+    // Faceted tags with the same label are not affected.
+    let delta = CustomTagsDelta::plain([], ["club-x"]);
+    let mut edited_again = edited.clone();
+    delta.apply(&mut edited_again);
+    assert_eq!(edited, edited_again);
+
+    assert!(CustomTagsDelta::plain([" "], []).is_empty());
+}
+
+#[test]
 fn multi_track_edit() {
     let track = new_track();
     let fields = MultiTrackFields {

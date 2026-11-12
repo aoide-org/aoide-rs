@@ -19,9 +19,10 @@ use crate::{
 
 use super::{
     Action, CloseState, CollectionAction, EditorSettingsAction, Event, LibraryAction, Message,
-    MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction, TrackEditAction,
-    TrackEditor, TrackEditorState, TrackListColumnsAction, TrackSearchAction, TrackSearchEdit,
-    TrackSearchMode, TrackSelection, TrackSelectionAction, TrackSelectionState,
+    MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction, TagCloud,
+    TagCloudAction, TrackEditAction, TrackEditor, TrackEditorState, TrackListColumnsAction,
+    TrackSearchAction, TrackSearchEdit, TrackSearchMode, TrackSelection, TrackSelectionAction,
+    TrackSelectionState,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerAction, MediaTrackerDirListAction,
         MediaTrackerSyncAction, PendingEditsAction, RevertUnsynchronizedTracksAction,
@@ -65,6 +66,7 @@ impl UpdateContext<'_> {
             Action::TrackListColumns(action) => self.on_track_list_columns_action(action),
             Action::EditorSettings(action) => self.on_editor_settings_action(action),
             Action::PendingEdits(action) => self.on_pending_edits_action(ctx, action),
+            Action::TagCloud(action) => self.on_tag_cloud_action(action),
         };
         if matches!(action_effect, ActionEffect::Unchanged) {
             return;
@@ -118,6 +120,32 @@ impl UpdateContext<'_> {
                 log::info!("Closing the application without writing pending edits");
                 self.mdl.close_state = CloseState::Confirmed;
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                ActionEffect::Changed
+            }
+        }
+    }
+
+    fn on_tag_cloud_action(&mut self, action: TagCloudAction) -> ActionEffect {
+        let Self { rt, msg_tx, mdl } = self;
+        match action {
+            TagCloudAction::Open(entity_uid) => {
+                if let Some(tag_cloud) = &mut mdl.tag_cloud {
+                    if tag_cloud.entity_uid == entity_uid {
+                        return ActionEffect::Unchanged;
+                    }
+                    // The tags of the collection remain the same.
+                    tag_cloud.entity_uid = entity_uid;
+                    return ActionEffect::Changed;
+                }
+                let mut tag_cloud = TagCloud::new(entity_uid);
+                refresh_tag_cloud(rt, msg_tx, &mdl.library, &mut tag_cloud);
+                mdl.tag_cloud = Some(tag_cloud);
+                ActionEffect::Changed
+            }
+            TagCloudAction::Close => {
+                if mdl.tag_cloud.take().is_none() {
+                    return ActionEffect::Unchanged;
+                }
                 ActionEffect::Changed
             }
         }
@@ -703,6 +731,14 @@ impl UpdateContext<'_> {
             refresh_modified_track_count(self.rt, self.msg_tx, self.mdl);
             ctx.request_repaint();
         }
+        // The tags might have changed. Edits of multiple tracks are
+        // applied one by one and only the last one needs to be awaited.
+        if is_modified_track_count_outdated
+            && self.mdl.active_track_writes == 0
+            && let Some(tag_cloud) = &mut self.mdl.tag_cloud
+        {
+            refresh_tag_cloud(self.rt, self.msg_tx, &self.mdl.library, tag_cloud);
+        }
     }
 
     fn on_library_event_inner(&mut self, ctx: &Context, event: library::Event) {
@@ -713,6 +749,7 @@ impl UpdateContext<'_> {
             modified_track_count,
             active_track_writes,
             write_files_after_saving_draft,
+            tag_cloud,
             ..
         } = mdl;
         match event {
@@ -765,6 +802,9 @@ impl UpdateContext<'_> {
                 if modified_track_count.finish_counting(request_id, count) {
                     ctx.request_repaint();
                 }
+            }
+            library::Event::TagLabelsCounted { request_id, result } => {
+                on_library_tag_labels_counted(ctx, tag_cloud.as_mut(), request_id, result);
             }
             library::Event::MusicDirSyncProgress(progress) => {
                 if let Some(ModelMode::MusicDirSync {
@@ -904,6 +944,38 @@ fn refresh_modified_track_count(
         .count_unsynchronized_tracks(rt, msg_tx, request_id);
     if matches!(effect, ActionEffect::Unchanged) {
         mdl.modified_track_count.reset();
+    }
+}
+
+fn on_library_tag_labels_counted(
+    ctx: &Context,
+    tag_cloud: Option<&mut TagCloud>,
+    request_id: u64,
+    result: anyhow::Result<Vec<(String, usize)>>,
+) {
+    let Some(tag_cloud) = tag_cloud else {
+        return;
+    };
+    let result = result.map_err(|err| {
+        log::warn!("Failed to load tags: {err:#}");
+        format!("Failed to load tags: {err:#}")
+    });
+    if tag_cloud.finish_loading(request_id, result) {
+        ctx.request_repaint();
+    }
+}
+
+/// Load the tags of the current collection.
+fn refresh_tag_cloud(
+    rt: &tokio::runtime::Handle,
+    msg_tx: &MessageSender,
+    library: &Library,
+    tag_cloud: &mut TagCloud,
+) {
+    let request_id = tag_cloud.start_loading();
+    let effect = library.count_tag_labels(rt, msg_tx, request_id);
+    if matches!(effect, ActionEffect::Unchanged) {
+        tag_cloud.abort_loading();
     }
 }
 

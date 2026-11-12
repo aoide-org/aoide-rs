@@ -32,7 +32,7 @@ use aoide_repo::{
     media::source::{CollectionRepo as _, Repo as _},
     track::{
         ActorRepo, CollectionRepo, EntityRepo, RecordHeader, RecordTrail, ReplaceMode,
-        ReplaceOutcome, ReplaceParams,
+        ReplaceOutcome, ReplaceParams, TagRepo,
     },
 };
 
@@ -961,5 +961,50 @@ impl ActorRepo for crate::Connection<'_> {
         }
 
         Ok(actor_names.into_iter().collect())
+    }
+}
+
+impl TagRepo for crate::Connection<'_> {
+    fn count_track_tag_labels(
+        &mut self,
+        collection_id: Option<CollectionId>,
+        facet_id: Option<&FacetId>,
+    ) -> RepoResult<Vec<(Label<'static>, usize)>> {
+        use crate::db::{media_source::schema::*, track::schema::*, track_tag::schema::*};
+
+        let mut query = track_tag::table
+            .inner_join(track::table)
+            .group_by(track_tag::label)
+            .select((track_tag::label, diesel::dsl::count_star()))
+            .filter(track_tag::label.is_not_null())
+            .order_by(track_tag::label)
+            .into_boxed();
+        query = if let Some(facet_id) = facet_id {
+            query.filter(track_tag::facet.eq(facet_id.as_str()))
+        } else {
+            query.filter(track_tag::facet.is_null())
+        };
+        if let Some(collection_id) = collection_id {
+            query = query.filter(
+                track::media_source_id.eq_any(
+                    media_source::table
+                        .select(media_source::row_id)
+                        .filter(media_source::collection_id.eq(RowId::from(collection_id))),
+                ),
+            );
+        }
+        let rows = query
+            .load::<(Option<String>, i64)>(self.as_mut())
+            .map_err(repo_error)?;
+        // Each track has at most one tag per facet and label.
+        let label_counts = rows
+            .into_iter()
+            .filter_map(|(label, count)| {
+                let label = Label::from_unchecked(label?);
+                debug_assert!(semval::IsValid::is_valid(&label));
+                Some((label, usize::try_from(count).unwrap_or(usize::MAX)))
+            })
+            .collect();
+        Ok(label_counts)
     }
 }

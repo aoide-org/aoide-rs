@@ -10,9 +10,9 @@ use std::{
 };
 
 use egui::{
-    Align, Align2, Button, Checkbox, CornerRadius, CursorIcon, DragAndDrop, Frame, Key, Label,
-    LayerId, Layout, OpenUrl, Order, PopupCloseBehavior, Rect, RichText, ScrollArea, Sense, Stroke,
-    TextEdit, TextStyle, Ui, Vec2,
+    Align, Align2, Button, Checkbox, Color32, CornerRadius, CursorIcon, DragAndDrop, FontId, Frame,
+    Key, Label, LayerId, Layout, OpenUrl, Order, PopupCloseBehavior, Rect, RichText, ScrollArea,
+    Sense, Stroke, TextEdit, TextStyle, Ui, Vec2,
     containers::menu::{MenuButton, MenuConfig},
     load::SizedTexture,
 };
@@ -30,8 +30,12 @@ use crate::library::{
 };
 
 use super::{
-    MessageSender, TrackEditAction, TrackListColumnsAction, TrackSearchAction, TrackSelection,
-    TrackSelectionAction, render::track_list_item_bpm,
+    MessageSender, TagCloud, TagCloudAction, TrackEditAction, TrackListColumnsAction,
+    TrackSearchAction, TrackSelection, TrackSelectionAction,
+    render::track_list_item_bpm,
+    tag_cloud::{
+        TagEditing, TagSelection, paint_dragged_tags, render_tag_cloud_window, render_tags_cell,
+    },
 };
 
 /// Stores the identifiers of the selected columns in display order as a JSON array.
@@ -463,6 +467,8 @@ pub(super) struct TrackListTableState {
     widths: HashMap<TrackListColumn, f32>,
     /// The table cell that is currently edited.
     cell_edit: Option<CellEdit>,
+    /// Selected tags while the tag cloud is open.
+    tag_selection: TagSelection,
 }
 
 impl TrackListTableState {
@@ -533,6 +539,31 @@ pub(super) struct TrackListInteraction<'a> {
     pub(super) is_track_editor_draft_modified: bool,
     /// The error of the last edit that was applied directly in the table.
     pub(super) edit_error: Option<&'a str>,
+    /// Editing the tags of tracks, if open.
+    pub(super) tag_cloud: Option<&'a TagCloud>,
+}
+
+impl TrackListInteraction<'_> {
+    /// Prevent losing unsaved changes unintentionally and modifying
+    /// tracks while they are updated.
+    #[must_use]
+    fn is_editable(&self) -> bool {
+        !self.is_track_editor_draft_modified
+            && !self
+                .track_selection
+                .is_some_and(TrackSelection::is_updating)
+    }
+}
+
+/// Shared by all rows of the table.
+struct RowContext<'a> {
+    msg_tx: &'a MessageSender,
+    columns: &'a TrackListColumns,
+    row_height: f32,
+    interaction: TrackListInteraction<'a>,
+    tag_editing: Option<TagEditing<'a>>,
+    cell_edit: &'a mut Option<CellEdit>,
+    tag_selection: &'a mut TagSelection,
 }
 
 /// Render the column selection and the table with all tracks.
@@ -551,6 +582,7 @@ pub(super) fn render_track_list(
             ui,
             "Click text to edit it (Enter applies, Esc aborts).\n\
              Click other cells or right-click to open the track editor.\n\
+             Click tags to edit them with the tag cloud.\n\
              Ctrl+click to select multiple tracks, Shift+click to select a range.\n\
              Drag genres or column headers to reorder them.",
         );
@@ -567,6 +599,15 @@ pub(super) fn render_track_list(
         text_height
     };
     let total_rows = track_list.len();
+    let is_editable = interaction.is_editable();
+    let tag_editing = interaction.tag_cloud.map(|tag_cloud| TagEditing {
+        tag_cloud,
+        track_list,
+        track_selection: interaction.track_selection,
+    });
+    if tag_editing.is_none() {
+        table_state.tag_selection = TagSelection::default();
+    }
     // An empty list is always considered as scrolled to the end.
     let mut is_last_row_visible = total_rows == 0;
     ScrollArea::horizontal().auto_shrink(false).show(ui, |ui| {
@@ -604,21 +645,32 @@ pub(super) fn render_track_list(
                     .copied()
                     .zip(body.widths().iter().copied()),
             );
+            let mut row_ctx = RowContext {
+                msg_tx,
+                columns,
+                row_height,
+                interaction,
+                tag_editing: tag_editing.filter(|_| is_editable),
+                cell_edit: &mut table_state.cell_edit,
+                tag_selection: &mut table_state.tag_selection,
+            };
             body.rows(row_height, total_rows, |mut row| {
                 let index = row.index();
                 is_last_row_visible |= index + 1 == total_rows;
-                render_track_list_row(
-                    &mut row,
-                    msg_tx,
-                    columns,
-                    &track_list[index],
-                    row_height,
-                    interaction,
-                    &mut table_state.cell_edit,
-                );
+                render_track_list_row(&mut row, &mut row_ctx, &track_list[index]);
             });
         });
     });
+    if let Some(tag_editing) = tag_editing {
+        render_tag_cloud_window(
+            ui.ctx(),
+            msg_tx,
+            tag_editing,
+            is_editable,
+            &mut table_state.tag_selection,
+        );
+        paint_dragged_tags(ui.ctx());
+    }
     if is_last_row_visible && could_fetch_more {
         log::debug!("Trying to fetch more track search results");
         msg_tx.send_action(TrackSearchAction::FetchMore);
@@ -730,54 +782,55 @@ fn render_dragged_column(
 
 fn render_track_list_row(
     row: &mut TableRow<'_, '_>,
-    msg_tx: &MessageSender,
-    columns: &TrackListColumns,
+    ctx: &mut RowContext<'_>,
     item: &TrackListItem,
-    row_height: f32,
-    interaction: TrackListInteraction<'_>,
-    cell_edit: &mut Option<CellEdit>,
 ) {
     let TrackListInteraction {
         edited_entity_uid,
         track_selection,
         is_track_editor_draft_modified,
         edit_error: _,
-    } = interaction;
+        tag_cloud: _,
+    } = ctx.interaction;
+    let msg_tx = ctx.msg_tx;
     let is_edited = edited_entity_uid == Some(&item.entity_uid);
     let is_selected = track_selection.is_some_and(|selection| selection.contains(&item.entity_uid));
-    // Prevent losing unsaved changes unintentionally and modifying
-    // tracks while they are updated.
-    let is_editable = !is_track_editor_draft_modified
-        && !track_selection.is_some_and(TrackSelection::is_updating);
+    let is_editable = ctx.interaction.is_editable();
     row.set_selected(is_edited || is_selected);
-    let mut is_cell_edit_started = false;
+    // Clicks that have been handled by a cell instead of the row.
+    let mut is_cell_click_handled = false;
     // The contents of a cell might receive the click instead of the cell.
     let mut is_contents_clicked = false;
-    for &column in &columns.selected {
+    for &column in &ctx.columns.selected {
+        let mut is_cell_contents_clicked = false;
         let (_, response) = row.col(|ui| {
-            is_contents_clicked |= render_track_list_cell(
-                ui,
-                msg_tx,
-                column,
-                item,
-                row_height,
-                is_editable,
-                cell_edit,
-            );
+            is_cell_contents_clicked = render_track_list_cell(ui, ctx, column, item, is_editable);
         });
+        let is_clicked_without_modifiers = (response.clicked() || is_cell_contents_clicked)
+            && response.ctx.input(|i| i.modifiers.is_none());
+        if column == TrackListColumn::Tags {
+            if is_editable && is_clicked_without_modifiers {
+                is_cell_click_handled = true;
+                msg_tx.send_action(TagCloudAction::Open(item.entity_uid.clone()));
+            } else {
+                is_contents_clicked |= is_cell_contents_clicked;
+            }
+            continue;
+        }
+        is_contents_clicked |= is_cell_contents_clicked;
         if !is_editable || !response.clicked() || response.ctx.input(|i| !i.modifiers.is_none()) {
             continue;
         }
         let Some(text) = column.editable_text(item) else {
             continue;
         };
-        is_cell_edit_started = true;
+        is_cell_click_handled = true;
         // The previously edited cell might have been rendered before this one.
         // Otherwise it would be discarded before noticing that it lost the focus.
-        if let Some(previous_cell_edit) = cell_edit.take() {
+        if let Some(previous_cell_edit) = ctx.cell_edit.take() {
             previous_cell_edit.apply(msg_tx);
         }
-        *cell_edit = Some(CellEdit {
+        *ctx.cell_edit = Some(CellEdit {
             entity_uid: item.entity_uid.clone(),
             column,
             original_text: text.clone(),
@@ -803,7 +856,7 @@ fn render_track_list_row(
             }
         });
     }
-    if is_cell_edit_started || !(response.clicked() || is_contents_clicked) {
+    if is_cell_click_handled || !(response.clicked() || is_contents_clicked) {
         return;
     }
     let modifiers = response.ctx.input(|input| input.modifiers);
@@ -816,24 +869,25 @@ fn render_track_list_row(
     }
 }
 
+/// Returns `true` if the contents of the cell have been clicked.
 fn render_track_list_cell(
     ui: &mut Ui,
-    msg_tx: &MessageSender,
+    ctx: &mut RowContext<'_>,
     column: TrackListColumn,
     item: &TrackListItem,
-    row_height: f32,
     is_editable: bool,
-    cell_edit: &mut Option<CellEdit>,
 ) -> bool {
-    if cell_edit
+    let msg_tx = ctx.msg_tx;
+    if ctx
+        .cell_edit
         .as_ref()
         .is_some_and(|cell_edit| cell_edit.is_cell(item, column))
     {
-        render_cell_edit(ui, msg_tx, cell_edit);
+        render_cell_edit(ui, msg_tx, ctx.cell_edit);
         return false;
     }
     match column {
-        TrackListColumn::Artwork => render_artwork_cell(ui, item, row_height),
+        TrackListColumn::Artwork => render_artwork_cell(ui, item, ctx.row_height),
         TrackListColumn::Unsynchronized => {
             if !item.is_synchronized {
                 let text = RichText::new(UNSYNCHRONIZED_MARKER).color(ui.visuals().warn_fg_color);
@@ -842,7 +896,9 @@ fn render_track_list_cell(
             }
         }
         TrackListColumn::Genres => return render_genres_cell(ui, msg_tx, item, is_editable),
-        TrackListColumn::Tags => render_tags_cell(ui, &item.tags),
+        TrackListColumn::Tags => {
+            return render_tags_cell(ui, msg_tx, item, ctx.tag_editing, ctx.tag_selection);
+        }
         _ => {
             if let Some(text) = column.cell_text(item) {
                 // Selectable labels would swallow the clicks on the row.
@@ -962,17 +1018,27 @@ fn render_genres_cell(
     is_clicked
 }
 
-/// Render the plain tags as bubbles like the genres, but read-only.
-fn render_tags_cell(ui: &mut Ui, tags: &[String]) {
-    for tag in tags {
-        paint_bubble(ui, tag, Sense::hover(), false);
-    }
-}
-
 /// Allocate and paint a single bubble with a label.
-fn paint_bubble(ui: &mut Ui, text: &str, sense: Sense, is_highlighted: bool) -> egui::Response {
+pub(super) fn paint_bubble(
+    ui: &mut Ui,
+    text: &str,
+    sense: Sense,
+    is_highlighted: bool,
+) -> egui::Response {
     let font_id = TextStyle::Body.resolve(ui.style());
     let text_color = ui.visuals().text_color();
+    paint_bubble_with_font(ui, text, font_id, text_color, sense, is_highlighted)
+}
+
+/// Allocate and paint a single bubble with a custom font and text color.
+pub(super) fn paint_bubble_with_font(
+    ui: &mut Ui,
+    text: &str,
+    font_id: FontId,
+    text_color: Color32,
+    sense: Sense,
+    is_highlighted: bool,
+) -> egui::Response {
     let galley = ui
         .painter()
         .layout_no_wrap(text.to_owned(), font_id, text_color);

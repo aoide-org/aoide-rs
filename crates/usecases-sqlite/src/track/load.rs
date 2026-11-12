@@ -1,11 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::{CollectionUid, TrackEntity, TrackUid, track::actor::ActorNamesSummarySplitter};
+use aoide_core::{
+    CollectionUid, TrackEntity, TrackUid,
+    tag::{FacetId, Label},
+    track::actor::ActorNamesSummarySplitter,
+};
 use aoide_repo::{
     RecordCollector, RepoError,
     collection::EntityRepo as _,
-    track::{ActorRepo as _, EntityRepo as _, RecordHeader},
+    track::{ActorRepo as _, EntityRepo as _, RecordHeader, TagRepo as _},
 };
 use aoide_repo_sqlite::DbConnection;
 
@@ -49,5 +53,21 @@ pub fn load_all_actor_names(
         .map(|uid| repo.resolve_collection_id(uid))
         .transpose()?;
     repo.load_all_actor_names(collection_id, summary_splitter)
+        .map_err(Into::into)
+}
+
+/// Count the tracks per tag label.
+///
+/// See also: [`aoide_repo::track::TagRepo::count_track_tag_labels()`]
+pub fn count_track_tag_labels(
+    connection: &mut DbConnection,
+    collection_uid: Option<&CollectionUid>,
+    facet_id: Option<&FacetId>,
+) -> Result<Vec<(Label<'static>, usize)>> {
+    let mut repo = RepoConnection::new(connection);
+    let collection_id = collection_uid
+        .map(|uid| repo.resolve_collection_id(uid))
+        .transpose()?;
+    repo.count_track_tag_labels(collection_id, facet_id)
         .map_err(Into::into)
 }

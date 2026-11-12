@@ -7,6 +7,7 @@ use diesel::Connection as _;
 
 use aoide_core::{
     media::content::ContentPath,
+    tag::{FacetId, Label},
     track::{Entity, EntityHeader, EntityUid, Track},
 };
 use aoide_core_api::{Pagination, track::find_unsynchronized::UnsynchronizedTrackEntity};
@@ -168,6 +169,31 @@ pub async fn find_unsynchronized(
                     &collection_uid,
                     params,
                     &pagination,
+                )
+            })
+        })
+        .await
+        .map_err(Into::into)
+        .unwrap_or_else(Err)
+}
+
+/// Count the tracks of a collection per tag label.
+///
+/// Only considers tags with the given facet or, if `facet_id` is `None`,
+/// tags without a facet. Returns the labels in ascending order.
+pub async fn count_tag_labels(
+    db_gatekeeper: &Gatekeeper,
+    collection_uid: CollectionUid,
+    facet_id: Option<FacetId>,
+) -> Result<Vec<(Label<'static>, usize)>> {
+    db_gatekeeper
+        .spawn_blocking_read_task(move |mut pooled_connection| {
+            let connection = &mut *pooled_connection;
+            connection.transaction::<_, Error, _>(|connection| {
+                aoide_usecases_sqlite::track::load::count_track_tag_labels(
+                    connection,
+                    Some(&collection_uid),
+                    facet_id.as_ref(),
                 )
             })
         })

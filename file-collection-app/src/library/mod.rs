@@ -48,6 +48,11 @@ pub enum Event {
         request_id: u64,
         result: anyhow::Result<usize>,
     },
+    /// The labels of all plain tags with the number of tracks.
+    TagLabelsCounted {
+        request_id: u64,
+        result: anyhow::Result<Vec<(String, usize)>>,
+    },
     UpdateTracksProgress(update_tracks::Progress),
     UpdateTracksFinished(Box<anyhow::Result<update_tracks::Outcome>>),
     MusicDirListResult {
@@ -488,6 +493,47 @@ impl Library {
                     result,
                 };
                 drop(event_emitter.emit_event(event));
+            }
+        });
+        ActionEffect::MaybeChanged
+    }
+
+    /// Count the tracks of the current collection per plain tag label.
+    ///
+    /// Emits [`Event::TagLabelsCounted`] when finished.
+    ///
+    /// Returns [`ActionEffect::Unchanged`] without a collection.
+    pub fn count_tag_labels<E>(
+        &self,
+        rt: &tokio::runtime::Handle,
+        event_emitter: &E,
+        request_id: u64,
+    ) -> ActionEffect
+    where
+        E: EventEmitter + Clone + 'static,
+    {
+        let Some(collection_uid) = self.shared_state.collection.read().entity_uid().cloned() else {
+            log::info!("No collection");
+            return ActionEffect::Unchanged;
+        };
+        rt.spawn({
+            let env = Arc::clone(self.env());
+            let event_emitter = event_emitter.clone();
+            async move {
+                let result = aoide::backend_embedded::track::count_tag_labels(
+                    env.db_gatekeeper(),
+                    collection_uid,
+                    None,
+                )
+                .await
+                .map(|label_counts| {
+                    label_counts
+                        .into_iter()
+                        .map(|(label, count)| (label.as_str().to_owned(), count))
+                        .collect()
+                })
+                .map_err(Into::into);
+                drop(event_emitter.emit_event(Event::TagLabelsCounted { request_id, result }));
             }
         });
         ActionEffect::MaybeChanged

@@ -9,8 +9,8 @@ use egui::Ui;
 mod message;
 pub(crate) use self::message::{
     Action, CollectionAction, EditorSettingsAction, Event, LibraryAction, Message, MessageSender,
-    MusicDirectoryAction, TrackEditAction, TrackListColumnsAction, TrackSearchAction,
-    TrackSearchFetchedItems, TrackSelectionAction,
+    MusicDirectoryAction, TagCloudAction, TrackEditAction, TrackListColumnsAction,
+    TrackSearchAction, TrackSearchFetchedItems, TrackSelectionAction,
 };
 
 mod model;
@@ -27,6 +27,9 @@ use self::render::RenderContext;
 
 mod editor_settings;
 pub(crate) use self::editor_settings::EditorSettings;
+
+mod tag_cloud;
+pub(crate) use self::tag_cloud::TagCloud;
 
 mod track_editor;
 

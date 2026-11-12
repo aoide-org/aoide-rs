@@ -10,7 +10,7 @@ use crate::library::{
     ui::TrackListItem, update_tracks,
 };
 
-use super::{CloseState, EditorSettings, ModifiedTrackCount, TrackListColumns};
+use super::{CloseState, EditorSettings, ModifiedTrackCount, TagCloud, TrackListColumns};
 
 // Mutually exclusive modes of operation.
 #[derive(Debug)]
@@ -326,6 +326,9 @@ pub(crate) struct Model {
 
     /// Reverting is irreversible and needs to be confirmed.
     pub(crate) is_revert_confirmation_open: bool,
+
+    /// Editing the plain tags of tracks, if open.
+    pub(crate) tag_cloud: Option<TagCloud>,
 }
 
 impl Model {
@@ -345,6 +348,7 @@ impl Model {
             write_files_after_saving_draft: false,
             close_state: Default::default(),
             is_revert_confirmation_open: false,
+            tag_cloud: None,
         }
     }
 }

@@ -586,6 +586,30 @@ impl CustomTagsDelta {
         }
     }
 
+    /// Plain tags without a facet to add and remove by their labels.
+    ///
+    /// Labels are trimmed and empty labels are ignored.
+    #[must_use]
+    pub fn plain<'a>(
+        add: impl IntoIterator<Item = &'a str>,
+        remove: impl IntoIterator<Item = &'a str>,
+    ) -> Self {
+        let plain_tags = |labels: &mut dyn Iterator<Item = &'a str>| Tags {
+            plain: labels
+                .filter_map(|label| TagLabel::clamp_from(label.to_owned()))
+                .map(|label| PlainTag {
+                    label: Some(label),
+                    ..Default::default()
+                })
+                .collect(),
+            facets: Vec::new(),
+        };
+        Self {
+            add: plain_tags(&mut add.into_iter()),
+            remove: plain_tags(&mut remove.into_iter()),
+        }
+    }
+
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.add.is_empty() && self.remove.is_empty()

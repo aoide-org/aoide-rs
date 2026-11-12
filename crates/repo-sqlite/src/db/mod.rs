@@ -18,7 +18,7 @@ mod join {
     use crate::db::{
         collection::schema::*, media_source::schema::*, media_tracker::schema::*,
         playlist::schema::*, playlist_entry::schema::*, track::schema::*, track_actor::schema::*,
-        view_track_search::schema::*,
+        track_tag::schema::*, view_track_search::schema::*,
     };
 
     diesel::allow_tables_to_appear_in_same_query!(
@@ -27,6 +27,7 @@ mod join {
         media_source,
         track,
         track_actor,
+        track_tag,
         playlist,
         playlist_entry,
         media_tracker_directory,

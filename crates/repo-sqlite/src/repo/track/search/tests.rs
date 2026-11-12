@@ -25,7 +25,7 @@ use aoide_repo::{
     CollectionId, RecordCollector, RepoResult, ReservableRecordCollector, TrackId,
     collection::EntityRepo as _,
     media::source::CollectionRepo as _,
-    track::{CollectionRepo, EntityRepo as _},
+    track::{CollectionRepo, EntityRepo as _, TagRepo as _},
 };
 use uuid::Uuid;
 
@@ -215,6 +215,38 @@ fn filter_plain_tags() -> TestResult<()> {
             )?
         );
     }
+    Ok(())
+}
+
+#[test]
+fn count_plain_tag_labels() -> TestResult<()> {
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let collection_id = create_single_track_collection_with_tags(&mut db)?;
+    let expected_labels = (1..10)
+        .flat_map(|i| [format!("Tag\\{i}"), format!("tag\\{i}")])
+        .sorted()
+        .collect::<Vec<_>>();
+
+    let label_counts = db.count_track_tag_labels(Some(collection_id), None)?;
+    assert_eq!(
+        expected_labels,
+        label_counts
+            .iter()
+            .map(|(label, _)| label.as_str())
+            .collect::<Vec<_>>()
+    );
+    assert!(label_counts.iter().all(|(_, count)| *count == 1));
+
+    // All collections
+    assert_eq!(label_counts, db.count_track_tag_labels(None, None)?);
+
+    // Only plain tags without a facet
+    assert_eq!(
+        Vec::<(Label<'_>, usize)>::new(),
+        db.count_track_tag_labels(Some(collection_id), Some(FACET_ID_GENRE))?
+    );
+
     Ok(())
 }
 

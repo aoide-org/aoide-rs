@@ -4,6 +4,7 @@
 use aoide_core::{
     EntityRevision, Track, TrackEntity, TrackUid,
     media::content::{ContentLink, ContentPath},
+    tag::{FacetId, Label},
     track::{EntityHeader, actor::ActorNamesSummarySplitter},
 };
 use aoide_core_api::{
@@ -135,4 +136,18 @@ pub trait ActorRepo {
         collection_id: Option<CollectionId>,
         summary_splitter: &ActorNamesSummarySplitter,
     ) -> RepoResult<Vec<String>>;
+}
+
+pub trait TagRepo {
+    /// Count the tracks per tag label.
+    ///
+    /// Only considers tags with the given facet or, if `facet_id` is `None`,
+    /// tags without a facet. Tags without a label are ignored.
+    ///
+    /// Returns the labels in ascending order.
+    fn count_track_tag_labels(
+        &mut self,
+        collection_id: Option<CollectionId>,
+        facet_id: Option<&FacetId>,
+    ) -> RepoResult<Vec<(Label<'static>, usize)>>;
 }

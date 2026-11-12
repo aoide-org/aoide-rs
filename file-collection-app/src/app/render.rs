@@ -16,8 +16,7 @@ use crate::library::{
 
 use super::{
     Action, CloseState, EditorSettingsAction, MessageSender, Model, ModelMode, MusicDirSelection,
-    MusicDirectoryAction, TrackEditor, TrackListColumns, TrackSearchAction, TrackSearchEdit,
-    TrackSearchMode, UiData,
+    MusicDirectoryAction, TrackEditor, TrackSearchAction, TrackSearchEdit, TrackSearchMode, UiData,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerDirListAction, MediaTrackerSyncAction,
         PendingEditsAction, RevertUnsynchronizedTracksAction,
@@ -110,8 +109,8 @@ impl RenderContext<'_> {
                 render_central_panel(
                     ui,
                     msg_tx,
+                    mdl,
                     mdl_mode,
-                    &mdl.track_list_columns,
                     &mut ui_data.track_list_table,
                     &library,
                     is_track_editor_draft_modified,
@@ -276,8 +275,8 @@ fn render_pending_edits(
 fn render_central_panel(
     ui: &mut Ui,
     msg_tx: &MessageSender,
+    mdl: &Model,
     mode: &ModelMode,
-    track_list_columns: &TrackListColumns,
     track_list_table: &mut track_list::TrackListTableState,
     library: &crate::library::CurrentState<'_>,
     is_track_editor_draft_modified: bool,
@@ -309,11 +308,12 @@ fn render_central_panel(
                 track_selection: edit.as_ref().and_then(TrackSearchEdit::track_selection),
                 is_track_editor_draft_modified,
                 edit_error: track_list_edit_error.as_deref(),
+                tag_cloud: mdl.tag_cloud.as_ref(),
             };
             track_list::render_track_list(
                 ui,
                 msg_tx,
-                track_list_columns,
+                &mdl.track_list_columns,
                 track_list_table,
                 track_list,
                 track_list::could_fetch_more(library, memo_state, track_list.len()),

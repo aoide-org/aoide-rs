@@ -8,7 +8,7 @@ use std::{
 
 use aoide::{EntityUid, TrackUid};
 use egui::{
-    CentralPanel, ColorImage, Context, Event, Modifiers, PointerButton, Pos2, RawInput, Rect,
+    CentralPanel, ColorImage, Context, Event, Id, Modifiers, PointerButton, Pos2, RawInput, Rect,
     TextureOptions, Vec2,
 };
 
@@ -152,6 +152,7 @@ struct Harness {
     table_state: RefCell<TrackListTableState>,
     track_list: Vec<TrackListItem>,
     is_draft_modified: Cell<bool>,
+    tag_cloud: Option<TagCloud>,
 }
 
 impl Harness {
@@ -168,6 +169,7 @@ impl Harness {
             table_state: RefCell::default(),
             track_list,
             is_draft_modified: Cell::new(false),
+            tag_cloud: None,
         }
     }
 
@@ -193,6 +195,7 @@ impl Harness {
                         track_selection: None,
                         is_track_editor_draft_modified: self.is_draft_modified.get(),
                         edit_error: None,
+                        tag_cloud: self.tag_cloud.as_ref(),
                     },
                 );
             });
@@ -857,7 +860,7 @@ fn clicking_a_genre_opens_the_track_editor() {
 }
 
 #[test]
-fn tags_column_is_read_only() {
+fn tags_are_not_editable_as_text() {
     let ctx = Context::default();
     let mut item = new_item(&ctx, "Title");
     item.tags = vec!["chill".to_owned(), "vocal".to_owned()];
@@ -866,4 +869,199 @@ fn tags_column_is_read_only() {
         TrackListColumn::Tags.cell_text(&item)
     );
     assert_eq!(None, TrackListColumn::Tags.editable_text(&item));
+}
+
+/// Two tracks with tags in the first row.
+fn tags_harness(is_tag_cloud_open: bool) -> Harness {
+    let mut harness = Harness::new(
+        TrackListColumns {
+            selected: vec![TrackListColumn::Tags],
+        },
+        &["First", "Second"],
+    );
+    harness.track_list[0].tags = vec!["chill".to_owned(), "vocal".to_owned()];
+    if is_tag_cloud_open {
+        harness.tag_cloud = Some(TagCloud::new(harness.track_list[0].entity_uid.clone()));
+    }
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    harness
+}
+
+const ROW_HEIGHT: f32 = 19.0;
+
+/// An empty position in the tags cell of the second row.
+const SECOND_ROW_EMPTY_POS: Pos2 = Pos2::new(300.0, FIRST_ROW_LABEL_POS.y + ROW_HEIGHT);
+
+impl Harness {
+    fn all_actions(&self) -> Vec<Action> {
+        self.msg_rx
+            .try_iter()
+            .map(|msg| {
+                let Message::Action(action) = msg else {
+                    panic!("unexpected message: {msg:?}");
+                };
+                action
+            })
+            .collect()
+    }
+
+    fn tag_cloud_window_rect(&self) -> Rect {
+        self.ctx
+            .memory(|memory| memory.area_rect(Id::unique("tag-cloud")))
+            .expect("tag cloud window")
+    }
+}
+
+fn assert_single_tags_edit(harness: &Harness, index: usize, add: &[&str], remove: &[&str]) {
+    let expected_edit = MultiTrackEdit::new(
+        MultiTrackFields::default(),
+        CustomTagsDelta::plain(add.iter().copied(), remove.iter().copied()),
+    )
+    .unwrap();
+    let actions = harness.actions();
+    let [LibraryAction::TrackEdit(TrackEditAction::Apply { entity_uid, edit })] =
+        actions.as_slice()
+    else {
+        panic!("unexpected actions: {actions:?}");
+    };
+    assert_eq!(harness.track_list[index].entity_uid, *entity_uid);
+    assert_eq!(expected_edit, **edit);
+}
+
+#[test]
+fn clicking_tags_opens_the_tag_cloud() {
+    for pos in [FIRST_ROW_LABEL_POS, Pos2::new(300.0, FIRST_ROW_LABEL_POS.y)] {
+        let harness = tags_harness(false);
+        harness.click(pos, Modifiers::NONE);
+        let actions = harness.all_actions();
+        let [Action::TagCloud(TagCloudAction::Open(entity_uid))] = actions.as_slice() else {
+            panic!("unexpected actions: {actions:?}");
+        };
+        assert_eq!(harness.track_list[0].entity_uid, *entity_uid);
+    }
+}
+
+#[test]
+fn clicking_tags_with_modifiers_selects_the_track() {
+    let harness = tags_harness(false);
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::COMMAND);
+    let actions = harness.actions();
+    assert!(
+        matches!(
+            actions.as_slice(),
+            [LibraryAction::TrackSelection(TrackSelectionAction::Toggle(
+                _
+            ))]
+        ),
+        "unexpected actions: {actions:?}"
+    );
+}
+
+#[test]
+fn clicking_tags_of_another_track_switches_the_edited_track() {
+    let harness = tags_harness(true);
+    harness.click(SECOND_ROW_EMPTY_POS, Modifiers::NONE);
+    let actions = harness.all_actions();
+    let [Action::TagCloud(TagCloudAction::Open(entity_uid))] = actions.as_slice() else {
+        panic!("unexpected actions: {actions:?}");
+    };
+    assert_eq!(harness.track_list[1].entity_uid, *entity_uid);
+}
+
+#[test]
+fn clicking_a_tag_of_the_edited_track_selects_it() {
+    let harness = tags_harness(true);
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    assert_eq!(0, harness.msg_rx.try_iter().count());
+    assert_eq!(
+        vec!["chill"],
+        harness
+            .table_state
+            .borrow()
+            .tag_selection
+            .selected_track_labels()
+    );
+    // Toggled
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    assert_eq!(
+        Vec::<&str>::new(),
+        harness
+            .table_state
+            .borrow()
+            .tag_selection
+            .selected_track_labels()
+    );
+}
+
+#[test]
+fn dragging_a_tag_onto_another_track_adds_it() {
+    let harness = tags_harness(true);
+    drag_slowly(&harness, FIRST_ROW_LABEL_POS, SECOND_ROW_EMPTY_POS);
+    assert_single_tags_edit(&harness, 1, &["chill"], &[]);
+}
+
+#[test]
+fn dragging_selected_tags_of_the_edited_track_drags_all_of_them() {
+    let harness = tags_harness(true);
+    let vocal_pos = Pos2::new(FIRST_ROW_LABEL_POS.x + 50.0, FIRST_ROW_LABEL_POS.y);
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    harness.click(vocal_pos, Modifiers::NONE);
+    assert_eq!(
+        vec!["chill", "vocal"],
+        harness
+            .table_state
+            .borrow()
+            .tag_selection
+            .selected_track_labels()
+    );
+    drag_slowly(&harness, vocal_pos, SECOND_ROW_EMPTY_POS);
+    assert_single_tags_edit(&harness, 1, &["chill", "vocal"], &[]);
+}
+
+#[test]
+fn dragging_a_tag_onto_its_own_track_has_no_effect() {
+    let harness = tags_harness(true);
+    drag_slowly(
+        &harness,
+        FIRST_ROW_LABEL_POS,
+        Pos2::new(300.0, FIRST_ROW_LABEL_POS.y),
+    );
+    assert_eq!(0, harness.msg_rx.try_iter().count());
+}
+
+#[test]
+fn dragging_a_tag_into_the_tag_cloud_removes_it() {
+    let harness = tags_harness(true);
+    let window_rect = harness.tag_cloud_window_rect();
+    drag_slowly(&harness, FIRST_ROW_LABEL_POS, window_rect.center());
+    assert_single_tags_edit(&harness, 0, &[], &["chill"]);
+}
+
+#[test]
+fn tags_are_not_editable_with_a_modified_track_editor_draft() {
+    let harness = tags_harness(true);
+    harness.is_draft_modified.set(true);
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    drag_slowly(&harness, FIRST_ROW_LABEL_POS, SECOND_ROW_EMPTY_POS);
+    let window_rect = harness.tag_cloud_window_rect();
+    drag_slowly(&harness, FIRST_ROW_LABEL_POS, window_rect.center());
+    harness.click(SECOND_ROW_EMPTY_POS, Modifiers::NONE);
+    assert_eq!(0, harness.msg_rx.try_iter().count());
+}
+
+#[test]
+fn tag_cloud_window_fits_its_contents() {
+    let mut harness = tags_harness(true);
+    let tag_cloud = harness.tag_cloud.as_mut().unwrap();
+    let request_id = tag_cloud.start_loading();
+    assert!(tag_cloud.finish_loading(
+        request_id,
+        Ok(vec![("chill".to_owned(), 2), ("deep".to_owned(), 1)])
+    ));
+    for _ in 0..3 {
+        harness.frame(Vec::new(), Modifiers::NONE, false);
+    }
+    let window_rect = harness.tag_cloud_window_rect();
+    // Header, input, buttons, separator, and a single line of tags.
+    assert!(window_rect.height() < 200.0, "{window_rect:?}");
 }
