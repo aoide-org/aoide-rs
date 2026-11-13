@@ -101,8 +101,7 @@ impl RecordCollector for EntityCollector {
                 .find_map(|(index, faceted_tags)| {
                     (faceted_tags.facet_id == *gigtag_facet_id).then_some(index)
                 })
-                .map(|index| tags.facets.remove(index).tags)
-                .unwrap_or_default();
+                .map_or_default(|index| tags.facets.remove(index).tags);
             let mut tags = Canonical::tie(tags);
             encode_gig_tags(&mut tags, &mut encoded_tags, gigtag_facet_id).expect("no error");
             let mut tags = tags.untie();

@@ -12,7 +12,7 @@ resolver = "3"
 [workspace.package]
 version = "0.8.0"
 edition = "2024"
-rust-version = "1.99"
+rust-version = "1.100"
 repository = "https://gitlab.com/uklotzde/aoide-rs"
 license = "AGPL-3.0-or-later"
 categories = ["multimedia::audio"]
@@ -20,7 +20,6 @@ keywords = ["music"]
 
 [workspace.dependencies]
 # Main crate
-aoide = { version = "=0.8.0", path = "." }
 
 # Local sub-crates
 aoide-backend-embedded = { version = "=0.8.0", path = "crates/backend-embedded" }

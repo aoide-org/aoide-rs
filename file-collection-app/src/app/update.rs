@@ -807,20 +807,7 @@ impl UpdateContext<'_> {
                 on_library_tag_labels_counted(ctx, tag_cloud.as_mut(), request_id, result);
             }
             library::Event::MusicDirSyncProgress(progress) => {
-                if let Some(ModelMode::MusicDirSync {
-                    last_progress,
-                    final_outcome,
-                }) = mode
-                {
-                    // The last progress might arrive after the outcome.
-                    if final_outcome.is_none() {
-                        *last_progress = progress;
-                    }
-                } else {
-                    log::debug!(
-                        "Discarding unexpected music directory synchronization progress: {progress:?}"
-                    );
-                }
+                on_library_music_dir_sync_progress(mode, progress);
             }
             library::Event::MusicDirSyncFinished(finished_state) => {
                 on_library_music_dir_sync_finished(library, mode, *finished_state);
@@ -832,13 +819,7 @@ impl UpdateContext<'_> {
                 on_library_export_unsynchronized_tracks_finished(library, mode, *result);
             }
             library::Event::RevertUnsynchronizedTracksProgress(progress) => {
-                if let Some(ModelMode::RevertUnsynchronizedTracks {
-                    last_progress,
-                    final_outcome: None,
-                }) = mode
-                {
-                    *last_progress = Some(progress);
-                }
+                on_library_revert_unsynchronized_tracks_progress(mode, progress);
             }
             library::Event::RevertUnsynchronizedTracksFinished(result) => {
                 on_library_revert_unsynchronized_tracks_finished(library, mode, *result);
@@ -1157,6 +1138,37 @@ fn on_library_update_tracks_finished(
         log::debug!("Discarding unexpected update tracks outcome");
     }
     ctx.request_repaint();
+}
+
+fn on_library_music_dir_sync_progress(
+    mode: &mut Option<ModelMode>,
+    progress: Option<aoide::backend_embedded::batch::synchronize_collection_vfs::Progress>,
+) {
+    if let Some(ModelMode::MusicDirSync {
+        last_progress,
+        final_outcome,
+    }) = mode
+    {
+        // The last progress might arrive after the outcome.
+        if final_outcome.is_none() {
+            *last_progress = progress;
+        }
+    } else {
+        log::debug!("Discarding unexpected music directory synchronization progress: {progress:?}");
+    }
+}
+
+fn on_library_revert_unsynchronized_tracks_progress(
+    mode: &mut Option<ModelMode>,
+    progress: library::revert_unsynchronized_tracks::Progress,
+) {
+    if let Some(ModelMode::RevertUnsynchronizedTracks {
+        last_progress,
+        final_outcome: None,
+    }) = mode
+    {
+        *last_progress = Some(progress);
+    }
 }
 
 fn on_library_export_unsynchronized_tracks_progress(

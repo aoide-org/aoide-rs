@@ -185,7 +185,7 @@ pub(crate) fn export_track_to_file_ilst(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
-    let mut ilst = mp4_file.ilst_mut().map(std::mem::take).unwrap_or_default();
+    let mut ilst = mp4_file.ilst_mut().map_or_default(std::mem::take);
     export_track_to_ilst(&mut ilst, config, track, edit_embedded_artwork_image)?;
     mp4_file.set_ilst(ilst);
     Ok(())

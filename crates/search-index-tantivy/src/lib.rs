@@ -130,13 +130,11 @@ impl TrackFields {
             Some(FACET_MOOD) => Some((self.mood, Cow::Borrowed(label.as_str()))),
             _ => {
                 // Generic tag field
-                let facet_prefix = facet_id
-                    .map(|facet_id| {
-                        debug_assert!(!facet_id.is_empty());
-                        debug_assert!(!facet_id.as_str().contains(TAG_LABEL_PREFIX));
-                        facet_id.as_str()
-                    })
-                    .unwrap_or_default();
+                let facet_prefix = facet_id.map_or_default(|facet_id| {
+                    debug_assert!(!facet_id.is_empty());
+                    debug_assert!(!facet_id.as_str().contains(TAG_LABEL_PREFIX));
+                    facet_id.as_str()
+                });
                 let text = if label.as_str().starts_with(TAG_LABEL_PREFIX) {
                     // Omit the redundant prefix
                     if facet_prefix.is_empty() {

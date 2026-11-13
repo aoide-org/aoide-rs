@@ -139,25 +139,22 @@ impl TrackEditDraft {
             recorded_at: track
                 .recorded_at
                 .as_ref()
-                .map(format_date_or_date_time)
-                .unwrap_or_default(),
+                .map_or_default(format_date_or_date_time),
             bpm: track
                 .metrics
                 .tempo_bpm
-                .map(|bpm| bpm.value().to_string())
-                .unwrap_or_default(),
+                .map_or_default(|bpm| bpm.value().to_string()),
             key: track
                 .metrics
                 .key_signature
-                .map(|key| key.code().as_lancelot_str().to_owned())
-                .unwrap_or_default(),
+                .map_or_default(|key| key.code().as_lancelot_str().to_owned()),
             genres: genre_labels(&track.tags).join(LINE_SEPARATOR),
             grouping: join_faceted_tag_labels(&track.tags, FACET_ID_GROUPING),
             comment: join_faceted_tag_labels(&track.tags, FACET_ID_COMMENT),
             publisher: track.publisher.clone().unwrap_or_default(),
             copyright: track.copyright.clone().unwrap_or_default(),
             advisory_rating: track.advisory_rating,
-            color: track.color.map(format_color).unwrap_or_default(),
+            color: track.color.map_or_default(format_color),
             custom_tags: encode_custom_tags(&track.tags),
         }
     }

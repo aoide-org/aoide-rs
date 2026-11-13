@@ -115,8 +115,7 @@ impl Harness {
         output
             .viewport_output
             .remove(&ViewportId::ROOT)
-            .map(|viewport| viewport.commands)
-            .unwrap_or_default()
+            .map_or_default(|viewport| viewport.commands)
     }
 
     /// Run a frame and return the area of the dialog if it has been rendered.

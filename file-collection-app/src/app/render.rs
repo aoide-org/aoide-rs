@@ -895,10 +895,7 @@ pub(super) fn track_list_item_label(track: &TrackListItem) -> String {
         }
         (None, None, _) => track_title.to_string(),
     };
-    let key = track
-        .key
-        .map(|key| key.code().as_lancelot_str())
-        .unwrap_or_default();
+    let key = track.key.map_or_default(|key| key.code().as_lancelot_str());
     if let Some(bpm) = bpm {
         if key.is_empty() {
             format!("{label} {{{bpm}}}")

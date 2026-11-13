@@ -357,8 +357,7 @@ fn query_parameters<T: JsonSchema>() -> Vec<Parameter> {
     let required = schema
         .get("required")
         .and_then(Value::as_array)
-        .map(Vec::as_slice)
-        .unwrap_or_default();
+        .map_or_default(Vec::as_slice);
     let Some(properties) = schema.get("properties").and_then(Value::as_object) else {
         assert_eq!(
             schema.get("type").and_then(Value::as_str),

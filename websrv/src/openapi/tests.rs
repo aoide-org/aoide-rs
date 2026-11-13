@@ -89,8 +89,7 @@ fn all_path_parameters_are_documented() {
             let documented_path_params = operation
                 .get("parameters")
                 .and_then(Value::as_array)
-                .map(Vec::as_slice)
-                .unwrap_or_default()
+                .map_or_default(Vec::as_slice)
                 .iter()
                 .filter(|param| param["in"] == "path")
                 .map(|param| param["name"].as_str().unwrap())

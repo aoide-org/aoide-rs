@@ -132,7 +132,7 @@ fn main() {
         log::info!("Using initial default configuration");
         Default::default()
     } else {
-        app_dirs().as_ref().map(load_app_config).unwrap_or_default()
+        app_dirs().as_ref().map_or_default(load_app_config)
     };
     log::debug!("Initial configuration: {initial_config:?}");
 
