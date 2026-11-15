@@ -14,7 +14,11 @@ use aoide_storage_sqlite::connection::{self, Storage, pool};
 
 use super::*;
 
+// Must be an absolute path on the current platform for `Url::from_directory_path()`.
+#[cfg(not(windows))]
 const MUSIC_DIR: &str = "/music/";
+#[cfg(windows)]
+const MUSIC_DIR: &str = r"C:\music\";
 
 fn new_entity() -> Entity {
     let collection = Collection {
