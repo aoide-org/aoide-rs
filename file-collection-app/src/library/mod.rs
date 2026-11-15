@@ -566,6 +566,13 @@ impl Library {
         self.shared_state.track_search.update_params(&mut params)
     }
 
+    /// Discard the fetched track search results.
+    ///
+    /// The results are fetched again in the background.
+    pub fn reset_track_search_fetched(&self) -> ActionEffect {
+        self.shared_state.track_search.reset_fetched()
+    }
+
     pub fn fetch_more_track_search_results(&self, rt: &tokio::runtime::Handle) -> ActionEffect {
         self.shared_state.track_search.spawn_fetching_more_task(
             rt,

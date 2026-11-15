@@ -1003,6 +1003,12 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
     // Update the UI unconditionally to reflect the new state.
     ctx.request_repaint();
 
+    // A view that has been closed reloads the collection from the database
+    // and resets the mode. The track search might not notice that the collection
+    // has been reloaded, because it only observes changes of the collection UID
+    // and intermediate states might be skipped.
+    let restore_track_search = mode.is_none() && library.read_collection_state().is_ready();
+
     let mut reset_music_dir = false;
     {
         let collection_state = library.read_collection_state();
@@ -1046,6 +1052,14 @@ fn on_library_collection_state_changed(ctx: &Context, mdl: &mut Model, msg_tx: &
     if reset_music_dir {
         // The UI will be repainted in any case (see above).
         let _ = library.reset_music_dir();
+    } else if restore_track_search {
+        log::debug!("Restoring track search after the collection has been reloaded");
+        // Re-fetch the possibly stale results.
+        let _ = library.reset_track_search_fetched();
+        // Switch back to the track search, even if the state remained unchanged.
+        drop(msg_tx.emit_event(library::Event::from(
+            library::track_search::Event::StateChanged,
+        )));
     }
 }
 
