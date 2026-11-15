@@ -95,7 +95,7 @@ impl App {
         }
     }
 
-    fn update(&mut self) -> (&mpsc::Receiver<Message>, UpdateContext<'_>) {
+    const fn update(&mut self) -> (&mpsc::Receiver<Message>, UpdateContext<'_>) {
         let Self {
             rt,
             msg_rx,
@@ -107,7 +107,7 @@ impl App {
         (msg_rx, ctx)
     }
 
-    fn render(&mut self) -> RenderContext<'_> {
+    const fn render(&mut self) -> RenderContext<'_> {
         let Self {
             msg_tx,
             mdl,

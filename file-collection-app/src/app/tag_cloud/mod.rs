@@ -77,14 +77,14 @@ impl TagCloud {
     /// The current tags remain available until the result arrives.
     ///
     /// Returns the id of the request.
-    pub(crate) fn start_loading(&mut self) -> u64 {
+    pub(crate) const fn start_loading(&mut self) -> u64 {
         self.last_request_id += 1;
         self.pending_request_id = Some(self.last_request_id);
         self.last_request_id
     }
 
     /// The request could not be sent.
-    pub(crate) fn abort_loading(&mut self) {
+    pub(crate) const fn abort_loading(&mut self) {
         self.pending_request_id = None;
     }
 

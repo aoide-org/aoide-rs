@@ -48,7 +48,7 @@ pub type DbConnection = diesel::sqlite::SqliteConnection;
 pub struct Connection<'db>(&'db mut DbConnection);
 
 impl<'db> Connection<'db> {
-    pub fn new(inner: &'db mut DbConnection) -> Self {
+    pub const fn new(inner: &'db mut DbConnection) -> Self {
         Self(inner)
     }
 }

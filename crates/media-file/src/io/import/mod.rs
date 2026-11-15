@@ -192,13 +192,13 @@ impl Issues {
     }
 
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         let Self { messages } = self;
         messages.is_empty()
     }
 
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         let Self { messages } = self;
         messages.len()
     }

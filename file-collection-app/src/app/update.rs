@@ -1205,7 +1205,7 @@ fn on_library_music_dir_sync_progress(
     }
 }
 
-fn on_library_revert_unsynchronized_tracks_progress(
+const fn on_library_revert_unsynchronized_tracks_progress(
     mode: &mut Option<ModelMode>,
     progress: library::revert_unsynchronized_tracks::Progress,
 ) {

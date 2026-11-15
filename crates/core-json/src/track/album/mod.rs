@@ -83,7 +83,7 @@ pub struct Album {
 }
 
 impl Album {
-    pub(crate) fn is_default(&self) -> bool {
+    pub(crate) const fn is_default(&self) -> bool {
         let Self {
             kind,
             titles,

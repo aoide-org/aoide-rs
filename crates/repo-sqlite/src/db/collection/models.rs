@@ -174,7 +174,7 @@ pub struct TouchableRecord {
 }
 
 impl TouchableRecord {
-    pub fn bind(updated_at: UtcDateTimeMs, next_rev: EntityRevision) -> Self {
+    pub const fn bind(updated_at: UtcDateTimeMs, next_rev: EntityRevision) -> Self {
         let entity_rev = encode_entity_revision(next_rev);
         Self {
             row_updated_ms: updated_at.unix_timestamp_millis(),

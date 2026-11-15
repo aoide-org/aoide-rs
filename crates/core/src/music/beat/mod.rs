@@ -237,7 +237,7 @@ impl MeasurePosition {
     }
 
     #[must_use]
-    pub fn measure_number(self) -> MeasureNumber {
+    pub const fn measure_number(self) -> MeasureNumber {
         let Self {
             measure_offset,
             beat_offset_in_measure: _,

@@ -239,7 +239,7 @@ fn date(year: u16, month: u8, day: u8) -> DateOrDateTime {
     DateOrDateTime::Date(YyyyMmDdDate::new_unchecked(yyyymmdd))
 }
 
-fn set_loudness(track: &mut Track, loudness: Option<LoudnessLufs>) {
+const fn set_loudness(track: &mut Track, loudness: Option<LoudnessLufs>) {
     let ContentMetadata::Audio(audio) = &mut track.media_source.content.metadata;
     audio.loudness = loudness;
 }

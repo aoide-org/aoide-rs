@@ -58,11 +58,11 @@ env_logger = "0.11.11"
 hashbrown = "0.17.1"
 image = "0.25.10"
 itertools = "0.15.0"
-jiff = "0.2.45"
+jiff = "0.2.46"
 log = "0.4.35"
 mime = "0.3.18"
 nonicle = "0.1.1"
-rand = "0.10.3"
+rand = "0.10.4"
 regex = "1.13.1"
 ron = "0.12.3"
 schemars = "1.2.3"
@@ -102,12 +102,7 @@ lint_groups_priority = "allow"
 clone_on_ref_ptr = "warn"
 
 # Declare as `const` whenever possible.
-#missing_const_for_fn = "warn"
-# Switched from "warn" to "allow" to suppress many false positive warnings
-# after upgrading to Rust v1.86.
-# TODO: Re-check for open issues: <https://github.com/rust-lang/rust-clippy/issues?q=is%3Aissue%20state%3Aopen%20missing_const_for_fn>
-# TODO: Switch back to "warn" after Clippy fixed the issues on their side.
-missing_const_for_fn = "allow"
+missing_const_for_fn = "warn"
 
 # Prefer mod.rs style for self-contained module directories.
 self_named_module_files = "warn"
