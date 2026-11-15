@@ -22,11 +22,12 @@ use super::{
     MessageSender, Model, ModelMode, MusicDirSelection, MusicDirectoryAction, TagCloud,
     TagCloudAction, TrackEditAction, TrackEditor, TrackEditorState, TrackListColumnsAction,
     TrackSearchAction, TrackSearchEdit, TrackSearchMode, TrackSelection, TrackSelectionAction,
-    TrackSelectionState,
+    TrackSelectionState, ViewSettingsAction,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerAction, MediaTrackerDirListAction,
         MediaTrackerSyncAction, PendingEditsAction, RevertUnsynchronizedTracksAction,
     },
+    view_settings,
 };
 
 pub(super) struct UpdateContext<'a> {
@@ -65,6 +66,7 @@ impl UpdateContext<'_> {
             },
             Action::TrackListColumns(action) => self.on_track_list_columns_action(action),
             Action::EditorSettings(action) => self.on_editor_settings_action(action),
+            Action::ViewSettings(action) => self.on_view_settings_action(ctx, action),
             Action::PendingEdits(action) => self.on_pending_edits_action(ctx, action),
             Action::TagCloud(action) => self.on_tag_cloud_action(action),
         };
@@ -189,6 +191,37 @@ impl UpdateContext<'_> {
         }
         if let Err(err) = editor_settings.save(settings_dir) {
             log::warn!("Failed to save editor settings: {err}");
+        }
+        ActionEffect::Changed
+    }
+
+    fn on_view_settings_action(
+        &mut self,
+        ctx: &Context,
+        action: ViewSettingsAction,
+    ) -> ActionEffect {
+        let Model {
+            view_settings,
+            settings_dir,
+            ..
+        } = &mut *self.mdl;
+        let font_size_percent = match action {
+            ViewSettingsAction::IncreaseFontSize => view_settings
+                .font_size_percent
+                .saturating_add(view_settings::FONT_SIZE_PERCENT_STEP),
+            ViewSettingsAction::DecreaseFontSize => view_settings
+                .font_size_percent
+                .saturating_sub(view_settings::FONT_SIZE_PERCENT_STEP),
+            ViewSettingsAction::ResetFontSize => view_settings::DEFAULT_FONT_SIZE_PERCENT,
+        };
+        let font_size_percent = view_settings::clamp_font_size_percent(font_size_percent);
+        if view_settings.font_size_percent == font_size_percent {
+            return ActionEffect::Unchanged;
+        }
+        view_settings.font_size_percent = font_size_percent;
+        view_settings.apply(ctx);
+        if let Err(err) = view_settings.save(settings_dir) {
+            log::warn!("Failed to save view settings: {err}");
         }
         ActionEffect::Changed
     }

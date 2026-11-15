@@ -4,8 +4,8 @@
 use std::fmt::Write as _;
 
 use egui::{
-    Align, Button, CentralPanel, Grid, Label, Layout, MenuBar, Panel, RichText, ScrollArea,
-    TextEdit, Ui, scroll_area::ScrollSource,
+    Align, Button, CentralPanel, Grid, Key, KeyboardShortcut, Label, Layout, MenuBar, Modifiers,
+    Panel, RichText, ScrollArea, TextEdit, Ui, scroll_area::ScrollSource,
 };
 
 use aoide::backend_embedded::batch::synchronize_collection_vfs;
@@ -17,15 +17,48 @@ use crate::library::{
 use super::{
     Action, CloseState, EditorSettingsAction, MessageSender, Model, ModelMode, MusicDirSelection,
     MusicDirectoryAction, TrackEditor, TrackSearchAction, TrackSearchEdit, TrackSearchMode, UiData,
+    ViewSettingsAction,
     message::{
         ExportUnsynchronizedTracksAction, MediaTrackerDirListAction, MediaTrackerSyncAction,
         PendingEditsAction, RevertUnsynchronizedTracksAction,
     },
     pending_edits::{self, DraftEdit, PendingEdits},
-    track_editor, track_list, track_selection_editor,
+    track_editor, track_list, track_selection_editor, view_settings,
 };
 
 const TRACK_EDITOR_PANEL_DEFAULT_WIDTH: f32 = 420.0;
+
+const INCREASE_FONT_SIZE_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::COMMAND, Key::Plus);
+
+/// Alternative shortcut for keyboard layouts that require Shift for the plus key.
+const INCREASE_FONT_SIZE_SHORTCUT_SECONDARY: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::COMMAND, Key::Equals);
+
+const DECREASE_FONT_SIZE_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::COMMAND, Key::Minus);
+
+const RESET_FONT_SIZE_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::COMMAND, Key::Num0);
+
+fn handle_font_size_shortcuts(ui: &Ui, msg_tx: &MessageSender) {
+    let action = ui.input_mut(|input| {
+        if input.consume_shortcut(&INCREASE_FONT_SIZE_SHORTCUT)
+            || input.consume_shortcut(&INCREASE_FONT_SIZE_SHORTCUT_SECONDARY)
+        {
+            Some(ViewSettingsAction::IncreaseFontSize)
+        } else if input.consume_shortcut(&DECREASE_FONT_SIZE_SHORTCUT) {
+            Some(ViewSettingsAction::DecreaseFontSize)
+        } else if input.consume_shortcut(&RESET_FONT_SIZE_SHORTCUT) {
+            Some(ViewSettingsAction::ResetFontSize)
+        } else {
+            None
+        }
+    });
+    if let Some(action) = action {
+        msg_tx.send_action(action);
+    }
+}
 
 // In contrast to `AppUpdateContext` the model is immutable during rendering.
 // Only the `UiDataState` remains mutable.
@@ -52,6 +85,8 @@ impl RenderContext<'_> {
             _ => (&[][..], None),
         };
         let is_track_editor_draft_modified = pending_edits.is_draft_modified();
+
+        handle_font_size_shortcuts(ui, msg_tx);
 
         Panel::top("menu-bar").show(ui, |ui| {
             render_menu_bar(ui, msg_tx, mdl, &library);
@@ -179,8 +214,46 @@ fn render_menu_bar(
             {
                 msg_tx.send_action(MediaTrackerDirListAction::OpenView);
             }
+            ui.separator();
+            render_font_size_menu_items(ui, msg_tx, mdl);
         });
     });
+}
+
+fn render_font_size_menu_items(ui: &mut Ui, msg_tx: &MessageSender, mdl: &Model) {
+    let font_size_percent = mdl.view_settings.font_size_percent;
+    let ctx = ui.ctx().clone();
+    let shortcut_text = |shortcut| ctx.format_shortcut(shortcut);
+    if ui
+        .add_enabled(
+            font_size_percent < view_settings::MAX_FONT_SIZE_PERCENT,
+            Button::new("Increase font size")
+                .shortcut_text(shortcut_text(&INCREASE_FONT_SIZE_SHORTCUT)),
+        )
+        .clicked()
+    {
+        msg_tx.send_action(ViewSettingsAction::IncreaseFontSize);
+    }
+    if ui
+        .add_enabled(
+            font_size_percent > view_settings::MIN_FONT_SIZE_PERCENT,
+            Button::new("Decrease font size")
+                .shortcut_text(shortcut_text(&DECREASE_FONT_SIZE_SHORTCUT)),
+        )
+        .clicked()
+    {
+        msg_tx.send_action(ViewSettingsAction::DecreaseFontSize);
+    }
+    if ui
+        .add_enabled(
+            font_size_percent != view_settings::DEFAULT_FONT_SIZE_PERCENT,
+            Button::new(format!("Reset font size ({font_size_percent}%)"))
+                .shortcut_text(shortcut_text(&RESET_FONT_SIZE_SHORTCUT)),
+        )
+        .clicked()
+    {
+        msg_tx.send_action(ViewSettingsAction::ResetFontSize);
+    }
 }
 
 fn render_top_panel(

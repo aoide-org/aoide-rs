@@ -99,6 +99,7 @@ pub(crate) enum Action {
     Library(LibraryAction),
     TrackListColumns(TrackListColumnsAction),
     EditorSettings(EditorSettingsAction),
+    ViewSettings(ViewSettingsAction),
     PendingEdits(PendingEditsAction),
     TagCloud(TagCloudAction),
 }
@@ -113,6 +114,24 @@ pub(crate) enum EditorSettingsAction {
 impl From<EditorSettingsAction> for Action {
     fn from(action: EditorSettingsAction) -> Self {
         Self::EditorSettings(action)
+    }
+}
+
+/// Change the persistent settings of the appearance.
+#[derive(Debug, Clone, Copy)]
+#[expect(
+    clippy::enum_variant_names,
+    reason = "Actions for other view settings may follow."
+)]
+pub(crate) enum ViewSettingsAction {
+    IncreaseFontSize,
+    DecreaseFontSize,
+    ResetFontSize,
+}
+
+impl From<ViewSettingsAction> for Action {
+    fn from(action: ViewSettingsAction) -> Self {
+        Self::ViewSettings(action)
     }
 }
 

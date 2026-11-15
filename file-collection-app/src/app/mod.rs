@@ -10,7 +10,7 @@ mod message;
 pub(crate) use self::message::{
     Action, CollectionAction, EditorSettingsAction, Event, LibraryAction, Message, MessageSender,
     MusicDirectoryAction, TagCloudAction, TrackEditAction, TrackListColumnsAction,
-    TrackSearchAction, TrackSearchFetchedItems, TrackSelectionAction,
+    TrackSearchAction, TrackSearchFetchedItems, TrackSelectionAction, ViewSettingsAction,
 };
 
 mod model;
@@ -27,6 +27,9 @@ use self::render::RenderContext;
 
 mod editor_settings;
 pub(crate) use self::editor_settings::EditorSettings;
+
+mod view_settings;
+pub(crate) use self::view_settings::ViewSettings;
 
 mod tag_cloud;
 pub(crate) use self::tag_cloud::TagCloud;
@@ -74,6 +77,10 @@ impl App {
 
     #[must_use]
     fn with_context(ctx: egui::Context, rt: tokio::runtime::Handle, mdl: Model) -> Self {
+        // Replaced by the persistent font size, see `ViewSettingsAction`.
+        ctx.options_mut(|options| options.zoom_with_keyboard = false);
+        view_settings::increase_dark_mode_contrast(&ctx);
+        mdl.view_settings.apply(&ctx);
         let (msg_tx, msg_rx) = mpsc::channel();
         let msg_tx = MessageSender::new(ctx, msg_tx);
         mdl.library
