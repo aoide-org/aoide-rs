@@ -48,7 +48,7 @@ bytes = "1.12.1"
 data-encoding = "2.11.1"
 derive_more = "2.1.1"
 digest = "0.11.3"
-diesel = { version = "2.3.14", default-features = false, features = [
+diesel = { version = "2.4.0", default-features = false, features = [
   "returning_clauses_for_sqlite_3_35",
   "sqlite",
 ] }
@@ -58,7 +58,7 @@ env_logger = "0.11.11"
 hashbrown = "0.17.1"
 image = "0.25.10"
 itertools = "0.15.0"
-jiff = "0.2.43"
+jiff = "0.2.45"
 log = "0.4.35"
 mime = "0.3.18"
 nonicle = "0.1.1"

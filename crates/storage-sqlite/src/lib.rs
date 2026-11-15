@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::{RunQueryDsl as _, SqliteConnection};
+use diesel::{
+    RunQueryDsl as _, SqliteConnection,
+    sqlite::pragma::{IncrementalVacuum, SchemaPragma as _},
+};
 use thiserror::Error;
 
 pub mod connection;
@@ -38,16 +41,14 @@ pub enum VacuumMode {
 }
 
 pub fn vacuum_database(connection: &mut SqliteConnection, mode: VacuumMode) -> Result<()> {
-    let sql = match mode {
-        VacuumMode::Full => "VACUUM",
-        VacuumMode::Incremental => "PRAGMA incremental_vacuum",
-    };
-    diesel::dsl::sql_query(sql)
-        .execute(connection)
-        .map(|count| {
-            debug_assert_eq!(0, count);
-        })
-        .map_err(Into::into)
+    match mode {
+        VacuumMode::Full => connection.vacuum(None),
+        // Releases the whole freelist. Unlike executing `PRAGMA incremental_vacuum`
+        // as a prepared statement, which only frees a single page per step, this
+        // runs the pragma to completion.
+        VacuumMode::Incremental => IncrementalVacuum::set(None, None, connection),
+    }
+    .map_err(Into::into)
 }
 
 /// Gather statistics about the schema and generate hints
@@ -82,3 +83,6 @@ pub fn cleanse_database(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;
