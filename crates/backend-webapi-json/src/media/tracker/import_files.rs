@@ -3,8 +3,7 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
-use aoide_media_file::io::import::ImportTrackConfig;
+use aoide_backend_embedded::media::predefined_import_track_config;
 
 use super::*;
 
@@ -40,11 +39,7 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
         .map_err(Into::into)
         .map_err(Error::BadRequest)?;
     // FIXME: Replace hard-coded tag mapping config
-    let faceted_tag_mapping_config = predefined_faceted_tag_mapping_config();
-    let import_config = ImportTrackConfig {
-        faceted_tag_mapping: faceted_tag_mapping_config,
-        ..Default::default()
-    };
+    let import_config = predefined_import_track_config();
     connection
         .transaction::<_, Error, _>(|connection| {
             uc::import_files(

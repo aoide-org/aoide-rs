@@ -3,13 +3,13 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_backend_embedded::media::predefined_faceted_tag_mapping_config;
+use aoide_backend_embedded::media::predefined_import_track_config;
 use aoide_core_api_json::media::{
     SyncMode,
     tracker::{Completion, import_files::ImportedSourceWithIssues},
 };
 use aoide_core_json::track::{Entity, Track};
-use aoide_media_file::io::import::{ImportTrackConfig, ImportTrackFlags};
+use aoide_media_file::io::import::ImportTrackFlags;
 
 use super::{replace::ReplaceMode, *};
 
@@ -153,11 +153,7 @@ pub fn handle_request(
     let sync_mode = sync_mode.unwrap_or(SyncMode::Modified);
     let replace_mode = replace_mode.unwrap_or(ReplaceMode::UpdateOrCreate);
     // FIXME: Replace hard-coded tag mapping config
-    let faceted_tag_mapping_config = predefined_faceted_tag_mapping_config();
-    let mut import_config = ImportTrackConfig {
-        faceted_tag_mapping: faceted_tag_mapping_config,
-        ..Default::default()
-    };
+    let mut import_config = predefined_import_track_config();
     if let Some(decode_gigtags) = decode_gigtags {
         import_config.flags.set(
             ImportTrackFlags::GIGTAGS_CGRP | ImportTrackFlags::GIGTAGS_COMM,

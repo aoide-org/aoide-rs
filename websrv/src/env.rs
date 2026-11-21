@@ -3,9 +3,10 @@
 
 use std::{
     env::{self, VarError},
+    fmt,
     net::IpAddr,
     num::NonZeroU32,
-    str::ParseBoolError,
+    str::{FromStr, ParseBoolError},
 };
 
 use aoide_storage_sqlite::connection::{IN_MEMORY_STORAGE, Storage as SqliteDatabaseStorage};
@@ -68,42 +69,27 @@ pub(crate) fn init_tracing_and_logging() -> anyhow::Result<()> {
     Ok(())
 }
 
-const ENDPOINT_IP_ENV: &str = "ENDPOINT_IP";
-
-fn parse_endpoint_ip_addr() -> Option<IpAddr> {
-    read_optional_var(ENDPOINT_IP_ENV)
+/// Read and parse an optional environment variable.
+///
+/// Empty or whitespace-only values are silently ignored. Parse errors
+/// are logged as warnings.
+fn parse_optional_var<T>(key: &str) -> Option<T>
+where
+    T: FromStr,
+    T::Err: fmt::Display,
+{
+    read_optional_var(key)
         .map_err(|err| err.to_string())
         .and_then(|var| {
             var.map(|var| {
-                log::debug!("{ENDPOINT_IP_ENV} = {var}");
-                var.parse()
-                    .map_err(|err| format!("Failed to parse '{ENDPOINT_IP_ENV}' = '{var}': {err}"))
-            })
-            .transpose()
-        })
-        .map_err(|err| {
-            log::warn!("{err}");
-        })
-        .ok()
-        .flatten()
-}
-
-const ENDPOINT_PORT_ENV: &str = "ENDPOINT_PORT";
-
-fn parse_endpoint_port() -> Option<u16> {
-    read_optional_var(ENDPOINT_PORT_ENV)
-        .map_err(|err| err.to_string())
-        .and_then(|var| {
-            var.map(|var| {
-                log::debug!("{ENDPOINT_PORT_ENV} = {var}");
+                log::debug!("{key} = {var}");
                 if var.trim().is_empty() {
+                    // Silently ignore whitespace
                     Ok(None)
                 } else {
                     var.parse()
-                        .map_err(|err| {
-                            format!("Failed to parse '{ENDPOINT_PORT_ENV}' = '{var}': {err}")
-                        })
                         .map(Some)
+                        .map_err(|err| format!("Failed to parse '{key}' = '{var}': {err}"))
                 }
             })
             .transpose()
@@ -114,6 +100,18 @@ fn parse_endpoint_port() -> Option<u16> {
         })
         .ok()
         .flatten()
+}
+
+const ENDPOINT_IP_ENV: &str = "ENDPOINT_IP";
+
+fn parse_endpoint_ip_addr() -> Option<IpAddr> {
+    parse_optional_var(ENDPOINT_IP_ENV)
+}
+
+const ENDPOINT_PORT_ENV: &str = "ENDPOINT_PORT";
+
+fn parse_endpoint_port() -> Option<u16> {
+    parse_optional_var(ENDPOINT_PORT_ENV)
 }
 
 const DATABASE_URL_ENV: &str = "DATABASE_URL";
@@ -153,31 +151,7 @@ fn parse_sqlite_database_storage() -> Option<SqliteDatabaseStorage> {
 const DATABASE_CONNECTION_POOL_SIZE_ENV: &str = "DATABASE_CONNECTION_POOL_SIZE";
 
 fn parse_database_connection_pool_size() -> Option<NonZeroU32> {
-    read_optional_var(DATABASE_CONNECTION_POOL_SIZE_ENV)
-        .map_err(|err| err.to_string())
-        .and_then(|var| {
-            var.map(|var| {
-                log::debug!("{DATABASE_CONNECTION_POOL_SIZE_ENV} = {var}");
-                if var.trim().is_empty() {
-                    // Silently ignore whitespace
-                    Ok(None)
-                } else {
-                    var.parse().map(Some).map_err(|err| {
-                        format!(
-                            "Failed to parse '{DATABASE_CONNECTION_POOL_SIZE_ENV}' = '{var}': \
-                             {err}"
-                        )
-                    })
-                }
-            })
-            .transpose()
-            .map(Option::flatten)
-        })
-        .map_err(|err| {
-            log::warn!("{err}");
-        })
-        .ok()
-        .flatten()
+    parse_optional_var(DATABASE_CONNECTION_POOL_SIZE_ENV)
 }
 
 fn parse_bool_var(var: &str) -> Result<bool, ParseBoolError> {
