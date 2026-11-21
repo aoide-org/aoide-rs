@@ -4,7 +4,6 @@
 use std::{
     borrow::Cow,
     io::{Read, Seek},
-    path::Path,
     result::Result as StdResult,
 };
 
@@ -25,7 +24,6 @@ use aoide_core::{
     audio::signal::LoudnessLufs,
     media::{
         Content, MediaDigest, Source,
-        artwork::ApicType,
         content::{ContentLink, ContentMetadata},
     },
     music::{key::KeySignature, tempo::TempoBpm},
@@ -298,43 +296,6 @@ fn import_file_into_track_with<R: Read + Seek, F: AudioFile>(
     let audio_file = F::read_from(&mut reader, parse_options())?;
     import_file_into_track(importer, config, audio_file, track);
     Ok(())
-}
-
-#[derive(Debug, Clone)]
-pub struct LoadedArtworkImageData {
-    /// The APIC type of an embedded image
-    ///
-    /// `Some` for embedded images and `None` for custom, external images.
-    pub apic_type: Option<ApicType>,
-
-    /// The MIME type of `image_data`
-    pub media_type: Mime,
-
-    /// The actual image data
-    pub image_data: Vec<u8>,
-}
-
-pub fn load_embedded_artwork_image_data_from_file_path(
-    file_path: &Path,
-) -> Result<Option<LoadedArtworkImageData>> {
-    let tag = {
-        let mut tagged_file = lofty::read_from_path(file_path)?;
-        crate::fmt::take_primary_or_first_tag(&mut tagged_file)
-    };
-    if let Some((apic_type, media_type, image_data)) = tag
-        .as_ref()
-        .and_then(crate::fmt::find_embedded_artwork_image)
-    {
-        let media_type = media_type.parse::<Mime>()?;
-        let loaded_artwork_image = LoadedArtworkImageData {
-            apic_type: Some(apic_type),
-            media_type,
-            image_data: image_data.to_owned(),
-        };
-        Ok(Some(loaded_artwork_image))
-    } else {
-        Ok(None)
-    }
 }
 
 pub fn try_import_plain_tag<'a>(
