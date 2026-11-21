@@ -25,7 +25,7 @@ use aoide_media_file::io::import::{ImportTrack, ImportTrackConfig, Issues};
 use aoide_repo::{
     CollectionId, MediaSourceId, OptionalRepoResult as _, RepoResult,
     collection::EntityRepo as CollectionRepo,
-    track::{CollectionRepo as TrackCollectionRepo, ReplaceMode, ReplaceParams},
+    track::{CollectionRepo as TrackCollectionRepo, LoadedTrack, ReplaceMode, ReplaceParams},
 };
 
 use crate::{
@@ -90,11 +90,15 @@ impl ImportReplacementFromFilePathContext {
 }
 
 /// Load the existing track for updating or prepare a new track.
+///
+/// The loaded track is stored in `loaded` for replacing it later
+/// without loading it again.
 fn load_import_track<Repo>(
     repo: &mut Repo,
     collection_id: CollectionId,
     content_path: &ContentPath<'_>,
     track_exists: bool,
+    loaded: &mut Option<LoadedTrack>,
 ) -> Result<ImportTrack>
 where
     Repo: TrackCollectionRepo,
@@ -104,9 +108,10 @@ where
             collected_at: OffsetDateTimeMs::now_local(),
         });
     }
-    let (_, _, entity) =
-        repo.load_track_entity_by_media_source_content_path(collection_id, content_path)?;
-    Ok(ImportTrack::UpdateTrack(entity.raw.body.track))
+    let loaded = loaded
+        .insert(repo.load_track_entity_by_media_source_content_path(collection_id, content_path)?);
+    let (_, _, entity) = loaded;
+    Ok(ImportTrack::UpdateTrack(entity.body.track.clone()))
 }
 
 #[derive(Debug)]
@@ -219,6 +224,7 @@ struct ImportAndReplaceFromFilePathOutcome {
 
 fn replace_after_imported_from_file_path<Repo>(
     outcome: ImportReplacementFromFilePathOutcome,
+    loaded: Option<LoadedTrack>,
     summary: &mut Summary,
     repo: &mut Repo,
     content_path_resolver: &VfsResolver,
@@ -242,14 +248,14 @@ where
                 validated_input.0.media_source.content.link.path,
                 content_path
             );
-            let replaced_media_source_id =
-                super::replace::replace_collected_track_by_media_source_content_path(
-                    repo,
-                    collection_id,
-                    params,
-                    validated_input,
-                )?
-                .update_summary(summary);
+            let replaced_media_source_id = super::replace::replace_loaded_collected_track(
+                repo,
+                collection_id,
+                params,
+                validated_input,
+                loaded,
+            )?
+            .update_summary(summary);
             debug_assert!(
                 media_source_id.is_none()
                     || replaced_media_source_id.is_none()
@@ -347,11 +353,14 @@ where
         )?;
         let content_path_resolver = resolver.canonical_resolver();
         let track_exists = context.media_source_id.is_some();
+        let mut loaded = None;
 
         // TODO: Import multiple tracks from different files in parallel.
         let outcome = import_replacement_from_file_path(
             context,
-            |content_path| load_import_track(repo, collection_id, content_path, track_exists),
+            |content_path| {
+                load_import_track(repo, collection_id, content_path, track_exists, &mut loaded)
+            },
             content_path_resolver,
             params,
             intercept_imported_track_fn,
@@ -363,6 +372,7 @@ where
             media_source_id,
         } = replace_after_imported_from_file_path(
             outcome,
+            loaded,
             &mut summary,
             repo,
             content_path_resolver,
@@ -487,9 +497,12 @@ where
             content_path,
         )?;
         let track_exists = context.media_source_id.is_some();
+        let mut loaded = None;
         let outcome = import_replacement_from_file_path(
             context,
-            |content_path| load_import_track(repo, collection_id, content_path, track_exists),
+            |content_path| {
+                load_import_track(repo, collection_id, content_path, track_exists, &mut loaded)
+            },
             content_path_resolver,
             params,
             intercept_imported_track_fn,
@@ -500,6 +513,7 @@ where
             media_source_id,
         } = replace_after_imported_from_file_path(
             outcome,
+            loaded,
             &mut summary,
             repo,
             content_path_resolver,

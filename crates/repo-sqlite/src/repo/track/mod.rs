@@ -30,11 +30,10 @@ use aoide_core_api::{
     track::search::{Filter, Scope, SortOrder},
 };
 use aoide_repo::{
-    CollectionId, MediaSourceId, OptionalRepoResult as _, RepoError, RepoResult,
-    ReservableRecordCollector, TrackId,
+    CollectionId, MediaSourceId, RepoError, RepoResult, ReservableRecordCollector, TrackId,
     media::source::{CollectionRepo as _, Repo as _},
     track::{
-        ActorRepo, CollectionRepo, EntityRepo, RecordHeader, RecordTrail, ReplaceMode,
+        ActorRepo, CollectionRepo, EntityRepo, LoadedTrack, RecordHeader, RecordTrail, ReplaceMode,
         ReplaceOutcome, ReplaceParams, TagRepo,
     },
 };
@@ -183,18 +182,25 @@ fn insert_track_and_album_titles(
     Ok(())
 }
 
+/// The old titles are loaded if `old_track` is unknown.
 fn update_track_and_album_titles(
     db: &mut crate::Connection<'_>,
     track_id: TrackId,
+    old_track: Option<&Track>,
     new_track_titles: Canonical<&[Title]>,
     new_album_titles: Canonical<&[Title]>,
 ) -> RepoResult<()> {
-    let (old_track_titles, old_album_titles) = load_track_and_album_titles(db, track_id)?;
-    if (
-        old_track_titles.as_canonical_slice(),
-        old_album_titles.as_canonical_slice(),
-    ) == (new_track_titles, new_album_titles)
-    {
+    let loaded;
+    let old_titles = if let Some(old_track) = old_track {
+        (
+            old_track.titles.as_canonical_slice(),
+            old_track.album.titles.as_canonical_slice(),
+        )
+    } else {
+        loaded = load_track_and_album_titles(db, track_id)?;
+        (loaded.0.as_canonical_slice(), loaded.1.as_canonical_slice())
+    };
+    if old_titles == (new_track_titles, new_album_titles) {
         log::debug!("Keeping unmodified track/album titles");
         return Ok(());
     }
@@ -301,18 +307,25 @@ fn insert_track_and_album_actors(
     Ok(())
 }
 
+/// The old actors are loaded if `old_track` is unknown.
 fn update_track_and_album_actors(
     db: &mut crate::Connection<'_>,
     track_id: TrackId,
+    old_track: Option<&Track>,
     new_track_actors: Canonical<&[Actor]>,
     new_album_actors: Canonical<&[Actor]>,
 ) -> RepoResult<()> {
-    let (old_track_actors, old_album_actors) = load_track_and_album_actors(db, track_id)?;
-    if (
-        old_track_actors.as_canonical_slice(),
-        old_album_actors.as_canonical_slice(),
-    ) == (new_track_actors, new_album_actors)
-    {
+    let loaded;
+    let old_actors = if let Some(old_track) = old_track {
+        (
+            old_track.actors.as_canonical_slice(),
+            old_track.album.actors.as_canonical_slice(),
+        )
+    } else {
+        loaded = load_track_and_album_actors(db, track_id)?;
+        (loaded.0.as_canonical_slice(), loaded.1.as_canonical_slice())
+    };
+    if old_actors == (new_track_actors, new_album_actors) {
         log::debug!("Keeping unmodified track/album actors");
         return Ok(());
     }
@@ -376,13 +389,21 @@ fn insert_track_cues(
     Ok(())
 }
 
+/// The old cues are loaded if `old_track` is unknown.
 fn update_track_cues(
     db: &mut crate::Connection<'_>,
     track_id: TrackId,
+    old_track: Option<&Track>,
     new_cues: Canonical<&[Cue]>,
 ) -> RepoResult<()> {
-    let old_cues = load_track_cues(db, track_id)?;
-    if old_cues.as_canonical_slice() == new_cues {
+    let loaded;
+    let old_cues = if let Some(old_track) = old_track {
+        old_track.cues.as_canonical_slice()
+    } else {
+        loaded = load_track_cues(db, track_id)?;
+        loaded.as_canonical_slice()
+    };
+    if old_cues == new_cues {
         log::debug!("Keeping unmodified track cues");
         return Ok(());
     }
@@ -478,13 +499,21 @@ fn insert_track_tags(
     Ok(())
 }
 
+/// The old tags are loaded if `old_track` is unknown.
 fn update_track_tags(
     db: &mut crate::Connection<'_>,
     track_id: TrackId,
+    old_track: Option<&Track>,
     new_tags: &Canonical<Tags<'_>>,
 ) -> RepoResult<()> {
-    let old_tags = load_track_tags(db, track_id)?;
-    if &old_tags == new_tags {
+    let loaded;
+    let old_tags = if let Some(old_track) = old_track {
+        &old_track.tags
+    } else {
+        loaded = load_track_tags(db, track_id)?;
+        &loaded
+    };
+    if old_tags == new_tags {
         log::debug!("Keeping unmodified track tags");
         return Ok(());
     }
@@ -567,6 +596,49 @@ fn preload_entity(
     preloads.pop().ok_or(RepoError::NotFound)
 }
 
+/// Update a track and its children.
+///
+/// If the current state of the track is known then the children are
+/// compared with it instead of loading them.
+fn update_track_entity(
+    db: &mut Connection<'_>,
+    id: TrackId,
+    media_source_id: MediaSourceId,
+    updated_entity: &TrackEntity,
+    old_track: Option<&Track>,
+) -> RepoResult<()> {
+    let record = UpdatableRecord::bind(
+        updated_entity.hdr.rev,
+        media_source_id,
+        &updated_entity.body,
+    );
+    let target = track::table.filter(track::row_id.eq(RowId::from(id)));
+    let query = diesel::update(target).set(&record);
+    let rows_affected: usize = query.execute(db.as_mut()).map_err(repo_error)?;
+    debug_assert!(rows_affected <= 1);
+    if rows_affected < 1 {
+        return Err(RepoError::NotFound);
+    }
+    let new_track = &updated_entity.body.track;
+    update_track_and_album_titles(
+        db,
+        id,
+        old_track,
+        new_track.titles.as_canonical_slice(),
+        new_track.album.titles.as_canonical_slice(),
+    )?;
+    update_track_and_album_actors(
+        db,
+        id,
+        old_track,
+        new_track.actors.as_canonical_slice(),
+        new_track.album.actors.as_canonical_slice(),
+    )?;
+    update_track_cues(db, id, old_track, new_track.cues.as_canonical_slice())?;
+    update_track_tags(db, id, old_track, &new_track.tags)?;
+    Ok(())
+}
+
 impl EntityRepo for Connection<'_> {
     fn resolve_track_id(&mut self, uid: &TrackUid) -> RepoResult<TrackId> {
         track::table
@@ -616,37 +688,7 @@ impl EntityRepo for Connection<'_> {
         media_source_id: MediaSourceId,
         updated_entity: &TrackEntity,
     ) -> RepoResult<()> {
-        let record = UpdatableRecord::bind(
-            updated_entity.hdr.rev,
-            media_source_id,
-            &updated_entity.body,
-        );
-        let target = track::table.filter(track::row_id.eq(RowId::from(id)));
-        let query = diesel::update(target).set(&record);
-        let rows_affected: usize = query.execute(self.as_mut()).map_err(repo_error)?;
-        debug_assert!(rows_affected <= 1);
-        if rows_affected < 1 {
-            return Err(RepoError::NotFound);
-        }
-        update_track_and_album_titles(
-            self,
-            id,
-            updated_entity.body.track.titles.as_canonical_slice(),
-            updated_entity.body.track.album.titles.as_canonical_slice(),
-        )?;
-        update_track_and_album_actors(
-            self,
-            id,
-            updated_entity.body.track.actors.as_canonical_slice(),
-            updated_entity.body.track.album.actors.as_canonical_slice(),
-        )?;
-        update_track_cues(
-            self,
-            id,
-            updated_entity.body.track.cues.as_canonical_slice(),
-        )?;
-        update_track_tags(self, id, &updated_entity.body.track.tags)?;
-        Ok(())
+        update_track_entity(self, id, media_source_id, updated_entity, None)
     }
 
     fn load_track_entity(&mut self, id: TrackId) -> RepoResult<(RecordHeader, TrackEntity)> {
@@ -809,23 +851,18 @@ impl CollectionRepo for crate::Connection<'_> {
             .map_err(repo_error)
     }
 
-    fn replace_track_by_media_source_content_path(
+    fn replace_loaded_track(
         &mut self,
         collection_id: CollectionId,
         params: ReplaceParams,
         mut track: Track,
+        loaded: Option<LoadedTrack>,
     ) -> RepoResult<ReplaceOutcome> {
         let ReplaceParams {
             mode,
             preserve_collected_at,
             update_last_synchronized_rev,
         } = params;
-        let loaded = self
-            .load_track_entity_by_media_source_content_path(
-                collection_id,
-                &track.media_source.content.link.path,
-            )
-            .optional()?;
         if let Some((media_source_id, record_header, entity)) = loaded {
             // Update existing entry
             let id = record_header.id;
@@ -877,6 +914,7 @@ impl CollectionRepo for crate::Connection<'_> {
                 // Keep the current synchronized revision
                 entity.raw.body.last_synchronized_rev
             };
+            let old_track = entity.raw.body.track;
             let entity_body = TrackBody {
                 track,
                 updated_at,
@@ -884,7 +922,7 @@ impl CollectionRepo for crate::Connection<'_> {
                 content_url: None,
             };
             let entity = TrackEntity::new(entity_hdr, entity_body);
-            self.update_track_entity(id, media_source_id, &entity)?;
+            update_track_entity(self, id, media_source_id, &entity, Some(&old_track))?;
             Ok(ReplaceOutcome::Updated(media_source_id, id, entity))
         } else {
             // Create new entry

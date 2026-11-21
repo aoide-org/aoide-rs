@@ -13,11 +13,16 @@ use aoide_core_api::{
     track::search::{Filter, SortOrder},
 };
 
-use crate::{CollectionId, MediaSourceId, RepoResult, ReservableRecordCollector};
+use crate::{
+    CollectionId, MediaSourceId, OptionalRepoResult as _, RepoResult, ReservableRecordCollector,
+};
 
 record_id_newtype!(RecordId);
 
 pub type RecordHeader = crate::RecordHeader<RecordId>;
+
+/// A track that has been loaded from the repository.
+pub type LoadedTrack = (MediaSourceId, RecordHeader, TrackEntity);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ReplaceMode {
@@ -104,6 +109,27 @@ pub trait CollectionRepo {
         collection_id: CollectionId,
         params: ReplaceParams,
         track: Track,
+    ) -> RepoResult<ReplaceOutcome> {
+        let loaded = self
+            .load_track_entity_by_media_source_content_path(
+                collection_id,
+                &track.media_source.content.link.path,
+            )
+            .optional()?;
+        self.replace_loaded_track(collection_id, params, track, loaded)
+    }
+
+    /// Replace a track that has already been loaded.
+    ///
+    /// `loaded` must be the current state of the track with the same
+    /// media source content path, loaded within the same transaction.
+    /// If `None` then a new track is created.
+    fn replace_loaded_track(
+        &mut self,
+        collection_id: CollectionId,
+        params: ReplaceParams,
+        track: Track,
+        loaded: Option<LoadedTrack>,
     ) -> RepoResult<ReplaceOutcome>;
 
     fn search_tracks(

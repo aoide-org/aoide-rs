@@ -599,3 +599,60 @@ fn search_tracks_preloads_children_of_each_track() -> TestResult<()> {
 
     Ok(())
 }
+
+
+#[test]
+fn replace_track_updates_modified_children() -> TestResult<()> {
+    use aoide_repo::track::{ReplaceMode, ReplaceOutcome, ReplaceParams};
+
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = TracksWithGenreTagsFixture {
+        collection_id: {
+            let collection = Collection {
+                title: "Collection".into(),
+                notes: None,
+                kind: None,
+                color: None,
+                media_source_config: vfs_media_source_config(),
+            };
+            let collection_entity =
+                CollectionEntity::new(CollectionHeader::initial_random(), collection);
+            db.insert_collection_entity(UtcDateTimeMs::now(), &collection_entity)?
+        },
+    };
+    let track_id = fixture
+        .create_media_source_and_track_with(&mut db, |track| init_track_children(track, 2))?;
+    let (_, entity) = db.load_track_entity(track_id)?;
+
+    // Keep the titles and actors, modify the cues and tags.
+    let mut track = entity.raw.body.track.clone();
+    let mut modified = Track::new_from_media_source(track.media_source.clone());
+    init_track_children(&mut modified, 1);
+    track.cues = modified.cues;
+    track.tags = modified.tags;
+    assert_ne!(track, entity.body.track);
+
+    let params = ReplaceParams {
+        mode: ReplaceMode::UpdateOnly,
+        preserve_collected_at: true,
+        update_last_synchronized_rev: false,
+    };
+    let outcome = db.replace_track_by_media_source_content_path(
+        fixture.collection_id,
+        params,
+        track.clone(),
+    )?;
+    assert!(matches!(outcome, ReplaceOutcome::Updated(..)));
+
+    let (_, reloaded) = db.load_track_entity(track_id)?;
+    let reloaded = &reloaded.body.track;
+    assert_eq!(reloaded.titles, track.titles);
+    assert_eq!(reloaded.actors, track.actors);
+    assert_eq!(reloaded.album, track.album);
+    assert_eq!(reloaded.cues, track.cues);
+    assert_eq!(reloaded.tags, track.tags);
+    assert_ne!(reloaded.cues, entity.body.track.cues);
+
+    Ok(())
+}

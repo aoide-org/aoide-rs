@@ -5,7 +5,10 @@ use aoide_core::{Track, TrackEntity};
 use aoide_core_api::track::replace::Summary;
 use aoide_repo::{
     CollectionId, MediaSourceId,
-    track::{CollectionRepo as TrackCollectionRepo, ReplaceMode, ReplaceOutcome, ReplaceParams},
+    track::{
+        CollectionRepo as TrackCollectionRepo, LoadedTrack, ReplaceMode, ReplaceOutcome,
+        ReplaceParams,
+    },
 };
 
 use crate::Result;
@@ -105,32 +108,59 @@ where
     let media_content_path = track.media_source.content.link.path.clone();
     let outcome = repo
         .replace_track_by_media_source_content_path(collection_id, params, track)
-        .map_err(|err| {
+        .inspect_err(|err| {
             log::warn!("Failed to replace track by URI '{media_content_path}': {err}");
-            err
         })?;
-    let completion = match outcome {
-        ReplaceOutcome::Unchanged(media_source_id, _, entity) => {
-            Outcome::Unchanged(media_source_id, entity)
+    Ok(Outcome::from_replace_outcome(outcome, params.mode))
+}
+
+/// Replace a track that has already been loaded within the same transaction.
+///
+/// See also: [`TrackCollectionRepo::replace_loaded_track()`]
+pub fn replace_loaded_collected_track<Repo>(
+    repo: &mut Repo,
+    collection_id: CollectionId,
+    params: ReplaceParams,
+    track: ValidatedInput,
+    loaded: Option<LoadedTrack>,
+) -> Result<Outcome>
+where
+    Repo: TrackCollectionRepo,
+{
+    let ValidatedInput(track) = track;
+    let media_content_path = track.media_source.content.link.path.clone();
+    let outcome = repo
+        .replace_loaded_track(collection_id, params, track, loaded)
+        .inspect_err(|err| {
+            log::warn!("Failed to replace track by URI '{media_content_path}': {err}");
+        })?;
+    Ok(Outcome::from_replace_outcome(outcome, params.mode))
+}
+
+impl Outcome {
+    fn from_replace_outcome(outcome: ReplaceOutcome, mode: ReplaceMode) -> Self {
+        match outcome {
+            ReplaceOutcome::Unchanged(media_source_id, _, entity) => {
+                Self::Unchanged(media_source_id, entity)
+            }
+            ReplaceOutcome::Created(media_source_id, _, entity) => {
+                debug_assert_ne!(ReplaceMode::UpdateOnly, mode);
+                Self::Created(media_source_id, entity)
+            }
+            ReplaceOutcome::Updated(media_source_id, _, entity) => {
+                debug_assert_ne!(ReplaceMode::CreateOnly, mode);
+                Self::Updated(media_source_id, entity)
+            }
+            ReplaceOutcome::NotCreated(track) => {
+                debug_assert_eq!(ReplaceMode::UpdateOnly, mode);
+                Self::NotCreated(track)
+            }
+            ReplaceOutcome::NotUpdated(media_source_id, _, track) => {
+                debug_assert_eq!(ReplaceMode::CreateOnly, mode);
+                Self::NotUpdated(media_source_id, track)
+            }
         }
-        ReplaceOutcome::Created(media_source_id, _, entity) => {
-            debug_assert_ne!(ReplaceMode::UpdateOnly, params.mode);
-            Outcome::Created(media_source_id, entity)
-        }
-        ReplaceOutcome::Updated(media_source_id, _, entity) => {
-            debug_assert_ne!(ReplaceMode::CreateOnly, params.mode);
-            Outcome::Updated(media_source_id, entity)
-        }
-        ReplaceOutcome::NotCreated(track) => {
-            debug_assert_eq!(ReplaceMode::UpdateOnly, params.mode);
-            Outcome::NotCreated(track)
-        }
-        ReplaceOutcome::NotUpdated(media_source_id, _, track) => {
-            debug_assert_eq!(ReplaceMode::CreateOnly, params.mode);
-            Outcome::NotUpdated(media_source_id, track)
-        }
-    };
-    Ok(completion)
+    }
 }
 
 #[cfg(all(feature = "media-file", not(target_family = "wasm")))]
