@@ -251,12 +251,57 @@ pub(crate) fn find_embedded_artwork_image(tag: &Tag) -> Option<(ApicType, &str, 
         .find_map(|(apic_type, p)| Some((apic_type, p.mime_type()?.as_str(), p.data())))
 }
 
+/// Reuse the previously imported artwork if the embedded image is unchanged.
+///
+/// Decoding and scaling the image is expensive. If the digest of the image
+/// data, the APIC type, and the media type all match the old artwork then
+/// ingesting the image again would yield the same result.
+fn reuse_unchanged_embedded_artwork(
+    old_artwork: Option<&Artwork>,
+    apic_type: ApicType,
+    mime_type: &str,
+    image_data: &[u8],
+    media_digest: &mut MediaDigest,
+) -> Option<Artwork> {
+    let Some(Artwork::Embedded(EmbeddedArtwork { image: old_image })) = old_artwork else {
+        return None;
+    };
+    if old_image.apic_type != apic_type || old_image.data_size != image_data.len() as u64 {
+        return None;
+    }
+    // Digests are not available if disabled.
+    let digest = media_digest
+        .digest_content_data(image_data)
+        .finalize_reset()?;
+    if old_image.digest != Some(digest) {
+        return None;
+    }
+    // The media type of the old artwork is either parsed from the same hint
+    // or guessed from the image data if parsing failed. Only reuse it in the
+    // former case to avoid any deviation.
+    if mime_type.parse::<mime::Mime>().ok()? != old_image.media_type {
+        return None;
+    }
+    old_artwork.cloned()
+}
+
 pub(crate) fn import_embedded_artwork(
     importer: &mut Importer,
     tag: &Tag,
+    old_artwork: Option<&Artwork>,
     mut media_digest: MediaDigest,
 ) -> Artwork {
     if let Some((apic_type, mime_type, image_data)) = find_embedded_artwork_image(tag) {
+        if let Some(artwork) = reuse_unchanged_embedded_artwork(
+            old_artwork,
+            apic_type,
+            mime_type,
+            image_data,
+            &mut media_digest,
+        ) {
+            log::debug!("Reusing unchanged embedded artwork");
+            return artwork;
+        }
         let (artwork, _, issues) = try_ingest_embedded_artwork_image(
             apic_type,
             image_data,
@@ -1079,8 +1124,12 @@ pub(crate) fn import_file_tag_into_track(
         .flags
         .contains(ImportTrackFlags::METADATA_EMBEDDED_ARTWORK)
     {
-        let new_artwork =
-            import_embedded_artwork(importer, &tag, config.flags.new_artwork_digest());
+        let new_artwork = import_embedded_artwork(
+            importer,
+            &tag,
+            track.media_source.artwork.as_ref(),
+            config.flags.new_artwork_digest(),
+        );
         if let Some(old_artwork) = &track.media_source.artwork
             && *old_artwork != new_artwork
         {
