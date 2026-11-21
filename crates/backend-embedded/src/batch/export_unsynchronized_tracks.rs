@@ -3,10 +3,7 @@
 
 //! Write the metadata of all unsynchronized tracks into their files.
 
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use diesel::Connection as _;
 
@@ -17,21 +14,7 @@ use aoide_usecases::track::update::{Conflict, ExportParams, Outcome as UpdateOut
 
 use crate::prelude::*;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum Completion {
-    #[default]
-    Finished,
-    Aborted,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct Progress {
-    /// The number of unsynchronized tracks.
-    pub total: usize,
-
-    /// The number of tracks that have been visited.
-    pub finished: usize,
-}
+pub use super::{Completion, Progress};
 
 #[derive(Debug, Default)]
 pub struct Outcome {
@@ -60,7 +43,7 @@ pub async fn export_unsynchronized_tracks<ReportProgressFn>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,
     export: ExportParams,
-    mut report_progress_fn: ReportProgressFn,
+    report_progress_fn: ReportProgressFn,
     abort_flag: Arc<AtomicBool>,
 ) -> Result<Outcome>
 where
@@ -73,37 +56,26 @@ where
         Pagination::default(),
     )
     .await?;
-    let mut progress = Progress {
-        total: unsynchronized_tracks.len(),
-        finished: 0,
-    };
     log::info!(
         "Exporting {total} unsynchronized track(s)",
-        total = progress.total
+        total = unsynchronized_tracks.len()
     );
-    report_progress_fn(progress);
-
     let mut outcome = Outcome::default();
-    for unsynchronized_track in unsynchronized_tracks {
-        if abort_flag.load(Ordering::Relaxed) {
-            log::info!(
-                "Aborting export of unsynchronized tracks after {finished} of {total} track(s)",
-                finished = progress.finished,
-                total = progress.total
+    outcome.completion = super::run_batch(
+        "export of unsynchronized tracks",
+        unsynchronized_tracks,
+        |unsynchronized_track| {
+            let entity_hdr = unsynchronized_track.raw.hdr;
+            let content_path = unsynchronized_track.raw.body.content_link.path;
+            let exported = export_one(
+                db_gatekeeper,
+                collection_uid.clone(),
+                entity_hdr.clone(),
+                export.clone(),
             );
-            outcome.completion = Completion::Aborted;
-            return Ok(outcome);
-        }
-        let entity_hdr = unsynchronized_track.raw.hdr;
-        let content_path = unsynchronized_track.raw.body.content_link.path;
-        match export_one(
-            db_gatekeeper,
-            collection_uid.clone(),
-            entity_hdr.clone(),
-            export.clone(),
-        )
-        .await
-        {
+            async move { (entity_hdr, content_path, exported.await) }
+        },
+        |(entity_hdr, content_path, result)| match result {
             Ok(UpdateOutcome::Updated { entity, exported }) => {
                 debug_assert!(exported);
                 outcome.exported.push(entity);
@@ -118,10 +90,11 @@ where
                     .failed
                     .push((entity_hdr, content_path, err.to_string()));
             }
-        }
-        progress.finished += 1;
-        report_progress_fn(progress);
-    }
+        },
+        report_progress_fn,
+        &abort_flag,
+    )
+    .await;
     Ok(outcome)
 }
 

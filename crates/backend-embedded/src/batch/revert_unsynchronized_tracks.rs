@@ -3,10 +3,7 @@
 
 //! Discard all modifications of unsynchronized tracks by restoring them from their files.
 
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use diesel::Connection as _;
 
@@ -18,21 +15,7 @@ use aoide_usecases::track::update::RevertOutcome;
 
 use crate::prelude::*;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum Completion {
-    #[default]
-    Finished,
-    Aborted,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct Progress {
-    /// The number of unsynchronized tracks.
-    pub total: usize,
-
-    /// The number of tracks that have been visited.
-    pub finished: usize,
-}
+pub use super::{Completion, Progress};
 
 #[derive(Debug, Default)]
 pub struct Outcome {
@@ -56,7 +39,7 @@ pub async fn revert_unsynchronized_tracks<ReportProgressFn>(
     db_gatekeeper: &Gatekeeper,
     collection_uid: CollectionUid,
     import_config: ImportTrackConfig,
-    mut report_progress_fn: ReportProgressFn,
+    report_progress_fn: ReportProgressFn,
     abort_flag: Arc<AtomicBool>,
 ) -> Result<Outcome>
 where
@@ -69,37 +52,26 @@ where
         Pagination::default(),
     )
     .await?;
-    let mut progress = Progress {
-        total: unsynchronized_tracks.len(),
-        finished: 0,
-    };
     log::info!(
         "Reverting {total} unsynchronized track(s)",
-        total = progress.total
+        total = unsynchronized_tracks.len()
     );
-    report_progress_fn(progress);
-
     let mut outcome = Outcome::default();
-    for unsynchronized_track in unsynchronized_tracks {
-        if abort_flag.load(Ordering::Relaxed) {
-            log::info!(
-                "Aborting revert of unsynchronized tracks after {finished} of {total} track(s)",
-                finished = progress.finished,
-                total = progress.total
+    outcome.completion = super::run_batch(
+        "revert of unsynchronized tracks",
+        unsynchronized_tracks,
+        |unsynchronized_track| {
+            let entity_hdr = unsynchronized_track.raw.hdr;
+            let content_path = unsynchronized_track.raw.body.content_link.path;
+            let reverted = revert_one(
+                db_gatekeeper,
+                collection_uid.clone(),
+                entity_hdr.clone(),
+                import_config.clone(),
             );
-            outcome.completion = Completion::Aborted;
-            return Ok(outcome);
-        }
-        let entity_hdr = unsynchronized_track.raw.hdr;
-        let content_path = unsynchronized_track.raw.body.content_link.path;
-        match revert_one(
-            db_gatekeeper,
-            collection_uid.clone(),
-            entity_hdr.clone(),
-            import_config.clone(),
-        )
-        .await
-        {
+            async move { (entity_hdr, content_path, reverted.await) }
+        },
+        |(entity_hdr, content_path, result)| match result {
             Ok(RevertOutcome::Reverted(entity)) => {
                 outcome.reverted.push(entity);
             }
@@ -117,10 +89,11 @@ where
                     .failed
                     .push((entity_hdr, content_path, err.to_string()));
             }
-        }
-        progress.finished += 1;
-        report_progress_fn(progress);
-    }
+        },
+        report_progress_fn,
+        &abort_flag,
+    )
+    .await;
     Ok(outcome)
 }
 

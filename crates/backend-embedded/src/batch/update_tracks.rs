@@ -3,10 +3,7 @@
 
 //! Modify multiple tracks at once.
 
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use diesel::Connection as _;
 
@@ -19,21 +16,7 @@ use aoide_usecases::track::{
 
 use crate::prelude::*;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum Completion {
-    #[default]
-    Finished,
-    Aborted,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct Progress {
-    /// The number of tracks to update.
-    pub total: usize,
-
-    /// The number of tracks that have been visited.
-    pub finished: usize,
-}
+pub use super::{Completion, Progress};
 
 #[derive(Debug, Default)]
 pub struct Outcome {
@@ -69,39 +52,28 @@ pub async fn update_tracks<ModifyTrackFn, ReportProgressFn>(
     entity_uids: Vec<TrackUid>,
     modify_track_fn: ModifyTrackFn,
     export: Option<ExportParams>,
-    mut report_progress_fn: ReportProgressFn,
+    report_progress_fn: ReportProgressFn,
     abort_flag: Arc<AtomicBool>,
 ) -> Result<Outcome>
 where
     ModifyTrackFn: Fn(&mut Track) + Clone + Send + 'static,
     ReportProgressFn: FnMut(Progress),
 {
-    let mut progress = Progress {
-        total: entity_uids.len(),
-        finished: 0,
-    };
-    report_progress_fn(progress);
-
     let mut outcome = Outcome::default();
-    for entity_uid in entity_uids {
-        if abort_flag.load(Ordering::Relaxed) {
-            log::info!(
-                "Aborting update of tracks after {finished} of {total} track(s)",
-                finished = progress.finished,
-                total = progress.total
+    outcome.completion = super::run_batch(
+        "update of tracks",
+        entity_uids,
+        |entity_uid| {
+            let updated = update_one(
+                db_gatekeeper,
+                collection_uid.clone(),
+                entity_uid.clone(),
+                modify_track_fn.clone(),
+                export.clone(),
             );
-            outcome.completion = Completion::Aborted;
-            return Ok(outcome);
-        }
-        match update_one(
-            db_gatekeeper,
-            collection_uid.clone(),
-            entity_uid.clone(),
-            modify_track_fn.clone(),
-            export.clone(),
-        )
-        .await
-        {
+            async move { (entity_uid, updated.await) }
+        },
+        |(entity_uid, result)| match result {
             Ok(None) => {
                 outcome.unchanged.push(entity_uid);
             }
@@ -116,10 +88,11 @@ where
                 log::warn!("Failed to update track {entity_uid}: {err}");
                 outcome.failed.push((entity_uid, err.to_string()));
             }
-        }
-        progress.finished += 1;
-        report_progress_fn(progress);
-    }
+        },
+        report_progress_fn,
+        &abort_flag,
+    )
+    .await;
     Ok(outcome)
 }
 
