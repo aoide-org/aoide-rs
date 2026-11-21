@@ -11,9 +11,10 @@ use std::{
 
 use egui::{
     Align, Align2, Button, Checkbox, Color32, CornerRadius, CursorIcon, DragAndDrop, FontId, Frame,
-    Key, Label, LayerId, Layout, OpenUrl, Order, PopupCloseBehavior, Rect, RichText, ScrollArea,
-    Sense, Stroke, TextEdit, TextStyle, Ui, Vec2,
+    Key, Label, LayerId, Layout, Modifiers, OpenUrl, Order, PopupCloseBehavior, Rect, RichText,
+    ScrollArea, Sense, Stroke, TextEdit, TextStyle, Ui, Vec2,
     containers::menu::{MenuButton, MenuConfig},
+    containers::scroll_area::ScrollAreaOutput,
     load::SizedTexture,
 };
 use egui_extras::{Column, TableBuilder, TableRow};
@@ -469,6 +470,64 @@ pub(super) struct TrackListTableState {
     cell_edit: Option<CellEdit>,
     /// Selected tags while the tag cloud is open.
     tag_selection: TagSelection,
+    /// The vertical scroll position of the previous frame for scrolling by pages.
+    scroll: TableScroll,
+}
+
+/// The vertical scroll position of the table body.
+#[derive(Debug, Default, Clone, Copy)]
+struct TableScroll {
+    offset: f32,
+    max_offset: f32,
+    page_height: f32,
+}
+
+impl TableScroll {
+    fn from_output<R>(output: &ScrollAreaOutput<R>) -> Self {
+        let page_height = output.inner_rect.height();
+        Self {
+            offset: output.state.clamped_offset().y,
+            max_offset: (output.content_size.y - page_height).max(0.0),
+            page_height,
+        }
+    }
+
+    /// Scroll the table by the given number of pages, negative for scrolling up.
+    ///
+    /// Keeps the last row of the previous page visible for orientation.
+    fn apply_pages(
+        self,
+        table: TableBuilder<'_>,
+        pages: isize,
+        row_height: f32,
+    ) -> TableBuilder<'_> {
+        if pages == 0 {
+            return table;
+        }
+        let Self {
+            offset,
+            max_offset,
+            page_height,
+        } = self;
+        let page_step = (page_height - row_height).max(row_height);
+        #[expect(clippy::cast_precision_loss)]
+        let offset = (offset + pages as f32 * page_step).clamp(0.0, max_offset);
+        table.vertical_scroll_offset(offset)
+    }
+}
+
+/// Consume Page Up/Down key presses unless a text field has keyboard focus.
+///
+/// Returns the number of pages to scroll, negative for scrolling up.
+fn consume_page_scroll_keys(ui: &Ui) -> isize {
+    if ui.ctx().egui_wants_keyboard_input() {
+        return 0;
+    }
+    ui.input_mut(|input| {
+        let down = input.count_and_consume_key(Modifiers::NONE, Key::PageDown);
+        let up = input.count_and_consume_key(Modifiers::NONE, Key::PageUp);
+        down.cast_signed() - up.cast_signed()
+    })
 }
 
 impl TrackListTableState {
@@ -566,6 +625,22 @@ struct RowContext<'a> {
     tag_selection: &'a mut TagSelection,
 }
 
+/// Render the column selection and the help.
+fn render_toolbar(ui: &mut Ui, msg_tx: &MessageSender, columns: &TrackListColumns) {
+    ui.horizontal(|ui| {
+        render_columns_menu(ui, msg_tx, columns);
+        super::render::help_icon(
+            ui,
+            "Click text to edit it (Enter applies, Esc aborts).\n\
+             Click other cells or right-click to open the track editor.\n\
+             Click tags to edit them with the tag cloud.\n\
+             Ctrl+click to select multiple tracks, Shift+click to select a range.\n\
+             Drag genres or column headers to reorder them.\n\
+             Page Up/Down scrolls the list by pages.",
+        );
+    });
+}
+
 /// Render the column selection and the table with all tracks.
 pub(super) fn render_track_list(
     ui: &mut Ui,
@@ -576,17 +651,7 @@ pub(super) fn render_track_list(
     could_fetch_more: bool,
     interaction: TrackListInteraction<'_>,
 ) {
-    ui.horizontal(|ui| {
-        render_columns_menu(ui, msg_tx, columns);
-        super::render::help_icon(
-            ui,
-            "Click text to edit it (Enter applies, Esc aborts).\n\
-             Click other cells or right-click to open the track editor.\n\
-             Click tags to edit them with the tag cloud.\n\
-             Ctrl+click to select multiple tracks, Shift+click to select a range.\n\
-             Drag genres or column headers to reorder them.",
-        );
-    });
+    render_toolbar(ui, msg_tx, columns);
     if let Some(edit_error) = interaction.edit_error {
         ui.colored_label(ui.visuals().error_fg_color, edit_error);
     }
@@ -610,6 +675,7 @@ pub(super) fn render_track_list(
     }
     // An empty list is always considered as scrolled to the end.
     let mut is_last_row_visible = total_rows == 0;
+    let scroll_pages = consume_page_scroll_keys(ui);
     ScrollArea::horizontal().auto_shrink(false).show(ui, |ui| {
         let mut table = TableBuilder::new(ui)
             .id_salt("track-list")
@@ -623,6 +689,9 @@ pub(super) fn render_track_list(
             table.reset();
             table_state.columns.clone_from(&columns.selected);
         }
+        table = table_state
+            .scroll
+            .apply_pages(table, scroll_pages, row_height);
         for (index, column) in columns.selected.iter().enumerate() {
             let is_last = index + 1 == columns.selected.len();
             let width = table_state.widths.get(column).copied();
@@ -636,7 +705,7 @@ pub(super) fn render_track_list(
             }
         });
         render_dragged_column(table.ui_mut(), msg_tx, columns, &header_rects);
-        table.body(|body| {
+        let scroll_output = table.body(|body| {
             // The width of the last column depends on the available width.
             let resized_columns = columns.selected.len() - 1;
             table_state.widths.extend(
@@ -660,6 +729,7 @@ pub(super) fn render_track_list(
                 render_track_list_row(&mut row, &mut row_ctx, &track_list[index]);
             });
         });
+        table_state.scroll = TableScroll::from_output(&scroll_output);
     });
     if let Some(tag_editing) = tag_editing {
         render_tag_cloud_window(

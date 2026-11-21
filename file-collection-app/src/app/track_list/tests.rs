@@ -1065,3 +1065,68 @@ fn tag_cloud_window_fits_its_contents() {
     // Header, input, buttons, separator, and a single line of tags.
     assert!(window_rect.height() < 200.0, "{window_rect:?}");
 }
+
+fn key_pressed(key: Key) -> Event {
+    Event::Key {
+        key,
+        physical_key: None,
+        pressed: true,
+        repeat: false,
+        modifiers: Modifiers::NONE,
+    }
+}
+
+fn many_tracks_harness() -> Harness {
+    let titles = (0..200).map(|i| format!("Track {i}")).collect::<Vec<_>>();
+    let titles = titles.iter().map(String::as_str).collect::<Vec<_>>();
+    Harness::new(
+        TrackListColumns {
+            selected: vec![TrackListColumn::Title],
+        },
+        &titles,
+    )
+}
+
+#[test]
+fn page_up_and_down_scroll_the_track_list_by_pages() {
+    let harness = many_tracks_harness();
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    let scroll = harness.table_state.borrow().scroll;
+    assert_eq!(0.0, scroll.offset);
+    assert!(scroll.page_height > 0.0);
+    assert!(scroll.max_offset > 2.0 * scroll.page_height);
+    let scroll_offset = || harness.table_state.borrow().scroll.offset;
+
+    harness.frame(vec![key_pressed(Key::PageDown)], Modifiers::NONE, false);
+    let one_page = scroll_offset();
+    // Scrolled by one page, keeping the last row of the previous page visible.
+    assert!(one_page > scroll.page_height / 2.0, "{one_page}");
+    assert!(one_page < scroll.page_height, "{one_page}");
+
+    harness.frame(vec![key_pressed(Key::PageDown)], Modifiers::NONE, false);
+    assert!((scroll_offset() - 2.0 * one_page).abs() < 1.0);
+
+    harness.frame(vec![key_pressed(Key::PageUp)], Modifiers::NONE, false);
+    assert!((scroll_offset() - one_page).abs() < 1.0);
+    harness.frame(vec![key_pressed(Key::PageUp)], Modifiers::NONE, false);
+    assert_eq!(0.0, scroll_offset());
+
+    // Stop at the end.
+    for _ in 0..100 {
+        harness.frame(vec![key_pressed(Key::PageDown)], Modifiers::NONE, false);
+    }
+    assert!((scroll_offset() - scroll.max_offset).abs() < 1.0);
+}
+
+#[test]
+fn page_down_does_not_scroll_while_editing_text() {
+    let harness = many_tracks_harness();
+    harness.frame(Vec::new(), Modifiers::NONE, false);
+    // Start editing the title of the first track.
+    harness.click(FIRST_ROW_LABEL_POS, Modifiers::NONE);
+    assert!(harness.table_state.borrow().cell_edit.is_some());
+    assert!(harness.ctx.egui_wants_keyboard_input());
+
+    harness.frame(vec![key_pressed(Key::PageDown)], Modifiers::NONE, false);
+    assert_eq!(0.0, harness.table_state.borrow().scroll.offset);
+}
