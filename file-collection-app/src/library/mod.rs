@@ -21,6 +21,9 @@ use tokio::task::AbortHandle;
 
 use crate::NoReceiverForEvent;
 
+mod batch_task;
+pub use batch_task::BatchTaskKind;
+
 pub mod collection;
 pub mod export_unsynchronized_tracks;
 pub mod revert_unsynchronized_tracks;
@@ -131,13 +134,8 @@ pub enum State {
     SynchronizingMusicDir {
         task: SynchronizingVfsTask,
     },
-    ExportingUnsynchronizedTracks {
-        abort_flag: Arc<AtomicBool>,
-    },
-    RevertingUnsynchronizedTracks {
-        abort_flag: Arc<AtomicBool>,
-    },
-    UpdatingTracks {
+    BatchTask {
+        kind: BatchTaskKind,
         abort_flag: Arc<AtomicBool>,
     },
 }
@@ -184,27 +182,35 @@ impl CurrentState<'_> {
 
     #[must_use]
     pub const fn could_abort_export_unsynchronized_tracks(&self) -> bool {
-        matches!(self.library, State::ExportingUnsynchronizedTracks { .. })
+        matches!(
+            self.library,
+            State::BatchTask {
+                kind: BatchTaskKind::ExportUnsynchronizedTracks,
+                ..
+            }
+        )
     }
 
     #[must_use]
     pub const fn could_abort_revert_unsynchronized_tracks(&self) -> bool {
-        matches!(self.library, State::RevertingUnsynchronizedTracks { .. })
+        matches!(
+            self.library,
+            State::BatchTask {
+                kind: BatchTaskKind::RevertUnsynchronizedTracks,
+                ..
+            }
+        )
     }
 
     #[must_use]
     pub const fn is_updating_tracks(&self) -> bool {
-        matches!(self.library, State::UpdatingTracks { .. })
-    }
-
-    #[must_use]
-    pub fn could_update_tracks(&self) -> bool {
-        self.collection.is_ready() && matches!(self.library, State::Idle)
-    }
-
-    #[must_use]
-    pub const fn could_abort_update_tracks(&self) -> bool {
-        matches!(self.library, State::UpdatingTracks { .. })
+        matches!(
+            self.library,
+            State::BatchTask {
+                kind: BatchTaskKind::UpdateTracks,
+                ..
+            }
+        )
     }
 
     #[must_use]
@@ -283,11 +289,6 @@ impl Library {
     }
 
     #[must_use]
-    pub fn read_track_search_state(&self) -> track_search::StateRef<'_> {
-        self.shared_state.track_search.read()
-    }
-
-    #[must_use]
     pub fn subscribe_track_search_state_changed(&self) -> track_search::StateSubscriber {
         self.shared_state.track_search.subscribe_changed()
     }
@@ -325,9 +326,10 @@ impl Library {
                 task.abort();
                 ActionEffect::Changed
             }
-            State::ExportingUnsynchronizedTracks { abort_flag }
-            | State::RevertingUnsynchronizedTracks { abort_flag }
-            | State::UpdatingTracks { abort_flag } => {
+            State::BatchTask {
+                kind: _,
+                abort_flag,
+            } => {
                 // Abort pending task.
                 abort_flag.store(true, std::sync::atomic::Ordering::Relaxed);
                 ActionEffect::Changed
@@ -345,14 +347,6 @@ impl Library {
 
     pub fn reset_music_dir(&mut self) -> ActionEffect {
         self.update_music_dir(None)
-    }
-
-    pub fn reset_collection(&mut self) -> ActionEffect {
-        let mut effect = self.shared_state.collection.reset();
-        if !matches!(effect, ActionEffect::Unchanged) {
-            effect += self.reset_idle();
-        }
-        effect
     }
 
     pub fn sync_music_dir<E>(
@@ -453,9 +447,7 @@ impl Library {
                 debug_assert!(task.is_finished());
                 ActionEffect::Changed
             }
-            state @ (State::ExportingUnsynchronizedTracks { .. }
-            | State::RevertingUnsynchronizedTracks { .. }
-            | State::UpdatingTracks { .. }) => {
+            state @ State::BatchTask { .. } => {
                 // Restore the unexpected state.
                 self.state = state;
                 ActionEffect::Unchanged

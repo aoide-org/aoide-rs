@@ -3,7 +3,7 @@
 
 //! Editable track properties.
 
-use std::fmt;
+use std::{borrow::Cow, fmt};
 
 use itertools::Itertools as _;
 use nonicle::{Canonical, CanonicalizeInto as _};
@@ -31,6 +31,7 @@ use aoide::{
     util::{
         clock::{DateOrDateTime, OffsetDateTimeMs, YyyyMmDdDate},
         color::{Color, ColorIndex, RgbColor},
+        string::trimmed_non_empty_from,
     },
 };
 
@@ -139,7 +140,7 @@ impl TrackEditDraft {
             recorded_at: track
                 .recorded_at
                 .as_ref()
-                .map_or_default(format_date_or_date_time),
+                .map_or_default(ToString::to_string),
             bpm: track
                 .metrics
                 .tempo_bpm
@@ -313,8 +314,7 @@ impl TrackEditDraft {
 
 #[must_use]
 fn non_empty_trimmed(input: &str) -> Option<String> {
-    let trimmed = input.trim();
-    (!trimmed.is_empty()).then(|| trimmed.to_owned())
+    trimmed_non_empty_from(input).map(Cow::into_owned)
 }
 
 fn set_main_title(titles: &mut Canonical<Vec<Title>>, name: Option<String>) {
@@ -441,31 +441,6 @@ fn decode_custom_tags(input: &str) -> Result<Tags<'static>, String> {
         return Err(format!("Not editable as custom tags: {non_custom_facets}"));
     }
     Ok(tags)
-}
-
-#[must_use]
-fn format_date_or_date_time(date_or_date_time: &DateOrDateTime) -> String {
-    match date_or_date_time {
-        DateOrDateTime::Date(date) => {
-            if date.is_year() {
-                format!("{year:04}", year = date.year())
-            } else if date.day_of_month() == 0 {
-                format!(
-                    "{year:04}-{month:02}",
-                    year = date.year(),
-                    month = date.month()
-                )
-            } else {
-                format!(
-                    "{year:04}-{month:02}-{day:02}",
-                    year = date.year(),
-                    month = date.month(),
-                    day = date.day_of_month()
-                )
-            }
-        }
-        DateOrDateTime::DateTime(date_time) => date_time.to_string(),
-    }
 }
 
 fn parse_date_or_date_time(input: &str) -> Result<Option<DateOrDateTime>, String> {

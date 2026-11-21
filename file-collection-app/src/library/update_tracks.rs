@@ -3,18 +3,17 @@
 
 //! Edit multiple tracks at once.
 
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::Arc;
 
-use anyhow::anyhow;
 use aoide::{TrackUid, desktop_app::ActionEffect};
 
 // Re-exports
 pub use aoide::backend_embedded::batch::update_tracks::{Completion, Outcome, Progress};
 
-use super::{Event, EventEmitter, Library, State, track_edit::export_params, ui::MultiTrackEdit};
+use super::{
+    Event, EventEmitter, Library, batch_task::BatchTaskKind, track_edit::export_params,
+    ui::MultiTrackEdit,
+};
 
 impl Library {
     /// Spawn a task for modifying multiple tracks.
@@ -32,19 +31,15 @@ impl Library {
     where
         E: EventEmitter + Clone + 'static,
     {
-        if !matches!(self.state, State::Idle) {
-            let rejected = anyhow!("already/still pending");
-            return (ActionEffect::Unchanged, Err(rejected));
-        }
-        let Some(collection_uid) = self.shared_state.collection.read().entity_uid().cloned() else {
-            return (ActionEffect::Unchanged, Err(anyhow!("no collection")));
+        let collection_uid = match self.batch_task_collection_uid() {
+            Ok(collection_uid) => collection_uid,
+            Err(err) => return (ActionEffect::Unchanged, Err(err)),
         };
-        let abort_flag = Arc::new(AtomicBool::new(false));
-        rt.spawn({
-            let env = Arc::clone(self.env());
-            let event_emitter = event_emitter.clone();
-            let abort_flag = Arc::clone(&abort_flag);
-            async move {
+        let event_emitter = event_emitter.clone();
+        self.spawn_batch_task(
+            rt,
+            BatchTaskKind::UpdateTracks,
+            |env, abort_flag| async move {
                 let report_progress_fn = {
                     let event_emitter = event_emitter.clone();
                     move |progress| {
@@ -67,28 +62,16 @@ impl Library {
                 .await
                 .map_err(Into::into);
                 drop(event_emitter.emit_event(Event::UpdateTracksFinished(Box::new(result))));
-            }
-        });
-        self.state = State::UpdatingTracks { abort_flag };
-        (ActionEffect::Changed, Ok(()))
+            },
+        )
     }
 
     /// Abort the pending task after the current track has been updated.
     pub fn update_tracks_abort(&self) -> ActionEffect {
-        let State::UpdatingTracks { abort_flag } = &self.state else {
-            log::info!("Not updating tracks");
-            return ActionEffect::Unchanged;
-        };
-        log::info!("Aborting update of tracks");
-        abort_flag.store(true, Ordering::Relaxed);
-        ActionEffect::MaybeChanged
+        self.abort_batch_task(BatchTaskKind::UpdateTracks)
     }
 
     pub(crate) fn update_tracks_finished(&mut self) -> ActionEffect {
-        if !matches!(self.state, State::UpdatingTracks { .. }) {
-            return ActionEffect::Unchanged;
-        }
-        self.state = State::Idle;
-        ActionEffect::Changed
+        self.batch_task_finished(BatchTaskKind::UpdateTracks)
     }
 }
