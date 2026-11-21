@@ -7,8 +7,8 @@ use anyhow::anyhow;
 
 use aoide_core::util::clock::OffsetDateTimeMs;
 use aoide_core::{
-    CollectionUid, EntityRevision, TrackEntity,
-    media::content::{ContentPath, ContentRevision},
+    CollectionUid, EntityRevision, Track, TrackEntity,
+    media::content::{ContentRevision, resolver::vfs::VfsResolver},
     track::EntityHeader,
 };
 use aoide_core_api::media::SyncMode;
@@ -20,8 +20,8 @@ use aoide_repo::{
     CollectionId, RepoError,
     collection::EntityRepo as CollectionRepo,
     track::{
-        CollectionRepo as TrackCollectionRepo, EntityRepo as TrackEntityRepo, ReplaceMode,
-        ReplaceParams,
+        CollectionRepo as TrackCollectionRepo, EntityRepo as TrackEntityRepo, LoadedTrack,
+        ReplaceMode, ReplaceParams,
     },
 };
 
@@ -106,7 +106,7 @@ pub fn update_one<Repo>(
 where
     Repo: CollectionRepo + TrackCollectionRepo + TrackEntityRepo,
 {
-    let ValidatedInput(mut track) = track;
+    let ValidatedInput(track) = track;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
     let Some(resolver) = &collection_ctx.content_path.resolver else {
         let path_kind = collection_ctx.content_path.kind;
@@ -117,15 +117,46 @@ where
     let content_path_resolver = resolver.canonical_resolver();
     let collection_id = collection_ctx.record_id;
 
-    let current_entity = load_collected_entity(
+    let loaded = load_collected_entity(repo, collection_id, expected_entity_hdr)?;
+    let current_content_path = &loaded.2.body.track.media_source.content.link.path;
+    if track.media_source.content.link.path != *current_content_path {
+        return Err(Error::Other(anyhow!(
+            "media source content path must not be changed: expected \"{current_content_path}\", \
+             actual \"{actual}\"",
+            actual = track.media_source.content.link.path,
+        )));
+    }
+    update_loaded(
         repo,
+        collection_uid,
         collection_id,
+        content_path_resolver,
         expected_entity_hdr,
-        &track.media_source.content.link.path,
-    )?;
+        track,
+        params,
+        loaded,
+    )
+}
+
+/// Update a track that has been loaded with [`load_collected_entity()`].
+#[expect(clippy::too_many_arguments)]
+fn update_loaded<Repo>(
+    repo: &mut Repo,
+    collection_uid: &CollectionUid,
+    collection_id: CollectionId,
+    content_path_resolver: &VfsResolver,
+    expected_entity_hdr: &EntityHeader,
+    mut track: Track,
+    params: &Params,
+    loaded: LoadedTrack,
+) -> Result<Outcome>
+where
+    Repo: CollectionRepo + TrackCollectionRepo + TrackEntityRepo,
+{
+    let current_entity = &loaded.2;
     let current_media_source = &current_entity.body.track.media_source;
     let file_path = content_path_resolver.build_file_path(&current_media_source.content.link.path);
-    if let Some(conflict) = check_for_conflict(expected_entity_hdr, &current_entity, &file_path)? {
+    if let Some(conflict) = check_for_conflict(expected_entity_hdr, current_entity, &file_path)? {
         log::info!(
             "Rejecting update of track {uid}: {conflict:?}",
             uid = expected_entity_hdr.uid,
@@ -142,11 +173,12 @@ where
         preserve_collected_at: true,
         update_last_synchronized_rev: false,
     };
-    let outcome = replace::replace_collected_track_by_media_source_content_path(
+    let outcome = replace::replace_loaded_collected_track(
         repo,
         collection_id,
         replace_params,
         ValidatedInput(track),
+        Some(loaded),
     )?;
     let entity = match outcome {
         replace::Outcome::Unchanged(_, entity) | replace::Outcome::Updated(_, entity) => entity,
@@ -195,13 +227,20 @@ where
         &std::convert::identity,
         &AtomicBool::new(false),
     )?;
-    let summary = &import_outcome.summary;
+    let mut summary = import_outcome.summary;
     if !summary.failed.is_empty() || !summary.skipped.is_empty() {
         return Err(Error::Other(anyhow!(
             "failed to re-import track {content_path} after exporting metadata"
         )));
     }
-    let (_, entity) = repo.load_track_entity_by_uid(&entity.hdr.uid)?;
+    // The re-imported track is only loaded again if it has not been updated.
+    let entity = if let Some(updated) = summary.updated.pop() {
+        debug_assert_eq!(0, summary.updated.len());
+        debug_assert_eq!(updated.hdr.uid, entity.hdr.uid);
+        updated
+    } else {
+        repo.load_track_entity_by_uid(&entity.hdr.uid)?.1
+    };
     Ok(Outcome::Updated {
         entity,
         exported: true,
@@ -224,13 +263,31 @@ pub fn export_one<Repo>(
 where
     Repo: CollectionRepo + TrackCollectionRepo + TrackEntityRepo,
 {
-    let (_, entity) = repo.load_track_entity_by_uid(&expected_entity_hdr.uid)?;
+    let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
+    let Some(resolver) = &collection_ctx.content_path.resolver else {
+        let path_kind = collection_ctx.content_path.kind;
+        return Err(Error::Other(anyhow!(
+            "unsupported path kind: {path_kind:?}"
+        )));
+    };
+    let content_path_resolver = resolver.canonical_resolver();
+    let collection_id = collection_ctx.record_id;
+    let loaded = load_collected_entity(repo, collection_id, expected_entity_hdr)?;
     // Unchanged invalidities have already been reported when importing the track.
-    let (track, _invalidities) = validate_input(entity.raw.body.track)?;
+    let (ValidatedInput(track), _invalidities) = validate_input(loaded.2.body.track.clone())?;
     let params = Params {
         export: Some(export),
     };
-    update_one(repo, collection_uid, expected_entity_hdr, track, &params)
+    update_loaded(
+        repo,
+        collection_uid,
+        collection_id,
+        content_path_resolver,
+        expected_entity_hdr,
+        track,
+        &params,
+        loaded,
+    )
 }
 
 #[derive(Debug)]
@@ -275,7 +332,8 @@ where
     let content_path_resolver = resolver.canonical_resolver();
     let collection_id = collection_ctx.record_id;
 
-    let (_, current_entity) = repo.load_track_entity_by_uid(&expected_entity_hdr.uid)?;
+    let loaded = load_collected_entity(repo, collection_id, expected_entity_hdr)?;
+    let current_entity = &loaded.2;
     let content_path = current_entity
         .body
         .track
@@ -284,8 +342,6 @@ where
         .link
         .path
         .clone_owned();
-    let current_entity =
-        load_collected_entity(repo, collection_id, expected_entity_hdr, &content_path)?;
     if current_entity.hdr.rev != expected_entity_hdr.rev {
         return Ok(RevertOutcome::Rejected(Conflict::EntityRevision {
             expected: expected_entity_hdr.rev,
@@ -327,11 +383,12 @@ where
         preserve_collected_at: true,
         update_last_synchronized_rev: true,
     };
-    let outcome = replace::replace_collected_track_by_media_source_content_path(
+    let outcome = replace::replace_loaded_collected_track(
         repo,
         collection_id,
         replace_params,
         validated_input,
+        Some(loaded),
     )?;
     match outcome {
         replace::Outcome::Unchanged(_, entity) | replace::Outcome::Updated(_, entity) => {
@@ -346,35 +403,26 @@ where
 }
 
 /// Load the current entity of a track in the collection.
-///
-/// The content path of the media source must not be changed.
 fn load_collected_entity<Repo>(
     repo: &mut Repo,
     collection_id: CollectionId,
     expected_entity_hdr: &EntityHeader,
-    content_path: &ContentPath<'_>,
-) -> Result<TrackEntity>
+) -> Result<LoadedTrack>
 where
     Repo: TrackCollectionRepo + TrackEntityRepo,
 {
-    let (_, current_entity) = repo.load_track_entity_by_uid(&expected_entity_hdr.uid)?;
-    let current_content_path = &current_entity.body.track.media_source.content.link.path;
+    let (record_header, current_entity) =
+        repo.load_track_entity_by_uid(&expected_entity_hdr.uid)?;
     // The track must belong to the collection.
-    let (_, _, collected_entity_hdr) = repo
+    let (media_source_id, _, collected_entity_hdr) = repo
         .resolve_track_entity_header_by_media_source_content_path(
             collection_id,
-            current_content_path,
+            &current_entity.body.track.media_source.content.link.path,
         )?;
     if collected_entity_hdr.uid != expected_entity_hdr.uid {
         return Err(RepoError::NotFound.into());
     }
-    if content_path != current_content_path {
-        return Err(Error::Other(anyhow!(
-            "media source content path must not be changed: expected \"{current_content_path}\", \
-             actual \"{content_path}\""
-        )));
-    }
-    Ok(current_entity)
+    Ok((media_source_id, record_header, current_entity))
 }
 
 fn check_for_conflict(
