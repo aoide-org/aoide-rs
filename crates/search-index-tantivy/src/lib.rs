@@ -194,7 +194,8 @@ impl TrackFields {
             doc.add_text(self.album_title, album_title);
         }
         // Index all album actors as `album_artist` by name, independent of their role
-        for album_artist in &Actors::collect_all_unique_actor_names(entity.body.track.actors.iter())
+        for album_artist in
+            &Actors::collect_all_unique_actor_names(entity.body.track.album.actors.iter())
         {
             doc.add_text(self.album_artist, album_artist);
         }
@@ -205,7 +206,10 @@ impl TrackFields {
             .as_ref()
             .map(YyyyMmDdDate::from)
         {
-            doc.add_i64(self.album_artist, recorded_at_yyyymmdd.value().into());
+            doc.add_i64(
+                self.recorded_at_yyyymmdd,
+                recorded_at_yyyymmdd.value().into(),
+            );
         }
         if let Some(released_at_yyyymmdd) = entity
             .body
@@ -214,7 +218,10 @@ impl TrackFields {
             .as_ref()
             .map(YyyyMmDdDate::from)
         {
-            doc.add_i64(self.album_artist, released_at_yyyymmdd.value().into());
+            doc.add_i64(
+                self.released_at_yyyymmdd,
+                released_at_yyyymmdd.value().into(),
+            );
         }
         if let Some(released_orig_at_yyyymmdd) = entity
             .body
@@ -223,7 +230,10 @@ impl TrackFields {
             .as_ref()
             .map(YyyyMmDdDate::from)
         {
-            doc.add_i64(self.album_artist, released_orig_at_yyyymmdd.value().into());
+            doc.add_i64(
+                self.released_orig_at_yyyymmdd,
+                released_orig_at_yyyymmdd.value().into(),
+            );
         }
         if let Some(tempo_bpm) = entity.body.track.metrics.tempo_bpm {
             doc.add_f64(self.tempo_bpm, tempo_bpm.value());
