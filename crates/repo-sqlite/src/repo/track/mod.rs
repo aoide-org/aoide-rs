@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{collections::HashSet, time::Instant};
+use std::{
+    collections::{BTreeMap, HashSet},
+    time::Instant,
+};
 
 use anyhow::anyhow;
 use diesel::prelude::*;
@@ -61,49 +64,89 @@ use crate::{
 mod search;
 use self::search::{apply_sort_order, build_filter_expression};
 
-// TODO: Define a dedicated return type
-#[expect(clippy::type_complexity)]
-fn load_track_and_album_titles(
+/// Maximum number of tracks whose children are loaded with a single query.
+///
+/// Limits the number of bound SQL parameters.
+const PRELOAD_TRACKS_CHUNK_SIZE: usize = 500;
+
+/// The children of a track that are stored in separate tables.
+#[derive(Debug, Default)]
+struct TrackChildren {
+    track_titles: Vec<Title>,
+    album_titles: Vec<Title>,
+    track_actors: Vec<Actor>,
+    album_actors: Vec<Actor>,
+    cues: Vec<Cue>,
+    tags: Tags<'static>,
+}
+
+type TrackChildrenById = BTreeMap<TrackId, TrackChildren>;
+
+fn track_row_ids(ids: &[TrackId]) -> Vec<RowId> {
+    ids.iter().copied().map(RowId::from).collect()
+}
+
+fn load_titles_into(
     db: &mut Connection<'_>,
-    id: TrackId,
-) -> RepoResult<(Canonical<Vec<Title>>, Canonical<Vec<Title>>)> {
+    ids: &[TrackId],
+    children: &mut TrackChildrenById,
+) -> RepoResult<()> {
     use crate::db::track_title::{models::*, schema::*, *};
 
     let query = track_title::table
-        .filter(track_title::track_id.eq(RowId::from(id)))
+        .filter(track_title::track_id.eq_any(track_row_ids(ids)))
         // Establish canonical ordering on load!
-        .order_by((track_title::scope, track_title::kind, track_title::name));
+        .order_by((
+            track_title::track_id,
+            track_title::scope,
+            track_title::kind,
+            track_title::name,
+        ));
     let rows = query
         .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
-
-    let mut track_titles = Vec::with_capacity(rows.size_hint().0);
-    let mut album_titles = Vec::with_capacity(rows.size_hint().0);
     for row in rows {
         let (_, record) = row
             .map_err(repo_error)?
             .try_into()
             .map_err(RepoError::Other)?;
         let Record {
-            track_id: _,
+            track_id,
             scope,
             title,
         } = record;
+        let children = children.entry(track_id).or_default();
         match scope {
             Scope::Track => {
-                track_titles.push(title);
+                children.track_titles.push(title);
             }
             Scope::Album => {
-                album_titles.push(title);
+                children.album_titles.push(title);
             }
         }
     }
+    Ok(())
+}
 
+// TODO: Define a dedicated return type
+#[expect(clippy::type_complexity)]
+fn load_track_and_album_titles(
+    db: &mut Connection<'_>,
+    id: TrackId,
+) -> RepoResult<(Canonical<Vec<Title>>, Canonical<Vec<Title>>)> {
+    let mut children = TrackChildrenById::new();
+    load_titles_into(db, &[id], &mut children)?;
+    let TrackChildren {
+        track_titles,
+        album_titles,
+        ..
+    } = children.remove(&id).unwrap_or_default();
     // The ordering returned by the SQL database might differ from the
     // canonical ordering due to custom text column collations!
-    let track_titles = track_titles.canonicalize_into();
-    let album_titles = album_titles.canonicalize_into();
-    Ok((track_titles, album_titles))
+    Ok((
+        track_titles.canonicalize_into(),
+        album_titles.canonicalize_into(),
+    ))
 }
 
 fn delete_track_and_album_titles(
@@ -160,55 +203,68 @@ fn update_track_and_album_titles(
     Ok(())
 }
 
-// TODO: Define a dedicated return type
-#[expect(clippy::type_complexity)]
-fn load_track_and_album_actors(
-    db: &mut crate::Connection<'_>,
-    id: TrackId,
-) -> RepoResult<(Canonical<Vec<Actor>>, Canonical<Vec<Actor>>)> {
+fn load_actors_into(
+    db: &mut Connection<'_>,
+    ids: &[TrackId],
+    children: &mut TrackChildrenById,
+) -> RepoResult<()> {
     use crate::db::track_actor::{models::*, schema::*, *};
 
     let query = track_actor::table
-        .filter(track_actor::track_id.eq(RowId::from(id)))
+        .filter(track_actor::track_id.eq_any(track_row_ids(ids)))
         // Establish canonical ordering on load!
         .order_by((
+            track_actor::track_id,
             track_actor::scope,
             track_actor::role,
             track_actor::kind,
             track_actor::name,
         ));
-
     let rows = query
         .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
-
-    let mut track_actors = Vec::with_capacity(rows.size_hint().0);
-    let mut album_actors = Vec::with_capacity(rows.size_hint().0);
     for row in rows {
         let (_, record) = row
             .map_err(repo_error)?
             .try_into()
             .map_err(RepoError::Other)?;
         let Record {
-            track_id: _,
+            track_id,
             scope,
             actor,
         } = record;
+        let children = children.entry(track_id).or_default();
         match scope {
             Scope::Track => {
-                track_actors.push(actor);
+                children.track_actors.push(actor);
             }
             Scope::Album => {
-                album_actors.push(actor);
+                children.album_actors.push(actor);
             }
         }
     }
+    Ok(())
+}
 
+// TODO: Define a dedicated return type
+#[expect(clippy::type_complexity)]
+fn load_track_and_album_actors(
+    db: &mut Connection<'_>,
+    id: TrackId,
+) -> RepoResult<(Canonical<Vec<Actor>>, Canonical<Vec<Actor>>)> {
+    let mut children = TrackChildrenById::new();
+    load_actors_into(db, &[id], &mut children)?;
+    let TrackChildren {
+        track_actors,
+        album_actors,
+        ..
+    } = children.remove(&id).unwrap_or_default();
     // The ordering returned by the SQL database might differ from the
     // canonical ordering due to custom text column collations!
-    let track_actors = track_actors.canonicalize_into();
-    let album_actors = album_actors.canonicalize_into();
-    Ok((track_actors, album_actors))
+    Ok((
+        track_actors.canonicalize_into(),
+        album_actors.canonicalize_into(),
+    ))
 }
 
 fn delete_track_and_album_actors(
@@ -265,26 +321,35 @@ fn update_track_and_album_actors(
     Ok(())
 }
 
-fn load_track_cues(
-    db: &mut crate::Connection<'_>,
-    track_id: TrackId,
-) -> RepoResult<Canonical<Vec<Cue>>> {
+fn load_cues_into(
+    db: &mut Connection<'_>,
+    ids: &[TrackId],
+    children: &mut TrackChildrenById,
+) -> RepoResult<()> {
     use crate::db::track_cue::{models::*, schema::*, *};
+
     let query = track_cue::table
-        .filter(track_cue::track_id.eq(RowId::from(track_id)))
+        .filter(track_cue::track_id.eq_any(track_row_ids(ids)))
         // Establish canonical ordering on load!
-        .order_by((track_cue::bank_idx, track_cue::slot_idx));
+        .order_by((
+            track_cue::track_id,
+            track_cue::bank_idx,
+            track_cue::slot_idx,
+        ));
     let rows = query
         .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
-    let cues = rows
-        .map(|row| {
-            row.map_err(repo_error).map(|queryable| {
-                let (_, Record { track_id: _, cue }) = queryable.into();
-                cue
-            })
-        })
-        .collect::<RepoResult<_>>()?;
+    for row in rows {
+        let (_, Record { track_id, cue }) = row.map_err(repo_error)?.into();
+        children.entry(track_id).or_default().cues.push(cue);
+    }
+    Ok(())
+}
+
+fn load_track_cues(db: &mut Connection<'_>, id: TrackId) -> RepoResult<Canonical<Vec<Cue>>> {
+    let mut children = TrackChildrenById::new();
+    load_cues_into(db, &[id], &mut children)?;
+    let TrackChildren { cues, .. } = children.remove(&id).unwrap_or_default();
     Ok(Canonical::tie(cues))
 }
 
@@ -326,45 +391,51 @@ fn update_track_cues(
     Ok(())
 }
 
-fn load_track_tags(
-    db: &mut crate::Connection<'_>,
-    track_id: TrackId,
-) -> RepoResult<Canonical<Tags<'static>>> {
+fn load_tags_into(
+    db: &mut Connection<'_>,
+    ids: &[TrackId],
+    children: &mut TrackChildrenById,
+) -> RepoResult<()> {
     use crate::db::track_tag::{models::*, schema::*};
 
     let query = track_tag::table
-        .filter(track_tag::track_id.eq(RowId::from(track_id)))
+        .filter(track_tag::track_id.eq_any(track_row_ids(ids)))
         // Establish canonical ordering on load!
-        .order_by((track_tag::facet, track_tag::label, track_tag::score.desc()));
+        .order_by((
+            track_tag::track_id,
+            track_tag::facet,
+            track_tag::label,
+            track_tag::score.desc(),
+        ));
     let rows = query
         .load_iter::<QueryableRecord, _>(db.as_mut())
         .map_err(repo_error)?;
-
-    let mut plain_tags = Vec::new();
-    let mut facets: Vec<FacetedTags<'_>> = Vec::new();
     for row in rows {
         let (_, record) = row.map_err(repo_error)?.into();
+        let tags = &mut children.entry(record.track_id).or_default().tags;
         let (facet_id, tag) = record.into();
         if let Some(facet_id) = facet_id {
-            if let Some(faceted_tags) = facets.last_mut()
+            if let Some(faceted_tags) = tags.facets.last_mut()
                 && faceted_tags.facet_id == facet_id
             {
                 faceted_tags.tags.push(tag);
                 continue;
             }
-            facets.push(FacetedTags {
+            tags.facets.push(FacetedTags {
                 facet_id,
                 tags: vec![tag],
             });
         } else {
-            plain_tags.push(tag);
+            tags.plain.push(tag);
         }
     }
+    Ok(())
+}
 
-    let tags = Tags {
-        plain: plain_tags,
-        facets,
-    };
+fn load_track_tags(db: &mut Connection<'_>, id: TrackId) -> RepoResult<Canonical<Tags<'static>>> {
+    let mut children = TrackChildrenById::new();
+    load_tags_into(db, &[id], &mut children)?;
+    let TrackChildren { tags, .. } = children.remove(&id).unwrap_or_default();
     // The ordering returned by the SQL database might differ from the
     // canonical ordering due to custom text column collations!
     Ok(tags.canonicalize_into())
@@ -422,22 +493,78 @@ fn update_track_tags(
     Ok(())
 }
 
-fn preload_entity(
-    db: &mut crate::Connection<'_>,
-    id: TrackId,
-    media_source: Source,
-) -> RepoResult<EntityPreload> {
-    let (track_titles, album_titles) = load_track_and_album_titles(db, id)?;
-    let (track_actors, album_actors) = load_track_and_album_actors(db, id)?;
-    Ok(EntityPreload {
-        media_source,
-        album_actors,
-        album_titles,
-        cues: load_track_cues(db, id)?,
-        tags: load_track_tags(db, id)?,
-        track_actors,
-        track_titles,
+fn load_media_sources(
+    db: &mut Connection<'_>,
+    ids: &[MediaSourceId],
+) -> RepoResult<BTreeMap<MediaSourceId, Source>> {
+    use crate::db::media_source::models::QueryableRecord;
+
+    let rows = media_source::table
+        .filter(media_source::row_id.eq_any(ids.iter().copied().map(RowId::from)))
+        .load_iter::<QueryableRecord, _>(db.as_mut())
+        .map_err(repo_error)?;
+    rows.map(|row| {
+        let (header, media_source) = row
+            .map_err(repo_error)?
+            .try_into()
+            .map_err(RepoError::Other)?;
+        Ok((header.id, media_source))
     })
+    .collect()
+}
+
+/// Preload the media sources and children of multiple tracks.
+///
+/// Issues a fixed number of queries independent of the number of tracks.
+/// The results are returned in the order of `ids`.
+fn preload_entities(
+    db: &mut Connection<'_>,
+    ids: &[(TrackId, MediaSourceId)],
+) -> RepoResult<Vec<EntityPreload>> {
+    let track_ids = ids.iter().map(|(id, _)| *id).collect::<Vec<_>>();
+    let media_source_ids = ids.iter().map(|(_, id)| *id).collect::<Vec<_>>();
+    let mut media_sources = load_media_sources(db, &media_source_ids)?;
+    let mut children = TrackChildrenById::new();
+    load_titles_into(db, &track_ids, &mut children)?;
+    load_actors_into(db, &track_ids, &mut children)?;
+    load_cues_into(db, &track_ids, &mut children)?;
+    load_tags_into(db, &track_ids, &mut children)?;
+    ids.iter()
+        .map(|(id, media_source_id)| {
+            let media_source = media_sources
+                .remove(media_source_id)
+                .ok_or(RepoError::NotFound)?;
+            let TrackChildren {
+                track_titles,
+                album_titles,
+                track_actors,
+                album_actors,
+                cues,
+                tags,
+            } = children.remove(id).unwrap_or_default();
+            // The ordering returned by the SQL database might differ from the
+            // canonical ordering due to custom text column collations!
+            Ok(EntityPreload {
+                media_source,
+                track_titles: track_titles.canonicalize_into(),
+                track_actors: track_actors.canonicalize_into(),
+                album_titles: album_titles.canonicalize_into(),
+                album_actors: album_actors.canonicalize_into(),
+                tags: tags.canonicalize_into(),
+                cues: Canonical::tie(cues),
+            })
+        })
+        .collect()
+}
+
+fn preload_entity(
+    db: &mut Connection<'_>,
+    id: TrackId,
+    media_source_id: MediaSourceId,
+) -> RepoResult<EntityPreload> {
+    let mut preloads = preload_entities(db, &[(id, media_source_id)])?;
+    debug_assert_eq!(preloads.len(), 1);
+    preloads.pop().ok_or(RepoError::NotFound)
 }
 
 impl EntityRepo for Connection<'_> {
@@ -527,8 +654,7 @@ impl EntityRepo for Connection<'_> {
             .filter(view_track_search::row_id.eq(RowId::from(id)))
             .get_result::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
-        let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
-        let preload = preload_entity(self, id, media_source)?;
+        let preload = preload_entity(self, id, queryable.media_source_id.into())?;
         load_repo_entity(preload, queryable)
     }
 
@@ -540,8 +666,11 @@ impl EntityRepo for Connection<'_> {
             .filter(view_track_search::entity_uid.eq(encode_entity_uid(uid).as_str()))
             .get_result::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
-        let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
-        let preload = preload_entity(self, queryable.row_id.into(), media_source)?;
+        let preload = preload_entity(
+            self,
+            queryable.row_id.into(),
+            queryable.media_source_id.into(),
+        )?;
         load_repo_entity(preload, queryable)
     }
 
@@ -641,8 +770,7 @@ impl CollectionRepo for crate::Connection<'_> {
             .get_result::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         let media_source_id = queryable.media_source_id.into();
-        let (_, media_source) = self.load_media_source(media_source_id)?;
-        let preload = preload_entity(self, queryable.row_id.into(), media_source)?;
+        let preload = preload_entity(self, queryable.row_id.into(), media_source_id)?;
         let (record_header, entity) = load_repo_entity(preload, queryable)?;
         Ok((media_source_id, record_header, entity))
     }
@@ -842,12 +970,24 @@ impl CollectionRepo for crate::Connection<'_> {
 
         let timed = Instant::now();
         collector.reserve(count);
-        for record in records {
-            let media_source_id = record.media_source_id.into();
-            let (_, media_source) = self.load_media_source(media_source_id)?;
-            let preload = preload_entity(self, record.row_id.into(), media_source)?;
-            let (record_header, entity) = load_repo_entity(preload, record)?;
-            collector.collect(record_header, entity);
+        let mut records = records.into_iter();
+        loop {
+            let chunk = records
+                .by_ref()
+                .take(PRELOAD_TRACKS_CHUNK_SIZE)
+                .collect::<Vec<_>>();
+            if chunk.is_empty() {
+                break;
+            }
+            let ids = chunk
+                .iter()
+                .map(|record| (record.row_id.into(), record.media_source_id.into()))
+                .collect::<Vec<_>>();
+            let preloads = preload_entities(self, &ids)?;
+            for (record, preload) in chunk.into_iter().zip(preloads) {
+                let (record_header, entity) = load_repo_entity(preload, record)?;
+                collector.collect(record_header, entity);
+            }
         }
         log::debug!(
             "Loading and collecting {count} track(s) from database took {elapsed_millis} ms",

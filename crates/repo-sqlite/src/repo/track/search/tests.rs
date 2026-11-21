@@ -373,6 +373,16 @@ impl TracksWithGenreTagsFixture {
         db: &mut crate::Connection<'_>,
         genre_tag_labels: &[&str],
     ) -> RepoResult<TrackId> {
+        self.create_media_source_and_track_with(db, |track| {
+            init_track_genre_tags(track, genre_tag_labels);
+        })
+    }
+
+    fn create_media_source_and_track_with(
+        &self,
+        db: &mut crate::Connection<'_>,
+        init_track: impl FnOnce(&mut Track),
+    ) -> RepoResult<TrackId> {
         let collected_at = OffsetDateTimeMs::now_local();
         let created_at = collected_at.to_utc();
         let uuid = Uuid::now_v7();
@@ -399,7 +409,7 @@ impl TracksWithGenreTagsFixture {
             .id;
 
         let mut track = Track::new_from_media_source(media_source);
-        init_track_genre_tags(&mut track, genre_tag_labels);
+        init_track(&mut track);
 
         let entity_body = TrackBody {
             track,
@@ -463,6 +473,129 @@ fn find_no_tracks_with_empty_or_invalid_genre_tag_label() -> TestResult<()> {
             assert_eq!(entities, Vec::new());
         }
     }
+
+    Ok(())
+}
+
+/// Populate all children of a track that are stored in separate tables.
+fn init_track_children(track: &mut Track, index: usize) {
+    use aoide_core::{
+        audio::PositionMs,
+        track::{
+            actor::{Actor, Kind as ActorKind, Role as ActorRole},
+            cue::{Cue, InMarker},
+        },
+    };
+
+    track.set_track_title(format!("Track title {index}"));
+    track.set_album_title(format!("Album title {index}"));
+    track.actors = vec![
+        Actor {
+            role: ActorRole::Artist,
+            kind: ActorKind::Summary,
+            name: format!("Track artist {index}"),
+            role_notes: None,
+        },
+        Actor {
+            role: ActorRole::Composer,
+            kind: ActorKind::Individual,
+            name: format!("Composer {index}"),
+            role_notes: None,
+        },
+    ]
+    .canonicalize_into();
+    let mut album = std::mem::take(&mut track.album).untie();
+    album.actors = vec![Actor {
+        role: ActorRole::Artist,
+        kind: ActorKind::Summary,
+        name: format!("Album artist {index}"),
+        role_notes: None,
+    }]
+    .canonicalize_into();
+    track.album = nonicle::Canonical::tie(album);
+    let cues = (0..=index % 3)
+        .map(|slot| Cue {
+            bank_index: 0,
+            slot_index: Some(slot as _),
+            in_marker: Some(InMarker {
+                position: PositionMs::new((index * 1000 + slot) as f64),
+            }),
+            out_marker: None,
+            kind: None,
+            label: Some(format!("Cue {index}/{slot}")),
+            color: None,
+            flags: Default::default(),
+        })
+        .collect();
+    track.cues = nonicle::Canonical::tie(cues);
+    let genre = format!("Genre {index}");
+    init_track_genre_tags(track, &[&genre]);
+}
+
+#[test]
+fn search_tracks_preloads_children_of_each_track() -> TestResult<()> {
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = TracksWithGenreTagsFixture {
+        collection_id: {
+            let collection = Collection {
+                title: "Collection".into(),
+                notes: None,
+                kind: None,
+                color: None,
+                media_source_config: vfs_media_source_config(),
+            };
+            let collection_entity =
+                CollectionEntity::new(CollectionHeader::initial_random(), collection);
+            db.insert_collection_entity(UtcDateTimeMs::now(), &collection_entity)?
+        },
+    };
+
+    // Exceed a single chunk of preloaded tracks.
+    let track_count = super::super::PRELOAD_TRACKS_CHUNK_SIZE + 2;
+    let mut expected_tracks = Vec::with_capacity(track_count);
+    for index in 0..track_count {
+        let mut inserted_track = None;
+        let track_id = fixture.create_media_source_and_track_with(&mut db, |track| {
+            // Leave some tracks without any children.
+            if index % 3 != 1 {
+                init_track_children(track, index);
+            }
+            inserted_track = Some(track.clone());
+        })?;
+        let uid = db.load_track_entity(track_id)?.1.raw.hdr.uid;
+        expected_tracks.push((uid, inserted_track.unwrap()));
+    }
+
+    let mut entities = Vec::new();
+    let count = db.search_tracks(
+        fixture.collection_id,
+        &Default::default(),
+        None,
+        &[],
+        &mut entities,
+    )?;
+    assert_eq!(count, track_count);
+    assert_eq!(entities.len(), track_count);
+    for ((_, entity), (expected_uid, expected_track)) in entities.iter().zip(&expected_tracks) {
+        assert_eq!(entity.hdr.uid, *expected_uid);
+        let track = &entity.body.track;
+        assert_eq!(track.titles, expected_track.titles);
+        assert_eq!(track.actors, expected_track.actors);
+        assert_eq!(track.album, expected_track.album);
+        assert_eq!(track.cues, expected_track.cues);
+        assert_eq!(track.tags, expected_track.tags);
+    }
+    assert!(
+        entities
+            .iter()
+            .any(|(_, entity)| entity.body.track.cues.len() == 3)
+    );
+    assert!(
+        entities
+            .iter()
+            .any(|(_, entity)| entity.body.track.titles.is_empty())
+    );
 
     Ok(())
 }
