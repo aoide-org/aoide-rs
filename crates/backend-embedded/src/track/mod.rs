@@ -11,52 +11,14 @@ use aoide_core::{
     track::{Entity, EntityHeader, EntityUid, Track},
 };
 use aoide_core_api::{Pagination, track::find_unsynchronized::UnsynchronizedTrackEntity};
-use aoide_repo::{RecordCollector, ReservableRecordCollector, track::RecordHeader};
+use aoide_repo::{ReservableRecordCollector, track::RecordHeader};
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
 use crate::prelude::*;
 
 pub mod vfs;
 
-#[derive(Debug, Default)]
-pub struct EntityCollector(Vec<Entity>);
-
-impl EntityCollector {
-    #[must_use]
-    pub const fn new(inner: Vec<Entity>) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub fn finish(self) -> Vec<Entity> {
-        let Self(inner) = self;
-        inner
-    }
-}
-
-impl From<EntityCollector> for Vec<Entity> {
-    fn from(from: EntityCollector) -> Self {
-        let EntityCollector(inner) = from;
-        inner
-    }
-}
-
-impl RecordCollector for EntityCollector {
-    type Header = RecordHeader;
-    type Record = Entity;
-
-    fn collect(&mut self, _record_header: RecordHeader, entity: Entity) {
-        let Self(inner) = self;
-        inner.push(entity);
-    }
-}
-
-impl ReservableRecordCollector for EntityCollector {
-    fn reserve(&mut self, additional: usize) {
-        let Self(inner) = self;
-        inner.reserve(additional);
-    }
-}
+pub type EntityCollector = aoide_repo::RecordsCollector<RecordHeader, Entity>;
 
 pub async fn load_one(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<Entity> {
     db_gatekeeper

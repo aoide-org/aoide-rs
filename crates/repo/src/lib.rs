@@ -60,6 +60,49 @@ impl<H, R> ReservableRecordCollector for Vec<(H, R)> {
     }
 }
 
+/// Collects only the records and discards their headers.
+#[derive(Debug)]
+pub struct RecordsCollector<H, R> {
+    records: Vec<R>,
+    _header: std::marker::PhantomData<fn(H)>,
+}
+
+impl<H, R> RecordsCollector<H, R> {
+    #[must_use]
+    pub const fn new(records: Vec<R>) -> Self {
+        Self {
+            records,
+            _header: std::marker::PhantomData,
+        }
+    }
+
+    #[must_use]
+    pub fn finish(self) -> Vec<R> {
+        self.records
+    }
+}
+
+impl<H, R> Default for RecordsCollector<H, R> {
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
+}
+
+impl<H, R> RecordCollector for RecordsCollector<H, R> {
+    type Header = H;
+    type Record = R;
+
+    fn collect(&mut self, _header: Self::Header, record: Self::Record) {
+        self.records.push(record);
+    }
+}
+
+impl<H, R> ReservableRecordCollector for RecordsCollector<H, R> {
+    fn reserve(&mut self, additional: usize) {
+        self.records.reserve(additional);
+    }
+}
+
 pub fn fetch_and_collect_filtered_records<R, T, Header, Record, Fetch, FilterMap, Collector>(
     repo: &mut R,
     pagination: Option<&Pagination>,

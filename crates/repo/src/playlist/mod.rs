@@ -13,7 +13,7 @@ use aoide_core::{
 };
 use aoide_core_api::{Pagination, playlist::EntityWithEntriesSummary};
 
-use crate::{CollectionId, RecordCollector, RepoResult, ReservableRecordCollector, TrackId};
+use crate::{CollectionId, RepoResult, ReservableRecordCollector, TrackId};
 
 record_id_newtype!(RecordId);
 
@@ -213,35 +213,5 @@ pub trait EntryRepo {
     fn load_playlist_tracks_summary(&mut self, id: RecordId) -> RepoResult<TracksSummary>;
 }
 
-#[derive(Debug, Default)]
-pub struct EntityWithEntriesSummaryCollector(Vec<EntityWithEntriesSummary>);
-
-impl EntityWithEntriesSummaryCollector {
-    #[must_use]
-    pub const fn new(inner: Vec<EntityWithEntriesSummary>) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub fn finish(self) -> Vec<EntityWithEntriesSummary> {
-        let Self(inner) = self;
-        inner
-    }
-}
-
-impl RecordCollector for EntityWithEntriesSummaryCollector {
-    type Header = RecordHeader;
-    type Record = EntityWithEntriesSummary;
-
-    fn collect(&mut self, _header: RecordHeader, record: EntityWithEntriesSummary) {
-        let Self(inner) = self;
-        inner.push(record);
-    }
-}
-
-impl ReservableRecordCollector for EntityWithEntriesSummaryCollector {
-    fn reserve(&mut self, additional: usize) {
-        let Self(inner) = self;
-        inner.reserve(additional);
-    }
-}
+pub type EntityWithEntriesSummaryCollector =
+    crate::RecordsCollector<RecordHeader, EntityWithEntriesSummary>;

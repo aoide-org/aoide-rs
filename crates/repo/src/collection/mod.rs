@@ -12,7 +12,7 @@ use aoide_core_api::{
     collection::{EntityWithSummary, LoadScope, Summary},
 };
 
-use crate::{RecordCollector, RepoResult, ReservableRecordCollector};
+use crate::{RepoResult, ReservableRecordCollector};
 
 record_id_newtype!(RecordId);
 
@@ -63,35 +63,4 @@ pub trait EntityRepo {
     fn load_all_kinds(&mut self) -> RepoResult<Vec<String>>;
 }
 
-#[derive(Debug, Default)]
-pub struct EntityWithSummaryCollector(Vec<EntityWithSummary>);
-
-impl EntityWithSummaryCollector {
-    #[must_use]
-    pub const fn new(inner: Vec<EntityWithSummary>) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub fn finish(self) -> Vec<EntityWithSummary> {
-        let Self(inner) = self;
-        inner
-    }
-}
-
-impl RecordCollector for EntityWithSummaryCollector {
-    type Header = RecordHeader;
-    type Record = EntityWithSummary;
-
-    fn collect(&mut self, _header: RecordHeader, record: EntityWithSummary) {
-        let Self(inner) = self;
-        inner.push(record);
-    }
-}
-
-impl ReservableRecordCollector for EntityWithSummaryCollector {
-    fn reserve(&mut self, additional: usize) {
-        let Self(inner) = self;
-        inner.reserve(additional);
-    }
-}
+pub type EntityWithSummaryCollector = crate::RecordsCollector<RecordHeader, EntityWithSummary>;
