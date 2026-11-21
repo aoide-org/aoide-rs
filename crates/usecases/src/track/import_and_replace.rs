@@ -51,10 +51,13 @@ struct ImportReplacementFromFilePathContext {
     media_source_id: Option<MediaSourceId>,
     external_rev: Option<ContentRevision>,
     synchronized_rev: Option<bool>,
-    import_track: ImportTrack,
 }
 
 impl ImportReplacementFromFilePathContext {
+    /// Load only the synchronization state from the repository.
+    ///
+    /// The track itself is loaded lazily by [`load_import_track()`]
+    /// if the file needs to be imported.
     fn load_from_repo<Repo>(
         repo: &mut Repo,
         collection_id: CollectionId,
@@ -63,35 +66,47 @@ impl ImportReplacementFromFilePathContext {
     where
         Repo: TrackCollectionRepo,
     {
-        let (media_source_id, external_rev, synchronized_rev, entity_body) = repo
-            .load_track_entity_by_media_source_content_path(collection_id, &content_path)
+        let (media_source_id, external_rev, synchronized_rev) = repo
+            .resolve_track_record_trail_by_media_source_content_path(collection_id, &content_path)
             .optional()?
-            .map_or((None, None, None, None), |(media_source_id, _, entity)| {
+            .map_or((None, None, None), |(entity_header, _, record_trail)| {
                 (
-                    Some(media_source_id),
-                    entity.body.track.media_source.content.link.rev,
-                    entity.body.last_synchronized_rev.map(|rev| {
-                        debug_assert!(rev <= entity.hdr.rev);
-                        rev == entity.hdr.rev
+                    Some(record_trail.media_source_id),
+                    record_trail.content_link.rev,
+                    record_trail.last_synchronized_rev.map(|rev| {
+                        debug_assert!(rev <= entity_header.rev);
+                        rev == entity_header.rev
                     }),
-                    Some(entity.raw.body),
                 )
             });
-        let import_track = entity_body.map_or_else(
-            || ImportTrack::NewTrack {
-                collected_at: OffsetDateTimeMs::now_local(),
-            },
-            |entity_body| ImportTrack::UpdateTrack(entity_body.track),
-        );
         Ok(Self {
             collection_id,
             content_path,
             media_source_id,
             external_rev,
             synchronized_rev,
-            import_track,
         })
     }
+}
+
+/// Load the existing track for updating or prepare a new track.
+fn load_import_track<Repo>(
+    repo: &mut Repo,
+    collection_id: CollectionId,
+    content_path: &ContentPath<'_>,
+    track_exists: bool,
+) -> Result<ImportTrack>
+where
+    Repo: TrackCollectionRepo,
+{
+    if !track_exists {
+        return Ok(ImportTrack::NewTrack {
+            collected_at: OffsetDateTimeMs::now_local(),
+        });
+    }
+    let (_, _, entity) =
+        repo.load_track_entity_by_media_source_content_path(collection_id, content_path)?;
+    Ok(ImportTrack::UpdateTrack(entity.raw.body.track))
 }
 
 #[derive(Debug)]
@@ -119,6 +134,7 @@ enum Replacement {
 
 fn import_replacement_from_file_path<InterceptImportedTrackFn>(
     context: ImportReplacementFromFilePathContext,
+    load_import_track: impl FnOnce(&ContentPath<'_>) -> Result<ImportTrack>,
     content_path_resolver: &VfsResolver,
     params: &Params,
     intercept_imported_track_fn: &InterceptImportedTrackFn,
@@ -130,7 +146,6 @@ where
         collection_id,
         content_path,
         external_rev,
-        import_track,
         media_source_id,
         synchronized_rev,
     } = context;
@@ -141,7 +156,7 @@ where
     } = params;
     let mut import_issues = Default::default();
     let replacement = match import_track_from_file_path(
-        import_track,
+        || load_import_track(&content_path),
         content_path_resolver,
         &content_path,
         &SyncModeParams::new(*sync_mode, external_rev, synchronized_rev),
@@ -181,6 +196,8 @@ where
                 err @ (MediaFileError::UnknownContentType(_)
                 | MediaFileError::UnsupportedContentType(_)),
             ) => Replacement::SkippedFile(err),
+            // Failures when loading the track from the repository are fatal.
+            err @ Error::Repository(_) => return Err(err),
             err => Replacement::ImportFailed(err),
         },
     };
@@ -329,10 +346,12 @@ where
             content_path,
         )?;
         let content_path_resolver = resolver.canonical_resolver();
+        let track_exists = context.media_source_id.is_some();
 
         // TODO: Import multiple tracks from different files in parallel.
         let outcome = import_replacement_from_file_path(
             context,
+            |content_path| load_import_track(repo, collection_id, content_path, track_exists),
             content_path_resolver,
             params,
             intercept_imported_track_fn,
@@ -467,8 +486,10 @@ where
             collection_id,
             content_path,
         )?;
+        let track_exists = context.media_source_id.is_some();
         let outcome = import_replacement_from_file_path(
             context,
+            |content_path| load_import_track(repo, collection_id, content_path, track_exists),
             content_path_resolver,
             params,
             intercept_imported_track_fn,

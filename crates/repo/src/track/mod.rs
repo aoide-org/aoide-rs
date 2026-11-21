@@ -92,6 +92,13 @@ pub trait CollectionRepo {
         content_path: &ContentPath<'_>,
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)>;
 
+    /// Resolve the synchronization state of a track without loading it.
+    fn resolve_track_record_trail_by_media_source_content_path(
+        &mut self,
+        collection_id: CollectionId,
+        content_path: &ContentPath<'_>,
+    ) -> RepoResult<(EntityHeader, RecordHeader, RecordTrail)>;
+
     fn replace_track_by_media_source_content_path(
         &mut self,
         collection_id: CollectionId,

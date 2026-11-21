@@ -79,8 +79,12 @@ pub enum ImportTrackFromFileOutcome {
     SkippedDirectory,
 }
 
+/// Import a track from a file if needed.
+///
+/// The `import_track` loader is only invoked if the file is actually imported
+/// and not skipped as synchronized.
 pub fn import_track_from_file_path(
-    import_track: ImportTrack,
+    import_track: impl FnOnce() -> Result<ImportTrack>,
     content_path_resolver: &VfsResolver,
     source_path: &ContentPath<'_>,
     sync_mode_params: &SyncModeParams,
@@ -164,7 +168,7 @@ pub fn import_track_from_file_path(
         path: source_path.clone_owned(),
         rev: new_content_rev,
     };
-    let mut track = import_track.with_content(content_link, content_type);
+    let mut track = import_track()?.with_content(content_link, content_type);
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let issues = import_into_track(&mut reader, config, &mut track)?;
     if issues.is_empty() {

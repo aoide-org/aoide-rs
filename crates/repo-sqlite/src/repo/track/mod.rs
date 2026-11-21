@@ -557,6 +557,75 @@ impl EntityRepo for Connection<'_> {
     }
 }
 
+const RECORD_TRAIL_COLUMNS: (
+    collection::row_id,
+    media_source::row_id,
+    media_source::content_link_path,
+    media_source::content_link_rev,
+    track::row_id,
+    track::row_created_ms,
+    track::row_updated_ms,
+    track::entity_uid,
+    track::entity_rev,
+    track::last_synchronized_rev,
+) = (
+    collection::row_id,
+    media_source::row_id,
+    media_source::content_link_path,
+    media_source::content_link_rev,
+    track::row_id,
+    track::row_created_ms,
+    track::row_updated_ms,
+    track::entity_uid,
+    track::entity_rev,
+    track::last_synchronized_rev,
+);
+
+type RecordTrailRow = (
+    RowId,
+    RowId,
+    String,
+    Option<i64>,
+    RowId,
+    i64,
+    i64,
+    String,
+    i64,
+    Option<i64>,
+);
+
+fn decode_record_trail_row(row: RecordTrailRow) -> (TrackHeader, RecordHeader, RecordTrail) {
+    let (
+        collection_id,
+        media_source_id,
+        content_link_path,
+        content_link_rev,
+        row_id,
+        row_created_ms,
+        row_updated_ms,
+        entity_uid,
+        entity_rev,
+        last_synchronized_rev,
+    ) = row;
+    let record_header = RecordHeader {
+        id: row_id.into(),
+        created_at: UtcDateTimeMs::from_unix_timestamp_millis(row_created_ms),
+        updated_at: UtcDateTimeMs::from_unix_timestamp_millis(row_updated_ms),
+    };
+    let entity_header = TrackHeader::from_untyped(decode_entity_header(&entity_uid, entity_rev));
+    let content_link = ContentLink {
+        path: content_link_path.into(),
+        rev: content_link_rev.map(ContentRevision::from_signed_value),
+    };
+    let record_trail = RecordTrail {
+        collection_id: collection_id.into(),
+        media_source_id: media_source_id.into(),
+        content_link,
+        last_synchronized_rev: last_synchronized_rev.map(decode_entity_revision),
+    };
+    (entity_header, record_header, record_trail)
+}
+
 impl CollectionRepo for crate::Connection<'_> {
     fn load_track_entity_by_media_source_content_path(
         &mut self,
@@ -592,6 +661,24 @@ impl CollectionRepo for crate::Connection<'_> {
             .get_result::<SearchQueryableRecord>(self.as_mut())
             .map_err(repo_error)?;
         Ok(queryable.into())
+    }
+
+    fn resolve_track_record_trail_by_media_source_content_path(
+        &mut self,
+        collection_id: CollectionId,
+        content_path: &ContentPath<'_>,
+    ) -> RepoResult<(TrackHeader, RecordHeader, RecordTrail)> {
+        let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
+            collection_id,
+            &StringPredicate::Equals(content_path.to_borrowed().into()),
+        );
+        collection::table
+            .inner_join(media_source::table.inner_join(track::table))
+            .select(RECORD_TRAIL_COLUMNS)
+            .filter(media_source::row_id.eq_any(media_source_id_subselect))
+            .get_result::<RecordTrailRow>(self.as_mut())
+            .map(decode_record_trail_row)
+            .map_err(repo_error)
     }
 
     fn replace_track_by_media_source_content_path(
@@ -807,18 +894,7 @@ impl CollectionRepo for crate::Connection<'_> {
     ) -> RepoResult<Vec<(TrackHeader, RecordHeader, RecordTrail)>> {
         let mut query = collection::table
             .inner_join(media_source::table.inner_join(track::table))
-            .select((
-                collection::row_id,
-                media_source::row_id,
-                media_source::content_link_path,
-                media_source::content_link_rev,
-                track::row_id,
-                track::row_created_ms,
-                track::row_updated_ms,
-                track::entity_uid,
-                track::entity_rev,
-                track::last_synchronized_rev,
-            ))
+            .select(RECORD_TRAIL_COLUMNS)
             .filter(
                 media_source::content_link_rev
                     .is_null()
@@ -841,57 +917,10 @@ impl CollectionRepo for crate::Connection<'_> {
         query = apply_pagination(query, pagination);
 
         let rows = query
-            .load_iter::<(
-                RowId,
-                RowId,
-                String,
-                Option<i64>,
-                RowId,
-                i64,
-                i64,
-                String,
-                i64,
-                Option<i64>,
-            ), _>(self.as_mut())
+            .load_iter::<RecordTrailRow, _>(self.as_mut())
             .map_err(repo_error)?;
-
-        rows.map(|row| {
-            row.map_err(repo_error).map(
-                |(
-                    collection_id,
-                    media_source_id,
-                    content_link_path,
-                    content_link_rev,
-                    row_id,
-                    row_created_ms,
-                    row_updated_ms,
-                    entity_uid,
-                    entity_rev,
-                    last_synchronized_rev,
-                )| {
-                    let record_header = RecordHeader {
-                        id: row_id.into(),
-                        created_at: UtcDateTimeMs::from_unix_timestamp_millis(row_created_ms),
-                        updated_at: UtcDateTimeMs::from_unix_timestamp_millis(row_updated_ms),
-                    };
-                    let entity_header =
-                        TrackHeader::from_untyped(decode_entity_header(&entity_uid, entity_rev));
-                    let content_link = ContentLink {
-                        path: content_link_path.into(),
-                        rev: content_link_rev.map(ContentRevision::from_signed_value),
-                    };
-                    let last_synchronized_rev = last_synchronized_rev.map(decode_entity_revision);
-                    let record_trail = RecordTrail {
-                        collection_id: collection_id.into(),
-                        media_source_id: media_source_id.into(),
-                        content_link,
-                        last_synchronized_rev,
-                    };
-                    (entity_header, record_header, record_trail)
-                },
-            )
-        })
-        .collect::<RepoResult<_>>()
+        rows.map(|row| row.map_err(repo_error).map(decode_record_trail_row))
+            .collect::<RepoResult<_>>()
     }
 }
 

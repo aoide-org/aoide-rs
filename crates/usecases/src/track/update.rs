@@ -296,7 +296,7 @@ where
     let current_track = &current_entity.body.track;
     let collected_at: OffsetDateTimeMs = current_track.media_source.collected_at;
     let imported = import_track_from_file_path(
-        ImportTrack::NewTrack { collected_at },
+        || Ok(ImportTrack::NewTrack { collected_at }),
         content_path_resolver,
         &content_path,
         &SyncModeParams::Always,
