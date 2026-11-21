@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::Connection as _;
-
 use aoide_core::playlist::{Entity, EntityHeader, EntityUid, EntityWithEntries, Playlist};
 use aoide_core_api::{Pagination, playlist::EntityWithEntriesSummary};
 use aoide_repo::{
@@ -22,15 +20,12 @@ pub async fn create(
     new_playlist: Playlist,
 ) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::playlist::create(
-                    connection,
-                    collection_uid.as_ref(),
-                    new_playlist,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::playlist::create(
+                connection,
+                collection_uid.as_ref(),
+                new_playlist,
+            )
         })
         .await
 }
@@ -41,26 +36,16 @@ pub async fn update(
     modified_playlist: Playlist,
 ) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::playlist::update(
-                    connection,
-                    entity_header,
-                    modified_playlist,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::playlist::update(connection, entity_header, modified_playlist)
         })
         .await
 }
 
 pub async fn purge(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<()> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::playlist::purge(connection, &entity_uid)
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::playlist::purge(connection, &entity_uid)
         })
         .await
 }
@@ -71,11 +56,8 @@ pub async fn load_one(
     entity_uid: EntityUid,
 ) -> Result<EntityWithEntries> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::playlist::load_one_with_entries(connection, &entity_uid)
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            aoide_usecases_sqlite::playlist::load_one_with_entries(connection, &entity_uid)
         })
         .await
 }
@@ -112,19 +94,16 @@ where
         + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                let mut collector = collector;
-                aoide_usecases_sqlite::playlist::load_all_with_entries_summary(
-                    connection,
-                    collection_filter,
-                    kind_filter,
-                    pagination.as_ref(),
-                    &mut collector,
-                )?;
-                Ok(collector)
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            let mut collector = collector;
+            aoide_usecases_sqlite::playlist::load_all_with_entries_summary(
+                connection,
+                collection_filter,
+                kind_filter,
+                pagination.as_ref(),
+                &mut collector,
+            )?;
+            Ok(collector)
         })
         .await
 }

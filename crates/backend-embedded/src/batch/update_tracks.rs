@@ -5,8 +5,6 @@
 
 use std::sync::{Arc, atomic::AtomicBool};
 
-use diesel::Connection as _;
-
 use aoide_core::{Track, TrackEntity, TrackUid};
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use aoide_usecases::track::{
@@ -108,26 +106,23 @@ where
     ModifyTrackFn: Fn(&mut Track) + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                let entity = aoide_usecases_sqlite::track::load::load_one(connection, &entity_uid)?;
-                let mut track = entity.body.track.clone();
-                modify_track_fn(&mut track);
-                if track == entity.body.track && export.is_none() {
-                    return Ok(None);
-                }
-                let (track, _invalidities) = validate_input(track);
-                let params = UpdateParams { export };
-                aoide_usecases_sqlite::track::update::update_one(
-                    connection,
-                    &collection_uid,
-                    &entity.hdr,
-                    track,
-                    &params,
-                )
-                .map(Some)
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            let entity = aoide_usecases_sqlite::track::load::load_one(connection, &entity_uid)?;
+            let mut track = entity.body.track.clone();
+            modify_track_fn(&mut track);
+            if track == entity.body.track && export.is_none() {
+                return Ok(None);
+            }
+            let (track, _invalidities) = validate_input(track);
+            let params = UpdateParams { export };
+            aoide_usecases_sqlite::track::update::update_one(
+                connection,
+                &collection_uid,
+                &entity.hdr,
+                track,
+                &params,
+            )
+            .map(Some)
         })
         .await
 }

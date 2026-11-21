@@ -3,7 +3,6 @@
 
 use aoide_core::media::content::ContentPath;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
-use diesel::Connection as _;
 
 use crate::prelude::*;
 
@@ -13,15 +12,12 @@ pub async fn purge_orphaned(
     params: aoide_core_api::media::source::purge_orphaned::Params,
 ) -> Result<aoide_core_api::media::source::purge_orphaned::Outcome> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::media::source::purge_orphaned::purge_orphaned(
-                    connection,
-                    &collection_uid,
-                    &params,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::media::source::purge_orphaned::purge_orphaned(
+                connection,
+                &collection_uid,
+                &params,
+            )
         })
         .await
 }
@@ -32,15 +28,12 @@ pub async fn purge_untracked(
     params: aoide_core_api::media::source::purge_untracked::Params,
 ) -> Result<aoide_core_api::media::source::purge_untracked::Outcome> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::media::source::purge_untracked::purge_untracked(
-                    connection,
-                    &collection_uid,
-                    &params,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::media::source::purge_untracked::purge_untracked(
+                connection,
+                &collection_uid,
+                &params,
+            )
         })
         .await
 }
@@ -52,16 +45,13 @@ pub async fn relocate(
     new_path_prefix: ContentPath<'static>,
 ) -> Result<usize> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::media::source::relocate::relocate(
-                    connection,
-                    &collection_uid,
-                    &old_path_prefix,
-                    &new_path_prefix,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::media::source::relocate::relocate(
+                connection,
+                &collection_uid,
+                &old_path_prefix,
+                &new_path_prefix,
+            )
         })
         .await
 }

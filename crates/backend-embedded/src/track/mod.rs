@@ -3,8 +3,6 @@
 
 use std::sync::{Arc, atomic::AtomicBool};
 
-use diesel::Connection as _;
-
 use aoide_core::{
     media::content::ContentPath,
     tag::{FacetId, Label},
@@ -22,11 +20,8 @@ pub type EntityCollector = aoide_repo::RecordsCollector<RecordHeader, Entity>;
 
 pub async fn load_one(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::track::load::load_one(connection, &entity_uid)
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            aoide_usecases_sqlite::track::load::load_one(connection, &entity_uid)
         })
         .await
 }
@@ -41,17 +36,10 @@ where
     C: ReservableRecordCollector<Header = RecordHeader, Record = Entity> + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                let mut collector = collector;
-                aoide_usecases_sqlite::track::load::load_many(
-                    connection,
-                    entity_uids,
-                    &mut collector,
-                )?;
-                Ok(collector)
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            let mut collector = collector;
+            aoide_usecases_sqlite::track::load::load_many(connection, entity_uids, &mut collector)?;
+            Ok(collector)
         })
         .await
 }
@@ -93,19 +81,16 @@ where
     C: ReservableRecordCollector<Header = RecordHeader, Record = Entity> + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                let mut collector = collector;
-                aoide_usecases_sqlite::track::search::search(
-                    connection,
-                    &collection_uid,
-                    &params,
-                    &pagination,
-                    &mut collector,
-                )?;
-                Ok(collector)
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            let mut collector = collector;
+            aoide_usecases_sqlite::track::search::search(
+                connection,
+                &collection_uid,
+                &params,
+                &pagination,
+                &mut collector,
+            )?;
+            Ok(collector)
         })
         .await
 }
@@ -117,16 +102,13 @@ pub async fn find_unsynchronized(
     pagination: Pagination,
 ) -> Result<Vec<UnsynchronizedTrackEntity>> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::track::find_unsynchronized::find_unsynchronized(
-                    connection,
-                    &collection_uid,
-                    params,
-                    &pagination,
-                )
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            aoide_usecases_sqlite::track::find_unsynchronized::find_unsynchronized(
+                connection,
+                &collection_uid,
+                params,
+                &pagination,
+            )
         })
         .await
 }
@@ -141,15 +123,12 @@ pub async fn count_tag_labels(
     facet_id: Option<FacetId>,
 ) -> Result<Vec<(Label<'static>, usize)>> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::track::load::count_track_tag_labels(
-                    connection,
-                    Some(&collection_uid),
-                    facet_id.as_ref(),
-                )
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            aoide_usecases_sqlite::track::load::count_track_tag_labels(
+                connection,
+                Some(&collection_uid),
+                facet_id.as_ref(),
+            )
         })
         .await
 }
@@ -164,16 +143,13 @@ where
     I: IntoIterator<Item = aoide_usecases::track::ValidatedInput> + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::track::replace::replace_many_by_media_source_content_path(
-                    connection,
-                    &collection_uid,
-                    &params,
-                    validated_track_iter,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::track::replace::replace_many_by_media_source_content_path(
+                connection,
+                &collection_uid,
+                &params,
+                validated_track_iter,
+            )
         })
         .await
 }
@@ -194,17 +170,14 @@ pub async fn update_one(
     params: aoide_usecases::track::update::Params,
 ) -> Result<aoide_usecases::track::update::Outcome> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::track::update::update_one(
-                    connection,
-                    &collection_uid,
-                    &expected_entity_hdr,
-                    track,
-                    &params,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::track::update::update_one(
+                connection,
+                &collection_uid,
+                &expected_entity_hdr,
+                track,
+                &params,
+            )
         })
         .await
 }
@@ -223,9 +196,7 @@ where
     InterceptImportedTrackFn: Fn(Track) -> Track + Send + 'static,
 {
     db_gatekeeper
-    .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-        let connection = &mut *pooled_connection;
-        connection.transaction::<_, Error, _>(|connection| {
+    .spawn_blocking_write_transaction(move |connection| {
         aoide_usecases_sqlite::track::import_and_replace::import_and_replace_many_by_local_file_path(
             connection,
             &collection_uid,
@@ -236,6 +207,5 @@ where
             &abort_flag,
         )
         })
-    })
     .await
 }

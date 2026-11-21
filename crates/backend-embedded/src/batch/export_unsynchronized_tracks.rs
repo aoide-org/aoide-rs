@@ -5,8 +5,6 @@
 
 use std::sync::{Arc, atomic::AtomicBool};
 
-use diesel::Connection as _;
-
 use aoide_core::{TrackEntity, media::content::ContentPath, track::EntityHeader};
 use aoide_core_api::Pagination;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
@@ -105,16 +103,13 @@ async fn export_one(
     export: ExportParams,
 ) -> Result<UpdateOutcome> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::track::update::export_one(
-                    connection,
-                    &collection_uid,
-                    &expected_entity_hdr,
-                    export,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::track::update::export_one(
+                connection,
+                &collection_uid,
+                &expected_entity_hdr,
+                export,
+            )
         })
         .await
 }

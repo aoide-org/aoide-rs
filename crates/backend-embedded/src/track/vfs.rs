@@ -3,14 +3,12 @@
 
 use std::path::PathBuf;
 
-use diesel::Connection as _;
-
 use aoide_core::CollectionUid;
 use aoide_core_api::track::search::Filter;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 use aoide_usecases::track::vfs::export_files::{ExportTrackFilesOutcome, MatchFiles};
 
-use crate::{Error, Result};
+use crate::Result;
 
 pub async fn export_files(
     db_gatekeeper: &Gatekeeper,
@@ -22,19 +20,16 @@ pub async fn export_files(
     purge_other_files: bool,
 ) -> Result<ExportTrackFilesOutcome> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::track::vfs::export_files(
-                    connection,
-                    &collection_uid,
-                    filter.as_ref(),
-                    batch_size,
-                    &target_root_path,
-                    match_files,
-                    purge_other_files,
-                )
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            aoide_usecases_sqlite::track::vfs::export_files(
+                connection,
+                &collection_uid,
+                filter.as_ref(),
+                batch_size,
+                &target_root_path,
+                match_files,
+                purge_other_files,
+            )
         })
         .await
 }

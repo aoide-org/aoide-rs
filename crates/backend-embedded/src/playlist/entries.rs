@@ -4,7 +4,6 @@
 use aoide_core::playlist::EntityHeader;
 use aoide_core_api::playlist::EntityWithEntriesSummary;
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
-use diesel::Connection as _;
 
 use crate::prelude::*;
 
@@ -16,16 +15,9 @@ pub async fn patch(
     + 'static,
 ) -> Result<EntityWithEntriesSummary> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::playlist::entries::patch(
-                    connection,
-                    &entity_header,
-                    operations,
-                )
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::playlist::entries::patch(connection, &entity_header, operations)
                 .map(|(_, x)| x)
-            })
         })
         .await
 }

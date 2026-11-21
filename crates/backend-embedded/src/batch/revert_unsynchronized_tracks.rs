@@ -5,8 +5,6 @@
 
 use std::sync::{Arc, atomic::AtomicBool};
 
-use diesel::Connection as _;
-
 use aoide_core::{TrackEntity, media::content::ContentPath, track::EntityHeader};
 use aoide_core_api::Pagination;
 use aoide_media_file::io::import::ImportTrackConfig;
@@ -104,16 +102,13 @@ async fn revert_one(
     import_config: ImportTrackConfig,
 ) -> Result<RevertOutcome> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::track::update::revert_one(
-                    connection,
-                    &collection_uid,
-                    &expected_entity_hdr,
-                    &import_config,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::track::update::revert_one(
+                connection,
+                &collection_uid,
+                &expected_entity_hdr,
+                &import_config,
+            )
         })
         .await
 }

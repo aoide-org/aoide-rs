@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use diesel::Connection as _;
 use url::Url;
 
 use aoide_core::{
@@ -23,11 +22,8 @@ use crate::prelude::*;
 
 pub async fn load_all_kinds(db_gatekeeper: &Gatekeeper) -> Result<Vec<String>> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::load_all_kinds(connection)
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            aoide_usecases_sqlite::collection::load_all_kinds(connection)
         })
         .await
 }
@@ -65,20 +61,17 @@ where
         + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                let mut collector = collector;
-                aoide_usecases_sqlite::collection::load_all(
-                    connection,
-                    kind_filter,
-                    media_source_root_url.as_ref(),
-                    scope,
-                    pagination.as_ref(),
-                    &mut collector,
-                )?;
-                Ok(collector)
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            let mut collector = collector;
+            aoide_usecases_sqlite::collection::load_all(
+                connection,
+                kind_filter,
+                media_source_root_url.as_ref(),
+                scope,
+                pagination.as_ref(),
+                &mut collector,
+            )?;
+            Ok(collector)
         })
         .await
 }
@@ -89,12 +82,9 @@ pub async fn load_one(
     load_scope: LoadScope,
 ) -> Result<EntityWithSummary> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::load_one(connection, &entity_uid, load_scope)
-                    .map(|(_record_id, entity_with_summary)| entity_with_summary)
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            aoide_usecases_sqlite::collection::load_one(connection, &entity_uid, load_scope)
+                .map(|(_record_id, entity_with_summary)| entity_with_summary)
         })
         .await
 }
@@ -113,11 +103,8 @@ pub async fn try_load_one(
 
 pub async fn create(db_gatekeeper: &Gatekeeper, new_collection: Collection) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::create(connection, new_collection)
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::collection::create(connection, new_collection)
         })
         .await
 }
@@ -128,26 +115,20 @@ pub async fn update(
     modified_collection: Collection,
 ) -> Result<Entity> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::update(
-                    connection,
-                    entity_header,
-                    modified_collection,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::collection::update(
+                connection,
+                entity_header,
+                modified_collection,
+            )
         })
         .await
 }
 
 pub async fn purge(db_gatekeeper: &Gatekeeper, entity_uid: EntityUid) -> Result<()> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::purge(connection, &entity_uid)
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::collection::purge(connection, &entity_uid)
         })
         .await
 }
@@ -158,15 +139,12 @@ pub async fn resolve_content_path_from_url(
     content_url: Url,
 ) -> Result<Option<ContentPath<'static>>> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::resolve_content_path_from_url(
-                    connection,
-                    &entity_uid,
-                    &content_url,
-                )
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            aoide_usecases_sqlite::collection::resolve_content_path_from_url(
+                connection,
+                &entity_uid,
+                &content_url,
+            )
         })
         .await
 }
@@ -178,16 +156,13 @@ pub async fn resolve_url_from_content_path(
     override_root_url: Option<BaseUrl>,
 ) -> Result<Option<Url>> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::collection::resolve_url_from_content_path(
-                    connection,
-                    &entity_uid,
-                    &content_path,
-                    override_root_url,
-                )
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            aoide_usecases_sqlite::collection::resolve_url_from_content_path(
+                connection,
+                &entity_uid,
+                &content_path,
+                override_root_url,
+            )
         })
         .await
 }

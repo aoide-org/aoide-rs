@@ -11,6 +11,7 @@ use std::{
     time::Duration,
 };
 
+use diesel::{Connection as _, SqliteConnection};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use tokio::{sync::RwLock, task::spawn_blocking, time::sleep};
@@ -252,6 +253,44 @@ impl Gatekeeper {
             .await
             .map_err(E::from)
             .unwrap_or_else(Err)
+    }
+
+    /// Spawn a blocking read task that runs within a transaction.
+    ///
+    /// See also: [`Self::spawn_blocking_read_task_flattened()`]
+    pub async fn spawn_blocking_read_transaction<H, T, E>(
+        &self,
+        transaction_handler: H,
+    ) -> std::result::Result<T, E>
+    where
+        H: FnOnce(&mut SqliteConnection) -> std::result::Result<T, E> + Send + 'static,
+        T: Send + 'static,
+        E: From<Error> + From<diesel::result::Error> + Send + 'static,
+    {
+        self.spawn_blocking_read_task_flattened(move |mut pooled_connection| {
+            let connection: &mut SqliteConnection = &mut pooled_connection;
+            connection.transaction(transaction_handler)
+        })
+        .await
+    }
+
+    /// Spawn a blocking write task that runs within a transaction.
+    ///
+    /// See also: [`Self::spawn_blocking_write_task_flattened()`]
+    pub async fn spawn_blocking_write_transaction<H, T, E>(
+        &self,
+        transaction_handler: H,
+    ) -> std::result::Result<T, E>
+    where
+        H: FnOnce(&mut SqliteConnection) -> std::result::Result<T, E> + Send + 'static,
+        T: Send + 'static,
+        E: From<Error> + From<diesel::result::Error> + Send + 'static,
+    {
+        self.spawn_blocking_write_task_flattened(move |mut pooled_connection| {
+            let connection: &mut SqliteConnection = &mut pooled_connection;
+            connection.transaction(transaction_handler)
+        })
+        .await
     }
 
     pub fn pending_tasks(&self) -> PendingTasks {

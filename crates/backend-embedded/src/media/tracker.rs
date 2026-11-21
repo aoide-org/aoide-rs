@@ -16,16 +16,13 @@ pub async fn count_sources_in_directories(
     params: aoide_core_api::media::tracker::count_sources_in_directories::Params,
 ) -> Result<Vec<(ContentPath<'static>, usize)>> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
+        .spawn_blocking_read_transaction(move |connection| {
                 aoide_usecases_sqlite::media::tracker::count_sources_in_directories::count_sources_in_directories(
                     connection,
                     &collection_uid,
                     &params,
                 )
             })
-        })
         .await
 }
 
@@ -35,15 +32,12 @@ pub async fn query_status(
     params: aoide_core_api::media::tracker::query_status::Params,
 ) -> Result<aoide_core_api::media::tracker::Status> {
     db_gatekeeper
-        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::media::tracker::query_status::query_status(
-                    connection,
-                    &collection_uid,
-                    &params,
-                )
-            })
+        .spawn_blocking_read_transaction(move |connection| {
+            aoide_usecases_sqlite::media::tracker::query_status::query_status(
+                connection,
+                &collection_uid,
+                &params,
+            )
         })
         .await
 }
@@ -81,15 +75,12 @@ pub async fn untrack_directories(
     params: aoide_core_api::media::tracker::untrack_directories::Params,
 ) -> Result<aoide_core_api::media::tracker::untrack_directories::Outcome> {
     db_gatekeeper
-        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
-            let connection = &mut *pooled_connection;
-            connection.transaction::<_, Error, _>(|connection| {
-                aoide_usecases_sqlite::media::tracker::untrack_directories::untrack_directories(
-                    connection,
-                    &collection_uid,
-                    &params,
-                )
-            })
+        .spawn_blocking_write_transaction(move |connection| {
+            aoide_usecases_sqlite::media::tracker::untrack_directories::untrack_directories(
+                connection,
+                &collection_uid,
+                &params,
+            )
         })
         .await
 }
