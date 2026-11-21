@@ -6,6 +6,7 @@ use aoide_core::{
     media::content::{ContentLink, ContentPath},
     tag::{FacetId, Label},
     track::{EntityHeader, actor::ActorNamesSummarySplitter},
+    util::clock::UtcDateTimeMs,
 };
 use aoide_core_api::{
     Pagination,
@@ -62,6 +63,12 @@ pub trait EntityRepo {
     fn resolve_track_id(&mut self, uid: &TrackUid) -> RepoResult<RecordId>;
 
     fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, TrackEntity)>;
+
+    /// Load multiple tracks in the order of `ids`.
+    fn load_track_entities(
+        &mut self,
+        ids: &[RecordId],
+    ) -> RepoResult<Vec<(RecordHeader, TrackEntity)>>;
 
     fn load_track_entity_by_uid(
         &mut self,
@@ -142,6 +149,18 @@ pub trait CollectionRepo {
     ) -> RepoResult<usize>;
 
     fn count_tracks(&mut self, collection_id: CollectionId) -> RepoResult<u64>;
+
+    /// Load the headers of tracks ordered by descending update time.
+    ///
+    /// Tracks with the same update time are ordered by ascending id.
+    /// Continues after the given update time and id of the last track
+    /// of the previous page, if any.
+    fn load_recently_updated_track_headers(
+        &mut self,
+        collection_id: CollectionId,
+        after: Option<(UtcDateTimeMs, RecordId)>,
+        limit: u64,
+    ) -> RepoResult<Vec<(RecordHeader, EntityHeader)>>;
 
     fn purge_tracks_by_media_source_content_path_predicate(
         &mut self,

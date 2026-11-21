@@ -700,6 +700,36 @@ impl EntityRepo for Connection<'_> {
         load_repo_entity(preload, queryable)
     }
 
+    fn load_track_entities(
+        &mut self,
+        ids: &[TrackId],
+    ) -> RepoResult<Vec<(RecordHeader, TrackEntity)>> {
+        let mut loaded = Vec::with_capacity(ids.len());
+        for ids in ids.chunks(PRELOAD_TRACKS_CHUNK_SIZE) {
+            let mut records = view_track_search::table
+                .filter(view_track_search::row_id.eq_any(ids.iter().copied().map(RowId::from)))
+                .load::<SearchQueryableRecord>(self.as_mut())
+                .map_err(repo_error)?
+                .into_iter()
+                .map(|record| (TrackId::from(record.row_id), record))
+                .collect::<BTreeMap<_, _>>();
+            // Restore the requested order
+            let records = ids
+                .iter()
+                .map(|id| records.remove(id).ok_or(RepoError::NotFound))
+                .collect::<RepoResult<Vec<_>>>()?;
+            let preload_ids = records
+                .iter()
+                .map(|record| (record.row_id.into(), record.media_source_id.into()))
+                .collect::<Vec<_>>();
+            let preloads = preload_entities(self, &preload_ids)?;
+            for (record, preload) in records.into_iter().zip(preloads) {
+                loaded.push(load_repo_entity(preload, record)?);
+            }
+        }
+        Ok(loaded)
+    }
+
     fn load_track_entity_by_uid(
         &mut self,
         uid: &TrackUid,
@@ -1033,6 +1063,64 @@ impl CollectionRepo for crate::Connection<'_> {
         );
 
         Ok(count)
+    }
+
+    fn load_recently_updated_track_headers(
+        &mut self,
+        collection_id: CollectionId,
+        after: Option<(UtcDateTimeMs, TrackId)>,
+        limit: u64,
+    ) -> RepoResult<Vec<(RecordHeader, TrackHeader)>> {
+        let mut query = track::table
+            .select((
+                track::row_id,
+                track::row_created_ms,
+                track::row_updated_ms,
+                track::entity_uid,
+                track::entity_rev,
+            ))
+            .filter(track::media_source_id.eq_any(
+                select_media_source_id_filtered_by_collection_id(collection_id),
+            ))
+            .order_by((track::row_updated_ms.desc(), track::row_id))
+            .limit(limit.try_into().unwrap_or(i64::MAX))
+            .into_boxed();
+        if let Some((updated_at, id)) = after {
+            // Keyset pagination
+            let updated_ms = updated_at.unix_timestamp_millis();
+            query = query.filter(
+                track::row_updated_ms
+                    .lt(updated_ms)
+                    .or(track::row_updated_ms
+                        .eq(updated_ms)
+                        .and(track::row_id.gt(RowId::from(id)))),
+            );
+        }
+        query
+            .load::<(RowId, i64, i64, String, i64)>(self.as_mut())
+            .map_err(repo_error)
+            .map(|rows| {
+                rows.into_iter()
+                    .map(
+                        |(row_id, row_created_ms, row_updated_ms, entity_uid, entity_rev)| {
+                            let record_header = RecordHeader {
+                                id: row_id.into(),
+                                created_at: UtcDateTimeMs::from_unix_timestamp_millis(
+                                    row_created_ms,
+                                ),
+                                updated_at: UtcDateTimeMs::from_unix_timestamp_millis(
+                                    row_updated_ms,
+                                ),
+                            };
+                            let entity_header = TrackHeader::from_untyped(decode_entity_header(
+                                &entity_uid,
+                                entity_rev,
+                            ));
+                            (record_header, entity_header)
+                        },
+                    )
+                    .collect()
+            })
     }
 
     fn count_tracks(&mut self, collection_id: CollectionId) -> RepoResult<u64> {

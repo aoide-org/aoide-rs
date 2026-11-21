@@ -600,7 +600,6 @@ fn search_tracks_preloads_children_of_each_track() -> TestResult<()> {
     Ok(())
 }
 
-
 #[test]
 fn replace_track_updates_modified_children() -> TestResult<()> {
     use aoide_repo::track::{ReplaceMode, ReplaceOutcome, ReplaceParams};
@@ -653,6 +652,72 @@ fn replace_track_updates_modified_children() -> TestResult<()> {
     assert_eq!(reloaded.cues, track.cues);
     assert_eq!(reloaded.tags, track.tags);
     assert_ne!(reloaded.cues, entity.body.track.cues);
+
+    Ok(())
+}
+
+#[test]
+fn load_recently_updated_track_headers_with_keyset_pagination() -> TestResult<()> {
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = TracksWithGenreTagsFixture {
+        collection_id: {
+            let collection = Collection {
+                title: "Collection".into(),
+                notes: None,
+                kind: None,
+                color: None,
+                media_source_config: vfs_media_source_config(),
+            };
+            let collection_entity =
+                CollectionEntity::new(CollectionHeader::initial_random(), collection);
+            db.insert_collection_entity(UtcDateTimeMs::now(), &collection_entity)?
+        },
+    };
+    let track_count = 10;
+    for index in 0..track_count {
+        fixture.create_media_source_and_track_with(&mut db, |track| {
+            init_track_children(track, index);
+        })?;
+    }
+
+    let all_headers =
+        db.load_recently_updated_track_headers(fixture.collection_id, None, u64::MAX)?;
+    assert_eq!(track_count, all_headers.len());
+    for pair in all_headers.windows(2) {
+        let (prev, _) = &pair[0];
+        let (next, _) = &pair[1];
+        assert!(
+            prev.updated_at > next.updated_at
+                || (prev.updated_at == next.updated_at && prev.id < next.id)
+        );
+    }
+
+    // Paginate with a page size that doesn't divide the number of tracks.
+    let mut paginated_headers = Vec::new();
+    let mut after = None;
+    loop {
+        let page = db.load_recently_updated_track_headers(fixture.collection_id, after, 3)?;
+        let Some((last, _)) = page.last() else {
+            break;
+        };
+        after = Some((last.updated_at, last.id));
+        paginated_headers.extend(page);
+    }
+    assert_eq!(all_headers, paginated_headers);
+
+    // Load entities in the requested, reversed order.
+    let ids = all_headers
+        .iter()
+        .rev()
+        .map(|(record_header, _)| record_header.id)
+        .collect::<Vec<_>>();
+    let entities = db.load_track_entities(&ids)?;
+    assert_eq!(ids.len(), entities.len());
+    for (id, (record_header, entity)) in ids.iter().zip(&entities) {
+        assert_eq!(*id, record_header.id);
+        assert_eq!(db.load_track_entity(*id)?.1, *entity);
+    }
 
     Ok(())
 }

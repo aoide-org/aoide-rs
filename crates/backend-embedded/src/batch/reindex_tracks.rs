@@ -9,13 +9,10 @@ use tantivy::{
     query::{AllQuery, Query as _},
 };
 
-use aoide_core_api::{
-    Pagination, SortDirection,
-    track::search::{SortField, SortOrder},
-};
+use aoide_repo::{collection::EntityRepo as _, track::CollectionRepo as _, track::EntityRepo as _};
 use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper;
 
-use crate::{prelude::*, track::EntityCollector};
+use crate::prelude::*;
 
 #[derive(Debug, Clone)]
 pub enum IndexingMode {
@@ -52,13 +49,6 @@ pub async fn reindex_tracks(
     db_gatekeeper
         .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
-            let search_params = aoide_core_api::track::search::Params {
-                order: vec![SortOrder {
-                    field: SortField::UpdatedAt,
-                    direction: SortDirection::Descending,
-                }],
-                ..Default::default()
-            };
             let index_searcher = index_writer.index().reader()?.searcher();
             let mode = if AllQuery.count(&index_searcher)? > 0 {
                 mode.unwrap_or(IndexingMode::RecentlyUpdated)
@@ -71,78 +61,81 @@ pub async fn reindex_tracks(
                 }
                 IndexingMode::RecentlyUpdated => (),
             }
-            let mut offset = 0;
-            #[expect(clippy::cast_possible_truncation)]
-            let mut collector = EntityCollector::new(Vec::with_capacity(batch_size.get() as usize));
-            // Last timestamp to consider for updates
-            let mut last_updated_at = None;
             connection.transaction::<_, anyhow::Error, _>(|connection| {
-                'batch_loop: loop {
-                    let pagination = Pagination {
-                        offset: Some(offset),
-                        limit: Some(batch_size.get()),
-                    };
-                    aoide_usecases_sqlite::track::search::search(
-                        connection,
-                        &collection_uid,
-                        &search_params,
-                        &pagination,
-                        &mut collector,
+                let mut repo = aoide_repo_sqlite::Connection::new(connection);
+                let collection_id = repo.resolve_collection_id(&collection_uid)?;
+                // The number of visited tracks
+                let mut visited = 0;
+                // Keyset pagination
+                let mut after = None;
+                // Last timestamp to consider for updates
+                let mut last_updated_at = None;
+                let mut finished = false;
+                while !finished {
+                    let headers = repo.load_recently_updated_track_headers(
+                        collection_id,
+                        after,
+                        batch_size.get(),
                     )?;
-                    let mut entities = collector.finish();
-                    if entities.is_empty() {
+                    let Some((last_record_header, _)) = headers.last() else {
                         break;
-                    }
-                    for entity in &entities {
+                    };
+                    after = Some((last_record_header.updated_at, last_record_header.id));
+                    let mut ids_to_index = Vec::with_capacity(headers.len());
+                    for (record_header, entity_header) in &headers {
                         match mode {
                             IndexingMode::All => (),
                             IndexingMode::RecentlyUpdated => {
                                 if let Some(rev) = track_fields
-                                    .find_rev_by_uid(&index_searcher, &entity.hdr.uid)?
+                                    .find_rev_by_uid(&index_searcher, &entity_header.uid)?
                                 {
-                                    if rev < entity.hdr.rev {
-                                        let term = track_fields.uid_term(&entity.hdr.uid);
+                                    if rev < entity_header.rev {
+                                        let term = track_fields.uid_term(&entity_header.uid);
                                         index_writer.delete_term(term);
                                     } else {
-                                        debug_assert_eq!(rev, entity.hdr.rev);
+                                        debug_assert_eq!(rev, entity_header.rev);
                                         // After approaching the first unmodified entity all entities
                                         // with an updated_at timestamp strictly less than the current
                                         // one are guaranteed to be unmodified. But we still need to
                                         // consider all entities with the same timestamp to be sure.
                                         if let Some(last_updated_at) = last_updated_at {
-                                            if entity.body.updated_at < last_updated_at {
+                                            if record_header.updated_at < last_updated_at {
                                                 // No more updated entities expected to follow
-                                                break 'batch_loop;
+                                                finished = true;
+                                                break;
                                             }
                                         } else {
                                             // Initialize the high watermark that will eventually
                                             // terminate the loop.
-                                            last_updated_at = Some(entity.body.updated_at);
+                                            last_updated_at = Some(record_header.updated_at);
                                         }
                                         // Skip and continue with next entity
-                                        offset += 1;
+                                        visited += 1;
                                         continue;
                                     }
                                 }
                             }
                         }
+                        ids_to_index.push(record_header.id);
+                        visited += 1;
+                    }
+                    // Only load the entities that need to be (re-)indexed.
+                    for (_, entity) in repo.load_track_entities(&ids_to_index)? {
                         // TODO: Load play counter
                         let play_counter = None;
                         let doc = track_fields.create_document(
                             Some(&collection_uid),
-                            entity,
+                            &entity,
                             play_counter,
                         );
                         index_writer.add_document(doc)?;
-                        offset += 1;
                     }
-                    // Reuse the capacity of the allocated entities for the next round
-                    entities.clear();
-                    collector = EntityCollector::new(entities);
-                    progress_fn(offset);
+                    if !finished {
+                        progress_fn(visited);
+                    }
                 }
                 index_writer.commit()?;
-                Ok(offset)
+                Ok(visited)
             })
         })
         .await
