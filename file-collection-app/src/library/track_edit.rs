@@ -221,7 +221,7 @@ async fn save_edited_track(
     track: Track,
     write_file: bool,
 ) -> anyhow::Result<Outcome> {
-    let (validated_input, invalidities) = aoide::usecases::track::validate_input(track)?;
+    let (validated_input, invalidities) = aoide::usecases::track::validate_input(track);
     if !invalidities.is_empty() {
         // Imported tracks are often invalid to some extent and editing
         // must not be prevented.

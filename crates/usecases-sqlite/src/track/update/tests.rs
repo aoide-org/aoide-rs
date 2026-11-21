@@ -133,7 +133,7 @@ impl Fixture {
         track: Track,
         write_file: bool,
     ) -> anyhow::Result<Outcome> {
-        let (validated_input, _) = validate_input(track)?;
+        let (validated_input, _) = validate_input(track);
         let export = write_file.then(export_params);
         let params = Params { export };
         let outcome = self.connection.transaction(|connection| {

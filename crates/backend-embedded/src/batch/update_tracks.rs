@@ -117,8 +117,7 @@ where
                 if track == entity.body.track && export.is_none() {
                     return Ok(None);
                 }
-                let (track, _invalidities) =
-                    validate_input(track).map_err(aoide_usecases::Error::from)?;
+                let (track, _invalidities) = validate_input(track);
                 let params = UpdateParams { export };
                 aoide_usecases_sqlite::track::update::update_one(
                     connection,

@@ -274,7 +274,7 @@ where
     let collection_id = collection_ctx.record_id;
     let loaded = load_collected_entity(repo, collection_id, expected_entity_hdr)?;
     // Unchanged invalidities have already been reported when importing the track.
-    let (ValidatedInput(track), _invalidities) = validate_input(loaded.2.body.track.clone())?;
+    let (ValidatedInput(track), _invalidities) = validate_input(loaded.2.body.track.clone());
     let params = Params {
         export: Some(export),
     };
@@ -377,7 +377,7 @@ where
     }
 
     // Imported tracks are often invalid to some extent and reverting must not be prevented.
-    let (validated_input, _invalidities) = validate_input(track)?;
+    let (validated_input, _invalidities) = validate_input(track);
     let replace_params = ReplaceParams {
         mode: ReplaceMode::UpdateOnly,
         preserve_collected_at: true,

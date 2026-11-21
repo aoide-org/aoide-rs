@@ -171,7 +171,7 @@ where
             debug_assert_eq!(track.media_source.content.link.path, content_path);
             import_issues = issues;
             let track = intercept_imported_track_fn(track);
-            let (validated_input, invalidities) = validate_input(track)?;
+            let (validated_input, invalidities) = validate_input(track);
             // Merge low-level import issues with high-level invalidities.
             for invalidity in invalidities {
                 import_issues.add_message(format!("{invalidity:?}"));

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use aoide_core_json::track::{Entity, Track};
-use aoide_usecases::InputError;
 
 use super::*;
 
@@ -135,16 +134,12 @@ pub fn handle_request(
         .into_iter()
         .map(|t| t.try_into().map_err(Error::BadRequest))
         .map(|res| {
-            res.and_then(|t| {
-                uc::validate_input(t)
-                    .map(|(track, invalidities)| {
-                        if !invalidities.is_empty() {
-                            log::warn!("Replacing track {track:?} invalidities: {invalidities:?}");
-                        }
-                        track
-                    })
-                    .map_err(|InputError(err)| err)
-                    .map_err(Error::BadRequest)
+            res.map(|t| {
+                let (track, invalidities) = uc::validate_input(t);
+                if !invalidities.is_empty() {
+                    log::warn!("Replacing track {track:?} invalidities: {invalidities:?}");
+                }
+                track
             })
         })
         .partition(Result::is_ok);
