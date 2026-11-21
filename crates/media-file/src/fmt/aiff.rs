@@ -53,13 +53,9 @@ pub(crate) fn export_track_to_file_id3v2(
     }
     super::ensure_content_type(track, &["audio/aiff"])?;
 
-    let id3v2 = if let Some(id3v2) = aiff_file.id3v2_mut() {
-        id3v2
-    } else {
-        aiff_file.set_id3v2(Default::default());
-        aiff_file.id3v2_mut().expect("Some")
-    };
-    id3v2::export_track_to_tag(id3v2, config, track, edit_embedded_artwork_image);
+    let mut id3v2 = aiff_file.remove_id3v2().unwrap_or_default();
+    id3v2::export_track_to_tag(&mut id3v2, config, track, edit_embedded_artwork_image);
+    aiff_file.set_id3v2(id3v2);
 
     Ok(())
 }
