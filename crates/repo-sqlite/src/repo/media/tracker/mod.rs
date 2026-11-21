@@ -444,16 +444,15 @@ impl Repo for Connection<'_> {
                     .iter()
                     .all(|content_path| !content_path.is_directory())
             );
+            // Joining the tracked sources instead of filtering by a subselect
+            // prevents SQLite from probing all combinations of both IN lists,
+            // i.e. all content paths times all tracked sources.
             let rows = media_source::table
+                .inner_join(media_tracker_source::table)
                 .select(media_source::content_link_path)
                 .filter(media_source::collection_id.eq(RowId::from(collection_id)))
                 .filter(
                     media_source::content_link_path.eq_any(chunk.iter().map(ContentPath::as_str)),
-                )
-                .filter(
-                    media_source::row_id.eq_any(
-                        media_tracker_source::table.select(media_tracker_source::source_id),
-                    ),
                 )
                 .load::<String>(self.as_mut())
                 .map_err(repo_error)?;
