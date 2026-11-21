@@ -3,7 +3,7 @@
 
 use std::{borrow::Borrow, cmp::Ordering, hash::Hash, ops::Not as _};
 
-use derive_more::Display;
+use derive_more::{AsRef, Display, Into};
 use nonicle::CanonicalOrd;
 use semval::prelude::*;
 use smol_str::SmolStr;
@@ -29,7 +29,8 @@ use smol_str::SmolStr;
 ///
 /// References:
 ///   - <https://en.wikipedia.org/wiki/Faceted_classification>
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Display)]
+#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Display, AsRef, Into)]
+#[as_ref(str, SmolStr)]
 #[repr(transparent)]
 #[cfg_attr(
     feature = "serde",
@@ -141,28 +142,9 @@ impl Borrow<str> for FacetId {
     }
 }
 
-impl AsRef<str> for FacetId {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
-impl AsRef<SmolStr> for FacetId {
-    fn as_ref(&self) -> &SmolStr {
-        &self.0
-    }
-}
-
 impl CanonicalOrd for FacetId {
     fn canonical_cmp(&self, other: &Self) -> Ordering {
         self.cmp(other)
-    }
-}
-
-impl From<FacetId> for SmolStr {
-    fn from(from: FacetId) -> Self {
-        let FacetId(inner) = from;
-        inner
     }
 }
 

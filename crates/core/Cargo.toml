@@ -30,6 +30,7 @@ derive_more = { workspace = true, features = [
   "error",
   "from",
   "from_str",
+  "into",
 ] }
 digest.workspace = true
 hashbrown.workspace = true
