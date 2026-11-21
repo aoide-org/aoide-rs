@@ -55,6 +55,10 @@ pub(crate) struct TagCloud {
     pub(crate) entity_uid: TrackUid,
     /// All labels with the number of tracks in ascending order.
     label_counts: Vec<(String, usize)>,
+    /// The lowercase labels for filtering, in the same order as `label_counts`.
+    lowercase_labels: Vec<String>,
+    /// The maximum number of tracks of all labels.
+    max_count: usize,
     load_error: Option<String>,
     pending_request_id: Option<u64>,
     last_request_id: u64,
@@ -66,6 +70,8 @@ impl TagCloud {
         Self {
             entity_uid,
             label_counts: Vec::new(),
+            lowercase_labels: Vec::new(),
+            max_count: 0,
             load_error: None,
             pending_request_id: None,
             last_request_id: 0,
@@ -102,6 +108,15 @@ impl TagCloud {
         self.pending_request_id = None;
         match result {
             Ok(label_counts) => {
+                self.lowercase_labels = label_counts
+                    .iter()
+                    .map(|(label, _)| label.to_lowercase())
+                    .collect();
+                self.max_count = label_counts
+                    .iter()
+                    .map(|(_, count)| *count)
+                    .max()
+                    .unwrap_or_default();
                 self.label_counts = label_counts;
                 self.load_error = None;
             }
@@ -567,19 +582,20 @@ fn render_cloud(
         return;
     }
     let filter = selection.input.trim().to_lowercase();
-    let max_count = label_counts
-        .iter()
-        .map(|(_, count)| *count)
-        .max()
-        .unwrap_or_default();
+    let max_count = tag_cloud.max_count;
     let body_font = TextStyle::Body.resolve(ui.style());
     ScrollArea::vertical()
         .auto_shrink([false, true])
         .show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
-                for (label, count) in label_counts.iter().filter(|(label, _)| {
-                    filter.is_empty() || label.to_lowercase().contains(&filter)
-                }) {
+                for (label, count) in label_counts
+                    .iter()
+                    .zip(&tag_cloud.lowercase_labels)
+                    .filter(|(_, lowercase_label)| {
+                        filter.is_empty() || lowercase_label.contains(&filter)
+                    })
+                    .map(|(label_count, _)| label_count)
+                {
                     let is_assigned = edited_tags.contains(label);
                     let text_color = if is_assigned {
                         ui.visuals().weak_text_color()
@@ -591,12 +607,6 @@ fn render_cloud(
                         body_font.family.clone(),
                     );
                     let is_selected = selection.cloud.contains(label);
-                    let tracks = if *count == 1 { "track" } else { "tracks" };
-                    let hover_text = if is_assigned {
-                        format!("{count} {tracks}, assigned to the edited track")
-                    } else {
-                        format!("{count} {tracks}")
-                    };
                     let response = paint_bubble_with_font(
                         ui,
                         label,
@@ -605,7 +615,14 @@ fn render_cloud(
                         Sense::click_and_drag(),
                         is_selected,
                     )
-                    .on_hover_text(hover_text);
+                    .on_hover_ui(|ui| {
+                        let tracks = if *count == 1 { "track" } else { "tracks" };
+                        if is_assigned {
+                            ui.label(format!("{count} {tracks}, assigned to the edited track"));
+                        } else {
+                            ui.label(format!("{count} {tracks}"));
+                        }
+                    });
                     if response.hovered() {
                         ui.ctx().set_cursor_icon(CursorIcon::Grab);
                     }
