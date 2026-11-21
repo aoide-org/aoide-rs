@@ -621,7 +621,6 @@ fn load_global_playlist_entities_with_entries_summary() -> anyhow::Result<()> {
     Ok(())
 }
 
-
 #[test]
 fn reverse_entries() -> anyhow::Result<()> {
     let mut db = establish_connection()?;
@@ -666,7 +665,6 @@ fn reverse_entries() -> anyhow::Result<()> {
     Ok(())
 }
 
-
 #[test]
 fn insert_entries_before_existing_entries() -> anyhow::Result<()> {
     let mut db = establish_connection()?;
@@ -693,6 +691,89 @@ fn insert_entries_before_existing_entries() -> anyhow::Result<()> {
     expected.splice(2..2, inserted.iter().cloned());
     let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
     assert_eq!(expected, playlist_with_entries.entries);
+
+    Ok(())
+}
+
+#[test]
+fn load_entries_summaries_of_multiple_playlists() -> anyhow::Result<()> {
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
+
+    // A playlist with a separator and a duplicate track entry
+    let (header, playlist_with_entries) = fixture
+        .create_playlists_with_track_entries(&mut db, PlaylistScope::Collection, 3)?
+        .into();
+    let playlist_id = db.resolve_playlist_id(&header.uid)?;
+    let mut duplicate_track_entry = playlist_with_entries.entries[0].clone();
+    duplicate_track_entry.added_ts = now_ms();
+    db.append_playlist_entries(playlist_id, &[new_separator_entry(), duplicate_track_entry])?;
+    // Another playlist with only tracks, reusing the tracks of the first playlist
+    let other_playlist_id = db.insert_playlist_entity(
+        None,
+        UtcDateTimeMs::now(),
+        &PlaylistEntity::new(
+            PlaylistHeader::initial_random(),
+            Playlist {
+                title: "Other playlist".into(),
+                notes: None,
+                kind: None,
+                color: None,
+                time_zone: None,
+                flags: Default::default(),
+            },
+        ),
+    )?;
+    db.append_playlist_entries(other_playlist_id, &playlist_with_entries.entries[1..])?;
+    // An empty playlist
+    db.insert_playlist_entity(
+        None,
+        UtcDateTimeMs::now(),
+        &PlaylistEntity::new(
+            PlaylistHeader::initial_random(),
+            Playlist {
+                title: "Empty playlist".into(),
+                notes: None,
+                kind: None,
+                color: None,
+                time_zone: None,
+                flags: Default::default(),
+            },
+        ),
+    )?;
+
+    let mut collector = EntityWithEntriesSummaryCollector::default();
+    db.load_playlist_entities_with_entries_summary(None, None, None, &mut collector)?;
+    let collected = collector.finish();
+    assert_eq!(3, collected.len());
+    for EntityWithEntriesSummary { entity, entries } in collected {
+        let playlist_id = db.resolve_playlist_id(&entity.hdr.uid)?;
+        let all_entries = db.load_all_playlist_entries(playlist_id)?;
+        let track_uids = all_entries
+            .iter()
+            .filter_map(|entry| match &entry.item {
+                Item::Track(TrackItem { uid }) => Some(uid),
+                Item::Separator(_) => None,
+            })
+            .collect::<Vec<_>>();
+        let distinct_track_uids = track_uids.iter().collect::<std::collections::HashSet<_>>();
+        let added_ts_minmax = all_entries
+            .iter()
+            .map(|entry| entry.added_ts)
+            .min()
+            .zip(all_entries.iter().map(|entry| entry.added_ts).max());
+        let expected = EntriesSummary {
+            total_count: all_entries.len(),
+            added_ts_minmax,
+            tracks: TracksSummary {
+                total_count: track_uids.len(),
+                distinct_count: distinct_track_uids.len(),
+            },
+        };
+        assert_eq!(expected, entries);
+        assert_eq!(expected, db.load_playlist_entries_summary(playlist_id)?);
+    }
 
     Ok(())
 }

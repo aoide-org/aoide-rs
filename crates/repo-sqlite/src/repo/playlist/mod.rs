@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::ops::Range;
+use std::{collections::BTreeMap, ops::Range};
 
 use anyhow::anyhow;
 use diesel::{
-    dsl::{count, count_star},
+    dsl::{count, count_star, max, min},
     prelude::*,
 };
 
@@ -196,13 +196,92 @@ impl EntityRepo for Connection<'_> {
             .map_err(repo_error)?;
 
         collector.reserve(records.len());
-        for record in records {
-            let (record_header, _collection_id, entity) = record.into();
-            let entries = self.load_playlist_entries_summary(record_header.id)?;
-            collector.collect(record_header, EntityWithEntriesSummary { entity, entries });
+        let mut records = records.into_iter().peekable();
+        while records.peek().is_some() {
+            let chunk = records
+                .by_ref()
+                .take(LOAD_ENTRIES_SUMMARIES_CHUNK_SIZE)
+                .collect::<Vec<_>>();
+            let ids = chunk
+                .iter()
+                .map(|record| RecordId::from(record.row_id))
+                .collect::<Vec<_>>();
+            let mut entries_summaries = load_entries_summaries(self, &ids)?;
+            for record in chunk {
+                let (record_header, _collection_id, entity) = record.into();
+                let entries = entries_summaries
+                    .remove(&record_header.id)
+                    .unwrap_or(EntriesSummary::EMPTY);
+                collector.collect(record_header, EntityWithEntriesSummary { entity, entries });
+            }
         }
         Ok(())
     }
+}
+
+/// Maximum number of playlists whose entries are summarized by a single query.
+///
+/// Limits the number of bound SQL parameters.
+const LOAD_ENTRIES_SUMMARIES_CHUNK_SIZE: usize = 500;
+
+/// Summarize the entries of multiple playlists with a single query.
+///
+/// Playlists without entries are omitted from the result.
+fn load_entries_summaries(
+    db: &mut crate::Connection<'_>,
+    ids: &[RecordId],
+) -> RepoResult<BTreeMap<RecordId, EntriesSummary>> {
+    use playlist_entry_db::schema::*;
+    let rows = playlist_entry::table
+        .filter(playlist_entry::playlist_id.eq_any(ids.iter().copied().map(RowId::from)))
+        .group_by(playlist_entry::playlist_id)
+        .select((
+            playlist_entry::playlist_id,
+            count_star(),
+            // Only counts entries with a track, i.e. ignores NULL values
+            count(playlist_entry::track_id),
+            count(playlist_entry::track_id).aggregate_distinct(),
+            min(playlist_entry::added_ms),
+            max(playlist_entry::added_ms),
+        ))
+        .load::<(
+            RowId,
+            i64,
+            i64,
+            i64,
+            Option<TimestampMillis>,
+            Option<TimestampMillis>,
+        )>(db.as_mut())
+        .map_err(repo_error)?;
+    let summaries = rows
+        .into_iter()
+        .map(
+            |(
+                playlist_id,
+                entries_count,
+                tracks_count,
+                distinct_tracks_count,
+                added_ms_min,
+                added_ms_max,
+            )| {
+                debug_assert!(tracks_count <= entries_count);
+                debug_assert!(distinct_tracks_count <= tracks_count);
+                let added_ts_minmax = added_ms_min
+                    .zip(added_ms_max)
+                    .map(|(min, max)| (timestamp_millis(min), timestamp_millis(max)));
+                let summary = EntriesSummary {
+                    total_count: entries_count as usize,
+                    added_ts_minmax,
+                    tracks: TracksSummary {
+                        total_count: tracks_count as usize,
+                        distinct_count: distinct_tracks_count as usize,
+                    },
+                };
+                (playlist_id.into(), summary)
+            },
+        )
+        .collect();
+    Ok(summaries)
 }
 
 fn min_playlist_entry_ordering(
@@ -381,42 +460,9 @@ impl EntryRepo for crate::Connection<'_> {
     }
 
     fn load_playlist_entries_summary(&mut self, id: RecordId) -> RepoResult<EntriesSummary> {
-        use playlist_entry_db::schema::*;
-        let entries_count = self.count_playlist_entries(id)?;
-        let tracks_summary = self.load_playlist_tracks_summary(id)?;
-        debug_assert!(tracks_summary.total_count <= entries_count);
-        debug_assert!(tracks_summary.distinct_count <= tracks_summary.total_count);
-        let added_ts_minmax = if entries_count > 0 {
-            let added_ts_min = playlist_entry::table
-                .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-                .select(playlist_entry::added_ms)
-                .order_by(playlist_entry::added_ms.asc())
-                .first::<TimestampMillis>(self.as_mut())
-                .optional()
-                .map(|added_ms| added_ms.map(timestamp_millis))
-                .map_err(repo_error)?;
-            let added_ts_max = playlist_entry::table
-                .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-                .select(playlist_entry::added_ms)
-                .order_by(playlist_entry::added_ms.desc())
-                .first::<TimestampMillis>(self.as_mut())
-                .optional()
-                .map(|added_ms| added_ms.map(timestamp_millis))
-                .map_err(repo_error)?;
-            debug_assert_eq!(added_ts_min.is_some(), added_ts_max.is_some());
-            if let (Some(added_ts_min), Some(added_ts_max)) = (added_ts_min, added_ts_max) {
-                Some((added_ts_min, added_ts_max))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-        Ok(EntriesSummary {
-            total_count: entries_count,
-            added_ts_minmax,
-            tracks: tracks_summary,
-        })
+        Ok(load_entries_summaries(self, &[id])?
+            .remove(&id)
+            .unwrap_or(EntriesSummary::EMPTY))
     }
 
     fn append_playlist_entries(&mut self, id: RecordId, new_entries: &[Entry]) -> RepoResult<()> {
