@@ -721,3 +721,45 @@ fn load_recently_updated_track_headers_with_keyset_pagination() -> TestResult<()
 
     Ok(())
 }
+
+#[test]
+fn insert_and_load_more_children_than_inserted_with_a_single_statement() -> TestResult<()> {
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = TracksWithGenreTagsFixture {
+        collection_id: {
+            let collection = Collection {
+                title: "Collection".into(),
+                notes: None,
+                kind: None,
+                color: None,
+                media_source_config: vfs_media_source_config(),
+            };
+            let collection_entity =
+                CollectionEntity::new(CollectionHeader::initial_random(), collection);
+            db.insert_collection_entity(UtcDateTimeMs::now(), &collection_entity)?
+        },
+    };
+    let tag_count = super::super::INSERT_CHILDREN_CHUNK_SIZE * 2 + 50;
+    let mut inserted_track = None;
+    let track_id = fixture.create_media_source_and_track_with(&mut db, |track| {
+        let plain_tags = (0..tag_count)
+            .map(|i| PlainTag {
+                label: Some(Label::from_unchecked(format!("Tag {i:04}"))),
+                score: Default::default(),
+            })
+            .collect::<Vec<_>>();
+        track.tags = [(FacetKey::unfaceted(), plain_tags)]
+            .into_iter()
+            .collect::<TagsMap<'_>>()
+            .canonicalize_into();
+        inserted_track = Some(track.clone());
+    })?;
+    let inserted_track = inserted_track.unwrap();
+    assert_eq!(tag_count, inserted_track.tags.total_count());
+
+    let (_, entity) = db.load_track_entity(track_id)?;
+    assert_eq!(inserted_track.tags, entity.body.track.tags);
+
+    Ok(())
+}

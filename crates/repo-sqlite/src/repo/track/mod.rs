@@ -63,6 +63,11 @@ use crate::{
 mod search;
 use self::search::{apply_sort_order, build_filter_expression};
 
+/// Maximum number of child rows that are inserted with a single statement.
+///
+/// Limits the number of bound SQL parameters.
+const INSERT_CHILDREN_CHUNK_SIZE: usize = 200;
+
 /// Maximum number of tracks whose children are loaded with a single query.
 ///
 /// Limits the number of bound SQL parameters.
@@ -165,17 +170,18 @@ fn insert_track_and_album_titles(
     album_titles: Canonical<&[Title]>,
 ) -> RepoResult<()> {
     use crate::db::track_title::{models::*, schema::*};
-    for track_title in *track_titles.as_ref() {
-        let insertable = InsertableRecord::bind(track_id, Scope::Track, track_title);
-        insertable
-            .insert_into(track_title::table)
-            .execute(db.as_mut())
-            .map_err(repo_error)?;
-    }
-    for album_title in *album_titles.as_ref() {
-        let insertable = InsertableRecord::bind(track_id, Scope::Album, album_title);
-        insertable
-            .insert_into(track_title::table)
+    let insertables = track_titles
+        .iter()
+        .map(|title| InsertableRecord::bind(track_id, Scope::Track, title))
+        .chain(
+            album_titles
+                .iter()
+                .map(|title| InsertableRecord::bind(track_id, Scope::Album, title)),
+        )
+        .collect::<Vec<_>>();
+    for chunk in insertables.chunks(INSERT_CHILDREN_CHUNK_SIZE) {
+        diesel::insert_into(track_title::table)
+            .values(chunk)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
@@ -290,17 +296,18 @@ fn insert_track_and_album_actors(
     album_actors: Canonical<&[Actor]>,
 ) -> RepoResult<()> {
     use crate::db::track_actor::{models::*, schema::*};
-    for track_actor in *track_actors.as_ref() {
-        let insertable = InsertableRecord::bind(track_id, Scope::Track, track_actor);
-        insertable
-            .insert_into(track_actor::table)
-            .execute(db.as_mut())
-            .map_err(repo_error)?;
-    }
-    for album_actor in *album_actors.as_ref() {
-        let insertable = InsertableRecord::bind(track_id, Scope::Album, album_actor);
-        insertable
-            .insert_into(track_actor::table)
+    let insertables = track_actors
+        .iter()
+        .map(|actor| InsertableRecord::bind(track_id, Scope::Track, actor))
+        .chain(
+            album_actors
+                .iter()
+                .map(|actor| InsertableRecord::bind(track_id, Scope::Album, actor)),
+        )
+        .collect::<Vec<_>>();
+    for chunk in insertables.chunks(INSERT_CHILDREN_CHUNK_SIZE) {
+        diesel::insert_into(track_actor::table)
+            .values(chunk)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
@@ -379,10 +386,13 @@ fn insert_track_cues(
     cues: Canonical<&[Cue]>,
 ) -> RepoResult<()> {
     use crate::db::track_cue::{models::*, schema::*};
-    for cue in *cues.as_ref() {
-        let insertable = InsertableRecord::bind(track_id, cue);
-        insertable
-            .insert_into(track_cue::table)
+    let insertables = cues
+        .iter()
+        .map(|cue| InsertableRecord::bind(track_id, cue))
+        .collect::<Vec<_>>();
+    for chunk in insertables.chunks(INSERT_CHILDREN_CHUNK_SIZE) {
+        diesel::insert_into(track_cue::table)
+            .values(chunk)
             .execute(db.as_mut())
             .map_err(repo_error)?;
     }
@@ -479,22 +489,19 @@ fn insert_track_tags(
         plain: plain_tags,
         facets,
     } = tags.as_ref();
-    for plain_tag in plain_tags {
-        let insertable = InsertableRecord::bind(track_id, None, plain_tag);
-        insertable
-            .insert_into(track_tag::table)
+    let insertables = plain_tags
+        .iter()
+        .map(|plain_tag| InsertableRecord::bind(track_id, None, plain_tag))
+        .chain(facets.iter().flat_map(|FacetedTags { facet_id, tags }| {
+            tags.iter()
+                .map(move |tag| InsertableRecord::bind(track_id, Some(facet_id), tag))
+        }))
+        .collect::<Vec<_>>();
+    for chunk in insertables.chunks(INSERT_CHILDREN_CHUNK_SIZE) {
+        diesel::insert_into(track_tag::table)
+            .values(chunk)
             .execute(db.as_mut())
             .map_err(repo_error)?;
-    }
-    for faceted_tags in facets {
-        let FacetedTags { facet_id, tags } = faceted_tags;
-        for tag in tags {
-            let insertable = InsertableRecord::bind(track_id, Some(facet_id), tag);
-            insertable
-                .insert_into(track_tag::table)
-                .execute(db.as_mut())
-                .map_err(repo_error)?;
-        }
     }
     Ok(())
 }
