@@ -10,7 +10,6 @@ use std::{
 use bitflags::bitflags;
 use itertools::Itertools as _;
 use lofty::{
-    config::ParseOptions,
     file::{AudioFile, FileType},
     ogg::{OpusFile, VorbisFile},
     probe::Probe,
@@ -38,7 +37,7 @@ use aoide_core::{
 
 use crate::{
     Error, Result,
-    fmt::parse_options,
+    fmt::{parse_options, probe_options},
     util::{
         db2lufs, parse_key_signature, parse_replay_gain_db, parse_year_tag,
         tag::{FacetedTagMappingConfig, TagMappingConfig},
@@ -218,8 +217,7 @@ pub fn import_into_track(
     track: &mut Track,
 ) -> Result<Issues> {
     let probe = Probe::new(reader)
-        // Workaround for <https://github.com/Serial-ATA/lofty-rs/issues/260>
-        .options(ParseOptions::new().max_junk_bytes(usize::MAX))
+        .options(probe_options())
         .guess_file_type()?;
     let Some(file_type) = probe.file_type() else {
         log::debug!(

@@ -26,7 +26,11 @@ use aoide_core::{
 #[cfg(feature = "gigtag")]
 use aoide_core::tag::FacetId;
 
-use crate::{Error, Result, fmt::parse_options, util::tag::FacetedTagMappingConfig};
+use crate::{
+    Error, Result,
+    fmt::{parse_options, probe_options},
+    util::tag::FacetedTagMappingConfig,
+};
 
 use super::import::ImportTrackFlags;
 
@@ -79,7 +83,9 @@ pub fn export_track_to_file_path(
     let file_type = if let Some(file_type) = file_extension_str(path).and_then(FileType::from_ext) {
         file_type
     } else {
-        let probe = Probe::new(file.try_clone()?).guess_file_type()?;
+        let probe = Probe::new(file.try_clone()?)
+            .options(probe_options())
+            .guess_file_type()?;
         // Ensure that the file could be read again.
         file.rewind()?;
         let Some(file_type) = probe.file_type() else {

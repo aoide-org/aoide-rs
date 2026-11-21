@@ -145,6 +145,12 @@ pub(crate) fn parse_options() -> ParseOptions {
     ParseOptions::new().read_properties(true)
 }
 
+/// Options for guessing the file type with [`lofty::probe::Probe`].
+pub(crate) fn probe_options() -> ParseOptions {
+    // Workaround for <https://github.com/Serial-ATA/lofty-rs/issues/260>
+    ParseOptions::new().max_junk_bytes(usize::MAX)
+}
+
 fn import_audio_content_from_file_properties(properties: &FileProperties) -> AudioContentMetadata {
     let bitrate = properties
         .audio_bitrate()
