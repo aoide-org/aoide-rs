@@ -214,6 +214,46 @@ impl Gatekeeper {
             .await
     }
 
+    /// Spawn a blocking read task that returns a [`Result`](std::result::Result)
+    /// and flatten the outcome.
+    ///
+    /// Errors that occur while acquiring a connection or while spawning
+    /// and joining the task are converted into the error type of the task.
+    pub async fn spawn_blocking_read_task_flattened<H, T, E>(
+        &self,
+        connection_handler: H,
+    ) -> std::result::Result<T, E>
+    where
+        H: FnOnce(PooledConnection) -> std::result::Result<T, E> + Send + 'static,
+        T: Send + 'static,
+        E: From<Error> + Send + 'static,
+    {
+        self.spawn_blocking_read_task(connection_handler)
+            .await
+            .map_err(E::from)
+            .unwrap_or_else(Err)
+    }
+
+    /// Spawn a blocking write task that returns a [`Result`](std::result::Result)
+    /// and flatten the outcome.
+    ///
+    /// Errors that occur while acquiring a connection or while spawning
+    /// and joining the task are converted into the error type of the task.
+    pub async fn spawn_blocking_write_task_flattened<H, T, E>(
+        &self,
+        connection_handler: H,
+    ) -> std::result::Result<T, E>
+    where
+        H: FnOnce(PooledConnection) -> std::result::Result<T, E> + Send + 'static,
+        T: Send + 'static,
+        E: From<Error> + Send + 'static,
+    {
+        self.spawn_blocking_write_task(connection_handler)
+            .await
+            .map_err(E::from)
+            .unwrap_or_else(Err)
+    }
+
     pub fn pending_tasks(&self) -> PendingTasks {
         PendingTasks {
             read: self

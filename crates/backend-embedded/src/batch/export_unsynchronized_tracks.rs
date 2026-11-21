@@ -132,7 +132,7 @@ async fn export_one(
     export: ExportParams,
 ) -> Result<UpdateOutcome> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection| {
+        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::track::update::export_one(
@@ -144,6 +144,4 @@ async fn export_one(
             })
         })
         .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
 }

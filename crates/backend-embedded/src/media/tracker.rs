@@ -16,7 +16,7 @@ pub async fn count_sources_in_directories(
     params: aoide_core_api::media::tracker::count_sources_in_directories::Params,
 ) -> Result<Vec<(ContentPath<'static>, usize)>> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection| {
+        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::media::tracker::count_sources_in_directories::count_sources_in_directories(
@@ -27,8 +27,6 @@ pub async fn count_sources_in_directories(
             })
         })
         .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
 }
 
 pub async fn query_status(
@@ -37,7 +35,7 @@ pub async fn query_status(
     params: aoide_core_api::media::tracker::query_status::Params,
 ) -> Result<aoide_core_api::media::tracker::Status> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection| {
+        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::media::tracker::query_status::query_status(
@@ -48,8 +46,6 @@ pub async fn query_status(
             })
         })
         .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
 }
 
 pub async fn scan_directories<P>(
@@ -63,7 +59,7 @@ where
     P: FnMut(aoide_usecases::media::tracker::scan_directories::ProgressEvent) + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection| {
+        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
             let mut report_progress_fn = report_progress_fn;
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
@@ -77,8 +73,6 @@ where
             })
         })
         .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
 }
 
 pub async fn untrack_directories(
@@ -87,7 +81,7 @@ pub async fn untrack_directories(
     params: aoide_core_api::media::tracker::untrack_directories::Params,
 ) -> Result<aoide_core_api::media::tracker::untrack_directories::Outcome> {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection| {
+        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::media::tracker::untrack_directories::untrack_directories(
@@ -98,8 +92,6 @@ pub async fn untrack_directories(
             })
         })
         .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
 }
 
 pub async fn import_files<InterceptImportedTrackFn, ReportProgressFn>(
@@ -117,7 +109,7 @@ where
         FnMut(aoide_usecases::media::tracker::import_files::ProgressEvent) + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection| {
+        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
             let mut report_progress_fn = report_progress_fn;
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
@@ -133,8 +125,6 @@ where
             })
         })
         .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
 }
 
 pub async fn find_untracked_files<P>(
@@ -148,7 +138,7 @@ where
     P: FnMut(aoide_usecases::media::tracker::find_untracked_files::ProgressEvent) + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection| {
+        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
             let mut report_progress_fn = report_progress_fn;
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
@@ -162,6 +152,4 @@ where
             })
         })
         .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
 }

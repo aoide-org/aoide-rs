@@ -214,15 +214,6 @@ pub struct Query<T>(pub T);
 #[from_request(via(axum::extract::Path), rejection(Error))]
 pub struct Path<T>(pub T);
 
-fn after_blocking_task_finished<T, E1, E2>(res: StdResult<StdResult<T, E1>, E2>) -> Result<T>
-where
-    E1: Into<Error>,
-    E2: Into<Error>,
-{
-    res.map_err(Into::into)
-        .and_then(|res| res.map_err(Into::into))
-}
-
 pub async fn spawn_blocking_write_task<H, T, E>(
     gatekeeper: &DatabaseConnectionGatekeeper,
     handler: H,
@@ -232,7 +223,11 @@ where
     T: Send + 'static,
     E: Into<Error> + Send + 'static,
 {
-    after_blocking_task_finished(gatekeeper.spawn_blocking_write_task(handler).await)
+    gatekeeper
+        .spawn_blocking_write_task_flattened(move |connection| {
+            handler(connection).map_err(Into::into)
+        })
+        .await
 }
 
 pub async fn spawn_blocking_read_task<H, T, E>(
@@ -244,5 +239,9 @@ where
     T: Send + 'static,
     E: Into<Error> + Send + 'static,
 {
-    after_blocking_task_finished(gatekeeper.spawn_blocking_read_task(handler).await)
+    gatekeeper
+        .spawn_blocking_read_task_flattened(move |connection| {
+            handler(connection).map_err(Into::into)
+        })
+        .await
 }

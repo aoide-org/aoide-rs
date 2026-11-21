@@ -22,7 +22,7 @@ pub async fn export_files(
     purge_other_files: bool,
 ) -> Result<ExportTrackFilesOutcome> {
     db_gatekeeper
-        .spawn_blocking_read_task(move |mut pooled_connection| {
+        .spawn_blocking_read_task_flattened(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 aoide_usecases_sqlite::track::vfs::export_files(
@@ -37,6 +37,4 @@ pub async fn export_files(
             })
         })
         .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
 }

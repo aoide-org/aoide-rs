@@ -135,7 +135,7 @@ where
     ModifyTrackFn: Fn(&mut Track) + Send + 'static,
 {
     db_gatekeeper
-        .spawn_blocking_write_task(move |mut pooled_connection| {
+        .spawn_blocking_write_task_flattened(move |mut pooled_connection| {
             let connection = &mut *pooled_connection;
             connection.transaction::<_, Error, _>(|connection| {
                 let entity = aoide_usecases_sqlite::track::load::load_one(connection, &entity_uid)?;
@@ -158,6 +158,4 @@ where
             })
         })
         .await
-        .map_err(Into::into)
-        .unwrap_or_else(Err)
 }
