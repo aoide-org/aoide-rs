@@ -1,12 +1,18 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use lofty::ogg::{VorbisFile, tag::VorbisComments};
+//! Shared implementation for Ogg containers with Vorbis Comments,
+//! i.e. Ogg/Vorbis and Ogg/Opus files.
+
+use lofty::{
+    file::TaggedFile,
+    ogg::{OpusFile, VorbisFile, tag::VorbisComments},
+};
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
 use crate::{
-    Error, Result,
+    Result,
     io::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, Importer},
@@ -15,10 +21,47 @@ use crate::{
 
 use super::vorbis::export_track_to_tag;
 
-pub(crate) fn import_file_into_track(
+/// An Ogg file with Vorbis Comments.
+pub(crate) trait OggFile: Into<TaggedFile> {
+    /// The only accepted content type for exporting metadata.
+    const CONTENT_TYPE: &'static str;
+
+    #[cfg(feature = "serato-markers")]
+    fn vorbis_comments(&self) -> &VorbisComments;
+
+    fn vorbis_comments_mut(&mut self) -> &mut VorbisComments;
+}
+
+impl OggFile for VorbisFile {
+    const CONTENT_TYPE: &'static str = "audio/ogg";
+
+    #[cfg(feature = "serato-markers")]
+    fn vorbis_comments(&self) -> &VorbisComments {
+        Self::vorbis_comments(self)
+    }
+
+    fn vorbis_comments_mut(&mut self) -> &mut VorbisComments {
+        Self::vorbis_comments_mut(self)
+    }
+}
+
+impl OggFile for OpusFile {
+    const CONTENT_TYPE: &'static str = "audio/opus";
+
+    #[cfg(feature = "serato-markers")]
+    fn vorbis_comments(&self) -> &VorbisComments {
+        Self::vorbis_comments(self)
+    }
+
+    fn vorbis_comments_mut(&mut self) -> &mut VorbisComments {
+        Self::vorbis_comments_mut(self)
+    }
+}
+
+pub(crate) fn import_file_into_track<F: OggFile>(
     importer: &mut Importer,
     config: &ImportTrackConfig,
-    ogg_file: VorbisFile,
+    ogg_file: F,
     track: &mut Track,
 ) {
     // Pre-processing
@@ -46,17 +89,18 @@ pub(crate) fn import_file_into_track(
     }
 }
 
-pub(crate) fn export_track_to_vorbis_comments(
-    vorbis_comments: &mut VorbisComments,
+pub(crate) fn export_track_to_file<F: OggFile>(
+    ogg_file: &mut F,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
-    if track.media_source.content.r#type.essence_str() != "audio/ogg" {
-        return Err(Error::UnsupportedContentType(
-            track.media_source.content.r#type.clone(),
-        ));
-    }
-    export_track_to_tag(vorbis_comments, config, track, edit_embedded_artwork_image);
+    super::ensure_content_type(track, &[F::CONTENT_TYPE])?;
+    export_track_to_tag(
+        ogg_file.vorbis_comments_mut(),
+        config,
+        track,
+        edit_embedded_artwork_image,
+    );
     Ok(())
 }

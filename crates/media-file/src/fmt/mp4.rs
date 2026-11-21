@@ -11,7 +11,7 @@ use lofty::mp4::{Ilst, Mp4File};
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
 use crate::{
-    Error, Result,
+    Result,
     io::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Importer},
@@ -197,14 +197,7 @@ pub(crate) fn export_track_to_ilst(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
-    if !matches!(
-        track.media_source.content.r#type.essence_str(),
-        "audio/m4a" | "audio/mp4" | "video/mp4"
-    ) {
-        return Err(Error::UnsupportedContentType(
-            track.media_source.content.r#type.clone(),
-        ));
-    }
+    super::ensure_content_type(track, &["audio/m4a", "audio/mp4", "video/mp4"])?;
     export_track_to_tag(ilst, config, track, edit_embedded_artwork_image);
     Ok(())
 }

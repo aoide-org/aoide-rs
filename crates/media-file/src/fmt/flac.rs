@@ -6,7 +6,7 @@ use lofty::flac::FlacFile;
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
 use crate::{
-    Error, Result,
+    Result,
     io::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, Importer},
@@ -53,11 +53,7 @@ pub(crate) fn export_track_to_file_vorbis_comments(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
-    if track.media_source.content.r#type.essence_str() != "audio/flac" {
-        return Err(Error::UnsupportedContentType(
-            track.media_source.content.r#type.clone(),
-        ));
-    }
+    super::ensure_content_type(track, &["audio/flac"])?;
 
     let vorbis_comments = if let Some(vorbis_comments) = flac_file.vorbis_comments_mut() {
         vorbis_comments

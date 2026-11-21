@@ -11,10 +11,6 @@ use std::{
 use bitflags::bitflags;
 use lofty::{
     file::{AudioFile, FileType},
-    flac::FlacFile,
-    iff::aiff::AiffFile,
-    mp4::Mp4File,
-    mpeg::MpegFile,
     ogg::{OpusFile, VorbisFile},
     probe::Probe,
 };
@@ -115,85 +111,78 @@ pub fn export_track_to_file_with_type(
 ) -> Result<()> {
     // Both reading and saving require the file cursor to be at the beginning.
     file.rewind()?;
-    let parse_options = parse_options();
-    let write_options = Default::default();
     match file_type {
-        FileType::Aiff => {
-            let mut aiff_file = <AiffFile as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::aiff::export_track_to_file_id3v2(
-                &mut aiff_file,
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )?;
-            file.rewind()?;
-            aiff_file.save_to(file, write_options)?;
-        }
-        FileType::Flac => {
-            let mut flac_file = <FlacFile as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::flac::export_track_to_file_vorbis_comments(
-                &mut flac_file,
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )?;
-            file.rewind()?;
-            flac_file.save_to(file, write_options)?;
-        }
-        FileType::Mp4 => {
-            let mut mp4_file = <Mp4File as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::mp4::export_track_to_file_ilst(
-                &mut mp4_file,
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )?;
-            file.rewind()?;
-            mp4_file.save_to(file, write_options)?;
-        }
-        FileType::Mpeg => {
-            let mut mpeg_file = <MpegFile as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::mpeg::export_track_to_file_id3v2(
-                &mut mpeg_file,
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )?;
-            file.rewind()?;
-            mpeg_file.save_to(file, write_options)?;
-        }
-        FileType::Opus => {
-            let mut opus_file = <OpusFile as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::opus::export_track_to_vorbis_comments(
-                opus_file.vorbis_comments_mut(),
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )?;
-            file.rewind()?;
-            opus_file.save_to(file, write_options)?;
-        }
-        FileType::Vorbis => {
-            let mut vorbis_file = <VorbisFile as AudioFile>::read_from(file, parse_options)?;
-            crate::fmt::ogg::export_track_to_vorbis_comments(
-                vorbis_file.vorbis_comments_mut(),
-                config,
-                track,
-                edit_embedded_artwork_image,
-            )?;
-            file.rewind()?;
-            vorbis_file.save_to(file, write_options)?;
-        }
+        FileType::Aiff => export_track_to_file_with(
+            file,
+            config,
+            track,
+            edit_embedded_artwork_image,
+            crate::fmt::aiff::export_track_to_file_id3v2,
+        ),
+        FileType::Flac => export_track_to_file_with(
+            file,
+            config,
+            track,
+            edit_embedded_artwork_image,
+            crate::fmt::flac::export_track_to_file_vorbis_comments,
+        ),
+        FileType::Mp4 => export_track_to_file_with(
+            file,
+            config,
+            track,
+            edit_embedded_artwork_image,
+            crate::fmt::mp4::export_track_to_file_ilst,
+        ),
+        FileType::Mpeg => export_track_to_file_with(
+            file,
+            config,
+            track,
+            edit_embedded_artwork_image,
+            crate::fmt::mpeg::export_track_to_file_id3v2,
+        ),
+        FileType::Opus => export_track_to_file_with(
+            file,
+            config,
+            track,
+            edit_embedded_artwork_image,
+            crate::fmt::ogg::export_track_to_file::<OpusFile>,
+        ),
+        FileType::Vorbis => export_track_to_file_with(
+            file,
+            config,
+            track,
+            edit_embedded_artwork_image,
+            crate::fmt::ogg::export_track_to_file::<VorbisFile>,
+        ),
         _ => {
             log::debug!(
                 "Skipping export of track {media_source_content_link:?}: {config:?}",
                 media_source_content_link = track.media_source.content.link
             );
-            return Err(Error::UnsupportedContentType(
+            Err(Error::UnsupportedContentType(
                 track.media_source.content.r#type.clone(),
-            ));
+            ))
         }
     }
+}
+
+type ExportTrackToFileFn<F> =
+    fn(&mut F, &ExportTrackConfig, &mut Track, Option<EditEmbeddedArtworkImage>) -> Result<()>;
+
+/// Read the file, export the track metadata into it, and save it.
+///
+/// The file cursor must be at the beginning.
+fn export_track_to_file_with<F: AudioFile>(
+    file: &mut File,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
+    export_track_to_file: ExportTrackToFileFn<F>,
+) -> Result<()> {
+    let mut audio_file = F::read_from(file, parse_options())?;
+    export_track_to_file(&mut audio_file, config, track, edit_embedded_artwork_image)?;
+    file.rewind()?;
+    audio_file.save_to(file, Default::default())?;
     Ok(())
 }
 

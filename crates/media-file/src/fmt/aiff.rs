@@ -55,11 +55,7 @@ pub(crate) fn export_track_to_file_id3v2(
             "Exporting metadata into AIFF files with text chunks is not supported"
         )));
     }
-    if track.media_source.content.r#type.essence_str() != "audio/aiff" {
-        return Err(Error::UnsupportedContentType(
-            track.media_source.content.r#type.clone(),
-        ));
-    }
+    super::ensure_content_type(track, &["audio/aiff"])?;
 
     let id3v2 = if let Some(id3v2) = aiff_file.id3v2_mut() {
         id3v2

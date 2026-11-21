@@ -50,6 +50,7 @@ use aoide_core::{
 };
 
 use crate::{
+    Error, Result,
     io::{
         export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
         import::{ImportTrackConfig, ImportTrackFlags, Importer, TrackScope},
@@ -71,8 +72,6 @@ pub(crate) mod mp4;
 pub(crate) mod mpeg;
 
 pub(crate) mod ogg;
-
-pub(crate) mod opus;
 
 pub(crate) mod vorbis;
 
@@ -183,63 +182,30 @@ pub(crate) fn take_primary_or_first_tag(tagged_file: &mut TaggedFile) -> Option<
 }
 
 fn apic_type_from_picture_type(picture_type: PictureType) -> Option<ApicType> {
-    let apic_type = match picture_type {
-        PictureType::Artist => ApicType::Artist,
-        PictureType::Band => ApicType::Band,
-        PictureType::BandLogo => ApicType::BandLogo,
-        PictureType::BrightFish => ApicType::BrightFish,
-        PictureType::Composer => ApicType::Composer,
-        PictureType::Conductor => ApicType::Conductor,
-        PictureType::CoverBack => ApicType::CoverBack,
-        PictureType::CoverFront => ApicType::CoverFront,
-        PictureType::DuringPerformance => ApicType::DuringPerformance,
-        PictureType::DuringRecording => ApicType::DuringRecording,
-        PictureType::Icon => ApicType::Icon,
-        PictureType::Illustration => ApicType::Illustration,
-        PictureType::LeadArtist => ApicType::LeadArtist,
-        PictureType::Leaflet => ApicType::Leaflet,
-        PictureType::Lyricist => ApicType::Lyricist,
-        PictureType::Media => ApicType::Media,
-        PictureType::Other => ApicType::Other,
-        PictureType::OtherIcon => ApicType::OtherIcon,
-        PictureType::PublisherLogo => ApicType::PublisherLogo,
-        PictureType::RecordingLocation => ApicType::RecordingLocation,
-        PictureType::ScreenCapture => ApicType::ScreenCapture,
-        PictureType::Undefined(_) => {
-            return None;
-        }
-        _ => {
-            // non-exhaustive enum
-            log::error!("Unhandled picture type: {picture_type:?}");
-            return None;
-        }
-    };
-    Some(apic_type)
+    if matches!(picture_type, PictureType::Undefined(_)) {
+        return None;
+    }
+    // Both lofty and aoide use the ID3v2 APIC picture type codes.
+    let apic_type = ApicType::from_repr(picture_type.as_u8());
+    if apic_type.is_none() {
+        // non-exhaustive enum
+        log::error!("Unhandled picture type: {picture_type:?}");
+    }
+    apic_type
 }
 
-const fn picture_type_from_apic_type(apic_type: ApicType) -> PictureType {
-    match apic_type {
-        ApicType::Artist => PictureType::Artist,
-        ApicType::Band => PictureType::Band,
-        ApicType::BandLogo => PictureType::BandLogo,
-        ApicType::BrightFish => PictureType::BrightFish,
-        ApicType::Composer => PictureType::Composer,
-        ApicType::Conductor => PictureType::Conductor,
-        ApicType::CoverBack => PictureType::CoverBack,
-        ApicType::CoverFront => PictureType::CoverFront,
-        ApicType::DuringPerformance => PictureType::DuringPerformance,
-        ApicType::DuringRecording => PictureType::DuringRecording,
-        ApicType::Icon => PictureType::Icon,
-        ApicType::Illustration => PictureType::Illustration,
-        ApicType::LeadArtist => PictureType::LeadArtist,
-        ApicType::Leaflet => PictureType::Leaflet,
-        ApicType::Lyricist => PictureType::Lyricist,
-        ApicType::Media => PictureType::Media,
-        ApicType::Other => PictureType::Other,
-        ApicType::OtherIcon => PictureType::OtherIcon,
-        ApicType::PublisherLogo => PictureType::PublisherLogo,
-        ApicType::RecordingLocation => PictureType::RecordingLocation,
-        ApicType::ScreenCapture => PictureType::ScreenCapture,
+fn picture_type_from_apic_type(apic_type: ApicType) -> PictureType {
+    // Both lofty and aoide use the ID3v2 APIC picture type codes.
+    PictureType::from_u8(apic_type as u8)
+}
+
+/// Ensure that the content type of the track is one of the accepted types.
+pub(crate) fn ensure_content_type(track: &Track, accepted_essence_strs: &[&str]) -> Result<()> {
+    let content_type = &track.media_source.content.r#type;
+    if accepted_essence_strs.contains(&content_type.essence_str()) {
+        Ok(())
+    } else {
+        Err(Error::UnsupportedContentType(content_type.clone()))
     }
 }
 

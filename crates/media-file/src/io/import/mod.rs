@@ -3,31 +3,29 @@
 
 use std::{
     borrow::Cow,
-    io::{Cursor, Read, Seek},
+    io::{Read, Seek},
     path::Path,
     result::Result as StdResult,
 };
 
-use anyhow::anyhow;
 use bitflags::bitflags;
-use image::{DynamicImage, ImageReader};
 use itertools::Itertools as _;
 use lofty::{
     config::ParseOptions,
     file::{AudioFile, FileType},
+    ogg::{OpusFile, VorbisFile},
     probe::Probe,
 };
 use mime::Mime;
 use nonicle::{Canonical, CanonicalizeInto as _};
 use semval::prelude::*;
-use url::Url;
 
 use aoide_core::{
     PlainTag, TagFacetKey, TagLabel, TagScore, TagsMap,
     audio::signal::LoudnessLufs,
     media::{
         Content, MediaDigest, Source,
-        artwork::{ApicType, Artwork, ArtworkImage, EmbeddedArtwork, LinkedArtwork},
+        artwork::ApicType,
         content::{ContentLink, ContentMetadata},
     },
     music::{key::KeySignature, tempo::TempoBpm},
@@ -236,36 +234,48 @@ pub fn import_into_track(
     };
     let mut importer = Importer::new();
     match file_type {
-        FileType::Aiff => {
-            let reader = probe.into_inner();
-            let aiff_file = AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::aiff::import_file_into_track(&mut importer, config, aiff_file, track);
-        }
-        FileType::Flac => {
-            let reader = probe.into_inner();
-            let flac_file = AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::flac::import_file_into_track(&mut importer, config, flac_file, track);
-        }
-        FileType::Mp4 => {
-            let reader = probe.into_inner();
-            let mp4_file = AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::mp4::import_file_into_track(&mut importer, config, mp4_file, track);
-        }
-        FileType::Mpeg => {
-            let reader = probe.into_inner();
-            let mpeg_file = AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::mpeg::import_file_into_track(&mut importer, config, mpeg_file, track);
-        }
-        FileType::Opus => {
-            let reader = probe.into_inner();
-            let opus_file = AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::opus::import_file_into_track(&mut importer, config, opus_file, track);
-        }
-        FileType::Vorbis => {
-            let reader = probe.into_inner();
-            let vorbis_file = AudioFile::read_from(reader, parse_options())?;
-            crate::fmt::ogg::import_file_into_track(&mut importer, config, vorbis_file, track);
-        }
+        FileType::Aiff => import_file_into_track_with(
+            probe,
+            &mut importer,
+            config,
+            track,
+            crate::fmt::aiff::import_file_into_track,
+        )?,
+        FileType::Flac => import_file_into_track_with(
+            probe,
+            &mut importer,
+            config,
+            track,
+            crate::fmt::flac::import_file_into_track,
+        )?,
+        FileType::Mp4 => import_file_into_track_with(
+            probe,
+            &mut importer,
+            config,
+            track,
+            crate::fmt::mp4::import_file_into_track,
+        )?,
+        FileType::Mpeg => import_file_into_track_with(
+            probe,
+            &mut importer,
+            config,
+            track,
+            crate::fmt::mpeg::import_file_into_track,
+        )?,
+        FileType::Opus => import_file_into_track_with(
+            probe,
+            &mut importer,
+            config,
+            track,
+            crate::fmt::ogg::import_file_into_track::<OpusFile>,
+        )?,
+        FileType::Vorbis => import_file_into_track_with(
+            probe,
+            &mut importer,
+            config,
+            track,
+            crate::fmt::ogg::import_file_into_track::<VorbisFile>,
+        )?,
         _ => {
             // Generic fallback
             let tagged_file = probe.read()?;
@@ -273,6 +283,21 @@ pub fn import_into_track(
         }
     }
     Ok(importer.finish())
+}
+
+type ImportFileIntoTrackFn<F> = fn(&mut Importer, &ImportTrackConfig, F, &mut Track);
+
+fn import_file_into_track_with<R: Read + Seek, F: AudioFile>(
+    probe: Probe<R>,
+    importer: &mut Importer,
+    config: &ImportTrackConfig,
+    track: &mut Track,
+    import_file_into_track: ImportFileIntoTrackFn<F>,
+) -> Result<()> {
+    let mut reader = probe.into_inner();
+    let audio_file = F::read_from(&mut reader, parse_options())?;
+    import_file_into_track(importer, config, audio_file, track);
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -287,20 +312,6 @@ pub struct LoadedArtworkImageData {
 
     /// The actual image data
     pub image_data: Vec<u8>,
-}
-
-#[derive(Debug, Clone)]
-pub struct LoadedArtworkImage {
-    /// The APIC type of an embedded image
-    ///
-    /// `Some` for embedded images and `None` for custom, external images.
-    pub apic_type: Option<ApicType>,
-
-    /// The MIME type of `image_data`
-    pub media_type: Mime,
-
-    /// The actual image
-    pub image: DynamicImage,
 }
 
 pub fn load_embedded_artwork_image_data_from_file_path(
@@ -323,86 +334,6 @@ pub fn load_embedded_artwork_image_data_from_file_path(
         Ok(Some(loaded_artwork_image))
     } else {
         Ok(None)
-    }
-}
-
-fn verify_artwork_image_metadata(
-    artwork_image: &ArtworkImage,
-    apic_type: Option<ApicType>,
-    media_type: &Mime,
-) {
-    if let Some(apic_type) = apic_type
-        && apic_type != artwork_image.apic_type
-    {
-        log::warn!(
-            "Mismatching artwork image APIC types: expected = {expected:?}, actual = \
-                 {apic_type:?}",
-            expected = artwork_image.apic_type
-        );
-    }
-    if media_type.essence_str() != artwork_image.media_type.essence_str() {
-        log::warn!(
-            "Mismatching artwork image MIME types: expected = {expected}, actual = {actual}",
-            expected = artwork_image.media_type.essence_str(),
-            actual = media_type.essence_str(),
-        );
-    }
-}
-
-pub fn load_artwork_image_data(
-    file_path: &Path,
-    artwork: &Artwork,
-) -> Result<Option<LoadedArtworkImageData>> {
-    match artwork {
-        Artwork::Embedded(EmbeddedArtwork { image }) => {
-            let loaded = load_embedded_artwork_image_data_from_file_path(file_path)?;
-            let Some(loaded) = loaded else {
-                return Ok(None);
-            };
-            verify_artwork_image_metadata(image, loaded.apic_type, &loaded.media_type);
-            Ok(Some(loaded))
-        }
-        Artwork::Linked(LinkedArtwork { uri, image }) => {
-            let url = uri
-                .parse::<Url>()
-                .map_err(|err| Error::Other(anyhow!("invalid URL: {err}")))?;
-            let file_path = url
-                .to_file_path()
-                .map_err(|()| Error::Other(anyhow!("no local file URL")))?;
-            let image_data = std::fs::read(file_path)?;
-            let loaded = LoadedArtworkImageData {
-                apic_type: Some(image.apic_type),
-                media_type: image.media_type.clone(),
-                image_data,
-            };
-            Ok(Some(loaded))
-        }
-        Artwork::Missing | Artwork::Unsupported | Artwork::Irregular => Ok(None),
-    }
-}
-
-pub fn load_artwork_image(file_path: &Path, artwork: &Artwork) -> Result<Option<DynamicImage>> {
-    match artwork {
-        Artwork::Embedded(EmbeddedArtwork { image }) => {
-            let loaded = load_embedded_artwork_image_data_from_file_path(file_path)?;
-            let Some(loaded) = loaded else {
-                return Ok(None);
-            };
-            verify_artwork_image_metadata(image, loaded.apic_type, &loaded.media_type);
-            let reader = ImageReader::new(Cursor::new(loaded.image_data.as_slice()));
-            reader.decode().map(Some).map_err(Into::into)
-        }
-        Artwork::Linked(LinkedArtwork { uri, image: _ }) => {
-            let url = uri
-                .parse::<Url>()
-                .map_err(|err| Error::Other(anyhow!("invalid URL: {err}")))?;
-            let file_path = url
-                .to_file_path()
-                .map_err(|()| Error::Other(anyhow!("no local file URL")))?;
-            let reader = ImageReader::open(file_path)?;
-            reader.decode().map(Some).map_err(Into::into)
-        }
-        Artwork::Missing | Artwork::Unsupported | Artwork::Irregular => Ok(None),
     }
 }
 
