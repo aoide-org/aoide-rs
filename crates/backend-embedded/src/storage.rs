@@ -1,10 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_storage_sqlite::connection::{
-    Config as ConnectionConfig,
-    pool::{create_connection_pool, gatekeeper::Gatekeeper, get_pooled_connection},
-};
+use aoide_storage_sqlite::connection::{Config as ConnectionConfig, pool::gatekeeper::Gatekeeper};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -28,39 +25,13 @@ pub fn provision_database(config: &DatabaseConfig) -> anyhow::Result<Gatekeeper>
         connection,
         migrate_schema,
     } = config;
-
-    log::info!(
-        "Provisioning SQLite database: {storage}",
-        storage = connection.storage,
-    );
-
-    // The maximum size of the pool defines the maximum number of
-    // allowed readers while writers require exclusive access.
-    log::info!(
-        "Creating connection pool of max. size {max_size}",
-        max_size = connection.pool.max_size
-    );
-    let connection_pool = create_connection_pool(
-        &connection.storage,
-        connection.pool.max_size,
-        aoide_repo_sqlite::initialize_connection,
+    let apply_pending_migrations = match migrate_schema.unwrap_or_default() {
+        DatabaseSchemaMigrationMode::DontTouch => false,
+        DatabaseSchemaMigrationMode::ApplyPending => true,
+    };
+    let connection_pool = aoide_usecases_sqlite::database::provision_connection_pool(
+        connection,
+        apply_pending_migrations,
     )?;
-
-    log::info!("Initializing database");
-    aoide_repo_sqlite::initialize_database(&mut *get_pooled_connection(&connection_pool)?)?;
-
-    let migrate_schema = (*migrate_schema).unwrap_or_default();
-    match migrate_schema {
-        DatabaseSchemaMigrationMode::DontTouch => (),
-        DatabaseSchemaMigrationMode::ApplyPending => {
-            log::info!("Migrating database schema");
-            aoide_usecases_sqlite::database::migrate_schema(&mut *get_pooled_connection(
-                &connection_pool,
-            )?)?;
-        }
-    }
-
-    let gatekeeper = Gatekeeper::new(connection_pool, config.connection.pool.gatekeeper);
-
-    Ok(gatekeeper)
+    Ok(Gatekeeper::new(connection_pool, connection.pool.gatekeeper))
 }

@@ -27,11 +27,7 @@ use utoipa::OpenApi as _;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
 
-use aoide_repo_sqlite::{initialize_connection, initialize_database};
-use aoide_storage_sqlite::connection::pool::{
-    create_connection_pool, gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper,
-    get_pooled_connection,
-};
+use aoide_storage_sqlite::connection::pool::gatekeeper::Gatekeeper as DatabaseConnectionGatekeeper;
 use aoide_usecases_sqlite as uc;
 use aoide_websrv_axum_sqlite::{handle_method_not_allowed, handle_not_found};
 
@@ -153,29 +149,10 @@ pub(crate) enum Command {
 }
 
 fn provision_database(config: &DatabaseConfig) -> anyhow::Result<DatabaseConnectionGatekeeper> {
-    log::info!(
-        "Commissioning SQLite database: {storage}",
-        storage = config.connection.storage,
-    );
-
-    // The maximum size of the pool defines the maximum number of
-    // allowed readers while writers require exclusive access.
-    let pool_max_size = config.connection.pool.max_size;
-    log::info!("Creating connection pool of max. size {pool_max_size}");
-    let connection_pool = create_connection_pool(
-        &config.connection.storage,
-        pool_max_size,
-        initialize_connection,
+    let connection_pool = uc::database::provision_connection_pool(
+        &config.connection,
+        config.migrate_schema_on_startup,
     )?;
-
-    log::info!("Initializing database");
-    initialize_database(&mut *get_pooled_connection(&connection_pool)?)?;
-
-    if config.migrate_schema_on_startup {
-        log::info!("Migrating database schema");
-        uc::database::migrate_schema(&mut *get_pooled_connection(&connection_pool)?)?;
-    }
-
     Ok(DatabaseConnectionGatekeeper::new(
         connection_pool,
         config.connection.pool.gatekeeper,
