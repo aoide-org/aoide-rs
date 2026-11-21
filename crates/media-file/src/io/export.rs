@@ -115,6 +115,7 @@ pub fn export_track_to_file_with_type(
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
 ) -> Result<()> {
+    crate::fmt::ensure_content_type(track, file_type)?;
     // Both reading and saving require the file cursor to be at the beginning.
     file.rewind()?;
     match file_type {
@@ -172,21 +173,39 @@ pub fn export_track_to_file_with_type(
     }
 }
 
-type ExportTrackToFileFn<F> =
-    fn(&mut F, &ExportTrackConfig, &mut Track, Option<EditEmbeddedArtworkImage>) -> Result<()>;
+/// The result of either an infallible or a fallible export function.
+trait ExportTrackToFileResult {
+    fn into_result(self) -> Result<()>;
+}
+
+impl ExportTrackToFileResult for () {
+    fn into_result(self) -> Result<()> {
+        Ok(())
+    }
+}
+
+impl ExportTrackToFileResult for Result<()> {
+    fn into_result(self) -> Result<()> {
+        self
+    }
+}
+
+type ExportTrackToFileFn<F, R> =
+    fn(&mut F, &ExportTrackConfig, &mut Track, Option<EditEmbeddedArtworkImage>) -> R;
 
 /// Read the file, export the track metadata into it, and save it.
 ///
 /// The file cursor must be at the beginning.
-fn export_track_to_file_with<F: AudioFile>(
+fn export_track_to_file_with<F: AudioFile, R: ExportTrackToFileResult>(
     file: &mut File,
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-    export_track_to_file: ExportTrackToFileFn<F>,
+    export_track_to_file: ExportTrackToFileFn<F, R>,
 ) -> Result<()> {
     let mut audio_file = F::read_from(file, parse_options())?;
-    export_track_to_file(&mut audio_file, config, track, edit_embedded_artwork_image)?;
+    export_track_to_file(&mut audio_file, config, track, edit_embedded_artwork_image)
+        .into_result()?;
     file.rewind()?;
     audio_file.save_to(file, Default::default())?;
     Ok(())

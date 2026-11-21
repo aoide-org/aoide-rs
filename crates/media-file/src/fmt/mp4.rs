@@ -10,12 +10,9 @@ use lofty::mp4::{Ilst, Mp4File};
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
-use crate::{
-    Result,
-    io::{
-        export::ExportTrackConfig,
-        import::{ImportTrackConfig, ImportTrackFlags, Importer},
-    },
+use crate::io::{
+    export::ExportTrackConfig,
+    import::{ImportTrackConfig, ImportTrackFlags, Importer},
 };
 
 #[cfg(feature = "serato-markers")]
@@ -188,20 +185,8 @@ pub(crate) fn export_track_to_file_ilst(
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<()> {
+) {
     let mut ilst = mp4_file.ilst_mut().map_or_default(std::mem::take);
-    export_track_to_ilst(&mut ilst, config, track, edit_embedded_artwork_image)?;
+    export_track_to_tag(&mut ilst, config, track, edit_embedded_artwork_image);
     mp4_file.set_ilst(ilst);
-    Ok(())
-}
-
-pub(crate) fn export_track_to_ilst(
-    ilst: &mut Ilst,
-    config: &ExportTrackConfig,
-    track: &mut Track,
-    edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<()> {
-    super::ensure_content_type(track, &["audio/m4a", "audio/mp4", "video/mp4"])?;
-    export_track_to_tag(ilst, config, track, edit_embedded_artwork_image);
-    Ok(())
 }

@@ -102,3 +102,31 @@ fn do_not_reuse_embedded_artwork_without_digest() {
         .is_none()
     );
 }
+
+#[test]
+fn accepted_content_types_include_guessed_content_types() {
+    use lofty::file::FileType;
+
+    use super::accepted_content_types;
+    use crate::util::guess_mime_from_file_path;
+
+    for (extension, file_type) in [
+        ("aif", FileType::Aiff),
+        ("aiff", FileType::Aiff),
+        ("flac", FileType::Flac),
+        ("m4a", FileType::Mp4),
+        ("mp4", FileType::Mp4),
+        ("mp3", FileType::Mpeg),
+        ("ogg", FileType::Vorbis),
+        ("opus", FileType::Opus),
+    ] {
+        let content_type = guess_mime_from_file_path(format!("file.{extension}")).unwrap();
+        assert!(
+            accepted_content_types(file_type).contains(&content_type.essence_str()),
+            "{extension}: {content_type}"
+        );
+    }
+    assert!(accepted_content_types(FileType::Flac).contains(&"audio/x-flac"));
+    assert!(!accepted_content_types(FileType::Flac).contains(&"audio/mpeg"));
+    assert_eq!(accepted_content_types(FileType::Wav), &[] as &[&str]);
+}

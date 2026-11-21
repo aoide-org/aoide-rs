@@ -5,12 +5,9 @@ use lofty::flac::FlacFile;
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
-use crate::{
-    Result,
-    io::{
-        export::ExportTrackConfig,
-        import::{ImportTrackConfig, Importer},
-    },
+use crate::io::{
+    export::ExportTrackConfig,
+    import::{ImportTrackConfig, Importer},
 };
 
 use super::vorbis;
@@ -52,9 +49,7 @@ pub(crate) fn export_track_to_file_vorbis_comments(
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<()> {
-    super::ensure_content_type(track, &["audio/flac"])?;
-
+) {
     let vorbis_comments = if let Some(vorbis_comments) = flac_file.vorbis_comments_mut() {
         vorbis_comments
     } else {
@@ -62,6 +57,4 @@ pub(crate) fn export_track_to_file_vorbis_comments(
         flac_file.vorbis_comments_mut().expect("Some")
     };
     vorbis::export_track_to_tag(vorbis_comments, config, track, edit_embedded_artwork_image);
-
-    Ok(())
 }

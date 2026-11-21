@@ -5,12 +5,9 @@ use lofty::mpeg::MpegFile;
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
-use crate::{
-    Result,
-    io::{
-        export::ExportTrackConfig,
-        import::{ImportTrackConfig, ImportTrackFlags, Importer},
-    },
+use crate::io::{
+    export::ExportTrackConfig,
+    import::{ImportTrackConfig, ImportTrackFlags, Importer},
 };
 
 use super::id3v2;
@@ -44,12 +41,8 @@ pub(crate) fn export_track_to_file_id3v2(
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<()> {
-    super::ensure_content_type(track, &["audio/mpeg"])?;
-
+) {
     let mut id3v2 = mpeg_file.remove_id3v2().unwrap_or_default();
     id3v2::export_track_to_tag(&mut id3v2, config, track, edit_embedded_artwork_image);
     mpeg_file.set_id3v2(id3v2);
-
-    Ok(())
 }

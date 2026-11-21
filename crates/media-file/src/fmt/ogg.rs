@@ -11,21 +11,15 @@ use lofty::{
 
 use aoide_core::{media::artwork::EditEmbeddedArtworkImage, track::Track};
 
-use crate::{
-    Result,
-    io::{
-        export::ExportTrackConfig,
-        import::{ImportTrackConfig, Importer},
-    },
+use crate::io::{
+    export::ExportTrackConfig,
+    import::{ImportTrackConfig, Importer},
 };
 
 use super::vorbis::export_track_to_tag;
 
 /// An Ogg file with Vorbis Comments.
 pub(crate) trait OggFile: Into<TaggedFile> {
-    /// The only accepted content type for exporting metadata.
-    const CONTENT_TYPE: &'static str;
-
     #[cfg(feature = "serato-markers")]
     fn vorbis_comments(&self) -> &VorbisComments;
 
@@ -33,8 +27,6 @@ pub(crate) trait OggFile: Into<TaggedFile> {
 }
 
 impl OggFile for VorbisFile {
-    const CONTENT_TYPE: &'static str = "audio/ogg";
-
     #[cfg(feature = "serato-markers")]
     fn vorbis_comments(&self) -> &VorbisComments {
         Self::vorbis_comments(self)
@@ -46,8 +38,6 @@ impl OggFile for VorbisFile {
 }
 
 impl OggFile for OpusFile {
-    const CONTENT_TYPE: &'static str = "audio/opus";
-
     #[cfg(feature = "serato-markers")]
     fn vorbis_comments(&self) -> &VorbisComments {
         Self::vorbis_comments(self)
@@ -94,13 +84,11 @@ pub(crate) fn export_track_to_file<F: OggFile>(
     config: &ExportTrackConfig,
     track: &mut Track,
     edit_embedded_artwork_image: Option<EditEmbeddedArtworkImage>,
-) -> Result<()> {
-    super::ensure_content_type(track, &[F::CONTENT_TYPE])?;
+) {
     export_track_to_tag(
         ogg_file.vorbis_comments_mut(),
         config,
         track,
         edit_embedded_artwork_image,
     );
-    Ok(())
 }

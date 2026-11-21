@@ -5,7 +5,7 @@ use std::{borrow::Cow, ops::Not as _};
 
 use lofty::{
     config::ParseOptions,
-    file::{AudioFile as _, TaggedFile, TaggedFileExt as _},
+    file::{AudioFile as _, FileType, TaggedFile, TaggedFileExt as _},
     picture::{MimeType, Picture, PictureType},
     properties::FileProperties,
     tag::{Accessor as _, ItemKey, ItemValue, MergeTag, SplitTag, Tag, TagItem, TagType},
@@ -205,10 +205,28 @@ fn picture_type_from_apic_type(apic_type: ApicType) -> PictureType {
     PictureType::from_u8(apic_type as u8)
 }
 
-/// Ensure that the content type of the track is one of the accepted types.
-pub(crate) fn ensure_content_type(track: &Track, accepted_essence_strs: &[&str]) -> Result<()> {
+/// The content types (MIME essences) that are accepted for each file type.
+///
+/// Includes common, non-standard aliases. Unsupported file types accept
+/// no content types.
+#[must_use]
+pub(crate) const fn accepted_content_types(file_type: FileType) -> &'static [&'static str] {
+    match file_type {
+        FileType::Aiff => &["audio/aiff", "audio/x-aiff"],
+        FileType::Flac => &["audio/flac", "audio/x-flac"],
+        FileType::Mp4 => &["audio/m4a", "audio/x-m4a", "audio/mp4", "video/mp4"],
+        FileType::Mpeg => &["audio/mpeg", "audio/mp3"],
+        // Ogg Opus files use the content type of the container (RFC 7845).
+        FileType::Opus => &["audio/ogg", "audio/opus"],
+        FileType::Vorbis => &["audio/ogg"],
+        _ => &[],
+    }
+}
+
+/// Ensure that the content type of the track is accepted for the file type.
+pub(crate) fn ensure_content_type(track: &Track, file_type: FileType) -> Result<()> {
     let content_type = &track.media_source.content.r#type;
-    if accepted_essence_strs.contains(&content_type.essence_str()) {
+    if accepted_content_types(file_type).contains(&content_type.essence_str()) {
         Ok(())
     } else {
         Err(Error::UnsupportedContentType(content_type.clone()))
