@@ -53,13 +53,13 @@ use crate::{
     },
     repo_error,
     util::{
+        apply_pagination,
         entity::{decode_entity_header, decode_entity_revision, encode_entity_uid},
-        pagination_to_limit_offset,
     },
 };
 
 mod search;
-use self::search::{TrackSearchExpressionBoxedBuilder as _, TrackSearchQueryTransform as _};
+use self::search::{apply_sort_order, build_filter_expression};
 
 // TODO: Define a dedicated return type
 #[expect(clippy::type_complexity)]
@@ -456,10 +456,12 @@ impl EntityRepo for Connection<'_> {
         created_entity: &TrackEntity,
     ) -> RepoResult<TrackId> {
         let insertable = InsertableRecord::bind(media_source_id, created_entity);
-        let query = insertable.insert_into(track::table);
-        let rows_affected = query.execute(self.as_mut()).map_err(repo_error)?;
-        debug_assert_eq!(1, rows_affected);
-        let id = self.resolve_track_id(&created_entity.hdr.uid)?;
+        let id = insertable
+            .insert_into(track::table)
+            .returning(track::row_id)
+            .get_result::<RowId>(self.as_mut())
+            .map_err(repo_error)?
+            .into();
         insert_track_and_album_titles(
             self,
             id,
@@ -563,7 +565,7 @@ impl CollectionRepo for crate::Connection<'_> {
     ) -> RepoResult<(MediaSourceId, RecordHeader, TrackEntity)> {
         let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
-            StringPredicate::Equals(content_path.to_borrowed().into()),
+            &StringPredicate::Equals(content_path.to_borrowed().into()),
         );
         let queryable = view_track_search::table
             .filter(view_track_search::media_source_id.eq_any(media_source_id_subselect))
@@ -583,7 +585,7 @@ impl CollectionRepo for crate::Connection<'_> {
     ) -> RepoResult<(MediaSourceId, RecordHeader, TrackHeader)> {
         let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
-            StringPredicate::Equals(content_path.to_borrowed().into()),
+            &StringPredicate::Equals(content_path.to_borrowed().into()),
         );
         let queryable = view_track_search::table
             .filter(view_track_search::media_source_id.eq_any(media_source_id_subselect))
@@ -724,25 +726,18 @@ impl CollectionRepo for crate::Connection<'_> {
             .into_boxed();
 
         if let Some(filter) = filter {
-            query = query.filter(filter.build_expression());
+            query = query.filter(build_filter_expression(filter));
         }
 
         for sort_order in order {
-            query = sort_order.apply_to_query(query);
+            query = apply_sort_order(*sort_order, query);
         }
         // Finally order by PK to preserve the relative order of results
         // even if no sorting was requested.
         query = query.then_order_by(view_track_search::row_id);
 
         // Pagination
-        //FIXME: Extract into generic function crate::util::apply_pagination()
-        let (limit, offset) = pagination_to_limit_offset(pagination);
-        if let Some(limit) = limit {
-            query = query.limit(limit);
-        }
-        if let Some(offset) = offset {
-            query = query.offset(offset);
-        }
+        query = apply_pagination(query, pagination);
 
         log::debug!(
             "Loading results of SQL search query: {debug_query}",
@@ -796,7 +791,7 @@ impl CollectionRepo for crate::Connection<'_> {
     ) -> RepoResult<usize> {
         let media_source_id_subselect = select_media_source_id_filtered_by_content_path_predicate(
             collection_id,
-            content_path_predicate,
+            &content_path_predicate,
         );
         let target = track::table.filter(track::media_source_id.eq_any(media_source_id_subselect));
         let query = diesel::delete(target);
@@ -835,7 +830,7 @@ impl CollectionRepo for crate::Connection<'_> {
             let media_source_id_subselect =
                 select_media_source_id_filtered_by_content_path_predicate(
                     collection_id,
-                    content_path_predicate,
+                    &content_path_predicate,
                 );
             // The optimizer will hopefully be able to inline this subselect that
             // allows to reuse the filtered select statement!
@@ -843,14 +838,7 @@ impl CollectionRepo for crate::Connection<'_> {
         }
 
         // Pagination
-        //FIXME: Extract into generic function crate::util::apply_pagination()
-        let (limit, offset) = pagination_to_limit_offset(pagination);
-        if let Some(limit) = limit {
-            query = query.limit(limit);
-        }
-        if let Some(offset) = offset {
-            query = query.offset(offset);
-        }
+        query = apply_pagination(query, pagination);
 
         let rows = query
             .load_iter::<(

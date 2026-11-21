@@ -22,7 +22,7 @@ use crate::{
         },
     },
     repo_error,
-    util::{pagination_to_limit_offset, sql_column_substr_prefix_eq},
+    util::{apply_pagination, sql_column_substr_prefix_eq},
 };
 
 impl Repo for Connection<'_> {
@@ -329,14 +329,7 @@ impl Repo for Connection<'_> {
         }
 
         // Pagination
-        //FIXME: Extract into generic function crate::util::apply_pagination()
-        let (limit, offset) = pagination_to_limit_offset(pagination);
-        if let Some(limit) = limit {
-            query = query.limit(limit);
-        }
-        if let Some(offset) = offset {
-            query = query.offset(offset);
-        }
+        query = apply_pagination(query, pagination);
 
         let rows = query
             .load_iter::<(String, i64), _>(self.as_mut())
@@ -378,14 +371,7 @@ impl Repo for Connection<'_> {
             .into_boxed();
 
         // Pagination
-        //FIXME: Extract into generic function crate::util::apply_pagination()
-        let (limit, offset) = pagination_to_limit_offset(pagination);
-        if let Some(limit) = limit {
-            query = query.limit(limit);
-        }
-        if let Some(offset) = offset {
-            query = query.offset(offset);
-        }
+        query = apply_pagination(query, pagination);
 
         let rows = query
             .load_iter::<QueryableRecord, _>(self.as_mut())

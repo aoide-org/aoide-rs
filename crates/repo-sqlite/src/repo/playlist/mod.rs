@@ -31,9 +31,9 @@ use crate::{
     },
     repo_error,
     util::{
+        apply_pagination,
         clock::timestamp_millis,
         entity::{decode_entity_revision, encode_entity_revision, encode_entity_uid},
-        pagination_to_limit_offset,
     },
 };
 
@@ -188,14 +188,7 @@ impl EntityRepo for Connection<'_> {
         }
 
         if let Some(pagination) = pagination {
-            //FIXME: Extract into generic function crate::util::apply_pagination()
-            let (limit, offset) = pagination_to_limit_offset(pagination);
-            if let Some(limit) = limit {
-                target = target.limit(limit);
-            }
-            if let Some(offset) = offset {
-                target = target.offset(offset);
-            }
+            target = apply_pagination(target, pagination);
         }
 
         let records = target

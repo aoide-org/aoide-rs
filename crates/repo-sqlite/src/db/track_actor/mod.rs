@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use anyhow::anyhow;
-
 use aoide_core::track::actor::*;
 use aoide_core_api::track::search::Scope;
-use aoide_repo::{RepoError, RepoResult, track::RecordId};
+use aoide_repo::{RepoResult, track::RecordId};
+
+use crate::util::decode_repr;
 
 pub(crate) mod models;
 pub(crate) mod schema;
@@ -22,10 +22,7 @@ pub(crate) const fn encode_role(value: Role) -> i16 {
 }
 
 pub(crate) fn decode_role(value: i16) -> RepoResult<Role> {
-    u8::try_from(value)
-        .ok()
-        .and_then(Role::from_repr)
-        .ok_or_else(|| RepoError::Other(anyhow!("invalid track actor Role value: {value}")))
+    decode_repr(value, Role::from_repr, "track actor Role")
 }
 
 pub(crate) const fn encode_kind(value: Kind) -> i16 {
@@ -33,8 +30,5 @@ pub(crate) const fn encode_kind(value: Kind) -> i16 {
 }
 
 pub(crate) fn decode_kind(value: i16) -> RepoResult<Kind> {
-    u8::try_from(value)
-        .ok()
-        .and_then(Kind::from_repr)
-        .ok_or_else(|| RepoError::Other(anyhow!("invalid track actor Kind value: {value}")))
+    decode_repr(value, Kind::from_repr, "track actor Kind")
 }

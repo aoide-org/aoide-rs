@@ -4,19 +4,18 @@
 pub(crate) mod models;
 pub(crate) mod schema;
 
-use anyhow::anyhow;
 use diesel::{prelude::*, sql_types::BigInt};
 use strum::FromRepr;
 
 use aoide_core::media::{artwork::ApicType, content::ContentPathKind};
-use aoide_core_api::filter::StringPredicate;
-use aoide_repo::{CollectionId, RepoError, RepoResult};
+use aoide_core_api::filter::{StringCompare, StringPredicate};
+use aoide_repo::{CollectionId, RepoResult};
 
 use crate::{
     DbBackend, RowId,
     util::{
-        LIKE_ESCAPE_CHARACTER, escape_like_contains, escape_like_ends_with, escape_like_matches,
-        escape_like_starts_with, sql_column_substr_prefix_eq,
+        LIKE_ESCAPE_CHARACTER, StringCmpOp, decode_repr, decompose_string_predicate,
+        sql_column_substr_prefix_eq, sql_column_substr_prefix_ne,
     },
 };
 
@@ -27,10 +26,7 @@ pub(crate) const fn encode_content_path_kind(value: ContentPathKind) -> i16 {
 }
 
 pub(crate) fn decode_content_path_kind(value: i16) -> RepoResult<ContentPathKind> {
-    u8::try_from(value)
-        .ok()
-        .and_then(ContentPathKind::from_repr)
-        .ok_or_else(|| RepoError::Other(anyhow!("invalid ContentPathKind value: {value}")))
+    decode_repr(value, ContentPathKind::from_repr, "ContentPathKind")
 }
 
 pub(crate) const fn encode_apic_type(value: ApicType) -> i16 {
@@ -38,10 +34,7 @@ pub(crate) const fn encode_apic_type(value: ApicType) -> i16 {
 }
 
 pub(crate) fn decode_apic_type(value: i16) -> RepoResult<ApicType> {
-    u8::try_from(value)
-        .ok()
-        .and_then(ApicType::from_repr)
-        .ok_or_else(|| RepoError::Other(anyhow!("invalid ApicType value: {value}")))
+    decode_repr(value, ApicType::from_repr, "ApicType")
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromRepr)]
@@ -56,11 +49,7 @@ enum ArtworkSource {
 
 impl ArtworkSource {
     fn decode(value: i16) -> RepoResult<Self> {
-        value
-            .try_into()
-            .ok()
-            .and_then(Self::from_repr)
-            .ok_or_else(|| RepoError::Other(anyhow!("invalid ArtworkSource value: {value}")))
+        decode_repr(value, Self::from_repr, "ArtworkSource")
     }
 
     const fn encode(self) -> i16 {
@@ -83,106 +72,50 @@ pub(crate) fn select_row_id_filtered_by_collection_id<'db>(
 /// filtering is restricted to a single collection.
 pub(crate) fn select_row_id_filtered_by_content_path_predicate(
     collection_id: CollectionId,
-    content_path_predicate: StringPredicate<'_>,
-) -> media_source::BoxedQuery<'_, DbBackend, BigInt> {
+    content_path_predicate: &StringPredicate<'_>,
+) -> media_source::BoxedQuery<'static, DbBackend, BigInt> {
     // Source URI filtering
     let statement = media_source::table
         .select(media_source::row_id)
         .filter(media_source::collection_id.eq(RowId::from(collection_id)))
         .into_boxed();
-    match content_path_predicate {
-        StringPredicate::StartsWith(path_prefix_nocase) => {
-            if path_prefix_nocase.is_empty() {
-                return statement;
+    let Some((val, cmp, dir)) = decompose_string_predicate(content_path_predicate) else {
+        return statement;
+    };
+    if val.is_empty() && cmp != StringCompare::Equals {
+        // Include all
+        return statement;
+    }
+    match StringCmpOp::new(cmp, val) {
+        StringCmpOp::Equal(path) => {
+            if dir {
+                statement.filter(media_source::content_link_path.eq(path))
+            } else {
+                statement.filter(media_source::content_link_path.ne(path))
             }
-            statement.filter(
-                media_source::content_link_path
-                    .like(escape_like_starts_with(&path_prefix_nocase))
-                    .escape(LIKE_ESCAPE_CHARACTER),
-            )
         }
-        StringPredicate::StartsNotWith(path_prefix_nocase) => {
-            if path_prefix_nocase.is_empty() {
-                return statement;
+        StringCmpOp::Prefix(path_prefix) => {
+            let column = "media_source.content_link_path";
+            if dir {
+                statement.filter(sql_column_substr_prefix_eq(column, &path_prefix))
+            } else {
+                statement.filter(sql_column_substr_prefix_ne(column, &path_prefix))
             }
-            statement.filter(
-                media_source::content_link_path
-                    .not_like(escape_like_starts_with(&path_prefix_nocase))
-                    .escape(LIKE_ESCAPE_CHARACTER),
-            )
         }
-        StringPredicate::EndsWith(path_suffix_nocase) => {
-            if path_suffix_nocase.is_empty() {
-                return statement;
+        StringCmpOp::Like { escaped } => {
+            if dir {
+                statement.filter(
+                    media_source::content_link_path
+                        .like(escaped)
+                        .escape(LIKE_ESCAPE_CHARACTER),
+                )
+            } else {
+                statement.filter(
+                    media_source::content_link_path
+                        .not_like(escaped)
+                        .escape(LIKE_ESCAPE_CHARACTER),
+                )
             }
-            statement.filter(
-                media_source::content_link_path
-                    .like(escape_like_ends_with(&path_suffix_nocase))
-                    .escape(LIKE_ESCAPE_CHARACTER),
-            )
-        }
-        StringPredicate::EndsNotWith(path_suffix_nocase) => {
-            if path_suffix_nocase.is_empty() {
-                return statement;
-            }
-            statement.filter(
-                media_source::content_link_path
-                    .not_like(escape_like_ends_with(&path_suffix_nocase))
-                    .escape(LIKE_ESCAPE_CHARACTER),
-            )
-        }
-        StringPredicate::Contains(path_fragment_nocase) => {
-            if path_fragment_nocase.is_empty() {
-                return statement;
-            }
-            statement.filter(
-                media_source::content_link_path
-                    .like(escape_like_contains(&path_fragment_nocase))
-                    .escape(LIKE_ESCAPE_CHARACTER),
-            )
-        }
-        StringPredicate::ContainsNot(path_fragment_nocase) => {
-            if path_fragment_nocase.is_empty() {
-                return statement;
-            }
-            statement.filter(
-                media_source::content_link_path
-                    .not_like(escape_like_contains(&path_fragment_nocase))
-                    .escape(LIKE_ESCAPE_CHARACTER),
-            )
-        }
-        StringPredicate::Matches(path_fragment_nocase) => {
-            if path_fragment_nocase.is_empty() {
-                return statement;
-            }
-            statement.filter(
-                media_source::content_link_path
-                    .like(escape_like_matches(&path_fragment_nocase))
-                    .escape(LIKE_ESCAPE_CHARACTER),
-            )
-        }
-        StringPredicate::MatchesNot(path_fragment_nocase) => {
-            if path_fragment_nocase.is_empty() {
-                return statement;
-            }
-            statement.filter(
-                media_source::content_link_path
-                    .not_like(escape_like_matches(&path_fragment_nocase))
-                    .escape(LIKE_ESCAPE_CHARACTER),
-            )
-        }
-        StringPredicate::Prefix(path_prefix) => {
-            if path_prefix.is_empty() {
-                return statement;
-            }
-            statement.filter(sql_column_substr_prefix_eq(
-                "media_source.content_link_path",
-                &path_prefix,
-            ))
-        }
-        StringPredicate::Equals(path) => statement.filter(media_source::content_link_path.eq(path)),
-        StringPredicate::EqualsNot(path) => {
-            statement.filter(media_source::content_link_path.ne(path))
         }
     }
 }

@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use anyhow::anyhow;
 use nonicle::Canonical;
 
 use aoide_core::{
@@ -11,7 +10,9 @@ use aoide_core::{
     track::{AdvisoryRating, actor::Actor, album::Kind, cue::Cue, title::Title},
 };
 use aoide_core_api::track::search::Scope;
-use aoide_repo::{RepoError, RepoResult};
+use aoide_repo::RepoResult;
+
+use crate::util::decode_repr;
 
 pub(crate) mod models;
 pub(crate) mod schema;
@@ -32,10 +33,7 @@ pub(crate) const fn encode_album_kind(value: Kind) -> i16 {
 }
 
 pub(crate) fn decode_album_kind(value: i16) -> RepoResult<Kind> {
-    u8::try_from(value)
-        .ok()
-        .and_then(Kind::from_repr)
-        .ok_or_else(|| RepoError::Other(anyhow!("invalid track album Kind value: {value}")))
+    decode_repr(value, Kind::from_repr, "track album Kind")
 }
 
 pub(crate) const fn encode_advisory_rating(value: AdvisoryRating) -> i16 {
@@ -43,10 +41,7 @@ pub(crate) const fn encode_advisory_rating(value: AdvisoryRating) -> i16 {
 }
 
 pub(crate) fn decode_advisory_rating(value: i16) -> RepoResult<AdvisoryRating> {
-    u8::try_from(value)
-        .ok()
-        .and_then(AdvisoryRating::from_repr)
-        .ok_or_else(|| RepoError::Other(anyhow!("invalid track AdvisoryRating value: {value}")))
+    decode_repr(value, AdvisoryRating::from_repr, "track AdvisoryRating")
 }
 
 pub(crate) const fn encode_search_scope(value: Scope) -> i16 {
@@ -54,10 +49,7 @@ pub(crate) const fn encode_search_scope(value: Scope) -> i16 {
 }
 
 pub(crate) fn decode_search_scope(value: i16) -> RepoResult<Scope> {
-    u8::try_from(value)
-        .ok()
-        .and_then(Scope::from_repr)
-        .ok_or_else(|| RepoError::Other(anyhow!("invalid track search Scope value: {value}")))
+    decode_repr(value, Scope::from_repr, "track search Scope")
 }
 
 pub(crate) fn encode_music_key_code(value: KeyCode) -> i16 {
@@ -65,9 +57,5 @@ pub(crate) fn encode_music_key_code(value: KeyCode) -> i16 {
 }
 
 pub(crate) fn decode_music_key_code(value: i16) -> RepoResult<KeyCode> {
-    value
-        .try_into()
-        .ok()
-        .and_then(KeyCode::try_from_value)
-        .ok_or_else(|| RepoError::Other(anyhow!("invalid musical KeyCode value: {value}")))
+    decode_repr(value, KeyCode::try_from_value, "musical KeyCode")
 }

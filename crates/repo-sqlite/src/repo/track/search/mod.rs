@@ -20,10 +20,7 @@ use aoide_core::{
 };
 use aoide_core_api::{
     SortDirection,
-    filter::{
-        FilterModifier, NumericPredicate, ScalarPredicate, StringCompare, StringFilter,
-        StringPredicate,
-    },
+    filter::{FilterModifier, NumericPredicate, ScalarPredicate, StringFilter},
     tag::search::{FacetsFilter, Filter as TagFilter},
     track::search::{
         ActorPhraseFilter, ConditionFilter, DateTimeField, DateTimeFieldFilter,
@@ -46,9 +43,9 @@ use crate::{
         view_track_search::schema::*,
     },
     util::{
-        LIKE_ESCAPE_CHARACTER, LIKE_WILDCARD_CHARACTER, StringCmpOp, entity::encode_entity_uid,
-        escape_like_contains, escape_like_ends_with, escape_like_matches, escape_like_starts_with,
-        sql_column_substr_prefix_eq, sql_column_substr_prefix_ne,
+        LIKE_ESCAPE_CHARACTER, LIKE_WILDCARD_CHARACTER, StringCmpOp, decompose_string_predicate,
+        entity::encode_entity_uid, escape_like_matches, sql_column_substr_prefix_eq,
+        sql_column_substr_prefix_ne,
     },
 };
 
@@ -68,230 +65,195 @@ fn dummy_false_expression() -> TrackSearchExpressionBoxed<'static> {
     Box::new(view_track_search::row_id.is_null()) // always false
 }
 
-pub(crate) trait TrackSearchExpressionBoxedBuilder {
-    fn build_expression(&self) -> TrackSearchExpressionBoxed<'_>;
-}
-
-pub(crate) trait TrackSearchQueryTransform<'db> {
-    fn apply_to_query(
-        &self,
-        query: view_track_search::BoxedQuery<'db, DbBackend>,
-    ) -> view_track_search::BoxedQuery<'db, DbBackend>;
-}
-
-impl<'db> TrackSearchQueryTransform<'db> for SortOrder {
-    #[expect(clippy::too_many_lines)] // TODO
-    fn apply_to_query(
-        &self,
-        query: view_track_search::BoxedQuery<'db, DbBackend>,
-    ) -> view_track_search::BoxedQuery<'db, DbBackend> {
-        let direction = self.direction;
-        match self.field {
-            SortField::AlbumArtist => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::sort_album_artist.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::sort_album_artist.desc())
-                }
-            },
-            SortField::AlbumTitle => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::sort_album_title.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::sort_album_title.desc())
-                }
-            },
-            SortField::AudioBitrateBps => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::audio_bitrate_bps.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::audio_bitrate_bps.desc())
-                }
-            },
-            SortField::AudioChannelCount => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::audio_channel_count.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::audio_channel_count.desc())
-                }
-            },
-            SortField::AudioChannelMask => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::audio_channel_mask.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::audio_channel_mask.desc())
-                }
-            },
-            SortField::AudioDurationMs => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::audio_duration_ms.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::audio_duration_ms.desc())
-                }
-            },
-            SortField::AudioLoudnessLufs => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::audio_loudness_lufs.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::audio_loudness_lufs.desc())
-                }
-            },
-            SortField::AudioSampleRateHz => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::audio_samplerate_hz.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::audio_samplerate_hz.desc())
-                }
-            },
-            SortField::CollectedAt => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::collected_ms.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::collected_ms.desc())
-                }
-            },
-            SortField::ContentPath => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::content_link_path.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::content_link_path.desc())
-                }
-            },
-            SortField::ContentType => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::content_type.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::content_type.desc())
-                }
-            },
-            SortField::Copyright => match direction {
-                SortDirection::Ascending => query.then_order_by(view_track_search::copyright.asc()),
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::copyright.desc())
-                }
-            },
-            SortField::CreatedAt => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::row_created_ms.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::row_created_ms.desc())
-                }
-            },
-            SortField::DiscNumber => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::disc_number.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::disc_number.desc())
-                }
-            },
-            SortField::DiscTotal => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::disc_total.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::disc_total.desc())
-                }
-            },
-            SortField::MusicTempoBpm => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::music_tempo_bpm.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::music_tempo_bpm.desc())
-                }
-            },
-            SortField::MusicKeyCode => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::music_key_code.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::music_key_code.desc())
-                }
-            },
-            SortField::Publisher => match direction {
-                SortDirection::Ascending => query.then_order_by(view_track_search::publisher.asc()),
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::publisher.desc())
-                }
-            },
-            SortField::RecordedAtDate => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::recorded_at_yyyymmdd.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::recorded_at_yyyymmdd.desc())
-                }
-            },
-            SortField::ReleasedAtDate => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::released_at_yyyymmdd.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::released_at_yyyymmdd.desc())
-                }
-            },
-            SortField::ReleasedOrigAtDate => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::released_orig_at_yyyymmdd.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::released_orig_at_yyyymmdd.desc())
-                }
-            },
-            SortField::TrackArtist => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::sort_track_artist.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::sort_track_artist.desc())
-                }
-            },
-            SortField::TrackNumber => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::track_number.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::track_number.desc())
-                }
-            },
-            SortField::TrackTitle => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::sort_track_title.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::sort_track_title.desc())
-                }
-            },
-            SortField::TrackTotal => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::track_total.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::track_total.desc())
-                }
-            },
-            SortField::UpdatedAt => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(view_track_search::row_updated_ms.asc())
-                }
-                SortDirection::Descending => {
-                    query.then_order_by(view_track_search::row_updated_ms.desc())
-                }
-            },
-        }
+#[expect(clippy::too_many_lines)] // TODO
+pub(crate) fn apply_sort_order(
+    sort_order: SortOrder,
+    query: view_track_search::BoxedQuery<'_, DbBackend>,
+) -> view_track_search::BoxedQuery<'_, DbBackend> {
+    let direction = sort_order.direction;
+    match sort_order.field {
+        SortField::AlbumArtist => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::sort_album_artist.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::sort_album_artist.desc())
+            }
+        },
+        SortField::AlbumTitle => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::sort_album_title.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::sort_album_title.desc())
+            }
+        },
+        SortField::AudioBitrateBps => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::audio_bitrate_bps.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::audio_bitrate_bps.desc())
+            }
+        },
+        SortField::AudioChannelCount => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::audio_channel_count.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::audio_channel_count.desc())
+            }
+        },
+        SortField::AudioChannelMask => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::audio_channel_mask.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::audio_channel_mask.desc())
+            }
+        },
+        SortField::AudioDurationMs => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::audio_duration_ms.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::audio_duration_ms.desc())
+            }
+        },
+        SortField::AudioLoudnessLufs => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::audio_loudness_lufs.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::audio_loudness_lufs.desc())
+            }
+        },
+        SortField::AudioSampleRateHz => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::audio_samplerate_hz.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::audio_samplerate_hz.desc())
+            }
+        },
+        SortField::CollectedAt => match direction {
+            SortDirection::Ascending => query.then_order_by(view_track_search::collected_ms.asc()),
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::collected_ms.desc())
+            }
+        },
+        SortField::ContentPath => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::content_link_path.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::content_link_path.desc())
+            }
+        },
+        SortField::ContentType => match direction {
+            SortDirection::Ascending => query.then_order_by(view_track_search::content_type.asc()),
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::content_type.desc())
+            }
+        },
+        SortField::Copyright => match direction {
+            SortDirection::Ascending => query.then_order_by(view_track_search::copyright.asc()),
+            SortDirection::Descending => query.then_order_by(view_track_search::copyright.desc()),
+        },
+        SortField::CreatedAt => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::row_created_ms.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::row_created_ms.desc())
+            }
+        },
+        SortField::DiscNumber => match direction {
+            SortDirection::Ascending => query.then_order_by(view_track_search::disc_number.asc()),
+            SortDirection::Descending => query.then_order_by(view_track_search::disc_number.desc()),
+        },
+        SortField::DiscTotal => match direction {
+            SortDirection::Ascending => query.then_order_by(view_track_search::disc_total.asc()),
+            SortDirection::Descending => query.then_order_by(view_track_search::disc_total.desc()),
+        },
+        SortField::MusicTempoBpm => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::music_tempo_bpm.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::music_tempo_bpm.desc())
+            }
+        },
+        SortField::MusicKeyCode => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::music_key_code.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::music_key_code.desc())
+            }
+        },
+        SortField::Publisher => match direction {
+            SortDirection::Ascending => query.then_order_by(view_track_search::publisher.asc()),
+            SortDirection::Descending => query.then_order_by(view_track_search::publisher.desc()),
+        },
+        SortField::RecordedAtDate => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::recorded_at_yyyymmdd.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::recorded_at_yyyymmdd.desc())
+            }
+        },
+        SortField::ReleasedAtDate => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::released_at_yyyymmdd.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::released_at_yyyymmdd.desc())
+            }
+        },
+        SortField::ReleasedOrigAtDate => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::released_orig_at_yyyymmdd.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::released_orig_at_yyyymmdd.desc())
+            }
+        },
+        SortField::TrackArtist => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::sort_track_artist.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::sort_track_artist.desc())
+            }
+        },
+        SortField::TrackNumber => match direction {
+            SortDirection::Ascending => query.then_order_by(view_track_search::track_number.asc()),
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::track_number.desc())
+            }
+        },
+        SortField::TrackTitle => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::sort_track_title.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::sort_track_title.desc())
+            }
+        },
+        SortField::TrackTotal => match direction {
+            SortDirection::Ascending => query.then_order_by(view_track_search::track_total.asc()),
+            SortDirection::Descending => query.then_order_by(view_track_search::track_total.desc()),
+        },
+        SortField::UpdatedAt => match direction {
+            SortDirection::Ascending => {
+                query.then_order_by(view_track_search::row_updated_ms.asc())
+            }
+            SortDirection::Descending => {
+                query.then_order_by(view_track_search::row_updated_ms.desc())
+            }
+        },
     }
 }
 
@@ -394,483 +356,143 @@ fn build_phrase_field_filter_expression(
     or_expression
 }
 
-#[expect(clippy::too_many_lines)] // TODO
+/// Builds a boxed filter expression from a [`ScalarPredicate`].
+///
+/// - `$predicate`: the predicate to match on
+/// - `$expr`: the nullable column, used for `IS [NOT] NULL` comparisons
+/// - `$expr_lt_le_eq_ne`: the expression for `<`, `<=`, `=`, `<>` comparisons
+/// - `$expr_gt_ge`: the expression for `>` and `>=` comparisons (defaults to `$expr_lt_le_eq_ne`)
+/// - `|$value| $convert`: converts the predicate value into the SQL value
+macro_rules! scalar_predicate_expression {
+    ($predicate:expr, $expr:expr, $expr_not_null:expr, |$value:ident| $convert:expr) => {
+        scalar_predicate_expression!(
+            $predicate,
+            $expr,
+            $expr_not_null,
+            $expr_not_null,
+            |$value| $convert
+        )
+    };
+    (
+        $predicate:expr,
+        $expr:expr,
+        $expr_lt_le_eq_ne:expr,
+        $expr_gt_ge:expr,
+        |$value:ident| $convert:expr
+    ) => {
+        match $predicate {
+            ScalarPredicate::LessThan($value) => Box::new($expr_lt_le_eq_ne.lt($convert)),
+            ScalarPredicate::LessOrEqual($value) => Box::new($expr_lt_le_eq_ne.le($convert)),
+            ScalarPredicate::GreaterThan($value) => Box::new($expr_gt_ge.gt($convert)),
+            ScalarPredicate::GreaterOrEqual($value) => Box::new($expr_gt_ge.ge($convert)),
+            ScalarPredicate::Equal(Some($value)) => Box::new($expr_lt_le_eq_ne.eq($convert)),
+            ScalarPredicate::Equal(None) => Box::new($expr.is_null()),
+            ScalarPredicate::NotEqual(Some($value)) => Box::new($expr_lt_le_eq_ne.ne($convert)),
+            ScalarPredicate::NotEqual(None) => Box::new($expr.is_not_null()),
+        }
+    };
+}
+
+// TODO: Check and limit/clamp value range when converting from f64 to integer types
 fn build_numeric_field_filter_expression(
     filter: &NumericFieldFilter,
 ) -> TrackSearchExpressionBoxed<'_> {
     use NumericField::*;
-    use ScalarPredicate::*;
+    let predicate = &filter.predicate;
     match filter.field {
         AdvisoryRating => {
             let expr = view_track_search::advisory_rating;
             let expr_not_null = ifnull(expr, encode_advisory_rating(Default::default()));
-            // TODO: Check and limit/clamp value range when converting from f64 to i16
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i16))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i16))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, expr_not_null, |v| *v as i16)
         }
         ArtworkDataSize => {
             let expr = view_track_search::artwork_data_size;
-            let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to i64
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i64)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i64)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i64)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i64)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i64))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i64))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0), |v| *v as i64)
         }
         ArtworkImageHeight => {
             let expr = view_track_search::artwork_image_height;
-            let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to i16
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i16))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i16))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0), |v| *v as i16)
         }
         ArtworkImageWidth => {
             let expr = view_track_search::artwork_image_width;
-            let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to i16
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i16))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i16))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0), |v| *v as i16)
         }
         AudioDurationMs => {
             let expr = view_track_search::audio_duration_ms;
             let expr_not_null = ifnull(expr, DurationMs::empty().value());
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, expr_not_null, |v| *v)
         }
         AudioSampleRateHz => {
             let expr = view_track_search::audio_samplerate_hz;
             let expr_not_null = ifnull(expr, SampleRateHz::default().value());
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, expr_not_null, |v| *v)
         }
         AudioBitrateBps => {
             let expr = view_track_search::audio_bitrate_bps;
             let expr_not_null = ifnull(expr, BitrateBps::default().value());
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, expr_not_null, |v| *v)
         }
         AudioChannelCount => {
             let expr = view_track_search::audio_channel_count;
             let expr_not_null = ifnull(expr, ChannelCount::default().value() as i16);
-            // TODO: Check and limit/clamp value range when converting from f64 to i16
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i16))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i16))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, expr_not_null, |v| *v as i16)
         }
         AudioChannelMask => {
             let expr = view_track_search::audio_channel_mask;
             let expr_not_null = ifnull(expr, ChannelFlags::default().bits() as i32);
-            // TODO: Check and limit/clamp value range when converting from f64 to i32
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i32)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i32)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i32)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i32)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i32))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i32))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, expr_not_null, |v| *v as i32)
         }
         AudioLoudnessLufs => {
             let expr = view_track_search::audio_loudness_lufs;
             let expr_not_null = ifnull(expr, LoudnessLufs::default().value());
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, expr_not_null, |v| *v)
         }
         TrackNumber => {
             let expr = view_track_search::track_number;
-            let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to i16
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i16))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i16))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0), |v| *v as i16)
         }
         TrackTotal => {
             let expr = view_track_search::track_total;
-            let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to i16
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i16))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i16))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0), |v| *v as i16)
         }
         DiscNumber => {
             let expr = view_track_search::disc_number;
-            let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to i16
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i16))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i16))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0), |v| *v as i16)
         }
         DiscTotal => {
             let expr = view_track_search::disc_total;
-            let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to i16
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as i16)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as i16))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as i16))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0), |v| *v as i16)
         }
         RecordedAtDate => {
             let expr = view_track_search::recorded_at_yyyymmdd;
-            let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to YyyyMmDdDateValue
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as YyyyMmDdDateValue)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as YyyyMmDdDateValue)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as YyyyMmDdDateValue)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as YyyyMmDdDateValue)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as YyyyMmDdDateValue))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as YyyyMmDdDateValue))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0), |v| *v
+                as YyyyMmDdDateValue)
         }
         ReleasedAtDate => {
             let expr = view_track_search::released_at_yyyymmdd;
-            let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to YyyyMmDdDateValue
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as YyyyMmDdDateValue)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as YyyyMmDdDateValue)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as YyyyMmDdDateValue)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as YyyyMmDdDateValue)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as YyyyMmDdDateValue))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as YyyyMmDdDateValue))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0), |v| *v
+                as YyyyMmDdDateValue)
         }
         ReleasedOrigAtDate => {
             let expr = view_track_search::released_orig_at_yyyymmdd;
-            let expr_not_null = ifnull(expr, 0);
-            // TODO: Check and limit/clamp value range when converting from f64 to YyyyMmDdDateValue
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value as YyyyMmDdDateValue)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value as YyyyMmDdDateValue)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value as YyyyMmDdDateValue)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value as YyyyMmDdDateValue)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value as YyyyMmDdDateValue))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value as YyyyMmDdDateValue))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0), |v| *v
+                as YyyyMmDdDateValue)
         }
         MusicTempoBpm => {
             let expr = view_track_search::music_tempo_bpm;
-            let expr_not_null = ifnull(expr, 0.0);
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value)),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value)),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value)),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0.0), |v| *v)
         }
         MusicKeyCode => {
             let expr = view_track_search::music_key_code;
             let expr_not_null_less_or_equal = ifnull(expr, i16::MAX);
             let expr_not_null_greater = ifnull(expr, -1);
-            // TODO: Check and limit/clamp value range when converting from f64 to i16
-            match filter.predicate {
-                LessThan(value) => Box::new(expr_not_null_less_or_equal.lt(value as i16)),
-                LessOrEqual(value) => Box::new(expr_not_null_less_or_equal.le(value as i16)),
-                GreaterThan(value) => Box::new(expr_not_null_greater.gt(value as i16)),
-                GreaterOrEqual(value) => Box::new(expr_not_null_greater.ge(value as i16)),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null_less_or_equal.eq(value as i16))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null_less_or_equal.ne(value as i16))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(
+                predicate,
+                expr,
+                expr_not_null_less_or_equal,
+                expr_not_null_greater,
+                |v| *v as i16
+            )
         }
     }
 }
@@ -879,107 +501,26 @@ fn build_datetime_field_filter_expression(
     filter: &DateTimeFieldFilter,
 ) -> TrackSearchExpressionBoxed<'_> {
     use DateTimeField::*;
-    use ScalarPredicate::*;
+    let predicate = &filter.predicate;
     match filter.field {
         CollectedAt => {
             let expr = view_track_search::collected_ms;
-            let expr_not_null = expr;
-            // TODO: Check and limit/clamp value range when converting from f64 to i64
-            match &filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value.unix_timestamp_millis())),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value.unix_timestamp_millis())),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value.unix_timestamp_millis())),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.unix_timestamp_millis())),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value.unix_timestamp_millis()))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value.unix_timestamp_millis()))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, expr, |v| v.unix_timestamp_millis())
         }
         RecordedAt => {
             let expr = view_track_search::recorded_ms;
-            let expr_not_null = ifnull(expr, 0i64);
-            // TODO: Check and limit/clamp value range when converting from f64 to i64
-            match &filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value.unix_timestamp_millis())),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value.unix_timestamp_millis())),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value.unix_timestamp_millis())),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.unix_timestamp_millis())),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value.unix_timestamp_millis()))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value.unix_timestamp_millis()))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0i64), |v| v
+                .unix_timestamp_millis())
         }
         ReleasedAt => {
             let expr = view_track_search::released_ms;
-            let expr_not_null = ifnull(expr, 0i64);
-            // TODO: Check and limit/clamp value range when converting from f64 to i64
-            match &filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value.unix_timestamp_millis())),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value.unix_timestamp_millis())),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value.unix_timestamp_millis())),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.unix_timestamp_millis())),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value.unix_timestamp_millis()))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value.unix_timestamp_millis()))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0i64), |v| v
+                .unix_timestamp_millis())
         }
         ReleasedOrigAt => {
             let expr = view_track_search::released_orig_ms;
-            let expr_not_null = ifnull(expr, 0i64);
-            // TODO: Check and limit/clamp value range when converting from f64 to i64
-            match &filter.predicate {
-                LessThan(value) => Box::new(expr_not_null.lt(value.unix_timestamp_millis())),
-                LessOrEqual(value) => Box::new(expr_not_null.le(value.unix_timestamp_millis())),
-                GreaterThan(value) => Box::new(expr_not_null.gt(value.unix_timestamp_millis())),
-                GreaterOrEqual(value) => Box::new(expr_not_null.ge(value.unix_timestamp_millis())),
-                Equal(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.eq(value.unix_timestamp_millis()))
-                    } else {
-                        Box::new(expr.is_null())
-                    }
-                }
-                NotEqual(value) => {
-                    if let Some(value) = value {
-                        Box::new(expr_not_null.ne(value.unix_timestamp_millis()))
-                    } else {
-                        Box::new(expr.is_not_null())
-                    }
-                }
-            }
+            scalar_predicate_expression!(predicate, expr, ifnull(expr, 0i64), |v| v
+                .unix_timestamp_millis())
         }
     }
 }
@@ -1080,24 +621,7 @@ fn select_track_ids_matching_tag_filter(
     if let Some(label) = label
         && let Some((val, cmp, dir)) = decompose_string_predicate(label)
     {
-        let string_cmp_op = match cmp {
-            // Equal comparison without escape characters
-            StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
-            StringCompare::Prefix => StringCmpOp::Prefix(val.to_owned()),
-            // Like comparisons with escaped wildcard character
-            StringCompare::StartsWith => StringCmpOp::Like {
-                escaped: escape_like_starts_with(val),
-            },
-            StringCompare::EndsWith => StringCmpOp::Like {
-                escaped: escape_like_ends_with(val),
-            },
-            StringCompare::Contains => StringCmpOp::Like {
-                escaped: escape_like_contains(val),
-            },
-            StringCompare::Matches => StringCmpOp::Like {
-                escaped: escape_like_matches(val),
-            },
-        };
+        let string_cmp_op = StringCmpOp::new(cmp, val);
         match string_cmp_op {
             StringCmpOp::Equal(eq) => {
                 if dir {
@@ -1190,24 +714,7 @@ fn select_track_ids_matching_cue_filter<'db>(
     if let Some(label) = &filter.value
         && let Some((val, cmp, dir)) = decompose_string_predicate(label)
     {
-        let string_cmp_op = match cmp {
-            // Equal comparison without escape characters
-            StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
-            StringCompare::Prefix => StringCmpOp::Prefix(val.to_owned()),
-            // Like comparisons with escaped wildcard character
-            StringCompare::StartsWith => StringCmpOp::Like {
-                escaped: escape_like_starts_with(val),
-            },
-            StringCompare::EndsWith => StringCmpOp::Like {
-                escaped: escape_like_ends_with(val),
-            },
-            StringCompare::Contains => StringCmpOp::Like {
-                escaped: escape_like_contains(val),
-            },
-            StringCompare::Matches => StringCmpOp::Like {
-                escaped: escape_like_matches(val),
-            },
-        };
+        let string_cmp_op = StringCmpOp::new(cmp, val);
         select = match string_cmp_op {
             StringCmpOp::Equal(eq) => {
                 if dir {
@@ -1391,79 +898,33 @@ fn build_title_filter_expression(filter: &TitlePhraseFilter) -> TrackSearchExpre
     }
 }
 
-impl TrackSearchExpressionBoxedBuilder for TrackFilter {
-    fn build_expression(&self) -> TrackSearchExpressionBoxed<'_> {
-        use TrackFilter::*;
-        match self {
-            Phrase(filter) => build_phrase_field_filter_expression(filter),
-            Numeric(filter) => build_numeric_field_filter_expression(filter),
-            DateTime(filter) => build_datetime_field_filter_expression(filter),
-            Condition(filter) => build_condition_filter_expression(*filter),
-            Tag(filter) => build_tag_filter_expression(filter),
-            CueLabel(filter) => build_cue_label_filter_expression(filter),
-            AnyTrackUid(any_track_uid) => build_any_track_uid_filter_expression(any_track_uid),
-            AnyPlaylistUid(any_playlist_uid) => {
-                build_any_playlist_uid_filter_expression(any_playlist_uid)
-            }
-            ActorPhrase(filter) => build_actor_filter_expression(filter),
-            TitlePhrase(filter) => build_title_filter_expression(filter),
-            All(filters) => filters
-                .iter()
-                .fold(dummy_true_expression(), |expr, filter| {
-                    Box::new(expr.and(filter.build_expression()))
-                }),
-            Any(filters) => filters
-                .iter()
-                .fold(dummy_false_expression(), |expr, filter| {
-                    Box::new(expr.or(filter.build_expression()))
-                }),
-            Not(filter) => Box::new(diesel::dsl::not(filter.build_expression())),
+pub(crate) fn build_filter_expression(filter: &TrackFilter) -> TrackSearchExpressionBoxed<'_> {
+    use TrackFilter::*;
+    match filter {
+        Phrase(filter) => build_phrase_field_filter_expression(filter),
+        Numeric(filter) => build_numeric_field_filter_expression(filter),
+        DateTime(filter) => build_datetime_field_filter_expression(filter),
+        Condition(filter) => build_condition_filter_expression(*filter),
+        Tag(filter) => build_tag_filter_expression(filter),
+        CueLabel(filter) => build_cue_label_filter_expression(filter),
+        AnyTrackUid(any_track_uid) => build_any_track_uid_filter_expression(any_track_uid),
+        AnyPlaylistUid(any_playlist_uid) => {
+            build_any_playlist_uid_filter_expression(any_playlist_uid)
         }
+        ActorPhrase(filter) => build_actor_filter_expression(filter),
+        TitlePhrase(filter) => build_title_filter_expression(filter),
+        All(filters) => filters
+            .iter()
+            .fold(dummy_true_expression(), |expr, filter| {
+                Box::new(expr.and(build_filter_expression(filter)))
+            }),
+        Any(filters) => filters
+            .iter()
+            .fold(dummy_false_expression(), |expr, filter| {
+                Box::new(expr.or(build_filter_expression(filter)))
+            }),
+        Not(filter) => Box::new(diesel::dsl::not(build_filter_expression(filter))),
     }
-}
-
-fn decompose_string_predicate<'a>(
-    p: &'a StringPredicate<'a>,
-) -> Option<(&'a str, StringCompare, bool)> {
-    use StringPredicate::*;
-    let (s, cmp, dir) = match p {
-        StartsWith(s) => {
-            if s.is_empty() {
-                // Include all
-                return None;
-            }
-            (s, StringCompare::StartsWith, true)
-        }
-        StartsNotWith(s) => (s, StringCompare::StartsWith, false),
-        EndsWith(s) => {
-            if s.is_empty() {
-                // Include all
-                return None;
-            }
-            (s, StringCompare::EndsWith, true)
-        }
-        EndsNotWith(s) => (s, StringCompare::EndsWith, false),
-        Contains(s) => {
-            if s.is_empty() {
-                // Include all
-                return None;
-            }
-            (s, StringCompare::Contains, true)
-        }
-        ContainsNot(s) => (s, StringCompare::Contains, false),
-        Matches(s) => (s, StringCompare::Matches, true),
-        MatchesNot(s) => (s, StringCompare::Matches, false),
-        Prefix(s) => {
-            if s.is_empty() {
-                // Include all
-                return None;
-            }
-            (s, StringCompare::Prefix, true)
-        }
-        Equals(s) => (s, StringCompare::Equals, true),
-        EqualsNot(s) => (s, StringCompare::Equals, false),
-    };
-    Some((s, cmp, dir))
 }
 
 #[cfg(test)]

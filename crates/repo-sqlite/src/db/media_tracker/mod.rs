@@ -4,18 +4,15 @@
 pub(crate) mod models;
 pub(crate) mod schema;
 
-use anyhow::anyhow;
-
 use aoide_core_api::media::tracker::DirTrackingStatus;
-use aoide_repo::{RepoError, RepoResult};
+use aoide_repo::RepoResult;
+
+use crate::util::decode_repr;
 
 pub(crate) const fn encode_dir_tracking_status(value: DirTrackingStatus) -> i16 {
     value as _
 }
 
 pub(crate) fn decode_dir_tracking_status(value: i16) -> RepoResult<DirTrackingStatus> {
-    u8::try_from(value)
-        .ok()
-        .and_then(DirTrackingStatus::from_repr)
-        .ok_or_else(|| RepoError::Other(anyhow!("invalid DirTrackingStatus value: {value}")))
+    decode_repr(value, DirTrackingStatus::from_repr, "DirTrackingStatus")
 }

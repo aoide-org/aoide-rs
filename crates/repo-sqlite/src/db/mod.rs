@@ -11,7 +11,6 @@ pub(crate) mod track_actor;
 pub(crate) mod track_cue;
 pub(crate) mod track_tag;
 pub(crate) mod track_title;
-pub(crate) mod view_album;
 pub(crate) mod view_track_search;
 
 mod join {

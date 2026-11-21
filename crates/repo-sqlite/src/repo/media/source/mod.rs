@@ -93,7 +93,7 @@ impl CollectionRepo for Connection<'_> {
             .filter(
                 media_source::row_id.eq_any(select_row_id_filtered_by_content_path_predicate(
                     collection_id,
-                    content_path_predicate,
+                    &content_path_predicate,
                 )),
             );
         let rows = query
@@ -138,7 +138,10 @@ impl CollectionRepo for Connection<'_> {
         // even if it might be slightly less efficient! The query optimizer
         // should detect this.
         diesel::delete(media_source::table.filter(media_source::row_id.eq_any(
-            select_row_id_filtered_by_content_path_predicate(collection_id, content_path_predicate),
+            select_row_id_filtered_by_content_path_predicate(
+                collection_id,
+                &content_path_predicate,
+            ),
         )))
         .execute(self.as_mut())
         .map_err(repo_error)
@@ -157,7 +160,7 @@ impl CollectionRepo for Connection<'_> {
                 .filter(media_source::row_id.eq_any(
                     select_row_id_filtered_by_content_path_predicate(
                         collection_id,
-                        content_path_predicate,
+                        &content_path_predicate,
                     ),
                 ))
                 // Restrict to orphaned media sources without a track
@@ -180,7 +183,7 @@ impl CollectionRepo for Connection<'_> {
                 .filter(media_source::row_id.eq_any(
                     select_row_id_filtered_by_content_path_predicate(
                         collection_id,
-                        content_path_predicate,
+                        &content_path_predicate,
                     ),
                 ))
                 // Restrict to untracked media sources
