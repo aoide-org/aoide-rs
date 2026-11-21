@@ -157,8 +157,8 @@ pub trait AncestorVisitor<C, T, E> {
         dir_entry: &walkdir::DirEntry,
     ) -> std::result::Result<(), E>;
 
-    #[must_use]
-    fn finish(self) -> T;
+    /// Finish visiting the entries of the ancestor directory.
+    fn finish(self, context: &mut C) -> std::result::Result<T, E>;
 }
 
 pub trait DirectoryVisitor {
@@ -299,7 +299,11 @@ pub fn visit_directories<
                 // Stack unwinding of ancestor
                 let (ancestor_path, ancestor_visitor) =
                     ancestor_visitors.pop().expect("last ancestor visitor");
-                let ancestor_finished = ancestor_visitor.finish();
+                let ancestor_finished = ancestor_visitor.finish(context).map_err(|err| {
+                    progress_event.fail();
+                    report_progress_fn(&progress_event);
+                    err.into()
+                })?;
                 log::debug!(
                     "Finalized parent directory: {ancestor_path}",
                     ancestor_path = ancestor_path.display()
@@ -350,7 +354,11 @@ pub fn visit_directories<
 
     // Stack unwinding of remaining ancestors
     while let Some((ancestor_path, ancestor_visitor)) = ancestor_visitors.pop() {
-        let ancestor_data = ancestor_visitor.finish();
+        let ancestor_data = ancestor_visitor.finish(context).map_err(|err| {
+            progress_event.fail();
+            report_progress_fn(&progress_event);
+            err.into()
+        })?;
         log::debug!(
             "Finalized parent directory: {path}",
             path = ancestor_path.display()

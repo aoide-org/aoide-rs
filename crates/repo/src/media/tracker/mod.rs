@@ -191,9 +191,12 @@ pub trait Repo {
         path_prefix: &ContentPath<'_>,
     ) -> RepoResult<Vec<MediaSourceId>>;
 
-    fn media_tracker_resolve_source_id_synchronized_at_by_content_path(
+    /// Filter the content paths of files that are not tracked.
+    ///
+    /// The order of `content_paths` is preserved.
+    fn media_tracker_filter_untracked_content_paths(
         &mut self,
         collection_id: CollectionId,
-        path: &ContentPath<'_>,
-    ) -> RepoResult<(MediaSourceId, Option<u64>)>;
+        content_paths: Vec<ContentPath<'static>>,
+    ) -> RepoResult<Vec<ContentPath<'static>>>;
 }

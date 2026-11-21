@@ -21,7 +21,7 @@ use aoide_core_api::media::tracker::{
 };
 use aoide_media_file::fs::visit::{self, url_from_walkdir_entry};
 use aoide_repo::{
-    CollectionId, RepoError, collection::EntityRepo as CollectionRepo,
+    CollectionId, collection::EntityRepo as CollectionRepo,
     media::tracker::Repo as MediaTrackerRepo,
 };
 
@@ -94,7 +94,7 @@ where
 {
     fn visit_dir_entry(
         &mut self,
-        repo: &mut Repo,
+        _repo: &mut Repo,
         dir_entry: &walkdir::DirEntry,
     ) -> anyhow::Result<()> {
         let url = url_from_walkdir_entry(dir_entry)?;
@@ -106,21 +106,14 @@ where
             // Skip directories.
             return Ok(());
         }
-        match repo.media_tracker_resolve_source_id_synchronized_at_by_content_path(
-            self.collection_id,
-            &content_path,
-        ) {
-            Ok(_) => Ok(()),
-            Err(RepoError::NotFound) => {
-                self.content_paths.push(content_path);
-                Ok(())
-            }
-            Err(err) => Err(err.into()),
-        }
+        // All files of the directory are checked at once when finished.
+        self.content_paths.push(content_path);
+        Ok(())
     }
 
-    fn finish(self) -> Vec<ContentPath<'static>> {
-        self.content_paths
+    fn finish(self, repo: &mut Repo) -> anyhow::Result<Vec<ContentPath<'static>>> {
+        repo.media_tracker_filter_untracked_content_paths(self.collection_id, self.content_paths)
+            .map_err(Into::into)
     }
 }
 

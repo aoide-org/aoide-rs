@@ -430,25 +430,37 @@ impl Repo for Connection<'_> {
             .collect::<RepoResult<_>>()
     }
 
-    fn media_tracker_resolve_source_id_synchronized_at_by_content_path(
+    fn media_tracker_filter_untracked_content_paths(
         &mut self,
         collection_id: CollectionId,
-        content_path: &ContentPath<'_>,
-    ) -> RepoResult<(MediaSourceId, Option<u64>)> {
-        debug_assert!(!content_path.is_directory());
-        media_source::table
-            .select((media_source::row_id, media_source::content_link_rev))
-            .filter(media_source::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_source::content_link_path.eq(content_path.as_str()))
-            .filter(
-                media_source::row_id
-                    .eq_any(media_tracker_source::table.select(media_tracker_source::source_id)),
-            )
-            .get_result::<(RowId, Option<i64>)>(self.as_mut())
-            .map_err(repo_error)
-            .map(|(row_id, content_link_rev)| {
-                (row_id.into(), content_link_rev.map(|rev| rev as u64))
-            })
+        mut content_paths: Vec<ContentPath<'static>>,
+    ) -> RepoResult<Vec<ContentPath<'static>>> {
+        /// Limits the number of bound SQL parameters.
+        const CHUNK_SIZE: usize = 500;
+        let mut tracked = std::collections::HashSet::new();
+        for chunk in content_paths.chunks(CHUNK_SIZE) {
+            debug_assert!(
+                chunk
+                    .iter()
+                    .all(|content_path| !content_path.is_directory())
+            );
+            let rows = media_source::table
+                .select(media_source::content_link_path)
+                .filter(media_source::collection_id.eq(RowId::from(collection_id)))
+                .filter(
+                    media_source::content_link_path.eq_any(chunk.iter().map(ContentPath::as_str)),
+                )
+                .filter(
+                    media_source::row_id.eq_any(
+                        media_tracker_source::table.select(media_tracker_source::source_id),
+                    ),
+                )
+                .load::<String>(self.as_mut())
+                .map_err(repo_error)?;
+            tracked.extend(rows);
+        }
+        content_paths.retain(|content_path| !tracked.contains(content_path.as_str()));
+        Ok(content_paths)
     }
 }
 

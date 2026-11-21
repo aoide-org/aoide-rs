@@ -90,8 +90,8 @@ impl<D: Digest> AncestorVisitor<(), digest::Output<D>, Error> for AncestorDigest
         digest_walkdir_entry_for_detecting_changes(&mut self.digest, dir_entry).map_err(Into::into)
     }
 
-    fn finish(self) -> digest::Output<D> {
-        self.digest.finalize()
+    fn finish(self, (): &mut ()) -> Result<digest::Output<D>> {
+        Ok(self.digest.finalize())
     }
 }
 

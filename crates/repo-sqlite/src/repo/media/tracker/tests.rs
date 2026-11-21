@@ -3,8 +3,15 @@
 
 use test_log::test;
 
-use aoide_core::{Collection, CollectionEntity, CollectionHeader, util::clock::UtcDateTimeMs};
-use aoide_repo::{CollectionId, collection::EntityRepo as _, media::DigestBytes};
+use aoide_core::{
+    Collection, CollectionEntity, CollectionHeader,
+    media::{self, content::AudioContentMetadata},
+    util::clock::{OffsetDateTimeMs, UtcDateTimeMs},
+};
+use aoide_repo::{
+    CollectionId, collection::EntityRepo as _, media::DigestBytes,
+    media::source::CollectionRepo as _,
+};
 
 use crate::{DbConnection, repo::tests::vfs_media_source_config, tests::*};
 
@@ -281,6 +288,61 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     assert_eq!(
         DirTrackingStatus::Current,
         db.media_tracker_load_directory_tracking_status(collection_id, &path)?
+    );
+
+    Ok(())
+}
+
+#[test]
+fn filter_untracked_content_paths() -> anyhow::Result<()> {
+    let mut fixture = Fixture::new()?;
+    let mut db = crate::Connection::new(&mut fixture.db);
+    let collection_id = fixture.collection_id;
+    let updated_at = UtcDateTimeMs::now();
+
+    let dir_path = ContentPath::from("test/");
+    db.media_tracker_update_directory_digest(
+        updated_at,
+        collection_id,
+        &dir_path,
+        &DigestBytes::default(),
+    )?;
+    let mut insert_media_source = |path: &str| {
+        let media_source = media::Source {
+            collected_at: OffsetDateTimeMs::now_local(),
+            content: media::Content {
+                link: media::content::ContentLink {
+                    path: path.to_owned().into(),
+                    rev: None,
+                },
+                r#type: "audio/mpeg".parse().unwrap(),
+                metadata_flags: Default::default(),
+                metadata: AudioContentMetadata::default().into(),
+                digest: None,
+            },
+            artwork: Default::default(),
+        };
+        db.insert_media_source(collection_id, updated_at, &media_source)
+            .map(|header| header.id)
+    };
+    let tracked_a = insert_media_source("test/a.mp3")?;
+    let tracked_b = insert_media_source("test/b.mp3")?;
+    // A media source that is not tracked
+    insert_media_source("test/c.mp3")?;
+    db.media_tracker_replace_directory_sources(collection_id, &dir_path, &[tracked_a, tracked_b])?;
+
+    let content_paths = ["test/c.mp3", "test/a.mp3", "test/d.mp3", "test/b.mp3"]
+        .into_iter()
+        .map(|path| ContentPath::from(path.to_owned()))
+        .collect();
+    let untracked =
+        db.media_tracker_filter_untracked_content_paths(collection_id, content_paths)?;
+    assert_eq!(
+        vec![
+            ContentPath::from("test/c.mp3".to_owned()),
+            ContentPath::from("test/d.mp3".to_owned()),
+        ],
+        untracked
     );
 
     Ok(())
