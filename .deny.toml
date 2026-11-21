@@ -11,6 +11,7 @@ yanked = "deny"
 # TODO: Remove exception when they are no longer needed.
 ignore = [
   { id = "RUSTSEC-2024-0436", reason = "The `paste` crate is unmaintained, but only used during compile time." },
+  { id = "RUSTSEC-2026-0543", reason = "The `chrono` crate is unmaintained, but there is no replacement yet." },
 ]
 
 [licenses]
