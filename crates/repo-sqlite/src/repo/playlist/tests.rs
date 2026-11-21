@@ -620,3 +620,79 @@ fn load_global_playlist_entities_with_entries_summary() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+
+#[test]
+fn reverse_entries() -> anyhow::Result<()> {
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
+
+    let track_count = 5;
+    let entity_with_entries = fixture.create_playlists_with_track_entries(
+        &mut db,
+        PlaylistScope::Collection,
+        track_count,
+    )?;
+    let (entity_header, _) = entity_with_entries.into();
+    let playlist_id = db.resolve_playlist_id(&entity_header.uid)?;
+
+    let load_entries = |db: &mut crate::Connection<'_>| -> anyhow::Result<Vec<Entry>> {
+        let (_, playlist_with_entries) =
+            db.load_playlist_entity_with_entries(playlist_id)?.1.into();
+        Ok(playlist_with_entries.entries)
+    };
+
+    // Both negative and positive orderings after prepending entries
+    // to the initial, non-negative orderings
+    db.prepend_playlist_entries(
+        playlist_id,
+        &[
+            new_separator_entry_with_title("First".to_string()),
+            new_separator_entry_with_title("Second".to_string()),
+        ],
+    )?;
+    let entries = load_entries(&mut db)?;
+    assert_eq!(track_count + 2, entries.len());
+    assert_eq!(entries.len(), db.reverse_all_playlist_entries(playlist_id)?);
+    let mut expected = entries.clone();
+    expected.reverse();
+    assert_eq!(expected, load_entries(&mut db)?);
+
+    // Reversing twice restores the original order
+    db.reverse_all_playlist_entries(playlist_id)?;
+    assert_eq!(entries, load_entries(&mut db)?);
+
+    Ok(())
+}
+
+
+#[test]
+fn insert_entries_before_existing_entries() -> anyhow::Result<()> {
+    let mut db = establish_connection()?;
+    let mut db = crate::Connection::new(&mut db);
+    let fixture = Fixture::new(&mut db)?;
+
+    let track_count = 5;
+    let entity_with_entries = fixture.create_playlists_with_track_entries(
+        &mut db,
+        PlaylistScope::Collection,
+        track_count,
+    )?;
+    let (entity_header, playlist_with_entries) = entity_with_entries.into();
+    let mut expected = playlist_with_entries.entries;
+    let playlist_id = db.resolve_playlist_id(&entity_header.uid)?;
+
+    // Insert multiple entries in the middle to shift the subsequent entries.
+    let inserted = [
+        new_separator_entry_with_title("Inserted 1".to_string()),
+        new_separator_entry_with_title("Inserted 2".to_string()),
+        new_separator_entry_with_title("Inserted 3".to_string()),
+    ];
+    db.insert_playlist_entries(playlist_id, 2, &inserted)?;
+    expected.splice(2..2, inserted.iter().cloned());
+    let (_, playlist_with_entries) = db.load_playlist_entity_with_entries(playlist_id)?.1.into();
+    assert_eq!(expected, playlist_with_entries.entries);
+
+    Ok(())
+}

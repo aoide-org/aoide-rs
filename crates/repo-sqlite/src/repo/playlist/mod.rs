@@ -229,6 +229,15 @@ fn max_playlist_entry_ordering(
         .map_err(repo_error)
 }
 
+// The ordering of entries cannot be modified by a single SQL statement,
+// because the UNIQUE constraint on (playlist_id, ordering) is checked
+// for each row during the update and not only at the end. Instead the
+// entries are moved into a free range below the current minimum ordering
+// first and then into their final position. All intermediate and final
+// orderings are disjoint from all current orderings in both steps.
+
+/// Increment the ordering of all entries starting at `old_min_ordering`
+/// by `delta_ordering`.
 fn shift_playlist_entries_forward(
     db: &mut crate::Connection<'_>,
     id: RecordId,
@@ -237,56 +246,52 @@ fn shift_playlist_entries_forward(
 ) -> RepoResult<usize> {
     use playlist_entry_db::schema::*;
     debug_assert!(delta_ordering > 0);
-    // Unfortunately, the ordering column cannot be incremented by
-    // a single SQL statement. The update fails with a UNIQUE constraint
-    // violation if the entries are not updated in descending order
-    // of the ordering column to ensure uniqueness at any time.
-    let row_ids = playlist_entry::table
-        .select(playlist_entry::row_id)
-        .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-        .filter(playlist_entry::ordering.ge(old_min_ordering))
-        .order_by(playlist_entry::ordering.desc())
-        .load::<RowId>(db.as_mut())
+    let Some(min_ordering) = min_playlist_entry_ordering(db, id)? else {
+        return Ok(0);
+    };
+    debug_assert!(min_ordering <= old_min_ordering);
+    let target = playlist_entry::table.filter(playlist_entry::playlist_id.eq(RowId::from(id)));
+    // ordering -> (min_ordering - 1) - (ordering - old_min_ordering) < min_ordering
+    let rows_updated = diesel::update(target.filter(playlist_entry::ordering.ge(old_min_ordering)))
+        .set(
+            playlist_entry::ordering
+                .eq(playlist_entry::ordering * -1 + (min_ordering - 1 + old_min_ordering)),
+        )
+        .execute(db.as_mut())
         .map_err(repo_error)?;
-    let mut rows_updated = 0;
-    for row_id in row_ids {
-        rows_updated +=
-            diesel::update(playlist_entry::table.filter(playlist_entry::row_id.eq(row_id)))
-                .set(playlist_entry::ordering.eq(playlist_entry::ordering + delta_ordering))
-                .execute(db.as_mut())
-                .map_err(repo_error)?;
-    }
+    // Invert the first step and add delta_ordering
+    diesel::update(target.filter(playlist_entry::ordering.lt(min_ordering)))
+        .set(
+            playlist_entry::ordering.eq(playlist_entry::ordering * -1
+                + (min_ordering - 1 + old_min_ordering + delta_ordering)),
+        )
+        .execute(db.as_mut())
+        .map_err(repo_error)?;
     Ok(rows_updated)
 }
 
-fn reverse_all_playlist_entries_tail(
+/// Reverse the ordering of all entries within the same range of orderings.
+fn reverse_playlist_entries(
     db: &mut crate::Connection<'_>,
     id: RecordId,
-    old_min_ordering: i64,
-    new_max_ordering: i64,
+    min_ordering: i64,
+    max_ordering: i64,
 ) -> RepoResult<usize> {
     use playlist_entry_db::schema::*;
-    // Unfortunately, the ordering column cannot be incremented by
-    // a single SQL statement. The update fails with a UNIQUE constraint
-    // violation if the entries are not updated in descending order
-    // of the ordering column to ensure uniqueness at any time.
-    let row_ids = playlist_entry::table
-        .select(playlist_entry::row_id)
-        .filter(playlist_entry::playlist_id.eq(RowId::from(id)))
-        .filter(playlist_entry::ordering.ge(old_min_ordering))
-        .order_by(playlist_entry::ordering)
-        .load::<RowId>(db.as_mut())
+    let target = playlist_entry::table.filter(playlist_entry::playlist_id.eq(RowId::from(id)));
+    // ordering -> (min_ordering - 1) - (ordering - min_ordering) < min_ordering
+    let rows_updated = diesel::update(target)
+        .set(playlist_entry::ordering.eq(playlist_entry::ordering * -1 + (2 * min_ordering - 1)))
+        .execute(db.as_mut())
         .map_err(repo_error)?;
-    let mut rows_updated = 0;
-    let mut ordering = new_max_ordering;
-    for row_id in row_ids {
-        rows_updated +=
-            diesel::update(playlist_entry::table.filter(playlist_entry::row_id.eq(row_id)))
-                .set(playlist_entry::ordering.eq(ordering))
-                .execute(db.as_mut())
-                .map_err(repo_error)?;
-        ordering = ordering.saturating_sub(-1);
-    }
+    // Move back into the original range of orderings
+    diesel::update(target)
+        .set(
+            playlist_entry::ordering
+                .eq(playlist_entry::ordering + (max_ordering - min_ordering + 1)),
+        )
+        .execute(db.as_mut())
+        .map_err(repo_error)?;
     Ok(rows_updated)
 }
 
@@ -512,45 +517,15 @@ impl EntryRepo for crate::Connection<'_> {
     }
 
     fn reverse_all_playlist_entries(&mut self, id: RecordId) -> RepoResult<usize> {
-        use playlist_entry_db::schema::*;
         let min_ordering = min_playlist_entry_ordering(self, id)?;
         let max_ordering = max_playlist_entry_ordering(self, id)?;
-        let rows_updated = if let (Some(min_ordering), Some(max_ordering)) =
-            (min_ordering, max_ordering)
-        {
-            let rows_updated;
-            if (min_ordering.is_negative() && max_ordering.is_positive())
-                || (min_ordering.is_positive() && max_ordering.is_negative())
-            {
-                // Shift forward and reverse
-                let new_max_ordering = max_ordering
-                    .saturating_add(1)
-                    .max(self.count_playlist_entries(id)? as i64);
-                debug_assert!(new_max_ordering > max_ordering);
-                rows_updated =
-                    reverse_all_playlist_entries_tail(self, id, min_ordering, new_max_ordering)?;
-                debug_assert_eq!(rows_updated, self.count_playlist_entries(id)?);
-            } else {
-                // Optimization: Negate ordering
-                let target =
-                    playlist_entry::table.filter(playlist_entry::playlist_id.eq(RowId::from(id)));
-                // FIXME: At the time of writing Diesel doesn't seem to support the
-                // unary negation operator for numeric columns, which required to come
-                // up with this workaround.
-                let neg_ordering = playlist_entry::ordering * -1;
-                rows_updated = diesel::update(target)
-                    .set(playlist_entry::ordering.eq(neg_ordering))
-                    .execute(self.as_mut())
-                    .map_err(repo_error)?;
-            }
-            rows_updated
-        } else {
+        let (Some(min_ordering), Some(max_ordering)) = (min_ordering, max_ordering) else {
             debug_assert!(min_ordering.is_none());
             debug_assert!(max_ordering.is_none());
             debug_assert_eq!(self.count_playlist_entries(id).ok(), Some(0));
-            0
+            return Ok(0);
         };
-        Ok(rows_updated)
+        reverse_playlist_entries(self, id, min_ordering, max_ordering)
     }
 
     fn insert_playlist_entries(
