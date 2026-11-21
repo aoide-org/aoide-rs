@@ -116,6 +116,10 @@ impl Import {
         }
     }
 
+    #[cfg_attr(
+        not(feature = "serato-markers"),
+        expect(clippy::missing_const_for_fn, reason = "empty without features")
+    )]
     fn finish(
         self,
         #[cfg(feature = "serato-markers")] track: &mut Track,
