@@ -30,7 +30,9 @@ use aoide_core::{
         title::{Kind as TitleKind, Title},
     },
     util::{
-        clock::{DateOrDateTime, OffsetDateTimeMs, YyyyMmDdDate, YyyyMmDdDateValue},
+        clock::{
+            DateOrDateTime, DayOfMonthType, MonthType, OffsetDateTimeMs, YearType, YyyyMmDdDate,
+        },
         string::{trimmed_non_empty_from, trimmed_non_empty_from_owned},
     },
 };
@@ -405,28 +407,33 @@ const RFC3339_WITHOUT_T_TZ_FORMAT: &[FormatItem<'static>] =
     time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
 
 pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
+    // File tags might use 0 for unknown parts of the date.
+    fn nonzero<T: Default + PartialEq>(value: T) -> Option<T> {
+        (value != T::default()).then_some(value)
+    }
     let input = value.trim();
     let mut digits_parser = delimited(space0, digit1, space0);
     let digits_parsed: IResult<_, _> = digits_parser.parse_complete(input);
     if let Ok((remainder, digits_input)) = digits_parsed
         && remainder.is_empty()
-        && (/* YYYY */digits_input.len() == 4 ||
-            /*YYYYMM*/ digits_input.len() == 6 ||
-            /*YyyyMmDdDateValue*/ digits_input.len() == 8)
-        && let Ok(yyyymmdd) =
-            digits_input
-                .parse::<YyyyMmDdDateValue>()
-                .map(|val| match digits_input.len() {
-                    4 => val * 10000,
-                    6 => val * 100,
-                    8 => val,
-                    _ => unreachable!(),
-                })
+        // YYYY, YYYYMM, or YYYYMMDD
+        && matches!(digits_input.len(), 4 | 6 | 8)
+        && let Ok(year) = digits_input[..4].parse::<YearType>()
+        && let Ok(month) = digits_input
+            .get(4..6)
+            .map(str::parse::<MonthType>)
+            .transpose()
+        && let Ok(day_of_month) = digits_input
+            .get(6..8)
+            .map(str::parse::<DayOfMonthType>)
+            .transpose()
+        && let Some(date) = YyyyMmDdDate::try_from_parts(
+            year,
+            month.and_then(nonzero),
+            day_of_month.and_then(nonzero),
+        )
     {
-        let date = YyyyMmDdDate::new_unchecked(yyyymmdd);
-        if date.is_valid() {
-            return Some(date.into());
-        }
+        return Some(date.into());
     }
     let mut year_month_parser = separated_pair(
         delimited(space0, digit1, space0),
@@ -438,27 +445,24 @@ pub(crate) fn parse_year_tag(value: &str) -> Option<DateOrDateTime> {
         && year_input.len() == 4
         && month_input.len() <= 2
         && let (Ok(year), Ok(month)) = (
-            year_input.parse::<YyyyMmDdDateValue>(),
-            month_input.parse::<YyyyMmDdDateValue>(),
+            year_input.parse::<YearType>(),
+            month_input.parse::<MonthType>(),
         )
     {
-        if remainder.is_empty() {
-            let date = YyyyMmDdDate::new_unchecked(year * 10000 + month * 100);
-            if date.is_valid() {
-                return Some(date.into());
-            }
+        if remainder.is_empty()
+            && let Some(date) = YyyyMmDdDate::try_from_parts(year, nonzero(month), None)
+        {
+            return Some(date.into());
         }
         let mut day_of_month_parser = delimited(pair(tag("-"), space0), digit1, space0);
         let day_of_month_parsed: IResult<_, _> = day_of_month_parser.parse_complete(remainder);
         if let Ok((remainder, day_of_month_input)) = day_of_month_parsed
             && remainder.is_empty()
-            && let Ok(day_of_month) = day_of_month_input.parse::<YyyyMmDdDateValue>()
-            && (0..=31).contains(&day_of_month)
+            && let Ok(day_of_month) = day_of_month_input.parse::<DayOfMonthType>()
+            && let Some(date) =
+                YyyyMmDdDate::try_from_parts(year, nonzero(month), nonzero(day_of_month))
         {
-            let date = YyyyMmDdDate::new_unchecked(year * 10000 + month * 100 + day_of_month);
-            if date.is_valid() {
-                return Some(date.into());
-            }
+            return Some(date.into());
         }
     }
     if let Ok(date_time) = input

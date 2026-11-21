@@ -461,28 +461,13 @@ fn parse_date_or_date_time(input: &str) -> Result<Option<DateOrDateTime>, String
             .then(|| year.parse::<i16>().ok())
             .flatten()
     });
-    let month = pieces.next().map(str::parse::<i8>);
-    let day = pieces.next().map(str::parse::<i8>);
-    let (Some(year), None) = (year, pieces.next()) else {
+    let month = pieces.next().map(str::parse::<i8>).transpose();
+    let day = pieces.next().map(str::parse::<i8>).transpose();
+    let (Some(year), Ok(month), Ok(day), None) = (year, month, day, pieces.next()) else {
         return Err(INVALID_DATE.to_owned());
     };
-    let (date, has_month, has_day) = match (month, day) {
-        (None, None) => (YyyyMmDdDate::from_year(year), false, false),
-        (Some(Ok(month)), None) => (YyyyMmDdDate::from_year_month(year, month), true, false),
-        (Some(Ok(month)), Some(Ok(day))) => (
-            YyyyMmDdDate::new_unchecked(
-                i32::from(year) * 10_000 + i32::from(month) * 100 + i32::from(day),
-            ),
-            true,
-            true,
-        ),
-        _ => return Err(INVALID_DATE.to_owned()),
-    };
-    // A month or day of 0 would be interpreted as missing.
-    if !date.is_valid() || (has_month && date.month() == 0) || (has_day && date.day_of_month() == 0)
-    {
-        return Err(format!("Invalid date: {input}"));
-    }
+    let date = YyyyMmDdDate::try_from_parts(year, month, day)
+        .ok_or_else(|| format!("Invalid date: {input}"))?;
     Ok(Some(date.into()))
 }
 

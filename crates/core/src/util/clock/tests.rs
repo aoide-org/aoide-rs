@@ -116,3 +116,33 @@ fn deserialize_date_time() {
         .unwrap()
     );
 }
+
+#[test]
+fn yyyymmdd_try_from_parts() {
+    assert_eq!(
+        Some(YyyyMmDdDate::from_year(2000)),
+        YyyyMmDdDate::try_from_parts(2000, None, None)
+    );
+    assert_eq!(
+        Some(YyyyMmDdDate::from_year_month(2000, 2)),
+        YyyyMmDdDate::try_from_parts(2000, Some(2), None)
+    );
+    assert_eq!(
+        Some(YyyyMmDdDate::new_unchecked(20_000_229)),
+        YyyyMmDdDate::try_from_parts(2000, Some(2), Some(29))
+    );
+    // Not a leap year
+    assert_eq!(None, YyyyMmDdDate::try_from_parts(2001, Some(2), Some(29)));
+    // Explicit zeros are invalid
+    assert_eq!(None, YyyyMmDdDate::try_from_parts(2000, Some(0), None));
+    assert_eq!(None, YyyyMmDdDate::try_from_parts(2000, Some(1), Some(0)));
+    // Day of month without month
+    assert_eq!(None, YyyyMmDdDate::try_from_parts(2000, None, Some(1)));
+    // Out of range parts must not overflow into a valid date
+    assert_eq!(None, YyyyMmDdDate::try_from_parts(2000, Some(13), None));
+    assert_eq!(None, YyyyMmDdDate::try_from_parts(2000, Some(1), Some(101)));
+    assert_eq!(None, YyyyMmDdDate::try_from_parts(2000, Some(-1), None));
+    // Year out of range
+    assert_eq!(None, YyyyMmDdDate::try_from_parts(0, None, None));
+    assert_eq!(None, YyyyMmDdDate::try_from_parts(-1, Some(1), Some(1)));
+}

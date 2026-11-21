@@ -299,3 +299,26 @@ fn push_next_actor_role_names() {
         Actors::filter_kind_role(actors.iter(), ActorKind::Individual, ActorRole::Lyricist).count()
     );
 }
+
+#[test]
+fn parse_year_tag_with_unknown_or_invalid_parts() {
+    use aoide_core::util::clock::YyyyMmDdDate;
+
+    let year_2000 = Some(DateOrDateTime::from(YyyyMmDdDate::from_year(2000)));
+    // Zero denotes an unknown month or day of month.
+    assert_eq!(year_2000, parse_year_tag("20000000"));
+    assert_eq!(year_2000, parse_year_tag("200000"));
+    assert_eq!(year_2000, parse_year_tag("2000-00"));
+    assert_eq!(year_2000, parse_year_tag("2000-00-00"));
+    assert_eq!(
+        Some(DateOrDateTime::from(YyyyMmDdDate::from_year_month(2000, 1))),
+        parse_year_tag("2000-01-00")
+    );
+    // Invalid dates
+    assert_eq!(None, parse_year_tag("0000"));
+    assert_eq!(None, parse_year_tag("20001301"));
+    assert_eq!(None, parse_year_tag("20010229"));
+    assert_eq!(None, parse_year_tag("2000-00-05"));
+    assert_eq!(None, parse_year_tag("2000-13"));
+    assert_eq!(None, parse_year_tag("2000-01-101"));
+}

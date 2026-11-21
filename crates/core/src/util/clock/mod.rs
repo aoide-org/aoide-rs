@@ -361,6 +361,35 @@ impl YyyyMmDdDate {
         Self(YyyyMmDdDateValue::from(year) * 10_000 + YyyyMmDdDateValue::from(month) * 100)
     }
 
+    /// Create a valid date from its parts.
+    ///
+    /// A missing month or day of month is passed as `None`. Explicit
+    /// values must be within their natural ranges, i.e. 0 is invalid.
+    /// A day of month requires a month.
+    ///
+    /// Returns `None` if the resulting date would be invalid.
+    #[must_use]
+    pub fn try_from_parts(
+        year: YearType,
+        month: Option<MonthType>,
+        day_of_month: Option<DayOfMonthType>,
+    ) -> Option<Self> {
+        // Check the ranges before composing the value to prevent
+        // overflowing parts from turning into a valid date.
+        if month.is_some_and(|month| !(1..=12).contains(&month))
+            || day_of_month.is_some_and(|day_of_month| !(1..=31).contains(&day_of_month))
+            || (month.is_none() && day_of_month.is_some())
+        {
+            return None;
+        }
+        let date = Self(
+            YyyyMmDdDateValue::from(year) * 10_000
+                + YyyyMmDdDateValue::from(month.unwrap_or(0)) * 100
+                + YyyyMmDdDateValue::from(day_of_month.unwrap_or(0)),
+        );
+        date.is_valid().then_some(date)
+    }
+
     #[must_use]
     pub fn is_year(self) -> bool {
         Self::from_year(self.year()) == self
