@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::{
-    collections::{BTreeMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     time::Instant,
 };
 
@@ -647,6 +647,26 @@ impl EntityRepo for Connection<'_> {
             .get_result::<RowId>(self.as_mut())
             .map_err(repo_error)
             .map(Into::into)
+    }
+
+    fn resolve_track_ids(&mut self, uids: &[TrackUid]) -> RepoResult<Vec<Option<TrackId>>> {
+        let encoded_uids = uids
+            .iter()
+            .map(|uid| encode_entity_uid(uid).to_string())
+            .collect::<Vec<_>>();
+        let mut ids = HashMap::with_capacity(encoded_uids.len());
+        for encoded_uids in encoded_uids.chunks(PRELOAD_TRACKS_CHUNK_SIZE) {
+            let rows = track::table
+                .select((track::entity_uid, track::row_id))
+                .filter(track::entity_uid.eq_any(encoded_uids))
+                .load::<(String, RowId)>(self.as_mut())
+                .map_err(repo_error)?;
+            ids.extend(rows);
+        }
+        Ok(encoded_uids
+            .iter()
+            .map(|encoded_uid| ids.get(encoded_uid).copied().map(Into::into))
+            .collect())
     }
 
     fn insert_track_entity(

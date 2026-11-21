@@ -599,3 +599,33 @@ fn revert_is_rejected_if_the_track_has_been_modified_in_the_meantime() -> anyhow
     assert_eq!(edited_entity.body.track, entity.body.track);
     Ok(())
 }
+
+#[test]
+fn load_many_preserves_order_and_skips_unknown_tracks() -> anyhow::Result<()> {
+    use aoide_core::TrackUid;
+
+    let mut fixture = Fixture::new()?;
+    let entity = fixture.import_track()?;
+    let unknown_uid = TrackUid::from_untyped(aoide_core::EntityUid::random());
+
+    let mut collected = Vec::new();
+    fixture
+        .connection
+        .transaction::<_, anyhow::Error, _>(|connection| {
+            crate::track::load::load_many(
+                connection,
+                [entity.hdr.uid.clone(), unknown_uid, entity.hdr.uid.clone()],
+                &mut collected,
+            )?;
+            Ok(())
+        })?;
+    let entities = collected
+        .into_iter()
+        .map(|(_, entity)| entity)
+        .collect::<Vec<_>>();
+    // Compare with the track as stored in the database
+    let entity = crate::track::load::load_one(&mut fixture.connection, &entity.hdr.uid)?;
+    assert_eq!(vec![entity.clone(), entity], entities);
+
+    Ok(())
+}

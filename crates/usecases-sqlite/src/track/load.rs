@@ -1,13 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::collections::BTreeMap;
+
 use aoide_core::{
     CollectionUid, TrackEntity, TrackUid,
     tag::{FacetId, Label},
     track::actor::ActorNamesSummarySplitter,
 };
 use aoide_repo::{
-    RecordCollector, RepoError,
+    RecordCollector,
     collection::EntityRepo as _,
     track::{ActorRepo as _, EntityRepo as _, RecordHeader, TagRepo as _},
 };
@@ -21,24 +23,43 @@ pub fn load_one(connection: &mut DbConnection, entity_uid: &TrackUid) -> Result<
     Ok(entity)
 }
 
+/// Load multiple tracks in the order of `entity_uids`.
+///
+/// Unknown tracks are skipped. Must be invoked within a transaction.
+#[expect(clippy::missing_panics_doc)] // Never panics
 pub fn load_many(
     connection: &mut DbConnection,
     entity_uids: impl IntoIterator<Item = TrackUid>,
     collector: &mut impl RecordCollector<Header = RecordHeader, Record = TrackEntity>,
 ) -> Result<()> {
     let mut repo = RepoConnection::new(connection);
-    for entity_uid in entity_uids {
-        match repo.load_track_entity_by_uid(&entity_uid) {
-            Ok((record_header, entity)) => {
-                collector.collect(record_header, entity);
-            }
-            Err(RepoError::NotFound) => {
-                log::debug!("Track with UID '{entity_uid}' not found");
-            }
-            Err(err) => {
-                return Err(err.into());
-            }
+    let entity_uids = entity_uids.into_iter().collect::<Vec<_>>();
+    let ids = repo.resolve_track_ids(&entity_uids)?;
+    // Each track is only loaded once, even if requested multiple times.
+    let mut remaining_counts = BTreeMap::<_, usize>::new();
+    for id in ids.iter().flatten() {
+        *remaining_counts.entry(*id).or_default() += 1;
+    }
+    let unique_ids = remaining_counts.keys().copied().collect::<Vec<_>>();
+    let mut loaded = repo
+        .load_track_entities(&unique_ids)?
+        .into_iter()
+        .map(|(record_header, entity)| (record_header.id, (record_header, entity)))
+        .collect::<BTreeMap<_, _>>();
+    for (entity_uid, id) in entity_uids.iter().zip(ids) {
+        let Some(id) = id else {
+            log::debug!("Track with UID '{entity_uid}' not found");
+            continue;
+        };
+        let remaining_count = remaining_counts.get_mut(&id).expect("counted");
+        *remaining_count -= 1;
+        let (record_header, entity) = if *remaining_count > 0 {
+            loaded.get(&id).cloned()
+        } else {
+            loaded.remove(&id)
         }
+        .expect("loaded");
+        collector.collect(record_header, entity);
     }
     Ok(())
 }

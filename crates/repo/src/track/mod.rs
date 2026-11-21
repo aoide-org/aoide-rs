@@ -62,6 +62,11 @@ pub struct ReplaceParams {
 pub trait EntityRepo {
     fn resolve_track_id(&mut self, uid: &TrackUid) -> RepoResult<RecordId>;
 
+    /// Resolve multiple tracks in the order of `uids`.
+    ///
+    /// Unknown tracks are resolved as `None`.
+    fn resolve_track_ids(&mut self, uids: &[TrackUid]) -> RepoResult<Vec<Option<RecordId>>>;
+
     fn load_track_entity(&mut self, id: RecordId) -> RepoResult<(RecordHeader, TrackEntity)>;
 
     /// Load multiple tracks in the order of `ids`.
