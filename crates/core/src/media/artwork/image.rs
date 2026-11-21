@@ -257,55 +257,6 @@ pub struct ReplaceEmbeddedArtworkImage {
     pub others: EditOtherEmbeddedArtworkImages,
 }
 
-impl ReplaceEmbeddedArtworkImage {
-    #[must_use]
-    pub fn from_ingested_artwork_image(
-        ingested_artwork_image: IngestedArtworkImage,
-        others: EditOtherEmbeddedArtworkImages,
-    ) -> Self {
-        let IngestedArtworkImage {
-            artwork_image,
-            picture,
-            recoverable_errors: _,
-        } = ingested_artwork_image;
-        let image_data = picture.into_bytes();
-        Self {
-            artwork_image,
-            image_data,
-            others,
-        }
-    }
-
-    pub fn reingest_artwork_image(
-        &self,
-        image_digest: &mut MediaDigest,
-    ) -> Result<ArtworkImage, ArtworkImageError> {
-        let ArtworkImage {
-            media_type,
-            apic_type,
-            data_size: _,
-            digest: _,
-            image_size: _,
-            color: _,
-            thumbnail: _,
-        } = &self.artwork_image;
-        let image_format_hint = None;
-        let ingested_artwork_image = ingest_artwork_image(
-            *apic_type,
-            &self.image_data,
-            image_format_hint,
-            Some(media_type.essence_str()),
-            image_digest,
-        )?;
-        let IngestedArtworkImage {
-            artwork_image,
-            picture: _,
-            recoverable_errors: _,
-        } = ingested_artwork_image;
-        Ok(artwork_image)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct RemoveEmbeddedArtworkImage {
     pub apic_type: ApicType,

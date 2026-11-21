@@ -28,7 +28,18 @@ pub mod resolver;
 /// Directories must end with a trailing slash and are considered as non-terminal.
 ///
 /// The path is not percent-encoded, i.e. all UTF-8 characters are allowed.
-#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    derive_more::AsRef,
+    derive_more::Display,
+)]
 #[cfg_attr(
     feature = "serde",
     derive(serde::Serialize, serde::Deserialize),
@@ -121,18 +132,6 @@ impl From<ContentPath<'static>> for String {
     fn from(from: ContentPath<'static>) -> Self {
         let ContentPath(inner) = from;
         inner.into_owned()
-    }
-}
-
-impl<'a> AsRef<Cow<'a, str>> for ContentPath<'a> {
-    fn as_ref(&self) -> &Cow<'a, str> {
-        &self.0
-    }
-}
-
-impl fmt::Display for ContentPath<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_ref().fmt(f)
     }
 }
 

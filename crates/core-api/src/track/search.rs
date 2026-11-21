@@ -211,20 +211,6 @@ impl Filter {
     }
 
     #[must_use]
-    pub fn released_orig_at_equals(released_orig_at: DateOrDateTime) -> Self {
-        match released_orig_at {
-            DateOrDateTime::DateTime(dt) => Self::DateTime(DateTimeFieldFilter {
-                field: DateTimeField::ReleasedOrigAt,
-                predicate: DateTimePredicate::Equal(Some(dt)),
-            }),
-            DateOrDateTime::Date(date) => Self::Numeric(NumericFieldFilter {
-                field: NumericField::ReleasedOrigAtDate,
-                predicate: NumericPredicate::Equal(Some(date.value().into())),
-            }),
-        }
-    }
-
-    #[must_use]
     pub fn audio_duration_around(duration: DurationMs, epsilon: DurationMs) -> Self {
         debug_assert!(duration.is_valid());
         debug_assert!(epsilon.is_valid());

@@ -7,6 +7,8 @@ use nonicle::{CanonicalOrd, Canonicalize, IsCanonical};
 use semval::prelude::*;
 use strum::FromRepr;
 
+use crate::util::string::is_trimmed_non_empty;
+
 ///////////////////////////////////////////////////////////////////////
 // Kind
 ///////////////////////////////////////////////////////////////////////
@@ -61,9 +63,7 @@ impl Canonicalize for Title {
 }
 
 pub fn is_valid_title_name(name: impl AsRef<str>) -> bool {
-    let name = name.as_ref();
-    let trimmed = name.trim();
-    !trimmed.is_empty() && trimmed == name
+    is_trimmed_non_empty(name.as_ref())
 }
 
 #[derive(Copy, Clone, Debug)]

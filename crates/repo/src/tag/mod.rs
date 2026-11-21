@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use aoide_core::tag::{FacetId, Label, Score};
+use aoide_core::tag::FacetId;
 use aoide_core_api::tag::search::SortOrder;
 
 fn dedup_facets(facets: &mut Vec<FacetId>) {
@@ -39,26 +39,6 @@ impl CountParams {
         }
     }
 
-    #[must_use]
-    pub const fn all_faceted(order: Vec<SortOrder>) -> Self {
-        Self {
-            tags: SelectTags::Faceted,
-            include_facets: None,
-            exclude_facets: Vec::new(),
-            order,
-        }
-    }
-
-    #[must_use]
-    pub const fn all_non_faceted(order: Vec<SortOrder>) -> Self {
-        Self {
-            tags: SelectTags::All,
-            include_facets: Some(Vec::new()),
-            exclude_facets: Vec::new(),
-            order,
-        }
-    }
-
     pub fn dedup_facets(&mut self) {
         if let Some(include_facets) = &mut self.include_facets {
             dedup_facets(include_facets);
@@ -90,20 +70,6 @@ impl FacetCountParams {
         }
         dedup_facets(&mut self.exclude_facets);
     }
-}
-
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct FacetCount {
-    pub facet_id: FacetId,
-    pub total_count: usize,
-}
-
-#[derive(Clone, Default, Debug, PartialEq)]
-pub struct AvgScoreCount<'a> {
-    pub facet_id: Option<FacetId>,
-    pub label: Option<Label<'a>>,
-    pub avg_score: Score,
-    pub total_count: usize,
 }
 
 #[cfg(test)]

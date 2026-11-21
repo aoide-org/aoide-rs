@@ -419,11 +419,6 @@ impl State {
     }
 
     #[must_use]
-    pub const fn is_synchronizing(&self) -> bool {
-        matches!(self, Self::SynchronizingVfs { .. })
-    }
-
-    #[must_use]
     pub const fn is_ready(&self) -> bool {
         matches!(self, State::Ready { .. })
     }
@@ -1069,8 +1064,6 @@ pub struct SynchronizingVfsTaskContinuation {
 }
 
 pub type SynchronizeVfsResult = anyhow::Result<batch::synchronize_collection_vfs::Outcome>;
-
-pub type SynchronizingVfsTaskJoined = JoinedTask<SynchronizeVfsResult>;
 
 /// Manages the mutable, observable state
 #[derive(Debug, Default)]

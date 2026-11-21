@@ -9,6 +9,8 @@ use regex::{Regex, RegexBuilder};
 use semval::prelude::*;
 use strum::FromRepr;
 
+use crate::util::string::is_trimmed_non_empty;
+
 ///////////////////////////////////////////////////////////////////////
 // Role
 ///////////////////////////////////////////////////////////////////////
@@ -102,9 +104,7 @@ impl Canonicalize for Actor {
 }
 
 pub fn is_valid_actor_name(name: impl AsRef<str>) -> bool {
-    let name = name.as_ref();
-    let trimmed = name.trim();
-    !trimmed.is_empty() && trimmed == name
+    is_trimmed_non_empty(name.as_ref())
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -230,20 +230,6 @@ impl Actors {
         I: Iterator<Item = &'a Actor> + Clone,
     {
         Self::kind_actor(actors, Kind::Sorting, role)
-    }
-
-    pub fn solo_individual_actor<'a, I>(actors: I, role: Role) -> Option<&'a Actor>
-    where
-        I: Iterator<Item = &'a Actor> + Clone,
-    {
-        let mut iter = Self::filter_kind_role(actors, Kind::Individual, role);
-        let first = iter.next();
-        if first.is_some() && iter.next().is_none() {
-            first
-        } else {
-            // Missing or ambiguous.
-            None
-        }
     }
 
     /// Set, replace, or remove the summary actor of the given role.

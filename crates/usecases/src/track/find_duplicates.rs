@@ -7,9 +7,7 @@ use bitflags::bitflags;
 use static_assertions::const_assert_eq;
 
 use aoide_core::{
-    Track, TrackEntity,
-    audio::DurationMs,
-    media::content::{ContentMetadata, ContentPath},
+    Track, TrackEntity, audio::DurationMs, media::content::ContentMetadata,
     track::actor::Role as ActorRole,
 };
 use aoide_core_api::{
@@ -21,10 +19,7 @@ use aoide_core_api::{
         StringField, TitlePhraseFilter,
     },
 };
-use aoide_repo::{
-    CollectionId, RepoResult, TrackId,
-    track::{CollectionRepo as TrackCollectionRepo, RecordHeader},
-};
+use aoide_repo::{CollectionId, RepoResult, TrackId, track::CollectionRepo as TrackCollectionRepo};
 
 bitflags! {
     /// A bitmask for controlling how and if content metadata is
@@ -63,14 +58,6 @@ impl Params {
             audio_duration_tolerance: DurationMs::new(500.0), // +/- 500 ms
             max_results: MIN_MAX_RESULTS,
             search_flags: SearchFlags::ALL,
-        }
-    }
-
-    #[must_use]
-    pub const fn with_max_results(max_results: NonZeroUsize) -> Params {
-        Self {
-            max_results,
-            ..Self::new()
         }
     }
 }
@@ -224,18 +211,4 @@ where
         })
         .take(max_results.get())
         .collect())
-}
-
-pub fn find_duplicate_by_media_source_content_path<Repo>(
-    repo: &mut Repo,
-    collection_id: CollectionId,
-    content_path: &ContentPath<'_>,
-    params: &Params,
-) -> RepoResult<Vec<(TrackId, TrackEntity)>>
-where
-    Repo: TrackCollectionRepo,
-{
-    let (_media_source_id, RecordHeader { id: track_id, .. }, entity) =
-        repo.load_track_entity_by_media_source_content_path(collection_id, content_path)?;
-    find_duplicates(repo, collection_id, track_id, entity.raw.body.track, params)
 }

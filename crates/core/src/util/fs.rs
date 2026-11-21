@@ -3,14 +3,15 @@
 
 use std::{
     borrow::Cow,
-    ops::Deref,
     path::{Path, PathBuf},
 };
 
 /// A `Cow<'_, Path>` with more restrictive/sensitive `PartialEq`/`Eq` semantics.
 ///
 /// Distinguishes paths with/-out trailing slashes.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, derive_more::AsRef, derive_more::Deref)]
+#[as_ref(Path)]
+#[deref(forward)]
 #[repr(transparent)]
 #[cfg_attr(
     feature = "serde",
@@ -53,12 +54,6 @@ impl<'p> DirPath<'p> {
     }
 }
 
-impl AsRef<Path> for DirPath<'_> {
-    fn as_ref(&self) -> &Path {
-        &self.0
-    }
-}
-
 impl From<PathBuf> for DirPath<'static> {
     fn from(from: PathBuf) -> Self {
         Self::from_owned(from)
@@ -87,11 +82,3 @@ impl PartialEq for DirPath<'_> {
 }
 
 impl Eq for DirPath<'_> {}
-
-impl Deref for DirPath<'_> {
-    type Target = Path;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}

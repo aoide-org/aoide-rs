@@ -13,21 +13,6 @@ use crate::{Environment, collection};
 
 use super::{SharedState, State};
 
-pub fn on_should_prefetch_trigger(
-    subscriber: Subscriber<State>,
-    mut on_trigger: impl FnMut() -> OnChanged + Send,
-) -> impl Future<Output = ()> + Send {
-    discro::tasklet::capture_changes(
-        subscriber,
-        (),
-        |(), state| {
-            // Keep nagging the listener until should_prefetch() returns false.
-            state.should_prefetch()
-        },
-        move |()| on_trigger(),
-    )
-}
-
 pub fn on_should_prefetch_trigger_async<T>(
     subscriber: Subscriber<State>,
     mut on_trigger: impl FnMut() -> T + Send,

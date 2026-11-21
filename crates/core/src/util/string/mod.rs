@@ -49,6 +49,13 @@ pub fn trimmed_non_empty_from_owned<'a>(mut owned: String) -> Option<Cow<'a, str
     non_empty_from(owned)
 }
 
+/// Checks that the string is non-empty and has no leading or trailing whitespace.
+#[must_use]
+pub fn is_trimmed_non_empty(s: &str) -> bool {
+    let trimmed = s.trim();
+    !trimmed.is_empty() && trimmed == s
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Tests
 ///////////////////////////////////////////////////////////////////////

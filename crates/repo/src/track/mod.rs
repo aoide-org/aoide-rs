@@ -10,20 +10,14 @@ use aoide_core::{
 use aoide_core_api::{
     Pagination,
     filter::StringPredicate,
-    track::search::{Filter, SortOrder, StringField},
+    track::search::{Filter, SortOrder},
 };
 
-use crate::{CollectionId, MediaSourceId, RepoResult, ReservableRecordCollector, StringCount};
+use crate::{CollectionId, MediaSourceId, RepoResult, ReservableRecordCollector};
 
 record_id_newtype!(RecordId);
 
 pub type RecordHeader = crate::RecordHeader<RecordId>;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct StringFieldCounts {
-    pub field: StringField,
-    pub counts: Vec<StringCount>,
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ReplaceMode {

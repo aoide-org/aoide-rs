@@ -10,10 +10,7 @@ use semval::prelude::*;
 
 use crate::{
     EntityHeaderTyped, EntityUidInvalidity, EntityUidTyped, TrackUid,
-    util::{
-        color::{Color, ColorInvalidity},
-        random::adhoc_rng,
-    },
+    util::color::{Color, ColorInvalidity},
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -250,14 +247,6 @@ impl PlaylistWithEntries {
         }
     }
 
-    pub fn append_entries(&mut self, new_entries: impl IntoIterator<Item = Entry>) {
-        self.replace_entries(self.entries.len().., new_entries);
-    }
-
-    pub fn insert_entries(&mut self, before: usize, new_entries: impl IntoIterator<Item = Entry>) {
-        self.replace_entries(before..before, new_entries);
-    }
-
     pub fn replace_entries(
         &mut self,
         range: impl RangeBounds<usize>,
@@ -266,32 +255,8 @@ impl PlaylistWithEntries {
         self.entries.splice(range, new_entries);
     }
 
-    pub fn remove_entries(&mut self, range: impl RangeBounds<usize>) {
-        self.entries.drain(range);
-    }
-
-    pub fn remove_all_entries(&mut self) {
-        self.entries.clear();
-    }
-
-    pub fn shuffle_entries(&mut self) {
-        self.shuffle_entries_with(&mut adhoc_rng());
-    }
-
     pub fn shuffle_entries_with<T: Rng>(&mut self, rng: &mut T) {
         self.entries.shuffle(rng);
-    }
-
-    // Sort entries by their creation time stamp, preserving the
-    // order of entries with equal time stamps.
-    pub fn reverse_entries(&mut self) {
-        self.entries.reverse();
-    }
-
-    // Sort entries by their creation time stamp, preserving the
-    // order of entries with equal time stamps.
-    pub fn sort_entries_chronologically(&mut self) {
-        self.entries.sort_by_key(|entry| entry.added_ts);
     }
 
     #[must_use]

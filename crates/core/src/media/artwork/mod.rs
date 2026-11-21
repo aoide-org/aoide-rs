@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (C) 2018-2026 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use ::image::{ExtendedColorType, ImageEncoder as _, RgbImage, codecs::png::PngEncoder};
+use ::image::{ExtendedColorType, ImageEncoder as _, codecs::png::PngEncoder};
 use data_encoding::BASE64_NOPAD;
 use mime::Mime;
 use semval::prelude::*;
@@ -81,18 +81,6 @@ pub const THUMBNAIL_WIDTH: ImageDimension = 4;
 pub const THUMBNAIL_HEIGHT: ImageDimension = 4;
 
 pub type Thumbnail4x4Rgb8 = [u8; (THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3) as _];
-
-/// Create an image from thumbnail data
-#[must_use]
-#[expect(clippy::missing_panics_doc)] // Never panics
-pub fn thumbnail_image(thumbnail: &Thumbnail4x4Rgb8) -> RgbImage {
-    RgbImage::from_raw(
-        THUMBNAIL_WIDTH.into(),
-        THUMBNAIL_HEIGHT.into(),
-        thumbnail.to_vec(),
-    )
-    .expect("Some")
-}
 
 /// Create an ICO [data URI](<https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs>)
 /// from thumbnail data

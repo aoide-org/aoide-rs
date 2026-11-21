@@ -4,7 +4,6 @@
 use std::{
     borrow::{Borrow, Cow},
     cmp::Ordering,
-    fmt,
     hash::Hash,
 };
 
@@ -16,7 +15,18 @@ use crate::util::string::trimmed_non_empty_from;
 /// The name of a tag.
 ///
 /// Format: Unicode string without leading/trailing whitespace
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Clone,
+    Default,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    derive_more::AsRef,
+    derive_more::Display,
+)]
 #[repr(transparent)]
 #[cfg_attr(
     feature = "serde",
@@ -94,21 +104,9 @@ impl<'a> Label<'a> {
     }
 }
 
-impl<'a> AsRef<Cow<'a, str>> for Label<'a> {
-    fn as_ref(&self) -> &Cow<'a, str> {
-        &self.0
-    }
-}
-
 impl Borrow<str> for Label<'_> {
     fn borrow(&self) -> &str {
         self.as_ref()
-    }
-}
-
-impl fmt::Display for Label<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_str().fmt(f)
     }
 }
 

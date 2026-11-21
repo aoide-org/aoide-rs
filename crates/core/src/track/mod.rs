@@ -195,12 +195,6 @@ impl Track {
     }
 
     #[must_use]
-    pub fn track_composer(&self) -> Option<&str> {
-        Actors::summary_actor(self.actors.iter(), actor::Role::Composer)
-            .map(|actor| actor.name.as_str())
-    }
-
-    #[must_use]
     pub fn album_title(&self) -> Option<&str> {
         Titles::main_title(self.album.titles.as_ref()).map(|title| title.name.as_str())
     }
